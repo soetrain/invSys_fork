@@ -1,8 +1,9 @@
-invSys_IN_PROGRESS_005.xlsm @justinwj
-*.xlsm @justinwj
-*.xlsb @justinwj
-*.xlsx @justinwj
-*.xls @justinwj
-*.github @justinwj
-*.gitattributes @justinwj
-*.gitignore @justinwj
+invSys_IN_PROGRESS_005.xlsm
+*.xlsm
+*.xlsb
+*.xlsx
+*.xls
+.github/**
+.gitattributes
+.gitignore
+
