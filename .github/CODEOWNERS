@@ -1,3 +1,5 @@
 invSys_IN_PROGRESS_005.xlsm @justinwj
-*xlsm @justinwj
-*xlsb @justinwj
+*.xlsm @justinwj
+*.xlsb @justinwj
+*.xlsx @justinwj
+*.xls @justinwj
