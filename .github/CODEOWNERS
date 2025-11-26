@@ -3,3 +3,6 @@ invSys_IN_PROGRESS_005.xlsm @justinwj
 *.xlsb @justinwj
 *.xlsx @justinwj
 *.xls @justinwj
+*.github @justinwj
+*.gitattributes @justinwj
+*.gitignore @justinwj
