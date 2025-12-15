@@ -340,8 +340,8 @@ End Sub
 
 ' ===== undo helpers =====
 Private Sub CaptureUndoState(agg As ListObject, inv As ListObject, logTbl As ListObject)
-    mUndoInv = New Collection
-    mUndoLogRows = New Collection
+    Set mUndoInv = New Collection
+    Set mUndoLogRows = New Collection
     mUndoRT = SnapshotTable(SheetExists("ReceivedTally").ListObjects("ReceivedTally"))
     mUndoAGG = SnapshotTable(agg)
     ' log rows added will be captured as we append
