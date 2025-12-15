@@ -128,17 +128,18 @@ Private Sub CommitSelection()
     End If
 
     ' Push into Aggregate via existing entry point
+    ' ITEM, ITEM_CODE, VENDORS, VENDOR_CODE(blank), DESCRIPTION, UOM, LOCATION, ROW
     modTS_Received.AddOrMergeFromSearch _
         refNum, _
-        lst.List(lst.ListIndex, 2), _      ' ITEM
-        lst.List(lst.ListIndex, 1), _      ' ITEM_CODE
+        lst.List(lst.ListIndex, 2), _
+        lst.List(lst.ListIndex, 1), _
         qty, _
-        lst.List(lst.ListIndex, 6), _      ' VENDORS
-        "", _                               ' vendorCode (not provided)
-        lst.List(lst.ListIndex, 5), _      ' DESCRIPTION
-        lst.List(lst.ListIndex, 3), _      ' UOM
-        lst.List(lst.ListIndex, 4), _      ' LOCATION
-        CLng(NzLng(lst.List(lst.ListIndex, 0))) ' ROW
+        lst.List(lst.ListIndex, 6), _
+        "", _
+        lst.List(lst.ListIndex, 5), _
+        lst.List(lst.ListIndex, 3), _
+        lst.List(lst.ListIndex, 4), _
+        CLng(NzLng(lst.List(lst.ListIndex, 0)))
 
     ' Refresh aggregation detail
     modTS_Received.RebuildAggregation
