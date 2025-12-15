@@ -30,10 +30,9 @@ Public Sub EnsureGeneratedButtons()
     Set ws = SheetExists("ReceivedTally")
     If ws Is Nothing Then Exit Sub
     ' Simple guard: check for shapes by name; if missing, create.
-    EnsureButton ws, "btnSearchItems", "Search Items"
-    EnsureButton ws, "btnConfirmWrites", "Confirm writes"
-    EnsureButton ws, "btnUndoMacro", "Undo macro"
-    EnsureButton ws, "btnRedoMacro", "Redo macro"
+    EnsureButton ws, "btnConfirmWrites", "Confirm writes", "modTS_Received.ConfirmWrites"
+    EnsureButton ws, "btnUndoMacro", "Undo macro", "modTS_Received.MacroUndo"
+    EnsureButton ws, "btnRedoMacro", "Redo macro", "modTS_Received.MacroRedo"
 End Sub
 
 ' Called by frmItemSearch after user picks an item
@@ -185,12 +184,18 @@ Public Sub MacroRedo()
 End Sub
 
 ' ==== helpers ====
-Private Function SheetExists(name As String) As Worksheet
-    On Error Resume Next
-    Set SheetExists = ThisWorkbook.Worksheets(name)
+Private Function SheetExists(nameOrCode As String) As Worksheet
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.Worksheets
+        If StrComp(ws.Name, nameOrCode, vbTextCompare) = 0 _
+           Or StrComp(ws.CodeName, nameOrCode, vbTextCompare) = 0 Then
+            Set SheetExists = ws
+            Exit Function
+        End If
+    Next
 End Function
 
-Private Sub EnsureButton(ws As Worksheet, shapeName As String, caption As String)
+Private Sub EnsureButton(ws As Worksheet, shapeName As String, caption As String, onActionMacro As String)
     Dim shp As Shape
     On Error Resume Next
     Set shp = ws.Shapes(shapeName)
@@ -200,6 +205,7 @@ Private Sub EnsureButton(ws As Worksheet, shapeName As String, caption As String
         Set shp = ws.Shapes.AddFormControl(xlButtonControl, 10, topPos, 100, 18)
         shp.Name = shapeName
         shp.TextFrame.Characters.Text = caption
+        If onActionMacro <> "" Then shp.OnAction = onActionMacro
     End If
 End Sub
 
