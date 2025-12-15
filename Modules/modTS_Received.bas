@@ -264,7 +264,9 @@ Private Sub MergeIntoAggregate(agg As ListObject, refNumber As String, itemCode 
         .Cells(1, c("UOM")).Value = uom
         .Cells(1, c("LOCATION")).Value = location
         .Cells(1, c("ROW")).Value = invRow
-        .Cells(1, c("QUANTITY")).Value = NzDbl(.Cells(1, c("QUANTITY")).Value) + qty
+        If qty > 0 Then
+            .Cells(1, c("QUANTITY")).Value = NzDbl(.Cells(1, c("QUANTITY")).Value) + qty
+        End If
     End With
 End Sub
 

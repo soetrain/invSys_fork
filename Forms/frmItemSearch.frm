@@ -31,7 +31,8 @@ End Sub
 Private Sub UserForm_Initialize()
     ' Set up the list box columns
     Me.lstBox.ColumnCount = 4
-    Me.lstBox.ColumnWidths = "40;60;80;150"
+    ' ITEM | ITEM_CODE | UOM | LOCATION
+    Me.lstBox.ColumnWidths = "180;90;60;90"
     ' Center the form
     Me.StartUpPosition = 1 'CenterOwner
     ' Load items from invSys via modTS_Received
@@ -200,12 +201,13 @@ Public Sub CommitSelectionAndClose()
     Dim tbl As ListObject
     ' Get selection from list box or text box
     If Me.lstBox.ListIndex <> -1 Then
-        chosenItemCode = Me.lstBox.List(Me.lstBox.ListIndex, 0)  ' ITEM_CODE
-        chosenValue = Me.lstBox.List(Me.lstBox.ListIndex, 1)     ' Item name (display)
-        ' UOM and LOCATION are in columns 2 and 3 if needed later
+        ' col0 = ITEM, col1 = ITEM_CODE, col2 = UOM, col3 = LOCATION
+        chosenValue = Me.lstBox.List(Me.lstBox.ListIndex, 0)      ' ITEM
+        chosenItemCode = Me.lstBox.List(Me.lstBox.ListIndex, 1)   ' ITEM_CODE
+        chosenUOM = Me.lstBox.List(Me.lstBox.ListIndex, 2)        ' UOM
+        location = Me.lstBox.List(Me.lstBox.ListIndex, 3)         ' LOCATION
         chosenRowNum = ""
         chosenVendor = ""
-        location = GetLocationByItem(chosenItemCode, chosenValue)
     ElseIf Trim(Me.txtBox.text) <> "" Then
         chosenValue = Me.txtBox.text
         chosenItemCode = ""
@@ -396,41 +398,30 @@ Private Sub SetTallyRowNumber(dataRow As ListRow, tallyRowNum As Long)
     End If
     On Error GoTo 0
 End Sub
-' Populate the list box with items from invSys table - FIXED
+' Populate the list box with items from invSys table
 Private Sub PopulateListBox(itemArray As Variant)
-    ' Debug what we're getting
     Debug.Print "PopulateListBox: Received itemArray with dimensions: " & _
                 LBound(itemArray, 1) & " to " & UBound(itemArray, 1) & ", " & _
                 LBound(itemArray, 2) & " to " & UBound(itemArray, 2)
     Dim i As Long
-    Dim rowNum As String, ItemCode As String, itemName As String, vendor As String
+    Dim ItemCode As String, itemName As String, uom As String, location As String
     Me.lstBox.Clear
-    ' Check if itemArray is properly initialized
     If IsEmpty(itemArray) Or Not IsArray(itemArray) Then
         Debug.Print "PopulateListBox: Invalid itemArray received"
         Exit Sub
     End If
     On Error Resume Next
     For i = LBound(itemArray, 1) To UBound(itemArray, 1)
-        ' Make sure we have valid data before adding the item
-        If IsArray(itemArray) And UBound(itemArray, 2) >= 2 Then
-            ' Extract values with appropriate error handling
-            rowNum = CStr(itemArray(i, 0))  ' ROW - FIXED: Now correctly using index 0
-            ItemCode = CStr(itemArray(i, 1))  ' ITEM_CODE - FIXED: Now correctly using index 1
-            ' Get the item name - column index 2 in the array
-            If UBound(itemArray, 2) >= 2 Then
-                itemName = CStr(itemArray(i, 2))  ' ITEM name
-            Else
-                itemName = "Unknown"
-            End If
-            ' Get vendor data from the invSys table
-            vendor = GetVendorByItem(ItemCode, itemName)
-            ' Add the item to the list box - FIXED order
+        If IsArray(itemArray) And UBound(itemArray, 2) >= 4 Then
+            ItemCode = CStr(itemArray(i, 1))    ' ITEM_CODE
+            itemName = CStr(itemArray(i, 2))    ' ITEM
+            uom = CStr(itemArray(i, 3))         ' UOM
+            location = CStr(itemArray(i, 4))    ' LOCATION
             Me.lstBox.AddItem ""
-            Me.lstBox.List(Me.lstBox.ListCount - 1, 0) = rowNum      ' ROW
-            Me.lstBox.List(Me.lstBox.ListCount - 1, 1) = ItemCode    ' ITEM_CODE
-            Me.lstBox.List(Me.lstBox.ListCount - 1, 2) = vendor      ' VENDOR
-            Me.lstBox.List(Me.lstBox.ListCount - 1, 3) = itemName    ' ITEM name
+            Me.lstBox.List(Me.lstBox.ListCount - 1, 0) = itemName
+            Me.lstBox.List(Me.lstBox.ListCount - 1, 1) = ItemCode
+            Me.lstBox.List(Me.lstBox.ListCount - 1, 2) = uom
+            Me.lstBox.List(Me.lstBox.ListCount - 1, 3) = location
         End If
     Next i
     On Error GoTo 0
