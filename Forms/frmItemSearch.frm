@@ -14,6 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
+' NOTE: This userform is being deprecated in favor of the dynamic search form (cDynItemSearch) in modTS_Received.
 Private FullItemList As Variant
 Private LastSearchText As String
 Private LastSearchTime As Double
@@ -33,7 +34,7 @@ Private Sub UserForm_Initialize()
     ' Set up the list box columns
     Me.lstBox.ColumnCount = 7
     ' ROW | ITEM_CODE | ITEM | UOM | LOCATION | DESCRIPTION | VENDORS
-    Me.lstBox.ColumnWidths = "60;90;180;60;90;180;140"
+    Me.lstBox.ColumnWidths = "20;30;180;20;45;90;60"
     ' Center the form
     Me.StartUpPosition = 1 'CenterOwner
     ' Load items from invSys via modTS_Received

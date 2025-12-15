@@ -22,6 +22,7 @@ Private mUndoLogRows As Collection
 Private mUndoRT As Variant
 Private mUndoAGG As Variant
 Private mRedoReady As Boolean
+Private mDynSearch As cDynItemSearch
 
 ' ==== public entry points =====
 Public Sub EnsureGeneratedButtons()
@@ -33,6 +34,13 @@ Public Sub EnsureGeneratedButtons()
     EnsureButton ws, "btnConfirmWrites", "Confirm writes", "modTS_Received.ConfirmWrites"
     EnsureButton ws, "btnUndoMacro", "Undo macro", "modTS_Received.MacroUndo"
     EnsureButton ws, "btnRedoMacro", "Redo macro", "modTS_Received.MacroRedo"
+End Sub
+
+' ==== dynamic search form (ReceivedTally) =====
+Public Sub ShowDynamicItemSearch(ByVal targetCell As Range)
+    If targetCell Is Nothing Then Exit Sub
+    If mDynSearch Is Nothing Then Set mDynSearch = New cDynItemSearch
+    mDynSearch.ShowForCell targetCell
 End Sub
 
 ' Called by frmItemSearch after user picks an item
