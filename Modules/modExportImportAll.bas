@@ -18,6 +18,9 @@ Attribute VB_Name = "modExportImportAll"
 '------------------------------------------------------------
 
 Option Explicit
+
+' Path to code files (repo). Change once if your repo moves.
+Private Const CODE_ROOT As String = "D:\justinwj\Solutions\invSys_fork\"
 ' Subroutine to export all modules, classes, forms, and Excel objects (sheets, workbook)
 Sub ExportAllModules()
     Dim vbComp As VBIDE.VBComponent
@@ -79,7 +82,7 @@ Public Sub ReplaceAllCodeFromFiles()
 End Sub
 ' Sync only .bas modules by removing and re-importing
 Public Sub SyncStandardModules()
-    Const ROOT_PATH As String = "D:\\justinwj\\Workbooks\\0_PROJECT_invSys\\Modules\\"
+    Const ROOT_PATH As String = CODE_ROOT & "Modules\\"
     Dim fso As Object
     Dim vbProj As VBIDE.VBProject
     Dim fileItem As Object
@@ -112,7 +115,7 @@ End Sub
 
 ' Sync only .cls class modules by removing and re-importing
 Public Sub SyncClassModules()
-    Const ROOT_PATH As String = "D:\\justinwj\\Solutions\\invSys_fork\\Class Modules\\"
+    Const ROOT_PATH As String = CODE_ROOT & "Class Modules\\"
     Dim fso As Object
     Dim vbProj As VBIDE.VBProject
     Dim fileItem As Object
@@ -143,7 +146,7 @@ End Sub
 'updates code to whatever is in ROOT_PATH (Forms folder)
 Public Sub SyncFormsCodeBehind()
     ' Use the repo Forms folder next to this workbook
-    Const ROOT_PATH As String = ThisWorkbook.Path & "\\Forms\\"
+    Const ROOT_PATH As String = CODE_ROOT & "Forms\\"
     Dim fso     As Object: Set fso = CreateObject("Scripting.FileSystemObject")
     Dim vbProj  As VBIDE.VBProject: Set vbProj = ThisWorkbook.VBProject
     Dim folder  As Object, fileItem As Object
@@ -204,7 +207,7 @@ End Sub
 
 ' Updates Sheet (Microsoft Excel Objects) code to whatever is in ROOT_PATH
 Public Sub SyncSheetsCodeBehind()
-    Const ROOT_PATH As String = "D:\\justinwj\\Solutions\\invSys_fork\\Sheets\\"
+    Const ROOT_PATH As String = CODE_ROOT & "Sheets\\"
     Dim fso       As Object: Set fso = CreateObject("Scripting.FileSystemObject")
     Dim vbProj    As VBIDE.VBProject: Set vbProj = ThisWorkbook.VBProject
     Dim folder    As Object, fileItem As Object
@@ -267,7 +270,7 @@ NextFile:
 End Sub
 
 Public Sub SyncSheetsCodeBehind_Diagnostics()
-    Const ROOT_PATH As String = "D:\justinwj\Workbooks\0_PROJECT_invSys\Sheets\"
+    Const ROOT_PATH As String = CODE_ROOT & "Sheets\\"
     Dim fso      As Object: Set fso = CreateObject("Scripting.FileSystemObject")
     Dim vbProj   As VBIDE.VBProject: Set vbProj = ThisWorkbook.VBProject
     Dim folder   As Object, fileItem As Object

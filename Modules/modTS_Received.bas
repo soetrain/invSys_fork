@@ -294,7 +294,7 @@ Private Function AggColMap(lo As ListObject) As Object
     Dim names: names = Array("REF_NUMBER", "ITEM_CODE", "VENDORS", "VENDOR_CODE", "DESCRIPTION", "ITEM", "UOM", "QUANTITY", "LOCATION", "ROW")
     Dim i As Long
     For i = LBound(names) To UBound(names)
-        d(names(i)) = ColumnIndex(lo, names(i))
+        d(names(i)) = ColumnIndex(lo, CStr(names(i)))
         If d(names(i)) = 0 Then Exit Function
     Next
     Set AggColMap = d
