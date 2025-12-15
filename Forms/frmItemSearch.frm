@@ -61,11 +61,10 @@ Private Sub BuildFirstCharIndex()
     For i = 0 To 255
         SearchFirstCharIndex(i) = -1
     Next i
-    ' Go through the list and record the first occurrence of each first character
+    ' Go through the list and record the first occurrence of each first character (use ITEM at col 2)
     For i = 0 To Me.lstBox.ListCount - 1
-        ' Use index 0 for ITEM name
-        If Me.lstBox.List(i, 0) <> "" Then
-            char = UCase(Left$(Me.lstBox.List(i, 0), 1))
+        If Me.lstBox.List(i, 2) <> "" Then
+            char = UCase(Left$(Me.lstBox.List(i, 2), 1))
             ' Only record the first occurrence
             If Asc(char) <= 255 And SearchFirstCharIndex(Asc(char)) = -1 Then
                 SearchFirstCharIndex(Asc(char)) = i
@@ -113,8 +112,8 @@ Private Sub txtBox_Change()
         On Error Resume Next
         ' First pass: Search from the first character index position
         For i = startIndex To Me.lstBox.ListCount - 1
-            ' Use index 0 for ITEM name
-            If InStr(1, LCase(Me.lstBox.List(i, 0)), searchText) > 0 Then
+            ' Use index 2 for ITEM name (col2 = ITEM)
+            If InStr(1, LCase(Me.lstBox.List(i, 2)), searchText) > 0 Then
                 matchIndex = i
                 Exit For
             End If
@@ -123,8 +122,8 @@ Private Sub txtBox_Change()
         ' search from beginning to that index
         If matchIndex = -1 And startIndex > 0 Then
             For i = 0 To startIndex - 1
-                ' Use index 0 for ITEM name
-                If InStr(1, LCase(Me.lstBox.List(i, 0)), searchText) > 0 Then
+                ' Use index 2 for ITEM name
+                If InStr(1, LCase(Me.lstBox.List(i, 2)), searchText) > 0 Then
                     matchIndex = i
                     Exit For
                 End If
@@ -499,8 +498,8 @@ Private Sub UpdateDescription()
         ' Get the description for this item from the FullItemList
         ' Add 1 because ListBox is 0-based but array is 1-based
         If selectedIndex + 1 <= UBound(FullItemList, 1) Then
-            ' Set the description text
-            Me.txtBox2.text = FullItemList(selectedIndex + 1, 4)  ' Changed from .text to .Text
+            ' Description is column 6 in FullItemList (ROW, ITEM_CODE, ITEM, UOM, LOCATION, DESCRIPTION, VENDORS)
+            Me.txtBox2.text = FullItemList(selectedIndex + 1, 6)
         End If
     End If
 End Sub
