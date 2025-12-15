@@ -84,6 +84,7 @@ Public Sub RebuildAggregation()
 
         Dim itemCode As String, vendors As String, vendorCode As String
         Dim descr As String, uom As String, location As String, invRow As Long
+        itemCode = "": vendors = "": vendorCode = "": descr = "": uom = "": location = "": invRow = 0
         LookupInvSys catalog, itemName, itemCode, vendors, vendorCode, descr, uom, location, invRow
 
         MergeIntoAggregate agg, refNumber, itemCode, vendors, vendorCode, descr, itemName, uom, qty, location, invRow
@@ -248,8 +249,13 @@ Private Sub MergeIntoAggregate(agg As ListObject, refNumber As String, itemCode 
     If c Is Nothing Then Exit Sub
 
     Dim matchRow As Range
+    ' Only try to merge when we have a resolved item code; otherwise always add a new row
     If Not agg.DataBodyRange Is Nothing Then
-        Set matchRow = FindAggregateMatch(agg, itemCode, itemName, uom, vendors, location, vendorCode, descr)
+        If itemCode <> "" Then
+            Set matchRow = FindAggregateMatch(agg, itemCode, itemName, uom, vendors, location, invRow, vendorCode, descr)
+        Else
+            Set matchRow = Nothing
+        End If
     End If
 
     Dim lr As ListRow
@@ -275,20 +281,25 @@ Private Sub MergeIntoAggregate(agg As ListObject, refNumber As String, itemCode 
     End With
 End Sub
 
-Private Function FindAggregateMatch(agg As ListObject, itemCode As String, itemName As String, uom As String, vendors As String, location As String, vendorCode As String, descr As String) As Range
+Private Function FindAggregateMatch(agg As ListObject, itemCode As String, itemName As String, uom As String, vendors As String, location As String, invRow As Long, vendorCode As String, descr As String) As Range
     Dim c As Object: Set c = AggColMap(agg)
     If agg.DataBodyRange Is Nothing Then Exit Function
+    If invRow <= 0 Then Exit Function ' no resolved invSys row => no merge
     Dim r As Range
     For Each r In agg.DataBodyRange.Rows
         Dim sameKey As Boolean
         sameKey = False
         If itemCode <> "" Then
-            sameKey = (NzStr(r.Cells(1, c("ITEM_CODE")).Value) = itemCode)
+            sameKey = (NzStr(r.Cells(1, c("ITEM_CODE")).Value) = itemCode And _
+                       NzStr(r.Cells(1, c("ITEM")).Value) = itemName)
         Else
             sameKey = (NzStr(r.Cells(1, c("ITEM")).Value) = itemName And NzStr(r.Cells(1, c("UOM")).Value) = uom)
         End If
         If sameKey Then
-            If NzStr(r.Cells(1, c("LOCATION")).Value) = location And NzStr(r.Cells(1, c("VENDORS")).Value) = vendors Then
+            ' Require same ROW to merge
+            If NzLng(r.Cells(1, c("ROW")).Value) = invRow And _
+               NzStr(r.Cells(1, c("LOCATION")).Value) = location And _
+               NzStr(r.Cells(1, c("VENDORS")).Value) = vendors Then
                 Set FindAggregateMatch = r
                 Exit Function
             End If
