@@ -198,13 +198,13 @@ Public Sub CommitSelectionAndClose()
     Dim location As String
     Dim ws As Worksheet
     Dim tbl As ListObject
-    Dim dataTbl As ListObject
     ' Get selection from list box or text box
     If Me.lstBox.ListIndex <> -1 Then
-        chosenRowNum = Me.lstBox.List(Me.lstBox.ListIndex, 0)    ' ROW
-        chosenItemCode = Me.lstBox.List(Me.lstBox.ListIndex, 1)  ' ITEM_CODE
-        chosenVendor = Me.lstBox.List(Me.lstBox.ListIndex, 2)    ' VENDOR
-        chosenValue = Me.lstBox.List(Me.lstBox.ListIndex, 3)     ' Item name
+        chosenItemCode = Me.lstBox.List(Me.lstBox.ListIndex, 0)  ' ITEM_CODE
+        chosenValue = Me.lstBox.List(Me.lstBox.ListIndex, 1)     ' Item name
+        ' UOM and LOCATION are in columns 2 and 3 if needed later
+        chosenRowNum = ""
+        chosenVendor = ""
         location = GetLocationByItem(chosenItemCode, chosenValue)
     ElseIf Trim(Me.txtBox.text) <> "" Then
         chosenValue = Me.txtBox.text
@@ -220,46 +220,18 @@ Public Sub CommitSelectionAndClose()
     End If
     ' Apply the selection to the cell
     If Not gSelectedCell Is Nothing Then
-        ' Store the original value before making changes
-        Dim originalValue As String
-        originalValue = gSelectedCell.value
         ' Update the cell with new item name
         gSelectedCell.value = chosenValue
-        ' If we have a valid item selection, update the data table
+
+        ' If we have a valid item selection on ReceivedTally, rebuild aggregation detail
         If Me.lstBox.ListIndex <> -1 Then
             Set ws = gSelectedCell.Worksheet
-            ' Determine which tables to work with based on which sheet we're on
-            If ws.name = "ShipmentsTally" Then
-                Set tbl = ws.ListObjects("ShipmentsTally")
-                Set dataTbl = ws.ListObjects("invSysData_Shipping")
-            ElseIf ws.name = "ReceivedTally" Then
-                Set tbl = ws.ListObjects("ReceivedTally")
-                Set dataTbl = ws.ListObjects("invSysData_Receiving")
-            Else
-                ' Not on a valid tally sheet
-                isRunning = False
-                Unload Me
-                Exit Sub
-            End If
-            ' Get UOM for this item
-            Dim itemUOM As String
-            itemUOM = modGlobals.GetItemUOMByRowNum(chosenRowNum, chosenItemCode, chosenValue)
-            ' Get the cell identifier (row number in the tally sheet)
-            Dim tallyRowNum As Long
-            tallyRowNum = gSelectedCell.row - tbl.HeaderRowRange.row
-            ' ***** NEW CODE: Delete any existing data for this cell *****
-            DeleteExistingDataForCell dataTbl, tallyRowNum
-            ' Add a row to the corresponding data table
-            If Not dataTbl Is Nothing Then
-                Dim dataRow As ListRow
-                Set dataRow = dataTbl.ListRows.Add
-                ' Fill the data table row with all the item information
-                FillDataTableRow dataRow, itemUOM, chosenVendor, location, chosenItemCode, chosenRowNum
-                ' ***** NEW CODE: Add reference to the tally row number *****
-                SetTallyRowNumber dataRow, tallyRowNum
+            If ws.name = "ReceivedTally" Then
+                On Error Resume Next
+                modTS_Received.RebuildAggregation
+                On Error GoTo 0
             End If
         End If
-        On Error GoTo 0
     End If
     isRunning = False
     Unload Me
@@ -544,7 +516,4 @@ Private Sub UserForm_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift
         KeyCode = 0 ' Prevent default tab handling
     End If
 End Sub
-
-
-
 
