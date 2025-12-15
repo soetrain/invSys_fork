@@ -112,7 +112,7 @@ End Sub
 
 ' Sync only .cls class modules by removing and re-importing
 Public Sub SyncClassModules()
-    Const ROOT_PATH As String = "D:\\justinwj\\Workbooks\\0_PROJECT_invSys\\Class Modules\\"
+    Const ROOT_PATH As String = "D:\\justinwj\\Solutions\\invSys_fork\\Class Modules\\"
     Dim fso As Object
     Dim vbProj As VBIDE.VBProject
     Dim fileItem As Object
@@ -140,9 +140,10 @@ Public Sub SyncClassModules()
     MsgBox "Class modules imported successfully!", vbInformation
 End Sub
     
-'updates code to whatever is in ROOT_PATH & Forms
+'updates code to whatever is in ROOT_PATH (Forms folder)
 Public Sub SyncFormsCodeBehind()
-    Const ROOT_PATH As String = "D:\justinwj\Workbooks\0_PROJECT_invSys\"
+    ' Use the repo Forms folder next to this workbook
+    Const ROOT_PATH As String = ThisWorkbook.Path & "\\Forms\\"
     Dim fso     As Object: Set fso = CreateObject("Scripting.FileSystemObject")
     Dim vbProj  As VBIDE.VBProject: Set vbProj = ThisWorkbook.VBProject
     Dim folder  As Object, fileItem As Object
@@ -153,8 +154,8 @@ Public Sub SyncFormsCodeBehind()
     Dim vbComp   As VBIDE.VBComponent
     Dim lineText As String
 
-    If Not fso.FolderExists(ROOT_PATH & "Forms\") Then Exit Sub
-    Set folder = fso.GetFolder(ROOT_PATH & "Forms\")
+    If Not fso.FolderExists(ROOT_PATH) Then Exit Sub
+    Set folder = fso.GetFolder(ROOT_PATH)
 
     For Each fileItem In folder.Files
         If LCase(fso.GetExtensionName(fileItem.name)) = "frm" Then
@@ -203,7 +204,7 @@ End Sub
 
 ' Updates Sheet (Microsoft Excel Objects) code to whatever is in ROOT_PATH
 Public Sub SyncSheetsCodeBehind()
-    Const ROOT_PATH As String = "D:\justinwj\Workbooks\0_PROJECT_invSys\Sheets\"
+    Const ROOT_PATH As String = "D:\\justinwj\\Solutions\\invSys_fork\\Sheets\\"
     Dim fso       As Object: Set fso = CreateObject("Scripting.FileSystemObject")
     Dim vbProj    As VBIDE.VBProject: Set vbProj = ThisWorkbook.VBProject
     Dim folder    As Object, fileItem As Object
@@ -299,7 +300,7 @@ Public Sub SyncSheetsCodeBehind_Diagnostics()
         End If
     Next fileItem
     
-    MsgBox "Diagnostics complete—check the Immediate window (Ctrl+G).", vbInformation
+    MsgBox "Diagnostics completeï¿½check the Immediate window (Ctrl+G).", vbInformation
 End Sub
 
 Sub ExportTablesHeadersAndControls()
@@ -401,8 +402,8 @@ Sub ExportUserFormControls()
     MsgBox "UserForm controls exported to:" & vbCrLf & outputPath, vbInformation
 End Sub
 
-' Requires reference to “Microsoft Visual Basic for Applications Extensibility 5.3”
-' and Trust Center > Macro Settings > “Trust access to the VBA project object model” enabled.
+' Requires reference to ï¿½Microsoft Visual Basic for Applications Extensibility 5.3ï¿½
+' and Trust Center > Macro Settings > ï¿½Trust access to the VBA project object modelï¿½ enabled.
 
 Public Sub ExportAllCodeToSingleFiles()
     Dim exportPath As String
@@ -483,4 +484,3 @@ Sub ListSheetCodeNames()
     End If
   Next
 End Sub
-
