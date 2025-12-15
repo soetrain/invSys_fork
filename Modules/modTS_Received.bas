@@ -388,7 +388,7 @@ Private Sub DeleteAddedLogRows(logTbl As ListObject)
     For i = 1 To mUndoLogRows.Count
         arr(i) = CLng(mUndoLogRows(i))
     Next
-    Call QuickSort arr, LBound(arr), UBound(arr)
+    QuickSort arr, LBound(arr), UBound(arr)
     For i = UBound(arr) To LBound(arr) Step -1
         If arr(i) <= logTbl.ListRows.Count Then logTbl.ListRows(arr(i)).Delete
     Next
