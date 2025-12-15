@@ -29,6 +29,8 @@ Public Sub EnsureGeneratedButtons()
     Dim ws As Worksheet
     Set ws = SheetExists("ReceivedTally")
     If ws Is Nothing Then Exit Sub
+    ' Remove obsolete Search Items button (handled by frmItemSearch UI only)
+    RemoveButton ws, "btnSearchItems"
     ' Simple guard: check for shapes by name; if missing, create.
     EnsureButton ws, "btnConfirmWrites", "Confirm writes", "modTS_Received.ConfirmWrites"
     EnsureButton ws, "btnUndoMacro", "Undo macro", "modTS_Received.MacroUndo"
@@ -207,6 +209,14 @@ Private Sub EnsureButton(ws As Worksheet, shapeName As String, caption As String
         shp.TextFrame.Characters.Text = caption
         If onActionMacro <> "" Then shp.OnAction = onActionMacro
     End If
+End Sub
+
+Private Sub RemoveButton(ws As Worksheet, shapeName As String)
+    Dim shp As Shape
+    On Error Resume Next
+    Set shp = ws.Shapes(shapeName)
+    On Error GoTo 0
+    If Not shp Is Nothing Then shp.Delete
 End Sub
 
 Private Sub MergeIntoReceivedTally(rt As ListObject, refNumber As String, itemName As String, qty As Double)
