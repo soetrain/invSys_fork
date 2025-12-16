@@ -39,8 +39,24 @@ End Sub
 ' ==== dynamic search form (ReceivedTally) =====
 Public Sub ShowDynamicItemSearch(ByVal targetCell As Range)
     If targetCell Is Nothing Then Exit Sub
-    If mDynSearch Is Nothing Then Set mDynSearch = New cDynItemSearch
+    If mDynSearch Is Nothing Then
+        On Error Resume Next
+        Set mDynSearch = New cDynItemSearch
+        On Error GoTo 0
+        If mDynSearch Is Nothing Then
+            ' Final fallback: use legacy form if the class cannot be created
+            On Error Resume Next
+            frmItemSearch.Show vbModeless
+            On Error GoTo 0
+            Exit Sub
+        End If
+    End If
+    On Error GoTo ShowErr
     mDynSearch.ShowForCell targetCell
+    On Error GoTo 0
+    Exit Sub
+ShowErr:
+    MsgBox "Item Search failed: " & Err.Description, vbExclamation
 End Sub
 
 ' Called by frmItemSearch after user picks an item
