@@ -31,31 +31,75 @@ End Sub
 
 Private Function BuildForm() As Boolean
     Debug.Print "  BuildForm entered"
+    Set uf = Nothing
     On Error Resume Next
-    Set uf = VBA.UserForms.Add()
-    If uf Is Nothing Then Set uf = CreateObject("Forms.UserForm.1")
-    On Error GoTo 0
-    If uf Is Nothing Then Exit Function
-    BuildForm = True
+    Err.Clear
 
+    ' First attempt: UserForms.Add
+    Set uf = VBA.UserForms.Add()
+    If Err.Number <> 0 Then
+        Debug.Print "    UserForms.Add ERROR:", Err.Number, Err.Description
+    ElseIf uf Is Nothing Then
+        Debug.Print "    UserForms.Add returned Nothing (no error)"
+    Else
+        Debug.Print "    UserForms.Add SUCCESS, type:", TypeName(uf)
+    End If
+
+    ' Second attempt: CreateObject
+    If uf Is Nothing Then
+        Err.Clear
+        Set uf = CreateObject("Forms.UserForm.1")
+        If Err.Number <> 0 Then
+            Debug.Print "    CreateObject ERROR:", Err.Number, Err.Description
+        ElseIf uf Is Nothing Then
+            Debug.Print "    CreateObject returned Nothing (no error)"
+        Else
+            Debug.Print "    CreateObject SUCCESS, type:", TypeName(uf)
+        End If
+    End If
+    On Error GoTo 0
+
+    If uf Is Nothing Then
+        Debug.Print "    BuildForm FAIL: uf is Nothing after both attempts"
+        BuildForm = False
+        Exit Function
+    End If
+
+    ' Build controls
     uf.Caption = "Item Search"
     uf.Width = 420
     uf.Height = 340
 
-    Debug.Print "    BuildForm SUCCESS: uf type", TypeName(uf)
+    On Error Resume Next
+    Dim txtDesc As Object
     Set txtSearch = uf.Controls.Add("Forms.TextBox.1", "txtSearch", True)
-    txtSearch.Left = 10: txtSearch.Top = 10: txtSearch.Width = uf.Width - 30
+    If Err.Number <> 0 Then Debug.Print "    ERROR adding txtSearch:", Err.Number, Err.Description
+    Err.Clear
 
     Set lst = uf.Controls.Add("Forms.ListBox.1", "lst", True)
-    lst.Left = 10: lst.Top = 35: lst.Width = uf.Width - 30: lst.Height = 230
-    lst.ColumnCount = 7
-    lst.ColumnWidths = "60;90;180;60;90;180;140"
+    If Err.Number <> 0 Then Debug.Print "    ERROR adding lst:", Err.Number, Err.Description
+    Err.Clear
 
-    Dim txtDesc As Object
     Set txtDesc = uf.Controls.Add("Forms.TextBox.1", "txtDesc", True)
+    If Err.Number <> 0 Then Debug.Print "    ERROR adding txtDesc:", Err.Number, Err.Description
+    Err.Clear
+    On Error GoTo 0
+
+    ' Configure listbox
+    lst.ColumnCount = 7
+    lst.ColumnWidths = "60;90;180;60;90;180;140" ' ROW | ITEM_CODE | ITEM | UOM | LOCATION | DESCRIPTION | VENDORS
+
+    ' Configure description box
     txtDesc.Left = 10: txtDesc.Top = lst.Top + lst.Height + 5
     txtDesc.Width = uf.Width - 30: txtDesc.Height = 50
     txtDesc.MultiLine = True: txtDesc.Locked = True
+
+    ' Position search box and list
+    txtSearch.Left = 10: txtSearch.Top = 10: txtSearch.Width = uf.Width - 30
+    lst.Left = 10: lst.Top = 35: lst.Width = uf.Width - 30: lst.Height = 230
+
+    BuildForm = True
+    Debug.Print "    BuildForm SUCCESS"
 End Function
 
 Private Function LoadItems() As Boolean
