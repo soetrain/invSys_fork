@@ -19,7 +19,8 @@ Public Sub ShowForCell(ByVal targetCell As Range)
 End Sub
 
 Private Sub BuildForm()
-    Set uf = CreateObject("Forms.UserForm.1")
+    ' Create a new in-memory userform without relying on CreateObject registry
+    Set uf = VBA.UserForms.Add()
     uf.Caption = "Item Search"
     uf.Width = 420
     uf.Height = 340

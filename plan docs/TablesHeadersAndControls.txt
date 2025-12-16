@@ -1,8 +1,7 @@
-' thes are the tables headers & controls currently in `invSys_IN_PROGRESS_005.xlsm`.
 Sheet (Tab):  INVENTORY MANAGEMENT
 Sheet (Code): InventoryManagement
   Table: invSys
-    Headers: ROW, ITEM_CODE, VENDOR(s), SUBSTITUTION, CATEGORY, PHASE, ASSIGNEE, DESCRIPTION, ITEM, UOM, LOCATION, RECEIVED, USED, MADE, SHIPMENTS, ADJUSTMENTS, TOTAL INV, LOSS, LAST EDITED, TOTAL INV LAST EDIT
+    Headers: ROW, ITEM_CODE, VENDOR(s), VENDOR_CODE, SUBSTITUTION, CATEGORY, PHASE, ASSIGNEE, DESCRIPTION, ITEM, UOM, LOCATION, RECEIVED, USED, MADE, SHIPMENTS, ADJUSTMENTS, TOTAL INV, LOSS, LAST EDITED, TOTAL INV LAST EDIT
   Form Control: Button 1
     Type: Button (0)
     Text: ADD MADE
@@ -45,27 +44,27 @@ Sheet (Code): InventoryManagement
 Sheet (Tab):  ReceivedTally
 Sheet (Code): ReceivedTally
   Table: ReceivedTally
-    Headers: REF_NUMBER, ITEMS, QUANTITY, PRICE
-  Table: invSysData_Receiving
-    Headers: UOM, VENDOR, LOCATION, ITEM_CODE, ROW, ENTRY_DATE, TALLY_ROW
+    Headers: REF_NUMBER, ITEMS, QUANTITY
+  Table: AggregateReceived
+    Headers: REF_NUMBER, ITEM_CODE, VENDORS, VENDOR_CODE, DESCRIPTION, ITEM, UOM, QUANTITY, LOCATION, ROW
   Table: ReceivingSavedList
     Headers: SAVED LIST
-  Form Control: Button 1
+  Form Control: btnConfirmWrites
     Type: Button (0)
-    Text: Tally Received
-  Form Control: Button 2
+    Text: Confirm writes
+  Form Control: btnUndoMacro
     Type: Button (0)
-    Text: Undo
-  Form Control: Button 3
+    Text: Undo macro
+  Form Control: btnRedoMacro
     Type: Button (0)
-    Text: Redo
+    Text: Redo macro
 ------------------------------------------------------------
 Sheet (Tab):  ShipmentsTally
 Sheet (Code): ShipmentsTally
   Table: ShipmentsTally
     Headers: ORDER_NUMBER, ITEMS, QUANTITY
-  Table: invSysData_Shipping
-    Headers: UOM, VENDOR, LOCATION, ITEM_CODE, ROW, ENTRY_DATE, TALLY_ROW
+  Table: AggregateShipping
+    Headers: REF_NUMBER, ITEM_CODE, VENDORS, VENDOR_CODE, DESCRIPTION, ITEM, UOM, QUANTITY, LOCATION, ROW
   Table: ShippingSavedList
     Headers: SAVED LIST
   Table: Table19
@@ -125,7 +124,7 @@ Sheet (Code): ProductionLog
 Sheet (Tab):  ReceivedLog
 Sheet (Code): ReceivedLog
   Table: ReceivedLog
-    Headers: REF_NUMBER, ITEMS, QUANTITY, PRICE, UOM, VENDOR, LOCATION, ITEM_CODE, ROW, ENTRY_DATE
+    Headers: REF_NUMBER, ITEMS, QUANTITY, UOM, VENDOR, VENDOR_CODE, LOCATION, ITEM_CODE, ROW, ENTRY_DATE
 ------------------------------------------------------------
 Sheet (Tab):  ShipmentsLog
 Sheet (Code): ShipmentsLog
