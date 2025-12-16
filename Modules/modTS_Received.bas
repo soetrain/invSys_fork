@@ -280,16 +280,16 @@ End Sub
 Private Sub MergeIntoAggregate(agg As ListObject, refNumber As String, itemCode As String, vendors As String, vendorCode As String, descr As String, itemName As String, uom As String, qty As Double, location As String, invRow As Long)
     Dim c As Object: Set c = AggColMap(agg)
     If c Is Nothing Then Exit Sub
+    If invRow <= 0 Then Exit Sub ' must have resolved invSys row to merge
 
-    Dim matchRow As Range
-    ' Do not merge for now; always add a new row to avoid unintended rollups
-    Set matchRow = Nothing
+    Dim matchLR As ListRow
+    Set matchLR = FindAggregateMatchByRowRef(agg, invRow, refNumber)
 
     Dim lr As ListRow
-    If matchRow Is Nothing Then
+    If matchLR Is Nothing Then
         Set lr = agg.ListRows.Add
     Else
-        Set lr = agg.ListRows(matchRow.Row - agg.DataBodyRange.Row + 1)
+        Set lr = matchLR
     End If
 
     With lr.Range
@@ -308,26 +308,21 @@ Private Sub MergeIntoAggregate(agg As ListObject, refNumber As String, itemCode 
     End With
 End Sub
 
-Private Function FindAggregateMatch(agg As ListObject, itemCode As String, itemName As String, uom As String, vendors As String, location As String, invRow As Long, vendorCode As String, descr As String) As Range
-    Dim c As Object: Set c = AggColMap(agg)
-    If agg.DataBodyRange Is Nothing Then Exit Function
-    If invRow <= 0 Then Exit Function ' no resolved invSys row => no merge
-    Dim r As Range
-    For Each r In agg.DataBodyRange.Rows
-        ' Merge ONLY when the invSys ROW matches and item identity matches
-        If NzLng(r.Cells(1, c("ROW")).Value) = invRow Then
-            Dim sameItem As Boolean
-            If itemCode <> "" Then
-                sameItem = (NzStr(r.Cells(1, c("ITEM_CODE")).Value) = itemCode)
-            Else
-                sameItem = (NzStr(r.Cells(1, c("ITEM")).Value) = itemName And NzStr(r.Cells(1, c("UOM")).Value) = uom)
-            End If
-            If sameItem Then
-                Set FindAggregateMatch = r
-                Exit Function
-            End If
+Private Function FindAggregateMatchByRowRef(agg As ListObject, invRow As Long, refNumber As String) As ListRow
+    If agg Is Nothing Or agg.DataBodyRange Is Nothing Then Exit Function
+    Dim cRow As Long, cRef As Long
+    cRow = ColumnIndex(agg, "ROW")
+    cRef = ColumnIndex(agg, "REF_NUMBER")
+    If cRow = 0 Or cRef = 0 Then Exit Function
+
+    Dim lr As ListRow
+    For Each lr In agg.ListRows
+        If NzLng(lr.Range.Cells(1, cRow).Value) = invRow _
+           And StrComp(NzStr(lr.Range.Cells(1, cRef).Value), refNumber, vbTextCompare) = 0 Then
+            Set FindAggregateMatchByRowRef = lr
+            Exit Function
         End If
-    Next
+    Next lr
 End Function
 
 Private Function AggColMap(lo As ListObject) As Object
