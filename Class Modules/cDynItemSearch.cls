@@ -4,9 +4,10 @@
 '------------------------
 Option Explicit
 
-Private txtSearch As Object
-Private lst As Object
+Private WithEvents txtSearch As MSForms.TextBox
+Private WithEvents lst As MSForms.ListBox
 Private uf As Object
+Private txtDesc As MSForms.TextBox
 Private itemsArr As Variant
 Private callbackCell As Range
 
@@ -35,32 +36,19 @@ Private Function BuildForm() As Boolean
     On Error Resume Next
     Err.Clear
 
-    ' First attempt: UserForms.Add
-    Set uf = VBA.UserForms.Add()
+    ' Use compiled template form to avoid FM20/COM issues
+    Set uf = VBA.UserForms.Add("ufDynItemSearchTemplate")
     If Err.Number <> 0 Then
-        Debug.Print "    UserForms.Add ERROR:", Err.Number, Err.Description
+        Debug.Print "    Add('ufDynItemSearchTemplate') ERROR:", Err.Number, Err.Description
     ElseIf uf Is Nothing Then
-        Debug.Print "    UserForms.Add returned Nothing (no error)"
+        Debug.Print "    Add('ufDynItemSearchTemplate') returned Nothing"
     Else
-        Debug.Print "    UserForms.Add SUCCESS, type:", TypeName(uf)
-    End If
-
-    ' Second attempt: CreateObject
-    If uf Is Nothing Then
-        Err.Clear
-        Set uf = CreateObject("Forms.UserForm.1")
-        If Err.Number <> 0 Then
-            Debug.Print "    CreateObject ERROR:", Err.Number, Err.Description
-        ElseIf uf Is Nothing Then
-            Debug.Print "    CreateObject returned Nothing (no error)"
-        Else
-            Debug.Print "    CreateObject SUCCESS, type:", TypeName(uf)
-        End If
+        Debug.Print "    Add('ufDynItemSearchTemplate') SUCCESS, type:", TypeName(uf)
     End If
     On Error GoTo 0
 
     If uf Is Nothing Then
-        Debug.Print "    BuildForm FAIL: uf is Nothing after both attempts"
+        Debug.Print "    BuildForm FAIL: uf is Nothing"
         BuildForm = False
         Exit Function
     End If
@@ -71,7 +59,6 @@ Private Function BuildForm() As Boolean
     uf.Height = 340
 
     On Error Resume Next
-    Dim txtDesc As Object
     Set txtSearch = uf.Controls.Add("Forms.TextBox.1", "txtSearch", True)
     If Err.Number <> 0 Then Debug.Print "    ERROR adding txtSearch:", Err.Number, Err.Description
     Err.Clear
@@ -87,6 +74,9 @@ Private Function BuildForm() As Boolean
 
     ' Configure listbox
     lst.ColumnCount = 7
+    lst.ColumnHeads = False
+    lst.BoundColumn = 0
+    lst.TextColumn = 3 ' ITEM
     lst.ColumnWidths = "60;90;180;60;90;180;140" ' ROW | ITEM_CODE | ITEM | UOM | LOCATION | DESCRIPTION | VENDORS
 
     ' Configure description box
@@ -126,6 +116,57 @@ Private Function LoadItems() As Boolean
     LoadItems = True
     Debug.Print "    LoadItems SUCCESS"
 End Function
+
+' ==== events ====
+Private Sub txtSearch_Change()
+    Dim term As String: term = LCase$(Trim$(txtSearch.Text))
+    Dim i As Long
+    lst.Clear
+    If IsEmpty(itemsArr) Then Exit Sub
+    For i = LBound(itemsArr, 1) To UBound(itemsArr, 1)
+        If term = "" Or InStr(1, LCase$(itemsArr(i, 3)), term) > 0 Then
+            lst.AddItem
+            lst.List(lst.ListCount - 1, 0) = itemsArr(i, 1)
+            lst.List(lst.ListCount - 1, 1) = itemsArr(i, 2)
+            lst.List(lst.ListCount - 1, 2) = itemsArr(i, 3)
+            lst.List(lst.ListCount - 1, 3) = itemsArr(i, 4)
+            lst.List(lst.ListCount - 1, 4) = itemsArr(i, 5)
+            lst.List(lst.ListCount - 1, 5) = itemsArr(i, 6)
+            lst.List(lst.ListCount - 1, 6) = itemsArr(i, 7)
+        End If
+    Next i
+End Sub
+
+Private Sub lst_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
+    CommitSelection
+End Sub
+
+Private Sub lst_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If KeyCode = vbKeyReturn Then
+        CommitSelection
+        KeyCode = 0
+    End If
+End Sub
+
+Private Sub txtSearch_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If KeyCode = vbKeyReturn Then
+        CommitSelection
+        KeyCode = 0
+    End If
+End Sub
+
+Private Sub lst_Click()
+    UpdateDescription
+End Sub
+
+Private Sub UpdateDescription()
+    On Error Resume Next
+    If txtDesc Is Nothing Then Exit Sub
+    txtDesc.Text = ""
+    If lst.ListIndex >= 0 Then
+        txtDesc.Text = lst.List(lst.ListIndex, 5)
+    End If
+End Sub
 
 ' Manual search filter you can call from external code (since WithEvents removed)
 Public Sub FilterList(ByVal term As String)
