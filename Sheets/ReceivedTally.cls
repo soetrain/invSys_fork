@@ -37,14 +37,8 @@ Private Sub Worksheet_SelectionChange(ByVal Target As Range)
 
     ' Set the global selected cell
     Set gSelectedCell = Target
-    ' Use dynamic search UI for ReceivedTally
-    On Error Resume Next
+    ' Use dynamic search UI for ReceivedTally (bubble up any error now)
     modTS_Received.ShowDynamicItemSearch Target
-    If Err.Number <> 0 Then
-        MsgBox "Item Search could not open: " & Err.Description, vbExclamation
-        Err.Clear
-    End If
-    On Error GoTo 0
 End Sub
 
 ' Keep AggregateReceived in sync when REF_NUMBER/ITEMS/QUANTITY change
