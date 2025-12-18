@@ -59,6 +59,11 @@ Sheet (Code): ReceivedTally
     Type: Button (0)
     Text: Redo macro
 ------------------------------------------------------------
+Sheet (Tab):  ReceivedLog
+Sheet (Code): ReceivedLog
+  Table: ReceivedLog
+    Headers: SNAPSHOT_ID, ENTRY_DATE, REF_NUMBER, ITEMS, QUANTITY, UOM, ROW, LOCATION
+------------------------------------------------------------
 Sheet (Tab):  ShipmentsTally
 Sheet (Code): ShipmentsTally
   Table: ShipmentsTally
@@ -120,11 +125,6 @@ Sheet (Code): InventoryLog
 ------------------------------------------------------------
 Sheet (Tab):  ProductionLog
 Sheet (Code): ProductionLog
-------------------------------------------------------------
-Sheet (Tab):  ReceivedLog
-Sheet (Code): ReceivedLog
-  Table: ReceivedLog
-    Headers: REF_NUMBER, ITEMS, QUANTITY, UOM, VENDOR, VENDOR_CODE, LOCATION, ITEM_CODE, ROW, ENTRY_DATE
 ------------------------------------------------------------
 Sheet (Tab):  ShipmentsLog
 Sheet (Code): ShipmentsLog

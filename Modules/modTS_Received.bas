@@ -1,4 +1,3 @@
-Attribute VB_Name = "modTS_Received"
 Option Explicit
 
 ' =============================================================
@@ -67,6 +66,15 @@ ErrHandler:
     frmItemSearch.Show vbModeless
 End Sub
 
+' =========================
+' Confirm Writes sub-system
+' -------------------------
+' - AggregateReceived already holds the summed QUANTITY per invSys ROW and concatenated REF_NUMBER for display.
+' - ConfirmWrites uses AGG.QUANTITY directly to add into invSys.RECEIVED (no recompute, no overwrite of AGG).
+' - ReceivedLog is per REF: REF/ITEM/QUANTITY from staging; ROW/UOM/LOCATION from AggregateReceived; SNAPSHOT_ID/ENTRY_DATE generated.
+' - AggregateReceived is treated as read-only for the user; code clears it only after a successful Confirm.
+' =========================
+
 ' Called by frmItemSearch after user picks an item
 Public Sub AddOrMergeFromSearch( _
     ByVal refNumber As String, _
@@ -119,7 +127,7 @@ Public Sub RebuildAggregation()
     End If
 
     Dim arr, r As Long
-    arr = rt.DataBodyRange.Value
+    arr = rt.DataBodyRange.value
     For r = 1 To UBound(arr, 1)
         Dim itemName As String, qty As Double
         itemName = NzStr(arr(r, ColumnIndex(rt, "ITEMS")))
@@ -165,8 +173,11 @@ Public Sub ConfirmWrites()
 
     ' Validate and collect rows
     Dim arr, r As Long, errs As String
-    arr = agg.DataBodyRange.Value
+    arr = agg.DataBodyRange.value
     Dim cols As Object: Set cols = AggColMap(agg)
+    Dim refNumRT As String
+    Dim itemRT As String
+    Dim qtyRT As Double
 
     For r = 1 To UBound(arr, 1)
         If NzStr(arr(r, cols("ITEM"))) = "" And NzStr(arr(r, cols("ITEM_CODE"))) = "" Then errs = errs & "Row " & r & ": ITEM/ITEM_CODE missing" & vbCrLf
@@ -185,7 +196,27 @@ Public Sub ConfirmWrites()
     Dim snapshotId As String: snapshotId = NewGuid()
     Dim entryDate As Date: entryDate = Now
 
-    ' Apply writes
+    ' Build ref -> (ROW, UOM, LOCATION, ITEM) map from AggregateReceived for accurate logging
+    Dim refMap As Object: Set refMap = CreateObject("Scripting.Dictionary")
+    For r = 1 To UBound(arr, 1)
+        Dim mapRow As Long: mapRow = NzLng(arr(r, cols("ROW")))
+        If mapRow > 0 Then
+            Dim mapRefs As Variant
+            mapRefs = Split(NzStr(arr(r, cols("REF_NUMBER"))), ",")
+            Dim mapUOM As String: mapUOM = NzStr(arr(r, cols("UOM")))
+            Dim mapLoc As String: mapLoc = NzStr(arr(r, cols("LOCATION")))
+            Dim mapItem As String: mapItem = NzStr(arr(r, cols("ITEM")))
+            Dim rf As Variant
+            For Each rf In mapRefs
+                rf = Trim(CStr(rf))
+                If rf <> "" Then
+                    refMap(rf) = Array(mapRow, mapUOM, mapLoc, mapItem)
+                End If
+            Next rf
+        End If
+    Next
+
+    ' Apply writes to invSys (per aggregated row)
     For r = 1 To UBound(arr, 1)
         Dim tgtRow As Long: tgtRow = NzLng(arr(r, cols("ROW")))
         Dim qty As Double: qty = NzDbl(arr(r, cols("QUANTITY")))
@@ -195,12 +226,46 @@ Public Sub ConfirmWrites()
             GoTo Bail
         End If
         Dim invRecvCol As Long: invRecvCol = ColumnIndex(inv, "RECEIVED")
-        Dim oldVal As Double: oldVal = NzDbl(invRow.Range.Cells(1, invRecvCol).Value)
+        Dim oldVal As Double: oldVal = NzDbl(invRow.Range.Cells(1, invRecvCol).value)
         RecordInvDelta invRow.Index, oldVal ' for undo
-        invRow.Range.Cells(1, invRecvCol).Value = oldVal + qty
-
-        AppendLogRow logTbl, cols, arr, r, snapshotId, entryDate
+        invRow.Range.Cells(1, invRecvCol).value = oldVal + qty
     Next
+
+    ' Log per REF_NUMBER using staging (ReceivedTally) quantities + ROW/UOM/LOCATION from refMap
+    ' staging table
+    Dim rt As ListObject: Set rt = wsRT.ListObjects("ReceivedTally")
+    If Not rt Is Nothing And Not rt.DataBodyRange Is Nothing Then
+        Dim rtArr As Variant: rtArr = rt.DataBodyRange.value
+        Dim rtCols As Object: Set rtCols = CreateObject("Scripting.Dictionary")
+        rtCols("REF_NUMBER") = ColumnIndex(rt, "REF_NUMBER")
+        rtCols("ITEMS") = ColumnIndex(rt, "ITEMS")
+        rtCols("QUANTITY") = ColumnIndex(rt, "QUANTITY")
+        Dim rrt As Long
+        For rrt = 1 To UBound(rtArr, 1)
+            refNumRT = Trim$(NzStr(rtArr(rrt, rtCols("REF_NUMBER"))))
+            itemRT = NzStr(rtArr(rrt, rtCols("ITEMS")))
+            qtyRT = NzDbl(rtArr(rrt, rtCols("QUANTITY")))
+            If refNumRT = "" And itemRT = "" And qtyRT = 0 Then GoTo NextRt
+
+            Dim logRow As Long, logUOM As String, logLoc As String, logItem As String
+            If refMap.Exists(refNumRT) Then
+                Dim mArr As Variant: mArr = refMap(refNumRT)
+                logRow = NzLng(mArr(0))
+                logUOM = NzStr(mArr(1))
+                logLoc = NzStr(mArr(2))
+                logItem = NzStr(mArr(3))
+                If logItem = "" Then logItem = itemRT
+            Else
+                ' fallback: try lookup by item name
+                Dim tmpCode As String, tmpVend As String, tmpVCode As String, tmpDesc As String
+                LookupInvSys wsInv.ListObjects("invSys"), itemRT, tmpCode, tmpVend, tmpVCode, tmpDesc, logUOM, logLoc, logRow
+                logItem = itemRT
+            End If
+
+            AppendLogRowFromRT logTbl, refNumRT, logItem, qtyRT, logUOM, logLoc, logRow, snapshotId, entryDate
+NextRt:
+        Next rrt
+    End If
 
     ' Clear staging on success
     ClearTable wsRT.ListObjects("ReceivedTally")
@@ -234,12 +299,12 @@ Public Sub MacroUndo()
     If mUndoInv Is Nothing Then
         hasUndo = hasUndo Or False
     Else
-        hasUndo = hasUndo Or (mUndoInv.Count > 0)
+        hasUndo = hasUndo Or (mUndoInv.count > 0)
     End If
     If mUndoLogRows Is Nothing Then
         hasUndo = hasUndo Or False
     Else
-        hasUndo = hasUndo Or (mUndoLogRows.Count > 0)
+        hasUndo = hasUndo Or (mUndoLogRows.count > 0)
     End If
     If Not hasUndo Then
         MsgBox "Nothing to undo (no confirm snapshot).", vbInformation
@@ -267,7 +332,7 @@ End Sub
 Private Function SheetExists(nameOrCode As String) As Worksheet
     Dim ws As Worksheet
     For Each ws In ThisWorkbook.Worksheets
-        If StrComp(ws.Name, nameOrCode, vbTextCompare) = 0 _
+        If StrComp(ws.name, nameOrCode, vbTextCompare) = 0 _
            Or StrComp(ws.CodeName, nameOrCode, vbTextCompare) = 0 Then
             Set SheetExists = ws
             Exit Function
@@ -278,13 +343,13 @@ End Function
 Private Sub EnsureButton(ws As Worksheet, shapeName As String, caption As String, onActionMacro As String)
     Dim shp As Shape
     On Error Resume Next
-    Set shp = ws.Shapes(shapeName)
+    Set shp = ws.shapes(shapeName)
     On Error GoTo 0
     If shp Is Nothing Then
-        Dim topPos As Double: topPos = 10 + ws.Shapes.Count * 20
-        Set shp = ws.Shapes.AddFormControl(xlButtonControl, 10, topPos, 100, 18)
-        shp.Name = shapeName
-        shp.TextFrame.Characters.Text = caption
+        Dim topPos As Double: topPos = 10 + ws.shapes.count * 20
+        Set shp = ws.shapes.AddFormControl(xlButtonControl, 10, topPos, 100, 18)
+        shp.name = shapeName
+        shp.TextFrame.Characters.text = caption
         If onActionMacro <> "" Then shp.OnAction = onActionMacro
     End If
 End Sub
@@ -302,18 +367,18 @@ Private Sub MergeIntoReceivedTally(rt As ListObject, refNumber As String, itemNa
     End If
     If found Is Nothing Then
         Dim lr As ListRow: Set lr = rt.ListRows.Add
-        lr.Range.Cells(1, colRef).Value = refNumber
-        lr.Range.Cells(1, colItem).Value = itemName
-        lr.Range.Cells(1, colQty).Value = qty
+        lr.Range.Cells(1, colRef).value = refNumber
+        lr.Range.Cells(1, colItem).value = itemName
+        lr.Range.Cells(1, colQty).value = qty
     Else
-        Dim rIdx As Long: rIdx = found.Row - rt.DataBodyRange.Rows(1).Row + 1
-        rt.DataBodyRange.Cells(rIdx, colQty).Value = NzDbl(rt.DataBodyRange.Cells(rIdx, colQty).Value) + qty
+        Dim rIdx As Long: rIdx = found.row - rt.DataBodyRange.rows(1).row + 1
+        rt.DataBodyRange.Cells(rIdx, colQty).value = NzDbl(rt.DataBodyRange.Cells(rIdx, colQty).value) + qty
         ' concatenate ref numbers
-        Dim existingRef As String: existingRef = NzStr(rt.DataBodyRange.Cells(rIdx, colRef).Value)
+        Dim existingRef As String: existingRef = NzStr(rt.DataBodyRange.Cells(rIdx, colRef).value)
         If existingRef = "" Then
-            rt.DataBodyRange.Cells(rIdx, colRef).Value = refNumber
+            rt.DataBodyRange.Cells(rIdx, colRef).value = refNumber
         ElseIf InStr(1, existingRef, refNumber, vbTextCompare) = 0 Then
-            rt.DataBodyRange.Cells(rIdx, colRef).Value = existingRef & "," & refNumber
+            rt.DataBodyRange.Cells(rIdx, colRef).value = existingRef & "," & refNumber
         End If
     End If
 End Sub
@@ -334,17 +399,17 @@ Private Sub MergeIntoAggregate(agg As ListObject, refNumber As String, itemCode 
     End If
 
     With lr.Range
-        .Cells(1, c("REF_NUMBER")).Value = AppendRef(NzStr(.Cells(1, c("REF_NUMBER")).Value), refNumber)
-        .Cells(1, c("ITEM_CODE")).Value = itemCode
-        .Cells(1, c("VENDORS")).Value = vendors
-        .Cells(1, c("VENDOR_CODE")).Value = vendorCode
-        .Cells(1, c("DESCRIPTION")).Value = descr
-        .Cells(1, c("ITEM")).Value = itemName
-        .Cells(1, c("UOM")).Value = uom
-        .Cells(1, c("LOCATION")).Value = location
-        .Cells(1, c("ROW")).Value = invRow
+        .Cells(1, c("REF_NUMBER")).value = AppendRef(NzStr(.Cells(1, c("REF_NUMBER")).value), refNumber)
+        .Cells(1, c("ITEM_CODE")).value = itemCode
+        .Cells(1, c("VENDORS")).value = vendors
+        .Cells(1, c("VENDOR_CODE")).value = vendorCode
+        .Cells(1, c("DESCRIPTION")).value = descr
+        .Cells(1, c("ITEM")).value = itemName
+        .Cells(1, c("UOM")).value = uom
+        .Cells(1, c("LOCATION")).value = location
+        .Cells(1, c("ROW")).value = invRow
         If qty > 0 Then
-            .Cells(1, c("QUANTITY")).Value = NzDbl(.Cells(1, c("QUANTITY")).Value) + qty
+            .Cells(1, c("QUANTITY")).value = NzDbl(.Cells(1, c("QUANTITY")).value) + qty
         End If
     End With
 End Sub
@@ -357,7 +422,7 @@ Private Function FindAggregateMatchByRow(agg As ListObject, invRow As Long) As L
 
     Dim lr As ListRow
     For Each lr In agg.ListRows
-        If NzLng(lr.Range.Cells(1, cRow).Value) = invRow Then
+        If NzLng(lr.Range.Cells(1, cRow).value) = invRow Then
             Set FindAggregateMatchByRow = lr
             Exit Function
         End If
@@ -377,17 +442,55 @@ End Function
 
 Private Sub AppendLogRow(logTbl As ListObject, cols As Object, arr As Variant, r As Long, snapshotId As String, entryDate As Date)
     Dim newRow As ListRow: Set newRow = logTbl.ListRows.Add
-    With logTbl.ListColumns
-        newRow.Range(1, .Item("REF_NUMBER").Index).Value = NzStr(arr(r, cols("REF_NUMBER")))
-        newRow.Range(1, .Item("ITEMS").Index).Value = NzStr(arr(r, cols("ITEM")))
-        newRow.Range(1, .Item("QUANTITY").Index).Value = NzDbl(arr(r, cols("QUANTITY")))
-        newRow.Range(1, .Item("UOM").Index).Value = NzStr(arr(r, cols("UOM")))
-        newRow.Range(1, .Item("VENDOR").Index).Value = NzStr(arr(r, cols("VENDORS")))
-        newRow.Range(1, .Item("LOCATION").Index).Value = NzStr(arr(r, cols("LOCATION")))
-        newRow.Range(1, .Item("ITEM_CODE").Index).Value = NzStr(arr(r, cols("ITEM_CODE")))
-        newRow.Range(1, .Item("ROW").Index).Value = NzLng(arr(r, cols("ROW")))
-        newRow.Range(1, .Item("SNAPSHOT_ID").Index).Value = snapshotId
-        newRow.Range(1, .Item("ENTRY_DATE").Index).Value = entryDate
+    ' Write only columns that exist in ReceivedLog (current headers: SNAPSHOT_ID, ENTRY_DATE, REF_NUMBER, ITEMS, QUANTITY, UOM, ROW, LOCATION)
+    Dim cRef As Long, cItems As Long, cQty As Long, cUOM As Long
+    Dim cRow As Long, cLoc As Long, cSnap As Long, cEntry As Long
+    cRef = LogColIndex(logTbl, "REF_NUMBER")
+    cItems = LogColIndex(logTbl, "ITEMS")
+    cQty = LogColIndex(logTbl, "QUANTITY")
+    cUOM = LogColIndex(logTbl, "UOM")
+    cRow = LogColIndex(logTbl, "ROW")
+    cLoc = LogColIndex(logTbl, "LOCATION")
+    cSnap = LogColIndex(logTbl, "SNAPSHOT_ID")
+    cEntry = LogColIndex(logTbl, "ENTRY_DATE")
+
+    With newRow.Range
+        If cRef > 0 Then .Cells(1, cRef).value = NzStr(arr(r, cols("REF_NUMBER")))
+        If cItems > 0 Then .Cells(1, cItems).value = NzStr(arr(r, cols("ITEM")))
+        If cQty > 0 Then .Cells(1, cQty).value = NzDbl(arr(r, cols("QUANTITY")))
+        If cUOM > 0 Then .Cells(1, cUOM).value = NzStr(arr(r, cols("UOM")))
+        If cRow > 0 Then .Cells(1, cRow).value = NzLng(arr(r, cols("ROW")))
+        If cLoc > 0 Then .Cells(1, cLoc).value = NzStr(arr(r, cols("LOCATION")))
+        If cSnap > 0 Then .Cells(1, cSnap).value = snapshotId
+        If cEntry > 0 Then .Cells(1, cEntry).value = entryDate
+    End With
+    If mUndoLogRows Is Nothing Then Set mUndoLogRows = New Collection
+    mUndoLogRows.Add newRow.Index
+End Sub
+
+Private Sub AppendLogRowFromRT(logTbl As ListObject, ByVal refNum As String, ByVal itemName As String, ByVal qty As Double, ByVal uom As String, ByVal location As String, ByVal invRow As Long, ByVal snapshotId As String, ByVal entryDate As Date)
+    If logTbl Is Nothing Then Exit Sub
+    Dim newRow As ListRow: Set newRow = logTbl.ListRows.Add
+    Dim cRef As Long, cItems As Long, cQty As Long, cUOM As Long
+    Dim cRow As Long, cLoc As Long, cSnap As Long, cEntry As Long
+    cRef = LogColIndex(logTbl, "REF_NUMBER")
+    cItems = LogColIndex(logTbl, "ITEMS")
+    cQty = LogColIndex(logTbl, "QUANTITY")
+    cUOM = LogColIndex(logTbl, "UOM")
+    cRow = LogColIndex(logTbl, "ROW")
+    cLoc = LogColIndex(logTbl, "LOCATION")
+    cSnap = LogColIndex(logTbl, "SNAPSHOT_ID")
+    cEntry = LogColIndex(logTbl, "ENTRY_DATE")
+
+    With newRow.Range
+        If cRef > 0 Then .Cells(1, cRef).value = refNum
+        If cItems > 0 Then .Cells(1, cItems).value = itemName
+        If cQty > 0 Then .Cells(1, cQty).value = qty
+        If cUOM > 0 Then .Cells(1, cUOM).value = uom
+        If cRow > 0 Then .Cells(1, cRow).value = invRow
+        If cLoc > 0 Then .Cells(1, cLoc).value = location
+        If cSnap > 0 Then .Cells(1, cSnap).value = snapshotId
+        If cEntry > 0 Then .Cells(1, cEntry).value = entryDate
     End With
     If mUndoLogRows Is Nothing Then Set mUndoLogRows = New Collection
     mUndoLogRows.Add newRow.Index
@@ -398,8 +501,8 @@ Private Function FindInvRowByROW(inv As ListObject, rowValue As Long) As ListRow
     If cRow = 0 Or inv.DataBodyRange Is Nothing Then Exit Function
     Dim cel As Range
     For Each cel In inv.ListColumns(cRow).DataBodyRange.Cells
-        If NzLng(cel.Value) = rowValue Then
-            Set FindInvRowByROW = inv.ListRows(cel.Row - inv.DataBodyRange.Row + 1)
+        If NzLng(cel.value) = rowValue Then
+            Set FindInvRowByROW = inv.ListRows(cel.row - inv.DataBodyRange.row + 1)
             Exit Function
         End If
     Next
@@ -413,7 +516,7 @@ Private Sub ClearTable(lo As ListObject)
     End If
     ' Clear row map if we clear staging
     If lo Is Nothing Then Exit Sub
-    If StrComp(lo.Name, "ReceivedTally", vbTextCompare) = 0 Then
+    If StrComp(lo.name, "ReceivedTally", vbTextCompare) = 0 Then
         If Not mRowMap Is Nothing Then mRowMap.RemoveAll
     End If
 End Sub
@@ -431,7 +534,7 @@ Private Function SnapshotTable(lo As ListObject) As Variant
     If lo Is Nothing Or lo.DataBodyRange Is Nothing Then
         SnapshotTable = Empty
     Else
-        SnapshotTable = lo.DataBodyRange.Value
+        SnapshotTable = lo.DataBodyRange.value
     End If
 End Function
 
@@ -442,7 +545,7 @@ Private Sub RestoreTable(lo As ListObject, snap As Variant)
     Dim rows As Long: rows = UBound(snap, 1)
     Dim cols As Long: cols = UBound(snap, 2)
     lo.Resize lo.Range.Resize(rows + 1, cols)
-    lo.DataBodyRange.Value = snap
+    lo.DataBodyRange.value = snap
 End Sub
 
 Private Sub RecordInvDelta(rowIndex As Long, oldVal As Double)
@@ -459,23 +562,24 @@ Private Sub UndoInvDeltas(inv As ListObject)
     Dim v As Variant
     Dim recvCol As Long: recvCol = ColumnIndex(inv, "RECEIVED")
     For Each v In mUndoInv
-        inv.ListRows(CLng(v(1))).Range.Cells(1, recvCol).Value = CDbl(v(2))
+        inv.ListRows(CLng(v(1))).Range.Cells(1, recvCol).value = CDbl(v(2))
     Next
 End Sub
 
 Private Sub DeleteAddedLogRows(logTbl As ListObject)
     If mUndoLogRows Is Nothing Then Exit Sub
+    If mUndoLogRows.count = 0 Then Exit Sub
     Dim idx As Variant
     ' delete from bottom to top
     Dim arr() As Long
-    ReDim arr(1 To mUndoLogRows.Count)
+    ReDim arr(1 To mUndoLogRows.count)
     Dim i As Long
-    For i = 1 To mUndoLogRows.Count
+    For i = 1 To mUndoLogRows.count
         arr(i) = CLng(mUndoLogRows(i))
     Next
     QuickSort arr, LBound(arr), UBound(arr)
     For i = UBound(arr) To LBound(arr) Step -1
-        If arr(i) <= logTbl.ListRows.Count Then logTbl.ListRows(arr(i)).Delete
+        If arr(i) <= logTbl.ListRows.count Then logTbl.ListRows(arr(i)).Delete
     Next
 End Sub
 
@@ -494,11 +598,59 @@ Private Sub QuickSort(a() As Long, lo As Long, hi As Long)
     If i < hi Then QuickSort a, i, hi
 End Sub
 
+' ===== log column tools (optional columns in ReceivedLog) =====
+Private Function CriticalLogCols() As Object
+    Dim d As Object: Set d = CreateObject("Scripting.Dictionary")
+    d.CompareMode = vbTextCompare
+    Dim names
+    names = Array("REF_NUMBER", "ITEMS", "QUANTITY", "UOM", "VENDOR", "LOCATION", "ITEM_CODE", "ROW", "SNAPSHOT_ID", "ENTRY_DATE")
+    Dim i As Long
+    For i = LBound(names) To UBound(names)
+        d.Add names(i), True
+    Next
+    Set CriticalLogCols = d
+End Function
+
+Public Sub ToggleLogColumn(ByVal colName As String, ByVal enable As Boolean)
+    colName = Trim$(colName)
+    If colName = "" Then Exit Sub
+
+    Dim ws As Worksheet
+    Set ws = SheetExists("ReceivedLog")
+    If ws Is Nothing Then Exit Sub
+
+    Dim lo As ListObject
+    On Error Resume Next
+    Set lo = ws.ListObjects("ReceivedLog")
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Sub
+
+    Dim crit As Object
+    Set crit = CriticalLogCols()
+
+    Dim idx As Long
+    idx = ColumnIndex(lo, colName)
+
+    If enable Then
+        If idx = 0 Then
+            Dim newCol As ListColumn
+            Set newCol = lo.ListColumns.Add
+            newCol.name = colName
+        End If
+    Else
+        If crit.Exists(colName) Then
+            MsgBox colName & " is critical and cannot be removed.", vbInformation
+            Exit Sub
+        End If
+        If idx > 0 Then lo.ListColumns(idx).Delete
+    End If
+End Sub
+
 ' ===== misc helpers =====
 Private Function FindInColumn(rng As Range, value As String) As Range
     Dim cel As Range
     For Each cel In rng.Cells
-        If StrComp(NzStr(cel.Value), value, vbTextCompare) = 0 Then
+        If StrComp(NzStr(cel.value), value, vbTextCompare) = 0 Then
             Set FindInColumn = cel
             Exit Function
         End If
@@ -557,13 +709,13 @@ Private Function LookupInvSys(catalog As ListObject, itemName As String, ByRef i
         Dim found As Range
         Set found = FindInColumn(catalog.ListColumns(cCode).DataBodyRange, itemCode)
         If Not found Is Nothing Then
-            invRow = NzLng(found.Offset(0, cRow - found.Column).Value)
-            itemCode = NzStr(found.Offset(0, cCode - found.Column).Value)
-            itemName = NzStr(found.Offset(0, cItem - found.Column).Value)
-            vendors = NzStr(found.Offset(0, cVend - found.Column).Value)
-            descr = NzStr(found.Offset(0, cDesc - found.Column).Value)
-            uom = NzStr(found.Offset(0, cUOM - found.Column).Value)
-            location = NzStr(found.Offset(0, cLoc - found.Column).Value)
+            invRow = NzLng(found.Offset(0, cRow - found.Column).value)
+            itemCode = NzStr(found.Offset(0, cCode - found.Column).value)
+            itemName = NzStr(found.Offset(0, cItem - found.Column).value)
+            vendors = NzStr(found.Offset(0, cVend - found.Column).value)
+            descr = NzStr(found.Offset(0, cDesc - found.Column).value)
+            uom = NzStr(found.Offset(0, cUOM - found.Column).value)
+            location = NzStr(found.Offset(0, cLoc - found.Column).value)
             Exit Function
         End If
     End If
@@ -573,13 +725,13 @@ Private Function LookupInvSys(catalog As ListObject, itemName As String, ByRef i
         Dim found2 As Range
         Set found2 = FindInColumn(catalog.ListColumns(cItem).DataBodyRange, itemName)
         If Not found2 Is Nothing Then
-            invRow = NzLng(found2.Offset(0, cRow - found2.Column).Value)
-            itemCode = NzStr(found2.Offset(0, cCode - found2.Column).Value)
-            itemName = NzStr(found2.Offset(0, cItem - found2.Column).Value)
-            vendors = NzStr(found2.Offset(0, cVend - found2.Column).Value)
-            descr = NzStr(found2.Offset(0, cDesc - found2.Column).Value)
-            uom = NzStr(found2.Offset(0, cUOM - found2.Column).Value)
-            location = NzStr(found2.Offset(0, cLoc - found2.Column).Value)
+            invRow = NzLng(found2.Offset(0, cRow - found2.Column).value)
+            itemCode = NzStr(found2.Offset(0, cCode - found2.Column).value)
+            itemName = NzStr(found2.Offset(0, cItem - found2.Column).value)
+            vendors = NzStr(found2.Offset(0, cVend - found2.Column).value)
+            descr = NzStr(found2.Offset(0, cDesc - found2.Column).value)
+            uom = NzStr(found2.Offset(0, cUOM - found2.Column).value)
+            location = NzStr(found2.Offset(0, cLoc - found2.Column).value)
             Exit Function
         End If
     End If
@@ -605,27 +757,39 @@ Private Sub LookupInvSysByROW(catalog As ListObject, ByVal invRow As Long, _
 
     Dim cel As Range
     For Each cel In catalog.ListColumns(cRow).DataBodyRange.Cells
-        If NzLng(cel.Value) = invRow Then
-            If cCode > 0 Then itemCode = NzStr(cel.Offset(0, cCode - cel.Column).Value)
-            If cItem > 0 Then itemName = NzStr(cel.Offset(0, cItem - cel.Column).Value)
-            If cVend > 0 Then vendors = NzStr(cel.Offset(0, cVend - cel.Column).Value)
-            If cDesc > 0 Then descr = NzStr(cel.Offset(0, cDesc - cel.Column).Value)
-            If cUOM > 0 Then uom = NzStr(cel.Offset(0, cUOM - cel.Column).Value)
-            If cLoc > 0 Then location = NzStr(cel.Offset(0, cLoc - cel.Column).Value)
+        If NzLng(cel.value) = invRow Then
+            If cCode > 0 Then itemCode = NzStr(cel.Offset(0, cCode - cel.Column).value)
+            If cItem > 0 Then itemName = NzStr(cel.Offset(0, cItem - cel.Column).value)
+            If cVend > 0 Then vendors = NzStr(cel.Offset(0, cVend - cel.Column).value)
+            If cDesc > 0 Then descr = NzStr(cel.Offset(0, cDesc - cel.Column).value)
+            If cUOM > 0 Then uom = NzStr(cel.Offset(0, cUOM - cel.Column).value)
+            If cLoc > 0 Then location = NzStr(cel.Offset(0, cLoc - cel.Column).value)
             Exit Sub
         End If
     Next
 End Sub
 
 Private Function NewGuid() As String
-    NewGuid = CreateObject("Scriptlet.TypeLib").Guid
+    NewGuid = CreateObject("Scriptlet.TypeLib").GUID
+End Function
+
+' Column index helper for log tables (case-insensitive)
+Private Function LogColIndex(lo As ListObject, colName As String) As Long
+    Dim lc As ListColumn
+    For Each lc In lo.ListColumns
+        If StrComp(lc.name, colName, vbTextCompare) = 0 Then
+            LogColIndex = lc.Index
+            Exit Function
+        End If
+    Next
+    LogColIndex = 0
 End Function
 
 ' Column index helper (case-insensitive) on a ListObject
 Private Function ColumnIndex(lo As ListObject, colName As String) As Long
     Dim lc As ListColumn
     For Each lc In lo.ListColumns
-        If StrComp(lc.Name, colName, vbTextCompare) = 0 Then
+        If StrComp(lc.name, colName, vbTextCompare) = 0 Then
             ColumnIndex = lc.Index
             Exit Function
         End If
@@ -660,8 +824,8 @@ Public Sub SyncQuantityFromStaging(ByVal stagingRowIdx As Long, ByVal newQty As 
         If CLng(arr(0)) = invRow Then
             Dim sr As Long
             sr = CLng(k)
-            If sr >= 1 And sr <= rt.DataBodyRange.Rows.Count Then
-                totalQty = totalQty + NzDbl(rt.DataBodyRange.Cells(sr, colQtyRT).Value)
+            If sr >= 1 And sr <= rt.DataBodyRange.rows.count Then
+                totalQty = totalQty + NzDbl(rt.DataBodyRange.Cells(sr, colQtyRT).value)
             End If
         End If
     Next k
@@ -678,8 +842,8 @@ Public Sub SyncQuantityFromStaging(ByVal stagingRowIdx As Long, ByVal newQty As 
 
     Dim lr As ListRow
     For Each lr In agg.ListRows
-        If NzLng(lr.Range.Cells(1, cRowAgg).Value) = invRow Then
-            lr.Range.Cells(1, cQtyAgg).Value = totalQty
+        If NzLng(lr.Range.Cells(1, cRowAgg).value) = invRow Then
+            lr.Range.Cells(1, cQtyAgg).value = totalQty
             Exit For
         End If
     Next lr
@@ -707,7 +871,7 @@ Public Function LoadItemList() As Variant
     cVend = ColumnIndex(lo, "VENDOR(s)")
     If cCode * cItem = 0 Or cRow = 0 Then Exit Function
 
-    Dim src As Variant: src = lo.DataBodyRange.Value
+    Dim src As Variant: src = lo.DataBodyRange.value
     Dim r As Long, n As Long: n = UBound(src, 1)
     Dim outArr() As Variant
     ReDim outArr(1 To n, 1 To 7)
@@ -732,3 +896,4 @@ Public Function LoadItemList() As Variant
     ReDim Preserve outArr(1 To outRow, 1 To 7)
     LoadItemList = outArr
 End Function
+
