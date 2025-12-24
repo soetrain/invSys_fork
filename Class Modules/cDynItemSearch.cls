@@ -89,8 +89,8 @@ Private Function BuildForm() As Boolean
     lst.BoundColumn = 3 ' ITEM (display)
     lst.TextColumn = 3
     lst.IntegralHeight = False
-    ' ROW | ITEM_CODE | ITEM | UOM | LOCATION | DESCRIPTION(hidden) | VENDORS(hidden)
-    lst.ColumnWidths = "35;60;220;50;90;0;0" ' show ROW, hide DESCRIPTION/VENDORS
+    ' ROW | ITEM_CODE | ITEM | UOM | LOCATION | DESCRIPTION | VENDORS
+    lst.ColumnWidths = "45;110;260;60;110;0;0"
 
     ' Configure description box (remaining space)
     txtDesc.Left = m
@@ -221,36 +221,56 @@ Public Sub CommitSelection()
     If lst.ListIndex < 0 Then Exit Sub
     If callbackCell Is Nothing Then Exit Sub
 
-    callbackCell.Value = lst.List(lst.ListIndex, 2) ' ITEM to staging cell
+    callbackCell.Value = lst.List(lst.ListIndex, 2) ' ITEM text in active cell
 
-    Dim refNum As String, qty As Double
-    Dim rt As ListObject
+    Dim lo As ListObject
+    Dim rowIdx As Long
+    Dim tblName As String
     On Error Resume Next
-    Set rt = callbackCell.ListObject
+    Set lo = callbackCell.ListObject
     On Error GoTo 0
-    If Not rt Is Nothing And Not rt.DataBodyRange Is Nothing Then
-        Dim rowIdx As Long
-        rowIdx = callbackCell.Row - rt.DataBodyRange.Row + 1
-        If rowIdx >= 1 And rowIdx <= rt.DataBodyRange.Rows.Count Then
-            refNum = NzStr(rt.DataBodyRange.Cells(rowIdx, ColumnIndex(rt, "REF_NUMBER")).Value)
-            qty = NzDbl(rt.DataBodyRange.Cells(rowIdx, ColumnIndex(rt, "QUANTITY")).Value)
+    If Not lo Is Nothing Then
+        tblName = LCase$(lo.Name)
+        If Not lo.DataBodyRange Is Nothing Then
+            rowIdx = callbackCell.Row - lo.DataBodyRange.Row + 1
+            If rowIdx < 1 Or rowIdx > lo.ListRows.Count Then rowIdx = 0
         End If
     End If
 
-    modTS_Received.AddOrMergeFromSearch _
-        refNum, _
-        lst.List(lst.ListIndex, 2), _
-        lst.List(lst.ListIndex, 1), _
-        qty, _
-        lst.List(lst.ListIndex, 6), _
-        "", _
-        lst.List(lst.ListIndex, 5), _
-        lst.List(lst.ListIndex, 3), _
-        lst.List(lst.ListIndex, 4), _
-        CLng(NzLng(lst.List(lst.ListIndex, 0))), _
-        stagingRow:=rowIdx
+    Dim itemName As String, itemCode As String, itemRow As Long
+    Dim uom As String, location As String, vendor As String
+    itemName = lst.List(lst.ListIndex, 2)
+    itemCode = lst.List(lst.ListIndex, 1)
+    itemRow = CLng(NzLng(lst.List(lst.ListIndex, 0)))
+    uom = lst.List(lst.ListIndex, 3)
+    location = lst.List(lst.ListIndex, 4)
+    vendor = lst.List(lst.ListIndex, 6)
 
-    ' Do not rebuild here; the aggregate table already has the correct ROW
+    Select Case tblName
+        Case "receivedtally"
+            Dim refNum As String, qty As Double
+            If rowIdx > 0 Then
+                refNum = NzStr(lo.DataBodyRange.Cells(rowIdx, ColumnIndex(lo, "REF_NUMBER")).Value)
+                qty = NzDbl(lo.DataBodyRange.Cells(rowIdx, ColumnIndex(lo, "QUANTITY")).Value)
+            End If
+            modTS_Received.AddOrMergeFromSearch _
+                refNum, _
+                itemName, _
+                itemCode, _
+                qty, _
+                vendor, _
+                "", _
+                lst.List(lst.ListIndex, 5), _
+                uom, _
+                location, _
+                itemRow, _
+                stagingRow:=rowIdx
+        Case "shipmentstally"
+            modTS_Shipments.ApplyItemSelection callbackCell, lo, rowIdx, itemName, itemCode, itemRow, uom, location, vendor
+        Case Else
+            ' no special handling
+    End Select
+
     uf.Hide
 End Sub
 

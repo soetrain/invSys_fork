@@ -12,19 +12,28 @@ Attribute VB_Exposed = True
 ' ShipmentsTally.cls
 ' ==================
 Option Explicit
-' Simple event handler for both worksheet class modules
+
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
-    ' Only for single cell selection
-    If Target.Cells.count > 1 Then Exit Sub
-    ' Check if cell is in ITEMS column
-    If modTS_Data.IsInItemsColumn(Target) Then
-        ' Set the global selected cell
-        Set gSelectedCell = Target
-        ' Show the form if not already loaded
-        If Not modGlobals.IsFormLoaded("frmItemSearch") Then
-            frmItemSearch.Show vbModeless
-        End If
-    End If
+    If Application.EnableEvents = False Then Application.EnableEvents = True
+    If Target.Cells.CountLarge > 1 Then Exit Sub
+
+    Dim lo As ListObject
+    On Error Resume Next
+    Set lo = Target.ListObject
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Sub
+    If LCase$(lo.Name) <> "shipmentstally" Then Exit Sub
+
+    Dim itemsCol As ListColumn
+    On Error Resume Next
+    Set itemsCol = lo.ListColumns("ITEMS")
+    On Error GoTo 0
+    If itemsCol Is Nothing Then Exit Sub
+    If Target.Column <> itemsCol.Range.Column Then Exit Sub
+    If Target.Row <= lo.HeaderRowRange.Row Then Exit Sub
+
+    Set gSelectedCell = Target
+    modTS_Shipments.ShowDynamicItemSearch Target
 End Sub
 
 

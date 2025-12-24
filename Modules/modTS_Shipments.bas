@@ -44,6 +44,8 @@ Private Const SHIPPING_BOM_BLOCK_ROWS As Long = 52
 Private Const SHIPPING_BOM_DATA_ROWS As Long = 50
 Private Const SHIPPING_BOM_COLS As Long = 3 ' ROW, QUANTITY, UOM
 
+Private mDynSearch As cDynItemSearch
+
 ' ===== public entry points =====
 Public Sub InitializeShipmentsUI()
     EnsureShipmentsButtons
@@ -69,17 +71,37 @@ Public Sub BtnSaveBox()
         Exit Sub
     End If
 
+    EnsureTableHasRow loMeta
+    EnsureColumnExists loMeta, "ROW"
+    EnsureBoxBomEntryColumns loBom
+
     Dim boxName As String
     boxName = Trim$(NzStr(ValueFromTable(loMeta, "Box Name")))
     If boxName = "" Then
         MsgBox "Enter a Box Name before saving.", vbExclamation
         Exit Sub
     End If
+    Dim boxUOM As String: boxUOM = Trim$(NzStr(ValueFromTable(loMeta, "UOM")))
+    Dim boxLoc As String: boxLoc = Trim$(NzStr(ValueFromTable(loMeta, "LOCATION")))
+    Dim boxDesc As String: boxDesc = Trim$(NzStr(ValueFromTable(loMeta, "DESCRIPTION")))
+    If boxUOM = "" Then
+        MsgBox "Box Builder UOM is required.", vbExclamation
+        Exit Sub
+    End If
+
+    EnsureTableHasRow loBom
+
+    Dim invLo As ListObject: Set invLo = GetInvSysTable()
+    If invLo Is Nothing Then
+        MsgBox "InventoryManagement!invSys table not found.", vbCritical
+        Exit Sub
+    End If
 
     Dim components As Collection
-    Set components = ReadBoxBomComponents(loBom)
+    Dim syncNotes As String
+    Set components = CollectBomComponents(loBom, invLo, syncNotes)
     If components.count = 0 Then
-        MsgBox "Add at least one component to the BoxBOM table.", vbExclamation
+        MsgBox "Add at least one valid component row (ROW/QUANTITY) to the BoxBOM table.", vbExclamation
         Exit Sub
     End If
     If components.count > SHIPPING_BOM_DATA_ROWS Then
@@ -87,19 +109,32 @@ Public Sub BtnSaveBox()
         Exit Sub
     End If
 
+    Dim boxRowValue As Long
+    boxRowValue = EnsureInvSysItem(boxName, boxUOM, boxLoc, boxDesc, invLo)
+    If boxRowValue = 0 Then Exit Sub
+    Dim cBoxRowField As Long: cBoxRowField = ColumnIndex(loMeta, "ROW")
+    If cBoxRowField > 0 Then
+        loMeta.DataBodyRange.Cells(1, cBoxRowField).Value = boxRowValue
+    End If
+
     Dim wsBOM As Worksheet: Set wsBOM = SheetExists(SHEET_BOM)
     If wsBOM Is Nothing Then
         MsgBox "ShippingBOM sheet not found.", vbCritical
         Exit Sub
     End If
-
     Dim bomTable As ListObject, blockRange As Range
     Set bomTable = EnsureBomTable(wsBOM, boxName, blockRange)
     If bomTable Is Nothing Then Exit Sub
 
     WriteBomData bomTable, blockRange, components
+    PropagateBomMetadata wsBOM, components
 
-    MsgBox "Saved BOM '" & boxName & "' (" & components.count & " items).", vbInformation
+    Dim finalMsg As String
+    finalMsg = "Saved BOM '" & boxName & "' (invSys ROW " & boxRowValue & ", " & components.count & " components)."
+    If Len(syncNotes) > 0 Then
+        finalMsg = finalMsg & vbCrLf & syncNotes
+    End If
+    MsgBox finalMsg, vbInformation
     Exit Sub
 
 ErrHandler:
@@ -147,6 +182,17 @@ End Sub
 
 Public Sub BtnShipmentsSent()
     MsgBox "BTN_SHIPMENTS_SENT logic pending implementation.", vbInformation
+End Sub
+
+Public Sub ShowDynamicItemSearch(ByVal targetCell As Range)
+    On Error GoTo ErrHandler
+    If targetCell Is Nothing Then Exit Sub
+    If mDynSearch Is Nothing Then Set mDynSearch = New cDynItemSearch
+    mDynSearch.ShowForCell targetCell
+    Exit Sub
+ErrHandler:
+    On Error Resume Next
+    frmItemSearch.Show vbModeless
 End Sub
 
 ' ===== button scaffolding =====
@@ -218,42 +264,194 @@ Private Sub ToggleBuilderTables(ByVal makeVisible As Boolean)
     lo2.Range.EntireRow.Hidden = Not makeVisible
 End Sub
 
-Private Function ReadBoxBomComponents(loBom As ListObject) As Collection
+Public Sub ApplyItemSelection(targetCell As Range, lo As ListObject, rowIndex As Long, _
+    ByVal itemName As String, ByVal itemCode As String, ByVal itemRow As Long, _
+    ByVal uom As String, ByVal location As String, ByVal vendor As String)
+
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+    If rowIndex <= 0 Or rowIndex > lo.ListRows.Count Then rowIndex = lo.ListRows.Count
+    Dim cItems As Long: cItems = ColumnIndex(lo, "ITEMS")
+    If cItems > 0 Then lo.DataBodyRange.Cells(rowIndex, cItems).Value = itemName
+    ' Future enhancement: capture ROW/UOM metadata once staging columns are defined.
+End Sub
+
+Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, ByRef syncNotes As String) As Collection
     Dim result As New Collection
-    If loBom Is Nothing Then
-        Set ReadBoxBomComponents = result
+    If loBom Is Nothing Or invLo Is Nothing Then
+        Set CollectBomComponents = result
         Exit Function
     End If
 
+    Dim cName As Long: cName = ColumnIndex(loBom, "BoxBOM")
     Dim cRow As Long: cRow = ColumnIndex(loBom, "ROW")
     Dim cQty As Long: cQty = ColumnIndex(loBom, "QUANTITY")
-    Dim cUOM As Long: cUOM = ColumnIndex(loBom, "UOM")
-    If cRow = 0 Or cQty = 0 Or cUOM = 0 Then
-        MsgBox "BoxBOM table must contain ROW, QUANTITY, and UOM columns.", vbExclamation
+    Dim cUom As Long: cUom = ColumnIndex(loBom, "UOM")
+    Dim cLoc As Long: cLoc = ColumnIndex(loBom, "LOCATION")
+    Dim cDesc As Long: cDesc = ColumnIndex(loBom, "DESCRIPTION")
+    If cName = 0 Or cRow = 0 Or cQty = 0 Or cUom = 0 Then
+        MsgBox "BoxBOM table must include BoxBOM, ROW, QUANTITY, and UOM columns.", vbExclamation
         Exit Function
     End If
 
     If loBom.DataBodyRange Is Nothing Then
-        Set ReadBoxBomComponents = result
+        Set CollectBomComponents = result
+        Exit Function
+    End If
+
+    Dim invRowCol As Long: invRowCol = ColumnIndex(invLo, "ROW")
+    Dim invItemCol As Long: invItemCol = ColumnIndex(invLo, "ITEM")
+    Dim invUomCol As Long: invUomCol = ColumnIndex(invLo, "UOM")
+    Dim invLocCol As Long: invLocCol = ColumnIndex(invLo, "LOCATION")
+    Dim invDescCol As Long: invDescCol = ColumnIndex(invLo, "DESCRIPTION")
+    If invRowCol = 0 Then
+        MsgBox "invSys table must contain a ROW column.", vbCritical
         Exit Function
     End If
 
     Dim arr As Variant: arr = loBom.DataBodyRange.Value
     Dim r As Long
     For r = 1 To UBound(arr, 1)
+        Dim partName As String: partName = Trim$(NzStr(arr(r, cName)))
         Dim partRow As Long: partRow = NzLng(arr(r, cRow))
         Dim qty As Double: qty = NzDbl(arr(r, cQty))
-        Dim partUom As String: partUom = Trim$(NzStr(arr(r, cUOM)))
-        If partRow > 0 And qty > 0 And partUom <> "" Then
-            Dim info(1 To 3) As Variant
-            info(1) = partRow
-            info(2) = qty
-            info(3) = partUom
-            result.Add info
+        Dim uomVal As String: uomVal = Trim$(NzStr(arr(r, cUom)))
+
+        If partName = "" And partRow = 0 And qty = 0 Then GoTo NextComponent
+        If qty <= 0 Then
+            Err.Raise vbObjectError + 1, , "Component row " & r & " has no quantity."
+        End If
+
+        Dim invIdx As Long
+        Dim partResolvedName As String
+        If partRow > 0 Then
+            invIdx = FindInvRowIndexByRow(invLo, partRow)
+            If invIdx = 0 And partName <> "" Then
+                invIdx = FindInvRowIndexByItem(invLo, partName)
+                If invIdx > 0 Then
+                    Dim resolvedRow As Long
+                    resolvedRow = NzLng(invLo.DataBodyRange.Cells(invIdx, invRowCol).Value)
+                    If resolvedRow <> partRow Then
+                        partRow = resolvedRow
+                        AppendSyncMessage syncNotes, "Updated ROW for '" & partName & "' to " & resolvedRow & "."
+                    End If
+                End If
+            End If
+            If invIdx = 0 Then
+                Err.Raise vbObjectError + 2, , "Component row " & partRow & " not found in invSys. Update BOM before saving."
+            End If
+        ElseIf partName <> "" Then
+            invIdx = FindInvRowIndexByItem(invLo, partName)
+            If invIdx = 0 Then
+                Err.Raise vbObjectError + 3, , "Component '" & partName & "' not found in invSys."
+            End If
+            partRow = NzLng(invLo.DataBodyRange.Cells(invIdx, invRowCol).Value)
+        Else
+            Err.Raise vbObjectError + 4, , "Component row " & r & " is missing both item name and ROW."
+        End If
+
+        Dim actualUom As String, actualLoc As String, actualDesc As String
+        Dim actualItem As String
+        If invItemCol > 0 Then actualItem = NzStr(invLo.DataBodyRange.Cells(invIdx, invItemCol).Value)
+        If invUomCol > 0 Then actualUom = NzStr(invLo.DataBodyRange.Cells(invIdx, invUomCol).Value)
+        If invLocCol > 0 Then actualLoc = NzStr(invLo.DataBodyRange.Cells(invIdx, invLocCol).Value)
+        If invDescCol > 0 Then actualDesc = NzStr(invLo.DataBodyRange.Cells(invIdx, invDescCol).Value)
+        If actualItem <> "" Then partResolvedName = actualItem Else partResolvedName = partName
+        If actualUom = "" Then actualUom = uomVal
+        If StrComp(uomVal, actualUom, vbTextCompare) <> 0 Then
+            AppendSyncMessage syncNotes, "UOM for '" & partResolvedName & "' reset to " & actualUom & "."
+        End If
+        uomVal = actualUom
+
+        If cName > 0 And partResolvedName <> "" Then
+            loBom.DataBodyRange.Cells(r, cName).Value = partResolvedName
+        End If
+        loBom.DataBodyRange.Cells(r, cRow).Value = partRow
+        loBom.DataBodyRange.Cells(r, cUom).Value = uomVal
+        If cLoc > 0 Then loBom.DataBodyRange.Cells(r, cLoc).Value = actualLoc
+        If cDesc > 0 Then loBom.DataBodyRange.Cells(r, cDesc).Value = actualDesc
+
+        Dim entry(1 To 3) As Variant
+        entry(1) = partRow
+        entry(2) = qty
+        entry(3) = uomVal
+        result.Add entry
+NextComponent:
+    Next
+
+    Set CollectBomComponents = result
+End Function
+
+Private Sub EnsureBoxBomEntryColumns(loBom As ListObject)
+    If loBom Is Nothing Then Exit Sub
+    EnsureColumnExists loBom, "BoxBOM"
+    EnsureColumnExists loBom, "QUANTITY", "BoxBOM"
+    EnsureColumnExists loBom, "ROW"
+    EnsureColumnExists loBom, "UOM"
+    EnsureColumnExists loBom, "LOCATION"
+    EnsureColumnExists loBom, "DESCRIPTION"
+End Sub
+
+Private Sub EnsureColumnExists(lo As ListObject, colName As String, Optional afterColumn As String = "")
+    If lo Is Nothing Then Exit Sub
+    If ColumnIndex(lo, colName) > 0 Then Exit Sub
+    Dim insertPos As Long
+    If afterColumn <> "" Then insertPos = ColumnIndex(lo, afterColumn)
+    Dim newCol As ListColumn
+    If insertPos > 0 Then
+        Set newCol = lo.ListColumns.Add(insertPos + 1)
+    Else
+        Set newCol = lo.ListColumns.Add
+    End If
+    newCol.Name = colName
+End Sub
+
+Private Sub PropagateBomMetadata(ws As Worksheet, comps As Collection)
+    If ws Is Nothing Then Exit Sub
+    If comps Is Nothing Then Exit Sub
+    If comps.count = 0 Then Exit Sub
+    Dim seen As Object: Set seen = CreateObject("Scripting.Dictionary")
+    Dim i As Long
+    For i = 1 To comps.count
+        Dim info As Variant
+        info = comps(i)
+        Dim rowVal As Long: rowVal = NzLng(info(1))
+        Dim uomVal As String: uomVal = NzStr(info(3))
+        If rowVal > 0 Then
+            If Not seen.Exists(rowVal) Then
+                seen(rowVal) = True
+                SyncSavedBomRows ws, rowVal, uomVal
+            End If
         End If
     Next
-    Set ReadBoxBomComponents = result
-End Function
+End Sub
+
+Private Sub SyncSavedBomRows(ws As Worksheet, ByVal rowValue As Long, ByVal uomValue As String)
+    If ws Is Nothing Or rowValue = 0 Then Exit Sub
+    Dim lo As ListObject
+    For Each lo In ws.ListObjects
+        Dim cRow As Long: cRow = ColumnIndex(lo, "ROW")
+        Dim cUom As Long: cUom = ColumnIndex(lo, "UOM")
+        If cRow = 0 Or cUom = 0 Then GoTo NextTable
+        If lo.DataBodyRange Is Nothing Then GoTo NextTable
+        Dim lr As ListRow
+        For Each lr In lo.ListRows
+            If NzLng(lr.Range.Cells(1, cRow).Value) = rowValue Then
+                lr.Range.Cells(1, cUom).Value = uomValue
+            End If
+        Next lr
+NextTable:
+    Next lo
+End Sub
+
+Private Sub AppendSyncMessage(ByRef target As String, ByVal text As String)
+    If Len(text) = 0 Then Exit Sub
+    If Len(target) = 0 Then
+        target = text
+    Else
+        target = target & vbCrLf & text
+    End If
+End Sub
 
 Private Function EnsureBomTable(ws As Worksheet, ByVal boxName As String, ByRef blockRange As Range) As ListObject
     Dim cleanName As String: cleanName = SafeTableName(boxName)
@@ -297,21 +495,14 @@ Private Sub WriteBomData(lo As ListObject, blockRange As Range, comps As Collect
     If Not lo.DataBodyRange Is Nothing Then lo.DataBodyRange.ClearContents
 
     If comps.count = 0 Then Exit Sub
-    Dim arr() As Variant
-    ReDim arr(1 To SHIPPING_BOM_DATA_ROWS, 1 To SHIPPING_BOM_COLS)
-
     Dim i As Long
     For i = 1 To comps.count
         Dim info As Variant
         info = comps(i)
-        arr(i, 1) = info(1)
-        arr(i, 2) = info(2)
-        arr(i, 3) = info(3)
+        lo.DataBodyRange.Cells(i, 1).Value = info(1)
+        lo.DataBodyRange.Cells(i, 2).Value = info(2)
+        lo.DataBodyRange.Cells(i, 3).Value = info(3)
     Next
-
-    Dim dataRange As Range
-    Set dataRange = lo.DataBodyRange.Resize(SHIPPING_BOM_DATA_ROWS, SHIPPING_BOM_COLS)
-    dataRange.Value = arr
 End Sub
 
 Private Function NextAvailableBomRow(ws As Worksheet) As Long
@@ -494,6 +685,14 @@ Private Function GetListObject(ws As Worksheet, tableName As String) As ListObje
     On Error GoTo 0
 End Function
 
+Private Function GetInvSysTable() As ListObject
+    Dim wsInv As Worksheet: Set wsInv = SheetExists(SHEET_INV)
+    If wsInv Is Nothing Then Exit Function
+    On Error Resume Next
+    Set GetInvSysTable = wsInv.ListObjects("invSys")
+    On Error GoTo 0
+End Function
+
 Private Function ColumnIndex(lo As ListObject, colName As String) As Long
     Dim lc As ListColumn
     For Each lc In lo.ListColumns
@@ -504,6 +703,95 @@ Private Function ColumnIndex(lo As ListObject, colName As String) As Long
     Next lc
     ColumnIndex = 0
 End Function
+
+Private Function FindInvRowIndexByRow(invLo As ListObject, ByVal rowValue As Long) As Long
+    If invLo Is Nothing Or invLo.DataBodyRange Is Nothing Then Exit Function
+    Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
+    If cRow = 0 Then Exit Function
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        If NzLng(invLo.DataBodyRange.Cells(r, cRow).Value) = rowValue Then
+            FindInvRowIndexByRow = r
+            Exit Function
+        End If
+    Next r
+End Function
+
+Private Function FindInvRowIndexByItem(invLo As ListObject, ByVal itemName As String) As Long
+    If invLo Is Nothing Or invLo.DataBodyRange Is Nothing Then Exit Function
+    Dim cItem As Long: cItem = ColumnIndex(invLo, "ITEM")
+    If cItem = 0 Then Exit Function
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        If StrComp(Trim$(NzStr(invLo.DataBodyRange.Cells(r, cItem).Value)), Trim$(itemName), vbTextCompare) = 0 Then
+            FindInvRowIndexByItem = r
+            Exit Function
+        End If
+    Next r
+End Function
+
+Private Function NextInvSysRowValue(invLo As ListObject) As Long
+    Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
+    If cRow = 0 Then
+        NextInvSysRowValue = invLo.ListRows.Count + 1
+        Exit Function
+    End If
+    Dim maxVal As Long: maxVal = 0
+    If Not invLo.DataBodyRange Is Nothing Then
+        Dim r As Long
+        For r = 1 To invLo.DataBodyRange.Rows.Count
+            Dim v As Variant: v = invLo.DataBodyRange.Cells(r, cRow).Value
+            If IsNumeric(v) Then
+                If CLng(v) > maxVal Then maxVal = CLng(v)
+            End If
+        Next r
+    End If
+    NextInvSysRowValue = maxVal + 1
+End Function
+
+Private Function EnsureInvSysItem(boxName As String, uom As String, location As String, descr As String, invLo As ListObject) As Long
+    If invLo Is Nothing Then Exit Function
+    Dim existingIdx As Long
+    existingIdx = FindInvRowIndexByItem(invLo, boxName)
+    Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
+    If existingIdx > 0 Then
+        EnsureInvSysItem = NzLng(invLo.DataBodyRange.Cells(existingIdx, cRow).Value)
+        UpdateInvSysRow invLo.ListRows(existingIdx), boxName, uom, location, descr
+        Exit Function
+    End If
+
+    Dim lr As ListRow: Set lr = invLo.ListRows.Add
+    Dim newRowVal As Long: newRowVal = NextInvSysRowValue(invLo)
+    EnsureInvSysItem = newRowVal
+    UpdateInvSysRow lr, boxName, uom, location, descr, newRowVal
+End Function
+
+Private Sub UpdateInvSysRow(lr As ListRow, boxName As String, uom As String, location As String, descr As String, Optional forceRowValue As Variant)
+    If lr Is Nothing Then Exit Sub
+    Dim lo As ListObject: Set lo = lr.Parent
+    Dim idx As Long
+    If Not IsMissing(forceRowValue) Then
+        idx = ColumnIndex(lo, "ROW")
+        If idx > 0 Then lr.Range.Cells(1, idx).Value = forceRowValue
+    End If
+    idx = ColumnIndex(lo, "ITEM")
+    If idx > 0 Then lr.Range.Cells(1, idx).Value = boxName
+    idx = ColumnIndex(lo, "ITEM_CODE")
+    If idx > 0 And Trim$(NzStr(lr.Range.Cells(1, idx).Value)) = "" Then
+        lr.Range.Cells(1, idx).Value = boxName
+    End If
+    idx = ColumnIndex(lo, "UOM")
+    If idx > 0 Then lr.Range.Cells(1, idx).Value = uom
+    idx = ColumnIndex(lo, "LOCATION")
+    If idx > 0 Then lr.Range.Cells(1, idx).Value = location
+    idx = ColumnIndex(lo, "DESCRIPTION")
+    If idx > 0 Then lr.Range.Cells(1, idx).Value = descr
+End Sub
+
+Private Sub EnsureTableHasRow(lo As ListObject)
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+End Sub
 
 Public Function NzStr(v As Variant) As String
     If IsError(v) Or IsNull(v) Or IsEmpty(v) Then
