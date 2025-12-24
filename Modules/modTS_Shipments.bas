@@ -259,9 +259,30 @@ Private Sub ToggleBuilderTables(ByVal makeVisible As Boolean)
     If ws Is Nothing Then Exit Sub
     Dim lo1 As ListObject: Set lo1 = GetListObject(ws, TABLE_BOX_BUILDER)
     Dim lo2 As ListObject: Set lo2 = GetListObject(ws, TABLE_BOX_BOM)
-    If lo1 Is Nothing Or lo2 Is Nothing Then Exit Sub
-    lo1.Range.EntireRow.Hidden = Not makeVisible
-    lo2.Range.EntireRow.Hidden = Not makeVisible
+    If lo1 Is Nothing And lo2 Is Nothing Then Exit Sub
+
+    Dim firstCol As Long: firstCol = 0
+    Dim lastCol As Long: lastCol = 0
+
+    Dim arrTables As Variant
+    arrTables = Array(lo1, lo2)
+    Dim idx As Long
+    Dim lo As ListObject
+    For idx = LBound(arrTables) To UBound(arrTables)
+        Set lo = arrTables(idx)
+        If Not lo Is Nothing Then
+            Dim startCol As Long
+            Dim endCol As Long
+            startCol = lo.HeaderRowRange.Column
+            endCol = startCol + lo.HeaderRowRange.Columns.Count - 1
+            If firstCol = 0 Or startCol < firstCol Then firstCol = startCol
+            If endCol > lastCol Then lastCol = endCol
+        End If
+    Next idx
+
+    If firstCol = 0 Or lastCol = 0 Then Exit Sub
+
+    ws.Range(ws.Columns(firstCol), ws.Columns(lastCol)).EntireColumn.Hidden = Not makeVisible
 End Sub
 
 Public Sub ApplyItemSelection(targetCell As Range, lo As ListObject, rowIndex As Long, _
@@ -815,4 +836,139 @@ Public Function NzLng(v As Variant) As Long
     Else
         NzLng = CLng(v)
     End If
+End Function
+
+' ===== Workbook/setup helpers (migrated from modTS_Data) =====
+Public Sub SetupAllHandlers()
+    On Error Resume Next
+    ClearTableFilters
+    modGlobals.InitializeGlobalVariables
+    Application.OnKey "{F3}", "modGlobals.OpenItemSearchForCurrentCell"
+    modTS_Received.EnsureGeneratedButtons
+    InitializeShipmentsUI
+    On Error GoTo 0
+End Sub
+
+Public Sub GenerateRowNumbers()
+    On Error GoTo ErrorHandler
+    Dim ws As Worksheet
+    Dim tbl As ListObject
+    Dim rowNumCol As Long
+    Dim i As Long
+    Dim maxRowNum As Long
+    Dim newCol As ListColumn
+
+    Set ws = ThisWorkbook.Sheets("INVENTORY MANAGEMENT")
+    Set tbl = ws.ListObjects("invSys")
+
+    On Error Resume Next
+    rowNumCol = tbl.ListColumns("ROW").Index
+    On Error GoTo ErrorHandler
+    If rowNumCol = 0 Then
+        Set newCol = tbl.ListColumns.Add
+        newCol.Name = "ROW"
+        rowNumCol = newCol.Index
+    End If
+
+    maxRowNum = 0
+    For i = 1 To tbl.ListRows.Count
+        If IsNumeric(tbl.DataBodyRange(i, rowNumCol).Value) Then
+            maxRowNum = Application.WorksheetFunction.Max(maxRowNum, tbl.DataBodyRange(i, rowNumCol).Value)
+        End If
+    Next i
+
+    For i = 1 To tbl.ListRows.Count
+        If Trim$(tbl.DataBodyRange(i, rowNumCol).Value & "") = "" Then
+            maxRowNum = maxRowNum + 1
+            tbl.DataBodyRange(i, rowNumCol).Value = maxRowNum
+        End If
+    Next i
+    MsgBox "Row numbers have been generated successfully.", vbInformation
+    Exit Sub
+ErrorHandler:
+    MsgBox "Error generating row numbers: " & Err.Description, vbExclamation
+End Sub
+
+Public Function IsInItemsColumn(Target As Range) As Boolean
+    IsInItemsColumn = False
+    On Error Resume Next
+
+    Dim lo As ListObject
+    Set lo = Target.ListObject
+    If lo Is Nothing Then Exit Function
+
+    If lo.Name <> "ShipmentsTally" And lo.Name <> "ReceivedTally" Then Exit Function
+
+    Dim itemsCol As ListColumn
+    Set itemsCol = lo.ListColumns("ITEMS")
+    On Error GoTo 0
+    If itemsCol Is Nothing Then Exit Function
+
+    If Target.Column = itemsCol.Range.Column Then
+        If Target.Row > lo.HeaderRowRange.Row Then
+            IsInItemsColumn = True
+        End If
+    End If
+End Function
+
+Public Sub ClearTableFilters()
+    On Error Resume Next
+    If Not ThisWorkbook.Worksheets("ShipmentsTally") Is Nothing Then
+        If Not ThisWorkbook.Worksheets("ShipmentsTally").ListObjects("ShipmentsTally") Is Nothing Then
+            ThisWorkbook.Worksheets("ShipmentsTally").ListObjects("ShipmentsTally").AutoFilter.ShowAllData
+        End If
+        If Not ThisWorkbook.Worksheets("ShipmentsTally").ListObjects("invSysData_Shipping") Is Nothing Then
+            ThisWorkbook.Worksheets("ShipmentsTally").ListObjects("invSysData_Shipping").AutoFilter.ShowAllData
+        End If
+    End If
+    If Not ThisWorkbook.Worksheets("ReceivedTally") Is Nothing Then
+        If Not ThisWorkbook.Worksheets("ReceivedTally").ListObjects("ReceivedTally") Is Nothing Then
+            ThisWorkbook.Worksheets("ReceivedTally").ListObjects("ReceivedTally").AutoFilter.ShowAllData
+        End If
+        If Not ThisWorkbook.Worksheets("ReceivedTally").ListObjects("invSysData_Receiving") Is Nothing Then
+            ThisWorkbook.Worksheets("ReceivedTally").ListObjects("invSysData_Receiving").AutoFilter.ShowAllData
+        End If
+    End If
+    On Error GoTo 0
+End Sub
+
+Public Function LoadItemList() As Variant
+    On Error GoTo ErrorHandler
+    Dim ws As Worksheet
+    Dim tbl As ListObject
+    Dim rowCount As Long
+    Dim result As Variant
+    Dim i As Long
+
+    Set ws = ThisWorkbook.Worksheets("INVENTORY MANAGEMENT")
+    Set tbl = ws.ListObjects("invSys")
+    If tbl Is Nothing Then GoTo ErrorHandler
+
+    rowCount = tbl.ListRows.Count
+    If rowCount = 0 Then GoTo ErrorHandler
+
+    ReDim result(1 To rowCount, 0 To 4)
+
+    Dim itemCodeCol As Integer, rowCol As Integer, itemCol As Integer
+    Dim locCol As Integer
+    On Error Resume Next
+    itemCodeCol = tbl.ListColumns("ITEM_CODE").Index
+    rowCol = tbl.ListColumns("ROW").Index
+    itemCol = tbl.ListColumns("ITEM").Index
+    locCol = tbl.ListColumns("LOCATION").Index
+    On Error GoTo ErrorHandler
+    If itemCodeCol = 0 Or rowCol = 0 Or itemCol = 0 Then GoTo ErrorHandler
+
+    For i = 1 To rowCount
+        result(i, 0) = tbl.DataBodyRange.Cells(i, rowCol).Value
+        result(i, 1) = tbl.DataBodyRange.Cells(i, itemCodeCol).Value
+        result(i, 2) = tbl.DataBodyRange.Cells(i, itemCol).Value
+        If locCol > 0 Then
+            result(i, 3) = tbl.DataBodyRange.Cells(i, locCol).Value
+        End If
+    Next i
+    LoadItemList = result
+    Exit Function
+ErrorHandler:
+    LoadItemList = Empty
 End Function

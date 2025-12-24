@@ -12,7 +12,7 @@ Private Sub Workbook_Open()
     ' Make sure Excel events are enabled
     Application.EnableEvents = True
     ' Set up handlers (hotkeys, etc.)
-    modTS_Data.SetupAllHandlers
+    modTS_Shipments.SetupAllHandlers
 End Sub
 Private Sub Workbook_SheetActivate(ByVal Sh As Object)
     ' Re-enable events when activating sheets

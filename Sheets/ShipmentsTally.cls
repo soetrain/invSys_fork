@@ -13,6 +13,12 @@ Attribute VB_Exposed = True
 ' ==================
 Option Explicit
 
+Private Sub Worksheet_Activate()
+    On Error Resume Next
+    modTS_Shipments.InitializeShipmentsUI
+    On Error GoTo 0
+End Sub
+
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
     If Application.EnableEvents = False Then Application.EnableEvents = True
     If Target.Cells.CountLarge > 1 Then Exit Sub
