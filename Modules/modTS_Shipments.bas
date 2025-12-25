@@ -45,11 +45,14 @@ Private Const SHIPPING_BOM_DATA_ROWS As Long = 50
 Private Const SHIPPING_BOM_COLS As Long = 3 ' ROW, QUANTITY, UOM
 
 Private mDynSearch As cDynItemSearch
+Private mNextInvSysRow As Long
+Private mAggDirty As Boolean
 
 ' ===== public entry points =====
 Public Sub InitializeShipmentsUI()
     EnsureShipmentsButtons
     EnsureBuilderTablesReady
+    If mAggDirty Then RebuildShippingAggregates
 End Sub
 
 Public Sub BtnToggleBuilder()
@@ -131,7 +134,7 @@ Public Sub BtnSaveBox()
         Exit Sub
     End If
     Dim bomTable As ListObject, blockRange As Range
-    Set bomTable = EnsureBomTable(wsBOM, boxName, blockRange)
+    Set bomTable = EnsureBomTable(wsBOM, boxName, boxRowValue, blockRange)
     If bomTable Is Nothing Then Exit Sub
 
     WriteBomData bomTable, blockRange, components
@@ -143,6 +146,11 @@ Public Sub BtnSaveBox()
         finalMsg = finalMsg & vbCrLf & syncNotes
     End If
     MsgBox finalMsg, vbInformation
+
+    ClearListObjectData loMeta
+    ClearListObjectData loBom
+    EnsureTableHasRow loMeta
+    EnsureTableHasRow loBom
     Exit Sub
 
 ErrHandler:
@@ -176,8 +184,54 @@ Public Sub BtnConfirmInventory()
 End Sub
 
 Public Sub BtnBoxesMade()
-    ' Placeholder for BOM build workflow
-    MsgBox "BTN_BOXES_MADE logic pending implementation.", vbInformation
+    On Error GoTo ErrHandler
+    Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Sub
+
+    Dim invLo As ListObject: Set invLo = GetInvSysTable()
+    Dim aggBom As ListObject: Set aggBom = GetListObject(ws, TABLE_AGG_BOM)
+    Dim aggPack As ListObject: Set aggPack = GetListObject(ws, TABLE_AGG_PACK)
+
+    If invLo Is Nothing Then
+        MsgBox "InventoryManagement!invSys table not found.", vbCritical
+        Exit Sub
+    End If
+    If aggBom Is Nothing Or aggBom.DataBodyRange Is Nothing Then
+        MsgBox "AggregateBoxBOM has no rows. Enter package quantities in ShipmentsTally first.", vbInformation
+        Exit Sub
+    End If
+
+    Dim errNotes As String, shortage As String
+    Dim usedTotal As Double
+    Dim madeTotal As Double
+
+    If Not ValidateComponentInventory(invLo, aggBom, shortage) Then
+        MsgBox "Cannot make boxes:" & vbCrLf & shortage, vbExclamation
+        Exit Sub
+    End If
+
+    usedTotal = ApplyComponentUsageToInv(invLo, aggBom, errNotes)
+    If usedTotal < 0 Then
+        MsgBox "Boxes made cancelled: insufficient inventory to cover all BOM components." & vbCrLf & vbCrLf & errNotes, vbExclamation
+        Exit Sub
+    End If
+
+    madeTotal = AddPackagesToMade(invLo, aggPack, errNotes)
+
+    InvalidateAggregates True
+
+    Dim msg As String
+    msg = "Recorded component usage: " & Format$(usedTotal, "0.###") & " units."
+    msg = msg & vbCrLf & "Recorded finished packages (MADE): " & Format$(madeTotal, "0.###")
+    If errNotes <> "" Then
+        msg = msg & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
+        MsgBox msg, vbExclamation
+    Else
+        MsgBox msg, vbInformation
+    End If
+    Exit Sub
+ErrHandler:
+    MsgBox "BTN_BOXES_MADE failed: " & Err.Description, vbCritical
 End Sub
 
 Public Sub BtnToTotalInv()
@@ -230,21 +284,15 @@ Private Sub EnsureShipmentsButtons()
     nextTop = nextTop + BTN_STACK_SPACING
     EnsureButtonCustom ws, BTN_UNSHIP, "Toggle NotShipped", "modTS_Shipments.BtnUnship", leftA, nextTop, colAWidth
     nextTop = nextTop + BTN_STACK_SPACING
+    EnsureButtonCustom ws, BTN_SEND_HOLD, "Send to hold", "modTS_Shipments.BtnSendHold", leftA, nextTop, colAWidth
+    nextTop = nextTop + BTN_STACK_SPACING
+    EnsureButtonCustom ws, BTN_RETURN_HOLD, "Return from hold", "modTS_Shipments.BtnReturnHold", leftA, nextTop, colAWidth
+    nextTop = nextTop + BTN_STACK_SPACING
     EnsureButtonCustom ws, BTN_TO_TOTALINV, "To TotalInv", "modTS_Shipments.BtnToTotalInv", leftA, nextTop, colAWidth
     nextTop = nextTop + BTN_STACK_SPACING
     EnsureButtonCustom ws, BTN_TO_SHIPMENTS, "To Shipments", "modTS_Shipments.BtnToShipments", leftA, nextTop, colAWidth
     nextTop = nextTop + BTN_STACK_SPACING
     EnsureButtonCustom ws, BTN_SHIPMENTS_SENT, "Shipments sent", "modTS_Shipments.BtnShipmentsSent", leftA, nextTop, colAWidth
-
-    Dim loHold As ListObject: Set loHold = GetListObject(ws, TABLE_NOTSHIPPED)
-    If Not loHold Is Nothing Then
-        Dim topBand As Double
-        topBand = loHold.HeaderRowRange.Top - 24
-        Dim leftBand As Double
-        leftBand = loHold.HeaderRowRange.Left
-        EnsureButtonCustom ws, BTN_SEND_HOLD, "Send to hold", "modTS_Shipments.BtnSendHold", leftBand + 120, topBand
-        EnsureButtonCustom ws, BTN_RETURN_HOLD, "Return from hold", "modTS_Shipments.BtnReturnHold", leftBand + 240, topBand
-    End If
 End Sub
 
 Private Sub EnsureButtonCustom(ws As Worksheet, shapeName As String, caption As String, onActionMacro As String, leftPos As Double, topPos As Double, Optional widthPts As Double = 118)
@@ -353,56 +401,81 @@ Public Sub ApplyItemSelection(targetCell As Range, lo As ListObject, rowIndex As
     Select Case tableName
         Case "shipmentstally"
             targetCell.Value = itemName
-            
-        Case LCase$(TABLE_BOX_BOM)
-            Dim invLo As ListObject
-            Set invLo = GetInvSysTable()
-            If invLo Is Nothing Then
-                targetCell.Value = itemName
-                Exit Sub
-            End If
-            
-            Dim invRowIdx As Long
-            If itemRow > 0 Then invRowIdx = FindInvRowIndexByRow(invLo, itemRow)
-            If invRowIdx = 0 And Len(Trim$(itemName)) > 0 Then
-                invRowIdx = FindInvRowIndexByItem(invLo, itemName)
-            End If
-            If invRowIdx = 0 Then
-                targetCell.Value = itemName
-                Exit Sub
-            End If
-            
-            Dim invRowCol As Long: invRowCol = ColumnIndex(invLo, "ROW")
-            Dim invUomCol As Long: invUomCol = ColumnIndex(invLo, "UOM")
-            Dim invLocCol As Long: invLocCol = ColumnIndex(invLo, "LOCATION")
-            Dim invDescCol As Long: invDescCol = ColumnIndex(invLo, "DESCRIPTION")
-            
-            Dim actualRow As Long
-            Dim actualUom As String, actualLoc As String, actualDesc As String
-            If invRowCol > 0 Then actualRow = NzLng(invLo.DataBodyRange.Cells(invRowIdx, invRowCol).Value)
-            If invUomCol > 0 Then actualUom = NzStr(invLo.DataBodyRange.Cells(invRowIdx, invUomCol).Value)
-            If invLocCol > 0 Then actualLoc = NzStr(invLo.DataBodyRange.Cells(invRowIdx, invLocCol).Value)
-            If invDescCol > 0 Then actualDesc = NzStr(invLo.DataBodyRange.Cells(invRowIdx, invDescCol).Value)
-            
-            If Len(actualUom) = 0 Then actualUom = uom
-            If Len(actualLoc) = 0 Then actualLoc = location
-            If Len(actualDesc) = 0 Then actualDesc = description
-            
-            Dim itemColIdx As Long: itemColIdx = ColumnIndex(lo, COL_BOXBOM_ITEM)
-            Dim rowColIdx As Long: rowColIdx = ColumnIndex(lo, "ROW")
-            Dim uomColIdx As Long: uomColIdx = ColumnIndex(lo, "UOM")
-            Dim locColIdx As Long: locColIdx = ColumnIndex(lo, "LOCATION")
-            Dim descColIdx As Long: descColIdx = ColumnIndex(lo, "DESCRIPTION")
-            
-            targetCell.Value = itemName
-            If rowColIdx > 0 Then targetCell.Offset(0, rowColIdx - itemColIdx).Value = actualRow
-            If uomColIdx > 0 Then targetCell.Offset(0, uomColIdx - itemColIdx).Value = actualUom
-            If locColIdx > 0 Then targetCell.Offset(0, locColIdx - itemColIdx).Value = actualLoc
-            If descColIdx > 0 Then targetCell.Offset(0, descColIdx - itemColIdx).Value = actualDesc
+            InvalidateAggregates True
             
         Case Else
             ' no-op
     End Select
+End Sub
+
+Public Sub ApplyItemToBoxBOM(targetCell As Range, ByVal itemName As String, ByVal itemRow As Long, _
+    ByVal uom As String, ByVal location As String, ByVal description As String)
+
+    On Error GoTo ErrHandler
+    Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Sub
+    Dim loBom As ListObject: Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    If loBom Is Nothing Then Exit Sub
+    EnsureBoxBomEntryColumns loBom
+
+    Dim invLo As ListObject: Set invLo = GetInvSysTable()
+    If invLo Is Nothing Then Exit Sub
+
+    Dim invIdx As Long
+    If itemRow > 0 Then invIdx = FindInvRowIndexByRow(invLo, itemRow)
+    If invIdx = 0 And Len(Trim$(itemName)) > 0 Then
+        invIdx = FindInvRowIndexByItem(invLo, itemName)
+    End If
+    If invIdx = 0 Then
+        MsgBox "Item '" & itemName & "' not found in invSys.", vbExclamation
+        Exit Sub
+    End If
+
+    Dim actualRow As Long
+    Dim actualItem As String
+    Dim actualUom As String, actualLoc As String, actualDesc As String
+
+    Dim colRowInv As Long: colRowInv = ColumnIndex(invLo, "ROW")
+    Dim colItemInv As Long: colItemInv = ColumnIndex(invLo, "ITEM")
+    Dim colUomInv As Long: colUomInv = ColumnIndex(invLo, "UOM")
+    Dim colLocInv As Long: colLocInv = ColumnIndex(invLo, "LOCATION")
+    Dim colDescInv As Long: colDescInv = ColumnIndex(invLo, "DESCRIPTION")
+
+    If colRowInv > 0 Then actualRow = NzLng(invLo.DataBodyRange.Cells(invIdx, colRowInv).Value)
+    If colItemInv > 0 Then actualItem = NzStr(invLo.DataBodyRange.Cells(invIdx, colItemInv).Value)
+    If colUomInv > 0 Then actualUom = NzStr(invLo.DataBodyRange.Cells(invIdx, colUomInv).Value)
+    If colLocInv > 0 Then actualLoc = NzStr(invLo.DataBodyRange.Cells(invIdx, colLocInv).Value)
+    If colDescInv > 0 Then actualDesc = NzStr(invLo.DataBodyRange.Cells(invIdx, colDescInv).Value)
+
+    If Len(actualItem) = 0 Then actualItem = itemName
+    If actualRow = 0 Then actualRow = itemRow
+    If Len(actualUom) = 0 Then actualUom = uom
+    If Len(actualLoc) = 0 Then actualLoc = location
+    If Len(actualDesc) = 0 Then actualDesc = description
+
+    Dim lr As ListRow
+    Dim rowIdxResolved As Long: rowIdxResolved = 0
+    If Not loBom.DataBodyRange Is Nothing And Not targetCell Is Nothing Then
+        If targetCell.Row >= loBom.DataBodyRange.Row _
+           And targetCell.Row <= loBom.DataBodyRange.Row + loBom.DataBodyRange.Rows.Count - 1 Then
+            rowIdxResolved = targetCell.Row - loBom.DataBodyRange.Row + 1
+        End If
+    End If
+    If rowIdxResolved >= 1 And rowIdxResolved <= loBom.ListRows.Count Then
+        Set lr = loBom.ListRows(rowIdxResolved)
+    Else
+        Set lr = loBom.ListRows.Add
+    End If
+
+    WriteValue lr, COL_BOXBOM_ITEM, actualItem
+    WriteValue lr, "ROW", actualRow
+    WriteValue lr, "UOM", actualUom
+    WriteValue lr, "LOCATION", actualLoc
+    WriteValue lr, "DESCRIPTION", actualDesc
+    Exit Sub
+
+ErrHandler:
+    MsgBox "ApplyItemToBoxBOM error: " & Err.Description, vbCritical
 End Sub
 
 Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, ByRef syncNotes As String) As Collection
@@ -591,13 +664,28 @@ Private Sub AppendSyncMessage(ByRef target As String, ByVal text As String)
     End If
 End Sub
 
-Private Function EnsureBomTable(ws As Worksheet, ByVal boxName As String, ByRef blockRange As Range) As ListObject
-    Dim cleanName As String: cleanName = SafeTableName(boxName)
-
+Private Function EnsureBomTable(ws As Worksheet, ByVal boxName As String, ByVal boxRow As Long, ByRef blockRange As Range) As ListObject
+    Dim targetName As String: targetName = BomTableNameFromRow(boxRow)
     Dim lo As ListObject
+
+    ' try new naming scheme first
     On Error Resume Next
-    Set lo = ws.ListObjects(cleanName)
+    Set lo = ws.ListObjects(targetName)
     On Error GoTo 0
+
+    ' if not found, look for legacy table named by box name and rename it
+    If lo Is Nothing Then
+        Dim legacyName As String: legacyName = SafeTableName(boxName)
+        If StrComp(legacyName, targetName, vbTextCompare) <> 0 Then
+            On Error Resume Next
+            Set lo = ws.ListObjects(legacyName)
+            On Error GoTo 0
+            If Not lo Is Nothing Then
+                lo.Name = targetName
+            End If
+        End If
+    End If
+
     If Not lo Is Nothing Then
         Set blockRange = BlockRangeFromHeader(ws, lo.HeaderRowRange.Row)
         If blockRange Is Nothing Then
@@ -622,7 +710,7 @@ Private Function EnsureBomTable(ws As Worksheet, ByVal boxName As String, ByRef 
     blockRange.Rows(1).Cells(1, 2).Value = "QUANTITY"
     blockRange.Rows(1).Cells(1, 3).Value = "UOM"
     Set lo = ws.ListObjects.Add(xlSrcRange, blockRange, , xlYes)
-    lo.Name = cleanName
+    lo.Name = targetName
     Set EnsureBomTable = lo
 End Function
 
@@ -701,6 +789,14 @@ Private Function SafeTableName(ByVal sourceName As String) As String
     SafeTableName = kept
 End Function
 
+Private Function BomTableNameFromRow(ByVal rowValue As Long) As String
+    If rowValue <= 0 Then
+        BomTableNameFromRow = SafeTableName("BOM_" & Format$(Now, "yyyymmdd_hhnnss"))
+    Else
+        BomTableNameFromRow = "ROW_" & CStr(rowValue)
+    End If
+End Function
+
 Private Function ValueFromTable(lo As ListObject, headerName As String) As Variant
     Dim colIdx As Long: colIdx = ColumnIndex(lo, headerName)
     If colIdx = 0 Then Exit Function
@@ -751,6 +847,8 @@ Private Sub MoveSelectionToHold(ByVal moveToHold As Boolean)
             End If
         Next r
     Next cell
+
+    InvalidateAggregates True
 End Sub
 
 Private Sub HandleHoldRow(sourceTable As ListObject, targetTable As ListObject, rowIndex As Long, moveToHold As Boolean)
@@ -842,6 +940,68 @@ Private Function ColumnIndex(lo As ListObject, colName As String) As Long
     ColumnIndex = 0
 End Function
 
+Private Function FindInvListRowByRowValue(invLo As ListObject, ByVal rowValue As Long) As ListRow
+    If invLo Is Nothing Or rowValue <= 0 Then Exit Function
+    If invLo.DataBodyRange Is Nothing Then Exit Function
+    Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
+    If cRow = 0 Then Exit Function
+    Dim cel As Range
+    For Each cel In invLo.ListColumns(cRow).DataBodyRange.Cells
+        If NzLng(cel.Value) = rowValue Then
+            Set FindInvListRowByRowValue = invLo.ListRows(cel.Row - invLo.DataBodyRange.Row + 1)
+            Exit Function
+        End If
+    Next cel
+End Function
+
+Private Function ValidateComponentInventory(invLo As ListObject, aggBom As ListObject, ByRef shortageMsg As String) As Boolean
+    shortageMsg = ""
+    ValidateComponentInventory = False
+    If invLo Is Nothing Then
+        shortageMsg = "invSys table not found."
+        Exit Function
+    End If
+    If aggBom Is Nothing Or aggBom.DataBodyRange Is Nothing Then
+        ValidateComponentInventory = True
+        Exit Function
+    End If
+
+    Dim cQtyAgg As Long: cQtyAgg = ColumnIndex(aggBom, "QUANTITY")
+    Dim cRowAgg As Long: cRowAgg = ColumnIndex(aggBom, "ROW")
+    If cQtyAgg = 0 Or cRowAgg = 0 Then
+        shortageMsg = "AggregateBoxBOM is missing QUANTITY or ROW columns."
+        Exit Function
+    End If
+
+    Dim colTotalInv As Long: colTotalInv = ColumnIndex(invLo, "TOTAL INV")
+    If colTotalInv = 0 Then
+        shortageMsg = "invSys table must contain TOTAL INV column."
+        Exit Function
+    End If
+
+    Dim arr As Variant
+    arr = aggBom.DataBodyRange.Value
+    Dim r As Long
+    For r = 1 To UBound(arr, 1)
+        Dim rowVal As Long: rowVal = NzLng(arr(r, cRowAgg))
+        Dim qtyNeeded As Double: qtyNeeded = NzDbl(arr(r, cQtyAgg))
+        If rowVal = 0 Or qtyNeeded <= 0 Then GoTo NextComponent
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If invRow Is Nothing Then
+            AppendNote shortageMsg, "invSys ROW " & rowVal & " not found."
+            GoTo NextComponent
+        End If
+        Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotalInv)
+        Dim available As Double: available = NzDbl(totalCell.Value)
+        If available < qtyNeeded Then
+            AppendNote shortageMsg, "ROW " & rowVal & " requires " & Format$(qtyNeeded, "0.###") & " but only " & Format$(available, "0.###") & " available."
+        End If
+NextComponent:
+    Next r
+
+    ValidateComponentInventory = (Len(shortageMsg) = 0)
+End Function
+
 Private Function FindInvRowIndexByRow(invLo As ListObject, ByVal rowValue As Long) As Long
     If invLo Is Nothing Or invLo.DataBodyRange Is Nothing Then Exit Function
     Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
@@ -868,32 +1028,46 @@ Private Function FindInvRowIndexByItem(invLo As ListObject, ByVal itemName As St
     Next r
 End Function
 
-Private Function NextInvSysRowValue(invLo As ListObject) As Long
+Private Sub EnsureInvSysRowSeed(invLo As ListObject)
+    If mNextInvSysRow > 0 Then Exit Sub
+    mNextInvSysRow = CurrentInvSysMaxRow(invLo) + 1
+    If mNextInvSysRow <= 0 Then mNextInvSysRow = 1
+End Sub
+
+Private Function CurrentInvSysMaxRow(invLo As ListObject) As Long
+    If invLo Is Nothing Then Exit Function
     Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
-    If cRow = 0 Then
-        NextInvSysRowValue = invLo.ListRows.Count + 1
-        Exit Function
-    End If
-    Dim maxVal As Long: maxVal = 0
-    If Not invLo.DataBodyRange Is Nothing Then
-        Dim r As Long
-        For r = 1 To invLo.DataBodyRange.Rows.Count
-            Dim v As Variant: v = invLo.DataBodyRange.Cells(r, cRow).Value
-            If IsNumeric(v) Then
-                If CLng(v) > maxVal Then maxVal = CLng(v)
-            End If
-        Next r
-    End If
-    NextInvSysRowValue = maxVal + 1
+    If cRow = 0 Then Exit Function
+    If invLo.DataBodyRange Is Nothing Then Exit Function
+    Dim maxVal As Long
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        Dim v As Variant: v = invLo.DataBodyRange.Cells(r, cRow).Value
+        If IsNumeric(v) Then
+            If CLng(v) > maxVal Then maxVal = CLng(v)
+        End If
+    Next r
+    CurrentInvSysMaxRow = maxVal
+End Function
+
+Private Function NextInvSysRowValue(invLo As ListObject) As Long
+    EnsureInvSysRowSeed invLo
+    If mNextInvSysRow <= 0 Then mNextInvSysRow = 1
+    NextInvSysRowValue = mNextInvSysRow
+    mNextInvSysRow = mNextInvSysRow + 1
 End Function
 
 Private Function EnsureInvSysItem(boxName As String, uom As String, location As String, descr As String, invLo As ListObject) As Long
     If invLo Is Nothing Then Exit Function
+    EnsureInvSysRowSeed invLo
     Dim existingIdx As Long
     existingIdx = FindInvRowIndexByItem(invLo, boxName)
     Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
     If existingIdx > 0 Then
         EnsureInvSysItem = NzLng(invLo.DataBodyRange.Cells(existingIdx, cRow).Value)
+        If EnsureInvSysItem >= mNextInvSysRow Then
+            mNextInvSysRow = EnsureInvSysItem + 1
+        End If
         UpdateInvSysRow invLo.ListRows(existingIdx), boxName, uom, location, descr
         Exit Function
     End If
@@ -931,6 +1105,487 @@ Private Sub EnsureTableHasRow(lo As ListObject)
     If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
 End Sub
 
+Private Sub ClearListObjectData(lo As ListObject)
+    If lo Is Nothing Then Exit Sub
+    On Error Resume Next
+    If Not lo.DataBodyRange Is Nothing Then lo.DataBodyRange.Delete
+    On Error GoTo 0
+End Sub
+
+Public Sub InvalidateAggregates(Optional rebuildNow As Boolean = False)
+    mAggDirty = True
+    If rebuildNow Then
+        RebuildShippingAggregates
+    End If
+End Sub
+
+Public Sub RebuildShippingAggregates()
+    Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Sub
+
+    Dim loShip As ListObject: Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
+    Dim loAggPack As ListObject: Set loAggPack = GetListObject(ws, TABLE_AGG_PACK)
+    Dim loAggBom As ListObject: Set loAggBom = GetListObject(ws, TABLE_AGG_BOM)
+    Dim loCheck As ListObject: Set loCheck = GetListObject(ws, TABLE_CHECK_INV)
+
+    Dim invLo As ListObject: Set invLo = GetInvSysTable()
+    Dim rowCache As Object, nameCache As Object
+    BuildInvSysCaches invLo, rowCache, nameCache
+
+    Dim pkgDict As Object
+    Set pkgDict = BuildPackageSummary(loShip, rowCache, nameCache)
+
+    WriteAggregatePackages loAggPack, pkgDict
+
+    Dim bomDict As Object
+    Set bomDict = BuildBomSummary(pkgDict, rowCache)
+
+    WriteAggregateBOM loAggBom, bomDict
+
+    WriteCheckInv loCheck, rowCache, pkgDict, bomDict
+    mAggDirty = False
+End Sub
+
+Private Sub BuildInvSysCaches(invLo As ListObject, ByRef rowCache As Object, ByRef nameCache As Object)
+    Set rowCache = CreateObject("Scripting.Dictionary")
+    Set nameCache = CreateObject("Scripting.Dictionary")
+    If invLo Is Nothing Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
+    If cRow = 0 Then Exit Sub
+    Dim cItem As Long: cItem = ColumnIndex(invLo, "ITEM")
+    Dim cItemCode As Long: cItemCode = ColumnIndex(invLo, "ITEM_CODE")
+    Dim cUom As Long: cUom = ColumnIndex(invLo, "UOM")
+    Dim cLoc As Long: cLoc = ColumnIndex(invLo, "LOCATION")
+    Dim cUsed As Long: cUsed = ColumnIndex(invLo, "USED")
+    Dim cMade As Long: cMade = ColumnIndex(invLo, "MADE")
+    Dim cShip As Long: cShip = ColumnIndex(invLo, "SHIPMENTS")
+    Dim cTotal As Long: cTotal = ColumnIndex(invLo, "TOTAL INV")
+
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        Dim rowVal As Long: rowVal = NzLng(invLo.DataBodyRange.Cells(r, cRow).Value)
+        If rowVal = 0 Then GoTo NextRow
+        Dim info As Object: Set info = CreateObject("Scripting.Dictionary")
+        If cItem > 0 Then info("ITEM") = NzStr(invLo.DataBodyRange.Cells(r, cItem).Value)
+        If cItemCode > 0 Then info("ITEM_CODE") = NzStr(invLo.DataBodyRange.Cells(r, cItemCode).Value)
+        If cUom > 0 Then info("UOM") = NzStr(invLo.DataBodyRange.Cells(r, cUom).Value)
+        If cLoc > 0 Then info("LOCATION") = NzStr(invLo.DataBodyRange.Cells(r, cLoc).Value)
+        If cUsed > 0 Then info("USED") = NzDbl(invLo.DataBodyRange.Cells(r, cUsed).Value)
+        If cMade > 0 Then info("MADE") = NzDbl(invLo.DataBodyRange.Cells(r, cMade).Value)
+        If cShip > 0 Then info("SHIPMENTS") = NzDbl(invLo.DataBodyRange.Cells(r, cShip).Value)
+        If cTotal > 0 Then info("TOTAL_INV") = NzDbl(invLo.DataBodyRange.Cells(r, cTotal).Value)
+        Dim cacheKey As String
+        cacheKey = CStr(rowVal)
+        If rowCache.Exists(cacheKey) Then
+            Set rowCache(cacheKey) = info
+        Else
+            rowCache.Add cacheKey, info
+        End If
+        Dim itemKey As String
+        itemKey = LCase$(NzStr(infovalue(info, "ITEM")))
+        If itemKey <> "" Then
+            If Not nameCache.Exists(itemKey) Then nameCache(itemKey) = rowVal
+        End If
+NextRow:
+    Next r
+End Sub
+
+Private Function BuildPackageSummary(loShip As ListObject, rowCache As Object, nameCache As Object) As Object
+    Dim dict As Object: Set dict = CreateObject("Scripting.Dictionary")
+    If loShip Is Nothing Then
+        Set BuildPackageSummary = dict
+        Exit Function
+    End If
+    If loShip.DataBodyRange Is Nothing Then
+        Set BuildPackageSummary = dict
+        Exit Function
+    End If
+
+    Dim cItem As Long: cItem = ColumnIndex(loShip, "ITEMS")
+    Dim cQty As Long: cQty = ColumnIndex(loShip, "QUANTITY")
+    If cItem = 0 Or cQty = 0 Then
+        Set BuildPackageSummary = dict
+        Exit Function
+    End If
+
+    Dim data As Variant
+    data = loShip.DataBodyRange.Value
+    Dim r As Long
+    For r = 1 To UBound(data, 1)
+        Dim itemName As String: itemName = NzStr(data(r, cItem))
+        Dim qty As Double: qty = NzDbl(data(r, cQty))
+        If qty <= 0 Or itemName = "" Then GoTo NextRow
+        Dim rowVal As Long
+        rowVal = ResolveRowFromCaches(itemName, nameCache)
+        If rowVal = 0 Then GoTo NextRow
+        Dim key As String: key = CStr(rowVal)
+        Dim info As Object
+        If dict.Exists(key) Then
+            Set info = dict(key)
+        Else
+            Set info = CreateObject("Scripting.Dictionary")
+            info("ROW") = rowVal
+            Dim invInfo As Object
+            If Not rowCache Is Nothing Then
+                If rowCache.Exists(key) Then
+                    Set invInfo = rowCache(key)
+                End If
+            End If
+            If Not invInfo Is Nothing Then
+                info("ITEM") = NzStr(infovalue(invInfo, "ITEM"))
+                info("UOM") = NzStr(infovalue(invInfo, "UOM"))
+            Else
+                info("ITEM") = itemName
+                info("UOM") = ""
+            End If
+            info("QTY") = 0#
+            dict.Add key, info
+        End If
+        info("QTY") = NzDbl(info("QTY")) + qty
+NextRow:
+    Next r
+    Set BuildPackageSummary = dict
+End Function
+
+Private Function BuildBomSummary(pkgDict As Object, rowCache As Object) As Object
+    Dim dict As Object: Set dict = CreateObject("Scripting.Dictionary")
+    If pkgDict Is Nothing Then
+        Set BuildBomSummary = dict
+        Exit Function
+    End If
+    If pkgDict.Count = 0 Then
+        Set BuildBomSummary = dict
+        Exit Function
+    End If
+
+    Dim wsBOM As Worksheet: Set wsBOM = SheetExists(SHEET_BOM)
+    Dim key As Variant
+    For Each key In pkgDict.Keys
+        Dim pkgInfo As Object: Set pkgInfo = pkgDict(key)
+        Dim pkgQty As Double: pkgQty = NzDbl(infovalue(pkgInfo, "QTY"))
+        Dim pkgRow As Long: pkgRow = NzLng(infovalue(pkgInfo, "ROW"))
+        If pkgRow = 0 Or pkgQty <= 0 Then GoTo NextPkg
+        Dim bomLo As ListObject: Set bomLo = GetBomTableByRow(pkgRow)
+        If bomLo Is Nothing Then GoTo NextPkg
+        If bomLo.DataBodyRange Is Nothing Then GoTo NextPkg
+        Dim cRow As Long: cRow = ColumnIndex(bomLo, "ROW")
+        Dim cQty As Long: cQty = ColumnIndex(bomLo, "QUANTITY")
+        Dim cUom As Long: cUom = ColumnIndex(bomLo, "UOM")
+        If cRow = 0 Or cQty = 0 Then GoTo NextPkg
+        Dim arr As Variant
+        arr = bomLo.DataBodyRange.Value
+        Dim r As Long
+        For r = 1 To UBound(arr, 1)
+            Dim compRow As Long: compRow = NzLng(arr(r, cRow))
+            Dim bomQty As Double: bomQty = NzDbl(arr(r, cQty))
+            If compRow = 0 Or bomQty = 0 Then GoTo NextComponent
+            Dim totalUse As Double: totalUse = bomQty * pkgQty
+            If totalUse = 0 Then GoTo NextComponent
+            Dim compKey As String: compKey = CStr(compRow)
+            Dim info As Object
+            If dict.Exists(compKey) Then
+                Set info = dict(compKey)
+            Else
+                Set info = CreateObject("Scripting.Dictionary")
+                info("ROW") = compRow
+                Dim invInfo As Object
+                If Not rowCache Is Nothing Then
+                    If rowCache.Exists(compKey) Then
+                        Set invInfo = rowCache(compKey)
+                    End If
+                End If
+                If Not invInfo Is Nothing Then
+                    info("ITEM") = NzStr(infovalue(invInfo, "ITEM"))
+                    info("UOM") = NzStr(infovalue(invInfo, "UOM"))
+                Else
+                    info("ITEM") = ""
+                    info("UOM") = ""
+                End If
+                info("QTY") = 0#
+                dict.Add compKey, info
+            End If
+            info("QTY") = NzDbl(info("QTY")) + totalUse
+            If cUom > 0 Then
+                Dim bomUom As String: bomUom = NzStr(arr(r, cUom))
+                If bomUom <> "" Then info("UOM") = bomUom
+            End If
+NextComponent:
+        Next r
+NextPkg:
+    Next key
+    Set BuildBomSummary = dict
+End Function
+
+Private Sub WriteAggregatePackages(lo As ListObject, pkgDict As Object)
+    If lo Is Nothing Then Exit Sub
+    ClearListObjectData lo
+    If pkgDict Is Nothing Then Exit Sub
+    If pkgDict.Count = 0 Then Exit Sub
+    Dim keys As Variant: keys = SortedKeys(pkgDict)
+    Dim count As Long: count = UBound(keys) - LBound(keys) + 1
+    ReDim arr(1 To count, 1 To 4)
+    Dim i As Long
+    For i = 1 To count
+        Dim key As Variant: key = keys(LBound(keys) + i - 1)
+        Dim info As Object: Set info = pkgDict(key)
+        arr(i, 1) = NzDbl(infovalue(info, "QTY"))
+        arr(i, 2) = NzStr(infovalue(info, "UOM"))
+        Dim itemText As String: itemText = NzStr(infovalue(info, "ITEM"))
+        If itemText = "" Then itemText = NzStr(key)
+        arr(i, 3) = itemText
+        arr(i, 4) = CLng(key)
+    Next i
+    WriteArrayToTable lo, arr
+End Sub
+
+Private Sub WriteAggregateBOM(lo As ListObject, bomDict As Object)
+    If lo Is Nothing Then Exit Sub
+    ClearListObjectData lo
+    If bomDict Is Nothing Then Exit Sub
+    If bomDict.Count = 0 Then Exit Sub
+    Dim keys As Variant: keys = SortedKeys(bomDict)
+    Dim count As Long: count = UBound(keys) - LBound(keys) + 1
+    ReDim arr(1 To count, 1 To 4)
+    Dim i As Long
+    For i = 1 To count
+        Dim key As Variant: key = keys(LBound(keys) + i - 1)
+        Dim info As Object: Set info = bomDict(key)
+        arr(i, 1) = NzDbl(infovalue(info, "QTY"))
+        arr(i, 2) = NzStr(infovalue(info, "UOM"))
+        arr(i, 3) = NzStr(infovalue(info, "ITEM"))
+        arr(i, 4) = CLng(key)
+    Next i
+    WriteArrayToTable lo, arr
+End Sub
+
+Private Sub WriteCheckInv(lo As ListObject, rowCache As Object, pkgDict As Object, bomDict As Object)
+    If lo Is Nothing Then Exit Sub
+    ClearListObjectData lo
+    Dim rowsDict As Object: Set rowsDict = CreateObject("Scripting.Dictionary")
+    Dim keyPkg As Variant, keyBom As Variant, rowKey As Variant
+    If Not pkgDict Is Nothing Then
+        For Each keyPkg In pkgDict.Keys
+            rowsDict(CStr(keyPkg)) = True
+        Next keyPkg
+    End If
+    If Not bomDict Is Nothing Then
+        For Each keyBom In bomDict.Keys
+            rowsDict(CStr(keyBom)) = True
+        Next keyBom
+    End If
+    If rowsDict.Count = 0 Then Exit Sub
+    Dim keys As Variant: keys = SortedKeys(rowsDict)
+    Dim count As Long: count = UBound(keys) - LBound(keys) + 1
+    ReDim arr(1 To count, 1 To 5)
+    Dim i As Long
+    For i = 1 To count
+        rowKey = keys(LBound(keys) + i - 1)
+        Dim info As Object
+        If Not rowCache Is Nothing Then
+            If rowCache.Exists(CStr(rowKey)) Then Set info = rowCache(CStr(rowKey))
+        End If
+        arr(i, 1) = NzDbl(infovalue(info, "USED"))
+        arr(i, 2) = NzDbl(infovalue(info, "MADE"))
+        arr(i, 3) = NzDbl(infovalue(info, "SHIPMENTS"))
+        arr(i, 4) = NzDbl(infovalue(info, "TOTAL_INV"))
+        arr(i, 5) = CLng(rowKey)
+    Next i
+    WriteArrayToTable lo, arr
+End Sub
+
+Private Function ApplyComponentUsageToInv(invLo As ListObject, aggBom As ListObject, ByRef errNotes As String) As Double
+    If invLo Is Nothing Or aggBom Is Nothing Then Exit Function
+    If aggBom.DataBodyRange Is Nothing Then Exit Function
+
+    Dim cQtyAgg As Long: cQtyAgg = ColumnIndex(aggBom, "QUANTITY")
+    Dim cRowAgg As Long: cRowAgg = ColumnIndex(aggBom, "ROW")
+    If cQtyAgg = 0 Or cRowAgg = 0 Then
+        AppendNote errNotes, "AggregateBoxBOM is missing QUANTITY or ROW columns."
+        Exit Function
+    End If
+
+    Dim colUsedInv As Long: colUsedInv = ColumnIndex(invLo, "USED")
+    Dim colTotalInv As Long: colTotalInv = ColumnIndex(invLo, "TOTAL INV")
+    If colUsedInv = 0 Or colTotalInv = 0 Then
+        AppendNote errNotes, "invSys table must contain USED and TOTAL INV columns."
+        Exit Function
+    End If
+
+    Dim arr As Variant
+    arr = aggBom.DataBodyRange.Value
+    Dim requirements As Object: Set requirements = CreateObject("Scripting.Dictionary")
+    Dim r As Long
+    For r = 1 To UBound(arr, 1)
+        Dim rowVal As Long: rowVal = NzLng(arr(r, cRowAgg))
+        Dim qtyNeeded As Double: qtyNeeded = NzDbl(arr(r, cQtyAgg))
+        If rowVal = 0 Or qtyNeeded <= 0 Then GoTo NextComponent
+        Dim key As String: key = CStr(rowVal)
+        If requirements.Exists(key) Then
+            requirements(key) = NzDbl(requirements(key)) + qtyNeeded
+        Else
+            requirements.Add key, qtyNeeded
+        End If
+NextComponent:
+    Next r
+
+    If requirements.Count = 0 Then Exit Function
+
+    Dim key As Variant
+    For Each key In requirements.Keys
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, CLng(key))
+        If invRow Is Nothing Then
+            AppendNote errNotes, "invSys ROW " & key & " not found; component usage skipped."
+            ApplyComponentUsageToInv = -1
+            Exit Function
+        End If
+        Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotalInv)
+        Dim available As Double: available = NzDbl(totalCell.Value)
+        Dim qtyNeeded As Double: qtyNeeded = NzDbl(requirements(key))
+        If available < qtyNeeded Then
+            AppendNote errNotes, "ROW " & key & " requires " & Format$(qtyNeeded, "0.###") & " but only " & Format$(available, "0.###") & " available."
+            ApplyComponentUsageToInv = -1
+            Exit Function
+        End If
+    Next key
+
+    For Each key In requirements.Keys
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, CLng(key))
+        Dim usedCell As Range: Set usedCell = invRow.Range.Cells(1, colUsedInv)
+        Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotalInv)
+        Dim qtyNeeded As Double: qtyNeeded = NzDbl(requirements(key))
+        usedCell.Value = NzDbl(usedCell.Value) + qtyNeeded
+        totalCell.Value = NzDbl(totalCell.Value) - qtyNeeded
+        ApplyComponentUsageToInv = ApplyComponentUsageToInv + qtyNeeded
+    Next key
+End Function
+
+Private Function AddPackagesToMade(invLo As ListObject, aggPack As ListObject, ByRef errNotes As String) As Double
+    If invLo Is Nothing Then Exit Function
+    If aggPack Is Nothing Or aggPack.DataBodyRange Is Nothing Then Exit Function
+
+    Dim cQtyAgg As Long: cQtyAgg = ColumnIndex(aggPack, "QUANTITY")
+    Dim cRowAgg As Long: cRowAgg = ColumnIndex(aggPack, "ROW")
+    If cQtyAgg = 0 Or cRowAgg = 0 Then
+        AppendNote errNotes, "AggregatePackages is missing QUANTITY or ROW columns."
+        Exit Function
+    End If
+
+    Dim colMadeInv As Long: colMadeInv = ColumnIndex(invLo, "MADE")
+    If colMadeInv = 0 Then
+        AppendNote errNotes, "invSys table must contain a MADE column."
+        Exit Function
+    End If
+
+    Dim arr As Variant
+    arr = aggPack.DataBodyRange.Value
+    Dim r As Long
+    For r = 1 To UBound(arr, 1)
+        Dim rowVal As Long: rowVal = NzLng(arr(r, cRowAgg))
+        Dim qtyMade As Double: qtyMade = NzDbl(arr(r, cQtyAgg))
+        If rowVal = 0 Or qtyMade <= 0 Then GoTo NextPkg
+
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If invRow Is Nothing Then
+            AppendNote errNotes, "Package ROW " & rowVal & " not found in invSys; MADE tally skipped."
+            GoTo NextPkg
+        End If
+
+        Dim madeCell As Range: Set madeCell = invRow.Range.Cells(1, colMadeInv)
+        madeCell.Value = NzDbl(madeCell.Value) + qtyMade
+        AddPackagesToMade = AddPackagesToMade + qtyMade
+NextPkg:
+    Next r
+End Function
+
+Private Sub AppendNote(ByRef target As String, ByVal text As String)
+    If Len(text) = 0 Then Exit Sub
+    If Len(target) > 0 Then
+        target = target & vbCrLf & text
+    Else
+        target = text
+    End If
+End Sub
+
+Private Function infovalue(info As Object, field As String) As Variant
+    If info Is Nothing Then Exit Function
+    If info.Exists(field) Then infovalue = info(field)
+End Function
+
+Private Function SortedKeys(dict As Object) As Variant
+    If dict Is Nothing Then Exit Function
+    Dim keys As Variant: keys = dict.Keys
+    If Not IsArray(keys) Then
+        SortedKeys = keys
+        Exit Function
+    End If
+    Dim i As Long, j As Long
+    For i = LBound(keys) To UBound(keys) - 1
+        For j = i + 1 To UBound(keys)
+            If CLng(keys(j)) < CLng(keys(i)) Then
+                Dim tmp As Variant
+                tmp = keys(i)
+                keys(i) = keys(j)
+                keys(j) = tmp
+            End If
+        Next j
+    Next i
+    SortedKeys = keys
+End Function
+
+Private Function ResolveRowFromCaches(itemName As String, nameCache As Object) As Long
+    If nameCache Is Nothing Then Exit Function
+    Dim key As String: key = LCase$(Trim$(itemName))
+    If key = "" Then Exit Function
+    If nameCache.Exists(key) Then
+        ResolveRowFromCaches = CLng(nameCache(key))
+    End If
+End Function
+
+Private Sub WriteArrayToTable(lo As ListObject, arr As Variant)
+    If lo Is Nothing Then Exit Sub
+    If IsEmpty(arr) Then Exit Sub
+    Dim rowsNeeded As Long
+    On Error Resume Next
+    rowsNeeded = UBound(arr, 1)
+    If Err.Number <> 0 Then
+        Err.Clear
+        Exit Sub
+    End If
+    On Error GoTo 0
+    If rowsNeeded <= 0 Then
+        ClearListObjectData lo
+        Exit Sub
+    End If
+    Dim currentRows As Long
+    If lo.DataBodyRange Is Nothing Then
+        currentRows = 0
+    Else
+        currentRows = lo.DataBodyRange.Rows.Count
+    End If
+    Dim diff As Long
+    If currentRows < rowsNeeded Then
+        For diff = 1 To rowsNeeded - currentRows
+            lo.ListRows.Add
+        Next diff
+    ElseIf currentRows > rowsNeeded Then
+        For diff = currentRows To rowsNeeded + 1 Step -1
+            lo.ListRows(diff).Delete
+        Next diff
+    End If
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    lo.DataBodyRange.Value = arr
+End Sub
+
+Private Function GetBomTableByRow(ByVal rowValue As Long) As ListObject
+    Dim wsBOM As Worksheet: Set wsBOM = SheetExists(SHEET_BOM)
+    If wsBOM Is Nothing Then Exit Function
+    On Error Resume Next
+    Set GetBomTableByRow = wsBOM.ListObjects(BomTableNameFromRow(rowValue))
+    On Error GoTo 0
+End Function
+
 Public Function NzStr(v As Variant) As String
     If IsError(v) Or IsNull(v) Or IsEmpty(v) Then
         NzStr = ""
@@ -958,6 +1613,8 @@ End Function
 ' ===== Workbook/setup helpers (migrated from modTS_Data) =====
 Public Sub SetupAllHandlers()
     On Error Resume Next
+    mNextInvSysRow = 0
+    mAggDirty = True
     ClearTableFilters
     modGlobals.InitializeGlobalVariables
     Application.OnKey "{F3}", "modGlobals.OpenItemSearchForCurrentCell"

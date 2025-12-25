@@ -56,5 +56,32 @@ Private Sub Worksheet_SelectionChange(ByVal Target As Range)
     End Select
 End Sub
 
+Private Sub Worksheet_Change(ByVal Target As Range)
+    On Error GoTo ExitHandler
+    If Target Is Nothing Then Exit Sub
+    If Target.Cells.CountLarge > 50 Then Exit Sub
+
+    Dim lo As ListObject
+    On Error Resume Next
+    Set lo = Me.ListObjects("ShipmentsTally")
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim qtyCol As ListColumn
+    On Error Resume Next
+    Set qtyCol = lo.ListColumns("QUANTITY")
+    On Error GoTo 0
+    If qtyCol Is Nothing Then Exit Sub
+
+    Dim hit As Range
+    Set hit = Application.Intersect(Target, qtyCol.DataBodyRange)
+    If hit Is Nothing Then Exit Sub
+
+    Application.EnableEvents = False
+    modTS_Shipments.InvalidateAggregates True
+ExitHandler:
+    Application.EnableEvents = True
+End Sub
 
 
