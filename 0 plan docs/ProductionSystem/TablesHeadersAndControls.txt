@@ -41,14 +41,17 @@ Sheet (Code): InventoryManagement
     Type: Button (0)
     Text: Admin
 ------------------------------------------------------------
+Sheet (Tab):  InventoryLog
+Sheet (Code): InventoryLog
+  Table: InventoryLog
+    Headers: GUID, USER, ACTION, ROW, ITEM_CODE, ITEM_NAME, QUANTITY_CHANGE, NEW_QUANTITY, TIMESTAMP
+------------------------------------------------------------
 Sheet (Tab):  ReceivedTally
 Sheet (Code): ReceivedTally
   Table: ReceivedTally
     Headers: REF_NUMBER, ITEMS, QUANTITY
   Table: AggregateReceived
     Headers: REF_NUMBER, ITEM_CODE, VENDORS, VENDOR_CODE, DESCRIPTION, ITEM, UOM, QUANTITY, LOCATION, ROW
-  Table: ReceivingSavedList
-    Headers: SAVED LIST
   Form Control: btnConfirmWrites
     Type: Button (0)
     Text: Confirm writes
@@ -62,7 +65,7 @@ Sheet (Code): ReceivedTally
 Sheet (Tab):  ReceivedLog
 Sheet (Code): ReceivedLog
   Table: ReceivedLog
-    Headers: SNAPSHOT_ID, ENTRY_DATE, REF_NUMBER, ITEMS, QUANTITY, UOM, ROW, LOCATION
+    Headers: GUID, ENTRY_DATE, REF_NUMBER, ITEMS, QUANTITY, UOM, ROW, LOCATION
 ------------------------------------------------------------
 Sheet (Tab):  ShipmentsTally
 Sheet (Code): ShipmentsTally
@@ -71,82 +74,134 @@ Sheet (Code): ShipmentsTally
   Table: AggregatePackages
     Headers: QUANTITY, UOM, ITEM, ROW
   Table: BoxBuilder
-    Headers: Box Name, UOM, LOCATION, DESCRIPTION
+    Headers: Box Name, UOM, LOCATION, DESCRIPTION, ROW, GUID
   Table: BoxBOM
-    Headers: BoxBOM, UOM, LOCATION, DESCRIPTION, ROW
+    Headers: ITEM, QUANTITY, UOM, LOCATION, DESCRIPTION, ROW, GUID
   Table: NotShipped
-    Headers: REF_NUMBER, ITEMS, QUANTITY
+    Headers: REF_NUMBER, ITEMS, QUANTITY, GUID
   Table: AggregateBoxBOM
     Headers: QUANTITY, UOM, ITEM, ROW
   Table: Check_invSys
     Headers: USED, MADE, SHIPMENTS, TOTAL INV, ROW
+  Form Control: BTN_SAVE_BOX
+    Type: Button (0)
+    Text: Save box
+  Form Control: BTN_CONFIRM_INV
+    Type: Button (0)
+    Text: Confirm inventory
+  Form Control: BTN_BOXES_MADE
+    Type: Button (0)
+    Text: Boxes made
+  Form Control: BTN_TO_TOTALINV
+    Type: Button (0)
+    Text: To TotalInv
+  Form Control: BTN_TO_SHIPMENTS
+    Type: Button (0)
+    Text: To Shipments
+  Form Control: BTN_SHIPMENTS_SENT
+    Type: Button (0)
+    Text: Shipments sent
+  Form Control: BTN_UNSHIP
+    Type: Button (0)
+    Text: Toggle NotShipped
+  Form Control: BTN_TOGGLE_BUILDER
+    Type: Button (0)
+    Text: Toggle builder
+  Form Control: BTN_SEND_HOLD
+    Type: Button (0)
+    Text: Send to hold
+  Form Control: BTN_RETURN_HOLD
+    Type: Button (0)
+    Text: Return from hold
+  Form Control: CHK_USE_EXISTING
+    Type: Checkbox (1)
+    LinkedCell: 
+    Text: Use existing shippable inventory
 ------------------------------------------------------------
 Sheet (Tab):  ShipmentsTally_Log
 Sheet (Code): ShipmentsLog
   Table: ShipmentsTally_Log
-    Headers: SNAPSHOT_ID, ENTRY_DATE, REF_NUMBER, ITEMS, QUANTITY, UOM, ROW, LOCATION
+    Headers: GUID, USER, ACTION, ROW, ITEM_CODE, ITEM_NAME, QUANTITY_CHANGE, NEW_QUANTITY, TIMESTAMP
 ------------------------------------------------------------
 Sheet (Tab):  NotShipped_Log
 Sheet (Code): NotShipped_Log
   Table: NotShipped_Log
-    Headers: SNAPSHOT_ID, ENTRY_DATE, REF_NUMBER, ITEMS, QUANTITY, UOM, ROW, LOCATION
+    Headers: GUID, USER, ACTION, ROW, ITEM_CODE, ITEM_NAME, QUANTITY_CHANGE, NEW_QUANTITY, TIMESTAMP
 ------------------------------------------------------------
 Sheet (Tab):  AggregateBoxBOM_Log
 Sheet (Code): AggregateBoxBOM_Log
   Table: AggregateBoxBOM_Log
-    Headers: LOG_ID, USER, ACTION, ROW, ITEM_CODE, ITEM_NAME, QUANTITY_CHANGE, NEW_QUANTITY, TIMESTAMP
+    Headers: GUID, USER, ACTION, ROW, ITEM_CODE, ITEM_NAME, QUANTITY_CHANGE, NEW_QUANTITY, TIMESTAMP
 ------------------------------------------------------------
 Sheet (Tab):  AggregatePackages_Log
 Sheet (Code): AggregatePackages_Log
   Table: AggregatePackages_Log
-    Headers: LOG_ID, USER, ACTION, ROW, ITEM_CODE, ITEM_NAME, QUANTITY_CHANGE, NEW_QUANTITY, TIMESTAMP
+    Headers: GUID, USER, ACTION, ROW, ITEM_CODE, ITEM_NAME, QUANTITY_CHANGE, NEW_QUANTITY, TIMESTAMP
 ------------------------------------------------------------
 Sheet (Tab):  Check_invSys_Log
 Sheet (Code): Check_invSys_Log
-  Table: Table28
-    Headers: LOG_ID, USER, ACTION, ROW, ITEM_CODE, ITEM_NAME, QUANTITY_CHANGE, NEW_QUANTITY, TIMESTAMP
+  Table: Check_invSys_Log
+    Headers: GUID, USER, ACTION, ROW, ITEM_CODE, ITEM_NAME, QUANTITY_CHANGE, NEW_QUANTITY, TIMESTAMP
 ------------------------------------------------------------
 Sheet (Tab):  ShippingBOM
 Sheet (Code): ShippingBOM
+  Table: ROW_65
+    Headers: ROW, QUANTITY, UOM
+  Table: ROW_66
+    Headers: ROW, QUANTITY, UOM
+  Table: ROW_67
+    Headers: ROW, QUANTITY, UOM
 ------------------------------------------------------------
 Sheet (Tab):  Production
 Sheet (Code): Production
-  Form Control: Button 1
-    Type: Button (0)
-    Text: Button 1
-------------------------------------------------------------
-Sheet (Tab):  CreateRecipe
-Sheet (Code): CreateRecipe
-------------------------------------------------------------
-Sheet (Tab):  Prediction
-Sheet (Code): Prediction
+  Table: RC_RecipeChoose
+    Headers: RECIPE, RECIPE_ID, DEPARTMENT, DESCRIPTION, PREDICTED OUTPUT, PROCESS
+  Table: ProductionOutput
+    Headers: PROCESS, OUTPUT, UOM, REAL OUTPUT, BATCH, RECALL CODE
+  Table: RB_AddRecipeName
+    Headers: RECIPE_NAME, DESCRIPTION, GUID, RECIPE_ID
+  Table: IP_ChooseRecipe
+    Headers: RECIPE_NAME, DESCRIPTION, GUID, RECIPE_ID
+  Table: RecipeBuilder
+    Headers: PROCESS, DIAGRAM_ID, INPUT/OUTPUT, INGREDIENT, PERCENT, UOM, AMOUNT, RECIPE_LIST_ROW, INGREDIENT_ID, GUID
+  Table: IP_ChooseIngredient
+    Headers: INGREDIENT, UOM, QUANTITY, DESCRIPTION, GUID, RECIPE_ID, INGREDIENT_ID, PROCESS
+  Table: RecipeChooser_generated
+    Headers: PROCESS, DIAGRAM_ID, INPUT/OUTPUT, INGREDIENT, PERCENT, UOM, AMOUNT NEEDED, INGREDIENT_ID, RECIPE_LIST_ROW
+  Table: IP_ChooseItem
+    Headers: ITEMS, UOM, DESCRIPTION, ROW, RECIPE_ID, INGREDIENT_ID
+  Table: Prod_invSys_Check
+    Headers: USED, MADE, TOTAL INV, ROW
+  Table: InventoryPalette_generated
+    Headers: ITEM_CODE, VENDORS, VENDOR_CODE, DESCRIPTION, ITEM, UOM, QUANTITY, PROCESS, LOCATION, ROW, INPUT/OUTPUT
 ------------------------------------------------------------
 Sheet (Tab):  Recipes
 Sheet (Code): Recipes
   Table: Recipes
-    Headers: ROW, Rcode, Rcount, RECIPE, DEPARTMENT, DESCRIPTION, PROCESS, INPUT/OUTPUT, INGREDIENT, PERCENT, UOM, AMOUNT, CUMULATIVE, PRICE
+    Headers: RECIPE_ID, INGREDIENT_ID, RECIPE, DEPARTMENT, DESCRIPTION, PROCESS, DIAGRAM_ID, INPUT/OUTPUT, INGREDIENT, PERCENT, UOM, AMOUNT, RECIPE_LIST_ROW, GUID
 ------------------------------------------------------------
 Sheet (Tab):  IngredientPalette
 Sheet (Code): IngredientsPalette
-------------------------------------------------------------
-Sheet (Tab):  SavedLists
-Sheet (Code): SavedLists
-------------------------------------------------------------
-Sheet (Tab):  Substitutions
-Sheet (Code): Substitutions
-  Table: Substitutions
-    Headers: Column1
-------------------------------------------------------------
-Sheet (Tab):  PredictionLog
-Sheet (Code): PredictionLog
-------------------------------------------------------------
-Sheet (Tab):  InventoryLog
-Sheet (Code): InventoryLog
-  Table: InventoryLog
-    Headers: LOG_ID, USER, ACTION, ROW, ITEM_CODE, ITEM_NAME, QUANTITY_CHANGE, NEW_QUANTITY, TIMESTAMP
+  Table: Table40
+    Headers: RECIPE_ID, INGREDIENT_ID, INPUT/OUTPUT, ITEM, PERCENT, UOM, AMOUNT, ROW, GUID
 ------------------------------------------------------------
 Sheet (Tab):  ProductionLog
 Sheet (Code): ProductionLog
+  Table: Table46
+    Headers: RECIPE, RECIPE_ID, DEPARTMENT, DESCRIPTION, PREDICTED OUTPUT, PROCESS, REAL OUTPUT, BATCH, BATCH_ID, ITEM_CODE, VENDORS, VENDOR_CODE, ITEM, UOM, QUANTITY, LOCATION, ROW, INPUT/OUTPUT, TIMESTAMP, INGREDIENT_ID, GUID
+------------------------------------------------------------
+Sheet (Tab):  TemplatesTable
+Sheet (Code): TemplatesTable
+  Table: TemplatesTable
+    Headers: GUID, TEMPLATE_SCOPE, RECIPE_ID, INGREDIENT_ID, PROCESS, TARGET_TABLE, TARGET_COLUMN, FORMULA, NOTES, ACTIVE, CREATED_AT, UPDATED_AT
+------------------------------------------------------------
+Sheet (Tab):  BatchCodesLog
+Sheet (Code): BatchCodeLogs
+  Table: Table48
+    Headers: RECIPE, RECIPE_ID, PROCESS, OUTPUT, UOM, REAL OUTPUT, BATCH, RECALL CODE, TIMESTAMP, LOCATION, USER, GUID
+------------------------------------------------------------
+Sheet (Tab):  DiagramCreator
+Sheet (Code): DiagramCreator
 ------------------------------------------------------------
 Sheet (Tab):  Codes
 Sheet (Code): Codes
