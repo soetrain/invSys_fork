@@ -1,4 +1,5 @@
 Attribute VB_Name = "mProduction"
+' run "mProduction.InitializeProductionUI" in immediate window to clean up UI
 Option Explicit
 
 ' Production system core module (wiring + helpers).
@@ -28,6 +29,7 @@ Private Const BTN_PRINT_CODES As String = "BTN_PRINT_CODES"
 
 Private Const TEMPLATE_SCOPE_RECIPE_PROCESS As String = "RECIPE_PROCESS"
 Private Const RECIPE_PROC_TABLE_SUFFIX As String = "rbuilder"
+Private Const RECIPE_LINES_STAGING_ROW As Long = 500000 ' System 1: staging for RecipeBuilder lines during load
 
 Private mRowCountCache As Object
 Private mHiddenSystems As Collection
@@ -712,6 +714,7 @@ Private Sub SaveRecipeToRecipes()
     Dim loLines As ListObject
     Set loHeader = FindListObjectByNameOrHeaders(wsProd, TABLE_RECIPE_BUILDER_HEADER, Array("RECIPE_NAME", "RECIPE_ID"))
     Set loLines = GetRecipeBuilderLinesTable(wsProd, loHeader)
+    If loLines Is Nothing Then Set loLines = EnsureRecipeBuilderLinesTable(wsProd, loHeader)
     If loHeader Is Nothing Or loLines Is Nothing Then
         MsgBox "Recipe Builder tables not found on Production sheet.", vbExclamation
         Exit Sub
@@ -853,6 +856,7 @@ Public Sub LoadRecipeFromRecipes(Optional ByVal forceRecipeId As String = "")
     Dim loLines As ListObject
     Set loHeader = FindListObjectByNameOrHeaders(wsProd, TABLE_RECIPE_BUILDER_HEADER, Array("RECIPE_NAME", "RECIPE_ID"))
     Set loLines = GetRecipeBuilderLinesTable(wsProd, loHeader)
+    If loLines Is Nothing Then Set loLines = EnsureRecipeBuilderLinesTable(wsProd, loHeader)
     If loHeader Is Nothing Or loLines Is Nothing Then
         MsgBox "Recipe Builder tables not found on Production sheet.", vbExclamation
         Exit Sub
@@ -982,7 +986,17 @@ Public Sub LoadRecipeFromRecipes(Optional ByVal forceRecipeId As String = "")
     Next idx
 
     Dim procCount As Long
-    procCount = BuildRecipeProcessTablesFromLines(recipeId, True)
+    Dim hasProc As Boolean
+    hasProc = RecipeLinesHasProcess(loLines)
+    If hasProc Then
+        Dim staged As Boolean
+        staged = MoveRecipeBuilderLinesToStaging(loLines)
+        procCount = BuildRecipeProcessTablesFromLines(recipeId, True, Not staged)
+        If procCount > 0 Then
+            RemoveRecipeBuilderLinesTable loLines
+            Set loLines = Nothing
+        End If
+    End If
 
     Dim loadMsg As String
     loadMsg = "Loaded recipe '" & recipeName & "' (" & matches.Count & " lines)."
@@ -1076,7 +1090,7 @@ NextLine:
     Next i
 End Sub
 
-Private Function BuildRecipeProcessTablesFromLines(ByVal recipeId As String, Optional ByVal applyTemplates As Boolean = False) As Long
+Private Function BuildRecipeProcessTablesFromLines(ByVal recipeId As String, Optional ByVal applyTemplates As Boolean = False, Optional ByVal anchorBelowLines As Boolean = True) As Long
     ' System 1: Recipe List Builder - build process tables under RB_AddRecipeName.
     Dim wsProd As Worksheet: Set wsProd = SheetExists(SHEET_PRODUCTION)
     If wsProd Is Nothing Then Exit Function
@@ -1097,7 +1111,7 @@ Private Function BuildRecipeProcessTablesFromLines(ByVal recipeId As String, Opt
 
     Dim startRow As Long
     Dim startCol As Long
-    If Not GetRecipeBuilderAnchor(wsProd, startRow, startCol) Then
+    If Not GetRecipeBuilderAnchor(wsProd, startRow, startCol, anchorBelowLines) Then
         MsgBox "Recipe Builder header table (RB_AddRecipeName) not found on Production sheet.", vbExclamation
         Exit Function
     End If
@@ -1246,7 +1260,7 @@ Private Sub FocusRecipeProcessTable(ByVal lo As ListObject)
     On Error GoTo 0
 End Sub
 
-Private Function GetRecipeBuilderAnchor(ByVal ws As Worksheet, ByRef startRow As Long, ByRef startCol As Long) As Boolean
+Private Function GetRecipeBuilderAnchor(ByVal ws As Worksheet, ByRef startRow As Long, ByRef startCol As Long, Optional ByVal includeLines As Boolean = True) As Boolean
     ' System 1: Recipe List Builder anchor (under RB_AddRecipeName).
     GetRecipeBuilderAnchor = False
     If ws Is Nothing Then Exit Function
@@ -1254,9 +1268,57 @@ Private Function GetRecipeBuilderAnchor(ByVal ws As Worksheet, ByRef startRow As
     Set loHeader = FindListObjectByNameOrHeaders(ws, TABLE_RECIPE_BUILDER_HEADER, Array("RECIPE_NAME", "RECIPE_ID"))
     If loHeader Is Nothing Then Exit Function
 
-    startRow = loHeader.Range.Row + loHeader.Range.Rows.Count + 3 ' keep 2 blank rows before first process table
     startCol = loHeader.Range.Column
+    startRow = loHeader.Range.Row + loHeader.Range.Rows.Count + 3 ' keep 2 blank rows before first process table
+
+    If includeLines Then
+        Dim loLines As ListObject
+        Set loLines = GetRecipeBuilderLinesTable(ws, loHeader)
+        If Not loLines Is Nothing Then
+            Dim linesBottom As Long
+            linesBottom = loLines.Range.Row + loLines.Range.Rows.Count - 1
+            If linesBottom + 3 > startRow Then startRow = linesBottom + 3
+        End If
+    End If
     If startRow > 0 And startCol > 0 Then GetRecipeBuilderAnchor = True
+End Function
+
+Private Function EnsureRecipeBuilderLinesTable(ByVal ws As Worksheet, ByVal loHeader As ListObject) As ListObject
+    ' System 1: Recipe List Builder - create RecipeBuilder lines table if missing.
+    If ws Is Nothing Then Exit Function
+    If loHeader Is Nothing Then Exit Function
+
+    Dim existing As ListObject
+    Set existing = GetRecipeBuilderLinesTable(ws, loHeader)
+    If Not existing Is Nothing Then
+        Set EnsureRecipeBuilderLinesTable = existing
+        Exit Function
+    End If
+
+    Dim headers As Variant
+    headers = RecipeProcessHeaderList()
+    Dim colCount As Long: colCount = UBound(headers) - LBound(headers) + 1
+
+    Dim startRow As Long
+    Dim startCol As Long
+    startRow = loHeader.Range.Row + loHeader.Range.Rows.Count + 2 ' one blank row below header
+    startCol = loHeader.Range.Column
+
+    Dim tableRange As Range
+    Set tableRange = ws.Range(ws.Cells(startRow, startCol), ws.Cells(startRow + 1, startCol + colCount - 1))
+    If RangeHasListObjectCollisionStrict(ws, tableRange, loHeader) Then Exit Function
+
+    tableRange.Clear
+    tableRange.Rows(1).Value = HeaderRowArray(headers)
+
+    Dim newLo As ListObject
+    Set newLo = ws.ListObjects.Add(xlSrcRange, tableRange, , xlYes)
+    newLo.Name = UniqueListObjectName(ws, TABLE_RECIPE_BUILDER_LINES)
+    On Error Resume Next
+    newLo.TableStyle = loHeader.TableStyle
+    On Error GoTo 0
+
+    Set EnsureRecipeBuilderLinesTable = newLo
 End Function
 
 Private Function GetRecipeBuilderLinesTable(ByVal ws As Worksheet, Optional ByVal loHeader As ListObject) As ListObject
@@ -1305,6 +1367,41 @@ NextLo:
     If headerStartCol = 0 Then
         Set GetRecipeBuilderLinesTable = FindListObjectByNameOrHeaders(ws, TABLE_RECIPE_BUILDER_LINES, Array("PROCESS", "INGREDIENT"))
     End If
+End Function
+
+Private Function RecipeLinesHasProcess(ByVal loLines As ListObject) As Boolean
+    ' System 1: Recipe List Builder - detect any PROCESS rows.
+    If loLines Is Nothing Then Exit Function
+    If loLines.DataBodyRange Is Nothing Then Exit Function
+    Dim cProc As Long: cProc = ColumnIndex(loLines, "PROCESS")
+    If cProc = 0 Then Exit Function
+    Dim arr As Variant: arr = loLines.DataBodyRange.Value
+    Dim r As Long
+    For r = 1 To UBound(arr, 1)
+        If Trim$(NzStr(arr(r, cProc))) <> "" Then
+            RecipeLinesHasProcess = True
+            Exit Function
+        End If
+    Next r
+End Function
+
+Private Function MoveRecipeBuilderLinesToStaging(ByVal loLines As ListObject) As Boolean
+    ' System 1: Recipe List Builder - move lines table out of view before building process tables.
+    If loLines Is Nothing Then Exit Function
+    Dim ws As Worksheet: Set ws = loLines.Parent
+    Dim startRow As Long: startRow = RECIPE_LINES_STAGING_ROW
+    If loLines.Range.Row >= startRow Then
+        MoveRecipeBuilderLinesToStaging = True
+        Exit Function
+    End If
+
+    Dim dest As Range
+    Set dest = ws.Cells(startRow, loLines.Range.Column)
+    On Error Resume Next
+    loLines.Range.Cut Destination:=dest
+    MoveRecipeBuilderLinesToStaging = (Err.Number = 0)
+    Err.Clear
+    On Error GoTo 0
 End Function
 
 Private Function HeaderIndex(ByVal headers As Variant, ByVal headerName As String) As Long
@@ -1655,6 +1752,17 @@ Private Sub ClearListObjectData(lo As ListObject)
     If lo Is Nothing Then Exit Sub
     On Error Resume Next
     If Not lo.DataBodyRange Is Nothing Then lo.DataBodyRange.Delete
+    On Error GoTo 0
+End Sub
+
+Private Sub RemoveRecipeBuilderLinesTable(ByVal lo As ListObject)
+    ' System 1: Recipe List Builder - remove RecipeBuilder lines table after load.
+    If lo Is Nothing Then Exit Sub
+    Dim ws As Worksheet: Set ws = lo.Parent
+    Dim addr As String: addr = lo.Range.Address
+    On Error Resume Next
+    lo.Delete
+    ws.Range(addr).Clear
     On Error GoTo 0
 End Sub
 

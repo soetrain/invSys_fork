@@ -346,9 +346,21 @@ Public Sub CommitSelection()
             Dim cName As Long: cName = ColumnIndex(loRecipe, "RECIPE_NAME")
             Dim cId As Long: cId = ColumnIndex(loRecipe, "RECIPE_ID")
             Dim cDesc As Long: cDesc = ColumnIndex(loRecipe, "DESCRIPTION")
-            If cName > 0 Then loRecipe.DataBodyRange.Cells(1, cName).Value = recName
-            If cId > 0 Then loRecipe.DataBodyRange.Cells(1, cId).Value = recId
-            If cDesc > 0 Then loRecipe.DataBodyRange.Cells(1, cDesc).Value = recDesc
+            If cName > 0 Then
+                Dim nameCell As Range
+                Set nameCell = EnsureListObjectCell(loRecipe, cName)
+                If Not nameCell Is Nothing Then nameCell.Value = recName
+            End If
+            If cId > 0 Then
+                Dim idCell As Range
+                Set idCell = EnsureListObjectCell(loRecipe, cId)
+                If Not idCell Is Nothing Then idCell.Value = recId
+            End If
+            If cDesc > 0 Then
+                Dim descCell As Range
+                Set descCell = EnsureListObjectCell(loRecipe, cDesc)
+                If Not descCell Is Nothing Then descCell.Value = recDesc
+            End If
         Else
             callbackCell.Value = recName
         End If
@@ -430,4 +442,14 @@ Private Function ColumnIndex(lo As ListObject, colName As String) As Long
         If StrComp(lc.Name, colName, vbTextCompare) = 0 Then ColumnIndex = lc.Index: Exit Function
     Next
     ColumnIndex = 0
+End Function
+
+Private Function EnsureListObjectCell(ByVal lo As ListObject, ByVal colIndex As Long) As Range
+    If lo Is Nothing Then Exit Function
+    If colIndex < 1 Then Exit Function
+    On Error Resume Next
+    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+    On Error GoTo 0
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    Set EnsureListObjectCell = lo.DataBodyRange.Cells(1, colIndex)
 End Function
