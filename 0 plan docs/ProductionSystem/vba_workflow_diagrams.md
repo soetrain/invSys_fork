@@ -125,3 +125,37 @@ flowchart TD
         L4["Note"]:::note
     end
 ```
+
+## 4) Recipe Chooser (System 3 - VBA view)
+
+```mermaid
+flowchart TD
+    classDef evt fill:#5b6b9a,stroke:#2f3b5a,color:#ffffff;
+    classDef op fill:#2c7a9b,stroke:#195a73,color:#ffffff;
+    classDef data fill:#8c6239,stroke:#4f341f,color:#ffffff;
+    classDef note fill:#fff2cc,stroke:#b99a33,color:#000000;
+
+    EvtBeforeDbl["Worksheet_BeforeDoubleClick\n(Production)"]:::evt
+    PickRecipe["Open recipe picker\n(RC_RecipeChoose RECIPE cell)"]:::op
+    LoadRecipe["Load recipe by RECIPE_ID\n(read Recipes table)"]:::op
+    BuildProc["Generate process tables\n(RecipeChooser_generated)"]:::op
+    ApplyTpl["Apply TemplatesTable formulas\n(scope=RECIPE_PROCESS, process)"]:::op
+    ProcChecks["Render process checkboxes\n(next to process tables)"]:::op
+
+    ScanUsed["Scan process tables\nINPUT/OUTPUT = USED"]:::op
+    BuildPal["Generate InventoryPalette tables\n(proc_*_palette / InventoryPalette_generated)"]:::op
+    FilterItems["Filter invSys choices using\nIngredientPalette (RECIPE_ID+INGREDIENT_ID)"]:::op
+
+    EvtBeforeDbl --> PickRecipe --> LoadRecipe --> BuildProc --> ApplyTpl --> ProcChecks
+    BuildProc --> ScanUsed --> BuildPal --> FilterItems
+
+    Note1["Process tables paste once per recipe selection.\nPalette tables are generated per USED ingredient only."]:::note
+    BuildPal -.-> Note1
+
+    subgraph Legend
+        L1["Event / Worksheet hook"]:::evt
+        L2["Operation / VBA routine"]:::op
+        L3["Data table"]:::data
+        L4["Note"]:::note
+    end
+```

@@ -56,6 +56,46 @@ flowchart TD
     end
 ```
 
+## 3) Recipe Chooser (System 3: user-facing)
+
+```mermaid
+flowchart TD
+    classDef btn fill:#2f4e9c,stroke:#1f2f5c,color:#ffffff;
+    classDef list fill:#2c7a9b,stroke:#195a73,color:#ffffff;
+    classDef picker fill:#b27600,stroke:#6f4300,color:#ffffff;
+    classDef note fill:#fff2cc,stroke:#b99a33,color:#000000;
+    classDef chk fill:#2e7d32,stroke:#1b4f1f,color:#ffffff;
+    classDef legend fill:#f5f5f5,stroke:#333333,color:#000000;
+
+    RCHeader["RC_RecipeChoose (header)\nRECIPE | RECIPE_ID | DEPARTMENT | DESCRIPTION | PREDICTED OUTPUT | PROCESS"]:::list
+    RecipePicker["Recipe picker\nopens Recipes table list"]:::picker
+    BuildProcTables["Build process tables per PROCESS\n(RecipeChooser_generated)\nPROCESS | DIAGRAM_ID | INPUT/OUTPUT | INGREDIENT | PERCENT | UOM | AMOUNT | INGREDIENT_ID | RECIPE_LIST_ROW"]:::list
+    ProcessCheckboxes["Process selector checkboxes\n(checked = build palette tables)"]:::chk
+
+    UsedIngredientScan["Scan process tables\n(INPUT/OUTPUT = USED only)"]:::note
+    BuildPalettes["Build InventoryPalette tables\nper USED ingredient\n(proc_*_palette or InventoryPalette_generated)\nITEM_CODE | VENDORS | VENDOR_CODE | DESCRIPTION | ITEM | UOM | QUANTITY | PROCESS | LOCATION | ROW | INPUT/OUTPUT"]:::list
+
+    PaletteFilter["Filter choices by IngredientPalette\n(RECIPE_ID + INGREDIENT_ID)\n(acceptable invSys items)"]:::note
+    ItemPicker["Item search picker\ninvSys items filtered by palette\n+ optional CATEGORY filters"]:::picker
+
+    RCHeader --> RecipePicker --> BuildProcTables
+    BuildProcTables --> ProcessCheckboxes --> BuildPalettes
+    BuildProcTables --> UsedIngredientScan --> BuildPalettes
+    BuildPalettes --> PaletteFilter --> ItemPicker
+
+    Note1["User picks a recipe once; process tables paste in.\nPalette tables are generated per USED ingredient in each PROCESS."]:::note
+    BuildPalettes -.-> Note1
+
+    subgraph Legend
+        L1["Button"]:::btn
+        L2["ListObject / Table"]:::list
+        L3["Picker / Search"]:::picker
+        L4["Checkbox"]:::chk
+        L5["Note"]:::note
+        L6["Legend"]:::legend
+    end
+```
+
 ## 2) Production Run (Recipe chooser → outputs → logs)
 
 ```mermaid

@@ -1,6 +1,6 @@
 '========================
 ' Class: cDynItemSearch (late-bound)
-' Purpose: Runtime-built Item Search form for ReceivedTally
+' Purpose: Runtime-built Item Search form
 '------------------------
 Option Explicit
 
@@ -14,6 +14,8 @@ Private callbackCell As Range
 Private mPickerMode As String
 Private mCategoryCol As Long
 Private mHasCategory As Boolean
+Private mIngredientRecipeId As String
+Private mAllowedRows As Object
 
 Public Sub ShowForCell(ByVal targetCell As Range)
     Debug.Print "cDynItemSearch.ShowForCell entered"
@@ -40,11 +42,58 @@ Public Sub ShowForRecipeCell(ByVal targetCell As Range)
     Debug.Print "cDynItemSearch.ShowForRecipeCell entered"
     If targetCell Is Nothing Then Exit Sub
     mPickerMode = "recipe"
+    Set mAllowedRows = Nothing
     Set callbackCell = targetCell
     If Not BuildForm() Then Exit Sub
     ConfigureForMode
     If Not LoadItems() Then Exit Sub
     uf.Show vbModeless
+End Sub
+
+Public Sub ShowForRecipeChooserCell(ByVal targetCell As Range)
+    If targetCell Is Nothing Then Exit Sub
+    mPickerMode = "recipe_chooser"
+    Set mAllowedRows = Nothing
+    Set callbackCell = targetCell
+    If Not BuildForm() Then Exit Sub
+    ConfigureForMode
+    If Not LoadItems() Then Exit Sub
+    uf.Show vbModal
+End Sub
+
+Public Sub ShowForPaletteRecipeCell(ByVal targetCell As Range)
+    If targetCell Is Nothing Then Exit Sub
+    mPickerMode = "palette_recipe"
+    Set mAllowedRows = Nothing
+    Set callbackCell = targetCell
+    If Not BuildForm() Then Exit Sub
+    ConfigureForMode
+    If Not LoadItems() Then Exit Sub
+    uf.Show vbModal
+End Sub
+
+Public Sub ShowForIngredientCell(ByVal targetCell As Range, ByVal recipeId As String)
+    If targetCell Is Nothing Then Exit Sub
+    If Trim$(recipeId) = "" Then Exit Sub
+    mPickerMode = "ingredient"
+    mIngredientRecipeId = recipeId
+    Set mAllowedRows = Nothing
+    Set callbackCell = targetCell
+    If Not BuildForm() Then Exit Sub
+    ConfigureForMode
+    If Not LoadItems() Then Exit Sub
+    uf.Show vbModal
+End Sub
+
+Public Sub ShowForPaletteItemCell(ByVal targetCell As Range, ByVal allowedRows As Object)
+    If targetCell Is Nothing Then Exit Sub
+    mPickerMode = "palette_item"
+    Set mAllowedRows = allowedRows
+    Set callbackCell = targetCell
+    If Not BuildForm() Then Exit Sub
+    ConfigureForMode
+    If Not LoadItems() Then Exit Sub
+    uf.Show vbModal
 End Sub
 
 Private Function BuildForm() As Boolean
@@ -136,7 +185,27 @@ End Function
 
 Private Sub ConfigureForMode()
     If uf Is Nothing Then Exit Sub
-    If LCase$(mPickerMode) <> "recipe" Then Exit Sub
+    If LCase$(mPickerMode) = "ingredient" Then
+        uf.Caption = "Ingredient Search"
+        If Not chkShippable Is Nothing Then chkShippable.Visible = False
+
+        lst.ColumnCount = 7
+        lst.ColumnHeads = False
+        lst.BoundColumn = 2 ' INGREDIENT
+        lst.TextColumn = 2
+        lst.IntegralHeight = False
+        ' INGREDIENT_ID | INGREDIENT | UOM | PROCESS | INPUT/OUTPUT | AMOUNT | PERCENT
+        lst.ColumnWidths = "90;220;60;120;90;0;0"
+        Exit Sub
+    End If
+
+    If LCase$(mPickerMode) = "palette_item" Then
+        uf.Caption = "Palette Item Search"
+        If Not chkShippable Is Nothing Then chkShippable.Visible = False
+        Exit Sub
+    End If
+
+    If LCase$(mPickerMode) <> "recipe" And LCase$(mPickerMode) <> "palette_recipe" And LCase$(mPickerMode) <> "recipe_chooser" Then Exit Sub
 
     uf.Caption = "Recipe Search"
 
@@ -155,8 +224,10 @@ End Sub
 
 Private Function LoadItems() As Boolean
     Debug.Print "  LoadItems entered"
-    If LCase$(mPickerMode) = "recipe" Then
+    If LCase$(mPickerMode) = "recipe" Or LCase$(mPickerMode) = "palette_recipe" Or LCase$(mPickerMode) = "recipe_chooser" Then
         itemsArr = mProduction.LoadRecipeList()
+    ElseIf LCase$(mPickerMode) = "ingredient" Then
+        itemsArr = mProduction.LoadIngredientListForRecipe(mIngredientRecipeId)
     Else
         itemsArr = modTS_Received.LoadItemList(True)
     End If
@@ -167,7 +238,10 @@ Private Function LoadItems() As Boolean
         Exit Function
     End If
     Debug.Print "    LoadItems: UBound =", UBound(itemsArr, 1)
-    If LCase$(mPickerMode) <> "recipe" Then InitCategoryState
+    If LCase$(mPickerMode) <> "recipe" And LCase$(mPickerMode) <> "palette_recipe" _
+        And LCase$(mPickerMode) <> "recipe_chooser" And LCase$(mPickerMode) <> "ingredient" Then
+        InitCategoryState
+    End If
     ApplyFilter
     LoadItems = True
     Debug.Print "    LoadItems SUCCESS"
@@ -209,8 +283,11 @@ Private Sub UpdateDescription()
     If txtDesc Is Nothing Then Exit Sub
     txtDesc.Text = ""
     If lst.ListIndex >= 0 Then
-        If LCase$(mPickerMode) = "recipe" Then
-            txtDesc.Text = lst.List(lst.ListIndex, 2) ' DESCRIPTION
+    If LCase$(mPickerMode) = "recipe" Or LCase$(mPickerMode) = "palette_recipe" Or LCase$(mPickerMode) = "recipe_chooser" Then
+        txtDesc.Text = lst.List(lst.ListIndex, 2) ' DESCRIPTION
+    ElseIf LCase$(mPickerMode) = "ingredient" Then
+        txtDesc.Text = "Process: " & lst.List(lst.ListIndex, 3) & vbCrLf & _
+                       "Input/Output: " & lst.List(lst.ListIndex, 4)
         Else
             txtDesc.Text = lst.List(lst.ListIndex, 5) ' DESCRIPTION
             ' Optionally append vendors for clarity
@@ -260,6 +337,59 @@ Private Sub ApplyFilter(Optional ByVal termOverride As Variant)
         Exit Sub
     End If
 
+    If LCase$(mPickerMode) = "palette_recipe" Or LCase$(mPickerMode) = "recipe_chooser" Then
+        For i = LBound(itemsArr, 1) To UBound(itemsArr, 1)
+            Dim pRecId As String
+            Dim pRecName As String
+            pRecId = NzStr(itemsArr(i, 1))
+            pRecName = NzStr(itemsArr(i, 2))
+            If term = "" _
+               Or InStr(1, LCase$(pRecId), term) > 0 _
+               Or InStr(1, LCase$(pRecName), term) > 0 Then
+                lst.AddItem
+                lst.List(lst.ListCount - 1, 0) = pRecId
+                lst.List(lst.ListCount - 1, 1) = pRecName
+                lst.List(lst.ListCount - 1, 2) = NzStr(itemsArr(i, 3))
+            End If
+        Next i
+        If lst.ListCount > 0 Then
+            lst.ListIndex = 0
+            UpdateDescription
+        End If
+        Exit Sub
+    End If
+
+    If LCase$(mPickerMode) = "ingredient" Then
+        For i = LBound(itemsArr, 1) To UBound(itemsArr, 1)
+            Dim ingId As String
+            Dim ingName As String
+            ingId = NzStr(itemsArr(i, 1))
+            ingName = NzStr(itemsArr(i, 2))
+            If term = "" _
+               Or InStr(1, LCase$(ingId), term) > 0 _
+               Or InStr(1, LCase$(ingName), term) > 0 Then
+                lst.AddItem
+                lst.List(lst.ListCount - 1, 0) = ingId
+                lst.List(lst.ListCount - 1, 1) = ingName
+                lst.List(lst.ListCount - 1, 2) = NzStr(itemsArr(i, 3)) ' UOM
+                lst.List(lst.ListCount - 1, 3) = NzStr(itemsArr(i, 4)) ' PROCESS
+                lst.List(lst.ListCount - 1, 4) = NzStr(itemsArr(i, 5)) ' INPUT/OUTPUT
+                lst.List(lst.ListCount - 1, 5) = NzStr(itemsArr(i, 6)) ' AMOUNT
+                lst.List(lst.ListCount - 1, 6) = NzStr(itemsArr(i, 7)) ' PERCENT
+            End If
+        Next i
+        If lst.ListCount > 0 Then
+            lst.ListIndex = 0
+            UpdateDescription
+        End If
+        Exit Sub
+    End If
+
+    If LCase$(mPickerMode) = "palette_item" Then
+        If mAllowedRows Is Nothing Then Exit Sub
+        If mAllowedRows.Count = 0 Then Exit Sub
+    End If
+
     Dim shippableOnly As Boolean
     If Not chkShippable Is Nothing Then
         On Error Resume Next
@@ -268,6 +398,11 @@ Private Sub ApplyFilter(Optional ByVal termOverride As Variant)
     End If
 
     For i = LBound(itemsArr, 1) To UBound(itemsArr, 1)
+        If LCase$(mPickerMode) = "palette_item" Then
+            Dim rowKey As String
+            rowKey = NzStr(itemsArr(i, 1))
+            If Not mAllowedRows.Exists(rowKey) Then GoTo NextItem
+        End If
         If shippableOnly And Not IsRowShippable(i) Then GoTo NextItem
         ' Match on ITEM (3) or ITEM_CODE (2)
         If term = "" _
@@ -318,7 +453,9 @@ End Function
 
 Private Function ShouldDefaultShippable() As Boolean
     Dim lo As ListObject
-    If LCase$(mPickerMode) = "recipe" Then Exit Function
+    If LCase$(mPickerMode) = "recipe" Or LCase$(mPickerMode) = "palette_recipe" _
+        Or LCase$(mPickerMode) = "recipe_chooser" Or LCase$(mPickerMode) = "ingredient" _
+        Or LCase$(mPickerMode) = "palette_item" Then Exit Function
     On Error Resume Next
     If Not callbackCell Is Nothing Then Set lo = callbackCell.ListObject
     On Error GoTo 0
@@ -343,23 +480,23 @@ Public Sub CommitSelection()
         Set loRecipe = callbackCell.ListObject
         On Error GoTo 0
         If Not loRecipe Is Nothing Then
-            Dim cName As Long: cName = ColumnIndex(loRecipe, "RECIPE_NAME")
-            Dim cId As Long: cId = ColumnIndex(loRecipe, "RECIPE_ID")
-            Dim cDesc As Long: cDesc = ColumnIndex(loRecipe, "DESCRIPTION")
-            If cName > 0 Then
-                Dim nameCell As Range
-                Set nameCell = EnsureListObjectCell(loRecipe, cName)
-                If Not nameCell Is Nothing Then nameCell.Value = recName
+            Dim cRecNameCol As Long: cRecNameCol = ColumnIndex(loRecipe, "RECIPE_NAME")
+            Dim cRecIdCol As Long: cRecIdCol = ColumnIndex(loRecipe, "RECIPE_ID")
+            Dim cRecDescCol As Long: cRecDescCol = ColumnIndex(loRecipe, "DESCRIPTION")
+            If cRecNameCol > 0 Then
+                Dim recNameCell As Range
+                Set recNameCell = EnsureListObjectCell(loRecipe, cRecNameCol)
+                If Not recNameCell Is Nothing Then recNameCell.Value = recName
             End If
-            If cId > 0 Then
-                Dim idCell As Range
-                Set idCell = EnsureListObjectCell(loRecipe, cId)
-                If Not idCell Is Nothing Then idCell.Value = recId
+            If cRecIdCol > 0 Then
+                Dim recIdCell As Range
+                Set recIdCell = EnsureListObjectCell(loRecipe, cRecIdCol)
+                If Not recIdCell Is Nothing Then recIdCell.Value = recId
             End If
-            If cDesc > 0 Then
-                Dim descCell As Range
-                Set descCell = EnsureListObjectCell(loRecipe, cDesc)
-                If Not descCell Is Nothing Then descCell.Value = recDesc
+            If cRecDescCol > 0 Then
+                Dim recDescCell As Range
+                Set recDescCell = EnsureListObjectCell(loRecipe, cRecDescCol)
+                If Not recDescCell Is Nothing Then recDescCell.Value = recDesc
             End If
         Else
             callbackCell.Value = recName
@@ -368,6 +505,138 @@ Public Sub CommitSelection()
         If recId <> "" Then
             mProduction.LoadRecipeFromRecipes recId
         End If
+        uf.Hide
+        Exit Sub
+    End If
+
+    If LCase$(mPickerMode) = "palette_recipe" Then
+        Dim pRecId As String
+        Dim pRecName As String
+        Dim pRecDesc As String
+        pRecId = NzStr(lst.List(lst.ListIndex, 0))
+        pRecName = NzStr(lst.List(lst.ListIndex, 1))
+        pRecDesc = NzStr(lst.List(lst.ListIndex, 2))
+
+        Dim loPalRecipe As ListObject
+        On Error Resume Next
+        Set loPalRecipe = callbackCell.ListObject
+        On Error GoTo 0
+        If loPalRecipe Is Nothing Then
+            MsgBox "IP_ChooseRecipe table not found for selection.", vbExclamation
+            Exit Sub
+        End If
+
+        Dim palRecipeRow As Range
+        Set palRecipeRow = ResolveListObjectRowRange(loPalRecipe, callbackCell)
+        If palRecipeRow Is Nothing Then
+            MsgBox "Unable to add a row to IP_ChooseRecipe.", vbExclamation
+            Exit Sub
+        End If
+
+        Dim cPalNameCol As Long: cPalNameCol = ColumnIndex(loPalRecipe, "RECIPE_NAME")
+        Dim cPalIdCol As Long: cPalIdCol = ColumnIndex(loPalRecipe, "RECIPE_ID")
+        Dim cPalDescCol As Long: cPalDescCol = ColumnIndex(loPalRecipe, "DESCRIPTION")
+        If cPalNameCol > 0 Then palRecipeRow.Cells(1, cPalNameCol).Value = pRecName
+        If cPalIdCol > 0 Then palRecipeRow.Cells(1, cPalIdCol).Value = pRecId
+        If cPalDescCol > 0 Then palRecipeRow.Cells(1, cPalDescCol).Value = pRecDesc
+
+        mProduction.HandlePaletteRecipeSelected pRecId
+        uf.Hide
+        Exit Sub
+    End If
+
+    If LCase$(mPickerMode) = "recipe_chooser" Then
+        Dim chRecId As String
+        Dim chRecName As String
+        Dim chRecDesc As String
+        chRecId = NzStr(lst.List(lst.ListIndex, 0))
+        chRecName = NzStr(lst.List(lst.ListIndex, 1))
+        chRecDesc = NzStr(lst.List(lst.ListIndex, 2))
+
+        Dim loChooser As ListObject
+        On Error Resume Next
+        Set loChooser = callbackCell.ListObject
+        On Error GoTo 0
+        If loChooser Is Nothing Then
+            MsgBox "RC_RecipeChoose table not found for selection.", vbExclamation
+            Exit Sub
+        End If
+
+        Dim chooserRow As Range
+        Set chooserRow = ResolveListObjectRowRange(loChooser, callbackCell)
+        If chooserRow Is Nothing Then
+            MsgBox "Unable to add a row to RC_RecipeChoose.", vbExclamation
+            Exit Sub
+        End If
+
+        Dim cChooserName As Long: cChooserName = ColumnIndex(loChooser, "RECIPE")
+        If cChooserName = 0 Then cChooserName = ColumnIndex(loChooser, "RECIPE_NAME")
+        Dim cChooserIdCol As Long: cChooserIdCol = ColumnIndex(loChooser, "RECIPE_ID")
+        Dim cChooserDescCol As Long: cChooserDescCol = ColumnIndex(loChooser, "DESCRIPTION")
+        If cChooserName > 0 Then chooserRow.Cells(1, cChooserName).Value = chRecName
+        If cChooserIdCol > 0 Then chooserRow.Cells(1, cChooserIdCol).Value = chRecId
+        If cChooserDescCol > 0 Then chooserRow.Cells(1, cChooserDescCol).Value = chRecDesc
+
+        If chRecId <> "" Then
+            mProduction.LoadRecipeChooser chRecId
+        End If
+        uf.Hide
+        Exit Sub
+    End If
+
+    If LCase$(mPickerMode) = "ingredient" Then
+        Dim selIngId As String
+        Dim selIngName As String
+        Dim selUom As String
+        Dim selProc As String
+        Dim selIO As String
+        Dim selAmt As String
+        selIngId = NzStr(lst.List(lst.ListIndex, 0))
+        selIngName = NzStr(lst.List(lst.ListIndex, 1))
+        selUom = NzStr(lst.List(lst.ListIndex, 2))
+        selProc = NzStr(lst.List(lst.ListIndex, 3))
+        selIO = NzStr(lst.List(lst.ListIndex, 4))
+        selAmt = NzStr(lst.List(lst.ListIndex, 5))
+
+        Dim loIng As ListObject
+        On Error Resume Next
+        Set loIng = callbackCell.ListObject
+        On Error GoTo 0
+        If loIng Is Nothing Then
+            MsgBox "IP_ChooseIngredient table not found for selection.", vbExclamation
+            Exit Sub
+        End If
+
+        Dim ingRowRange As Range
+        Set ingRowRange = ResolveListObjectRowRange(loIng, callbackCell)
+        If ingRowRange Is Nothing Then
+            MsgBox "Unable to add a row to IP_ChooseIngredient.", vbExclamation
+            Exit Sub
+        End If
+
+        Dim cIngNameCol As Long: cIngNameCol = ColumnIndex(loIng, "INGREDIENT")
+        Dim cIngUomCol As Long: cIngUomCol = ColumnIndex(loIng, "UOM")
+        Dim cIngQtyCol As Long: cIngQtyCol = ColumnIndex(loIng, "QUANTITY")
+        Dim cIngDescCol As Long: cIngDescCol = ColumnIndex(loIng, "DESCRIPTION")
+        Dim cIngGuidCol As Long: cIngGuidCol = ColumnIndex(loIng, "GUID")
+        Dim cIngRecCol As Long: cIngRecCol = ColumnIndex(loIng, "RECIPE_ID")
+        Dim cIngIdCol As Long: cIngIdCol = ColumnIndex(loIng, "INGREDIENT_ID")
+        Dim cIngProcCol As Long: cIngProcCol = ColumnIndex(loIng, "PROCESS")
+
+        If cIngNameCol > 0 Then ingRowRange.Cells(1, cIngNameCol).Value = selIngName
+        If cIngUomCol > 0 Then ingRowRange.Cells(1, cIngUomCol).Value = selUom
+        If cIngQtyCol > 0 Then ingRowRange.Cells(1, cIngQtyCol).Value = selAmt
+        If cIngDescCol > 0 Then ingRowRange.Cells(1, cIngDescCol).Value = selIO
+        If cIngGuidCol > 0 Then
+            Dim gVal As String
+            gVal = NzStr(ingRowRange.Cells(1, cIngGuidCol).Value)
+            If Trim$(gVal) = "" Then ingRowRange.Cells(1, cIngGuidCol).Value = modUR_Snapshot.GenerateGUID()
+        End If
+        If cIngRecCol > 0 Then ingRowRange.Cells(1, cIngRecCol).Value = mIngredientRecipeId
+        If cIngIdCol > 0 Then ingRowRange.Cells(1, cIngIdCol).Value = selIngId
+        If cIngProcCol > 0 Then ingRowRange.Cells(1, cIngProcCol).Value = selProc
+
+        mProduction.HandlePaletteIngredientSelected mIngredientRecipeId, selIngId
         uf.Hide
         Exit Sub
     End If
@@ -420,8 +689,65 @@ Public Sub CommitSelection()
             modTS_Shipments.ApplyItemSelection callbackCell, lo, rowIdx, itemName, itemCode, itemRow, uom, location, vendor, lst.List(lst.ListIndex, 5)
         Case "boxbom"
             modTS_Shipments.ApplyItemToBoxBOM callbackCell, itemName, itemRow, uom, location, lst.List(lst.ListIndex, 5)
+        Case "ip_chooseitem"
+            Dim colItem As Long: colItem = ColumnIndex(lo, "ITEMS")
+            If colItem = 0 Then colItem = ColumnIndex(lo, "ITEM")
+            Dim colUom As Long: colUom = ColumnIndex(lo, "UOM")
+            Dim colDesc As Long: colDesc = ColumnIndex(lo, "DESCRIPTION")
+            Dim colRow As Long: colRow = ColumnIndex(lo, "ROW")
+            Dim colRec As Long: colRec = ColumnIndex(lo, "RECIPE_ID")
+            Dim colIng As Long: colIng = ColumnIndex(lo, "INGREDIENT_ID")
+
+            If rowIdx = 0 Then rowIdx = EnsureListObjectRow(lo)
+            If rowIdx > 0 Then
+                If colItem > 0 Then lo.DataBodyRange.Cells(rowIdx, colItem).Value = itemName
+                If colUom > 0 Then lo.DataBodyRange.Cells(rowIdx, colUom).Value = uom
+                If colDesc > 0 Then lo.DataBodyRange.Cells(rowIdx, colDesc).Value = lst.List(lst.ListIndex, 5)
+                If colRow > 0 Then lo.DataBodyRange.Cells(rowIdx, colRow).Value = itemRow
+                If colRec > 0 Then lo.DataBodyRange.Cells(rowIdx, colRec).Value = mProduction.GetPaletteRecipeId()
+                If colIng > 0 Then lo.DataBodyRange.Cells(rowIdx, colIng).Value = mProduction.GetPaletteIngredientId()
+            End If
         Case Else
-            ' no special handling
+            If tblName = "inventorypalette_generated" Or tblName Like "proc_*_palette" Then
+                Dim palItemRow As Long
+                palItemRow = rowIdx
+                If palItemRow = 0 Then palItemRow = EnsureListObjectRow(lo)
+
+                Dim cPalItemCode As Long: cPalItemCode = ColumnIndex(lo, "ITEM_CODE")
+                Dim cPalVend As Long: cPalVend = ColumnIndex(lo, "VENDORS")
+                Dim cPalVendCode As Long: cPalVendCode = ColumnIndex(lo, "VENDOR_CODE")
+                Dim cPalDescCol2 As Long: cPalDescCol2 = ColumnIndex(lo, "DESCRIPTION")
+                Dim cPalItem As Long: cPalItem = ColumnIndex(lo, "ITEM")
+                Dim cPalUomCol As Long: cPalUomCol = ColumnIndex(lo, "UOM")
+                Dim cPalQtyCol As Long: cPalQtyCol = ColumnIndex(lo, "QUANTITY")
+                Dim cPalProcCol As Long: cPalProcCol = ColumnIndex(lo, "PROCESS")
+                Dim cPalLocCol As Long: cPalLocCol = ColumnIndex(lo, "LOCATION")
+                Dim cPalRowCol As Long: cPalRowCol = ColumnIndex(lo, "ROW")
+                Dim cPalIOCol As Long: cPalIOCol = ColumnIndex(lo, "INPUT/OUTPUT")
+
+                If palItemRow > 0 Then
+                    If cPalItemCode > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalItemCode).Value = itemCode
+                    If cPalVend > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalVend).Value = vendor
+                    If cPalVendCode > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalVendCode).Value = ""
+                    If cPalDescCol2 > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalDescCol2).Value = lst.List(lst.ListIndex, 5)
+                    If cPalItem > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalItem).Value = itemName
+                    If cPalUomCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalUomCol).Value = uom
+                    If cPalLocCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalLocCol).Value = location
+                    If cPalRowCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalRowCol).Value = itemRow
+
+                    Dim ctxRec As String, ctxIng As String, ctxProc As String, ctxIO As String
+                    Dim ctxAmt As Variant
+                    If mProduction.GetPaletteTableContext(lo, ctxRec, ctxIng, ctxAmt, ctxProc, ctxIO) Then
+                        If cPalProcCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalProcCol).Value = ctxProc
+                        If cPalIOCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalIOCol).Value = ctxIO
+                        If cPalQtyCol > 0 Then
+                            If NzStr(lo.DataBodyRange.Cells(palItemRow, cPalQtyCol).Value) = "" Then
+                                lo.DataBodyRange.Cells(palItemRow, cPalQtyCol).Value = ctxAmt
+                            End If
+                        End If
+                    End If
+                End If
+            End If
     End Select
 
     uf.Hide
@@ -452,4 +778,39 @@ Private Function EnsureListObjectCell(ByVal lo As ListObject, ByVal colIndex As 
     On Error GoTo 0
     If lo.DataBodyRange Is Nothing Then Exit Function
     Set EnsureListObjectCell = lo.DataBodyRange.Cells(1, colIndex)
+End Function
+
+Private Function EnsureListObjectRow(ByVal lo As ListObject) As Long
+    If lo Is Nothing Then Exit Function
+    On Error Resume Next
+    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add AlwaysInsert:=True
+    On Error GoTo 0
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    EnsureListObjectRow = 1
+End Function
+
+Private Function GetRowIndexForCell(ByVal lo As ListObject, ByVal targetCell As Range) As Long
+    If lo Is Nothing Then Exit Function
+    If targetCell Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    Dim idx As Long
+    idx = targetCell.Row - lo.DataBodyRange.Row + 1
+    If idx < 1 Or idx > lo.ListRows.Count Then idx = 0
+    GetRowIndexForCell = idx
+End Function
+
+Private Function ResolveListObjectRowRange(ByVal lo As ListObject, ByVal targetCell As Range) As Range
+    If lo Is Nothing Then Exit Function
+    If Not lo.DataBodyRange Is Nothing Then
+        If Not targetCell Is Nothing Then
+            Dim idx As Long
+            idx = targetCell.Row - lo.DataBodyRange.Row + 1
+            If idx >= 1 And idx <= lo.ListRows.Count Then
+                Set ResolveListObjectRowRange = lo.DataBodyRange.Rows(idx)
+                Exit Function
+            End If
+        End If
+    End If
+    If lo.HeaderRowRange Is Nothing Then Exit Function
+    Set ResolveListObjectRowRange = lo.HeaderRowRange.Offset(1, 0).Resize(1, lo.ListColumns.Count)
 End Function
