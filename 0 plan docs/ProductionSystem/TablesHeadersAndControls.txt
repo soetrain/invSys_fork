@@ -162,8 +162,6 @@ Sheet (Code): Production
     Headers: RECIPE_NAME, DESCRIPTION, GUID, RECIPE_ID
   Table: IP_ChooseRecipe
     Headers: RECIPE_NAME, DESCRIPTION, GUID, RECIPE_ID
-  Table: RecipeBuilder
-    Headers: PROCESS, DIAGRAM_ID, INPUT/OUTPUT, INGREDIENT, PERCENT, UOM, AMOUNT, RECIPE_LIST_ROW, INGREDIENT_ID, GUID
   Table: IP_ChooseIngredient
     Headers: INGREDIENT, UOM, QUANTITY, DESCRIPTION, GUID, RECIPE_ID, INGREDIENT_ID, PROCESS
   Table: RecipeChooser_generated
@@ -174,6 +172,38 @@ Sheet (Code): Production
     Headers: USED, MADE, TOTAL INV, ROW
   Table: InventoryPalette_generated
     Headers: ITEM_CODE, VENDORS, VENDOR_CODE, DESCRIPTION, ITEM, UOM, QUANTITY, PROCESS, LOCATION, ROW, INPUT/OUTPUT
+  Table: RB_BuildRecipe
+    Headers: PROCESS, DIAGRAM_ID, INPUT/OUTPUT, INGREDIENT, PERCENT, UOM, AMOUNT, RECIPE_LIST_ROW, INGREDIENT_ID, GUID
+  Form Control: BTN_LOAD_RECIPE
+    Type: Button (0)
+    Text: Load Recipe
+  Form Control: BTN_SAVE_RECIPE
+    Type: Button (0)
+    Text: Save Recipe
+  Form Control: BTN_SAVE_PALETTE
+    Type: Button (0)
+    Text: Save IngredientPalette
+  Form Control: BTN_TO_USED
+    Type: Button (0)
+    Text: To USED
+  Form Control: BTN_TO_MADE
+    Type: Button (0)
+    Text: Send to MADE
+  Form Control: BTN_TO_TOTALINV
+    Type: Button (0)
+    Text: Send to TOTAL INV
+  Form Control: BTN_NEXT_BATCH
+    Type: Button (0)
+    Text: Next Batch
+  Form Control: BTN_PRINT_CODES
+    Type: Button (0)
+    Text: Print recall codes
+  Form Control: BTN_HIDE_SYSTEM
+    Type: Button (0)
+    Text: Hide system
+  Form Control: BTN_SHOW_SYSTEM
+    Type: Button (0)
+    Text: Show system
 ------------------------------------------------------------
 Sheet (Tab):  Recipes
 Sheet (Code): Recipes
