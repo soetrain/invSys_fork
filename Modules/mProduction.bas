@@ -737,9 +737,9 @@ Private Sub LoadRecipeFromRecipes()
     End If
 
     If recipeId = "" Then
-        Dim cHeaderRecipeId As Long: cHeaderRecipeId = ColumnIndex(loHeader, "RECIPE_ID")
-        If cHeaderRecipeId > 0 And Not loHeader.DataBodyRange Is Nothing Then
-            recipeId = NzStr(loHeader.DataBodyRange.Cells(1, cHeaderRecipeId).Value)
+        Dim cHeaderRecipeIdTmp As Long: cHeaderRecipeIdTmp = ColumnIndex(loHeader, "RECIPE_ID")
+        If cHeaderRecipeIdTmp > 0 And Not loHeader.DataBodyRange Is Nothing Then
+            recipeId = NzStr(loHeader.DataBodyRange.Cells(1, cHeaderRecipeIdTmp).Value)
         End If
     End If
 
