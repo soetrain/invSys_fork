@@ -21,6 +21,7 @@ Private Const BTN_SAVE_RECIPE As String = "BTN_SAVE_RECIPE"             ' System
 Private Const BTN_BUILD_RECIPE_TABLES As String = "BTN_BUILD_RECIPE_TABLES" ' System 1: Recipe List Builder
 Private Const BTN_REMOVE_RECIPE_TABLES As String = "BTN_REMOVE_RECIPE_TABLES" ' System 1: Recipe List Builder
 Private Const BTN_CLEAR_RECIPE_BUILDER As String = "BTN_CLEAR_RECIPE_BUILDER" ' System 1: Recipe List Builder
+Private Const BTN_CLEAR_RECIPE_CHOOSER As String = "BTN_CLEAR_RECIPE_CHOOSER" ' System 3: Recipe Chooser
 Private Const BTN_CLEAR_PALETTE_BUILDER As String = "BTN_CLEAR_PALETTE_BUILDER" ' System 2: Inventory Palette Builder
 Private Const BTN_SAVE_PALETTE As String = "BTN_SAVE_PALETTE"
 Private Const BTN_TO_USED As String = "BTN_TO_USED"
@@ -33,6 +34,7 @@ Private Const TEMPLATE_SCOPE_RECIPE_PROCESS As String = "RECIPE_PROCESS"
 Private Const RECIPE_PROC_TABLE_SUFFIX As String = "rbuilder"
 Private Const RECIPE_CHOOSER_TABLE_SUFFIX As String = "rchooser"
 Private Const RECIPE_LINES_STAGING_ROW As Long = 500000 ' System 1: staging for RecipeBuilder lines during load
+Private Const PALETTE_LINES_STAGING_ROW As Long = 500000 ' System 4: staging for InventoryPalette lines table
 
 Private mRowCountCache As Object
 Private mPaletteTableMeta As Object
@@ -500,6 +502,8 @@ Private Sub EnsureProductionButtons()
     nextTop = nextTop + BTN_STACK_SPACING
     EnsureButtonCustom ws, BTN_CLEAR_PALETTE_BUILDER, "Clear Inventory Palette Builder", "mProduction.BtnClearPaletteBuilder", leftA, nextTop, colAWidth
     nextTop = nextTop + BTN_STACK_SPACING
+    EnsureButtonCustom ws, BTN_CLEAR_RECIPE_CHOOSER, "Clear Chosen Recipe", "mProduction.BtnClearRecipeChooser", leftA, nextTop, colAWidth
+    nextTop = nextTop + BTN_STACK_SPACING
     EnsureButtonCustom ws, BTN_TO_USED, "To USED", "mProduction.BtnToUsed", leftA, nextTop, colAWidth
     nextTop = nextTop + BTN_STACK_SPACING
     EnsureButtonCustom ws, BTN_TO_MADE, "Send to MADE", "mProduction.BtnToMade", leftA, nextTop, colAWidth
@@ -777,6 +781,25 @@ End Sub
 
 Public Sub BtnClearPaletteBuilder()
     ClearInventoryPaletteBuilder
+End Sub
+
+Public Sub BtnClearRecipeChooser()
+    Dim wsProd As Worksheet: Set wsProd = SheetExists(SHEET_PRODUCTION)
+    If wsProd Is Nothing Then Exit Sub
+
+    Dim loChooser As ListObject
+    Set loChooser = FindListObjectByNameOrHeaders(wsProd, TABLE_RECIPE_CHOOSER, Array("RECIPE", "RECIPE_ID"))
+    If Not loChooser Is Nothing Then
+        EnsureTableHasRow loChooser
+        If Not loChooser.DataBodyRange Is Nothing Then
+            loChooser.DataBodyRange.ClearContents
+        End If
+    End If
+
+    DeleteRecipeChooserProcessTables wsProd
+    DeleteInventoryPaletteTables wsProd
+
+    MsgBox "Recipe Chooser cleared.", vbInformation
 End Sub
 
 Public Sub BtnToUsed()
@@ -1320,6 +1343,8 @@ Private Sub BuildPaletteTablesForRecipeChooser(ByVal recipeId As String, ByVal w
     EnsurePaletteTableMeta
     ClearPaletteTableMeta
 
+    EnsureInventoryPaletteLinesTable wsProd, baseStyle
+
     Dim headerNames As Variant
     headerNames = InventoryPaletteHeaderList()
     Dim colCount As Long: colCount = UBound(headerNames) - LBound(headerNames) + 1
@@ -1342,18 +1367,8 @@ Private Sub BuildPaletteTablesForRecipeChooser(ByVal recipeId As String, ByVal w
 
         Dim newLo As ListObject
         Set newLo = wsProd.ListObjects.Add(xlSrcRange, tableRange, , xlYes)
-        If idx = 1 Then
-            On Error Resume Next
-            newLo.Name = TABLE_INV_PALETTE_GENERATED
-            If Err.Number <> 0 Then
-                newLo.Name = UniqueListObjectName(wsProd, TABLE_INV_PALETTE_GENERATED)
-            End If
-            Err.Clear
-            On Error GoTo 0
-        Else
-            newLo.Name = UniqueListObjectName(wsProd, "proc_" & CStr(nextSeq) & "_palette")
-            nextSeq = nextSeq + 1
-        End If
+        newLo.Name = UniqueListObjectName(wsProd, "proc_" & CStr(nextSeq) & "_palette")
+        nextSeq = nextSeq + 1
         If baseStyle <> "" Then
             On Error Resume Next
             newLo.TableStyle = baseStyle
@@ -1502,13 +1517,15 @@ Private Function GetInventoryPaletteAnchor(ByVal ws As Worksheet, ByRef startRow
         Set lo = FindListObjectByNameOrHeaders(ws, TABLE_INV_PALETTE_GENERATED, Array("ITEM_CODE", "ITEM", "ROW"))
     End If
     If Not lo Is Nothing Then
-        startRow = lo.Range.Row
-        startCol = lo.Range.Column
         On Error Resume Next
         baseStyle = lo.TableStyle
         On Error GoTo 0
-        GetInventoryPaletteAnchor = True
-        Exit Function
+        If lo.Range.Row < PALETTE_LINES_STAGING_ROW Then
+            startRow = lo.Range.Row
+            startCol = lo.Range.Column
+            GetInventoryPaletteAnchor = True
+            Exit Function
+        End If
     End If
 
     Dim loProd As ListObject
@@ -2396,6 +2413,58 @@ Private Function MoveRecipeBuilderLinesToStaging(ByVal loLines As ListObject) As
     End If
     Err.Clear
     On Error GoTo 0
+End Function
+
+Private Function EnsureInventoryPaletteLinesTable(ByVal ws As Worksheet, Optional ByVal baseStyle As String = "") As ListObject
+    ' System 4: Production Input/Output - keep InventoryPalette lines table staged off-screen.
+    If ws Is Nothing Then Exit Function
+
+    Dim lo As ListObject
+    Set lo = GetListObject(ws, TABLE_INV_PALETTE_GENERATED)
+
+    Dim startRow As Long
+    Dim startCol As Long
+    startRow = PALETTE_LINES_STAGING_ROW
+    startCol = 1
+
+    Dim loProd As ListObject
+    Set loProd = FindListObjectByNameOrHeaders(ws, "ProductionOutput", Array("PROCESS", "OUTPUT"))
+    If Not loProd Is Nothing Then startCol = loProd.Range.Column
+
+    If Not lo Is Nothing Then
+        If lo.Range.Row < startRow Then
+            Dim dest As Range
+            Set dest = ws.Cells(startRow, startCol)
+            On Error Resume Next
+            lo.Range.Cut Destination:=dest
+            On Error GoTo 0
+        End If
+        On Error Resume Next
+        If baseStyle <> "" Then lo.TableStyle = baseStyle
+        On Error GoTo 0
+        Set EnsureInventoryPaletteLinesTable = lo
+        Exit Function
+    End If
+
+    Dim headers As Variant
+    headers = InventoryPaletteHeaderList()
+    Dim colCount As Long: colCount = UBound(headers) - LBound(headers) + 1
+
+    Dim tableRange As Range
+    Set tableRange = ws.Range(ws.Cells(startRow, startCol), ws.Cells(startRow + 1, startCol + colCount - 1))
+    If RangeHasListObjectCollisionStrict(ws, tableRange) Then Exit Function
+
+    tableRange.Clear
+    tableRange.Rows(1).Value = HeaderRowArray(headers)
+
+    Dim newLo As ListObject
+    Set newLo = ws.ListObjects.Add(xlSrcRange, tableRange, , xlYes)
+    newLo.Name = TABLE_INV_PALETTE_GENERATED
+    On Error Resume Next
+    If baseStyle <> "" Then newLo.TableStyle = baseStyle
+    On Error GoTo 0
+
+    Set EnsureInventoryPaletteLinesTable = newLo
 End Function
 
 Private Function HeaderIndex(ByVal headers As Variant, ByVal headerName As String) As Long
