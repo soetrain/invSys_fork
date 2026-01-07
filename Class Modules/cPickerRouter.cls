@@ -60,7 +60,10 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
     End If
 
     If (LCase$(lo.Name) = "inventorypalette_generated" Or LCase$(lo.Name) Like "proc_*_palette") _
-        And (LCase$(colName) = "item" Or LCase$(colName) = "items") Then
+        And (LCase$(colName) = "item" Or LCase$(colName) = "items" Or LCase$(colName) = "item_code") Then
+
+        If lo.DataBodyRange Is Nothing Then Exit Function
+        If Intersect(Target, lo.DataBodyRange) Is Nothing Then Exit Function
 
         Dim ctxRec As String, ctxIng As String, ctxProc As String, ctxIO As String
         Dim ctxAmt As Variant

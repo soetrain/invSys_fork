@@ -83,8 +83,11 @@ Public Sub HandleProductionChange(ByVal Target As Range)
         EnsureRowCountCache
         Dim key As String: key = lo.Name
         Dim newCount As Long: newCount = ListObjectRowCount(lo)
-        Dim oldCount As Long
-        If mRowCountCache.Exists(key) Then oldCount = CLng(mRowCountCache(key))
+        If Not mRowCountCache.Exists(key) Then
+            mRowCountCache(key) = newCount
+            Exit Sub
+        End If
+        Dim oldCount As Long: oldCount = CLng(mRowCountCache(key))
         If newCount > oldCount Then
             Dim bandMgr As New cTableBandManager
             bandMgr.Init lo.Parent
@@ -1377,6 +1380,15 @@ Private Sub BuildPaletteTablesForRecipeChooser(ByVal recipeId As String, ByVal w
 
         mPaletteTableMeta(newLo.Name) = infoArr
 
+        If Not newLo.DataBodyRange Is Nothing Then
+            Dim cProcColFill As Long: cProcColFill = ColumnIndex(newLo, "PROCESS")
+            Dim cIOColFill As Long: cIOColFill = ColumnIndex(newLo, "INPUT/OUTPUT")
+            Dim cQtyColFill As Long: cQtyColFill = ColumnIndex(newLo, "QUANTITY")
+            If cProcColFill > 0 Then newLo.DataBodyRange.Cells(1, cProcColFill).Value = NzStr(infoArr(3))
+            If cIOColFill > 0 Then newLo.DataBodyRange.Cells(1, cIOColFill).Value = NzStr(infoArr(4))
+            If cQtyColFill > 0 Then newLo.DataBodyRange.Cells(1, cQtyColFill).Value = infoArr(2)
+        End If
+
         startRow = tableRange.Row + tableRange.Rows.Count + 2
     Next idx
 End Sub
@@ -2209,6 +2221,10 @@ Private Function CreateRecipeProcessTable(ByVal ws As Worksheet, ByVal processNa
     Set tableRange = FindAvailableRecipeProcessRange(ws, startRow, startCol, dataRows + 1, colCount, loLines)
     If tableRange Is Nothing Then Exit Function
 
+    Dim seq As Long
+    seq = NextRecipeProcessSequence(ws)
+    If Trim$(processName) = "" Then processName = CStr(seq)
+
     tableRange.Clear
     tableRange.Rows(1).Value = HeaderRowArray(headers)
 
@@ -2220,8 +2236,6 @@ Private Function CreateRecipeProcessTable(ByVal ws As Worksheet, ByVal processNa
 
     Dim newLo As ListObject
     Set newLo = ws.ListObjects.Add(xlSrcRange, tableRange, , xlYes)
-    Dim seq As Long
-    seq = NextRecipeProcessSequence(ws)
     newLo.Name = UniqueListObjectName(ws, BuildRecipeProcessTableName(CStr(seq)))
     On Error Resume Next
     newLo.TableStyle = loLines.TableStyle

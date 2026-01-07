@@ -698,15 +698,24 @@ Public Sub CommitSelection()
             Dim colRec As Long: colRec = ColumnIndex(lo, "RECIPE_ID")
             Dim colIng As Long: colIng = ColumnIndex(lo, "INGREDIENT_ID")
 
-            If rowIdx = 0 Then rowIdx = EnsureListObjectRow(lo)
-            If rowIdx > 0 Then
-                If colItem > 0 Then lo.DataBodyRange.Cells(rowIdx, colItem).Value = itemName
-                If colUom > 0 Then lo.DataBodyRange.Cells(rowIdx, colUom).Value = uom
-                If colDesc > 0 Then lo.DataBodyRange.Cells(rowIdx, colDesc).Value = lst.List(lst.ListIndex, 5)
-                If colRow > 0 Then lo.DataBodyRange.Cells(rowIdx, colRow).Value = itemRow
-                If colRec > 0 Then lo.DataBodyRange.Cells(rowIdx, colRec).Value = mProduction.GetPaletteRecipeId()
-                If colIng > 0 Then lo.DataBodyRange.Cells(rowIdx, colIng).Value = mProduction.GetPaletteIngredientId()
+            Dim itemRowRange As Range
+            Set itemRowRange = ResolveListObjectRowRange(lo, callbackCell)
+            If itemRowRange Is Nothing Then
+                If EnsureListObjectRow(lo) > 0 Then
+                    Set itemRowRange = ResolveListObjectRowRange(lo, callbackCell)
+                End If
             End If
+            If itemRowRange Is Nothing Then
+                MsgBox "Unable to add a row to IP_ChooseItem.", vbExclamation
+                Exit Sub
+            End If
+
+            If colItem > 0 Then itemRowRange.Cells(1, colItem).Value = itemName
+            If colUom > 0 Then itemRowRange.Cells(1, colUom).Value = uom
+            If colDesc > 0 Then itemRowRange.Cells(1, colDesc).Value = lst.List(lst.ListIndex, 5)
+            If colRow > 0 Then itemRowRange.Cells(1, colRow).Value = itemRow
+            If colRec > 0 Then itemRowRange.Cells(1, colRec).Value = mProduction.GetPaletteRecipeId()
+            If colIng > 0 Then itemRowRange.Cells(1, colIng).Value = mProduction.GetPaletteIngredientId()
         Case Else
             If tblName = "inventorypalette_generated" Or tblName Like "proc_*_palette" Then
                 Dim palItemRow As Long
@@ -765,7 +774,10 @@ End Function
 Private Function ColumnIndex(lo As ListObject, colName As String) As Long
     Dim lc As ListColumn
     For Each lc In lo.ListColumns
-        If StrComp(lc.Name, colName, vbTextCompare) = 0 Then ColumnIndex = lc.Index: Exit Function
+        If StrComp(Trim$(lc.Name), Trim$(colName), vbTextCompare) = 0 Then
+            ColumnIndex = lc.Index
+            Exit Function
+        End If
     Next
     ColumnIndex = 0
 End Function
