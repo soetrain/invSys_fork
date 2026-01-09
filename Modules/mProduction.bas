@@ -469,6 +469,47 @@ Public Function ColumnIndex(lo As ListObject, colName As String) As Long
     ColumnIndex = 0
 End Function
 
+Private Function ColumnIndexLoose(lo As ListObject, ParamArray names() As Variant) As Long
+    If lo Is Nothing Then Exit Function
+    Dim lc As ListColumn
+    For Each lc In lo.ListColumns
+        Dim hdr As String
+        hdr = NormalizeHeaderKey(NzStr(lc.Name))
+        Dim i As Long
+        For i = LBound(names) To UBound(names)
+            If hdr = NormalizeHeaderKey(CStr(names(i))) Then
+                ColumnIndexLoose = lc.Index
+                Exit Function
+            End If
+        Next i
+    Next lc
+End Function
+
+Private Function NormalizeHeaderKey(ByVal v As String) As String
+    Dim i As Long, ch As String, out As String
+    For i = 1 To Len(v)
+        ch = Mid$(v, i, 1)
+        If ch Like "[A-Za-z0-9]" Then out = out & UCase$(ch)
+    Next i
+    NormalizeHeaderKey = out
+End Function
+
+Private Function NormalizeRowKey(ByVal v As Variant) As String
+    If IsError(v) Or IsNull(v) Or IsEmpty(v) Then Exit Function
+    Dim s As String
+    If IsNumeric(v) Then
+        NormalizeRowKey = CStr(CLng(v))
+        Exit Function
+    End If
+    s = Trim$(CStr(v))
+    If s = "" Then Exit Function
+    If IsNumeric(s) Then
+        NormalizeRowKey = CStr(CLng(Val(s)))
+    Else
+        NormalizeRowKey = s
+    End If
+End Function
+
 ' ===== button scaffolding =====
 Private Sub EnsureProductionButtons()
     Dim ws As Worksheet: Set ws = SheetExists(SHEET_PRODUCTION)
@@ -860,6 +901,7 @@ Private Sub SaveIngredientPalette()
     End If
 
     Dim wsPal As Worksheet: Set wsPal = SheetExists("IngredientPalette")
+    If wsPal Is Nothing Then Set wsPal = SheetExists("IngredientsPalette")
     If wsPal Is Nothing Then
         MsgBox "IngredientPalette sheet not found.", vbCritical
         Exit Sub
@@ -1006,7 +1048,106 @@ Public Sub HandlePaletteIngredientSelected(ByVal recipeId As String, ByVal ingre
             Set ingCell = GetHeaderDataCell(loItems, "INGREDIENT_ID")
             If Not ingCell Is Nothing Then ingCell.Value = ingredientId
         End If
+        PopulateChooseItemFromIngredientPalette recipeId, ingredientId, loItems
     End If
+End Sub
+
+Private Sub PopulateChooseItemFromIngredientPalette(ByVal recipeId As String, ByVal ingredientId As String, ByVal loItems As ListObject)
+    If Trim$(recipeId) = "" Or Trim$(ingredientId) = "" Then Exit Sub
+    If loItems Is Nothing Then Exit Sub
+
+    Dim wsPal As Worksheet: Set wsPal = SheetExists("IngredientPalette")
+    If wsPal Is Nothing Then Set wsPal = SheetExists("IngredientsPalette")
+    If wsPal Is Nothing Then Exit Sub
+
+    Dim loPal As ListObject
+    Set loPal = FindListObjectByNameOrHeaders(wsPal, "IngredientPalette", Array("RECIPE_ID", "INGREDIENT_ID", "ROW"))
+    If loPal Is Nothing Then
+        Set loPal = FindListObjectByNameOrHeaders(wsPal, "Table40", Array("RECIPE_ID", "INGREDIENT_ID", "ROW"))
+    End If
+    If loPal Is Nothing Then Exit Sub
+    If loPal.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim cRec As Long: cRec = ColumnIndex(loPal, "RECIPE_ID")
+    Dim cIng As Long: cIng = ColumnIndex(loPal, "INGREDIENT_ID")
+    Dim cRow As Long: cRow = ColumnIndex(loPal, "ROW")
+    Dim cItem As Long: cItem = ColumnIndex(loPal, "ITEM")
+    Dim cUom As Long: cUom = ColumnIndex(loPal, "UOM")
+    If cRec = 0 Or cIng = 0 Then Exit Sub
+
+    Dim oItem As Long: oItem = ColumnIndex(loItems, "ITEMS")
+    If oItem = 0 Then oItem = ColumnIndex(loItems, "ITEM")
+    Dim oUom As Long: oUom = ColumnIndex(loItems, "UOM")
+    Dim oDesc As Long: oDesc = ColumnIndex(loItems, "DESCRIPTION")
+    Dim oRow As Long: oRow = ColumnIndex(loItems, "ROW")
+    Dim oRec As Long: oRec = ColumnIndex(loItems, "RECIPE_ID")
+    Dim oIng As Long: oIng = ColumnIndex(loItems, "INGREDIENT_ID")
+
+    Dim wsInv As Worksheet: Set wsInv = SheetExists("InventoryManagement")
+    Dim loInv As ListObject
+    If Not wsInv Is Nothing Then Set loInv = GetListObject(wsInv, "invSys")
+
+    Dim arr As Variant: arr = loPal.DataBodyRange.Value
+    Dim r As Long, writeRow As Long
+    Dim normRec As String: normRec = NormalizeIdFirst(recipeId)
+    Dim normIng As String: normIng = NormalizeIdLast(ingredientId)
+    For r = 1 To UBound(arr, 1)
+        If NormalizeIdFirst(NzStr(arr(r, cRec))) = normRec And NormalizeIdLast(NzStr(arr(r, cIng))) = normIng Then
+            Dim rowVal As Long
+            rowVal = CLng(NzLng(arr(r, cRow)))
+            Dim itemName As String: itemName = IIf(cItem > 0, NzStr(arr(r, cItem)), "")
+            Dim uomVal As String: uomVal = IIf(cUom > 0, NzStr(arr(r, cUom)), "")
+            Dim descVal As String: descVal = ""
+
+            If rowVal > 0 And Not loInv Is Nothing Then
+                ResolveInvSysDetailsByRow loInv, rowVal, itemName, uomVal, descVal
+            End If
+
+            writeRow = writeRow + 1
+            EnsureListObjectRowCount loItems, writeRow
+            If oItem > 0 Then loItems.DataBodyRange.Cells(writeRow, oItem).Value = itemName
+            If oUom > 0 Then loItems.DataBodyRange.Cells(writeRow, oUom).Value = uomVal
+            If oDesc > 0 Then loItems.DataBodyRange.Cells(writeRow, oDesc).Value = descVal
+            If oRow > 0 Then loItems.DataBodyRange.Cells(writeRow, oRow).Value = rowVal
+            If oRec > 0 Then loItems.DataBodyRange.Cells(writeRow, oRec).Value = recipeId
+            If oIng > 0 Then loItems.DataBodyRange.Cells(writeRow, oIng).Value = ingredientId
+        End If
+    Next r
+End Sub
+
+Private Sub EnsureListObjectRowCount(ByVal lo As ListObject, ByVal needed As Long)
+    If lo Is Nothing Then Exit Sub
+    If needed < 1 Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then
+        lo.ListRows.Add AlwaysInsert:=True
+    End If
+    Do While lo.ListRows.Count < needed
+        lo.ListRows.Add AlwaysInsert:=True
+    Loop
+End Sub
+
+Private Sub ResolveInvSysDetailsByRow(ByVal loInv As ListObject, ByVal invRow As Long, _
+    ByRef itemName As String, ByRef uomVal As String, ByRef descVal As String)
+
+    If loInv Is Nothing Then Exit Sub
+    If invRow <= 0 Then Exit Sub
+    If loInv.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim cRow As Long: cRow = ColumnIndex(loInv, "ROW")
+    Dim cItem As Long: cItem = ColumnIndex(loInv, "ITEM")
+    Dim cUom As Long: cUom = ColumnIndex(loInv, "UOM")
+    Dim cDesc As Long: cDesc = ColumnIndex(loInv, "DESCRIPTION")
+    If cRow = 0 Then Exit Sub
+
+    Dim cel As Range
+    For Each cel In loInv.ListColumns(cRow).DataBodyRange.Cells
+        If NzLng(cel.Value) = invRow Then
+            If itemName = "" And cItem > 0 Then itemName = NzStr(cel.Offset(0, cItem - cel.Column).Value)
+            If uomVal = "" And cUom > 0 Then uomVal = NzStr(cel.Offset(0, cUom - cel.Column).Value)
+            If descVal = "" And cDesc > 0 Then descVal = NzStr(cel.Offset(0, cDesc - cel.Column).Value)
+            Exit Sub
+        End If
+    Next cel
 End Sub
 
 Public Function GetPaletteRecipeId() As String
@@ -1015,7 +1156,7 @@ Public Function GetPaletteRecipeId() As String
     Dim loRecipe As ListObject
     Set loRecipe = FindListObjectByNameOrHeaders(wsProd, "IP_ChooseRecipe", Array("RECIPE_NAME", "RECIPE_ID"))
     If loRecipe Is Nothing Then Exit Function
-    GetPaletteRecipeId = FirstNonEmptyColumnValue(loRecipe, "RECIPE_ID")
+    GetPaletteRecipeId = NormalizeIdFirst(FirstNonEmptyColumnValue(loRecipe, "RECIPE_ID"))
 End Function
 
 Public Function GetPaletteIngredientId() As String
@@ -1024,7 +1165,7 @@ Public Function GetPaletteIngredientId() As String
     Dim loIng As ListObject
     Set loIng = FindListObjectByNameOrHeaders(wsProd, "IP_ChooseIngredient", Array("INGREDIENT", "INGREDIENT_ID"))
     If loIng Is Nothing Then Exit Function
-    GetPaletteIngredientId = FirstNonEmptyColumnValue(loIng, "INGREDIENT_ID")
+    GetPaletteIngredientId = NormalizeIdLast(FirstNonEmptyColumnValue(loIng, "INGREDIENT_ID"))
 End Function
 
 Public Function LoadIngredientListForRecipe(ByVal recipeId As String) As Variant
@@ -1264,7 +1405,7 @@ Private Function BuildRecipeChooserProcessTablesFromRecipes(ByVal recipeId As St
         End If
         created.Add newLo
 
-        startRow = tableRange.Row + tableRange.Rows.Count + 2 ' keep 2 blank rows
+        startRow = tableRange.Row + tableRange.Rows.Count + 3 ' keep 2 blank rows
 NextProc:
     Next procKey
 
@@ -1351,22 +1492,54 @@ Private Sub BuildPaletteTablesForRecipeChooser(ByVal recipeId As String, ByVal w
     Dim headerNames As Variant
     headerNames = InventoryPaletteHeaderList()
     Dim colCount As Long: colCount = UBound(headerNames) - LBound(headerNames) + 1
+    Dim invRowMap As Object
+    Set invRowMap = BuildInvSysRowMap()
 
     Dim idx As Long
     Dim nextSeq As Long: nextSeq = 1
+    Dim hdrProc As Long: hdrProc = HeaderIndex(headerNames, "PROCESS")
+    Dim hdrIO As Long: hdrIO = HeaderIndex(headerNames, "INPUT/OUTPUT")
+    Dim hdrQty As Long: hdrQty = HeaderIndex(headerNames, "QUANTITY")
+    Dim hdrRow As Long: hdrRow = HeaderIndex(headerNames, "ROW")
+
     For idx = 1 To entries.Count
         Dim infoArr As Variant
         infoArr = entries(idx)
 
+        Dim rowList As Collection
+        Set rowList = GetIngredientPaletteRows(infoArr(0), infoArr(1))
+
+        Dim dataCount As Long
+        If rowList Is Nothing Or rowList.Count = 0 Then
+            dataCount = 1
+        Else
+            dataCount = rowList.Count
+        End If
+
         Dim tableRange As Range
-        Set tableRange = wsProd.Range(wsProd.Cells(startRow, startCol), wsProd.Cells(startRow + 1, startCol + colCount - 1))
+        Set tableRange = wsProd.Range(wsProd.Cells(startRow, startCol), wsProd.Cells(startRow + dataCount, startCol + colCount - 1))
         If RangeHasListObjectCollisionStrict(wsProd, tableRange) Then
-            Set tableRange = FindAvailablePaletteRange(wsProd, startRow, startCol, 2, colCount)
+            Set tableRange = FindAvailablePaletteRange(wsProd, startRow, startCol, dataCount + 1, colCount)
             If tableRange Is Nothing Then Exit For
         End If
 
         tableRange.Clear
         tableRange.Rows(1).Value = HeaderRowArray(headerNames)
+
+        Dim dataArr() As Variant
+        ReDim dataArr(1 To dataCount, 1 To colCount)
+        Dim r2 As Long
+        For r2 = 1 To dataCount
+            If hdrProc > 0 Then dataArr(r2, hdrProc) = NzStr(infoArr(3))
+            If hdrIO > 0 Then dataArr(r2, hdrIO) = NzStr(infoArr(4))
+            If hdrQty > 0 Then dataArr(r2, hdrQty) = infoArr(2)
+            If hdrRow > 0 Then
+                If Not rowList Is Nothing And rowList.Count > 0 Then
+                    dataArr(r2, hdrRow) = rowList(r2)
+                End If
+            End If
+        Next r2
+        tableRange.Offset(1, 0).Resize(dataCount, colCount).Value = dataArr
 
         Dim newLo As ListObject
         Set newLo = wsProd.ListObjects.Add(xlSrcRange, tableRange, , xlYes)
@@ -1380,16 +1553,11 @@ Private Sub BuildPaletteTablesForRecipeChooser(ByVal recipeId As String, ByVal w
 
         mPaletteTableMeta(newLo.Name) = infoArr
 
-        If Not newLo.DataBodyRange Is Nothing Then
-            Dim cProcColFill As Long: cProcColFill = ColumnIndex(newLo, "PROCESS")
-            Dim cIOColFill As Long: cIOColFill = ColumnIndex(newLo, "INPUT/OUTPUT")
-            Dim cQtyColFill As Long: cQtyColFill = ColumnIndex(newLo, "QUANTITY")
-            If cProcColFill > 0 Then newLo.DataBodyRange.Cells(1, cProcColFill).Value = NzStr(infoArr(3))
-            If cIOColFill > 0 Then newLo.DataBodyRange.Cells(1, cIOColFill).Value = NzStr(infoArr(4))
-            If cQtyColFill > 0 Then newLo.DataBodyRange.Cells(1, cQtyColFill).Value = infoArr(2)
-        End If
+        ApplyProcessHeaderColor newLo, NzStr(infoArr(3))
 
-        startRow = tableRange.Row + tableRange.Rows.Count + 2
+        FillPaletteTableFromInvSys newLo, invRowMap
+
+        startRow = tableRange.Row + tableRange.Rows.Count + 3
     Next idx
 End Sub
 
@@ -1491,7 +1659,7 @@ Private Function FindAvailableRecipeChooserRange(ByVal ws As Worksheet, ByVal st
             Set FindAvailableRecipeChooserRange = candidate
             Exit Function
         End If
-        tryRow = tryRow + totalRows + 2
+        tryRow = tryRow + totalRows + 3
     Loop
 End Function
 
@@ -1575,8 +1743,301 @@ Private Function FindAvailablePaletteRange(ByVal ws As Worksheet, ByVal startRow
             Set FindAvailablePaletteRange = candidate
             Exit Function
         End If
-        tryRow = tryRow + totalRows + 2
+        tryRow = tryRow + totalRows + 3
     Loop
+End Function
+
+Private Function BuildInvSysRowMap() As Object
+    Dim loInv As ListObject
+    Set loInv = GetInvSysTable()
+    If loInv Is Nothing Or loInv.DataBodyRange Is Nothing Then Exit Function
+
+    Dim cRow As Long: cRow = ColumnIndex(loInv, "ROW")
+    If cRow = 0 Then cRow = ColumnIndexLoose(loInv, "ROW", "ROWID", "ROW#")
+    If cRow = 0 Then Exit Function
+    Dim cCode As Long: cCode = ColumnIndex(loInv, "ITEM_CODE")
+    If cCode = 0 Then cCode = ColumnIndexLoose(loInv, "ITEM_CODE", "ITEMCODE", "ITEM CODE")
+    Dim cVend As Long: cVend = ColumnIndex(loInv, "VENDOR(s)")
+    If cVend = 0 Then cVend = ColumnIndexLoose(loInv, "VENDORS", "VENDOR", "VENDOR(S)")
+    Dim cVendCode As Long: cVendCode = ColumnIndex(loInv, "VENDOR_CODE")
+    If cVendCode = 0 Then cVendCode = ColumnIndexLoose(loInv, "VENDOR_CODE", "VENDORCODE", "VENDOR CODE")
+    Dim cDesc As Long: cDesc = ColumnIndex(loInv, "DESCRIPTION")
+    If cDesc = 0 Then cDesc = ColumnIndexLoose(loInv, "DESCRIPTION", "DESC")
+    Dim cItem As Long: cItem = ColumnIndex(loInv, "ITEM")
+    If cItem = 0 Then cItem = ColumnIndexLoose(loInv, "ITEM", "ITEMS", "ITEMNAME", "ITEM NAME")
+    Dim cUom As Long: cUom = ColumnIndex(loInv, "UOM")
+    If cUom = 0 Then cUom = ColumnIndexLoose(loInv, "UOM", "UNIT", "UNITOFMEASURE", "UNITOFMEASUREMENT")
+    Dim cLoc As Long: cLoc = ColumnIndex(loInv, "LOCATION")
+    If cLoc = 0 Then cLoc = ColumnIndexLoose(loInv, "LOCATION", "LOC")
+
+    Dim dict As Object: Set dict = CreateObject("Scripting.Dictionary")
+    Dim arr As Variant: arr = loInv.DataBodyRange.Value
+    Dim r As Long
+    For r = 1 To UBound(arr, 1)
+        Dim rowKey As String
+        rowKey = NormalizeRowKey(arr(r, cRow))
+        If rowKey <> "" Then
+            If Not dict.Exists(rowKey) Then
+                Dim info(1 To 7) As Variant
+                If cCode > 0 Then info(1) = NzStr(arr(r, cCode)) Else info(1) = ""
+                If cVend > 0 Then info(2) = NzStr(arr(r, cVend)) Else info(2) = ""
+                If cVendCode > 0 Then info(3) = NzStr(arr(r, cVendCode)) Else info(3) = ""
+                If cDesc > 0 Then info(4) = NzStr(arr(r, cDesc)) Else info(4) = ""
+                If cItem > 0 Then info(5) = NzStr(arr(r, cItem)) Else info(5) = ""
+                If cUom > 0 Then info(6) = NzStr(arr(r, cUom)) Else info(6) = ""
+                If cLoc > 0 Then info(7) = NzStr(arr(r, cLoc)) Else info(7) = ""
+                dict.Add rowKey, info
+            End If
+        End If
+    Next r
+
+    Set BuildInvSysRowMap = dict
+End Function
+
+
+Private Function GetInvSysTable() As ListObject
+    Dim wsInv As Worksheet: Set wsInv = SheetExists("InventoryManagement")
+    If wsInv Is Nothing Then Set wsInv = SheetExists("Inventory Management")
+    If wsInv Is Nothing Then Set wsInv = SheetExists("INVENTORY MANAGEMENT")
+    If wsInv Is Nothing Then Exit Function
+
+    Dim loInv As ListObject: Set loInv = GetListObject(wsInv, "invSys")
+    If Not loInv Is Nothing Then
+        Set GetInvSysTable = loInv
+        Exit Function
+    End If
+
+    Dim lo As ListObject
+    For Each lo In wsInv.ListObjects
+        If ColumnIndexLoose(lo, "ROW", "ROWID", "ROW#") > 0 Then
+            If ColumnIndexLoose(lo, "ITEM", "ITEMS", "ITEMNAME", "ITEM NAME") > 0 _
+                Or ColumnIndexLoose(lo, "ITEM_CODE", "ITEMCODE", "ITEM CODE") > 0 Then
+                Set GetInvSysTable = lo
+                Exit Function
+            End If
+        End If
+    Next lo
+End Function
+
+Private Sub ApplyProcessHeaderColor(ByVal lo As ListObject, ByVal procName As String)
+    If lo Is Nothing Then Exit Sub
+    If lo.HeaderRowRange Is Nothing Then Exit Sub
+    procName = Trim$(procName)
+    If procName = "" Then Exit Sub
+
+    Dim colorVal As Long
+    colorVal = ProcessColorFromName(procName)
+    On Error Resume Next
+    lo.HeaderRowRange.Interior.Color = colorVal
+    If IsColorDark(colorVal) Then
+        lo.HeaderRowRange.Font.Color = vbWhite
+    Else
+        lo.HeaderRowRange.Font.Color = vbBlack
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Function ProcessColorFromName(ByVal procName As String) As Long
+    Static colorMap As Object
+    Static usedMap As Object
+    If colorMap Is Nothing Then Set colorMap = CreateObject("Scripting.Dictionary")
+    If usedMap Is Nothing Then Set usedMap = CreateObject("Scripting.Dictionary")
+
+    Dim key As String
+    key = LCase$(Trim$(procName))
+    If key = "" Then Exit Function
+    If colorMap.Exists(key) Then
+        ProcessColorFromName = colorMap(key)
+        Exit Function
+    End If
+
+    Dim palette As Variant
+    palette = ProcessColorPalette()
+    Dim n As Long
+    n = UBound(palette) - LBound(palette) + 1
+
+    Dim startIdx As Long
+    startIdx = HashProcessName(key) Mod n
+    If startIdx < 0 Then startIdx = startIdx + n
+
+    Dim idx As Long
+    idx = startIdx
+    Dim attempts As Long
+    Do
+        Dim c As Long
+        c = palette(idx)
+        If Not usedMap.Exists(CStr(c)) Then
+            usedMap.Add CStr(c), True
+            colorMap.Add key, c
+            ProcessColorFromName = c
+            Exit Function
+        End If
+        idx = idx + 1
+        If idx >= n Then idx = 0
+        attempts = attempts + 1
+    Loop While attempts < n
+
+    colorMap.Add key, palette(startIdx)
+    ProcessColorFromName = palette(startIdx)
+End Function
+
+Private Function ProcessColorPalette() As Variant
+    ProcessColorPalette = Array( _
+        RGB(33, 150, 243), _
+        RGB(233, 30, 99), _
+        RGB(0, 150, 136), _
+        RGB(255, 152, 0), _
+        RGB(156, 39, 176), _
+        RGB(76, 175, 80), _
+        RGB(121, 85, 72), _
+        RGB(63, 81, 181), _
+        RGB(205, 220, 57), _
+        RGB(0, 188, 212), _
+        RGB(244, 67, 54), _
+        RGB(255, 193, 7))
+End Function
+
+Private Function HashProcessName(ByVal procName As String) As Long
+    Dim h As Double
+    Dim i As Long
+    For i = 1 To Len(procName)
+        Dim ch As Long
+        ch = AscW(Mid$(procName, i, 1))
+        If ch < 0 Then ch = ch + 65536
+        h = (h * 131#) + (ch * i)
+        If h >= 2147483647# Then
+            h = h - 2147483647# * Fix(h / 2147483647#)
+        End If
+    Next i
+    HashProcessName = CLng(h)
+End Function
+
+Private Function HsvToRgb(ByVal h As Double, ByVal s As Double, ByVal v As Double) As Long
+    Dim r As Double, g As Double, b As Double
+    Dim i As Long
+    Dim f As Double, p As Double, q As Double, t As Double
+
+    i = Int(h * 6)
+    f = h * 6 - i
+    p = v * (1 - s)
+    q = v * (1 - f * s)
+    t = v * (1 - (1 - f) * s)
+
+    Select Case (i Mod 6)
+        Case 0
+            r = v: g = t: b = p
+        Case 1
+            r = q: g = v: b = p
+        Case 2
+            r = p: g = v: b = t
+        Case 3
+            r = p: g = q: b = v
+        Case 4
+            r = t: g = p: b = v
+        Case 5
+            r = v: g = p: b = q
+    End Select
+
+    HsvToRgb = RGB(CLng(r * 255), CLng(g * 255), CLng(b * 255))
+End Function
+
+Private Function IsColorDark(ByVal colorVal As Long) As Boolean
+    Dim r As Long, g As Long, b As Long
+    r = colorVal Mod 256
+    g = (colorVal \ 256) Mod 256
+    b = (colorVal \ 65536) Mod 256
+
+    Dim luma As Double
+    luma = (0.299 * r) + (0.587 * g) + (0.114 * b)
+    IsColorDark = (luma < 140)
+End Function
+
+
+Private Sub FillPaletteTableFromInvSys(ByVal lo As ListObject, ByVal rowMap As Object)
+    If lo Is Nothing Then Exit Sub
+    If rowMap Is Nothing Then Exit Sub
+    If rowMap.Count = 0 Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim cRow As Long: cRow = ColumnIndex(lo, "ROW")
+    If cRow = 0 Then cRow = ColumnIndexLoose(lo, "ROW", "ROWID", "ROW#")
+    If cRow = 0 Then Exit Sub
+    Dim cCode As Long: cCode = ColumnIndex(lo, "ITEM_CODE")
+    If cCode = 0 Then cCode = ColumnIndexLoose(lo, "ITEM_CODE", "ITEMCODE", "ITEM CODE")
+    Dim cVend As Long: cVend = ColumnIndex(lo, "VENDORS")
+    If cVend = 0 Then cVend = ColumnIndexLoose(lo, "VENDORS", "VENDOR", "VENDOR(S)")
+    Dim cVendCode As Long: cVendCode = ColumnIndex(lo, "VENDOR_CODE")
+    If cVendCode = 0 Then cVendCode = ColumnIndexLoose(lo, "VENDOR_CODE", "VENDORCODE", "VENDOR CODE")
+    Dim cDesc As Long: cDesc = ColumnIndex(lo, "DESCRIPTION")
+    If cDesc = 0 Then cDesc = ColumnIndexLoose(lo, "DESCRIPTION", "DESC")
+    Dim cItem As Long: cItem = ColumnIndex(lo, "ITEM")
+    If cItem = 0 Then cItem = ColumnIndexLoose(lo, "ITEM", "ITEMS", "ITEMNAME", "ITEM NAME")
+    Dim cUom As Long: cUom = ColumnIndex(lo, "UOM")
+    If cUom = 0 Then cUom = ColumnIndexLoose(lo, "UOM", "UNIT", "UNITOFMEASURE", "UNITOFMEASUREMENT")
+    Dim cLoc As Long: cLoc = ColumnIndex(lo, "LOCATION")
+    If cLoc = 0 Then cLoc = ColumnIndexLoose(lo, "LOCATION", "LOC")
+
+    Dim r As Long
+    For r = 1 To lo.DataBodyRange.Rows.Count
+        Dim rowKey As String
+        rowKey = NormalizeRowKey(lo.DataBodyRange.Cells(r, cRow).Value)
+        If rowKey <> "" Then
+            If rowMap.Exists(rowKey) Then
+                Dim info As Variant
+                info = rowMap(rowKey)
+                If cCode > 0 And NzStr(lo.DataBodyRange.Cells(r, cCode).Value) = "" Then lo.DataBodyRange.Cells(r, cCode).Value = info(1)
+                If cVend > 0 And NzStr(lo.DataBodyRange.Cells(r, cVend).Value) = "" Then lo.DataBodyRange.Cells(r, cVend).Value = info(2)
+                If cVendCode > 0 And NzStr(lo.DataBodyRange.Cells(r, cVendCode).Value) = "" Then lo.DataBodyRange.Cells(r, cVendCode).Value = info(3)
+                If cDesc > 0 And NzStr(lo.DataBodyRange.Cells(r, cDesc).Value) = "" Then lo.DataBodyRange.Cells(r, cDesc).Value = info(4)
+                If cItem > 0 And NzStr(lo.DataBodyRange.Cells(r, cItem).Value) = "" Then lo.DataBodyRange.Cells(r, cItem).Value = info(5)
+                If cUom > 0 And NzStr(lo.DataBodyRange.Cells(r, cUom).Value) = "" Then lo.DataBodyRange.Cells(r, cUom).Value = info(6)
+                If cLoc > 0 And NzStr(lo.DataBodyRange.Cells(r, cLoc).Value) = "" Then lo.DataBodyRange.Cells(r, cLoc).Value = info(7)
+            End If
+        End If
+    Next r
+End Sub
+
+Private Function GetIngredientPaletteRows(ByVal recipeId As String, ByVal ingredientId As String) As Collection
+    Dim wsPal As Worksheet: Set wsPal = SheetExists("IngredientPalette")
+    If wsPal Is Nothing Then Set wsPal = SheetExists("IngredientsPalette")
+    If wsPal Is Nothing Then Exit Function
+
+    Dim loPal As ListObject
+    Set loPal = FindListObjectByNameOrHeaders(wsPal, "IngredientPalette", Array("RECIPE_ID", "INGREDIENT_ID", "ROW"))
+    If loPal Is Nothing Then
+        Set loPal = FindListObjectByNameOrHeaders(wsPal, "Table40", Array("RECIPE_ID", "INGREDIENT_ID", "ROW"))
+    End If
+    If loPal Is Nothing Then Exit Function
+    If loPal.DataBodyRange Is Nothing Then Exit Function
+
+    Dim cRec As Long: cRec = ColumnIndex(loPal, "RECIPE_ID")
+    Dim cIng As Long: cIng = ColumnIndex(loPal, "INGREDIENT_ID")
+    Dim cRow As Long: cRow = ColumnIndex(loPal, "ROW")
+    If cRec = 0 Or cIng = 0 Or cRow = 0 Then Exit Function
+
+    Dim normRec As String: normRec = NormalizeIdFirst(recipeId)
+    Dim normIng As String: normIng = NormalizeIdLast(ingredientId)
+
+    Dim col As New Collection
+    Dim seen As Object: Set seen = CreateObject("Scripting.Dictionary")
+    Dim arr As Variant: arr = loPal.DataBodyRange.Value
+    Dim r As Long
+    For r = 1 To UBound(arr, 1)
+        If NormalizeIdFirst(NzStr(arr(r, cRec))) = normRec _
+            And NormalizeIdLast(NzStr(arr(r, cIng))) = normIng Then
+            Dim rowKey As String
+            rowKey = NormalizeRowKey(arr(r, cRow))
+            If rowKey <> "" Then
+                If Not seen.Exists(rowKey) Then
+                    seen.Add rowKey, True
+                    col.Add rowKey
+                End If
+            End If
+        End If
+    Next r
+
+    If col.Count = 0 Then Exit Function
+    Set GetIngredientPaletteRows = col
 End Function
 
 Public Function GetPaletteTableContext(ByVal lo As ListObject, ByRef recipeId As String, ByRef ingredientId As String, _
@@ -1602,6 +2063,7 @@ Public Function GetAllowedInvRowsForIngredient(ByVal recipeId As String, ByVal i
     If Trim$(recipeId) = "" Or Trim$(ingredientId) = "" Then Exit Function
 
     Dim wsPal As Worksheet: Set wsPal = SheetExists("IngredientPalette")
+    If wsPal Is Nothing Then Set wsPal = SheetExists("IngredientsPalette")
     If wsPal Is Nothing Then Exit Function
 
     Dim loPal As ListObject
@@ -1620,8 +2082,10 @@ Public Function GetAllowedInvRowsForIngredient(ByVal recipeId As String, ByVal i
     Dim dict As Object: Set dict = CreateObject("Scripting.Dictionary")
     Dim arr As Variant: arr = loPal.DataBodyRange.Value
     Dim r As Long
+    Dim normRec As String: normRec = NormalizeIdFirst(recipeId)
+    Dim normIng As String: normIng = NormalizeIdLast(ingredientId)
     For r = 1 To UBound(arr, 1)
-        If NzStr(arr(r, cRec)) = recipeId And NzStr(arr(r, cIng)) = ingredientId Then
+        If NormalizeIdFirst(NzStr(arr(r, cRec))) = normRec And NormalizeIdLast(NzStr(arr(r, cIng))) = normIng Then
             Dim rowVal As String
             rowVal = NzStr(arr(r, cRow))
             If Trim$(rowVal) <> "" Then
@@ -2510,7 +2974,7 @@ Private Function FindAvailableRecipeProcessRange(ByVal ws As Worksheet, ByVal st
             Set FindAvailableRecipeProcessRange = candidate
             Exit Function
         End If
-        tryRow = tryRow + totalRows + 2 ' keep 2 blank rows between tables
+        tryRow = tryRow + totalRows + 3 ' keep 2 blank rows between tables
     Loop
 End Function
 
@@ -2859,4 +3323,49 @@ Private Function NzStr(v As Variant) As String
     Else
         NzStr = CStr(v)
     End If
+End Function
+
+Private Function NzLng(v As Variant) As Long
+    If IsError(v) Or IsNull(v) Or IsEmpty(v) Or v = "" Then
+        NzLng = 0
+    Else
+        NzLng = CLng(v)
+    End If
+End Function
+
+Private Function NormalizeIdFirst(ByVal v As String) As String
+    Dim tokens As Variant
+    tokens = SplitTokens(v)
+    If IsEmpty(tokens) Then Exit Function
+    NormalizeIdFirst = CStr(tokens(LBound(tokens)))
+End Function
+
+Private Function NormalizeIdLast(ByVal v As String) As String
+    Dim tokens As Variant
+    tokens = SplitTokens(v)
+    If IsEmpty(tokens) Then Exit Function
+    NormalizeIdLast = CStr(tokens(UBound(tokens)))
+End Function
+
+Private Function SplitTokens(ByVal v As String) As Variant
+    Dim s As String
+    s = Trim$(v)
+    If s = "" Then Exit Function
+    s = Replace(s, vbCr, " ")
+    s = Replace(s, vbLf, " ")
+    s = Replace(s, vbTab, " ")
+    s = Application.WorksheetFunction.Trim(s)
+    Dim parts As Variant
+    parts = Split(s, " ")
+    Dim cleaned() As String
+    Dim i As Long, n As Long
+    For i = LBound(parts) To UBound(parts)
+        If Trim$(parts(i)) <> "" Then
+            n = n + 1
+            ReDim Preserve cleaned(0 To n - 1)
+            cleaned(n - 1) = Trim$(parts(i))
+        End If
+    Next i
+    If n = 0 Then Exit Function
+    SplitTokens = cleaned
 End Function

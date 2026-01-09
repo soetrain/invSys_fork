@@ -18,6 +18,7 @@ End Sub
 Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As Boolean) As Boolean
     If Target Is Nothing Then Exit Function
     Dim lo As ListObject
+    Dim allowedRows As Object
     On Error Resume Next
     Set lo = Target.ListObject
     On Error GoTo 0
@@ -26,8 +27,10 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
     Dim colName As String
     colName = ColumnNameFromCell(lo, Target)
     If colName = "" Then Exit Function
+    Dim colKey As String
+    colKey = NormalizeHeaderKey(colName)
 
-    If LCase$(lo.Name) = "ip_chooserecipe" And (LCase$(colName) = "recipe_name" Or LCase$(colName) = "recipe") Then
+    If LCase$(lo.Name) = "ip_chooserecipe" And (colKey = "RECIPENAME" Or colKey = "RECIPE") Then
         EnsureSearch
         mSearch.ShowForPaletteRecipeCell Target
         Cancel = True
@@ -35,7 +38,7 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
         Exit Function
     End If
 
-    If LCase$(lo.Name) = "ip_chooseingredient" And LCase$(colName) = "ingredient" Then
+    If LCase$(lo.Name) = "ip_chooseingredient" And colKey = "INGREDIENT" Then
         Dim recipeId As String
         recipeId = mProduction.GetPaletteRecipeId()
         If Trim$(recipeId) = "" Then
@@ -51,7 +54,18 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
         Exit Function
     End If
 
-    If LCase$(lo.Name) = "ip_chooseitem" And (LCase$(colName) = "item" Or LCase$(colName) = "items") Then
+    If LCase$(lo.Name) = "ip_chooseitem" And (colKey = "ITEM" Or colKey = "ITEMS") Then
+        Dim palRecipeId As String
+        Dim palIngId As String
+        palRecipeId = mProduction.GetPaletteRecipeId()
+        palIngId = mProduction.GetPaletteIngredientId()
+        If palRecipeId = "" Or palIngId = "" Then
+            MsgBox "Select a RECIPE and INGREDIENT before choosing an item.", vbInformation
+            Cancel = True
+            HandleBeforeDoubleClick = True
+            Exit Function
+        End If
+
         EnsureSearch
         mSearch.ShowForCell Target
         Cancel = True
@@ -60,7 +74,7 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
     End If
 
     If (LCase$(lo.Name) = "inventorypalette_generated" Or LCase$(lo.Name) Like "proc_*_palette") _
-        And (LCase$(colName) = "item" Or LCase$(colName) = "items" Or LCase$(colName) = "item_code") Then
+        And (colKey = "ITEM" Or colKey = "ITEMS" Or colKey = "ITEMCODE") Then
 
         If lo.DataBodyRange Is Nothing Then Exit Function
         If Intersect(Target, lo.DataBodyRange) Is Nothing Then Exit Function
@@ -74,7 +88,6 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
             Exit Function
         End If
 
-        Dim allowedRows As Object
         Set allowedRows = mProduction.GetAllowedInvRowsForIngredient(ctxRec, ctxIng)
         If allowedRows Is Nothing Or allowedRows.Count = 0 Then
             MsgBox "No IngredientPalette entries found for this ingredient. Add acceptable items first.", vbInformation
@@ -110,4 +123,13 @@ Private Function ColumnNameFromCell(lo As ListObject, targetCell As Range) As St
     colIdx = targetCell.Column - lo.Range.Column + 1
     If colIdx < 1 Or colIdx > lo.ListColumns.Count Then Exit Function
     ColumnNameFromCell = lo.ListColumns(colIdx).Name
+End Function
+
+Private Function NormalizeHeaderKey(ByVal v As String) As String
+    Dim i As Long, ch As String, out As String
+    For i = 1 To Len(v)
+        ch = Mid$(v, i, 1)
+        If ch Like "[A-Za-z0-9]" Then out = out & UCase$(ch)
+    Next i
+    NormalizeHeaderKey = out
 End Function

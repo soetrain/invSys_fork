@@ -286,8 +286,7 @@ Private Sub UpdateDescription()
     If LCase$(mPickerMode) = "recipe" Or LCase$(mPickerMode) = "palette_recipe" Or LCase$(mPickerMode) = "recipe_chooser" Then
         txtDesc.Text = lst.List(lst.ListIndex, 2) ' DESCRIPTION
     ElseIf LCase$(mPickerMode) = "ingredient" Then
-        txtDesc.Text = "Process: " & lst.List(lst.ListIndex, 3) & vbCrLf & _
-                       "Input/Output: " & lst.List(lst.ListIndex, 4)
+        txtDesc.Text = GetIngredientItemSummary(mIngredientRecipeId, NzStr(lst.List(lst.ListIndex, 0)))
         Else
             txtDesc.Text = lst.List(lst.ListIndex, 5) ' DESCRIPTION
             ' Optionally append vendors for clarity
@@ -641,6 +640,63 @@ Public Sub CommitSelection()
         Exit Sub
     End If
 
+    If LCase$(mPickerMode) = "palette_item" Then
+        Dim palItemName As String
+        Dim palItemUom As String
+        Dim palItemDesc As String
+        Dim palItemRowVal As Long
+        palItemName = NzStr(lst.List(lst.ListIndex, 2))
+        palItemUom = NzStr(lst.List(lst.ListIndex, 3))
+        palItemDesc = NzStr(lst.List(lst.ListIndex, 5))
+        palItemRowVal = CLng(NzLng(lst.List(lst.ListIndex, 0)))
+
+        Dim loPalItems As ListObject
+        On Error Resume Next
+        Set loPalItems = callbackCell.ListObject
+        On Error GoTo 0
+        If loPalItems Is Nothing Then
+            MsgBox "IP_ChooseItem table not found for selection.", vbExclamation
+            Exit Sub
+        End If
+
+        Dim cPalItem As Long: cPalItem = ColumnIndex(loPalItems, "ITEMS")
+        If cPalItem = 0 Then cPalItem = ColumnIndex(loPalItems, "ITEM")
+        If cPalItem = 0 Then cPalItem = ColumnIndexLoose(loPalItems, "ITEMS", "ITEM", "ITEMNAME")
+        Dim cPalUom As Long: cPalUom = ColumnIndex(loPalItems, "UOM")
+        If cPalUom = 0 Then cPalUom = ColumnIndexLoose(loPalItems, "UOM", "UNITOFMEASURE", "UNITOFMEASUREMENT", "UNIT")
+        Dim cPalDesc As Long: cPalDesc = ColumnIndex(loPalItems, "DESCRIPTION")
+        If cPalDesc = 0 Then cPalDesc = ColumnIndexLoose(loPalItems, "DESCRIPTION", "DESC")
+        Dim cPalRow As Long: cPalRow = ColumnIndex(loPalItems, "ROW")
+        If cPalRow = 0 Then cPalRow = ColumnIndexLoose(loPalItems, "ROW", "ROWID")
+        Dim cPalRec As Long: cPalRec = ColumnIndex(loPalItems, "RECIPE_ID")
+        If cPalRec = 0 Then cPalRec = ColumnIndexLoose(loPalItems, "RECIPE_ID", "RECIPEID")
+        Dim cPalIng As Long: cPalIng = ColumnIndex(loPalItems, "INGREDIENT_ID")
+        If cPalIng = 0 Then cPalIng = ColumnIndexLoose(loPalItems, "INGREDIENT_ID", "INGREDIENTID")
+
+        If cPalItem = 0 Then
+            Dim colIdx As Long
+            colIdx = callbackCell.Column - loPalItems.Range.Column + 1
+            If colIdx >= 1 And colIdx <= loPalItems.ListColumns.Count Then cPalItem = colIdx
+        End If
+
+        Dim palRowIdx As Long
+        palRowIdx = GetWritableRowIndexForListObject(loPalItems, callbackCell, cPalItem)
+        If palRowIdx = 0 Then
+            MsgBox "Unable to add a row to IP_ChooseItem.", vbExclamation
+            Exit Sub
+        End If
+
+        If cPalItem > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalItem).Value = palItemName
+        If cPalUom > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalUom).Value = palItemUom
+        If cPalDesc > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalDesc).Value = palItemDesc
+        If cPalRow > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalRow).Value = palItemRowVal
+        If cPalRec > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalRec).Value = mProduction.GetPaletteRecipeId()
+        If cPalIng > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalIng).Value = mProduction.GetPaletteIngredientId()
+
+        uf.Hide
+        Exit Sub
+    End If
+
     callbackCell.Value = lst.List(lst.ListIndex, 2) ' ITEM text in active cell
 
     Dim lo As ListObject
@@ -692,30 +748,37 @@ Public Sub CommitSelection()
         Case "ip_chooseitem"
             Dim colItem As Long: colItem = ColumnIndex(lo, "ITEMS")
             If colItem = 0 Then colItem = ColumnIndex(lo, "ITEM")
+            If colItem = 0 Then colItem = ColumnIndexLoose(lo, "ITEMS", "ITEM", "ITEMNAME")
             Dim colUom As Long: colUom = ColumnIndex(lo, "UOM")
+            If colUom = 0 Then colUom = ColumnIndexLoose(lo, "UOM", "UNITOFMEASURE", "UNITOFMEASUREMENT", "UNIT")
             Dim colDesc As Long: colDesc = ColumnIndex(lo, "DESCRIPTION")
+            If colDesc = 0 Then colDesc = ColumnIndexLoose(lo, "DESCRIPTION", "DESC")
             Dim colRow As Long: colRow = ColumnIndex(lo, "ROW")
+            If colRow = 0 Then colRow = ColumnIndexLoose(lo, "ROW", "ROWID")
             Dim colRec As Long: colRec = ColumnIndex(lo, "RECIPE_ID")
+            If colRec = 0 Then colRec = ColumnIndexLoose(lo, "RECIPE_ID", "RECIPEID")
             Dim colIng As Long: colIng = ColumnIndex(lo, "INGREDIENT_ID")
+            If colIng = 0 Then colIng = ColumnIndexLoose(lo, "INGREDIENT_ID", "INGREDIENTID")
 
-            Dim itemRowRange As Range
-            Set itemRowRange = ResolveListObjectRowRange(lo, callbackCell)
-            If itemRowRange Is Nothing Then
-                If EnsureListObjectRow(lo) > 0 Then
-                    Set itemRowRange = ResolveListObjectRowRange(lo, callbackCell)
-                End If
+            Dim itemRowIdx As Long
+            itemRowIdx = GetRowIndexForCell(lo, callbackCell)
+            If itemRowIdx = 0 Then
+                On Error Resume Next
+                lo.ListRows.Add AlwaysInsert:=True
+                On Error GoTo 0
+                itemRowIdx = lo.ListRows.Count
             End If
-            If itemRowRange Is Nothing Then
+            If itemRowIdx = 0 Then
                 MsgBox "Unable to add a row to IP_ChooseItem.", vbExclamation
                 Exit Sub
             End If
 
-            If colItem > 0 Then itemRowRange.Cells(1, colItem).Value = itemName
-            If colUom > 0 Then itemRowRange.Cells(1, colUom).Value = uom
-            If colDesc > 0 Then itemRowRange.Cells(1, colDesc).Value = lst.List(lst.ListIndex, 5)
-            If colRow > 0 Then itemRowRange.Cells(1, colRow).Value = itemRow
-            If colRec > 0 Then itemRowRange.Cells(1, colRec).Value = mProduction.GetPaletteRecipeId()
-            If colIng > 0 Then itemRowRange.Cells(1, colIng).Value = mProduction.GetPaletteIngredientId()
+            If colItem > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colItem).Value = itemName
+            If colUom > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colUom).Value = uom
+            If colDesc > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colDesc).Value = lst.List(lst.ListIndex, 5)
+            If colRow > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colRow).Value = itemRow
+            If colRec > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colRec).Value = mProduction.GetPaletteRecipeId()
+            If colIng > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colIng).Value = mProduction.GetPaletteIngredientId()
         Case Else
             If tblName = "inventorypalette_generated" Or tblName Like "proc_*_palette" Then
                 Dim palItemRow As Long
@@ -726,7 +789,7 @@ Public Sub CommitSelection()
                 Dim cPalVend As Long: cPalVend = ColumnIndex(lo, "VENDORS")
                 Dim cPalVendCode As Long: cPalVendCode = ColumnIndex(lo, "VENDOR_CODE")
                 Dim cPalDescCol2 As Long: cPalDescCol2 = ColumnIndex(lo, "DESCRIPTION")
-                Dim cPalItem As Long: cPalItem = ColumnIndex(lo, "ITEM")
+                Dim cPalItemCol As Long: cPalItemCol = ColumnIndex(lo, "ITEM")
                 Dim cPalUomCol As Long: cPalUomCol = ColumnIndex(lo, "UOM")
                 Dim cPalQtyCol As Long: cPalQtyCol = ColumnIndex(lo, "QUANTITY")
                 Dim cPalProcCol As Long: cPalProcCol = ColumnIndex(lo, "PROCESS")
@@ -739,7 +802,7 @@ Public Sub CommitSelection()
                     If cPalVend > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalVend).Value = vendor
                     If cPalVendCode > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalVendCode).Value = ""
                     If cPalDescCol2 > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalDescCol2).Value = lst.List(lst.ListIndex, 5)
-                    If cPalItem > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalItem).Value = itemName
+                    If cPalItemCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalItemCol).Value = itemName
                     If cPalUomCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalUomCol).Value = uom
                     If cPalLocCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalLocCol).Value = location
                     If cPalRowCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalRowCol).Value = itemRow
@@ -782,6 +845,31 @@ Private Function ColumnIndex(lo As ListObject, colName As String) As Long
     ColumnIndex = 0
 End Function
 
+Private Function ColumnIndexLoose(lo As ListObject, ParamArray names() As Variant) As Long
+    If lo Is Nothing Then Exit Function
+    Dim lc As ListColumn
+    For Each lc In lo.ListColumns
+        Dim hdr As String
+        hdr = NormalizeHeader(NzStr(lc.Name))
+        Dim i As Long
+        For i = LBound(names) To UBound(names)
+            If hdr = NormalizeHeader(CStr(names(i))) Then
+                ColumnIndexLoose = lc.Index
+                Exit Function
+            End If
+        Next i
+    Next lc
+End Function
+
+Private Function NormalizeHeader(ByVal v As String) As String
+    Dim i As Long, ch As String, out As String
+    For i = 1 To Len(v)
+        ch = Mid$(v, i, 1)
+        If ch Like "[A-Za-z0-9]" Then out = out & UCase$(ch)
+    Next i
+    NormalizeHeader = out
+End Function
+
 Private Function EnsureListObjectCell(ByVal lo As ListObject, ByVal colIndex As Long) As Range
     If lo Is Nothing Then Exit Function
     If colIndex < 1 Then Exit Function
@@ -801,6 +889,41 @@ Private Function EnsureListObjectRow(ByVal lo As ListObject) As Long
     EnsureListObjectRow = 1
 End Function
 
+Private Function GetWritableRowIndexForListObject(ByVal lo As ListObject, ByVal targetCell As Range, ByVal itemCol As Long) As Long
+    If lo Is Nothing Then Exit Function
+    On Error Resume Next
+    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add AlwaysInsert:=True
+    On Error GoTo 0
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    Dim idx As Long
+    If Not targetCell Is Nothing Then
+        idx = targetCell.Row - lo.DataBodyRange.Row + 1
+        If idx >= 1 And idx <= lo.ListRows.Count Then
+            GetWritableRowIndexForListObject = idx
+            Exit Function
+        End If
+    End If
+
+    If itemCol > 0 Then
+        Dim arr As Variant
+        arr = lo.DataBodyRange.Value
+        Dim r As Long
+        For r = 1 To UBound(arr, 1)
+            If Trim$(NzStr(arr(r, itemCol))) = "" Then
+                GetWritableRowIndexForListObject = r
+                Exit Function
+            End If
+        Next r
+    End If
+
+    On Error Resume Next
+    lo.ListRows.Add AlwaysInsert:=True
+    On Error GoTo 0
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    GetWritableRowIndexForListObject = lo.ListRows.Count
+End Function
+
 Private Function GetRowIndexForCell(ByVal lo As ListObject, ByVal targetCell As Range) As Long
     If lo Is Nothing Then Exit Function
     If targetCell Is Nothing Then Exit Function
@@ -813,16 +936,189 @@ End Function
 
 Private Function ResolveListObjectRowRange(ByVal lo As ListObject, ByVal targetCell As Range) As Range
     If lo Is Nothing Then Exit Function
-    If Not lo.DataBodyRange Is Nothing Then
-        If Not targetCell Is Nothing Then
-            Dim idx As Long
-            idx = targetCell.Row - lo.DataBodyRange.Row + 1
-            If idx >= 1 And idx <= lo.ListRows.Count Then
-                Set ResolveListObjectRowRange = lo.DataBodyRange.Rows(idx)
-                Exit Function
-            End If
+    If lo.DataBodyRange Is Nothing Then
+        On Error Resume Next
+        lo.ListRows.Add AlwaysInsert:=True
+        On Error GoTo 0
+    End If
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    If Not targetCell Is Nothing Then
+        Dim idx As Long
+        idx = targetCell.Row - lo.DataBodyRange.Row + 1
+        If idx >= 1 And idx <= lo.ListRows.Count Then
+            Set ResolveListObjectRowRange = lo.DataBodyRange.Rows(idx)
+            Exit Function
         End If
     End If
+
+    Set ResolveListObjectRowRange = lo.DataBodyRange.Rows(1)
+End Function
+
+Private Function GetIngredientItemSummary(ByVal recipeId As String, ByVal ingredientId As String) As String
+    GetIngredientItemSummary = "No items chosen for this ingredient."
+    If Trim$(recipeId) = "" Or Trim$(ingredientId) = "" Then Exit Function
+
+    Dim wsPal As Worksheet
+    Set wsPal = mProduction.SheetExists("IngredientPalette")
+    If wsPal Is Nothing Then Set wsPal = mProduction.SheetExists("IngredientsPalette")
+    If wsPal Is Nothing Then
+        GetIngredientItemSummary = "IngredientPalette sheet not found."
+        Exit Function
+    End If
+
+    Dim loPal As ListObject
+    Set loPal = FindListObjectByNameOrHeaders(wsPal, "IngredientPalette", Array("RECIPE_ID", "INGREDIENT_ID", "ROW"))
+    If loPal Is Nothing Then
+        Set loPal = FindListObjectByNameOrHeaders(wsPal, "Table40", Array("RECIPE_ID", "INGREDIENT_ID", "ROW"))
+    End If
+    If loPal Is Nothing Then
+        GetIngredientItemSummary = "IngredientPalette table not found."
+        Exit Function
+    End If
+    If loPal.DataBodyRange Is Nothing Then Exit Function
+
+    Dim cRec As Long: cRec = ColumnIndex(loPal, "RECIPE_ID")
+    Dim cIng As Long: cIng = ColumnIndex(loPal, "INGREDIENT_ID")
+    Dim cItem As Long: cItem = ColumnIndex(loPal, "ITEM")
+    Dim cRow As Long: cRow = ColumnIndex(loPal, "ROW")
+    If cRec = 0 Or cIng = 0 Then Exit Function
+
+    Dim wsInv As Worksheet
+    Dim loInv As ListObject
+    Set wsInv = mProduction.SheetExists("InventoryManagement")
+    If Not wsInv Is Nothing Then
+        On Error Resume Next
+        Set loInv = wsInv.ListObjects("invSys")
+        On Error GoTo 0
+    End If
+
+    Dim dict As Object: Set dict = CreateObject("Scripting.Dictionary")
+    Dim items As Collection: Set items = New Collection
+    Dim arr As Variant: arr = loPal.DataBodyRange.Value
+    Dim r As Long
+    For r = 1 To UBound(arr, 1)
+        If IdMatches(NzStr(arr(r, cRec)), recipeId) And IdMatches(NzStr(arr(r, cIng)), ingredientId) Then
+            Dim itemName As String
+            If cItem > 0 Then itemName = NzStr(arr(r, cItem))
+            If itemName = "" And cRow > 0 Then
+                Dim rowVal As Long
+                rowVal = CLng(NzLng(arr(r, cRow)))
+                If rowVal > 0 Then
+                    itemName = ResolveInvSysItemNameByRow(loInv, rowVal)
+                End If
+            End If
+            Dim rowKey As String
+            Dim label As String
+            If cRow > 0 Then
+                rowKey = NzStr(arr(r, cRow))
+            End If
+            If Trim$(itemName) <> "" Then
+                label = itemName
+            ElseIf Trim$(rowKey) <> "" Then
+                label = "ROW " & rowKey
+            End If
+            If Trim$(rowKey) <> "" And Trim$(label) <> "" Then
+                label = label & " (ROW " & rowKey & ")"
+            End If
+            If Trim$(label) <> "" Then
+                If Not dict.Exists(label) Then
+                    dict.Add label, True
+                    items.Add label
+                End If
+            End If
+        End If
+    Next r
+
+    If items.Count = 0 Then Exit Function
+
+    Dim key As Variant
+    Dim out As String
+    out = "Items:" & vbCrLf
+    For Each key In items
+        out = out & key & vbCrLf
+    Next key
+    GetIngredientItemSummary = Trim$(out)
+End Function
+
+Private Function ResolveInvSysItemNameByRow(ByVal loInv As ListObject, ByVal invRow As Long) As String
+    If loInv Is Nothing Then Exit Function
+    If invRow <= 0 Then Exit Function
+    If loInv.DataBodyRange Is Nothing Then Exit Function
+    Dim cRow As Long: cRow = ColumnIndex(loInv, "ROW")
+    Dim cItem As Long: cItem = ColumnIndex(loInv, "ITEM")
+    If cRow = 0 Or cItem = 0 Then Exit Function
+    Dim cel As Range
+    For Each cel In loInv.ListColumns(cRow).DataBodyRange.Cells
+        If NzLng(cel.Value) = invRow Then
+            ResolveInvSysItemNameByRow = NzStr(cel.Offset(0, cItem - cel.Column).Value)
+            Exit Function
+        End If
+    Next cel
+End Function
+
+Private Function FindListObjectByNameOrHeaders(ws As Worksheet, tableName As String, headers As Variant) As ListObject
+    If ws Is Nothing Then Exit Function
+    On Error Resume Next
+    Set FindListObjectByNameOrHeaders = ws.ListObjects(tableName)
+    On Error GoTo 0
+    If Not FindListObjectByNameOrHeaders Is Nothing Then Exit Function
+    Dim lo As ListObject
+    For Each lo In ws.ListObjects
+        If ListObjectHasHeaders(lo, headers) Then
+            Set FindListObjectByNameOrHeaders = lo
+            Exit Function
+        End If
+    Next lo
+End Function
+
+Private Function ListObjectHasHeaders(lo As ListObject, headers As Variant) As Boolean
+    If lo Is Nothing Then Exit Function
     If lo.HeaderRowRange Is Nothing Then Exit Function
-    Set ResolveListObjectRowRange = lo.HeaderRowRange.Offset(1, 0).Resize(1, lo.ListColumns.Count)
+    Dim i As Long
+    For i = LBound(headers) To UBound(headers)
+        If ColumnIndex(lo, CStr(headers(i))) = 0 Then Exit Function
+    Next i
+    ListObjectHasHeaders = True
+End Function
+
+Private Function IdMatches(ByVal a As String, ByVal b As String) As Boolean
+    Dim ta As Variant, tb As Variant
+    ta = IdTokens(a)
+    tb = IdTokens(b)
+    If IsEmpty(ta) Or IsEmpty(tb) Then Exit Function
+    Dim i As Long, j As Long
+    For i = LBound(ta) To UBound(ta)
+        For j = LBound(tb) To UBound(tb)
+            If StrComp(ta(i), tb(j), vbTextCompare) = 0 Then
+                IdMatches = True
+                Exit Function
+            End If
+        Next j
+    Next i
+End Function
+
+Private Function IdTokens(ByVal v As String) As Variant
+    Dim s As String
+    s = Trim$(v)
+    If s = "" Then Exit Function
+    s = Replace(s, vbCr, " ")
+    s = Replace(s, vbLf, " ")
+    s = Replace(s, vbTab, " ")
+    Do While InStr(s, "  ") > 0
+        s = Replace(s, "  ", " ")
+    Loop
+    Dim parts As Variant
+    parts = Split(s, " ")
+    Dim cleaned() As String
+    Dim i As Long, n As Long
+    For i = LBound(parts) To UBound(parts)
+        If Trim$(parts(i)) <> "" Then
+            n = n + 1
+            ReDim Preserve cleaned(0 To n - 1)
+            cleaned(n - 1) = Trim$(parts(i))
+        End If
+    Next i
+    If n = 0 Then Exit Function
+    IdTokens = cleaned
 End Function
