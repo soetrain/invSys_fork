@@ -1,0 +1,83 @@
+flowchart TB
+  %% =========================
+  %% inventory-workflow-combinations
+  %% =========================
+
+  %% Core-owned capability check is the gate for ALL posts.
+  CoreCheck["Core-owned capability check\nCore.CanPerform(CAPABILITY)"]
+
+  %% Data domains (authoritative)
+  InvData["invSys.Data.Inventory.xlsb"]
+  DesData["invSys.Data.Designs.xlsb"]
+
+  %% Domain add-ins (only code allowed to write each domain)
+  InvDom["invSys.Inventory.Domain.xlam"]
+  DesDom["invSys.Designs.Domain.xlam"]
+
+  %% Core coordinator
+  Core["invSys.Core.xlam\n(roles + orchestration + locks)"]
+
+  %% Role add-ins
+  RecvAddin["invSys.Receiving.xlam"]
+  ShipAddin["invSys.Shipping.xlam"]
+  ProdAddin["invSys.Production.xlam"]
+  AdminAddin["invSys.Admin.xlam"]
+
+  %% User workbooks (optional)
+  RecvWB["invSys.Receiving.Job.xlsm (optional)"]
+  ShipWB["invSys.Shipping.Job.xlsm (optional)"]
+  ProdWB["invSys.Production.Job.xlsm (optional)"]
+  AdminWB["invSys.Admin.Console.xlsm (optional)"]
+
+  %% =========================
+  %% Combination patterns
+  %% =========================
+
+  subgraph C1["Combination A: One-person operation (all roles loaded)"]
+    C1_User["Excel Session (single PC)\nCore + all role add-ins"]
+    C1_User --> RecvWB
+    C1_User --> ShipWB
+    C1_User --> ProdWB
+    C1_User --> AdminWB
+  end
+
+  subgraph C2["Combination B: One-role-per-person (typical)"]
+    C2_R["Receiving Station\nCore + Receiving"]
+    C2_S["Shipping Station\nCore + Shipping"]
+    C2_P["Production Station\nCore + Production"]
+  end
+
+  subgraph C3["Combination C: Multiple stations same role"]
+    C3_S1["Shipping Station A\nCore + Shipping"]
+    C3_S2["Shipping Station B\nCore + Shipping"]
+  end
+
+  %% =========================
+  %% Receiving workflow
+  %% =========================
+  RecvWB --> RecvAddin --> Core --> CoreCheck
+  CoreCheck -->|CAP: RECEIVE_POST| InvDom --> InvData
+
+  %% =========================
+  %% Shipping workflow (shared inventory)
+  %% =========================
+  ShipWB --> ShipAddin --> Core --> CoreCheck
+  CoreCheck -->|CAP: SHIP_POST| InvDom --> InvData
+
+  %% Multiple shipping stations both funnel through same gate + inventory domain
+  C3_S1 --> ShipWB
+  C3_S2 --> ShipWB
+
+  %% =========================
+  %% Production workflow (needs BOTH domains)
+  %% =========================
+  ProdWB --> ProdAddin --> Core --> CoreCheck
+  CoreCheck -->|CAP: PROD_POST| DesDom --> DesData
+  CoreCheck -->|CAP: PROD_POST| InvDom --> InvData
+
+  %% =========================
+  %% Admin workflows (can touch one or both domains)
+  %% =========================
+  AdminWB --> AdminAddin --> Core --> CoreCheck
+  CoreCheck -->|CAP: ADMIN_USERS / ADMIN_MAINT| InvDom --> InvData
+  CoreCheck -->|CAP: ADMIN_MAINT / DESIGN_RELEASE| DesDom --> DesData

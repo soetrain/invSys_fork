@@ -1,0 +1,34 @@
+flowchart TB
+  %% =========================
+  %% file-diagram (deployment)
+  %% =========================
+  subgraph FD["file-diagram (SharePoint/LAN synced folder)"]
+    FD_root["invSys/"]
+
+    FD_root --> FD_addins["Addins/"]
+    FD_root --> FD_data["Data/"]
+    FD_root --> FD_users["UserWorkbooks/"]
+    FD_root --> FD_docs["Docs/"]
+
+    FD_addins --> A_core["invSys.Core.xlam"]
+    FD_addins --> A_invdom["invSys.Inventory.Domain.xlam"]
+    FD_addins --> A_desdom["invSys.Designs.Domain.xlam"]
+    FD_addins --> A_recv["invSys.Receiving.xlam"]
+    FD_addins --> A_ship["invSys.Shipping.xlam"]
+    FD_addins --> A_prod["invSys.Production.xlam"]
+    FD_addins --> A_admin["invSys.Admin.xlam"]
+
+    FD_data --> FD_inv["Inventory/"]
+    FD_data --> FD_des["Designs/"]
+    FD_inv --> D_inv["invSys.Data.Inventory.xlsb"]
+    FD_des --> D_des["invSys.Data.Designs.xlsb"]
+
+    FD_users --> U_recv["Receiving/invSys.Receiving.Job.xlsm"]
+    FD_users --> U_ship["Shipping/invSys.Shipping.Job.xlsm"]
+    FD_users --> U_prod["Production/invSys.Production.Job.xlsm"]
+    FD_users --> U_admin["Admin/invSys.Admin.Console.xlsm"]
+
+    FD_docs --> FD_readme["README.txt"]
+    FD_docs --> FD_notes["ReleaseNotes.txt"]
+    FD_docs --> FD_sop["SOP/"]
+  end

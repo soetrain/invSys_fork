@@ -1,0 +1,72 @@
+flowchart TB
+  %% =========================
+  %% directory-structure
+  %% =========================
+  subgraph DS["directory-structure (repo)"]
+    DS_root["invSys/"]
+    DS_root --> DS_src["src/"]
+    DS_root --> DS_data["data/"]
+    DS_root --> DS_assets["assets/"]
+    DS_root --> DS_deploy["deploy/"]
+    DS_root --> DS_tools["tools/"]
+    DS_root --> DS_docs["docs/"]
+
+    DS_src --> DS_core["Core/"]
+    DS_src --> DS_invdom["InventoryDomain/"]
+    DS_src --> DS_desdom["DesignsDomain/"]
+    DS_src --> DS_recv["Receiving/"]
+    DS_src --> DS_ship["Shipping/"]
+    DS_src --> DS_prod["Production/"]
+    DS_src --> DS_admin["Admin/"]
+
+    DS_core --> DS_core_mod["Modules/"]
+    DS_core --> DS_core_cls["ClassModules/"]
+    DS_core --> DS_core_forms["Forms/"]
+    DS_core --> DS_core_rib["Ribbon/"]
+    DS_core --> DS_core_cfg["Config/"]
+
+    DS_invdom --> DS_invdom_mod["Modules/"]
+    DS_invdom --> DS_invdom_cls["ClassModules/"]
+
+    DS_desdom --> DS_desdom_mod["Modules/"]
+    DS_desdom --> DS_desdom_cls["ClassModules/"]
+
+    DS_recv --> DS_recv_mod["Modules/"]
+    DS_recv --> DS_recv_forms["Forms/"]
+    DS_recv --> DS_recv_rib["Ribbon/"]
+
+    DS_ship --> DS_ship_mod["Modules/"]
+    DS_ship --> DS_ship_forms["Forms/"]
+    DS_ship --> DS_ship_rib["Ribbon/"]
+
+    DS_prod --> DS_prod_mod["Modules/"]
+    DS_prod --> DS_prod_forms["Forms/"]
+    DS_prod --> DS_prod_rib["Ribbon/"]
+
+    DS_admin --> DS_admin_mod["Modules/"]
+    DS_admin --> DS_admin_forms["Forms/"]
+    DS_admin --> DS_admin_rib["Ribbon/"]
+
+    DS_data --> DS_invdata["InventoryDomain/"]
+    DS_data --> DS_desdata["DesignsDomain/"]
+    DS_invdata --> DS_inv_schema["schema/"]
+    DS_invdata --> DS_inv_samples["samples/"]
+    DS_desdata --> DS_des_schema["schema/"]
+    DS_desdata --> DS_des_samples["samples/"]
+
+    DS_assets --> DS_assets_ribbon["ribbon/"]
+    DS_assets_ribbon --> DS_assets_imgs["images/"]
+    DS_assets_ribbon --> DS_assets_xml["xml/"]
+
+    DS_deploy --> DS_deploy_sp["sharepoint/"]
+    DS_deploy --> DS_deploy_lan["lan/"]
+
+    DS_tools --> DS_tools_build["build/"]
+    DS_tools --> DS_tools_export["export-import/"]
+    DS_tools --> DS_tools_rib["ribbon-editing/"]
+
+    DS_docs --> DS_docs_arch["architecture/"]
+    DS_docs --> DS_docs_work["workflows/"]
+    DS_docs --> DS_docs_roles["roles-permissions/"]
+    DS_docs --> DS_docs_rel["release-notes/"]
+  end

@@ -1,0 +1,51 @@
+flowchart TB
+  %% =========================
+  %% Actors / Files
+  %% =========================
+  UserWB["User Workbook (.xlsm)\n(optional UI / staging)"]
+  RoleXLAM["Role XLAM\n(Receiving / Shipping / Production / Admin)"]
+
+  CoreXLAM["invSys.Core.xlam\n(ONLY authority for permissions + orchestration)"]
+
+  CapabilityGate{{"Core-owned capability check\nCore.CanPerform(CAPABILITY)"}}
+
+  InvDomainXLAM["invSys.Inventory.Domain.xlam\n(Inventory rules + writes only)"]
+  DesDomainXLAM["invSys.Designs.Domain.xlam\n(Design/BOM rules + writes only)"]
+
+  InvData["invSys.Data.Inventory.xlsb\n(authoritative stock truth)"]
+  DesData["invSys.Data.Designs.xlsb\n(authoritative design truth)"]
+
+  Reject["REJECT + LOG\n(No write occurs)"]
+
+  %% =========================
+  %% Universal entry path
+  %% =========================
+  UserWB --> RoleXLAM
+  RoleXLAM --> CoreXLAM
+  CoreXLAM --> CapabilityGate
+
+  %% =========================
+  %% Capability outcomes
+  %% =========================
+  CapabilityGate -- "NO" --> Reject
+
+  %% =========================
+  %% Receiving / Shipping (Inventory only)
+  %% =========================
+  CapabilityGate -- "RECEIVE_POST or SHIP_POST" --> InvDomainXLAM
+  InvDomainXLAM --> InvData
+
+  %% =========================
+  %% Production (Inventory + Designs)
+  %% =========================
+  CapabilityGate -- "PROD_POST" --> DesDomainXLAM
+  CapabilityGate -- "PROD_POST" --> InvDomainXLAM
+
+  DesDomainXLAM --> DesData
+  InvDomainXLAM --> InvData
+
+  %% =========================
+  %% Admin (controlled, explicit)
+  %% =========================
+  CapabilityGate -- "ADMIN_USERS / ADMIN_MAINT" --> InvDomainXLAM
+  CapabilityGate -- "DESIGN_RELEASE / ADMIN_MAINT" --> DesDomainXLAM
