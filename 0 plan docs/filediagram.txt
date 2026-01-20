@@ -1,0 +1,35 @@
+SharePoint / LAN Synced Folder (Authoritative Distribution + Convenience Sync)
+└── invSys/
+    ├── Addins/
+    │   ├── invSys.Core.xlam
+    │   ├── invSys.Receiving.xlam
+    │   ├── invSys.Shipping.xlam
+    │   ├── invSys.Production.xlam
+    │   └── invSys.Admin.xlam
+    │
+    ├── Data/
+    │   ├── Inventory/
+    │   │   └── invSys.Data.Inventory.xlsb
+    │   │
+    │   └── Designs/
+    │       └── invSys.Data.Designs.xlsb
+    │
+    ├── UserWorkbooks/
+    │   ├── Receiving/
+    │   │   └── invSys.Receiving.Job.xlsm
+    │   ├── Shipping/
+    │   │   └── invSys.Shipping.Job.xlsm
+    │   ├── Production/
+    │   │   └── invSys.Production.Job.xlsm
+    │   └── Admin/
+    │       └── invSys.Admin.Console.xlsm
+    │
+    └── Docs/
+        ├── README.txt
+        ├── ReleaseNotes.txt
+        └── SOP/
+
+Optional “offline/no-LAN” queue (if you add it later):
+Each PC (Local, not synced)
+└── C:\invSysLocal\
+    └── invSys.Queue.<MachineOrUser>.xlsb

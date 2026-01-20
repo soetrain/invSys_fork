@@ -1,0 +1,60 @@
+/src
+  /Core
+    /Modules
+    /ClassModules
+    /Forms              (only truly shared)
+    /Ribbon             (optional: shared “InvSys” tab, or none)
+    /Config             (paths, constants, version requirements)
+
+  /Receiving
+    /Modules
+    /Forms
+    /Ribbon
+
+  /Shipping
+    /Modules
+    /Forms
+    /Ribbon
+
+  /Production
+    /Modules
+    /Forms
+    /Ribbon
+
+  /Admin
+    /Modules
+    /Forms
+    /Ribbon
+
+/data
+  /InventoryDomain
+    /schema            (table specs, headers, validation rules)
+    /samples           (sample data workbooks for testing)
+  /DesignsDomain
+    /schema
+    /samples
+
+/assets
+  /ribbon
+    /images            (shared icons)
+    /xml               (shared snippets, callbacks map)
+
+/deploy
+  /sharepoint          (recommended target layout in the synced library)
+    /Addins            (Core + role XLAMs)
+    /Data
+      /Inventory       (invSys.Data.Inventory.xlsx/.xlsb)
+      /Designs         (invSys.Data.Designs.xlsx/.xlsb)
+    /UserWorkbooks      (optional job workbooks)
+  /lan                 (optional LAN-first mirror if you keep both)
+
+/tools
+  /export-import       (scripts or notes for exporting VBE components)
+  /build               (build notes: how to assemble XLAMs, versioning steps)
+  /ribbon-editing      (CustomUIEditor notes, XML templates)
+
+/docs
+  /architecture
+  /workflows
+  /roles-permissions
+  /release-notes
