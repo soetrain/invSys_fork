@@ -885,6 +885,175 @@ RoleDefault   (text)  RECEIVE | SHIP | PROD | ADMIN
 
 ---
 
+## User-side controls (Release 1)
+
+This section lists the **user-facing controls for Release 1**. All controls are **moved to the Ribbon** due to worksheet control instability. Existing sheet buttons are treated as legacy and will be removed after RibbonX parity.
+
+### Shared controls (all roles)
+- **Dynamic item search**: `cDynItemSearch` (invoked by role modules; fallback `frmItemSearch`).
+- **Dynamic UF template**: `ufDynItemSearchTemplate.frm` (copied into each role XLAM).
+
+### Receiving controls (Release 1 = Ribbon)
+**Ribbon group:** Receiving  
+**Buttons**
+- `Confirm Writes` -> `modTS_Received.ConfirmWrites`
+- `Undo` -> `modTS_Received.MacroUndo`
+- `Redo` -> `modTS_Received.MacroRedo`
+
+**Forms**
+- `frmReceivedTally` (btnSend -> `modTS_Received.ProcessReceivedBatch`) [legacy/optional]
+
+### Shipping controls (Release 1 = Ribbon)
+**Ribbon group:** Shipping  
+**Buttons**
+- `Toggle Builder` -> `modTS_Shipments.BtnToggleBuilder`
+- `Save Box` -> `modTS_Shipments.BtnSaveBox`
+- `Confirm Inventory` -> `modTS_Shipments.BtnConfirmInventory`
+- `Boxes Made` -> `modTS_Shipments.BtnBoxesMade`
+- `Toggle NotShipped` -> `modTS_Shipments.BtnUnship`
+- `Send to Hold` -> `modTS_Shipments.BtnSendHold`
+- `Return from Hold` -> `modTS_Shipments.BtnReturnHold`
+- `To TotalInv` -> `modTS_Shipments.BtnToTotalInv`
+- `To Shipments` -> `modTS_Shipments.BtnToShipments`
+- `Shipments Sent` -> `modTS_Shipments.BtnShipmentsSent`
+
+**Forms**
+- `frmShipmentsTally` (btnSend -> `modTS_Shipments.ProcessShipmentsBatch`) [legacy/optional]
+
+### Production controls (Release 1 = Ribbon)
+**Ribbon group:** Production  
+**Buttons**
+- `Hide System` -> `mProduction.BtnHideSystem`
+- `Show System` -> `mProduction.BtnShowSystem`
+- `Load Recipe` -> `mProduction.BtnLoadRecipe`
+- `Save Recipe` -> `mProduction.BtnSaveRecipe`
+- `Save Formulas` -> `mProduction.BtnSaveFormulas`
+- `Add Recipe Process Table` -> `mProduction.BtnBuildRecipeProcessTables`
+- `Remove Recipe Process Table` -> `mProduction.BtnRemoveRecipeProcessTables`
+- `Clear Recipe List Builder` -> `mProduction.BtnClearRecipeBuilder`
+- `Save IngredientPalette` -> `mProduction.BtnSavePalette`
+- `Clear Inventory Palette Builder` -> `mProduction.BtnClearPaletteBuilder`
+- `Clear Chosen Recipe` -> `mProduction.BtnClearRecipeChooser`
+- `To USED` -> `mProduction.BtnToUsed`
+- `Send to MADE` -> `mProduction.BtnToMade`
+- `Send to TOTAL INV` -> `mProduction.BtnToTotalInv`
+- `Next Batch` -> `mProduction.BtnNextBatch`
+- `Print recall codes` -> `mProduction.BtnPrintRecallCodes`
+
+**Forms**
+- `frmCreateRecipeTable`, `frmIngredientPalette`, `frmSubstitution`, `frmCreateSubstitutionList` (in repo; used for production workflows)
+
+### Admin controls (Release 1 = Ribbon)
+**Forms (existing)**
+- `frmAdminControls` (buttons: Create/Delete User, Edit User)
+- `frmCreateDeleteUser` (buttons: Create User, Random PIN, Delete User)
+- `frmEditUser` (buttons: Update User, New PIN)
+
+**Ribbon buttons**
+- `Run Processor`, `Reprocess Errors`, `Build Warehouse`, `Build Station Inbox`, `Build Global Snapshot`, `Break Lock`, `Manage Users`
+
+### Controls diagram (Mermaid)
+```mermaid
+flowchart TB
+  User["Operator"] --> RoleUI["Role XLAM Ribbon + forms"]:::role
+  RoleUI --> Inb["Inbox workbook (append events)"]:::queue
+  Admin["Admin XLAM"]:::role --> Proc(("Processor VBA run")):::proc
+  Proc --> Dom("Domain XLAM apply"):::domain
+  Dom --> Inv["Inventory.xlsb"]:::data
+  Dom --> Des["Designs.xlsb"]:::data
+
+  classDef core fill:#1f78b4,stroke:#0b4f6c,color:#ffffff;
+  classDef domain fill:#00897b,stroke:#00695c,color:#ffffff;
+  classDef role fill:#6a1b9a,stroke:#4a148c,color:#ffffff;
+  classDef proc fill:#424242,stroke:#1b1b1b,color:#ffffff;
+  classDef gate fill:#fdd835,stroke:#b58900,color:#000000;
+  classDef data fill:#2e7d32,stroke:#1b5e20,color:#ffffff;
+  classDef queue fill:#ef6c00,stroke:#e65100,color:#ffffff;
+  classDef auth fill:#616161,stroke:#424242,color:#ffffff;
+  classDef config fill:#fbc02d,stroke:#f9a825,color:#000000;
+```
+
+---
+
+## Protected headers pattern (Release 1)
+
+Because users work directly in Excel tables, **system-critical headers must be locked and visually distinct**. This prevents accidental edits while still allowing users to add their own columns.
+
+### Rules
+- **System-critical headers** (e.g., `ROW`, `ITEM_CODE`, `EVENTID`) are **locked** and **color-coded**.
+- **User-editable headers** remain unlocked with normal styling.
+- Users may add extra columns; these remain editable unless explicitly protected.
+
+### Implementation approach (VBA)
+1) Apply a **protected header style** (dark fill + white text).
+2) Lock the protected header cells.
+3) Unlock the table body range.
+4) Protect the worksheet with `UserInterfaceOnly:=True` so VBA can still write.
+
+### Sample VBA helper (pattern)
+```vb
+Sub ProtectTableHeaders(ByVal lo As ListObject, ByVal protectedHeaders As Variant)
+    Dim hdr As Range
+    Dim col As ListColumn
+    Dim key As Variant
+
+    If lo Is Nothing Then Exit Sub
+
+    ' Unlock entire body first
+    If Not lo.DataBodyRange Is Nothing Then
+        lo.DataBodyRange.Locked = False
+    End If
+
+    ' Apply protection to specific headers
+    For Each key In protectedHeaders
+        On Error Resume Next
+        Set col = lo.ListColumns(CStr(key))
+        On Error GoTo 0
+        If Not col Is Nothing Then
+            Set hdr = col.Range.Cells(1, 1)
+            hdr.Locked = True
+            hdr.Interior.Color = RGB(60, 60, 60)
+            hdr.Font.Color = RGB(255, 255, 255)
+            hdr.Font.Bold = True
+        End If
+        Set col = Nothing
+    Next key
+End Sub
+```
+
+---
+
+## Development process (Release 1 plan)
+
+This is the recommended build path to reach a Release 1 quality bar.
+
+### Phase plan (high level)
+1) **Stabilize structure**: finalize repo layout, split modules by domain/role, verify build notes.
+2) **RibbonX parity**: replicate all sheet controls into Ribbon callbacks; remove sheet buttons.
+3) **Domain hardening**: self-repair tables, lock manager, processor loop.
+4) **Data schemas**: lock table layouts + validation + migration notes.
+5) **Admin tooling**: processor runner, poison queue, backup/restore.
+6) **Release polish**: error handling, logs, and basic QA scripts.
+
+### Development flow diagram (Mermaid)
+```mermaid
+flowchart TB
+  P1["Phase 1: Structure + split"] --> P2["Phase 2: RibbonX parity"]
+  P2 --> P3["Phase 3: Domain hardening"]
+  P3 --> P4["Phase 4: Schemas + validation"]
+  P4 --> P5["Phase 5: Admin tooling"]
+  P5 --> P6["Phase 6: Release polish"]
+```
+
+### Milestone checklist (Release 1)
+- All controls available in Ribbon; sheet controls removed.
+- Processor passes 100-event batch without errors.
+- Self-repair regenerates missing tables on open.
+- Backup/restore tested on Inventory and Auth workbooks.
+- Admin can reissue poison events and run processor end-to-end.
+
+---
+
 ## Appendix -- Terminology
 - **Inbox**: a multi-writer-friendly append-only queue of events.
 - **Outbox**: a publishable stream of applied events, used for cross-site sync.
