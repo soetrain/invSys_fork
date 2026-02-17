@@ -1,6 +1,10 @@
 ﻿# invSys Future Release Plans (R2+)
 Extracted from invSys-Design-v4.md to keep Release 1 authoritative.
 
+## Reference Links
+- `https://www.perplexity.ai/search/https-github-com-soetrain-invs-IL_KZ22YSsW5kMph4kOzxA?preview=1#7`
+- `https://www.perplexity.ai/search/this-is-my-retconned-plan-plan-1l63Rt2_SDSKyOklg90qdA#7`
+
 ## Release 2/3: F# and Rust Tooling (Future)
 This document captures the post-R1 roadmap for introducing compiled tooling. Nothing in this file is required for Release 1.
 

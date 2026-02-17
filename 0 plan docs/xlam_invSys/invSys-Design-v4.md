@@ -6,6 +6,11 @@
 **Purpose:** Complete architectural specification for Release 1 (VBA/Excel only).
 
 ---
+## Reference Links
+- `https://www.perplexity.ai/search/https-github-com-soetrain-invs-IL_KZ22YSsW5kMph4kOzxA?preview=1#7`
+- `https://www.perplexity.ai/search/this-is-my-retconned-plan-plan-1l63Rt2_SDSKyOklg90qdA#7`
+
+---
 ## Release Strategy
 ### Release 1: VBA-Only Foundation (AUTHORITATIVE FOR SHIPPING)
 **Scope:** Complete event-sourced inventory system implemented entirely in VBA/Excel.
