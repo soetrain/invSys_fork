@@ -1,7 +1,7 @@
-﻿# invSys Architecture v4.1 - Release 1 Plan
+﻿# invSys Architecture v4.2 - Release 1 Plan
 **Project:** invSys Multi-Warehouse Inventory System  
-**Version:** 4.1 (VBA Release 1)  
-**Date:** February 3, 2026  
+**Version:** 4.2 (VBA Release 1)  
+**Date:** February 17, 2026  
 **Author:** Justin  
 **Purpose:** Complete architectural specification for Release 1 (VBA/Excel only).
 
@@ -23,6 +23,24 @@
 - Deployment: XLAM add-ins + workbooks
 
 **No external dependencies:** R1 requires only Excel + SharePoint (no Python, .NET, or other runtimes).
+
+---
+## Progress Tracking (v4.2)
+**Legend:** `[ ]` not started, `[x]` complete
+
+### Release 1 Milestones
+- [ ] Phase 1 complete: Foundation
+- [ ] Phase 2 complete: Event Processing
+- [ ] Phase 3 complete: Role UI
+- [ ] Phase 4 complete: Admin Tooling
+- [ ] Phase 5 complete: Multi-Warehouse Sync
+- [ ] Phase 6 complete: Polish and Release
+
+### Key Architecture Deliverables
+- [ ] Core.ItemSearch module implemented (shared normalization/query/filter logic)
+- [ ] Role-specific item search forms implemented (`ufReceivingItemSearch`, `ufShippingItemSearch`, `ufProductionItemSearch`, `ufAdminItemSearch`)
+- [ ] Processor idempotency verified with duplicate-event test
+- [ ] Schema self-heal validation verified across required workbooks
 
 ---
 ## Executive Summary
@@ -433,79 +451,79 @@ sequenceDiagram
 **Goal:** Core infrastructure + basic domain schemas
 
 **Tasks:**
-1. Set up repository structure
-2. Build Core.Config module
-3. Build Core.Auth module (workbook-based, PIN deferred to Phase 2)
-4. Build InventoryDomain.Schema with self-repair
-5. Create sample Auth.xlsb and Config.xlsb workbooks
-6. Unit test: Config loading, capability checking
+- [ ] Set up repository structure
+- [ ] Build Core.Config module
+- [ ] Build Core.Auth module (workbook-based, PIN deferred to Phase 2)
+- [ ] Build InventoryDomain.Schema with self-repair
+- [ ] Create sample Auth.xlsb and Config.xlsb workbooks
+- [ ] Unit test: Config loading, capability checking
 
-**Deliverable:** Core and InventoryDomain XLAMs that load config and validate schemas
+**Deliverable:** [ ] Core and InventoryDomain XLAMs that load config and validate schemas
 
 ---
 ### Phase 2: Event Processing
 **Goal:** Processor + domain event application
 
 **Tasks:**
-1. Build Core.LockManager module
-2. Build Core.Processor batch loop
-3. Build InventoryDomain.Apply (Receive events only)
-4. Create sample Inbox.Receiving.S1.xlsb workbook
-5. Create sample Inventory.xlsb workbook
-6. Integration test: Manual inbox row -> Run processor -> Verify inventory log
+- [ ] Build Core.LockManager module
+- [ ] Build Core.Processor batch loop
+- [ ] Build InventoryDomain.Apply (Receive events only)
+- [ ] Create sample Inbox.Receiving.S1.xlsb workbook
+- [ ] Create sample Inventory.xlsb workbook
+- [ ] Integration test: Manual inbox row -> Run processor -> Verify inventory log
 
-**Deliverable:** Working end-to-end event processing (Receive only)
+**Deliverable:** [ ] Working end-to-end event processing (Receive only)
 
 ---
 ### Phase 3: Role UI
 **Goal:** Receiving, Shipping, Production UIs
 
 **Tasks:**
-1. Build RibbonX XML for all role XLAMs
-2. Build Receiving.UI + EventCreator
-3. Build Shipping.UI + EventCreator
-4. Build Production.UI + EventCreator
-5. Copy dynamic search forms to each role XLAM
-6. Integration test: UI -> Create events -> Process -> Verify logs
+- [ ] Build RibbonX XML for all role XLAMs
+- [ ] Build Receiving.UI + EventCreator
+- [ ] Build Shipping.UI + EventCreator
+- [ ] Build Production.UI + EventCreator
+- [ ] Build role-specific item search forms for each role XLAM
+- [ ] Integration test: UI -> Create events -> Process -> Verify logs
 
-**Deliverable:** All role XLAMs functional with Ribbon controls
+**Deliverable:** [ ] All role XLAMs functional with Ribbon controls
 
 ---
 ### Phase 4: Admin Tooling
 **Goal:** Admin XLAM with orchestration console
 
 **Tasks:**
-1. Build Admin.UI main panel
-2. Build break-lock functionality
-3. Build poison queue viewer
-4. Build manual reissue workflow
-5. Build snapshot generation button
-6. Integration test: Admin operations end-to-end
+- [ ] Build Admin.UI main panel
+- [ ] Build break-lock functionality
+- [ ] Build poison queue viewer
+- [ ] Build manual reissue workflow
+- [ ] Build snapshot generation button
+- [ ] Integration test: Admin operations end-to-end
 
-**Deliverable:** Admin XLAM with full management capabilities
+**Deliverable:** [ ] Admin XLAM with full management capabilities
 
 ---
 ### Phase 5: Multi-Warehouse Sync
 **Goal:** Outbox, VBA HQ aggregation, global snapshots
 
 **Tasks:**
-1. Build Outbox event writing in Processor (VBA)
-2. **Build VBA HQ aggregation macro** (invSys.HQ.Aggregator.xlsm)
-3. Build global snapshot generation logic (VBA)
-4. Test SharePoint sync workflow (manual file copy simulation)
-5. Configure Windows Task Scheduler for HQ aggregation
-6. Integration test: WH1 + WH2 -> HQ aggregates -> Global snapshot
+- [ ] Build Outbox event writing in Processor (VBA)
+- [ ] **Build VBA HQ aggregation macro** (invSys.HQ.Aggregator.xlsm)
+- [ ] Build global snapshot generation logic (VBA)
+- [ ] Test SharePoint sync workflow (manual file copy simulation)
+- [ ] Configure Windows Task Scheduler for HQ aggregation
+- [ ] Integration test: WH1 + WH2 -> HQ aggregates -> Global snapshot
 
-**Deliverable:** Multi-warehouse sync with VBA-powered HQ Aggregator
+**Deliverable:** [ ] Multi-warehouse sync with VBA-powered HQ Aggregator
 
 ---
 ### Phase 6: Polish and Release (Weeks
 **Goals:**
-1. Error handling, logging, documentation (VBA)
-2. Full regression test suite
-3. Production pilot with 1 warehouse
+- [ ] Error handling, logging, documentation (VBA)
+- [ ] Full regression test suite
+- [ ] Production pilot with 1 warehouse
 
-**Deliverable:** Release 1.0 ready for production
+**Deliverable:** [ ] Release 1.0 ready for production
 
 ## Testing Strategy (Release 1: VBA)
 ### Unit Tests (VBA)
@@ -552,12 +570,12 @@ End Function
 **Test Coverage:**
 | Module | Function | Test Case | Expected Result | Status |
 |---|---|---|---|---|
-| Core.Auth | CanPerform("RECEIVE_POST", "user1", "WH1") | User1 has RECEIVE_POST for WH1 | TRUE | TODO |
-| Core.Auth | CanPerform("SHIP_POST", "user2", "WH1") | User2 does NOT have SHIP_POST | FALSE | TODO |
-| Core.LockManager | AcquireLock("INVENTORY", "WH1") | Lock not held | Returns TRUE, lock row created | TODO |
-| Core.LockManager | AcquireLock("INVENTORY", "WH1") | Lock already held by S1 | Returns FALSE, error message | TODO |
-| InventoryDomain | ApplyReceiveEvent(evt) | Valid event, SKU exists | Row in tblInventoryLog, event marked APPLIED | TODO |
-| InventoryDomain | ApplyReceiveEvent(evt) | Invalid SKU | Event marked POISON, error logged | TODO |
+| Core.Auth | CanPerform("RECEIVE_POST", "user1", "WH1") | User1 has RECEIVE_POST for WH1 | TRUE | [ ] |
+| Core.Auth | CanPerform("SHIP_POST", "user2", "WH1") | User2 does NOT have SHIP_POST | FALSE | [ ] |
+| Core.LockManager | AcquireLock("INVENTORY", "WH1") | Lock not held | Returns TRUE, lock row created | [ ] |
+| Core.LockManager | AcquireLock("INVENTORY", "WH1") | Lock already held by S1 | Returns FALSE, error message | [ ] |
+| InventoryDomain | ApplyReceiveEvent(evt) | Valid event, SKU exists | Row in tblInventoryLog, event marked APPLIED | [ ] |
+| InventoryDomain | ApplyReceiveEvent(evt) | Invalid SKU | Event marked POISON, error logged | [ ] |
 
 ---
 ### Integration Tests (VBA)
@@ -729,3 +747,4 @@ ValidTo       (date, optional)
 ```
 
 ---
+
