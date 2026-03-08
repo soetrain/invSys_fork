@@ -5,8 +5,8 @@ Public Sub RunInventorySchemaTests()
     Dim passed As Long
     Dim failed As Long
 
-    Tally TestEnsureInventorySchema_RecreatesTables, passed, failed
-    Tally TestEnsureInventorySchema_AddsMissingColumns, passed, failed
+    Tally TestEnsureInventorySchema_RecreatesTables(), passed, failed
+    Tally TestEnsureInventorySchema_AddsMissingColumns(), passed, failed
 
     Debug.Print "Inventory schema tests - Passed: " & passed & " Failed: " & failed
 End Sub

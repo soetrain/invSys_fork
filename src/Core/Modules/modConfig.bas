@@ -11,10 +11,6 @@ Private mStationId As String
 Private mResolvedWorkbook As String
 Private mIsLoaded As Boolean
 
-Public Function [Load](Optional ByVal whId As String = "", Optional ByVal stId As String = "") As Boolean
-    [Load] = LoadConfig(whId, stId)
-End Function
-
 Public Function LoadConfig(Optional ByVal whId As String = "", Optional ByVal stId As String = "") As Boolean
     On Error GoTo FailLoad
 
@@ -81,10 +77,16 @@ Public Function LoadConfig(Optional ByVal whId As String = "", Optional ByVal st
     defCount = GetConfigSchema(defs)
     For i = 1 To defCount
         hasVal = False
-        If TryGetDictionaryValue(stValues, defs(i).Key, rawVal) And Not IsBlankValue(rawVal) Then
-            hasVal = True
-        ElseIf TryGetDictionaryValue(whValues, defs(i).Key, rawVal) And Not IsBlankValue(rawVal) Then
-            hasVal = True
+        If UCase$(defs(i).Scope) = CONFIG_SCOPE_STATION Then
+            If TryGetDictionaryValue(stValues, defs(i).Key, rawVal) And Not IsBlankValue(rawVal) Then
+                hasVal = True
+            ElseIf TryGetDictionaryValue(whValues, defs(i).Key, rawVal) And Not IsBlankValue(rawVal) Then
+                hasVal = True
+            End If
+        Else
+            If TryGetDictionaryValue(whValues, defs(i).Key, rawVal) And Not IsBlankValue(rawVal) Then
+                hasVal = True
+            End If
         End If
 
         If hasVal Then
@@ -132,13 +134,6 @@ End Function
 
 Public Function IsLoaded() As Boolean
     IsLoaded = mIsLoaded
-End Function
-
-Public Function [Get](ByVal key As String) As Variant
-    If mConfigCache Is Nothing Then Exit Function
-    If mConfigCache.Exists(key) Then
-        [Get] = mConfigCache(key)
-    End If
 End Function
 
 Public Function GetRequired(ByVal key As String) As Variant
@@ -405,7 +400,10 @@ Private Function TryGetDictionaryValue(ByVal d As Object, ByVal key As String, B
 End Function
 
 Private Function GetDictionaryValue(ByVal d As Object, ByVal key As String) As Variant
-    If TryGetDictionaryValue(d, key, GetDictionaryValue) Then Exit Function
+    Dim tmp As Variant
+    If TryGetDictionaryValue(d, key, tmp) Then
+        GetDictionaryValue = tmp
+    End If
 End Function
 
 Private Function TryCoerceValue(ByVal dataType As String, ByVal rawValue As Variant, ByRef outVal As Variant) As Boolean

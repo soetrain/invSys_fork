@@ -12,10 +12,6 @@ Private mIsLoaded As Boolean
 Private mLoadedAt As Date
 Private mCacheTtlSeconds As Long
 
-Public Function [Load](Optional ByVal whId As String = "") As Boolean
-    [Load] = LoadAuth(whId)
-End Function
-
 Public Function LoadAuth(Optional ByVal whId As String = "") As Boolean
     On Error GoTo FailLoad
 
@@ -74,8 +70,8 @@ Public Function ReloadAuth() As Boolean
     ReloadAuth = LoadAuth(modConfig.GetString("WarehouseId", ""))
 End Function
 
-Public Function IsLoaded() As Boolean
-    IsLoaded = mIsLoaded
+Public Function IsAuthLoaded() As Boolean
+    IsAuthLoaded = mIsLoaded
 End Function
 
 Public Function CanPerform(ByVal capability As String, _
@@ -130,7 +126,7 @@ Public Function Require(ByVal capability As String, _
     Require = True
 End Function
 
-Public Function Validate() As String
+Public Function ValidateAuth() As String
     Dim itm As Variant
     Dim parts() As String
     Dim lineOut As String
@@ -145,8 +141,8 @@ Public Function Validate() As String
             lineOut = CStr(itm)
         End If
 
-        If Len(Validate) > 0 Then Validate = Validate & "; "
-        Validate = Validate & lineOut
+        If Len(ValidateAuth) > 0 Then ValidateAuth = ValidateAuth & "; "
+        ValidateAuth = ValidateAuth & lineOut
     Next itm
 End Function
 
@@ -189,7 +185,7 @@ Private Sub LoadUsers(ByVal loUsers As ListObject)
             userInfo("Status") = UCase$(SafeTrim(GetCellByColumn(loUsers, i, "Status")))
             userInfo("ValidFrom") = GetCellByColumn(loUsers, i, "ValidFrom")
             userInfo("ValidTo") = GetCellByColumn(loUsers, i, "ValidTo")
-            mUsers(userId) = userInfo
+            Set mUsers(userId) = userInfo
         End If
     Next i
 End Sub

@@ -29,7 +29,7 @@
 **Legend:** `[ ]` not started, `[x]` complete
 
 ### Release 1 Milestones
-- [ ] Phase 1 complete: Foundation
+- [x] Phase 1 complete: Foundation
 - [ ] Phase 2 complete: Event Processing
 - [ ] Phase 3 complete: Role UI
 - [ ] Phase 4 complete: Admin Tooling
@@ -505,12 +505,14 @@ sequenceDiagram
 - [x] Create sample Auth.xlsb and Config.xlsb workbooks
 
 **Tests:**
-- [ ] Test: Core.Config precedence resolves `Station -> Warehouse -> Default` and required keys fail closed
-- [ ] Test: Core.Auth capability check returns ALLOW/DENY for scoped warehouse/station cases
-- [ ] Test: Inventory schema self-heal recreates missing required table/column definitions
+- [x] Test: Core.Config precedence resolves `Station -> Warehouse -> Default` and required keys fail closed
+- [x] Test: Core.Auth capability check returns ALLOW/DENY for scoped warehouse/station cases
+- [x] Test: Inventory schema self-heal recreates missing required table/column definitions
 
 **Deliverables:**
-- [ ] Core and InventoryDomain XLAMs load config and validate schemas
+- [x] Core and InventoryDomain XLAMs load config and validate schemas
+
+**Execution Evidence:** `tests/unit/phase1_test_results.md` (14 passed, 0 failed on 2026-03-08)
 
 ---
 ### Phase 2: Event Processing
@@ -944,7 +946,6 @@ Status         (text)       HELD | EXPIRED | BROKEN
 ```
 
 ---
-
 
 
 

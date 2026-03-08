@@ -5,12 +5,12 @@ Public Sub RunConfigTests()
     Dim passed As Long
     Dim failed As Long
 
-    Tally TestLoad_ValidConfig, passed, failed
-    Tally TestLoad_MissingRequiredKey, passed, failed
-    Tally TestPrecedence_StationOverridesWarehouse, passed, failed
-    Tally TestGetRequired_MissingKey, passed, failed
-    Tally TestGetBool_TypeConversion, passed, failed
-    Tally TestReload_UpdatedValue, passed, failed
+    Tally TestLoad_ValidConfig(), passed, failed
+    Tally TestLoad_MissingRequiredKey(), passed, failed
+    Tally TestPrecedence_StationOverridesWarehouse(), passed, failed
+    Tally TestGetRequired_MissingKey(), passed, failed
+    Tally TestGetBool_TypeConversion(), passed, failed
+    Tally TestReload_UpdatedValue(), passed, failed
 
     Debug.Print "Core.Config tests - Passed: " & passed & " Failed: " & failed
 End Sub
@@ -163,6 +163,7 @@ Private Function BuildConfigWorkbook(ByVal whId As String, ByVal stId As String,
     Dim wsSt As Worksheet
     Dim loWh As ListObject
     Dim loSt As ListObject
+    Dim p As String
 
     Set wb = Application.Workbooks.Add
     Set wsWh = wb.Worksheets(1)
@@ -191,12 +192,23 @@ Private Function BuildConfigWorkbook(ByVal whId As String, ByVal stId As String,
     Set loSt = wsSt.ListObjects.Add(xlSrcRange, wsSt.Range("A1:D2"), , xlYes)
     loSt.Name = "tblStationConfig"
 
+    p = Environ$("TEMP") & "\WH1.invSys.Config.test.xlsx"
+    On Error Resume Next
+    Kill p
+    On Error GoTo 0
+    wb.SaveAs Filename:=p, FileFormat:=51
+
     Set BuildConfigWorkbook = wb
 End Function
 
 Private Sub CloseNoSave(ByVal wb As Workbook)
+    Dim p As String
     If wb Is Nothing Then Exit Sub
     On Error Resume Next
+    p = wb.FullName
     wb.Close SaveChanges:=False
+    If InStr(1, p, ".test.", vbTextCompare) > 0 Then
+        If Len(Dir$(p)) > 0 Then Kill p
+    End If
     On Error GoTo 0
 End Sub

@@ -5,12 +5,12 @@ Public Sub RunAuthTests()
     Dim passed As Long
     Dim failed As Long
 
-    Tally TestCanPerform_Allow, passed, failed
-    Tally TestCanPerform_Deny_MissingCapability, passed, failed
-    Tally TestCanPerform_WildcardStation, passed, failed
-    Tally TestCanPerform_DisabledUser, passed, failed
-    Tally TestCanPerform_ExpiredCapability, passed, failed
-    Tally TestRequire_RaisesOnDeny, passed, failed
+    Tally TestCanPerform_Allow(), passed, failed
+    Tally TestCanPerform_Deny_MissingCapability(), passed, failed
+    Tally TestCanPerform_WildcardStation(), passed, failed
+    Tally TestCanPerform_DisabledUser(), passed, failed
+    Tally TestCanPerform_ExpiredCapability(), passed, failed
+    Tally TestRequire_RaisesOnDeny(), passed, failed
 
     Debug.Print "Core.Auth tests - Passed: " & passed & " Failed: " & failed
 End Sub
@@ -173,6 +173,7 @@ Private Function BuildConfigWorkbook(ByVal whId As String, ByVal stId As String)
     Dim wb As Workbook
     Dim wsWh As Worksheet
     Dim wsSt As Worksheet
+    Dim p As String
 
     Set wb = Application.Workbooks.Add
     Set wsWh = wb.Worksheets(1)
@@ -198,6 +199,12 @@ Private Function BuildConfigWorkbook(ByVal whId As String, ByVal stId As String)
     wsSt.Range("A2").Resize(1, 4).Value = Array(stId, whId, Environ$("COMPUTERNAME"), "RECEIVE")
     wsSt.ListObjects.Add(xlSrcRange, wsSt.Range("A1:D2"), , xlYes).Name = "tblStationConfig"
 
+    p = Environ$("TEMP") & "\WH1.invSys.Config.test.xlsx"
+    On Error Resume Next
+    Kill p
+    On Error GoTo 0
+    wb.SaveAs Filename:=p, FileFormat:=51
+
     Set BuildConfigWorkbook = wb
 End Function
 
@@ -205,6 +212,7 @@ Private Function BuildAuthWorkbook(ByVal whId As String) As Workbook
     Dim wb As Workbook
     Dim wsUsers As Worksheet
     Dim wsCaps As Worksheet
+    Dim p As String
 
     Set wb = Application.Workbooks.Add
     Set wsUsers = wb.Worksheets(1)
@@ -220,6 +228,12 @@ Private Function BuildAuthWorkbook(ByVal whId As String) As Workbook
     wsCaps.Range("A1").Resize(1, 7).Value = Array("UserId", "Capability", "WarehouseId", "StationId", "Status", "ValidFrom", "ValidTo")
     wsCaps.Range("A2").Resize(1, 7).Value = Array("", "", "", "", "", "", "")
     wsCaps.ListObjects.Add(xlSrcRange, wsCaps.Range("A1:G2"), , xlYes).Name = "tblCapabilities"
+
+    p = Environ$("TEMP") & "\WH1.invSys.Auth.test.xlsx"
+    On Error Resume Next
+    Kill p
+    On Error GoTo 0
+    wb.SaveAs Filename:=p, FileFormat:=51
 
     Set BuildAuthWorkbook = wb
 End Function
@@ -255,8 +269,13 @@ Private Sub Tally(ByVal testResult As Long, ByRef passed As Long, ByRef failed A
 End Sub
 
 Private Sub CloseNoSave(ByVal wb As Workbook)
+    Dim p As String
     If wb Is Nothing Then Exit Sub
     On Error Resume Next
+    p = wb.FullName
     wb.Close SaveChanges:=False
+    If InStr(1, p, ".test.", vbTextCompare) > 0 Then
+        If Len(Dir$(p)) > 0 Then Kill p
+    End If
     On Error GoTo 0
 End Sub
