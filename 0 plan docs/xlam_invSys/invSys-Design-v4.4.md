@@ -1,7 +1,7 @@
-﻿# invSys Architecture v4.3 - Release 1 Plan
+﻿# invSys Architecture v4.4 - Release 1 Plan
 **Project:** invSys Multi-Warehouse Inventory System  
-**Version:** 4.3 (VBA Release 1)  
-**Date:** March 4, 2026  
+**Version:** 4.4 (VBA Release 1)  
+**Date:** March 9, 2026  
 **Author:** Justin  
 **Purpose:** Complete architectural specification for Release 1 (VBA/Excel only).
 
@@ -25,7 +25,7 @@
 **No external dependencies:** R1 requires only Excel + SharePoint (no Python, .NET, or other runtimes).
 
 ---
-## Progress Tracking (v4.3)
+## Progress Tracking (v4.4)
 **Legend:** `[ ]` not started, `[x]` complete
 
 ### Release 1 Milestones
@@ -253,7 +253,7 @@ flowchart TB
 
   subgraph HQ["HQ Aggregation (VBA)"]
     HQAgg["invSys.HQ.Aggregator.xlsm"]
-    HQGlobal["Global.InventorySnapshot.xlsb"]
+    HQGlobal["invSys.Global.InventorySnapshot.xlsb"]
   end
 
   SPSnaps --> HQAgg --> HQGlobal
@@ -353,8 +353,8 @@ flowchart TB
   EVENTS --> EWH2[WH2.Outbox.Events.xlsb]
   SNAP --> SWH1[WH1.invSys.Snapshot.Inventory.xlsb]
   SNAP --> SWH2[WH2.invSys.Snapshot.Inventory.xlsb]
-  GLOBAL --> GINV[Global.InventorySnapshot.xlsb]
-  GLOBAL --> GDES[Global.DesignsSnapshot.xlsb]
+  GLOBAL --> GINV[invSys.Global.InventorySnapshot.xlsb]
+  GLOBAL --> GDES[invSys.Global.DesignsSnapshot.xlsb]
   CONFIG --> CWH1[WH1.invSys.Config.xlsb]
   AUTH --> AWH1[WH1.invSys.Auth.xlsb]
   BACKUPS --> BWH1[WH1/2026-02-03/...]
@@ -421,7 +421,7 @@ graph TD
   DesApply --> Proc
   Proc --> AdminUI
   Proc --> WHOut[WHx.Outbox.Events.xlsb]
-  Proc --> WHSnap[WHx.Snapshot.Inventory.xlsb]
+  Proc --> WHSnap[WHx.invSys.Snapshot.Inventory.xlsb]
   WHSnap --> HQVBA
 
   style Config fill:#fbc02d,stroke:#f9a825,color:#000
@@ -449,9 +449,9 @@ sequenceDiagram
   participant Processor as Core.Processor
   participant LockMgr as Core.LockManager
   participant InboxWB as Inbox Workbooks
-  participant InvDomain as Inventory.Domain
-  participant InvDB as Inventory.xlsb
-  participant OutboxWB as Outbox.xlsb
+  participant InvDomain as InventoryDomain
+  participant InvDB as WHx.invSys.Data.Inventory.xlsb
+  participant OutboxWB as WHx.Outbox.Events.xlsb
 
   Admin->>AdminUI: Click Run Processor
   AdminUI->>Processor: RunBatch warehouseId, batchSize=500
@@ -502,7 +502,7 @@ sequenceDiagram
 - [x] Build Core.Config module
 - [x] Build Core.Auth module (workbook-based, PIN deferred to Phase 2)
 - [x] Build InventoryDomain.Schema with self-repair
-- [x] Create sample Auth.xlsb and Config.xlsb workbooks
+- [x] Create sample `WH1.invSys.Auth.xlsb` and `WH1.invSys.Config.xlsb` workbooks
 
 **Tests:**
 - [x] Test: Core.Config precedence resolves `Station -> Warehouse -> Default` and required keys fail closed
@@ -522,8 +522,8 @@ sequenceDiagram
 - [ ] Build Core.LockManager module
 - [ ] Build Core.Processor batch loop
 - [ ] Build InventoryDomain.Apply (Receive events only)
-- [ ] Create sample Inbox.Receiving.S1.xlsb workbook
-- [ ] Create sample Inventory.xlsb workbook
+- [ ] Create sample `invSys.Inbox.Receiving.S1.xlsb` workbook
+- [ ] Create sample `WH1.invSys.Data.Inventory.xlsb` workbook
 
 **Tests:**
 - [ ] Test: AcquireLock/ReleaseLock + heartbeat lifecycle (`30s heartbeat`, `3 min expiry`)
@@ -703,7 +703,7 @@ End Function
 3. Both warehouses run processor
 4. Both warehouses copy snapshots to SharePoint (manual simulation)
 5. HQ Aggregator runs (VBA macro)
-6. Verify Global.InventorySnapshot.xlsb shows WH1: SKU-001 = 100 and WH2: SKU-001 = 50.
+6. Verify `invSys.Global.InventorySnapshot.xlsb` shows WH1: SKU-001 = 100 and WH2: SKU-001 = 50.
 
 **Expected Duration:** 10 minutes
 
@@ -726,7 +726,7 @@ End Function
 
 **Recovery Steps:**
 1. Close all Excel instances
-2. Restore last backup: `C:\\invSys\\Backups\\WHx\\Inbox.Receiving.S1_YYYYMMDD.xlsb`
+2. Restore last backup: `C:\\invSys\\Backups\\WHx\\invSys.Inbox.Receiving.S1_YYYYMMDD.xlsb`
 3. Re-enter any events created after backup timestamp (manual data entry)
 4. Mark corrupted file with `.CORRUPT` suffix
 5. Log incident in Admin audit log
@@ -878,7 +878,7 @@ WarehouseId    (text)
 StationId      (text)
 OccurredAtUTC  (datetime)
 AppliedAtUTC   (datetime)
-AppliedBy      (text)
+AppliedByUserId (text)
 RunId          (text)
 DeltaJson      (text)   minimal delta payload (no before/after)
 ```
@@ -946,7 +946,4 @@ Status         (text)       HELD | EXPIRED | BROKEN
 ```
 
 ---
-
-
-
 
