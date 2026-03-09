@@ -1,6 +1,6 @@
-﻿# invSys Architecture v4.4 - Release 1 Plan
+﻿# invSys Architecture v4.41 - Release 1 Plan
 **Project:** invSys Multi-Warehouse Inventory System  
-**Version:** 4.4 (VBA Release 1)  
+**Version:** 4.41 (VBA Release 1)  
 **Date:** March 9, 2026  
 **Author:** Justin  
 **Purpose:** Complete architectural specification for Release 1 (VBA/Excel only).
@@ -25,7 +25,7 @@
 **No external dependencies:** R1 requires only Excel + SharePoint (no Python, .NET, or other runtimes).
 
 ---
-## Progress Tracking (v4.4)
+## Progress Tracking (v4.41)
 **Legend:** `[ ]` not started, `[x]` complete
 
 ### Release 1 Milestones
