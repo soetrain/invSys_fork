@@ -30,14 +30,14 @@ Public Function LoadConfig(Optional ByVal whId As String = "", Optional ByVal st
 
     InitializeState
 
-    Set wb = ResolveConfigWorkbook(whId)
+    Set wb = ResolveConfigWorkbook(whId, stId)
     If wb Is Nothing Then
         AddValidationIssue "ERROR", "CONFIG_MISSING", "No open config workbook found."
         GoTo FailSoft
     End If
     mResolvedWorkbook = wb.Name
 
-    If Not EnsureConfigTables(wb) Then
+    If Not EnsureConfigSchema(wb, whId, stId) Then
         AddValidationIssue "ERROR", "CONFIG_SELF_HEAL_FAILED", "Failed to create/repair config tables."
         GoTo FailSoft
     End If
@@ -126,6 +126,35 @@ FailSoft:
 FailLoad:
     AddValidationIssue "ERROR", "CONFIG_LOAD_EXCEPTION", Err.Description
     Resume FailSoft
+End Function
+
+Public Function EnsureConfigSchema(Optional ByVal targetWb As Workbook = Nothing, _
+                                   Optional ByVal warehouseId As String = "", _
+                                   Optional ByVal stationId As String = "", _
+                                   Optional ByRef report As String = "") As Boolean
+    On Error GoTo FailEnsure
+
+    Dim wb As Workbook
+
+    If targetWb Is Nothing Then
+        Set wb = ThisWorkbook
+    Else
+        Set wb = targetWb
+    End If
+
+    If Not EnsureConfigTables(wb) Then GoTo FailSoft
+    SeedConfigDefaults wb, warehouseId, stationId
+    FormatConfigSurface wb
+
+    EnsureConfigSchema = True
+    Exit Function
+
+FailSoft:
+    report = "EnsureConfigSchema failed."
+    Exit Function
+
+FailEnsure:
+    report = "EnsureConfigSchema failed: " & Err.Description
 End Function
 
 Public Function Reload() As Boolean
@@ -265,8 +294,9 @@ Private Sub AddValidationIssue(ByVal severity As String, ByVal code As String, B
     mValidationIssues.Add severity & "|" & code & "|" & message
 End Sub
 
-Private Function ResolveConfigWorkbook(ByVal whId As String) As Workbook
+Private Function ResolveConfigWorkbook(ByVal whId As String, ByVal stId As String) As Workbook
     Dim wb As Workbook
+    Dim bootstrapReport As String
 
     For Each wb In Application.Workbooks
         If IsConfigWorkbookName(wb.Name) Then
@@ -294,6 +324,13 @@ Private Function ResolveConfigWorkbook(ByVal whId As String) As Workbook
             Exit Function
         End If
     Next wb
+
+    If whId <> "" Then
+        Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(whId, stId, "", bootstrapReport)
+        If Not ResolveConfigWorkbook Is Nothing Then Exit Function
+    End If
+
+    Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenFirstRuntimeConfigWorkbook(bootstrapReport)
 End Function
 
 Private Function IsConfigWorkbookName(ByVal wbName As String) As Boolean
@@ -514,6 +551,7 @@ Private Sub EnsureListObjectWithHeaders(ByVal wb As Workbook, _
     Dim startCell As Range
 
     Set ws = EnsureWorksheet(wb, sheetName)
+    EnsureWorksheetEditableConfig ws
     On Error Resume Next
     Set lo = ws.ListObjects(tableName)
     On Error GoTo 0
@@ -548,6 +586,81 @@ Private Function EnsureWorksheet(ByVal wb As Workbook, ByVal sheetName As String
     End If
 End Function
 
+Private Sub SeedConfigDefaults(ByVal wb As Workbook, ByVal warehouseId As String, ByVal stationId As String)
+    Dim loWh As ListObject
+    Dim loSt As ListObject
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+
+    Set loWh = FindListObjectByName(wb, "tblWarehouseConfig")
+    Set loSt = FindListObjectByName(wb, "tblStationConfig")
+    If loWh Is Nothing Or loSt Is Nothing Then Exit Sub
+
+    EnsureTableHasRow loWh
+    EnsureTableHasRow loSt
+
+    resolvedWh = ResolveSeedWarehouseIdConfig(warehouseId, wb.Name)
+    resolvedSt = ResolveSeedStationIdConfig(stationId)
+
+    EnsureConfigCellDefault loWh, 1, "WarehouseId", resolvedWh
+    EnsureConfigCellDefault loWh, 1, "WarehouseName", resolvedWh
+    EnsureConfigCellDefault loWh, 1, "Timezone", "UTC"
+    EnsureConfigCellDefault loWh, 1, "DefaultLocation", "A1"
+    EnsureConfigCellDefault loWh, 1, "BatchSize", 500
+    EnsureConfigCellDefault loWh, 1, "LockTimeoutMinutes", 3
+    EnsureConfigCellDefault loWh, 1, "HeartbeatIntervalSeconds", 30
+    EnsureConfigCellDefault loWh, 1, "MaxLockHoldMinutes", 2
+    EnsureConfigCellDefault loWh, 1, "SnapshotCadence", "PER_BATCH"
+    EnsureConfigCellDefault loWh, 1, "BackupCadence", "DAILY"
+    EnsureConfigCellDefault loWh, 1, "PathDataRoot", Replace$("C:\invSys\{WarehouseId}\", "{WarehouseId}", resolvedWh)
+    EnsureConfigCellDefault loWh, 1, "PathBackupRoot", Replace$("C:\invSys\Backups\{WarehouseId}\", "{WarehouseId}", resolvedWh)
+    EnsureConfigCellDefault loWh, 1, "PathSharePointRoot", ""
+    EnsureConfigCellDefault loWh, 1, "DesignsEnabled", False
+    EnsureConfigCellDefault loWh, 1, "PoisonRetryMax", 3
+    EnsureConfigCellDefault loWh, 1, "AuthCacheTTLSeconds", 300
+    EnsureConfigCellDefault loWh, 1, "ProcessorServiceUserId", "svc_processor"
+    EnsureConfigCellDefault loWh, 1, "FF_DesignsEnabled", False
+    EnsureConfigCellDefault loWh, 1, "FF_OutlookAlerts", False
+    EnsureConfigCellDefault loWh, 1, "FF_AutoSnapshot", True
+
+    EnsureConfigCellDefault loSt, 1, "StationId", resolvedSt
+    EnsureConfigCellDefault loSt, 1, "WarehouseId", resolvedWh
+    EnsureConfigCellDefault loSt, 1, "StationName", Environ$("COMPUTERNAME")
+    EnsureConfigCellDefault loSt, 1, "RoleDefault", "RECEIVE"
+End Sub
+
+Private Sub EnsureConfigCellDefault(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal defaultValue As Variant)
+    Dim idx As Long
+    Dim existingValue As Variant
+
+    idx = GetColumnIndex(lo, columnName)
+    If idx = 0 Then Exit Sub
+    existingValue = lo.DataBodyRange.Cells(rowIndex, idx).Value
+    If IsBlankValue(existingValue) Then
+        lo.DataBodyRange.Cells(rowIndex, idx).Value = defaultValue
+    End If
+End Sub
+
+Private Function ResolveSeedWarehouseIdConfig(ByVal warehouseId As String, ByVal workbookName As String) As String
+    ResolveSeedWarehouseIdConfig = SafeTrim(warehouseId)
+    If ResolveSeedWarehouseIdConfig = "" Then ResolveSeedWarehouseIdConfig = InferWarehouseIdFromWorkbookName(workbookName)
+    If ResolveSeedWarehouseIdConfig = "" Then ResolveSeedWarehouseIdConfig = "WH1"
+End Function
+
+Private Function ResolveSeedStationIdConfig(ByVal stationId As String) As String
+    ResolveSeedStationIdConfig = SafeTrim(stationId)
+    If ResolveSeedStationIdConfig = "" Then ResolveSeedStationIdConfig = "S1"
+End Function
+
+Private Sub FormatConfigSurface(ByVal wb As Workbook)
+    Dim ws As Worksheet
+
+    For Each ws In wb.Worksheets
+        ws.Cells.EntireColumn.AutoFit
+        ws.Rows(1).Font.Bold = True
+    Next ws
+End Sub
+
 Private Function GetNextTableStartCell(ByVal ws As Worksheet) As Range
     If Application.WorksheetFunction.CountA(ws.Cells) = 0 Then
         Set GetNextTableStartCell = ws.Range("A1")
@@ -569,6 +682,20 @@ End Sub
 Private Sub EnsureTableHasRow(ByVal lo As ListObject)
     If lo Is Nothing Then Exit Sub
     If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+End Sub
+
+Private Sub EnsureWorksheetEditableConfig(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+    If Not ws.ProtectContents Then Exit Sub
+
+    On Error Resume Next
+    ws.Unprotect
+    On Error GoTo 0
+
+    If ws.ProtectContents Then
+        Err.Raise vbObjectError + 2701, "modConfig.EnsureWorksheetEditableConfig", _
+                  "Worksheet '" & ws.Name & "' is protected and could not be unprotected before updating config tables."
+    End If
 End Sub
 
 Private Function GetColumnIndex(ByVal lo As ListObject, ByVal columnName As String) As Long

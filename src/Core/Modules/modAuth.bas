@@ -28,7 +28,7 @@ Public Function LoadAuth(Optional ByVal whId As String = "") As Boolean
     End If
     mAuthWorkbook = wb.Name
 
-    If Not EnsureAuthTables(wb) Then
+    If Not EnsureAuthSchema(wb, whId, modConfig.GetString("ProcessorServiceUserId", "svc_processor")) Then
         AddValidationIssue "ERROR", "AUTH_SELF_HEAL_FAILED", "Failed to create/repair auth tables."
         GoTo FailSoft
     End If
@@ -64,6 +64,35 @@ FailSoft:
 FailLoad:
     AddValidationIssue "ERROR", "AUTH_LOAD_EXCEPTION", Err.Description
     Resume FailSoft
+End Function
+
+Public Function EnsureAuthSchema(Optional ByVal targetWb As Workbook = Nothing, _
+                                 Optional ByVal warehouseId As String = "", _
+                                 Optional ByVal processorServiceUserId As String = "", _
+                                 Optional ByRef report As String = "") As Boolean
+    On Error GoTo FailEnsure
+
+    Dim wb As Workbook
+
+    If targetWb Is Nothing Then
+        Set wb = ThisWorkbook
+    Else
+        Set wb = targetWb
+    End If
+
+    If Not EnsureAuthTables(wb) Then GoTo FailSoft
+    SeedAuthDefaults wb, warehouseId, processorServiceUserId
+    FormatAuthSurface wb
+
+    EnsureAuthSchema = True
+    Exit Function
+
+FailSoft:
+    report = "EnsureAuthSchema failed."
+    Exit Function
+
+FailEnsure:
+    report = "EnsureAuthSchema failed: " & Err.Description
 End Function
 
 Public Function ReloadAuth() As Boolean
@@ -317,6 +346,8 @@ End Sub
 
 Private Function ResolveAuthWorkbook(ByVal whId As String) As Workbook
     Dim wb As Workbook
+    Dim bootstrapReport As String
+    Dim bootstrapWh As String
 
     For Each wb In Application.Workbooks
         If IsAuthWorkbookName(wb.Name) Then
@@ -344,6 +375,16 @@ Private Function ResolveAuthWorkbook(ByVal whId As String) As Workbook
             Exit Function
         End If
     Next wb
+
+    bootstrapWh = whId
+    If bootstrapWh = "" Then bootstrapWh = modConfig.GetString("WarehouseId", "")
+
+    If bootstrapWh <> "" Then
+        Set ResolveAuthWorkbook = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime(bootstrapWh, modConfig.GetString("ProcessorServiceUserId", "svc_processor"), "", bootstrapReport)
+        If Not ResolveAuthWorkbook Is Nothing Then Exit Function
+    End If
+
+    Set ResolveAuthWorkbook = modRuntimeWorkbooks.OpenFirstRuntimeAuthWorkbook(bootstrapReport)
 End Function
 
 Private Function IsAuthWorkbookName(ByVal wbName As String) As Boolean
@@ -378,6 +419,7 @@ Private Sub EnsureListObjectWithHeaders(ByVal wb As Workbook, _
     Dim startCell As Range
 
     Set ws = EnsureWorksheet(wb, sheetName)
+    EnsureWorksheetEditableAuth ws
     On Error Resume Next
     Set lo = ws.ListObjects(tableName)
     On Error GoTo 0
@@ -410,6 +452,62 @@ Private Function EnsureWorksheet(ByVal wb As Workbook, ByVal sheetName As String
     End If
 End Function
 
+Private Sub SeedAuthDefaults(ByVal wb As Workbook, ByVal warehouseId As String, ByVal processorServiceUserId As String)
+    Dim loUsers As ListObject
+    Dim serviceUser As String
+
+    Set loUsers = FindListObjectByName(wb, "tblUsers")
+    If loUsers Is Nothing Then Exit Sub
+
+    serviceUser = SafeTrim(processorServiceUserId)
+    If serviceUser = "" Then serviceUser = "svc_processor"
+
+    EnsureUserRow loUsers, serviceUser, "Processor Service"
+End Sub
+
+Private Sub EnsureUserRow(ByVal lo As ListObject, ByVal userId As String, ByVal displayName As String)
+    Dim rowIndex As Long
+
+    rowIndex = FindAuthUserRow(lo, userId)
+    If rowIndex = 0 Then
+        rowIndex = 1
+        If Not lo.DataBodyRange Is Nothing Then
+            If SafeTrim(lo.DataBodyRange.Cells(1, lo.ListColumns("UserId").Index).Value) <> "" Then
+                lo.ListRows.Add
+                rowIndex = lo.ListRows.Count
+            End If
+        End If
+    End If
+
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("UserId").Index).Value = userId
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("DisplayName").Index).Value = displayName
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("PinHash").Index).Value = ""
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("Status").Index).Value = "Active"
+End Sub
+
+Private Function FindAuthUserRow(ByVal lo As ListObject, ByVal userId As String) As Long
+    Dim i As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    For i = 1 To lo.ListRows.Count
+        If StrComp(SafeTrim(lo.DataBodyRange.Cells(i, lo.ListColumns("UserId").Index).Value), userId, vbTextCompare) = 0 Then
+            FindAuthUserRow = i
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Sub FormatAuthSurface(ByVal wb As Workbook)
+    Dim ws As Worksheet
+
+    For Each ws In wb.Worksheets
+        ws.Cells.EntireColumn.AutoFit
+        ws.Rows(1).Font.Bold = True
+    Next ws
+End Sub
+
 Private Function GetNextTableStartCell(ByVal ws As Worksheet) As Range
     If Application.WorksheetFunction.CountA(ws.Cells) = 0 Then
         Set GetNextTableStartCell = ws.Range("A1")
@@ -417,6 +515,20 @@ Private Function GetNextTableStartCell(ByVal ws As Worksheet) As Range
         Set GetNextTableStartCell = ws.Cells(ws.Rows.Count, 1).End(xlUp).Offset(2, 0)
     End If
 End Function
+
+Private Sub EnsureWorksheetEditableAuth(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+    If Not ws.ProtectContents Then Exit Sub
+
+    On Error Resume Next
+    ws.Unprotect
+    On Error GoTo 0
+
+    If ws.ProtectContents Then
+        Err.Raise vbObjectError + 2702, "modAuth.EnsureWorksheetEditableAuth", _
+                  "Worksheet '" & ws.Name & "' is protected and could not be unprotected before updating auth tables."
+    End If
+End Sub
 
 Private Sub EnsureListColumn(ByVal lo As ListObject, ByVal columnName As String)
     If GetColumnIndex(lo, columnName) > 0 Then Exit Sub

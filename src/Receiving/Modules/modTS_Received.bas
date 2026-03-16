@@ -1,3 +1,4 @@
+Attribute VB_Name = "modTS_Received"
 Option Explicit
 
 ' =============================================================
@@ -27,6 +28,8 @@ Private mRowMap As Object ' maps staging row number -> Array(invRow, refNumber)
 ' ==== public entry points =====
 Public Sub EnsureGeneratedButtons()
     On Error Resume Next
+    Dim surfaceReport As String
+    Call modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(ThisWorkbook, surfaceReport)
     Dim ws As Worksheet
     Set ws = SheetExists("ReceivedTally")
     If ws Is Nothing Then Exit Sub
@@ -34,7 +37,6 @@ Public Sub EnsureGeneratedButtons()
     EnsureButton ws, "btnConfirmWrites", "Confirm writes", "modTS_Received.ConfirmWrites"
     EnsureButton ws, "btnUndoMacro", "Undo macro", "modTS_Received.MacroUndo"
     EnsureButton ws, "btnRedoMacro", "Redo macro", "modTS_Received.MacroRedo"
-    RefreshReceivingUiAccess ws
 End Sub
 
 ' ==== dynamic search form (ReceivedTally) =====

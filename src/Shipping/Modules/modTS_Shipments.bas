@@ -52,6 +52,8 @@ Private mAggDirty As Boolean
 
 ' ===== public entry points =====
 Public Sub InitializeShipmentsUI()
+    Dim surfaceReport As String
+    Call modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(ThisWorkbook, surfaceReport)
     EnsureShipmentsButtons
     EnsureBuilderTablesReady
     If mAggDirty Then RebuildShippingAggregates
@@ -620,7 +622,6 @@ Private Sub EnsureShipmentsButtons()
     EnsureButtonCustom ws, BTN_TO_SHIPMENTS, "To Shipments", "modTS_Shipments.BtnToShipments", leftA, nextTop, colAWidth
     nextTop = nextTop + BTN_STACK_SPACING
     EnsureButtonCustom ws, BTN_SHIPMENTS_SENT, "Shipments sent", "modTS_Shipments.BtnShipmentsSent", leftA, nextTop, colAWidth
-    RefreshShipmentsUiAccess ws
 End Sub
 
 Private Sub RefreshShipmentsUiAccess(ByVal ws As Worksheet)
@@ -2619,7 +2620,6 @@ Public Sub SetupAllHandlers()
     ClearTableFilters
     modGlobals.InitializeGlobalVariables
     Application.OnKey "{F3}", "modGlobals.OpenItemSearchForCurrentCell"
-    modTS_Received.EnsureGeneratedButtons
     InitializeShipmentsUI
     On Error GoTo 0
 End Sub

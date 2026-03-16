@@ -1,3 +1,4 @@
+Attribute VB_Name = "mProduction"
 ' run "mProduction.InitializeProductionUI" in immediate window to clean up UI
 Option Explicit
 
@@ -53,6 +54,8 @@ Private mSystemGroupNames(1 To 4) As String
 Private mSystemGroupTables(1 To 4) As Variant
 
 Public Sub InitializeProductionUI()
+    Dim surfaceReport As String
+    Call modRoleWorkbookSurfaces.EnsureProductionWorkbookSurface(ThisWorkbook, surfaceReport)
     EnsureProductionButtons
     EnsureSystemGroups
 End Sub
@@ -591,7 +594,6 @@ Private Sub EnsureProductionButtons()
     EnsureButtonCustom ws, BTN_NEXT_BATCH, "Next Batch", "mProduction.BtnNextBatch", leftA, nextTop, colAWidth
     nextTop = nextTop + BTN_STACK_SPACING
     EnsureButtonCustom ws, BTN_PRINT_CODES, "Print recall codes", "mProduction.BtnPrintRecallCodes", leftA, nextTop, colAWidth
-    RefreshProductionUiAccess ws
 End Sub
 
 Private Sub RefreshProductionUiAccess(ByVal ws As Worksheet)
@@ -4855,6 +4857,24 @@ Public Function GetPaletteTableContext(ByVal lo As ListObject, ByRef recipeId As
     procName = NzStr(info(3))
     ioVal = NzStr(info(4))
     GetPaletteTableContext = True
+End Function
+
+Public Function GetPaletteTableContextInfo(ByVal lo As ListObject) As Variant
+    Dim recipeId As String
+    Dim ingredientId As String
+    Dim amount As Variant
+    Dim procName As String
+    Dim ioVal As String
+    Dim info(1 To 5) As Variant
+
+    If Not GetPaletteTableContext(lo, recipeId, ingredientId, amount, procName, ioVal) Then Exit Function
+
+    info(1) = recipeId
+    info(2) = ingredientId
+    info(3) = amount
+    info(4) = procName
+    info(5) = ioVal
+    GetPaletteTableContextInfo = info
 End Function
 
 Public Function GetAllowedInvRowsForIngredient(ByVal recipeId As String, ByVal ingredientId As String) As Object

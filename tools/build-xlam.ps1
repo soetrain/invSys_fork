@@ -142,6 +142,10 @@ function Import-Components {
                     $inHeader = $false
                 }
 
+                if ($line -match '^Attribute ') {
+                    continue
+                }
+
                 [void]$codeLines.Add($line)
             }
 
@@ -364,6 +368,7 @@ $projectMap = @(
         Key        = "Core"
         Project    = "invSys_Core"
         OutputFile = "invSys.Core.xlam"
+        LegacyOutputFiles = @()
         SourceDirs = @((Join-Path $repo "src/Core"))
         References = @()
         Sheets     = @("INVENTORY MANAGEMENT", "ErrorLog", "Notes", "TestSummary")
@@ -374,6 +379,7 @@ $projectMap = @(
         Key        = "InventoryDomain"
         Project    = "invSys_Inventory_Domain"
         OutputFile = "invSys.Inventory.Domain.xlam"
+        LegacyOutputFiles = @()
         SourceDirs = @((Join-Path $repo "src/InventoryDomain"))
         References = @("Core")
         Sheets     = @("INVENTORY MANAGEMENT", "InventoryLog", "AppliedEvents", "Locks")
@@ -384,6 +390,7 @@ $projectMap = @(
         Key        = "DesignsDomain"
         Project    = "invSys_Designs_Domain"
         OutputFile = "invSys.Designs.Domain.xlam"
+        LegacyOutputFiles = @()
         SourceDirs = @((Join-Path $repo "src/DesignsDomain"))
         References = @("Core")
         Sheets     = @()
@@ -394,6 +401,7 @@ $projectMap = @(
         Key        = "Receiving"
         Project    = "invSys_Receiving"
         OutputFile = "invSys.Receiving.xlam"
+        LegacyOutputFiles = @("invSysReceiving.xlam")
         SourceDirs = @((Join-Path $repo "src/Receiving"))
         References = @("Core")
         Sheets     = @("ReceivedTally", "InventoryManagement", "ReceivedLog")
@@ -420,6 +428,7 @@ $projectMap = @(
         Key        = "Shipping"
         Project    = "invSys_Shipping"
         OutputFile = "invSys.Shipping.xlam"
+        LegacyOutputFiles = @()
         SourceDirs = @((Join-Path $repo "src/Shipping"))
         References = @("Core", "InventoryDomain")
         Sheets     = @("ShipmentsTally", "InventoryManagement", "ShippingBOM")
@@ -446,6 +455,7 @@ $projectMap = @(
         Key        = "Production"
         Project    = "invSys_Production"
         OutputFile = "invSys.Production.xlam"
+        LegacyOutputFiles = @()
         SourceDirs = @((Join-Path $repo "src/Production"))
         References = @("Core", "InventoryDomain", "DesignsDomain")
         Sheets     = @("Production", "InventoryManagement", "Recipes")
@@ -473,6 +483,7 @@ $projectMap = @(
         Key        = "Admin"
         Project    = "invSys_Admin"
         OutputFile = "invSys.Admin.xlam"
+        LegacyOutputFiles = @()
         SourceDirs = @((Join-Path $repo "src/Admin"))
         References = @("Core", "InventoryDomain", "DesignsDomain")
         Sheets     = @("UserCredentials", "Emails")
@@ -503,9 +514,35 @@ if (-not (Test-Path -LiteralPath $outputDir)) {
     New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 }
 
+$archiveDir = Join-Path (Split-Path $outputDir -Parent) "archive"
+if (-not (Test-Path -LiteralPath $archiveDir)) {
+    New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
+}
+
 Write-Host "Planned outputs:"
 foreach ($project in $projectMap) {
     Write-Host ("- " + (Join-Path $outputDir $project.OutputFile))
+}
+
+$legacyArtifacts = @()
+foreach ($project in $projectMap) {
+    foreach ($legacyName in $project.LegacyOutputFiles) {
+        $legacyPath = Join-Path $outputDir $legacyName
+        if (Test-Path -LiteralPath $legacyPath) {
+            $legacyArtifacts += [pscustomobject]@{
+                Project = $project.Key
+                Path    = $legacyPath
+                Name    = $legacyName
+            }
+        }
+    }
+}
+
+if ($legacyArtifacts.Count -gt 0) {
+    Write-Host "Legacy outputs queued for archive:"
+    foreach ($artifact in $legacyArtifacts) {
+        Write-Host ("- " + $artifact.Path)
+    }
 }
 
 if (-not $Apply) {
@@ -516,6 +553,13 @@ if (-not $Apply) {
 $builtOutputs = @{}
 $excel = $null
 try {
+    foreach ($artifact in $legacyArtifacts) {
+        $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $archivePath = Join-Path $archiveDir (($artifact.Project + "." + $timestamp + "." + $artifact.Name))
+        Write-Host ("Archiving legacy output " + $artifact.Path + " -> " + $archivePath)
+        Move-Item -LiteralPath $artifact.Path -Destination $archivePath -Force
+    }
+
     $excel = New-Object -ComObject Excel.Application
     $excel.Visible = $false
     $excel.DisplayAlerts = $false

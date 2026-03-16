@@ -3,11 +3,13 @@ Option Explicit
 
 Sub Admin_Click()
     Dim report As String
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
     Call modAdminConsole.OpenAdminConsole(, report)
 End Sub
 
 Sub Open_CreateDeleteUser()
     Dim report As String
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
     Call modAdminConsole.OpenUserManagement(, report)
 End Sub
 

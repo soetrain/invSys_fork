@@ -40,7 +40,7 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
 
     If LCase$(lo.Name) = "ip_chooseingredient" And colKey = "INGREDIENT" Then
         Dim recipeId As String
-        recipeId = mProduction.GetPaletteRecipeId()
+        recipeId = NzStr(RunRoleMacro("mProduction.GetPaletteRecipeId"))
         If Trim$(recipeId) = "" Then
             MsgBox "Select a RECIPE in IP_ChooseRecipe first.", vbInformation
             Cancel = True
@@ -57,8 +57,8 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
     If LCase$(lo.Name) = "ip_chooseitem" And (colKey = "ITEM" Or colKey = "ITEMS") Then
         Dim palRecipeId As String
         Dim palIngId As String
-        palRecipeId = mProduction.GetPaletteRecipeId()
-        palIngId = mProduction.GetPaletteIngredientId()
+        palRecipeId = NzStr(RunRoleMacro("mProduction.GetPaletteRecipeId"))
+        palIngId = NzStr(RunRoleMacro("mProduction.GetPaletteIngredientId"))
         If palRecipeId = "" Or palIngId = "" Then
             MsgBox "Select a RECIPE and INGREDIENT before choosing an item.", vbInformation
             Cancel = True
@@ -81,14 +81,14 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
 
         Dim ctxRec As String, ctxIng As String, ctxProc As String, ctxIO As String
         Dim ctxAmt As Variant
-        If Not mProduction.GetPaletteTableContext(lo, ctxRec, ctxIng, ctxAmt, ctxProc, ctxIO) Then
+        If Not ResolvePaletteTableContext(lo, ctxRec, ctxIng, ctxAmt, ctxProc, ctxIO) Then
             MsgBox "Palette table context not found. Load a recipe in Recipe Chooser first.", vbInformation
             Cancel = True
             HandleBeforeDoubleClick = True
             Exit Function
         End If
 
-        Set allowedRows = mProduction.GetAllowedInvRowsForIngredient(ctxRec, ctxIng)
+        Set allowedRows = RunRoleMacroObject("mProduction.GetAllowedInvRowsForIngredient", ctxRec, ctxIng)
         If allowedRows Is Nothing Or allowedRows.Count = 0 Then
             MsgBox "No IngredientPalette entries found for this ingredient. Add acceptable items first.", vbInformation
             Cancel = True
@@ -133,4 +133,66 @@ Private Function NormalizeHeaderKey(ByVal v As String) As String
         If ch Like "[A-Za-z0-9]" Then out = out & UCase$(ch)
     Next i
     NormalizeHeaderKey = out
+End Function
+
+Private Function ResolvePaletteTableContext(ByVal lo As ListObject, ByRef recipeId As String, ByRef ingredientId As String, _
+    ByRef amount As Variant, ByRef procName As String, ByRef ioVal As String) As Boolean
+
+    Dim info As Variant
+    info = RunRoleMacro("mProduction.GetPaletteTableContextInfo", lo)
+    If IsEmpty(info) Then Exit Function
+    On Error GoTo Fail
+    recipeId = NzStr(info(1))
+    ingredientId = NzStr(info(2))
+    amount = info(3)
+    procName = NzStr(info(4))
+    ioVal = NzStr(info(5))
+    ResolvePaletteTableContext = True
+    Exit Function
+Fail:
+    ResolvePaletteTableContext = False
+End Function
+
+Private Function RunRoleMacro(ByVal macroName As String, ParamArray args() As Variant) As Variant
+    Select Case ParamCount(args)
+        Case 0: RunRoleMacro = Application.Run(macroName)
+        Case 1: RunRoleMacro = Application.Run(macroName, args(0))
+        Case 2: RunRoleMacro = Application.Run(macroName, args(0), args(1))
+        Case 3: RunRoleMacro = Application.Run(macroName, args(0), args(1), args(2))
+        Case 4: RunRoleMacro = Application.Run(macroName, args(0), args(1), args(2), args(3))
+        Case Else: Err.Raise 5, "cPickerRouter.RunRoleMacro", "Too many macro arguments."
+    End Select
+End Function
+
+Private Function RunRoleMacroObject(ByVal macroName As String, ParamArray args() As Variant) As Object
+    Dim result As Variant
+    result = RunRoleMacroForward(macroName, args)
+    If IsObject(result) Then Set RunRoleMacroObject = result
+End Function
+
+Private Function RunRoleMacroForward(ByVal macroName As String, ByRef args() As Variant) As Variant
+    Select Case ParamCount(args)
+        Case 0: RunRoleMacroForward = Application.Run(macroName)
+        Case 1: RunRoleMacroForward = Application.Run(macroName, args(0))
+        Case 2: RunRoleMacroForward = Application.Run(macroName, args(0), args(1))
+        Case 3: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2))
+        Case 4: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3))
+        Case Else: Err.Raise 5, "cPickerRouter.RunRoleMacroForward", "Too many macro arguments."
+    End Select
+End Function
+
+Private Function ParamCount(ByRef args() As Variant) As Long
+    On Error GoTo NoArgs
+    ParamCount = UBound(args) - LBound(args) + 1
+    Exit Function
+NoArgs:
+    ParamCount = 0
+End Function
+
+Private Function NzStr(ByVal v As Variant) As String
+    If IsError(v) Or IsNull(v) Or IsEmpty(v) Then
+        NzStr = ""
+    Else
+        NzStr = CStr(v)
+    End If
 End Function

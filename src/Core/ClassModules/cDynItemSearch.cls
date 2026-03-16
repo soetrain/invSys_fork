@@ -231,11 +231,11 @@ End Sub
 Private Function LoadItems() As Boolean
     Debug.Print "  LoadItems entered"
     If LCase$(mPickerMode) = "recipe" Or LCase$(mPickerMode) = "palette_recipe" Or LCase$(mPickerMode) = "recipe_chooser" Then
-        itemsArr = mProduction.LoadRecipeList()
+        itemsArr = RunRoleMacro("mProduction.LoadRecipeList")
     ElseIf LCase$(mPickerMode) = "ingredient" Then
-        itemsArr = mProduction.LoadIngredientListForRecipe(mIngredientRecipeId)
+        itemsArr = RunRoleMacro("mProduction.LoadIngredientListForRecipe", mIngredientRecipeId)
     Else
-        itemsArr = modTS_Received.LoadItemList(True)
+        itemsArr = RunRoleMacro("modTS_Received.LoadItemList", True)
     End If
     lst.Clear
     If IsEmpty(itemsArr) Then
@@ -503,9 +503,7 @@ Public Sub CommitSelection()
             callbackCell.Value = recName
         End If
 
-        If recId <> "" Then
-            mProduction.LoadRecipeFromRecipes recId
-        End If
+        If recId <> "" Then RunRoleMacro "mProduction.LoadRecipeFromRecipes", recId
         uf.Hide
         Exit Sub
     End If
@@ -541,7 +539,7 @@ Public Sub CommitSelection()
         If cPalIdCol > 0 Then palRecipeRow.Cells(1, cPalIdCol).Value = pRecId
         If cPalDescCol > 0 Then palRecipeRow.Cells(1, cPalDescCol).Value = pRecDesc
 
-        mProduction.HandlePaletteRecipeSelected pRecId
+        RunRoleMacro "mProduction.HandlePaletteRecipeSelected", pRecId
         uf.Hide
         Exit Sub
     End If
@@ -578,9 +576,7 @@ Public Sub CommitSelection()
         If cChooserIdCol > 0 Then chooserRow.Cells(1, cChooserIdCol).Value = chRecId
         If cChooserDescCol > 0 Then chooserRow.Cells(1, cChooserDescCol).Value = chRecDesc
 
-        If chRecId <> "" Then
-            mProduction.LoadRecipeChooser chRecId
-        End If
+        If chRecId <> "" Then RunRoleMacro "mProduction.LoadRecipeChooser", chRecId
         uf.Hide
         Exit Sub
     End If
@@ -637,7 +633,7 @@ Public Sub CommitSelection()
         If cIngIdCol > 0 Then ingRowRange.Cells(1, cIngIdCol).Value = selIngId
         If cIngProcCol > 0 Then ingRowRange.Cells(1, cIngProcCol).Value = selProc
 
-        mProduction.HandlePaletteIngredientSelected mIngredientRecipeId, selIngId
+        RunRoleMacro "mProduction.HandlePaletteIngredientSelected", mIngredientRecipeId, selIngId
         uf.Hide
         Exit Sub
     End If
@@ -692,8 +688,8 @@ Public Sub CommitSelection()
         If cPalUom > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalUom).Value = palItemUom
         If cPalDesc > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalDesc).Value = palItemDesc
         If cPalRow > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalRow).Value = palItemRowVal
-        If cPalRec > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalRec).Value = mProduction.GetPaletteRecipeId()
-        If cPalIng > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalIng).Value = mProduction.GetPaletteIngredientId()
+        If cPalRec > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalRec).Value = NzStr(RunRoleMacro("mProduction.GetPaletteRecipeId"))
+        If cPalIng > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalIng).Value = NzStr(RunRoleMacro("mProduction.GetPaletteIngredientId"))
 
         uf.Hide
         Exit Sub
@@ -731,7 +727,7 @@ Public Sub CommitSelection()
                 refNum = NzStr(lo.DataBodyRange.Cells(rowIdx, ColumnIndex(lo, "REF_NUMBER")).Value)
                 qty = NzDbl(lo.DataBodyRange.Cells(rowIdx, ColumnIndex(lo, "QUANTITY")).Value)
             End If
-            modTS_Received.AddOrMergeFromSearch _
+            RunRoleMacro "modTS_Received.AddOrMergeFromSearch", _
                 refNum, _
                 itemName, _
                 itemCode, _
@@ -742,11 +738,11 @@ Public Sub CommitSelection()
                 uom, _
                 location, _
                 itemRow, _
-                stagingRow:=rowIdx
+                rowIdx
         Case "shipmentstally"
-            modTS_Shipments.ApplyItemSelection callbackCell, lo, rowIdx, itemName, itemCode, itemRow, uom, location, vendor, lst.List(lst.ListIndex, 5)
+            RunRoleMacro "modTS_Shipments.ApplyItemSelection", callbackCell, lo, rowIdx, itemName, itemCode, itemRow, uom, location, vendor, lst.List(lst.ListIndex, 5)
         Case "boxbom"
-            modTS_Shipments.ApplyItemToBoxBOM callbackCell, itemName, itemRow, uom, location, lst.List(lst.ListIndex, 5)
+            RunRoleMacro "modTS_Shipments.ApplyItemToBoxBOM", callbackCell, itemName, itemRow, uom, location, lst.List(lst.ListIndex, 5)
         Case "ip_chooseitem"
             Dim colItem As Long: colItem = ColumnIndex(lo, "ITEMS")
             If colItem = 0 Then colItem = ColumnIndex(lo, "ITEM")
@@ -779,8 +775,8 @@ Public Sub CommitSelection()
             If colUom > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colUom).Value = uom
             If colDesc > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colDesc).Value = lst.List(lst.ListIndex, 5)
             If colRow > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colRow).Value = itemRow
-            If colRec > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colRec).Value = mProduction.GetPaletteRecipeId()
-            If colIng > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colIng).Value = mProduction.GetPaletteIngredientId()
+            If colRec > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colRec).Value = NzStr(RunRoleMacro("mProduction.GetPaletteRecipeId"))
+            If colIng > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colIng).Value = NzStr(RunRoleMacro("mProduction.GetPaletteIngredientId"))
         Case Else
             If tblName = "inventorypalette_generated" Or tblName Like "proc_*_palette" Then
                 Dim palItemRow As Long
@@ -811,7 +807,7 @@ Public Sub CommitSelection()
 
                     Dim ctxRec As String, ctxIng As String, ctxProc As String, ctxIO As String
                     Dim ctxAmt As Variant
-                    If mProduction.GetPaletteTableContext(lo, ctxRec, ctxIng, ctxAmt, ctxProc, ctxIO) Then
+                    If ResolvePaletteTableContext(lo, ctxRec, ctxIng, ctxAmt, ctxProc, ctxIO) Then
                         If cPalProcCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalProcCol).Value = ctxProc
                         If cPalIOCol > 0 Then lo.DataBodyRange.Cells(palItemRow, cPalIOCol).Value = ctxIO
                         If cPalQtyCol > 0 Then
@@ -962,8 +958,8 @@ Private Function GetIngredientItemSummary(ByVal recipeId As String, ByVal ingred
     If Trim$(recipeId) = "" Or Trim$(ingredientId) = "" Then Exit Function
 
     Dim wsPal As Worksheet
-    Set wsPal = mProduction.SheetExists("IngredientPalette")
-    If wsPal Is Nothing Then Set wsPal = mProduction.SheetExists("IngredientsPalette")
+    Set wsPal = RunRoleMacroObject("mProduction.SheetExists", "IngredientPalette")
+    If wsPal Is Nothing Then Set wsPal = RunRoleMacroObject("mProduction.SheetExists", "IngredientsPalette")
     If wsPal Is Nothing Then
         GetIngredientItemSummary = "IngredientPalette sheet not found."
         Exit Function
@@ -988,7 +984,7 @@ Private Function GetIngredientItemSummary(ByVal recipeId As String, ByVal ingred
 
     Dim wsInv As Worksheet
     Dim loInv As ListObject
-    Set wsInv = mProduction.SheetExists("InventoryManagement")
+    Set wsInv = RunRoleMacroObject("mProduction.SheetExists", "InventoryManagement")
     If Not wsInv Is Nothing Then
         On Error Resume Next
         Set loInv = wsInv.ListObjects("invSys")
@@ -1090,4 +1086,58 @@ End Function
 
 Private Function IdTokens(ByVal v As String) As Variant
     IdTokens = modItemSearch.IdentifierTokens(v)
+End Function
+
+Private Function ResolvePaletteTableContext(ByVal lo As ListObject, ByRef recipeId As String, ByRef ingredientId As String, _
+    ByRef amount As Variant, ByRef procName As String, ByRef ioVal As String) As Boolean
+
+    Dim info As Variant
+    info = RunRoleMacro("mProduction.GetPaletteTableContextInfo", lo)
+    If IsEmpty(info) Then Exit Function
+    On Error GoTo Fail
+    recipeId = NzStr(info(1))
+    ingredientId = NzStr(info(2))
+    amount = info(3)
+    procName = NzStr(info(4))
+    ioVal = NzStr(info(5))
+    ResolvePaletteTableContext = True
+    Exit Function
+Fail:
+    ResolvePaletteTableContext = False
+End Function
+
+Private Function RunRoleMacro(ByVal macroName As String, ParamArray args() As Variant) As Variant
+    RunRoleMacro = RunRoleMacroForward(macroName, args)
+End Function
+
+Private Function RunRoleMacroObject(ByVal macroName As String, ParamArray args() As Variant) As Object
+    Dim result As Variant
+    result = RunRoleMacroForward(macroName, args)
+    If IsObject(result) Then Set RunRoleMacroObject = result
+End Function
+
+Private Function RunRoleMacroForward(ByVal macroName As String, ByRef args() As Variant) As Variant
+    Select Case ParamCount(args)
+        Case 0: RunRoleMacroForward = Application.Run(macroName)
+        Case 1: RunRoleMacroForward = Application.Run(macroName, args(0))
+        Case 2: RunRoleMacroForward = Application.Run(macroName, args(0), args(1))
+        Case 3: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2))
+        Case 4: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3))
+        Case 5: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4))
+        Case 6: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5))
+        Case 7: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5), args(6))
+        Case 8: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7))
+        Case 9: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8))
+        Case 10: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9))
+        Case 11: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10))
+        Case Else: Err.Raise 5, "cDynItemSearch.RunRoleMacroForward", "Too many macro arguments."
+    End Select
+End Function
+
+Private Function ParamCount(ByRef args() As Variant) As Long
+    On Error GoTo NoArgs
+    ParamCount = UBound(args) - LBound(args) + 1
+    Exit Function
+NoArgs:
+    ParamCount = 0
 End Function
