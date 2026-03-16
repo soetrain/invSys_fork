@@ -32,7 +32,7 @@
 - [x] Phase 1 complete: Foundation
 - [x] Phase 2 complete: Event Processing
 - [x] Phase 3 complete: Role UI
-- [ ] Phase 4 complete: Admin Tooling
+- [x] Phase 4 complete: Admin Tooling
 - [ ] Phase 5 complete: Multi-Warehouse Sync
 - [ ] Phase 6 complete: User Systems and XLAM Hardening
 - [ ] Phase 7 complete: Polish and Release
@@ -576,20 +576,25 @@ sequenceDiagram
 ### Phase 4: Admin Tooling
 **Goal:** Admin XLAM with orchestration console
 
+**Status note:** Phase 4 is complete for the intended worksheet-based admin-console scope. Full workbook-backed admin operating surfaces and XLAM hardening remain in Phase 6.
+
 **Tasks:**
-- [ ] Build Admin.UI main panel
-- [ ] Build break-lock functionality
-- [ ] Build poison queue viewer
-- [ ] Build manual reissue workflow
-- [ ] Build snapshot generation button
+- [x] Build Admin.UI main panel
+- [x] Build break-lock functionality
+- [x] Build poison queue viewer
+- [x] Build manual reissue workflow
+- [x] Build snapshot generation button
 
 **Tests:**
-- [ ] Test: Break-lock requires `ADMIN_MAINT` and writes audit reason/timestamp
-- [ ] Test: Reissue from poison creates new `EventID` with `ParentEventId` link to original row
-- [ ] Test: Admin run + reissue + rerun completes without duplicate apply side effects
+- [x] Test: Break-lock requires `ADMIN_MAINT` and writes audit reason/timestamp
+- [x] Test: Reissue from poison creates new `EventID` with `ParentEventId` link to original row
+- [x] Test: Admin run + reissue + rerun completes without duplicate apply side effects
+
+**Execution evidence:**
+- [x] Phase 4 isolated Excel validation passed on March 15, 2026: `4 passed, 0 failed` in `tests/unit/phase4_test_results.md`
 
 **Deliverables:**
-- [ ] Admin XLAM with full management capabilities
+- [x] Admin XLAM with full management capabilities
 
 ---
 ### Phase 5: Multi-Warehouse Sync
