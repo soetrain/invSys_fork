@@ -15,6 +15,25 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
+function Get-OpenXmlAssemblyPath {
+    $candidates = @(
+        "C:\Program Files\Microsoft Office\root\Office16\ADDINS\Microsoft Power Query for Excel Integrated\bin\DocumentFormat.OpenXml.dll",
+        "C:\Program Files\Microsoft Office\root\vfs\ProgramFilesCommonX64\Microsoft Shared\Filters\Documentformat.OpenXml.dll",
+        "C:\Program Files\Microsoft Office\root\vfs\ProgramFilesX86\Microsoft Office\Office16\DCF\DocumentFormat.OpenXml.dll"
+    )
+
+    foreach ($path in $candidates) {
+        if (Test-Path -LiteralPath $path) {
+            return $path
+        }
+    }
+
+    throw "DocumentFormat.OpenXml.dll not found in known Office locations."
+}
+
+$openXmlAssemblyPath = Get-OpenXmlAssemblyPath
+[void][System.Reflection.Assembly]::LoadFrom($openXmlAssemblyPath)
+
 function Release-ComObject {
     param([object]$Obj)
     if ($null -ne $Obj) {
@@ -204,13 +223,7 @@ function Add-RibbonCallbacksModule {
     $lines = New-Object System.Collections.Generic.List[string]
     [void]$lines.Add("Option Explicit")
     [void]$lines.Add("")
-    [void]$lines.Add("Private mRibbon As Object")
-    [void]$lines.Add("")
-    [void]$lines.Add("Public Sub RibbonOnLoad(ribbon As Object)")
-    [void]$lines.Add("    Set mRibbon = ribbon")
-    [void]$lines.Add("End Sub")
-    [void]$lines.Add("")
-    [void]$lines.Add("Public Sub RibbonOnAction(control As Object)")
+    [void]$lines.Add("Public Sub " + $RibbonConfig.CallbackName + "(control As IRibbonControl)")
     [void]$lines.Add("    On Error GoTo ErrHandler")
     [void]$lines.Add("    Select Case control.ID")
 
@@ -226,15 +239,10 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add("ErrHandler:")
     [void]$lines.Add('    MsgBox "Ribbon action failed: " & Err.Description, vbExclamation')
     [void]$lines.Add("End Sub")
-    [void]$lines.Add("")
-    [void]$lines.Add("Public Sub RibbonInvalidate()")
-    [void]$lines.Add("    If Not mRibbon Is Nothing Then mRibbon.Invalidate")
-    [void]$lines.Add("End Sub")
 
-    $component = $VBProject.VBComponents.Item("ThisWorkbook")
-    $module = $component.CodeModule
-    $insertAt = $module.CountOfLines + 1
-    $module.InsertLines($insertAt, [string]::Join([Environment]::NewLine, $lines))
+    $component = $VBProject.VBComponents.Add(1)
+    $component.Name = "modRibbonGenerated"
+    $component.CodeModule.AddFromString([string]::Join([Environment]::NewLine, $lines))
 }
 
 function Get-RibbonXml {
@@ -248,7 +256,7 @@ function Get-RibbonXml {
 
     $xml = New-Object System.Text.StringBuilder
     [void]$xml.AppendLine("<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>")
-    [void]$xml.AppendLine("<customUI xmlns=""http://schemas.microsoft.com/office/2009/07/customui"" onLoad=""ThisWorkbook.RibbonOnLoad"">")
+    [void]$xml.AppendLine("<customUI xmlns=""http://schemas.microsoft.com/office/2006/01/customui"">")
     [void]$xml.AppendLine("  <ribbon startFromScratch=""false"">")
     [void]$xml.AppendLine("    <tabs>")
     [void]$xml.AppendLine(("      <tab id=""{0}"" label=""{1}"">" -f $RibbonConfig.TabId, $RibbonConfig.Label))
@@ -256,7 +264,7 @@ function Get-RibbonXml {
     foreach ($group in $RibbonConfig.Groups) {
         [void]$xml.AppendLine(("        <group id=""{0}"" label=""{1}"">" -f $group.Id, $group.Label))
         foreach ($button in $group.Buttons) {
-            [void]$xml.AppendLine(("          <button id=""{0}"" label=""{1}"" size=""large"" onAction=""ThisWorkbook.RibbonOnAction""/>" -f $button.Id, $button.Label))
+            [void]$xml.AppendLine(("          <button id=""{0}"" label=""{1}"" size=""large"" showImage=""false"" onAction=""{2}""/>" -f $button.Id, $button.Label, $RibbonConfig.CallbackName))
         }
         [void]$xml.AppendLine("        </group>")
     }
@@ -266,49 +274,6 @@ function Get-RibbonXml {
     [void]$xml.AppendLine("  </ribbon>")
     [void]$xml.AppendLine("</customUI>")
     $xml.ToString()
-}
-
-function Set-ZipEntryText {
-    param(
-        [System.IO.Compression.ZipArchive]$Zip,
-        [string]$EntryName,
-        [string]$Text
-    )
-
-    $existing = $Zip.GetEntry($EntryName)
-    if ($null -ne $existing) {
-        $existing.Delete()
-    }
-
-    $entry = $Zip.CreateEntry($EntryName)
-    $stream = $entry.Open()
-    $writer = New-Object System.IO.StreamWriter($stream)
-    try {
-        $writer.Write($Text)
-    }
-    finally {
-        $writer.Dispose()
-    }
-}
-
-function Get-ZipEntryText {
-    param(
-        [System.IO.Compression.ZipArchive]$Zip,
-        [string]$EntryName
-    )
-
-    $entry = $Zip.GetEntry($EntryName)
-    if ($null -eq $entry) {
-        throw "Zip entry not found: $EntryName"
-    }
-
-    $reader = New-Object System.IO.StreamReader($entry.Open())
-    try {
-        return $reader.ReadToEnd()
-    }
-    finally {
-        $reader.Dispose()
-    }
 }
 
 function Install-RibbonCustomUi {
@@ -322,43 +287,25 @@ function Install-RibbonCustomUi {
     }
 
     $ribbonXml = Get-RibbonXml -RibbonConfig $RibbonConfig
-    $zip = [System.IO.Compression.ZipFile]::Open($WorkbookPath, [System.IO.Compression.ZipArchiveMode]::Update)
+    $document = [DocumentFormat.OpenXml.Packaging.SpreadsheetDocument]::Open($WorkbookPath, $true)
     try {
-        Set-ZipEntryText -Zip $zip -EntryName 'customUI/customUI14.xml' -Text $ribbonXml
+        $existingPart = $document.RibbonExtensibilityPart
+        if ($null -ne $existingPart) {
+            $document.DeletePart($existingPart)
+        }
 
-        [xml]$relsXml = Get-ZipEntryText -Zip $zip -EntryName '_rels/.rels'
-        $relsNs = 'http://schemas.openxmlformats.org/package/2006/relationships'
-        $relsMgr = New-Object System.Xml.XmlNamespaceManager($relsXml.NameTable)
-        $relsMgr.AddNamespace('r', $relsNs)
-        $uiType = 'http://schemas.microsoft.com/office/2007/relationships/ui/extensibility'
-        $existingRel = $relsXml.SelectSingleNode("//r:Relationship[@Type='$uiType']", $relsMgr)
-        if ($null -eq $existingRel) {
-            $newRel = $relsXml.CreateElement('Relationship', $relsNs)
-            $newRel.SetAttribute('Id', 'rIdInvSysCustomUi')
-            $newRel.SetAttribute('Type', $uiType)
-            $newRel.SetAttribute('Target', 'customUI/customUI14.xml')
-            [void]$relsXml.DocumentElement.AppendChild($newRel)
+        $part = $document.AddRibbonExtensibilityPart()
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($ribbonXml)
+        $stream = New-Object System.IO.MemoryStream(,$bytes)
+        try {
+            $part.FeedData($stream)
         }
-        else {
-            $existingRel.SetAttribute('Target', 'customUI/customUI14.xml')
+        finally {
+            $stream.Dispose()
         }
-        Set-ZipEntryText -Zip $zip -EntryName '_rels/.rels' -Text $relsXml.OuterXml
-
-        [xml]$ctXml = Get-ZipEntryText -Zip $zip -EntryName '[Content_Types].xml'
-        $ctNs = 'http://schemas.openxmlformats.org/package/2006/content-types'
-        $ctMgr = New-Object System.Xml.XmlNamespaceManager($ctXml.NameTable)
-        $ctMgr.AddNamespace('ct', $ctNs)
-        $existingOverride = $ctXml.SelectSingleNode("//ct:Override[@PartName='/customUI/customUI14.xml']", $ctMgr)
-        if ($null -eq $existingOverride) {
-            $override = $ctXml.CreateElement('Override', $ctNs)
-            $override.SetAttribute('PartName', '/customUI/customUI14.xml')
-            $override.SetAttribute('ContentType', 'application/vnd.ms-office.customUI+xml')
-            [void]$ctXml.DocumentElement.AppendChild($override)
-        }
-        Set-ZipEntryText -Zip $zip -EntryName '[Content_Types].xml' -Text $ctXml.OuterXml
     }
     finally {
-        $zip.Dispose()
+        $document.Dispose()
     }
 }
 
@@ -454,6 +401,7 @@ $projectMap = @(
         Ribbon     = @{
             TabId  = "tabInvSysReceiving"
             Label  = "invSys Receiving"
+            CallbackName = "RibbonOnActionReceiving"
             Groups = @(
                 @{
                     Id      = "grpReceivingActions"
@@ -479,6 +427,7 @@ $projectMap = @(
         Ribbon     = @{
             TabId  = "tabInvSysShipping"
             Label  = "invSys Shipping"
+            CallbackName = "RibbonOnActionShipping"
             Groups = @(
                 @{
                     Id      = "grpShippingActions"
@@ -504,6 +453,7 @@ $projectMap = @(
         Ribbon     = @{
             TabId  = "tabInvSysProduction"
             Label  = "invSys Production"
+            CallbackName = "RibbonOnActionProduction"
             Groups = @(
                 @{
                     Id      = "grpProductionActions"
@@ -530,6 +480,7 @@ $projectMap = @(
         Ribbon     = @{
             TabId  = "tabInvSysAdmin"
             Label  = "invSys Admin"
+            CallbackName = "RibbonOnActionAdmin"
             Groups = @(
                 @{
                     Id      = "grpAdminActions"
