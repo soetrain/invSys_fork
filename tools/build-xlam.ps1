@@ -90,6 +90,22 @@ function Get-FormFiles {
     $CodeFiles | Where-Object { $_.Extension -eq ".frm" }
 }
 
+function New-NormalizedImportFile {
+    param(
+        [System.IO.FileInfo]$SourceFile
+    )
+
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("invsys-build-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+
+    $tempPath = Join-Path $tempDir $SourceFile.Name
+    $raw = Get-Content -LiteralPath $SourceFile.FullName -Raw
+    $normalized = $raw -replace "`r?`n", "`r`n"
+    [System.IO.File]::WriteAllText($tempPath, $normalized, [System.Text.Encoding]::ASCII)
+
+    return $tempPath
+}
+
 function Ensure-WorksheetNames {
     param(
         [object]$Workbook,
@@ -120,7 +136,13 @@ function Import-Components {
             $firstLine = Get-Content -LiteralPath $file.FullName -TotalCount 1
             if ($firstLine -match '^VERSION 1\.0 CLASS') {
                 Write-Host ("  Importing " + $file.FullName)
-                [void]$VBProject.VBComponents.Import($file.FullName)
+                $normalizedPath = New-NormalizedImportFile -SourceFile $file
+                try {
+                    [void]$VBProject.VBComponents.Import($normalizedPath)
+                }
+                finally {
+                    Remove-Item -LiteralPath (Split-Path $normalizedPath -Parent) -Recurse -Force -ErrorAction SilentlyContinue
+                }
                 continue
             }
 
