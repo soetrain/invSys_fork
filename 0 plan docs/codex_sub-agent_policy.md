@@ -48,6 +48,7 @@ The Coordinator does **not** default to editing business logic directly.
 ### Hard Rules
 
 - Only the Runtime/Packaging agent may touch packaged XLAM outputs, build scripts, add-in registration state, or Excel COM load validation.
+- **Only one agent may run Excel/COM or operate in an active Excel session at a time.**
 - No parallel Excel sessions across agents.
 - No agent may edit outside its allow-list without explicit Coordinator approval.
 - No task may be split across multiple agents if the immediate next step depends on one blocking result.
@@ -90,20 +91,28 @@ Allow-list:
 - [deploy](/c:/Users/Justin/repos/invSys_fork/deploy)
 - `tools/run_*excel*`
 - `tools/*xlam*`
+- Excel-opening or add-in-mutating scripts under [tools](/c:/Users/Justin/repos/invSys_fork/tools)
 - runtime bootstrap/load helpers in:
   - [modRuntimeWorkbooks.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRuntimeWorkbooks.bas)
   - [modRoleWorkbookSurfaces.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRoleWorkbookSurfaces.bas)
+- auth/config/system-surface modules in:
+  - [modAuth.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modAuth.bas)
+  - [modConfig.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modConfig.bas)
+  - [modGlobals.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modGlobals.bas)
+  - [modRoleUiAccess.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRoleUiAccess.bas)
+- [src/Admin](/c:/Users/Justin/repos/invSys_fork/src/Admin)
 
 Deny-list:
 
 - role business logic
 - inventory mutation logic
-- auth policy changes unless required for load/bootstrap
+- event/inventory semantics outside bootstrap/auth/config/runtime behavior
 - test assertions unrelated to packaging/runtime
 
 Special rule:
 
 - single owner for Excel/COM, packaged XLAM rebuilds, add-in registration, and deployment validation
+- release 1 owner for Admin surfaces, auth/config bootstrap, and shared runtime state
 
 ### B. Core Event/Inventory Agent
 
@@ -122,8 +131,14 @@ Deny-list:
 
 - [deploy](/c:/Users/Justin/repos/invSys_fork/deploy)
 - [tools/build-xlam.ps1](/c:/Users/Justin/repos/invSys_fork/tools/build-xlam.ps1)
+- any Excel-opening or add-in-mutating script under [tools](/c:/Users/Justin/repos/invSys_fork/tools)
 - role UI modules
 - Excel COM validation scripts
+- [modAuth.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modAuth.bas)
+- [modConfig.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modConfig.bas)
+- [modGlobals.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modGlobals.bas)
+- [src/Admin](/c:/Users/Justin/repos/invSys_fork/src/Admin)
+- [modDiagramCore.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modDiagramCore.bas)
 
 ### C. Role Agent
 
@@ -146,8 +161,14 @@ Common deny-list for role agents:
 
 - [deploy](/c:/Users/Justin/repos/invSys_fork/deploy)
 - [tools/build-xlam.ps1](/c:/Users/Justin/repos/invSys_fork/tools/build-xlam.ps1)
+- any Excel-opening or add-in-mutating script under [tools](/c:/Users/Justin/repos/invSys_fork/tools)
 - unrelated role folders
 - shared `Core` modules outside explicitly approved integration hooks
+- [src/Admin](/c:/Users/Justin/repos/invSys_fork/src/Admin)
+- [modAuth.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modAuth.bas)
+- [modConfig.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modConfig.bas)
+- [modGlobals.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modGlobals.bas)
+- [modDiagramCore.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modDiagramCore.bas)
 
 ### D. Test Harness Agent
 
@@ -160,8 +181,13 @@ Deny-list:
 
 - [deploy](/c:/Users/Justin/repos/invSys_fork/deploy)
 - [tools/build-xlam.ps1](/c:/Users/Justin/repos/invSys_fork/tools/build-xlam.ps1)
+- any Excel-opening or add-in-mutating script under [tools](/c:/Users/Justin/repos/invSys_fork/tools)
 - installed add-in state
 - production business logic except minimal test hooks approved by the Coordinator
+- [src/Admin](/c:/Users/Justin/repos/invSys_fork/src/Admin)
+- [modAuth.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modAuth.bas)
+- [modConfig.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modConfig.bas)
+- [modGlobals.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modGlobals.bas)
 
 ## 3. Agent Prompts
 
@@ -198,7 +224,9 @@ Mission:
 Definition of done:
 
 - packaged files build cleanly
+- `build-xlam.ps1 -Apply` completes without error
 - add-ins load without compile/runtime startup failures
+- packaged XLAM smoke load completes without startup compile error
 - no stale deployment ambiguity remains
 
 Must not do:
@@ -228,7 +256,7 @@ Must not do:
 
 Mission:
 
-- Own one role’s entry flow, UI behavior, event creation, and role-local helpers.
+- Own one role's entry flow, UI behavior, event creation, and role-local helpers.
 
 Definition of done:
 
@@ -272,11 +300,18 @@ Do not define more until these are stable.
 ### `runtime-packaging`
 
 - Type: `worker`
-- Responsibility: build, package, COM Excel runtime, deployed XLAM behavior
+- Responsibility: build, package, COM Excel runtime, deployed XLAM behavior, Admin/runtime surfaces, and auth/config/bootstrap ownership
 - Write scope:
   - [tools/build-xlam.ps1](/c:/Users/Justin/repos/invSys_fork/tools/build-xlam.ps1)
   - [deploy](/c:/Users/Justin/repos/invSys_fork/deploy)
   - runtime/bootstrap packaging helpers
+  - [src/Admin](/c:/Users/Justin/repos/invSys_fork/src/Admin)
+  - [modAuth.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modAuth.bas)
+  - [modConfig.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modConfig.bas)
+  - [modGlobals.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modGlobals.bas)
+  - [modRoleUiAccess.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRoleUiAccess.bas)
+  - [modRoleWorkbookSurfaces.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRoleWorkbookSurfaces.bas)
+  - [modRuntimeWorkbooks.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRuntimeWorkbooks.bas)
 
 ### `core-event-inventory`
 
@@ -285,6 +320,15 @@ Do not define more until these are stable.
 - Write scope:
   - [src/Core/Modules](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules) approved subset
   - [src/InventoryDomain](/c:/Users/Justin/repos/invSys_fork/src/InventoryDomain)
+
+### `diagram-core`
+
+- Status: deferred for release 1
+- Owner for now: `coordinator-reviewer` by exception only
+- Scope:
+  - [modDiagramCore.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modDiagramCore.bas)
+- Rule:
+  - no delegated work unless diagramming becomes a release-scoped feature
 
 ### `role-receiving`
 
@@ -334,6 +378,7 @@ Do not run multiple role agents plus runtime/packaging in the same active Excel 
 - If add-ins are installed, do not rebuild over them without explicit session control.
 - If a task touches `deploy/` and role logic, split it into separate steps.
 - If a task requires COM Excel inspection, serialize the entire workflow through the Runtime/Packaging agent.
+- [modDiagramCore.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modDiagramCore.bas) is frozen for release 1 unless explicitly approved by the Coordinator.
 
 ## Practical Bottom Line
 
