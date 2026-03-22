@@ -95,7 +95,6 @@ Write scope:
 - [modRoleUiAccess.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRoleUiAccess.bas)
 - [modRoleWorkbookSurfaces.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRoleWorkbookSurfaces.bas)
 - [modRuntimeWorkbooks.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRuntimeWorkbooks.bas)
-- Excel-opening or add-in-mutating scripts under [tools](/c:/Users/Justin/repos/invSys_fork/tools)
 
 Use when:
 
@@ -112,6 +111,7 @@ Do not use when:
 Scope guard:
 
 - if this lane begins to drift outside its intended ownership in practice, the Coordinator should re-scope it to named files only before the next delegation
+- Runtime/Packaging may execute test-harness-owned `run_phase*` validation scripts for Excel/COM validation, but those scripts remain `test-harness` write scope unless explicitly reassigned
 
 Launch pattern:
 

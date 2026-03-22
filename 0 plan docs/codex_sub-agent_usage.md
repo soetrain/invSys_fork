@@ -149,18 +149,11 @@ Allowed paths:
 - src/Core/Modules/modRoleUiAccess.bas
 - src/Core/Modules/modRoleWorkbookSurfaces.bas
 - src/Core/Modules/modRuntimeWorkbooks.bas
-- tools/run_phase1_excel_validation.ps1
-- tools/run_phase2_excel_validation.ps1
-- tools/run_phase2_excel_validation_visible.ps1
-- tools/run_phase3_excel_validation.ps1
-- tools/run_phase4_excel_validation.ps1
-- tools/run_phase5_excel_validation.ps1
-- tools/run_phase6_excel_validation.ps1
 
 Forbidden paths:
 - role business logic
 - InventoryDomain business logic
-- tests except packaging/runtime validation harnesses
+- tests and test-harness-owned fixture/validation scripts unless explicitly reassigned by the Coordinator
 
 Definition of done:
 - build/load/runtime task completed
@@ -170,6 +163,7 @@ Definition of done:
 Stop and return to Coordinator if:
 - the real issue is feature logic rather than packaging/runtime
 - requested changes would expand this lane beyond intended ownership
+- the task requires editing a `tools/run_phase*` validation script rather than just executing it
 
 Required output:
 1. What changed

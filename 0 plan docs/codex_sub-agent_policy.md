@@ -95,9 +95,7 @@ Allow-list:
 
 - [tools/build-xlam.ps1](/c:/Users/Justin/repos/invSys_fork/tools/build-xlam.ps1)
 - [deploy](/c:/Users/Justin/repos/invSys_fork/deploy)
-- `tools/run_*excel*`
 - `tools/*xlam*`
-- Excel-opening or add-in-mutating scripts under [tools](/c:/Users/Justin/repos/invSys_fork/tools)
 - runtime bootstrap/load helpers in:
   - [modRuntimeWorkbooks.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRuntimeWorkbooks.bas)
   - [modRoleWorkbookSurfaces.bas](/c:/Users/Justin/repos/invSys_fork/src/Core/Modules/modRoleWorkbookSurfaces.bas)
@@ -114,12 +112,14 @@ Deny-list:
 - inventory mutation logic
 - event/inventory semantics outside bootstrap/auth/config/runtime behavior
 - test assertions unrelated to packaging/runtime
+- test-harness-owned fixture and validation scripts unless explicitly reassigned by the Coordinator
 
 Special rule:
 
 - single owner for Excel/COM, packaged XLAM rebuilds, add-in registration, and deployment validation
 - release 1 owner for Admin surfaces, auth/config bootstrap, and shared runtime state
 - if repeated scope drift appears in this lane, reduce Runtime/Packaging scope to named files only until the drift is resolved
+- Runtime/Packaging may execute test-harness-owned `run_phase*` validation scripts for Excel/COM validation, but execution rights do not imply write ownership
 
 ### B. Core Event/Inventory Agent
 

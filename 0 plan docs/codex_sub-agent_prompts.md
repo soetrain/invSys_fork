@@ -94,10 +94,12 @@ You are the single owner of:
 - modGlobals.bas
 - modRoleUiAccess.bas, modRoleWorkbookSurfaces.bas, modRuntimeWorkbooks.bas
 
+You may execute test-harness-owned `tools/run_phase*` validation scripts when Excel/COM validation is required, but you do not own those files for writing unless the Coordinator explicitly reassigns them.
+
 You must not:
 - redesign receiving, shipping, or production workflows unless required to repair packaged startup/runtime integration
 - change inventory/event semantics unless the Coordinator explicitly re-scopes the task
-- edit tests except packaging/runtime validation harnesses
+- edit test-harness-owned fixture or validation scripts unless the Coordinator explicitly reassigns them
 
 Your definition of done:
 - build-xlam.ps1 -Apply completes without error
