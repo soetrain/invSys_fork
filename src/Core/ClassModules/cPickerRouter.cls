@@ -12,10 +12,15 @@ Option Explicit
 Private mSearch As cDynItemSearch
 
 Public Sub HandleSelectionChange(ByVal Target As Range)
-    ' Placeholder: no automatic picker on selection to avoid noisy popups.
+    Dim ignoredCancel As Boolean
+    TryHandlePickerActivation Target, ignoredCancel, False
 End Sub
 
 Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As Boolean) As Boolean
+    HandleBeforeDoubleClick = TryHandlePickerActivation(Target, Cancel, True)
+End Function
+
+Private Function TryHandlePickerActivation(ByVal Target As Range, ByRef Cancel As Boolean, ByVal allowCancel As Boolean) As Boolean
     If Target Is Nothing Then Exit Function
     Dim lo As ListObject
     Dim allowedRows As Object
@@ -33,43 +38,43 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
     If LCase$(lo.Name) = "ip_chooserecipe" And (colKey = "RECIPENAME" Or colKey = "RECIPE") Then
         EnsureSearch
         mSearch.ShowForPaletteRecipeCell Target
-        Cancel = True
-        HandleBeforeDoubleClick = True
+        If allowCancel Then Cancel = True
+        TryHandlePickerActivation = True
         Exit Function
     End If
 
     If LCase$(lo.Name) = "ip_chooseingredient" And colKey = "INGREDIENT" Then
         Dim recipeId As String
-        recipeId = NzStr(RunRoleMacro("mProduction.GetPaletteRecipeId"))
+        recipeId = NzStr(RunRoleMacro0("mProduction.GetPaletteRecipeId"))
         If Trim$(recipeId) = "" Then
             MsgBox "Select a RECIPE in IP_ChooseRecipe first.", vbInformation
-            Cancel = True
-            HandleBeforeDoubleClick = True
+            If allowCancel Then Cancel = True
+            TryHandlePickerActivation = True
             Exit Function
         End If
         EnsureSearch
         mSearch.ShowForIngredientCell Target, recipeId
-        Cancel = True
-        HandleBeforeDoubleClick = True
+        If allowCancel Then Cancel = True
+        TryHandlePickerActivation = True
         Exit Function
     End If
 
     If LCase$(lo.Name) = "ip_chooseitem" And (colKey = "ITEM" Or colKey = "ITEMS") Then
         Dim palRecipeId As String
         Dim palIngId As String
-        palRecipeId = NzStr(RunRoleMacro("mProduction.GetPaletteRecipeId"))
-        palIngId = NzStr(RunRoleMacro("mProduction.GetPaletteIngredientId"))
+        palRecipeId = NzStr(RunRoleMacro0("mProduction.GetPaletteRecipeId"))
+        palIngId = NzStr(RunRoleMacro0("mProduction.GetPaletteIngredientId"))
         If palRecipeId = "" Or palIngId = "" Then
             MsgBox "Select a RECIPE and INGREDIENT before choosing an item.", vbInformation
-            Cancel = True
-            HandleBeforeDoubleClick = True
+            If allowCancel Then Cancel = True
+            TryHandlePickerActivation = True
             Exit Function
         End If
 
         EnsureSearch
         mSearch.ShowForCell Target
-        Cancel = True
-        HandleBeforeDoubleClick = True
+        If allowCancel Then Cancel = True
+        TryHandlePickerActivation = True
         Exit Function
     End If
 
@@ -83,37 +88,37 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
         Dim ctxAmt As Variant
         If Not ResolvePaletteTableContext(lo, ctxRec, ctxIng, ctxAmt, ctxProc, ctxIO) Then
             MsgBox "Palette table context not found. Load a recipe in Recipe Chooser first.", vbInformation
-            Cancel = True
-            HandleBeforeDoubleClick = True
+            If allowCancel Then Cancel = True
+            TryHandlePickerActivation = True
             Exit Function
         End If
 
-        Set allowedRows = RunRoleMacroObject("mProduction.GetAllowedInvRowsForIngredient", ctxRec, ctxIng)
+        Set allowedRows = RunRoleMacroObject2("mProduction.GetAllowedInvRowsForIngredient", ctxRec, ctxIng)
         If allowedRows Is Nothing Then
             MsgBox "No IngredientPalette entries found for this ingredient. Add acceptable items first.", vbInformation
-            Cancel = True
-            HandleBeforeDoubleClick = True
+            If allowCancel Then Cancel = True
+            TryHandlePickerActivation = True
             Exit Function
         End If
         If allowedRows.Count = 0 Then
             MsgBox "No IngredientPalette entries found for this ingredient. Add acceptable items first.", vbInformation
-            Cancel = True
-            HandleBeforeDoubleClick = True
+            If allowCancel Then Cancel = True
+            TryHandlePickerActivation = True
             Exit Function
         End If
 
         EnsureSearch
         mSearch.ShowForPaletteItemCell Target, allowedRows
-        Cancel = True
-        HandleBeforeDoubleClick = True
+        If allowCancel Then Cancel = True
+        TryHandlePickerActivation = True
         Exit Function
     End If
 
     If LCase$(lo.Name) = "rc_recipechoose" And (LCase$(colName) = "recipe" Or LCase$(colName) = "recipe_name") Then
         EnsureSearch
         mSearch.ShowForRecipeChooserCell Target
-        Cancel = True
-        HandleBeforeDoubleClick = True
+        If allowCancel Then Cancel = True
+        TryHandlePickerActivation = True
         Exit Function
     End If
 End Function
@@ -145,7 +150,7 @@ Private Function ResolvePaletteTableContext(ByVal lo As ListObject, ByRef recipe
     ByRef amount As Variant, ByRef procName As String, ByRef ioVal As String) As Boolean
 
     Dim info As Variant
-    info = RunRoleMacro("mProduction.GetPaletteTableContextInfo", lo)
+    info = RunRoleMacro1("mProduction.GetPaletteTableContextInfo", lo)
     If IsEmpty(info) Then Exit Function
     On Error GoTo Fail
     recipeId = NzStr(info(1))
@@ -159,40 +164,18 @@ Fail:
     ResolvePaletteTableContext = False
 End Function
 
-Private Function RunRoleMacro(ByVal macroName As String, ParamArray args() As Variant) As Variant
-    Select Case ParamCount(args)
-        Case 0: RunRoleMacro = Application.Run(macroName)
-        Case 1: RunRoleMacro = Application.Run(macroName, args(0))
-        Case 2: RunRoleMacro = Application.Run(macroName, args(0), args(1))
-        Case 3: RunRoleMacro = Application.Run(macroName, args(0), args(1), args(2))
-        Case 4: RunRoleMacro = Application.Run(macroName, args(0), args(1), args(2), args(3))
-        Case Else: Err.Raise 5, "cPickerRouter.RunRoleMacro", "Too many macro arguments."
-    End Select
+Private Function RunRoleMacro0(ByVal macroName As String) As Variant
+    RunRoleMacro0 = Application.Run(macroName)
 End Function
 
-Private Function RunRoleMacroObject(ByVal macroName As String, ParamArray args() As Variant) As Object
+Private Function RunRoleMacro1(ByVal macroName As String, ByVal arg1 As Variant) As Variant
+    RunRoleMacro1 = Application.Run(macroName, arg1)
+End Function
+
+Private Function RunRoleMacroObject2(ByVal macroName As String, ByVal arg1 As Variant, ByVal arg2 As Variant) As Object
     Dim result As Variant
-    result = RunRoleMacroForward(macroName, args)
-    If IsObject(result) Then Set RunRoleMacroObject = result
-End Function
-
-Private Function RunRoleMacroForward(ByVal macroName As String, ByRef args() As Variant) As Variant
-    Select Case ParamCount(args)
-        Case 0: RunRoleMacroForward = Application.Run(macroName)
-        Case 1: RunRoleMacroForward = Application.Run(macroName, args(0))
-        Case 2: RunRoleMacroForward = Application.Run(macroName, args(0), args(1))
-        Case 3: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2))
-        Case 4: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3))
-        Case Else: Err.Raise 5, "cPickerRouter.RunRoleMacroForward", "Too many macro arguments."
-    End Select
-End Function
-
-Private Function ParamCount(ByRef args() As Variant) As Long
-    On Error GoTo NoArgs
-    ParamCount = UBound(args) - LBound(args) + 1
-    Exit Function
-NoArgs:
-    ParamCount = 0
+    result = Application.Run(macroName, arg1, arg2)
+    If IsObject(result) Then Set RunRoleMacroObject2 = result
 End Function
 
 Private Function NzStr(ByVal v As Variant) As String

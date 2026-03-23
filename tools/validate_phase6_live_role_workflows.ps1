@@ -904,6 +904,9 @@ try {
     $wsProdRecipes = Get-WorksheetSafe -Workbook $wbProd -WorksheetName "Recipes"
     $wsProdInv = Get-WorksheetSafe -Workbook $wbProd -WorksheetName "InventoryManagement"
     $wsPalette = Get-WorksheetSafe -Workbook $wbProd -WorksheetName "IngredientPalette"
+    if ($null -eq $wsPalette) {
+        $wsPalette = Get-WorksheetSafe -Workbook $wbProd -WorksheetName "IngredientsPalette"
+    }
     $loChooseRecipe = Get-ListObjectSafe -Worksheet $wsProd -TableName "IP_ChooseRecipe"
     $loChooseIngredient = Get-ListObjectSafe -Worksheet $wsProd -TableName "IP_ChooseIngredient"
     $loChooseItem = Get-ListObjectSafe -Worksheet $wsProd -TableName "IP_ChooseItem"
@@ -941,12 +944,14 @@ try {
         "DESCRIPTION" = "Granulated"; "TOTAL INV" = 100; "USED" = 0; "MADE" = 0; "LAST EDITED" = ""; "TOTAL INV LAST EDIT" = ""; "TIMESTAMP" = ""
     }
 
+    $prodPaletteDiagBefore = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "mProduction.GetPaletteSaveDiagnostic")
     $currentStep = "Run Production BtnSavePalette"
     $wbProd = Activate-WorkbookSafe -Excel $excel -Workbook $wbProd
     [void](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "mProduction.BtnSavePalette")
+    $prodPaletteDiagAfter = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "mProduction.GetPaletteSaveDiagnostic")
     $paletteRow = Find-RowIndexByValue -ListObject $loPalette -ColumnName "RECIPE_ID" -ExpectedValue "R-001"
     $paletteOk = ($paletteRow -gt 0) -and ([string](Get-RowValueSafe -ListObject $loPalette -RowIndex $paletteRow -ColumnName "INGREDIENT_ID") -eq "ING-001") -and ([string](Get-RowValueSafe -ListObject $loPalette -RowIndex $paletteRow -ColumnName "ITEM") -eq "Sugar Bin")
-    Add-ResultRow -Rows $resultRows -Check "Production.BtnSavePalette" -Passed $paletteOk -Detail "PaletteRow=$paletteRow"
+    Add-ResultRow -Rows $resultRows -Check "Production.BtnSavePalette" -Passed $paletteOk -Detail "PaletteRow=$paletteRow; Before=$prodPaletteDiagBefore; After=$prodPaletteDiagAfter"
 
     Add-ListObjectRow -ListObject $loProdInv -Values @{
         "ROW" = 401; "ITEM_CODE" = "SKU-FG"; "ITEM" = "Finished Good"; "UOM" = "EA"; "LOCATION" = "FG";

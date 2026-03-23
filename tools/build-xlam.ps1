@@ -297,7 +297,13 @@ function Get-RibbonXml {
     foreach ($group in $RibbonConfig.Groups) {
         [void]$xml.AppendLine(("        <group id=""{0}"" label=""{1}"">" -f $group.Id, $group.Label))
         foreach ($button in $group.Buttons) {
-            [void]$xml.AppendLine(("          <button id=""{0}"" label=""{1}"" size=""large"" showImage=""false"" onAction=""{2}""/>" -f $button.Id, $button.Label, $RibbonConfig.CallbackName))
+            $imageXml = ""
+            $showImage = "false"
+            if ($button.ContainsKey("ImageMso") -and -not [string]::IsNullOrWhiteSpace($button.ImageMso)) {
+                $imageXml = (' imageMso="{0}"' -f $button.ImageMso)
+                $showImage = "true"
+            }
+            [void]$xml.AppendLine(("          <button id=""{0}"" label=""{1}"" size=""large"" showImage=""{2}""{3} onAction=""{4}""/>" -f $button.Id, $button.Label, $showImage, $imageXml, $RibbonConfig.CallbackName))
         }
         [void]$xml.AppendLine("        </group>")
     }
@@ -444,10 +450,10 @@ $projectMap = @(
                     Id      = "grpReceivingActions"
                     Label   = "Actions"
                     Buttons = @(
-                        @{ Id = "btnReceivingSetup"; Label = "Setup UI"; Macro = "modTS_Received.EnsureGeneratedButtons" },
-                        @{ Id = "btnReceivingConfirm"; Label = "Confirm Writes"; Macro = "modTS_Received.ConfirmWrites" },
-                        @{ Id = "btnReceivingUndo"; Label = "Undo"; Macro = "modTS_Received.MacroUndo" },
-                        @{ Id = "btnReceivingRedo"; Label = "Redo"; Macro = "modTS_Received.MacroRedo" }
+                        @{ Id = "btnReceivingSetup"; Label = "Setup UI"; Macro = "modTS_Received.EnsureGeneratedButtons"; ImageMso = "FileNew" },
+                        @{ Id = "btnReceivingConfirm"; Label = "Confirm Writes"; Macro = "modTS_Received.ConfirmWrites"; ImageMso = "FileSave" },
+                        @{ Id = "btnReceivingUndo"; Label = "Undo"; Macro = "modTS_Received.MacroUndo"; ImageMso = "Undo" },
+                        @{ Id = "btnReceivingRedo"; Label = "Redo"; Macro = "modTS_Received.MacroRedo"; ImageMso = "Redo" }
                     )
                 }
             )
@@ -471,23 +477,23 @@ $projectMap = @(
                     Id      = "grpShippingSetup"
                     Label   = "Setup"
                     Buttons = @(
-                        @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI" },
-                        @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder" },
-                        @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox" },
-                        @{ Id = "btnShippingUnship"; Label = "Toggle NotShipped"; Macro = "modTS_Shipments.BtnUnship" },
-                        @{ Id = "btnShippingHold"; Label = "Send To Hold"; Macro = "modTS_Shipments.BtnSendHold" },
-                        @{ Id = "btnShippingReturnHold"; Label = "Return From Hold"; Macro = "modTS_Shipments.BtnReturnHold" }
+                        @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; ImageMso = "FileNew" },
+                        @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder"; ImageMso = "Repeat" },
+                        @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox"; ImageMso = "FileSave" },
+                        @{ Id = "btnShippingUnship"; Label = "Toggle NotShipped"; Macro = "modTS_Shipments.BtnUnship"; ImageMso = "Clear" },
+                        @{ Id = "btnShippingHold"; Label = "Send To Hold"; Macro = "modTS_Shipments.BtnSendHold"; ImageMso = "Cut" },
+                        @{ Id = "btnShippingReturnHold"; Label = "Return From Hold"; Macro = "modTS_Shipments.BtnReturnHold"; ImageMso = "Paste" }
                     )
                 }
                 @{
                     Id      = "grpShippingActions"
                     Label   = "Actions"
                     Buttons = @(
-                        @{ Id = "btnShippingConfirm"; Label = "Confirm Inventory"; Macro = "modTS_Shipments.BtnConfirmInventory" },
-                        @{ Id = "btnShippingBoxesMade"; Label = "Boxes Made"; Macro = "modTS_Shipments.BtnBoxesMade" },
-                        @{ Id = "btnShippingTotal"; Label = "To Total Inv"; Macro = "modTS_Shipments.BtnToTotalInv" },
-                        @{ Id = "btnShippingStage"; Label = "To Shipments"; Macro = "modTS_Shipments.BtnToShipments" },
-                        @{ Id = "btnShippingSend"; Label = "Shipments Sent"; Macro = "modTS_Shipments.BtnShipmentsSent" }
+                        @{ Id = "btnShippingConfirm"; Label = "Confirm Inventory"; Macro = "modTS_Shipments.BtnConfirmInventory"; ImageMso = "FileSave" },
+                        @{ Id = "btnShippingBoxesMade"; Label = "Boxes Made"; Macro = "modTS_Shipments.BtnBoxesMade"; ImageMso = "FileSave" },
+                        @{ Id = "btnShippingTotal"; Label = "To Total Inv"; Macro = "modTS_Shipments.BtnToTotalInv"; ImageMso = "FileSave" },
+                        @{ Id = "btnShippingStage"; Label = "To Shipments"; Macro = "modTS_Shipments.BtnToShipments"; ImageMso = "FileOpen" },
+                        @{ Id = "btnShippingSend"; Label = "Shipments Sent"; Macro = "modTS_Shipments.BtnShipmentsSent"; ImageMso = "FileSave" }
                     )
                 }
             )
@@ -511,35 +517,35 @@ $projectMap = @(
                     Id      = "grpProductionSetup"
                     Label   = "Setup"
                     Buttons = @(
-                        @{ Id = "btnProductionSetup"; Label = "Setup UI"; Macro = "mProduction.InitializeProductionUI" },
-                        @{ Id = "btnProductionHide"; Label = "Hide System"; Macro = "mProduction.BtnHideSystem" },
-                        @{ Id = "btnProductionShow"; Label = "Show System"; Macro = "mProduction.BtnShowSystem" }
+                        @{ Id = "btnProductionSetup"; Label = "Setup UI"; Macro = "mProduction.InitializeProductionUI"; ImageMso = "FileNew" },
+                        @{ Id = "btnProductionHide"; Label = "Hide System"; Macro = "mProduction.BtnHideSystem"; ImageMso = "Clear" },
+                        @{ Id = "btnProductionShow"; Label = "Show System"; Macro = "mProduction.BtnShowSystem"; ImageMso = "FileOpen" }
                     )
                 }
                 @{
                     Id      = "grpProductionRecipe"
                     Label   = "Recipe"
                     Buttons = @(
-                        @{ Id = "btnProductionLoad"; Label = "Load Recipe"; Macro = "mProduction.BtnLoadRecipe" },
-                        @{ Id = "btnProductionSaveRecipe"; Label = "Save Recipe"; Macro = "mProduction.BtnSaveRecipe" },
-                        @{ Id = "btnProductionSaveFormulas"; Label = "Save Formulas"; Macro = "mProduction.BtnSaveFormulas" },
-                        @{ Id = "btnProductionAddTables"; Label = "Add Process Table"; Macro = "mProduction.BtnBuildRecipeProcessTables" },
-                        @{ Id = "btnProductionRemoveTables"; Label = "Remove Process Table"; Macro = "mProduction.BtnRemoveRecipeProcessTables" },
-                        @{ Id = "btnProductionClearBuilder"; Label = "Clear Recipe Builder"; Macro = "mProduction.BtnClearRecipeBuilder" }
+                        @{ Id = "btnProductionLoad"; Label = "Load Recipe"; Macro = "mProduction.BtnLoadRecipe"; ImageMso = "FileOpen" },
+                        @{ Id = "btnProductionSaveRecipe"; Label = "Save Recipe"; Macro = "mProduction.BtnSaveRecipe"; ImageMso = "FileSave" },
+                        @{ Id = "btnProductionSaveFormulas"; Label = "Save Formulas"; Macro = "mProduction.BtnSaveFormulas"; ImageMso = "FileSave" },
+                        @{ Id = "btnProductionAddTables"; Label = "Add Process Table"; Macro = "mProduction.BtnBuildRecipeProcessTables"; ImageMso = "FileNew" },
+                        @{ Id = "btnProductionRemoveTables"; Label = "Remove Process Table"; Macro = "mProduction.BtnRemoveRecipeProcessTables"; ImageMso = "Clear" },
+                        @{ Id = "btnProductionClearBuilder"; Label = "Clear Recipe Builder"; Macro = "mProduction.BtnClearRecipeBuilder"; ImageMso = "Clear" }
                     )
                 }
                 @{
                     Id      = "grpProductionActions"
                     Label   = "Actions"
                     Buttons = @(
-                        @{ Id = "btnProductionSavePalette"; Label = "Save Palette"; Macro = "mProduction.BtnSavePalette" },
-                        @{ Id = "btnProductionClearPalette"; Label = "Clear Palette Builder"; Macro = "mProduction.BtnClearPaletteBuilder" },
-                        @{ Id = "btnProductionClearChooser"; Label = "Clear Chosen Recipe"; Macro = "mProduction.BtnClearRecipeChooser" },
-                        @{ Id = "btnProductionUsed"; Label = "To Used"; Macro = "mProduction.BtnToUsed" },
-                        @{ Id = "btnProductionMade"; Label = "To Made"; Macro = "mProduction.BtnToMade" },
-                        @{ Id = "btnProductionTotal"; Label = "To Total Inv"; Macro = "mProduction.BtnToTotalInv" },
-                        @{ Id = "btnProductionNextBatch"; Label = "Next Batch"; Macro = "mProduction.BtnNextBatch" },
-                        @{ Id = "btnProductionPrintCodes"; Label = "Print Recall Codes"; Macro = "mProduction.BtnPrintRecallCodes" }
+                        @{ Id = "btnProductionSavePalette"; Label = "Save Palette"; Macro = "mProduction.BtnSavePalette"; ImageMso = "FileSave" },
+                        @{ Id = "btnProductionClearPalette"; Label = "Clear Palette Builder"; Macro = "mProduction.BtnClearPaletteBuilder"; ImageMso = "Clear" },
+                        @{ Id = "btnProductionClearChooser"; Label = "Clear Chosen Recipe"; Macro = "mProduction.BtnClearRecipeChooser"; ImageMso = "Clear" },
+                        @{ Id = "btnProductionUsed"; Label = "To Used"; Macro = "mProduction.BtnToUsed"; ImageMso = "FileSave" },
+                        @{ Id = "btnProductionMade"; Label = "To Made"; Macro = "mProduction.BtnToMade"; ImageMso = "FileSave" },
+                        @{ Id = "btnProductionTotal"; Label = "To Total Inv"; Macro = "mProduction.BtnToTotalInv"; ImageMso = "FileSave" },
+                        @{ Id = "btnProductionNextBatch"; Label = "Next Batch"; Macro = "mProduction.BtnNextBatch"; ImageMso = "Repeat" },
+                        @{ Id = "btnProductionPrintCodes"; Label = "Print Recall Codes"; Macro = "mProduction.BtnPrintRecallCodes"; ImageMso = "FilePrint" }
                     )
                 }
             )
@@ -563,8 +569,8 @@ $projectMap = @(
                     Id      = "grpAdminActions"
                     Label   = "Actions"
                     Buttons = @(
-                        @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click" },
-                        @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser" }
+                        @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; ImageMso = "FileOpen" },
+                        @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; ImageMso = "FileOpen" }
                     )
                 }
             )

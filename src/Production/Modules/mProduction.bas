@@ -353,11 +353,49 @@ Private Function ResolveProductionWorkbook(Optional ByVal preferredWb As Workboo
         End If
     End If
 
+    If requiredSheet <> "" Then
+        Set ResolveProductionWorkbook = FindOpenOperationalWorkbookWithSheet(requiredSheet)
+        If Not ResolveProductionWorkbook Is Nothing Then Exit Function
+    Else
+        Set ResolveProductionWorkbook = FindFirstOpenOperationalWorkbook()
+        If Not ResolveProductionWorkbook Is Nothing Then Exit Function
+    End If
+
     If requiredSheet = "" Then
         Set ResolveProductionWorkbook = ThisWorkbook
     ElseIf Not WorkbookSheetExists(ThisWorkbook, requiredSheet) Is Nothing Then
         Set ResolveProductionWorkbook = ThisWorkbook
     End If
+End Function
+
+Private Function FindFirstOpenOperationalWorkbook() As Workbook
+    Dim wb As Workbook
+
+    For Each wb In Application.Workbooks
+        If Not wb Is Nothing Then
+            If Not wb.IsAddin Then
+                Set FindFirstOpenOperationalWorkbook = wb
+                Exit Function
+            End If
+        End If
+    Next wb
+End Function
+
+Private Function FindOpenOperationalWorkbookWithSheet(ByVal requiredSheet As String) As Workbook
+    Dim wb As Workbook
+
+    If Trim$(requiredSheet) = "" Then Exit Function
+
+    For Each wb In Application.Workbooks
+        If Not wb Is Nothing Then
+            If Not wb.IsAddin Then
+                If Not WorkbookSheetExists(wb, requiredSheet) Is Nothing Then
+                    Set FindOpenOperationalWorkbookWithSheet = wb
+                    Exit Function
+                End If
+            End If
+        End If
+    Next wb
 End Function
 
 Private Function WorkbookSheetExists(ByVal wb As Workbook, ByVal nameOrCode As String) As Worksheet
@@ -1119,6 +1157,70 @@ Public Sub BtnSavePalette()
     SaveIngredientPalette
 End Sub
 
+Public Function GetPaletteSaveDiagnostic() As String
+    On Error GoTo ErrHandler
+
+    Dim wsProd As Worksheet: Set wsProd = SheetExists(SHEET_PRODUCTION)
+    If wsProd Is Nothing Then
+        GetPaletteSaveDiagnostic = "ProductionSheet=missing"
+        Exit Function
+    End If
+
+    Dim wbProd As Workbook: Set wbProd = wsProd.Parent
+    Dim wsPal As Worksheet
+    Dim wsRec As Worksheet
+    Dim loRecipe As ListObject
+    Dim loIng As ListObject
+    Dim loItems As ListObject
+    Dim loPal As ListObject
+    Dim recipeId As String
+    Dim ingredientId As String
+    Dim itemCount As Long
+    Dim paletteCount As Long
+    Dim firstItem As String
+    Dim firstPalRecipe As String
+
+    Set loRecipe = FindListObjectByNameOrHeaders(wsProd, "IP_ChooseRecipe", Array("RECIPE_NAME", "RECIPE_ID"))
+    Set loIng = FindListObjectByNameOrHeaders(wsProd, "IP_ChooseIngredient", Array("INGREDIENT", "INGREDIENT_ID"))
+    Set loItems = FindListObjectByNameOrHeaders(wsProd, "IP_ChooseItem", Array("ITEMS", "RECIPE_ID", "INGREDIENT_ID"))
+    recipeId = GetPaletteRecipeId()
+    ingredientId = GetPaletteIngredientId()
+
+    Set wsRec = WorkbookSheetExists(wbProd, "Recipes")
+    Set wsPal = WorkbookSheetExists(wbProd, "IngredientPalette")
+    If wsPal Is Nothing Then Set wsPal = WorkbookSheetExists(wbProd, "IngredientsPalette")
+    If Not wsPal Is Nothing Then
+        Set loPal = FindListObjectByNameOrHeaders(wsPal, "IngredientPalette", Array("RECIPE_ID", "INGREDIENT_ID", "ITEM"))
+    End If
+
+    If Not loItems Is Nothing Then
+        itemCount = ListObjectRowCount(loItems)
+        firstItem = FirstNonEmptyColumnValue(loItems, "ITEMS")
+        If firstItem = "" Then firstItem = FirstNonEmptyColumnValue(loItems, "ITEM")
+    End If
+
+    If Not loPal Is Nothing Then
+        paletteCount = ListObjectRowCount(loPal)
+        firstPalRecipe = FirstNonEmptyColumnValue(loPal, "RECIPE_ID")
+    End If
+
+    GetPaletteSaveDiagnostic = "ProdWb=" & wbProd.Name & _
+        "; RecipesSheet=" & IIf(wsRec Is Nothing, "missing", wsRec.Name) & _
+        "; PaletteSheet=" & IIf(wsPal Is Nothing, "missing", wsPal.Name) & _
+        "; RecipeId=" & recipeId & _
+        "; IngredientId=" & ingredientId & _
+        "; ChooseRecipeRows=" & ListObjectRowCount(loRecipe) & _
+        "; ChooseIngredientRows=" & ListObjectRowCount(loIng) & _
+        "; ChooseItemRows=" & itemCount & _
+        "; FirstItem=" & firstItem & _
+        "; PaletteRows=" & paletteCount & _
+        "; FirstPaletteRecipe=" & firstPalRecipe
+    Exit Function
+
+ErrHandler:
+    GetPaletteSaveDiagnostic = "DiagnosticError=" & Err.Number & ":" & Err.Description
+End Function
+
 Public Sub BtnClearPaletteBuilder()
     ClearInventoryPaletteBuilder
 End Sub
@@ -1502,6 +1604,7 @@ Private Sub SaveIngredientPalette()
     On Error GoTo ErrHandler
     Dim wsProd As Worksheet: Set wsProd = SheetExists(SHEET_PRODUCTION)
     If wsProd Is Nothing Then Exit Sub
+    Dim wbProd As Workbook: Set wbProd = wsProd.Parent
 
     Dim loRecipe As ListObject
     Dim loIng As ListObject
@@ -1531,8 +1634,9 @@ Private Sub SaveIngredientPalette()
         Exit Sub
     End If
 
-    Dim wsPal As Worksheet: Set wsPal = SheetExists("IngredientPalette")
-    If wsPal Is Nothing Then Set wsPal = SheetExists("IngredientsPalette")
+    Dim wsPal As Worksheet
+    Set wsPal = WorkbookSheetExists(wbProd, "IngredientPalette")
+    If wsPal Is Nothing Then Set wsPal = WorkbookSheetExists(wbProd, "IngredientsPalette")
     If wsPal Is Nothing Then
         MsgBox "IngredientPalette sheet not found.", vbCritical
         Exit Sub
@@ -1552,7 +1656,7 @@ Private Sub SaveIngredientPalette()
     Dim pctVal As Variant
     Dim uomVal As String
     Dim amtVal As Variant
-    FindRecipeIngredientInfo recipeId, ingredientId, ioVal, pctVal, uomVal, amtVal
+    FindRecipeIngredientInfo recipeId, ingredientId, ioVal, pctVal, uomVal, amtVal, wbProd
 
     ' Remove existing palette rows for this recipe + ingredient.
     If Not loPal.DataBodyRange Is Nothing Then
@@ -5486,14 +5590,20 @@ Public Function GetAllowedInvRowsForIngredient(ByVal recipeId As String, ByVal i
 End Function
 
 Private Sub FindRecipeIngredientInfo(ByVal recipeId As String, ByVal ingredientId As String, _
-    ByRef ioVal As String, ByRef pctVal As Variant, ByRef uomVal As String, ByRef amtVal As Variant)
+    ByRef ioVal As String, ByRef pctVal As Variant, ByRef uomVal As String, ByRef amtVal As Variant, _
+    Optional ByVal preferredWb As Workbook = Nothing)
 
     ioVal = ""
     pctVal = ""
     uomVal = ""
     amtVal = ""
 
-    Dim wsRec As Worksheet: Set wsRec = SheetExists("Recipes")
+    Dim wsRec As Worksheet
+    If preferredWb Is Nothing Then
+        Set wsRec = SheetExists("Recipes")
+    Else
+        Set wsRec = WorkbookSheetExists(preferredWb, "Recipes")
+    End If
     If wsRec Is Nothing Then Exit Sub
     Dim lo As ListObject: Set lo = GetListObject(wsRec, "Recipes")
     If lo Is Nothing Then Exit Sub

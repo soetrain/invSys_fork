@@ -26,6 +26,7 @@ Private mHasCategory As Boolean
 Private mIngredientRecipeId As String
 Private mAllowedRows As Object
 Private mTemplateFormName As String
+Private Const CORE_PICKER_TEMPLATE As String = "frmItemSearch"
 
 Public Sub UseTemplateForm(ByVal formName As String)
     mTemplateFormName = Trim$(formName)
@@ -116,20 +117,50 @@ Private Function BuildForm() As Boolean
     On Error Resume Next
     Err.Clear
 
-    ' Use compiled template form to avoid FM20/COM issues
-    If mTemplateFormName = "" Then mTemplateFormName = "ufDynItemSearchTemplate"
-    Set uf = VBA.UserForms.Add(mTemplateFormName)
+    ' Always instantiate from a Core-owned form first. Role-specific forms live
+    ' in other XLAM projects and are not visible here.
+    Set uf = VBA.UserForms.Add(CORE_PICKER_TEMPLATE)
     If Err.Number <> 0 Then
-        Debug.Print "    Add('" & mTemplateFormName & "') ERROR:", Err.Number, Err.Description
+        Debug.Print "    UserForms.Add('" & CORE_PICKER_TEMPLATE & "') ERROR:", Err.Number, Err.Description
+        Err.Clear
     ElseIf uf Is Nothing Then
-        Debug.Print "    Add('" & mTemplateFormName & "') returned Nothing"
+        Debug.Print "    UserForms.Add('" & CORE_PICKER_TEMPLATE & "') returned Nothing"
     Else
-        Debug.Print "    Add('" & mTemplateFormName & "') SUCCESS, type:", TypeName(uf)
+        Debug.Print "    UserForms.Add('" & CORE_PICKER_TEMPLATE & "') SUCCESS, type:", TypeName(uf)
+    End If
+
+    If uf Is Nothing Then
+        On Error Resume Next
+        Load frmItemSearch
+        Set uf = frmItemSearch
+        If Err.Number <> 0 Then
+            Debug.Print "    Load/Set frmItemSearch ERROR:", Err.Number, Err.Description
+            Err.Clear
+        ElseIf uf Is Nothing Then
+            Debug.Print "    Load/Set frmItemSearch returned Nothing"
+        Else
+            Debug.Print "    Load/Set frmItemSearch SUCCESS, type:", TypeName(uf)
+        End If
+    End If
+
+    If uf Is Nothing Then
+        ' Runtime-only fallback for environments where the stub form cannot be
+        ' loaded for some reason.
+        Set uf = CreateObject("Forms.UserForm.1")
+        If Err.Number <> 0 Then
+            Debug.Print "    CreateObject('Forms.UserForm.1') ERROR:", Err.Number, Err.Description
+            Err.Clear
+        ElseIf uf Is Nothing Then
+            Debug.Print "    CreateObject('Forms.UserForm.1') returned Nothing"
+        Else
+            Debug.Print "    CreateObject('Forms.UserForm.1') SUCCESS, type:", TypeName(uf)
+        End If
     End If
     On Error GoTo 0
 
     If uf Is Nothing Then
         Debug.Print "    BuildForm FAIL: uf is Nothing"
+        MsgBox "Item picker could not be created in the current XLAM runtime.", vbExclamation
         BuildForm = False
         Exit Function
     End If
@@ -240,16 +271,17 @@ End Sub
 Private Function LoadItems() As Boolean
     Debug.Print "  LoadItems entered"
     If LCase$(mPickerMode) = "recipe" Or LCase$(mPickerMode) = "palette_recipe" Or LCase$(mPickerMode) = "recipe_chooser" Then
-        itemsArr = RunRoleMacro("mProduction.LoadRecipeList")
+        itemsArr = RunRoleMacro0("mProduction.LoadRecipeList")
     ElseIf LCase$(mPickerMode) = "ingredient" Then
-        itemsArr = RunRoleMacro("mProduction.LoadIngredientListForRecipe", mIngredientRecipeId)
+        itemsArr = RunRoleMacro1("mProduction.LoadIngredientListForRecipe", mIngredientRecipeId)
     Else
         itemsArr = LoadManagedInventoryItems(True)
     End If
     lst.Clear
     If IsEmpty(itemsArr) Then
-        Debug.Print "    LoadItems FAIL: itemsArr is Empty"
-        LoadItems = False
+        Debug.Print "    LoadItems: itemsArr is Empty"
+        ApplyEmptyState
+        LoadItems = True
         Exit Function
     End If
     Debug.Print "    LoadItems: UBound =", UBound(itemsArr, 1)
@@ -260,6 +292,32 @@ Private Function LoadItems() As Boolean
     ApplyFilter
     LoadItems = True
     Debug.Print "    LoadItems SUCCESS"
+End Function
+
+Private Sub ApplyEmptyState()
+    If Not txtDesc Is Nothing Then
+        txtDesc.Text = EmptyStateMessage()
+    End If
+    If Not chkShippable Is Nothing Then
+        chkShippable.Enabled = False
+    End If
+End Sub
+
+Private Function EmptyStateMessage() As String
+    Select Case LCase$(mPickerMode)
+        Case "recipe", "palette_recipe", "recipe_chooser"
+            EmptyStateMessage = "No recipes were found in the operational workbook." & vbCrLf & _
+                "Seed demo data or add rows to the Recipes table."
+        Case "ingredient"
+            EmptyStateMessage = "No ingredients were found for the selected recipe." & vbCrLf & _
+                "Load or seed a recipe first."
+        Case "palette_item"
+            EmptyStateMessage = "No managed inventory items are available for this ingredient." & vbCrLf & _
+                "Add IngredientPalette mappings and managed invSys rows first."
+        Case Else
+            EmptyStateMessage = "No managed inventory rows were found in invSys." & vbCrLf & _
+                "Seed demo data or add managed inventory before using this picker."
+    End Select
 End Function
 
 ' ==== events ====
@@ -661,7 +719,7 @@ Public Sub CommitSelection()
             callbackCell.Value = recName
         End If
 
-        If recId <> "" Then RunRoleMacro "mProduction.LoadRecipeFromRecipes", recId
+        If recId <> "" Then Application.Run "mProduction.LoadRecipeFromRecipes", recId
         uf.Hide
         Exit Sub
     End If
@@ -697,7 +755,7 @@ Public Sub CommitSelection()
         If cPalIdCol > 0 Then palRecipeRow.Cells(1, cPalIdCol).Value = pRecId
         If cPalDescCol > 0 Then palRecipeRow.Cells(1, cPalDescCol).Value = pRecDesc
 
-        RunRoleMacro "mProduction.HandlePaletteRecipeSelected", pRecId
+        Application.Run "mProduction.HandlePaletteRecipeSelected", pRecId
         uf.Hide
         Exit Sub
     End If
@@ -734,7 +792,7 @@ Public Sub CommitSelection()
         If cChooserIdCol > 0 Then chooserRow.Cells(1, cChooserIdCol).Value = chRecId
         If cChooserDescCol > 0 Then chooserRow.Cells(1, cChooserDescCol).Value = chRecDesc
 
-        If chRecId <> "" Then RunRoleMacro "mProduction.LoadRecipeChooser", chRecId
+        If chRecId <> "" Then Application.Run "mProduction.LoadRecipeChooser", chRecId
         uf.Hide
         Exit Sub
     End If
@@ -791,7 +849,7 @@ Public Sub CommitSelection()
         If cIngIdCol > 0 Then ingRowRange.Cells(1, cIngIdCol).Value = selIngId
         If cIngProcCol > 0 Then ingRowRange.Cells(1, cIngProcCol).Value = selProc
 
-        RunRoleMacro "mProduction.HandlePaletteIngredientSelected", mIngredientRecipeId, selIngId
+        Application.Run "mProduction.HandlePaletteIngredientSelected", mIngredientRecipeId, selIngId
         uf.Hide
         Exit Sub
     End If
@@ -846,8 +904,8 @@ Public Sub CommitSelection()
         If cPalUom > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalUom).Value = palItemUom
         If cPalDesc > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalDesc).Value = palItemDesc
         If cPalRow > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalRow).Value = palItemRowVal
-        If cPalRec > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalRec).Value = NzStr(RunRoleMacro("mProduction.GetPaletteRecipeId"))
-        If cPalIng > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalIng).Value = NzStr(RunRoleMacro("mProduction.GetPaletteIngredientId"))
+        If cPalRec > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalRec).Value = NzStr(RunRoleMacro0("mProduction.GetPaletteRecipeId"))
+        If cPalIng > 0 Then loPalItems.DataBodyRange.Cells(palRowIdx, cPalIng).Value = NzStr(RunRoleMacro0("mProduction.GetPaletteIngredientId"))
 
         uf.Hide
         Exit Sub
@@ -885,7 +943,7 @@ Public Sub CommitSelection()
                 refNum = NzStr(lo.DataBodyRange.Cells(rowIdx, ColumnIndex(lo, "REF_NUMBER")).Value)
                 qty = NzDbl(lo.DataBodyRange.Cells(rowIdx, ColumnIndex(lo, "QUANTITY")).Value)
             End If
-            RunRoleMacro "modTS_Received.AddOrMergeFromSearch", _
+            Application.Run "modTS_Received.AddOrMergeFromSearch", _
                 refNum, _
                 itemName, _
                 itemCode, _
@@ -898,9 +956,9 @@ Public Sub CommitSelection()
                 itemRow, _
                 rowIdx
         Case "shipmentstally"
-            RunRoleMacro "modTS_Shipments.ApplyItemSelection", callbackCell, lo, rowIdx, itemName, itemCode, itemRow, uom, location, vendor, lst.List(lst.ListIndex, 5)
+            Application.Run "modTS_Shipments.ApplyItemSelection", callbackCell, lo, rowIdx, itemName, itemCode, itemRow, uom, location, vendor, lst.List(lst.ListIndex, 5)
         Case "boxbom"
-            RunRoleMacro "modTS_Shipments.ApplyItemToBoxBOM", callbackCell, itemName, itemRow, uom, location, lst.List(lst.ListIndex, 5)
+            Application.Run "modTS_Shipments.ApplyItemToBoxBOM", callbackCell, itemName, itemRow, uom, location, lst.List(lst.ListIndex, 5)
         Case "ip_chooseitem"
             Dim colItem As Long: colItem = ColumnIndex(lo, "ITEMS")
             If colItem = 0 Then colItem = ColumnIndex(lo, "ITEM")
@@ -933,8 +991,8 @@ Public Sub CommitSelection()
             If colUom > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colUom).Value = uom
             If colDesc > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colDesc).Value = lst.List(lst.ListIndex, 5)
             If colRow > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colRow).Value = itemRow
-            If colRec > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colRec).Value = NzStr(RunRoleMacro("mProduction.GetPaletteRecipeId"))
-            If colIng > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colIng).Value = NzStr(RunRoleMacro("mProduction.GetPaletteIngredientId"))
+            If colRec > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colRec).Value = NzStr(RunRoleMacro0("mProduction.GetPaletteRecipeId"))
+            If colIng > 0 Then lo.DataBodyRange.Cells(itemRowIdx, colIng).Value = NzStr(RunRoleMacro0("mProduction.GetPaletteIngredientId"))
         Case Else
             If tblName = "inventorypalette_generated" Or tblName Like "proc_*_palette" Then
                 Dim palItemRow As Long
@@ -1116,8 +1174,8 @@ Private Function GetIngredientItemSummary(ByVal recipeId As String, ByVal ingred
     If Trim$(recipeId) = "" Or Trim$(ingredientId) = "" Then Exit Function
 
     Dim wsPal As Worksheet
-    Set wsPal = RunRoleMacroObject("mProduction.SheetExists", "IngredientPalette")
-    If wsPal Is Nothing Then Set wsPal = RunRoleMacroObject("mProduction.SheetExists", "IngredientsPalette")
+    Set wsPal = RunRoleMacroObject1("mProduction.SheetExists", "IngredientPalette")
+    If wsPal Is Nothing Then Set wsPal = RunRoleMacroObject1("mProduction.SheetExists", "IngredientsPalette")
     If wsPal Is Nothing Then
         GetIngredientItemSummary = "IngredientPalette sheet not found."
         Exit Function
@@ -1142,7 +1200,7 @@ Private Function GetIngredientItemSummary(ByVal recipeId As String, ByVal ingred
 
     Dim wsInv As Worksheet
     Dim loInv As ListObject
-    Set wsInv = RunRoleMacroObject("mProduction.SheetExists", "InventoryManagement")
+    Set wsInv = RunRoleMacroObject1("mProduction.SheetExists", "InventoryManagement")
     If Not wsInv Is Nothing Then
         On Error Resume Next
         Set loInv = wsInv.ListObjects("invSys")
@@ -1250,7 +1308,7 @@ Private Function ResolvePaletteTableContext(ByVal lo As ListObject, ByRef recipe
     ByRef amount As Variant, ByRef procName As String, ByRef ioVal As String) As Boolean
 
     Dim info As Variant
-    info = RunRoleMacro("mProduction.GetPaletteTableContextInfo", lo)
+    info = RunRoleMacro1("mProduction.GetPaletteTableContextInfo", lo)
     If IsEmpty(info) Then Exit Function
     On Error GoTo Fail
     recipeId = NzStr(info(1))
@@ -1264,38 +1322,16 @@ Fail:
     ResolvePaletteTableContext = False
 End Function
 
-Private Function RunRoleMacro(ByVal macroName As String, ParamArray args() As Variant) As Variant
-    RunRoleMacro = RunRoleMacroForward(macroName, args)
+Private Function RunRoleMacro0(ByVal macroName As String) As Variant
+    RunRoleMacro0 = Application.Run(macroName)
 End Function
 
-Private Function RunRoleMacroObject(ByVal macroName As String, ParamArray args() As Variant) As Object
+Private Function RunRoleMacro1(ByVal macroName As String, ByVal arg1 As Variant) As Variant
+    RunRoleMacro1 = Application.Run(macroName, arg1)
+End Function
+
+Private Function RunRoleMacroObject1(ByVal macroName As String, ByVal arg1 As Variant) As Object
     Dim result As Variant
-    result = RunRoleMacroForward(macroName, args)
-    If IsObject(result) Then Set RunRoleMacroObject = result
-End Function
-
-Private Function RunRoleMacroForward(ByVal macroName As String, ByRef args() As Variant) As Variant
-    Select Case ParamCount(args)
-        Case 0: RunRoleMacroForward = Application.Run(macroName)
-        Case 1: RunRoleMacroForward = Application.Run(macroName, args(0))
-        Case 2: RunRoleMacroForward = Application.Run(macroName, args(0), args(1))
-        Case 3: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2))
-        Case 4: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3))
-        Case 5: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4))
-        Case 6: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5))
-        Case 7: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5), args(6))
-        Case 8: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7))
-        Case 9: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8))
-        Case 10: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9))
-        Case 11: RunRoleMacroForward = Application.Run(macroName, args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8), args(9), args(10))
-        Case Else: Err.Raise 5, "cDynItemSearch.RunRoleMacroForward", "Too many macro arguments."
-    End Select
-End Function
-
-Private Function ParamCount(ByRef args() As Variant) As Long
-    On Error GoTo NoArgs
-    ParamCount = UBound(args) - LBound(args) + 1
-    Exit Function
-NoArgs:
-    ParamCount = 0
+    result = Application.Run(macroName, arg1)
+    If IsObject(result) Then Set RunRoleMacroObject1 = result
 End Function

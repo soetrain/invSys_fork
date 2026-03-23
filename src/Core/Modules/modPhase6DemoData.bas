@@ -7,33 +7,62 @@ Private Const DEMO_RECIPE_ID As String = "DEMO-RECIPE-CLASSIC-CHAI"
 Public Sub SeedActiveWorkbookDemoData()
     Dim wb As Workbook
     Dim report As String
+    Dim stepName As String
+    Dim ensured As Boolean
 
+    On Error GoTo FailSeed
+
+    stepName = "resolving operational workbook"
     Set wb = ResolveDemoWorkbook()
     If wb Is Nothing Then
         MsgBox "Open a non-addin operational workbook before seeding demo data.", vbExclamation
         Exit Sub
     End If
 
-    modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface wb, report
-    modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface wb, report
-    modRoleWorkbookSurfaces.EnsureProductionWorkbookSurface wb, report
+    stepName = "ensuring receiving surface"
+    report = ""
+    ensured = modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wb, report)
+    If Not ensured Then Err.Raise vbObjectError + 4200, "modPhase6DemoData.SeedActiveWorkbookDemoData", report
 
+    stepName = "ensuring shipping surface"
+    report = ""
+    ensured = modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wb, report)
+    If Not ensured Then Err.Raise vbObjectError + 4201, "modPhase6DemoData.SeedActiveWorkbookDemoData", report
+
+    stepName = "ensuring production surface"
+    report = ""
+    ensured = modRoleWorkbookSurfaces.EnsureProductionWorkbookSurface(wb, report)
+    If Not ensured Then Err.Raise vbObjectError + 4202, "modPhase6DemoData.SeedActiveWorkbookDemoData", report
+
+    stepName = "seeding inventory"
     SeedDemoInventory wb
+    stepName = "seeding recipes"
     SeedDemoRecipes wb
+    stepName = "seeding ingredient palette"
     SeedDemoIngredientPalette wb
 
     MsgBox "Phase 6 demo data seeded into '" & wb.Name & "'.", vbInformation
+    Exit Sub
+
+FailSeed:
+    MsgBox "SeedActiveWorkbookDemoData failed while " & stepName & ": " & Err.Description, vbExclamation
 End Sub
 
 Public Sub ClearActiveWorkbookDemoData()
     Dim wb As Workbook
+    Dim lo As ListObject
 
     Set wb = ResolveDemoWorkbook()
     If wb Is Nothing Then Exit Sub
 
-    RemoveDemoRowsByColumn FindTableByName(wb, "invSys"), "ITEM_CODE"
-    RemoveDemoRowsByColumn FindTableByName(wb, "Recipes"), "RECIPE_ID"
-    RemoveDemoRowsByColumn FindTableByName(wb, "IngredientPalette"), "RECIPE_ID"
+    Set lo = FindTableByName(wb, "invSys")
+    RemoveDemoRowsByColumn lo, "ITEM_CODE"
+
+    Set lo = FindTableByName(wb, "Recipes")
+    RemoveDemoRowsByColumn lo, "RECIPE_ID"
+
+    Set lo = FindIngredientPaletteTable(wb)
+    RemoveDemoRowsByColumn lo, "RECIPE_ID"
 End Sub
 
 Private Function ResolveDemoWorkbook() As Workbook
@@ -50,7 +79,9 @@ Private Sub SeedDemoInventory(ByVal wb As Workbook)
     Dim i As Long
 
     Set lo = FindTableByName(wb, "invSys")
-    If lo Is Nothing Then Exit Sub
+    If lo Is Nothing Then
+        Err.Raise vbObjectError + 4210, "modPhase6DemoData.SeedDemoInventory", "invSys table not found."
+    End If
 
     RemoveDemoRowsByColumn lo, "ITEM_CODE"
 
@@ -66,7 +97,9 @@ Private Sub SeedDemoRecipes(ByVal wb As Workbook)
     Dim i As Long
 
     Set lo = FindTableByName(wb, "Recipes")
-    If lo Is Nothing Then Exit Sub
+    If lo Is Nothing Then
+        Err.Raise vbObjectError + 4211, "modPhase6DemoData.SeedDemoRecipes", "Recipes table not found."
+    End If
 
     RemoveDemoRowsByColumn lo, "RECIPE_ID"
 
@@ -81,8 +114,10 @@ Private Sub SeedDemoIngredientPalette(ByVal wb As Workbook)
     Dim rows As Variant
     Dim i As Long
 
-    Set lo = FindTableByName(wb, "IngredientPalette")
-    If lo Is Nothing Then Exit Sub
+    Set lo = FindIngredientPaletteTable(wb)
+    If lo Is Nothing Then
+        Err.Raise vbObjectError + 4212, "modPhase6DemoData.SeedDemoIngredientPalette", "IngredientPalette/IngredientsPalette table not found."
+    End If
 
     RemoveDemoRowsByColumn lo, "RECIPE_ID"
 
@@ -91,6 +126,13 @@ Private Sub SeedDemoIngredientPalette(ByVal wb As Workbook)
         AppendIngredientPaletteRow lo, rows(i)
     Next i
 End Sub
+
+Private Function FindIngredientPaletteTable(ByVal wb As Workbook) As ListObject
+    Set FindIngredientPaletteTable = FindTableByName(wb, "IngredientPalette")
+    If FindIngredientPaletteTable Is Nothing Then
+        Set FindIngredientPaletteTable = FindTableByName(wb, "IngredientsPalette")
+    End If
+End Function
 
 Private Sub RemoveDemoRowsByColumn(ByVal lo As ListObject, ByVal columnName As String)
     Dim colIdx As Long
@@ -171,9 +213,16 @@ End Sub
 
 Private Sub WriteField(ByVal lr As ListRow, ByVal columnName As String, ByVal valueIn As Variant)
     Dim colIdx As Long
+    Dim lo As ListObject
 
     If lr Is Nothing Then Exit Sub
-    colIdx = ColumnIndexDemo(lr.Parent, columnName)
+    On Error Resume Next
+    Set lo = lr.Range.ListObject
+    On Error GoTo 0
+    If lo Is Nothing Then
+        Err.Raise vbObjectError + 4213, "modPhase6DemoData.WriteField", "ListRow is not attached to a ListObject while writing '" & columnName & "'."
+    End If
+    colIdx = ColumnIndexDemo(lo, columnName)
     If colIdx = 0 Then Exit Sub
     lr.Range.Cells(1, colIdx).Value = valueIn
 End Sub
