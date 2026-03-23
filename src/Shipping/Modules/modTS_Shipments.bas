@@ -45,6 +45,14 @@ Private Const SHIPPING_BOM_BLOCK_ROWS As Long = 52
 Private Const SHIPPING_BOM_DATA_ROWS As Long = 50
 Private Const SHIPPING_BOM_COLS As Long = 3 ' ROW, QUANTITY, UOM
 Private Const SHIPMENTS_SENT_DEDUCTS_TOTALINV As Boolean = False
+Private Const SHIP_LAYOUT_BUILDER_ADDR As String = "C3"
+Private Const SHIP_LAYOUT_BOM_ADDR As String = "C6"
+Private Const SHIP_LAYOUT_SHIPMENTS_ADDR As String = "K3"
+Private Const SHIP_LAYOUT_NOTSHIPPED_ADDR As String = "T3"
+Private Const SHIP_LAYOUT_AGG_BOM_ADDR As String = "AC3"
+Private Const SHIP_LAYOUT_AGG_PACK_ADDR As String = "AK3"
+Private Const SHIP_LAYOUT_CHECK_ADDR As String = "AS3"
+Private Const SHIP_LAYOUT_INV_ADDR As String = "BC3"
 
 Private mDynSearch As Object
 Private mNextInvSysRow As Long
@@ -52,11 +60,113 @@ Private mAggDirty As Boolean
 
 ' ===== public entry points =====
 Public Sub InitializeShipmentsUI()
+    InitializeShipmentsUiForWorkbook Application.ActiveWorkbook
+End Sub
+
+Public Sub InitializeShipmentsUiForWorkbook(Optional ByVal targetWb As Workbook = Nothing)
     Dim surfaceReport As String
-    Call modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(ThisWorkbook, surfaceReport)
+    Dim wb As Workbook
+
+    Set wb = ResolveShippingWorkbook(targetWb, SHEET_SHIPMENTS)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+
+    Call modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wb, surfaceReport)
+    ArrangeShippingSurface wb
     EnsureShipmentsButtons
     EnsureBuilderTablesReady
     If mAggDirty Then RebuildShippingAggregates
+End Sub
+
+Private Function ResolveShippingWorkbook(Optional ByVal preferredWb As Workbook = Nothing, Optional ByVal requiredSheet As String = "") As Workbook
+    If Not preferredWb Is Nothing Then
+        Set ResolveShippingWorkbook = preferredWb
+        Exit Function
+    End If
+
+    If Not Application.ActiveWorkbook Is Nothing Then
+        If Not Application.ActiveWorkbook.IsAddin Then
+            If requiredSheet = "" Then
+                Set ResolveShippingWorkbook = Application.ActiveWorkbook
+                Exit Function
+            ElseIf Not WorkbookSheetExistsShipping(Application.ActiveWorkbook, requiredSheet) Is Nothing Then
+                Set ResolveShippingWorkbook = Application.ActiveWorkbook
+                Exit Function
+            End If
+        End If
+    End If
+
+    If requiredSheet = "" Then
+        Set ResolveShippingWorkbook = ThisWorkbook
+    ElseIf Not WorkbookSheetExistsShipping(ThisWorkbook, requiredSheet) Is Nothing Then
+        Set ResolveShippingWorkbook = ThisWorkbook
+    End If
+End Function
+
+Private Function WorkbookSheetExistsShipping(ByVal wb As Workbook, ByVal nameOrCode As String) As Worksheet
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        If StrComp(ws.Name, nameOrCode, vbTextCompare) = 0 _
+           Or StrComp(ws.CodeName, nameOrCode, vbTextCompare) = 0 Then
+            Set WorkbookSheetExistsShipping = ws
+            Exit Function
+        End If
+    Next ws
+End Function
+
+Private Sub ArrangeShippingSurface(ByVal wb As Workbook)
+    Dim ws As Worksheet
+    Dim lo As ListObject
+
+    If wb Is Nothing Then Exit Sub
+    Set ws = WorkbookSheetExistsShipping(wb, SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Sub
+
+    Set lo = GetListObject(ws, TABLE_BOX_BUILDER)
+    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_BUILDER_ADDR
+
+    Set lo = GetListObject(ws, TABLE_BOX_BOM)
+    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_BOM_ADDR
+
+    Set lo = GetListObject(ws, TABLE_SHIPMENTS)
+    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_SHIPMENTS_ADDR
+
+    Set lo = GetListObject(ws, TABLE_NOTSHIPPED)
+    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_NOTSHIPPED_ADDR
+
+    Set lo = GetListObject(ws, TABLE_AGG_BOM)
+    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_AGG_BOM_ADDR
+
+    Set lo = GetListObject(ws, TABLE_AGG_PACK)
+    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_AGG_PACK_ADDR
+
+    Set lo = GetListObject(ws, TABLE_CHECK_INV)
+    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_CHECK_ADDR
+
+    Set lo = GetListObject(ws, "invSysData_Shipping")
+    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_INV_ADDR
+End Sub
+
+Private Sub MoveListObjectToAddressShipping(ByVal lo As ListObject, ByVal addressText As String)
+    If lo Is Nothing Then Exit Sub
+    MoveListObjectToRowColShipping lo, lo.Parent.Range(addressText).Row, lo.Parent.Range(addressText).Column
+End Sub
+
+Private Sub MoveListObjectToRowColShipping(ByVal lo As ListObject, ByVal targetRow As Long, ByVal targetCol As Long)
+    Dim dest As Range
+
+    If lo Is Nothing Then Exit Sub
+    If targetRow < 1 Or targetCol < 1 Then Exit Sub
+    If lo.Range.Row = targetRow And lo.Range.Column = targetCol Then Exit Sub
+
+    Set dest = lo.Parent.Cells(targetRow, targetCol)
+
+    On Error Resume Next
+    lo.Range.Cut Destination:=dest
+    modUtils.ClearExcelClipboardState
+    Err.Clear
+    On Error GoTo 0
 End Sub
 
 Public Sub BtnToggleBuilder()
@@ -331,7 +441,15 @@ Public Sub BtnToTotalInv()
     Dim errNotes As String
     Dim deltas As Collection
     Set deltas = BuildTotalInventoryDeltaPacket(invLo, errNotes)
-    If deltas Is Nothing Or deltas.Count = 0 Then
+    If deltas Is Nothing Then
+        If errNotes <> "" Then
+            MsgBox errNotes, vbInformation
+        Else
+            MsgBox "No staged packages found in invSys.MADE. Run Boxes made before sending to TotalInv.", vbInformation
+        End If
+        Exit Sub
+    End If
+    If deltas.Count = 0 Then
         If errNotes <> "" Then
             MsgBox errNotes, vbInformation
         Else
@@ -383,7 +501,15 @@ Public Sub BtnToShipments()
     Dim errNotes As String
     Dim deltas As Collection
     Set deltas = BuildShipmentDeltaPacket(invLo, aggPack, errNotes)
-    If deltas Is Nothing Or deltas.Count = 0 Then
+    If deltas Is Nothing Then
+        If errNotes <> "" Then
+            MsgBox errNotes, vbInformation
+        Else
+            MsgBox "No additional shipments required; Shipments column already meets demand.", vbInformation
+        End If
+        Exit Sub
+    End If
+    If deltas.Count = 0 Then
         If errNotes <> "" Then
             MsgBox errNotes, vbInformation
         Else
@@ -545,7 +671,11 @@ Private Function BuildQueueableShipmentsSentDeltas(ByVal invLo As ListObject, By
     Dim delta As Variant
 
     Set deltasOut = BuildShipmentsSentDeltaPacket(invLo, errNotes)
-    If deltasOut Is Nothing Or deltasOut.Count = 0 Then
+    If deltasOut Is Nothing Then
+        If errNotes = "" Then errNotes = "No staged shipments found in invSys.SHIPMENTS."
+        Exit Function
+    End If
+    If deltasOut.Count = 0 Then
         If errNotes = "" Then errNotes = "No staged shipments found in invSys.SHIPMENTS."
         Exit Function
     End If
@@ -1416,8 +1546,13 @@ End Sub
 
 ' ===== helpers reused from modTS_Received =====
 Private Function SheetExists(nameOrCode As String) As Worksheet
+    Dim wb As Workbook
     Dim ws As Worksheet
-    For Each ws In ThisWorkbook.Worksheets
+
+    Set wb = ResolveShippingWorkbook(, nameOrCode)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+
+    For Each ws In wb.Worksheets
         If StrComp(ws.Name, nameOrCode, vbTextCompare) = 0 _
            Or StrComp(ws.CodeName, nameOrCode, vbTextCompare) = 0 Then
             Set SheetExists = ws
@@ -2344,7 +2479,8 @@ Private Function ApplyShipmentsSentDeltas(invLo As ListObject, deltas As Collect
         ApplyShipmentsSentDeltas = -1
         Exit Function
     End If
-    If deltas Is Nothing Or deltas.Count = 0 Then Exit Function
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
 
     Dim colShip As Long: colShip = ColumnIndex(invLo, "SHIPMENTS")
     Dim colRow As Long: colRow = ColumnIndex(invLo, "ROW")
@@ -2698,21 +2834,30 @@ Public Function IsInItemsColumn(Target As Range) As Boolean
 End Function
 
 Public Sub ClearTableFilters()
+    Dim wb As Workbook
+    Dim ws As Worksheet
+
     On Error Resume Next
-    If Not ThisWorkbook.Worksheets("ShipmentsTally") Is Nothing Then
-        If Not ThisWorkbook.Worksheets("ShipmentsTally").ListObjects("ShipmentsTally") Is Nothing Then
-            ThisWorkbook.Worksheets("ShipmentsTally").ListObjects("ShipmentsTally").AutoFilter.ShowAllData
+    Set wb = ResolveShippingWorkbook()
+    If wb Is Nothing Then Set wb = ThisWorkbook
+
+    Set ws = WorkbookSheetExistsShipping(wb, "ShipmentsTally")
+    If Not ws Is Nothing Then
+        If Not ws.ListObjects("ShipmentsTally") Is Nothing Then
+            ws.ListObjects("ShipmentsTally").AutoFilter.ShowAllData
         End If
-        If Not ThisWorkbook.Worksheets("ShipmentsTally").ListObjects("invSysData_Shipping") Is Nothing Then
-            ThisWorkbook.Worksheets("ShipmentsTally").ListObjects("invSysData_Shipping").AutoFilter.ShowAllData
+        If Not ws.ListObjects("invSysData_Shipping") Is Nothing Then
+            ws.ListObjects("invSysData_Shipping").AutoFilter.ShowAllData
         End If
     End If
-    If Not ThisWorkbook.Worksheets("ReceivedTally") Is Nothing Then
-        If Not ThisWorkbook.Worksheets("ReceivedTally").ListObjects("ReceivedTally") Is Nothing Then
-            ThisWorkbook.Worksheets("ReceivedTally").ListObjects("ReceivedTally").AutoFilter.ShowAllData
+
+    Set ws = WorkbookSheetExistsShipping(wb, "ReceivedTally")
+    If Not ws Is Nothing Then
+        If Not ws.ListObjects("ReceivedTally") Is Nothing Then
+            ws.ListObjects("ReceivedTally").AutoFilter.ShowAllData
         End If
-        If Not ThisWorkbook.Worksheets("ReceivedTally").ListObjects("invSysData_Receiving") Is Nothing Then
-            ThisWorkbook.Worksheets("ReceivedTally").ListObjects("invSysData_Receiving").AutoFilter.ShowAllData
+        If Not ws.ListObjects("invSysData_Receiving") Is Nothing Then
+            ws.ListObjects("invSysData_Receiving").AutoFilter.ShowAllData
         End If
     End If
     On Error GoTo 0

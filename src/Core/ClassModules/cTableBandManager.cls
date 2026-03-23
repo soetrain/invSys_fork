@@ -24,7 +24,7 @@ Public Sub ExpandBandForTable(ByVal lo As ListObject, ByVal rowsAdded As Long)
     If rowsAdded <= 0 Then Exit Sub
 
     Dim processKey As String
-    processKey = ExtractProcessKey(lo.Name)
+    processKey = BandKeyForTable(lo)
 
     Dim bandTables As Collection
     If processKey = "" Then
@@ -62,15 +62,42 @@ Public Function GetBandTables(ByVal processKey As String) As Collection
 
     Dim lo As ListObject
     For Each lo In mWs.ListObjects
-        If processKey = "" Then
-            ' If no process key, only return the matching table name.
-            If lo.Name = processKey Then result.Add lo
-        ElseIf StrComp(ExtractProcessKey(lo.Name), processKey, vbTextCompare) = 0 Then
-            result.Add lo
+        If processKey <> "" Then
+            If StrComp(BandKeyForTable(lo), processKey, vbTextCompare) = 0 Then
+                result.Add lo
+            End If
         End If
     Next lo
 
     Set GetBandTables = result
+End Function
+
+Private Function BandKeyForTable(ByVal lo As ListObject) As String
+    If lo Is Nothing Then Exit Function
+
+    Dim nm As String
+    nm = LCase$(Trim$(lo.Name))
+    If nm = "productionoutput" Or nm = "prod_invsys_check" Then Exit Function
+
+    On Error Resume Next
+    If Not lo.DataBodyRange Is Nothing Then
+        Dim lc As ListColumn
+        For Each lc In lo.ListColumns
+            If StrComp(lc.Name, "PROCESS", vbTextCompare) = 0 Then
+                BandKeyForTable = NormalizeBandKey(CStr(lo.DataBodyRange.Cells(1, lc.Index).Value))
+                Exit For
+            End If
+        Next lc
+    End If
+    On Error GoTo 0
+
+    If BandKeyForTable = "" Then
+        BandKeyForTable = NormalizeBandKey(ExtractProcessKey(lo.Name))
+    End If
+End Function
+
+Private Function NormalizeBandKey(ByVal value As String) As String
+    NormalizeBandKey = LCase$(Trim$(value))
 End Function
 
 Public Sub ComputeBandBounds(ByVal bandTables As Collection, ByRef bandTop As Long, _

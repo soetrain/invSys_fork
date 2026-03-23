@@ -17,6 +17,17 @@ End Sub
 
 Private Sub App_WorkbookOpen(ByVal Wb As Workbook)
     Application.EnableEvents = True
+    modShippingInit.EnsureShippingSurfaceForWorkbook Wb
+End Sub
+
+Private Sub App_NewWorkbook(ByVal Wb As Workbook)
+    Application.EnableEvents = True
+    modShippingInit.EnsureShippingSurfaceForWorkbook Wb
+End Sub
+
+Private Sub App_WorkbookActivate(ByVal Wb As Workbook)
+    Application.EnableEvents = True
+    modShippingInit.EnsureShippingSurfaceForWorkbook Wb
 End Sub
 
 Private Sub App_SheetActivate(ByVal Sh As Object)

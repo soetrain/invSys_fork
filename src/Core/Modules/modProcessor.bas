@@ -163,6 +163,22 @@ FailRun:
     Resume CleanExit
 End Function
 
+Public Function RunBatchForAutomation(Optional ByVal warehouseId As String = "", _
+                                      Optional ByVal batchSize As Long = 0) As Long
+    Dim report As String
+
+    RunBatchForAutomation = RunBatch(warehouseId, batchSize, report)
+End Function
+
+Public Function RunBatchReportForAutomation(Optional ByVal warehouseId As String = "", _
+                                            Optional ByVal batchSize As Long = 0) As String
+    Dim report As String
+    Dim processedCount As Long
+
+    processedCount = RunBatch(warehouseId, batchSize, report)
+    RunBatchReportForAutomation = "Processed=" & CStr(processedCount) & "; Report=" & report
+End Function
+
 Public Function EnsureReceiveInboxSchema(Optional ByVal targetWb As Workbook = Nothing, _
                                          Optional ByRef report As String = "") As Boolean
     EnsureReceiveInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_RECEIVE, TABLE_INBOX_RECEIVE, EVENT_TYPE_RECEIVE)

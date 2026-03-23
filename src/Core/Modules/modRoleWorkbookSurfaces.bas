@@ -130,6 +130,24 @@ Private Function ResolveTargetWorkbookSurface(ByVal targetWb As Workbook) As Wor
     End If
 End Function
 
+Public Function ShouldBootstrapRoleWorkbookSurface(Optional ByVal targetWb As Workbook = Nothing) As Boolean
+    Dim wb As Workbook
+    Dim wbName As String
+
+    Set wb = targetWb
+    If wb Is Nothing Then Exit Function
+    If wb.IsAddin Then Exit Function
+
+    wbName = LCase$(Trim$(wb.Name))
+    If wbName = "" Then Exit Function
+    If Left$(wbName, 2) = "~$" Then Exit Function
+    If wbName = "personal.xlsb" Then Exit Function
+    If wbName Like "*.xla" Or wbName Like "*.xlam" Then Exit Function
+    If InStr(1, wbName, ".invsys.", vbTextCompare) > 0 Then Exit Function
+
+    ShouldBootstrapRoleWorkbookSurface = True
+End Function
+
 Private Sub EnsureTableSurface(ByVal wb As Workbook, _
                                ByVal sheetName As String, _
                                ByVal tableName As String, _

@@ -29,7 +29,11 @@ Public Function QueueProductionCompleteEventFromWorkbook(ByVal wb As Workbook, O
     End If
 
     Set madeDeltas = BuildMadeDeltasFromProductionOutput(loOut, invLo, errNotes)
-    If madeDeltas Is Nothing Or madeDeltas.Count = 0 Then
+    If madeDeltas Is Nothing Then
+        If errNotes = "" Then errNotes = "No made quantities found in ProductionOutput."
+        Exit Function
+    End If
+    If madeDeltas.Count = 0 Then
         If errNotes = "" Then errNotes = "No made quantities found in ProductionOutput."
         Exit Function
     End If
@@ -101,7 +105,11 @@ Private Function BuildMadeDeltasFromProductionOutput(ByVal loOut As ListObject, 
     End If
 
     Set rowIndex = BuildInvSysRowIndexProd(invLo)
-    If rowIndex Is Nothing Or rowIndex.Count = 0 Then
+    If rowIndex Is Nothing Then
+        errNotes = "invSys ROW index not available."
+        Exit Function
+    End If
+    If rowIndex.Count = 0 Then
         errNotes = "invSys ROW index not available."
         Exit Function
     End If

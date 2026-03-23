@@ -43,6 +43,15 @@ Private Const RECIPE_PROC_TABLE_SUFFIX As String = "rbuilder"
 Private Const RECIPE_CHOOSER_TABLE_SUFFIX As String = "rchooser"
 Private Const RECIPE_LINES_STAGING_ROW As Long = 500000 ' System 1: staging for RecipeBuilder lines during load
 Private Const PALETTE_LINES_STAGING_ROW As Long = 500000 ' System 4: staging for InventoryPalette lines table
+Private Const PROD_LAYOUT_RECIPE_HEADER_ADDR As String = "C3"
+Private Const PROD_LAYOUT_RECIPE_LINES_ADDR As String = "C6"
+Private Const PROD_LAYOUT_PALETTE_RECIPE_ADDR As String = "P3"
+Private Const PROD_LAYOUT_PALETTE_ING_ADDR As String = "P6"
+Private Const PROD_LAYOUT_PALETTE_ITEM_ADDR As String = "P9"
+Private Const PROD_LAYOUT_CHOOSER_ADDR As String = "Z3"
+Private Const PROD_LAYOUT_CHOOSER_GEN_ADDR As String = "Z6"
+Private Const PROD_LAYOUT_OUTPUT_ADDR As String = "AJ4"
+Private Const PROD_LAYOUT_CHECK_ADDR As String = "AR4"
 
 Private mRowCountCache As Object
 Private mPaletteTableMeta As Object
@@ -54,8 +63,19 @@ Private mSystemGroupNames(1 To 4) As String
 Private mSystemGroupTables(1 To 4) As Variant
 
 Public Sub InitializeProductionUI()
+    InitializeProductionUiForWorkbook Application.ActiveWorkbook
+End Sub
+
+Public Sub InitializeProductionUiForWorkbook(Optional ByVal targetWb As Workbook = Nothing)
     Dim surfaceReport As String
-    Call modRoleWorkbookSurfaces.EnsureProductionWorkbookSurface(ThisWorkbook, surfaceReport)
+    Dim wb As Workbook
+
+    Set wb = ResolveProductionWorkbook(targetWb, SHEET_PRODUCTION)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+
+    Call modRoleWorkbookSurfaces.EnsureProductionWorkbookSurface(wb, surfaceReport)
+    ArrangeProductionSurface wb
+    PrimeProductionRowCountCache wb
     EnsureProductionButtons
     EnsureSystemGroups
 End Sub
@@ -91,7 +111,7 @@ Public Sub HandleProductionChange(ByVal target As Range)
 
     If IsBandManagedTable(lo) Then
         EnsureRowCountCache
-        Dim key As String: key = lo.Name
+        Dim key As String: key = RowCountCacheKey(lo)
         Dim newCount As Long: newCount = ListObjectRowCount(lo)
         If Not mRowCountCache.Exists(key) Then
             mRowCountCache(key) = newCount
@@ -100,9 +120,7 @@ Public Sub HandleProductionChange(ByVal target As Range)
         Dim oldCount As Long: oldCount = CLng(mRowCountCache(key))
         If newCount > oldCount Then
             If LCase$(lo.Name) <> "prod_invsys_check" Then
-                Dim bandMgr As New cTableBandManager
-                bandMgr.Init lo.Parent
-                bandMgr.ExpandBandForTable lo, (newCount - oldCount)
+                ExpandProcessBandForTable lo, (newCount - oldCount)
             End If
         End If
         mRowCountCache(key) = newCount
@@ -118,6 +136,133 @@ Private Sub EnsureRowCountCache()
     If mRowCountCache Is Nothing Then
         Set mRowCountCache = CreateObject("Scripting.Dictionary")
     End If
+End Sub
+
+Private Sub ExpandProcessBandForTable(ByVal lo As ListObject, ByVal rowsAdded As Long)
+    If lo Is Nothing Then Exit Sub
+    If rowsAdded <= 0 Then Exit Sub
+
+    Dim bandTables As Collection
+    Dim bandKey As String
+    bandKey = BandKeyForProductionTable(lo)
+
+    If bandKey = "" Then
+        Set bandTables = New Collection
+        bandTables.Add lo
+    Else
+        Set bandTables = GetProductionBandTables(lo.Parent, bandKey)
+    End If
+    If bandTables Is Nothing Then Exit Sub
+    If bandTables.Count = 0 Then Exit Sub
+
+    Dim bandTop As Long
+    Dim bandBottom As Long
+    Dim bandLeft As Long
+    Dim bandRight As Long
+    ComputeProductionBandBounds bandTables, bandTop, bandBottom, bandLeft, bandRight
+    If bandTop = 0 Or bandBottom = 0 Or bandLeft = 0 Or bandRight = 0 Then Exit Sub
+
+    Dim insertTop As Long
+    insertTop = bandBottom + 1
+    If insertTop > lo.Parent.Rows.Count Then Exit Sub
+
+    Dim insertRange As Range
+    Set insertRange = lo.Parent.Range(lo.Parent.Cells(insertTop, bandLeft), lo.Parent.Cells(insertTop + rowsAdded - 1, bandRight))
+
+    On Error Resume Next
+    insertRange.Insert Shift:=xlShiftDown
+    Err.Clear
+    On Error GoTo 0
+End Sub
+
+Private Function GetProductionBandTables(ByVal ws As Worksheet, ByVal bandKey As String) As Collection
+    Dim result As New Collection
+    Dim lo As ListObject
+
+    If ws Is Nothing Then
+        Set GetProductionBandTables = result
+        Exit Function
+    End If
+
+    For Each lo In ws.ListObjects
+        If StrComp(BandKeyForProductionTable(lo), bandKey, vbTextCompare) = 0 Then
+            result.Add lo
+        End If
+    Next lo
+
+    Set GetProductionBandTables = result
+End Function
+
+Private Sub ComputeProductionBandBounds(ByVal bandTables As Collection, ByRef bandTop As Long, ByRef bandBottom As Long, ByRef bandLeft As Long, ByRef bandRight As Long)
+    Dim lo As ListObject
+    Dim topSet As Boolean
+
+    For Each lo In bandTables
+        If lo Is Nothing Then GoTo NextLo
+        Dim rTop As Long: rTop = lo.Range.Row
+        Dim rBottom As Long: rBottom = lo.Range.Row + lo.Range.Rows.Count - 1
+        Dim cLeft As Long: cLeft = lo.Range.Column
+        Dim cRight As Long: cRight = lo.Range.Column + lo.Range.Columns.Count - 1
+        If Not topSet Then
+            bandTop = rTop
+            bandBottom = rBottom
+            bandLeft = cLeft
+            bandRight = cRight
+            topSet = True
+        Else
+            If rTop < bandTop Then bandTop = rTop
+            If rBottom > bandBottom Then bandBottom = rBottom
+            If cLeft < bandLeft Then bandLeft = cLeft
+            If cRight > bandRight Then bandRight = cRight
+        End If
+NextLo:
+    Next lo
+End Sub
+
+Private Function BandKeyForProductionTable(ByVal lo As ListObject) As String
+    If lo Is Nothing Then Exit Function
+
+    Dim nm As String
+    nm = LCase$(Trim$(lo.Name))
+    If nm = "productionoutput" Or nm = "prod_invsys_check" Then Exit Function
+
+    On Error Resume Next
+    If Not lo.DataBodyRange Is Nothing Then
+        Dim cProc As Long
+        cProc = ColumnIndex(lo, "PROCESS")
+        If cProc > 0 Then
+            BandKeyForProductionTable = NormalizeProcessBandKey(NzStr(lo.DataBodyRange.Cells(1, cProc).Value))
+        End If
+    End If
+    On Error GoTo 0
+
+    If BandKeyForProductionTable = "" Then
+        BandKeyForProductionTable = NormalizeProcessBandKey(ExtractProcessKeyFromTableName(lo.Name))
+    End If
+End Function
+
+Private Function RowCountCacheKey(ByVal lo As ListObject) As String
+    If lo Is Nothing Then Exit Function
+    RowCountCacheKey = lo.Parent.Parent.Name & "|" & lo.Parent.Name & "|" & lo.Name
+End Function
+
+Private Sub PrimeProductionRowCountCache(Optional ByVal targetWb As Workbook = Nothing)
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim lo As ListObject
+
+    Set wb = ResolveProductionWorkbook(targetWb, SHEET_PRODUCTION)
+    If wb Is Nothing Then Exit Sub
+
+    Set ws = WorkbookSheetExists(wb, SHEET_PRODUCTION)
+    If ws Is Nothing Then Exit Sub
+
+    EnsureRowCountCache
+    For Each lo In ws.ListObjects
+        If IsBandManagedTable(lo) Then
+            mRowCountCache(RowCountCacheKey(lo)) = ListObjectRowCount(lo)
+        End If
+    Next lo
 End Sub
 
 Private Sub EnsurePaletteTableMeta()
@@ -172,11 +317,54 @@ Public Function GetProductionSheet() As Worksheet
 End Function
 
 Public Function SheetExists(nameOrCode As String) As Worksheet
+    Dim wb As Workbook
     Dim ws As Worksheet
-    For Each ws In ThisWorkbook.Worksheets
+
+    Set wb = ResolveProductionWorkbook(, nameOrCode)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+
+    For Each ws In wb.Worksheets
         If StrComp(ws.Name, nameOrCode, vbTextCompare) = 0 _
            Or StrComp(ws.CodeName, nameOrCode, vbTextCompare) = 0 Then
             Set SheetExists = ws
+            Exit Function
+        End If
+    Next ws
+End Function
+
+Private Function ResolveProductionWorkbook(Optional ByVal preferredWb As Workbook = Nothing, Optional ByVal requiredSheet As String = "") As Workbook
+    If Not preferredWb Is Nothing Then
+        Set ResolveProductionWorkbook = preferredWb
+        Exit Function
+    End If
+
+    If Not Application.ActiveWorkbook Is Nothing Then
+        If Not Application.ActiveWorkbook.IsAddin Then
+            If requiredSheet = "" Then
+                Set ResolveProductionWorkbook = Application.ActiveWorkbook
+                Exit Function
+            ElseIf Not WorkbookSheetExists(Application.ActiveWorkbook, requiredSheet) Is Nothing Then
+                Set ResolveProductionWorkbook = Application.ActiveWorkbook
+                Exit Function
+            End If
+        End If
+    End If
+
+    If requiredSheet = "" Then
+        Set ResolveProductionWorkbook = ThisWorkbook
+    ElseIf Not WorkbookSheetExists(ThisWorkbook, requiredSheet) Is Nothing Then
+        Set ResolveProductionWorkbook = ThisWorkbook
+    End If
+End Function
+
+Private Function WorkbookSheetExists(ByVal wb As Workbook, ByVal nameOrCode As String) As Worksheet
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        If StrComp(ws.Name, nameOrCode, vbTextCompare) = 0 _
+           Or StrComp(ws.CodeName, nameOrCode, vbTextCompare) = 0 Then
+            Set WorkbookSheetExists = ws
             Exit Function
         End If
     Next ws
@@ -187,6 +375,68 @@ Public Function GetListObject(ws As Worksheet, tableName As String) As ListObjec
     Set GetListObject = ws.ListObjects(tableName)
     On Error GoTo 0
 End Function
+
+Private Sub ArrangeProductionSurface(ByVal wb As Workbook)
+    Dim ws As Worksheet
+    Dim lo As ListObject
+
+    If wb Is Nothing Then Exit Sub
+    Set ws = WorkbookSheetExists(wb, SHEET_PRODUCTION)
+    If ws Is Nothing Then Exit Sub
+
+    Set lo = GetListObject(ws, TABLE_RECIPE_BUILDER_HEADER)
+    MoveListObjectToAddress lo, PROD_LAYOUT_RECIPE_HEADER_ADDR
+
+    Set lo = GetListObject(ws, TABLE_RECIPE_BUILDER_LINES)
+    If Not lo Is Nothing Then
+        If lo.Range.Row < RECIPE_LINES_STAGING_ROW Then MoveListObjectToAddress lo, PROD_LAYOUT_RECIPE_LINES_ADDR
+    End If
+
+    Set lo = GetListObject(ws, "IP_ChooseRecipe")
+    MoveListObjectToAddress lo, PROD_LAYOUT_PALETTE_RECIPE_ADDR
+    Set lo = GetListObject(ws, "IP_ChooseIngredient")
+    MoveListObjectToAddress lo, PROD_LAYOUT_PALETTE_ING_ADDR
+    Set lo = GetListObject(ws, "IP_ChooseItem")
+    MoveListObjectToAddress lo, PROD_LAYOUT_PALETTE_ITEM_ADDR
+
+    Set lo = GetListObject(ws, TABLE_RECIPE_CHOOSER)
+    MoveListObjectToAddress lo, PROD_LAYOUT_CHOOSER_ADDR
+    Set lo = GetListObject(ws, TABLE_RECIPE_CHOOSER_GENERATED)
+    MoveListObjectToAddress lo, PROD_LAYOUT_CHOOSER_GEN_ADDR
+
+    Set lo = GetListObject(ws, "ProductionOutput")
+    MoveListObjectToAddress lo, PROD_LAYOUT_OUTPUT_ADDR
+    Set lo = GetListObject(ws, "Prod_invSys_Check")
+    MoveListObjectToAddress lo, PROD_LAYOUT_CHECK_ADDR
+
+    Set lo = GetListObject(ws, TABLE_INV_PALETTE_GENERATED)
+    If Not lo Is Nothing Then
+        MoveListObjectToRowCol lo, PALETTE_LINES_STAGING_ROW, ws.Range(PROD_LAYOUT_OUTPUT_ADDR).Column
+    End If
+End Sub
+
+Private Sub MoveListObjectToAddress(ByVal lo As ListObject, ByVal addressText As String)
+    If lo Is Nothing Then Exit Sub
+    MoveListObjectToRowCol lo, lo.Parent.Range(addressText).Row, lo.Parent.Range(addressText).Column
+End Sub
+
+Private Sub MoveListObjectToRowCol(ByVal lo As ListObject, ByVal targetRow As Long, ByVal targetCol As Long)
+    Dim ws As Worksheet
+    Dim dest As Range
+
+    If lo Is Nothing Then Exit Sub
+    If targetRow < 1 Or targetCol < 1 Then Exit Sub
+    If lo.Range.Row = targetRow And lo.Range.Column = targetCol Then Exit Sub
+
+    Set ws = lo.Parent
+    Set dest = ws.Cells(targetRow, targetCol)
+
+    On Error Resume Next
+    lo.Range.Cut Destination:=dest
+    modUtils.ClearExcelClipboardState
+    Err.Clear
+    On Error GoTo 0
+End Sub
 
 Public Function LoadRecipeList() As Variant
     Dim wsRec As Worksheet: Set wsRec = SheetExists("Recipes")
@@ -1019,7 +1269,7 @@ Public Sub BtnToMade()
     End If
 
     If Not usedDeltas Is Nothing Then
-        usedTotal = modInvMan.ApplyUsedDeltas(usedDeltas, errNotes, "BTN_TO_MADE - Components Used")
+        usedTotal = ApplyUsedDeltasLocal(invLo, usedDeltas, errNotes)
         If usedTotal < 0 Then
             If errNotes = "" Then errNotes = "Unable to deduct USED inventory."
             MsgBox "Send to MADE cancelled: " & errNotes, vbExclamation
@@ -1029,7 +1279,7 @@ Public Sub BtnToMade()
         AppendNote errNotes, usedNotes
     End If
 
-    madeTotal = modInvMan.ApplyMadeDeltas(madeDeltas, errNotes, "BTN_TO_MADE - Finished Goods Staged")
+    madeTotal = ApplyMadeDeltasLocal(invLo, madeDeltas, errNotes)
     If madeTotal < 0 Then
         If errNotes = "" Then errNotes = "Unable to stage MADE inventory."
         MsgBox "Send to MADE cancelled: " & errNotes, vbExclamation
@@ -1109,7 +1359,7 @@ Public Sub BtnToTotalInv()
     End If
 
     Dim totalMoved As Double
-    totalMoved = modInvMan.ApplyMadeToInventoryDeltas(madeDeltas, errNotes, "BTN_TO_TOTALINV - Move Made to Total Inv")
+    totalMoved = ApplyMadeToInventoryDeltasLocal(invLo, madeDeltas, errNotes)
     If totalMoved < 0 Then
         If errNotes = "" Then errNotes = "Unable to move MADE to TOTAL INV."
         MsgBox "Send to TOTAL INV cancelled: " & errNotes, vbExclamation
@@ -1171,7 +1421,12 @@ Public Function QueueProductionCompleteEventFromCurrentWorkbook(ByRef eventIdOut
     End If
 
     Set madeDeltas = BuildMadeDeltasFromProductionOutput(loOut, invLo, madeNotes)
-    If madeDeltas Is Nothing Or madeDeltas.Count = 0 Then
+    If madeDeltas Is Nothing Then
+        If madeNotes = "" Then madeNotes = "No made quantities found in ProductionOutput."
+        errNotes = madeNotes
+        Exit Function
+    End If
+    If madeDeltas.Count = 0 Then
         If madeNotes = "" Then madeNotes = "No made quantities found in ProductionOutput."
         errNotes = madeNotes
         Exit Function
@@ -1689,6 +1944,13 @@ Private Sub EnsureListObjectRowCountFullRow(ByVal lo As ListObject, ByVal needed
     Dim addRows As Long
     addRows = needed - currentRows
 
+    Dim usedBandInsert As Boolean
+    If LCase$(lo.Name) = "productionoutput" Then
+        usedBandInsert = ExpandProductionOutputBand(lo.Parent, lo, addRows)
+    ElseIf LCase$(lo.Name) = "prod_invsys_check" Then
+        usedBandInsert = ExpandProductionInputOutputBand(lo.Parent, lo, addRows)
+    End If
+
     Dim lastRow As Long
     lastRow = lo.Range.row + lo.Range.rows.count - 1
 
@@ -1700,7 +1962,9 @@ Private Sub EnsureListObjectRowCountFullRow(ByVal lo As ListObject, ByVal needed
 
     Dim ws As Worksheet
     Set ws = lo.Parent
-    ws.rows(insertAt + 1).Resize(addRows).Insert Shift:=xlShiftDown
+    If Not usedBandInsert Then
+        ws.rows(insertAt + 1).Resize(addRows).Insert Shift:=xlShiftDown
+    End If
 
     Dim newRange As Range
     Set newRange = lo.Range.Resize(lo.Range.rows.count + addRows)
@@ -2119,6 +2383,29 @@ NextRecipeRow:
     Dim invRowMap As Object
     Set invRowMap = BuildInvSysRowMap()
 
+    Dim procTableMap As Object: Set procTableMap = CreateObject("Scripting.Dictionary")
+    Dim procOrder As New Collection
+    Dim procLo As ListObject
+    If Not procTables Is Nothing Then
+        For Each procLo In procTables
+            If Not procLo Is Nothing Then
+                Dim procTableName As String
+                procTableName = Trim$(ProcessNameFromTable(procLo))
+                If procTableName <> "" Then
+                    Dim procTableKey As String
+                    procTableKey = NormalizeProcessBandKey(procTableName)
+                    If Not procTableMap.Exists(procTableKey) Then
+                        procTableMap.Add procTableKey, procLo
+                        procOrder.Add procTableKey
+                    End If
+                End If
+            End If
+        Next procLo
+    End If
+
+    Dim procEntries As Object: Set procEntries = CreateObject("Scripting.Dictionary")
+    Dim procLabels As Object: Set procLabels = CreateObject("Scripting.Dictionary")
+
     Dim idx As Long
     Dim tpl As New cTemplateApplier
     Dim nextSeq As Long: nextSeq = 1
@@ -2131,63 +2418,134 @@ NextRecipeRow:
         Dim infoArr As Variant
         infoArr = entries(idx)
 
-        Dim rowList As Collection
-        Set rowList = GetIngredientPaletteRows(infoArr(0), infoArr(1))
+        Dim procNameForEntry As String
+        procNameForEntry = Trim$(NzStr(infoArr(3)))
+        If procNameForEntry = "" Then GoTo NextEntry
 
-        Dim dataCount As Long
-        If rowList Is Nothing Then
-            dataCount = 1
-        ElseIf rowList.count = 0 Then
-            dataCount = 1
+        Dim procKey As String
+        procKey = NormalizeProcessBandKey(procNameForEntry)
+        If procKey = "" Then GoTo NextEntry
+
+        If Not procEntries.Exists(procKey) Then
+            procEntries.Add procKey, New Collection
+            procLabels(procKey) = procNameForEntry
+            If Not procTableMap.Exists(procKey) Then
+                procOrder.Add procKey
+            End If
+        End If
+        procEntries(procKey).Add infoArr
+NextEntry:
+    Next idx
+
+    If procEntries.count = 0 Then Exit Sub
+
+    Dim orderIdx As Long
+    For orderIdx = 1 To procOrder.count
+        Dim procOrderKey As String
+        procOrderKey = CStr(procOrder(orderIdx))
+        If Not procEntries.Exists(procOrderKey) Then GoTo NextProcOrder
+
+        Dim currentRow As Long
+        Dim nextBandTop As Long
+        Dim procLabel As String
+        procLabel = CStr(procLabels(procOrderKey))
+
+        If procTableMap.Exists(procOrderKey) Then
+            Set procLo = procTableMap(procOrderKey)
+            currentRow = procLo.Range.Row
         Else
-            dataCount = rowList.count
+            currentRow = startRow
         End If
 
-        Dim tableRange As Range
-        Set tableRange = wsProd.Range(wsProd.Cells(startRow, startCol), wsProd.Cells(startRow + dataCount, startCol + colCount - 1))
-        If RangeHasListObjectCollisionStrict(wsProd, tableRange) Then
-            Set tableRange = FindAvailablePaletteRange(wsProd, startRow, startCol, dataCount + 1, colCount)
-            If tableRange Is Nothing Then Exit For
+        nextBandTop = 0
+        If orderIdx < procOrder.count Then
+            Dim nextOrderIdx As Long
+            For nextOrderIdx = orderIdx + 1 To procOrder.count
+                Dim nextProcKey As String
+                nextProcKey = CStr(procOrder(nextOrderIdx))
+                If procTableMap.Exists(nextProcKey) Then
+                    Dim nextProcLo As ListObject
+                    Set nextProcLo = procTableMap(nextProcKey)
+                    nextBandTop = nextProcLo.Range.Row
+                    Exit For
+                End If
+            Next nextOrderIdx
         End If
 
-        tableRange.Clear
-        tableRange.rows(1).value = HeaderRowArray(headerNames)
+        Dim bandEntries As Collection
+        Set bandEntries = procEntries(procOrderKey)
+        Dim bandIdx As Long
+        For bandIdx = 1 To bandEntries.count
+            infoArr = bandEntries(bandIdx)
 
-        Dim dataArr() As Variant
-        ReDim dataArr(1 To dataCount, 1 To colCount)
-        Dim r2 As Long
-        For r2 = 1 To dataCount
-            If hdrProc > 0 Then dataArr(r2, hdrProc) = NzStr(infoArr(3))
-            If hdrIO > 0 Then dataArr(r2, hdrIO) = NzStr(infoArr(4))
-            If hdrQty > 0 Then dataArr(r2, hdrQty) = infoArr(2)
-            If hdrRow > 0 Then
-                If Not rowList Is Nothing And rowList.count > 0 Then
-                    dataArr(r2, hdrRow) = rowList(r2)
+            Dim rowList As Collection
+            Set rowList = GetIngredientPaletteRows(infoArr(0), infoArr(1))
+
+            Dim dataCount As Long
+            If rowList Is Nothing Then
+                dataCount = 1
+            ElseIf rowList.count = 0 Then
+                dataCount = 1
+            Else
+                dataCount = rowList.count
+            End If
+
+            If nextBandTop > 0 Then
+                Dim requiredNextTop As Long
+                requiredNextTop = currentRow + dataCount + 3
+                If requiredNextTop > nextBandTop Then
+                    wsProd.Rows(nextBandTop).Resize(requiredNextTop - nextBandTop).Insert Shift:=xlShiftDown
+                    nextBandTop = requiredNextTop
                 End If
             End If
-        Next r2
-        tableRange.Offset(1, 0).Resize(dataCount, colCount).value = dataArr
 
-        Dim newLo As ListObject
-        Set newLo = wsProd.ListObjects.Add(xlSrcRange, tableRange, , xlYes)
-        newLo.Name = UniqueListObjectName(wsProd, "proc_" & CStr(nextSeq) & "_palette")
-        nextSeq = nextSeq + 1
-        If baseStyle <> "" Then
-            On Error Resume Next
-            newLo.TableStyle = baseStyle
-            On Error GoTo 0
-        End If
+            Dim tableRange As Range
+            Set tableRange = wsProd.Range(wsProd.Cells(currentRow, startCol), wsProd.Cells(currentRow + dataCount, startCol + colCount - 1))
+            If RangeHasListObjectCollisionStrict(wsProd, tableRange) Then
+                Set tableRange = FindAvailablePaletteRange(wsProd, currentRow, startCol, dataCount + 1, colCount)
+                If tableRange Is Nothing Then Exit For
+            End If
 
-        mPaletteTableMeta(newLo.Name) = infoArr
+            tableRange.Clear
+            tableRange.Rows(1).Value = HeaderRowArray(headerNames)
 
-        ApplyProcessHeaderColor newLo, NzStr(infoArr(3))
+            Dim dataArr() As Variant
+            ReDim dataArr(1 To dataCount, 1 To colCount)
+            Dim r2 As Long
+            For r2 = 1 To dataCount
+                If hdrProc > 0 Then dataArr(r2, hdrProc) = procLabel
+                If hdrIO > 0 Then dataArr(r2, hdrIO) = NzStr(infoArr(4))
+                If hdrQty > 0 Then dataArr(r2, hdrQty) = infoArr(2)
+                If hdrRow > 0 Then
+                    If Not rowList Is Nothing And rowList.count > 0 Then
+                        dataArr(r2, hdrRow) = rowList(r2)
+                    End If
+                End If
+            Next r2
+            tableRange.Offset(1, 0).Resize(dataCount, colCount).Value = dataArr
 
-        FillPaletteTableFromInvSys newLo, invRowMap
+            Dim newLo As ListObject
+            Set newLo = wsProd.ListObjects.Add(xlSrcRange, tableRange, , xlYes)
+            newLo.Name = UniqueListObjectName(wsProd, "proc_" & CStr(nextSeq) & "_palette")
+            nextSeq = nextSeq + 1
+            If baseStyle <> "" Then
+                On Error Resume Next
+                newLo.TableStyle = baseStyle
+                On Error GoTo 0
+            End If
 
-        tpl.ApplyTemplates newLo, TEMPLATE_SCOPE_PROD_RUN, NzStr(infoArr(3)), TEMPLATE_TABLEKEY_PALETTE, recipeId
+            mPaletteTableMeta(newLo.Name) = infoArr
 
-        startRow = tableRange.row + tableRange.rows.count + 3
-    Next idx
+            ApplyProcessHeaderColor newLo, procLabel
+
+            FillPaletteTableFromInvSys newLo, invRowMap
+
+            tpl.ApplyTemplates newLo, TEMPLATE_SCOPE_PROD_RUN, procLabel, TEMPLATE_TABLEKEY_PALETTE, recipeId
+
+            currentRow = tableRange.Row + tableRange.Rows.Count + 3
+        Next bandIdx
+NextProcOrder:
+    Next orderIdx
 End Sub
 
 Private Sub ApplyProductionOutputTemplates(ByVal recipeId As String, ByVal wsProd As Worksheet)
@@ -2385,6 +2743,10 @@ Private Function FindAvailablePaletteRange(ByVal ws As Worksheet, ByVal startRow
         End If
         tryRow = tryRow + totalRows + 3
     Loop
+End Function
+
+Private Function NormalizeProcessBandKey(ByVal value As String) As String
+    NormalizeProcessBandKey = LCase$(Trim$(value))
 End Function
 
 Private Function BuildInvSysRowMap() As Object
@@ -3222,6 +3584,196 @@ NextRow:
     Set BuildMadeDeltasFromProductionOutput = result
 End Function
 
+Private Function ApplyUsedDeltasLocal(ByVal invLo As ListObject, ByVal deltas As Collection, ByRef errNotes As String) As Double
+    ApplyUsedDeltasLocal = 0
+    errNotes = ""
+    If invLo Is Nothing Then
+        errNotes = "InventoryManagement!invSys table not found."
+        ApplyUsedDeltasLocal = -1
+        Exit Function
+    End If
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
+
+    Dim cUsed As Long: cUsed = ColumnIndex(invLo, "USED")
+    If cUsed = 0 Then cUsed = ColumnIndexLoose(invLo, "USED")
+    Dim cTotal As Long: cTotal = ColumnIndex(invLo, "TOTAL INV")
+    If cTotal = 0 Then cTotal = ColumnIndexLoose(invLo, "TOTALINV", "TOTAL_INV", "TOTALINVENTORY")
+    Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
+    If cRow = 0 Then cRow = ColumnIndexLoose(invLo, "ROW", "ROWID", "ROW#")
+    Dim cLastEdited As Long: cLastEdited = ColumnIndex(invLo, "LAST EDITED")
+    If cLastEdited = 0 Then cLastEdited = ColumnIndexLoose(invLo, "LASTEDITED", "LAST_EDITED")
+    Dim cTotalLastEdit As Long: cTotalLastEdit = ColumnIndex(invLo, "TOTAL INV LAST EDIT")
+    If cTotalLastEdit = 0 Then cTotalLastEdit = ColumnIndexLoose(invLo, "TOTALINVLASTEDIT", "TOTAL_INV_LAST_EDIT")
+    If cUsed = 0 Or cTotal = 0 Or cRow = 0 Then
+        errNotes = "invSys table missing required columns for USED apply."
+        ApplyUsedDeltasLocal = -1
+        Exit Function
+    End If
+
+    Dim rowIndex As Object
+    Set rowIndex = BuildInvSysRowIndex(invLo)
+    If rowIndex Is Nothing Then
+        errNotes = "invSys ROW index not available."
+        ApplyUsedDeltasLocal = -1
+        Exit Function
+    End If
+    If rowIndex.count = 0 Then
+        errNotes = "invSys ROW index not available."
+        ApplyUsedDeltasLocal = -1
+        Exit Function
+    End If
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowKey As String: rowKey = CStr(NzLng(delta("ROW")))
+        If Not rowIndex.Exists(rowKey) Then
+            errNotes = "invSys row " & rowKey & " not found."
+            ApplyUsedDeltasLocal = -1
+            Exit Function
+        End If
+
+        Dim invIdx As Long: invIdx = CLng(rowIndex(rowKey))
+        Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
+        Dim totalCell As Range: Set totalCell = invLo.DataBodyRange.Cells(invIdx, cTotal)
+        Dim usedCell As Range: Set usedCell = invLo.DataBodyRange.Cells(invIdx, cUsed)
+        Dim available As Double: available = NzDbl(totalCell.Value)
+        If qtyVal > available + 0.0000001 Then
+            errNotes = "ROW " & rowKey & " requires " & Format$(qtyVal, "0.###") & " but only " & Format$(available, "0.###") & " available."
+            ApplyUsedDeltasLocal = -1
+            Exit Function
+        End If
+
+        totalCell.Value = available - qtyVal
+        usedCell.Value = WorksheetFunction.Max(0, NzDbl(usedCell.Value) - qtyVal)
+        If cLastEdited > 0 Then invLo.DataBodyRange.Cells(invIdx, cLastEdited).Value = Now
+        If cTotalLastEdit > 0 Then invLo.DataBodyRange.Cells(invIdx, cTotalLastEdit).Value = Now
+        ApplyUsedDeltasLocal = ApplyUsedDeltasLocal + qtyVal
+    Next delta
+End Function
+
+Private Function ApplyMadeDeltasLocal(ByVal invLo As ListObject, ByVal deltas As Collection, ByRef errNotes As String) As Double
+    ApplyMadeDeltasLocal = 0
+    errNotes = ""
+    If invLo Is Nothing Then
+        errNotes = "InventoryManagement!invSys table not found."
+        ApplyMadeDeltasLocal = -1
+        Exit Function
+    End If
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
+
+    Dim cMade As Long: cMade = ColumnIndex(invLo, "MADE")
+    If cMade = 0 Then cMade = ColumnIndexLoose(invLo, "MADE")
+    Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
+    If cRow = 0 Then cRow = ColumnIndexLoose(invLo, "ROW", "ROWID", "ROW#")
+    Dim cLastEdited As Long: cLastEdited = ColumnIndex(invLo, "LAST EDITED")
+    If cLastEdited = 0 Then cLastEdited = ColumnIndexLoose(invLo, "LASTEDITED", "LAST_EDITED")
+    If cMade = 0 Or cRow = 0 Then
+        errNotes = "invSys table missing required columns for MADE apply."
+        ApplyMadeDeltasLocal = -1
+        Exit Function
+    End If
+
+    Dim rowIndex As Object
+    Set rowIndex = BuildInvSysRowIndex(invLo)
+    If rowIndex Is Nothing Then
+        errNotes = "invSys ROW index not available."
+        ApplyMadeDeltasLocal = -1
+        Exit Function
+    End If
+    If rowIndex.count = 0 Then
+        errNotes = "invSys ROW index not available."
+        ApplyMadeDeltasLocal = -1
+        Exit Function
+    End If
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowKey As String: rowKey = CStr(NzLng(delta("ROW")))
+        If Not rowIndex.Exists(rowKey) Then
+            errNotes = "invSys row " & rowKey & " not found."
+            ApplyMadeDeltasLocal = -1
+            Exit Function
+        End If
+
+        Dim invIdx As Long: invIdx = CLng(rowIndex(rowKey))
+        Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
+        Dim madeCell As Range: Set madeCell = invLo.DataBodyRange.Cells(invIdx, cMade)
+        madeCell.Value = NzDbl(madeCell.Value) + qtyVal
+        If cLastEdited > 0 Then invLo.DataBodyRange.Cells(invIdx, cLastEdited).Value = Now
+        ApplyMadeDeltasLocal = ApplyMadeDeltasLocal + qtyVal
+    Next delta
+End Function
+
+Private Function ApplyMadeToInventoryDeltasLocal(ByVal invLo As ListObject, ByVal deltas As Collection, ByRef errNotes As String) As Double
+    ApplyMadeToInventoryDeltasLocal = 0
+    errNotes = ""
+    If invLo Is Nothing Then
+        errNotes = "InventoryManagement!invSys table not found."
+        ApplyMadeToInventoryDeltasLocal = -1
+        Exit Function
+    End If
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
+
+    Dim cMade As Long: cMade = ColumnIndex(invLo, "MADE")
+    If cMade = 0 Then cMade = ColumnIndexLoose(invLo, "MADE")
+    Dim cTotal As Long: cTotal = ColumnIndex(invLo, "TOTAL INV")
+    If cTotal = 0 Then cTotal = ColumnIndexLoose(invLo, "TOTALINV", "TOTAL_INV", "TOTALINVENTORY")
+    Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
+    If cRow = 0 Then cRow = ColumnIndexLoose(invLo, "ROW", "ROWID", "ROW#")
+    Dim cLastEdited As Long: cLastEdited = ColumnIndex(invLo, "LAST EDITED")
+    If cLastEdited = 0 Then cLastEdited = ColumnIndexLoose(invLo, "LASTEDITED", "LAST_EDITED")
+    Dim cTotalLastEdit As Long: cTotalLastEdit = ColumnIndex(invLo, "TOTAL INV LAST EDIT")
+    If cTotalLastEdit = 0 Then cTotalLastEdit = ColumnIndexLoose(invLo, "TOTALINVLASTEDIT", "TOTAL_INV_LAST_EDIT")
+    If cMade = 0 Or cTotal = 0 Or cRow = 0 Then
+        errNotes = "invSys table missing required columns for TOTAL INV apply."
+        ApplyMadeToInventoryDeltasLocal = -1
+        Exit Function
+    End If
+
+    Dim rowIndex As Object
+    Set rowIndex = BuildInvSysRowIndex(invLo)
+    If rowIndex Is Nothing Then
+        errNotes = "invSys ROW index not available."
+        ApplyMadeToInventoryDeltasLocal = -1
+        Exit Function
+    End If
+    If rowIndex.count = 0 Then
+        errNotes = "invSys ROW index not available."
+        ApplyMadeToInventoryDeltasLocal = -1
+        Exit Function
+    End If
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowKey As String: rowKey = CStr(NzLng(delta("ROW")))
+        If Not rowIndex.Exists(rowKey) Then
+            errNotes = "invSys row " & rowKey & " not found."
+            ApplyMadeToInventoryDeltasLocal = -1
+            Exit Function
+        End If
+
+        Dim invIdx As Long: invIdx = CLng(rowIndex(rowKey))
+        Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
+        Dim madeCell As Range: Set madeCell = invLo.DataBodyRange.Cells(invIdx, cMade)
+        Dim totalCell As Range: Set totalCell = invLo.DataBodyRange.Cells(invIdx, cTotal)
+        Dim stagedQty As Double: stagedQty = NzDbl(madeCell.Value)
+        If qtyVal > stagedQty + 0.0000001 Then
+            errNotes = "ROW " & rowKey & " only has " & Format$(stagedQty, "0.###") & " staged in MADE but requires " & Format$(qtyVal, "0.###") & "."
+            ApplyMadeToInventoryDeltasLocal = -1
+            Exit Function
+        End If
+
+        madeCell.Value = stagedQty - qtyVal
+        totalCell.Value = NzDbl(totalCell.Value) + qtyVal
+        If cLastEdited > 0 Then invLo.DataBodyRange.Cells(invIdx, cLastEdited).Value = Now
+        If cTotalLastEdit > 0 Then invLo.DataBodyRange.Cells(invIdx, cTotalLastEdit).Value = Now
+        ApplyMadeToInventoryDeltasLocal = ApplyMadeToInventoryDeltasLocal + qtyVal
+    Next delta
+End Function
+
 Private Function QueueProductionConsumeEvent(ByVal usedDeltas As Collection, ByVal madeDeltas As Collection, ByRef errNotes As String, ByRef eventIdOut As String) As Boolean
     Dim payloadItems As Collection
 
@@ -3626,6 +4178,8 @@ Private Sub RenderPaletteKeepCheckboxes(ByVal ws As Worksheet)
     Dim maxCol As Long
     Dim lo As ListObject
     Dim paletteTables As New Collection
+    Dim firstPaletteByProc As Object
+    Set firstPaletteByProc = CreateObject("Scripting.Dictionary")
     For Each lo In ws.ListObjects
         If IsPaletteTable(lo) Then
             If lo.Range.row < PALETTE_LINES_STAGING_ROW Then
@@ -3633,6 +4187,25 @@ Private Sub RenderPaletteKeepCheckboxes(ByVal ws As Worksheet)
                 Dim endCol As Long
                 endCol = lo.Range.Column + lo.Range.Columns.count - 1
                 If endCol > maxCol Then maxCol = endCol
+
+                Dim procNameCollect As String
+                Dim recipeIdCollect As String
+                Dim ingIdCollect As String
+                Dim amtValCollect As Variant
+                Dim ioValCollect As String
+                If GetPaletteTableContext(lo, recipeIdCollect, ingIdCollect, amtValCollect, procNameCollect, ioValCollect) = False Then
+                    procNameCollect = ProcessNameFromTable(lo)
+                End If
+                procNameCollect = Trim$(procNameCollect)
+                If procNameCollect <> "" Then
+                    Dim procKeyCollect As String
+                    procKeyCollect = NormalizeProcessBandKey(procNameCollect)
+                    If Not firstPaletteByProc.Exists(procKeyCollect) Then
+                        firstPaletteByProc.Add procKeyCollect, lo
+                    ElseIf firstPaletteByProc(procKeyCollect).Range.Row > lo.Range.Row Then
+                        Set firstPaletteByProc(procKeyCollect) = lo
+                    End If
+                End If
             End If
         End If
     Next lo
@@ -3644,7 +4217,9 @@ Private Sub RenderPaletteKeepCheckboxes(ByVal ws As Worksheet)
     Const CHK_HEIGHT As Double = 14
     Const CHK_WIDTH As Double = 14
 
-    For Each lo In paletteTables
+    Dim procKey As Variant
+    For Each procKey In firstPaletteByProc.keys
+        Set lo = firstPaletteByProc(procKey)
         If lo Is Nothing Then GoTo NextPal
         Dim procName As String
         Dim recipeId As String
@@ -3675,7 +4250,7 @@ Private Sub RenderPaletteKeepCheckboxes(ByVal ws As Worksheet)
             End If
         End If
 NextPal:
-    Next lo
+    Next procKey
 End Sub
 
 Private Function IsPaletteKeepSelected(ByVal ws As Worksheet, ByVal procName As String) As Boolean
@@ -5692,6 +6267,7 @@ Private Function MoveRecipeBuilderLinesToStaging(ByVal loLines As ListObject) As
     Set dest = ws.Cells(startRow, loLines.Range.Column)
     On Error Resume Next
     loLines.Range.Cut Destination:=dest
+    modUtils.ClearExcelClipboardState
     MoveRecipeBuilderLinesToStaging = (Err.Number = 0)
     If MoveRecipeBuilderLinesToStaging Then
         On Error Resume Next
@@ -5724,6 +6300,7 @@ Private Function EnsureInventoryPaletteLinesTable(ByVal ws As Worksheet, Optiona
             Set dest = ws.Cells(startRow, startCol)
             On Error Resume Next
             lo.Range.Cut Destination:=dest
+            modUtils.ClearExcelClipboardState
             On Error GoTo 0
         End If
         On Error Resume Next

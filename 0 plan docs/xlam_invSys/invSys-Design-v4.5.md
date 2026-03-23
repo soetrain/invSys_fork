@@ -630,12 +630,12 @@ sequenceDiagram
 - [ ] Replace placeholder role/admin sheets with full workbook/table-backed operating surfaces
 - [ ] Replace remaining stubbed forms with complete workbook-integrated user forms
 - [x] Validate XLAM startup/load order, references, and deployment-path behavior in clean Excel sessions
-- [ ] Complete end-to-end ribbon-button testing against real role workbooks and tables
+- [x] Complete end-to-end ribbon-button testing against real role workbooks and tables
 
 **Tests:**
 - [x] Test: Config/Auth auto-bootstrap creates and opens canonical `WHx.invSys.Config.xlsb` / `WHx.invSys.Auth.xlsb` runtime workbooks with seeded tables/default rows
 - [x] Test: Each role/Admin XLAM opens from deployment path with no VBA compile errors and expected workbook surfaces
-- [ ] Test: Ribbon controls execute against live workbook/table systems without missing-object/runtime failures
+- [x] Test: Ribbon controls execute against live workbook/table systems without missing-object/runtime failures
 - [ ] Test: Full packaged XLAM set loads and remains stable across Excel restart/reopen scenarios
 
 **Execution evidence:**
@@ -644,6 +644,8 @@ sequenceDiagram
 - [x] Phase 6 packaged ribbon baseline validation passed on March 22, 2026: `66 passed, 0 failed` in `tests/unit/phase6_packaged_ribbon_results.md` (RibbonX present, callback mappings verified, safe ribbon action targets executed in clean COM session)
 - [x] Phase 6 reopen-style surface regeneration validation passed on March 22, 2026: `10 passed, 0 failed` in `tests/unit/phase6_test_results.md` (role workbook tables/sheets recreated after deletion when the surface init path is rerun)
 - [x] Phase 6 visible packaged validation passed on March 22, 2026: `37 passed, 0 failed` in `tests/unit/phase6_visible_packaged_results.md` (packaged XLAMs opened in visible Excel, safe UI macros executed, expected role/admin sheets revealed and activated for inspection)
+- [x] Phase 6 live packaged role workflow validation passed on March 22, 2026: `23 passed, 0 failed` in `tests/unit/phase6_live_role_workflow_results.md` (Receiving confirm writes, Shipping shipments-sent, and Production save-palette / to-total-inv ribbon paths executed against live workbook tables with queueing and processor completion)
+- [x] Phase 6 blank-workbook role surface bootstrap layout validated on March 22, 2026: rebuilt `deploy/current` XLAMs generated Receiving/Shipping/Production operating sheets and placed their primary tables into fixed horizontal bands on a new workbook (`ReceivedTally=C3:F4`, `AggregateReceived=J3:S4`, `ShipmentsTally=K3:Q4`, `BoxBuilder=C3:G4`, `ProductionOutput=AJ4:AP5`)
 
 **Deliverables:**
 - [ ] User systems operational across role/Admin XLAMs

@@ -13,7 +13,11 @@ Public Sub AddGoodsReceived_Click()
     Call modUR_Transaction.BeginTransaction
     Set ws = ResolveInventoryWorksheetInvMan()
     Set tbl = ws.ListObjects("invSys")
-    If tbl Is Nothing Or tbl.ListRows.count = 0 Then
+    If tbl Is Nothing Then
+        MsgBox "No data in invSys table.", vbExclamation, "Error"
+        GoTo Cleanup
+    End If
+    If tbl.ListRows.count = 0 Then
         MsgBox "No data in invSys table.", vbExclamation, "Error"
         GoTo Cleanup
     End If
@@ -86,7 +90,11 @@ Public Sub DeductUsed_Click()
     Call modUR_Transaction.BeginTransaction
     Set ws = ResolveInventoryWorksheetInvMan()
     Set tbl = ws.ListObjects("invSys")
-    If tbl Is Nothing Or tbl.ListRows.count = 0 Then
+    If tbl Is Nothing Then
+        MsgBox "No data in invSys table.", vbExclamation, "Error"
+        GoTo Cleanup
+    End If
+    If tbl.ListRows.count = 0 Then
         MsgBox "No data in invSys table.", vbExclamation, "Error"
         GoTo Cleanup
     End If
@@ -157,7 +165,11 @@ Public Sub DeductShipments_Click()
     Call modUR_Transaction.BeginTransaction
     Set ws = ResolveInventoryWorksheetInvMan()
     Set tbl = ws.ListObjects("invSys")
-    If tbl Is Nothing Or tbl.ListRows.count = 0 Then
+    If tbl Is Nothing Then
+        MsgBox "No data in invSys table.", vbExclamation, "Error"
+        GoTo Cleanup
+    End If
+    If tbl.ListRows.count = 0 Then
         MsgBox "No data in invSys table.", vbExclamation, "Error"
         GoTo Cleanup
     End If
@@ -228,7 +240,11 @@ Public Sub Adjustments_Click()
     Call modUR_Transaction.BeginTransaction
     Set ws = ResolveInventoryWorksheetInvMan()
     Set tbl = ws.ListObjects("invSys")
-    If tbl Is Nothing Or tbl.ListRows.count = 0 Then
+    If tbl Is Nothing Then
+        MsgBox "No data in invSys table.", vbExclamation, "Error"
+        GoTo Cleanup
+    End If
+    If tbl.ListRows.count = 0 Then
         MsgBox "No data in invSys table.", vbExclamation, "Error"
         GoTo Cleanup
     End If
@@ -299,7 +315,11 @@ Public Sub AddMadeItems_Click()
     Call modUR_Transaction.BeginTransaction
     Set ws = ResolveInventoryWorksheetInvMan()
     Set tbl = ws.ListObjects("invSys")
-    If tbl Is Nothing Or tbl.ListRows.count = 0 Then
+    If tbl Is Nothing Then
+        MsgBox "No data in invSys table.", vbExclamation, "Error"
+        GoTo Cleanup
+    End If
+    If tbl.ListRows.count = 0 Then
         MsgBox "No data in invSys table.", vbExclamation, "Error"
         GoTo Cleanup
     End If
@@ -361,11 +381,17 @@ End Sub
 Public Function ApplyUsedDeltas(deltas As Collection, ByRef errNotes As String, Optional actionLabel As String = "Deducted Used Items") As Double
     ApplyUsedDeltas = 0
     errNotes = ""
-    If deltas Is Nothing Or deltas.Count = 0 Then Exit Function
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
     Dim ws As Worksheet
     Dim tbl As ListObject
     Set ws = ResolveInventoryWorksheetInvMan()
-    Set tbl = ws.ListObjects("invSys")
+    If ws Is Nothing Then
+        errNotes = "InventoryManagement sheet not found."
+        ApplyUsedDeltas = -1
+        Exit Function
+    End If
+    Set tbl = ResolveInventoryTableInvMan(ws)
     If tbl Is Nothing Then
         errNotes = "invSys table not found."
         ApplyUsedDeltas = -1
@@ -374,13 +400,19 @@ Public Function ApplyUsedDeltas(deltas As Collection, ByRef errNotes As String, 
 
     Dim usedCol As Long, totalInvCol As Long, itemCodeCol As Long, itemNameCol As Long, rowCol As Long
     Dim lastEditedCol As Long, totalInvLastEditCol As Long
-    usedCol = tbl.ListColumns("USED").Index
-    totalInvCol = tbl.ListColumns("TOTAL INV").Index
-    rowCol = tbl.ListColumns("ROW").Index
-    itemCodeCol = tbl.ListColumns("ITEM_CODE").Index
-    itemNameCol = tbl.ListColumns("ITEM").Index
-    lastEditedCol = tbl.ListColumns("LAST EDITED").Index
-    totalInvLastEditCol = tbl.ListColumns("TOTAL INV LAST EDIT").Index
+    Dim missingCols As New Collection
+    usedCol = RequireInventoryColumnIndex(tbl, Array("USED"), "USED", missingCols)
+    totalInvCol = RequireInventoryColumnIndex(tbl, Array("TOTAL INV", "TOTAL_INV", "TOTALINV", "TOTALINVENTORY"), "TOTAL INV", missingCols)
+    rowCol = RequireInventoryColumnIndex(tbl, Array("ROW", "ROWID", "ROW#"), "ROW", missingCols)
+    itemCodeCol = RequireInventoryColumnIndex(tbl, Array("ITEM_CODE", "ITEMCODE", "ITEM CODE"), "ITEM_CODE", missingCols)
+    itemNameCol = RequireInventoryColumnIndex(tbl, Array("ITEM", "ITEMS", "ITEMNAME", "ITEM NAME"), "ITEM", missingCols)
+    lastEditedCol = RequireInventoryColumnIndex(tbl, Array("LAST EDITED", "LASTEDITED", "LAST_EDITED"), "LAST EDITED", missingCols)
+    totalInvLastEditCol = RequireInventoryColumnIndex(tbl, Array("TOTAL INV LAST EDIT", "TOTAL_INV_LAST_EDIT", "TOTALINVLASTEDIT"), "TOTAL INV LAST EDIT", missingCols)
+    If missingCols.Count > 0 Then
+        errNotes = "invSys table missing required columns: " & JoinInventoryCollection(missingCols, ", ")
+        ApplyUsedDeltas = -1
+        Exit Function
+    End If
 
     Dim logEntries As New Collection
     Dim delta As Variant
@@ -441,11 +473,17 @@ End Function
 Public Function ApplyMadeDeltas(deltas As Collection, ByRef errNotes As String, Optional actionLabel As String = "Made Items Added") As Double
     ApplyMadeDeltas = 0
     errNotes = ""
-    If deltas Is Nothing Or deltas.Count = 0 Then Exit Function
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
     Dim ws As Worksheet
     Dim tbl As ListObject
     Set ws = ResolveInventoryWorksheetInvMan()
-    Set tbl = ws.ListObjects("invSys")
+    If ws Is Nothing Then
+        errNotes = "InventoryManagement sheet not found."
+        ApplyMadeDeltas = -1
+        Exit Function
+    End If
+    Set tbl = ResolveInventoryTableInvMan(ws)
     If tbl Is Nothing Then
         errNotes = "invSys table not found."
         ApplyMadeDeltas = -1
@@ -454,11 +492,17 @@ Public Function ApplyMadeDeltas(deltas As Collection, ByRef errNotes As String, 
 
     Dim madeCol As Long, itemCodeCol As Long, itemNameCol As Long, rowCol As Long
     Dim lastEditedCol As Long
-    madeCol = tbl.ListColumns("MADE").Index
-    itemCodeCol = tbl.ListColumns("ITEM_CODE").Index
-    itemNameCol = tbl.ListColumns("ITEM").Index
-    rowCol = tbl.ListColumns("ROW").Index
-    lastEditedCol = tbl.ListColumns("LAST EDITED").Index
+    Dim missingCols As New Collection
+    madeCol = RequireInventoryColumnIndex(tbl, Array("MADE"), "MADE", missingCols)
+    itemCodeCol = RequireInventoryColumnIndex(tbl, Array("ITEM_CODE", "ITEMCODE", "ITEM CODE"), "ITEM_CODE", missingCols)
+    itemNameCol = RequireInventoryColumnIndex(tbl, Array("ITEM", "ITEMS", "ITEMNAME", "ITEM NAME"), "ITEM", missingCols)
+    rowCol = RequireInventoryColumnIndex(tbl, Array("ROW", "ROWID", "ROW#"), "ROW", missingCols)
+    lastEditedCol = RequireInventoryColumnIndex(tbl, Array("LAST EDITED", "LASTEDITED", "LAST_EDITED"), "LAST EDITED", missingCols)
+    If missingCols.Count > 0 Then
+        errNotes = "invSys table missing required columns: " & JoinInventoryCollection(missingCols, ", ")
+        ApplyMadeDeltas = -1
+        Exit Function
+    End If
 
     Dim logEntries As New Collection
     Dim delta As Variant
@@ -510,12 +554,18 @@ End Function
 Public Function ApplyMadeToInventoryDeltas(deltas As Collection, ByRef errNotes As String, Optional actionLabel As String = "BTN_TO_TOTALINV - Added To Total Inv") As Double
     ApplyMadeToInventoryDeltas = 0
     errNotes = ""
-    If deltas Is Nothing Or deltas.Count = 0 Then Exit Function
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
 
     Dim ws As Worksheet
     Dim tbl As ListObject
     Set ws = ResolveInventoryWorksheetInvMan()
-    Set tbl = ws.ListObjects("invSys")
+    If ws Is Nothing Then
+        errNotes = "InventoryManagement sheet not found."
+        ApplyMadeToInventoryDeltas = -1
+        Exit Function
+    End If
+    Set tbl = ResolveInventoryTableInvMan(ws)
     If tbl Is Nothing Then
         errNotes = "invSys table not found."
         ApplyMadeToInventoryDeltas = -1
@@ -525,13 +575,19 @@ Public Function ApplyMadeToInventoryDeltas(deltas As Collection, ByRef errNotes 
     Dim madeCol As Long, totalInvCol As Long, rowCol As Long
     Dim itemCodeCol As Long, itemNameCol As Long
     Dim lastEditedCol As Long, totalInvLastEditCol As Long
-    madeCol = tbl.ListColumns("MADE").Index
-    totalInvCol = tbl.ListColumns("TOTAL INV").Index
-    rowCol = tbl.ListColumns("ROW").Index
-    itemCodeCol = tbl.ListColumns("ITEM_CODE").Index
-    itemNameCol = tbl.ListColumns("ITEM").Index
-    lastEditedCol = tbl.ListColumns("LAST EDITED").Index
-    totalInvLastEditCol = tbl.ListColumns("TOTAL INV LAST EDIT").Index
+    Dim missingCols As New Collection
+    madeCol = RequireInventoryColumnIndex(tbl, Array("MADE"), "MADE", missingCols)
+    totalInvCol = RequireInventoryColumnIndex(tbl, Array("TOTAL INV", "TOTAL_INV", "TOTALINV", "TOTALINVENTORY"), "TOTAL INV", missingCols)
+    rowCol = RequireInventoryColumnIndex(tbl, Array("ROW", "ROWID", "ROW#"), "ROW", missingCols)
+    itemCodeCol = RequireInventoryColumnIndex(tbl, Array("ITEM_CODE", "ITEMCODE", "ITEM CODE"), "ITEM_CODE", missingCols)
+    itemNameCol = RequireInventoryColumnIndex(tbl, Array("ITEM", "ITEMS", "ITEMNAME", "ITEM NAME"), "ITEM", missingCols)
+    lastEditedCol = RequireInventoryColumnIndex(tbl, Array("LAST EDITED", "LASTEDITED", "LAST_EDITED"), "LAST EDITED", missingCols)
+    totalInvLastEditCol = RequireInventoryColumnIndex(tbl, Array("TOTAL INV LAST EDIT", "TOTAL_INV_LAST_EDIT", "TOTALINVLASTEDIT"), "TOTAL INV LAST EDIT", missingCols)
+    If missingCols.Count > 0 Then
+        errNotes = "invSys table missing required columns: " & JoinInventoryCollection(missingCols, ", ")
+        ApplyMadeToInventoryDeltas = -1
+        Exit Function
+    End If
 
     Dim logEntries As New Collection
     Dim delta As Variant
@@ -600,12 +656,18 @@ End Function
 Public Function ApplyShipmentDeltas(deltas As Collection, ByRef errNotes As String, Optional actionLabel As String = "BTN_TO_SHIPMENTS - Inventory Staged") As Double
     ApplyShipmentDeltas = 0
     errNotes = ""
-    If deltas Is Nothing Or deltas.Count = 0 Then Exit Function
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
 
     Dim ws As Worksheet
     Dim tbl As ListObject
     Set ws = ResolveInventoryWorksheetInvMan()
-    Set tbl = ws.ListObjects("invSys")
+    If ws Is Nothing Then
+        errNotes = "InventoryManagement sheet not found."
+        ApplyShipmentDeltas = -1
+        Exit Function
+    End If
+    Set tbl = ResolveInventoryTableInvMan(ws)
     If tbl Is Nothing Then
         errNotes = "invSys table not found."
         ApplyShipmentDeltas = -1
@@ -615,13 +677,19 @@ Public Function ApplyShipmentDeltas(deltas As Collection, ByRef errNotes As Stri
     Dim totalInvCol As Long, shipmentsCol As Long, rowCol As Long
     Dim itemCodeCol As Long, itemNameCol As Long
     Dim lastEditedCol As Long, totalInvLastEditCol As Long
-    totalInvCol = tbl.ListColumns("TOTAL INV").Index
-    shipmentsCol = tbl.ListColumns("SHIPMENTS").Index
-    rowCol = tbl.ListColumns("ROW").Index
-    itemCodeCol = tbl.ListColumns("ITEM_CODE").Index
-    itemNameCol = tbl.ListColumns("ITEM").Index
-    lastEditedCol = tbl.ListColumns("LAST EDITED").Index
-    totalInvLastEditCol = tbl.ListColumns("TOTAL INV LAST EDIT").Index
+    Dim missingCols As New Collection
+    totalInvCol = RequireInventoryColumnIndex(tbl, Array("TOTAL INV", "TOTAL_INV", "TOTALINV", "TOTALINVENTORY"), "TOTAL INV", missingCols)
+    shipmentsCol = RequireInventoryColumnIndex(tbl, Array("SHIPMENTS", "SHIPMENT"), "SHIPMENTS", missingCols)
+    rowCol = RequireInventoryColumnIndex(tbl, Array("ROW", "ROWID", "ROW#"), "ROW", missingCols)
+    itemCodeCol = RequireInventoryColumnIndex(tbl, Array("ITEM_CODE", "ITEMCODE", "ITEM CODE"), "ITEM_CODE", missingCols)
+    itemNameCol = RequireInventoryColumnIndex(tbl, Array("ITEM", "ITEMS", "ITEMNAME", "ITEM NAME"), "ITEM", missingCols)
+    lastEditedCol = RequireInventoryColumnIndex(tbl, Array("LAST EDITED", "LASTEDITED", "LAST_EDITED"), "LAST EDITED", missingCols)
+    totalInvLastEditCol = RequireInventoryColumnIndex(tbl, Array("TOTAL INV LAST EDIT", "TOTAL_INV_LAST_EDIT", "TOTALINVLASTEDIT"), "TOTAL INV LAST EDIT", missingCols)
+    If missingCols.Count > 0 Then
+        errNotes = "invSys table missing required columns: " & JoinInventoryCollection(missingCols, ", ")
+        ApplyShipmentDeltas = -1
+        Exit Function
+    End If
 
     Dim logEntries As New Collection
     Dim delta As Variant
@@ -825,6 +893,73 @@ Private Function ResolveInventoryWorksheetInvMan() As Worksheet
     If ResolveInventoryWorksheetInvMan Is Nothing Then Set ResolveInventoryWorksheetInvMan = ThisWorkbook.Worksheets("Inventory Management")
     If ResolveInventoryWorksheetInvMan Is Nothing Then Set ResolveInventoryWorksheetInvMan = ThisWorkbook.Worksheets("INVENTORY MANAGEMENT")
     On Error GoTo 0
+End Function
+
+Private Function ResolveInventoryTableInvMan(ByVal ws As Worksheet) As ListObject
+    If ws Is Nothing Then Exit Function
+
+    On Error Resume Next
+    Set ResolveInventoryTableInvMan = ws.ListObjects("invSys")
+    On Error GoTo 0
+    If Not ResolveInventoryTableInvMan Is Nothing Then Exit Function
+
+    Dim lo As ListObject
+    For Each lo In ws.ListObjects
+        If ResolveInventoryColumnIndex(lo, Array("ROW", "ROWID", "ROW#")) > 0 Then
+            If ResolveInventoryColumnIndex(lo, Array("ITEM", "ITEMS", "ITEMNAME", "ITEM NAME")) > 0 _
+                Or ResolveInventoryColumnIndex(lo, Array("ITEM_CODE", "ITEMCODE", "ITEM CODE")) > 0 Then
+                Set ResolveInventoryTableInvMan = lo
+                Exit Function
+            End If
+        End If
+    Next lo
+End Function
+
+Private Function RequireInventoryColumnIndex(ByVal tbl As ListObject, ByVal candidateNames As Variant, ByVal canonicalName As String, ByVal missingCols As Collection) As Long
+    RequireInventoryColumnIndex = ResolveInventoryColumnIndex(tbl, candidateNames)
+    If RequireInventoryColumnIndex = 0 Then missingCols.Add canonicalName
+End Function
+
+Private Function ResolveInventoryColumnIndex(ByVal tbl As ListObject, ByVal candidateNames As Variant) As Long
+    If tbl Is Nothing Then Exit Function
+    If tbl.HeaderRowRange Is Nothing Then Exit Function
+
+    Dim lc As ListColumn
+    Dim candidate As Variant
+    Dim normalizedHeader As String
+
+    For Each lc In tbl.ListColumns
+        normalizedHeader = NormalizeInventoryHeader(CStr(lc.Name))
+        For Each candidate In candidateNames
+            If normalizedHeader = NormalizeInventoryHeader(CStr(candidate)) Then
+                ResolveInventoryColumnIndex = lc.Index
+                Exit Function
+            End If
+        Next candidate
+    Next lc
+End Function
+
+Private Function NormalizeInventoryHeader(ByVal value As String) As String
+    Dim i As Long
+    Dim ch As String
+
+    value = UCase$(Trim$(value))
+    For i = 1 To Len(value)
+        ch = Mid$(value, i, 1)
+        If (ch >= "A" And ch <= "Z") Or (ch >= "0" And ch <= "9") Then
+            NormalizeInventoryHeader = NormalizeInventoryHeader & ch
+        End If
+    Next i
+End Function
+
+Private Function JoinInventoryCollection(ByVal values As Collection, Optional ByVal delimiter As String = ", ") As String
+    If values Is Nothing Then Exit Function
+
+    Dim i As Long
+    For i = 1 To values.Count
+        If i > 1 Then JoinInventoryCollection = JoinInventoryCollection & delimiter
+        JoinInventoryCollection = JoinInventoryCollection & CStr(values(i))
+    Next i
 End Function
 
 Private Function GetInventoryLogTableInvMan(ByVal ws As Worksheet) As ListObject

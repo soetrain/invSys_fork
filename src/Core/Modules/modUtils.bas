@@ -19,3 +19,9 @@ Attribute VB_Name = "modUtils"
 
 Option Explicit
 
+Public Sub ClearExcelClipboardState()
+    On Error Resume Next
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
+    On Error GoTo 0
+End Sub
+

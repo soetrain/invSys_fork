@@ -585,6 +585,9 @@ if (-not (Test-Path -LiteralPath $archiveDir)) {
     New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
 }
 
+$stagingDir = Join-Path $outputDir (".build-staging-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
+
 Write-Host "Planned outputs:"
 foreach ($project in $projectMap) {
     Write-Host ("- " + (Join-Path $outputDir $project.OutputFile))
@@ -618,6 +621,7 @@ if (-not $Apply) {
 
 $builtOutputs = @{}
 $excel = $null
+$buildSucceeded = $false
 try {
     foreach ($artifact in $legacyArtifacts) {
         $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -668,7 +672,7 @@ try {
             Add-RibbonCallbacksModule -VBProject $vbProject -RibbonConfig $project.Ribbon
 
             $wb.IsAddin = $true
-            $outputPath = Join-Path $outputDir $project.OutputFile
+            $outputPath = Join-Path $stagingDir $project.OutputFile
             Remove-ExistingFile -Path $outputPath
             Write-Host ("  Saving " + $outputPath)
             $wb.SaveAs($outputPath, 55)
@@ -686,12 +690,27 @@ try {
             }
         }
     }
+    $buildSucceeded = $true
 }
 finally {
     if ($null -ne $excel) {
         try { $excel.Quit() } catch {}
         Release-ComObject $excel
     }
+}
+
+if ($buildSucceeded) {
+    foreach ($project in $projectMap) {
+        $stagedPath = $builtOutputs[$project.Key]
+        $finalPath = Join-Path $outputDir $project.OutputFile
+        Remove-ExistingFile -Path $finalPath
+        Move-Item -LiteralPath $stagedPath -Destination $finalPath -Force
+        Write-Host ("Published " + $finalPath)
+    }
+}
+
+if (Test-Path -LiteralPath $stagingDir) {
+    Remove-Item -LiteralPath $stagingDir -Recurse -Force
 }
 
 Write-Host "Build complete."

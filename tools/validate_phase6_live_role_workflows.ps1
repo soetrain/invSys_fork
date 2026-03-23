@@ -254,7 +254,30 @@ function Add-Table {
     $Worksheet.Range("A1").Resize(1, $colCount).Value = ,$Headers
     if ($Rows.Count -gt 0) {
         for ($r = 0; $r -lt $Rows.Count; $r++) {
-            $Worksheet.Range("A" + ($r + 2)).Resize(1, $colCount).Value = ,$Rows[$r]
+            for ($c = 0; $c -lt $colCount; $c++) {
+                $value = $null
+                if ($Rows[$r] -is [System.Array]) {
+                    if ($c -le $Rows[$r].GetUpperBound(0)) {
+                        $value = $Rows[$r][$c]
+                    }
+                }
+                else {
+                    if ($c -eq 0) { $value = $Rows[$r] }
+                }
+
+                if ($null -eq $value) {
+                    $Worksheet.Cells($r + 2, $c + 1).Value2 = $null
+                }
+                elseif ($value -is [int] -or $value -is [long] -or $value -is [double] -or $value -is [decimal] -or $value -is [single]) {
+                    $Worksheet.Cells($r + 2, $c + 1).Value2 = [double]$value
+                }
+                elseif ($value -is [datetime]) {
+                    $Worksheet.Cells($r + 2, $c + 1).Value2 = $value.ToOADate()
+                }
+                else {
+                    $Worksheet.Cells($r + 2, $c + 1).Value2 = [string]$value
+                }
+            }
         }
     }
     else {
@@ -642,9 +665,11 @@ try {
     $receiveQueuedOk = ($receiveInboxAfter -eq ($receiveInboxBefore + 1)) -and ($receiveQueuedRow -gt 0) -and ([double](Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName "Qty") -eq 7)
     Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Queue" -Passed $receiveQueuedOk -Detail "InboxRows=$receiveInboxAfter; Row=$receiveQueuedRow"
 
-    $receiveRunBatch = [int](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modProcessor.RunBatch" -Arguments @($warehouseId, 500))
+    $receiveRunBatchReport = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modProcessor.RunBatchReportForAutomation" -Arguments @($warehouseId, 500))
+    $receiveRunBatch = 0
+    if ($receiveRunBatchReport -match 'Processed=(\d+)') { $receiveRunBatch = [int]$Matches[1] }
     $receiveProcessedOk = ($receiveRunBatch -ge 1) -and ([string](Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName "Status") -eq "PROCESSED")
-    Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Process" -Passed $receiveProcessedOk -Detail "RunBatch=$receiveRunBatch; Status=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'Status'))"
+    Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Process" -Passed $receiveProcessedOk -Detail "RunBatch=$receiveRunBatch; Status=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'Status')); ErrorCode=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'ErrorCode')); ErrorMessage=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'ErrorMessage')); $receiveRunBatchReport"
 
     $receiveLogRow = Find-RowIndexByValue -ListObject $loInventoryLog -ColumnName "EventType" -ExpectedValue "RECEIVE"
     $receiveInventoryOk = ($receiveLogRow -gt 0) -and ([double](Get-RowValueSafe -ListObject $loInventoryLog -RowIndex $receiveLogRow -ColumnName "QtyDelta") -eq 7)
@@ -688,9 +713,11 @@ try {
     $shipQueuedOk = ($shipInboxAfter -eq ($shipInboxBefore + 1)) -and ($shipQueuedRow -gt 0)
     Add-ResultRow -Rows $resultRows -Check "Shipping.BtnShipmentsSent.Queue" -Passed $shipQueuedOk -Detail "InboxRows=$shipInboxAfter; Row=$shipQueuedRow"
 
-    $shipRunBatch = [int](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modProcessor.RunBatch" -Arguments @($warehouseId, 500))
+    $shipRunBatchReport = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modProcessor.RunBatchReportForAutomation" -Arguments @($warehouseId, 500))
+    $shipRunBatch = 0
+    if ($shipRunBatchReport -match 'Processed=(\d+)') { $shipRunBatch = [int]$Matches[1] }
     $shipProcessedOk = ($shipRunBatch -ge 1) -and ([string](Get-RowValueSafe -ListObject $loInboxShip -RowIndex $shipQueuedRow -ColumnName "Status") -eq "PROCESSED")
-    Add-ResultRow -Rows $resultRows -Check "Shipping.BtnShipmentsSent.Process" -Passed $shipProcessedOk -Detail "RunBatch=$shipRunBatch; Status=$((Get-RowValueSafe -ListObject $loInboxShip -RowIndex $shipQueuedRow -ColumnName 'Status'))"
+    Add-ResultRow -Rows $resultRows -Check "Shipping.BtnShipmentsSent.Process" -Passed $shipProcessedOk -Detail "RunBatch=$shipRunBatch; Status=$((Get-RowValueSafe -ListObject $loInboxShip -RowIndex $shipQueuedRow -ColumnName 'Status')); ErrorCode=$((Get-RowValueSafe -ListObject $loInboxShip -RowIndex $shipQueuedRow -ColumnName 'ErrorCode')); ErrorMessage=$((Get-RowValueSafe -ListObject $loInboxShip -RowIndex $shipQueuedRow -ColumnName 'ErrorMessage')); $shipRunBatchReport"
 
     $shipLogRow = Find-RowIndexByValue -ListObject $loInventoryLog -ColumnName "EventType" -ExpectedValue "SHIP"
     $shipInventoryOk = ($shipLogRow -gt 0) -and ([double](Get-RowValueSafe -ListObject $loInventoryLog -RowIndex $shipLogRow -ColumnName "QtyDelta") -eq -5)
@@ -773,9 +800,11 @@ try {
     $prodQueuedOk = ($prodInboxAfter -eq ($prodInboxBefore + 1)) -and ($prodQueuedRow -gt 0)
     Add-ResultRow -Rows $resultRows -Check "Production.BtnToTotalInv.Queue" -Passed $prodQueuedOk -Detail "InboxRows=$prodInboxAfter; Row=$prodQueuedRow"
 
-    $prodRunBatch = [int](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modProcessor.RunBatch" -Arguments @($warehouseId, 500))
+    $prodRunBatchReport = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modProcessor.RunBatchReportForAutomation" -Arguments @($warehouseId, 500))
+    $prodRunBatch = 0
+    if ($prodRunBatchReport -match 'Processed=(\d+)') { $prodRunBatch = [int]$Matches[1] }
     $prodProcessedOk = ($prodRunBatch -ge 1) -and ([string](Get-RowValueSafe -ListObject $loInboxProd -RowIndex $prodQueuedRow -ColumnName "Status") -eq "PROCESSED")
-    Add-ResultRow -Rows $resultRows -Check "Production.BtnToTotalInv.Process" -Passed $prodProcessedOk -Detail "RunBatch=$prodRunBatch; Status=$((Get-RowValueSafe -ListObject $loInboxProd -RowIndex $prodQueuedRow -ColumnName 'Status'))"
+    Add-ResultRow -Rows $resultRows -Check "Production.BtnToTotalInv.Process" -Passed $prodProcessedOk -Detail "RunBatch=$prodRunBatch; Status=$((Get-RowValueSafe -ListObject $loInboxProd -RowIndex $prodQueuedRow -ColumnName 'Status')); ErrorCode=$((Get-RowValueSafe -ListObject $loInboxProd -RowIndex $prodQueuedRow -ColumnName 'ErrorCode')); ErrorMessage=$((Get-RowValueSafe -ListObject $loInboxProd -RowIndex $prodQueuedRow -ColumnName 'ErrorMessage')); $prodRunBatchReport"
 
     $prodLogRow = Find-RowIndexByValue -ListObject $loInventoryLog -ColumnName "EventType" -ExpectedValue "PROD_COMPLETE"
     $prodInventoryOk = ($prodLogRow -gt 0) -and ([double](Get-RowValueSafe -ListObject $loInventoryLog -RowIndex $prodLogRow -ColumnName "QtyDelta") -eq 8)

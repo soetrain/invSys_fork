@@ -25,14 +25,118 @@ Private mRedoReady As Boolean
 Private mDynSearch As Object
 Private mRowMap As Object ' maps staging row number -> Array(invRow, refNumber)
 
+Private Const SHEET_RECEIVING As String = "ReceivedTally"
+Private Const TABLE_RECEIVING As String = "ReceivedTally"
+Private Const TABLE_AGG_RECEIVED As String = "AggregateReceived"
+Private Const TABLE_INV_RECEIVING As String = "invSysData_Receiving"
+Private Const RECV_LAYOUT_TALLY_ADDR As String = "C3"
+Private Const RECV_LAYOUT_AGG_ADDR As String = "J3"
+Private Const RECV_LAYOUT_INV_ADDR As String = "V3"
+
 ' ==== public entry points =====
 Public Sub EnsureGeneratedButtons()
+    InitializeReceivingUiForWorkbook Application.ActiveWorkbook
+End Sub
+
+Public Sub InitializeReceivingUiForWorkbook(Optional ByVal targetWb As Workbook = Nothing)
     Dim surfaceReport As String
-    Call modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(ThisWorkbook, surfaceReport)
+    Dim wb As Workbook
     Dim ws As Worksheet
-    Set ws = SheetExists("ReceivedTally")
+
+    Set wb = ResolveReceivingWorkbook(targetWb, SHEET_RECEIVING)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+
+    Call modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wb, surfaceReport)
+    ArrangeReceivingSurface wb
+
+    Set ws = WorkbookSheetExistsReceiving(wb, SHEET_RECEIVING)
     If ws Is Nothing Then Exit Sub
+
     RemoveLegacyReceivingButtons ws
+    RefreshReceivingUiAccess ws
+End Sub
+
+Private Function ResolveReceivingWorkbook(Optional ByVal preferredWb As Workbook = Nothing, Optional ByVal requiredSheet As String = "") As Workbook
+    If Not preferredWb Is Nothing Then
+        Set ResolveReceivingWorkbook = preferredWb
+        Exit Function
+    End If
+
+    If Not Application.ActiveWorkbook Is Nothing Then
+        If Not Application.ActiveWorkbook.IsAddin Then
+            If requiredSheet = "" Then
+                Set ResolveReceivingWorkbook = Application.ActiveWorkbook
+                Exit Function
+            ElseIf Not WorkbookSheetExistsReceiving(Application.ActiveWorkbook, requiredSheet) Is Nothing Then
+                Set ResolveReceivingWorkbook = Application.ActiveWorkbook
+                Exit Function
+            End If
+        End If
+    End If
+
+    If requiredSheet = "" Then
+        Set ResolveReceivingWorkbook = ThisWorkbook
+    ElseIf Not WorkbookSheetExistsReceiving(ThisWorkbook, requiredSheet) Is Nothing Then
+        Set ResolveReceivingWorkbook = ThisWorkbook
+    End If
+End Function
+
+Private Function WorkbookSheetExistsReceiving(ByVal wb As Workbook, ByVal nameOrCode As String) As Worksheet
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        If StrComp(ws.Name, nameOrCode, vbTextCompare) = 0 _
+           Or StrComp(ws.CodeName, nameOrCode, vbTextCompare) = 0 Then
+            Set WorkbookSheetExistsReceiving = ws
+            Exit Function
+        End If
+    Next ws
+End Function
+
+Private Sub ArrangeReceivingSurface(ByVal wb As Workbook)
+    Dim ws As Worksheet
+    Dim lo As ListObject
+
+    If wb Is Nothing Then Exit Sub
+    Set ws = WorkbookSheetExistsReceiving(wb, SHEET_RECEIVING)
+    If ws Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Set lo = ws.ListObjects(TABLE_RECEIVING)
+    On Error GoTo 0
+    MoveListObjectToAddressReceiving lo, RECV_LAYOUT_TALLY_ADDR
+
+    On Error Resume Next
+    Set lo = ws.ListObjects(TABLE_AGG_RECEIVED)
+    On Error GoTo 0
+    MoveListObjectToAddressReceiving lo, RECV_LAYOUT_AGG_ADDR
+
+    On Error Resume Next
+    Set lo = ws.ListObjects(TABLE_INV_RECEIVING)
+    On Error GoTo 0
+    MoveListObjectToAddressReceiving lo, RECV_LAYOUT_INV_ADDR
+End Sub
+
+Private Sub MoveListObjectToAddressReceiving(ByVal lo As ListObject, ByVal addressText As String)
+    If lo Is Nothing Then Exit Sub
+    MoveListObjectToRowColReceiving lo, lo.Parent.Range(addressText).Row, lo.Parent.Range(addressText).Column
+End Sub
+
+Private Sub MoveListObjectToRowColReceiving(ByVal lo As ListObject, ByVal targetRow As Long, ByVal targetCol As Long)
+    Dim dest As Range
+
+    If lo Is Nothing Then Exit Sub
+    If targetRow < 1 Or targetCol < 1 Then Exit Sub
+    If lo.Range.Row = targetRow And lo.Range.Column = targetCol Then Exit Sub
+
+    Set dest = lo.Parent.Cells(targetRow, targetCol)
+
+    On Error Resume Next
+    lo.Range.Cut Destination:=dest
+    modUtils.ClearExcelClipboardState
+    Err.Clear
+    On Error GoTo 0
 End Sub
 
 ' ==== dynamic search form (ReceivedTally) =====
@@ -429,14 +533,19 @@ End Sub
 
 ' ==== helpers ====
 Private Function SheetExists(nameOrCode As String) As Worksheet
+    Dim wb As Workbook
     Dim ws As Worksheet
-    For Each ws In ThisWorkbook.Worksheets
-        If StrComp(ws.name, nameOrCode, vbTextCompare) = 0 _
+
+    Set wb = ResolveReceivingWorkbook(, nameOrCode)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+
+    For Each ws In wb.Worksheets
+        If StrComp(ws.Name, nameOrCode, vbTextCompare) = 0 _
            Or StrComp(ws.CodeName, nameOrCode, vbTextCompare) = 0 Then
             Set SheetExists = ws
             Exit Function
         End If
-    Next
+    Next ws
 End Function
 
 Private Sub RemoveLegacyReceivingButtons(ByVal ws As Worksheet)

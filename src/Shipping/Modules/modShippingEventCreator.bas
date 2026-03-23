@@ -57,7 +57,11 @@ Private Function BuildQueueableShipmentsSentDeltas(ByVal invLo As ListObject, By
     Dim delta As Variant
 
     Set deltasOut = BuildShipmentsSentDeltaPacket(invLo, errNotes)
-    If deltasOut Is Nothing Or deltasOut.Count = 0 Then
+    If deltasOut Is Nothing Then
+        If errNotes = "" Then errNotes = "No staged shipments found in invSys.SHIPMENTS."
+        Exit Function
+    End If
+    If deltasOut.Count = 0 Then
         If errNotes = "" Then errNotes = "No staged shipments found in invSys.SHIPMENTS."
         Exit Function
     End If
