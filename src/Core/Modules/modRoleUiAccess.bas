@@ -1,6 +1,9 @@
 Attribute VB_Name = "modRoleUiAccess"
 Option Explicit
 
+Private Const SHAPE_VISIBLE_FALSE As Long = 0
+Private Const SHAPE_VISIBLE_TRUE As Long = -1
+
 Public Function CanCurrentUserPerformCapability(ByVal capability As String, _
                                                 Optional ByVal userId As String = "", _
                                                 Optional ByVal warehouseId As String = "", _
@@ -74,5 +77,5 @@ Public Sub ApplyShapeCapability(ByVal ws As Worksheet, _
     On Error GoTo 0
     If shp Is Nothing Then Exit Sub
 
-    shp.Visible = IIf(CanCurrentUserPerformCapability(capability, userId, warehouseId, stationId, errorMessage), msoTrue, msoFalse)
+    shp.Visible = IIf(CanCurrentUserPerformCapability(capability, userId, warehouseId, stationId, errorMessage), SHAPE_VISIBLE_TRUE, SHAPE_VISIBLE_FALSE)
 End Sub

@@ -52,6 +52,9 @@ Private Const PROD_LAYOUT_CHOOSER_ADDR As String = "Z3"
 Private Const PROD_LAYOUT_CHOOSER_GEN_ADDR As String = "Z6"
 Private Const PROD_LAYOUT_OUTPUT_ADDR As String = "AJ4"
 Private Const PROD_LAYOUT_CHECK_ADDR As String = "AR4"
+Private Const SHAPE_TYPE_FORM_CONTROL As Long = 8
+Private Const SHAPE_VISIBLE_FALSE As Long = 0
+Private Const SHAPE_VISIBLE_TRUE As Long = -1
 
 Private mRowCountCache As Object
 Private mPaletteTableMeta As Object
@@ -701,7 +704,7 @@ Private Function MaxCheckboxColumn(ws As Worksheet, startCol As Long) As Long
     For Each shp In ws.shapes
         Dim isCheckbox As Boolean
         On Error Resume Next
-        If shp.Type = msoFormControl Then
+        If shp.Type = SHAPE_TYPE_FORM_CONTROL Then
             If shp.FormControlType = xlCheckBox Then isCheckbox = True
         End If
         If Not isCheckbox Then
@@ -951,7 +954,7 @@ Private Sub HideGroupShapes(ws As Worksheet, startCol As Long, endCol As Long, t
         r = shp.TopLeftCell.row
         On Error GoTo 0
         If c >= startCol And c <= endColAdj Then
-            shp.Visible = IIf(hideIt, msoFalse, msoTrue)
+            shp.Visible = IIf(hideIt, SHAPE_VISIBLE_FALSE, SHAPE_VISIBLE_TRUE)
         End If
     Next shp
 
@@ -5283,7 +5286,7 @@ End Sub
 
 Private Function IsCheckboxShape(ByVal shp As Shape) As Boolean
     If shp Is Nothing Then Exit Function
-    If shp.Type <> msoFormControl Then Exit Function
+    If shp.Type <> SHAPE_TYPE_FORM_CONTROL Then Exit Function
     On Error Resume Next
     If shp.FormControlType = xlCheckBox Then IsCheckboxShape = True
     On Error GoTo 0

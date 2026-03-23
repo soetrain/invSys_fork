@@ -68,7 +68,7 @@ Public Function EnsureProductionWorkbookSurface(Optional ByVal targetWb As Workb
     EnsureTableSurface wb, "Production", "ProductionOutput", Array("PROCESS", "OUTPUT", "UOM", "REAL OUTPUT", "BATCH", "RECALL CODE", "ROW"), False
     EnsureTableSurface wb, "Production", "Prod_invSys_Check", Array("ROW", "ITEM_CODE", "ITEM", "UOM", "USED", "TOTAL INV"), False
     EnsureTableSurface wb, "Recipes", "Recipes", Array("RECIPE", "RECIPE_ID", "DESCRIPTION", "DEPARTMENT", "PROCESS", "DIAGRAM_ID", "INPUT/OUTPUT", "INGREDIENT", "PERCENT", "UOM", "AMOUNT", "RECIPE_LIST_ROW", "INGREDIENT_ID", "GUID"), False
-    EnsureTableSurface wb, "IngredientPalette", "IngredientPalette", Array("RECIPE_ID", "INGREDIENT_ID", "INPUT/OUTPUT", "ITEM", "PERCENT", "UOM", "AMOUNT", "ROW", "GUID"), False
+    EnsureTableSurface wb, ResolveIngredientPaletteSheetSurface(wb), "IngredientPalette", Array("RECIPE_ID", "INGREDIENT_ID", "INPUT/OUTPUT", "ITEM", "PERCENT", "UOM", "AMOUNT", "ROW", "GUID"), False
     EnsureTableSurface wb, "TemplatesTable", "TemplatesTable", Array("TEMPLATE_SCOPE", "RECIPE_ID", "INGREDIENT_ID", "PROCESS", "TARGET_TABLE", "TARGET_COLUMN", "FORMULA", "GUID", "NOTES", "ACTIVE", "CREATED_AT", "UPDATED_AT"), False
     EnsureTableSurface wb, "ProductionLog", "ProductionLog", Array("TIMESTAMP", "RECIPE", "RECIPE_ID", "DEPARTMENT", "DESCRIPTION", "PROCESS", "OUTPUT", "PREDICTED OUTPUT", "REAL OUTPUT", "BATCH", "BATCH_ID", "RECALL CODE", "ITEM_CODE", "VENDORS", "VENDOR_CODE", "ITEM", "UOM", "QUANTITY", "LOCATION", "ROW", "INPUT/OUTPUT", "INGREDIENT_ID", "GUID"), False
     EnsureTableSurface wb, "BatchCodesLog", "BatchCodesLog", Array("RECIPE", "RECIPE_ID", "PROCESS", "OUTPUT", "UOM", "REAL OUTPUT", "BATCH", "RECALL CODE", "TIMESTAMP", "LOCATION", "USER", "GUID"), False
@@ -108,6 +108,7 @@ Public Function EnsureInventoryManagementSurface(Optional ByVal targetWb As Work
     Set wb = ResolveTargetWorkbookSurface(targetWb)
 
     EnsureTableSurface wb, "InventoryManagement", "invSys", InventoryManagementHeadersSurface(), False
+    EnsureInventoryDomainSupportSurface wb
 
     EnsureInventoryManagementSurface = True
     Exit Function
@@ -122,12 +123,32 @@ Private Function InventoryManagementHeadersSurface() As Variant
         "RECEIVED", "USED", "MADE", "SHIPMENTS", "TOTAL INV", "LAST EDITED", "TOTAL INV LAST EDIT", "TIMESTAMP")
 End Function
 
+Private Sub EnsureInventoryDomainSupportSurface(ByVal wb As Workbook)
+    EnsureTableSurface wb, "InventoryLog", "tblInventoryLog", _
+        Array("EventID", "UndoOfEventId", "AppliedSeq", "EventType", "OccurredAtUTC", "AppliedAtUTC", _
+              "WarehouseId", "StationId", "UserId", "SKU", "QtyDelta", "Location", "Note"), False
+
+    EnsureTableSurface wb, "AppliedEvents", "tblAppliedEvents", _
+        Array("EventID", "UndoOfEventId", "AppliedSeq", "AppliedAtUTC", "RunId", "SourceInbox", "Status"), False
+
+    EnsureTableSurface wb, "Locks", "tblLocks", _
+        Array("LockName", "OwnerStationId", "OwnerUserId", "RunId", "AcquiredAtUTC", "ExpiresAtUTC", "HeartbeatAtUTC", "Status"), False
+End Sub
+
 Private Function ResolveTargetWorkbookSurface(ByVal targetWb As Workbook) As Workbook
     If targetWb Is Nothing Then
         Set ResolveTargetWorkbookSurface = ThisWorkbook
     Else
         Set ResolveTargetWorkbookSurface = targetWb
     End If
+End Function
+
+Private Function ResolveIngredientPaletteSheetSurface(ByVal wb As Workbook) As String
+    If Not EnsureWorksheetSurface(wb, "IngredientsPalette") Is Nothing Then
+        ResolveIngredientPaletteSheetSurface = "IngredientsPalette"
+        Exit Function
+    End If
+    ResolveIngredientPaletteSheetSurface = "IngredientPalette"
 End Function
 
 Public Function ShouldBootstrapRoleWorkbookSurface(Optional ByVal targetWb As Workbook = Nothing) As Boolean
@@ -273,5 +294,33 @@ Private Sub FormatWorkbookSurface(ByVal wb As Workbook)
     For Each ws In wb.Worksheets
         ws.Cells.EntireColumn.AutoFit
         ws.Rows(1).Font.Bold = True
+        ApplyWorksheetTabColorSurface ws
     Next ws
 End Sub
+
+Private Sub ApplyWorksheetTabColorSurface(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    ws.Tab.Color = ResolveWorksheetTabColorSurface(ws.Name)
+    On Error GoTo 0
+End Sub
+
+Private Function ResolveWorksheetTabColorSurface(ByVal sheetName As String) As Long
+    Select Case LCase$(Trim$(sheetName))
+        Case "receivedtally", "receivedlog"
+            ResolveWorksheetTabColorSurface = RGB(217, 119, 6)
+        Case "shipmentstally", "aggregateboxbom_log", "aggregatepackages_log"
+            ResolveWorksheetTabColorSurface = RGB(3, 105, 161)
+        Case "recipes", "ingredientpalette", "ingredientspalette", "shippingbom", "templatestable"
+            ResolveWorksheetTabColorSurface = RGB(190, 24, 93)
+        Case "production", "productionlog", "batchcodeslog"
+            ResolveWorksheetTabColorSurface = RGB(22, 101, 52)
+        Case "inventorymanagement"
+            ResolveWorksheetTabColorSurface = RGB(109, 40, 217)
+        Case "usercredentials", "emails"
+            ResolveWorksheetTabColorSurface = RGB(161, 98, 7)
+        Case Else
+            ResolveWorksheetTabColorSurface = RGB(107, 114, 128)
+    End Select
+End Function

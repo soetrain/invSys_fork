@@ -165,9 +165,74 @@ Public Sub ShowDynamicItemSearch(ByVal targetCell As Range)
 
 ErrHandler:
     Debug.Print "  ERROR creating cDynItemSearch:", Err.Number, Err.Description
-    Debug.Print "  Falling back to frmItemSearch"
+    Debug.Print "  Dynamic receiving search unavailable"
+    MsgBox "Receiving item picker is unavailable: " & Err.Description, vbExclamation
+End Sub
+
+Public Sub HandleReceivingSelectionChange(ByVal target As Range)
+    If target Is Nothing Then Exit Sub
+    If target.Cells.CountLarge > 1 Then Exit Sub
+    If target.Worksheet Is Nothing Then Exit Sub
+    If target.Worksheet.Parent Is Nothing Then Exit Sub
+    If target.Worksheet.Parent.IsAddin Then Exit Sub
+    If StrComp(target.Worksheet.Name, SHEET_RECEIVING, vbTextCompare) <> 0 Then Exit Sub
+
+    Dim lo As ListObject
+    Dim itemsCol As ListColumn
+
     On Error Resume Next
-    frmItemSearch.Show vbModeless
+    Set lo = target.ListObject
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Sub
+    If StrComp(lo.Name, TABLE_RECEIVING, vbTextCompare) <> 0 Then Exit Sub
+
+    On Error Resume Next
+    Set itemsCol = lo.ListColumns("ITEMS")
+    On Error GoTo 0
+    If itemsCol Is Nothing Then Exit Sub
+    If target.Column <> itemsCol.Range.Column Then Exit Sub
+    If target.Row <= lo.HeaderRowRange.Row Then Exit Sub
+
+    Set gSelectedCell = target
+    ShowDynamicItemSearch target
+End Sub
+
+Public Sub HandleReceivingSheetChange(ByVal target As Range)
+    On Error GoTo ExitHandler
+    If target Is Nothing Then Exit Sub
+    If target.Cells.CountLarge > 50 Then Exit Sub
+    If target.Worksheet Is Nothing Then Exit Sub
+    If target.Worksheet.Parent Is Nothing Then Exit Sub
+    If target.Worksheet.Parent.IsAddin Then Exit Sub
+    If StrComp(target.Worksheet.Name, SHEET_RECEIVING, vbTextCompare) <> 0 Then Exit Sub
+
+    Dim lo As ListObject
+    Dim qtyCol As ListColumn
+    Dim rngHit As Range
+    Dim cel As Range
+
+    On Error Resume Next
+    Set lo = target.Worksheet.ListObjects(TABLE_RECEIVING)
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Set qtyCol = lo.ListColumns("QUANTITY")
+    On Error GoTo 0
+    If qtyCol Is Nothing Then Exit Sub
+
+    Set rngHit = Application.Intersect(target, qtyCol.DataBodyRange)
+    If rngHit Is Nothing Then Exit Sub
+
+    Application.EnableEvents = False
+    For Each cel In rngHit.Cells
+        Dim rowIdx As Long
+        rowIdx = cel.Row - lo.DataBodyRange.Row + 1
+        SyncQuantityFromStaging rowIdx, NzDbl(cel.Value)
+    Next cel
+ExitHandler:
+    Application.EnableEvents = True
 End Sub
 
 ' =========================

@@ -89,7 +89,13 @@ Public Function HandleBeforeDoubleClick(ByVal Target As Range, ByRef Cancel As B
         End If
 
         Set allowedRows = RunRoleMacroObject("mProduction.GetAllowedInvRowsForIngredient", ctxRec, ctxIng)
-        If allowedRows Is Nothing Or allowedRows.Count = 0 Then
+        If allowedRows Is Nothing Then
+            MsgBox "No IngredientPalette entries found for this ingredient. Add acceptable items first.", vbInformation
+            Cancel = True
+            HandleBeforeDoubleClick = True
+            Exit Function
+        End If
+        If allowedRows.Count = 0 Then
             MsgBox "No IngredientPalette entries found for this ingredient. Add acceptable items first.", vbInformation
             Cancel = True
             HandleBeforeDoubleClick = True

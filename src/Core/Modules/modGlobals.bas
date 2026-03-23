@@ -12,7 +12,7 @@ Public Const STATUS_REMOVED     As String = "REMOVED"
 Public Const STATUS_INACTIVE    As String = "INACTIVE"
 Public gSelectedCell As Range
 Public Sub CommitSelectionAndCloseWrapper()
-    frmItemSearch.CommitSelectionAndClose
+    MsgBox "Legacy frmItemSearch is no longer supported in the split XLAM runtime.", vbInformation
 End Sub
 ' Add this function to initialize global variables
 Public Sub InitializeGlobalVariables()
@@ -83,8 +83,7 @@ End Function
 Public Sub OpenItemSearchForCurrentCell()
     ' Store the active cell as the selected cell
     Set gSelectedCell = ActiveCell
-    ' Show the form
-    frmItemSearch.Show vbModeless
+    MsgBox "Use the role workbook picker entry points instead of the legacy F3 item search.", vbInformation
 End Sub
     ' Add to modGlobals.bas
 Public Function IsFormLoaded(formName As String) As Boolean

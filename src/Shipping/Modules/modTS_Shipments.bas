@@ -40,6 +40,7 @@ Private Const BTN_TO_TOTALINV As String = "BTN_TO_TOTALINV"
 Private Const BTN_TO_SHIPMENTS As String = "BTN_TO_SHIPMENTS"
 Private Const BTN_SHIPMENTS_SENT As String = "BTN_SHIPMENTS_SENT"
 Private Const CHK_USE_EXISTING As String = "CHK_USE_EXISTING"
+Private Const SHAPE_TYPE_FORM_CONTROL As Long = 8
 
 Private Const SHIPPING_BOM_BLOCK_ROWS As Long = 52
 Private Const SHIPPING_BOM_DATA_ROWS As Long = 50
@@ -719,8 +720,79 @@ Public Sub ShowDynamicItemSearch(ByVal targetCell As Range)
     mDynSearch.ShowForCell targetCell
     Exit Sub
 ErrHandler:
+    MsgBox "Shipping item picker is unavailable: " & Err.Description, vbExclamation
+End Sub
+
+Public Sub HandleShippingSelectionChange(ByVal target As Range)
+    If target Is Nothing Then Exit Sub
+    If target.Cells.CountLarge > 1 Then Exit Sub
+    If target.Worksheet Is Nothing Then Exit Sub
+    If target.Worksheet.Parent Is Nothing Then Exit Sub
+    If target.Worksheet.Parent.IsAddin Then Exit Sub
+    If StrComp(target.Worksheet.Name, SHEET_SHIPMENTS, vbTextCompare) <> 0 Then Exit Sub
+
+    Dim lo As ListObject
+    Dim loName As String
+    Dim targetCol As ListColumn
+
     On Error Resume Next
-    frmItemSearch.Show vbModeless
+    Set lo = target.ListObject
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Sub
+
+    loName = LCase$(lo.Name)
+    Select Case loName
+        Case "shipmentstally"
+            On Error Resume Next
+            Set targetCol = lo.ListColumns("ITEMS")
+            On Error GoTo 0
+        Case "boxbom"
+            On Error Resume Next
+            Set targetCol = lo.ListColumns("ITEM")
+            On Error GoTo 0
+        Case Else
+            Exit Sub
+    End Select
+
+    If targetCol Is Nothing Then Exit Sub
+    If target.Column <> targetCol.Range.Column Then Exit Sub
+    If target.Row <= lo.HeaderRowRange.Row Then Exit Sub
+
+    Set gSelectedCell = target
+    ShowDynamicItemSearch target
+End Sub
+
+Public Sub HandleShippingSheetChange(ByVal target As Range)
+    On Error GoTo ExitHandler
+    If target Is Nothing Then Exit Sub
+    If target.Cells.CountLarge > 50 Then Exit Sub
+    If target.Worksheet Is Nothing Then Exit Sub
+    If target.Worksheet.Parent Is Nothing Then Exit Sub
+    If target.Worksheet.Parent.IsAddin Then Exit Sub
+    If StrComp(target.Worksheet.Name, SHEET_SHIPMENTS, vbTextCompare) <> 0 Then Exit Sub
+
+    Dim lo As ListObject
+    Dim qtyCol As ListColumn
+    Dim hit As Range
+
+    On Error Resume Next
+    Set lo = target.Worksheet.ListObjects(TABLE_SHIPMENTS)
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Set qtyCol = lo.ListColumns("QUANTITY")
+    On Error GoTo 0
+    If qtyCol Is Nothing Then Exit Sub
+
+    Set hit = Application.Intersect(target, qtyCol.DataBodyRange)
+    If hit Is Nothing Then Exit Sub
+
+    Application.EnableEvents = False
+    InvalidateAggregates True
+ExitHandler:
+    Application.EnableEvents = True
 End Sub
 
 ' ===== button scaffolding =====
@@ -798,7 +870,7 @@ Private Sub EnsureCheckbox(ws As Worksheet, shapeName As String, caption As Stri
     On Error GoTo 0
     If Not shp Is Nothing Then
         On Error Resume Next
-        If shp.Type <> msoFormControl Or shp.FormControlType <> xlCheckBox Then
+        If shp.Type <> SHAPE_TYPE_FORM_CONTROL Or shp.FormControlType <> xlCheckBox Then
             Set shp = Nothing
         End If
         On Error GoTo 0
@@ -808,7 +880,7 @@ Private Sub EnsureCheckbox(ws As Worksheet, shapeName As String, caption As Stri
         Dim bestMatch As Shape
         Dim bestTop As Double: bestTop = 1E+30
         For Each candidate In ws.Shapes
-            If candidate.Type = msoFormControl Then
+            If candidate.Type = SHAPE_TYPE_FORM_CONTROL Then
                 On Error Resume Next
                 If candidate.FormControlType = xlCheckBox Then
                     Dim cap As String: cap = candidate.ControlFormat.Caption
@@ -855,7 +927,7 @@ Private Sub DeleteLegacyCheckBoxes(ws As Worksheet)
     Dim shp As Shape
     Dim toDelete As Collection: Set toDelete = New Collection
     For Each shp In ws.Shapes
-        If shp.Type = msoFormControl Then
+        If shp.Type = SHAPE_TYPE_FORM_CONTROL Then
             On Error Resume Next
             If shp.FormControlType = xlCheckBox Then
                 Dim cap As String: cap = shp.ControlFormat.Caption
@@ -963,10 +1035,31 @@ Public Sub ApplyItemSelection(targetCell As Range, lo As ListObject, rowIndex As
     
     Dim tableName As String
     tableName = LCase$(lo.Name)
+    Dim targetRowIndex As Long
 
     Select Case tableName
         Case "shipmentstally"
-            targetCell.Value = itemName
+            targetRowIndex = rowIndex
+            If targetRowIndex <= 0 Then
+                If Not targetCell Is Nothing Then
+                    If Not lo.DataBodyRange Is Nothing Then
+                        targetRowIndex = targetCell.Row - lo.DataBodyRange.Row + 1
+                    End If
+                End If
+            End If
+            If targetRowIndex <= 0 Then
+                On Error Resume Next
+                lo.ListRows.Add AlwaysInsert:=True
+                On Error GoTo 0
+                If Not lo.DataBodyRange Is Nothing Then targetRowIndex = lo.ListRows.Count
+            End If
+            If targetRowIndex <= 0 Then Exit Sub
+
+            WriteValue lo.ListRows(targetRowIndex), "ITEMS", itemName
+            WriteValue lo.ListRows(targetRowIndex), "ROW", itemRow
+            WriteValue lo.ListRows(targetRowIndex), "UOM", uom
+            WriteValue lo.ListRows(targetRowIndex), "LOCATION", location
+            WriteValue lo.ListRows(targetRowIndex), "DESCRIPTION", description
             InvalidateAggregates True
             
         Case Else

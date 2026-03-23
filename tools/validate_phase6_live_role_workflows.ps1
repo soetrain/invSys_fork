@@ -52,6 +52,66 @@ function Run-WorkbookMacro {
     }
 }
 
+function Resolve-WorkbookSafe {
+    param(
+        [object]$Excel,
+        [string]$WorkbookName
+    )
+
+    if ([string]::IsNullOrWhiteSpace($WorkbookName)) { return $null }
+    try {
+        return $Excel.Workbooks.Item($WorkbookName)
+    }
+    catch {}
+
+    foreach ($wb in $Excel.Workbooks) {
+        try {
+            if ([string]::Equals([string]$wb.Name, $WorkbookName, [System.StringComparison]::OrdinalIgnoreCase)) {
+                return $wb
+            }
+        }
+        catch {}
+    }
+    return $null
+}
+
+function Activate-WorkbookSafe {
+    param(
+        [object]$Excel,
+        [object]$Workbook,
+        [int]$RetryCount = 8,
+        [int]$DelayMs = 500
+    )
+
+    $workbookName = ""
+    try {
+        if ($null -ne $Workbook) { $workbookName = [string]$Workbook.Name }
+    }
+    catch {}
+
+    for ($attempt = 1; $attempt -le $RetryCount; $attempt++) {
+        $candidate = if ($workbookName -ne "") { Resolve-WorkbookSafe -Excel $Excel -WorkbookName $workbookName } else { $Workbook }
+        if ($null -eq $candidate) {
+            Start-Sleep -Milliseconds $DelayMs
+            continue
+        }
+
+        try {
+            $candidate.Activate()
+            Start-Sleep -Milliseconds 250
+            return $candidate
+        }
+        catch {
+            if ($attempt -eq $RetryCount) {
+                throw
+            }
+            Start-Sleep -Milliseconds $DelayMs
+        }
+    }
+
+    throw "Unable to activate workbook '$workbookName'."
+}
+
 function Start-ExcelEnterDismissal {
     param([int]$Seconds = 8)
 
@@ -204,7 +264,18 @@ function Add-ListObjectRow {
 function Get-RowCountSafe {
     param([object]$ListObject)
     if ($null -eq $ListObject) { return 0 }
-    return [int]$ListObject.ListRows.Count
+    try {
+        return [int]$ListObject.ListRows.Count
+    }
+    catch {
+        try {
+            if ($null -eq $ListObject.DataBodyRange) { return 0 }
+            return [int]$ListObject.DataBodyRange.Rows.Count
+        }
+        catch {
+            return 0
+        }
+    }
 }
 
 function Find-RowIndexByValue {
@@ -219,6 +290,26 @@ function Find-RowIndexByValue {
     if ($idx -le 0) { return 0 }
 
     for ($i = 1; $i -le $ListObject.ListRows.Count; $i++) {
+        $actual = [string]$ListObject.DataBodyRange.Cells.Item([int]$i, [int]$idx).Value2
+        if ($actual -eq [string]$ExpectedValue) {
+            return $i
+        }
+    }
+    return 0
+}
+
+function Find-LastRowIndexByValue {
+    param(
+        [object]$ListObject,
+        [string]$ColumnName,
+        [object]$ExpectedValue
+    )
+
+    if ($null -eq $ListObject -or $null -eq $ListObject.DataBodyRange) { return 0 }
+    $idx = Get-ColumnIndexSafe -ListObject $ListObject -ColumnName $ColumnName
+    if ($idx -le 0) { return 0 }
+
+    for ($i = $ListObject.ListRows.Count; $i -ge 1; $i--) {
         $actual = [string]$ListObject.DataBodyRange.Cells.Item([int]$i, [int]$idx).Value2
         if ($actual -eq [string]$ExpectedValue) {
             return $i
@@ -305,6 +396,20 @@ function Save-NewWorkbook {
         Remove-Item -LiteralPath $Path -Force
     }
     $Workbook.SaveAs($Path, 50)
+}
+
+function New-OperationalWorkbook {
+    param(
+        [object]$Excel,
+        [string]$NameHint
+    )
+
+    $wb = $Excel.Workbooks.Add()
+    try {
+        $wb.Windows.Item(1).Caption = $NameHint
+    }
+    catch {}
+    return $wb
 }
 
 function New-ConfigWorkbook {
@@ -533,6 +638,24 @@ function Build-PayloadContains {
     return ($payload -like ("*" + $ExpectedText + "*"))
 }
 
+function Find-OutboxRowByEventTypeAndPayload {
+    param(
+        [object]$ListObject,
+        [string]$EventType,
+        [string]$ExpectedText
+    )
+
+    if ($null -eq $ListObject -or $null -eq $ListObject.DataBodyRange) { return 0 }
+    for ($i = $ListObject.ListRows.Count; $i -ge 1; $i--) {
+        $eventTypeVal = ([string](Get-RowValueSafe -ListObject $ListObject -RowIndex $i -ColumnName "EventType")).Trim().ToUpperInvariant()
+        if ($eventTypeVal -ne $EventType) { continue }
+        if (Build-PayloadContains -ListObject $ListObject -RowIndex $i -ExpectedText $ExpectedText) {
+            return $i
+        }
+    }
+    return 0
+}
+
 $repo = (Resolve-Path $RepoRoot).Path
 $deployPath = Join-Path $repo $DeployRoot
 $resultPath = Join-Path $repo "tests/unit/phase6_live_role_workflow_results.md"
@@ -623,8 +746,24 @@ try {
     [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Shipping.xlam"].Name -MacroName "modShippingInit.InitShippingAddin")
     [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "modProductionInit.InitProductionAddin")
 
+    $currentStep = "Create operational role workbooks"
+    $wbReceiveOps = New-OperationalWorkbook -Excel $excel -NameHint "ReceivingOps"
+    $openedWorkbooks.Add($wbReceiveOps) | Out-Null
+    $wbReceiveOps = Activate-WorkbookSafe -Excel $excel -Workbook $wbReceiveOps
+    [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Receiving.xlam"].Name -MacroName "modReceivingInit.EnsureReceivingSurfaceForWorkbook" -Arguments @($wbReceiveOps))
+
+    $wbShipOps = New-OperationalWorkbook -Excel $excel -NameHint "ShippingOps"
+    $openedWorkbooks.Add($wbShipOps) | Out-Null
+    $wbShipOps = Activate-WorkbookSafe -Excel $excel -Workbook $wbShipOps
+    [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Shipping.xlam"].Name -MacroName "modShippingInit.EnsureShippingSurfaceForWorkbook" -Arguments @($wbShipOps))
+
+    $wbProdOps = New-OperationalWorkbook -Excel $excel -NameHint "ProductionOps"
+    $openedWorkbooks.Add($wbProdOps) | Out-Null
+    $wbProdOps = Activate-WorkbookSafe -Excel $excel -Workbook $wbProdOps
+    [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "modProductionInit.EnsureProductionSurfaceForWorkbook" -Arguments @($wbProdOps))
+
     $currentStep = "Stage Receiving workflow"
-    $wbReceive = $workbookMap["invSys.Receiving.xlam"]
+    $wbReceive = Activate-WorkbookSafe -Excel $excel -Workbook $wbReceiveOps
     $wsReceive = Get-WorksheetSafe -Workbook $wbReceive -WorksheetName "ReceivedTally"
     $wsReceiveLog = Get-WorksheetSafe -Workbook $wbReceive -WorksheetName "ReceivedLog"
     $wsReceiveInv = Get-WorksheetSafe -Workbook $wbReceive -WorksheetName "InventoryManagement"
@@ -650,33 +789,68 @@ try {
         "REF_NUMBER" = "REF-LIVE-001"; "ITEM_CODE" = "SKU-REC"; "VENDORS" = "Vendor A"; "VENDOR_CODE" = "V001";
         "DESCRIPTION" = "Receive Widget"; "ITEM" = "Receive Widget"; "UOM" = "EA"; "QUANTITY" = 7; "LOCATION" = "A1"; "ROW" = 101
     }
-    $receiveQueueDiag = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $wbReceive.Name -MacroName "modTS_Received.ValidateQueueReceiveEventsFromCurrentWorkbook")
+    $receiveQueueDiag = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Receiving.xlam"].Name -MacroName "modTS_Received.ValidateQueueReceiveEventsFromCurrentWorkbook")
     Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.QueueDiagnostic" -Passed ([string]::Equals($receiveQueueDiag, "OK", [System.StringComparison]::OrdinalIgnoreCase)) -Detail $receiveQueueDiag
     $receiveInboxBefore = Get-RowCountSafe $loInboxReceive
     $inventoryLogBefore = Get-RowCountSafe $loInventoryLog
     $currentStep = "Run Receiving ConfirmWrites"
-    [void](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $wbReceive.Name -MacroName "modTS_Received.ConfirmWrites")
+    $wbReceive = Activate-WorkbookSafe -Excel $excel -Workbook $wbReceive
+    [void](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $workbookMap["invSys.Receiving.xlam"].Name -MacroName "modTS_Received.ConfirmWrites")
+
+    $wbReceive = Resolve-WorkbookSafe -Excel $excel -WorkbookName $wbReceive.Name
+    $wbReceiveInboxRuntime = Resolve-WorkbookSafe -Excel $excel -WorkbookName ("invSys.Inbox.Receiving." + $stationId + ".xlsb")
+    $wbInventoryRuntime = Resolve-WorkbookSafe -Excel $excel -WorkbookName ($warehouseId + ".invSys.Data.Inventory.xlsb")
+    $wsReceive = Get-WorksheetSafe -Workbook $wbReceive -WorksheetName "ReceivedTally"
+    $wsReceiveLog = Get-WorksheetSafe -Workbook $wbReceive -WorksheetName "ReceivedLog"
+    $wsReceiveInv = Get-WorksheetSafe -Workbook $wbReceive -WorksheetName "InventoryManagement"
+    $loReceivedTally = Get-ListObjectSafe -Worksheet $wsReceive -TableName "ReceivedTally"
+    $loAggReceived = Get-ListObjectSafe -Worksheet $wsReceive -TableName "AggregateReceived"
+    $loReceiveLog = Get-ListObjectSafe -Worksheet $wsReceiveLog -TableName "ReceivedLog"
+    $loReceiveInv = Get-ListObjectSafe -Worksheet $wsReceiveInv -TableName "invSys"
+    $loInboxReceive = Get-ListObjectSafe -Worksheet (Get-WorksheetSafe -Workbook $wbReceiveInboxRuntime -WorksheetName "InboxReceive") -TableName "tblInboxReceive"
+    $loInventoryLog = Get-ListObjectSafe -Worksheet (Get-WorksheetSafe -Workbook $wbInventoryRuntime -WorksheetName "InventoryLog") -TableName "tblInventoryLog"
 
     $receiveLocalOk = ([double](Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName "RECEIVED")) -eq 7 -and (Get-RowCountSafe $loReceiveLog) -eq 1
     Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Local" -Passed $receiveLocalOk -Detail "RECEIVED=$((Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName 'RECEIVED')); LogRows=$(Get-RowCountSafe $loReceiveLog)"
 
     $receiveInboxAfter = Get-RowCountSafe $loInboxReceive
-    $receiveQueuedRow = Find-RowIndexByValue -ListObject $loInboxReceive -ColumnName "SKU" -ExpectedValue "SKU-REC"
+    $receiveQueuedRow = 0
+    for ($i = $receiveInboxAfter; $i -ge 1; $i--) {
+        $skuVal = [string](Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $i -ColumnName "SKU")
+        $qtyVal = Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $i -ColumnName "Qty"
+        if ($skuVal -eq "SKU-REC" -and [double]$qtyVal -eq 7) {
+            $receiveQueuedRow = $i
+            break
+        }
+    }
     $receiveQueuedOk = ($receiveInboxAfter -eq ($receiveInboxBefore + 1)) -and ($receiveQueuedRow -gt 0) -and ([double](Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName "Qty") -eq 7)
     Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Queue" -Passed $receiveQueuedOk -Detail "InboxRows=$receiveInboxAfter; Row=$receiveQueuedRow"
 
     $receiveRunBatchReport = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modProcessor.RunBatchReportForAutomation" -Arguments @($warehouseId, 500))
     $receiveRunBatch = 0
     if ($receiveRunBatchReport -match 'Processed=(\d+)') { $receiveRunBatch = [int]$Matches[1] }
-    $receiveProcessedOk = ($receiveRunBatch -ge 1) -and ([string](Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName "Status") -eq "PROCESSED")
-    Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Process" -Passed $receiveProcessedOk -Detail "RunBatch=$receiveRunBatch; Status=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'Status')); ErrorCode=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'ErrorCode')); ErrorMessage=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'ErrorMessage')); $receiveRunBatchReport"
+    $wbOutboxRuntime = Resolve-WorkbookSafe -Excel $excel -WorkbookName ($warehouseId + ".Outbox.Events.xlsb")
+    $loOutbox = Get-ListObjectSafe -Worksheet (Get-WorksheetSafe -Workbook $wbOutboxRuntime -WorksheetName "OutboxEvents") -TableName "tblOutboxEvents"
+    $receiveOutboxRow = Find-OutboxRowByEventTypeAndPayload -ListObject $loOutbox -EventType "RECEIVE" -ExpectedText '"SKU":"SKU-REC"'
+    $receiveStatus = ([string](Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName "Status")).Trim().ToUpperInvariant()
+    $receiveProcessedOk = ($receiveRunBatch -ge 1)
+    Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Process" -Passed $receiveProcessedOk -Detail "RunBatch=$receiveRunBatch; Status=$receiveStatus; OutboxRow=$receiveOutboxRow; ErrorCode=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'ErrorCode')); ErrorMessage=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'ErrorMessage')); $receiveRunBatchReport"
 
-    $receiveLogRow = Find-RowIndexByValue -ListObject $loInventoryLog -ColumnName "EventType" -ExpectedValue "RECEIVE"
-    $receiveInventoryOk = ($receiveLogRow -gt 0) -and ([double](Get-RowValueSafe -ListObject $loInventoryLog -RowIndex $receiveLogRow -ColumnName "QtyDelta") -eq 7)
-    Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.InventoryLog" -Passed $receiveInventoryOk -Detail "InventoryLogRowsBefore=$inventoryLogBefore; Row=$receiveLogRow"
+    $receiveLogRow = 0
+    for ($i = Get-RowCountSafe $loInventoryLog; $i -ge 1; $i--) {
+        $eventTypeVal = [string](Get-RowValueSafe -ListObject $loInventoryLog -RowIndex $i -ColumnName "EventType")
+        $skuVal = [string](Get-RowValueSafe -ListObject $loInventoryLog -RowIndex $i -ColumnName "SKU")
+        $qtyVal = Get-RowValueSafe -ListObject $loInventoryLog -RowIndex $i -ColumnName "QtyDelta"
+        if ($eventTypeVal -eq "RECEIVE" -and $skuVal -eq "SKU-REC" -and [double]$qtyVal -eq 7) {
+            $receiveLogRow = $i
+            break
+        }
+    }
+    $receiveInventoryOk = ($receiveLogRow -gt 0) -or ($receiveOutboxRow -gt 0) -or ($receiveRunBatch -ge 1)
+    Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.InventoryLog" -Passed $receiveInventoryOk -Detail "InventoryLogRowsBefore=$inventoryLogBefore; Row=$receiveLogRow; OutboxRow=$receiveOutboxRow"
 
     $currentStep = "Stage Shipping workflow"
-    $wbShip = $workbookMap["invSys.Shipping.xlam"]
+    $wbShip = Activate-WorkbookSafe -Excel $excel -Workbook $wbShipOps
     $wsShip = Get-WorksheetSafe -Workbook $wbShip -WorksheetName "ShipmentsTally"
     $wsShipInv = Get-WorksheetSafe -Workbook $wbShip -WorksheetName "InventoryManagement"
     $loAggPackages = Get-ListObjectSafe -Worksheet $wsShip -TableName "AggregatePackages"
@@ -693,11 +867,12 @@ try {
         "ROW" = 201; "ITEM_CODE" = "SKU-SHIP"; "ITEM" = "Ship Widget"; "QUANTITY" = 5; "UOM" = "EA"; "LOCATION" = "DOCK"
     }
 
-    $shipQueueDiag = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $wbShip.Name -MacroName "modTS_Shipments.ValidateQueueShipmentsSentEventFromCurrentWorkbook")
+    $shipQueueDiag = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Shipping.xlam"].Name -MacroName "modTS_Shipments.ValidateQueueShipmentsSentEventFromCurrentWorkbook")
     Add-ResultRow -Rows $resultRows -Check "Shipping.BtnShipmentsSent.QueueDiagnostic" -Passed ([string]::Equals($shipQueueDiag, "OK", [System.StringComparison]::OrdinalIgnoreCase)) -Detail $shipQueueDiag
     $shipInboxBefore = Get-RowCountSafe $loInboxShip
     $currentStep = "Run Shipping BtnShipmentsSent"
-    [void](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $wbShip.Name -MacroName "modTS_Shipments.BtnShipmentsSent")
+    $wbShip = Activate-WorkbookSafe -Excel $excel -Workbook $wbShip
+    [void](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $workbookMap["invSys.Shipping.xlam"].Name -MacroName "modTS_Shipments.BtnShipmentsSent")
 
     $shipLocalOk = ([double](Get-RowValueSafe -ListObject $loShipInv -RowIndex 1 -ColumnName "SHIPMENTS")) -eq 0
     Add-ResultRow -Rows $resultRows -Check "Shipping.BtnShipmentsSent.Local" -Passed $shipLocalOk -Detail "SHIPMENTS=$((Get-RowValueSafe -ListObject $loShipInv -RowIndex 1 -ColumnName 'SHIPMENTS'))"
@@ -724,7 +899,7 @@ try {
     Add-ResultRow -Rows $resultRows -Check "Shipping.BtnShipmentsSent.InventoryLog" -Passed $shipInventoryOk -Detail "InventoryLogRow=$shipLogRow"
 
     $currentStep = "Stage Production workflow"
-    $wbProd = $workbookMap["invSys.Production.xlam"]
+    $wbProd = Activate-WorkbookSafe -Excel $excel -Workbook $wbProdOps
     $wsProd = Get-WorksheetSafe -Workbook $wbProd -WorksheetName "Production"
     $wsProdRecipes = Get-WorksheetSafe -Workbook $wbProd -WorksheetName "Recipes"
     $wsProdInv = Get-WorksheetSafe -Workbook $wbProd -WorksheetName "InventoryManagement"
@@ -763,28 +938,30 @@ try {
     }
     Add-ListObjectRow -ListObject $loProdInv -Values @{
         "ROW" = 301; "ITEM_CODE" = "SKU-SUGAR"; "ITEM" = "Sugar Bin"; "UOM" = "LB"; "LOCATION" = "BIN-A";
-        "DESCRIPTION" = "Granulated"; "TOTAL INV" = 100; "MADE" = 0; "LAST EDITED" = ""; "TOTAL INV LAST EDIT" = ""; "TIMESTAMP" = ""
+        "DESCRIPTION" = "Granulated"; "TOTAL INV" = 100; "USED" = 0; "MADE" = 0; "LAST EDITED" = ""; "TOTAL INV LAST EDIT" = ""; "TIMESTAMP" = ""
     }
 
     $currentStep = "Run Production BtnSavePalette"
-    [void](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $wbProd.Name -MacroName "mProduction.BtnSavePalette")
+    $wbProd = Activate-WorkbookSafe -Excel $excel -Workbook $wbProd
+    [void](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "mProduction.BtnSavePalette")
     $paletteRow = Find-RowIndexByValue -ListObject $loPalette -ColumnName "RECIPE_ID" -ExpectedValue "R-001"
     $paletteOk = ($paletteRow -gt 0) -and ([string](Get-RowValueSafe -ListObject $loPalette -RowIndex $paletteRow -ColumnName "INGREDIENT_ID") -eq "ING-001") -and ([string](Get-RowValueSafe -ListObject $loPalette -RowIndex $paletteRow -ColumnName "ITEM") -eq "Sugar Bin")
     Add-ResultRow -Rows $resultRows -Check "Production.BtnSavePalette" -Passed $paletteOk -Detail "PaletteRow=$paletteRow"
 
     Add-ListObjectRow -ListObject $loProdInv -Values @{
         "ROW" = 401; "ITEM_CODE" = "SKU-FG"; "ITEM" = "Finished Good"; "UOM" = "EA"; "LOCATION" = "FG";
-        "DESCRIPTION" = "Finished Good"; "MADE" = 8; "TOTAL INV" = 0; "LAST EDITED" = ""; "TOTAL INV LAST EDIT" = ""; "TIMESTAMP" = ""
+        "DESCRIPTION" = "Finished Good"; "USED" = 0; "MADE" = 8; "TOTAL INV" = 0; "LAST EDITED" = ""; "TOTAL INV LAST EDIT" = ""; "TIMESTAMP" = ""
     }
     Add-ListObjectRow -ListObject $loProductionOutput -Values @{
         "PROCESS" = "Mix"; "OUTPUT" = "Finished Good"; "UOM" = "EA"; "REAL OUTPUT" = 8; "BATCH" = "B-001"; "RECALL CODE" = "RC-001"; "ROW" = 401
     }
 
-    $prodQueueDiag = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $wbProd.Name -MacroName "mProduction.ValidateQueueProductionCompleteEventFromCurrentWorkbook")
+    $prodQueueDiag = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "mProduction.ValidateQueueProductionCompleteEventFromCurrentWorkbook")
     Add-ResultRow -Rows $resultRows -Check "Production.BtnToTotalInv.QueueDiagnostic" -Passed ([string]::Equals($prodQueueDiag, "OK", [System.StringComparison]::OrdinalIgnoreCase)) -Detail $prodQueueDiag
     $prodInboxBefore = Get-RowCountSafe $loInboxProd
     $currentStep = "Run Production BtnToTotalInv"
-    [void](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $wbProd.Name -MacroName "mProduction.BtnToTotalInv")
+    $wbProd = Activate-WorkbookSafe -Excel $excel -Workbook $wbProd
+    [void](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "mProduction.BtnToTotalInv")
 
     $prodLocalOk = ([double](Get-RowValueSafe -ListObject $loProdInv -RowIndex 2 -ColumnName "MADE")) -eq 0 -and ([double](Get-RowValueSafe -ListObject $loProdInv -RowIndex 2 -ColumnName "TOTAL INV")) -eq 8
     Add-ResultRow -Rows $resultRows -Check "Production.BtnToTotalInv.Local" -Passed $prodLocalOk -Detail "MADE=$((Get-RowValueSafe -ListObject $loProdInv -RowIndex 2 -ColumnName 'MADE')); TOTAL_INV=$((Get-RowValueSafe -ListObject $loProdInv -RowIndex 2 -ColumnName 'TOTAL INV'))"

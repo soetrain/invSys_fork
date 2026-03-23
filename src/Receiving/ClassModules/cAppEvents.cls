@@ -29,3 +29,17 @@ Private Sub App_WorkbookActivate(ByVal Wb As Workbook)
     Application.EnableEvents = True
     modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
 End Sub
+
+Private Sub App_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)
+    Application.EnableEvents = True
+    On Error Resume Next
+    modTS_Received.HandleReceivingSelectionChange Target
+    On Error GoTo 0
+End Sub
+
+Private Sub App_SheetChange(ByVal Sh As Object, ByVal Target As Range)
+    Application.EnableEvents = True
+    On Error Resume Next
+    modTS_Received.HandleReceivingSheetChange Target
+    On Error GoTo 0
+End Sub

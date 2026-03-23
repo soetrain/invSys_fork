@@ -33,3 +33,17 @@ End Sub
 Private Sub App_SheetActivate(ByVal Sh As Object)
     Application.EnableEvents = True
 End Sub
+
+Private Sub App_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)
+    Application.EnableEvents = True
+    On Error Resume Next
+    modTS_Shipments.HandleShippingSelectionChange Target
+    On Error GoTo 0
+End Sub
+
+Private Sub App_SheetChange(ByVal Sh As Object, ByVal Target As Range)
+    Application.EnableEvents = True
+    On Error Resume Next
+    modTS_Shipments.HandleShippingSheetChange Target
+    On Error GoTo 0
+End Sub

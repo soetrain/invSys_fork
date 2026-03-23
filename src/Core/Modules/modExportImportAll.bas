@@ -19,6 +19,8 @@ Attribute VB_Name = "modExportImportAll"
 
 Option Explicit
 
+Private Const SHAPE_TYPE_FORM_CONTROL As Long = 8
+
 ' Path to code files (repo). Change once if your repo moves.
 Private Const CODE_ROOT As String = "D:\justinwj\Solutions\invSys_fork\"
 ' Subroutine to export all modules, classes, forms, and Excel objects (sheets, workbook)
@@ -347,7 +349,7 @@ Sub ExportTablesHeadersAndControls()
         Next ole
         ' ? Forms Controls ?
         For Each shp In ws.shapes
-            If shp.Type = msoFormControl Then
+            If shp.Type = SHAPE_TYPE_FORM_CONTROL Then
                 ctrlType = shp.FormControlType
                 Select Case ctrlType
                     Case 0: ctrlTypeName = "Button"

@@ -244,7 +244,7 @@ Private Function LoadItems() As Boolean
     ElseIf LCase$(mPickerMode) = "ingredient" Then
         itemsArr = RunRoleMacro("mProduction.LoadIngredientListForRecipe", mIngredientRecipeId)
     Else
-        itemsArr = RunRoleMacro("modTS_Received.LoadItemList", True)
+        itemsArr = LoadManagedInventoryItems(True)
     End If
     lst.Clear
     If IsEmpty(itemsArr) Then
@@ -471,6 +471,155 @@ End Function
 
 Private Function CurrentRoleKey() As String
     CurrentRoleKey = modItemSearch.ResolveSearchRole(mTemplateFormName)
+End Function
+
+Private Function LoadManagedInventoryItems(Optional ByVal includeCategory As Boolean = False) As Variant
+    Dim loInv As ListObject
+    Set loInv = ResolveManagedInventoryTable()
+    If loInv Is Nothing Then Exit Function
+    If loInv.DataBodyRange Is Nothing Then Exit Function
+
+    Dim cRow As Long
+    Dim cCode As Long
+    Dim cItem As Long
+    Dim cUom As Long
+    Dim cLoc As Long
+    Dim cDesc As Long
+    Dim cVend As Long
+    Dim cCat As Long
+
+    cRow = ColumnIndex(loInv, "ROW")
+    cCode = ColumnIndex(loInv, "ITEM_CODE")
+    cItem = ColumnIndex(loInv, "ITEM")
+    cUom = ColumnIndex(loInv, "UOM")
+    cLoc = ColumnIndex(loInv, "LOCATION")
+    cDesc = ColumnIndex(loInv, "DESCRIPTION")
+    cVend = ColumnIndexLoose(loInv, "VENDOR(s)", "VENDORS", "VENDOR")
+    If includeCategory Then cCat = ColumnIndex(loInv, "CATEGORY")
+    If cRow = 0 Or cCode = 0 Or cItem = 0 Then Exit Function
+
+    Dim src As Variant
+    src = loInv.DataBodyRange.Value
+
+    Dim rowCount As Long
+    Dim colCount As Long
+    Dim outRow As Long
+    Dim r As Long
+    Dim c As Long
+    Dim itemName As String
+    Dim result() As Variant
+    Dim trimmed() As Variant
+
+    rowCount = UBound(src, 1)
+    colCount = IIf(includeCategory, 8, 7)
+    ReDim result(1 To rowCount, 1 To colCount)
+
+    For r = 1 To rowCount
+        itemName = NzStr(src(r, cItem))
+        If Trim$(itemName) <> "" Then
+            outRow = outRow + 1
+            result(outRow, 1) = NzStr(src(r, cRow))
+            result(outRow, 2) = NzStr(src(r, cCode))
+            result(outRow, 3) = itemName
+            If cUom > 0 Then result(outRow, 4) = NzStr(src(r, cUom))
+            If cLoc > 0 Then result(outRow, 5) = NzStr(src(r, cLoc))
+            If cDesc > 0 Then result(outRow, 6) = NzStr(src(r, cDesc))
+            If cVend > 0 Then result(outRow, 7) = NzStr(src(r, cVend))
+            If includeCategory Then
+                If cCat > 0 Then
+                    result(outRow, 8) = NzStr(src(r, cCat))
+                Else
+                    result(outRow, 8) = ""
+                End If
+            End If
+        End If
+    Next r
+
+    If outRow = 0 Then Exit Function
+    If outRow = rowCount Then
+        LoadManagedInventoryItems = result
+        Exit Function
+    End If
+
+    ReDim trimmed(1 To outRow, 1 To colCount)
+    For r = 1 To outRow
+        For c = 1 To colCount
+            trimmed(r, c) = result(r, c)
+        Next c
+    Next r
+    LoadManagedInventoryItems = trimmed
+End Function
+
+Private Function ResolveManagedInventoryTable() As ListObject
+    Dim wb As Workbook
+    Dim candidate As Workbook
+
+    Set wb = ResolveSearchWorkbook()
+    If Not wb Is Nothing Then
+        Set ResolveManagedInventoryTable = FindInventoryTableInWorkbook(wb)
+        If Not ResolveManagedInventoryTable Is Nothing Then Exit Function
+    End If
+
+    For Each candidate In Application.Workbooks
+        If IsSearchableOperationalWorkbook(candidate) Then
+            Set ResolveManagedInventoryTable = FindInventoryTableInWorkbook(candidate)
+            If Not ResolveManagedInventoryTable Is Nothing Then Exit Function
+        End If
+    Next candidate
+End Function
+
+Private Function ResolveSearchWorkbook() As Workbook
+    On Error Resume Next
+    If Not callbackCell Is Nothing Then
+        Set ResolveSearchWorkbook = callbackCell.Parent.Parent
+        If Not ResolveSearchWorkbook Is Nothing Then
+            If Not ResolveSearchWorkbook.IsAddin Then Exit Function
+        End If
+    End If
+    On Error GoTo 0
+
+    If Not Application.ActiveWorkbook Is Nothing Then
+        If Not Application.ActiveWorkbook.IsAddin Then
+            Set ResolveSearchWorkbook = Application.ActiveWorkbook
+        End If
+    End If
+End Function
+
+Private Function IsSearchableOperationalWorkbook(ByVal wb As Workbook) As Boolean
+    Dim wbName As String
+
+    If wb Is Nothing Then Exit Function
+    If wb.IsAddin Then Exit Function
+
+    wbName = LCase$(Trim$(wb.Name))
+    If wbName = "" Then Exit Function
+    If Left$(wbName, 2) = "~$" Then Exit Function
+
+    IsSearchableOperationalWorkbook = True
+End Function
+
+Private Function FindInventoryTableInWorkbook(ByVal wb As Workbook) As ListObject
+    Dim ws As Worksheet
+
+    Set ws = FindInventoryWorksheetInWorkbook(wb)
+    If ws Is Nothing Then Exit Function
+
+    On Error Resume Next
+    Set FindInventoryTableInWorkbook = ws.ListObjects("invSys")
+    On Error GoTo 0
+End Function
+
+Private Function FindInventoryWorksheetInWorkbook(ByVal wb As Workbook) As Worksheet
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        Select Case LCase$(Trim$(ws.Name))
+            Case "inventorymanagement", "inventory management", "inventory_management", "inventory"
+                Set FindInventoryWorksheetInWorkbook = ws
+                Exit Function
+        End Select
+    Next ws
 End Function
 
 Public Sub CommitSelection()

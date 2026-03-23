@@ -114,7 +114,7 @@ Public Function TestEnsureProductionWorkbookSurface_CreatesExpectedTables() As L
        And HasTable(wb, "ProductionLog") _
        And HasTable(wb, "BatchCodesLog") _
        And HasTable(wb, "invSys") _
-       And WorksheetExists(wb, "IngredientPalette") _
+       And WorksheetExistsAny(wb, Array("IngredientPalette", "IngredientsPalette")) _
        And TableHasColumns(wb, "IP_ChooseRecipe", Array("RECIPE_NAME", "DESCRIPTION", "GUID", "RECIPE_ID")) _
        And TableHasColumns(wb, "IP_ChooseIngredient", Array("INGREDIENT", "UOM", "QUANTITY", "DESCRIPTION", "GUID", "RECIPE_ID", "INGREDIENT_ID", "PROCESS")) _
        And TableHasColumns(wb, "IP_ChooseItem", Array("ITEMS", "UOM", "DESCRIPTION", "ROW", "RECIPE_ID", "INGREDIENT_ID")) _
@@ -199,13 +199,17 @@ Public Function TestEnsureProductionWorkbookSurface_RecreatesDeletedArtifacts() 
 
     DeleteTablePhase6 wb, "IP_ChooseIngredient"
     DeleteTablePhase6 wb, "ProductionLog"
-    DeleteWorksheetPhase6 wb, "IngredientPalette"
+    If WorksheetExists(wb, "IngredientPalette") Then
+        DeleteWorksheetPhase6 wb, "IngredientPalette"
+    Else
+        DeleteWorksheetPhase6 wb, "IngredientsPalette"
+    End If
 
     If Not modRoleWorkbookSurfaces.EnsureProductionWorkbookSurface(wb, report) Then GoTo CleanExit
     If HasTable(wb, "IP_ChooseIngredient") _
        And HasTable(wb, "ProductionLog") _
        And HasTable(wb, "IngredientPalette") _
-       And WorksheetExists(wb, "IngredientPalette") Then
+       And WorksheetExistsAny(wb, Array("IngredientPalette", "IngredientsPalette")) Then
         TestEnsureProductionWorkbookSurface_RecreatesDeletedArtifacts = 1
     End If
 
@@ -243,6 +247,16 @@ Private Function WorksheetExists(ByVal wb As Workbook, ByVal sheetName As String
             Exit Function
         End If
     Next ws
+End Function
+
+Private Function WorksheetExistsAny(ByVal wb As Workbook, ByVal sheetNames As Variant) As Boolean
+    Dim i As Long
+    For i = LBound(sheetNames) To UBound(sheetNames)
+        If WorksheetExists(wb, CStr(sheetNames(i))) Then
+            WorksheetExistsAny = True
+            Exit Function
+        End If
+    Next i
 End Function
 
 Private Function FindTable(ByVal wb As Workbook, ByVal tableName As String) As ListObject
