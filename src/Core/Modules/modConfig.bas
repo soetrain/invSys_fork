@@ -331,6 +331,9 @@ Private Function ResolveConfigWorkbook(ByVal whId As String, ByVal stId As Strin
     End If
 
     Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenFirstRuntimeConfigWorkbook(bootstrapReport)
+    If Not ResolveConfigWorkbook Is Nothing Then Exit Function
+
+    Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(whId, stId, "", bootstrapReport)
 End Function
 
 Private Function IsConfigWorkbookName(ByVal wbName As String) As Boolean
@@ -550,7 +553,7 @@ Private Sub EnsureListObjectWithHeaders(ByVal wb As Workbook, _
     Dim dataRange As Range
     Dim startCell As Range
 
-    Set ws = EnsureWorksheet(wb, sheetName)
+    Set ws = EnsureConfigWorksheet(wb, sheetName, tableName)
     EnsureWorksheetEditableConfig ws
     On Error Resume Next
     Set lo = ws.ListObjects(tableName)
@@ -575,6 +578,29 @@ Private Sub EnsureListObjectWithHeaders(ByVal wb As Workbook, _
     EnsureTableHasRow lo
 End Sub
 
+Private Function EnsureConfigWorksheet(ByVal wb As Workbook, ByVal sheetName As String, ByVal tableName As String) As Worksheet
+    Dim ws As Worksheet
+
+    Set ws = FindWorksheetByNameConfig(wb, sheetName)
+    If ws Is Nothing Then
+        Set EnsureConfigWorksheet = EnsureWorksheet(wb, sheetName)
+        Exit Function
+    End If
+
+    If WorksheetHasListObjectConfig(ws, tableName) Then
+        Set EnsureConfigWorksheet = ws
+        Exit Function
+    End If
+
+    If WorksheetHasUnexpectedContentConfig(ws) Then
+        QuarantineConfigWorksheet ws
+        AddValidationIssue "WARN", "CONFIG_SHEET_QUARANTINED", sheetName & " contained unexpected content and was quarantined."
+        Set EnsureConfigWorksheet = EnsureWorksheet(wb, sheetName)
+    Else
+        Set EnsureConfigWorksheet = ws
+    End If
+End Function
+
 Private Function EnsureWorksheet(ByVal wb As Workbook, ByVal sheetName As String) As Worksheet
     On Error Resume Next
     Set EnsureWorksheet = wb.Worksheets(sheetName)
@@ -585,6 +611,46 @@ Private Function EnsureWorksheet(ByVal wb As Workbook, ByVal sheetName As String
         EnsureWorksheet.Name = sheetName
     End If
 End Function
+
+Private Function FindWorksheetByNameConfig(ByVal wb As Workbook, ByVal sheetName As String) As Worksheet
+    On Error Resume Next
+    Set FindWorksheetByNameConfig = wb.Worksheets(sheetName)
+    On Error GoTo 0
+End Function
+
+Private Function WorksheetHasListObjectConfig(ByVal ws As Worksheet, ByVal tableName As String) As Boolean
+    On Error Resume Next
+    WorksheetHasListObjectConfig = Not (ws.ListObjects(tableName) Is Nothing)
+    On Error GoTo 0
+End Function
+
+Private Function WorksheetHasUnexpectedContentConfig(ByVal ws As Worksheet) As Boolean
+    If ws Is Nothing Then Exit Function
+    If ws.ListObjects.Count > 0 Then
+        WorksheetHasUnexpectedContentConfig = True
+        Exit Function
+    End If
+    WorksheetHasUnexpectedContentConfig = (Application.WorksheetFunction.CountA(ws.Cells) > 0)
+End Function
+
+Private Sub QuarantineConfigWorksheet(ByVal ws As Worksheet)
+    Dim baseName As String
+    Dim suffix As Long
+    Dim candidate As String
+
+    If ws Is Nothing Then Exit Sub
+
+    baseName = Left$(ws.Name & "_Stale", 31)
+    candidate = baseName
+    suffix = 1
+
+    Do While Not FindWorksheetByNameConfig(ws.Parent, candidate) Is Nothing
+        candidate = Left$(baseName, 31 - Len(CStr(suffix)) - 1) & "_" & CStr(suffix)
+        suffix = suffix + 1
+    Loop
+
+    ws.Name = candidate
+End Sub
 
 Private Sub SeedConfigDefaults(ByVal wb As Workbook, ByVal warehouseId As String, ByVal stationId As String)
     Dim loWh As ListObject

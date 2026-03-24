@@ -454,15 +454,34 @@ End Function
 
 Private Sub SeedAuthDefaults(ByVal wb As Workbook, ByVal warehouseId As String, ByVal processorServiceUserId As String)
     Dim loUsers As ListObject
+    Dim loCaps As ListObject
     Dim serviceUser As String
+    Dim currentUser As String
+    Dim resolvedWh As String
 
     Set loUsers = FindListObjectByName(wb, "tblUsers")
-    If loUsers Is Nothing Then Exit Sub
+    Set loCaps = FindListObjectByName(wb, "tblCapabilities")
+    If loUsers Is Nothing Or loCaps Is Nothing Then Exit Sub
 
     serviceUser = SafeTrim(processorServiceUserId)
     If serviceUser = "" Then serviceUser = "svc_processor"
+    resolvedWh = SafeTrim(warehouseId)
+    If resolvedWh = "" Then resolvedWh = modConfig.GetString("WarehouseId", "")
+    currentUser = ResolveCurrentUserIdAuth()
 
     EnsureUserRow loUsers, serviceUser, "Processor Service"
+    If currentUser <> "" Then EnsureUserRow loUsers, currentUser, currentUser
+
+    If AuthTableHasCapabilityRows(loCaps) Then Exit Sub
+
+    If resolvedWh <> "" And currentUser <> "" Then
+        EnsureCapabilityRow loCaps, currentUser, "RECEIVE_POST", resolvedWh, "*", "ACTIVE"
+        EnsureCapabilityRow loCaps, currentUser, "SHIP_POST", resolvedWh, "*", "ACTIVE"
+        EnsureCapabilityRow loCaps, currentUser, "PROD_POST", resolvedWh, "*", "ACTIVE"
+    End If
+    If resolvedWh <> "" Then
+        EnsureCapabilityRow loCaps, serviceUser, "INBOX_PROCESS", resolvedWh, "*", "ACTIVE"
+    End If
 End Sub
 
 Private Sub EnsureUserRow(ByVal lo As ListObject, ByVal userId As String, ByVal displayName As String)
@@ -497,6 +516,83 @@ Private Function FindAuthUserRow(ByVal lo As ListObject, ByVal userId As String)
             Exit Function
         End If
     Next i
+End Function
+
+Private Function AuthTableHasCapabilityRows(ByVal lo As ListObject) As Boolean
+    Dim i As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    For i = 1 To lo.ListRows.Count
+        If SafeTrim(lo.DataBodyRange.Cells(i, lo.ListColumns("UserId").Index).Value) <> "" _
+           And SafeTrim(lo.DataBodyRange.Cells(i, lo.ListColumns("Capability").Index).Value) <> "" Then
+            AuthTableHasCapabilityRows = True
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Function ResolveCurrentUserIdAuth() As String
+    ResolveCurrentUserIdAuth = Trim$(Environ$("USERNAME"))
+    If ResolveCurrentUserIdAuth = "" Then ResolveCurrentUserIdAuth = Trim$(Application.UserName)
+End Function
+
+Private Sub EnsureCapabilityRow(ByVal lo As ListObject, _
+                                ByVal userId As String, _
+                                ByVal capability As String, _
+                                ByVal warehouseId As String, _
+                                ByVal stationId As String, _
+                                ByVal statusVal As String)
+    Dim rowIndex As Long
+
+    rowIndex = FindCapabilityRow(lo, userId, capability, warehouseId, stationId)
+    If rowIndex = 0 Then
+        rowIndex = NextWritableAuthRow(lo, "UserId")
+        If rowIndex > lo.ListRows.Count Then lo.ListRows.Add
+        AddValidationIssue "WARN", "AUTH_CAPABILITY_CREATED", userId & "." & capability & " created."
+    End If
+
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("UserId").Index).Value = userId
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("Capability").Index).Value = capability
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("WarehouseId").Index).Value = warehouseId
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("StationId").Index).Value = stationId
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("Status").Index).Value = statusVal
+End Sub
+
+Private Function FindCapabilityRow(ByVal lo As ListObject, _
+                                   ByVal userId As String, _
+                                   ByVal capability As String, _
+                                   ByVal warehouseId As String, _
+                                   ByVal stationId As String) As Long
+    Dim i As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    For i = 1 To lo.ListRows.Count
+        If StrComp(SafeTrim(lo.DataBodyRange.Cells(i, lo.ListColumns("UserId").Index).Value), userId, vbTextCompare) = 0 _
+           And StrComp(UCase$(SafeTrim(lo.DataBodyRange.Cells(i, lo.ListColumns("Capability").Index).Value)), UCase$(capability), vbTextCompare) = 0 _
+           And StrComp(SafeTrim(lo.DataBodyRange.Cells(i, lo.ListColumns("WarehouseId").Index).Value), warehouseId, vbTextCompare) = 0 _
+           And StrComp(SafeTrim(lo.DataBodyRange.Cells(i, lo.ListColumns("StationId").Index).Value), stationId, vbTextCompare) = 0 Then
+            FindCapabilityRow = i
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Function NextWritableAuthRow(ByVal lo As ListObject, ByVal keyColumnName As String) As Long
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then
+        lo.ListRows.Add
+        NextWritableAuthRow = 1
+        Exit Function
+    End If
+
+    NextWritableAuthRow = 1
+    If SafeTrim(lo.DataBodyRange.Cells(1, lo.ListColumns(keyColumnName).Index).Value) <> "" Then
+        NextWritableAuthRow = lo.ListRows.Count + 1
+    End If
 End Function
 
 Private Sub FormatAuthSurface(ByVal wb As Workbook)

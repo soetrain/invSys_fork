@@ -278,10 +278,14 @@ Private Function ResolveInboxWorkbookForEventType(ByVal eventType As String, _
                                                   ByVal warehouseId As String, _
                                                   ByVal stationId As String, _
                                                   ByRef errorMessage As String) As Workbook
+    On Error GoTo FailOpen
+
     Dim wb As Workbook
     Dim expectedName As String
     Dim fullPath As String
     Dim targetDir As String
+    Dim prevEvents As Boolean
+    Dim eventsSuppressed As Boolean
 
     expectedName = InboxWorkbookNameRole(eventType, stationId)
     If expectedName = "" Then
@@ -307,10 +311,22 @@ Private Function ResolveInboxWorkbookForEventType(ByVal eventType As String, _
     If Len(Dir$(fullPath, vbNormal)) > 0 Then
         Set ResolveInboxWorkbookForEventType = Application.Workbooks.Open(fullPath)
     Else
+        prevEvents = Application.EnableEvents
+        Application.EnableEvents = False
+        eventsSuppressed = True
         Set wb = Application.Workbooks.Add(xlWBATWorksheet)
         SaveWorkbookAsXlsbRole wb, fullPath
+        Application.EnableEvents = prevEvents
+        eventsSuppressed = False
         Set ResolveInboxWorkbookForEventType = wb
     End If
+    Exit Function
+
+FailOpen:
+    On Error Resume Next
+    If eventsSuppressed Then Application.EnableEvents = prevEvents
+    On Error GoTo 0
+    errorMessage = "Inbox workbook open/create failed: " & Err.Description
 End Function
 
 Private Function ResolveInboxDirectoryRole(ByVal warehouseId As String, ByVal stationId As String) As String

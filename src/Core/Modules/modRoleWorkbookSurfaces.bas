@@ -164,9 +164,34 @@ Public Function ShouldBootstrapRoleWorkbookSurface(Optional ByVal targetWb As Wo
     If Left$(wbName, 2) = "~$" Then Exit Function
     If wbName = "personal.xlsb" Then Exit Function
     If wbName Like "*.xla" Or wbName Like "*.xlam" Then Exit Function
-    If InStr(1, wbName, ".invsys.", vbTextCompare) > 0 Then Exit Function
+    If IsRuntimeWorkbookNameSurface(wbName) Then Exit Function
 
     ShouldBootstrapRoleWorkbookSurface = True
+End Function
+
+Private Function IsRuntimeWorkbookNameSurface(ByVal wbName As String) As Boolean
+    If wbName Like "*.invsys.*.xlsb" _
+       Or wbName Like "*.invsys.*.xlsx" _
+       Or wbName Like "*.invsys.*.xlsm" Then
+        IsRuntimeWorkbookNameSurface = True
+        Exit Function
+    End If
+
+    If wbName Like "invsys.inbox.*.xlsb" _
+       Or wbName Like "invsys.inbox.*.xlsx" _
+       Or wbName Like "invsys.inbox.*.xlsm" Then
+        IsRuntimeWorkbookNameSurface = True
+        Exit Function
+    End If
+
+    If wbName Like "*.outbox.events.xlsb" _
+       Or wbName Like "*.outbox.events.xlsx" _
+       Or wbName Like "*.outbox.events.xlsm" _
+       Or wbName Like "*.snapshot.inventory.xlsb" _
+       Or wbName Like "*.snapshot.inventory.xlsx" _
+       Or wbName Like "*.snapshot.inventory.xlsm" Then
+        IsRuntimeWorkbookNameSurface = True
+    End If
 End Function
 
 Private Sub EnsureTableSurface(ByVal wb As Workbook, _

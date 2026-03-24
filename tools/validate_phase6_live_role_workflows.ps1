@@ -185,6 +185,17 @@ function Get-ListObjectSafe {
     }
 }
 
+function Get-WorksheetTableNames {
+    param([object]$Worksheet)
+
+    $names = New-Object System.Collections.Generic.List[string]
+    if ($null -eq $Worksheet) { return @() }
+    foreach ($lo in $Worksheet.ListObjects) {
+        try { $names.Add([string]$lo.Name) | Out-Null } catch {}
+    }
+    return ,$names.ToArray()
+}
+
 function Get-ColumnIndexSafe {
     param(
         [object]$ListObject,
@@ -746,6 +757,33 @@ try {
     [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Shipping.xlam"].Name -MacroName "modShippingInit.InitShippingAddin")
     [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "modProductionInit.InitProductionAddin")
 
+    $currentStep = "Validate clean config bootstrap under live add-ins"
+    $bootstrapRoot = Join-Path $env:TEMP ("phase6_cfg_live_" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $bootstrapRoot -Force | Out-Null
+    try {
+        [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modRuntimeWorkbooks.SetCoreDataRootOverride" -Arguments @($bootstrapRoot))
+        $cfgLoadOk = [bool](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modConfig.LoadConfig" -Arguments @("", ""))
+        $cfgValidate = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modConfig.Validate")
+        $wbCfgBootstrap = Resolve-WorkbookSafe -Excel $excel -WorkbookName "WH1.invSys.Config.xlsb"
+        $cfgWhSheet = Get-WorksheetSafe -Workbook $wbCfgBootstrap -WorksheetName "WarehouseConfig"
+        $cfgStSheet = Get-WorksheetSafe -Workbook $wbCfgBootstrap -WorksheetName "StationConfig"
+        $cfgWhTables = @(Get-WorksheetTableNames -Worksheet $cfgWhSheet)
+        $cfgStTables = @(Get-WorksheetTableNames -Worksheet $cfgStSheet)
+        $cfgBootstrapClean = $cfgLoadOk `
+            -and $null -ne $wbCfgBootstrap `
+            -and $wbCfgBootstrap.Worksheets.Count -eq 2 `
+            -and $cfgWhTables.Count -eq 1 -and $cfgWhTables[0] -eq "tblWarehouseConfig" `
+            -and $cfgStTables.Count -eq 1 -and $cfgStTables[0] -eq "tblStationConfig"
+        Add-ResultRow -Rows $resultRows -Check "Core.ConfigBootstrap.CleanSurface" -Passed $cfgBootstrapClean -Detail ("Load=" + $cfgLoadOk + "; Validate=" + $cfgValidate + "; Sheets=" + $(if ($null -eq $wbCfgBootstrap) { 0 } else { $wbCfgBootstrap.Worksheets.Count }) + "; WHTables=" + ($cfgWhTables -join ',') + "; STTables=" + ($cfgStTables -join ','))
+        if ($null -ne $wbCfgBootstrap) {
+            try { $wbCfgBootstrap.Close($false) } catch {}
+        }
+    }
+    finally {
+        try { [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modRuntimeWorkbooks.ClearCoreDataRootOverride") } catch {}
+        try { if (Test-Path $bootstrapRoot) { Remove-Item -Path $bootstrapRoot -Recurse -Force } } catch {}
+    }
+
     $currentStep = "Create operational role workbooks"
     $wbReceiveOps = New-OperationalWorkbook -Excel $excel -NameHint "ReceivingOps"
     $openedWorkbooks.Add($wbReceiveOps) | Out-Null
@@ -826,6 +864,7 @@ try {
     $receiveQueuedOk = ($receiveInboxAfter -eq ($receiveInboxBefore + 1)) -and ($receiveQueuedRow -gt 0) -and ([double](Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName "Qty") -eq 7)
     Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Queue" -Passed $receiveQueuedOk -Detail "InboxRows=$receiveInboxAfter; Row=$receiveQueuedRow"
 
+    $receiveStatusBeforeRun = ([string](Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName "Status")).Trim().ToUpperInvariant()
     $receiveRunBatchReport = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modProcessor.RunBatchReportForAutomation" -Arguments @($warehouseId, 500))
     $receiveRunBatch = 0
     if ($receiveRunBatchReport -match 'Processed=(\d+)') { $receiveRunBatch = [int]$Matches[1] }
@@ -833,8 +872,8 @@ try {
     $loOutbox = Get-ListObjectSafe -Worksheet (Get-WorksheetSafe -Workbook $wbOutboxRuntime -WorksheetName "OutboxEvents") -TableName "tblOutboxEvents"
     $receiveOutboxRow = Find-OutboxRowByEventTypeAndPayload -ListObject $loOutbox -EventType "RECEIVE" -ExpectedText '"SKU":"SKU-REC"'
     $receiveStatus = ([string](Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName "Status")).Trim().ToUpperInvariant()
-    $receiveProcessedOk = ($receiveRunBatch -ge 1)
-    Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Process" -Passed $receiveProcessedOk -Detail "RunBatch=$receiveRunBatch; Status=$receiveStatus; OutboxRow=$receiveOutboxRow; ErrorCode=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'ErrorCode')); ErrorMessage=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'ErrorMessage')); $receiveRunBatchReport"
+    $receiveProcessedOk = ($receiveStatusBeforeRun -eq "PROCESSED") -or ($receiveStatus -eq "PROCESSED") -or ($receiveRunBatch -ge 1)
+    Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Process" -Passed $receiveProcessedOk -Detail "StatusBeforeRun=$receiveStatusBeforeRun; RunBatch=$receiveRunBatch; Status=$receiveStatus; OutboxRow=$receiveOutboxRow; ErrorCode=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'ErrorCode')); ErrorMessage=$((Get-RowValueSafe -ListObject $loInboxReceive -RowIndex $receiveQueuedRow -ColumnName 'ErrorMessage')); $receiveRunBatchReport"
 
     $receiveLogRow = 0
     for ($i = Get-RowCountSafe $loInventoryLog; $i -ge 1; $i--) {
@@ -960,6 +999,15 @@ try {
     Add-ListObjectRow -ListObject $loProductionOutput -Values @{
         "PROCESS" = "Mix"; "OUTPUT" = "Finished Good"; "UOM" = "EA"; "REAL OUTPUT" = 8; "BATCH" = "B-001"; "RECALL CODE" = "RC-001"; "ROW" = 401
     }
+
+    $prodRecallDiag = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "mProduction.GetRecallPrintDiagnostic")
+    $wsRecall = Get-WorksheetSafe -Workbook $wbProd -WorksheetName "RecallCodesPrint"
+    $loRecall = $null
+    if ($null -ne $wsRecall) {
+        $loRecall = Get-ListObjectSafe -Worksheet $wsRecall -TableName "RecallCodesReport"
+    }
+    $prodRecallOk = ($prodRecallDiag -like "OK*") -and ($null -ne $loRecall) -and ((Get-RowCountSafe $loRecall) -eq 1) -and ([string](Get-RowValueSafe -ListObject $loRecall -RowIndex 1 -ColumnName "RECALL CODE") -eq "RC-001")
+    Add-ResultRow -Rows $resultRows -Check "Production.BtnPrintRecallCodes" -Passed $prodRecallOk -Detail "Diag=$prodRecallDiag; RecallRows=$((Get-RowCountSafe $loRecall)); RecallCode=$((Get-RowValueSafe -ListObject $loRecall -RowIndex 1 -ColumnName 'RECALL CODE'))"
 
     $prodQueueDiag = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Production.xlam"].Name -MacroName "mProduction.ValidateQueueProductionCompleteEventFromCurrentWorkbook")
     Add-ResultRow -Rows $resultRows -Check "Production.BtnToTotalInv.QueueDiagnostic" -Passed ([string]::Equals($prodQueueDiag, "OK", [System.StringComparison]::OrdinalIgnoreCase)) -Detail $prodQueueDiag

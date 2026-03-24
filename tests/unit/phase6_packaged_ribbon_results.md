@@ -1,21 +1,21 @@
 # Phase 6 Packaged Ribbon Validation Results
 
-- Date: 2026-03-22 23:11:34
-- Deploy root: C:\Users\Justin\repos\invSys_fork\deploy\current
-- Runtime root override: C:\Users\Justin\AppData\Local\Temp\invsys-phase6-ribbon-01e32d98b0074d51a7022e45f459a9fe
-- Passed: 66
+- Date: 2026-03-23 20:23:15
+- Deploy root: C:\Users\Justin\repos\invSys_fork\deploy\hotfix-recall-print-20260323
+- Runtime root override: C:\Users\Justin\AppData\Local\Temp\invsys-phase6-ribbon-954a5d5ce35a4986939d67d7d7e0d29b
+- Passed: 69
 - Failed: 0
 
 | Check | Result | Detail |
 |---|---|---|
-| invSys.Core.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\current\invSys.Core.xlam |
-| invSys.Inventory.Domain.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\current\invSys.Inventory.Domain.xlam |
-| invSys.Designs.Domain.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\current\invSys.Designs.Domain.xlam |
-| invSys.Receiving.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\current\invSys.Receiving.xlam |
-| invSys.Shipping.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\current\invSys.Shipping.xlam |
-| invSys.Production.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\current\invSys.Production.xlam |
-| invSys.Admin.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\current\invSys.Admin.xlam |
-| Core.RuntimeRootOverride | PASS | C:\Users\Justin\AppData\Local\Temp\invsys-phase6-ribbon-01e32d98b0074d51a7022e45f459a9fe |
+| invSys.Core.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\hotfix-recall-print-20260323\invSys.Core.xlam |
+| invSys.Inventory.Domain.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\hotfix-recall-print-20260323\invSys.Inventory.Domain.xlam |
+| invSys.Designs.Domain.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\hotfix-recall-print-20260323\invSys.Designs.Domain.xlam |
+| invSys.Receiving.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\hotfix-recall-print-20260323\invSys.Receiving.xlam |
+| invSys.Shipping.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\hotfix-recall-print-20260323\invSys.Shipping.xlam |
+| invSys.Production.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\hotfix-recall-print-20260323\invSys.Production.xlam |
+| invSys.Admin.xlam.Open | PASS | Opened from C:\Users\Justin\repos\invSys_fork\deploy\hotfix-recall-print-20260323\invSys.Admin.xlam |
+| Core.RuntimeRootOverride | PASS | C:\Users\Justin\AppData\Local\Temp\invsys-phase6-ribbon-954a5d5ce35a4986939d67d7d7e0d29b |
 | Receiving.RibbonXml | PASS | customUI/customUI.xml present. |
 | Receiving.CallbackModule | PASS | modRibbonGenerated |
 | Receiving.RibbonButton.btnReceivingSetup | PASS | Label=Setup UI; OnAction=RibbonOnActionReceiving |
@@ -64,6 +64,9 @@
 | Production.RibbonButton.btnProductionTotal | PASS | Label=To Total Inv; OnAction=RibbonOnActionProduction |
 | Production.MacroExists.btnProductionTotal | PASS | mProduction.BtnToTotalInv |
 | Production.CallbackMap.btnProductionTotal | PASS | btnProductionTotal -> mProduction.BtnToTotalInv |
+| Production.RibbonButton.btnProductionPrintCodes | PASS | Label=Print Recall Codes; OnAction=RibbonOnActionProduction |
+| Production.MacroExists.btnProductionPrintCodes | PASS | mProduction.BtnPrintRecallCodes |
+| Production.CallbackMap.btnProductionPrintCodes | PASS | btnProductionPrintCodes -> mProduction.BtnPrintRecallCodes |
 | Admin.RibbonXml | PASS | customUI/customUI.xml present. |
 | Admin.CallbackModule | PASS | modRibbonGenerated |
 | Admin.RibbonButton.btnAdminOpen | PASS | Label=Admin Console; OnAction=RibbonOnActionAdmin |

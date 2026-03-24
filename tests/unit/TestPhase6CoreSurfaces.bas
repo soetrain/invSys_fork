@@ -61,6 +61,65 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook() As Long
+    Dim rootPath As String
+    Dim wb As Workbook
+
+    rootPath = BuildRuntimeTestRoot("phase6_cfg_blank")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("", "") Then GoTo CleanExit
+
+    Set wb = FindWorkbookByName("WH1.invSys.Config.xlsb")
+    If Not wb Is Nothing _
+       And StrComp(modConfig.GetWarehouseId(), "WH1", vbTextCompare) = 0 _
+       And StrComp(modConfig.GetStationId(), "S1", vbTextCompare) = 0 _
+       And Len(Dir$(rootPath & "\WH1.invSys.Config.xlsb")) > 0 Then
+        TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wb
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestLoadConfig_QuarantinesContaminatedConfigSheet() As Long
+    Dim rootPath As String
+    Dim wb As Workbook
+    Dim loSt As ListObject
+
+    rootPath = BuildRuntimeTestRoot("phase6_cfg_quarantine")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    Set wb = CreateContaminatedConfigWorkbook(rootPath, "WH64")
+    If wb Is Nothing Then GoTo CleanExit
+
+    If Not modConfig.LoadConfig("WH64", "S4") Then GoTo CleanExit
+    Set wb = FindWorkbookByName("WH64.invSys.Config.xlsb")
+    If wb Is Nothing Then GoTo CleanExit
+
+    Set loSt = wb.Worksheets("StationConfig").ListObjects("tblStationConfig")
+    If Not loSt Is Nothing _
+       And FindWorksheetByPrefix(wb, "StationConfig_Stale") > 0 _
+       And StrComp(CStr(GetTableValue(loSt, 1, "StationId")), "S4", vbTextCompare) = 0 Then
+        TestLoadConfig_QuarantinesContaminatedConfigSheet = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wb
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestLoadAuth_AutoBootstrapsCanonicalWorkbook() As Long
     Dim rootPath As String
     Dim wbCfg As Workbook
@@ -89,6 +148,36 @@ CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
     CloseWorkbookIfOpen wbAuth
     CloseWorkbookIfOpen wbCfg
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_auth_caps")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH65", "S5") Then GoTo CleanExit
+    If Not modAuth.LoadAuth("WH65") Then GoTo CleanExit
+
+    currentUser = Trim$(Environ$("USERNAME"))
+    If currentUser = "" Then currentUser = Trim$(Application.UserName)
+    If currentUser = "" Then GoTo CleanExit
+
+    If modAuth.CanPerform("RECEIVE_POST", currentUser, "WH65", "S5", "TEST", "AUTH-RECV") _
+       And modAuth.CanPerform("SHIP_POST", currentUser, "WH65", "S5", "TEST", "AUTH-SHIP") _
+       And modAuth.CanPerform("PROD_POST", currentUser, "WH65", "S5", "TEST", "AUTH-PROD") _
+       And modAuth.CanPerform("INBOX_PROCESS", "svc_processor", "WH65", "S5", "TEST", "AUTH-PROC") Then
+        TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
     DeleteRuntimeRoot rootPath
     Exit Function
 CleanFail:
@@ -124,6 +213,18 @@ Private Function FindWorkbookByName(ByVal workbookName As String) As Workbook
     Next wb
 End Function
 
+Private Function FindWorksheetByPrefix(ByVal wb As Workbook, ByVal prefixText As String) As Long
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        If StrComp(Left$(ws.Name, Len(prefixText)), prefixText, vbTextCompare) = 0 Then
+            FindWorksheetByPrefix = ws.Index
+            Exit Function
+        End If
+    Next ws
+End Function
+
 Private Sub CloseWorkbookIfOpen(ByVal wb As Workbook)
     If wb Is Nothing Then Exit Sub
     On Error Resume Next
@@ -148,3 +249,26 @@ Private Sub DeleteRuntimeRoot(ByVal rootPath As String)
     If Len(Dir$(rootPath, vbDirectory)) > 0 Then RmDir rootPath
     On Error GoTo 0
 End Sub
+
+Private Function CreateContaminatedConfigWorkbook(ByVal rootPath As String, ByVal warehouseId As String) As Workbook
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    Dim targetPath As String
+
+    targetPath = rootPath & "\" & warehouseId & ".invSys.Config.xlsb"
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+    wb.Worksheets(1).Name = "WarehouseConfig"
+    Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+    ws.Name = "StationConfig"
+    ws.Range("A1").Value = "PROCESS"
+    ws.Range("B1").Value = "OUTPUT"
+    ws.Range("C1").Value = "ROW"
+    ws.Range("A2").Value = "Mix"
+    ws.Range("B2").Value = "Widget"
+    ws.Range("C2").Value = 1
+    Set lo = ws.ListObjects.Add(xlSrcRange, ws.Range("A1:C2"), , xlYes)
+    lo.Name = "ProductionOutput"
+    wb.SaveAs Filename:=targetPath, FileFormat:=50
+    Set CreateContaminatedConfigWorkbook = wb
+End Function

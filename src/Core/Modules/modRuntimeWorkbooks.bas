@@ -71,6 +71,8 @@ Private Function OpenOrCreateRuntimeWorkbook(ByVal targetPath As String, _
 
     Dim wb As Workbook
     Dim wasCreated As Boolean
+    Dim prevEvents As Boolean
+    Dim eventsSuppressed As Boolean
 
     If targetPath = "" Then Exit Function
 
@@ -80,10 +82,15 @@ Private Function OpenOrCreateRuntimeWorkbook(ByVal targetPath As String, _
         If Len(Dir$(targetPath)) > 0 Then
             Set wb = Application.Workbooks.Open(targetPath)
         Else
-            Set wb = Application.Workbooks.Add
+            prevEvents = Application.EnableEvents
+            Application.EnableEvents = False
+            eventsSuppressed = True
+            Set wb = Application.Workbooks.Add(xlWBATWorksheet)
             PrepareWorkbookSurface wb, workbookKind
             wb.SaveAs Filename:=targetPath, FileFormat:=50
             wasCreated = True
+            Application.EnableEvents = prevEvents
+            eventsSuppressed = False
         End If
     End If
 
@@ -106,6 +113,9 @@ FailSoft:
     Exit Function
 
 FailOpen:
+    On Error Resume Next
+    If eventsSuppressed Then Application.EnableEvents = prevEvents
+    On Error GoTo 0
     report = workbookKind & " workbook open/create failed: " & Err.Description
 End Function
 

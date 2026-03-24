@@ -327,12 +327,16 @@ End Sub
 
 Public Sub ConfirmWrites()
     On Error GoTo ErrHandler
+    Dim wb As Workbook
+    Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+
     If Not modRoleUiAccess.RequireCurrentUserCapability("RECEIVE_POST") Then Exit Sub
     mRedoReady = False
-    Dim wsRT As Worksheet: Set wsRT = SheetExists("ReceivedTally")
-    Dim wsAgg As Worksheet: Set wsAgg = SheetExists("ReceivedTally")
-    Dim wsInv As Worksheet: Set wsInv = SheetExists("InventoryManagement")
-    Dim wsLog As Worksheet: Set wsLog = SheetExists("ReceivedLog")
+    Dim wsRT As Worksheet: Set wsRT = WorkbookSheetExistsReceiving(wb, "ReceivedTally")
+    Dim wsAgg As Worksheet: Set wsAgg = WorkbookSheetExistsReceiving(wb, "ReceivedTally")
+    Dim wsInv As Worksheet: Set wsInv = WorkbookSheetExistsReceiving(wb, "InventoryManagement")
+    Dim wsLog As Worksheet: Set wsLog = WorkbookSheetExistsReceiving(wb, "ReceivedLog")
     If wsRT Is Nothing Or wsAgg Is Nothing Or wsInv Is Nothing Or wsLog Is Nothing Then Exit Sub
 
     Dim agg As ListObject: Set agg = wsAgg.ListObjects("AggregateReceived")
@@ -445,6 +449,7 @@ NextRt:
     ' Clear staging on success
     ClearTable wsRT.ListObjects("ReceivedTally")
     ClearTable agg
+    ProcessQueuedReceiveEventsRuntime
     mRedoReady = True
     Exit Sub
 
@@ -462,12 +467,19 @@ ErrHandler:
 End Sub
 
 Public Function QueueReceiveEventsFromCurrentWorkbook(ByRef errorMessage As String) As Boolean
+    Dim wb As Workbook
     Dim wsAgg As Worksheet
     Dim agg As ListObject
 
+    Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
+    If wb Is Nothing Then
+        errorMessage = "Receiving workbook not resolved."
+        Exit Function
+    End If
+
     If Not modRoleUiAccess.CanCurrentUserPerformCapability("RECEIVE_POST", "", "", "", errorMessage) Then Exit Function
 
-    Set wsAgg = SheetExists("ReceivedTally")
+    Set wsAgg = WorkbookSheetExistsReceiving(wb, "ReceivedTally")
     If wsAgg Is Nothing Then
         errorMessage = "ReceivedTally sheet not found."
         Exit Function
@@ -493,6 +505,19 @@ Public Function ValidateQueueReceiveEventsFromCurrentWorkbook() As String
         ValidateQueueReceiveEventsFromCurrentWorkbook = errorMessage
     End If
 End Function
+
+Private Sub ProcessQueuedReceiveEventsRuntime()
+    Dim warehouseId As String
+    Dim report As String
+
+    warehouseId = modConfig.GetWarehouseId()
+    If warehouseId = "" Then Exit Sub
+
+    Call modProcessor.RunBatch(warehouseId, 0, report)
+    If Left$(report, 15) = "RunBatch failed" Then
+        MsgBox "Local receive writes succeeded, but runtime processing failed:" & vbCrLf & report, vbExclamation
+    End If
+End Sub
 
 Private Sub RefreshReceivingUiAccess(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub

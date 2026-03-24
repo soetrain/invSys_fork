@@ -185,7 +185,8 @@ $ribbonSpecs = @(
             @{ Id = "btnProductionLoad"; Label = "Load Recipe"; Macro = "mProduction.BtnLoadRecipe"; Execute = $false },
             @{ Id = "btnProductionUsed"; Label = "To Used"; Macro = "mProduction.BtnToUsed"; Execute = $false },
             @{ Id = "btnProductionMade"; Label = "To Made"; Macro = "mProduction.BtnToMade"; Execute = $false },
-            @{ Id = "btnProductionTotal"; Label = "To Total Inv"; Macro = "mProduction.BtnToTotalInv"; Execute = $false }
+            @{ Id = "btnProductionTotal"; Label = "To Total Inv"; Macro = "mProduction.BtnToTotalInv"; Execute = $false },
+            @{ Id = "btnProductionPrintCodes"; Label = "Print Recall Codes"; Macro = "mProduction.BtnPrintRecallCodes"; Execute = $false }
         )
     }
     @{

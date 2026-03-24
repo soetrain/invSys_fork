@@ -60,6 +60,7 @@ Public Function AppendEventToOutbox(ByVal evt As Object, _
     SetTableRowValueSync loOutbox, rowIndex, "AppliedByUserId", GetEventStringSync(evt, "UserId")
     SetTableRowValueSync loOutbox, rowIndex, "RunId", ResolveStringSync(appliedMeta, "RunId", runId)
     SetTableRowValueSync loOutbox, rowIndex, "DeltaJson", BuildDeltaJsonForOutbox(evt)
+    SaveWorkbookSync wbOutbox
 
     report = "OK"
     AppendEventToOutbox = True
@@ -359,8 +360,12 @@ Private Function ResolveSnapshotPath(ByVal warehouseId As String, ByVal outputPa
 End Function
 
 Private Function ResolveWorkbookByPathSync(ByVal targetPath As String, ByVal createIfMissing As Boolean) As Workbook
+    On Error GoTo FailOpen
+
     Dim wb As Workbook
     Dim fileExists As Boolean
+    Dim prevEvents As Boolean
+    Dim eventsSuppressed As Boolean
 
     If Trim$(targetPath) = "" Then Exit Function
 
@@ -380,9 +385,20 @@ Private Function ResolveWorkbookByPathSync(ByVal targetPath As String, ByVal cre
     If Not createIfMissing Then Exit Function
 
     EnsureFolderForFileSync targetPath
-    Set wb = Application.Workbooks.Add
+    prevEvents = Application.EnableEvents
+    Application.EnableEvents = False
+    eventsSuppressed = True
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
     wb.SaveAs Filename:=targetPath, FileFormat:=50
+    Application.EnableEvents = prevEvents
+    eventsSuppressed = False
     Set ResolveWorkbookByPathSync = wb
+    Exit Function
+
+FailOpen:
+    On Error Resume Next
+    If eventsSuppressed Then Application.EnableEvents = prevEvents
+    On Error GoTo 0
 End Function
 
 Private Function EnsureWorksheetSync(ByVal wb As Workbook, ByVal sheetName As String) As Worksheet
@@ -461,6 +477,13 @@ Private Function FindRowByValueSync(ByVal lo As ListObject, ByVal columnName As 
         End If
     Next i
 End Function
+
+Private Sub SaveWorkbookSync(ByVal wb As Workbook)
+    If wb Is Nothing Then Exit Sub
+    If wb.ReadOnly Then Exit Sub
+    If wb.Path = "" Then Exit Sub
+    wb.Save
+End Sub
 
 Private Function GetCellByColumnSync(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As Variant
     Dim idx As Long
