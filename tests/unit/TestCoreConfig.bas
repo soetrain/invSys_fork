@@ -192,13 +192,17 @@ Private Function BuildConfigWorkbook(ByVal whId As String, ByVal stId As String,
     Set loSt = wsSt.ListObjects.Add(xlSrcRange, wsSt.Range("A1:D2"), , xlYes)
     loSt.Name = "tblStationConfig"
 
-    p = Environ$("TEMP") & "\WH1.invSys.Config.test.xlsx"
-    On Error Resume Next
-    Kill p
-    On Error GoTo 0
+    p = BuildUniqueConfigTestPath()
     wb.SaveAs Filename:=p, FileFormat:=51
 
     Set BuildConfigWorkbook = wb
+End Function
+
+Private Function BuildUniqueConfigTestPath() As String
+    Dim stamp As String
+
+    stamp = Format$(Now, "yyyymmdd_hhnnss") & "_" & Right$("000000" & CStr(CLng((Timer - Int(Timer)) * 1000000)), 6)
+    BuildUniqueConfigTestPath = Environ$("TEMP") & "\WH1.invSys.Config.test." & stamp & ".xlsx"
 End Function
 
 Private Sub CloseNoSave(ByVal wb As Workbook)

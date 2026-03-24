@@ -1,13 +1,13 @@
 Attribute VB_Name = "modInventoryDomainBridge"
 Option Explicit
 
-Public Const APPLY_STATUS_APPLIED As String = "APPLIED"
-Public Const APPLY_STATUS_SKIP_DUP As String = "SKIP_DUP"
+Public Const CORE_APPLY_STATUS_APPLIED As String = "APPLIED"
+Public Const CORE_APPLY_STATUS_SKIP_DUP As String = "SKIP_DUP"
 
-Public Const EVENT_TYPE_RECEIVE As String = "RECEIVE"
-Public Const EVENT_TYPE_SHIP As String = "SHIP"
-Public Const EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
-Public Const EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
+Public Const CORE_EVENT_TYPE_RECEIVE As String = "RECEIVE"
+Public Const CORE_EVENT_TYPE_SHIP As String = "SHIP"
+Public Const CORE_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
+Public Const CORE_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
 
 Private Const INVENTORY_DOMAIN_ADDIN_NAME As String = "invSys.Inventory.Domain.xlam"
 
@@ -273,7 +273,7 @@ Private Sub EnsureTableWithHeadersLocal(ByVal wb As Workbook, ByVal sheetName As
         EnsureListColumnLocal lo, CStr(headers(i)), issues
     Next i
 
-    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+    RemoveBlankSeedRowLocal lo
 End Sub
 
 Private Function EnsureWorksheetLocal(ByVal wb As Workbook, ByVal sheetName As String) As Worksheet
@@ -327,6 +327,30 @@ Private Function GetColumnIndexLocal(ByVal lo As ListObject, ByVal columnName As
             Exit Function
         End If
     Next i
+End Function
+
+Private Sub RemoveBlankSeedRowLocal(ByVal lo As ListObject)
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    If lo.ListRows.Count <> 1 Then Exit Sub
+    If Not TableRowIsBlankLocal(lo, 1) Then Exit Sub
+    lo.ListRows(1).Delete
+End Sub
+
+Private Function TableRowIsBlankLocal(ByVal lo As ListObject, ByVal rowIndex As Long) As Boolean
+    Dim c As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex <= 0 Or rowIndex > lo.ListRows.Count Then Exit Function
+
+    TableRowIsBlankLocal = True
+    For c = 1 To lo.ListColumns.Count
+        If SafeTrim(lo.DataBodyRange.Cells(rowIndex, c).Value) <> "" Then
+            TableRowIsBlankLocal = False
+            Exit Function
+        End If
+    Next c
 End Function
 
 Private Function JoinIssuesLocal(ByVal issues As Collection) As String
@@ -403,7 +427,7 @@ Private Function BuildCanonicalInventoryPathLocal(ByVal warehouseId As String) A
     If resolvedWh = "" Then resolvedWh = SafeTrim(modConfig.GetString("WarehouseId", "WH1"))
     If resolvedWh = "" Then resolvedWh = "WH1"
 
-    rootPath = SafeTrim(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    rootPath = SafeTrim(GetCoreDataRootOverride())
     If rootPath = "" Then rootPath = SafeTrim(modConfig.GetString("PathDataRoot", ""))
     If rootPath = "" Then rootPath = DefaultInventoryRootLocal(resolvedWh)
 

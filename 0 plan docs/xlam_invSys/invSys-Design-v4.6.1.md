@@ -1,6 +1,6 @@
-# invSys Architecture v4.6 - Release 1 Plan
+# invSys Architecture v4.6.1 - Release 1 Plan
 **Project:** invSys Multi-Warehouse Inventory System  
-**Version:** 4.6 (VBA Release 1)  
+**Version:** 4.6.1 (VBA Release 1)  
 **Date:** March 24, 2026  
 **Author:** Justin  
 **Purpose:** Complete architectural specification for Release 1 (VBA/Excel only).
@@ -32,7 +32,7 @@
 - Phase 6 proving must explicitly cover four stages in order: one-account local use, multi-PC LAN use, LAN + WAN use, then central aggregation.
 
 ---
-## Progress Tracking (v4.6)
+## Progress Tracking (v4.6.1)
 **Legend:** `[ ]` not started, `[x]` complete
 
 ### Release 1 Milestones
@@ -68,6 +68,8 @@ This document provides a single, coherent, Codex AI-ready specification for the 
 - Role-based access control with capability enforcement.
 - Event-driven architecture with processor-based batch application.
 - Self-healing table schemas with automatic migration.
+
+**Advisory-only global visibility:** The central aggregator's global snapshot is advisory only. Each warehouse's `WHx.invSys.Data.Inventory.xlsb` remains the only authoritative inventory store for that warehouse.
 
 ### Technology Stack (Release 1)
 **Core System:**
@@ -109,6 +111,8 @@ folder before reading to avoid corruption from incomplete syncs.
 ### D2 -- Multi-Warehouse, LAN-First, SharePoint as Convenience Layer
 **Decision:** Each warehouse has **local authoritative Excel workbooks** (inventory and optionally designs) and can operate when internet is down. Warehouses **publish outbox workbooks** (and periodic snapshot workbooks) to a **SharePoint team document library** when online. HQ aggregates events and produces a **global snapshot workbook** for cross-warehouse visibility.
 
+**Visibility rule:** Global totals are advisory only. Cross-warehouse views must never be treated as more authoritative than the local warehouse store that produced them.
+
 **Conflict Resolution:**
 ```text
 RULE: Global snapshot aggregation is last-write-wins by AppliedAtUTC. Conflicts
@@ -125,6 +129,15 @@ reconciliation is performed.
 - **Cross-warehouse:** Eventually consistent (via periodic sync)
 - **Global snapshot:** Point-in-time consistent (rebuilt from warehouse snapshots)
 
+**Operational guarantees by deployment scope:**
+
+| Scope | Consistency guarantee | Processor ownership | Snapshot freshness expectation |
+|---|---|---|---|
+| One-account local | Strong, single writer in one Excel/account context | Same account/session | Immediate or operator-triggered |
+| LAN warehouse | Strong within warehouse, processor serialized by lock | Designated warehouse PC/session | Minutes |
+| LAN + WAN | Strong local, eventually consistent cross-warehouse | One processor lane per warehouse | Hours / shift depending on connectivity |
+| Central aggregation | Advisory only; global totals are not authoritative | HQ aggregator / scheduled Excel session | Per publish/sync cycle |
+
 ---
 ### D3 -- Clear Ownership Boundaries
 **Decision:**
@@ -132,6 +145,20 @@ reconciliation is performed.
 - **Domain XLAMs:** All writes to authoritative data stores + domain invariants
 - **Role XLAMs:** UI + event creation only
 - **Admin XLAM:** Orchestration console only (invokes Core + domain routines; does not write domain tables directly)
+
+**Boundary clarification:**
+```text
+RULE: `invSys.Inventory.Domain.xlam` is a domain engine. It contains code,
+invariants, schema definitions, validators, and projection builders. It is NOT
+an authoritative data store. All live inventory state is persisted in
+`WHx.invSys.Data.Inventory.xlsb`, never inside the XLAM itself.
+
+RULE: Operator workbooks own their local workflow/staging tables
+(`ReceivedTally`, shipping staging, production staging, local workflow logs).
+These are ephemeral work surfaces. They are not synced or aggregated as domain
+truth. The domain only sees what the operator explicitly submits as an inbox
+event.
+```
 
 **Clarification on Domain Reads:**
 ```text
@@ -226,6 +253,49 @@ RULE: Each role XLAM contains:
 - Gate decisions log: request/event id, user, capability, warehouse, station, result, timestamp, source.
 - Capability cache uses TTL; if cache expires and cannot refresh, write operations fail closed.
 - If TTL expires mid-processor-run, finish current run with current cache and refresh before next run.
+
+---
+### D9 -- Operator Read Models and Refresh Contract (R1 Locked)
+**Decision:** Operator-facing inventory tables are read models refreshed from published or local warehouse snapshots. They are not authoritative write targets.
+
+**Rules:**
+```text
+RULE: Operator read model tables (for example, the visible `invSys` table in an
+operator workbook) are refreshed by snapshot copy/import only.
+
+RULE: Refresh must not modify local workflow/staging tables such as
+`ReceivedTally`, shipping staging, production staging, or workbook-local logs.
+
+RULE: R1 default refresh trigger is manual. Optional on-open refresh is allowed
+only when explicitly enabled (for example via `FF_AutoSnapshot = true`).
+
+RULE: Missing or stale snapshots do NOT block inbox event posting. The operator
+may continue working against cached/local state, but the workbook must expose
+that staleness visibly.
+```
+
+**Required metadata exposed on operator read models:**
+- `LastRefreshUTC`
+- `SnapshotId`
+- `SourceType` (`LOCAL`, `SHAREPOINT`, `CACHED`)
+- `IsStale`
+
+---
+### D10 -- Inventory Command/Read Split (R1 Locked)
+**Decision:** Inventory uses one write path and many rebuildable read models.
+
+**Rules:**
+```text
+RULE: All inventory writes flow through inbox events + processor application to
+`tblInventoryLog` / `tblAppliedEvents` in `WHx.invSys.Data.Inventory.xlsb`.
+
+RULE: Projection tables such as `tblSkuBalance` and `tblLocationBalance` are
+derived views only. They may be dropped and rebuilt at any time from the event
+log and applied-event ledger without data loss.
+
+RULE: If a projection conflicts with the event log, the event log wins.
+Operator-facing inventory views must be regenerated from authoritative log state.
+```
 
 ---
 ## System Topology (Release 1: VBA-Only)
@@ -630,7 +700,7 @@ sequenceDiagram
 ### Phase 6: User Systems and XLAM Hardening
 **Goal:** Full workbook-backed user systems and production-grade XLAM packaging
 
-**Status note:** Phase 6 is in progress. The dependency-root bootstrap for canonical Core/Auth/Config runtime workbooks is implemented and validated, and packaged workflow automation is partially green, but the system is not yet operationally proven. Current evidence is still weighted toward controlled Excel automation. Single-account saved-workbook use is the minimum operator baseline; LAN, LAN + WAN, and central aggregation proving remain separate hardening gates.
+**Status note:** Phase 6 is in progress. The dependency-root bootstrap for canonical Core/Auth/Config runtime workbooks is implemented and validated, and packaged workflow automation is partially green, but the system is not yet operationally proven. Current evidence is still weighted toward controlled Excel automation. Single-account saved-workbook use is the minimum operator baseline; LAN, LAN + WAN, and central aggregation proving remain separate hardening gates. Phase 6 is also where D9 and D10 become operationally binding: operator `invSys` tables must prove themselves as snapshot-fed read models, and inventory projections must prove themselves as rebuildable non-authoritative views.
 
 **Operational proving ladder (authoritative):**
 1. **One-account use:** One Windows/Excel account with all invSys XLAMs loaded into that account session; operator works from saved `.xlsm` / `.xlsb` files.
@@ -645,10 +715,14 @@ sequenceDiagram
 - [x] Validate XLAM startup/load order, references, and deployment-path behavior in clean Excel sessions
 - [x] Complete end-to-end ribbon-button testing against real role workbooks and tables
 - [ ] Prove role/Admin workflows from saved operator workbooks (`.xlsm` / `.xlsb`) under one-account use
+- [ ] Prove operator `invSys` tables refresh from snapshot copy/import without mutating local workflow/staging tables
+- [ ] Expose and validate read-model freshness metadata (`LastRefreshUTC`, `SnapshotId`, `SourceType`, `IsStale`) in operator workbooks
+- [ ] Prove inventory projection tables (`tblSkuBalance`, `tblLocationBalance`) are rebuildable from log state and never treated as authoritative writes
 - [ ] Prove Excel restart / reopen / resume behavior from saved operator workbooks with account-scoped XLAM loading
 - [ ] Prove one-warehouse multi-PC LAN behavior with shared runtime artifacts and processor locking
 - [ ] Prove multi-warehouse LAN + WAN publication / recovery behavior with delayed sync and stale artifact handling
 - [ ] Prove central aggregator operation against real published warehouse snapshots / outboxes under the above scopes
+- [ ] Prove operator-facing global totals remain visibly advisory and are not confused with warehouse-authoritative balances
 
 **Tests:**
 - [x] Test: Config/Auth auto-bootstrap creates and opens canonical `WHx.invSys.Config.xlsb` / `WHx.invSys.Auth.xlsb` runtime workbooks with seeded tables/default rows
@@ -656,10 +730,15 @@ sequenceDiagram
 - [x] Test: Ribbon controls execute against live workbook/table systems without missing-object/runtime failures
 - [ ] Test: Full packaged XLAM set loads and remains stable across Excel restart/reopen scenarios
 - [ ] Test: Receiving/Shipping/Production/Admin workflows complete from saved `.xlsm` / `.xlsb` operator workbooks under one-account use
+- [ ] Test: Manual snapshot refresh updates the operator `invSys` read model without clearing `ReceivedTally`, shipping staging, production staging, or workbook-local logs
+- [ ] Test: Missing/stale snapshot marks the operator workbook stale but does not block `Confirm Writes` / inbox posting
+- [ ] Test: Operator `invSys` read model exposes `LastRefreshUTC`, `SnapshotId`, `SourceType`, and `IsStale`
+- [ ] Test: Deleting `tblSkuBalance` / `tblLocationBalance` and rerunning processor rebuilds them from `tblInventoryLog` + `tblAppliedEvents` without data loss
 - [ ] Test: Saved operator workbook reopened on the same account resumes without runtime workbook pollution, stale-XLAM confusion, or workbook identity drift
 - [ ] Test: Two or more LAN stations can append/process without lock corruption, inbox misrouting, or runtime workbook cross-contamination
 - [ ] Test: LAN + WAN publication path tolerates delayed sync, stale local copies, and SharePoint / network interruptions without data loss
 - [ ] Test: Central aggregator rebuilds the global snapshot correctly from published warehouse artifacts after staggered warehouse updates
+- [ ] Test: Global snapshot remains clearly advisory in UI/output and never overrides warehouse-local authoritative balances
 
 **Execution evidence:**
 - [x] Phase 6 isolated Excel validation passed on March 22, 2026: `7 passed, 0 failed` in `tests/unit/phase6_test_results.md`
@@ -678,11 +757,15 @@ sequenceDiagram
 **Deliverables:**
 - [ ] User systems operational across role/Admin XLAMs, for one account use
 - [ ] Full XLAM operational hardening complete, for one account use
+- [ ] Snapshot-fed operator read models operational, with freshness metadata and non-destructive refresh, for one account use
+- [ ] Rebuildable inventory projections operational and proven non-authoritative, for one account use
 - [ ] User systems operational across role/Admin XLAMs, for LAN use
 - [ ] Full XLAM operational hardening complete, for LAN use
+- [ ] Snapshot-fed operator read models operational, with freshness metadata and non-destructive refresh, for LAN use
 - [ ] LAN Central aggregator fully working
 - [ ] User systems operational across role/Admin XLAMs, for LAN + WAN use
 - [ ] Full XLAM operational hardening complete, for LAN + WAN use
+- [ ] Snapshot-fed operator read models operational, with freshness metadata and non-destructive refresh, for LAN + WAN use
 - [ ] LAN + WAN Central aggregator fully working
 
 ---
@@ -895,6 +978,56 @@ AppliedAtUTC   (datetime)
 RunId          (text)
 SourceInbox    (text)
 Status         (text)   APPLIED | SKIP_DUP
+```
+
+**Projection tables (derived, rebuildable):**
+```text
+tblSkuBalance
+  SKU             (text, PK)
+  QtyOnHand       (number)
+  LastAppliedUTC  (datetime)
+
+tblLocationBalance
+  SKU             (text)
+  Location        (text)
+  QtyOnHand       (number)
+  LastAppliedUTC  (datetime)
+```
+
+**Projection contract:**
+```text
+Projection tables are derived read views rebuilt by the processor from
+`tblInventoryLog` and `tblAppliedEvents`. They are not authoritative stores.
+Any projection value may be recomputed by replaying the event log. Do not treat
+projection values as ground truth if they conflict with the log.
+```
+
+---
+### Operator Workbook Tables (Release 1)
+**Workbook:** Saved operator workbook (for example `FRODECO.inventory_management.xlsb`)
+
+**Local workflow surfaces:**
+```text
+Examples include:
+  ReceivedTally
+  AggregateReceived
+  ShipmentsTally
+  BoxBuilder
+  ProductionOutput
+  workbook-local role logs / helper tables
+```
+
+**Contract:**
+```text
+These tables are workbook-local workflow/staging surfaces for in-progress user
+work. They are not authoritative domain state, are not aggregated, and are not
+replicated as central truth. Only explicit inbox events submitted from these
+surfaces enter the inventory domain.
+
+The visible `invSys` table in an operator workbook is a bottom-line read model.
+It should be hydrated from the latest available snapshot, clearly labeled with
+freshness metadata, and treated as read-only operational state rather than the
+authoritative inventory ledger.
 ```
 
 ---

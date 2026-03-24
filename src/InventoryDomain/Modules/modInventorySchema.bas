@@ -66,7 +66,7 @@ Private Sub EnsureTableWithHeaders(ByVal wb As Workbook, _
         EnsureListColumn lo, CStr(headers(i)), issues
     Next i
 
-    EnsureTableHasRow lo
+    RemoveBlankSeedRow lo
     StyleProtectedHeaders lo, headers
 End Sub
 
@@ -133,10 +133,29 @@ Private Function GetColumnIndex(ByVal lo As ListObject, ByVal columnName As Stri
     Next i
 End Function
 
-Private Sub EnsureTableHasRow(ByVal lo As ListObject)
+Private Sub RemoveBlankSeedRow(ByVal lo As ListObject)
     If lo Is Nothing Then Exit Sub
-    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    If lo.ListRows.Count <> 1 Then Exit Sub
+    If Not TableRowIsBlank(lo, 1) Then Exit Sub
+    lo.ListRows(1).Delete
 End Sub
+
+Private Function TableRowIsBlank(ByVal lo As ListObject, ByVal rowIndex As Long) As Boolean
+    Dim c As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex <= 0 Or rowIndex > lo.ListRows.Count Then Exit Function
+
+    TableRowIsBlank = True
+    For c = 1 To lo.ListColumns.Count
+        If Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, c).Value)) <> "" Then
+            TableRowIsBlank = False
+            Exit Function
+        End If
+    Next c
+End Function
 
 Private Sub StyleProtectedHeaders(ByVal lo As ListObject, ByVal protectedHeaders As Variant)
     Dim key As Variant

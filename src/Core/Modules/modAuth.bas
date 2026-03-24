@@ -380,11 +380,11 @@ Private Function ResolveAuthWorkbook(ByVal whId As String) As Workbook
     If bootstrapWh = "" Then bootstrapWh = modConfig.GetString("WarehouseId", "")
 
     If bootstrapWh <> "" Then
-        Set ResolveAuthWorkbook = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime(bootstrapWh, modConfig.GetString("ProcessorServiceUserId", "svc_processor"), "", bootstrapReport)
+        Set ResolveAuthWorkbook = OpenOrCreateAuthWorkbookRuntime(bootstrapWh, modConfig.GetString("ProcessorServiceUserId", "svc_processor"), "", bootstrapReport)
         If Not ResolveAuthWorkbook Is Nothing Then Exit Function
     End If
 
-    Set ResolveAuthWorkbook = modRuntimeWorkbooks.OpenFirstRuntimeAuthWorkbook(bootstrapReport)
+    Set ResolveAuthWorkbook = OpenFirstRuntimeAuthWorkbook(bootstrapReport)
 End Function
 
 Private Function IsAuthWorkbookName(ByVal wbName As String) As Boolean

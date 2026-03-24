@@ -113,14 +113,14 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
 
             If ApplyInventoryEventBridge(evt, inventoryWb, runId, statusOut, errorCode, errorMessage) Then
                 Select Case UCase$(statusOut)
-                    Case APPLY_STATUS_APPLIED
+                    Case CORE_APPLY_STATUS_APPLIED
                         artifactReport = vbNullString
-                        If Not modWarehouseSync.AppendEventToOutbox(evt, inventoryWb, Nothing, runId, artifactReport) Then artifactWarnings = artifactWarnings + 1
+                        If Not AppendEventToOutbox(evt, inventoryWb, Nothing, runId, artifactReport) Then artifactWarnings = artifactWarnings + 1
                         UpdateInboxRowStatus loInbox, rowIndex, INBOX_STATUS_PROCESSED
                         RunBatch = RunBatch + 1
-                    Case APPLY_STATUS_SKIP_DUP
+                    Case CORE_APPLY_STATUS_SKIP_DUP
                         artifactReport = vbNullString
-                        If Not modWarehouseSync.AppendEventToOutbox(evt, inventoryWb, Nothing, runId, artifactReport) Then artifactWarnings = artifactWarnings + 1
+                        If Not AppendEventToOutbox(evt, inventoryWb, Nothing, runId, artifactReport) Then artifactWarnings = artifactWarnings + 1
                         UpdateInboxRowStatus loInbox, rowIndex, INBOX_STATUS_SKIP_DUP
                         skipDupCount = skipDupCount + 1
                     Case Else
@@ -149,7 +149,7 @@ ContinueInbox:
     If artifactWarnings > 0 Then report = report & "; ArtifactWarnings=" & CStr(artifactWarnings)
 
     artifactReport = vbNullString
-    If Not modWarehouseSync.GenerateWarehouseSnapshot(warehouseId, inventoryWb, "", Nothing, artifactReport) Then
+    If Not GenerateWarehouseSnapshot(warehouseId, inventoryWb, "", Nothing, artifactReport) Then
         If report <> "" Then report = report & "; "
         report = report & "SnapshotError=" & artifactReport
     End If
@@ -181,17 +181,17 @@ End Function
 
 Public Function EnsureReceiveInboxSchema(Optional ByVal targetWb As Workbook = Nothing, _
                                          Optional ByRef report As String = "") As Boolean
-    EnsureReceiveInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_RECEIVE, TABLE_INBOX_RECEIVE, EVENT_TYPE_RECEIVE)
+    EnsureReceiveInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_RECEIVE, TABLE_INBOX_RECEIVE, CORE_EVENT_TYPE_RECEIVE)
 End Function
 
 Public Function EnsureShipInboxSchema(Optional ByVal targetWb As Workbook = Nothing, _
                                       Optional ByRef report As String = "") As Boolean
-    EnsureShipInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_SHIP, TABLE_INBOX_SHIP, EVENT_TYPE_SHIP)
+    EnsureShipInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_SHIP, TABLE_INBOX_SHIP, CORE_EVENT_TYPE_SHIP)
 End Function
 
 Public Function EnsureProductionInboxSchema(Optional ByVal targetWb As Workbook = Nothing, _
                                             Optional ByRef report As String = "") As Boolean
-    EnsureProductionInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_PROD, TABLE_INBOX_PROD, EVENT_TYPE_PROD_CONSUME)
+    EnsureProductionInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_PROD, TABLE_INBOX_PROD, CORE_EVENT_TYPE_PROD_CONSUME)
 End Function
 
 Private Function EnsureInboxTargetSchema(ByVal targetWb As Workbook, ByVal tableName As String, ByRef report As String) As Boolean
@@ -306,11 +306,11 @@ Private Function ResolveInboxTargets() As Collection
     seen.CompareMode = vbTextCompare
 
     For Each wb In Application.Workbooks
-        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_RECEIVE, SHEET_INBOX_RECEIVE, EVENT_TYPE_RECEIVE, _
+        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_RECEIVE, SHEET_INBOX_RECEIVE, CORE_EVENT_TYPE_RECEIVE, _
                        IsReceiveInboxWorkbookName(wb.Name) Or WorkbookHasListObjectProcessor(wb, TABLE_INBOX_RECEIVE)
-        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_SHIP, SHEET_INBOX_SHIP, EVENT_TYPE_SHIP, _
+        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_SHIP, SHEET_INBOX_SHIP, CORE_EVENT_TYPE_SHIP, _
                        IsShipInboxWorkbookName(wb.Name) Or WorkbookHasListObjectProcessor(wb, TABLE_INBOX_SHIP)
-        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_PROD, SHEET_INBOX_PROD, EVENT_TYPE_PROD_CONSUME, _
+        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_PROD, SHEET_INBOX_PROD, CORE_EVENT_TYPE_PROD_CONSUME, _
                        IsProductionInboxWorkbookName(wb.Name) Or WorkbookHasListObjectProcessor(wb, TABLE_INBOX_PROD)
     Next wb
 End Function
@@ -406,11 +406,11 @@ End Function
 
 Private Function CapabilityForEventType(ByVal eventType As String) As String
     Select Case UCase$(SafeTrimProcessor(eventType))
-        Case EVENT_TYPE_RECEIVE
+        Case CORE_EVENT_TYPE_RECEIVE
             CapabilityForEventType = "RECEIVE_POST"
-        Case EVENT_TYPE_SHIP
+        Case CORE_EVENT_TYPE_SHIP
             CapabilityForEventType = "SHIP_POST"
-        Case EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE
+        Case CORE_EVENT_TYPE_PROD_CONSUME, CORE_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventType = "PROD_POST"
     End Select
 End Function

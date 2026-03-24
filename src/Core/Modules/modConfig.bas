@@ -326,14 +326,14 @@ Private Function ResolveConfigWorkbook(ByVal whId As String, ByVal stId As Strin
     Next wb
 
     If whId <> "" Then
-        Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(whId, stId, "", bootstrapReport)
+        Set ResolveConfigWorkbook = OpenOrCreateConfigWorkbookRuntime(whId, stId, "", bootstrapReport)
         If Not ResolveConfigWorkbook Is Nothing Then Exit Function
     End If
 
-    Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenFirstRuntimeConfigWorkbook(bootstrapReport)
+    Set ResolveConfigWorkbook = OpenFirstRuntimeConfigWorkbook(bootstrapReport)
     If Not ResolveConfigWorkbook Is Nothing Then Exit Function
 
-    Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(whId, stId, "", bootstrapReport)
+    Set ResolveConfigWorkbook = OpenOrCreateConfigWorkbookRuntime(whId, stId, "", bootstrapReport)
 End Function
 
 Private Function IsConfigWorkbookName(ByVal wbName As String) As Boolean

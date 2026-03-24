@@ -38,7 +38,7 @@ Public Function QueueReceiveEvent(Optional ByVal warehouseId As String = "", _
                                   Optional ByVal targetInboxWb As Workbook = Nothing, _
                                   Optional ByRef eventIdOut As String = "", _
                                   Optional ByRef errorMessage As String = "") As Boolean
-    QueueReceiveEvent = QueueEventCore(EVENT_TYPE_RECEIVE, warehouseId, stationId, userId, sku, qty, location, noteVal, "", parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage)
+    QueueReceiveEvent = QueueEventCore(CORE_EVENT_TYPE_RECEIVE, warehouseId, stationId, userId, sku, qty, location, noteVal, "", parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage)
 End Function
 
 Public Function QueueReceiveEventCurrent(Optional ByVal userId As String = "", _
@@ -189,19 +189,19 @@ Private Function QueueEventCore(ByVal eventType As String, _
     If wbInbox Is Nothing Then Exit Function
 
     Select Case UCase$(Trim$(eventType))
-        Case EVENT_TYPE_RECEIVE
+        Case CORE_EVENT_TYPE_RECEIVE
             If Not modProcessor.EnsureReceiveInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 Exit Function
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_RECEIVE)
-        Case EVENT_TYPE_SHIP
+        Case CORE_EVENT_TYPE_SHIP
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 Exit Function
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_SHIP)
-        Case EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE
+        Case CORE_EVENT_TYPE_PROD_CONSUME, CORE_EVENT_TYPE_PROD_COMPLETE
             If Not modProcessor.EnsureProductionInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 Exit Function
@@ -353,22 +353,22 @@ End Function
 
 Private Function InboxWorkbookNameRole(ByVal eventType As String, ByVal stationId As String) As String
     Select Case UCase$(Trim$(eventType))
-        Case EVENT_TYPE_RECEIVE
+        Case CORE_EVENT_TYPE_RECEIVE
             InboxWorkbookNameRole = "invSys.Inbox.Receiving." & stationId & ".xlsb"
-        Case EVENT_TYPE_SHIP
+        Case CORE_EVENT_TYPE_SHIP
             InboxWorkbookNameRole = "invSys.Inbox.Shipping." & stationId & ".xlsb"
-        Case EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE
+        Case CORE_EVENT_TYPE_PROD_CONSUME, CORE_EVENT_TYPE_PROD_COMPLETE
             InboxWorkbookNameRole = "invSys.Inbox.Production." & stationId & ".xlsb"
     End Select
 End Function
 
 Private Function CapabilityForEventTypeRole(ByVal eventType As String) As String
     Select Case UCase$(Trim$(eventType))
-        Case EVENT_TYPE_RECEIVE
+        Case CORE_EVENT_TYPE_RECEIVE
             CapabilityForEventTypeRole = "RECEIVE_POST"
-        Case EVENT_TYPE_SHIP
+        Case CORE_EVENT_TYPE_SHIP
             CapabilityForEventTypeRole = "SHIP_POST"
-        Case EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE
+        Case CORE_EVENT_TYPE_PROD_CONSUME, CORE_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventTypeRole = "PROD_POST"
     End Select
 End Function

@@ -34,11 +34,11 @@ Public Function TestApplyReceive_ValidEvent() As Long
 
     Set loLog = wbInv.Worksheets("InventoryLog").ListObjects("tblInventoryLog")
     Set loApplied = wbInv.Worksheets("AppliedEvents").ListObjects("tblAppliedEvents")
-    If loLog.ListRows.Count <> 2 Then GoTo CleanExit
-    If loApplied.ListRows.Count <> 2 Then GoTo CleanExit
-    If CStr(TestPhase2Helpers.GetRowValue(loLog, 2, "EventID")) <> "EVT-001" Then GoTo CleanExit
-    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> 5 Then GoTo CleanExit
-    If CStr(TestPhase2Helpers.GetRowValue(loApplied, 2, "Status")) <> "APPLIED" Then GoTo CleanExit
+    If loLog.ListRows.Count <> 1 Then GoTo CleanExit
+    If loApplied.ListRows.Count <> 1 Then GoTo CleanExit
+    If CStr(TestPhase2Helpers.GetRowValue(loLog, 1, "EventID")) <> "EVT-001" Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 1, "QtyDelta")) <> 5 Then GoTo CleanExit
+    If CStr(TestPhase2Helpers.GetRowValue(loApplied, 1, "Status")) <> "APPLIED" Then GoTo CleanExit
 
     TestApplyReceive_ValidEvent = 1
 
@@ -92,7 +92,7 @@ Public Function TestApplyReceive_InvalidSKU() As Long
     If UCase$(errorCode) <> "INVALID_SKU" Then GoTo CleanExit
 
     Set loLog = wbInv.Worksheets("InventoryLog").ListObjects("tblInventoryLog")
-    If loLog.ListRows.Count <> 1 Then GoTo CleanExit
+    If loLog.ListRows.Count <> 0 Then GoTo CleanExit
 
     TestApplyReceive_InvalidSKU = 1
 
@@ -120,7 +120,7 @@ Public Function TestApplyReceive_Duplicate() As Long
     If UCase$(statusOut) <> "SKIP_DUP" Then GoTo CleanExit
 
     Set loLog = wbInv.Worksheets("InventoryLog").ListObjects("tblInventoryLog")
-    If loLog.ListRows.Count <> 2 Then GoTo CleanExit
+    If loLog.ListRows.Count <> 1 Then GoTo CleanExit
 
     TestApplyReceive_Duplicate = 1
 
@@ -153,11 +153,11 @@ Public Function TestApplyShip_MultiLineEvent() As Long
 
     Set loLog = wbInv.Worksheets("InventoryLog").ListObjects("tblInventoryLog")
     Set loApplied = wbInv.Worksheets("AppliedEvents").ListObjects("tblAppliedEvents")
-    If loLog.ListRows.Count <> 3 Then GoTo CleanExit
-    If loApplied.ListRows.Count <> 2 Then GoTo CleanExit
-    If CStr(TestPhase2Helpers.GetRowValue(loLog, 2, "EventType")) <> EVENT_TYPE_SHIP Then GoTo CleanExit
-    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> -4 Then GoTo CleanExit
-    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 3, "QtyDelta")) <> -2 Then GoTo CleanExit
+    If loLog.ListRows.Count <> 2 Then GoTo CleanExit
+    If loApplied.ListRows.Count <> 1 Then GoTo CleanExit
+    If CStr(TestPhase2Helpers.GetRowValue(loLog, 1, "EventType")) <> EVENT_TYPE_SHIP Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 1, "QtyDelta")) <> -4 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> -2 Then GoTo CleanExit
 
     TestApplyShip_MultiLineEvent = 1
 
@@ -187,9 +187,9 @@ Public Function TestApplyProdConsume_MultiLineEvent() As Long
     If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-001", statusOut, errorCode, errorMessage) Then GoTo CleanExit
 
     Set loLog = wbInv.Worksheets("InventoryLog").ListObjects("tblInventoryLog")
-    If loLog.ListRows.Count <> 3 Then GoTo CleanExit
-    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> -6 Then GoTo CleanExit
-    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 3, "QtyDelta")) <> 2 Then GoTo CleanExit
+    If loLog.ListRows.Count <> 2 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 1, "QtyDelta")) <> -6 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> 2 Then GoTo CleanExit
 
     TestApplyProdConsume_MultiLineEvent = 1
 
@@ -219,9 +219,9 @@ Public Function TestApplyProdComplete_MultiLineEvent() As Long
     If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-001", statusOut, errorCode, errorMessage) Then GoTo CleanExit
 
     Set loLog = wbInv.Worksheets("InventoryLog").ListObjects("tblInventoryLog")
-    If loLog.ListRows.Count <> 3 Then GoTo CleanExit
-    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> 5 Then GoTo CleanExit
-    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 3, "QtyDelta")) <> 1 Then GoTo CleanExit
+    If loLog.ListRows.Count <> 2 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 1, "QtyDelta")) <> 5 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> 1 Then GoTo CleanExit
 
     TestApplyProdComplete_MultiLineEvent = 1
 
