@@ -14,13 +14,14 @@ Private Const INVENTORY_DOMAIN_ADDIN_NAME As String = "invSys.Inventory.Domain.x
 Public Function ResolveInventoryWorkbookBridge(Optional ByVal warehouseId As String = "", _
                                               Optional ByVal inventoryWb As Workbook = Nothing) As Workbook
     Dim result As Variant
+    Dim report As String
 
     If Not inventoryWb Is Nothing Then
         Set ResolveInventoryWorkbookBridge = inventoryWb
         Exit Function
     End If
 
-    Set ResolveInventoryWorkbookBridge = FindInventoryWorkbookLocal(warehouseId)
+    Set ResolveInventoryWorkbookBridge = OpenOrCreateCanonicalInventoryWorkbookLocal(warehouseId, report)
     If Not ResolveInventoryWorkbookBridge Is Nothing Then Exit Function
 
     On Error GoTo FailResolve
@@ -56,15 +57,17 @@ Public Function ApplyInventoryEventBridge(ByVal evt As Object, _
                                          Optional ByRef errorCode As String = "", _
                                          Optional ByRef errorMessage As String = "") As Boolean
     Dim result As Variant
-    Dim parts() As String
 
     On Error GoTo FailApply
-    result = RunInventoryDomainMacro2("modInventoryBridgeApi.ApplyEventBridgeEncoded", evt, runId)
-    parts = Split(CStr(result), vbTab)
-    If UBound(parts) >= 0 Then ApplyInventoryEventBridge = (Val(parts(0)) <> 0)
-    If UBound(parts) >= 1 Then statusOut = parts(1)
-    If UBound(parts) >= 2 Then errorCode = parts(2)
-    If UBound(parts) >= 3 Then errorMessage = parts(3)
+    If inventoryWb Is Nothing Then Set inventoryWb = ResolveInventoryWorkbookBridge(GetBridgeString(evt, "WarehouseId"))
+
+    result = RunInventoryDomainMacro3("modInventoryBridgeApi.ApplyEventBridgeResult", evt, inventoryWb, runId)
+    If IsObject(result) Then
+        ApplyInventoryEventBridge = GetBridgeBool(result, "Success")
+        statusOut = GetBridgeString(result, "StatusOut")
+        errorCode = GetBridgeString(result, "ErrorCode")
+        errorMessage = GetBridgeString(result, "ErrorMessage")
+    End If
     Exit Function
 
 FailApply:
@@ -174,18 +177,18 @@ End Function
 
 Private Function FindInventoryWorkbookLocal(ByVal warehouseId As String) As Workbook
     Dim wb As Workbook
+    Dim targetPath As String
 
+    targetPath = BuildCanonicalInventoryPathLocal(warehouseId)
     For Each wb In Application.Workbooks
-        If IsInventoryWorkbookNameLocal(wb.Name, warehouseId) Then
-            Set FindInventoryWorkbookLocal = wb
-            Exit Function
+        If targetPath <> "" Then
+            If StrComp(wb.FullName, targetPath, vbTextCompare) = 0 Then
+                Set FindInventoryWorkbookLocal = wb
+                Exit Function
+            End If
         End If
-    Next wb
 
-    For Each wb In Application.Workbooks
-        If WorkbookHasListObjectLocal(wb, "tblInventoryLog") And _
-           WorkbookHasListObjectLocal(wb, "tblAppliedEvents") And _
-           WorkbookHasListObjectLocal(wb, "tblLocks") Then
+        If IsInventoryWorkbookNameLocal(wb.Name, warehouseId) Then
             Set FindInventoryWorkbookLocal = wb
             Exit Function
         End If
@@ -348,5 +351,111 @@ Private Function GetBridgeBool(ByVal payload As Object, ByVal key As String) As 
     If Not payload Is Nothing Then
         If payload.Exists(key) Then GetBridgeBool = CBool(payload(key))
     End If
+    On Error GoTo 0
+End Function
+
+Private Function OpenOrCreateCanonicalInventoryWorkbookLocal(ByVal warehouseId As String, ByRef report As String) As Workbook
+    On Error GoTo FailOpen
+
+    Dim targetPath As String
+    Dim wb As Workbook
+    Dim prevEvents As Boolean
+    Dim eventsSuppressed As Boolean
+    Dim wasCreated As Boolean
+
+    targetPath = BuildCanonicalInventoryPathLocal(warehouseId)
+    If targetPath = "" Then Exit Function
+
+    Set wb = FindOpenWorkbookByFullNameLocal(targetPath)
+    If wb Is Nothing Then
+        EnsureFolderRecursiveLocal GetParentFolderLocal(targetPath)
+        If Len(Dir$(targetPath)) > 0 Then
+            Set wb = Application.Workbooks.Open(targetPath)
+        Else
+            prevEvents = Application.EnableEvents
+            Application.EnableEvents = False
+            eventsSuppressed = True
+            Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+            wb.SaveAs Filename:=targetPath, FileFormat:=50
+            wasCreated = True
+            Application.EnableEvents = prevEvents
+            eventsSuppressed = False
+        End If
+    End If
+
+    If Not EnsureInventorySchemaLocal(wb, report) Then Exit Function
+    If wasCreated Then wb.Save
+    Set OpenOrCreateCanonicalInventoryWorkbookLocal = wb
+    Exit Function
+
+FailOpen:
+    On Error Resume Next
+    If eventsSuppressed Then Application.EnableEvents = prevEvents
+    On Error GoTo 0
+    report = "Inventory workbook open/create failed: " & Err.Description
+End Function
+
+Private Function BuildCanonicalInventoryPathLocal(ByVal warehouseId As String) As String
+    Dim resolvedWh As String
+    Dim rootPath As String
+
+    resolvedWh = Trim$(warehouseId)
+    If resolvedWh = "" Then resolvedWh = SafeTrim(modConfig.GetString("WarehouseId", "WH1"))
+    If resolvedWh = "" Then resolvedWh = "WH1"
+
+    rootPath = SafeTrim(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    If rootPath = "" Then rootPath = SafeTrim(modConfig.GetString("PathDataRoot", ""))
+    If rootPath = "" Then rootPath = DefaultInventoryRootLocal(resolvedWh)
+
+    BuildCanonicalInventoryPathLocal = NormalizeFolderPathLocal(rootPath) & resolvedWh & ".invSys.Data.Inventory.xlsb"
+End Function
+
+Private Function DefaultInventoryRootLocal(ByVal warehouseId As String) As String
+    DefaultInventoryRootLocal = "C:\invSys\" & warehouseId & "\"
+End Function
+
+Private Function FindOpenWorkbookByFullNameLocal(ByVal fullNameIn As String) As Workbook
+    Dim wb As Workbook
+
+    For Each wb In Application.Workbooks
+        If StrComp(wb.FullName, fullNameIn, vbTextCompare) = 0 Then
+            Set FindOpenWorkbookByFullNameLocal = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Function NormalizeFolderPathLocal(ByVal folderPath As String) As String
+    folderPath = Trim$(folderPath)
+    If folderPath = "" Then Exit Function
+    If Right$(folderPath, 1) <> "\" Then folderPath = folderPath & "\"
+    NormalizeFolderPathLocal = folderPath
+End Function
+
+Private Function GetParentFolderLocal(ByVal fullPath As String) As String
+    Dim lastSlash As Long
+
+    lastSlash = InStrRev(fullPath, "\")
+    If lastSlash > 0 Then GetParentFolderLocal = Left$(fullPath, lastSlash - 1)
+End Function
+
+Private Sub EnsureFolderRecursiveLocal(ByVal folderPath As String)
+    Dim parentPath As String
+
+    folderPath = Trim$(folderPath)
+    If folderPath = "" Then Exit Sub
+    If Len(Dir$(folderPath, vbDirectory)) > 0 Then Exit Sub
+
+    parentPath = GetParentFolderLocal(folderPath)
+    If parentPath <> "" And Len(Dir$(parentPath, vbDirectory)) = 0 Then EnsureFolderRecursiveLocal parentPath
+
+    On Error Resume Next
+    MkDir folderPath
+    On Error GoTo 0
+End Sub
+
+Private Function SafeTrim(ByVal valueIn As Variant) As String
+    On Error Resume Next
+    SafeTrim = Trim$(CStr(valueIn))
     On Error GoTo 0
 End Function

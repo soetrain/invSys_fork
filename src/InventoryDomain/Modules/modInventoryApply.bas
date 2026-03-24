@@ -167,13 +167,22 @@ End Function
 Public Function ResolveInventoryWorkbook(Optional ByVal warehouseId As String = "", _
                                          Optional ByVal inventoryWb As Workbook = Nothing) As Workbook
     Dim wb As Workbook
+    Dim targetPath As String
 
     If Not inventoryWb Is Nothing Then
         Set ResolveInventoryWorkbook = inventoryWb
         Exit Function
     End If
 
+    targetPath = BuildCanonicalInventoryPath(warehouseId)
     For Each wb In Application.Workbooks
+        If targetPath <> "" Then
+            If StrComp(wb.FullName, targetPath, vbTextCompare) = 0 Then
+                Set ResolveInventoryWorkbook = wb
+                Exit Function
+            End If
+        End If
+
         If IsInventoryWorkbookName(wb.Name) Then
             If warehouseId = "" Or InStr(1, wb.Name, warehouseId, vbTextCompare) > 0 Then
                 Set ResolveInventoryWorkbook = wb
@@ -182,14 +191,7 @@ Public Function ResolveInventoryWorkbook(Optional ByVal warehouseId As String = 
         End If
     Next wb
 
-    For Each wb In Application.Workbooks
-        If WorkbookHasListObjectApply(wb, "tblInventoryLog") And _
-           WorkbookHasListObjectApply(wb, "tblAppliedEvents") And _
-           WorkbookHasListObjectApply(wb, "tblLocks") Then
-            Set ResolveInventoryWorkbook = wb
-            Exit Function
-        End If
-    Next wb
+    Set ResolveInventoryWorkbook = OpenOrCreateCanonicalInventoryWorkbook(warehouseId)
 End Function
 
 Private Function BuildApplyLines(ByVal evt As Object, _
@@ -795,6 +797,85 @@ Private Function IsInventoryWorkbookName(ByVal wbName As String) As Boolean
                               (n Like "wh*.invsys.data.inventory.xlsx") Or _
                               (n Like "wh*.invsys.data.inventory.xlsm")
 End Function
+
+Private Function OpenOrCreateCanonicalInventoryWorkbook(ByVal warehouseId As String) As Workbook
+    On Error GoTo FailOpen
+
+    Dim targetPath As String
+    Dim wb As Workbook
+    Dim prevEvents As Boolean
+    Dim eventsSuppressed As Boolean
+
+    targetPath = BuildCanonicalInventoryPath(warehouseId)
+    If targetPath = "" Then Exit Function
+
+    For Each wb In Application.Workbooks
+        If StrComp(wb.FullName, targetPath, vbTextCompare) = 0 Then
+            Set OpenOrCreateCanonicalInventoryWorkbook = wb
+            Exit Function
+        End If
+    Next wb
+
+    EnsureFolderRecursiveApply GetParentFolderApply(targetPath)
+    If Len(Dir$(targetPath)) > 0 Then
+        Set wb = Application.Workbooks.Open(targetPath)
+    Else
+        prevEvents = Application.EnableEvents
+        Application.EnableEvents = False
+        eventsSuppressed = True
+        Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+        wb.SaveAs Filename:=targetPath, FileFormat:=50
+        Application.EnableEvents = prevEvents
+        eventsSuppressed = False
+    End If
+
+    If modInventorySchema.EnsureInventorySchema(wb) Then
+        Set OpenOrCreateCanonicalInventoryWorkbook = wb
+    End If
+    Exit Function
+
+FailOpen:
+    On Error Resume Next
+    If eventsSuppressed Then Application.EnableEvents = prevEvents
+    On Error GoTo 0
+End Function
+
+Private Function BuildCanonicalInventoryPath(ByVal warehouseId As String) As String
+    Dim resolvedWh As String
+
+    resolvedWh = Trim$(warehouseId)
+    If resolvedWh = "" Then resolvedWh = "WH1"
+    BuildCanonicalInventoryPath = NormalizeFolderPathApply("C:\invSys\" & resolvedWh & "\") & resolvedWh & ".invSys.Data.Inventory.xlsb"
+End Function
+
+Private Function NormalizeFolderPathApply(ByVal folderPath As String) As String
+    folderPath = Trim$(folderPath)
+    If folderPath = "" Then Exit Function
+    If Right$(folderPath, 1) <> "\" Then folderPath = folderPath & "\"
+    NormalizeFolderPathApply = folderPath
+End Function
+
+Private Function GetParentFolderApply(ByVal fullPath As String) As String
+    Dim lastSlash As Long
+
+    lastSlash = InStrRev(fullPath, "\")
+    If lastSlash > 0 Then GetParentFolderApply = Left$(fullPath, lastSlash - 1)
+End Function
+
+Private Sub EnsureFolderRecursiveApply(ByVal folderPath As String)
+    Dim parentPath As String
+
+    folderPath = Trim$(folderPath)
+    If folderPath = "" Then Exit Sub
+    If Len(Dir$(folderPath, vbDirectory)) > 0 Then Exit Sub
+
+    parentPath = GetParentFolderApply(folderPath)
+    If parentPath <> "" And Len(Dir$(parentPath, vbDirectory)) = 0 Then EnsureFolderRecursiveApply parentPath
+
+    On Error Resume Next
+    MkDir folderPath
+    On Error GoTo 0
+End Sub
 
 Private Function SafeTrimApply(ByVal v As Variant) As String
     On Error Resume Next

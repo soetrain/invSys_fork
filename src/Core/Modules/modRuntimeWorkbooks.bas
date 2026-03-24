@@ -11,6 +11,10 @@ Public Sub ClearCoreDataRootOverride()
     mCoreDataRootOverride = vbNullString
 End Sub
 
+Public Function GetCoreDataRootOverride() As String
+    GetCoreDataRootOverride = Trim$(mCoreDataRootOverride)
+End Function
+
 Public Function ResolveCoreDataRoot(Optional ByVal rootPath As String = "") As String
     Dim resolvedPath As String
 

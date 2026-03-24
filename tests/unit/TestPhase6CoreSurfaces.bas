@@ -184,6 +184,38 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestResolveInventoryWorkbookBridge_PrefersCanonicalWorkbookOverOperatorSurface() As Long
+    Dim rootPath As String
+    Dim wbOperator As Workbook
+    Dim wbInventory As Workbook
+    Dim report As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_inv_bridge")
+
+    On Error GoTo CleanFail
+    Set wbOperator = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wbOperator, report) Then GoTo CleanExit
+
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    Set wbInventory = modInventoryDomainBridge.ResolveInventoryWorkbookBridge("WH66")
+    If wbInventory Is Nothing Then GoTo CleanExit
+
+    If StrComp(wbInventory.Name, "WH66.invSys.Data.Inventory.xlsb", vbTextCompare) = 0 _
+       And StrComp(wbInventory.Name, wbOperator.Name, vbTextCompare) <> 0 _
+       And Len(Dir$(rootPath & "\WH66.invSys.Data.Inventory.xlsb")) > 0 Then
+        TestResolveInventoryWorkbookBridge_PrefersCanonicalWorkbookOverOperatorSurface = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInventory
+    CloseWorkbookIfOpen wbOperator
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Private Function GetTableValue(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As Variant
     GetTableValue = lo.DataBodyRange.Cells(rowIndex, lo.ListColumns(columnName).Index).Value
 End Function
