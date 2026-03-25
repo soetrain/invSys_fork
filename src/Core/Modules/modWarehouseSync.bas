@@ -6,6 +6,8 @@ Private Const TABLE_OUTBOX As String = "tblOutboxEvents"
 
 Private Const SHEET_SNAPSHOT As String = "InventorySnapshot"
 Private Const TABLE_SNAPSHOT As String = "tblInventorySnapshot"
+Private Const SNAPSHOT_SOURCE_LOG As String = "LOG_FALLBACK"
+Private Const SNAPSHOT_SOURCE_PROJECTION As String = "PROJECTION"
 
 Public Function AppendEventToOutbox(ByVal evt As Object, _
                                     Optional ByVal inventoryWb As Workbook = Nothing, _
@@ -94,6 +96,7 @@ Public Function EnsureOutboxSchema(Optional ByVal targetWb As Workbook = Nothing
     headers = Array("EventID", "UndoOfEventId", "EventType", "WarehouseId", "StationId", "OccurredAtUTC", _
                     "AppliedAtUTC", "AppliedByUserId", "RunId", "DeltaJson")
 
+    NormalizeWorkbookSheetsSync wb, Array(SHEET_OUTBOX)
     Set ws = EnsureWorksheetSync(wb, SHEET_OUTBOX)
     EnsureWorksheetEditableSync ws
     On Error Resume Next
@@ -112,7 +115,7 @@ Public Function EnsureOutboxSchema(Optional ByVal targetWb As Workbook = Nothing
     For i = LBound(headers) To UBound(headers)
         EnsureListColumnSync lo, CStr(headers(i))
     Next i
-    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+    RemoveBlankSeedRowSync lo
 
     report = "OK"
     EnsureOutboxSchema = True
@@ -131,13 +134,7 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
 
     Dim wbInv As Workbook
     Dim wbSnap As Workbook
-    Dim loLog As ListObject
-    Dim summary As Object
-    Dim lastApplied As Object
-    Dim sku As String
-    Dim qty As Double
-    Dim rowDate As Variant
-    Dim i As Long
+    Dim snapshotRows As Object
     Dim savePath As String
 
     If warehouseId = "" Then warehouseId = modConfig.GetWarehouseId()
@@ -147,35 +144,10 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
         Exit Function
     End If
 
-    Set loLog = FindListObjectByNameSync(wbInv, "tblInventoryLog")
-    If loLog Is Nothing Then
-        report = "Inventory log table not found."
+    Set snapshotRows = BuildSnapshotRowsSync(wbInv, warehouseId, report)
+    If snapshotRows Is Nothing Then
+        If report = "" Then report = "Snapshot rows could not be built."
         Exit Function
-    End If
-
-    Set summary = CreateObject("Scripting.Dictionary")
-    summary.CompareMode = vbTextCompare
-    Set lastApplied = CreateObject("Scripting.Dictionary")
-    lastApplied.CompareMode = vbTextCompare
-
-    If Not loLog.DataBodyRange Is Nothing Then
-        For i = 1 To loLog.ListRows.Count
-            sku = SafeTrimSync(GetCellByColumnSync(loLog, i, "SKU"))
-            If sku <> "" Then
-                qty = 0
-                If IsNumeric(GetCellByColumnSync(loLog, i, "QtyDelta")) Then qty = CDbl(GetCellByColumnSync(loLog, i, "QtyDelta"))
-                If summary.Exists(sku) Then
-                    summary(sku) = CDbl(summary(sku)) + qty
-                Else
-                    summary.Add sku, qty
-                End If
-
-                rowDate = GetCellByColumnSync(loLog, i, "AppliedAtUTC")
-                If IsDate(rowDate) Then
-                    If (Not lastApplied.Exists(sku)) Or CDate(rowDate) > CDate(lastApplied(sku)) Then lastApplied(sku) = CDate(rowDate)
-                End If
-            End If
-        Next i
     End If
 
     Set wbSnap = ResolveSnapshotWorkbook(warehouseId, outputPath, snapshotWb, True)
@@ -185,7 +157,7 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
     End If
     savePath = wbSnap.FullName
     If Not EnsureSnapshotSchema(wbSnap, report) Then Exit Function
-    WriteSnapshotRows wbSnap, warehouseId, summary, lastApplied
+    WriteSnapshotRows wbSnap, warehouseId, snapshotRows
     wbSnap.Save
 
     report = savePath
@@ -234,7 +206,8 @@ Private Function EnsureSnapshotSchema(ByVal wb As Workbook, ByRef report As Stri
     Dim startCell As Range
     Dim i As Long
 
-    headers = Array("WarehouseId", "SKU", "QtyOnHand", "LastAppliedAtUTC")
+    headers = Array("WarehouseId", "SKU", "QtyOnHand", "QtyAvailable", "LocationSummary", "LastAppliedAtUTC")
+    NormalizeWorkbookSheetsSync wb, Array(SHEET_SNAPSHOT)
     Set ws = EnsureWorksheetSync(wb, SHEET_SNAPSHOT)
     EnsureWorksheetEditableSync ws
 
@@ -254,7 +227,7 @@ Private Function EnsureSnapshotSchema(ByVal wb As Workbook, ByRef report As Stri
     For i = LBound(headers) To UBound(headers)
         EnsureListColumnSync lo, CStr(headers(i))
     Next i
-    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+    RemoveBlankSeedRowSync lo
 
     report = "OK"
     EnsureSnapshotSchema = True
@@ -266,35 +239,230 @@ End Function
 
 Private Sub WriteSnapshotRows(ByVal wb As Workbook, _
                               ByVal warehouseId As String, _
-                              ByVal summary As Object, _
-                              ByVal lastApplied As Object)
+                              ByVal snapshotRows As Object)
     Dim lo As ListObject
     Dim key As Variant
     Dim rowIndex As Long
+    Dim entry As Object
 
     Set lo = wb.Worksheets(SHEET_SNAPSHOT).ListObjects(TABLE_SNAPSHOT)
     DeleteAllRowsSync lo
 
-    If summary Is Nothing Or summary.Count = 0 Then
+    If snapshotRows Is Nothing Or snapshotRows.Count = 0 Then
         EnsureTableSheetEditableSync lo, TABLE_SNAPSHOT
         lo.ListRows.Add
         SetTableRowValueSync lo, 1, "WarehouseId", warehouseId
         SetTableRowValueSync lo, 1, "SKU", ""
         SetTableRowValueSync lo, 1, "QtyOnHand", 0
+        SetTableRowValueSync lo, 1, "QtyAvailable", 0
+        SetTableRowValueSync lo, 1, "LocationSummary", vbNullString
         SetTableRowValueSync lo, 1, "LastAppliedAtUTC", vbNullString
         Exit Sub
     End If
 
-    For Each key In summary.Keys
+    For Each key In snapshotRows.Keys
         EnsureTableSheetEditableSync lo, TABLE_SNAPSHOT
         lo.ListRows.Add
         rowIndex = lo.ListRows.Count
-        SetTableRowValueSync lo, rowIndex, "WarehouseId", warehouseId
-        SetTableRowValueSync lo, rowIndex, "SKU", CStr(key)
-        SetTableRowValueSync lo, rowIndex, "QtyOnHand", CDbl(summary(key))
-        If lastApplied.Exists(key) Then SetTableRowValueSync lo, rowIndex, "LastAppliedAtUTC", lastApplied(key)
+        Set entry = snapshotRows(key)
+        SetTableRowValueSync lo, rowIndex, "WarehouseId", ResolveStringSync(entry, "WarehouseId", warehouseId)
+        SetTableRowValueSync lo, rowIndex, "SKU", ResolveStringSync(entry, "SKU", CStr(key))
+        SetTableRowValueSync lo, rowIndex, "QtyOnHand", ResolveNumberSync(entry, "QtyOnHand")
+        SetTableRowValueSync lo, rowIndex, "QtyAvailable", ResolveNumberSync(entry, "QtyAvailable")
+        SetTableRowValueSync lo, rowIndex, "LocationSummary", ResolveStringSync(entry, "LocationSummary", "")
+        If entry.Exists("LastAppliedAtUTC") Then SetTableRowValueSync lo, rowIndex, "LastAppliedAtUTC", entry("LastAppliedAtUTC")
     Next key
 End Sub
+
+Private Function BuildSnapshotRowsSync(ByVal wbInv As Workbook, _
+                                       ByVal warehouseId As String, _
+                                       ByRef report As String) As Object
+    Dim snapshotRows As Object
+
+    Set snapshotRows = BuildSnapshotRowsFromProjectionsSync(wbInv, warehouseId)
+    If Not snapshotRows Is Nothing Then
+        report = SNAPSHOT_SOURCE_PROJECTION
+        Set BuildSnapshotRowsSync = snapshotRows
+        Exit Function
+    End If
+
+    Set snapshotRows = BuildSnapshotRowsFromLogSync(wbInv, warehouseId)
+    If Not snapshotRows Is Nothing Then
+        report = SNAPSHOT_SOURCE_LOG
+        Set BuildSnapshotRowsSync = snapshotRows
+        Exit Function
+    End If
+
+    report = "Inventory snapshot source tables not found."
+End Function
+
+Private Function BuildSnapshotRowsFromProjectionsSync(ByVal wbInv As Workbook, ByVal warehouseId As String) As Object
+    Dim loSku As ListObject
+    Dim loLoc As ListObject
+    Dim rows As Object
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim entry As Object
+    Dim qtyOnHand As Double
+
+    Set loSku = FindListObjectByNameSync(wbInv, "tblSkuBalance")
+    Set loLoc = FindListObjectByNameSync(wbInv, "tblLocationBalance")
+    If loSku Is Nothing Then Exit Function
+
+    Set rows = CreateObject("Scripting.Dictionary")
+    rows.CompareMode = vbTextCompare
+
+    If Not loSku.DataBodyRange Is Nothing Then
+        For rowIndex = 1 To loSku.ListRows.Count
+            sku = SafeTrimSync(GetCellByColumnSync(loSku, rowIndex, "SKU"))
+            If sku = "" Then GoTo ContinueSkuLoop
+
+            Set entry = EnsureSnapshotEntrySync(rows, sku, warehouseId)
+            qtyOnHand = NzDblSync(GetCellByColumnSync(loSku, rowIndex, "QtyOnHand"))
+            entry("QtyOnHand") = qtyOnHand
+            entry("QtyAvailable") = qtyOnHand
+            If IsDate(GetCellByColumnSync(loSku, rowIndex, "LastAppliedUTC")) Then
+                entry("LastAppliedAtUTC") = CDate(GetCellByColumnSync(loSku, rowIndex, "LastAppliedUTC"))
+            End If
+ContinueSkuLoop:
+        Next rowIndex
+    End If
+
+    If Not loLoc Is Nothing Then AppendLocationSummariesSync rows, loLoc, warehouseId
+    Set BuildSnapshotRowsFromProjectionsSync = rows
+End Function
+
+Private Function BuildSnapshotRowsFromLogSync(ByVal wbInv As Workbook, ByVal warehouseId As String) As Object
+    Dim loLog As ListObject
+    Dim rows As Object
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim locationVal As String
+    Dim qty As Double
+    Dim entry As Object
+    Dim rowDate As Variant
+
+    Set loLog = FindListObjectByNameSync(wbInv, "tblInventoryLog")
+    If loLog Is Nothing Then Exit Function
+
+    Set rows = CreateObject("Scripting.Dictionary")
+    rows.CompareMode = vbTextCompare
+
+    If Not loLog.DataBodyRange Is Nothing Then
+        For rowIndex = 1 To loLog.ListRows.Count
+            sku = SafeTrimSync(GetCellByColumnSync(loLog, rowIndex, "SKU"))
+            If sku = "" Then GoTo ContinueLogLoop
+
+            Set entry = EnsureSnapshotEntrySync(rows, sku, warehouseId)
+            qty = 0
+            If IsNumeric(GetCellByColumnSync(loLog, rowIndex, "QtyDelta")) Then qty = CDbl(GetCellByColumnSync(loLog, rowIndex, "QtyDelta"))
+            entry("QtyOnHand") = ResolveNumberSync(entry, "QtyOnHand") + qty
+            entry("QtyAvailable") = ResolveNumberSync(entry, "QtyOnHand")
+
+            rowDate = GetCellByColumnSync(loLog, rowIndex, "AppliedAtUTC")
+            If IsDate(rowDate) Then
+                If (Not entry.Exists("LastAppliedAtUTC")) Or CDate(rowDate) > CDate(entry("LastAppliedAtUTC")) Then
+                    entry("LastAppliedAtUTC") = CDate(rowDate)
+                End If
+            End If
+
+            locationVal = SafeTrimSync(GetCellByColumnSync(loLog, rowIndex, "Location"))
+            If locationVal <> "" Then AppendLocationFragmentSync entry, locationVal, qty
+ContinueLogLoop:
+        Next rowIndex
+    End If
+
+    Set BuildSnapshotRowsFromLogSync = rows
+End Function
+
+Private Sub AppendLocationSummariesSync(ByVal snapshotRows As Object, _
+                                        ByVal loLoc As ListObject, _
+                                        ByVal warehouseId As String)
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim locationVal As String
+    Dim qtyOnHand As Double
+    Dim entry As Object
+    Dim rowDate As Variant
+
+    If snapshotRows Is Nothing Or loLoc Is Nothing Then Exit Sub
+    If loLoc.DataBodyRange Is Nothing Then Exit Sub
+
+    For rowIndex = 1 To loLoc.ListRows.Count
+        sku = SafeTrimSync(GetCellByColumnSync(loLoc, rowIndex, "SKU"))
+        If sku = "" Then GoTo ContinueLocLoop
+
+        locationVal = SafeTrimSync(GetCellByColumnSync(loLoc, rowIndex, "Location"))
+        qtyOnHand = NzDblSync(GetCellByColumnSync(loLoc, rowIndex, "QtyOnHand"))
+        Set entry = EnsureSnapshotEntrySync(snapshotRows, sku, warehouseId)
+        AppendLocationFragmentSync entry, locationVal, qtyOnHand
+
+        rowDate = GetCellByColumnSync(loLoc, rowIndex, "LastAppliedUTC")
+        If IsDate(rowDate) Then
+            If (Not entry.Exists("LastAppliedAtUTC")) Or CDate(rowDate) > CDate(entry("LastAppliedAtUTC")) Then
+                entry("LastAppliedAtUTC") = CDate(rowDate)
+            End If
+        End If
+ContinueLocLoop:
+    Next rowIndex
+End Sub
+
+Private Function EnsureSnapshotEntrySync(ByVal rows As Object, _
+                                         ByVal sku As String, _
+                                         ByVal warehouseId As String) As Object
+    Dim entry As Object
+
+    If rows.Exists(sku) Then
+        Set EnsureSnapshotEntrySync = rows(sku)
+        Exit Function
+    End If
+
+    Set entry = CreateObject("Scripting.Dictionary")
+    entry.CompareMode = vbTextCompare
+    entry("WarehouseId") = warehouseId
+    entry("SKU") = sku
+    entry("QtyOnHand") = 0#
+    entry("QtyAvailable") = 0#
+    entry("LocationSummary") = vbNullString
+    rows.Add sku, entry
+    Set EnsureSnapshotEntrySync = entry
+End Function
+
+Private Sub AppendLocationFragmentSync(ByVal entry As Object, ByVal locationVal As String, ByVal qtyOnHand As Double)
+    Dim fragment As String
+    Dim label As String
+
+    If entry Is Nothing Then Exit Sub
+
+    label = Trim$(locationVal)
+    If label = "" Then label = "(blank)"
+    fragment = label & "=" & FormatQuantitySync(qtyOnHand)
+
+    If ResolveStringSync(entry, "LocationSummary", "") = "" Then
+        entry("LocationSummary") = fragment
+    Else
+        entry("LocationSummary") = ResolveStringSync(entry, "LocationSummary", "") & "; " & fragment
+    End If
+End Sub
+
+Private Function FormatQuantitySync(ByVal qtyIn As Double) As String
+    If Abs(qtyIn - CLng(qtyIn)) < 0.0000001 Then
+        FormatQuantitySync = CStr(CLng(qtyIn))
+    Else
+        FormatQuantitySync = Trim$(Format$(qtyIn, "0.########"))
+    End If
+End Function
+
+Private Function NzDblSync(ByVal valueIn As Variant) As Double
+    If IsError(valueIn) Or IsNull(valueIn) Or IsEmpty(valueIn) Or valueIn = "" Then Exit Function
+    NzDblSync = CDbl(valueIn)
+End Function
+
+Private Function ResolveNumberSync(ByVal dict As Object, ByVal keyName As String) As Double
+    If dict Is Nothing Then Exit Function
+    If Not dict.Exists(keyName) Then Exit Function
+    ResolveNumberSync = NzDblSync(dict(keyName))
+End Function
 
 Private Function ResolveAppliedMeta(ByVal eventId As String, ByVal inventoryWb As Workbook) As Object
     Dim wb As Workbook
@@ -344,7 +512,8 @@ End Function
 Private Function ResolveOutboxPath(ByVal warehouseId As String) As String
     Dim rootPath As String
     If warehouseId = "" Then warehouseId = modConfig.GetWarehouseId()
-    rootPath = modConfig.GetString("PathDataRoot", Environ$("TEMP"))
+    rootPath = Trim$(GetCoreDataRootOverride())
+    If rootPath = "" Then rootPath = modConfig.GetString("PathDataRoot", Environ$("TEMP"))
     ResolveOutboxPath = NormalizeFolderPathSync(rootPath) & warehouseId & ".Outbox.Events.xlsb"
 End Function
 
@@ -355,7 +524,8 @@ Private Function ResolveSnapshotPath(ByVal warehouseId As String, ByVal outputPa
         Exit Function
     End If
     If warehouseId = "" Then warehouseId = modConfig.GetWarehouseId()
-    rootPath = modConfig.GetString("PathDataRoot", Environ$("TEMP"))
+    rootPath = Trim$(GetCoreDataRootOverride())
+    If rootPath = "" Then rootPath = modConfig.GetString("PathDataRoot", Environ$("TEMP"))
     ResolveSnapshotPath = NormalizeFolderPathSync(rootPath) & warehouseId & ".invSys.Snapshot.Inventory.xlsb"
 End Function
 
@@ -412,6 +582,26 @@ Private Function EnsureWorksheetSync(ByVal wb As Workbook, ByVal sheetName As St
     End If
 End Function
 
+Private Sub NormalizeWorkbookSheetsSync(ByVal wb As Workbook, ByVal wantedSheets As Variant)
+    Dim i As Long
+    Dim ws As Worksheet
+    Dim prevAlerts As Boolean
+
+    If wb Is Nothing Then Exit Sub
+
+    For i = LBound(wantedSheets) To UBound(wantedSheets)
+        EnsureWorksheetSync wb, CStr(wantedSheets(i))
+    Next i
+
+    prevAlerts = Application.DisplayAlerts
+    Application.DisplayAlerts = False
+    For i = wb.Worksheets.Count To 1 Step -1
+        Set ws = wb.Worksheets(i)
+        If Not WorksheetNameInSetSync(ws.Name, wantedSheets) Then ws.Delete
+    Next i
+    Application.DisplayAlerts = prevAlerts
+End Sub
+
 Private Sub EnsureWorksheetEditableSync(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
     If Not ws.ProtectContents Then Exit Sub
@@ -449,6 +639,15 @@ Private Sub EnsureListColumnSync(ByVal lo As ListObject, ByVal columnName As Str
     lo.ListColumns(lo.ListColumns.Count).Name = columnName
 End Sub
 
+Private Sub RemoveBlankSeedRowSync(ByVal lo As ListObject)
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    If lo.ListRows.Count <> 1 Then Exit Sub
+    If Not TableRowIsBlankSync(lo, 1) Then Exit Sub
+    EnsureTableSheetEditableSync lo, lo.Name
+    lo.ListRows(1).Delete
+End Sub
+
 Private Sub DeleteAllRowsSync(ByVal lo As ListObject)
     If lo Is Nothing Then Exit Sub
     EnsureTableSheetEditableSync lo, lo.Name
@@ -456,6 +655,33 @@ Private Sub DeleteAllRowsSync(ByVal lo As ListObject)
         lo.ListRows(lo.ListRows.Count).Delete
     Loop
 End Sub
+
+Private Function WorksheetNameInSetSync(ByVal sheetName As String, ByVal sheetNames As Variant) As Boolean
+    Dim i As Long
+
+    For i = LBound(sheetNames) To UBound(sheetNames)
+        If StrComp(CStr(sheetNames(i)), sheetName, vbTextCompare) = 0 Then
+            WorksheetNameInSetSync = True
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Function TableRowIsBlankSync(ByVal lo As ListObject, ByVal rowIndex As Long) As Boolean
+    Dim colIndex As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex <= 0 Or rowIndex > lo.ListRows.Count Then Exit Function
+
+    TableRowIsBlankSync = True
+    For colIndex = 1 To lo.ListColumns.Count
+        If SafeTrimSync(lo.DataBodyRange.Cells(rowIndex, colIndex).Value) <> "" Then
+            TableRowIsBlankSync = False
+            Exit Function
+        End If
+    Next colIndex
+End Function
 
 Private Function FindListObjectByNameSync(ByVal wb As Workbook, ByVal tableName As String) As ListObject
     Dim ws As Worksheet

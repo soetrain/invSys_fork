@@ -48,13 +48,14 @@ Public Function ApplyEventBridgeResult(ByVal evt As Object, _
 End Function
 
 Public Function ApplyEventBridgeEncoded(ByVal evt As Object, _
+                                        Optional ByVal inventoryWb As Workbook = Nothing, _
                                         Optional ByVal runId As String = "") As String
     Dim statusOut As String
     Dim errorCode As String
     Dim errorMessage As String
     Dim success As Boolean
 
-    success = modInventoryApply.ApplyEvent(evt, Nothing, runId, statusOut, errorCode, errorMessage)
+    success = modInventoryApply.ApplyEvent(evt, inventoryWb, runId, statusOut, errorCode, errorMessage)
     ApplyEventBridgeEncoded = CStr(Abs(CLng(success))) & vbTab & statusOut & vbTab & errorCode & vbTab & errorMessage
 End Function
 

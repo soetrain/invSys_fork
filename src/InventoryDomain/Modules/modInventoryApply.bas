@@ -136,6 +136,9 @@ Public Function ApplyEvent(ByVal evt As Object, _
     SetTableRowValue loApplied, r.Index, "SourceInbox", sourceInbox
     SetTableRowValue loApplied, r.Index, "Status", APPLY_STATUS_APPLIED
 
+    RebuildInventoryProjections wb
+    RefreshLedgerStatus wb, warehouseId, appliedSeq, eventId, appliedAt
+    SaveInventoryWorkbookIfWritable wb
     statusOut = APPLY_STATUS_APPLIED
     ApplyEvent = True
 
@@ -147,13 +150,25 @@ CleanExit:
     Exit Function
 
 FailApply:
+    Dim failNumber As Long
+    Dim failDescription As String
+
+    failNumber = Err.Number
+    failDescription = Err.Description
     On Error Resume Next
     If Not loLog Is Nothing Then SetSheetProtectionApply loLog.Parent, True
     If Not loApplied Is Nothing Then SetSheetProtectionApply loApplied.Parent, True
     On Error GoTo 0
     If errorCode = "" Then errorCode = "APPLY_EXCEPTION"
-    If errorMessage = "" Then errorMessage = Err.Description
+    If errorMessage = "" Then errorMessage = CStr(failNumber) & ": " & failDescription
 End Function
+
+Private Sub SaveInventoryWorkbookIfWritable(ByVal wb As Workbook)
+    If wb Is Nothing Then Exit Sub
+    If wb.ReadOnly Then Exit Sub
+    If Trim$(wb.Path) = "" Then Exit Sub
+    wb.Save
+End Sub
 
 Public Function ApplyReceiveEvent(ByVal evt As Object, _
                                   Optional ByVal inventoryWb As Workbook = Nothing, _
@@ -842,10 +857,17 @@ End Function
 
 Private Function BuildCanonicalInventoryPath(ByVal warehouseId As String) As String
     Dim resolvedWh As String
+    Dim rootPath As String
 
     resolvedWh = Trim$(warehouseId)
+    If resolvedWh = "" Then resolvedWh = SafeTrimApply(modConfig.GetString("WarehouseId", "WH1"))
     If resolvedWh = "" Then resolvedWh = "WH1"
-    BuildCanonicalInventoryPath = NormalizeFolderPathApply("C:\invSys\" & resolvedWh & "\") & resolvedWh & ".invSys.Data.Inventory.xlsb"
+
+    rootPath = SafeTrimApply(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    If rootPath = "" Then rootPath = SafeTrimApply(modConfig.GetString("PathDataRoot", ""))
+    If rootPath = "" Then rootPath = "C:\invSys\" & resolvedWh & "\"
+
+    BuildCanonicalInventoryPath = NormalizeFolderPathApply(rootPath) & resolvedWh & ".invSys.Data.Inventory.xlsb"
 End Function
 
 Private Function NormalizeFolderPathApply(ByVal folderPath As String) As String
@@ -899,4 +921,208 @@ Private Sub SetSheetProtectionApply(ByVal ws As Worksheet, ByVal protectAfter As
                       "Excel automation cannot add table rows while the sheet remains protected."
         End If
     End If
+End Sub
+
+Private Sub RebuildInventoryProjections(ByVal wb As Workbook)
+    Dim loLog As ListObject
+    Dim loSku As ListObject
+    Dim loLoc As ListObject
+    Dim skuQty As Object
+    Dim skuLast As Object
+    Dim locQty As Object
+    Dim locLast As Object
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim locationVal As String
+    Dim qtyDelta As Double
+    Dim appliedAt As Variant
+
+    If wb Is Nothing Then Exit Sub
+
+    Set loLog = FindListObjectByNameApply(wb, "tblInventoryLog")
+    Set loSku = FindListObjectByNameApply(wb, "tblSkuBalance")
+    Set loLoc = FindListObjectByNameApply(wb, "tblLocationBalance")
+    If loLog Is Nothing Or loSku Is Nothing Or loLoc Is Nothing Then Exit Sub
+
+    SetSheetProtectionApply loSku.Parent, False
+    SetSheetProtectionApply loLoc.Parent, False
+
+    Set skuQty = CreateObject("Scripting.Dictionary")
+    skuQty.CompareMode = vbTextCompare
+    Set skuLast = CreateObject("Scripting.Dictionary")
+    skuLast.CompareMode = vbTextCompare
+    Set locQty = CreateObject("Scripting.Dictionary")
+    locQty.CompareMode = vbTextCompare
+    Set locLast = CreateObject("Scripting.Dictionary")
+    locLast.CompareMode = vbTextCompare
+
+    If Not loLog.DataBodyRange Is Nothing Then
+        For rowIndex = 1 To loLog.ListRows.Count
+            sku = SafeTrimApply(GetCellByColumnApply(loLog, rowIndex, "SKU"))
+            If sku = "" Then GoTo ContinueLoop
+
+            qtyDelta = 0#
+            If IsNumeric(GetCellByColumnApply(loLog, rowIndex, "QtyDelta")) Then qtyDelta = CDbl(GetCellByColumnApply(loLog, rowIndex, "QtyDelta"))
+            locationVal = SafeTrimApply(GetCellByColumnApply(loLog, rowIndex, "Location"))
+            appliedAt = GetCellByColumnApply(loLog, rowIndex, "AppliedAtUTC")
+
+            AccumulateProjectionScalars skuQty, skuLast, sku, qtyDelta, appliedAt
+            AccumulateProjectionScalars locQty, locLast, sku & "|" & locationVal, qtyDelta, appliedAt
+ContinueLoop:
+        Next rowIndex
+    End If
+
+    RewriteSkuProjectionTable loSku, skuQty, skuLast
+    RewriteLocationProjectionTable loLoc, locQty, locLast
+
+    SetSheetProtectionApply loSku.Parent, True
+    SetSheetProtectionApply loLoc.Parent, True
+End Sub
+
+Private Sub RefreshLedgerStatus(ByVal wb As Workbook, _
+                                ByVal warehouseId As String, _
+                                ByVal appliedSeq As Long, _
+                                ByVal eventId As String, _
+                                ByVal appliedAt As Date)
+    Dim loStatus As ListObject
+    Dim loLog As ListObject
+    Dim loApplied As ListObject
+    Dim loSku As ListObject
+    Dim loLoc As ListObject
+    Dim rowIndex As Long
+
+    Set loStatus = FindListObjectByNameApply(wb, "tblInventoryLedgerStatus")
+    Set loLog = FindListObjectByNameApply(wb, "tblInventoryLog")
+    Set loApplied = FindListObjectByNameApply(wb, "tblAppliedEvents")
+    Set loSku = FindListObjectByNameApply(wb, "tblSkuBalance")
+    Set loLoc = FindListObjectByNameApply(wb, "tblLocationBalance")
+    If loStatus Is Nothing Then Exit Sub
+
+    SetSheetProtectionApply loStatus.Parent, False
+    rowIndex = EnsureWritableLedgerStatusRow(loStatus)
+
+    SetTableRowValue loStatus, rowIndex, "WarehouseId", warehouseId
+    SetTableRowValue loStatus, rowIndex, "LastAppliedSeq", appliedSeq
+    SetTableRowValue loStatus, rowIndex, "LastEventId", eventId
+    SetTableRowValue loStatus, rowIndex, "LastAppliedAtUTC", appliedAt
+    SetTableRowValue loStatus, rowIndex, "TotalEventRows", CountTableRowsApply(loLog)
+    SetTableRowValue loStatus, rowIndex, "TotalAppliedEvents", CountTableRowsApply(loApplied)
+    SetTableRowValue loStatus, rowIndex, "DistinctSkuCount", CountTableRowsApply(loSku)
+    SetTableRowValue loStatus, rowIndex, "DistinctLocationCount", CountTableRowsApply(loLoc)
+    SetTableRowValue loStatus, rowIndex, "ProjectionRebuiltAtUTC", Now
+    SetTableRowValue loStatus, rowIndex, "Notes", "Authoritative store: tblInventoryLog + tblAppliedEvents; projections are derived."
+
+    SetSheetProtectionApply loStatus.Parent, True
+End Sub
+
+Private Function EnsureWritableLedgerStatusRow(ByVal lo As ListObject) As Long
+    If lo Is Nothing Then Exit Function
+
+    If lo.DataBodyRange Is Nothing Then
+        lo.ListRows.Add
+        EnsureWritableLedgerStatusRow = 1
+        Exit Function
+    End If
+
+    If lo.ListRows.Count = 1 And TableRowIsBlankApply(lo, 1) Then
+        EnsureWritableLedgerStatusRow = 1
+    Else
+        Do While lo.ListRows.Count > 1
+            lo.ListRows(lo.ListRows.Count).Delete
+        Loop
+        EnsureWritableLedgerStatusRow = 1
+    End If
+End Function
+
+Private Function CountTableRowsApply(ByVal lo As ListObject) As Long
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    CountTableRowsApply = lo.ListRows.Count
+End Function
+
+Private Function TableRowIsBlankApply(ByVal lo As ListObject, ByVal rowIndex As Long) As Boolean
+    Dim colIndex As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then
+        TableRowIsBlankApply = True
+        Exit Function
+    End If
+    If rowIndex <= 0 Or rowIndex > lo.ListRows.Count Then Exit Function
+
+    TableRowIsBlankApply = True
+    For colIndex = 1 To lo.ListColumns.Count
+        If SafeTrimApply(lo.DataBodyRange.Cells(rowIndex, colIndex).Value) <> "" Then
+            TableRowIsBlankApply = False
+            Exit Function
+        End If
+    Next colIndex
+End Function
+
+Private Sub AccumulateProjectionScalars(ByVal qtyDict As Object, _
+                                        ByVal lastDict As Object, _
+                                        ByVal dictKey As String, _
+                                        ByVal qtyDelta As Double, _
+                                        ByVal appliedAt As Variant)
+    If qtyDict Is Nothing Or lastDict Is Nothing Then Exit Sub
+
+    If qtyDict.Exists(dictKey) Then
+        qtyDict(dictKey) = CDbl(qtyDict(dictKey)) + qtyDelta
+    Else
+        qtyDict.Add dictKey, qtyDelta
+    End If
+
+    If IsDate(appliedAt) Then
+        If Not lastDict.Exists(dictKey) Then
+            lastDict.Add dictKey, CDate(appliedAt)
+        ElseIf CDate(appliedAt) > CDate(lastDict(dictKey)) Then
+            lastDict(dictKey) = CDate(appliedAt)
+        End If
+    End If
+End Sub
+
+Private Sub RewriteSkuProjectionTable(ByVal lo As ListObject, ByVal qtyDict As Object, ByVal lastDict As Object)
+    Dim key As Variant
+    Dim r As ListRow
+
+    If lo Is Nothing Then Exit Sub
+
+    ClearProjectionRows lo
+    If qtyDict Is Nothing Then Exit Sub
+
+    For Each key In qtyDict.Keys
+        Set r = lo.ListRows.Add
+        SetTableRowValue lo, r.Index, "SKU", CStr(key)
+        SetTableRowValue lo, r.Index, "QtyOnHand", CDbl(qtyDict(key))
+        If lastDict.Exists(CStr(key)) Then SetTableRowValue lo, r.Index, "LastAppliedUTC", CDate(lastDict(key))
+    Next key
+End Sub
+
+Private Sub RewriteLocationProjectionTable(ByVal lo As ListObject, ByVal qtyDict As Object, ByVal lastDict As Object)
+    Dim key As Variant
+    Dim parts() As String
+    Dim r As ListRow
+
+    If lo Is Nothing Then Exit Sub
+
+    ClearProjectionRows lo
+    If qtyDict Is Nothing Then Exit Sub
+
+    For Each key In qtyDict.Keys
+        parts = Split(CStr(key), "|", 2)
+        Set r = lo.ListRows.Add
+        SetTableRowValue lo, r.Index, "SKU", parts(0)
+        If UBound(parts) >= 1 Then SetTableRowValue lo, r.Index, "Location", parts(1)
+        SetTableRowValue lo, r.Index, "QtyOnHand", CDbl(qtyDict(key))
+        If lastDict.Exists(CStr(key)) Then SetTableRowValue lo, r.Index, "LastAppliedUTC", CDate(lastDict(key))
+    Next key
+End Sub
+
+Private Sub ClearProjectionRows(ByVal lo As ListObject)
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    Do While lo.ListRows.Count > 0
+        lo.ListRows(lo.ListRows.Count).Delete
+    Loop
 End Sub

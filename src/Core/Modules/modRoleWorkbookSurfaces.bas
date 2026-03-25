@@ -108,7 +108,7 @@ Public Function EnsureInventoryManagementSurface(Optional ByVal targetWb As Work
     Set wb = ResolveTargetWorkbookSurface(targetWb)
 
     EnsureTableSurface wb, "InventoryManagement", "invSys", InventoryManagementHeadersSurface(), False
-    EnsureInventoryDomainSupportSurface wb
+    RemoveInventoryDomainSupportSurface wb
 
     EnsureInventoryManagementSurface = True
     Exit Function
@@ -120,7 +120,9 @@ End Function
 Private Function InventoryManagementHeadersSurface() As Variant
     InventoryManagementHeadersSurface = Array( _
         "ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "VENDOR_CODE", "CATEGORY", _
-        "RECEIVED", "USED", "MADE", "SHIPMENTS", "TOTAL INV", "LAST EDITED", "TOTAL INV LAST EDIT", "TIMESTAMP")
+        "RECEIVED", "USED", "MADE", "SHIPMENTS", "TOTAL INV", "LAST EDITED", "TOTAL INV LAST EDIT", "TIMESTAMP", _
+        "SKU", "ItemName", "QtyOnHand", "QtyAvailable", "LocationSummary", "LastAppliedUTC", "LastRefreshUTC", _
+        "SnapshotId", "SourceType", "IsStale")
 End Function
 
 Private Sub EnsureInventoryDomainSupportSurface(ByVal wb As Workbook)
@@ -133,6 +135,12 @@ Private Sub EnsureInventoryDomainSupportSurface(ByVal wb As Workbook)
 
     EnsureTableSurface wb, "Locks", "tblLocks", _
         Array("LockName", "OwnerStationId", "OwnerUserId", "RunId", "AcquiredAtUTC", "ExpiresAtUTC", "HeartbeatAtUTC", "Status"), False
+End Sub
+
+Private Sub RemoveInventoryDomainSupportSurface(ByVal wb As Workbook)
+    DeleteWorksheetSurface wb, "InventoryLog"
+    DeleteWorksheetSurface wb, "AppliedEvents"
+    DeleteWorksheetSurface wb, "Locks"
 End Sub
 
 Private Function ResolveTargetWorkbookSurface(ByVal targetWb As Workbook) As Workbook
@@ -323,6 +331,24 @@ Private Sub EnsureWorksheetEditableSurface(ByVal ws As Worksheet)
         Err.Raise vbObjectError + 2751, "modRoleWorkbookSurfaces.EnsureWorksheetEditableSurface", _
                   "Worksheet '" & ws.Name & "' is protected and could not be unprotected before updating workbook surfaces."
     End If
+End Sub
+
+Private Sub DeleteWorksheetSurface(ByVal wb As Workbook, ByVal sheetName As String)
+    Dim ws As Worksheet
+    Dim prevAlerts As Boolean
+
+    If wb Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Set ws = wb.Worksheets(sheetName)
+    On Error GoTo 0
+    If ws Is Nothing Then Exit Sub
+
+    EnsureWorksheetEditableSurface ws
+    prevAlerts = Application.DisplayAlerts
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = prevAlerts
 End Sub
 
 Private Sub FormatWorkbookSurface(ByVal wb As Workbook)

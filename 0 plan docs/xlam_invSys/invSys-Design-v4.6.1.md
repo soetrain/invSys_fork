@@ -1006,6 +1006,28 @@ projection values as ground truth if they conflict with the log.
 ### Operator Workbook Tables (Release 1)
 **Workbook:** Saved operator workbook (for example `FRODECO.inventory_management.xlsb`)
 
+**`tblInvSys` / operator inventory read model:**
+```text
+SKU             (text, PK/read-model key)
+ItemName        (text, optional)
+QtyOnHand       (number)
+QtyAvailable    (number, optional)
+LocationSummary (text, optional)
+LastAppliedUTC  (datetime, optional)
+LastRefreshUTC  (datetime)
+SnapshotId      (text)
+SourceType      (text)   LOCAL | SHAREPOINT | CACHED
+IsStale         (boolean)
+```
+
+**Schema note:**
+```text
+`tblInvSys` is the canonical operator-workbook inventory read model shape for R1.
+Role workbooks may include additional display/helper columns, but these columns
+are the minimum contract required for snapshot-fed inventory visibility and
+freshness signaling.
+```
+
 **Local workflow surfaces:**
 ```text
 Examples include:

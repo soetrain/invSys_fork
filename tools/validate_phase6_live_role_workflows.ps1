@@ -848,8 +848,16 @@ try {
     $loInboxReceive = Get-ListObjectSafe -Worksheet (Get-WorksheetSafe -Workbook $wbReceiveInboxRuntime -WorksheetName "InboxReceive") -TableName "tblInboxReceive"
     $loInventoryLog = Get-ListObjectSafe -Worksheet (Get-WorksheetSafe -Workbook $wbInventoryRuntime -WorksheetName "InventoryLog") -TableName "tblInventoryLog"
 
-    $receiveLocalOk = ([double](Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName "RECEIVED")) -eq 7 -and (Get-RowCountSafe $loReceiveLog) -eq 1
-    Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Local" -Passed $receiveLocalOk -Detail "RECEIVED=$((Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName 'RECEIVED')); LogRows=$(Get-RowCountSafe $loReceiveLog)"
+    $receiveLocalOk = ([double](Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName "RECEIVED")) -eq 0 `
+        -and ([double](Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName "TOTAL INV")) -eq 7 `
+        -and ([double](Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName "QtyOnHand")) -eq 7 `
+        -and ([double](Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName "QtyAvailable")) -eq 7 `
+        -and ([string](Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName "SKU")) -eq "SKU-REC" `
+        -and ([string](Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName "SourceType")) -eq "LOCAL" `
+        -and (-not [string]::IsNullOrWhiteSpace([string](Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName "SnapshotId"))) `
+        -and (([string](Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName "IsStale")).Trim().ToUpperInvariant() -in @("FALSE","0")) `
+        -and (Get-RowCountSafe $loReceiveLog) -eq 1
+    Add-ResultRow -Rows $resultRows -Check "Receiving.ConfirmWrites.Local" -Passed $receiveLocalOk -Detail "RECEIVED=$((Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName 'RECEIVED')); TOTAL_INV=$((Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName 'TOTAL INV')); QtyOnHand=$((Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName 'QtyOnHand')); SourceType=$((Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName 'SourceType')); IsStale=$((Get-RowValueSafe -ListObject $loReceiveInv -RowIndex 1 -ColumnName 'IsStale')); LogRows=$(Get-RowCountSafe $loReceiveLog)"
 
     $receiveInboxAfter = Get-RowCountSafe $loInboxReceive
     $receiveQueuedRow = 0

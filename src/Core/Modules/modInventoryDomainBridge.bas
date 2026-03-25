@@ -56,18 +56,13 @@ Public Function ApplyInventoryEventBridge(ByVal evt As Object, _
                                          Optional ByRef statusOut As String = "", _
                                          Optional ByRef errorCode As String = "", _
                                          Optional ByRef errorMessage As String = "") As Boolean
-    Dim result As Variant
+    Dim encoded As String
 
     On Error GoTo FailApply
     If inventoryWb Is Nothing Then Set inventoryWb = ResolveInventoryWorkbookBridge(GetBridgeString(evt, "WarehouseId"))
 
-    result = RunInventoryDomainMacro3("modInventoryBridgeApi.ApplyEventBridgeResult", evt, inventoryWb, runId)
-    If IsObject(result) Then
-        ApplyInventoryEventBridge = GetBridgeBool(result, "Success")
-        statusOut = GetBridgeString(result, "StatusOut")
-        errorCode = GetBridgeString(result, "ErrorCode")
-        errorMessage = GetBridgeString(result, "ErrorMessage")
-    End If
+    encoded = CStr(RunInventoryDomainMacro3("modInventoryBridgeApi.ApplyEventBridgeEncoded", evt, inventoryWb, runId))
+    ApplyInventoryEventBridge = DecodeApplyBridgeEncoded(encoded, statusOut, errorCode, errorMessage)
     Exit Function
 
 FailApply:
@@ -376,6 +371,27 @@ Private Function GetBridgeBool(ByVal payload As Object, ByVal key As String) As 
         If payload.Exists(key) Then GetBridgeBool = CBool(payload(key))
     End If
     On Error GoTo 0
+End Function
+
+Private Function DecodeApplyBridgeEncoded(ByVal encoded As String, _
+                                          ByRef statusOut As String, _
+                                          ByRef errorCode As String, _
+                                          ByRef errorMessage As String) As Boolean
+    Dim parts() As String
+    Dim i As Long
+
+    If encoded = "" Then Exit Function
+
+    parts = Split(encoded, vbTab)
+    If UBound(parts) >= 0 Then DecodeApplyBridgeEncoded = (Trim$(parts(0)) = "1")
+    If UBound(parts) >= 1 Then statusOut = parts(1)
+    If UBound(parts) >= 2 Then errorCode = parts(2)
+    If UBound(parts) >= 3 Then
+        errorMessage = parts(3)
+        For i = 4 To UBound(parts)
+            errorMessage = errorMessage & vbTab & parts(i)
+        Next i
+    End If
 End Function
 
 Private Function OpenOrCreateCanonicalInventoryWorkbookLocal(ByVal warehouseId As String, ByRef report As String) As Workbook

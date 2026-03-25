@@ -236,6 +236,7 @@ Private Function EnsureInboxSchemaCore(ByVal targetWb As Workbook, _
                     "UserId", "SKU", "Qty", "Location", "Note", "PayloadJson", "Status", "RetryCount", "ErrorCode", _
                     "ErrorMessage", "FailedAtUTC")
 
+    NormalizeWorkbookSheetsProcessor wb, Array(sheetName)
     Set ws = EnsureWorksheetProcessor(wb, sheetName)
     SetSheetProtectionProcessor ws, False
     On Error Resume Next
@@ -257,10 +258,11 @@ Private Function EnsureInboxSchemaCore(ByVal targetWb As Workbook, _
         EnsureListColumnProcessor lo, CStr(headers(i))
     Next i
 
-    EnsureTableHasRowProcessor lo
+    RemoveBlankSeedRowProcessor lo
     EnsureInboxDefaultEventType lo, defaultEventType
     report = "OK"
     EnsureInboxSchemaCore = True
+    SaveWorkbookProcessor wb
     SetSheetProtectionProcessor ws, True
     Exit Function
 
@@ -441,6 +443,7 @@ Private Sub UpdateInboxRowStatus(ByVal lo As ListObject, ByVal rowIndex As Long,
     End Select
 
     SetSheetProtectionProcessor lo.Parent, True
+    SaveWorkbookProcessor lo.Parent.Parent
 End Sub
 
 Private Function GetDictionaryString(ByVal d As Object, ByVal key As String) As String
@@ -484,6 +487,14 @@ Private Sub EnsureTableHasRowProcessor(ByVal lo As ListObject)
     If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
 End Sub
 
+Private Sub RemoveBlankSeedRowProcessor(ByVal lo As ListObject)
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    If lo.ListRows.Count <> 1 Then Exit Sub
+    If Not TableRowIsBlankProcessor(lo, 1) Then Exit Sub
+    lo.ListRows(1).Delete
+End Sub
+
 Private Function EnsureWorksheetProcessor(ByVal wb As Workbook, ByVal sheetName As String) As Worksheet
     On Error Resume Next
     Set EnsureWorksheetProcessor = wb.Worksheets(sheetName)
@@ -494,6 +505,26 @@ Private Function EnsureWorksheetProcessor(ByVal wb As Workbook, ByVal sheetName 
         EnsureWorksheetProcessor.Name = sheetName
     End If
 End Function
+
+Private Sub NormalizeWorkbookSheetsProcessor(ByVal wb As Workbook, ByVal wantedSheets As Variant)
+    Dim i As Long
+    Dim ws As Worksheet
+    Dim prevAlerts As Boolean
+
+    If wb Is Nothing Then Exit Sub
+
+    For i = LBound(wantedSheets) To UBound(wantedSheets)
+        EnsureWorksheetProcessor wb, CStr(wantedSheets(i))
+    Next i
+
+    prevAlerts = Application.DisplayAlerts
+    Application.DisplayAlerts = False
+    For i = wb.Worksheets.Count To 1 Step -1
+        Set ws = wb.Worksheets(i)
+        If Not WorksheetNameInSetProcessor(ws.Name, wantedSheets) Then ws.Delete
+    Next i
+    Application.DisplayAlerts = prevAlerts
+End Sub
 
 Private Function GetNextTableStartCellProcessor(ByVal ws As Worksheet) As Range
     If Application.WorksheetFunction.CountA(ws.Cells) = 0 Then
@@ -548,6 +579,33 @@ Private Function SafeTrimProcessor(ByVal valueIn As Variant) As String
     SafeTrimProcessor = Trim$(CStr(valueIn))
 End Function
 
+Private Function WorksheetNameInSetProcessor(ByVal sheetName As String, ByVal sheetNames As Variant) As Boolean
+    Dim i As Long
+
+    For i = LBound(sheetNames) To UBound(sheetNames)
+        If StrComp(CStr(sheetNames(i)), sheetName, vbTextCompare) = 0 Then
+            WorksheetNameInSetProcessor = True
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Function TableRowIsBlankProcessor(ByVal lo As ListObject, ByVal rowIndex As Long) As Boolean
+    Dim colIndex As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex <= 0 Or rowIndex > lo.ListRows.Count Then Exit Function
+
+    TableRowIsBlankProcessor = True
+    For colIndex = 1 To lo.ListColumns.Count
+        If SafeTrimProcessor(lo.DataBodyRange.Cells(rowIndex, colIndex).Value) <> "" Then
+            TableRowIsBlankProcessor = False
+            Exit Function
+        End If
+    Next colIndex
+End Function
+
 Private Sub SetSheetProtectionProcessor(ByVal ws As Worksheet, ByVal protectAfter As Boolean)
     If ws Is Nothing Then Exit Sub
     If protectAfter Then
@@ -565,4 +623,11 @@ Private Sub SetSheetProtectionProcessor(ByVal ws As Worksheet, ByVal protectAfte
                       "Excel automation cannot update inbox tables while the sheet remains protected."
         End If
     End If
+End Sub
+
+Private Sub SaveWorkbookProcessor(ByVal wb As Workbook)
+    If wb Is Nothing Then Exit Sub
+    If wb.ReadOnly Then Exit Sub
+    If Trim$(wb.Path) = "" Then Exit Sub
+    wb.Save
 End Sub

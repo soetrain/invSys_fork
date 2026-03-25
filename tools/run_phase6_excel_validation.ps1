@@ -81,7 +81,8 @@ End Function
 
 $repo = (Resolve-Path $RepoRoot).Path
 $fixtures = Join-Path $repo "tests/fixtures"
-$harnessPath = Join-Path $fixtures "Phase6_TestHarness.xlsm"
+$harnessStamp = Get-Date -Format "yyyyMMdd_HHmmss_fff"
+$harnessPath = Join-Path $fixtures "Phase6_TestHarness_$harnessStamp.xlsm"
 $resultPath = Join-Path $repo "tests/unit/phase6_test_results.md"
 
 $excel = $null
@@ -96,7 +97,9 @@ try {
         (Join-Path $repo "src/Core/Modules/modConfigDefaults.bas"),
         (Join-Path $repo "src/Core/Modules/modRuntimeWorkbooks.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleWorkbookSurfaces.bas"),
+        (Join-Path $repo "src/Core/Modules/modOperatorReadModel.bas"),
         (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),
+        (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
         (Join-Path $repo "src/Core/Modules/modConfig.bas"),
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
         (Join-Path $repo "src/Admin/Modules/modAdminConsole.bas"),
@@ -112,6 +115,10 @@ try {
         "TestPhase6CoreSurfaces.TestLoadAuth_AutoBootstrapsCanonicalWorkbook",
         "TestPhase6CoreSurfaces.TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities",
         "TestPhase6CoreSurfaces.TestResolveInventoryWorkbookBridge_PrefersCanonicalWorkbookOverOperatorSurface",
+        "TestPhase6CoreSurfaces.TestEnsureInventoryManagementSurface_RemovesDomainArtifacts",
+        "TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_PrunesUnexpectedSheets",
+        "TestPhase6CoreSurfaces.TestRefreshInventoryReadModelFromSnapshot_UpdatesReadModelAndMetadata",
+        "TestPhase6CoreSurfaces.TestRefreshInventoryReadModel_MissingSnapshotMarksStaleWithoutMutatingReceivingTally",
         "TestPhase6RoleSurfaces.TestEnsureReceivingWorkbookSurface_CreatesExpectedTables",
         "TestPhase6RoleSurfaces.TestEnsureReceivingWorkbookSurface_RecreatesDeletedArtifacts",
         "TestPhase6RoleSurfaces.TestEnsureShippingWorkbookSurface_CreatesExpectedTables",
@@ -121,7 +128,6 @@ try {
         "TestPhase6RoleSurfaces.TestEnsureAdminWorkbookSurface_CreatesExpectedTables"
     )
 
-    if (Test-Path $harnessPath) { Remove-Item $harnessPath -Force }
     $harness = $excel.Workbooks.Add()
     $bootstrap = Add-BootstrapModule -Workbook $harness
     $vbProject = $harness.VBProject

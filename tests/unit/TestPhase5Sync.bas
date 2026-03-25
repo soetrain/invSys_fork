@@ -48,6 +48,8 @@ Public Function TestRunBatch_WritesOutboxAndSnapshot() As Long
     If CStr(TestPhase2Helpers.GetRowValue(loOutbox, FindRowByColumnValue(loOutbox, "EventID", "EVT-P5-001"), "WarehouseId")) <> "WHS5" Then GoTo CleanExit
     If FindRowByColumnValue(loSnap, "SKU", "SKU-001") = 0 Then GoTo CleanExit
     If CDbl(TestPhase2Helpers.GetRowValue(loSnap, FindRowByColumnValue(loSnap, "SKU", "SKU-001"), "QtyOnHand")) <> 9 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loSnap, FindRowByColumnValue(loSnap, "SKU", "SKU-001"), "QtyAvailable")) <> 9 Then GoTo CleanExit
+    If InStr(1, CStr(TestPhase2Helpers.GetRowValue(loSnap, FindRowByColumnValue(loSnap, "SKU", "SKU-001"), "LocationSummary")), "A1", vbTextCompare) = 0 Then GoTo CleanExit
 
     TestRunBatch_WritesOutboxAndSnapshot = 1
 

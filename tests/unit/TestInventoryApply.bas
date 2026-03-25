@@ -9,6 +9,8 @@ Public Sub RunInventoryApplyTests()
     Tally TestApplyReceive_InvalidSKU(), passed, failed
     Tally TestApplyReceive_Duplicate(), passed, failed
     Tally TestApplyReceive_ProtectedSheetReturnsClearError(), passed, failed
+    Tally TestApplyReceive_RebuildsProjectionTables(), passed, failed
+    Tally TestResolveInventoryWorkbook_UsesConfiguredPathDataRoot(), passed, failed
     Tally TestApplyShip_MultiLineEvent(), passed, failed
     Tally TestApplyProdConsume_MultiLineEvent(), passed, failed
     Tally TestApplyProdComplete_MultiLineEvent(), passed, failed
@@ -97,6 +99,71 @@ Public Function TestApplyReceive_InvalidSKU() As Long
     TestApplyReceive_InvalidSKU = 1
 
 CleanExit:
+    TestPhase2Helpers.CloseNoSave wbInv
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestApplyReceive_RebuildsProjectionTables() As Long
+    Dim wbInv As Workbook
+    Dim evt As Object
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+    Dim loSku As ListObject
+    Dim loLoc As ListObject
+    Dim loStatus As ListObject
+
+    Set wbInv = TestPhase2Helpers.BuildPhase2InventoryWorkbook("WH1", Array("SKU-001"))
+    Set evt = TestPhase2Helpers.CreateReceiveEvent("EVT-001P", "WH1", "S1", "user1", "SKU-001", 5, "A1", "projection rebuild")
+
+    On Error GoTo CleanFail
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-001", statusOut, errorCode, errorMessage) Then GoTo CleanExit
+
+    Set loSku = wbInv.Worksheets("SkuBalance").ListObjects("tblSkuBalance")
+    Set loLoc = wbInv.Worksheets("LocationBalance").ListObjects("tblLocationBalance")
+    Set loStatus = wbInv.Worksheets("LedgerStatus").ListObjects("tblInventoryLedgerStatus")
+    If loSku.ListRows.Count <> 1 Then GoTo CleanExit
+    If loLoc.ListRows.Count <> 1 Then GoTo CleanExit
+    If loStatus.ListRows.Count <> 1 Then GoTo CleanExit
+    If CStr(TestPhase2Helpers.GetRowValue(loSku, 1, "SKU")) <> "SKU-001" Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loSku, 1, "QtyOnHand")) <> 5 Then GoTo CleanExit
+    If CStr(TestPhase2Helpers.GetRowValue(loLoc, 1, "Location")) <> "A1" Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLoc, 1, "QtyOnHand")) <> 5 Then GoTo CleanExit
+    If CStr(TestPhase2Helpers.GetRowValue(loStatus, 1, "LastEventId")) <> "EVT-001P" Then GoTo CleanExit
+    If CLng(TestPhase2Helpers.GetRowValue(loStatus, 1, "LastAppliedSeq")) <> 1 Then GoTo CleanExit
+    If CLng(TestPhase2Helpers.GetRowValue(loStatus, 1, "DistinctSkuCount")) <> 1 Then GoTo CleanExit
+    If CLng(TestPhase2Helpers.GetRowValue(loStatus, 1, "DistinctLocationCount")) <> 1 Then GoTo CleanExit
+
+    TestApplyReceive_RebuildsProjectionTables = 1
+
+CleanExit:
+    TestPhase2Helpers.CloseNoSave wbInv
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestResolveInventoryWorkbook_UsesConfiguredPathDataRoot() As Long
+    Dim wbInv As Workbook
+    Dim rootPath As String
+    Dim targetPath As String
+
+    rootPath = TestPhase2Helpers.BuildUniqueTestFolder("phase2_inventory_root")
+    targetPath = rootPath & "\WH9.invSys.Data.Inventory.xlsb"
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    Set wbInv = modInventoryApply.ResolveInventoryWorkbook("WH9")
+    If wbInv Is Nothing Then GoTo CleanExit
+    If StrComp(wbInv.FullName, targetPath, vbTextCompare) <> 0 Then GoTo CleanExit
+    If Len(Dir$(targetPath)) = 0 Then GoTo CleanExit
+
+    TestResolveInventoryWorkbook_UsesConfiguredPathDataRoot = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
     TestPhase2Helpers.CloseNoSave wbInv
     Exit Function
 CleanFail:

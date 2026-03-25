@@ -239,7 +239,7 @@ End Sub
 ' Confirm Writes sub-system
 ' -------------------------
 ' - AggregateReceived already holds the summed QUANTITY per invSys ROW and concatenated REF_NUMBER for display.
-' - ConfirmWrites uses AGG.QUANTITY directly to add into invSys.RECEIVED (no recompute, no overwrite of AGG).
+' - ConfirmWrites queues/applies receive events, then refreshes the operator invSys read model from snapshot.
 ' - ReceivedLog is per REF: REF/ITEM/QUANTITY from staging; ROW/UOM/LOCATION from AggregateReceived; SNAPSHOT_ID/ENTRY_DATE generated.
 ' - AggregateReceived is treated as read-only for the user; code clears it only after a successful Confirm.
 ' =========================
@@ -395,19 +395,14 @@ Public Sub ConfirmWrites()
         End If
     Next
 
-    ' Apply writes to invSys (per aggregated row)
+    ' Validate invSys row references used for local logging/read-model alignment.
     For r = 1 To UBound(arr, 1)
         Dim tgtRow As Long: tgtRow = NzLng(arr(r, cols("ROW")))
-        Dim qty As Double: qty = NzDbl(arr(r, cols("QUANTITY")))
         Dim invRow As ListRow: Set invRow = FindInvRowByROW(inv, tgtRow)
         If invRow Is Nothing Then
             errs = errs & "Row " & r & ": invSys ROW " & tgtRow & " not found" & vbCrLf
             GoTo Bail
         End If
-        Dim invRecvCol As Long: invRecvCol = ColumnIndex(inv, "RECEIVED")
-        Dim oldVal As Double: oldVal = NzDbl(invRow.Range.Cells(1, invRecvCol).value)
-        RecordInvDelta invRow.Index, oldVal ' for undo
-        invRow.Range.Cells(1, invRecvCol).value = oldVal + qty
     Next
 
     ' Log per REF_NUMBER using staging (ReceivedTally) quantities + ROW/UOM/LOCATION from refMap
@@ -449,7 +444,7 @@ NextRt:
     ' Clear staging on success
     ClearTable wsRT.ListObjects("ReceivedTally")
     ClearTable agg
-    ProcessQueuedReceiveEventsRuntime
+    ProcessQueuedReceiveEventsRuntime wb
     mRedoReady = True
     Exit Sub
 
@@ -506,16 +501,30 @@ Public Function ValidateQueueReceiveEventsFromCurrentWorkbook() As String
     End If
 End Function
 
-Private Sub ProcessQueuedReceiveEventsRuntime()
+Private Sub ProcessQueuedReceiveEventsRuntime(Optional ByVal operatorWb As Workbook = Nothing)
     Dim warehouseId As String
     Dim report As String
+    Dim refreshReport As String
+    Dim surfaceReport As String
+    Dim wb As Workbook
 
     warehouseId = modConfig.GetWarehouseId()
     If warehouseId = "" Then Exit Sub
 
+    Set wb = ResolveReceivingWorkbook(operatorWb, SHEET_RECEIVING)
+    If wb Is Nothing Then Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+
     Call modProcessor.RunBatch(warehouseId, 0, report)
     If Left$(report, 15) = "RunBatch failed" Then
         MsgBox "Local receive writes succeeded, but runtime processing failed:" & vbCrLf & report, vbExclamation
+    End If
+
+    Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, warehouseId, "LOCAL", refreshReport) Then
+        MsgBox "Receive events were queued, but operator read-model refresh failed:" & vbCrLf & refreshReport, vbExclamation
+    ElseIf refreshReport <> "OK" Then
+        MsgBox refreshReport, vbInformation
     End If
 End Sub
 

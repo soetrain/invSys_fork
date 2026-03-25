@@ -216,6 +216,167 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestEnsureInventoryManagementSurface_RemovesDomainArtifacts() As Long
+    Dim wb As Workbook
+    Dim report As String
+
+    On Error GoTo CleanFail
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+    AddNamedWorksheetWithMarker wb, "InventoryLog", "legacy-log"
+    AddNamedWorksheetWithMarker wb, "AppliedEvents", "legacy-applied"
+    AddNamedWorksheetWithMarker wb, "Locks", "legacy-locks"
+
+    If Not modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, report) Then GoTo CleanExit
+
+    If WorksheetExistsByName(wb, "InventoryManagement") _
+       And Not WorksheetExistsByName(wb, "InventoryLog") _
+       And Not WorksheetExistsByName(wb, "AppliedEvents") _
+       And Not WorksheetExistsByName(wb, "Locks") _
+       And HasTableByName(wb, "invSys") Then
+        TestEnsureInventoryManagementSurface_RemovesDomainArtifacts = 1
+    End If
+
+CleanExit:
+    CloseWorkbookIfOpen wb
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestOpenOrCreateConfigWorkbookRuntime_PrunesUnexpectedSheets() As Long
+    Dim rootPath As String
+    Dim wb As Workbook
+    Dim extraWs As Worksheet
+    Dim targetPath As String
+    Dim report As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_cfg_prune")
+
+    On Error GoTo CleanFail
+    targetPath = rootPath & "\WH67.invSys.Config.xlsb"
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+    wb.Worksheets(1).Name = "WarehouseConfig"
+    Set extraWs = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+    extraWs.Name = "StationConfig"
+    Set extraWs = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+    extraWs.Name = "ReceivedTally"
+    extraWs.Range("A1").Value = "legacy-surface"
+    wb.SaveAs Filename:=targetPath, FileFormat:=50
+    wb.Close SaveChanges:=False
+    Set wb = Nothing
+
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    Set wb = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH67", "S7", rootPath, report)
+    If wb Is Nothing Then GoTo CleanExit
+
+    If wb.Worksheets.Count = 2 _
+       And WorksheetExistsByName(wb, "WarehouseConfig") _
+       And WorksheetExistsByName(wb, "StationConfig") _
+       And Not WorksheetExistsByName(wb, "ReceivedTally") Then
+        TestOpenOrCreateConfigWorkbookRuntime_PrunesUnexpectedSheets = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wb
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestRefreshInventoryReadModelFromSnapshot_UpdatesReadModelAndMetadata() As Long
+    Dim rootPath As String
+    Dim wbOps As Workbook
+    Dim wbSnap As Workbook
+    Dim report As String
+    Dim loInv As ListObject
+
+    rootPath = BuildRuntimeTestRoot("phase6_read_model")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH68", "S8") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH68.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = wbOps.Worksheets("InventoryManagement").ListObjects("invSys")
+    AddInvSysSeedRow loInv, 901, "SKU-RM-001", "Read Model Item", "EA", "A1", 99
+
+    Set wbSnap = CreateSnapshotWorkbook(rootPath, "WH68", "SKU-RM-001", 7, CDate("2026-03-24 17:30:00"))
+    If wbSnap Is Nothing Then GoTo CleanExit
+
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wbOps, "WH68", "LOCAL", report) Then GoTo CleanExit
+
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) = 7 _
+       And CDbl(GetTableValue(loInv, 1, "QtyOnHand")) = 7 _
+       And CDbl(GetTableValue(loInv, 1, "QtyAvailable")) = 7 _
+       And StrComp(CStr(GetTableValue(loInv, 1, "LOCATION")), "A1", vbTextCompare) = 0 _
+       And StrComp(CStr(GetTableValue(loInv, 1, "SKU")), "SKU-RM-001", vbTextCompare) = 0 _
+       And StrComp(CStr(GetTableValue(loInv, 1, "ItemName")), "Read Model Item", vbTextCompare) = 0 _
+       And InStr(1, CStr(GetTableValue(loInv, 1, "LocationSummary")), "A1", vbTextCompare) > 0 _
+       And CBool(GetTableValue(loInv, 1, "IsStale")) = False _
+       And StrComp(CStr(GetTableValue(loInv, 1, "SourceType")), "LOCAL", vbTextCompare) = 0 _
+       And Trim$(CStr(GetTableValue(loInv, 1, "SnapshotId"))) <> "" _
+       And IsDate(GetTableValue(loInv, 1, "LastRefreshUTC")) _
+       And IsDate(GetTableValue(loInv, 1, "LastAppliedUTC")) Then
+        TestRefreshInventoryReadModelFromSnapshot_UpdatesReadModelAndMetadata = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbOps
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestRefreshInventoryReadModel_MissingSnapshotMarksStaleWithoutMutatingReceivingTally() As Long
+    Dim rootPath As String
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim loInv As ListObject
+    Dim loRecv As ListObject
+
+    rootPath = BuildRuntimeTestRoot("phase6_read_model_missing")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH69", "S9") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH69.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+
+    Set loInv = wbOps.Worksheets("InventoryManagement").ListObjects("invSys")
+    Set loRecv = wbOps.Worksheets("ReceivedTally").ListObjects("ReceivedTally")
+    AddInvSysSeedRow loInv, 902, "SKU-RM-002", "Stale Item", "EA", "B1", 12
+    AddReceivedTallyRow loRecv, "REF-ST-001", "Stale Item", 3, 902
+
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wbOps, "WH69", "LOCAL", report) Then GoTo CleanExit
+
+    If CBool(GetTableValue(loInv, 1, "IsStale")) = True _
+       And StrComp(CStr(GetTableValue(loInv, 1, "SourceType")), "CACHED", vbTextCompare) = 0 _
+       And CDbl(GetTableValue(loInv, 1, "TOTAL INV")) = 12 _
+       And loRecv.ListRows.Count = 1 _
+       And StrComp(CStr(GetTableValue(loRecv, 1, "REF_NUMBER")), "REF-ST-001", vbTextCompare) = 0 Then
+        TestRefreshInventoryReadModel_MissingSnapshotMarksStaleWithoutMutatingReceivingTally = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Private Function GetTableValue(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As Variant
     GetTableValue = lo.DataBodyRange.Cells(rowIndex, lo.ListColumns(columnName).Index).Value
 End Function
@@ -255,6 +416,125 @@ Private Function FindWorksheetByPrefix(ByVal wb As Workbook, ByVal prefixText As
             Exit Function
         End If
     Next ws
+End Function
+
+Private Function WorksheetExistsByName(ByVal wb As Workbook, ByVal sheetName As String) As Boolean
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        If StrComp(ws.Name, sheetName, vbTextCompare) = 0 Then
+            WorksheetExistsByName = True
+            Exit Function
+        End If
+    Next ws
+End Function
+
+Private Function HasTableByName(ByVal wb As Workbook, ByVal tableName As String) As Boolean
+    HasTableByName = Not FindTableByName(wb, tableName) Is Nothing
+End Function
+
+Private Function FindTableByName(ByVal wb As Workbook, ByVal tableName As String) As ListObject
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        On Error Resume Next
+        Set FindTableByName = ws.ListObjects(tableName)
+        On Error GoTo 0
+        If Not FindTableByName Is Nothing Then Exit Function
+    Next ws
+End Function
+
+Private Sub AddNamedWorksheetWithMarker(ByVal wb As Workbook, ByVal sheetName As String, ByVal markerText As String)
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Sub
+    Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+    ws.Name = sheetName
+    ws.Range("A1").Value = markerText
+End Sub
+
+Private Sub AddInvSysSeedRow(ByVal lo As ListObject, ByVal rowValue As Long, ByVal sku As String, ByVal itemName As String, ByVal uom As String, ByVal locationVal As String, ByVal totalInv As Double)
+    Dim lr As ListRow
+
+    If lo Is Nothing Then Exit Sub
+    Set lr = lo.ListRows.Add
+    SetTableCell lo, lr.Index, "ROW", rowValue
+    SetTableCell lo, lr.Index, "ITEM_CODE", sku
+    SetTableCell lo, lr.Index, "ITEM", itemName
+    SetTableCell lo, lr.Index, "UOM", uom
+    SetTableCell lo, lr.Index, "LOCATION", locationVal
+    SetTableCell lo, lr.Index, "TOTAL INV", totalInv
+End Sub
+
+Private Sub AddReceivedTallyRow(ByVal lo As ListObject, ByVal refNumber As String, ByVal itemName As String, ByVal qty As Double, ByVal rowValue As Long)
+    Dim lr As ListRow
+
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then
+        Set lr = lo.ListRows.Add
+    ElseIf Trim$(CStr(GetTableValue(lo, 1, "REF_NUMBER"))) = "" _
+        And Trim$(CStr(GetTableValue(lo, 1, "ITEMS"))) = "" _
+        And NzDblForTest(GetTableValue(lo, 1, "QUANTITY")) = 0 Then
+        Set lr = lo.ListRows(1)
+    Else
+        Set lr = lo.ListRows.Add
+    End If
+    SetTableCell lo, lr.Index, "REF_NUMBER", refNumber
+    SetTableCell lo, lr.Index, "ITEMS", itemName
+    SetTableCell lo, lr.Index, "QUANTITY", qty
+    SetTableCell lo, lr.Index, "ROW", rowValue
+End Sub
+
+Private Sub SetTableCell(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueIn As Variant)
+    If lo Is Nothing Then Exit Sub
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns(columnName).Index).Value = valueIn
+End Sub
+
+Private Sub SetConfigWarehouseValue(ByVal workbookName As String, ByVal columnName As String, ByVal valueIn As Variant)
+    Dim wb As Workbook
+    Dim lo As ListObject
+
+    Set wb = FindWorkbookByName(workbookName)
+    If wb Is Nothing Then Exit Sub
+    Set lo = wb.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
+    If lo Is Nothing Then Exit Sub
+    lo.DataBodyRange.Cells(1, lo.ListColumns(columnName).Index).Value = valueIn
+    wb.Save
+End Sub
+
+Private Function NzDblForTest(ByVal valueIn As Variant) As Double
+    If IsError(valueIn) Or IsNull(valueIn) Or IsEmpty(valueIn) Or valueIn = "" Then Exit Function
+    NzDblForTest = CDbl(valueIn)
+End Function
+
+Private Function CreateSnapshotWorkbook(ByVal rootPath As String, ByVal warehouseId As String, ByVal sku As String, ByVal qtyOnHand As Double, ByVal lastAppliedUtc As Date) As Workbook
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    Dim targetPath As String
+
+    targetPath = rootPath & "\" & warehouseId & ".invSys.Snapshot.Inventory.xlsb"
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+    Set ws = wb.Worksheets(1)
+    ws.Name = "InventorySnapshot"
+    ws.Range("A1").Value = "WarehouseId"
+    ws.Range("B1").Value = "SKU"
+    ws.Range("C1").Value = "QtyOnHand"
+    ws.Range("D1").Value = "QtyAvailable"
+    ws.Range("E1").Value = "LocationSummary"
+    ws.Range("F1").Value = "LastAppliedAtUTC"
+    ws.Range("A2").Value = warehouseId
+    ws.Range("B2").Value = sku
+    ws.Range("C2").Value = qtyOnHand
+    ws.Range("D2").Value = qtyOnHand
+    ws.Range("E2").Value = "A1=" & CStr(CLng(qtyOnHand))
+    ws.Range("F2").Value = lastAppliedUtc
+    Set lo = ws.ListObjects.Add(xlSrcRange, ws.Range("A1:F2"), , xlYes)
+    lo.Name = "tblInventorySnapshot"
+    wb.SaveAs Filename:=targetPath, FileFormat:=50
+    Set CreateSnapshotWorkbook = wb
 End Function
 
 Private Sub CloseWorkbookIfOpen(ByVal wb As Workbook)

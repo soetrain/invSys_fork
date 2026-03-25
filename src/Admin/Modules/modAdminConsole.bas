@@ -347,20 +347,7 @@ Public Function GenerateInventorySnapshot(Optional ByVal adminUserId As String =
     Dim resolvedSt As String
     Dim resolvedUser As String
     Dim sourceInvWb As Workbook
-    Dim loLog As ListObject
-    Dim summary As Object
-    Dim lastApplied As Object
-    Dim i As Long
-    Dim sku As String
-    Dim qty As Double
-    Dim rowDate As Variant
-    Dim snapWb As Workbook
-    Dim ws As Worksheet
-    Dim loSnap As ListObject
     Dim snapPath As String
-    Dim dataRows As Long
-    Dim key As Variant
-    Dim r As Long
 
     If Not EnsureAdminContext(adminUserId, warehouseId, resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
     If Not RequireAdminMaintenance(resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
@@ -371,66 +358,11 @@ Public Function GenerateInventorySnapshot(Optional ByVal adminUserId As String =
         Exit Function
     End If
 
-    Set loLog = FindListObjectByNameAdmin(sourceInvWb, TABLE_LOG)
-    If loLog Is Nothing Then
-        report = "Inventory log table not found."
+    snapPath = vbNullString
+    If Not modWarehouseSync.GenerateWarehouseSnapshot(resolvedWh, sourceInvWb, outputPath, Nothing, snapPath) Then
+        report = snapPath
         Exit Function
     End If
-
-    Set summary = CreateObject("Scripting.Dictionary")
-    summary.CompareMode = vbTextCompare
-    Set lastApplied = CreateObject("Scripting.Dictionary")
-    lastApplied.CompareMode = vbTextCompare
-
-    If Not loLog.DataBodyRange Is Nothing Then
-        For i = 1 To loLog.ListRows.Count
-            sku = SafeTrimAdmin(GetCellByColumnAdmin(loLog, i, "SKU"))
-            If sku <> "" Then
-                qty = 0
-                If IsNumeric(GetCellByColumnAdmin(loLog, i, "QtyDelta")) Then qty = CDbl(GetCellByColumnAdmin(loLog, i, "QtyDelta"))
-                If summary.Exists(sku) Then
-                    summary(sku) = CDbl(summary(sku)) + qty
-                Else
-                    summary.Add sku, qty
-                End If
-
-                rowDate = GetCellByColumnAdmin(loLog, i, "AppliedAtUTC")
-                If IsDate(rowDate) Then
-                    If (Not lastApplied.Exists(sku)) Or CDate(rowDate) > CDate(lastApplied(sku)) Then lastApplied(sku) = CDate(rowDate)
-                End If
-            End If
-        Next i
-    End If
-
-    Set snapWb = Application.Workbooks.Add
-    Set ws = snapWb.Worksheets(1)
-    ws.Name = SNAPSHOT_SHEET
-    ws.Range("A1:D1").Value = Array("WarehouseId", "SKU", "QtyOnHand", "LastAppliedAtUTC")
-
-    dataRows = IIf(summary.Count = 0, 1, summary.Count)
-    If dataRows = 1 And summary.Count = 0 Then
-        ws.Range("A2").Resize(1, 4).Value = Array(resolvedWh, "", 0, "")
-    Else
-        r = 2
-        For Each key In summary.Keys
-            ws.Cells(r, 1).Value = resolvedWh
-            ws.Cells(r, 2).Value = CStr(key)
-            ws.Cells(r, 3).Value = CDbl(summary(key))
-            If lastApplied.Exists(key) Then ws.Cells(r, 4).Value = lastApplied(key)
-            r = r + 1
-        Next key
-    End If
-    Set loSnap = ws.ListObjects.Add(xlSrcRange, ws.Range("A1:D" & CStr(dataRows + 1)), , xlYes)
-    loSnap.Name = SNAPSHOT_TABLE
-
-    snapPath = ResolveSnapshotPathAdmin(resolvedWh, outputPath)
-    EnsureFolderForFileAdmin snapPath
-    CloseWorkbookByFullNameAdmin snapPath
-    On Error Resume Next
-    Kill snapPath
-    On Error GoTo FailSnapshot
-    snapWb.SaveAs Filename:=snapPath, FileFormat:=50
-    snapWb.Close SaveChanges:=True
 
     AppendAuditEntry ResolveAdminWorkbook(adminWb), "GENERATE_SNAPSHOT", resolvedUser, resolvedWh, resolvedSt, _
                      "SNAPSHOT", snapPath, "", snapPath, "OK"
@@ -439,9 +371,6 @@ Public Function GenerateInventorySnapshot(Optional ByVal adminUserId As String =
     Exit Function
 
 FailSnapshot:
-    On Error Resume Next
-    If Not snapWb Is Nothing Then snapWb.Close SaveChanges:=False
-    On Error GoTo 0
     report = "GenerateInventorySnapshot failed: " & Err.Description
 End Function
 

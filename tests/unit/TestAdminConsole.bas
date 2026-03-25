@@ -198,6 +198,8 @@ Public Function TestGenerateInventorySnapshot_WritesWorkbookAndAudit() As Long
     Set loSnap = wbSnap.Worksheets("InventorySnapshot").ListObjects("tblInventorySnapshot")
     Set loAudit = wbAdmin.Worksheets("AdminAudit").ListObjects("tblAdminAudit")
     If FindRowByColumnValue(loSnap, "SKU", "SKU-001") = 0 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loSnap, FindRowByColumnValue(loSnap, "SKU", "SKU-001"), "QtyAvailable")) <> 5 Then GoTo CleanExit
+    If InStr(1, CStr(TestPhase2Helpers.GetRowValue(loSnap, FindRowByColumnValue(loSnap, "SKU", "SKU-001"), "LocationSummary")), "A1", vbTextCompare) = 0 Then GoTo CleanExit
     If FindAuditRowByAction(loAudit, "GENERATE_SNAPSHOT") = 0 Then GoTo CleanExit
 
     TestGenerateInventorySnapshot_WritesWorkbookAndAudit = 1

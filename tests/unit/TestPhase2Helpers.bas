@@ -92,6 +92,8 @@ Public Function BuildPhase2InventoryWorkbook(ByVal whId As String, _
     DeleteAllTableRows wb.Worksheets("InventoryLog").ListObjects("tblInventoryLog"), True
     DeleteAllTableRows wb.Worksheets("AppliedEvents").ListObjects("tblAppliedEvents"), True
     DeleteAllTableRows wb.Worksheets("Locks").ListObjects("tblLocks"), True
+    DeleteAllTableRows wb.Worksheets("SkuBalance").ListObjects("tblSkuBalance"), True
+    DeleteAllTableRows wb.Worksheets("LocationBalance").ListObjects("tblLocationBalance"), True
 
     If Not IsMissing(skuList) Then
         Set wsSku = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))

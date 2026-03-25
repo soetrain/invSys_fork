@@ -18,7 +18,7 @@ Public Function TestEnsureReceivingWorkbookSurface_CreatesExpectedTables() As Lo
        And TableHasColumns(wb, "AggregateReceived", Array("REF_NUMBER", "ITEM_CODE", "VENDORS", "VENDOR_CODE", "DESCRIPTION", "ITEM", "UOM", "QUANTITY", "LOCATION", "ROW")) _
        And TableHasColumns(wb, "invSysData_Receiving", Array("ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION")) _
        And TableHasColumns(wb, "ReceivedLog", Array("SNAPSHOT_ID", "ENTRY_DATE", "REF_NUMBER", "ITEMS", "QUANTITY", "UOM", "VENDOR", "LOCATION", "ITEM_CODE", "ROW")) _
-       And TableHasColumns(wb, "invSys", Array("ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION")) Then
+       And TableHasColumns(wb, "invSys", Array("ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "SKU", "QtyOnHand", "LastRefreshUTC", "SnapshotId", "SourceType", "IsStale")) Then
         TestEnsureReceivingWorkbookSurface_CreatesExpectedTables = 1
     End If
 
