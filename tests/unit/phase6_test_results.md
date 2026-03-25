@@ -1,7 +1,7 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-03-24 22:39:42
-- Passed: 18
+- Date: 2026-03-25 11:27:44
+- Passed: 19
 - Failed: 0
 
 | Test | Result |
@@ -17,6 +17,7 @@
 | TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_PrunesUnexpectedSheets | PASS |
 | TestPhase6CoreSurfaces.TestRefreshInventoryReadModelFromSnapshot_UpdatesReadModelAndMetadata | PASS |
 | TestPhase6CoreSurfaces.TestRefreshInventoryReadModel_MissingSnapshotMarksStaleWithoutMutatingReceivingTally | PASS |
+| TestPhase6RoleSurfaces.TestEnsureInventoryManagementSurface_HidesDuplicateHelperColumns | PASS |
 | TestPhase6RoleSurfaces.TestEnsureReceivingWorkbookSurface_CreatesExpectedTables | PASS |
 | TestPhase6RoleSurfaces.TestEnsureReceivingWorkbookSurface_RecreatesDeletedArtifacts | PASS |
 | TestPhase6RoleSurfaces.TestEnsureShippingWorkbookSurface_CreatesExpectedTables | PASS |

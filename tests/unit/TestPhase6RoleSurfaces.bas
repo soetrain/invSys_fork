@@ -29,6 +29,41 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestEnsureInventoryManagementSurface_HidesDuplicateHelperColumns() As Long
+    Dim wb As Workbook
+    Dim report As String
+
+    Set wb = Application.Workbooks.Add
+
+    On Error GoTo CleanFail
+    If Not modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, report) Then GoTo CleanExit
+    If Not HasTable(wb, "invSys") Then GoTo CleanExit
+
+    If TableColumnHidden(wb, "invSys", "ROW") _
+       And TableColumnHidden(wb, "invSys", "SKU") _
+       And TableColumnHidden(wb, "invSys", "ItemName") _
+       And TableColumnHidden(wb, "invSys", "LastAppliedUTC") _
+       And TableColumnHidden(wb, "invSys", "TIMESTAMP") _
+       And TableColumnHidden(wb, "invSys", "TOTAL INV LAST EDIT") _
+       And Not TableColumnHidden(wb, "invSys", "ITEM_CODE") _
+       And Not TableColumnHidden(wb, "invSys", "TOTAL INV") _
+       And Not TableColumnHidden(wb, "invSys", "QtyOnHand") _
+       And Not TableColumnHidden(wb, "invSys", "QtyAvailable") _
+       And Not TableColumnHidden(wb, "invSys", "LocationSummary") _
+       And Not TableColumnHidden(wb, "invSys", "LastRefreshUTC") _
+       And Not TableColumnHidden(wb, "invSys", "SnapshotId") _
+       And Not TableColumnHidden(wb, "invSys", "SourceType") _
+       And Not TableColumnHidden(wb, "invSys", "IsStale") Then
+        TestEnsureInventoryManagementSurface_HidesDuplicateHelperColumns = 1
+    End If
+
+CleanExit:
+    CloseNoSavePhase6 wb
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestEnsureShippingWorkbookSurface_CreatesExpectedTables() As Long
     Dim wb As Workbook
     Dim report As String
@@ -236,6 +271,21 @@ Private Function TableHasColumns(ByVal wb As Workbook, ByVal tableName As String
     Next i
 
     TableHasColumns = True
+End Function
+
+Private Function TableColumnHidden(ByVal wb As Workbook, ByVal tableName As String, ByVal columnName As String) As Boolean
+    Dim lo As ListObject
+    Dim lc As ListColumn
+
+    Set lo = FindTable(wb, tableName)
+    If lo Is Nothing Then Exit Function
+
+    For Each lc In lo.ListColumns
+        If StrComp(lc.Name, columnName, vbTextCompare) = 0 Then
+            TableColumnHidden = CBool(lc.Range.EntireColumn.Hidden)
+            Exit Function
+        End If
+    Next lc
 End Function
 
 Private Function WorksheetExists(ByVal wb As Workbook, ByVal sheetName As String) As Boolean
