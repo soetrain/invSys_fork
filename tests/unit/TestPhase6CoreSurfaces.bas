@@ -1316,6 +1316,191 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestSavedShippingWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs() As Long
+    Dim rootPath As String
+    Dim operatorPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim eventIdOut As String
+    Dim payloadJson As String
+    Dim processedCount As Long
+    Dim wbOps As Workbook
+    Dim wbSnap As Workbook
+    Dim wbInv As Workbook
+    Dim wbInbox As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loShipLog As ListObject
+    Dim loInventoryLog As ListObject
+    Dim invRow As Long
+    Dim logRow As Long
+    Dim evt As Object
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_saved_shipping_post")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH79", "S19") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH79.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+    If Not modAuth.LoadAuth("WH79") Then GoTo CleanExit
+
+    currentUser = ResolveCurrentTestUserId()
+    EnsureAuthCapabilityForTest "WH79", currentUser, "SHIP_POST", "WH79", "*"
+    EnsureAuthCapabilityForTest "WH79", "svc_processor", "INBOX_PROCESS", "WH79", "*"
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH79", Array("SKU-SHIP-POST"))
+    Set wbInbox = CreateCanonicalShipInboxWorkbookForTest(rootPath, "S19")
+    If wbInv Is Nothing Or wbInbox Is Nothing Then
+        failureReason = "Canonical shipping runtime workbooks could not be created."
+        GoTo CleanExit
+    End If
+
+    Set evt = CreateReceiveEventForTest("EVT-SHIP-SEED-001", "WH79", "S19", currentUser, "SKU-SHIP-POST", 10, "A1", "shipping seed")
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-SHIP-SEED-001", statusOut, errorCode, errorMessage) Then
+        failureReason = "Canonical shipping seed event failed: " & errorCode & "; " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set wbSnap = CreateSnapshotWorkbook(rootPath, "WH79", "SKU-SHIP-POST", 10, CDate("2026-03-25 12:15:00"))
+    If wbSnap Is Nothing Then GoTo CleanExit
+    wbSnap.Close SaveChanges:=False
+    Set wbSnap = Nothing
+
+    operatorPath = rootPath & "\WH79_S19_Shipping_Operator.xlsb"
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loShipLog = FindTableByName(wbOps, "AggregatePackages_Log")
+    If loInv Is Nothing Or loShip Is Nothing Or loShipLog Is Nothing Then
+        failureReason = "Saved shipping workbook surface was incomplete."
+        GoTo CleanExit
+    End If
+
+    AddInvSysSeedRow loInv, 912, "SKU-SHIP-POST", "Shipping Post Item", "EA", "D4", 1
+    AddShippingTallyRow loShip, "REF-SHIP-POST-001", "Shipping Post Item", 6, 912, "EA", "D4", "ship workflow"
+    AddAggregatePackagesLogRow loShipLog, "GUID-SHIP-POST-001", currentUser, "ADD", 912, "SKU-SHIP-POST", "Shipping Post Item", 6, "6"
+    wbOps.SaveAs Filename:=operatorPath, FileFormat:=50
+    wbOps.Close SaveChanges:=False
+    Set wbOps = Nothing
+
+    Set wbOps = Application.Workbooks.Open(operatorPath)
+    If wbOps Is Nothing Then GoTo CleanExit
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wbOps, "WH79", "LOCAL", report) Then GoTo CleanExit
+
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loShipLog = FindTableByName(wbOps, "AggregatePackages_Log")
+    If loInv Is Nothing Or loShip Is Nothing Or loShipLog Is Nothing Then
+        failureReason = "Saved shipping workbook tables were missing after reopen/refresh."
+        GoTo CleanExit
+    End If
+
+    payloadJson = modRoleEventWriter.BuildPayloadJson( _
+        modRoleEventWriter.CreatePayloadItem( _
+            CLng(GetTableValue(loShip, 1, "ROW")), _
+            CStr(GetTableValue(loInv, 1, "ITEM_CODE")), _
+            CDbl(GetTableValue(loShip, 1, "QUANTITY")), _
+            CStr(GetTableValue(loShip, 1, "LOCATION")), _
+            CStr(GetTableValue(loShip, 1, "DESCRIPTION"))))
+
+    If Not modRoleEventWriter.QueuePayloadEvent(CORE_EVENT_TYPE_SHIP, "WH79", "S19", currentUser, payloadJson, "saved-shipping-post", "", "", Now, wbInbox, eventIdOut, report) Then
+        failureReason = "QueuePayloadEvent failed from saved shipping workbook: " & report
+        GoTo CleanExit
+    End If
+    If Trim$(eventIdOut) = "" Then
+        failureReason = "QueuePayloadEvent did not return an EventID for saved shipping workbook."
+        GoTo CleanExit
+    End If
+
+    processedCount = modProcessor.RunBatch("WH79", 500, report)
+    If processedCount <> 1 Then
+        failureReason = "RunBatch did not process the saved shipping event. " & report
+        GoTo CleanExit
+    End If
+    If Not AssertInboxRowStatusForTest(wbInbox, eventIdOut, "PROCESSED") Then
+        failureReason = "Saved shipping inbox row was not marked PROCESSED."
+        GoTo CleanExit
+    End If
+
+    Set loInventoryLog = FindTableByName(wbInv, "tblInventoryLog")
+    If loInventoryLog Is Nothing Then
+        failureReason = "Canonical inventory log was missing after saved shipping process."
+        GoTo CleanExit
+    End If
+    logRow = FindRowByColumnValueInTable(loInventoryLog, "EventID", eventIdOut)
+    If logRow = 0 Then
+        failureReason = "Canonical inventory log did not record the saved shipping event."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loInventoryLog, logRow, "EventType")), CORE_EVENT_TYPE_SHIP, vbTextCompare) <> 0 Then
+        failureReason = "Canonical inventory log recorded unexpected event type for saved shipping workflow."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInventoryLog, logRow, "QtyDelta")) <> -6 Then
+        failureReason = "Canonical inventory log QtyDelta was not negative for saved shipping workflow."
+        GoTo CleanExit
+    End If
+
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wbOps, "WH79", "LOCAL", report) Then
+        failureReason = "RefreshInventoryReadModelForWorkbook failed after saved shipping process: " & report
+        GoTo CleanExit
+    End If
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loShipLog = FindTableByName(wbOps, "AggregatePackages_Log")
+    If loInv Is Nothing Or loShip Is Nothing Or loShipLog Is Nothing Then
+        failureReason = "Saved shipping workbook tables were missing after process/refresh."
+        GoTo CleanExit
+    End If
+    invRow = FindRowByColumnValueInTable(loInv, "ITEM_CODE", "SKU-SHIP-POST")
+    If invRow = 0 Then
+        failureReason = "invSys did not retain shipping SKU after process/refresh."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "TOTAL INV")) <> 4 Then
+        failureReason = "invSys TOTAL INV did not reflect saved shipping processing."
+        GoTo CleanExit
+    End If
+    If loShip.ListRows.Count <> 1 Or loShipLog.ListRows.Count <> 1 Then
+        failureReason = "Shipping staging/log tables changed after saved workflow processing."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loShip, 1, "REF_NUMBER")), "REF-SHIP-POST-001", vbTextCompare) <> 0 Then
+        failureReason = "ShipmentsTally REF_NUMBER was not preserved across saved workflow processing."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loShipLog, 1, "GUID")), "GUID-SHIP-POST-001", vbTextCompare) <> 0 Then
+        failureReason = "AggregatePackages_Log GUID was not preserved across saved workflow processing."
+        GoTo CleanExit
+    End If
+
+    TestSavedShippingWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbInv
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7108, "TestSavedShippingWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestSavedProductionWorkbook_RefreshPreservesStagingAndLogs() As Long
     Dim rootPath As String
     Dim operatorPath As String
@@ -1389,6 +1574,182 @@ CleanExit:
     DeleteRuntimeRoot rootPath
     Exit Function
 CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestSavedProductionWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs() As Long
+    Dim rootPath As String
+    Dim operatorPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim eventIdOut As String
+    Dim payloadJson As String
+    Dim processedCount As Long
+    Dim wbOps As Workbook
+    Dim wbSnap As Workbook
+    Dim wbInv As Workbook
+    Dim wbInbox As Workbook
+    Dim loInv As ListObject
+    Dim loProd As ListObject
+    Dim loProdLog As ListObject
+    Dim loInventoryLog As ListObject
+    Dim invRow As Long
+    Dim logRow As Long
+
+    rootPath = BuildRuntimeTestRoot("phase6_saved_production_post")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH80", "S20") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH80.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+    If Not modAuth.LoadAuth("WH80") Then GoTo CleanExit
+
+    currentUser = ResolveCurrentTestUserId()
+    EnsureAuthCapabilityForTest "WH80", currentUser, "PROD_POST", "WH80", "*"
+    EnsureAuthCapabilityForTest "WH80", "svc_processor", "INBOX_PROCESS", "WH80", "*"
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH80", Array("SKU-PROD-POST"))
+    Set wbInbox = CreateCanonicalProductionInboxWorkbookForTest(rootPath, "S20")
+    If wbInv Is Nothing Or wbInbox Is Nothing Then
+        failureReason = "Canonical production runtime workbooks could not be created."
+        GoTo CleanExit
+    End If
+
+    Set wbSnap = CreateSnapshotWorkbook(rootPath, "WH80", "SKU-PROD-POST", 0, CDate("2026-03-25 12:45:00"))
+    If wbSnap Is Nothing Then GoTo CleanExit
+    wbSnap.Close SaveChanges:=False
+    Set wbSnap = Nothing
+
+    operatorPath = rootPath & "\WH80_S20_Production_Operator.xlsb"
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureProductionWorkbookSurface(wbOps, report) Then GoTo CleanExit
+
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loProd = FindTableByName(wbOps, "ProductionOutput")
+    Set loProdLog = FindTableByName(wbOps, "ProductionLog")
+    If loInv Is Nothing Or loProd Is Nothing Or loProdLog Is Nothing Then
+        failureReason = "Saved production workbook surface was incomplete."
+        GoTo CleanExit
+    End If
+
+    AddInvSysSeedRow loInv, 913, "SKU-PROD-POST", "Production Post Item", "EA", "E5", 0
+    AddProductionOutputRow loProd, "Blend", "Production Post Item", "EA", 7, "BATCH-POST-001", "RECALL-POST-001", 913
+    AddProductionLogRow loProdLog, "Blend", "REC-POST-001", "Production Post Item", "EA", 7, "E5", 913, "SKU-PROD-POST", "GUID-PROD-POST-001"
+    wbOps.SaveAs Filename:=operatorPath, FileFormat:=50
+    wbOps.Close SaveChanges:=False
+    Set wbOps = Nothing
+
+    Set wbOps = Application.Workbooks.Open(operatorPath)
+    If wbOps Is Nothing Then GoTo CleanExit
+    If Not modRoleWorkbookSurfaces.EnsureProductionWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wbOps, "WH80", "LOCAL", report) Then GoTo CleanExit
+
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loProd = FindTableByName(wbOps, "ProductionOutput")
+    Set loProdLog = FindTableByName(wbOps, "ProductionLog")
+    If loInv Is Nothing Or loProd Is Nothing Or loProdLog Is Nothing Then
+        failureReason = "Saved production workbook tables were missing after reopen/refresh."
+        GoTo CleanExit
+    End If
+
+    payloadJson = modRoleEventWriter.BuildPayloadJson( _
+        modRoleEventWriter.CreatePayloadItem( _
+            CLng(GetTableValue(loProd, 1, "ROW")), _
+            "SKU-PROD-POST", _
+            CDbl(GetTableValue(loProd, 1, "REAL OUTPUT")), _
+            "FG", _
+            CStr(GetTableValue(loProd, 1, "PROCESS")), _
+            "COMPLETE"))
+
+    If Not modRoleEventWriter.QueuePayloadEvent(CORE_EVENT_TYPE_PROD_COMPLETE, "WH80", "S20", currentUser, payloadJson, "saved-production-post", "", "", Now, wbInbox, eventIdOut, report) Then
+        failureReason = "QueuePayloadEvent failed from saved production workbook: " & report
+        GoTo CleanExit
+    End If
+    If Trim$(eventIdOut) = "" Then
+        failureReason = "QueuePayloadEvent did not return an EventID for saved production workbook."
+        GoTo CleanExit
+    End If
+
+    processedCount = modProcessor.RunBatch("WH80", 500, report)
+    If processedCount <> 1 Then
+        failureReason = "RunBatch did not process the saved production event. " & report
+        GoTo CleanExit
+    End If
+    If Not AssertInboxRowStatusForTest(wbInbox, eventIdOut, "PROCESSED") Then
+        failureReason = "Saved production inbox row was not marked PROCESSED."
+        GoTo CleanExit
+    End If
+
+    Set loInventoryLog = FindTableByName(wbInv, "tblInventoryLog")
+    If loInventoryLog Is Nothing Then
+        failureReason = "Canonical inventory log was missing after saved production process."
+        GoTo CleanExit
+    End If
+    logRow = FindRowByColumnValueInTable(loInventoryLog, "EventID", eventIdOut)
+    If logRow = 0 Then
+        failureReason = "Canonical inventory log did not record the saved production event."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loInventoryLog, logRow, "EventType")), CORE_EVENT_TYPE_PROD_COMPLETE, vbTextCompare) <> 0 Then
+        failureReason = "Canonical inventory log recorded unexpected event type for saved production workflow."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInventoryLog, logRow, "QtyDelta")) <> 7 Then
+        failureReason = "Canonical inventory log QtyDelta was not positive for saved production workflow."
+        GoTo CleanExit
+    End If
+
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wbOps, "WH80", "LOCAL", report) Then
+        failureReason = "RefreshInventoryReadModelForWorkbook failed after saved production process: " & report
+        GoTo CleanExit
+    End If
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loProd = FindTableByName(wbOps, "ProductionOutput")
+    Set loProdLog = FindTableByName(wbOps, "ProductionLog")
+    If loInv Is Nothing Or loProd Is Nothing Or loProdLog Is Nothing Then
+        failureReason = "Saved production workbook tables were missing after process/refresh."
+        GoTo CleanExit
+    End If
+    invRow = FindRowByColumnValueInTable(loInv, "ITEM_CODE", "SKU-PROD-POST")
+    If invRow = 0 Then
+        failureReason = "invSys did not retain production SKU after process/refresh."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "TOTAL INV")) <> 7 Then
+        failureReason = "invSys TOTAL INV did not reflect saved production processing."
+        GoTo CleanExit
+    End If
+    If loProd.ListRows.Count <> 1 Or loProdLog.ListRows.Count <> 1 Then
+        failureReason = "Production staging/log tables changed after saved workflow processing."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loProd, 1, "PROCESS")), "Blend", vbTextCompare) <> 0 Then
+        failureReason = "ProductionOutput PROCESS was not preserved across saved workflow processing."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loProdLog, 1, "GUID")), "GUID-PROD-POST-001", vbTextCompare) <> 0 Then
+        failureReason = "ProductionLog GUID was not preserved across saved workflow processing."
+        GoTo CleanExit
+    End If
+
+    TestSavedProductionWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbInv
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7109, "TestSavedProductionWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
     Resume CleanExit
 End Function
 
@@ -1813,6 +2174,40 @@ Private Function CreateCanonicalReceiveInboxWorkbookForTest(ByVal rootPath As St
     Set CreateCanonicalReceiveInboxWorkbookForTest = wb
 End Function
 
+Private Function CreateCanonicalShipInboxWorkbookForTest(ByVal rootPath As String, ByVal stationId As String) As Workbook
+    Dim wb As Workbook
+    Dim targetPath As String
+    Dim report As String
+
+    targetPath = rootPath & "\invSys.Inbox.Shipping." & stationId & ".xlsb"
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+    wb.Worksheets(1).Name = "InboxShip"
+    wb.SaveAs Filename:=targetPath, FileFormat:=50
+    If Not modProcessor.EnsureShipInboxSchema(wb, report) Then
+        CloseWorkbookIfOpen wb
+        Exit Function
+    End If
+    wb.Save
+    Set CreateCanonicalShipInboxWorkbookForTest = wb
+End Function
+
+Private Function CreateCanonicalProductionInboxWorkbookForTest(ByVal rootPath As String, ByVal stationId As String) As Workbook
+    Dim wb As Workbook
+    Dim targetPath As String
+    Dim report As String
+
+    targetPath = rootPath & "\invSys.Inbox.Production." & stationId & ".xlsb"
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+    wb.Worksheets(1).Name = "InboxProd"
+    wb.SaveAs Filename:=targetPath, FileFormat:=50
+    If Not modProcessor.EnsureProductionInboxSchema(wb, report) Then
+        CloseWorkbookIfOpen wb
+        Exit Function
+    End If
+    wb.Save
+    Set CreateCanonicalProductionInboxWorkbookForTest = wb
+End Function
+
 Private Sub AddInboxReceiveEventRowForTest(ByVal lo As ListObject, _
                                            ByVal eventId As String, _
                                            ByVal warehouseId As String, _
@@ -1861,7 +2256,7 @@ Private Function AssertInboxRowStatusForTest(ByVal wb As Workbook, ByVal eventId
     Dim lo As ListObject
     Dim rowIndex As Long
 
-    Set lo = FindTableByName(wb, "tblInboxReceive")
+    Set lo = FindInboxTableForTest(wb)
     If lo Is Nothing Then Exit Function
     rowIndex = FindRowByColumnValueInTable(lo, "EventID", eventId)
     If rowIndex = 0 Then Exit Function
@@ -1873,7 +2268,7 @@ Private Function DescribeInboxRowStateForTest(ByVal wb As Workbook, ByVal eventI
     Dim lo As ListObject
     Dim rowIndex As Long
 
-    Set lo = FindTableByName(wb, "tblInboxReceive")
+    Set lo = FindInboxTableForTest(wb)
     If lo Is Nothing Then
         DescribeInboxRowStateForTest = "missing-table"
         Exit Function
@@ -1889,6 +2284,14 @@ Private Function DescribeInboxRowStateForTest(ByVal wb As Workbook, ByVal eventI
         "Status=" & CStr(GetTableValue(lo, rowIndex, "Status")) & _
         ", ErrorCode=" & CStr(GetTableValue(lo, rowIndex, "ErrorCode")) & _
         ", ErrorMessage=" & CStr(GetTableValue(lo, rowIndex, "ErrorMessage"))
+End Function
+
+Private Function FindInboxTableForTest(ByVal wb As Workbook) As ListObject
+    Set FindInboxTableForTest = FindTableByName(wb, "tblInboxReceive")
+    If Not FindInboxTableForTest Is Nothing Then Exit Function
+    Set FindInboxTableForTest = FindTableByName(wb, "tblInboxShip")
+    If Not FindInboxTableForTest Is Nothing Then Exit Function
+    Set FindInboxTableForTest = FindTableByName(wb, "tblInboxProd")
 End Function
 
 Private Function FindRowByColumnValueInTable(ByVal lo As ListObject, ByVal columnName As String, ByVal expectedValue As String) As Long
