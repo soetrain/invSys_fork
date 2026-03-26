@@ -112,9 +112,12 @@ try {
 
     $allTests = @(
         "TestPhase5Sync.TestRunBatch_WritesOutboxAndSnapshot",
+        "TestPhase5Sync.TestRunBatch_SnapshotNormalizesLocationSummaryAndFormatsColumns",
         "TestPhase5Sync.TestManualCopy_PublishesWarehouseArtifacts",
         "TestPhase5Sync.TestHqAggregation_TwoWarehousesPreservesPerWarehouseQty",
-        "TestPhase5Sync.TestHqAggregation_RebuildsGlobalSnapshotAfterStaggeredWarehouseUpdates"
+        "TestPhase5Sync.TestHqAggregation_RebuildsGlobalSnapshotAfterStaggeredWarehouseUpdates",
+        "TestPhase5Sync.TestHqAggregation_GlobalSnapshotStatusIsAdvisoryOnly",
+        "TestPhase5Sync.TestDelayedPublicationRecovery_PreservesLocalOutboxAndGlobalCatchup"
     )
 
     if (Test-Path $harnessPath) { Remove-Item $harnessPath -Force }

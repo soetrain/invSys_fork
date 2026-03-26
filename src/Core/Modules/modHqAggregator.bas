@@ -3,6 +3,8 @@ Option Explicit
 
 Private Const SHEET_GLOBAL_SNAPSHOT As String = "GlobalInventorySnapshot"
 Private Const TABLE_GLOBAL_SNAPSHOT As String = "tblGlobalInventorySnapshot"
+Private Const SHEET_GLOBAL_STATUS As String = "GlobalSnapshotStatus"
+Private Const TABLE_GLOBAL_STATUS As String = "tblGlobalSnapshotStatus"
 Private Const TABLE_WAREHOUSE_SNAPSHOT As String = "tblInventorySnapshot"
 
 Public Function RunHQAggregation(Optional ByVal sharePointRoot As String = "", _
@@ -40,6 +42,7 @@ Public Function GenerateGlobalSnapshotFromFolder(ByVal snapshotsFolder As String
     Dim key As String
     Dim lo As ListObject
     Dim i As Long
+    Dim snapshotFileCount As Long
 
     If Trim$(snapshotsFolder) = "" Then
         report = "Snapshots folder is required."
@@ -60,6 +63,7 @@ Public Function GenerateGlobalSnapshotFromFolder(ByVal snapshotsFolder As String
         FileCopy NormalizeFolderPathHq(snapshotsFolder) & fileName, tempFile
 
         Set wbSnap = Application.Workbooks.Open(tempFile, ReadOnly:=True)
+        snapshotFileCount = snapshotFileCount + 1
         Set lo = FindListObjectByNameHq(wbSnap, TABLE_WAREHOUSE_SNAPSHOT)
         If Not lo Is Nothing Then
             For i = 1 To lo.ListRows.Count
@@ -75,8 +79,8 @@ Public Function GenerateGlobalSnapshotFromFolder(ByVal snapshotsFolder As String
         fileName = Dir$
     Loop
 
-    WriteGlobalSnapshotWorkbook outputPath, globalRows
-    report = "Rows=" & CStr(globalRows.Count)
+    WriteGlobalSnapshotWorkbook outputPath, globalRows, snapshotsFolder, snapshotFileCount
+    report = "Rows=" & CStr(globalRows.Count) & "; SnapshotFiles=" & CStr(snapshotFileCount)
     GenerateGlobalSnapshotFromFolder = True
     Exit Function
 
@@ -116,15 +120,22 @@ Private Sub MergeSnapshotRow(ByVal globalRows As Object, _
     entry("SourceSnapshot") = sourceFile
 End Sub
 
-Private Sub WriteGlobalSnapshotWorkbook(ByVal outputPath As String, ByVal globalRows As Object)
+Private Sub WriteGlobalSnapshotWorkbook(ByVal outputPath As String, _
+                                        ByVal globalRows As Object, _
+                                        ByVal snapshotsFolder As String, _
+                                        ByVal snapshotFileCount As Long)
     Dim wb As Workbook
-    Dim ws As Worksheet
-    Dim lo As ListObject
-    Dim headers As Variant
+    Dim wsSnap As Worksheet
+    Dim wsStatus As Worksheet
+    Dim loSnap As ListObject
+    Dim loStatus As ListObject
+    Dim snapHeaders As Variant
+    Dim statusHeaders As Variant
     Dim startCell As Range
     Dim i As Long
     Dim key As Variant
     Dim rowIndex As Long
+    Dim generatedAt As Date
 
     EnsureFolderForFileHq outputPath
     CloseWorkbookByFullNameHq outputPath
@@ -133,32 +144,79 @@ Private Sub WriteGlobalSnapshotWorkbook(ByVal outputPath As String, ByVal global
     On Error GoTo 0
 
     Set wb = Application.Workbooks.Add
-    headers = Array("WarehouseId", "SKU", "QtyOnHand", "LastAppliedAtUTC", "SourceSnapshot")
-    Set ws = wb.Worksheets(1)
-    ws.Name = SHEET_GLOBAL_SNAPSHOT
-    Set startCell = ws.Range("A1")
-    For i = LBound(headers) To UBound(headers)
-        startCell.Offset(0, i - LBound(headers)).Value = headers(i)
+    generatedAt = Now
+    snapHeaders = Array("WarehouseId", "SKU", "QtyOnHand", "LastAppliedAtUTC", "SourceSnapshot")
+    statusHeaders = Array("Scope", "AuthorityLevel", "AuthoritativeStore", "VisibilityRule", "GeneratedAtUTC", _
+                          "SnapshotsFolder", "SnapshotFileCount", "WarehouseCount")
+
+    Set wsSnap = wb.Worksheets(1)
+    wsSnap.Name = SHEET_GLOBAL_SNAPSHOT
+    Set startCell = wsSnap.Range("A1")
+    For i = LBound(snapHeaders) To UBound(snapHeaders)
+        startCell.Offset(0, i - LBound(snapHeaders)).Value = snapHeaders(i)
     Next i
 
-    Set lo = ws.ListObjects.Add(xlSrcRange, ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers))), , xlYes)
-    lo.Name = TABLE_GLOBAL_SNAPSHOT
-    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
-    DeleteAllRowsHq lo
+    Set loSnap = wsSnap.ListObjects.Add(xlSrcRange, wsSnap.Range(startCell, startCell.Offset(1, UBound(snapHeaders) - LBound(snapHeaders))), , xlYes)
+    loSnap.Name = TABLE_GLOBAL_SNAPSHOT
+    If loSnap.DataBodyRange Is Nothing Then loSnap.ListRows.Add
+    DeleteAllRowsHq loSnap
 
     For Each key In globalRows.Keys
-        lo.ListRows.Add
-        rowIndex = lo.ListRows.Count
-        SetTableRowValueHq lo, rowIndex, "WarehouseId", globalRows(key)("WarehouseId")
-        SetTableRowValueHq lo, rowIndex, "SKU", globalRows(key)("SKU")
-        SetTableRowValueHq lo, rowIndex, "QtyOnHand", globalRows(key)("QtyOnHand")
-        SetTableRowValueHq lo, rowIndex, "LastAppliedAtUTC", globalRows(key)("LastAppliedAtUTC")
-        SetTableRowValueHq lo, rowIndex, "SourceSnapshot", globalRows(key)("SourceSnapshot")
+        loSnap.ListRows.Add
+        rowIndex = loSnap.ListRows.Count
+        SetTableRowValueHq loSnap, rowIndex, "WarehouseId", globalRows(key)("WarehouseId")
+        SetTableRowValueHq loSnap, rowIndex, "SKU", globalRows(key)("SKU")
+        SetTableRowValueHq loSnap, rowIndex, "QtyOnHand", globalRows(key)("QtyOnHand")
+        SetTableRowValueHq loSnap, rowIndex, "LastAppliedAtUTC", globalRows(key)("LastAppliedAtUTC")
+        SetTableRowValueHq loSnap, rowIndex, "SourceSnapshot", globalRows(key)("SourceSnapshot")
     Next key
+
+    Set wsStatus = wb.Worksheets.Add(After:=wsSnap)
+    wsStatus.Name = SHEET_GLOBAL_STATUS
+    Set startCell = wsStatus.Range("A1")
+    For i = LBound(statusHeaders) To UBound(statusHeaders)
+        startCell.Offset(0, i - LBound(statusHeaders)).Value = statusHeaders(i)
+    Next i
+
+    Set loStatus = wsStatus.ListObjects.Add(xlSrcRange, wsStatus.Range(startCell, startCell.Offset(1, UBound(statusHeaders) - LBound(statusHeaders))), , xlYes)
+    loStatus.Name = TABLE_GLOBAL_STATUS
+    If loStatus.DataBodyRange Is Nothing Then loStatus.ListRows.Add
+    DeleteAllRowsHq loStatus
+    loStatus.ListRows.Add
+    SetTableRowValueHq loStatus, 1, "Scope", "GLOBAL"
+    SetTableRowValueHq loStatus, 1, "AuthorityLevel", "ADVISORY_ONLY"
+    SetTableRowValueHq loStatus, 1, "AuthoritativeStore", "Warehouse-local WHx.invSys.Data.Inventory.xlsb"
+    SetTableRowValueHq loStatus, 1, "VisibilityRule", "Never overrides warehouse-local authoritative balances"
+    SetTableRowValueHq loStatus, 1, "GeneratedAtUTC", generatedAt
+    SetTableRowValueHq loStatus, 1, "SnapshotsFolder", NormalizeFolderPathHq(snapshotsFolder)
+    SetTableRowValueHq loStatus, 1, "SnapshotFileCount", snapshotFileCount
+    SetTableRowValueHq loStatus, 1, "WarehouseCount", CountWarehouseIdsHq(globalRows)
+
+    wsSnap.Cells.EntireColumn.AutoFit
+    wsStatus.Cells.EntireColumn.AutoFit
 
     wb.SaveAs Filename:=outputPath, FileFormat:=50
     wb.Close SaveChanges:=True
 End Sub
+
+Private Function CountWarehouseIdsHq(ByVal globalRows As Object) As Long
+    Dim seen As Object
+    Dim key As Variant
+    Dim warehouseId As String
+
+    If globalRows Is Nothing Then Exit Function
+    Set seen = CreateObject("Scripting.Dictionary")
+    seen.CompareMode = vbTextCompare
+
+    For Each key In globalRows.Keys
+        warehouseId = SafeTrimHq(globalRows(key)("WarehouseId"))
+        If warehouseId <> "" Then
+            If Not seen.Exists(warehouseId) Then seen.Add warehouseId, True
+        End If
+    Next key
+
+    CountWarehouseIdsHq = seen.Count
+End Function
 
 Private Function FindListObjectByNameHq(ByVal wb As Workbook, ByVal tableName As String) As ListObject
     Dim ws As Worksheet
