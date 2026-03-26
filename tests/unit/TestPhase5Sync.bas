@@ -13,6 +13,7 @@ Public Sub RunPhase5SyncTests()
     Tally TestHqAggregation_GlobalSnapshotStatusIsAdvisoryOnly(), passed, failed
     Tally TestDelayedPublicationRecovery_PreservesLocalOutboxAndGlobalCatchup(), passed, failed
     Tally TestHqAggregation_SkipsUnreadablePublishedSnapshotAndRetainsLastGoodData(), passed, failed
+    Tally TestHqAggregation_MixedWarehouseInterruption_RetainsLastGoodAndCatchesUp(), passed, failed
 
     Debug.Print "Phase 5 sync tests - Passed: " & passed & " Failed: " & failed
 End Sub
@@ -608,6 +609,146 @@ CleanExit:
     TestPhase2Helpers.CloseAndDeleteWorkbook wbInv
     TestPhase2Helpers.CloseNoSave wbAuth
     TestPhase2Helpers.CloseNoSave wbCfg
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestHqAggregation_MixedWarehouseInterruption_RetainsLastGoodAndCatchesUp() As Long
+    Dim shareRoot As String
+    Dim localRootA As String
+    Dim localRootB As String
+    Dim wbCfgA As Workbook
+    Dim wbAuthA As Workbook
+    Dim wbInvA As Workbook
+    Dim wbInboxA As Workbook
+    Dim wbCfgB As Workbook
+    Dim wbAuthB As Workbook
+    Dim wbInvB As Workbook
+    Dim wbInboxB As Workbook
+    Dim wbGlobal As Workbook
+    Dim loGlobal As ListObject
+    Dim loStatus As ListObject
+    Dim report As String
+    Dim whAStalePath As String
+    Dim whACurrentPath As String
+    Dim whBCurrentPath As String
+    Dim rowWhA As Long
+    Dim rowWhB As Long
+
+    On Error GoTo CleanFail
+    shareRoot = TestPhase2Helpers.BuildUniqueTestFolder("Phase5MixedWanShare")
+    localRootA = TestPhase2Helpers.BuildUniqueTestFolder("Phase5MixedWanWH95")
+    localRootB = TestPhase2Helpers.BuildUniqueTestFolder("Phase5MixedWanWH96")
+    whAStalePath = shareRoot & "\Snapshots\WH95.stale.invSys.Snapshot.Inventory.xlsb"
+    whACurrentPath = shareRoot & "\Snapshots\WH95.invSys.Snapshot.Inventory.xlsb"
+    whBCurrentPath = shareRoot & "\Snapshots\WH96.invSys.Snapshot.Inventory.xlsb"
+
+    CreateFolderIfMissing shareRoot & "\Snapshots"
+    CreateFolderIfMissing shareRoot & "\Global"
+
+    Set wbCfgA = TestPhase2Helpers.BuildCanonicalConfigWorkbook("WH95", "S1", localRootA, "RECEIVE")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfgA, "PathDataRoot", localRootA
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfgA, "PathSharePointRoot", shareRoot
+    Set wbAuthA = TestPhase2Helpers.BuildCanonicalAuthWorkbook("WH95", localRootA)
+    TestPhase2Helpers.AddCapability wbAuthA, "user1", "RECEIVE_POST", "WH95", "S1", "ACTIVE"
+    TestPhase2Helpers.AddCapability wbAuthA, "svc_processor", "INBOX_PROCESS", "WH95", "*", "ACTIVE"
+    Set wbInvA = TestPhase2Helpers.BuildCanonicalInventoryWorkbook("WH95", localRootA, Array("SKU-001"))
+    Set wbInboxA = TestPhase2Helpers.BuildCanonicalReceiveInboxWorkbook("S1", localRootA)
+
+    TestPhase2Helpers.AddInboxReceiveRow wbInboxA, "EVT-WH95-001", Now, "WH95", "S1", "user1", "SKU-001", 5, "A1", "wh95-seed"
+    If RunBatchForRoot("WH95", localRootA, 500, report) <> 1 Then GoTo CleanExit
+    CloseIfOpen localRootA & "\WH95.invSys.Snapshot.Inventory.xlsb"
+    CopyFileReplacing localRootA & "\WH95.invSys.Snapshot.Inventory.xlsb", whACurrentPath
+
+    Set wbCfgB = TestPhase2Helpers.BuildCanonicalConfigWorkbook("WH96", "S2", localRootB, "RECEIVE")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfgB, "PathDataRoot", localRootB
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfgB, "PathSharePointRoot", shareRoot
+    Set wbAuthB = TestPhase2Helpers.BuildCanonicalAuthWorkbook("WH96", localRootB)
+    TestPhase2Helpers.AddCapability wbAuthB, "user1", "RECEIVE_POST", "WH96", "S2", "ACTIVE"
+    TestPhase2Helpers.AddCapability wbAuthB, "svc_processor", "INBOX_PROCESS", "WH96", "*", "ACTIVE"
+    Set wbInvB = TestPhase2Helpers.BuildCanonicalInventoryWorkbook("WH96", localRootB, Array("SKU-001"))
+    Set wbInboxB = TestPhase2Helpers.BuildCanonicalReceiveInboxWorkbook("S2", localRootB)
+
+    TestPhase2Helpers.AddInboxReceiveRow wbInboxB, "EVT-WH96-001", Now, "WH96", "S2", "user1", "SKU-001", 2, "B1", "wh96-seed"
+    If RunBatchForRoot("WH96", localRootB, 500, report) <> 1 Then GoTo CleanExit
+    CloseIfOpen localRootB & "\WH96.invSys.Snapshot.Inventory.xlsb"
+    CopyFileReplacing localRootB & "\WH96.invSys.Snapshot.Inventory.xlsb", whBCurrentPath
+
+    If Not modHqAggregator.RunHQAggregation(shareRoot, "", report) Then GoTo CleanExit
+    Set wbGlobal = OpenWorkbookIfNeeded(shareRoot & "\Global\invSys.Global.InventorySnapshot.xlsb")
+    If wbGlobal Is Nothing Then GoTo CleanExit
+    Set loGlobal = wbGlobal.Worksheets("GlobalInventorySnapshot").ListObjects("tblGlobalInventorySnapshot")
+    rowWhA = FindWarehouseSkuRow(loGlobal, "WH95", "SKU-001")
+    rowWhB = FindWarehouseSkuRow(loGlobal, "WH96", "SKU-001")
+    If rowWhA = 0 Or rowWhB = 0 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loGlobal, rowWhA, "QtyOnHand")) <> 5 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loGlobal, rowWhB, "QtyOnHand")) <> 2 Then GoTo CleanExit
+    wbGlobal.Close SaveChanges:=False
+    Set wbGlobal = Nothing
+
+    CopyFileReplacing whACurrentPath, whAStalePath
+
+    WaitForNextSecondForTest
+    TestPhase2Helpers.AddInboxReceiveRow wbInboxA, "EVT-WH95-002", Now, "WH95", "S1", "user1", "SKU-001", 4, "A1", "wh95-current-but-broken-publish"
+    If RunBatchForRoot("WH95", localRootA, 500, report) <> 1 Then GoTo CleanExit
+    CloseIfOpen localRootA & "\WH95.invSys.Snapshot.Inventory.xlsb"
+    WriteCorruptSnapshotPlaceholder whACurrentPath
+
+    WaitForNextSecondForTest
+    TestPhase2Helpers.AddInboxReceiveRow wbInboxB, "EVT-WH96-002", Now, "WH96", "S2", "user1", "SKU-001", 3, "B1", "wh96-current-publish"
+    If RunBatchForRoot("WH96", localRootB, 500, report) <> 1 Then GoTo CleanExit
+    CloseIfOpen localRootB & "\WH96.invSys.Snapshot.Inventory.xlsb"
+    CopyFileReplacing localRootB & "\WH96.invSys.Snapshot.Inventory.xlsb", whBCurrentPath
+
+    If Not modHqAggregator.RunHQAggregation(shareRoot, "", report) Then GoTo CleanExit
+    If InStr(1, report, "SkippedSnapshotFiles=1", vbTextCompare) = 0 Then GoTo CleanExit
+    Set wbGlobal = OpenWorkbookIfNeeded(shareRoot & "\Global\invSys.Global.InventorySnapshot.xlsb")
+    If wbGlobal Is Nothing Then GoTo CleanExit
+    Set loGlobal = wbGlobal.Worksheets("GlobalInventorySnapshot").ListObjects("tblGlobalInventorySnapshot")
+    Set loStatus = wbGlobal.Worksheets("GlobalSnapshotStatus").ListObjects("tblGlobalSnapshotStatus")
+    rowWhA = FindWarehouseSkuRow(loGlobal, "WH95", "SKU-001")
+    rowWhB = FindWarehouseSkuRow(loGlobal, "WH96", "SKU-001")
+    If rowWhA = 0 Or rowWhB = 0 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loGlobal, rowWhA, "QtyOnHand")) <> 5 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loGlobal, rowWhB, "QtyOnHand")) <> 5 Then GoTo CleanExit
+    If StrComp(CStr(TestPhase2Helpers.GetRowValue(loGlobal, rowWhA, "SourceSnapshot")), "WH95.stale.invSys.Snapshot.Inventory.xlsb", vbTextCompare) <> 0 Then GoTo CleanExit
+    If StrComp(CStr(TestPhase2Helpers.GetRowValue(loGlobal, rowWhB, "SourceSnapshot")), "WH96.invSys.Snapshot.Inventory.xlsb", vbTextCompare) <> 0 Then GoTo CleanExit
+    If CLng(TestPhase2Helpers.GetRowValue(loStatus, 1, "SnapshotFileCount")) <> 3 Then GoTo CleanExit
+    If CLng(TestPhase2Helpers.GetRowValue(loStatus, 1, "SkippedSnapshotFileCount")) <> 1 Then GoTo CleanExit
+    If CLng(TestPhase2Helpers.GetRowValue(loStatus, 1, "WarehouseCount")) <> 2 Then GoTo CleanExit
+    wbGlobal.Close SaveChanges:=False
+    Set wbGlobal = Nothing
+
+    CopyFileReplacing localRootA & "\WH95.invSys.Snapshot.Inventory.xlsb", whACurrentPath
+    If Not modHqAggregator.RunHQAggregation(shareRoot, "", report) Then GoTo CleanExit
+    If InStr(1, report, "SkippedSnapshotFiles=0", vbTextCompare) = 0 Then GoTo CleanExit
+    Set wbGlobal = OpenWorkbookIfNeeded(shareRoot & "\Global\invSys.Global.InventorySnapshot.xlsb")
+    If wbGlobal Is Nothing Then GoTo CleanExit
+    Set loGlobal = wbGlobal.Worksheets("GlobalInventorySnapshot").ListObjects("tblGlobalInventorySnapshot")
+    Set loStatus = wbGlobal.Worksheets("GlobalSnapshotStatus").ListObjects("tblGlobalSnapshotStatus")
+    rowWhA = FindWarehouseSkuRow(loGlobal, "WH95", "SKU-001")
+    rowWhB = FindWarehouseSkuRow(loGlobal, "WH96", "SKU-001")
+    If rowWhA = 0 Or rowWhB = 0 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loGlobal, rowWhA, "QtyOnHand")) <> 9 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loGlobal, rowWhB, "QtyOnHand")) <> 5 Then GoTo CleanExit
+    If StrComp(CStr(TestPhase2Helpers.GetRowValue(loGlobal, rowWhA, "SourceSnapshot")), "WH95.invSys.Snapshot.Inventory.xlsb", vbTextCompare) <> 0 Then GoTo CleanExit
+    If StrComp(CStr(TestPhase2Helpers.GetRowValue(loGlobal, rowWhB, "SourceSnapshot")), "WH96.invSys.Snapshot.Inventory.xlsb", vbTextCompare) <> 0 Then GoTo CleanExit
+    If CLng(TestPhase2Helpers.GetRowValue(loStatus, 1, "SkippedSnapshotFileCount")) <> 0 Then GoTo CleanExit
+
+    TestHqAggregation_MixedWarehouseInterruption_RetainsLastGoodAndCatchesUp = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbGlobal
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbInboxB
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbInvB
+    TestPhase2Helpers.CloseNoSave wbAuthB
+    TestPhase2Helpers.CloseNoSave wbCfgB
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbInboxA
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbInvA
+    TestPhase2Helpers.CloseNoSave wbAuthA
+    TestPhase2Helpers.CloseNoSave wbCfgA
     Exit Function
 CleanFail:
     Resume CleanExit

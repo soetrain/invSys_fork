@@ -1,0 +1,15 @@
+[2026-03-25 18:42:45] Creating setup harness.
+[2026-03-25 18:42:47] Running seed macro.
+[2026-03-25 18:42:48] Seed result: OK|Root=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260325_184245_168\runtime|Published=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260325_184245_168\published
+[2026-03-25 18:42:48] Creating session A/B harnesses.
+[2026-03-25 18:42:50] Attaching session A.
+[2026-03-25 18:42:51] Attach A result: OK|Warehouse=WH89|Station=S1
+[2026-03-25 18:42:51] Attaching session B.
+[2026-03-25 18:42:51] Attach B result: OK|Warehouse=WH89|Station=S2
+[2026-03-25 18:42:51] Holding canonical inventory in session A.
+[2026-03-25 18:42:51] Hold result: OK|Path=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260325_184245_168\runtime\WH89.invSys.Data.Inventory.xlsb|ReadOnly=False
+[2026-03-25 18:42:51] Running lock-denied receive in session B.
+[2026-03-25 18:45:16] Lock-denied result: OK|EventID=56ECD581-9A07-464C-AE07-F520D4EAE2A5l|Processed=0|Report=Inventory workbook is read-only or locked by another Excel session.|Status=NEW|ErrorCode=|ErrorMessage=
+[2026-03-25 18:45:16] Closing canonical inventory in session A.
+[2026-03-25 18:45:16] Close hold result: OK|Closed
+[2026-03-25 18:45:16] Retrying receive/process in session A.

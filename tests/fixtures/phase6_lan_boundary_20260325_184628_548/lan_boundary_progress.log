@@ -1,0 +1,15 @@
+[2026-03-25 18:46:28] Creating setup harness.
+[2026-03-25 18:46:30] Running seed macro.
+[2026-03-25 18:46:31] Seed result: OK|Root=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260325_184628_548\runtime|Published=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260325_184628_548\published
+[2026-03-25 18:46:31] Creating session A/B harnesses.
+[2026-03-25 18:46:34] Attaching session A.
+[2026-03-25 18:46:35] Attach A result: OK|Warehouse=WH89|Station=S1
+[2026-03-25 18:46:35] Attaching session B.
+[2026-03-25 18:46:35] Attach B result: OK|Warehouse=WH89|Station=S2
+[2026-03-25 18:46:35] Holding canonical inventory in session A.
+[2026-03-25 18:46:35] Hold result: OK|Path=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260325_184628_548\runtime\WH89.invSys.Data.Inventory.xlsb|ReadOnly=False
+[2026-03-25 18:46:35] Running lock-denied receive in session B.
+[2026-03-25 18:47:49] Lock-denied result: OK|EventID=D719CFED-2C09-4EA5-8BB7-798A6B9B3EE6l|Processed=0|Report=Inventory workbook not found.|Status=NEW|ErrorCode=|ErrorMessage=
+[2026-03-25 18:47:49] Closing canonical inventory in session A.
+[2026-03-25 18:47:49] Close hold result: OK|Closed
+[2026-03-25 18:47:49] Retrying receive/process in session A.

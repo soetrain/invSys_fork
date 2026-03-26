@@ -64,7 +64,11 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
 
     Set inventoryWb = ResolveInventoryWorkbookBridge(warehouseId)
     If inventoryWb Is Nothing Then
-        report = "Inventory workbook not found."
+        If InventoryWorkbookLockedForProcessor(warehouseId) Then
+            report = "Inventory workbook is read-only or locked by another Excel session."
+        Else
+            report = "Inventory workbook not found."
+        End If
         Exit Function
     End If
 
@@ -161,6 +165,37 @@ CleanExit:
 FailRun:
     report = "RunBatch failed: " & Err.Description
     Resume CleanExit
+End Function
+
+Private Function InventoryWorkbookLockedForProcessor(ByVal warehouseId As String) As Boolean
+    Dim resolvedWh As String
+    Dim rootPath As String
+    Dim targetPath As String
+    Dim fileNum As Integer
+
+    resolvedWh = Trim$(warehouseId)
+    If resolvedWh = "" Then resolvedWh = modConfig.GetString("WarehouseId", "")
+    If resolvedWh = "" Then resolvedWh = "WH1"
+
+    rootPath = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    If rootPath = "" Then rootPath = Trim$(modConfig.GetString("PathDataRoot", ""))
+    If rootPath = "" Then rootPath = "C:\invSys\" & resolvedWh & "\"
+    If Right$(rootPath, 1) <> "\" Then rootPath = rootPath & "\"
+
+    targetPath = rootPath & resolvedWh & ".invSys.Data.Inventory.xlsb"
+    If Len(Dir$(targetPath)) = 0 Then Exit Function
+
+    On Error GoTo Locked
+    fileNum = FreeFile
+    Open targetPath For Binary Access Read Write Lock Read Write As #fileNum
+    Close #fileNum
+    Exit Function
+
+Locked:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    On Error GoTo 0
+    InventoryWorkbookLockedForProcessor = True
 End Function
 
 Public Function RunBatchForAutomation(Optional ByVal warehouseId As String = "", _

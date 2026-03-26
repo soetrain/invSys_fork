@@ -32,6 +32,10 @@ Public Function AcquireLock(ByVal lockName As String, _
         message = "Inventory workbook not found."
         Exit Function
     End If
+    If wb.ReadOnly Then
+        message = "Inventory workbook is read-only or locked by another Excel session."
+        Exit Function
+    End If
 
     If Not EnsureInventorySchemaBridge(wb) Then
         message = "Unable to validate inventory schema."

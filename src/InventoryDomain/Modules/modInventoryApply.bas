@@ -833,6 +833,7 @@ Private Function OpenOrCreateCanonicalInventoryWorkbook(ByVal warehouseId As Str
 
     EnsureFolderRecursiveApply GetParentFolderApply(targetPath)
     If Len(Dir$(targetPath)) > 0 Then
+        If IsWorkbookFileLockedApply(targetPath) Then Exit Function
         Set wb = Application.Workbooks.Open(targetPath)
     Else
         prevEvents = Application.EnableEvents
@@ -853,6 +854,24 @@ FailOpen:
     On Error Resume Next
     If eventsSuppressed Then Application.EnableEvents = prevEvents
     On Error GoTo 0
+End Function
+
+Private Function IsWorkbookFileLockedApply(ByVal targetPath As String) As Boolean
+    Dim fileNum As Integer
+
+    If Len(Dir$(targetPath)) = 0 Then Exit Function
+
+    On Error GoTo Locked
+    fileNum = FreeFile
+    Open targetPath For Binary Access Read Write Lock Read Write As #fileNum
+    Close #fileNum
+    Exit Function
+
+Locked:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    On Error GoTo 0
+    IsWorkbookFileLockedApply = True
 End Function
 
 Private Function BuildCanonicalInventoryPath(ByVal warehouseId As String) As String

@@ -118,7 +118,8 @@ try {
         "TestPhase5Sync.TestHqAggregation_RebuildsGlobalSnapshotAfterStaggeredWarehouseUpdates",
         "TestPhase5Sync.TestHqAggregation_GlobalSnapshotStatusIsAdvisoryOnly",
         "TestPhase5Sync.TestDelayedPublicationRecovery_PreservesLocalOutboxAndGlobalCatchup",
-        "TestPhase5Sync.TestHqAggregation_SkipsUnreadablePublishedSnapshotAndRetainsLastGoodData"
+        "TestPhase5Sync.TestHqAggregation_SkipsUnreadablePublishedSnapshotAndRetainsLastGoodData",
+        "TestPhase5Sync.TestHqAggregation_MixedWarehouseInterruption_RetainsLastGoodAndCatchesUp"
     )
 
     if (Test-Path $harnessPath) { Remove-Item $harnessPath -Force }

@@ -410,7 +410,23 @@ Private Function OpenOrCreateCanonicalInventoryWorkbookLocal(ByVal warehouseId A
     If wb Is Nothing Then
         EnsureFolderRecursiveLocal GetParentFolderLocal(targetPath)
         If Len(Dir$(targetPath)) > 0 Then
-            Set wb = Application.Workbooks.Open(targetPath)
+            If IsWorkbookFileLockedLocal(targetPath) Then
+                report = "Inventory workbook is read-only or locked by another Excel session."
+                Exit Function
+            End If
+            Set wb = Application.Workbooks.Open(Filename:=targetPath, _
+                                                UpdateLinks:=0, _
+                                                ReadOnly:=False, _
+                                                Notify:=False, _
+                                                AddToMru:=False, _
+                                                IgnoreReadOnlyRecommended:=True)
+            If Not wb Is Nothing Then
+                If wb.ReadOnly Then
+                    wb.Close SaveChanges:=False
+                    report = "Inventory workbook is read-only or locked by another Excel session."
+                    Exit Function
+                End If
+            End If
         Else
             prevEvents = Application.EnableEvents
             Application.EnableEvents = False
@@ -433,6 +449,24 @@ FailOpen:
     If eventsSuppressed Then Application.EnableEvents = prevEvents
     On Error GoTo 0
     report = "Inventory workbook open/create failed: " & Err.Description
+End Function
+
+Private Function IsWorkbookFileLockedLocal(ByVal targetPath As String) As Boolean
+    Dim fileNum As Integer
+
+    If Len(Dir$(targetPath)) = 0 Then Exit Function
+
+    On Error GoTo Locked
+    fileNum = FreeFile
+    Open targetPath For Binary Access Read Write Lock Read Write As #fileNum
+    Close #fileNum
+    Exit Function
+
+Locked:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    On Error GoTo 0
+    IsWorkbookFileLockedLocal = True
 End Function
 
 Private Function BuildCanonicalInventoryPathLocal(ByVal warehouseId As String) As String
