@@ -371,6 +371,10 @@ FailEnsure:
     Resume CleanExit
 End Function
 
+Public Function GetResolvedWorkbookName() As String
+    GetResolvedWorkbookName = SafeTrim(mResolvedWorkbook)
+End Function
+
 Public Function EnsureStationInboxForAutomation(Optional ByVal warehouseId As String = "", _
                                                 Optional ByVal stationId As String = "", _
                                                 Optional ByVal roleDefault As String = "RECEIVE", _
