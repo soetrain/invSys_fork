@@ -74,8 +74,23 @@ End Function
 
 Public Sub RefreshCurrentWorkbookInventoryReadModel()
     Dim report As String
+    Dim wb As Workbook
 
-    If Not RefreshInventoryReadModelForWorkbook(Application.ActiveWorkbook, "", "LOCAL", report) Then
+    On Error Resume Next
+    Set wb = Application.ActiveWorkbook
+    On Error GoTo 0
+
+    If wb Is Nothing Then
+        MsgBox "No active operator workbook was available for refresh.", vbExclamation
+        Exit Sub
+    End If
+
+    If wb.IsAddin Then
+        MsgBox "Activate the operator workbook before refreshing invSys.", vbExclamation
+        Exit Sub
+    End If
+
+    If Not RefreshInventoryReadModelForWorkbook(wb, "", "LOCAL", report) Then
         MsgBox report, vbExclamation
     ElseIf report <> "OK" Then
         MsgBox report, vbInformation
