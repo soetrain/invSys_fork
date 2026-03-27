@@ -607,7 +607,7 @@ Private Function ResolveWorkbookByPathSync(ByVal targetPath As String, ByVal cre
         End If
     Next wb
 
-    fileExists = (Len(Dir$(targetPath)) > 0)
+    fileExists = FileExistsSync(targetPath)
     If fileExists Then
         Set ResolveWorkbookByPathSync = Application.Workbooks.Open(targetPath)
         Exit Function
@@ -867,18 +867,81 @@ End Sub
 Private Sub CreateFolderRecursiveSync(ByVal folderPath As String)
     Dim parentPath As String
     Dim sepPos As Long
+    Dim fso As Object
 
     folderPath = Trim$(folderPath)
     If folderPath = "" Then Exit Sub
-    If Len(Dir$(folderPath, vbDirectory)) > 0 Then Exit Sub
+    If FolderExistsSync(folderPath) Then Exit Sub
 
     If Right$(folderPath, 1) = "\" Then folderPath = Left$(folderPath, Len(folderPath) - 1)
+    If IsUncShareRootSync(folderPath) Then Exit Sub
+
     sepPos = InStrRev(folderPath, "\")
     If sepPos > 0 Then
         parentPath = Left$(folderPath, sepPos - 1)
         If Right$(parentPath, 1) = ":" Then parentPath = parentPath & "\"
-        If parentPath <> "" And Len(Dir$(parentPath, vbDirectory)) = 0 Then CreateFolderRecursiveSync parentPath
+        If parentPath <> "" And Not FolderExistsSync(parentPath) Then CreateFolderRecursiveSync parentPath
     End If
 
-    If Len(Dir$(folderPath, vbDirectory)) = 0 Then MkDir folderPath
+    If FolderExistsSync(folderPath) Then Exit Sub
+
+    If IsUncPathSync(folderPath) Then
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder folderPath
+    Else
+        MkDir folderPath
+    End If
 End Sub
+
+Private Function FileExistsSync(ByVal fullPath As String) As Boolean
+    Dim fso As Object
+
+    fullPath = Trim$(Replace$(fullPath, "/", "\"))
+    If fullPath = "" Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FileExistsSync = fso.FileExists(fullPath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FileExistsSync = (Len(Dir$(fullPath, vbNormal)) > 0)
+    End If
+    On Error GoTo 0
+End Function
+
+Private Function FolderExistsSync(ByVal folderPath As String) As Boolean
+    Dim fso As Object
+
+    folderPath = Trim$(Replace$(folderPath, "/", "\"))
+    If folderPath = "" Then Exit Function
+    If Right$(folderPath, 1) = "\" And Len(folderPath) > 3 Then folderPath = Left$(folderPath, Len(folderPath) - 1)
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FolderExistsSync = fso.FolderExists(folderPath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FolderExistsSync = (Len(Dir$(folderPath, vbDirectory)) > 0)
+    End If
+    On Error GoTo 0
+End Function
+
+Private Function IsUncPathSync(ByVal folderPath As String) As Boolean
+    folderPath = Trim$(Replace$(folderPath, "/", "\"))
+    IsUncPathSync = (Left$(folderPath, 2) = "\\")
+End Function
+
+Private Function IsUncShareRootSync(ByVal folderPath As String) As Boolean
+    Dim trimmedPath As String
+    Dim parts() As String
+
+    trimmedPath = Trim$(Replace$(folderPath, "/", "\"))
+    If Right$(trimmedPath, 1) = "\" And Len(trimmedPath) > 3 Then trimmedPath = Left$(trimmedPath, Len(trimmedPath) - 1)
+    If Left$(trimmedPath, 2) <> "\\" Then Exit Function
+
+    trimmedPath = Mid$(trimmedPath, 3)
+    If trimmedPath = "" Then Exit Function
+
+    parts = Split(trimmedPath, "\")
+    IsUncShareRootSync = (UBound(parts) = 1)
+End Function
