@@ -127,6 +127,7 @@ Public Function DiagnoseInventoryReadModelRefresh(Optional ByVal targetWb As Wor
     Dim snapshotDictRows As Long
     Dim refreshResult As Boolean
     Dim snapshotAlreadyOpen As Boolean
+    Dim snapshotOpenProbe As String
 
     Set wb = ResolveOperatorWorkbook(targetWb)
     If wb Is Nothing Then
@@ -156,6 +157,8 @@ Public Function DiagnoseInventoryReadModelRefresh(Optional ByVal targetWb As Wor
         snapshotTableRows = GetListRowCountReadModel(loSnap)
         Set snapshotRows = BuildSnapshotDictionary(loSnap)
         If Not snapshotRows Is Nothing Then snapshotDictRows = snapshotRows.Count
+    Else
+        snapshotOpenProbe = ProbeSnapshotOpenReadModel(snapshotPath)
     End If
 
     refreshResult = RefreshInventoryReadModelForWorkbook(wb, resolvedWarehouseId, normalizedSource, refreshReport)
@@ -177,6 +180,7 @@ Public Function DiagnoseInventoryReadModelRefresh(Optional ByVal targetWb As Wor
         "SnapshotTableResolved=" & CStr(Not loSnap Is Nothing), _
         "SnapshotTableRows=" & CStr(snapshotTableRows), _
         "SnapshotDictionaryRows=" & CStr(snapshotDictRows), _
+        "SnapshotOpenProbe=" & snapshotOpenProbe, _
         "InvSysRowsBefore=" & CStr(beforeRows), _
         "RefreshResult=" & CStr(refreshResult), _
         "RefreshReport=" & refreshReport, _
@@ -564,6 +568,54 @@ Private Function GetListRowCountReadModel(ByVal lo As ListObject) As Long
     If lo Is Nothing Then Exit Function
     If lo.DataBodyRange Is Nothing Then Exit Function
     GetListRowCountReadModel = lo.ListRows.Count
+End Function
+
+Private Function ProbeSnapshotOpenReadModel(ByVal snapshotPath As String) As String
+    Dim wb As Workbook
+    Dim loSnap As ListObject
+    Dim prevAlerts As Boolean
+
+    snapshotPath = Trim$(snapshotPath)
+    If snapshotPath = "" Then
+        ProbeSnapshotOpenReadModel = "NoPath"
+        Exit Function
+    End If
+
+    prevAlerts = Application.DisplayAlerts
+    Application.DisplayAlerts = False
+
+    On Error Resume Next
+    Set wb = Application.Workbooks.Open( _
+        Filename:=snapshotPath, _
+        UpdateLinks:=0, _
+        ReadOnly:=True, _
+        IgnoreReadOnlyRecommended:=True, _
+        Notify:=False, _
+        AddToMru:=False)
+    If Err.Number <> 0 Then
+        ProbeSnapshotOpenReadModel = "OpenError " & CStr(Err.Number) & ": " & Err.Description
+        Err.Clear
+        On Error GoTo 0
+        Application.DisplayAlerts = prevAlerts
+        Exit Function
+    End If
+    On Error GoTo 0
+
+    If wb Is Nothing Then
+        ProbeSnapshotOpenReadModel = "OpenReturnedNothing"
+        Application.DisplayAlerts = prevAlerts
+        Exit Function
+    End If
+
+    Set loSnap = FindListObjectReadModel(wb, TABLE_SNAPSHOT)
+    If loSnap Is Nothing Then
+        ProbeSnapshotOpenReadModel = "OpenedNoTable " & wb.FullName
+    Else
+        ProbeSnapshotOpenReadModel = "OpenedRows=" & CStr(GetListRowCountReadModel(loSnap)) & " " & wb.FullName
+    End If
+
+    CloseWorkbookQuietlyReadModel wb
+    Application.DisplayAlerts = prevAlerts
 End Function
 
 Private Sub CloseWorkbookQuietlyReadModel(ByVal wb As Workbook)
