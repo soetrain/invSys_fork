@@ -277,6 +277,22 @@ try {
     Ensure-Directory -Path $resolvedLocalConfigRoot
     Copy-Item -LiteralPath $sharedConfigPath -Destination $localConfigPath -Force
 
+    $localPacked = Join-PackedArgs @(
+        $WarehouseId,
+        $StationId,
+        $StationName,
+        ($resolvedInboxRoot + "\"),
+        $RoleDefault,
+        $localConfigPath,
+        $resolvedSharedRoot
+    )
+    $localResult = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $coreWb.Name -MacroName "modConfig.EnsureStationConfigEntryPackedForAutomation" -Arguments @(
+        $localPacked
+    ))
+    if (-not $localResult.StartsWith("OK", [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Local config bootstrap failed. Result=$localResult"
+    }
+
     $inboxPacked = Join-PackedArgs @(
         $WarehouseId,
         $StationId,
