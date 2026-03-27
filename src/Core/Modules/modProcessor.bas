@@ -6,6 +6,13 @@ Public Const INBOX_STATUS_PROCESSED As String = "PROCESSED"
 Public Const INBOX_STATUS_SKIP_DUP As String = "SKIP_DUP"
 Public Const INBOX_STATUS_POISON As String = "POISON"
 
+Private Const PROC_APPLY_STATUS_APPLIED As String = "APPLIED"
+Private Const PROC_APPLY_STATUS_SKIP_DUP As String = "SKIP_DUP"
+Private Const PROC_EVENT_TYPE_RECEIVE As String = "RECEIVE"
+Private Const PROC_EVENT_TYPE_SHIP As String = "SHIP"
+Private Const PROC_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
+Private Const PROC_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
+
 Private Const SHEET_INBOX_RECEIVE As String = "InboxReceive"
 Private Const SHEET_INBOX_SHIP As String = "InboxShip"
 Private Const SHEET_INBOX_PROD As String = "InboxProd"
@@ -79,7 +86,7 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
     lockHeld = True
     lastHeartbeat = Now
 
-    Set inboxTargets = ResolveInboxTargets()
+    Set inboxTargets = ResolveInboxTargets(warehouseId)
     For Each target In inboxTargets
         If Not EnsureInboxTargetSchema(target("Workbook"), CStr(target("TableName")), report) Then GoTo ContinueInbox
 
@@ -117,12 +124,12 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
 
             If ApplyInventoryEventBridge(evt, inventoryWb, runId, statusOut, errorCode, errorMessage) Then
                 Select Case UCase$(statusOut)
-                    Case CORE_APPLY_STATUS_APPLIED
+                    Case PROC_APPLY_STATUS_APPLIED
                         artifactReport = vbNullString
                         If Not AppendEventToOutbox(evt, inventoryWb, Nothing, runId, artifactReport) Then artifactWarnings = artifactWarnings + 1
                         UpdateInboxRowStatus loInbox, rowIndex, INBOX_STATUS_PROCESSED
                         RunBatch = RunBatch + 1
-                    Case CORE_APPLY_STATUS_SKIP_DUP
+                    Case PROC_APPLY_STATUS_SKIP_DUP
                         artifactReport = vbNullString
                         If Not AppendEventToOutbox(evt, inventoryWb, Nothing, runId, artifactReport) Then artifactWarnings = artifactWarnings + 1
                         UpdateInboxRowStatus loInbox, rowIndex, INBOX_STATUS_SKIP_DUP
@@ -145,8 +152,12 @@ MaybeHeartbeat:
 ContinueRow:
         Next rowIndex
 
-        If RunBatch >= batchSize Then Exit For
+        If RunBatch >= batchSize Then
+            CloseInboxTargetIfNeeded target
+            Exit For
+        End If
 ContinueInbox:
+        CloseInboxTargetIfNeeded target
     Next target
 
     report = "Applied=" & CStr(RunBatch) & "; SkipDup=" & CStr(skipDupCount) & "; Poison=" & CStr(poisonCount) & "; RunId=" & runId
@@ -159,6 +170,11 @@ ContinueInbox:
     End If
 
 CleanExit:
+    If Not inboxTargets Is Nothing Then
+        For Each target In inboxTargets
+            CloseInboxTargetIfNeeded target
+        Next target
+    End If
     If lockHeld Then Call modLockManager.ReleaseLock("INVENTORY", runId, inventoryWb)
     Exit Function
 
@@ -216,17 +232,17 @@ End Function
 
 Public Function EnsureReceiveInboxSchema(Optional ByVal targetWb As Workbook = Nothing, _
                                          Optional ByRef report As String = "") As Boolean
-    EnsureReceiveInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_RECEIVE, TABLE_INBOX_RECEIVE, CORE_EVENT_TYPE_RECEIVE)
+    EnsureReceiveInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_RECEIVE, TABLE_INBOX_RECEIVE, PROC_EVENT_TYPE_RECEIVE)
 End Function
 
 Public Function EnsureShipInboxSchema(Optional ByVal targetWb As Workbook = Nothing, _
                                       Optional ByRef report As String = "") As Boolean
-    EnsureShipInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_SHIP, TABLE_INBOX_SHIP, CORE_EVENT_TYPE_SHIP)
+    EnsureShipInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_SHIP, TABLE_INBOX_SHIP, PROC_EVENT_TYPE_SHIP)
 End Function
 
 Public Function EnsureProductionInboxSchema(Optional ByVal targetWb As Workbook = Nothing, _
                                             Optional ByRef report As String = "") As Boolean
-    EnsureProductionInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_PROD, TABLE_INBOX_PROD, CORE_EVENT_TYPE_PROD_CONSUME)
+    EnsureProductionInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_PROD, TABLE_INBOX_PROD, PROC_EVENT_TYPE_PROD_CONSUME)
 End Function
 
 Private Function EnsureInboxTargetSchema(ByVal targetWb As Workbook, ByVal tableName As String, ByRef report As String) As Boolean
@@ -334,7 +350,7 @@ Private Function EnsurePhase2Context(ByVal warehouseId As String, ByRef report A
     EnsurePhase2Context = True
 End Function
 
-Private Function ResolveInboxTargets() As Collection
+Private Function ResolveInboxTargets(Optional ByVal warehouseId As String = "") As Collection
     Dim wb As Workbook
     Dim seen As Object
 
@@ -343,13 +359,15 @@ Private Function ResolveInboxTargets() As Collection
     seen.CompareMode = vbTextCompare
 
     For Each wb In Application.Workbooks
-        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_RECEIVE, SHEET_INBOX_RECEIVE, CORE_EVENT_TYPE_RECEIVE, _
+        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_RECEIVE, SHEET_INBOX_RECEIVE, PROC_EVENT_TYPE_RECEIVE, _
                        IsReceiveInboxWorkbookName(wb.Name) Or WorkbookHasListObjectProcessor(wb, TABLE_INBOX_RECEIVE)
-        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_SHIP, SHEET_INBOX_SHIP, CORE_EVENT_TYPE_SHIP, _
+        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_SHIP, SHEET_INBOX_SHIP, PROC_EVENT_TYPE_SHIP, _
                        IsShipInboxWorkbookName(wb.Name) Or WorkbookHasListObjectProcessor(wb, TABLE_INBOX_SHIP)
-        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_PROD, SHEET_INBOX_PROD, CORE_EVENT_TYPE_PROD_CONSUME, _
+        AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_PROD, SHEET_INBOX_PROD, PROC_EVENT_TYPE_PROD_CONSUME, _
                        IsProductionInboxWorkbookName(wb.Name) Or WorkbookHasListObjectProcessor(wb, TABLE_INBOX_PROD)
     Next wb
+
+    AddConfiguredInboxTargets ResolveInboxTargets, seen, warehouseId
 End Function
 
 Private Sub AddInboxTarget(ByVal targets As Collection, _
@@ -363,7 +381,7 @@ Private Sub AddInboxTarget(ByVal targets As Collection, _
     Dim key As String
 
     If Not shouldAdd Then Exit Sub
-    key = wb.Name & "|" & tableName
+    key = CStr(IIf(Trim$(wb.FullName) <> "", wb.FullName, wb.Name)) & "|" & tableName
     If seen.Exists(key) Then Exit Sub
 
     Set target = CreateObject("Scripting.Dictionary")
@@ -372,15 +390,167 @@ Private Sub AddInboxTarget(ByVal targets As Collection, _
     target.Add "TableName", tableName
     target.Add "SheetName", sheetName
     target.Add "DefaultEventType", defaultEventType
+    target.Add "CloseWhenDone", False
     targets.Add target
     seen.Add key, True
+End Sub
+
+Private Sub AddConfiguredInboxTargets(ByVal targets As Collection, ByVal seen As Object, ByVal warehouseId As String)
+    Dim wbCfg As Workbook
+    Dim loSt As ListObject
+    Dim stationId As String
+    Dim rowWarehouse As String
+    Dim pathReceive As String
+    Dim pathShip As String
+    Dim pathProd As String
+    Dim report As String
+    Dim openedCfg As Boolean
+    Dim rowIndex As Long
+
+    Set wbCfg = FindOpenWorkbookByNameProcessor(modConfig.GetString("WarehouseId", warehouseId) & ".invSys.Config.xlsb")
+    If wbCfg Is Nothing Then
+        Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(warehouseId, "", "", report)
+        openedCfg = Not wbCfg Is Nothing
+    End If
+    If wbCfg Is Nothing Then Exit Sub
+
+    Set loSt = FindListObjectByNameProcessor(wbCfg, "tblStationConfig")
+    If loSt Is Nothing Then GoTo CleanExit
+    If loSt.DataBodyRange Is Nothing Then GoTo CleanExit
+
+    For rowIndex = 1 To loSt.ListRows.Count
+        stationId = SafeTrimProcessor(GetCellByColumnProcessor(loSt, rowIndex, "StationId"))
+        rowWarehouse = SafeTrimProcessor(GetCellByColumnProcessor(loSt, rowIndex, "WarehouseId"))
+        If stationId = "" Then GoTo NextRow
+        If warehouseId <> "" And rowWarehouse <> "" Then
+            If StrComp(warehouseId, rowWarehouse, vbTextCompare) <> 0 Then GoTo NextRow
+        End If
+
+        pathReceive = BuildConfiguredInboxPathProcessor(wbCfg, loSt, rowIndex, PROC_EVENT_TYPE_RECEIVE, stationId)
+        pathShip = BuildConfiguredInboxPathProcessor(wbCfg, loSt, rowIndex, PROC_EVENT_TYPE_SHIP, stationId)
+        pathProd = BuildConfiguredInboxPathProcessor(wbCfg, loSt, rowIndex, PROC_EVENT_TYPE_PROD_CONSUME, stationId)
+
+        AddInboxTargetByPath targets, seen, pathReceive, TABLE_INBOX_RECEIVE, SHEET_INBOX_RECEIVE, PROC_EVENT_TYPE_RECEIVE
+        AddInboxTargetByPath targets, seen, pathShip, TABLE_INBOX_SHIP, SHEET_INBOX_SHIP, PROC_EVENT_TYPE_SHIP
+        AddInboxTargetByPath targets, seen, pathProd, TABLE_INBOX_PROD, SHEET_INBOX_PROD, PROC_EVENT_TYPE_PROD_CONSUME
+NextRow:
+    Next rowIndex
+
+CleanExit:
+    If openedCfg Then CloseProcessorWorkbookIfNeeded wbCfg, False
+End Sub
+
+Private Sub AddInboxTargetByPath(ByVal targets As Collection, _
+                                 ByVal seen As Object, _
+                                 ByVal fullPath As String, _
+                                 ByVal tableName As String, _
+                                 ByVal sheetName As String, _
+                                 ByVal defaultEventType As String)
+    Dim wb As Workbook
+    Dim target As Object
+    Dim key As String
+    Dim openedByProcessor As Boolean
+
+    fullPath = Trim$(fullPath)
+    If fullPath = "" Then Exit Sub
+    If Len(Dir$(fullPath, vbNormal)) = 0 Then Exit Sub
+
+    key = fullPath & "|" & tableName
+    If seen.Exists(key) Then Exit Sub
+
+    Set wb = FindOpenWorkbookByPathProcessor(fullPath)
+    If wb Is Nothing Then
+        Set wb = OpenInboxWorkbookForProcessor(fullPath)
+        openedByProcessor = Not wb Is Nothing
+    End If
+    If wb Is Nothing Then Exit Sub
+
+    Set target = CreateObject("Scripting.Dictionary")
+    target.CompareMode = vbTextCompare
+    target.Add "Workbook", wb
+    target.Add "TableName", tableName
+    target.Add "SheetName", sheetName
+    target.Add "DefaultEventType", defaultEventType
+    target.Add "CloseWhenDone", openedByProcessor
+    targets.Add target
+    seen.Add key, True
+End Sub
+
+Private Function BuildConfiguredInboxPathProcessor(ByVal wbCfg As Workbook, _
+                                                   ByVal loSt As ListObject, _
+                                                   ByVal rowIndex As Long, _
+                                                   ByVal eventType As String, _
+                                                   ByVal stationId As String) As String
+    Dim warehouseId As String
+    Dim rawRoot As String
+    Dim fileName As String
+
+    warehouseId = SafeTrimProcessor(GetCellByColumnProcessor(loSt, rowIndex, "WarehouseId"))
+    rawRoot = SafeTrimProcessor(GetCellByColumnProcessor(loSt, rowIndex, "PathInboxRoot"))
+    If rawRoot = "" Then rawRoot = modConfig.GetString("PathDataRoot", "")
+    rawRoot = ExpandInboxPathProcessor(rawRoot, warehouseId, stationId)
+    If rawRoot = "" Then Exit Function
+
+    fileName = InboxWorkbookNameProcessor(eventType, stationId)
+    If fileName = "" Then Exit Function
+    BuildConfiguredInboxPathProcessor = CombinePathProcessor(rawRoot, fileName)
+End Function
+
+Private Function ExpandInboxPathProcessor(ByVal rawPath As String, ByVal warehouseId As String, ByVal stationId As String) As String
+    ExpandInboxPathProcessor = SafeTrimProcessor(rawPath)
+    If ExpandInboxPathProcessor = "" Then Exit Function
+    ExpandInboxPathProcessor = Replace$(ExpandInboxPathProcessor, "{WarehouseId}", warehouseId)
+    ExpandInboxPathProcessor = Replace$(ExpandInboxPathProcessor, "{StationId}", stationId)
+    ExpandInboxPathProcessor = Replace$(ExpandInboxPathProcessor, "/", "\")
+    Do While Right$(ExpandInboxPathProcessor, 1) = "\"
+        ExpandInboxPathProcessor = Left$(ExpandInboxPathProcessor, Len(ExpandInboxPathProcessor) - 1)
+    Loop
+End Function
+
+Private Function InboxWorkbookNameProcessor(ByVal eventType As String, ByVal stationId As String) As String
+    Select Case UCase$(SafeTrimProcessor(eventType))
+        Case PROC_EVENT_TYPE_RECEIVE
+            InboxWorkbookNameProcessor = "invSys.Inbox.Receiving." & stationId & ".xlsb"
+        Case PROC_EVENT_TYPE_SHIP
+            InboxWorkbookNameProcessor = "invSys.Inbox.Shipping." & stationId & ".xlsb"
+        Case PROC_EVENT_TYPE_PROD_CONSUME, PROC_EVENT_TYPE_PROD_COMPLETE
+            InboxWorkbookNameProcessor = "invSys.Inbox.Production." & stationId & ".xlsb"
+    End Select
+End Function
+
+Private Function OpenInboxWorkbookForProcessor(ByVal fullPath As String) As Workbook
+    On Error Resume Next
+    Set OpenInboxWorkbookForProcessor = Application.Workbooks.Open(Filename:=fullPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+    On Error GoTo 0
+    If OpenInboxWorkbookForProcessor Is Nothing Then Exit Function
+    If OpenInboxWorkbookForProcessor.ReadOnly Then
+        OpenInboxWorkbookForProcessor.Close SaveChanges:=False
+        Set OpenInboxWorkbookForProcessor = Nothing
+    End If
+End Function
+
+Private Sub CloseInboxTargetIfNeeded(ByVal target As Variant)
+    If IsObject(target) Then
+        If target.Exists("CloseWhenDone") Then
+            If CBool(target("CloseWhenDone")) Then
+                CloseProcessorWorkbookIfNeeded target("Workbook"), True
+            End If
+        End If
+    End If
+End Sub
+
+Private Sub CloseProcessorWorkbookIfNeeded(ByVal wb As Workbook, ByVal saveChanges As Boolean)
+    On Error Resume Next
+    If wb Is Nothing Then Exit Sub
+    wb.Close SaveChanges:=saveChanges
+    On Error GoTo 0
 End Sub
 
 Private Function ResolveSingleInboxWorkbook(ByVal tableName As String) As Workbook
     Dim targets As Collection
     Dim target As Variant
 
-    Set targets = ResolveInboxTargets()
+    Set targets = ResolveInboxTargets(modConfig.GetString("WarehouseId", ""))
     For Each target In targets
         If StrComp(CStr(target("TableName")), tableName, vbTextCompare) = 0 Then
             Set ResolveSingleInboxWorkbook = target("Workbook")
@@ -443,11 +613,11 @@ End Function
 
 Private Function CapabilityForEventType(ByVal eventType As String) As String
     Select Case UCase$(SafeTrimProcessor(eventType))
-        Case CORE_EVENT_TYPE_RECEIVE
+        Case PROC_EVENT_TYPE_RECEIVE
             CapabilityForEventType = "RECEIVE_POST"
-        Case CORE_EVENT_TYPE_SHIP
+        Case PROC_EVENT_TYPE_SHIP
             CapabilityForEventType = "SHIP_POST"
-        Case CORE_EVENT_TYPE_PROD_CONSUME, CORE_EVENT_TYPE_PROD_COMPLETE
+        Case PROC_EVENT_TYPE_PROD_CONSUME, PROC_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventType = "PROD_POST"
     End Select
 End Function
@@ -509,6 +679,38 @@ Private Function IsProductionInboxWorkbookName(ByVal wbName As String) As Boolea
     IsProductionInboxWorkbookName = (n Like "invsys.inbox.production.*.xlsb") Or _
                                     (n Like "invsys.inbox.production.*.xlsx") Or _
                                     (n Like "invsys.inbox.production.*.xlsm")
+End Function
+
+Private Function FindOpenWorkbookByNameProcessor(ByVal workbookName As String) As Workbook
+    Dim wb As Workbook
+
+    For Each wb In Application.Workbooks
+        If StrComp(wb.Name, workbookName, vbTextCompare) = 0 Then
+            Set FindOpenWorkbookByNameProcessor = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Function FindOpenWorkbookByPathProcessor(ByVal fullPath As String) As Workbook
+    Dim wb As Workbook
+
+    For Each wb In Application.Workbooks
+        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 Then
+            Set FindOpenWorkbookByPathProcessor = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Function CombinePathProcessor(ByVal basePath As String, ByVal childName As String) As String
+    If basePath = "" Then
+        CombinePathProcessor = childName
+    ElseIf Right$(basePath, 1) = "\" Then
+        CombinePathProcessor = basePath & childName
+    Else
+        CombinePathProcessor = basePath & "\" & childName
+    End If
 End Function
 
 Private Sub EnsureListColumnProcessor(ByVal lo As ListObject, ByVal columnName As String)

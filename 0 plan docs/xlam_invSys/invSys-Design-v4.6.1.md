@@ -1106,15 +1106,21 @@ AuthCacheTTLSeconds      (number)
 StationId     (text, PK)
 WarehouseId   (text)
 StationName   (text)
+PathInboxRoot (text, optional)   station-specific LAN inbox root / share
 RoleDefault   (text)   RECEIVE | SHIP | PROD | ADMIN
 ```
+
+Operational LAN bootstrap note:
+- Each station may keep a local `WHx.invSys.Config.xlsb` for role/runtime bootstrap, but `PathDataRoot` must point at the shared warehouse runtime root.
+- `PathInboxRoot` should point at the station inbox location the warehouse processor can actually reach, ideally a UNC/shared folder for that station.
+- The end-user bootstrap path should create or update the station row and create the role inbox workbook without requiring VBE/test-harness steps.
 
 ---
 
 ## Appendix: Carried Forward from Archived v2 Docs
 ### Config MVP Keys (R1 baseline)
 - Warehouse scope: `WarehouseId`, `WarehouseName`, `Timezone`, `DefaultLocation`, `BatchSize`, `LockTimeoutMinutes`, `HeartbeatIntervalSeconds`, `MaxLockHoldMinutes`, `SnapshotCadence`, `BackupCadence`, `PathDataRoot`, `PathBackupRoot`, `PathSharePointRoot`, `DesignsEnabled`, `PoisonRetryMax`, `AuthCacheTTLSeconds`
-- Station scope: `StationId`, `StationName`, `RoleDefault`
+- Station scope: `StationId`, `StationName`, `PathInboxRoot`, `RoleDefault`
 - Feature flags: `FF_DesignsEnabled`, `FF_OutlookAlerts`, `FF_AutoSnapshot`
 
 ### Outbox Table (Release 1)

@@ -88,6 +88,130 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestEnsureStationBootstrap_CreatesLocalConfigAndInbox() As Long
+    Dim rootPath As String
+    Dim sharedRoot As String
+    Dim localRoot As String
+    Dim inboxRoot As String
+    Dim sharedConfigPath As String
+    Dim localConfigPath As String
+    Dim inboxPath As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbSharedCfg As Workbook
+    Dim wbLocalCfg As Workbook
+    Dim wbInbox As Workbook
+    Dim loSt As ListObject
+    Dim rowIndex As Long
+
+    rootPath = BuildRuntimeTestRoot("phase6_station_bootstrap")
+    sharedRoot = rootPath & "\shared"
+    localRoot = rootPath & "\local_cfg"
+    inboxRoot = rootPath & "\station_inbox"
+    sharedConfigPath = sharedRoot & "\WH63.invSys.Config.xlsb"
+    localConfigPath = localRoot & "\WH63.invSys.Config.xlsb"
+
+    On Error GoTo CleanFail
+    MkDir sharedRoot
+    MkDir localRoot
+    MkDir inboxRoot
+
+    If Not modConfig.EnsureStationConfigEntry("WH63", "S2", "ARCTIC-RAPTOR", inboxRoot & "\", "RECEIVE", sharedConfigPath, sharedRoot & "\", report) Then
+        failureReason = "Shared config bootstrap failed: " & report
+        GoTo CleanExit
+    End If
+
+    If Not modConfig.EnsureStationConfigEntry("WH63", "S2", "ARCTIC-RAPTOR", inboxRoot & "\", "RECEIVE", localConfigPath, sharedRoot & "\", report) Then
+        failureReason = "Local config bootstrap failed: " & report
+        GoTo CleanExit
+    End If
+
+    If Not modConfig.EnsureStationInbox("WH63", "S2", "RECEIVE", localConfigPath, inboxPath, report) Then
+        failureReason = "Station inbox bootstrap failed: " & report
+        GoTo CleanExit
+    End If
+
+    Set wbSharedCfg = FindWorkbookByFullPathForTest(sharedConfigPath)
+    If wbSharedCfg Is Nothing Then
+        If Len(Dir$(sharedConfigPath, vbNormal)) = 0 Then
+            failureReason = "Shared config workbook was not created on disk."
+            GoTo CleanExit
+        End If
+        Set wbSharedCfg = Application.Workbooks.Open(sharedConfigPath)
+    End If
+    If wbSharedCfg Is Nothing Then
+        failureReason = "Shared config workbook could not be opened for verification."
+        GoTo CleanExit
+    End If
+    Set loSt = wbSharedCfg.Worksheets("StationConfig").ListObjects("tblStationConfig")
+    rowIndex = FindRowByColumnValueInTable(loSt, "StationId", "S2")
+    If rowIndex = 0 Then
+        failureReason = "Shared config did not contain station row S2."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loSt, rowIndex, "PathInboxRoot")), inboxRoot & "\", vbTextCompare) <> 0 Then
+        failureReason = "Shared config PathInboxRoot was not updated."
+        GoTo CleanExit
+    End If
+    CloseWorkbookIfOpen wbSharedCfg
+    Set wbSharedCfg = Nothing
+
+    Set wbLocalCfg = FindWorkbookByFullPathForTest(localConfigPath)
+    If wbLocalCfg Is Nothing Then
+        If Len(Dir$(localConfigPath, vbNormal)) = 0 Then
+            failureReason = "Local config workbook was not created on disk."
+            GoTo CleanExit
+        End If
+        Set wbLocalCfg = Application.Workbooks.Open(localConfigPath)
+    End If
+    If wbLocalCfg Is Nothing Then
+        failureReason = "Local config workbook could not be opened for verification."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(wbLocalCfg.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig"), 1, "PathDataRoot")), sharedRoot, vbTextCompare) <> 0 Then
+        failureReason = "Local config PathDataRoot did not point at shared runtime root."
+        GoTo CleanExit
+    End If
+
+    If StrComp(inboxPath, inboxRoot & "\invSys.Inbox.Receiving.S2.xlsb", vbTextCompare) <> 0 Then
+        failureReason = "Returned inbox path did not match expected station inbox."
+        GoTo CleanExit
+    End If
+    If Len(Dir$(inboxPath, vbNormal)) = 0 Then
+        failureReason = "Station inbox workbook was not created on disk."
+        GoTo CleanExit
+    End If
+
+    Set wbInbox = FindWorkbookByName("invSys.Inbox.Receiving.S2.xlsb")
+    If wbInbox Is Nothing Then
+        Set wbInbox = Application.Workbooks.Open(inboxPath)
+    End If
+    If wbInbox Is Nothing Then
+        failureReason = "Station inbox workbook could not be opened for verification."
+        GoTo CleanExit
+    End If
+    If FindTableByName(wbInbox, "tblInboxReceive") Is Nothing Then
+        failureReason = "Station inbox workbook did not contain tblInboxReceive."
+        GoTo CleanExit
+    End If
+
+    TestEnsureStationBootstrap_CreatesLocalConfigAndInbox = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbLocalCfg
+    CloseWorkbookIfOpen wbSharedCfg
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7111, "TestEnsureStationBootstrap_CreatesLocalConfigAndInbox", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestLoadConfig_QuarantinesContaminatedConfigSheet() As Long
     Dim rootPath As String
     Dim wb As Workbook
@@ -1240,6 +1364,101 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestProcessor_DiscoversClosedConfiguredStationInboxWorkbook() As Long
+    Dim rootPath As String
+    Dim stationRoot As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbInv As Workbook
+    Dim wbInbox As Workbook
+    Dim wbInboxCheck As Workbook
+    Dim loInbox As ListObject
+    Dim loSku As ListObject
+    Dim processedCount As Long
+
+    rootPath = BuildRuntimeTestRoot("phase6_lan_closed_inbox")
+    stationRoot = rootPath & "\station_S22"
+
+    On Error GoTo CleanFail
+    If Len(Dir$(stationRoot, vbDirectory)) = 0 Then MkDir stationRoot
+
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH81", "S21") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH81.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    EnsureConfigStationRowValue "WH81.invSys.Config.xlsb", "S21", "WH81", "RoleDefault", "RECEIVE"
+    EnsureConfigStationRowValue "WH81.invSys.Config.xlsb", "S22", "WH81", "PathInboxRoot", stationRoot & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+    If Not modAuth.LoadAuth("WH81") Then GoTo CleanExit
+
+    currentUser = ResolveCurrentTestUserId()
+    EnsureAuthCapabilityForTest "WH81", currentUser, "RECEIVE_POST", "WH81", "*"
+    EnsureAuthCapabilityForTest "WH81", "svc_processor", "INBOX_PROCESS", "WH81", "*"
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH81", Array("SKU-LAN-DISK"))
+    If wbInv Is Nothing Then
+        failureReason = "Canonical inventory workbook could not be created."
+        GoTo CleanExit
+    End If
+
+    Set wbInbox = CreateCanonicalReceiveInboxWorkbookForTest(stationRoot, "S22")
+    If wbInbox Is Nothing Then
+        failureReason = "Configured station inbox workbook could not be created."
+        GoTo CleanExit
+    End If
+
+    Set loInbox = FindTableByName(wbInbox, "tblInboxReceive")
+    AddInboxReceiveEventRowForTest loInbox, "EVT-LAN-DISK-001", "WH81", "S22", currentUser, "SKU-LAN-DISK", 5, "A1", "closed-configured-inbox"
+    wbInbox.Save
+    wbInbox.Close SaveChanges:=True
+    Set wbInbox = Nothing
+
+    processedCount = modProcessor.RunBatch("WH81", 500, report)
+    If processedCount <> 1 Then
+        failureReason = "RunBatch did not process the configured closed inbox workbook. " & report
+        GoTo CleanExit
+    End If
+
+    Set wbInboxCheck = Application.Workbooks.Open(stationRoot & "\invSys.Inbox.Receiving.S22.xlsb")
+    If Not AssertInboxRowStatusForTest(wbInboxCheck, "EVT-LAN-DISK-001", "PROCESSED") Then
+        failureReason = "Configured station inbox row was not marked PROCESSED after closed-file discovery."
+        GoTo CleanExit
+    End If
+
+    Set loSku = wbInv.Worksheets("SkuBalance").ListObjects("tblSkuBalance")
+    If loSku Is Nothing Then
+        failureReason = "Projected SKU balance table missing after closed inbox processing."
+        GoTo CleanExit
+    End If
+    If FindRowByColumnValueInTable(loSku, "SKU", "SKU-LAN-DISK") = 0 Then
+        failureReason = "Projected SKU balance row missing after closed inbox processing."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loSku, FindRowByColumnValueInTable(loSku, "SKU", "SKU-LAN-DISK"), "QtyOnHand")) <> 5 Then
+        failureReason = "Projected SKU balance did not reflect closed inbox processing."
+        GoTo CleanExit
+    End If
+
+    TestProcessor_DiscoversClosedConfiguredStationInboxWorkbook = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInboxCheck
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbInv
+    CloseWorkbookByNameIfOpen "WH81.invSys.Config.xlsb"
+    CloseWorkbookByNameIfOpen "WH81.invSys.Auth.xlsb"
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7110, "TestProcessor_DiscoversClosedConfiguredStationInboxWorkbook", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestSavedShippingWorkbook_RefreshPreservesStagingAndLogs() As Long
     Dim rootPath As String
     Dim operatorPath As String
@@ -2366,6 +2585,17 @@ Private Function FindWorkbookByName(ByVal workbookName As String) As Workbook
     Next wb
 End Function
 
+Private Function FindWorkbookByFullPathForTest(ByVal fullPath As String) As Workbook
+    Dim wb As Workbook
+
+    For Each wb In Application.Workbooks
+        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 Then
+            Set FindWorkbookByFullPathForTest = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
 Private Sub CloseWorkbookByNameIfOpen(ByVal workbookName As String)
     Dim wb As Workbook
 
@@ -2657,6 +2887,35 @@ Private Sub SetConfigWarehouseValue(ByVal workbookName As String, ByVal columnNa
     Set lo = wb.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
     If lo Is Nothing Then Exit Sub
     lo.DataBodyRange.Cells(1, lo.ListColumns(columnName).Index).Value = valueIn
+    wb.Save
+End Sub
+
+Private Sub EnsureConfigStationRowValue(ByVal workbookName As String, _
+                                        ByVal stationId As String, _
+                                        ByVal warehouseId As String, _
+                                        ByVal columnName As String, _
+                                        ByVal valueIn As Variant)
+    Dim wb As Workbook
+    Dim lo As ListObject
+    Dim rowIndex As Long
+    Dim lr As ListRow
+
+    Set wb = FindWorkbookByName(workbookName)
+    If wb Is Nothing Then Exit Sub
+    Set lo = wb.Worksheets("StationConfig").ListObjects("tblStationConfig")
+    If lo Is Nothing Then Exit Sub
+
+    rowIndex = FindRowByColumnValueInTable(lo, "StationId", stationId)
+    If rowIndex = 0 Then
+        Set lr = lo.ListRows.Add
+        rowIndex = lr.Index
+        SetTableCell lo, rowIndex, "StationId", stationId
+        SetTableCell lo, rowIndex, "WarehouseId", warehouseId
+        SetTableCell lo, rowIndex, "StationName", stationId
+        SetTableCell lo, rowIndex, "RoleDefault", "RECEIVE"
+    End If
+
+    SetTableCell lo, rowIndex, columnName, valueIn
     wb.Save
 End Sub
 

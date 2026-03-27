@@ -29,9 +29,9 @@ Public Function BuildPhase2ConfigWorkbook(ByVal whId As String, ByVal stId As St
         False, False, True)
     wsWh.ListObjects.Add(xlSrcRange, wsWh.Range("A1:T2"), , xlYes).Name = "tblWarehouseConfig"
 
-    wsSt.Range("A1").Resize(1, 4).Value = Array("StationId", "WarehouseId", "StationName", "RoleDefault")
-    wsSt.Range("A2").Resize(1, 4).Value = Array(stId, whId, Environ$("COMPUTERNAME"), roleDefault)
-    wsSt.ListObjects.Add(xlSrcRange, wsSt.Range("A1:D2"), , xlYes).Name = "tblStationConfig"
+    wsSt.Range("A1").Resize(1, 5).Value = Array("StationId", "WarehouseId", "StationName", "PathInboxRoot", "RoleDefault")
+    wsSt.Range("A2").Resize(1, 5).Value = Array(stId, whId, Environ$("COMPUTERNAME"), "", roleDefault)
+    wsSt.ListObjects.Add(xlSrcRange, wsSt.Range("A1:E2"), , xlYes).Name = "tblStationConfig"
 
     p = BuildUniqueTestWorkbookPath(whId & ".invSys.Config")
     SaveWorkbookAsTestFile wb, p, 51
@@ -44,6 +44,16 @@ Public Sub SetWarehouseConfigValue(ByVal wb As Workbook, ByVal keyName As String
 
     If wb Is Nothing Then Exit Sub
     Set lo = wb.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
+    idx = lo.ListColumns(keyName).Index
+    lo.DataBodyRange.Cells(1, idx).Value = valueIn
+End Sub
+
+Public Sub SetStationConfigValue(ByVal wb As Workbook, ByVal keyName As String, ByVal valueIn As Variant)
+    Dim lo As ListObject
+    Dim idx As Long
+
+    If wb Is Nothing Then Exit Sub
+    Set lo = wb.Worksheets("StationConfig").ListObjects("tblStationConfig")
     idx = lo.ListColumns(keyName).Index
     lo.DataBodyRange.Cells(1, idx).Value = valueIn
 End Sub

@@ -82,10 +82,15 @@ try {
 
     $modulePaths = @(
         (Join-Path $repo "src/Core/Modules/modConfigDefaults.bas"),
+        (Join-Path $repo "src/Core/Modules/modRuntimeWorkbooks.bas"),
+        (Join-Path $repo "src/Core/Modules/modRoleWorkbookSurfaces.bas"),
         (Join-Path $repo "src/Core/Modules/modConfig.bas"),
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
         (Join-Path $repo "src/Core/Modules/modLockManager.bas"),
         (Join-Path $repo "src/Core/Modules/modItemSearch.bas"),
+        (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),
+        (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
+        (Join-Path $repo "src/Core/Modules/modOperatorReadModel.bas"),
         (Join-Path $repo "src/Core/Modules/modProcessor.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleUiAccess.bas"),
@@ -103,6 +108,7 @@ try {
 
     $allTests = @(
         "TestCoreRoleEventWriter.TestQueueReceiveEvent_WritesInboxRow",
+        "TestCoreRoleEventWriter.TestOpenInboxWorkbook_UsesStationPathInboxRoot",
         "TestCoreRoleEventWriter.TestQueueShipEvent_WritesInboxRow",
         "TestCoreRoleEventWriter.TestQueuePayloadEvent_DeniedWithoutCapability",
         "TestCoreRoleEventWriter.TestBuildPayloadJson_WithObjectItems",

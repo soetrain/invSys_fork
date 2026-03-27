@@ -8,6 +8,10 @@ Private Const SHEET_INBOX_PROD As String = "InboxProd"
 Private Const TABLE_INBOX_RECEIVE As String = "tblInboxReceive"
 Private Const TABLE_INBOX_SHIP As String = "tblInboxShip"
 Private Const TABLE_INBOX_PROD As String = "tblInboxProd"
+Private Const ROLE_EVENT_TYPE_RECEIVE As String = "RECEIVE"
+Private Const ROLE_EVENT_TYPE_SHIP As String = "SHIP"
+Private Const ROLE_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
+Private Const ROLE_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
 
 Public Function ResolveCurrentUserId() As String
     ResolveCurrentUserId = Trim$(Environ$("USERNAME"))
@@ -25,6 +29,17 @@ Public Function OpenInboxWorkbook(ByVal eventType As String, _
     Set OpenInboxWorkbook = ResolveInboxWorkbookForEventType(eventType, resolvedWh, resolvedSt, errorMessage)
 End Function
 
+Public Function ResolveInboxWorkbookPath(ByVal eventType As String, _
+                                         Optional ByVal warehouseId As String = "", _
+                                         Optional ByVal stationId As String = "", _
+                                         Optional ByRef errorMessage As String = "") As String
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+
+    If Not EnsureContextResolved(resolvedWh, resolvedSt, warehouseId, stationId, errorMessage) Then Exit Function
+    ResolveInboxWorkbookPath = ResolveInboxWorkbookPathResolvedRole(eventType, resolvedWh, resolvedSt, errorMessage)
+End Function
+
 Public Function QueueReceiveEvent(Optional ByVal warehouseId As String = "", _
                                   Optional ByVal stationId As String = "", _
                                   Optional ByVal userId As String = "", _
@@ -38,7 +53,7 @@ Public Function QueueReceiveEvent(Optional ByVal warehouseId As String = "", _
                                   Optional ByVal targetInboxWb As Workbook = Nothing, _
                                   Optional ByRef eventIdOut As String = "", _
                                   Optional ByRef errorMessage As String = "") As Boolean
-    QueueReceiveEvent = QueueEventCore(CORE_EVENT_TYPE_RECEIVE, warehouseId, stationId, userId, sku, qty, location, noteVal, "", parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage)
+    QueueReceiveEvent = QueueEventCore(ROLE_EVENT_TYPE_RECEIVE, warehouseId, stationId, userId, sku, qty, location, noteVal, "", parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage)
 End Function
 
 Public Function QueueReceiveEventCurrent(Optional ByVal userId As String = "", _
@@ -189,19 +204,19 @@ Private Function QueueEventCore(ByVal eventType As String, _
     If wbInbox Is Nothing Then Exit Function
 
     Select Case UCase$(Trim$(eventType))
-        Case CORE_EVENT_TYPE_RECEIVE
+        Case ROLE_EVENT_TYPE_RECEIVE
             If Not modProcessor.EnsureReceiveInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 Exit Function
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_RECEIVE)
-        Case CORE_EVENT_TYPE_SHIP
+        Case ROLE_EVENT_TYPE_SHIP
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 Exit Function
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_SHIP)
-        Case CORE_EVENT_TYPE_PROD_CONSUME, CORE_EVENT_TYPE_PROD_COMPLETE
+        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
             If Not modProcessor.EnsureProductionInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 Exit Function
@@ -283,31 +298,21 @@ Private Function ResolveInboxWorkbookForEventType(ByVal eventType As String, _
     Dim wb As Workbook
     Dim expectedName As String
     Dim fullPath As String
-    Dim targetDir As String
     Dim prevEvents As Boolean
     Dim eventsSuppressed As Boolean
 
     expectedName = InboxWorkbookNameRole(eventType, stationId)
-    If expectedName = "" Then
-        errorMessage = "Unsupported event type '" & eventType & "'."
-        Exit Function
-    End If
+    fullPath = ResolveInboxWorkbookPathResolvedRole(eventType, warehouseId, stationId, errorMessage)
+    If fullPath = "" Then Exit Function
 
     For Each wb In Application.Workbooks
-        If StrComp(wb.Name, expectedName, vbTextCompare) = 0 Then
+        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 _
+           Or StrComp(wb.Name, expectedName, vbTextCompare) = 0 Then
             Set ResolveInboxWorkbookForEventType = wb
             Exit Function
         End If
     Next wb
 
-    targetDir = ResolveInboxDirectoryRole(warehouseId, stationId)
-    If targetDir = "" Then
-        errorMessage = "Unable to resolve inbox directory."
-        Exit Function
-    End If
-
-    EnsureFolderExistsRole targetDir
-    fullPath = CombinePathRole(targetDir, expectedName)
     If Len(Dir$(fullPath, vbNormal)) > 0 Then
         Set ResolveInboxWorkbookForEventType = Application.Workbooks.Open(fullPath)
     Else
@@ -329,11 +334,38 @@ FailOpen:
     errorMessage = "Inbox workbook open/create failed: " & Err.Description
 End Function
 
+Private Function ResolveInboxWorkbookPathResolvedRole(ByVal eventType As String, _
+                                                      ByVal warehouseId As String, _
+                                                      ByVal stationId As String, _
+                                                      ByRef errorMessage As String) As String
+    Dim expectedName As String
+    Dim targetDir As String
+
+    expectedName = InboxWorkbookNameRole(eventType, stationId)
+    If expectedName = "" Then
+        errorMessage = "Unsupported event type '" & eventType & "'."
+        Exit Function
+    End If
+
+    targetDir = ResolveInboxDirectoryRole(warehouseId, stationId)
+    If targetDir = "" Then
+        errorMessage = "Unable to resolve inbox directory."
+        Exit Function
+    End If
+
+    EnsureFolderExistsRole targetDir
+    ResolveInboxWorkbookPathResolvedRole = CombinePathRole(targetDir, expectedName)
+End Function
+
 Private Function ResolveInboxDirectoryRole(ByVal warehouseId As String, ByVal stationId As String) As String
     Dim rawPath As String
 
-    rawPath = Trim$(modConfig.GetString("PathDataRoot", ""))
+    rawPath = Trim$(modConfig.GetString("PathInboxRoot", ""))
     rawPath = ExpandConfigPathRole(rawPath, warehouseId, stationId)
+    If rawPath = "" Then
+        rawPath = Trim$(modConfig.GetString("PathDataRoot", ""))
+        rawPath = ExpandConfigPathRole(rawPath, warehouseId, stationId)
+    End If
     If rawPath = "" Then rawPath = ThisWorkbook.Path
     If rawPath = "" Then rawPath = Environ$("TEMP")
     ResolveInboxDirectoryRole = rawPath
@@ -353,22 +385,22 @@ End Function
 
 Private Function InboxWorkbookNameRole(ByVal eventType As String, ByVal stationId As String) As String
     Select Case UCase$(Trim$(eventType))
-        Case CORE_EVENT_TYPE_RECEIVE
+        Case ROLE_EVENT_TYPE_RECEIVE
             InboxWorkbookNameRole = "invSys.Inbox.Receiving." & stationId & ".xlsb"
-        Case CORE_EVENT_TYPE_SHIP
+        Case ROLE_EVENT_TYPE_SHIP
             InboxWorkbookNameRole = "invSys.Inbox.Shipping." & stationId & ".xlsb"
-        Case CORE_EVENT_TYPE_PROD_CONSUME, CORE_EVENT_TYPE_PROD_COMPLETE
+        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
             InboxWorkbookNameRole = "invSys.Inbox.Production." & stationId & ".xlsb"
     End Select
 End Function
 
 Private Function CapabilityForEventTypeRole(ByVal eventType As String) As String
     Select Case UCase$(Trim$(eventType))
-        Case CORE_EVENT_TYPE_RECEIVE
+        Case ROLE_EVENT_TYPE_RECEIVE
             CapabilityForEventTypeRole = "RECEIVE_POST"
-        Case CORE_EVENT_TYPE_SHIP
+        Case ROLE_EVENT_TYPE_SHIP
             CapabilityForEventTypeRole = "SHIP_POST"
-        Case CORE_EVENT_TYPE_PROD_CONSUME, CORE_EVENT_TYPE_PROD_COMPLETE
+        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventTypeRole = "PROD_POST"
     End Select
 End Function

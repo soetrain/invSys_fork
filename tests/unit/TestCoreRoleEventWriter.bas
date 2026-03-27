@@ -6,6 +6,7 @@ Public Sub RunCoreRoleEventWriterTests()
     Dim failed As Long
 
     Tally TestQueueReceiveEvent_WritesInboxRow(), passed, failed
+    Tally TestOpenInboxWorkbook_UsesStationPathInboxRoot(), passed, failed
     Tally TestQueueShipEvent_WritesInboxRow(), passed, failed
     Tally TestQueuePayloadEvent_DeniedWithoutCapability(), passed, failed
     Tally TestBuildPayloadJson_WithObjectItems(), passed, failed
@@ -42,6 +43,48 @@ Public Function TestQueueReceiveEvent_WritesInboxRow() As Long
 
 CleanExit:
     TestPhase2Helpers.CloseNoSave wbInbox
+    TestPhase2Helpers.CloseNoSave wbAuth
+    TestPhase2Helpers.CloseNoSave wbCfg
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestOpenInboxWorkbook_UsesStationPathInboxRoot() As Long
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim wbInbox As Workbook
+    Dim inboxRoot As String
+    Dim expectedPath As String
+    Dim errorMessage As String
+
+    inboxRoot = Environ$("TEMP") & "\invsys_role_writer_" & Format$(Now, "yyyymmdd_hhnnss")
+    If Len(Dir$(inboxRoot, vbDirectory)) = 0 Then MkDir inboxRoot
+
+    Set wbCfg = TestPhase2Helpers.BuildPhase2ConfigWorkbook("WHR2", "R2", "RECEIVE")
+    Set wbAuth = TestPhase2Helpers.BuildPhase2AuthWorkbook("WHR2")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathDataRoot", Environ$("TEMP") & "\invsys_wrong_data_root"
+    TestPhase2Helpers.SetStationConfigValue wbCfg, "PathInboxRoot", inboxRoot
+    TestPhase2Helpers.AddCapability wbAuth, "user1", "RECEIVE_POST", "WHR2", "R2", "ACTIVE"
+
+    On Error GoTo CleanFail
+    Set wbInbox = modRoleEventWriter.OpenInboxWorkbook(EVENT_TYPE_RECEIVE, "WHR2", "R2", errorMessage)
+    If wbInbox Is Nothing Then GoTo CleanExit
+
+    expectedPath = inboxRoot & "\invSys.Inbox.Receiving.R2.xlsb"
+    If StrComp(wbInbox.FullName, expectedPath, vbTextCompare) <> 0 Then GoTo CleanExit
+    If Len(Dir$(expectedPath, vbNormal)) = 0 Then GoTo CleanExit
+
+    TestOpenInboxWorkbook_UsesStationPathInboxRoot = 1
+
+CleanExit:
+    TestPhase2Helpers.CloseNoSave wbInbox
+    On Error Resume Next
+    If expectedPath <> "" Then
+        If Len(Dir$(expectedPath, vbNormal)) > 0 Then Kill expectedPath
+    End If
+    If Len(Dir$(inboxRoot, vbDirectory)) > 0 Then RmDir inboxRoot
+    On Error GoTo 0
     TestPhase2Helpers.CloseNoSave wbAuth
     TestPhase2Helpers.CloseNoSave wbCfg
     Exit Function
