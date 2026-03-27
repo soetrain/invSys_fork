@@ -81,12 +81,12 @@ FailRefresh:
 End Function
 
 Public Sub RefreshCurrentWorkbookInventoryReadModel()
+    On Error GoTo FailRefreshCurrent
+
     Dim report As String
     Dim wb As Workbook
 
-    On Error Resume Next
-    Set wb = Application.ActiveWorkbook
-    On Error GoTo 0
+    Set wb = ResolveOperatorWorkbook(Nothing)
 
     If wb Is Nothing Then
         MsgBox "No active operator workbook was available for refresh.", vbExclamation
@@ -103,6 +103,10 @@ Public Sub RefreshCurrentWorkbookInventoryReadModel()
     ElseIf report <> "OK" Then
         MsgBox report, vbInformation
     End If
+    Exit Sub
+
+FailRefreshCurrent:
+    MsgBox "RefreshCurrentWorkbookInventoryReadModel failed: " & Err.Description, vbExclamation
 End Sub
 
 Public Function DiagnoseInventoryReadModelRefresh(Optional ByVal targetWb As Workbook = Nothing, _
