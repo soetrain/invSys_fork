@@ -59,6 +59,7 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
     Dim publishKey As String
     Dim runtimeWasOpen As Boolean
     Dim runtimePath As String
+    Dim preferredOutputPath As String
 
     Set wb = targetWb
     If wb Is Nothing Then Set wb = ResolveCandidateInventoryWorkbookPublisher()
@@ -86,6 +87,7 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
             Exit Function
         End If
         If Not SyncManagedCatalogFromWorkbookPublisher(wb, publishWb, report) Then GoTo CleanExit
+        Set publishWb = wb
     End If
 
     publishKey = BuildPublishKeyPublisher(publishWb, resolvedWarehouseId)
@@ -96,7 +98,8 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
     End If
 
     snapshotPath = vbNullString
-    If Not modWarehouseSync.GenerateWarehouseSnapshot(resolvedWarehouseId, publishWb, "", Nothing, snapshotPath) Then
+    preferredOutputPath = ResolvePreferredSnapshotOutputPathPublisher(wb, resolvedWarehouseId)
+    If Not modWarehouseSync.GenerateWarehouseSnapshot(resolvedWarehouseId, publishWb, preferredOutputPath, Nothing, snapshotPath) Then
         report = snapshotPath
         GoTo CleanExit
     End If
@@ -241,6 +244,12 @@ Private Function FindListObjectByNamePublisher(ByVal wb As Workbook, ByVal table
 End Function
 
 Private Function TryResolveInventorySourceWarehouseIdPublisher(ByVal wb As Workbook, ByRef warehouseId As String) As Boolean
+    warehouseId = ResolveWarehouseIdFromInvSysSnapshotPublisher(wb)
+    If warehouseId <> "" Then
+        TryResolveInventorySourceWarehouseIdPublisher = True
+        Exit Function
+    End If
+
     warehouseId = ResolveWarehouseIdFromLedgerStatusPublisher(wb)
     If warehouseId <> "" Then
         TryResolveInventorySourceWarehouseIdPublisher = True
@@ -277,6 +286,26 @@ Private Function TryResolveInventorySourceWarehouseIdPublisher(ByVal wb As Workb
     End If
 End Function
 
+Private Function ResolveWarehouseIdFromInvSysSnapshotPublisher(ByVal wb As Workbook) As String
+    Dim lo As ListObject
+    Dim snapshotIdIdx As Long
+    Dim rowIndex As Long
+    Dim snapshotId As String
+
+    Set lo = FindManagedInventoryTablePublisher(wb)
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    snapshotIdIdx = GetColumnIndexPublisher(lo, "SnapshotId")
+    If snapshotIdIdx = 0 Then Exit Function
+
+    For rowIndex = 1 To lo.ListRows.Count
+        snapshotId = Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, snapshotIdIdx).Value))
+        ResolveWarehouseIdFromInvSysSnapshotPublisher = ResolveWarehouseIdFromSnapshotIdPublisher(snapshotId)
+        If ResolveWarehouseIdFromInvSysSnapshotPublisher <> "" Then Exit Function
+    Next rowIndex
+End Function
+
 Private Function ResolveWarehouseIdFromLedgerStatusPublisher(ByVal wb As Workbook) As String
     Dim lo As ListObject
     Dim idx As Long
@@ -294,6 +323,16 @@ Private Function ResolveWarehouseIdFromInventoryWorkbookNamePublisher(ByVal wbNa
 
     markerPos = InStr(1, wbName, ".invSys.Data.Inventory.", vbTextCompare)
     If markerPos > 1 Then ResolveWarehouseIdFromInventoryWorkbookNamePublisher = Left$(wbName, markerPos - 1)
+End Function
+
+Private Function ResolveWarehouseIdFromSnapshotIdPublisher(ByVal snapshotId As String) As String
+    Dim markerPos As Long
+
+    snapshotId = Trim$(snapshotId)
+    If snapshotId = "" Then Exit Function
+
+    markerPos = InStr(1, snapshotId, ".invSys.Snapshot.Inventory.xls", vbTextCompare)
+    If markerPos > 1 Then ResolveWarehouseIdFromSnapshotIdPublisher = Left$(snapshotId, markerPos - 1)
 End Function
 
 Private Function ResolveWarehouseIdFromSiblingConfigPublisher(ByVal wb As Workbook) As String
@@ -406,6 +445,79 @@ Private Function ResolveRuntimeInventoryPathPublisher(ByVal warehouseId As Strin
     ResolveRuntimeInventoryPathPublisher = rootPath & warehouseId & ".invSys.Data.Inventory.xlsb"
 End Function
 
+Private Function ResolvePreferredSnapshotOutputPathPublisher(ByVal wb As Workbook, ByVal warehouseId As String) As String
+    Dim existingPath As String
+
+    existingPath = FindExistingSnapshotPathPublisher(wb, warehouseId)
+    If existingPath <> "" Then
+        ResolvePreferredSnapshotOutputPathPublisher = existingPath
+        Exit Function
+    End If
+End Function
+
+Private Function FindExistingSnapshotPathPublisher(ByVal wb As Workbook, ByVal warehouseId As String) As String
+    Dim snapshotFileName As String
+    Dim candidate As String
+    Dim driveCode As Long
+
+    snapshotFileName = ResolveSnapshotFileNamePublisher(wb, warehouseId)
+    If snapshotFileName = "" Then Exit Function
+
+    For driveCode = Asc("C") To Asc("Z")
+        candidate = Chr$(driveCode) & ":\" & snapshotFileName
+        If FileExistsPublisher(candidate) Then
+            FindExistingSnapshotPathPublisher = candidate
+            Exit Function
+        End If
+
+        candidate = Chr$(driveCode) & ":\Snapshots\" & snapshotFileName
+        If FileExistsPublisher(candidate) Then
+            FindExistingSnapshotPathPublisher = candidate
+            Exit Function
+        End If
+
+        candidate = Chr$(driveCode) & ":\Share\Snapshots\" & snapshotFileName
+        If FileExistsPublisher(candidate) Then
+            FindExistingSnapshotPathPublisher = candidate
+            Exit Function
+        End If
+
+        candidate = Chr$(driveCode) & ":\published\" & snapshotFileName
+        If FileExistsPublisher(candidate) Then
+            FindExistingSnapshotPathPublisher = candidate
+            Exit Function
+        End If
+    Next driveCode
+End Function
+
+Private Function ResolveSnapshotFileNamePublisher(ByVal wb As Workbook, ByVal warehouseId As String) As String
+    Dim lo As ListObject
+    Dim snapshotIdIdx As Long
+    Dim rowIndex As Long
+    Dim snapshotId As String
+    Dim pipePos As Long
+
+    Set lo = FindManagedInventoryTablePublisher(wb)
+    If Not lo Is Nothing Then
+        If Not lo.DataBodyRange Is Nothing Then
+            snapshotIdIdx = GetColumnIndexPublisher(lo, "SnapshotId")
+            If snapshotIdIdx > 0 Then
+                For rowIndex = 1 To lo.ListRows.Count
+                    snapshotId = Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, snapshotIdIdx).Value))
+                    pipePos = InStr(1, snapshotId, "|", vbTextCompare)
+                    If pipePos > 1 Then snapshotId = Left$(snapshotId, pipePos - 1)
+                    If InStr(1, snapshotId, ".invSys.Snapshot.Inventory.xls", vbTextCompare) > 0 Then
+                        ResolveSnapshotFileNamePublisher = snapshotId
+                        Exit Function
+                    End If
+                Next rowIndex
+            End If
+        End If
+    End If
+
+    If Trim$(warehouseId) <> "" Then ResolveSnapshotFileNamePublisher = Trim$(warehouseId) & ".invSys.Snapshot.Inventory.xlsb"
+End Function
+
 Private Function WorkbookIsOpenByPathPublisher(ByVal fullPath As String) As Boolean
     Dim wb As Workbook
 
@@ -416,6 +528,12 @@ Private Function WorkbookIsOpenByPathPublisher(ByVal fullPath As String) As Bool
             Exit Function
         End If
     Next wb
+End Function
+
+Private Function FileExistsPublisher(ByVal fullPath As String) As Boolean
+    On Error Resume Next
+    FileExistsPublisher = (Len(Dir$(fullPath)) > 0)
+    On Error GoTo 0
 End Function
 
 Private Function SyncManagedCatalogFromWorkbookPublisher(ByVal sourceWb As Workbook, _
@@ -526,6 +644,18 @@ Private Function ResolveCatalogSourceValuePublisher(ByVal lo As ListObject, ByVa
     On Error GoTo 0
     If idx = 0 Then Exit Function
     ResolveCatalogSourceValuePublisher = Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, idx).Value))
+End Function
+
+Private Function GetColumnIndexPublisher(ByVal lo As ListObject, ByVal columnName As String) As Long
+    Dim i As Long
+
+    If lo Is Nothing Then Exit Function
+    For i = 1 To lo.ListColumns.Count
+        If StrComp(lo.ListColumns(i).Name, columnName, vbTextCompare) = 0 Then
+            GetColumnIndexPublisher = i
+            Exit Function
+        End If
+    Next i
 End Function
 
 Private Sub SetCatalogCellPublisher(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueIn As Variant)

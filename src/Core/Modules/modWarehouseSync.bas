@@ -8,6 +8,7 @@ Private Const SHEET_SNAPSHOT As String = "InventorySnapshot"
 Private Const TABLE_SNAPSHOT As String = "tblInventorySnapshot"
 Private Const SNAPSHOT_SOURCE_LOG As String = "LOG_FALLBACK"
 Private Const SNAPSHOT_SOURCE_PROJECTION As String = "PROJECTION"
+Private Const SNAPSHOT_SOURCE_MANAGED_SURFACE As String = "MANAGED_SURFACE"
 
 Public Function AppendEventToOutbox(ByVal evt As Object, _
                                     Optional ByVal inventoryWb As Workbook = Nothing, _
@@ -311,6 +312,14 @@ Private Function BuildSnapshotRowsSync(ByVal wbInv As Workbook, _
         Exit Function
     End If
 
+    Set snapshotRows = BuildSnapshotRowsFromManagedSurfaceSync(wbInv, warehouseId)
+    If Not snapshotRows Is Nothing Then
+        AppendCatalogRowsSync snapshotRows, wbInv, warehouseId
+        report = SNAPSHOT_SOURCE_MANAGED_SURFACE
+        Set BuildSnapshotRowsSync = snapshotRows
+        Exit Function
+    End If
+
     report = "Inventory snapshot source tables not found."
 End Function
 
@@ -391,6 +400,72 @@ ContinueLogLoop:
     End If
 
     Set BuildSnapshotRowsFromLogSync = rows
+End Function
+
+Private Function BuildSnapshotRowsFromManagedSurfaceSync(ByVal wbInv As Workbook, ByVal warehouseId As String) As Object
+    Dim loInv As ListObject
+    Dim rows As Object
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim entry As Object
+    Dim qtyOnHand As Double
+    Dim qtyAvailable As Double
+    Dim locationSummary As String
+    Dim lastApplied As Variant
+
+    Set loInv = FindListObjectByNameSync(wbInv, "invSys")
+    If loInv Is Nothing Then Exit Function
+    If loInv.DataBodyRange Is Nothing Then Exit Function
+
+    Set rows = CreateObject("Scripting.Dictionary")
+    rows.CompareMode = vbTextCompare
+
+    For rowIndex = 1 To loInv.ListRows.Count
+        sku = ResolveCatalogCellTextSync(loInv, rowIndex, "ITEM_CODE")
+        If sku = "" Then sku = ResolveCatalogCellTextSync(loInv, rowIndex, "SKU")
+        If sku = "" Then GoTo ContinueManagedLoop
+
+        Set entry = EnsureSnapshotEntrySync(rows, sku, warehouseId)
+        qtyOnHand = NzDblSync(GetCellByColumnSync(loInv, rowIndex, "TOTAL INV"))
+        qtyAvailable = qtyOnHand
+        If GetColumnIndexSync(loInv, "QtyAvailable") > 0 Then
+            qtyAvailable = NzDblSync(GetCellByColumnSync(loInv, rowIndex, "QtyAvailable"))
+        End If
+        locationSummary = ResolveCatalogCellTextSync(loInv, rowIndex, "LocationSummary")
+        If locationSummary = "" Then locationSummary = ResolveCatalogCellTextSync(loInv, rowIndex, "LOCATION")
+
+        entry("QtyOnHand") = qtyOnHand
+        entry("QtyAvailable") = qtyAvailable
+        entry("LocationSummary") = NormalizeManagedLocationSummarySync(locationSummary, qtyOnHand)
+        ApplyManagedSurfaceMetadataSync entry, loInv, rowIndex
+
+        lastApplied = GetCellByColumnSync(loInv, rowIndex, "LAST EDITED")
+        If Not IsDate(lastApplied) Then lastApplied = GetCellByColumnSync(loInv, rowIndex, "TOTAL INV LAST EDIT")
+        If IsDate(lastApplied) Then entry("LastAppliedAtUTC") = CDate(lastApplied)
+ContinueManagedLoop:
+    Next rowIndex
+
+    Set BuildSnapshotRowsFromManagedSurfaceSync = rows
+End Function
+
+Private Sub ApplyManagedSurfaceMetadataSync(ByVal entry As Object, ByVal loInv As ListObject, ByVal rowIndex As Long)
+    ApplyCatalogValueIfPresentSync entry, "ITEM", ResolveCatalogCellTextSync(loInv, rowIndex, "ITEM")
+    ApplyCatalogValueIfPresentSync entry, "UOM", ResolveCatalogCellTextSync(loInv, rowIndex, "UOM")
+    ApplyCatalogValueIfPresentSync entry, "LOCATION", ResolveCatalogCellTextSync(loInv, rowIndex, "LOCATION")
+    ApplyCatalogValueIfPresentSync entry, "DESCRIPTION", ResolveCatalogCellTextSync(loInv, rowIndex, "DESCRIPTION")
+    ApplyCatalogValueIfPresentSync entry, "VENDOR(s)", ResolveCatalogCellTextSync(loInv, rowIndex, "VENDOR(s)")
+    ApplyCatalogValueIfPresentSync entry, "VENDOR_CODE", ResolveCatalogCellTextSync(loInv, rowIndex, "VENDOR_CODE")
+    ApplyCatalogValueIfPresentSync entry, "CATEGORY", ResolveCatalogCellTextSync(loInv, rowIndex, "CATEGORY")
+End Sub
+
+Private Function NormalizeManagedLocationSummarySync(ByVal locationSummary As String, ByVal qtyOnHand As Double) As String
+    locationSummary = SafeTrimSync(locationSummary)
+    If locationSummary <> "" Then
+        NormalizeManagedLocationSummarySync = locationSummary
+        Exit Function
+    End If
+    If qtyOnHand = 0 Then Exit Function
+    NormalizeManagedLocationSummarySync = "(blank)=" & FormatQuantitySync(qtyOnHand)
 End Function
 
 Private Sub AppendLocationSummariesSync(ByVal snapshotRows As Object, _

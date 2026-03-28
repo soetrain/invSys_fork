@@ -1367,7 +1367,7 @@ Public Function TestInventoryPublisher_PublishesSnapshotForOpenInventoryWorkbook
         failureReason = "Inventory source workbook could not be created."
         GoTo CleanExit
     End If
-    AddInvSysSeedRow FindTableByName(wbInv, "invSys"), 1001, "SKU-PUB-001", "Publish Item 1", "EA", "A1", 0
+    AddInvSysSeedRow FindTableByName(wbInv, "invSys"), 1001, "SKU-PUB-001", "Publish Item 1", "EA", "A1", 7
     AddInvSysSeedRow FindTableByName(wbInv, "invSys"), 1002, "SKU-PUB-002", "Publish Item 2", "EA", "B2", 0
     wbInv.Save
 
@@ -1410,7 +1410,11 @@ Public Function TestInventoryPublisher_PublishesSnapshotForOpenInventoryWorkbook
         failureReason = "Published snapshot did not include the full catalog list from the open inventory workbook."
         GoTo CleanExit
     End If
-    If CDbl(GetTableValue(loSnap, rowSku1, "QtyOnHand")) <> 0 Or CDbl(GetTableValue(loSnap, rowSku2, "QtyOnHand")) <> 0 Then
+    If CDbl(GetTableValue(loSnap, rowSku1, "QtyOnHand")) <> 7 Then
+        failureReason = "Published snapshot did not preserve managed inventory quantities from the source workbook."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loSnap, rowSku2, "QtyOnHand")) <> 0 Then
         failureReason = "Published snapshot did not preserve zero quantities for catalog-only rows."
         GoTo CleanExit
     End If
