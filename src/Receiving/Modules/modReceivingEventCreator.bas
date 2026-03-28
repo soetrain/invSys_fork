@@ -15,7 +15,7 @@ Public Function QueueReceiveEventsFromWorkbook(ByVal wb As Workbook, Optional By
         errorMessage = "Receiving workbook not provided."
         Exit Function
     End If
-    If Not modRoleUiAccess.CanCurrentUserPerformCapability("RECEIVE_POST", "", "", "", errorMessage) Then Exit Function
+    If Not CanCurrentUserPerformCapability("RECEIVE_POST", "", "", "", errorMessage) Then Exit Function
 
     On Error Resume Next
     Set ws = wb.Worksheets("ReceivedTally")

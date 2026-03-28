@@ -11,7 +11,7 @@ Public Function QueueProductionCompleteEventFromWorkbook(ByVal wb As Workbook, O
         errNotes = "Production workbook not provided."
         Exit Function
     End If
-    If Not modRoleUiAccess.CanCurrentUserPerformCapability("PROD_POST", "", "", "", errNotes) Then Exit Function
+    If Not CanCurrentUserPerformCapability("PROD_POST", "", "", "", errNotes) Then Exit Function
 
     Set invLo = GetInvSysTableProd(wb)
     If invLo Is Nothing Then

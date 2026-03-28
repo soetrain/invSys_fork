@@ -477,7 +477,7 @@ Private Sub MoveListObjectToRowCol(ByVal lo As ListObject, ByVal targetRow As Lo
 
     On Error Resume Next
     lo.Range.Cut Destination:=dest
-    modUtils.ClearExcelClipboardState
+    ClearExcelClipboardStateProduction
     Err.Clear
     On Error GoTo 0
 End Sub
@@ -849,8 +849,8 @@ End Sub
 
 Private Sub RefreshProductionUiAccess(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
-    modRoleUiAccess.ApplyShapeCapability ws, BTN_TO_MADE, "PROD_POST"
-    modRoleUiAccess.ApplyShapeCapability ws, BTN_TO_TOTALINV, "PROD_POST"
+    ApplyShapeCapability ws, BTN_TO_MADE, "PROD_POST"
+    ApplyShapeCapability ws, BTN_TO_TOTALINV, "PROD_POST"
 End Sub
 
 Private Sub DeleteLegacyProductionButtons(ByVal ws As Worksheet)
@@ -873,6 +873,12 @@ Private Sub DeleteLegacyProductionButtons(ByVal ws As Worksheet)
     DeleteShapeIfExists ws, BTN_TO_TOTALINV
     DeleteShapeIfExists ws, BTN_NEXT_BATCH
     DeleteShapeIfExists ws, BTN_PRINT_CODES
+End Sub
+
+Private Sub ClearExcelClipboardStateProduction()
+    On Error Resume Next
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
+    On Error GoTo 0
 End Sub
 
 Private Sub EnsureSystemGroups()
@@ -1316,7 +1322,7 @@ End Sub
 
 Public Sub BtnToMade()
     On Error GoTo ErrHandler
-    If Not modRoleUiAccess.RequireCurrentUserCapability("PROD_POST") Then Exit Sub
+    If Not RequireCurrentUserCapability("PROD_POST") Then Exit Sub
     Dim wsProd As Worksheet: Set wsProd = SheetExists(SHEET_PRODUCTION)
     If wsProd Is Nothing Then Exit Sub
 
@@ -1436,7 +1442,7 @@ End Sub
 
 Public Sub BtnToTotalInv()
     On Error GoTo ErrHandler
-    If Not modRoleUiAccess.RequireCurrentUserCapability("PROD_POST") Then Exit Sub
+    If Not RequireCurrentUserCapability("PROD_POST") Then Exit Sub
     Dim wsProd As Worksheet: Set wsProd = SheetExists(SHEET_PRODUCTION)
     If wsProd Is Nothing Then Exit Sub
 
@@ -1524,7 +1530,7 @@ Public Function QueueProductionCompleteEventFromCurrentWorkbook(ByRef eventIdOut
     Dim madeNotes As String
     Dim madeDeltas As Collection
 
-    If Not modRoleUiAccess.CanCurrentUserPerformCapability("PROD_POST", "", "", "", errNotes) Then Exit Function
+    If Not CanCurrentUserPerformCapability("PROD_POST", "", "", "", errNotes) Then Exit Function
 
     Set wsProd = SheetExists(SHEET_PRODUCTION)
     If wsProd Is Nothing Then
@@ -6579,7 +6585,7 @@ Private Function MoveRecipeBuilderLinesToStaging(ByVal loLines As ListObject) As
     Set dest = ws.Cells(startRow, loLines.Range.Column)
     On Error Resume Next
     loLines.Range.Cut Destination:=dest
-    modUtils.ClearExcelClipboardState
+    ClearExcelClipboardStateProduction
     MoveRecipeBuilderLinesToStaging = (Err.Number = 0)
     If MoveRecipeBuilderLinesToStaging Then
         On Error Resume Next
@@ -6612,7 +6618,7 @@ Private Function EnsureInventoryPaletteLinesTable(ByVal ws As Worksheet, Optiona
             Set dest = ws.Cells(startRow, startCol)
             On Error Resume Next
             lo.Range.Cut Destination:=dest
-            modUtils.ClearExcelClipboardState
+            ClearExcelClipboardStateProduction
             On Error GoTo 0
         End If
         On Error Resume Next

@@ -1246,10 +1246,11 @@ Public Function TestReceivingSetupUi_ForceRefreshesRegisteredWorkbook() As Long
     wbOps.Activate
     If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wbOps, report) Then GoTo CleanExit
 
-    If Not InitializeReceivingUiForTest(wbOps, report) Then
-        failureReason = "InitializeReceivingUiForTest failed: " & report
+    If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureReceivingWorkbookSurface failed: " & report
         GoTo CleanExit
     End If
+    modOperatorReadModel.InitializeAutoSnapshotForWorkbook wbOps
 
     Set loInv = FindTableByName(wbOps, "invSys")
     If loInv Is Nothing Then
@@ -1275,8 +1276,12 @@ Public Function TestReceivingSetupUi_ForceRefreshesRegisteredWorkbook() As Long
     wbSnap.Close SaveChanges:=False
     Set wbSnap = Nothing
 
-    If Not RefreshReceivingUiForTest(wbOps, report) Then
-        failureReason = "RefreshReceivingUiForTest failed: " & report
+    If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureReceivingWorkbookSurface failed during forced refresh: " & report
+        GoTo CleanExit
+    End If
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wbOps, "", "LOCAL", report) Then
+        failureReason = "RefreshInventoryReadModelForWorkbook failed: " & report
         GoTo CleanExit
     End If
 
@@ -1328,6 +1333,78 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7111, "TestReceivingSetupUi_ForceRefreshesRegisteredWorkbook", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestInventoryPublisher_PublishesSnapshotForOpenInventoryWorkbook() As Long
+    Dim rootPath As String
+    Dim report As String
+    Dim failureReason As String
+    Dim publishCount As Long
+    Dim snapshotPath As String
+    Dim wbInv As Workbook
+    Dim wbSnap As Workbook
+    Dim loSnap As ListObject
+    Dim rowSku1 As Long
+    Dim rowSku2 As Long
+
+    rootPath = BuildRuntimeTestRoot("phase6_inventory_open_publish")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH83", "S24") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH83.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbInv = CreateInventoryWorkbookForTestWithName(rootPath, "FRODECO.inventory_management.xlsb", Array("SKU-PUB-001", "SKU-PUB-002"))
+    If wbInv Is Nothing Then
+        failureReason = "Inventory source workbook could not be created."
+        GoTo CleanExit
+    End If
+
+    publishCount = modInventoryPublisher.PublishOpenInventorySnapshots(report)
+    If publishCount <> 1 Then
+        failureReason = "PublishOpenInventorySnapshots did not publish the open inventory workbook. " & report
+        GoTo CleanExit
+    End If
+
+    snapshotPath = rootPath & "\WH83.invSys.Snapshot.Inventory.xlsb"
+    If Len(Dir$(snapshotPath)) = 0 Then
+        failureReason = "Snapshot workbook was not published for the open inventory workbook."
+        GoTo CleanExit
+    End If
+
+    Set wbSnap = Application.Workbooks.Open(snapshotPath)
+    Set loSnap = FindTableByName(wbSnap, "tblInventorySnapshot")
+    If loSnap Is Nothing Then
+        failureReason = "Published snapshot table was missing."
+        GoTo CleanExit
+    End If
+    rowSku1 = FindRowByColumnValueInTable(loSnap, "SKU", "SKU-PUB-001")
+    rowSku2 = FindRowByColumnValueInTable(loSnap, "SKU", "SKU-PUB-002")
+    If rowSku1 = 0 Or rowSku2 = 0 Then
+        failureReason = "Published snapshot did not include the full catalog list from the open inventory workbook."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loSnap, rowSku1, "QtyOnHand")) <> 0 Or CDbl(GetTableValue(loSnap, rowSku2, "QtyOnHand")) <> 0 Then
+        failureReason = "Published snapshot did not preserve zero quantities for catalog-only rows."
+        GoTo CleanExit
+    End If
+
+    TestInventoryPublisher_PublishesSnapshotForOpenInventoryWorkbook = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbInv
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7112, "TestInventoryPublisher_PublishesSnapshotForOpenInventoryWorkbook", failureReason
     End If
     Exit Function
 CleanFail:
@@ -2786,27 +2863,6 @@ Private Function FindUserRow(ByVal lo As ListObject, ByVal userId As String) As 
     Next i
 End Function
 
-Private Function InitializeReceivingUiForTest(ByVal wb As Workbook, ByRef report As String) As Boolean
-    On Error GoTo FailInit
-
-    Application.Run "modTS_Received.InitializeReceivingUiForWorkbook", wb
-    InitializeReceivingUiForTest = True
-    Exit Function
-
-FailInit:
-    report = Err.Description
-End Function
-
-Private Function RefreshReceivingUiForTest(ByVal wb As Workbook, ByRef report As String) As Boolean
-    On Error GoTo FailRefresh
-
-    RefreshReceivingUiForTest = CBool(Application.Run("modTS_Received.RefreshReceivingUiForWorkbook", wb, report))
-    Exit Function
-
-FailRefresh:
-    report = Err.Description
-End Function
-
 Private Function FindWorkbookByName(ByVal workbookName As String) As Workbook
     Dim wb As Workbook
 
@@ -3167,6 +3223,23 @@ Private Function CreateCanonicalInventoryWorkbookForTest(ByVal rootPath As Strin
     EnsureSkuCatalogForTest wb, skuList
     wb.Save
     Set CreateCanonicalInventoryWorkbookForTest = wb
+End Function
+
+Private Function CreateInventoryWorkbookForTestWithName(ByVal rootPath As String, ByVal workbookName As String, ByVal skuList As Variant) As Workbook
+    Dim wb As Workbook
+    Dim targetPath As String
+    Dim report As String
+
+    targetPath = rootPath & "\" & workbookName
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+    wb.SaveAs Filename:=targetPath, FileFormat:=50
+    If Not modInventorySchema.EnsureInventorySchema(wb, report) Then
+        CloseWorkbookIfOpen wb
+        Exit Function
+    End If
+    EnsureSkuCatalogForTest wb, skuList
+    wb.Save
+    Set CreateInventoryWorkbookForTestWithName = wb
 End Function
 
 Private Sub EnsureSkuCatalogForTest(ByVal wb As Workbook, ByVal skuList As Variant)

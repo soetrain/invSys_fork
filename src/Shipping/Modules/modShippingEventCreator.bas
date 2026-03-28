@@ -10,7 +10,7 @@ Public Function QueueShipmentsSentEventFromWorkbook(ByVal wb As Workbook, Option
         errNotes = "Shipping workbook not provided."
         Exit Function
     End If
-    If Not modRoleUiAccess.CanCurrentUserPerformCapability("SHIP_POST", "", "", "", errNotes) Then Exit Function
+    If Not CanCurrentUserPerformCapability("SHIP_POST", "", "", "", errNotes) Then Exit Function
 
     Set invLo = GetInvSysTableShip(wb)
     If invLo Is Nothing Then

@@ -36,8 +36,33 @@ Private Const RECV_LAYOUT_INV_ADDR As String = "V3"
 ' ==== public entry points =====
 Public Sub EnsureGeneratedButtons()
     Dim report As String
+    Dim wb As Workbook
+    Dim diag As String
+    Dim snapshotRows As String
+    Dim invRows As String
+    Dim snapshotPath As String
 
-    Call RefreshReceivingUiForWorkbook(Application.ActiveWorkbook, report)
+    Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
+    If Not RefreshReceivingUiForWorkbook(wb, report) Then
+        If Trim$(report) = "" Then report = "Receiving UI refresh failed."
+        MsgBox report, vbExclamation, "invSys Receiving"
+        Exit Sub
+    End If
+
+    diag = modOperatorReadModel.DiagnoseInventoryReadModelRefresh(wb, "", "LOCAL")
+    snapshotRows = ResolveDiagnosticValueReceiving(diag, "SnapshotTableRows")
+    invRows = ResolveDiagnosticValueReceiving(diag, "InvSysRowsAfter")
+    snapshotPath = ResolveDiagnosticValueReceiving(diag, "SnapshotPath")
+
+    If StrComp(Trim$(report), "OK", vbTextCompare) = 0 Then
+        MsgBox "invSys refreshed from shared snapshot." & vbCrLf & _
+               "Snapshot rows: " & ValueOrUnknownReceiving(snapshotRows) & vbCrLf & _
+               "invSys rows: " & ValueOrUnknownReceiving(invRows) & vbCrLf & _
+               "Snapshot path: " & ValueOrUnknownReceiving(snapshotPath), _
+               vbInformation, "invSys Receiving"
+    Else
+        MsgBox report & vbCrLf & vbCrLf & diag, vbInformation, "invSys Receiving"
+    End If
 End Sub
 
 Public Sub InitializeReceivingUiForWorkbook(Optional ByVal targetWb As Workbook = Nothing)
@@ -102,6 +127,32 @@ Private Function ResolveReceivingWorkbook(Optional ByVal preferredWb As Workbook
     End If
 End Function
 
+Private Function ResolveDiagnosticValueReceiving(ByVal diag As String, ByVal key As String) As String
+    Dim lines() As String
+    Dim i As Long
+    Dim prefix As String
+
+    prefix = key & "="
+    If Trim$(diag) = "" Then Exit Function
+
+    lines = Split(diag, vbCrLf)
+    For i = LBound(lines) To UBound(lines)
+        If StrComp(Left$(lines(i), Len(prefix)), prefix, vbTextCompare) = 0 Then
+            ResolveDiagnosticValueReceiving = Mid$(lines(i), Len(prefix) + 1)
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Function ValueOrUnknownReceiving(ByVal valueText As String) As String
+    valueText = Trim$(valueText)
+    If valueText = "" Then
+        ValueOrUnknownReceiving = "<unknown>"
+    Else
+        ValueOrUnknownReceiving = valueText
+    End If
+End Function
+
 Private Function WorkbookSheetExistsReceiving(ByVal wb As Workbook, ByVal nameOrCode As String) As Worksheet
     Dim ws As Worksheet
 
@@ -155,8 +206,14 @@ Private Sub MoveListObjectToRowColReceiving(ByVal lo As ListObject, ByVal target
 
     On Error Resume Next
     lo.Range.Cut Destination:=dest
-    modUtils.ClearExcelClipboardState
+    ClearExcelClipboardStateReceiving
     Err.Clear
+    On Error GoTo 0
+End Sub
+
+Private Sub ClearExcelClipboardStateReceiving()
+    On Error Resume Next
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
     On Error GoTo 0
 End Sub
 
@@ -352,7 +409,7 @@ Public Sub ConfirmWrites()
     Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
     If wb Is Nothing Then Set wb = ThisWorkbook
 
-    If Not modRoleUiAccess.RequireCurrentUserCapability("RECEIVE_POST") Then Exit Sub
+    If Not RequireCurrentUserCapability("RECEIVE_POST") Then Exit Sub
     mRedoReady = False
     Dim wsRT As Worksheet: Set wsRT = WorkbookSheetExistsReceiving(wb, "ReceivedTally")
     Dim wsAgg As Worksheet: Set wsAgg = WorkbookSheetExistsReceiving(wb, "ReceivedTally")
@@ -493,7 +550,7 @@ Public Function QueueReceiveEventsFromCurrentWorkbook(ByRef errorMessage As Stri
         Exit Function
     End If
 
-    If Not modRoleUiAccess.CanCurrentUserPerformCapability("RECEIVE_POST", "", "", "", errorMessage) Then Exit Function
+    If Not CanCurrentUserPerformCapability("RECEIVE_POST", "", "", "", errorMessage) Then Exit Function
 
     Set wsAgg = WorkbookSheetExistsReceiving(wb, "ReceivedTally")
     If wsAgg Is Nothing Then
@@ -543,7 +600,7 @@ End Sub
 
 Private Sub RefreshReceivingUiAccess(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
-    modRoleUiAccess.ApplyShapeCapability ws, "btnConfirmWrites", "RECEIVE_POST"
+    ApplyShapeCapability ws, "btnConfirmWrites", "RECEIVE_POST"
 End Sub
 
 Private Function QueueReceiveEventsFromAggregate(ByVal agg As ListObject, ByRef errorMessage As String) As Boolean

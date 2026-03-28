@@ -227,7 +227,7 @@ Private Sub MoveListObjectToRowColShipping(ByVal lo As ListObject, ByVal targetR
 
     On Error Resume Next
     lo.Range.Cut Destination:=dest
-    modUtils.ClearExcelClipboardState
+    ClearExcelClipboardStateShipping
     Err.Clear
     On Error GoTo 0
 End Sub
@@ -613,7 +613,7 @@ End Sub
 
 Public Sub BtnShipmentsSent()
     On Error GoTo ErrHandler
-    If Not modRoleUiAccess.RequireCurrentUserCapability("SHIP_POST") Then Exit Sub
+    If Not RequireCurrentUserCapability("SHIP_POST") Then Exit Sub
     Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Sub
 
@@ -689,7 +689,7 @@ Public Function QueueShipmentsSentEventFromCurrentWorkbook(ByRef eventIdOut As S
     Dim invLo As ListObject
     Dim deltas As Collection
 
-    If Not modRoleUiAccess.CanCurrentUserPerformCapability("SHIP_POST", "", "", "", errNotes) Then Exit Function
+    If Not CanCurrentUserPerformCapability("SHIP_POST", "", "", "", errNotes) Then Exit Function
 
     Set ws = SheetExists(SHEET_SHIPMENTS)
     If ws Is Nothing Then
@@ -891,7 +891,7 @@ End Sub
 
 Private Sub RefreshShipmentsUiAccess(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
-    modRoleUiAccess.ApplyShapeCapability ws, BTN_SHIPMENTS_SENT, "SHIP_POST"
+    ApplyShapeCapability ws, BTN_SHIPMENTS_SENT, "SHIP_POST"
 End Sub
 
 Private Sub DeleteLegacyShippingButtons(ByVal ws As Worksheet)
@@ -907,6 +907,12 @@ Private Sub DeleteLegacyShippingButtons(ByVal ws As Worksheet)
     DeleteShapeIfExists ws, BTN_TO_TOTALINV
     DeleteShapeIfExists ws, BTN_TO_SHIPMENTS
     DeleteShapeIfExists ws, BTN_SHIPMENTS_SENT
+End Sub
+
+Private Sub ClearExcelClipboardStateShipping()
+    On Error Resume Next
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
+    On Error GoTo 0
 End Sub
 
 Public Sub ToggleUseExistingInventory()
