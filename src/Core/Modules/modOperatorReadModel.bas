@@ -5,6 +5,13 @@ Private Const SHEET_INVENTORY_MANAGEMENT As String = "InventoryManagement"
 Private Const TABLE_INVSYS As String = "invSys"
 Private Const SHEET_SNAPSHOT As String = "InventorySnapshot"
 Private Const TABLE_SNAPSHOT As String = "tblInventorySnapshot"
+Private Const SHAPE_READMODEL_STATUS As String = "invSysReadModelStatus"
+Private Const PROC_SCHEDULED_REFRESH As String = "modOperatorReadModel.RunScheduledOperatorAutoRefresh"
+
+Private mAutoRefreshRegistry As Object
+Private mAutoRefreshNextRun As Date
+Private mAutoRefreshScheduled As Boolean
+Private mAutoRefreshRunning As Boolean
 
 Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
                                                      Optional ByVal warehouseId As String = "", _
@@ -40,7 +47,8 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
     refreshUtc = Now
     normalizedSource = NormalizeSourceType(sourceType)
     resolvedWarehouseId = ResolveWarehouseIdReadModel(warehouseId)
-    If Not modConfig.IsLoaded() Then
+    If Not modConfig.IsLoaded() _
+       Or (resolvedWarehouseId <> "" And StrComp(Trim$(modConfig.GetWarehouseId()), resolvedWarehouseId, vbTextCompare) <> 0) Then
         Call modConfig.LoadConfig(resolvedWarehouseId, "")
         configValidation = modConfig.Validate()
     End If
@@ -52,6 +60,8 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
         MarkReadModelState loInv, refreshUtc, vbNullString, "CACHED", True
         report = "Snapshot workbook not found; operator read model marked stale."
         If configValidation <> "" Then report = report & " " & configValidation
+        ApplyReadModelStatusSurface wb, refreshUtc, vbNullString, "CACHED", True, report
+        UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, "CACHED", refreshUtc
         RefreshInventoryReadModelForWorkbook = True
         GoTo CleanExit
     End If
@@ -61,6 +71,8 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
         MarkReadModelState loInv, refreshUtc, vbNullString, "CACHED", True
         report = "Snapshot table not found; operator read model marked stale."
         If configValidation <> "" Then report = report & " " & configValidation
+        ApplyReadModelStatusSurface wb, refreshUtc, vbNullString, "CACHED", True, report
+        UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, "CACHED", refreshUtc
         RefreshInventoryReadModelForWorkbook = True
         GoTo CleanExit
     End If
@@ -69,6 +81,8 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
     snapshotId = BuildSnapshotId(wbSnap)
     ApplySnapshotToInvSys loInv, snapshotRows, refreshUtc, snapshotId, normalizedSource
     report = "OK"
+    ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, normalizedSource, False, report
+    UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, normalizedSource, refreshUtc
     RefreshInventoryReadModelForWorkbook = True
     
 CleanExit:
@@ -77,6 +91,7 @@ CleanExit:
 
 FailRefresh:
     report = "RefreshInventoryReadModelForWorkbook failed: " & Err.Description
+    ApplyReadModelStatusSurface wb, Now, vbNullString, "CACHED", True, report
     If Not snapshotAlreadyOpen Then CloseWorkbookQuietlyReadModel wbSnap
 End Function
 
@@ -197,6 +212,161 @@ FailDiagnose:
     If Not snapshotAlreadyOpen Then CloseWorkbookQuietlyReadModel wbSnap
     DiagnoseInventoryReadModelRefresh = "Result=FAIL" & vbCrLf & _
                                         "Error=" & Err.Description
+End Function
+
+Public Sub InitializeAutoSnapshotForWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
+                                             Optional ByVal sourceType As String = "LOCAL")
+    On Error GoTo FailInit
+
+    Dim wb As Workbook
+    Dim key As String
+    Dim resolvedWarehouseId As String
+    Dim intervalSeconds As Long
+    Dim refreshReport As String
+
+    Set wb = ResolveOperatorWorkbook(targetWb)
+    If wb Is Nothing Then Exit Sub
+    If Not ShouldAutoManageWorkbookReadModel(wb) Then Exit Sub
+
+    EnsureAutoRefreshRegistryReadModel
+    key = BuildWorkbookKeyReadModel(wb)
+
+    If Not modConfig.IsLoaded() Then
+        If Not modConfig.LoadConfig("", "") Then
+            ApplyReadModelStatusSurface wb, Now, vbNullString, "CACHED", True, "Auto snapshot initialization failed: config load failed."
+            Exit Sub
+        End If
+    End If
+    If Not modConfig.GetBool("FF_AutoSnapshot", True) Then
+        UnregisterAutoSnapshotWorkbook wb
+        ApplyReadModelStatusSurface wb, Now, vbNullString, "DISABLED", False, "Auto snapshot disabled by config."
+        Exit Sub
+    End If
+
+    resolvedWarehouseId = ResolveWarehouseIdReadModel("")
+    intervalSeconds = ResolveAutoRefreshIntervalSecondsReadModel()
+
+    If key <> "" Then
+        If Not mAutoRefreshRegistry.Exists(key) Then
+            Call RefreshInventoryReadModelForWorkbook(wb, resolvedWarehouseId, sourceType, refreshReport)
+            RegisterAutoRefreshWorkbookReadModel wb, resolvedWarehouseId, NormalizeSourceType(sourceType), intervalSeconds, Now
+        Else
+            UpdateAutoRefreshConfigReadModel key, resolvedWarehouseId, NormalizeSourceType(sourceType), intervalSeconds
+        End If
+        ScheduleNextAutoRefreshReadModel
+    End If
+    Exit Sub
+
+FailInit:
+    ApplyReadModelStatusSurface wb, Now, vbNullString, "CACHED", True, "Auto snapshot initialization failed: " & Err.Description
+End Sub
+
+Public Sub UnregisterAutoSnapshotWorkbook(Optional ByVal targetWb As Workbook = Nothing)
+    Dim wb As Workbook
+    Dim key As String
+
+    Set wb = ResolveOperatorWorkbook(targetWb)
+    If wb Is Nothing Then Exit Sub
+
+    EnsureAutoRefreshRegistryReadModel
+    key = BuildWorkbookKeyReadModel(wb)
+    If key <> "" Then
+        If mAutoRefreshRegistry.Exists(key) Then mAutoRefreshRegistry.Remove key
+    End If
+    ScheduleNextAutoRefreshReadModel
+End Sub
+
+Public Sub RunScheduledOperatorAutoRefresh()
+    On Error GoTo CleanExit
+
+    Dim entry As Variant
+    Dim entries As Collection
+    Dim key As String
+    Dim meta As Object
+    Dim wb As Workbook
+    Dim intervalSeconds As Long
+    Dim refreshReport As String
+    Dim refreshUtc As Date
+
+    If mAutoRefreshRunning Then Exit Sub
+    mAutoRefreshRunning = True
+    mAutoRefreshScheduled = False
+    mAutoRefreshNextRun = 0
+
+    EnsureAutoRefreshRegistryReadModel
+    Set entries = New Collection
+    For Each entry In mAutoRefreshRegistry.Keys
+        entries.Add CStr(entry)
+    Next entry
+
+    For Each entry In entries
+        key = CStr(entry)
+        Set meta = mAutoRefreshRegistry(key)
+        Set wb = ResolveWorkbookByKeyReadModel(key)
+        If wb Is Nothing Then
+            mAutoRefreshRegistry.Remove key
+            GoTo ContinueLoop
+        End If
+        If Not ShouldAutoManageWorkbookReadModel(wb) Then
+            mAutoRefreshRegistry.Remove key
+            GoTo ContinueLoop
+        End If
+
+        intervalSeconds = 0
+        If meta.Exists("IntervalSeconds") Then intervalSeconds = CLng(meta("IntervalSeconds"))
+        If intervalSeconds > 0 Then
+            If IsRefreshDueReadModel(meta, intervalSeconds) Then
+                refreshUtc = Now
+                Call RefreshInventoryReadModelForWorkbook(wb, ResolveMetaValueReadModel(meta, "WarehouseId"), ResolveMetaValueReadModel(meta, "SourceType"), refreshReport)
+                meta("LastRefresh") = refreshUtc
+            End If
+        End If
+ContinueLoop:
+    Next entry
+
+CleanExit:
+    mAutoRefreshRunning = False
+    ScheduleNextAutoRefreshReadModel
+End Sub
+
+Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
+                                                   Optional ByVal warehouseId As String = "", _
+                                                   Optional ByVal sourceType As String = "LOCAL", _
+                                                   Optional ByRef report As String = "") As Boolean
+    On Error GoTo FailRefresh
+
+    Dim wb As Workbook
+    Dim resolvedWarehouseId As String
+    Dim batchReport As String
+    Dim refreshReport As String
+    Dim processedCount As Long
+    Dim surfaceReport As String
+
+    Set wb = ResolveOperatorWorkbook(targetWb)
+    If wb Is Nothing Then
+        report = "Operator workbook not resolved."
+        Exit Function
+    End If
+
+    resolvedWarehouseId = ResolveWarehouseIdReadModel(warehouseId)
+    processedCount = modProcessor.RunBatch(resolvedWarehouseId, 0, batchReport)
+    Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
+    If Not RefreshInventoryReadModelForWorkbook(wb, resolvedWarehouseId, sourceType, refreshReport) Then
+        report = refreshReport
+        Exit Function
+    End If
+
+    If Left$(batchReport, 15) = "RunBatch failed" Then
+        report = "RunBatch failed after local post/write. " & batchReport & " RefreshReport=" & refreshReport
+        Exit Function
+    End If
+
+    report = "Processed=" & CStr(processedCount) & "; RefreshReport=" & refreshReport
+    RunBatchAndRefreshOperatorWorkbook = True
+    Exit Function
+
+FailRefresh:
+    report = "RunBatchAndRefreshOperatorWorkbook failed: " & Err.Description
 End Function
 
 Private Function ResolveOperatorWorkbook(ByVal targetWb As Workbook) As Workbook
@@ -743,4 +913,265 @@ Private Function FormatQuantityReadModel(ByVal qtyIn As Double) As String
     Else
         FormatQuantityReadModel = Replace$(Format$(qtyIn, "0.########"), ",", "")
     End If
+End Function
+
+Private Function ShouldAutoManageWorkbookReadModel(ByVal wb As Workbook) As Boolean
+    If wb Is Nothing Then Exit Function
+    If Len(Trim$(wb.Path)) = 0 Then Exit Function
+    If Not modRoleWorkbookSurfaces.ShouldBootstrapRoleWorkbookSurface(wb) Then Exit Function
+    ShouldAutoManageWorkbookReadModel = True
+End Function
+
+Private Sub EnsureAutoRefreshRegistryReadModel()
+    If mAutoRefreshRegistry Is Nothing Then
+        Set mAutoRefreshRegistry = CreateObject("Scripting.Dictionary")
+        mAutoRefreshRegistry.CompareMode = vbTextCompare
+    End If
+End Sub
+
+Private Function BuildWorkbookKeyReadModel(ByVal wb As Workbook) As String
+    If wb Is Nothing Then Exit Function
+    If Trim$(wb.FullName) <> "" Then
+        BuildWorkbookKeyReadModel = LCase$(Trim$(wb.FullName))
+    Else
+        BuildWorkbookKeyReadModel = LCase$(Trim$(wb.Name))
+    End If
+End Function
+
+Private Sub RegisterAutoRefreshWorkbookReadModel(ByVal wb As Workbook, _
+                                                 ByVal warehouseId As String, _
+                                                 ByVal sourceType As String, _
+                                                 ByVal intervalSeconds As Long, _
+                                                 ByVal lastRefresh As Date)
+    Dim meta As Object
+    Dim key As String
+
+    EnsureAutoRefreshRegistryReadModel
+    key = BuildWorkbookKeyReadModel(wb)
+    If key = "" Then Exit Sub
+
+    Set meta = CreateObject("Scripting.Dictionary")
+    meta.CompareMode = vbTextCompare
+    meta("WarehouseId") = warehouseId
+    meta("SourceType") = NormalizeSourceType(sourceType)
+    meta("IntervalSeconds") = CLng(intervalSeconds)
+    meta("LastRefresh") = lastRefresh
+    mAutoRefreshRegistry(key) = meta
+End Sub
+
+Private Sub UpdateAutoRefreshEntryReadModel(ByVal wb As Workbook, _
+                                            ByVal warehouseId As String, _
+                                            ByVal sourceType As String, _
+                                            ByVal refreshUtc As Date)
+    Dim key As String
+
+    EnsureAutoRefreshRegistryReadModel
+    key = BuildWorkbookKeyReadModel(wb)
+    If key = "" Then Exit Sub
+    If Not mAutoRefreshRegistry.Exists(key) Then Exit Sub
+
+    UpdateAutoRefreshConfigReadModel key, warehouseId, sourceType, ResolveAutoRefreshIntervalSecondsReadModel()
+    mAutoRefreshRegistry(key)("LastRefresh") = refreshUtc
+    ScheduleNextAutoRefreshReadModel
+End Sub
+
+Private Sub UpdateAutoRefreshConfigReadModel(ByVal key As String, _
+                                             ByVal warehouseId As String, _
+                                             ByVal sourceType As String, _
+                                             ByVal intervalSeconds As Long)
+    Dim meta As Object
+
+    EnsureAutoRefreshRegistryReadModel
+    If key = "" Then Exit Sub
+    If Not mAutoRefreshRegistry.Exists(key) Then Exit Sub
+
+    Set meta = mAutoRefreshRegistry(key)
+    meta("WarehouseId") = warehouseId
+    meta("SourceType") = NormalizeSourceType(sourceType)
+    meta("IntervalSeconds") = CLng(intervalSeconds)
+End Sub
+
+Private Function ResolveWorkbookByKeyReadModel(ByVal workbookKey As String) As Workbook
+    Dim wb As Workbook
+
+    workbookKey = LCase$(Trim$(workbookKey))
+    If workbookKey = "" Then Exit Function
+
+    For Each wb In Application.Workbooks
+        If StrComp(BuildWorkbookKeyReadModel(wb), workbookKey, vbTextCompare) = 0 Then
+            Set ResolveWorkbookByKeyReadModel = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Function IsRefreshDueReadModel(ByVal meta As Object, ByVal intervalSeconds As Long) As Boolean
+    Dim lastRefresh As Date
+
+    If meta Is Nothing Then Exit Function
+    If intervalSeconds <= 0 Then Exit Function
+
+    If meta.Exists("LastRefresh") Then
+        If IsDate(meta("LastRefresh")) Then lastRefresh = CDate(meta("LastRefresh"))
+    End If
+    If lastRefresh = 0 Then
+        IsRefreshDueReadModel = True
+    Else
+        IsRefreshDueReadModel = (DateDiff("s", lastRefresh, Now) >= intervalSeconds)
+    End If
+End Function
+
+Private Function ResolveMetaValueReadModel(ByVal meta As Object, ByVal keyName As String) As String
+    If meta Is Nothing Then Exit Function
+    If Not meta.Exists(keyName) Then Exit Function
+    ResolveMetaValueReadModel = Trim$(CStr(meta(keyName)))
+End Function
+
+Private Function ResolveAutoRefreshIntervalSecondsReadModel() As Long
+    ResolveAutoRefreshIntervalSecondsReadModel = modConfig.GetLong("AutoRefreshIntervalSeconds", 0)
+    If ResolveAutoRefreshIntervalSecondsReadModel < 0 Then ResolveAutoRefreshIntervalSecondsReadModel = 0
+End Function
+
+Private Sub ScheduleNextAutoRefreshReadModel()
+    On Error Resume Next
+
+    Dim entry As Variant
+    Dim nextRun As Date
+    Dim hasEligible As Boolean
+    Dim meta As Object
+    Dim wb As Workbook
+    Dim intervalSeconds As Long
+    Dim candidateRun As Date
+
+    EnsureAutoRefreshRegistryReadModel
+    CancelScheduledAutoRefreshReadModel
+
+    For Each entry In mAutoRefreshRegistry.Keys
+        Set meta = mAutoRefreshRegistry(CStr(entry))
+        intervalSeconds = 0
+        Set wb = ResolveWorkbookByKeyReadModel(CStr(entry))
+        If Not wb Is Nothing Then
+            If meta.Exists("IntervalSeconds") Then intervalSeconds = CLng(meta("IntervalSeconds"))
+            If intervalSeconds > 0 Then
+                candidateRun = ResolveNextRunReadModel(meta, intervalSeconds)
+                If Not hasEligible Or candidateRun < nextRun Then
+                    nextRun = candidateRun
+                    hasEligible = True
+                End If
+            End If
+        End If
+    Next entry
+
+    If hasEligible Then
+        mAutoRefreshNextRun = nextRun
+        Application.OnTime EarliestTime:=mAutoRefreshNextRun, Procedure:=BuildScheduledProcedureReadModel(), Schedule:=True
+        mAutoRefreshScheduled = True
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Function ResolveNextRunReadModel(ByVal meta As Object, ByVal intervalSeconds As Long) As Date
+    Dim lastRefresh As Date
+
+    If meta.Exists("LastRefresh") Then
+        If IsDate(meta("LastRefresh")) Then lastRefresh = CDate(meta("LastRefresh"))
+    End If
+    If lastRefresh = 0 Then lastRefresh = Now
+    ResolveNextRunReadModel = DateAdd("s", intervalSeconds, lastRefresh)
+    If ResolveNextRunReadModel < Now Then ResolveNextRunReadModel = Now
+End Function
+
+Private Sub CancelScheduledAutoRefreshReadModel()
+    On Error Resume Next
+    If mAutoRefreshScheduled Then
+        Application.OnTime EarliestTime:=mAutoRefreshNextRun, Procedure:=BuildScheduledProcedureReadModel(), Schedule:=False
+        mAutoRefreshScheduled = False
+        mAutoRefreshNextRun = 0
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Function BuildScheduledProcedureReadModel() As String
+    BuildScheduledProcedureReadModel = "'" & ThisWorkbook.Name & "'!" & PROC_SCHEDULED_REFRESH
+End Function
+
+Private Sub ApplyReadModelStatusSurface(ByVal wb As Workbook, _
+                                        ByVal refreshUtc As Date, _
+                                        ByVal snapshotId As String, _
+                                        ByVal sourceType As String, _
+                                        ByVal isStale As Boolean, _
+                                        ByVal detailMessage As String)
+    On Error Resume Next
+
+    Dim ws As Worksheet
+    Dim shp As Shape
+    Dim bannerText As String
+
+    If wb Is Nothing Then Exit Sub
+    Set ws = ResolveInventoryManagementSheetReadModel(wb)
+    If ws Is Nothing Then Exit Sub
+
+    bannerText = BuildStatusBannerTextReadModel(refreshUtc, snapshotId, sourceType, isStale, detailMessage)
+    Set shp = EnsureStatusShapeReadModel(ws)
+    If shp Is Nothing Then Exit Sub
+
+    shp.TextFrame.Characters.Text = bannerText
+    shp.TextFrame.Characters.Font.Bold = True
+    shp.TextFrame.Characters.Font.Color = RGB(255, 255, 255)
+    shp.Fill.Visible = True
+    If UCase$(sourceType) = "DISABLED" Then
+        shp.Fill.ForeColor.RGB = RGB(108, 117, 125)
+        ws.Tab.Color = RGB(108, 117, 125)
+    ElseIf isStale Then
+        shp.Fill.ForeColor.RGB = RGB(192, 57, 43)
+        ws.Tab.Color = RGB(192, 57, 43)
+    Else
+        shp.Fill.ForeColor.RGB = RGB(39, 174, 96)
+        ws.Tab.Color = RGB(39, 174, 96)
+    End If
+    shp.Line.Visible = False
+    On Error GoTo 0
+End Sub
+
+Private Function ResolveInventoryManagementSheetReadModel(ByVal wb As Workbook) As Worksheet
+    On Error Resume Next
+    Set ResolveInventoryManagementSheetReadModel = wb.Worksheets(SHEET_INVENTORY_MANAGEMENT)
+    On Error GoTo 0
+End Function
+
+Private Function EnsureStatusShapeReadModel(ByVal ws As Worksheet) As Shape
+    Dim targetRange As Range
+
+    If ws Is Nothing Then Exit Function
+
+    On Error Resume Next
+    Set EnsureStatusShapeReadModel = ws.Shapes(SHAPE_READMODEL_STATUS)
+    On Error GoTo 0
+    If Not EnsureStatusShapeReadModel Is Nothing Then Exit Function
+
+    Set targetRange = ws.Range("J1:P2")
+    Set EnsureStatusShapeReadModel = ws.Shapes.AddShape(5, targetRange.Left, targetRange.Top, targetRange.Width, targetRange.Height)
+    EnsureStatusShapeReadModel.Name = SHAPE_READMODEL_STATUS
+    EnsureStatusShapeReadModel.Placement = 1
+End Function
+
+Private Function BuildStatusBannerTextReadModel(ByVal refreshUtc As Date, _
+                                                ByVal snapshotId As String, _
+                                                ByVal sourceType As String, _
+                                                ByVal isStale As Boolean, _
+                                                ByVal detailMessage As String) As String
+    Dim statusLabel As String
+
+    If UCase$(sourceType) = "DISABLED" Then
+        statusLabel = "AUTO SNAPSHOT DISABLED"
+    ElseIf isStale Then
+        statusLabel = "INVENTORY SNAPSHOT STALE"
+    Else
+        statusLabel = "INVENTORY SNAPSHOT CURRENT"
+    End If
+
+    BuildStatusBannerTextReadModel = statusLabel & " | Source=" & sourceType
+    If refreshUtc <> 0 Then BuildStatusBannerTextReadModel = BuildStatusBannerTextReadModel & " | Refreshed=" & Format$(refreshUtc, "yyyy-mm-dd hh:nn:ss")
+    If Trim$(snapshotId) <> "" Then BuildStatusBannerTextReadModel = BuildStatusBannerTextReadModel & " | SnapshotId=" & snapshotId
+    If Trim$(detailMessage) <> "" Then BuildStatusBannerTextReadModel = BuildStatusBannerTextReadModel & " | " & detailMessage
 End Function

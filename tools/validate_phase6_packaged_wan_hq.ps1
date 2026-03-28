@@ -321,7 +321,7 @@ function New-ConfigWorkbook {
         "BatchSize", "LockTimeoutMinutes", "HeartbeatIntervalSeconds", "MaxLockHoldMinutes",
         "SnapshotCadence", "BackupCadence", "PathDataRoot", "PathBackupRoot", "PathSharePointRoot",
         "DesignsEnabled", "PoisonRetryMax", "AuthCacheTTLSeconds", "ProcessorServiceUserId",
-        "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot"
+        "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot", "AutoRefreshIntervalSeconds"
     ) -Rows @()
     Clear-ListObjectRows $loWh
     Add-ListObjectRow -ListObject $loWh -Values @{
@@ -345,6 +345,7 @@ function New-ConfigWorkbook {
         "FF_DesignsEnabled" = $false
         "FF_OutlookAlerts" = $false
         "FF_AutoSnapshot" = $true
+        "AutoRefreshIntervalSeconds" = 0
     }
 
     $loSt = Add-Table -Worksheet $wsSt -TableName "tblStationConfig" -Headers @(

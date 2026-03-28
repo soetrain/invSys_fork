@@ -15,19 +15,19 @@ Public Function BuildPhase2ConfigWorkbook(ByVal whId As String, ByVal stId As St
     Set wsSt = wb.Worksheets.Add(After:=wsWh)
     wsSt.Name = "StationConfig"
 
-    wsWh.Range("A1").Resize(1, 20).Value = Array( _
+    wsWh.Range("A1").Resize(1, 21).Value = Array( _
         "WarehouseId", "WarehouseName", "Timezone", "DefaultLocation", _
         "BatchSize", "LockTimeoutMinutes", "HeartbeatIntervalSeconds", "MaxLockHoldMinutes", _
         "SnapshotCadence", "BackupCadence", "PathDataRoot", "PathBackupRoot", "PathSharePointRoot", _
         "DesignsEnabled", "PoisonRetryMax", "AuthCacheTTLSeconds", "ProcessorServiceUserId", _
-        "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot")
-    wsWh.Range("A2").Resize(1, 20).Value = Array( _
+        "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot", "AutoRefreshIntervalSeconds")
+    wsWh.Range("A2").Resize(1, 21).Value = Array( _
         whId, "Main Warehouse", "UTC", "A1", _
         500, 3, 30, 2, _
         "PER_BATCH", "DAILY", "C:\invSys\" & whId & "\", "C:\invSys\Backups\" & whId & "\", "", _
         False, 3, 300, processorServiceUserId, _
-        False, False, True)
-    wsWh.ListObjects.Add(xlSrcRange, wsWh.Range("A1:T2"), , xlYes).Name = "tblWarehouseConfig"
+        False, False, True, 0)
+    wsWh.ListObjects.Add(xlSrcRange, wsWh.Range("A1:U2"), , xlYes).Name = "tblWarehouseConfig"
 
     wsSt.Range("A1").Resize(1, 5).Value = Array("StationId", "WarehouseId", "StationName", "PathInboxRoot", "RoleDefault")
     wsSt.Range("A2").Resize(1, 5).Value = Array(stId, whId, Environ$("COMPUTERNAME"), "", roleDefault)

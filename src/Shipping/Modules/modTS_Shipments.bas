@@ -76,6 +76,7 @@ Public Sub InitializeShipmentsUiForWorkbook(Optional ByVal targetWb As Workbook 
     NormalizeShippingBootstrapArtifacts wb
     EnsureShipmentsButtons
     EnsureBuilderTablesReady
+    modOperatorReadModel.InitializeAutoSnapshotForWorkbook wb
     If mAggDirty Then RebuildShippingAggregates
 End Sub
 
@@ -625,6 +626,7 @@ Public Sub BtnShipmentsSent()
     Dim queuedEventId As String
     Dim errNotes As String
     Dim deltas As Collection
+    Dim runtimeReport As String
     If Not BuildQueueableShipmentsSentDeltas(invLo, ws, deltas, errNotes) Then
         If errNotes = "" Then errNotes = "Unable to build shipment event."
         MsgBox errNotes, vbInformation
@@ -653,6 +655,12 @@ Public Sub BtnShipmentsSent()
     ClearInstructionStaging ws
 
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
+    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(ws.Parent, "", "LOCAL", runtimeReport) Then
+        If runtimeReport = "" Then runtimeReport = "Local shipment post succeeded, but runtime processing or read-model refresh did not complete cleanly."
+        AppendNote errNotes, runtimeReport
+    ElseIf runtimeReport <> "" Then
+        AppendNote errNotes, runtimeReport
+    End If
 
     Dim msg As String
     msg = "Finalized " & Format$(shippedTotal, "0.###") & " shipments."
@@ -662,7 +670,12 @@ Public Sub BtnShipmentsSent()
         msg = msg & vbCrLf & "SHIPMENTS cleared."
     End If
     If queuedEventId <> "" Then msg = msg & vbCrLf & "Inbox EventID: " & queuedEventId
-    MsgBox msg, vbInformation
+    If errNotes <> "" Then
+        msg = msg & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
+        MsgBox msg, vbExclamation
+    Else
+        MsgBox msg, vbInformation
+    End If
     Exit Sub
 ErrHandler:
     Dim errMsg As String

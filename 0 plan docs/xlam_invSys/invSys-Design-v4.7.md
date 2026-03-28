@@ -1,7 +1,7 @@
-# invSys Architecture v4.6.1 - Release 1 Plan
+# invSys Architecture v4.7 - Release 1 Plan
 **Project:** invSys Multi-Warehouse Inventory System  
-**Version:** 4.6.1 (VBA Release 1)  
-**Date:** March 24, 2026  
+**Version:** 4.7 (VBA Release 1)  
+**Date:** March 27, 2026  
 **Author:** Justin  
 **Purpose:** Complete architectural specification for Release 1 (VBA/Excel only).
 
@@ -32,7 +32,7 @@
 - Phase 6 proving must explicitly cover four stages in order: one-account local use, multi-PC LAN use, LAN + WAN use, then central aggregation.
 
 ---
-## Progress Tracking (v4.6.1)
+## Progress Tracking (v4.7)
 **Legend:** `[ ]` not started, `[x]` complete
 
 ### Release 1 Milestones
@@ -702,7 +702,7 @@ sequenceDiagram
 
 **Status note:** Phase 6 is in progress. The dependency-root bootstrap for canonical Core/Auth/Config runtime workbooks is implemented and validated, and packaged workflow automation is partially green, but the system is not yet operationally proven. Current evidence is still weighted toward controlled Excel automation. Single-account saved-workbook use is the minimum operator baseline; LAN, LAN + WAN, and central aggregation proving remain separate hardening gates. Phase 6 is also where D9 and D10 become operationally binding: operator `invSys` tables must prove themselves as snapshot-fed read models, and inventory projections must prove themselves as rebuildable non-authoritative views.
 
-**Phase 6 LAN addendum:** `0 plan docs/xlam_invSys/LAN additions.md` is the authoritative operational addendum for Phase 6 LAN user-system proving. It defines the end-user LAN bootstrap, authenticated SMB expectations, Excel/VBA read-path validation, station auth provisioning, managed-inventory availability rule, auto-refresh contract, and role-ready acceptance criteria that make LAN use dependable rather than merely technically possible.
+**Phase 6 LAN operationalization note:** As of v4.7, the former standalone LAN addendum is merged into this Phase 6 section. The rules below are now part of the main authoritative spec and are binding for LAN user-system proving.
 
 **Operational proving ladder (authoritative):**
 1. **One-account use:** One Windows/Excel account with all invSys XLAMs loaded into that account session; operator works from saved `.xlsm` / `.xlsb` files.
@@ -719,6 +719,317 @@ sequenceDiagram
 - LAN validation must prove both shell-level access and Excel/VBA workbook-open access to the snapshot path.
 - `setup_lan_station.ps1` or its replacement bootstrap path must provision shared auth rows for the station user or fail clearly.
 - Active-workbook refresh wrappers are not sufficient proof by themselves; deterministic validation must use workbook-targeted refresh paths.
+
+**Phase 6 LAN operating model:**
+
+### Shared warehouse runtime
+
+One warehouse host owns the authoritative warehouse runtime path.
+
+Example:
+```text
+X1-Pro-Ai
+C:\invSys\WH1
+\\X1-Pro-Ai\invSysWH1
+\\192.168.1.5\invSysWH1
+```
+
+This shared warehouse runtime contains:
+- `WH1.invSys.Config.xlsb`
+- `WH1.invSys.Auth.xlsb`
+- `WH1.invSys.Data.Inventory.xlsb`
+- `WH1.invSys.Snapshot.Inventory.xlsb`
+- `WH1.Outbox.Events.xlsb`
+- other warehouse-authoritative runtime artifacts as needed
+
+These files are warehouse-owned, not station-owned.
+
+### Station-local operator context
+
+Each LAN station owns:
+- its local role operator workbook
+- its own station inbox workbook
+- optionally its own local config copy used for operator/runtime bootstrap
+
+Example for Arctic-Raptor `S2`:
+```text
+Operator workbook:
+C:\Users\justinwj\Documents\WH1_S2_Receiving_Operator.xlsb
+
+Local station config copy:
+C:\invSys\WH1\WH1.invSys.Config.xlsb
+
+Station inbox root:
+\\192.168.1.3\invSysStationS2
+
+Station inbox workbook:
+\\192.168.1.3\invSysStationS2\invSys.Inbox.Receiving.S2.xlsb
+```
+
+### Source-of-truth rule
+
+The source of truth remains the canonical warehouse inventory workbook:
+```text
+WH1.invSys.Data.Inventory.xlsb
+```
+
+The snapshot workbook is not authoritative.
+
+The operator `invSys` table is not authoritative.
+
+The outbox is not authoritative.
+
+### Managed inventory availability rule
+
+The "managed inventory list" available to a role station is the local operator workbook's `InventoryManagement!invSys` table after snapshot refresh.
+
+It is not a separate replicated catalog workbook.
+
+It is not populated from local staging tables.
+
+It is not station-private truth.
+
+For a second station to have usable managed inventory:
+1. the station must load the shared runtime config successfully
+2. Excel on that station must be able to open the warehouse snapshot workbook
+3. the operator workbook must refresh `InventoryManagement!invSys`
+4. the operator workbook must be the active workbook if the active-workbook wrapper macro is used
+
+Required validation:
+```vb
+?Application.Run("'invSys.Core.xlam'!modOperatorReadModel.RefreshInventoryReadModelForWorkbook", Workbooks("WH1_S2_Receiving_Operator.xlsb"), "WH1", "LOCAL")
+True
+```
+
+```vb
+?Workbooks("WH1_S2_Receiving_Operator.xlsb").Worksheets("InventoryManagement").ListObjects("invSys").ListRows.Count
+```
+
+Row count must be greater than zero for an inventory-populated warehouse.
+
+### SMB and Excel access requirements
+
+Windows shell access is not sufficient proof of Excel access.
+
+The following all must be distinguished:
+- PowerShell `Test-Path`
+- File Explorer access
+- VBA `FileSystemObject.FileExists`
+- Excel `Workbooks.Open`
+
+A station can pass shell checks and still fail Excel/VBA file opens.
+
+SMB access must be authenticated with an explicit warehouse share account or another approved account with read/write permission.
+
+Example:
+```powershell
+net use \\192.168.1.5\invSysWH1 /user:X1-PRO-AI\invsyslan * /persistent:yes
+```
+
+Validation ladder:
+
+1. Shell-level
+```powershell
+Get-ChildItem "\\192.168.1.5\invSysWH1"
+```
+
+2. Excel/VBA file visibility
+```vb
+?CreateObject("Scripting.FileSystemObject").FileExists("\\192.168.1.5\invSysWH1\WH1.invSys.Snapshot.Inventory.xlsb")
+```
+
+3. Excel workbook open
+
+Excel must be able to open the snapshot workbook without a 1004 open failure.
+
+Mapped-drive fallback is allowed when Excel/VBA cannot reliably open the UNC path:
+```powershell
+net use W: \\192.168.1.5\invSysWH1 /user:X1-PRO-AI\invsyslan * /persistent:yes
+```
+
+Then station-local `PathDataRoot` may be:
+```text
+W:\
+```
+
+This is a station-local compatibility workaround, not a change to warehouse authority.
+
+A mapped drive is not real until `net use` shows a `Local` drive letter mapping and File Explorer can browse it.
+
+### Required end-user LAN bootstrap sequence
+
+Warehouse host setup:
+1. create and maintain the canonical warehouse runtime folder
+2. share it over SMB
+3. grant the designated LAN account the required read/write access
+4. confirm the shared warehouse runtime contains config, auth, inventory, snapshot, and outbox files
+
+Station setup:
+1. install or copy the rebuilt `deploy/current` XLAMs locally
+2. ensure access to the shared warehouse runtime via authenticated SMB
+3. create and share the station inbox root if the processor must reach it over LAN
+4. run station bootstrap to create:
+   - local config copy
+   - station inbox workbook
+   - operator workbook
+5. ensure shared auth grants the station user the required role capability
+6. verify Excel can open the snapshot path
+7. refresh the operator read model and confirm `invSys` row count is nonzero
+
+Role-ready acceptance criteria:
+- shared runtime reachable from station
+- shared auth reachable from station
+- station inbox reachable from warehouse processor
+- operator workbook exists
+- `invSys` refresh succeeds
+- `invSys` shows rows
+- current user has role capability
+
+### Wrapper macro activation rule
+
+`RefreshCurrentWorkbookInventoryReadModel` uses the active workbook context.
+
+If the active workbook is:
+- config
+- auth
+- snapshot
+- any non-operator workbook
+
+then the wrapper can correctly report:
+```text
+invSys table not found.
+```
+
+This is not necessarily a read-model failure.
+
+For deterministic station operations:
+- activate the operator workbook before using the active-workbook wrapper
+- or use the workbook-targeted function directly
+
+Preferred deterministic call:
+```vb
+?Application.Run("'invSys.Core.xlam'!modOperatorReadModel.RefreshInventoryReadModelForWorkbook", Workbooks("WH1_S2_Receiving_Operator.xlsb"), "WH1", "LOCAL")
+```
+
+### Role verb to event to `invSys` impact
+
+The end-user-facing warehouse effect must be explicit. `invSys` does not change when the operator edits a local staging table. It changes only after:
+
+```text
+post -> processor run -> canonical apply -> snapshot rebuild -> operator refresh
+```
+
+| Role | Operator verb | Inbox/event path | Required capability | Expected `invSys` effect after successful refresh |
+|---|---|---|---|---|
+| Receiving | Add | `tblInboxReceive` / `RECEIVE` | `RECEIVE_POST` | quantity increases |
+| Shipping | Deduct | `tblInboxShip` / `SHIP` | `SHIP_POST` | quantity decreases |
+| Production | Use | `tblInboxProd` / `PROD_CONSUME` | `PROD_POST` | component quantity decreases |
+| Production | Make | `tblInboxProd` / `PROD_COMPLETE` | `PROD_POST` | output quantity increases |
+| Admin or approved role | Adjust | warehouse event path / adjustment event | `ADJ_POST` | quantity increases or decreases with reason |
+
+Role staging tables are not `invSys`.
+
+Role staging is:
+- local
+- editable
+- not authoritative
+
+`invSys` is:
+- snapshot-fed
+- non-authoritative
+- the operator-facing read model of current warehouse state
+
+So the operator must understand:
+- editing staging does not change `invSys`
+- posting alone does not change `invSys`
+- `invSys` changes only after processor + snapshot + refresh
+
+### Operator workflow dependability requirements
+
+Receiving is dependable on LAN only when:
+- item picker loads from populated `InventoryManagement!invSys`
+- `Confirm Writes` enqueues to the station inbox
+- processor applies the event and rebuilds the snapshot
+- both stations refresh to converged totals
+
+Shipping is dependable on LAN only when:
+- shipping staging remains local
+- `invSys` refresh remains non-destructive
+- `SHIP_POST` is granted to the station user
+- shipment events serialize through the warehouse processor
+
+Production is dependable on LAN only when:
+- production staging remains local
+- `invSys` refresh remains non-destructive
+- `PROD_POST` is granted to the station user
+- production events serialize through the warehouse processor
+
+### Minimum LAN validation checklist
+
+Station health:
+- `modConfig.LoadConfig(warehouse, station)` returns `True`
+- `PathDataRoot` resolves to an Excel-openable path
+- `PathInboxRoot` resolves to the station inbox location
+- `modAuth.LoadAuth(warehouse)` returns `True`
+- `modAuth.CanPerform(roleCapability, currentUser, warehouse, station, ...)` returns `True`
+
+Read-model health:
+- snapshot workbook resolves
+- snapshot table resolves
+- snapshot row count is nonzero when warehouse has inventory
+- `invSys` row count is nonzero
+
+Write-path health:
+- role post succeeds
+- inbox row becomes `NEW`
+- processor run marks it `PROCESSED`
+- canonical inventory log records the event
+- snapshot refresh exposes the change on both stations
+
+Locking health:
+- competing process attempts do not corrupt data
+- one lane wins cleanly
+- retry after release succeeds
+
+### LAN troubleshooting matrix
+
+Symptom: `invSys` table visually blank on second station
+- Check `ListRows.Count`
+- Check direct workbook-targeted refresh
+- Check whether the operator workbook is active
+- Likely causes: snapshot not reachable, wrapper targeting wrong workbook, or table populated but sheet focus/filters mislead the user
+
+Symptom: `Snapshot workbook not found; operator read model marked stale.`
+- Check station `PathDataRoot`
+- Check shell access
+- Check Excel/VBA `FileExists`
+- Check Excel workbook open by path
+- Likely causes: unauthenticated SMB session, mapped drive not real in Windows shell context, or Excel cannot open a UNC path even though PowerShell can
+
+Symptom: `Current user lacks RECEIVE_POST capability.`
+- Check `tblUsers`
+- Check `tblCapabilities`
+- Check current Windows user id
+- Check whether station auth data was actually provisioned
+- Likely cause: station user exists operationally but was never added to shared auth
+
+Symptom: `invSys table not found.`
+- Check which workbook is active
+- Check whether the operator workbook is the current active workbook
+- Likely cause: wrapper macro called while config, auth, or snapshot workbook is active
+
+### LAN role-usage acceptance standard
+
+LAN role usage is dependable only when all of the following are true:
+1. Multiple stations can open role workbooks against one warehouse runtime.
+2. Each station can refresh `invSys` from the warehouse snapshot without local workbook contamination.
+3. Each station user has the required auth capability.
+4. Each station posts only to its own inbox workbook.
+5. Warehouse processor serializes canonical writes and snapshot rebuilds correctly.
+6. Two stations converge to the same visible inventory totals after refresh.
+7. The above works without Immediate Window intervention beyond diagnostics.
+
+If any of those are false, LAN architecture may be partially proven, but LAN end-user operation is not yet dependable.
 
 **Tasks:**
 - [x] Bootstrap canonical Core/Auth/Config runtime workbook surfaces under the deployed runtime path
@@ -1111,6 +1422,8 @@ HeartbeatIntervalSeconds (number)
 MaxLockHoldMinutes       (number)
 SnapshotCadence          (text)
 BackupCadence            (text)
+FF_AutoSnapshot          (boolean)
+AutoRefreshIntervalSeconds (number)
 PathDataRoot             (text)
 PathBackupRoot           (text)
 PathSharePointRoot       (text)
@@ -1137,7 +1450,7 @@ Operational LAN bootstrap note:
 
 ## Appendix: Carried Forward from Archived v2 Docs
 ### Config MVP Keys (R1 baseline)
-- Warehouse scope: `WarehouseId`, `WarehouseName`, `Timezone`, `DefaultLocation`, `BatchSize`, `LockTimeoutMinutes`, `HeartbeatIntervalSeconds`, `MaxLockHoldMinutes`, `SnapshotCadence`, `BackupCadence`, `PathDataRoot`, `PathBackupRoot`, `PathSharePointRoot`, `DesignsEnabled`, `PoisonRetryMax`, `AuthCacheTTLSeconds`
+- Warehouse scope: `WarehouseId`, `WarehouseName`, `Timezone`, `DefaultLocation`, `BatchSize`, `LockTimeoutMinutes`, `HeartbeatIntervalSeconds`, `MaxLockHoldMinutes`, `SnapshotCadence`, `BackupCadence`, `FF_AutoSnapshot`, `AutoRefreshIntervalSeconds`, `PathDataRoot`, `PathBackupRoot`, `PathSharePointRoot`, `DesignsEnabled`, `PoisonRetryMax`, `AuthCacheTTLSeconds`
 - Station scope: `StationId`, `StationName`, `PathInboxRoot`, `RoleDefault`
 - Feature flags: `FF_DesignsEnabled`, `FF_OutlookAlerts`, `FF_AutoSnapshot`
 

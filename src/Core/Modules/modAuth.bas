@@ -175,6 +175,208 @@ Public Function ValidateAuth() As String
     Next itm
 End Function
 
+Public Function EnsureStationRoleAuth(Optional ByVal warehouseId As String = "", _
+                                      Optional ByVal stationId As String = "", _
+                                      Optional ByVal userId As String = "", _
+                                      Optional ByVal displayName As String = "", _
+                                      Optional ByVal roleDefault As String = "RECEIVE", _
+                                      Optional ByVal authWorkbookPath As String = "", _
+                                      Optional ByVal processorServiceUserId As String = "", _
+                                      Optional ByRef capabilityOut As String = "", _
+                                      Optional ByRef report As String = "") As Boolean
+    On Error GoTo FailEnsure
+
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+    Dim resolvedUser As String
+    Dim resolvedDisplay As String
+    Dim resolvedServiceUser As String
+    Dim openedForSetup As Boolean
+    Dim wb As Workbook
+    Dim loUsers As ListObject
+    Dim loCaps As ListObject
+
+    resolvedWh = SafeTrim(warehouseId)
+    resolvedSt = SafeTrim(stationId)
+    resolvedUser = SafeTrim(userId)
+    If resolvedUser = "" Then resolvedUser = ResolveCurrentUserIdAuth()
+    resolvedDisplay = SafeTrim(displayName)
+    If resolvedDisplay = "" Then resolvedDisplay = resolvedUser
+    resolvedServiceUser = SafeTrim(processorServiceUserId)
+    If resolvedServiceUser = "" Then resolvedServiceUser = "svc_processor"
+    capabilityOut = CapabilityForRoleAuth(roleDefault)
+
+    If resolvedWh = "" Then
+        report = "WarehouseId is required for station auth provisioning."
+        Exit Function
+    End If
+    If resolvedSt = "" Then
+        report = "StationId is required for station auth provisioning."
+        Exit Function
+    End If
+    If resolvedUser = "" Then
+        report = "UserId is required for station auth provisioning."
+        Exit Function
+    End If
+    If capabilityOut = "" Then
+        report = "Unsupported role for station auth provisioning: " & roleDefault
+        Exit Function
+    End If
+
+    Set wb = ResolveAuthWorkbookForSetup(authWorkbookPath, resolvedWh, resolvedServiceUser, report, openedForSetup)
+    If wb Is Nothing Then Exit Function
+    If Not EnsureAuthSchema(wb, resolvedWh, resolvedServiceUser, report) Then GoTo CleanExit
+
+    Set loUsers = FindListObjectByName(wb, "tblUsers")
+    Set loCaps = FindListObjectByName(wb, "tblCapabilities")
+    If loUsers Is Nothing Or loCaps Is Nothing Then
+        report = "Auth tables were not available after schema ensure."
+        GoTo CleanExit
+    End If
+
+    EnsureUserRow loUsers, resolvedUser, resolvedDisplay
+    EnsureCapabilityRow loCaps, resolvedUser, capabilityOut, resolvedWh, resolvedSt, "ACTIVE"
+    EnsureCapabilityRow loCaps, resolvedServiceUser, "INBOX_PROCESS", resolvedWh, "*", "ACTIVE"
+    FormatAuthSurface wb
+    SaveAuthWorkbookIfWritable wb
+
+    report = "OK"
+    EnsureStationRoleAuth = True
+
+CleanExit:
+    If openedForSetup And Not wb Is Nothing Then
+        On Error Resume Next
+        wb.Close SaveChanges:=False
+        On Error GoTo 0
+    End If
+    Exit Function
+
+FailEnsure:
+    report = "EnsureStationRoleAuth failed: " & Err.Description
+    Resume CleanExit
+End Function
+
+Public Function EnsureStationRoleAuthForAutomation(Optional ByVal warehouseId As String = "", _
+                                                   Optional ByVal stationId As String = "", _
+                                                   Optional ByVal userId As String = "", _
+                                                   Optional ByVal displayName As String = "", _
+                                                   Optional ByVal roleDefault As String = "RECEIVE", _
+                                                   Optional ByVal authWorkbookPath As String = "", _
+                                                   Optional ByVal processorServiceUserId As String = "") As String
+    Dim report As String
+    Dim capabilityOut As String
+
+    If EnsureStationRoleAuth(warehouseId, stationId, userId, displayName, roleDefault, authWorkbookPath, processorServiceUserId, capabilityOut, report) Then
+        EnsureStationRoleAuthForAutomation = "OK|" & capabilityOut
+    Else
+        EnsureStationRoleAuthForAutomation = "FAIL|" & report
+    End If
+End Function
+
+Public Function EnsureStationRoleAuthPackedForAutomation(ByVal packedArgs As String) As String
+    Dim parts() As String
+
+    parts = Split(packedArgs, "|")
+    EnsureStationRoleAuthPackedForAutomation = EnsureStationRoleAuthForAutomation( _
+        GetPackedArgAuth(parts, 0), _
+        GetPackedArgAuth(parts, 1), _
+        GetPackedArgAuth(parts, 2), _
+        GetPackedArgAuth(parts, 3), _
+        GetPackedArgAuth(parts, 4), _
+        GetPackedArgAuth(parts, 5), _
+        GetPackedArgAuth(parts, 6))
+End Function
+
+Public Function ValidateStationRoleAuthForAutomation(Optional ByVal warehouseId As String = "", _
+                                                     Optional ByVal stationId As String = "", _
+                                                     Optional ByVal userId As String = "", _
+                                                     Optional ByVal roleDefault As String = "RECEIVE", _
+                                                     Optional ByVal authWorkbookPath As String = "", _
+                                                     Optional ByVal processorServiceUserId As String = "") As String
+    On Error GoTo FailValidate
+
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+    Dim resolvedUser As String
+    Dim resolvedServiceUser As String
+    Dim resolvedCapability As String
+    Dim openedForSetup As Boolean
+    Dim wb As Workbook
+    Dim loUsers As ListObject
+    Dim loCaps As ListObject
+    Dim userPresent As Boolean
+    Dim capPresent As Boolean
+    Dim processorPresent As Boolean
+    Dim report As String
+
+    resolvedWh = SafeTrim(warehouseId)
+    resolvedSt = SafeTrim(stationId)
+    resolvedUser = SafeTrim(userId)
+    If resolvedUser = "" Then resolvedUser = ResolveCurrentUserIdAuth()
+    resolvedServiceUser = SafeTrim(processorServiceUserId)
+    If resolvedServiceUser = "" Then resolvedServiceUser = "svc_processor"
+    resolvedCapability = CapabilityForRoleAuth(roleDefault)
+
+    If resolvedWh = "" Or resolvedSt = "" Or resolvedUser = "" Or resolvedCapability = "" Then
+        ValidateStationRoleAuthForAutomation = "FAIL|Missing required role auth validation inputs."
+        Exit Function
+    End If
+
+    Set wb = ResolveAuthWorkbookForSetup(authWorkbookPath, resolvedWh, resolvedServiceUser, report, openedForSetup)
+    If wb Is Nothing Then
+        ValidateStationRoleAuthForAutomation = "FAIL|" & report
+        Exit Function
+    End If
+    If Not EnsureAuthSchema(wb, resolvedWh, resolvedServiceUser, report) Then
+        ValidateStationRoleAuthForAutomation = "FAIL|" & report
+        GoTo CleanExit
+    End If
+
+    Set loUsers = FindListObjectByName(wb, "tblUsers")
+    Set loCaps = FindListObjectByName(wb, "tblCapabilities")
+    If loUsers Is Nothing Or loCaps Is Nothing Then
+        ValidateStationRoleAuthForAutomation = "FAIL|Auth tables were not available after schema ensure."
+        GoTo CleanExit
+    End If
+
+    userPresent = (FindAuthUserRow(loUsers, resolvedUser) > 0)
+    capPresent = (FindCapabilityRow(loCaps, resolvedUser, resolvedCapability, resolvedWh, resolvedSt) > 0)
+    processorPresent = (FindCapabilityRow(loCaps, resolvedServiceUser, "INBOX_PROCESS", resolvedWh, "*") > 0)
+
+    If userPresent And capPresent And processorPresent Then
+        ValidateStationRoleAuthForAutomation = "OK|Capability=" & resolvedCapability & "|UserPresent=True|CapabilityPresent=True|ProcessorPresent=True"
+    Else
+        ValidateStationRoleAuthForAutomation = "FAIL|Capability=" & resolvedCapability & _
+                                               "|UserPresent=" & CStr(userPresent) & _
+                                               "|CapabilityPresent=" & CStr(capPresent) & _
+                                               "|ProcessorPresent=" & CStr(processorPresent)
+    End If
+
+CleanExit:
+    If openedForSetup And Not wb Is Nothing Then
+        On Error Resume Next
+        wb.Close SaveChanges:=False
+        On Error GoTo 0
+    End If
+    Exit Function
+
+FailValidate:
+    ValidateStationRoleAuthForAutomation = "FAIL|ValidateStationRoleAuthForAutomation failed: " & Err.Description
+End Function
+
+Public Function ValidateStationRoleAuthPackedForAutomation(ByVal packedArgs As String) As String
+    Dim parts() As String
+
+    parts = Split(packedArgs, "|")
+    ValidateStationRoleAuthPackedForAutomation = ValidateStationRoleAuthForAutomation( _
+        GetPackedArgAuth(parts, 0), _
+        GetPackedArgAuth(parts, 1), _
+        GetPackedArgAuth(parts, 2), _
+        GetPackedArgAuth(parts, 4), _
+        GetPackedArgAuth(parts, 5), _
+        GetPackedArgAuth(parts, 6))
+End Function
+
 Private Sub InitializeState()
     Set mUsers = CreateObject("Scripting.Dictionary")
     mUsers.CompareMode = vbTextCompare
@@ -383,6 +585,25 @@ Private Function ResolveAuthWorkbook(ByVal whId As String) As Workbook
     Next wb
 
     Set ResolveAuthWorkbook = modRuntimeWorkbooks.OpenFirstRuntimeAuthWorkbook(bootstrapReport)
+End Function
+
+Private Function ResolveAuthWorkbookForSetup(ByVal authWorkbookPath As String, _
+                                             ByVal warehouseId As String, _
+                                             ByVal processorServiceUserId As String, _
+                                             ByRef report As String, _
+                                             ByRef openedForSetup As Boolean) As Workbook
+    Dim resolvedPath As String
+
+    resolvedPath = SafeTrim(authWorkbookPath)
+    If resolvedPath = "" Then
+        report = "Auth workbook path is required for station auth provisioning."
+        Exit Function
+    End If
+
+    Set ResolveAuthWorkbookForSetup = FindOpenWorkbookByFullNameAuth(resolvedPath)
+    If ResolveAuthWorkbookForSetup Is Nothing Then
+        Set ResolveAuthWorkbookForSetup = OpenOrCreateWorkbookByPathAuth(resolvedPath, report, openedForSetup)
+    End If
 End Function
 
 Private Function IsAuthWorkbookName(ByVal wbName As String) As Boolean
@@ -670,6 +891,112 @@ Private Function WorkbookHasAuthScope(ByVal wb As Workbook, ByVal whId As String
         End If
     Next i
 End Function
+
+Private Function CapabilityForRoleAuth(ByVal roleDefault As String) As String
+    Select Case UCase$(SafeTrim(roleDefault))
+        Case "RECEIVE", "RECEIVING"
+            CapabilityForRoleAuth = "RECEIVE_POST"
+        Case "SHIP", "SHIPPING"
+            CapabilityForRoleAuth = "SHIP_POST"
+        Case "PROD", "PRODUCTION", "PROD_CONSUME", "PROD_COMPLETE"
+            CapabilityForRoleAuth = "PROD_POST"
+        Case "ADMIN"
+            CapabilityForRoleAuth = "ADMIN_MAINT"
+    End Select
+End Function
+
+Private Function GetPackedArgAuth(ByRef parts() As String, ByVal index As Long) As String
+    If index < LBound(parts) Or index > UBound(parts) Then Exit Function
+    GetPackedArgAuth = parts(index)
+End Function
+
+Private Function FindOpenWorkbookByFullNameAuth(ByVal workbookPath As String) As Workbook
+    Dim wb As Workbook
+
+    workbookPath = SafeTrim(workbookPath)
+    If workbookPath = "" Then Exit Function
+
+    For Each wb In Application.Workbooks
+        If StrComp(SafeTrim(wb.FullName), workbookPath, vbTextCompare) = 0 Then
+            Set FindOpenWorkbookByFullNameAuth = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Function OpenOrCreateWorkbookByPathAuth(ByVal workbookPath As String, _
+                                                ByRef report As String, _
+                                                ByRef openedForSetup As Boolean) As Workbook
+    On Error GoTo FailOpen
+
+    Dim folderPath As String
+    Dim fileExt As String
+    Dim wb As Workbook
+
+    workbookPath = SafeTrim(workbookPath)
+    If workbookPath = "" Then
+        report = "Workbook path was blank."
+        Exit Function
+    End If
+
+    folderPath = Left$(workbookPath, InStrRev(workbookPath, "\"))
+    EnsureDirectoryExistsAuth folderPath
+
+    If Len(Dir$(workbookPath, vbNormal)) > 0 Then
+        Set wb = Application.Workbooks.Open(workbookPath, False, False)
+        openedForSetup = True
+        Set OpenOrCreateWorkbookByPathAuth = wb
+        Exit Function
+    End If
+
+    Set wb = Application.Workbooks.Add
+    fileExt = LCase$(Mid$(workbookPath, InStrRev(workbookPath, ".")))
+    Select Case fileExt
+        Case ".xlsb"
+            wb.SaveAs Filename:=workbookPath, FileFormat:=50
+        Case ".xlsm"
+            wb.SaveAs Filename:=workbookPath, FileFormat:=52
+        Case Else
+            wb.SaveAs Filename:=workbookPath, FileFormat:=51
+    End Select
+
+    openedForSetup = True
+    Set OpenOrCreateWorkbookByPathAuth = wb
+    Exit Function
+
+FailOpen:
+    report = "OpenOrCreateWorkbookByPathAuth failed: " & Err.Description
+End Function
+
+Private Sub EnsureDirectoryExistsAuth(ByVal folderPath As String)
+    Dim normalizedPath As String
+    Dim parts() As String
+    Dim currentPath As String
+    Dim i As Long
+
+    normalizedPath = SafeTrim(folderPath)
+    If normalizedPath = "" Then Exit Sub
+    If Right$(normalizedPath, 1) = "\" Then normalizedPath = Left$(normalizedPath, Len(normalizedPath) - 1)
+    If normalizedPath = "" Then Exit Sub
+    If Len(Dir$(normalizedPath, vbDirectory)) > 0 Then Exit Sub
+
+    parts = Split(normalizedPath, "\")
+    If UBound(parts) < 0 Then Exit Sub
+
+    currentPath = parts(0)
+    If Right$(currentPath, 1) <> "\" Then currentPath = currentPath & "\"
+    For i = 1 To UBound(parts)
+        currentPath = currentPath & parts(i)
+        If Len(Dir$(currentPath, vbDirectory)) = 0 Then MkDir currentPath
+        currentPath = currentPath & "\"
+    Next i
+End Sub
+
+Private Sub SaveAuthWorkbookIfWritable(ByVal wb As Workbook)
+    If wb Is Nothing Then Exit Sub
+    If wb.ReadOnly Then Exit Sub
+    wb.Save
+End Sub
 
 Private Function FindListObjectByName(ByVal wb As Workbook, ByVal tableName As String) As ListObject
     Dim ws As Worksheet

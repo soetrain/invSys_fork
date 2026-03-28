@@ -83,6 +83,7 @@ Public Sub InitializeProductionUiForWorkbook(Optional ByVal targetWb As Workbook
     PrimeProductionRowCountCache wb
     EnsureProductionButtons
     EnsureSystemGroups
+    modOperatorReadModel.InitializeAutoSnapshotForWorkbook wb
 End Sub
 
 ' ===== Worksheet event entry points =====
@@ -1368,6 +1369,7 @@ Public Sub BtnToMade()
     Dim usedTotal As Double
     Dim madeTotal As Double
     Dim queuedEventId As String
+    Dim runtimeReport As String
 
     If Not QueueProductionConsumeEvent(usedDeltas, madeDeltas, errNotes, queuedEventId) Then
         If errNotes = "" Then errNotes = "Unable to queue production consume event."
@@ -1410,6 +1412,13 @@ Public Sub BtnToMade()
         End If
     End If
 
+    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(wsProd.Parent, "", "LOCAL", runtimeReport) Then
+        If runtimeReport = "" Then runtimeReport = "Local production post succeeded, but runtime processing or read-model refresh did not complete cleanly."
+        AppendNote errNotes, runtimeReport
+    ElseIf runtimeReport <> "" Then
+        AppendNote errNotes, runtimeReport
+    End If
+
     Dim msg As String
     msg = "Recorded component usage: " & Format$(usedTotal, "0.###") & " units."
     msg = msg & vbCrLf & "Recorded finished goods (MADE): " & Format$(madeTotal, "0.###")
@@ -1448,6 +1457,7 @@ Public Sub BtnToTotalInv()
     Dim madeNotes As String
     Dim madeDeltas As Collection
     Dim queuedEventId As String
+    Dim runtimeReport As String
     Set madeDeltas = BuildMadeDeltasFromProductionOutput(loOut, invLo, madeNotes)
     If madeDeltas Is Nothing Then
         If madeNotes = "" Then madeNotes = "No made quantities found in ProductionOutput."
@@ -1484,6 +1494,13 @@ Public Sub BtnToTotalInv()
         If Not usedSnapshot Is Nothing Then
             WriteProdInvSysCheck loCheck, invLo, usedSnapshot
         End If
+    End If
+
+    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(wsProd.Parent, "", "LOCAL", runtimeReport) Then
+        If runtimeReport = "" Then runtimeReport = "Local production completion succeeded, but runtime processing or read-model refresh did not complete cleanly."
+        AppendNote errNotes, runtimeReport
+    ElseIf runtimeReport <> "" Then
+        AppendNote errNotes, runtimeReport
     End If
 
     Dim msg As String

@@ -30,6 +30,11 @@ Private Sub App_WorkbookActivate(ByVal Wb As Workbook)
     modShippingInit.EnsureShippingSurfaceForWorkbook Wb
 End Sub
 
+Private Sub App_WorkbookBeforeClose(ByVal Wb As Workbook, Cancel As Boolean)
+    Application.EnableEvents = True
+    modOperatorReadModel.UnregisterAutoSnapshotWorkbook Wb
+End Sub
+
 Private Sub App_SheetActivate(ByVal Sh As Object)
     Application.EnableEvents = True
 End Sub

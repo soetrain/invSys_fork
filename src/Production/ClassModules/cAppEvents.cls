@@ -30,6 +30,11 @@ Private Sub App_WorkbookActivate(ByVal Wb As Workbook)
     modProductionInit.EnsureProductionSurfaceForWorkbook Wb
 End Sub
 
+Private Sub App_WorkbookBeforeClose(ByVal Wb As Workbook, Cancel As Boolean)
+    Application.EnableEvents = True
+    modOperatorReadModel.UnregisterAutoSnapshotWorkbook Wb
+End Sub
+
 Private Sub App_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)
     Application.EnableEvents = True
     On Error Resume Next

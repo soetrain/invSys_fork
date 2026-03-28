@@ -877,7 +877,7 @@ Private Function EnsureConfigTables(ByVal wb As Workbook) As Boolean
         "BatchSize", "LockTimeoutMinutes", "HeartbeatIntervalSeconds", "MaxLockHoldMinutes", _
         "SnapshotCadence", "BackupCadence", "PathDataRoot", "PathBackupRoot", "PathSharePointRoot", _
         "DesignsEnabled", "PoisonRetryMax", "AuthCacheTTLSeconds", "ProcessorServiceUserId", _
-        "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot")
+        "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot", "AutoRefreshIntervalSeconds")
     stHeaders = Array("StationId", "WarehouseId", "StationName", "PathInboxRoot", "RoleDefault")
 
     EnsureListObjectWithHeaders wb, "WarehouseConfig", "tblWarehouseConfig", whHeaders
@@ -1035,6 +1035,7 @@ Private Sub SeedConfigDefaults(ByVal wb As Workbook, ByVal warehouseId As String
     EnsureConfigCellDefault loWh, 1, "FF_DesignsEnabled", False
     EnsureConfigCellDefault loWh, 1, "FF_OutlookAlerts", False
     EnsureConfigCellDefault loWh, 1, "FF_AutoSnapshot", True
+    EnsureConfigCellDefault loWh, 1, "AutoRefreshIntervalSeconds", 0
 
     EnsureConfigCellDefault loSt, 1, "StationId", resolvedSt
     EnsureConfigCellDefault loSt, 1, "WarehouseId", resolvedWh

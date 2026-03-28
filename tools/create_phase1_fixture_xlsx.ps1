@@ -196,8 +196,8 @@ $configSheets = @(
     @{
         Name = "WarehouseConfig"
         Rows = @(
-            @("WarehouseId", "WarehouseName", "Timezone", "DefaultLocation", "BatchSize", "LockTimeoutMinutes", "HeartbeatIntervalSeconds", "MaxLockHoldMinutes", "SnapshotCadence", "BackupCadence", "PathDataRoot", "PathBackupRoot", "PathSharePointRoot", "DesignsEnabled", "PoisonRetryMax", "AuthCacheTTLSeconds", "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot"),
-            @("WH1", "Main Warehouse", "UTC", "A1", 500, 3, 30, 2, "PER_BATCH", "DAILY", "C:\invSys\WH1\", "C:\invSys\Backups\WH1\", "", $false, 3, 300, $false, $false, $true)
+            @("WarehouseId", "WarehouseName", "Timezone", "DefaultLocation", "BatchSize", "LockTimeoutMinutes", "HeartbeatIntervalSeconds", "MaxLockHoldMinutes", "SnapshotCadence", "BackupCadence", "PathDataRoot", "PathBackupRoot", "PathSharePointRoot", "DesignsEnabled", "PoisonRetryMax", "AuthCacheTTLSeconds", "ProcessorServiceUserId", "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot", "AutoRefreshIntervalSeconds"),
+            @("WH1", "Main Warehouse", "UTC", "A1", 500, 3, 30, 2, "PER_BATCH", "DAILY", "C:\invSys\WH1\", "C:\invSys\Backups\WH1\", "", $false, 3, 300, "svc_processor", $false, $false, $true, 0)
         )
     },
     @{

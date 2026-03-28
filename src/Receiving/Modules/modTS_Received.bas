@@ -54,6 +54,7 @@ Public Sub InitializeReceivingUiForWorkbook(Optional ByVal targetWb As Workbook 
 
     RemoveLegacyReceivingButtons ws
     RefreshReceivingUiAccess ws
+    modOperatorReadModel.InitializeAutoSnapshotForWorkbook wb
 End Sub
 
 Private Function ResolveReceivingWorkbook(Optional ByVal preferredWb As Workbook = Nothing, Optional ByVal requiredSheet As String = "") As Workbook
@@ -503,9 +504,7 @@ End Function
 
 Private Sub ProcessQueuedReceiveEventsRuntime(Optional ByVal operatorWb As Workbook = Nothing)
     Dim warehouseId As String
-    Dim report As String
-    Dim refreshReport As String
-    Dim surfaceReport As String
+    Dim runtimeReport As String
     Dim wb As Workbook
 
     warehouseId = modConfig.GetWarehouseId()
@@ -515,16 +514,10 @@ Private Sub ProcessQueuedReceiveEventsRuntime(Optional ByVal operatorWb As Workb
     If wb Is Nothing Then Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
     If wb Is Nothing Then Set wb = ThisWorkbook
 
-    Call modProcessor.RunBatch(warehouseId, 0, report)
-    If Left$(report, 15) = "RunBatch failed" Then
-        MsgBox "Local receive writes succeeded, but runtime processing failed:" & vbCrLf & report, vbExclamation
-    End If
-
-    Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
-    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, warehouseId, "LOCAL", refreshReport) Then
-        MsgBox "Receive events were queued, but operator read-model refresh failed:" & vbCrLf & refreshReport, vbExclamation
-    ElseIf refreshReport <> "OK" Then
-        MsgBox refreshReport, vbInformation
+    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(wb, warehouseId, "LOCAL", runtimeReport) Then
+        MsgBox "Local receive writes succeeded, but runtime processing or read-model refresh did not complete cleanly:" & vbCrLf & runtimeReport, vbExclamation
+    ElseIf runtimeReport <> "" Then
+        MsgBox runtimeReport, vbInformation
     End If
 End Sub
 

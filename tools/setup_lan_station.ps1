@@ -25,6 +25,9 @@ param(
     [string]$StationName = $env:COMPUTERNAME,
 
     [Parameter(Mandatory = $false)]
+    [string]$StationUserId = $env:USERNAME,
+
+    [Parameter(Mandatory = $false)]
     [string]$LocalConfigRoot = "",
 
     [switch]$CreateOperatorWorkbook,
@@ -85,6 +88,23 @@ function Convert-RoleToEventType {
         "PROD_CONSUME" { return "PROD_CONSUME" }
         "PROD_COMPLETE" { return "PROD_CONSUME" }
         default { return $RoleName.Trim().ToUpperInvariant() }
+    }
+}
+
+function Convert-RoleToCapability {
+    param([string]$RoleName)
+
+    switch ($RoleName.Trim().ToUpperInvariant()) {
+        "RECEIVE" { return "RECEIVE_POST" }
+        "RECEIVING" { return "RECEIVE_POST" }
+        "SHIP" { return "SHIP_POST" }
+        "SHIPPING" { return "SHIP_POST" }
+        "PROD" { return "PROD_POST" }
+        "PRODUCTION" { return "PROD_POST" }
+        "PROD_CONSUME" { return "PROD_POST" }
+        "PROD_COMPLETE" { return "PROD_POST" }
+        "ADMIN" { return "ADMIN_MAINT" }
+        default { return "" }
     }
 }
 
@@ -211,6 +231,49 @@ function Open-WorkbookOnce {
     return $opened
 }
 
+function Get-DiagnosticValue {
+    param(
+        [string]$DiagnosticText,
+        [string]$Key
+    )
+
+    if ([string]::IsNullOrWhiteSpace($DiagnosticText) -or [string]::IsNullOrWhiteSpace($Key)) {
+        return ""
+    }
+
+    foreach ($line in ($DiagnosticText -split "`r?`n")) {
+        if ($line.StartsWith($Key + "=", [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $line.Substring($Key.Length + 1)
+        }
+    }
+    return ""
+}
+
+function Test-ExcelWorkbookOpenable {
+    param(
+        [object]$Excel,
+        [string]$FullPath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($FullPath)) { return $false }
+    if (-not (Test-Path -LiteralPath $FullPath)) { return $false }
+
+    $wb = $null
+    try {
+        $wb = $Excel.Workbooks.Open($FullPath, 0, $true)
+        return ($null -ne $wb)
+    }
+    catch {
+        return $false
+    }
+    finally {
+        if ($null -ne $wb) {
+            try { $wb.Close($false) } catch {}
+            Release-ComObject $wb
+        }
+    }
+}
+
 $repoPath = (Resolve-Path $RepoRoot).Path
 $deployPath = Join-Path $repoPath $DeployRoot
 $coreAddinPath = Join-Path $deployPath "invSys.Core.xlam"
@@ -225,6 +288,8 @@ if (-not (Test-Path -LiteralPath $resolvedSharedRoot)) {
 }
 
 $sharedConfigPath = Join-Path $resolvedSharedRoot ($WarehouseId + ".invSys.Config.xlsb")
+$sharedAuthPath = Join-Path $resolvedSharedRoot ($WarehouseId + ".invSys.Auth.xlsb")
+$sharedSnapshotPath = Join-Path $resolvedSharedRoot ($WarehouseId + ".invSys.Snapshot.Inventory.xlsb")
 
 if ([string]::IsNullOrWhiteSpace($LocalConfigRoot)) {
     $LocalConfigRoot = Join-Path "C:\invSys" $WarehouseId
@@ -234,8 +299,15 @@ $resolvedLocalConfigRoot = [System.IO.Path]::GetFullPath($LocalConfigRoot)
 $resolvedInboxRoot = [System.IO.Path]::GetFullPath($StationInboxRoot)
 $localConfigPath = Join-Path $resolvedLocalConfigRoot ($WarehouseId + ".invSys.Config.xlsb")
 $eventType = Convert-RoleToEventType -RoleName $RoleDefault
+$roleCapability = Convert-RoleToCapability -RoleName $RoleDefault
 $operatorWorkbookOut = ""
 $operatorRefreshStatus = "SKIPPED"
+$operatorRefreshReport = ""
+$authProvisionStatus = ""
+$authValidationStatus = ""
+$snapshotShellAccessible = $false
+$snapshotExcelOpenable = $false
+$roleReady = $false
 
 $excel = $null
 $coreWb = $null
@@ -251,6 +323,9 @@ try {
     $openedWorkbooks += $coreWb
     $workbookMap = @{}
     $workbookMap[$coreWb.Name] = $coreWb
+    [void](Run-WorkbookMacro -Excel $excel -WorkbookName $coreWb.Name -MacroName "modRuntimeWorkbooks.SetCoreDataRootOverride" -Arguments @(
+        $resolvedSharedRoot
+    ))
 
     if (-not $SkipSharedBootstrap) {
         $sharedPacked = Join-PackedArgs @(
@@ -272,6 +347,28 @@ try {
 
     if (-not (Test-Path -LiteralPath $sharedConfigPath)) {
         throw "Shared config workbook not found after bootstrap step: $sharedConfigPath"
+    }
+
+    $authPacked = Join-PackedArgs @(
+        $WarehouseId,
+        $StationId,
+        $StationUserId,
+        $StationUserId,
+        $RoleDefault,
+        $sharedAuthPath,
+        "svc_processor"
+    )
+    $authProvisionStatus = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $coreWb.Name -MacroName "modAuth.EnsureStationRoleAuthPackedForAutomation" -Arguments @(
+        $authPacked
+    ))
+    if (-not $authProvisionStatus.StartsWith("OK|", [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Shared auth provisioning failed. Result=$authProvisionStatus"
+    }
+    $authValidationStatus = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $coreWb.Name -MacroName "modAuth.ValidateStationRoleAuthPackedForAutomation" -Arguments @(
+        $authPacked
+    ))
+    if (-not $authValidationStatus.StartsWith("OK|", [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Shared auth validation failed. Result=$authValidationStatus"
     }
 
     Ensure-Directory -Path $resolvedLocalConfigRoot
@@ -336,15 +433,20 @@ try {
         }
 
         try {
-            $refreshOk = [bool](Run-WorkbookMacro -Excel $excel -WorkbookName $coreWb.Name -MacroName "modOperatorReadModel.RefreshInventoryReadModelForWorkbook" -Arguments @(
+            $operatorDiagnostic = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $coreWb.Name -MacroName "modOperatorReadModel.DiagnoseInventoryReadModelRefresh" -Arguments @(
                 $operatorWb,
                 $WarehouseId,
                 "LOCAL"
             ))
-            $operatorRefreshStatus = if ($refreshOk) { "OK" } else { "NO_SNAPSHOT_OR_FAILED" }
+            $operatorRefreshReport = Get-DiagnosticValue -DiagnosticText $operatorDiagnostic -Key "RefreshReport"
+            if ([string]::IsNullOrWhiteSpace($operatorRefreshReport)) {
+                $operatorRefreshReport = "UNKNOWN"
+            }
+            $operatorRefreshStatus = if ([string]::Equals($operatorRefreshReport, "OK", [System.StringComparison]::OrdinalIgnoreCase)) { "OK" } else { "STALE_OR_FAILED" }
         }
         catch {
-            $operatorRefreshStatus = "NO_SNAPSHOT_OR_FAILED"
+            $operatorRefreshStatus = "STALE_OR_FAILED"
+            $operatorRefreshReport = $_.Exception.Message
         }
 
         if (Test-Path -LiteralPath $operatorWorkbookOut) {
@@ -354,19 +456,37 @@ try {
         $operatorWb.Close($false)
     }
 
+    $snapshotShellAccessible = Test-Path -LiteralPath $sharedSnapshotPath
+    $snapshotExcelOpenable = Test-ExcelWorkbookOpenable -Excel $excel -FullPath $sharedSnapshotPath
+    $roleReady = $authValidationStatus.StartsWith("OK|", [System.StringComparison]::OrdinalIgnoreCase) `
+        -and (Test-Path -LiteralPath $inboxPath) `
+        -and $snapshotShellAccessible `
+        -and $snapshotExcelOpenable `
+        -and ((-not $CreateOperatorWorkbook) -or $operatorRefreshStatus -eq "OK")
+
     Write-Output "LAN_STATION_SETUP_OK"
     Write-Output ("WarehouseId=" + $WarehouseId)
     Write-Output ("StationId=" + $StationId)
+    Write-Output ("StationUserId=" + $StationUserId)
     Write-Output ("SharedRuntimeRoot=" + $resolvedSharedRoot)
     Write-Output ("SharedConfigPath=" + $sharedConfigPath)
+    Write-Output ("SharedAuthPath=" + $sharedAuthPath)
     Write-Output ("LocalConfigPath=" + $localConfigPath)
     Write-Output ("StationInboxRoot=" + $resolvedInboxRoot)
     Write-Output ("InboxPath=" + $inboxPath)
     Write-Output ("RoleDefault=" + $RoleDefault.ToUpperInvariant())
+    Write-Output ("RoleCapability=" + $roleCapability)
+    Write-Output ("AuthProvision=" + $authProvisionStatus)
+    Write-Output ("AuthValidation=" + $authValidationStatus)
+    Write-Output ("SharedSnapshotPath=" + $sharedSnapshotPath)
+    Write-Output ("SnapshotShellAccessible=" + $snapshotShellAccessible)
+    Write-Output ("SnapshotExcelOpenable=" + $snapshotExcelOpenable)
     if ($CreateOperatorWorkbook) {
         Write-Output ("OperatorWorkbookPath=" + $operatorWorkbookOut)
         Write-Output ("OperatorReadModelRefresh=" + $operatorRefreshStatus)
+        Write-Output ("OperatorReadModelRefreshReport=" + ($operatorRefreshReport -replace "`r?`n", " ; "))
     }
+    Write-Output ("RoleReady=" + $roleReady)
 }
 finally {
     foreach ($wb in ($openedWorkbooks | Select-Object -Unique)) {

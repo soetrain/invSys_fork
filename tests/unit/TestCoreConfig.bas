@@ -11,6 +11,7 @@ Public Sub RunConfigTests()
     Tally TestGetRequired_MissingKey(), passed, failed
     Tally TestGetBool_TypeConversion(), passed, failed
     Tally TestReload_UpdatedValue(), passed, failed
+    Tally TestGetLong_AutoRefreshIntervalSeconds(), passed, failed
 
     Debug.Print "Core.Config tests - Passed: " & passed & " Failed: " & failed
 End Sub
@@ -54,14 +55,11 @@ End Function
 
 Public Function TestPrecedence_StationOverridesWarehouse() As Long
     Dim wb As Workbook
-    Dim loWh As ListObject
     Dim loSt As ListObject
 
     Set wb = BuildConfigWorkbook("WH1", "S1", "SHIP")
-    Set loWh = wb.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
     Set loSt = wb.Worksheets("StationConfig").ListObjects("tblStationConfig")
 
-    loWh.DataBodyRange.Cells(1, loWh.ListColumns("RoleDefault").Index).Value = "RECEIVE"
     loSt.DataBodyRange.Cells(1, loSt.ListColumns("RoleDefault").Index).Value = "SHIP"
 
     On Error GoTo CleanFail
@@ -149,6 +147,28 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestGetLong_AutoRefreshIntervalSeconds() As Long
+    Dim wb As Workbook
+    Dim loWh As ListObject
+
+    Set wb = BuildConfigWorkbook("WH1", "S1", "RECEIVE")
+    Set loWh = wb.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
+
+    On Error GoTo CleanFail
+    loWh.DataBodyRange.Cells(1, loWh.ListColumns("AutoRefreshIntervalSeconds").Index).Value = 45
+    If modConfig.LoadConfig("WH1", "S1") Then
+        If modConfig.GetLong("AutoRefreshIntervalSeconds", -1) = 45 Then
+            TestGetLong_AutoRefreshIntervalSeconds = 1
+        End If
+    End If
+
+CleanExit:
+    CloseNoSave wb
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Private Sub Tally(ByVal testResult As Long, ByRef passed As Long, ByRef failed As Long)
     If testResult = 1 Then
         passed = passed + 1
@@ -171,20 +191,20 @@ Private Function BuildConfigWorkbook(ByVal whId As String, ByVal stId As String,
     Set wsSt = wb.Worksheets.Add(After:=wsWh)
     wsSt.Name = "StationConfig"
 
-    wsWh.Range("A1").Resize(1, 20).Value = Array( _
+    wsWh.Range("A1").Resize(1, 21).Value = Array( _
         "WarehouseId", "WarehouseName", "Timezone", "DefaultLocation", _
         "BatchSize", "LockTimeoutMinutes", "HeartbeatIntervalSeconds", "MaxLockHoldMinutes", _
         "SnapshotCadence", "BackupCadence", "PathDataRoot", "PathBackupRoot", "PathSharePointRoot", _
-        "DesignsEnabled", "PoisonRetryMax", "AuthCacheTTLSeconds", _
-        "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot", "RoleDefault")
-    wsWh.Range("A2").Resize(1, 20).Value = Array( _
+        "DesignsEnabled", "PoisonRetryMax", "AuthCacheTTLSeconds", "ProcessorServiceUserId", _
+        "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot", "AutoRefreshIntervalSeconds")
+    wsWh.Range("A2").Resize(1, 21).Value = Array( _
         whId, "Main Warehouse", "UTC", "A1", _
         500, 3, 30, 2, _
         "PER_BATCH", "DAILY", "C:\invSys\" & whId & "\", "C:\invSys\Backups\" & whId & "\", "", _
-        False, 3, 300, _
-        False, False, True, "RECEIVE")
+        False, 3, 300, "svc_processor", _
+        False, False, True, 0)
 
-    Set loWh = wsWh.ListObjects.Add(xlSrcRange, wsWh.Range("A1:T2"), , xlYes)
+    Set loWh = wsWh.ListObjects.Add(xlSrcRange, wsWh.Range("A1:U2"), , xlYes)
     loWh.Name = "tblWarehouseConfig"
 
     wsSt.Range("A1").Resize(1, 4).Value = Array("StationId", "WarehouseId", "StationName", "RoleDefault")
