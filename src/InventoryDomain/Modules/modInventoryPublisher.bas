@@ -12,6 +12,9 @@ Private Const TABLE_RECEIVED_TALLY_PUBLISHER As String = "ReceivedTally"
 Private Const TABLE_SHIPMENTS_TALLY_PUBLISHER As String = "ShipmentsTally"
 Private Const TABLE_PRODUCTION_OUTPUT_PUBLISHER As String = "ProductionOutput"
 Private Const TABLE_ADMIN_AUDIT_PUBLISHER As String = "tblAdminAudit"
+Private Const TABLE_RECIPES_PUBLISHER As String = "Recipes"
+Private Const TABLE_TEMPLATES_PUBLISHER As String = "TemplatesTable"
+Private Const TABLE_INGREDIENT_PALETTE_PUBLISHER As String = "IngredientPalette"
 Private Const MIN_RECENT_PUBLISH_SECONDS As Long = 5
 
 Private mRecentPublishes As Object
@@ -74,7 +77,7 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
     If Not EnsureWarehouseConfigLoadedPublisher(resolvedWarehouseId, report) Then Exit Function
 
     Set publishWb = wb
-    If IsLegacyManagedInventoryWorkbookPublisher(wb) Then
+    If RequiresRuntimeCatalogSyncPublisher(wb) Then
         runtimePath = ResolveRuntimeInventoryPathPublisher(resolvedWarehouseId)
         runtimeWasOpen = WorkbookIsOpenByPathPublisher(runtimePath)
         Set publishWb = modInventoryApply.ResolveInventoryWorkbook(resolvedWarehouseId)
@@ -104,7 +107,7 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
     
 CleanExit:
     If Not publishWb Is Nothing Then
-        If IsLegacyManagedInventoryWorkbookPublisher(wb) Then
+        If RequiresRuntimeCatalogSyncPublisher(wb) Then
             If Not runtimeWasOpen Then CloseWorkbookQuietlyPublisher publishWb
         End If
     End If
@@ -113,7 +116,7 @@ CleanExit:
 FailPublish:
     report = "EnsureSnapshotPublicationForWorkbook failed: " & Err.Description
     If Not publishWb Is Nothing Then
-        If IsLegacyManagedInventoryWorkbookPublisher(wb) Then
+        If RequiresRuntimeCatalogSyncPublisher(wb) Then
             If Not runtimeWasOpen Then CloseWorkbookQuietlyPublisher publishWb
         End If
     End If
@@ -139,7 +142,7 @@ Private Function IsInventorySourceWorkbookPublisher(ByVal wb As Workbook) As Boo
     If wb Is Nothing Then Exit Function
     If wb.IsAddin Then Exit Function
 
-    IsInventorySourceWorkbookPublisher = IsRuntimeInventoryWorkbookPublisher(wb) Or IsLegacyManagedInventoryWorkbookPublisher(wb)
+    IsInventorySourceWorkbookPublisher = IsRuntimeInventoryWorkbookPublisher(wb) Or IsManagedCatalogSourceWorkbookPublisher(wb)
 End Function
 
 Private Function IsRuntimeInventoryWorkbookPublisher(ByVal wb As Workbook) As Boolean
@@ -160,6 +163,24 @@ Private Function IsLegacyManagedInventoryWorkbookPublisher(ByVal wb As Workbook)
     IsLegacyManagedInventoryWorkbookPublisher = Not (FindManagedInventoryTablePublisher(wb) Is Nothing)
 End Function
 
+Private Function IsManagedCatalogSourceWorkbookPublisher(ByVal wb As Workbook) As Boolean
+    If wb Is Nothing Then Exit Function
+    If wb.IsAddin Then Exit Function
+    If IsRuntimeInventoryWorkbookPublisher(wb) Then Exit Function
+    If FindManagedInventoryTablePublisher(wb) Is Nothing Then Exit Function
+
+    If IsLegacyManagedInventoryWorkbookPublisher(wb) Then
+        IsManagedCatalogSourceWorkbookPublisher = True
+        Exit Function
+    End If
+
+    IsManagedCatalogSourceWorkbookPublisher = HasManagedCatalogSourceMarkersPublisher(wb)
+End Function
+
+Private Function RequiresRuntimeCatalogSyncPublisher(ByVal wb As Workbook) As Boolean
+    RequiresRuntimeCatalogSyncPublisher = IsManagedCatalogSourceWorkbookPublisher(wb) And Not IsRuntimeInventoryWorkbookPublisher(wb)
+End Function
+
 Private Function HasRoleOperationalTablesPublisher(ByVal wb As Workbook) As Boolean
     If wb Is Nothing Then Exit Function
 
@@ -167,6 +188,36 @@ Private Function HasRoleOperationalTablesPublisher(ByVal wb As Workbook) As Bool
         Or WorkbookHasTablePublisher(wb, TABLE_SHIPMENTS_TALLY_PUBLISHER) _
         Or WorkbookHasTablePublisher(wb, TABLE_PRODUCTION_OUTPUT_PUBLISHER) _
         Or WorkbookHasTablePublisher(wb, TABLE_ADMIN_AUDIT_PUBLISHER)
+End Function
+
+Private Function HasManagedCatalogSourceMarkersPublisher(ByVal wb As Workbook) As Boolean
+    Dim wbName As String
+
+    If wb Is Nothing Then Exit Function
+
+    wbName = LCase$(Trim$(wb.Name))
+    If wbName Like "*inventory_management*.xls*" Then
+        HasManagedCatalogSourceMarkersPublisher = True
+        Exit Function
+    End If
+
+    If CountRoleOperationalTablesPublisher(wb) > 1 Then
+        HasManagedCatalogSourceMarkersPublisher = True
+        Exit Function
+    End If
+
+    HasManagedCatalogSourceMarkersPublisher = WorkbookHasTablePublisher(wb, TABLE_RECIPES_PUBLISHER) _
+        Or WorkbookHasTablePublisher(wb, TABLE_TEMPLATES_PUBLISHER) _
+        Or WorkbookHasTablePublisher(wb, TABLE_INGREDIENT_PALETTE_PUBLISHER)
+End Function
+
+Private Function CountRoleOperationalTablesPublisher(ByVal wb As Workbook) As Long
+    If wb Is Nothing Then Exit Function
+
+    If WorkbookHasTablePublisher(wb, TABLE_RECEIVED_TALLY_PUBLISHER) Then CountRoleOperationalTablesPublisher = CountRoleOperationalTablesPublisher + 1
+    If WorkbookHasTablePublisher(wb, TABLE_SHIPMENTS_TALLY_PUBLISHER) Then CountRoleOperationalTablesPublisher = CountRoleOperationalTablesPublisher + 1
+    If WorkbookHasTablePublisher(wb, TABLE_PRODUCTION_OUTPUT_PUBLISHER) Then CountRoleOperationalTablesPublisher = CountRoleOperationalTablesPublisher + 1
+    If WorkbookHasTablePublisher(wb, TABLE_ADMIN_AUDIT_PUBLISHER) Then CountRoleOperationalTablesPublisher = CountRoleOperationalTablesPublisher + 1
 End Function
 
 Private Function FindManagedInventoryTablePublisher(ByVal wb As Workbook) As ListObject

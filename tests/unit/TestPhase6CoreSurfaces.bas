@@ -3270,7 +3270,15 @@ Private Function CreateManagedInventoryDonorWorkbookForTest(ByVal rootPath As St
 
     targetPath = rootPath & "\" & workbookName
     Set wb = Application.Workbooks.Add(xlWBATWorksheet)
-    If Not modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, report) Then
+    If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wb, report) Then
+        CloseWorkbookIfOpen wb
+        Exit Function
+    End If
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wb, report) Then
+        CloseWorkbookIfOpen wb
+        Exit Function
+    End If
+    If Not modRoleWorkbookSurfaces.EnsureProductionWorkbookSurface(wb, report) Then
         CloseWorkbookIfOpen wb
         Exit Function
     End If
