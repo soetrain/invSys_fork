@@ -1347,7 +1347,9 @@ Public Function TestInventoryPublisher_PublishesSnapshotForOpenInventoryWorkbook
     Dim publishCount As Long
     Dim snapshotPath As String
     Dim wbInv As Workbook
+    Dim wbRuntime As Workbook
     Dim wbSnap As Workbook
+    Dim loRuntimeCatalog As ListObject
     Dim loSnap As ListObject
     Dim rowSku1 As Long
     Dim rowSku2 As Long
@@ -1360,15 +1362,33 @@ Public Function TestInventoryPublisher_PublishesSnapshotForOpenInventoryWorkbook
     SetConfigWarehouseValue "WH83.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
     If Not modConfig.Reload() Then GoTo CleanExit
 
-    Set wbInv = CreateInventoryWorkbookForTestWithName(rootPath, "FRODECO.inventory_management.xlsb", Array("SKU-PUB-001", "SKU-PUB-002"))
+    Set wbInv = CreateManagedInventoryDonorWorkbookForTest(rootPath, "FRODECO.inventory_management.xlsb")
     If wbInv Is Nothing Then
         failureReason = "Inventory source workbook could not be created."
         GoTo CleanExit
     End If
+    AddInvSysSeedRow FindTableByName(wbInv, "invSys"), 1001, "SKU-PUB-001", "Publish Item 1", "EA", "A1", 0
+    AddInvSysSeedRow FindTableByName(wbInv, "invSys"), 1002, "SKU-PUB-002", "Publish Item 2", "EA", "B2", 0
+    wbInv.Save
 
     publishCount = modInventoryPublisher.PublishOpenInventorySnapshots(report)
-    If publishCount <> 1 Then
+    If publishCount < 1 Then
         failureReason = "PublishOpenInventorySnapshots did not publish the open inventory workbook. " & report
+        GoTo CleanExit
+    End If
+
+    Set wbRuntime = modInventoryApply.ResolveInventoryWorkbook("WH83")
+    If wbRuntime Is Nothing Then
+        failureReason = "Canonical runtime inventory workbook was not created."
+        GoTo CleanExit
+    End If
+    Set loRuntimeCatalog = FindTableByName(wbRuntime, "tblSkuCatalog")
+    If loRuntimeCatalog Is Nothing Then
+        failureReason = "Canonical runtime SKU catalog was not created."
+        GoTo CleanExit
+    End If
+    If FindRowByColumnValueInTable(loRuntimeCatalog, "SKU", "SKU-PUB-001") = 0 Or FindRowByColumnValueInTable(loRuntimeCatalog, "SKU", "SKU-PUB-002") = 0 Then
+        failureReason = "Canonical runtime SKU catalog did not receive the donor workbook managed inventory rows."
         GoTo CleanExit
     End If
 
@@ -1400,6 +1420,7 @@ Public Function TestInventoryPublisher_PublishesSnapshotForOpenInventoryWorkbook
 CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
     CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbRuntime
     CloseWorkbookIfOpen wbInv
     DeleteRuntimeRoot rootPath
     If failureReason <> "" Then
@@ -3242,34 +3263,53 @@ Private Function CreateInventoryWorkbookForTestWithName(ByVal rootPath As String
     Set CreateInventoryWorkbookForTestWithName = wb
 End Function
 
+Private Function CreateManagedInventoryDonorWorkbookForTest(ByVal rootPath As String, ByVal workbookName As String) As Workbook
+    Dim wb As Workbook
+    Dim report As String
+    Dim targetPath As String
+
+    targetPath = rootPath & "\" & workbookName
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, report) Then
+        CloseWorkbookIfOpen wb
+        Exit Function
+    End If
+    wb.SaveAs Filename:=targetPath, FileFormat:=50
+    Set CreateManagedInventoryDonorWorkbookForTest = wb
+End Function
+
 Private Sub EnsureSkuCatalogForTest(ByVal wb As Workbook, ByVal skuList As Variant)
     Dim ws As Worksheet
     Dim lo As ListObject
-    Dim rowCount As Long
+    Dim lr As ListRow
     Dim i As Long
+    Dim sheetWasProtected As Boolean
 
     If wb Is Nothing Then Exit Sub
 
     On Error Resume Next
     Set ws = wb.Worksheets("SkuCatalog")
     On Error GoTo 0
-    If ws Is Nothing Then
-        Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
-        ws.Name = "SkuCatalog"
-    Else
-        ws.Cells.Clear
-    End If
+    If ws Is Nothing Then Exit Sub
 
-    ws.Range("A1").Value = "SKU"
-    rowCount = 1
+    On Error Resume Next
+    Set lo = ws.ListObjects("tblSkuCatalog")
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Sub
+
+    sheetWasProtected = BeginEditableSheetForTest(ws)
+    Do While Not lo.DataBodyRange Is Nothing
+        lo.ListRows(1).Delete
+    Loop
+
     For i = LBound(skuList) To UBound(skuList)
-        rowCount = rowCount + 1
-        ws.Cells(rowCount, 1).Value = CStr(skuList(i))
+        Set lr = lo.ListRows.Add
+        SetTableCell lo, lr.Index, "SKU", CStr(skuList(i))
+        SetTableCell lo, lr.Index, "ITEM_CODE", CStr(skuList(i))
+        SetTableCell lo, lr.Index, "ITEM", CStr(skuList(i))
     Next i
-    If rowCount = 1 Then rowCount = 2
 
-    Set lo = ws.ListObjects.Add(xlSrcRange, ws.Range("A1:A" & CStr(rowCount)), , xlYes)
-    lo.Name = "tblSkuCatalog"
+    RestoreSheetProtectionForTest ws, sheetWasProtected
 End Sub
 
 Private Function CreateReceiveEventForTest(ByVal eventId As String, _

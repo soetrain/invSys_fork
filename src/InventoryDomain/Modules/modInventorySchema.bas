@@ -13,6 +13,8 @@ Private Const SHEET_LOCATION_BALANCE As String = "LocationBalance"
 Private Const TABLE_LOCATION_BALANCE As String = "tblLocationBalance"
 Private Const SHEET_LEDGER_STATUS As String = "LedgerStatus"
 Private Const TABLE_LEDGER_STATUS As String = "tblInventoryLedgerStatus"
+Private Const SHEET_SKU_CATALOG As String = "SkuCatalog"
+Private Const TABLE_SKU_CATALOG As String = "tblSkuCatalog"
 
 Public Function EnsureInventorySchema(Optional ByVal targetWb As Workbook = Nothing, _
                                       Optional ByRef report As String = "") As Boolean
@@ -48,6 +50,9 @@ Public Function EnsureInventorySchema(Optional ByVal targetWb As Workbook = Noth
     EnsureTableWithHeaders wb, SHEET_LEDGER_STATUS, TABLE_LEDGER_STATUS, _
         Array("WarehouseId", "LastAppliedSeq", "LastEventId", "LastAppliedAtUTC", "TotalEventRows", _
               "TotalAppliedEvents", "DistinctSkuCount", "DistinctLocationCount", "ProjectionRebuiltAtUTC", "Notes"), issues
+
+    EnsureTableWithHeaders wb, SHEET_SKU_CATALOG, TABLE_SKU_CATALOG, _
+        Array("SKU", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "VENDOR_CODE", "CATEGORY"), issues
 
     report = JoinCollection(issues, "; ")
     EnsureInventorySchema = True

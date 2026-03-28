@@ -31,6 +31,8 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
     Dim configValidation As String
     Dim snapshotPath As String
     Dim snapshotAlreadyOpen As Boolean
+    Dim invSheet As Worksheet
+    Dim invSheetWasProtected As Boolean
 
     Set wb = ResolveOperatorWorkbook(targetWb)
     If wb Is Nothing Then
@@ -43,6 +45,9 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
         report = "invSys table not found."
         Exit Function
     End If
+    Set invSheet = loInv.Parent
+    invSheetWasProtected = invSheet.ProtectContents
+    EnsureWorksheetEditableReadModel invSheet, TABLE_INVSYS
 
     refreshUtc = Now
     normalizedSource = NormalizeSourceType(sourceType)
@@ -86,12 +91,15 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
     RefreshInventoryReadModelForWorkbook = True
     
 CleanExit:
+    If invSheetWasProtected Then RestoreWorksheetProtectionReadModel invSheet
     If Not snapshotAlreadyOpen Then CloseWorkbookQuietlyReadModel wbSnap
     Exit Function
 
 FailRefresh:
     report = "RefreshInventoryReadModelForWorkbook failed: " & Err.Description
     ApplyReadModelStatusSurface wb, Now, vbNullString, "CACHED", True, report
+    On Error Resume Next
+    If invSheetWasProtected Then RestoreWorksheetProtectionReadModel invSheet
     If Not snapshotAlreadyOpen Then CloseWorkbookQuietlyReadModel wbSnap
 End Function
 
@@ -493,6 +501,33 @@ Private Function WorkbookIsOpenByPathReadModel(ByVal targetPath As String) As Bo
         End If
     Next wb
 End Function
+
+Private Sub EnsureWorksheetEditableReadModel(ByVal ws As Worksheet, ByVal context As String)
+    If ws Is Nothing Then Exit Sub
+    If Not ws.ProtectContents Then Exit Sub
+
+    On Error Resume Next
+    ws.Unprotect
+    On Error GoTo 0
+
+    If ws.ProtectContents Then
+        Err.Raise vbObjectError + 4201, "modOperatorReadModel.EnsureWorksheetEditableReadModel", _
+                  "Worksheet '" & ws.Name & "' is protected and could not be unprotected before updating " & context & "."
+    End If
+End Sub
+
+Private Sub RestoreWorksheetProtectionReadModel(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    ws.Protect UserInterfaceOnly:=True
+    On Error GoTo 0
+
+    If Not ws.ProtectContents Then
+        Err.Raise vbObjectError + 4202, "modOperatorReadModel.RestoreWorksheetProtectionReadModel", _
+                  "Worksheet '" & ws.Name & "' could not be reprotected after read-model refresh."
+    End If
+End Sub
 
 Private Function NormalizeSourceType(ByVal sourceType As String) As String
     NormalizeSourceType = UCase$(Trim$(sourceType))

@@ -6,6 +6,12 @@ Private Const TABLE_APPLIED_EVENTS_PUBLISHER As String = "tblAppliedEvents"
 Private Const TABLE_SKU_BALANCE_PUBLISHER As String = "tblSkuBalance"
 Private Const TABLE_LOCATION_BALANCE_PUBLISHER As String = "tblLocationBalance"
 Private Const TABLE_LEDGER_STATUS_PUBLISHER As String = "tblInventoryLedgerStatus"
+Private Const TABLE_SKU_CATALOG_PUBLISHER As String = "tblSkuCatalog"
+Private Const TABLE_INVSYS_PUBLISHER As String = "invSys"
+Private Const TABLE_RECEIVED_TALLY_PUBLISHER As String = "ReceivedTally"
+Private Const TABLE_SHIPMENTS_TALLY_PUBLISHER As String = "ShipmentsTally"
+Private Const TABLE_PRODUCTION_OUTPUT_PUBLISHER As String = "ProductionOutput"
+Private Const TABLE_ADMIN_AUDIT_PUBLISHER As String = "tblAdminAudit"
 Private Const MIN_RECENT_PUBLISH_SECONDS As Long = 5
 
 Private mRecentPublishes As Object
@@ -44,9 +50,12 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
     On Error GoTo FailPublish
 
     Dim wb As Workbook
+    Dim publishWb As Workbook
     Dim resolvedWarehouseId As String
     Dim snapshotPath As String
     Dim publishKey As String
+    Dim runtimeWasOpen As Boolean
+    Dim runtimePath As String
 
     Set wb = targetWb
     If wb Is Nothing Then Set wb = ResolveCandidateInventoryWorkbookPublisher()
@@ -64,26 +73,50 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
     End If
     If Not EnsureWarehouseConfigLoadedPublisher(resolvedWarehouseId, report) Then Exit Function
 
-    publishKey = BuildPublishKeyPublisher(wb, resolvedWarehouseId)
+    Set publishWb = wb
+    If IsLegacyManagedInventoryWorkbookPublisher(wb) Then
+        runtimePath = ResolveRuntimeInventoryPathPublisher(resolvedWarehouseId)
+        runtimeWasOpen = WorkbookIsOpenByPathPublisher(runtimePath)
+        Set publishWb = modInventoryApply.ResolveInventoryWorkbook(resolvedWarehouseId)
+        If publishWb Is Nothing Then
+            report = "Canonical runtime inventory workbook could not be resolved."
+            Exit Function
+        End If
+        If Not SyncManagedCatalogFromWorkbookPublisher(wb, publishWb, report) Then GoTo CleanExit
+    End If
+
+    publishKey = BuildPublishKeyPublisher(publishWb, resolvedWarehouseId)
     If ShouldSkipRecentPublishPublisher(publishKey) Then
         report = "SKIPPED_RECENT"
         EnsureSnapshotPublicationForWorkbook = True
-        Exit Function
+        GoTo CleanExit
     End If
 
     snapshotPath = vbNullString
-    If Not modWarehouseSync.GenerateWarehouseSnapshot(resolvedWarehouseId, wb, "", Nothing, snapshotPath) Then
+    If Not modWarehouseSync.GenerateWarehouseSnapshot(resolvedWarehouseId, publishWb, "", Nothing, snapshotPath) Then
         report = snapshotPath
-        Exit Function
+        GoTo CleanExit
     End If
 
     RecordRecentPublishPublisher publishKey
     report = snapshotPath
     EnsureSnapshotPublicationForWorkbook = True
+    
+CleanExit:
+    If Not publishWb Is Nothing Then
+        If IsLegacyManagedInventoryWorkbookPublisher(wb) Then
+            If Not runtimeWasOpen Then CloseWorkbookQuietlyPublisher publishWb
+        End If
+    End If
     Exit Function
 
 FailPublish:
     report = "EnsureSnapshotPublicationForWorkbook failed: " & Err.Description
+    If Not publishWb Is Nothing Then
+        If IsLegacyManagedInventoryWorkbookPublisher(wb) Then
+            If Not runtimeWasOpen Then CloseWorkbookQuietlyPublisher publishWb
+        End If
+    End If
 End Function
 
 Public Sub HandlePotentialInventoryWorkbook(Optional ByVal targetWb As Workbook = Nothing)
@@ -106,10 +139,38 @@ Private Function IsInventorySourceWorkbookPublisher(ByVal wb As Workbook) As Boo
     If wb Is Nothing Then Exit Function
     If wb.IsAddin Then Exit Function
 
-    IsInventorySourceWorkbookPublisher = WorkbookHasTablePublisher(wb, TABLE_INVENTORY_LOG_PUBLISHER) _
+    IsInventorySourceWorkbookPublisher = IsRuntimeInventoryWorkbookPublisher(wb) Or IsLegacyManagedInventoryWorkbookPublisher(wb)
+End Function
+
+Private Function IsRuntimeInventoryWorkbookPublisher(ByVal wb As Workbook) As Boolean
+    If wb Is Nothing Then Exit Function
+    If wb.IsAddin Then Exit Function
+
+    IsRuntimeInventoryWorkbookPublisher = WorkbookHasTablePublisher(wb, TABLE_INVENTORY_LOG_PUBLISHER) _
         And WorkbookHasTablePublisher(wb, TABLE_APPLIED_EVENTS_PUBLISHER) _
         And WorkbookHasTablePublisher(wb, TABLE_SKU_BALANCE_PUBLISHER) _
         And WorkbookHasTablePublisher(wb, TABLE_LOCATION_BALANCE_PUBLISHER)
+End Function
+
+Private Function IsLegacyManagedInventoryWorkbookPublisher(ByVal wb As Workbook) As Boolean
+    If wb Is Nothing Then Exit Function
+    If wb.IsAddin Then Exit Function
+    If HasRoleOperationalTablesPublisher(wb) Then Exit Function
+
+    IsLegacyManagedInventoryWorkbookPublisher = Not (FindManagedInventoryTablePublisher(wb) Is Nothing)
+End Function
+
+Private Function HasRoleOperationalTablesPublisher(ByVal wb As Workbook) As Boolean
+    If wb Is Nothing Then Exit Function
+
+    HasRoleOperationalTablesPublisher = WorkbookHasTablePublisher(wb, TABLE_RECEIVED_TALLY_PUBLISHER) _
+        Or WorkbookHasTablePublisher(wb, TABLE_SHIPMENTS_TALLY_PUBLISHER) _
+        Or WorkbookHasTablePublisher(wb, TABLE_PRODUCTION_OUTPUT_PUBLISHER) _
+        Or WorkbookHasTablePublisher(wb, TABLE_ADMIN_AUDIT_PUBLISHER)
+End Function
+
+Private Function FindManagedInventoryTablePublisher(ByVal wb As Workbook) As ListObject
+    Set FindManagedInventoryTablePublisher = FindListObjectByNamePublisher(wb, TABLE_INVSYS_PUBLISHER)
 End Function
 
 Private Function WorkbookHasTablePublisher(ByVal wb As Workbook, ByVal tableName As String) As Boolean
@@ -148,6 +209,12 @@ Private Function TryResolveInventorySourceWarehouseIdPublisher(ByVal wb As Workb
     End If
 
     warehouseId = ResolveWarehouseIdFromOpenConfigPublisher()
+    If warehouseId <> "" Then
+        TryResolveInventorySourceWarehouseIdPublisher = True
+        Exit Function
+    End If
+
+    warehouseId = ResolveWarehouseIdFromRuntimeConfigScanPublisher()
     If warehouseId <> "" Then
         TryResolveInventorySourceWarehouseIdPublisher = True
         Exit Function
@@ -223,6 +290,33 @@ Private Function ResolveWarehouseIdFromOpenConfigPublisher() As String
     ResolveWarehouseIdFromOpenConfigPublisher = current
 End Function
 
+Private Function ResolveWarehouseIdFromRuntimeConfigScanPublisher() As String
+    Dim wbCfg As Workbook
+    Dim report As String
+    Dim wasOpen As Boolean
+
+    Set wbCfg = FindOpenConfigWorkbookPublisher()
+    wasOpen = Not wbCfg Is Nothing
+    If wbCfg Is Nothing Then Set wbCfg = modRuntimeWorkbooks.OpenFirstRuntimeConfigWorkbook(report)
+    If wbCfg Is Nothing Then Exit Function
+
+    ResolveWarehouseIdFromRuntimeConfigScanPublisher = ResolveWarehouseIdFromConfigWorkbookNamePublisher(wbCfg.Name)
+    If ResolveWarehouseIdFromRuntimeConfigScanPublisher = "" Then
+        ResolveWarehouseIdFromRuntimeConfigScanPublisher = ResolveWarehouseIdFromConfigTablePublisher(wbCfg)
+    End If
+
+    If Not wasOpen Then CloseWorkbookQuietlyPublisher wbCfg
+End Function
+
+Private Function ResolveWarehouseIdFromConfigTablePublisher(ByVal wbCfg As Workbook) As String
+    Dim lo As ListObject
+
+    Set lo = FindListObjectByNamePublisher(wbCfg, "tblWarehouseConfig")
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    ResolveWarehouseIdFromConfigTablePublisher = Trim$(CStr(lo.DataBodyRange.Cells(1, lo.ListColumns("WarehouseId").Index).Value))
+End Function
+
 Private Function ResolveWarehouseIdFromConfigWorkbookNamePublisher(ByVal wbName As String) As String
     Dim markerPos As Long
 
@@ -251,6 +345,169 @@ Private Function BuildPublishKeyPublisher(ByVal wb As Workbook, ByVal warehouseI
     If wb Is Nothing Then Exit Function
     BuildPublishKeyPublisher = LCase$(wb.FullName & "|" & warehouseId)
 End Function
+
+Private Function ResolveRuntimeInventoryPathPublisher(ByVal warehouseId As String) As String
+    Dim rootPath As String
+
+    rootPath = Trim$(modConfig.GetString("PathDataRoot", ""))
+    If rootPath = "" Then Exit Function
+    If Right$(rootPath, 1) <> "\" Then rootPath = rootPath & "\"
+    ResolveRuntimeInventoryPathPublisher = rootPath & warehouseId & ".invSys.Data.Inventory.xlsb"
+End Function
+
+Private Function WorkbookIsOpenByPathPublisher(ByVal fullPath As String) As Boolean
+    Dim wb As Workbook
+
+    If Trim$(fullPath) = "" Then Exit Function
+    For Each wb In Application.Workbooks
+        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 Then
+            WorkbookIsOpenByPathPublisher = True
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Function SyncManagedCatalogFromWorkbookPublisher(ByVal sourceWb As Workbook, _
+                                                         ByVal runtimeWb As Workbook, _
+                                                         ByRef report As String) As Boolean
+    On Error GoTo FailSync
+
+    Dim schemaReport As String
+    Dim sourceLo As ListObject
+    Dim targetLo As ListObject
+    Dim targetWs As Worksheet
+    Dim sheetWasProtected As Boolean
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim seen As Object
+
+    If sourceWb Is Nothing Or runtimeWb Is Nothing Then
+        report = "Source or runtime workbook not resolved."
+        Exit Function
+    End If
+    If Not modInventorySchema.EnsureInventorySchema(runtimeWb, schemaReport) Then
+        report = schemaReport
+        Exit Function
+    End If
+
+    Set sourceLo = FindManagedInventoryTablePublisher(sourceWb)
+    If sourceLo Is Nothing Then
+        report = "Managed inventory source table not found."
+        Exit Function
+    End If
+
+    Set targetLo = FindListObjectByNamePublisher(runtimeWb, TABLE_SKU_CATALOG_PUBLISHER)
+    If targetLo Is Nothing Then
+        report = "Runtime SKU catalog table not found."
+        Exit Function
+    End If
+
+    Set targetWs = targetLo.Parent
+    sheetWasProtected = targetWs.ProtectContents
+    EnsureWorksheetEditablePublisher targetWs, TABLE_SKU_CATALOG_PUBLISHER
+
+    Set seen = CreateObject("Scripting.Dictionary")
+    seen.CompareMode = vbTextCompare
+    ClearListObjectRowsPublisher targetLo
+
+    If Not sourceLo.DataBodyRange Is Nothing Then
+        For rowIndex = 1 To sourceLo.ListRows.Count
+            sku = ResolveCatalogSourceValuePublisher(sourceLo, rowIndex, "ITEM_CODE")
+            If sku = "" Then sku = ResolveCatalogSourceValuePublisher(sourceLo, rowIndex, "SKU")
+            If sku = "" Then GoTo ContinueLoop
+            If seen.Exists(sku) Then GoTo ContinueLoop
+            seen.Add sku, True
+            AppendCatalogRowPublisher targetLo, sourceLo, rowIndex, sku
+ContinueLoop:
+        Next rowIndex
+    End If
+
+    runtimeWb.Save
+    report = "CatalogRows=" & CStr(seen.Count)
+    SyncManagedCatalogFromWorkbookPublisher = True
+    If sheetWasProtected Then RestoreWorksheetProtectionPublisher targetWs
+    Exit Function
+
+FailSync:
+    report = "SyncManagedCatalogFromWorkbookPublisher failed: " & Err.Description
+    On Error Resume Next
+    If sheetWasProtected Then RestoreWorksheetProtectionPublisher targetWs
+End Function
+
+Private Sub ClearListObjectRowsPublisher(ByVal lo As ListObject)
+    Do While Not lo Is Nothing
+        If lo.DataBodyRange Is Nothing Then Exit Do
+        lo.ListRows(1).Delete
+    Loop
+End Sub
+
+Private Sub AppendCatalogRowPublisher(ByVal targetLo As ListObject, _
+                                      ByVal sourceLo As ListObject, _
+                                      ByVal rowIndex As Long, _
+                                      ByVal sku As String)
+    Dim lr As ListRow
+    Dim itemValue As String
+
+    If targetLo Is Nothing Then Exit Sub
+    Set lr = targetLo.ListRows.Add
+
+    itemValue = ResolveCatalogSourceValuePublisher(sourceLo, rowIndex, "ITEM")
+    If itemValue = "" Then itemValue = sku
+
+    SetCatalogCellPublisher targetLo, lr.Index, "SKU", sku
+    SetCatalogCellPublisher targetLo, lr.Index, "ITEM_CODE", sku
+    SetCatalogCellPublisher targetLo, lr.Index, "ITEM", itemValue
+    SetCatalogCellPublisher targetLo, lr.Index, "UOM", ResolveCatalogSourceValuePublisher(sourceLo, rowIndex, "UOM")
+    SetCatalogCellPublisher targetLo, lr.Index, "LOCATION", ResolveCatalogSourceValuePublisher(sourceLo, rowIndex, "LOCATION")
+    SetCatalogCellPublisher targetLo, lr.Index, "DESCRIPTION", ResolveCatalogSourceValuePublisher(sourceLo, rowIndex, "DESCRIPTION")
+    SetCatalogCellPublisher targetLo, lr.Index, "VENDOR(s)", ResolveCatalogSourceValuePublisher(sourceLo, rowIndex, "VENDOR(s)")
+    SetCatalogCellPublisher targetLo, lr.Index, "VENDOR_CODE", ResolveCatalogSourceValuePublisher(sourceLo, rowIndex, "VENDOR_CODE")
+    SetCatalogCellPublisher targetLo, lr.Index, "CATEGORY", ResolveCatalogSourceValuePublisher(sourceLo, rowIndex, "CATEGORY")
+End Sub
+
+Private Function ResolveCatalogSourceValuePublisher(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As String
+    Dim idx As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    On Error Resume Next
+    idx = lo.ListColumns(columnName).Index
+    On Error GoTo 0
+    If idx = 0 Then Exit Function
+    ResolveCatalogSourceValuePublisher = Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, idx).Value))
+End Function
+
+Private Sub SetCatalogCellPublisher(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueIn As Variant)
+    If lo Is Nothing Then Exit Sub
+    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns(columnName).Index).Value = valueIn
+End Sub
+
+Private Sub EnsureWorksheetEditablePublisher(ByVal ws As Worksheet, ByVal context As String)
+    If ws Is Nothing Then Exit Sub
+    If Not ws.ProtectContents Then Exit Sub
+
+    On Error Resume Next
+    ws.Unprotect
+    On Error GoTo 0
+
+    If ws.ProtectContents Then
+        Err.Raise vbObjectError + 4601, "modInventoryPublisher.EnsureWorksheetEditablePublisher", _
+                  "Worksheet '" & ws.Name & "' is protected and could not be unprotected before updating " & context & "."
+    End If
+End Sub
+
+Private Sub RestoreWorksheetProtectionPublisher(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    ws.Protect UserInterfaceOnly:=True
+    On Error GoTo 0
+
+    If Not ws.ProtectContents Then
+        Err.Raise vbObjectError + 4602, "modInventoryPublisher.RestoreWorksheetProtectionPublisher", _
+                  "Worksheet '" & ws.Name & "' could not be reprotected after catalog sync."
+    End If
+End Sub
 
 Private Sub EnsureRecentPublishRegistryPublisher()
     If mRecentPublishes Is Nothing Then
@@ -284,3 +541,21 @@ Private Function NormalizeFolderPathPublisher(ByVal folderPath As String) As Str
     If NormalizeFolderPathPublisher = "" Then Exit Function
     If Right$(NormalizeFolderPathPublisher, 1) <> "\" Then NormalizeFolderPathPublisher = NormalizeFolderPathPublisher & "\"
 End Function
+
+Private Function FindOpenConfigWorkbookPublisher() As Workbook
+    Dim wb As Workbook
+
+    For Each wb In Application.Workbooks
+        If LCase$(wb.Name) Like "*.invsys.config.xlsb" Then
+            Set FindOpenConfigWorkbookPublisher = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Sub CloseWorkbookQuietlyPublisher(ByVal wb As Workbook)
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    wb.Close SaveChanges:=False
+    On Error GoTo 0
+End Sub
