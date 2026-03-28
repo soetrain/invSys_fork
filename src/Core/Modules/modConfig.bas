@@ -649,8 +649,10 @@ Private Function ResolveConfigWorkbook(ByVal whId As String, ByVal stId As Strin
     Dim wb As Workbook
     Dim bootstrapReport As String
 
-    Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(whId, stId, "", bootstrapReport)
-    If Not ResolveConfigWorkbook Is Nothing Then Exit Function
+    If Trim$(whId) <> "" Or Trim$(stId) <> "" Then
+        Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(whId, stId, "", bootstrapReport)
+        If Not ResolveConfigWorkbook Is Nothing Then Exit Function
+    End If
 
     For Each wb In Application.Workbooks
         If IsConfigWorkbookName(wb.Name) Then
@@ -680,6 +682,9 @@ Private Function ResolveConfigWorkbook(ByVal whId As String, ByVal stId As Strin
     Next wb
 
     Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenFirstRuntimeConfigWorkbook(bootstrapReport)
+    If Not ResolveConfigWorkbook Is Nothing Then Exit Function
+
+    Set ResolveConfigWorkbook = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(whId, stId, "", bootstrapReport)
     If Not ResolveConfigWorkbook Is Nothing Then Exit Function
 End Function
 

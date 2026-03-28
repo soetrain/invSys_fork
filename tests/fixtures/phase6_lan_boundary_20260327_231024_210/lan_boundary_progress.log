@@ -1,0 +1,25 @@
+[2026-03-27 23:10:24] Creating setup harness.
+[2026-03-27 23:10:26] Running seed macro.
+[2026-03-27 23:10:27] Seed result: OK|Root=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260327_231024_210\runtime|Published=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260327_231024_210\published
+[2026-03-27 23:10:27] Creating session A/B harnesses.
+[2026-03-27 23:10:30] Attaching session A.
+[2026-03-27 23:10:31] Attach A result: OK|Warehouse=WH89|Station=S1
+[2026-03-27 23:10:31] Attaching session B.
+[2026-03-27 23:10:31] Attach B result: OK|Warehouse=WH89|Station=S2
+[2026-03-27 23:10:31] Holding canonical inventory in session A.
+[2026-03-27 23:10:31] Hold result: OK|Path=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260327_231024_210\runtime\WH89.invSys.Data.Inventory.xlsb|ReadOnly=False
+[2026-03-27 23:10:31] Running lock-denied receive in session B.
+[2026-03-27 23:10:32] Lock-denied result: OK|EventID=4C3CD4C7-CE49-41F0-BDA1-46BD0B6E8A25l|Processed=0|Report=Inventory workbook is read-only or locked by another Excel session.|Status=NEW|ErrorCode=|ErrorMessage=
+[2026-03-27 23:10:32] Closing canonical inventory in session A.
+[2026-03-27 23:10:32] Close hold result: OK|Closed
+[2026-03-27 23:10:32] Queueing receive in session A.
+[2026-03-27 23:10:33] Queue A result: OK|EventID=EFD34DB0-3A72-4C8F-89CF-405C41206288l
+[2026-03-27 23:10:33] Running batch for queued session A event.
+[2026-03-27 23:10:34] Process A result: OK|EventID=EFD34DB0-3A72-4C8F-89CF-405C41206288l|Processed=1|Report=Applied=1; SkipDup=0; Poison=0; RunId=RUN-WH89-INVENTORY-20260327231033-676937|Status=PROCESSED|ErrorCode=|ErrorMessage=
+[2026-03-27 23:10:34] Publishing snapshot from session A.
+[2026-03-27 23:10:34] Publish result: OK|PublishedPath=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260327_231024_210\published\WH89.invSys.Snapshot.Inventory.xlsb
+[2026-03-27 23:10:34] Building saved operator in session B.
+[2026-03-27 23:10:34] Build operator result: OK|OperatorPath=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260327_231024_210\stationB_operator.xlsb
+[2026-03-27 23:10:34] Refreshing station B from published snapshot.
+[2026-03-27 23:10:35] Refresh B result: OK|TotalInv=7|QtyAvailable=7|SnapshotId=WH89.invSys.Snapshot.Inventory.xlsb/20260327231034|SourceType=SHAREPOINT|IsStale=False|Path=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260327_231024_210\stationB_operator.xlsb
+[2026-03-27 23:10:35] Summary: Passed=10 Failed=0 Total=10

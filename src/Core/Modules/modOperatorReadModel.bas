@@ -230,11 +230,19 @@ Public Sub InitializeAutoSnapshotForWorkbook(Optional ByVal targetWb As Workbook
 
     EnsureAutoRefreshRegistryReadModel
     key = BuildWorkbookKeyReadModel(wb)
+    resolvedWarehouseId = ResolveAutoSnapshotWarehouseIdReadModel(wb)
 
     If Not modConfig.IsLoaded() Then
-        If Not modConfig.LoadConfig("", "") Then
+        If Not modConfig.LoadConfig(resolvedWarehouseId, "") Then
             ApplyReadModelStatusSurface wb, Now, vbNullString, "CACHED", True, "Auto snapshot initialization failed: config load failed."
             Exit Sub
+        End If
+    ElseIf resolvedWarehouseId <> "" Then
+        If StrComp(Trim$(modConfig.GetWarehouseId()), resolvedWarehouseId, vbTextCompare) <> 0 Then
+            If Not modConfig.LoadConfig(resolvedWarehouseId, "") Then
+                ApplyReadModelStatusSurface wb, Now, vbNullString, "CACHED", True, "Auto snapshot initialization failed: config load failed."
+                Exit Sub
+            End If
         End If
     End If
     If Not modConfig.GetBool("FF_AutoSnapshot", True) Then
@@ -243,7 +251,7 @@ Public Sub InitializeAutoSnapshotForWorkbook(Optional ByVal targetWb As Workbook
         Exit Sub
     End If
 
-    resolvedWarehouseId = ResolveWarehouseIdReadModel("")
+    resolvedWarehouseId = ResolveWarehouseIdReadModel(resolvedWarehouseId)
     intervalSeconds = ResolveAutoRefreshIntervalSecondsReadModel()
 
     If key <> "" Then
@@ -386,6 +394,77 @@ Private Function ResolveWarehouseIdReadModel(ByVal warehouseId As String) As Str
     ResolveWarehouseIdReadModel = Trim$(warehouseId)
     If ResolveWarehouseIdReadModel = "" Then ResolveWarehouseIdReadModel = Trim$(modConfig.GetWarehouseId())
     If ResolveWarehouseIdReadModel = "" Then ResolveWarehouseIdReadModel = "WH1"
+End Function
+
+Private Function ResolveAutoSnapshotWarehouseIdReadModel(ByVal wb As Workbook) As String
+    ResolveAutoSnapshotWarehouseIdReadModel = Trim$(ResolveWarehouseIdFromInvSysSnapshotReadModel(wb))
+    If ResolveAutoSnapshotWarehouseIdReadModel <> "" Then Exit Function
+
+    ResolveAutoSnapshotWarehouseIdReadModel = Trim$(ResolveWarehouseIdFromOpenConfigWorkbooksReadModel())
+    If ResolveAutoSnapshotWarehouseIdReadModel <> "" Then Exit Function
+
+    If modConfig.IsLoaded() Then ResolveAutoSnapshotWarehouseIdReadModel = Trim$(modConfig.GetWarehouseId())
+End Function
+
+Private Function ResolveWarehouseIdFromInvSysSnapshotReadModel(ByVal wb As Workbook) As String
+    Dim loInv As ListObject
+    Dim snapshotIdIdx As Long
+    Dim rowIndex As Long
+    Dim snapshotId As String
+
+    Set loInv = FindListObjectReadModel(wb, TABLE_INVSYS)
+    If loInv Is Nothing Then Exit Function
+    If loInv.DataBodyRange Is Nothing Then Exit Function
+
+    snapshotIdIdx = GetColumnIndexReadModel(loInv, "SnapshotId")
+    If snapshotIdIdx = 0 Then Exit Function
+
+    For rowIndex = 1 To loInv.ListRows.Count
+        snapshotId = ResolveWarehouseIdFromSnapshotIdReadModel(CStr(loInv.DataBodyRange.Cells(rowIndex, snapshotIdIdx).Value))
+        If snapshotId <> "" Then
+            ResolveWarehouseIdFromInvSysSnapshotReadModel = snapshotId
+            Exit Function
+        End If
+    Next rowIndex
+End Function
+
+Private Function ResolveWarehouseIdFromSnapshotIdReadModel(ByVal snapshotId As String) As String
+    Dim markerPos As Long
+
+    snapshotId = Trim$(snapshotId)
+    If snapshotId = "" Then Exit Function
+
+    markerPos = InStr(1, snapshotId, ".invSys.Snapshot.Inventory.xls", vbTextCompare)
+    If markerPos > 1 Then ResolveWarehouseIdFromSnapshotIdReadModel = Left$(snapshotId, markerPos - 1)
+End Function
+
+Private Function ResolveWarehouseIdFromOpenConfigWorkbooksReadModel() As String
+    Dim wb As Workbook
+    Dim candidate As String
+    Dim current As String
+
+    For Each wb In Application.Workbooks
+        candidate = ResolveWarehouseIdFromConfigWorkbookNameReadModel(wb.Name)
+        If candidate = "" Then GoTo ContinueLoop
+        If current = "" Then
+            current = candidate
+        ElseIf StrComp(current, candidate, vbTextCompare) <> 0 Then
+            Exit Function
+        End If
+ContinueLoop:
+    Next wb
+
+    ResolveWarehouseIdFromOpenConfigWorkbooksReadModel = current
+End Function
+
+Private Function ResolveWarehouseIdFromConfigWorkbookNameReadModel(ByVal wbName As String) As String
+    Dim markerPos As Long
+    Dim nameTrimmed As String
+
+    nameTrimmed = Trim$(wbName)
+    If nameTrimmed = "" Then Exit Function
+    markerPos = InStr(1, nameTrimmed, ".invSys.Config.xls", vbTextCompare)
+    If markerPos > 1 Then ResolveWarehouseIdFromConfigWorkbookNameReadModel = Left$(nameTrimmed, markerPos - 1)
 End Function
 
 Private Function ResolveSnapshotPathReadModel(ByVal warehouseId As String) As String
@@ -956,7 +1035,8 @@ Private Sub RegisterAutoRefreshWorkbookReadModel(ByVal wb As Workbook, _
     meta("SourceType") = NormalizeSourceType(sourceType)
     meta("IntervalSeconds") = CLng(intervalSeconds)
     meta("LastRefresh") = lastRefresh
-    mAutoRefreshRegistry(key) = meta
+    If mAutoRefreshRegistry.Exists(key) Then mAutoRefreshRegistry.Remove key
+    mAutoRefreshRegistry.Add key, meta
 End Sub
 
 Private Sub UpdateAutoRefreshEntryReadModel(ByVal wb As Workbook, _
