@@ -23,7 +23,7 @@ Private mUndoRT As Variant
 Private mUndoAGG As Variant
 Private mRedoReady As Boolean
 Private mDynSearch As Object
-Private mRowMap As Object ' maps staging row number -> Array(invRow, refNumber)
+Private mRowMap As Object ' maps staging row number -> Array(itemCode, invRow, refNumber)
 
 Private Const SHEET_RECEIVING As String = "ReceivedTally"
 Private Const TABLE_RECEIVING As String = "ReceivedTally"
@@ -352,7 +352,7 @@ Public Sub AddOrMergeFromSearch( _
     ' Track the invRow for this staging row so quantity edits can sync correctly
     If stagingRow > 0 Then
         EnsureRowMap
-        mRowMap(CStr(stagingRow)) = Array(invRow, refNumber)
+        mRowMap(CStr(stagingRow)) = Array(itemCode, invRow, refNumber)
     End If
 End Sub
 
@@ -435,7 +435,7 @@ Public Sub ConfirmWrites()
         If NzStr(arr(r, cols("ITEM"))) = "" And NzStr(arr(r, cols("ITEM_CODE"))) = "" Then errs = errs & "Row " & r & ": ITEM/ITEM_CODE missing" & vbCrLf
         If NzStr(arr(r, cols("UOM"))) = "" Then errs = errs & "Row " & r & ": UOM missing" & vbCrLf
         If NzDbl(arr(r, cols("QUANTITY"))) <= 0 Then errs = errs & "Row " & r & ": QUANTITY <= 0" & vbCrLf
-        If NzLng(arr(r, cols("ROW"))) <= 0 Then errs = errs & "Row " & r & ": ROW missing" & vbCrLf
+        If NzStr(arr(r, cols("ITEM_CODE"))) = "" Then errs = errs & "Row " & r & ": ITEM_CODE missing" & vbCrLf
     Next
     If errs <> "" Then
         MsgBox "Cannot confirm:" & vbCrLf & errs, vbExclamation
@@ -453,11 +453,12 @@ Public Sub ConfirmWrites()
     Dim snapshotId As String: snapshotId = NewGuid()
     Dim entryDate As Date: entryDate = Now
 
-    ' Build ref -> (ROW, UOM, LOCATION, ITEM) map from AggregateReceived for accurate logging
+    ' Build ref -> (ITEM_CODE, ROW, UOM, LOCATION, ITEM) map from AggregateReceived for accurate logging
     Dim refMap As Object: Set refMap = CreateObject("Scripting.Dictionary")
     For r = 1 To UBound(arr, 1)
+        Dim mapCode As String: mapCode = NzStr(arr(r, cols("ITEM_CODE")))
         Dim mapRow As Long: mapRow = NzLng(arr(r, cols("ROW")))
-        If mapRow > 0 Then
+        If mapCode <> "" Or mapRow > 0 Then
             Dim mapRefs As Variant
             mapRefs = Split(NzStr(arr(r, cols("REF_NUMBER"))), ",")
             Dim mapUOM As String: mapUOM = NzStr(arr(r, cols("UOM")))
@@ -467,19 +468,9 @@ Public Sub ConfirmWrites()
             For Each rf In mapRefs
                 rf = Trim(CStr(rf))
                 If rf <> "" Then
-                    refMap(rf) = Array(mapRow, mapUOM, mapLoc, mapItem)
+                    refMap(rf) = Array(mapCode, mapRow, mapUOM, mapLoc, mapItem)
                 End If
             Next rf
-        End If
-    Next
-
-    ' Validate invSys row references used for local logging/read-model alignment.
-    For r = 1 To UBound(arr, 1)
-        Dim tgtRow As Long: tgtRow = NzLng(arr(r, cols("ROW")))
-        Dim invRow As ListRow: Set invRow = FindInvRowByROW(inv, tgtRow)
-        If invRow Is Nothing Then
-            errs = errs & "Row " & r & ": invSys ROW " & tgtRow & " not found" & vbCrLf
-            GoTo Bail
         End If
     Next
 
@@ -500,21 +491,26 @@ Public Sub ConfirmWrites()
             If refNumRT = "" And itemRT = "" And qtyRT = 0 Then GoTo NextRt
 
             Dim logRow As Long, logUOM As String, logLoc As String, logItem As String
+            Dim logCode As String
             If refMap.Exists(refNumRT) Then
                 Dim mArr As Variant: mArr = refMap(refNumRT)
-                logRow = NzLng(mArr(0))
-                logUOM = NzStr(mArr(1))
-                logLoc = NzStr(mArr(2))
-                logItem = NzStr(mArr(3))
+                logCode = NzStr(mArr(0))
+                logRow = NzLng(mArr(1))
+                logUOM = NzStr(mArr(2))
+                logLoc = NzStr(mArr(3))
+                logItem = NzStr(mArr(4))
                 If logItem = "" Then logItem = itemRT
             Else
                 ' fallback: try lookup by item name
                 Dim tmpCode As String, tmpVend As String, tmpVCode As String, tmpDesc As String
                 LookupInvSys wsInv.ListObjects("invSys"), itemRT, tmpCode, tmpVend, tmpVCode, tmpDesc, logUOM, logLoc, logRow
                 logItem = itemRT
+                logCode = tmpCode
             End If
 
-            AppendLogRowFromRT logTbl, refNumRT, logItem, qtyRT, logUOM, logLoc, logRow, snapshotId, entryDate
+            logRow = ResolveInvRowForReceiveLog(inv, logCode, logItem, logRow)
+
+            AppendLogRowFromRT logTbl, refNumRT, logItem, qtyRT, logUOM, logLoc, logCode, logRow, snapshotId, entryDate
 NextRt:
         Next rrt
     End If
@@ -524,13 +520,6 @@ NextRt:
     ClearTable agg
     ProcessQueuedReceiveEventsRuntime wb
     mRedoReady = True
-    Exit Sub
-
-Bail:
-    ' On failure, roll back any partial invSys updates and log rows
-    UndoInvDeltas wsInv.ListObjects("invSys")
-    DeleteAddedLogRows logTbl
-    MsgBox "Confirm failed:" & vbCrLf & errs, vbCritical
     Exit Sub
 
 ErrHandler:
@@ -762,10 +751,9 @@ End Sub
 Private Sub MergeIntoAggregate(agg As ListObject, refNumber As String, itemCode As String, vendors As String, vendorCode As String, descr As String, itemName As String, uom As String, qty As Double, location As String, invRow As Long)
     Dim c As Object: Set c = AggColMap(agg)
     If c Is Nothing Then Exit Sub
-    If invRow <= 0 Then Exit Sub ' must have resolved invSys row to merge
 
     Dim matchLR As ListRow
-    Set matchLR = FindAggregateMatchByRow(agg, invRow)
+    Set matchLR = FindAggregateMatch(agg, itemCode, invRow)
 
     Dim lr As ListRow
     If matchLR Is Nothing Then
@@ -783,26 +771,38 @@ Private Sub MergeIntoAggregate(agg As ListObject, refNumber As String, itemCode 
         .Cells(1, c("ITEM")).value = itemName
         .Cells(1, c("UOM")).value = uom
         .Cells(1, c("LOCATION")).value = location
-        .Cells(1, c("ROW")).value = invRow
+        If invRow > 0 Then .Cells(1, c("ROW")).value = invRow
         If qty > 0 Then
             .Cells(1, c("QUANTITY")).value = NzDbl(.Cells(1, c("QUANTITY")).value) + qty
         End If
     End With
 End Sub
 
-Private Function FindAggregateMatchByRow(agg As ListObject, invRow As Long) As ListRow
+Private Function FindAggregateMatch(agg As ListObject, itemCode As String, invRow As Long) As ListRow
     If agg Is Nothing Or agg.DataBodyRange Is Nothing Then Exit Function
     Dim cRow As Long
+    Dim cCode As Long
     cRow = ColumnIndex(agg, "ROW")
-    If cRow = 0 Then Exit Function
+    cCode = ColumnIndex(agg, "ITEM_CODE")
 
     Dim lr As ListRow
-    For Each lr In agg.ListRows
-        If NzLng(lr.Range.Cells(1, cRow).value) = invRow Then
-            Set FindAggregateMatchByRow = lr
-            Exit Function
-        End If
-    Next lr
+    If invRow > 0 And cRow > 0 Then
+        For Each lr In agg.ListRows
+            If NzLng(lr.Range.Cells(1, cRow).value) = invRow Then
+                Set FindAggregateMatch = lr
+                Exit Function
+            End If
+        Next lr
+    End If
+
+    If itemCode <> "" And cCode > 0 Then
+        For Each lr In agg.ListRows
+            If StrComp(NzStr(lr.Range.Cells(1, cCode).value), itemCode, vbTextCompare) = 0 Then
+                Set FindAggregateMatch = lr
+                Exit Function
+            End If
+        Next lr
+    End If
 End Function
 
 Private Function AggColMap(lo As ListObject) As Object
@@ -844,11 +844,11 @@ Private Sub AppendLogRow(logTbl As ListObject, cols As Object, arr As Variant, r
     mUndoLogRows.Add newRow.Index
 End Sub
 
-Private Sub AppendLogRowFromRT(logTbl As ListObject, ByVal refNum As String, ByVal itemName As String, ByVal qty As Double, ByVal uom As String, ByVal location As String, ByVal invRow As Long, ByVal snapshotId As String, ByVal entryDate As Date)
+Private Sub AppendLogRowFromRT(logTbl As ListObject, ByVal refNum As String, ByVal itemName As String, ByVal qty As Double, ByVal uom As String, ByVal location As String, ByVal itemCode As String, ByVal invRow As Long, ByVal snapshotId As String, ByVal entryDate As Date)
     If logTbl Is Nothing Then Exit Sub
     Dim newRow As ListRow: Set newRow = logTbl.ListRows.Add
     Dim cRef As Long, cItems As Long, cQty As Long, cUOM As Long
-    Dim cRow As Long, cLoc As Long, cSnap As Long, cEntry As Long
+    Dim cRow As Long, cLoc As Long, cSnap As Long, cEntry As Long, cCode As Long
     cRef = LogColIndex(logTbl, "REF_NUMBER")
     cItems = LogColIndex(logTbl, "ITEMS")
     cQty = LogColIndex(logTbl, "QUANTITY")
@@ -857,12 +857,14 @@ Private Sub AppendLogRowFromRT(logTbl As ListObject, ByVal refNum As String, ByV
     cLoc = LogColIndex(logTbl, "LOCATION")
     cSnap = LogColIndex(logTbl, "SNAPSHOT_ID")
     cEntry = LogColIndex(logTbl, "ENTRY_DATE")
+    cCode = LogColIndex(logTbl, "ITEM_CODE")
 
     With newRow.Range
         If cRef > 0 Then .Cells(1, cRef).value = refNum
         If cItems > 0 Then .Cells(1, cItems).value = itemName
         If cQty > 0 Then .Cells(1, cQty).value = qty
         If cUOM > 0 Then .Cells(1, cUOM).value = uom
+        If cCode > 0 Then .Cells(1, cCode).value = itemCode
         If cRow > 0 Then .Cells(1, cRow).value = invRow
         If cLoc > 0 Then .Cells(1, cLoc).value = location
         If cSnap > 0 Then .Cells(1, cSnap).value = snapshotId
@@ -1181,8 +1183,9 @@ Public Sub SyncQuantityFromStaging(ByVal stagingRowIdx As Long, ByVal newQty As 
 
     ' Identify invSys ROW for this staging row
     Dim info As Variant
-    info = mRowMap(CStr(stagingRowIdx)) ' Array(invRow, refNumber)
-    Dim invRow As Long: invRow = CLng(info(0))
+    info = mRowMap(CStr(stagingRowIdx)) ' Array(itemCode, invRow, refNumber)
+    Dim itemCode As String: itemCode = NzStr(info(0))
+    Dim invRow As Long: invRow = CLng(info(1))
 
     ' Sum all staging quantities that map to the same invSys ROW
     Dim wsRT As Worksheet: Set wsRT = SheetExists("ReceivedTally")
@@ -1196,8 +1199,9 @@ Public Sub SyncQuantityFromStaging(ByVal stagingRowIdx As Long, ByVal newQty As 
     Dim k As Variant
     For Each k In mRowMap.Keys
         Dim arr As Variant
-        arr = mRowMap(k) ' invRow, refNumber
-        If CLng(arr(0)) = invRow Then
+        arr = mRowMap(k) ' itemCode, invRow, refNumber
+        If (invRow > 0 And CLng(arr(1)) = invRow) _
+           Or (invRow <= 0 And itemCode <> "" And StrComp(NzStr(arr(0)), itemCode, vbTextCompare) = 0) Then
             Dim sr As Long
             sr = CLng(k)
             If sr >= 1 And sr <= rt.DataBodyRange.rows.count Then
@@ -1213,17 +1217,62 @@ Public Sub SyncQuantityFromStaging(ByVal stagingRowIdx As Long, ByVal newQty As 
     If agg Is Nothing Or agg.DataBodyRange Is Nothing Then Exit Sub
 
     Dim cRowAgg As Long: cRowAgg = ColumnIndex(agg, "ROW")
+    Dim cCodeAgg As Long: cCodeAgg = ColumnIndex(agg, "ITEM_CODE")
     Dim cQtyAgg As Long: cQtyAgg = ColumnIndex(agg, "QUANTITY")
-    If cRowAgg = 0 Or cQtyAgg = 0 Then Exit Sub
+    If cQtyAgg = 0 Then Exit Sub
 
     Dim lr As ListRow
     For Each lr In agg.ListRows
-        If NzLng(lr.Range.Cells(1, cRowAgg).value) = invRow Then
+        If (invRow > 0 And cRowAgg > 0 And NzLng(lr.Range.Cells(1, cRowAgg).value) = invRow) _
+           Or (invRow <= 0 And itemCode <> "" And cCodeAgg > 0 And StrComp(NzStr(lr.Range.Cells(1, cCodeAgg).value), itemCode, vbTextCompare) = 0) Then
             lr.Range.Cells(1, cQtyAgg).value = totalQty
             Exit For
         End If
     Next lr
 End Sub
+
+Private Function ResolveInvRowForReceiveLog(ByVal inv As ListObject, ByVal itemCode As String, ByVal itemName As String, ByVal preferredRow As Long) As Long
+    Dim lr As ListRow
+
+    If preferredRow > 0 Then
+        Set lr = FindInvRowByROW(inv, preferredRow)
+        If Not lr Is Nothing Then
+            ResolveInvRowForReceiveLog = preferredRow
+            Exit Function
+        End If
+    End If
+
+    If itemCode <> "" Then
+        Set lr = FindInvRowByItemCode(inv, itemCode)
+        If Not lr Is Nothing Then
+            Dim cRow As Long
+            cRow = ColumnIndex(inv, "ROW")
+            If cRow > 0 Then ResolveInvRowForReceiveLog = NzLng(lr.Range.Cells(1, cRow).value)
+            Exit Function
+        End If
+    End If
+
+    If itemName <> "" Then
+        Dim tmpCode As String, tmpVend As String, tmpVCode As String, tmpDesc As String, tmpUom As String, tmpLoc As String
+        LookupInvSys inv, itemName, tmpCode, tmpVend, tmpVCode, tmpDesc, tmpUom, tmpLoc, ResolveInvRowForReceiveLog
+    End If
+End Function
+
+Private Function FindInvRowByItemCode(inv As ListObject, itemCode As String) As ListRow
+    Dim cCode As Long
+    Dim cel As Range
+
+    If inv Is Nothing Or itemCode = "" Then Exit Function
+    cCode = ColumnIndex(inv, "ITEM_CODE")
+    If cCode = 0 Or inv.DataBodyRange Is Nothing Then Exit Function
+
+    For Each cel In inv.ListColumns(cCode).DataBodyRange.Cells
+        If StrComp(NzStr(cel.value), itemCode, vbTextCompare) = 0 Then
+            Set FindInvRowByItemCode = inv.ListRows(cel.row - inv.DataBodyRange.row + 1)
+            Exit Function
+        End If
+    Next
+End Function
 
 Private Sub EnsureRowMap()
     If mRowMap Is Nothing Then Set mRowMap = CreateObject("Scripting.Dictionary")
