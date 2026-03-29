@@ -79,7 +79,7 @@ Public Sub InitializeReceivingUiForWorkbook(Optional ByVal targetWb As Workbook 
     Set ws = WorkbookSheetExistsReceiving(wb, SHEET_RECEIVING)
     If ws Is Nothing Then Exit Sub
 
-    RemoveLegacyReceivingButtons ws
+    EnsureReceivingButtons wb
     RefreshReceivingUiAccess ws
     modOperatorReadModel.InitializeAutoSnapshotForWorkbook wb
 End Sub
@@ -664,6 +664,120 @@ Private Sub RefreshReceivingUiAccess(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
     ApplyShapeCapability ws, "btnConfirmWrites", "RECEIVE_POST"
 End Sub
+
+Private Sub EnsureReceivingButtons(Optional ByVal targetWb As Workbook = Nothing)
+    Const BTN_TOP As Double = 6
+    Const BTN_HEIGHT As Double = 20
+    Const BTN_WIDTH As Double = 118
+    Const BTN_SPACING As Double = 8
+
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim anchor As Range
+    Dim leftPos As Double
+
+    Set wb = ResolveReceivingWorkbook(targetWb, SHEET_RECEIVING)
+    If wb Is Nothing Then Exit Sub
+    Set ws = WorkbookSheetExistsReceiving(wb, SHEET_RECEIVING)
+    If ws Is Nothing Then Exit Sub
+
+    DeleteStaleReceivingButtons ws
+
+    Set anchor = ws.Range("C1")
+    leftPos = anchor.Left
+    EnsureReceivingButton ws, "btnConfirmWrites", "Confirm Writes", "modTS_Received.ConfirmWrites", leftPos, BTN_TOP, BTN_WIDTH, BTN_HEIGHT
+    leftPos = leftPos + BTN_WIDTH + BTN_SPACING
+    EnsureReceivingButton ws, "btnUndoMacro", "Undo", "modTS_Received.MacroUndo", leftPos, BTN_TOP, 82, BTN_HEIGHT
+    leftPos = leftPos + 82 + BTN_SPACING
+    EnsureReceivingButton ws, "btnRedoMacro", "Redo", "modTS_Received.MacroRedo", leftPos, BTN_TOP, 82, BTN_HEIGHT
+End Sub
+
+Private Sub EnsureReceivingButton(ByVal ws As Worksheet, _
+                                  ByVal shapeName As String, _
+                                  ByVal caption As String, _
+                                  ByVal onActionMacro As String, _
+                                  ByVal leftPos As Double, _
+                                  ByVal topPos As Double, _
+                                  Optional ByVal widthPts As Double = 118, _
+                                  Optional ByVal heightPts As Double = 20)
+    Dim shp As Shape
+    Dim resolvedOnAction As String
+
+    If ws Is Nothing Then Exit Sub
+    If widthPts < 20 Then widthPts = 118
+    If heightPts < 16 Then heightPts = 20
+    resolvedOnAction = ResolveOnActionMacroReceiving(onActionMacro)
+
+    On Error Resume Next
+    Set shp = ws.Shapes(shapeName)
+    On Error GoTo 0
+
+    If shp Is Nothing Then
+        Set shp = ws.Shapes.AddFormControl(xlButtonControl, leftPos, topPos, widthPts, heightPts)
+        shp.Name = shapeName
+    Else
+        shp.Left = leftPos
+        shp.Top = topPos
+        shp.Width = widthPts
+        shp.Height = heightPts
+    End If
+
+    On Error Resume Next
+    shp.TextFrame.Characters.Text = caption
+    shp.OnAction = resolvedOnAction
+    On Error GoTo 0
+End Sub
+
+Private Function ResolveOnActionMacroReceiving(ByVal onActionMacro As String) As String
+    onActionMacro = Trim$(onActionMacro)
+    If onActionMacro = "" Then Exit Function
+    If InStr(1, onActionMacro, "!", vbTextCompare) > 0 Then
+        ResolveOnActionMacroReceiving = onActionMacro
+    Else
+        ResolveOnActionMacroReceiving = "'" & ThisWorkbook.Name & "'!" & onActionMacro
+    End If
+End Function
+
+Private Sub DeleteStaleReceivingButtons(ByVal ws As Worksheet)
+    Dim shp As Shape
+    Dim toDelete As Collection
+    Dim shpName As String
+    Dim actionText As String
+    Dim captionText As String
+    Dim item As Variant
+
+    If ws Is Nothing Then Exit Sub
+
+    Set toDelete = New Collection
+    For Each shp In ws.Shapes
+        shpName = LCase$(Trim$(shp.Name))
+        actionText = LCase$(Trim$(shp.OnAction))
+        captionText = ResolveShapeCaptionReceiving(shp)
+
+        If shpName = "btnconfirmwrites" Or shpName = "btnundomacro" Or shpName = "btnredomacro" Then
+            toDelete.Add shp.Name
+        ElseIf InStr(1, actionText, "confirmwrites", vbTextCompare) > 0 _
+            Or InStr(1, actionText, "macroundo", vbTextCompare) > 0 _
+            Or InStr(1, actionText, "macroredo", vbTextCompare) > 0 Then
+            toDelete.Add shp.Name
+        ElseIf captionText = "confirm writes" Or captionText = "undo" Or captionText = "redo" Then
+            toDelete.Add shp.Name
+        End If
+    Next shp
+
+    For Each item In toDelete
+        On Error Resume Next
+        ws.Shapes(CStr(item)).Delete
+        On Error GoTo 0
+    Next item
+End Sub
+
+Private Function ResolveShapeCaptionReceiving(ByVal shp As Shape) As String
+    On Error Resume Next
+    ResolveShapeCaptionReceiving = LCase$(Trim$(shp.ControlFormat.Caption))
+    If ResolveShapeCaptionReceiving = "" Then ResolveShapeCaptionReceiving = LCase$(Trim$(shp.TextFrame.Characters.Text))
+    On Error GoTo 0
+End Function
 
 Private Function QueueReceiveEventsFromAggregate(ByVal agg As ListObject, ByRef errorMessage As String) As Boolean
     Dim cols As Object
