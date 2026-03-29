@@ -209,6 +209,99 @@ Public Function ResolveInventoryWorkbook(Optional ByVal warehouseId As String = 
     Set ResolveInventoryWorkbook = OpenOrCreateCanonicalInventoryWorkbook(warehouseId)
 End Function
 
+Public Function RefreshInvSysFromCanonicalRuntime(ByVal sourceWb As Workbook, _
+                                                  Optional ByVal warehouseId As String = "", _
+                                                  Optional ByRef report As String = "") As Boolean
+    On Error GoTo FailRefresh
+
+    Dim runtimeWb As Workbook
+    Dim runtimePath As String
+    Dim runtimeWasOpen As Boolean
+    Dim loSource As ListObject
+    Dim loSku As ListObject
+    Dim loLoc As ListObject
+    Dim skuQty As Object
+    Dim skuLast As Object
+    Dim locSummary As Object
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim sourceSheetWasProtected As Boolean
+    Dim sourceSheet As Worksheet
+
+    If sourceWb Is Nothing Then
+        report = "Source workbook not resolved."
+        Exit Function
+    End If
+
+    If Trim$(warehouseId) = "" Then warehouseId = ResolveWarehouseIdFromSourceWorkbookApply(sourceWb)
+    If Trim$(warehouseId) = "" Then
+        report = "WarehouseId not resolved for source workbook."
+        Exit Function
+    End If
+
+    Set loSource = FindListObjectByNameApply(sourceWb, "invSys")
+    If loSource Is Nothing Then
+        report = "Source invSys table not found."
+        Exit Function
+    End If
+
+    runtimePath = BuildCanonicalInventoryPath(warehouseId)
+    runtimeWasOpen = WorkbookIsAlreadyOpenApply(runtimePath)
+    Set runtimeWb = ResolveInventoryWorkbook(warehouseId)
+    If runtimeWb Is Nothing Then
+        report = "Canonical runtime inventory workbook not found."
+        Exit Function
+    End If
+    If Not runtimeWasOpen Then HideWorkbookWindowsApply runtimeWb
+
+    Set loSku = FindListObjectByNameApply(runtimeWb, "tblSkuBalance")
+    Set loLoc = FindListObjectByNameApply(runtimeWb, "tblLocationBalance")
+    If loSku Is Nothing Then
+        report = "Canonical runtime projection table tblSkuBalance not found."
+        GoTo CleanExit
+    End If
+
+    Set skuQty = CreateObject("Scripting.Dictionary")
+    skuQty.CompareMode = vbTextCompare
+    Set skuLast = CreateObject("Scripting.Dictionary")
+    skuLast.CompareMode = vbTextCompare
+    Set locSummary = CreateObject("Scripting.Dictionary")
+    locSummary.CompareMode = vbTextCompare
+
+    BuildSkuProjectionDictionariesApply loSku, skuQty, skuLast
+    BuildLocationSummaryDictionaryApply loLoc, locSummary
+
+    Set sourceSheet = loSource.Parent
+    sourceSheetWasProtected = sourceSheet.ProtectContents
+    SetSheetProtectionApply sourceSheet, False
+
+    If Not loSource.DataBodyRange Is Nothing Then
+        For rowIndex = 1 To loSource.ListRows.Count
+            sku = ResolveInvSysSkuApply(loSource, rowIndex)
+            If sku <> "" Then
+                ApplyCanonicalRuntimeRowApply loSource, rowIndex, skuQty, skuLast, locSummary, sku
+            End If
+        Next rowIndex
+    End If
+
+    report = "OK"
+    RefreshInvSysFromCanonicalRuntime = True
+
+CleanExit:
+    On Error Resume Next
+    If sourceSheetWasProtected Then SetSheetProtectionApply sourceSheet, True
+    If Not runtimeWasOpen Then CloseWorkbookQuietlyApply runtimeWb
+    On Error GoTo 0
+    Exit Function
+
+FailRefresh:
+    report = "RefreshInvSysFromCanonicalRuntime failed: " & Err.Description
+    On Error Resume Next
+    If sourceSheetWasProtected Then SetSheetProtectionApply sourceSheet, True
+    If Not runtimeWasOpen Then CloseWorkbookQuietlyApply runtimeWb
+    On Error GoTo 0
+End Function
+
 Private Function BuildApplyLines(ByVal evt As Object, _
                                  ByVal wb As Workbook, _
                                  ByVal eventType As String, _
@@ -887,6 +980,211 @@ Private Function BuildCanonicalInventoryPath(ByVal warehouseId As String) As Str
     If rootPath = "" Then rootPath = "C:\invSys\" & resolvedWh & "\"
 
     BuildCanonicalInventoryPath = NormalizeFolderPathApply(rootPath) & resolvedWh & ".invSys.Data.Inventory.xlsb"
+End Function
+
+Private Function ResolveWarehouseIdFromSourceWorkbookApply(ByVal wb As Workbook) As String
+    Dim lo As ListObject
+    Dim idx As Long
+    Dim rowIndex As Long
+    Dim snapshotId As String
+
+    If wb Is Nothing Then Exit Function
+
+    Set lo = FindListObjectByNameApply(wb, "invSys")
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    idx = GetColumnIndexApply(lo, "SnapshotId")
+    If idx > 0 Then
+        For rowIndex = 1 To lo.ListRows.Count
+            snapshotId = SafeTrimApply(lo.DataBodyRange.Cells(rowIndex, idx).Value)
+            ResolveWarehouseIdFromSourceWorkbookApply = ResolveWarehouseIdFromSnapshotIdApply(snapshotId)
+            If ResolveWarehouseIdFromSourceWorkbookApply <> "" Then Exit Function
+        Next rowIndex
+    End If
+
+    ResolveWarehouseIdFromSourceWorkbookApply = InferWarehouseIdFromWorkbookNameApply(wb.Name)
+    If ResolveWarehouseIdFromSourceWorkbookApply = "" Then
+        ResolveWarehouseIdFromSourceWorkbookApply = SafeTrimApply(modConfig.GetWarehouseId())
+    End If
+End Function
+
+Private Function ResolveWarehouseIdFromSnapshotIdApply(ByVal snapshotId As String) As String
+    Dim markerPos As Long
+
+    snapshotId = Trim$(snapshotId)
+    If snapshotId = "" Then Exit Function
+    markerPos = InStr(1, snapshotId, ".invSys.Snapshot.Inventory.xls", vbTextCompare)
+    If markerPos > 1 Then ResolveWarehouseIdFromSnapshotIdApply = Left$(snapshotId, markerPos - 1)
+End Function
+
+Private Function InferWarehouseIdFromWorkbookNameApply(ByVal wbName As String) As String
+    Dim markerPos As Long
+
+    markerPos = InStr(1, wbName, ".invSys.", vbTextCompare)
+    If markerPos > 1 Then
+        InferWarehouseIdFromWorkbookNameApply = Left$(wbName, markerPos - 1)
+        Exit Function
+    End If
+
+    markerPos = InStr(1, wbName, "_", vbTextCompare)
+    If markerPos > 1 Then InferWarehouseIdFromWorkbookNameApply = Left$(wbName, markerPos - 1)
+End Function
+
+Private Sub BuildSkuProjectionDictionariesApply(ByVal loSku As ListObject, _
+                                                ByVal skuQty As Object, _
+                                                ByVal skuLast As Object)
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim appliedAt As Variant
+
+    If loSku Is Nothing Then Exit Sub
+    If loSku.DataBodyRange Is Nothing Then Exit Sub
+
+    For rowIndex = 1 To loSku.ListRows.Count
+        sku = SafeTrimApply(GetCellByColumnApply(loSku, rowIndex, "SKU"))
+        If sku = "" Then GoTo ContinueLoop
+
+        skuQty(sku) = NzDblApply(GetCellByColumnApply(loSku, rowIndex, "QtyOnHand"))
+        appliedAt = GetCellByColumnApply(loSku, rowIndex, "LastAppliedUTC")
+        If IsDate(appliedAt) Then skuLast(sku) = CDate(appliedAt)
+ContinueLoop:
+    Next rowIndex
+End Sub
+
+Private Sub BuildLocationSummaryDictionaryApply(ByVal loLoc As ListObject, ByVal locSummary As Object)
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim locationVal As String
+    Dim qtyOnHand As Double
+    Dim fragment As String
+
+    If loLoc Is Nothing Then Exit Sub
+    If loLoc.DataBodyRange Is Nothing Then Exit Sub
+
+    For rowIndex = 1 To loLoc.ListRows.Count
+        sku = SafeTrimApply(GetCellByColumnApply(loLoc, rowIndex, "SKU"))
+        If sku = "" Then GoTo ContinueLoop
+        locationVal = SafeTrimApply(GetCellByColumnApply(loLoc, rowIndex, "Location"))
+        qtyOnHand = NzDblApply(GetCellByColumnApply(loLoc, rowIndex, "QtyOnHand"))
+        If locationVal = "" Then GoTo ContinueLoop
+
+        fragment = locationVal & "=" & FormatQuantityApply(qtyOnHand)
+        If locSummary.Exists(sku) Then
+            locSummary(sku) = CStr(locSummary(sku)) & "; " & fragment
+        Else
+            locSummary(sku) = fragment
+        End If
+ContinueLoop:
+    Next rowIndex
+End Sub
+
+Private Sub ApplyCanonicalRuntimeRowApply(ByVal loSource As ListObject, _
+                                          ByVal rowIndex As Long, _
+                                          ByVal skuQty As Object, _
+                                          ByVal skuLast As Object, _
+                                          ByVal locSummary As Object, _
+                                          ByVal sku As String)
+    Dim qtyOnHand As Double
+    Dim summaryText As String
+    Dim appliedAt As Variant
+    Dim primaryLocation As String
+
+    If skuQty.Exists(sku) Then qtyOnHand = CDbl(skuQty(sku))
+    If locSummary.Exists(sku) Then summaryText = CStr(locSummary(sku))
+    If skuLast.Exists(sku) Then appliedAt = skuLast(sku)
+
+    SetInvSysValueApply loSource, rowIndex, "TOTAL INV", qtyOnHand
+    SetInvSysValueApply loSource, rowIndex, "QtyAvailable", qtyOnHand
+    If summaryText <> "" Then
+        SetInvSysValueApply loSource, rowIndex, "LocationSummary", summaryText
+        primaryLocation = ResolvePrimaryLocationFromSummaryApply(summaryText)
+        If primaryLocation <> "" Then SetInvSysValueApply loSource, rowIndex, "LOCATION", primaryLocation
+    Else
+        SetInvSysValueApply loSource, rowIndex, "LocationSummary", vbNullString
+    End If
+    If IsDate(appliedAt) Then
+        SetInvSysValueApply loSource, rowIndex, "LAST EDITED", CDate(appliedAt)
+        SetInvSysValueApply loSource, rowIndex, "TOTAL INV LAST EDIT", CDate(appliedAt)
+    Else
+        SetInvSysValueApply loSource, rowIndex, "LAST EDITED", vbNullString
+        SetInvSysValueApply loSource, rowIndex, "TOTAL INV LAST EDIT", vbNullString
+    End If
+    SetInvSysValueApply loSource, rowIndex, "LastRefreshUTC", Now
+    SetInvSysValueApply loSource, rowIndex, "SourceType", "CANONICAL_RUNTIME"
+    SetInvSysValueApply loSource, rowIndex, "IsStale", False
+End Sub
+
+Private Function ResolveInvSysSkuApply(ByVal lo As ListObject, ByVal rowIndex As Long) As String
+    ResolveInvSysSkuApply = SafeTrimApply(GetCellByColumnApply(lo, rowIndex, "ITEM_CODE"))
+    If ResolveInvSysSkuApply = "" Then ResolveInvSysSkuApply = SafeTrimApply(GetCellByColumnApply(lo, rowIndex, "SKU"))
+End Function
+
+Private Sub SetInvSysValueApply(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueOut As Variant)
+    Dim idx As Long
+
+    If lo Is Nothing Then Exit Sub
+    idx = GetColumnIndexApply(lo, columnName)
+    If idx = 0 Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    lo.DataBodyRange.Cells(rowIndex, idx).Value = valueOut
+End Sub
+
+Private Function ResolvePrimaryLocationFromSummaryApply(ByVal summaryText As String) As String
+    Dim firstFragment As String
+    Dim eqPos As Long
+
+    summaryText = Trim$(summaryText)
+    If summaryText = "" Then Exit Function
+    firstFragment = Trim$(Split(summaryText, ";")(0))
+    eqPos = InStr(1, firstFragment, "=", vbTextCompare)
+    If eqPos > 1 Then
+        ResolvePrimaryLocationFromSummaryApply = Trim$(Left$(firstFragment, eqPos - 1))
+    Else
+        ResolvePrimaryLocationFromSummaryApply = firstFragment
+    End If
+End Function
+
+Private Function WorkbookIsAlreadyOpenApply(ByVal fullPath As String) As Boolean
+    Dim wb As Workbook
+
+    fullPath = Trim$(fullPath)
+    If fullPath = "" Then Exit Function
+
+    For Each wb In Application.Workbooks
+        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 Then
+            WorkbookIsAlreadyOpenApply = True
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Sub HideWorkbookWindowsApply(ByVal wb As Workbook)
+    Dim i As Long
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    For i = 1 To wb.Windows.Count
+        wb.Windows(i).Visible = False
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub CloseWorkbookQuietlyApply(ByVal wb As Workbook)
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    HideWorkbookWindowsApply wb
+    wb.Close SaveChanges:=False
+    On Error GoTo 0
+End Sub
+
+Private Function FormatQuantityApply(ByVal qty As Double) As String
+    FormatQuantityApply = Replace$(Format$(qty, "0.########"), ",", "")
+End Function
+
+Private Function NzDblApply(ByVal valueIn As Variant) As Double
+    If IsError(valueIn) Or IsNull(valueIn) Or IsEmpty(valueIn) Or valueIn = "" Then Exit Function
+    NzDblApply = CDbl(valueIn)
 End Function
 
 Private Function NormalizeFolderPathApply(ByVal folderPath As String) As String

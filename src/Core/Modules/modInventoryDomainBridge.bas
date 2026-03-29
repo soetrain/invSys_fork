@@ -89,6 +89,12 @@ Public Sub ReAddBulkLogEntriesBridge(ByVal logDataCollection As Collection)
     On Error GoTo 0
 End Sub
 
+Public Sub ScheduleSourceWorkbookSyncBridge()
+    On Error Resume Next
+    Call RunInventoryDomainMacro0("modInventoryBridgeApi.ScheduleSourceWorkbookSyncBridgeResult")
+    On Error GoTo 0
+End Sub
+
 Private Function RunInventoryDomainMacro0(ByVal macroName As String) As Variant
     RunInventoryDomainMacro0 = RunInventoryDomainMacroFallback0(macroName)
 End Function

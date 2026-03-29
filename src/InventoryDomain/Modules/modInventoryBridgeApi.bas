@@ -78,3 +78,7 @@ Public Sub ReAddBulkLogEntriesBridgeResult(ByVal logDataCollection As Collection
     Application.Run "'" & ThisWorkbook.Name & "'!modInvMan.ReAddBulkLogEntries", logDataCollection
     On Error GoTo 0
 End Sub
+
+Public Sub ScheduleSourceWorkbookSyncBridgeResult()
+    modInventoryInit.ScheduleSourceWorkbookSync
+End Sub

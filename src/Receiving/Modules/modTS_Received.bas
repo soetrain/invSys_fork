@@ -406,6 +406,12 @@ End Sub
 Public Sub ConfirmWrites()
     On Error GoTo ErrHandler
     Dim wb As Workbook
+    Dim prevEvents As Boolean
+    Dim prevScreenUpdating As Boolean
+    Dim prevAlerts As Boolean
+    Dim prevCalculation As XlCalculation
+    Dim uiSuppressed As Boolean
+
     Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
     If wb Is Nothing Then Set wb = ThisWorkbook
 
@@ -423,6 +429,16 @@ Public Sub ConfirmWrites()
     If agg Is Nothing Or inv Is Nothing Or logTbl Is Nothing Then Exit Sub
     If agg.DataBodyRange Is Nothing Then Exit Sub
 
+    prevEvents = Application.EnableEvents
+    prevScreenUpdating = Application.ScreenUpdating
+    prevAlerts = Application.DisplayAlerts
+    prevCalculation = Application.Calculation
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    Application.Calculation = xlCalculationManual
+    uiSuppressed = True
+
     ' Validate and collect rows
     Dim arr, r As Long, errs As String
     arr = agg.DataBodyRange.value
@@ -439,12 +455,12 @@ Public Sub ConfirmWrites()
     Next
     If errs <> "" Then
         MsgBox "Cannot confirm:" & vbCrLf & errs, vbExclamation
-        Exit Sub
+        GoTo CleanExit
     End If
 
     If Not QueueReceiveEventsFromAggregate(agg, errs) Then
         MsgBox "Cannot confirm:" & vbCrLf & errs, vbCritical
-        Exit Sub
+        GoTo CleanExit
     End If
 
     ' Capture undo snapshot
@@ -520,12 +536,30 @@ NextRt:
     ClearTable agg
     ProcessQueuedReceiveEventsRuntime wb
     mRedoReady = True
-    Exit Sub
+    GoTo CleanExit
 
 ErrHandler:
+    On Error Resume Next
+    If uiSuppressed Then
+        Application.Calculation = prevCalculation
+        Application.EnableEvents = prevEvents
+        Application.ScreenUpdating = prevScreenUpdating
+        Application.DisplayAlerts = prevAlerts
+        uiSuppressed = False
+    End If
+    On Error GoTo 0
     MsgBox "Error in ConfirmWrites: " & Err.Description, vbCritical
     UndoInvDeltas wsInv.ListObjects("invSys")
     DeleteAddedLogRows wsLog.ListObjects("ReceivedLog")
+    Exit Sub
+
+CleanExit:
+    If uiSuppressed Then
+        Application.Calculation = prevCalculation
+        Application.EnableEvents = prevEvents
+        Application.ScreenUpdating = prevScreenUpdating
+        Application.DisplayAlerts = prevAlerts
+    End If
 End Sub
 
 Public Function QueueReceiveEventsFromCurrentWorkbook(ByRef errorMessage As String) As Boolean

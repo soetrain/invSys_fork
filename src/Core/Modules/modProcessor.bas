@@ -168,6 +168,7 @@ ContinueInbox:
         If report <> "" Then report = report & "; "
         report = report & "SnapshotError=" & artifactReport
     End If
+    If RunBatch > 0 Then modInventoryDomainBridge.ScheduleSourceWorkbookSyncBridge
 
 CleanExit:
     If Not inboxTargets Is Nothing Then
