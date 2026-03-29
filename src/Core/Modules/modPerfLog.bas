@@ -55,6 +55,35 @@ Public Function IsTransactionActive() As Boolean
     IsTransactionActive = mPerfActive
 End Function
 
+Public Sub PerfBegin(ByVal runId As String, ByVal entryPoint As String)
+    Dim resolvedRunId As String
+
+    resolvedRunId = Trim$(runId)
+    If resolvedRunId = "" Then resolvedRunId = "PERF-" & Format$(Now, "yyyymmddhhnnss")
+    AppendPerfLine "[PERF-BEGIN] " & Trim$(entryPoint) & " RunId=" & resolvedRunId & _
+                   " At=" & Format$(Now, "yyyy-mm-dd hh:nn:ss")
+End Sub
+
+Public Sub PerfMark(ByVal runId As String, ByVal label As String, ByVal elapsedMs As Long)
+    Dim resolvedRunId As String
+
+    resolvedRunId = Trim$(runId)
+    If resolvedRunId = "" Then resolvedRunId = "PERF-" & Format$(Now, "yyyymmddhhnnss")
+    AppendPerfLine "[PERF] " & Trim$(label) & "=" & CStr(elapsedMs) & "ms RunId=" & resolvedRunId
+End Sub
+
+Public Sub PerfEnd(ByVal runId As String, ByVal totalMs As Long, ByVal extra As String)
+    Dim resolvedRunId As String
+    Dim lineText As String
+
+    resolvedRunId = Trim$(runId)
+    If resolvedRunId = "" Then resolvedRunId = "PERF-" & Format$(Now, "yyyymmddhhnnss")
+    lineText = "[PERF-END] Total=" & CStr(totalMs) & "ms"
+    If Trim$(extra) <> "" Then lineText = lineText & " " & Trim$(extra)
+    lineText = lineText & " RunId=" & resolvedRunId
+    AppendPerfLine lineText
+End Sub
+
 Private Function GetTickMsPerf() As Double
     GetTickMsPerf = CDbl(timeGetTime())
 End Function

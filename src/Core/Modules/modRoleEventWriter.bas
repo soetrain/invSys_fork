@@ -52,8 +52,9 @@ Public Function QueueReceiveEvent(Optional ByVal warehouseId As String = "", _
                                   Optional ByVal createdAtUtc As Date = 0, _
                                   Optional ByVal targetInboxWb As Workbook = Nothing, _
                                   Optional ByRef eventIdOut As String = "", _
-                                  Optional ByRef errorMessage As String = "") As Boolean
-    QueueReceiveEvent = QueueEventCore(ROLE_EVENT_TYPE_RECEIVE, warehouseId, stationId, userId, sku, qty, location, noteVal, "", parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage)
+                                  Optional ByRef errorMessage As String = "", _
+                                  Optional ByVal perfRunId As String = "") As Boolean
+    QueueReceiveEvent = QueueEventCore(ROLE_EVENT_TYPE_RECEIVE, warehouseId, stationId, userId, sku, qty, location, noteVal, "", parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId)
 End Function
 
 Public Function QueueReceiveEventCurrent(Optional ByVal userId As String = "", _
@@ -62,10 +63,11 @@ Public Function QueueReceiveEventCurrent(Optional ByVal userId As String = "", _
                                          Optional ByVal location As String = "", _
                                          Optional ByVal noteVal As String = "", _
                                          Optional ByRef eventIdOut As String = "", _
-                                         Optional ByRef errorMessage As String = "") As Boolean
+                                         Optional ByRef errorMessage As String = "", _
+                                         Optional ByVal perfRunId As String = "") As Boolean
     Dim targetInboxWb As Workbook
 
-    QueueReceiveEventCurrent = QueueReceiveEvent("", "", userId, sku, qty, location, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage)
+    QueueReceiveEventCurrent = QueueReceiveEvent("", "", userId, sku, qty, location, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage, perfRunId)
 End Function
 
 Public Function QueuePayloadEvent(ByVal eventType As String, _
@@ -79,8 +81,9 @@ Public Function QueuePayloadEvent(ByVal eventType As String, _
                                   Optional ByVal createdAtUtc As Date = 0, _
                                   Optional ByVal targetInboxWb As Workbook = Nothing, _
                                   Optional ByRef eventIdOut As String = "", _
-                                  Optional ByRef errorMessage As String = "") As Boolean
-    QueuePayloadEvent = QueueEventCore(eventType, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage)
+                                  Optional ByRef errorMessage As String = "", _
+                                  Optional ByVal perfRunId As String = "") As Boolean
+    QueuePayloadEvent = QueueEventCore(eventType, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId)
 End Function
 
 Public Function QueuePayloadEventCurrent(ByVal eventType As String, _
@@ -88,10 +91,11 @@ Public Function QueuePayloadEventCurrent(ByVal eventType As String, _
                                          Optional ByVal payloadJson As String = "", _
                                          Optional ByVal noteVal As String = "", _
                                          Optional ByRef eventIdOut As String = "", _
-                                         Optional ByRef errorMessage As String = "") As Boolean
+                                         Optional ByRef errorMessage As String = "", _
+                                         Optional ByVal perfRunId As String = "") As Boolean
     Dim targetInboxWb As Workbook
 
-    QueuePayloadEventCurrent = QueuePayloadEvent(eventType, "", "", userId, payloadJson, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage)
+    QueuePayloadEventCurrent = QueuePayloadEvent(eventType, "", "", userId, payloadJson, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage, perfRunId)
 End Function
 
 Public Function BuildPayloadJson(ParamArray items() As Variant) As String
@@ -155,7 +159,8 @@ Private Function QueueEventCore(ByVal eventType As String, _
                                 ByVal createdAtUtc As Date, _
                                 ByVal targetInboxWb As Workbook, _
                                 ByRef eventIdOut As String, _
-                                ByRef errorMessage As String) As Boolean
+                                ByRef errorMessage As String, _
+                                Optional ByVal perfRunId As String = "") As Boolean
     On Error GoTo FailQueue
 
     Dim resolvedWh As String
@@ -170,6 +175,11 @@ Private Function QueueEventCore(ByVal eventType As String, _
     Dim capability As String
     Dim openPaths As Object
     Dim openedTransient As Boolean
+    Dim queueStart As Single
+    Dim queueRunId As String
+    Dim perfStarted As Boolean
+
+    queueStart = Timer
 
     If Not EnsureContextResolved(resolvedWh, resolvedSt, warehouseId, stationId, errorMessage) Then Exit Function
 
@@ -197,6 +207,12 @@ Private Function QueueEventCore(ByVal eventType As String, _
 
     If eventIdOut = "" Then eventIdOut = CreateEventIdRole()
     If createdAtUtc = 0 Then createdAtUtc = Now
+    queueRunId = Trim$(perfRunId)
+    If queueRunId = "" Then queueRunId = eventIdOut
+    If queueRunId <> "" Then
+        modPerfLog.PerfBegin queueRunId, "RoleEventWriter.QueueEvent"
+        perfStarted = True
+    End If
 
     If targetInboxWb Is Nothing Then
         Set openPaths = CaptureOpenWorkbookPathsRole()
@@ -258,9 +274,11 @@ Private Function QueueEventCore(ByVal eventType As String, _
     SetTableRowValueRole lo, rowIndex, "FailedAtUTC", ""
 
     SaveWorkbookRole wbInbox
+    If queueRunId <> "" Then modPerfLog.PerfMark queueRunId, "InboxWrite", CLng((Timer - queueStart) * 1000)
 
     QueueEventCore = True
 CleanExit:
+    If perfStarted Then modPerfLog.PerfEnd queueRunId, CLng((Timer - queueStart) * 1000), IIf(QueueEventCore, "OK", "FAIL") & " EventType=" & UCase$(Trim$(eventType))
     On Error Resume Next
     If Not ws Is Nothing Then
         If sheetWasProtected Then RestoreWorksheetProtectionRole ws

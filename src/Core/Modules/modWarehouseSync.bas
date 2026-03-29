@@ -17,6 +17,7 @@ Public Function AppendEventToOutbox(ByVal evt As Object, _
                                     Optional ByRef report As String = "") As Boolean
     On Error GoTo FailAppend
 
+    Dim t0 As Single
     Dim warehouseId As String
     Dim wbOutbox As Workbook
     Dim loOutbox As ListObject
@@ -26,6 +27,8 @@ Public Function AppendEventToOutbox(ByVal evt As Object, _
     Dim r As ListRow
     Dim openPaths As Object
     Dim openedTransient As Boolean
+
+    t0 = Timer
 
     warehouseId = GetEventStringSync(evt, "WarehouseId")
     eventId = GetEventStringSync(evt, "EventID")
@@ -70,6 +73,7 @@ Public Function AppendEventToOutbox(ByVal evt As Object, _
     SetTableRowValueSync loOutbox, rowIndex, "DeltaJson", BuildDeltaJsonForOutbox(evt)
     SaveWorkbookSync wbOutbox
 
+    If Trim$(runId) <> "" Then modPerfLog.PerfMark runId, "OutboxWrite", CLng((Timer - t0) * 1000)
     report = "OK"
     AppendEventToOutbox = True
 CleanExit:
@@ -140,15 +144,19 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
                                           Optional ByVal inventoryWb As Workbook = Nothing, _
                                           Optional ByVal outputPath As String = "", _
                                           Optional ByVal snapshotWb As Workbook = Nothing, _
-                                          Optional ByRef report As String = "") As Boolean
+                                          Optional ByRef report As String = "", _
+                                          Optional ByVal perfRunId As String = "") As Boolean
     On Error GoTo FailSnapshot
 
+    Dim t0 As Single
     Dim wbInv As Workbook
     Dim wbSnap As Workbook
     Dim snapshotRows As Object
     Dim savePath As String
     Dim openPaths As Object
     Dim openedTransient As Boolean
+
+    t0 = Timer
 
     If warehouseId = "" Then warehouseId = modConfig.GetWarehouseId()
     Set wbInv = ResolveInventoryWorkbookBridge(warehouseId, inventoryWb)
@@ -176,6 +184,7 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
     WriteSnapshotRows wbSnap, warehouseId, snapshotRows
     wbSnap.Save
 
+    If Trim$(perfRunId) <> "" Then modPerfLog.PerfMark perfRunId, "SnapshotWrite", CLng((Timer - t0) * 1000)
     report = savePath
     GenerateWarehouseSnapshot = True
 CleanExit:

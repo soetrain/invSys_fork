@@ -26,6 +26,8 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
                          Optional ByRef report As String = "") As Long
     On Error GoTo FailRun
 
+    Dim totalStart As Single
+    Dim phaseStart As Single
     Dim inventoryWb As Workbook
     Dim inboxTargets As Collection
     Dim target As Variant
@@ -46,6 +48,7 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
     Dim capability As String
     Dim artifactWarnings As Long
     Dim artifactReport As String
+    Dim perfOwned As Boolean
 
     If Not EnsurePhase2Context(warehouseId, report) Then Exit Function
 
@@ -84,9 +87,15 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
         Exit Function
     End If
     lockHeld = True
+    totalStart = Timer
+    phaseStart = totalStart
+    modPerfLog.PerfBegin runId, "Processor.RunBatch"
+    perfOwned = True
     lastHeartbeat = Now
 
     Set inboxTargets = ResolveInboxTargets(warehouseId)
+    modPerfLog.PerfMark runId, "Dequeue", CLng((Timer - phaseStart) * 1000)
+    phaseStart = Timer
     For Each target In inboxTargets
         If Not EnsureInboxTargetSchema(target("Workbook"), CStr(target("TableName")), report) Then GoTo ContinueInbox
 
@@ -160,12 +169,13 @@ ContinueInbox:
         CloseInboxTargetIfNeeded target
     Next target
 
+    modPerfLog.PerfMark runId, "Apply", CLng((Timer - phaseStart) * 1000)
     If modPerfLog.IsTransactionActive() Then modPerfLog.MarkSegment "ProcessorApplyLoop"
     report = "Applied=" & CStr(RunBatch) & "; SkipDup=" & CStr(skipDupCount) & "; Poison=" & CStr(poisonCount) & "; RunId=" & runId
     If artifactWarnings > 0 Then report = report & "; ArtifactWarnings=" & CStr(artifactWarnings)
 
     artifactReport = vbNullString
-    If Not GenerateWarehouseSnapshot(warehouseId, inventoryWb, "", Nothing, artifactReport) Then
+    If Not GenerateWarehouseSnapshot(warehouseId, inventoryWb, "", Nothing, artifactReport, runId) Then
         If report <> "" Then report = report & "; "
         report = report & "SnapshotError=" & artifactReport
     End If
@@ -179,6 +189,7 @@ CleanExit:
         Next target
     End If
     If lockHeld Then Call modLockManager.ReleaseLock("INVENTORY", runId, inventoryWb)
+    If perfOwned Then modPerfLog.PerfEnd runId, CLng((Timer - totalStart) * 1000), report
     Exit Function
 
 FailRun:
