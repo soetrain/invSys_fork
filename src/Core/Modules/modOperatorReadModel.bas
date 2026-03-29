@@ -1084,6 +1084,7 @@ Private Sub HideWorkbookWindowsReadModel(ByVal wb As Workbook)
     For i = 1 To wb.Windows.Count
         wb.Windows(i).Visible = False
     Next i
+    modUiQuiet.ReactivateQuietOwner
     On Error GoTo 0
 End Sub
 

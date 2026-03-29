@@ -908,6 +908,7 @@ Private Function ResolveWorkbookByPathSync(ByVal targetPath As String, _
             IgnoreReadOnlyRecommended:=True, _
             Notify:=False, _
             AddToMru:=False)
+        If Not ResolveWorkbookByPathSync Is Nothing Then HideWorkbookWindowsSync ResolveWorkbookByPathSync
         If Err.Number <> 0 Then
             Err.Clear
             Set ResolveWorkbookByPathSync = Nothing
@@ -929,6 +930,7 @@ Private Function ResolveWorkbookByPathSync(ByVal targetPath As String, _
     wb.SaveAs Filename:=targetPath, FileFormat:=50
     Application.EnableEvents = prevEvents
     eventsSuppressed = False
+    HideWorkbookWindowsSync wb
     Set ResolveWorkbookByPathSync = wb
     Exit Function
 
@@ -1109,6 +1111,7 @@ Private Sub HideWorkbookWindowsSync(ByVal wb As Workbook)
     For i = 1 To wb.Windows.Count
         wb.Windows(i).Visible = False
     Next i
+    modUiQuiet.ReactivateQuietOwner
     On Error GoTo 0
 End Sub
 

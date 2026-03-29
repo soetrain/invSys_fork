@@ -348,6 +348,7 @@ Private Function ResolveInboxWorkbookForEventType(ByVal eventType As String, _
         SaveWorkbookAsXlsbRole wb, fullPath
         Application.EnableEvents = prevEvents
         eventsSuppressed = False
+        HideWorkbookWindowsRole wb
         Set ResolveInboxWorkbookForEventType = wb
     End If
     Exit Function
@@ -503,6 +504,7 @@ Private Sub HideWorkbookWindowsRole(ByVal wb As Workbook)
     For i = 1 To wb.Windows.Count
         wb.Windows(i).Visible = False
     Next i
+    modUiQuiet.ReactivateQuietOwner
     On Error GoTo 0
 End Sub
 

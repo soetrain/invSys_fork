@@ -1428,6 +1428,7 @@ Private Function OpenWorkbookReadOnlyApply(ByVal fullPath As String) As Workbook
     If Not FileExistsApply(fullPath) Then Exit Function
 
     Set OpenWorkbookReadOnlyApply = Application.Workbooks.Open(Filename:=fullPath, ReadOnly:=True, Notify:=False)
+    If Not OpenWorkbookReadOnlyApply Is Nothing Then HideWorkbookWindowsApply OpenWorkbookReadOnlyApply
     Exit Function
 
 FailOpen:
@@ -1442,6 +1443,7 @@ Private Sub HideWorkbookWindowsApply(ByVal wb As Workbook)
     For i = 1 To wb.Windows.Count
         wb.Windows(i).Visible = False
     Next i
+    modUiQuiet.ReactivateQuietOwner
     On Error GoTo 0
 End Sub
 

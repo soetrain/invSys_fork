@@ -409,7 +409,6 @@ Public Sub ConfirmWrites()
     Dim prevEvents As Boolean
     Dim prevScreenUpdating As Boolean
     Dim prevAlerts As Boolean
-    Dim prevVisible As Boolean
     Dim prevDisplayStatusBar As Boolean
     Dim prevCalculation As Variant
     Dim uiSuppressed As Boolean
@@ -454,13 +453,12 @@ Public Sub ConfirmWrites()
     prevScreenUpdating = Application.ScreenUpdating
     prevAlerts = Application.DisplayAlerts
     prevDisplayStatusBar = Application.DisplayStatusBar
-    prevVisible = Application.Visible
     prevCalculation = Application.Calculation
+    modUiQuiet.BeginQuietUi wb
     Application.EnableEvents = False
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
     Application.DisplayStatusBar = False
-    Application.Visible = False
     Application.Calculation = xlCalculationManual
     uiSuppressed = True
 
@@ -473,7 +471,7 @@ Public Sub ConfirmWrites()
             Application.ScreenUpdating = prevScreenUpdating
             Application.DisplayAlerts = prevAlerts
             Application.DisplayStatusBar = prevDisplayStatusBar
-            Application.Visible = prevVisible
+            modUiQuiet.EndQuietUi
             uiSuppressed = False
         End If
         MsgBox "Cannot confirm:" & vbCrLf & errs, vbCritical
@@ -563,7 +561,7 @@ ErrHandler:
         Application.ScreenUpdating = prevScreenUpdating
         Application.DisplayAlerts = prevAlerts
         Application.DisplayStatusBar = prevDisplayStatusBar
-        Application.Visible = prevVisible
+        modUiQuiet.EndQuietUi
         uiSuppressed = False
     End If
     On Error GoTo 0
@@ -581,7 +579,7 @@ CleanExit:
         Application.ScreenUpdating = prevScreenUpdating
         Application.DisplayAlerts = prevAlerts
         Application.DisplayStatusBar = prevDisplayStatusBar
-        Application.Visible = prevVisible
+        modUiQuiet.EndQuietUi
     End If
 End Sub
 
@@ -638,13 +636,13 @@ Private Sub ProcessQueuedReceiveEventsRuntime(Optional ByVal operatorWb As Workb
     If wb Is Nothing Then Set wb = ThisWorkbook
 
     If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(wb, warehouseId, "LOCAL", runtimeReport) Then
-        If Application.Visible Then
+        If Not modUiQuiet.QuietUiIsActive() Then
             MsgBox "Local receive writes succeeded, but runtime processing or read-model refresh did not complete cleanly:" & vbCrLf & runtimeReport, vbExclamation
         Else
             Debug.Print "Receive runtime warning: " & runtimeReport
         End If
     ElseIf runtimeReport <> "" Then
-        If Application.Visible Then
+        If Not modUiQuiet.QuietUiIsActive() Then
             MsgBox runtimeReport, vbInformation
         Else
             Debug.Print "Receive runtime report: " & runtimeReport
