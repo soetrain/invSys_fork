@@ -5,15 +5,19 @@ Private gAppEvents As cAppEvents
 
 Public Sub InitReceivingAddin()
     Dim prevEvents As Boolean
+    Dim prevScreenUpdating As Boolean
 
     prevEvents = Application.EnableEvents
+    prevScreenUpdating = Application.ScreenUpdating
     Application.EnableEvents = False
+    Application.ScreenUpdating = False
     If gAppEvents Is Nothing Then
         Set gAppEvents = New cAppEvents
         gAppEvents.Init
     End If
     modTS_Received.InitializeReceivingUiForWorkbook ThisWorkbook
-    modTS_Received.InitializeReceivingUiForWorkbook Application.ActiveWorkbook
+    EnsureReceivingSurfaceForWorkbook Application.ActiveWorkbook
+    Application.ScreenUpdating = prevScreenUpdating
     Application.EnableEvents = prevEvents
 End Sub
 

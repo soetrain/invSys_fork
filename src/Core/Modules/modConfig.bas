@@ -15,6 +15,8 @@ Public Function LoadConfig(Optional ByVal whId As String = "", Optional ByVal st
     On Error GoTo FailLoad
 
     Dim wb As Workbook
+    Dim preOpen As Object
+    Dim openedTransient As Boolean
     Dim loWh As ListObject
     Dim loSt As ListObject
     Dim whRow As Long
@@ -30,11 +32,14 @@ Public Function LoadConfig(Optional ByVal whId As String = "", Optional ByVal st
 
     InitializeState
 
+    Set preOpen = CaptureOpenWorkbookPathsConfig()
     Set wb = ResolveConfigWorkbook(whId, stId)
     If wb Is Nothing Then
         AddValidationIssue "ERROR", "CONFIG_MISSING", "No open config workbook found."
         GoTo FailSoft
     End If
+    openedTransient = Not WorkbookWasAlreadyOpenConfig(preOpen, wb)
+    If openedTransient Then HideWorkbookWindowsConfig wb
     mResolvedWorkbook = wb.Name
 
     If Not EnsureConfigSchema(wb, whId, stId) Then
@@ -116,16 +121,19 @@ Public Function LoadConfig(Optional ByVal whId As String = "", Optional ByVal st
 
     mIsLoaded = True
     LoadConfig = True
-    Exit Function
+    GoTo CleanExit
 
 FailSoft:
     mIsLoaded = False
     LoadConfig = False
-    Exit Function
+    GoTo CleanExit
 
 FailLoad:
     AddValidationIssue "ERROR", "CONFIG_LOAD_EXCEPTION", Err.Description
     Resume FailSoft
+
+CleanExit:
+    CloseTransientConfigAfterLoad wb, openedTransient
 End Function
 
 Public Function EnsureConfigSchema(Optional ByVal targetWb As Workbook = Nothing, _
@@ -1286,6 +1294,51 @@ Private Function FindOpenWorkbookByFullNameConfig(ByVal fullNameIn As String) As
         End If
     Next wb
 End Function
+
+Private Function CaptureOpenWorkbookPathsConfig() As Object
+    Dim wb As Workbook
+    Dim paths As Object
+
+    Set paths = CreateObject("Scripting.Dictionary")
+    paths.CompareMode = vbTextCompare
+
+    For Each wb In Application.Workbooks
+        If Trim$(wb.FullName) <> "" Then paths(Trim$(wb.FullName)) = True
+    Next wb
+
+    Set CaptureOpenWorkbookPathsConfig = paths
+End Function
+
+Private Function WorkbookWasAlreadyOpenConfig(ByVal openPaths As Object, ByVal wb As Workbook) As Boolean
+    If openPaths Is Nothing Then Exit Function
+    If wb Is Nothing Then Exit Function
+    If Trim$(wb.FullName) = "" Then Exit Function
+    WorkbookWasAlreadyOpenConfig = openPaths.Exists(Trim$(wb.FullName))
+End Function
+
+Private Sub HideWorkbookWindowsConfig(ByVal wb As Workbook)
+    Dim i As Long
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    For i = 1 To wb.Windows.Count
+        wb.Windows(i).Visible = False
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub CloseTransientConfigAfterLoad(ByVal wb As Workbook, ByVal openedTransient As Boolean)
+    If Not openedTransient Then Exit Sub
+    If wb Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    HideWorkbookWindowsConfig wb
+    If Not wb.ReadOnly Then
+        If wb.Saved = False Then wb.Save
+    End If
+    wb.Close SaveChanges:=False
+    On Error GoTo 0
+End Sub
 
 Private Function GetParentFolderConfig(ByVal pathIn As String) As String
     Dim sepPos As Long

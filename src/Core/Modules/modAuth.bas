@@ -16,16 +16,21 @@ Public Function LoadAuth(Optional ByVal whId As String = "") As Boolean
     On Error GoTo FailLoad
 
     Dim wb As Workbook
+    Dim preOpen As Object
+    Dim openedTransient As Boolean
     Dim loUsers As ListObject
     Dim loCaps As ListObject
 
     InitializeState
 
+    Set preOpen = CaptureOpenWorkbookPathsAuth()
     Set wb = ResolveAuthWorkbook(whId)
     If wb Is Nothing Then
         AddValidationIssue "ERROR", "AUTH_MISSING", "No open auth workbook found."
         GoTo FailSoft
     End If
+    openedTransient = Not WorkbookWasAlreadyOpenAuth(preOpen, wb)
+    If openedTransient Then HideWorkbookWindowsAuth wb
     mAuthWorkbook = wb.Name
 
     If Not EnsureAuthSchema(wb, whId, modConfig.GetString("ProcessorServiceUserId", "svc_processor")) Then
@@ -54,16 +59,19 @@ Public Function LoadAuth(Optional ByVal whId As String = "") As Boolean
     If CountFatalIssues() > 0 Then GoTo FailSoft
     mIsLoaded = True
     LoadAuth = True
-    Exit Function
+    GoTo CleanExit
 
 FailSoft:
     mIsLoaded = False
     LoadAuth = False
-    Exit Function
+    GoTo CleanExit
 
 FailLoad:
     AddValidationIssue "ERROR", "AUTH_LOAD_EXCEPTION", Err.Description
     Resume FailSoft
+
+CleanExit:
+    CloseTransientAuthAfterLoad wb, openedTransient
 End Function
 
 Public Function EnsureAuthSchema(Optional ByVal targetWb As Workbook = Nothing, _
@@ -101,6 +109,10 @@ End Function
 
 Public Function IsAuthLoaded() As Boolean
     IsAuthLoaded = mIsLoaded
+End Function
+
+Public Function GetResolvedAuthWorkbookName() As String
+    GetResolvedAuthWorkbookName = SafeTrim(mAuthWorkbook)
 End Function
 
 Public Function CanPerform(ByVal capability As String, _
@@ -586,6 +598,51 @@ Private Function ResolveAuthWorkbook(ByVal whId As String) As Workbook
 
     Set ResolveAuthWorkbook = modRuntimeWorkbooks.OpenFirstRuntimeAuthWorkbook(bootstrapReport)
 End Function
+
+Private Function CaptureOpenWorkbookPathsAuth() As Object
+    Dim wb As Workbook
+    Dim paths As Object
+
+    Set paths = CreateObject("Scripting.Dictionary")
+    paths.CompareMode = vbTextCompare
+
+    For Each wb In Application.Workbooks
+        If Trim$(wb.FullName) <> "" Then paths(Trim$(wb.FullName)) = True
+    Next wb
+
+    Set CaptureOpenWorkbookPathsAuth = paths
+End Function
+
+Private Function WorkbookWasAlreadyOpenAuth(ByVal openPaths As Object, ByVal wb As Workbook) As Boolean
+    If openPaths Is Nothing Then Exit Function
+    If wb Is Nothing Then Exit Function
+    If Trim$(wb.FullName) = "" Then Exit Function
+    WorkbookWasAlreadyOpenAuth = openPaths.Exists(Trim$(wb.FullName))
+End Function
+
+Private Sub HideWorkbookWindowsAuth(ByVal wb As Workbook)
+    Dim i As Long
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    For i = 1 To wb.Windows.Count
+        wb.Windows(i).Visible = False
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub CloseTransientAuthAfterLoad(ByVal wb As Workbook, ByVal openedTransient As Boolean)
+    If Not openedTransient Then Exit Sub
+    If wb Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    HideWorkbookWindowsAuth wb
+    If Not wb.ReadOnly Then
+        If wb.Saved = False Then wb.Save
+    End If
+    wb.Close SaveChanges:=False
+    On Error GoTo 0
+End Sub
 
 Private Function ResolveAuthWorkbookForSetup(ByVal authWorkbookPath As String, _
                                              ByVal warehouseId As String, _

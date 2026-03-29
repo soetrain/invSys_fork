@@ -229,6 +229,7 @@ Public Function ShouldBootstrapRoleWorkbookSurface(Optional ByVal targetWb As Wo
     If wbName = "" Then Exit Function
     If Left$(wbName, 2) = "~$" Then Exit Function
     If wbName = "personal.xlsb" Then Exit Function
+    If wbName Like "*inventory_management*.xls*" Then Exit Function
     If wbName Like "*.xla" Or wbName Like "*.xlam" Then Exit Function
     If IsRuntimeWorkbookNameSurface(wbName) Then Exit Function
 

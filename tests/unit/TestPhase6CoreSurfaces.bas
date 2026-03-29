@@ -903,21 +903,28 @@ Public Function TestSavedReceivingWorkbook_FullRuntimeCloseReopenReloadsCanonica
 
     Set wbCfg = FindWorkbookByName("WH78.invSys.Config.xlsb")
     Set wbAuth = FindWorkbookByName("WH78.invSys.Auth.xlsb")
-    If wbCfg Is Nothing Or wbAuth Is Nothing Then
-        failureReason = "Canonical config/auth workbooks were not reopened after runtime reload."
+    If StrComp(modConfig.GetResolvedWorkbookName(), "WH78.invSys.Config.xlsb", vbTextCompare) <> 0 Then
+        failureReason = "LoadConfig did not resolve the canonical config workbook after runtime reload."
         GoTo CleanExit
     End If
-    If StrComp(wbCfg.FullName, rootPath & "\WH78.invSys.Config.xlsb", vbTextCompare) <> 0 Then
-        failureReason = "Config workbook reopened at an unexpected path."
+    If StrComp(modAuth.GetResolvedAuthWorkbookName(), "WH78.invSys.Auth.xlsb", vbTextCompare) <> 0 Then
+        failureReason = "LoadAuth did not resolve the canonical auth workbook after runtime reload."
         GoTo CleanExit
     End If
-    If StrComp(wbAuth.FullName, rootPath & "\WH78.invSys.Auth.xlsb", vbTextCompare) <> 0 Then
-        failureReason = "Auth workbook reopened at an unexpected path."
-        GoTo CleanExit
+    If Not wbCfg Is Nothing Then
+        If StrComp(wbCfg.FullName, rootPath & "\WH78.invSys.Config.xlsb", vbTextCompare) <> 0 Then
+            failureReason = "Config workbook reopened at an unexpected path."
+            GoTo CleanExit
+        End If
     End If
-    If StrComp(modConfig.GetString("PathDataRoot", ""), rootPath, vbTextCompare) <> 0 _
-       And StrComp(modConfig.GetString("PathDataRoot", ""), rootPath & "\", vbTextCompare) <> 0 Then
-        failureReason = "PathDataRoot did not reload to the canonical runtime root."
+    If Not wbAuth Is Nothing Then
+        If StrComp(wbAuth.FullName, rootPath & "\WH78.invSys.Auth.xlsb", vbTextCompare) <> 0 Then
+            failureReason = "Auth workbook reopened at an unexpected path."
+            GoTo CleanExit
+        End If
+    End If
+    If StrComp(NormalizeTestPath(rootPath), NormalizeTestPath(modConfig.GetString("PathDataRoot", "")), vbTextCompare) <> 0 Then
+        failureReason = "PathDataRoot did not reload to the canonical runtime root. Actual=" & modConfig.GetString("PathDataRoot", "")
         GoTo CleanExit
     End If
 
@@ -3476,6 +3483,14 @@ End Sub
 Private Function BuildRuntimeTestRoot(ByVal baseName As String) As String
     BuildRuntimeTestRoot = Environ$("TEMP") & "\" & baseName & "_" & Format$(Now, "yyyymmdd_hhnnss")
     If Len(Dir$(BuildRuntimeTestRoot, vbDirectory)) = 0 Then MkDir BuildRuntimeTestRoot
+End Function
+
+Private Function NormalizeTestPath(ByVal pathText As String) As String
+    pathText = Trim$(Replace$(pathText, "/", "\"))
+    Do While Len(pathText) > 3 And Right$(pathText, 1) = "\"
+        pathText = Left$(pathText, Len(pathText) - 1)
+    Loop
+    NormalizeTestPath = pathText
 End Function
 
 Private Sub DeleteRuntimeRoot(ByVal rootPath As String)
