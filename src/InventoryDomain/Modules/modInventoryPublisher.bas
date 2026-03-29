@@ -65,6 +65,11 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
     Dim configWasOpen As Boolean
     Dim prevEvents As Boolean
     Dim eventsSuppressed As Boolean
+    Dim prevAlerts As Boolean
+    Dim alertsSuppressed As Boolean
+    Dim prevScreenUpdating As Boolean
+    Dim screenSuppressed As Boolean
+    Dim wbCfgTransient As Workbook
 
     Set wb = targetWb
     If wb Is Nothing Then Set wb = ResolveCandidateInventoryWorkbookPublisher()
@@ -82,11 +87,21 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
     End If
 
     prevEvents = Application.EnableEvents
+    prevAlerts = Application.DisplayAlerts
+    prevScreenUpdating = Application.ScreenUpdating
     Application.EnableEvents = False
+    Application.DisplayAlerts = False
+    Application.ScreenUpdating = False
     eventsSuppressed = True
+    alertsSuppressed = True
+    screenSuppressed = True
 
     configWasOpen = Not FindOpenConfigWorkbookByWarehousePublisher(resolvedWarehouseId) Is Nothing
     If Not EnsureWarehouseConfigLoadedPublisher(resolvedWarehouseId, report) Then Exit Function
+    If Not configWasOpen Then
+        Set wbCfgTransient = FindOpenConfigWorkbookByWarehousePublisher(resolvedWarehouseId)
+        HideWorkbookWindowsPublisher wbCfgTransient
+    End If
 
     Set publishWb = wb
     If RequiresRuntimeCatalogSyncPublisher(wb) Then
@@ -97,6 +112,7 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
             report = "Canonical runtime inventory workbook could not be resolved."
             Exit Function
         End If
+        If Not runtimeWasOpen Then HideWorkbookWindowsPublisher runtimeWb
         If Not SyncManagedCatalogFromWorkbookPublisher(wb, runtimeWb, report) Then GoTo CleanExit
         Set publishWb = wb
     End If
@@ -118,6 +134,7 @@ Public Function EnsureSnapshotPublicationForWorkbook(Optional ByVal targetWb As 
 
     RecordRecentPublishPublisher publishKey
     If Not snapshotWasOpen Then CloseWorkbookByPathPublisher snapshotPath
+    If Not wb Is Nothing Then wb.Activate
     report = snapshotPath
     EnsureSnapshotPublicationForWorkbook = True
     
@@ -128,6 +145,8 @@ CleanExit:
     End If
     If Not configWasOpen Then CloseTransientConfigWorkbookPublisher resolvedWarehouseId
     If eventsSuppressed Then Application.EnableEvents = prevEvents
+    If alertsSuppressed Then Application.DisplayAlerts = prevAlerts
+    If screenSuppressed Then Application.ScreenUpdating = prevScreenUpdating
     On Error GoTo 0
     Exit Function
 
@@ -139,6 +158,8 @@ FailPublish:
     End If
     If Not configWasOpen Then CloseTransientConfigWorkbookPublisher resolvedWarehouseId
     If eventsSuppressed Then Application.EnableEvents = prevEvents
+    If alertsSuppressed Then Application.DisplayAlerts = prevAlerts
+    If screenSuppressed Then Application.ScreenUpdating = prevScreenUpdating
     On Error GoTo 0
 End Function
 
@@ -787,11 +808,10 @@ Private Sub CloseTransientConfigWorkbookPublisher(ByVal warehouseId As String)
     If Trim$(warehouseId) = "" Then Exit Sub
     Set wbCfg = FindOpenConfigWorkbookByWarehousePublisher(warehouseId)
     If wbCfg Is Nothing Then Exit Sub
-    If wbCfg.ReadOnly Then
-        CloseWorkbookQuietlyPublisher wbCfg
-        Exit Sub
+    HideWorkbookWindowsPublisher wbCfg
+    If Not wbCfg.ReadOnly Then
+        If WorkbookHasUnsavedChangesPublisher(wbCfg) Then wbCfg.Save
     End If
-    If WorkbookHasUnsavedChangesPublisher(wbCfg) Then Exit Sub
     CloseWorkbookQuietlyPublisher wbCfg
 End Sub
 
@@ -813,6 +833,17 @@ Private Function WorkbookHasUnsavedChangesPublisher(ByVal wb As Workbook) As Boo
     WorkbookHasUnsavedChangesPublisher = (wb.Saved = False)
     On Error GoTo 0
 End Function
+
+Private Sub HideWorkbookWindowsPublisher(ByVal wb As Workbook)
+    Dim i As Long
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    For i = 1 To wb.Windows.Count
+        wb.Windows(i).Visible = False
+    Next i
+    On Error GoTo 0
+End Sub
 
 Private Sub CloseWorkbookQuietlyPublisher(ByVal wb As Workbook)
     If wb Is Nothing Then Exit Sub
