@@ -45,10 +45,11 @@ Public Function TestLoadConfig_AutoBootstrapsCanonicalWorkbook() As Long
     If Not modConfig.LoadConfig("WH62", "S2") Then GoTo CleanExit
 
     Set wb = FindWorkbookByName("WH62.invSys.Config.xlsb")
-    If Not wb Is Nothing _
+    If StrComp(modConfig.GetResolvedWorkbookName(), "WH62.invSys.Config.xlsb", vbTextCompare) = 0 _
        And StrComp(modConfig.GetWarehouseId(), "WH62", vbTextCompare) = 0 _
        And StrComp(modConfig.GetStationId(), "S2", vbTextCompare) = 0 _
-       And Len(Dir$(rootPath & "\WH62.invSys.Config.xlsb")) > 0 Then
+       And Len(Dir$(rootPath & "\WH62.invSys.Config.xlsb")) > 0 _
+       And (wb Is Nothing Or StrComp(wb.FullName, rootPath & "\WH62.invSys.Config.xlsb", vbTextCompare) = 0) Then
         TestLoadConfig_AutoBootstrapsCanonicalWorkbook = 1
     End If
 
@@ -72,10 +73,11 @@ Public Function TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook(
     If Not modConfig.LoadConfig("", "") Then GoTo CleanExit
 
     Set wb = FindWorkbookByName("WH1.invSys.Config.xlsb")
-    If Not wb Is Nothing _
+    If StrComp(modConfig.GetResolvedWorkbookName(), "WH1.invSys.Config.xlsb", vbTextCompare) = 0 _
        And StrComp(modConfig.GetWarehouseId(), "WH1", vbTextCompare) = 0 _
        And StrComp(modConfig.GetStationId(), "S1", vbTextCompare) = 0 _
-       And Len(Dir$(rootPath & "\WH1.invSys.Config.xlsb")) > 0 Then
+       And Len(Dir$(rootPath & "\WH1.invSys.Config.xlsb")) > 0 _
+       And (wb Is Nothing Or StrComp(wb.FullName, rootPath & "\WH1.invSys.Config.xlsb", vbTextCompare) = 0) Then
         TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook = 1
     End If
 
@@ -259,12 +261,13 @@ Public Function TestLoadAuth_AutoBootstrapsCanonicalWorkbook() As Long
 
     Set wbCfg = FindWorkbookByName("WH63.invSys.Config.xlsb")
     Set wbAuth = FindWorkbookByName("WH63.invSys.Auth.xlsb")
-    If wbAuth Is Nothing Then GoTo CleanExit
-
-    Set loUsers = wbAuth.Worksheets("Users").ListObjects("tblUsers")
-    If FindUserRow(loUsers, "svc_processor") > 0 _
-       And Not wbCfg Is Nothing _
-       And Len(Dir$(rootPath & "\WH63.invSys.Auth.xlsb")) > 0 Then
+    If Not wbAuth Is Nothing Then Set loUsers = wbAuth.Worksheets("Users").ListObjects("tblUsers")
+    If StrComp(modConfig.GetResolvedWorkbookName(), "WH63.invSys.Config.xlsb", vbTextCompare) = 0 _
+       And StrComp(modAuth.GetResolvedAuthWorkbookName(), "WH63.invSys.Auth.xlsb", vbTextCompare) = 0 _
+       And Len(Dir$(rootPath & "\WH63.invSys.Auth.xlsb")) > 0 _
+       And Len(Dir$(rootPath & "\WH63.invSys.Config.xlsb")) > 0 _
+       And (wbCfg Is Nothing Or StrComp(wbCfg.FullName, rootPath & "\WH63.invSys.Config.xlsb", vbTextCompare) = 0) _
+       And (wbAuth Is Nothing Or (Not loUsers Is Nothing And FindUserRow(loUsers, "svc_processor") > 0 And StrComp(wbAuth.FullName, rootPath & "\WH63.invSys.Auth.xlsb", vbTextCompare) = 0)) Then
         TestLoadAuth_AutoBootstrapsCanonicalWorkbook = 1
     End If
 
@@ -2634,13 +2637,19 @@ Private Sub EnsureAuthCapabilityForTest(ByVal warehouseId As String, _
     Dim lr As ListRow
     Dim usersWasProtected As Boolean
     Dim capsWasProtected As Boolean
+    Dim report As String
+    Dim openedTransient As Boolean
 
     Set wbAuth = FindWorkbookByName(warehouseId & ".invSys.Auth.xlsb")
+    If wbAuth Is Nothing Then
+        Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime(warehouseId, "svc_processor", "", report)
+        openedTransient = Not wbAuth Is Nothing
+    End If
     If wbAuth Is Nothing Then Exit Sub
 
     Set loUsers = wbAuth.Worksheets("Users").ListObjects("tblUsers")
     Set loCaps = wbAuth.Worksheets("Capabilities").ListObjects("tblCapabilities")
-    If loUsers Is Nothing Or loCaps Is Nothing Then Exit Sub
+    If loUsers Is Nothing Or loCaps Is Nothing Then GoTo CleanExit
 
     usersWasProtected = BeginEditableSheetForTest(loUsers.Parent)
     capsWasProtected = BeginEditableSheetForTest(loCaps.Parent)
@@ -2670,10 +2679,12 @@ Private Sub EnsureAuthCapabilityForTest(ByVal warehouseId As String, _
 CleanExit:
     RestoreSheetProtectionForTest loCaps.Parent, capsWasProtected
     RestoreSheetProtectionForTest loUsers.Parent, usersWasProtected
+    CloseTransientWorkbookForTest wbAuth, openedTransient
     Exit Sub
 CleanFail:
     RestoreSheetProtectionForTest loCaps.Parent, capsWasProtected
     RestoreSheetProtectionForTest loUsers.Parent, usersWasProtected
+    CloseTransientWorkbookForTest wbAuth, openedTransient
     Err.Raise Err.Number, Err.Source, Err.Description
 End Sub
 
@@ -3202,13 +3213,20 @@ End Sub
 Private Sub SetConfigWarehouseValue(ByVal workbookName As String, ByVal columnName As String, ByVal valueIn As Variant)
     Dim wb As Workbook
     Dim lo As ListObject
+    Dim report As String
+    Dim openedTransient As Boolean
 
     Set wb = FindWorkbookByName(workbookName)
+    If wb Is Nothing Then
+        Set wb = OpenConfigWorkbookForTest(workbookName, report, openedTransient)
+    End If
     If wb Is Nothing Then Exit Sub
     Set lo = wb.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
-    If lo Is Nothing Then Exit Sub
+    If lo Is Nothing Then GoTo CleanExit
     lo.DataBodyRange.Cells(1, lo.ListColumns(columnName).Index).Value = valueIn
     wb.Save
+CleanExit:
+    CloseTransientWorkbookForTest wb, openedTransient
 End Sub
 
 Private Sub EnsureConfigStationRowValue(ByVal workbookName As String, _
@@ -3220,11 +3238,16 @@ Private Sub EnsureConfigStationRowValue(ByVal workbookName As String, _
     Dim lo As ListObject
     Dim rowIndex As Long
     Dim lr As ListRow
+    Dim report As String
+    Dim openedTransient As Boolean
 
     Set wb = FindWorkbookByName(workbookName)
+    If wb Is Nothing Then
+        Set wb = OpenConfigWorkbookForTest(workbookName, report, openedTransient)
+    End If
     If wb Is Nothing Then Exit Sub
     Set lo = wb.Worksheets("StationConfig").ListObjects("tblStationConfig")
-    If lo Is Nothing Then Exit Sub
+    If lo Is Nothing Then GoTo CleanExit
 
     rowIndex = FindRowByColumnValueInTable(lo, "StationId", stationId)
     If rowIndex = 0 Then
@@ -3238,6 +3261,46 @@ Private Sub EnsureConfigStationRowValue(ByVal workbookName As String, _
 
     SetTableCell lo, rowIndex, columnName, valueIn
     wb.Save
+CleanExit:
+    CloseTransientWorkbookForTest wb, openedTransient
+End Sub
+
+Private Function OpenConfigWorkbookForTest(ByVal workbookName As String, _
+                                           ByRef report As String, _
+                                           ByRef openedTransient As Boolean) As Workbook
+    Dim warehouseId As String
+    Dim alreadyOpen As Workbook
+
+    Set alreadyOpen = FindWorkbookByName(workbookName)
+    If Not alreadyOpen Is Nothing Then
+        Set OpenConfigWorkbookForTest = alreadyOpen
+        Exit Function
+    End If
+
+    warehouseId = InferWarehouseIdFromWorkbookNameForTest(workbookName)
+    If warehouseId = "" Then Exit Function
+
+    Set OpenConfigWorkbookForTest = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(warehouseId, "", "", report)
+    openedTransient = Not OpenConfigWorkbookForTest Is Nothing
+End Function
+
+Private Function InferWarehouseIdFromWorkbookNameForTest(ByVal workbookName As String) As String
+    Dim dotPos As Long
+
+    dotPos = InStr(1, workbookName, ".", vbTextCompare)
+    If dotPos > 1 Then InferWarehouseIdFromWorkbookNameForTest = Left$(workbookName, dotPos - 1)
+End Function
+
+Private Sub CloseTransientWorkbookForTest(ByVal wb As Workbook, ByVal openedTransient As Boolean)
+    If Not openedTransient Then Exit Sub
+    If wb Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    If Not wb.ReadOnly Then
+        If wb.Saved = False Then wb.Save
+    End If
+    wb.Close SaveChanges:=False
+    On Error GoTo 0
 End Sub
 
 Private Function CreateCanonicalInventoryWorkbookForTest(ByVal rootPath As String, ByVal warehouseId As String, ByVal skuList As Variant) As Workbook

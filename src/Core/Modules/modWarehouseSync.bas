@@ -24,6 +24,8 @@ Public Function AppendEventToOutbox(ByVal evt As Object, _
     Dim eventId As String
     Dim rowIndex As Long
     Dim r As ListRow
+    Dim openPaths As Object
+    Dim openedTransient As Boolean
 
     warehouseId = GetEventStringSync(evt, "WarehouseId")
     eventId = GetEventStringSync(evt, "EventID")
@@ -32,18 +34,21 @@ Public Function AppendEventToOutbox(ByVal evt As Object, _
         Exit Function
     End If
 
+    If outboxWb Is Nothing Then Set openPaths = CaptureOpenWorkbookPathsSync()
     Set wbOutbox = ResolveOutboxWorkbook(warehouseId, outboxWb, True)
     If wbOutbox Is Nothing Then
         report = "Outbox workbook not found."
         Exit Function
     End If
-    If Not EnsureOutboxSchema(wbOutbox, report) Then Exit Function
+    openedTransient = (outboxWb Is Nothing) And (Not WorkbookWasAlreadyOpenSync(openPaths, wbOutbox))
+    If openedTransient Then HideWorkbookWindowsSync wbOutbox
+    If Not EnsureOutboxSchema(wbOutbox, report) Then GoTo CleanExit
 
     Set loOutbox = wbOutbox.Worksheets(SHEET_OUTBOX).ListObjects(TABLE_OUTBOX)
     Set appliedMeta = ResolveAppliedMeta(eventId, inventoryWb)
     If appliedMeta Is Nothing Then
         report = "Applied metadata not found for EventID " & eventId
-        Exit Function
+        GoTo CleanExit
     End If
 
     rowIndex = FindRowByValueSync(loOutbox, "EventID", eventId)
@@ -67,9 +72,14 @@ Public Function AppendEventToOutbox(ByVal evt As Object, _
 
     report = "OK"
     AppendEventToOutbox = True
+CleanExit:
+    If openedTransient Then CloseWorkbookQuietlySync wbOutbox
     Exit Function
 
 FailAppend:
+    On Error Resume Next
+    If openedTransient Then CloseWorkbookQuietlySync wbOutbox
+    On Error GoTo 0
     report = "AppendEventToOutbox failed: " & Err.Description
 End Function
 
@@ -137,6 +147,8 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
     Dim wbSnap As Workbook
     Dim snapshotRows As Object
     Dim savePath As String
+    Dim openPaths As Object
+    Dim openedTransient As Boolean
 
     If warehouseId = "" Then warehouseId = modConfig.GetWarehouseId()
     Set wbInv = ResolveInventoryWorkbookBridge(warehouseId, inventoryWb)
@@ -151,21 +163,29 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
         Exit Function
     End If
 
+    If snapshotWb Is Nothing Then Set openPaths = CaptureOpenWorkbookPathsSync()
     Set wbSnap = ResolveSnapshotWorkbook(warehouseId, outputPath, snapshotWb, True)
     If wbSnap Is Nothing Then
         report = "Snapshot workbook not resolved."
         Exit Function
     End If
+    openedTransient = (snapshotWb Is Nothing) And (Not WorkbookWasAlreadyOpenSync(openPaths, wbSnap))
+    If openedTransient Then HideWorkbookWindowsSync wbSnap
     savePath = wbSnap.FullName
-    If Not EnsureSnapshotSchema(wbSnap, report) Then Exit Function
+    If Not EnsureSnapshotSchema(wbSnap, report) Then GoTo CleanExit
     WriteSnapshotRows wbSnap, warehouseId, snapshotRows
     wbSnap.Save
 
     report = savePath
     GenerateWarehouseSnapshot = True
+CleanExit:
+    If openedTransient Then CloseWorkbookQuietlySync wbSnap
     Exit Function
 
 FailSnapshot:
+    On Error Resume Next
+    If openedTransient Then CloseWorkbookQuietlySync wbSnap
+    On Error GoTo 0
     report = "GenerateWarehouseSnapshot failed: " & Err.Description
 End Function
 
@@ -789,8 +809,10 @@ Private Function ResolveWorkbookByPathSync(ByVal targetPath As String, _
     Dim eventsSuppressed As Boolean
     Dim prevAlerts As Boolean
     Dim alertsSuppressed As Boolean
+    Dim prevScreenUpdating As Boolean
 
     If Trim$(targetPath) = "" Then Exit Function
+    prevScreenUpdating = Application.ScreenUpdating
 
     For Each wb In Application.Workbooks
         If StrComp(wb.FullName, targetPath, vbTextCompare) = 0 Then
@@ -805,6 +827,7 @@ Private Function ResolveWorkbookByPathSync(ByVal targetPath As String, _
         prevAlerts = Application.DisplayAlerts
         Application.DisplayAlerts = False
         alertsSuppressed = True
+        Application.ScreenUpdating = False
         On Error Resume Next
         Set ResolveWorkbookByPathSync = Application.Workbooks.Open( _
             Filename:=targetPath, _
@@ -818,6 +841,7 @@ Private Function ResolveWorkbookByPathSync(ByVal targetPath As String, _
             Set ResolveWorkbookByPathSync = Nothing
         End If
         On Error GoTo FailOpen
+        Application.ScreenUpdating = prevScreenUpdating
         Application.DisplayAlerts = prevAlerts
         alertsSuppressed = False
         Exit Function
@@ -839,6 +863,7 @@ Private Function ResolveWorkbookByPathSync(ByVal targetPath As String, _
 FailOpen:
     On Error Resume Next
     If eventsSuppressed Then Application.EnableEvents = prevEvents
+    Application.ScreenUpdating = prevScreenUpdating
     If alertsSuppressed Then Application.DisplayAlerts = prevAlerts
     On Error GoTo 0
 End Function
@@ -981,6 +1006,50 @@ Private Sub SaveWorkbookSync(ByVal wb As Workbook)
     If wb.ReadOnly Then Exit Sub
     If wb.Path = "" Then Exit Sub
     wb.Save
+End Sub
+
+Private Function CaptureOpenWorkbookPathsSync() As Object
+    Dim wb As Workbook
+    Dim paths As Object
+
+    Set paths = CreateObject("Scripting.Dictionary")
+    paths.CompareMode = vbTextCompare
+
+    For Each wb In Application.Workbooks
+        If Trim$(wb.FullName) <> "" Then paths(Trim$(wb.FullName)) = True
+    Next wb
+
+    Set CaptureOpenWorkbookPathsSync = paths
+End Function
+
+Private Function WorkbookWasAlreadyOpenSync(ByVal openPaths As Object, ByVal wb As Workbook) As Boolean
+    If openPaths Is Nothing Then Exit Function
+    If wb Is Nothing Then Exit Function
+    If Trim$(wb.FullName) = "" Then Exit Function
+    WorkbookWasAlreadyOpenSync = openPaths.Exists(Trim$(wb.FullName))
+End Function
+
+Private Sub HideWorkbookWindowsSync(ByVal wb As Workbook)
+    Dim i As Long
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    For i = 1 To wb.Windows.Count
+        wb.Windows(i).Visible = False
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub CloseWorkbookQuietlySync(ByVal wb As Workbook)
+    If wb Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    HideWorkbookWindowsSync wb
+    If Not wb.ReadOnly Then
+        If wb.Saved = False Then wb.Save
+    End If
+    wb.Close SaveChanges:=False
+    On Error GoTo 0
 End Sub
 
 Private Function GetCellByColumnSync(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As Variant

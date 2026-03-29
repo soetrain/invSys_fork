@@ -382,7 +382,7 @@ Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Wo
         Exit Function
     End If
 
-    report = "Processed=" & CStr(processedCount) & "; RefreshReport=" & refreshReport
+    report = "Processed=" & CStr(processedCount) & "; BatchReport=" & batchReport & "; RefreshReport=" & refreshReport
     RunBatchAndRefreshOperatorWorkbook = True
     Exit Function
 

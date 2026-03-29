@@ -519,14 +519,21 @@ Private Function InboxWorkbookNameProcessor(ByVal eventType As String, ByVal sta
 End Function
 
 Private Function OpenInboxWorkbookForProcessor(ByVal fullPath As String) As Workbook
+    Dim prevScreenUpdating As Boolean
+
+    prevScreenUpdating = Application.ScreenUpdating
+    Application.ScreenUpdating = False
     On Error Resume Next
     Set OpenInboxWorkbookForProcessor = Application.Workbooks.Open(Filename:=fullPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
     On Error GoTo 0
+    Application.ScreenUpdating = prevScreenUpdating
     If OpenInboxWorkbookForProcessor Is Nothing Then Exit Function
     If OpenInboxWorkbookForProcessor.ReadOnly Then
         OpenInboxWorkbookForProcessor.Close SaveChanges:=False
         Set OpenInboxWorkbookForProcessor = Nothing
+        Exit Function
     End If
+    HideProcessorWorkbookWindows OpenInboxWorkbookForProcessor
 End Function
 
 Private Sub CloseInboxTargetIfNeeded(ByVal target As Variant)
@@ -542,7 +549,19 @@ End Sub
 Private Sub CloseProcessorWorkbookIfNeeded(ByVal wb As Workbook, ByVal saveChanges As Boolean)
     On Error Resume Next
     If wb Is Nothing Then Exit Sub
+    HideProcessorWorkbookWindows wb
     wb.Close SaveChanges:=saveChanges
+    On Error GoTo 0
+End Sub
+
+Private Sub HideProcessorWorkbookWindows(ByVal wb As Workbook)
+    Dim i As Long
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    For i = 1 To wb.Windows.Count
+        wb.Windows(i).Visible = False
+    Next i
     On Error GoTo 0
 End Sub
 

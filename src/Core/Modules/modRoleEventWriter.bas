@@ -168,6 +168,8 @@ Private Function QueueEventCore(ByVal eventType As String, _
     Dim ws As Worksheet
     Dim report As String
     Dim capability As String
+    Dim openPaths As Object
+    Dim openedTransient As Boolean
 
     If Not EnsureContextResolved(resolvedWh, resolvedSt, warehouseId, stationId, errorMessage) Then Exit Function
 
@@ -197,35 +199,38 @@ Private Function QueueEventCore(ByVal eventType As String, _
     If createdAtUtc = 0 Then createdAtUtc = Now
 
     If targetInboxWb Is Nothing Then
+        Set openPaths = CaptureOpenWorkbookPathsRole()
         Set wbInbox = ResolveInboxWorkbookForEventType(eventType, resolvedWh, resolvedSt, errorMessage)
     Else
         Set wbInbox = targetInboxWb
     End If
     If wbInbox Is Nothing Then Exit Function
+    openedTransient = (targetInboxWb Is Nothing) And (Not WorkbookWasAlreadyOpenRole(openPaths, wbInbox))
+    If openedTransient Then HideWorkbookWindowsRole wbInbox
 
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             If Not modProcessor.EnsureReceiveInboxSchema(wbInbox, report) Then
                 errorMessage = report
-                Exit Function
+                GoTo CleanExit
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_RECEIVE)
         Case ROLE_EVENT_TYPE_SHIP
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
-                Exit Function
+                GoTo CleanExit
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_SHIP)
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
             If Not modProcessor.EnsureProductionInboxSchema(wbInbox, report) Then
                 errorMessage = report
-                Exit Function
+                GoTo CleanExit
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_PROD)
     End Select
     If lo Is Nothing Then
         errorMessage = "Inbox table not found for event type '" & eventType & "'."
-        Exit Function
+        GoTo CleanExit
     End If
 
     Set ws = lo.Parent
@@ -253,9 +258,15 @@ Private Function QueueEventCore(ByVal eventType As String, _
     SetTableRowValueRole lo, rowIndex, "FailedAtUTC", ""
 
     SaveWorkbookRole wbInbox
-    If sheetWasProtected Then RestoreWorksheetProtectionRole ws
 
     QueueEventCore = True
+CleanExit:
+    On Error Resume Next
+    If Not ws Is Nothing Then
+        If sheetWasProtected Then RestoreWorksheetProtectionRole ws
+    End If
+    If openedTransient Then CloseTransientRoleWorkbook wbInbox
+    On Error GoTo 0
     Exit Function
 
 FailQueue:
@@ -264,6 +275,7 @@ FailQueue:
     If Not ws Is Nothing Then
         If sheetWasProtected Then RestoreWorksheetProtectionRole ws
     End If
+    If openedTransient Then CloseTransientRoleWorkbook wbInbox
 End Function
 
 Private Function EnsureContextResolved(ByRef resolvedWh As String, _
@@ -300,7 +312,11 @@ Private Function ResolveInboxWorkbookForEventType(ByVal eventType As String, _
     Dim fullPath As String
     Dim prevEvents As Boolean
     Dim eventsSuppressed As Boolean
+    Dim prevAlerts As Boolean
+    Dim alertsSuppressed As Boolean
+    Dim prevScreenUpdating As Boolean
 
+    prevScreenUpdating = Application.ScreenUpdating
     expectedName = InboxWorkbookNameRole(eventType, stationId)
     fullPath = ResolveInboxWorkbookPathResolvedRole(eventType, warehouseId, stationId, errorMessage)
     If fullPath = "" Then Exit Function
@@ -314,7 +330,16 @@ Private Function ResolveInboxWorkbookForEventType(ByVal eventType As String, _
     Next wb
 
     If Len(Dir$(fullPath, vbNormal)) > 0 Then
+        prevAlerts = Application.DisplayAlerts
+        Application.DisplayAlerts = False
+        alertsSuppressed = True
+        prevScreenUpdating = Application.ScreenUpdating
+        Application.ScreenUpdating = False
         Set ResolveInboxWorkbookForEventType = Application.Workbooks.Open(fullPath)
+        If Not ResolveInboxWorkbookForEventType Is Nothing Then HideWorkbookWindowsRole ResolveInboxWorkbookForEventType
+        Application.ScreenUpdating = prevScreenUpdating
+        Application.DisplayAlerts = prevAlerts
+        alertsSuppressed = False
     Else
         prevEvents = Application.EnableEvents
         Application.EnableEvents = False
@@ -330,6 +355,8 @@ Private Function ResolveInboxWorkbookForEventType(ByVal eventType As String, _
 FailOpen:
     On Error Resume Next
     If eventsSuppressed Then Application.EnableEvents = prevEvents
+    Application.ScreenUpdating = prevScreenUpdating
+    If alertsSuppressed Then Application.DisplayAlerts = prevAlerts
     On Error GoTo 0
     errorMessage = "Inbox workbook open/create failed: " & Err.Description
 End Function
@@ -445,6 +472,50 @@ Private Sub SaveWorkbookRole(ByVal wb As Workbook)
     If wb.ReadOnly Then Exit Sub
     If wb.Path = "" Then Exit Sub
     wb.Save
+End Sub
+
+Private Function CaptureOpenWorkbookPathsRole() As Object
+    Dim wb As Workbook
+    Dim paths As Object
+
+    Set paths = CreateObject("Scripting.Dictionary")
+    paths.CompareMode = vbTextCompare
+
+    For Each wb In Application.Workbooks
+        If Trim$(wb.FullName) <> "" Then paths(Trim$(wb.FullName)) = True
+    Next wb
+
+    Set CaptureOpenWorkbookPathsRole = paths
+End Function
+
+Private Function WorkbookWasAlreadyOpenRole(ByVal openPaths As Object, ByVal wb As Workbook) As Boolean
+    If openPaths Is Nothing Then Exit Function
+    If wb Is Nothing Then Exit Function
+    If Trim$(wb.FullName) = "" Then Exit Function
+    WorkbookWasAlreadyOpenRole = openPaths.Exists(Trim$(wb.FullName))
+End Function
+
+Private Sub HideWorkbookWindowsRole(ByVal wb As Workbook)
+    Dim i As Long
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    For i = 1 To wb.Windows.Count
+        wb.Windows(i).Visible = False
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub CloseTransientRoleWorkbook(ByVal wb As Workbook)
+    If wb Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    HideWorkbookWindowsRole wb
+    If Not wb.ReadOnly Then
+        If wb.Saved = False Then wb.Save
+    End If
+    wb.Close SaveChanges:=False
+    On Error GoTo 0
 End Sub
 
 Private Sub EnsureWorksheetEditableRole(ByVal ws As Worksheet, ByVal context As String)

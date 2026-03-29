@@ -1,17 +1,17 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-03-28 17:15:41
-- Passed: 36
-- Failed: 1
+- Date: 2026-03-28 18:29:33
+- Passed: 33
+- Failed: 4
 
 | Test | Result |
 |---|---|
 | TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook | PASS |
-| TestPhase6CoreSurfaces.TestLoadConfig_AutoBootstrapsCanonicalWorkbook | PASS |
-| TestPhase6CoreSurfaces.TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook | PASS |
+| TestPhase6CoreSurfaces.TestLoadConfig_AutoBootstrapsCanonicalWorkbook | FAIL |
+| TestPhase6CoreSurfaces.TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook | FAIL |
 | TestPhase6CoreSurfaces.TestEnsureStationBootstrap_CreatesLocalConfigAndInbox | PASS |
 | TestPhase6CoreSurfaces.TestLoadConfig_QuarantinesContaminatedConfigSheet | PASS |
-| TestPhase6CoreSurfaces.TestLoadAuth_AutoBootstrapsCanonicalWorkbook | PASS |
+| TestPhase6CoreSurfaces.TestLoadAuth_AutoBootstrapsCanonicalWorkbook | FAIL |
 | TestPhase6CoreSurfaces.TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities | PASS |
 | TestPhase6CoreSurfaces.TestResolveInventoryWorkbookBridge_PrefersCanonicalWorkbookOverOperatorSurface | PASS |
 | TestPhase6CoreSurfaces.TestEnsureInventoryManagementSurface_RemovesDomainArtifacts | PASS |
