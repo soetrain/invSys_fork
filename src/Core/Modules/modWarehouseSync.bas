@@ -228,6 +228,7 @@ Private Function EnsureSnapshotSchema(ByVal wb As Workbook, ByRef report As Stri
     Dim i As Long
 
     headers = Array("WarehouseId", "SKU", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "VENDOR_CODE", "CATEGORY", _
+                    "RECEIVED", "USED", "MADE", "SHIPMENTS", _
                     "QtyOnHand", "QtyAvailable", "LocationSummary", "LastAppliedAtUTC")
     NormalizeWorkbookSheetsSync wb, Array(SHEET_SNAPSHOT)
     Set ws = EnsureWorksheetSync(wb, SHEET_SNAPSHOT)
@@ -283,6 +284,10 @@ Private Sub WriteSnapshotRows(ByVal wb As Workbook, _
         SetTableRowValueSync lo, 1, "VENDOR(s)", ""
         SetTableRowValueSync lo, 1, "VENDOR_CODE", ""
         SetTableRowValueSync lo, 1, "CATEGORY", ""
+        SetTableRowValueSync lo, 1, "RECEIVED", 0
+        SetTableRowValueSync lo, 1, "USED", 0
+        SetTableRowValueSync lo, 1, "MADE", 0
+        SetTableRowValueSync lo, 1, "SHIPMENTS", 0
         SetTableRowValueSync lo, 1, "QtyOnHand", 0
         SetTableRowValueSync lo, 1, "QtyAvailable", 0
         SetTableRowValueSync lo, 1, "LocationSummary", vbNullString
@@ -304,6 +309,10 @@ Private Sub WriteSnapshotRows(ByVal wb As Workbook, _
         SetTableRowValueSync lo, rowIndex, "VENDOR(s)", ResolveStringSync(entry, "VENDOR(s)", ResolveStringSync(entry, "VENDORS", ""))
         SetTableRowValueSync lo, rowIndex, "VENDOR_CODE", ResolveStringSync(entry, "VENDOR_CODE", "")
         SetTableRowValueSync lo, rowIndex, "CATEGORY", ResolveStringSync(entry, "CATEGORY", "")
+        SetTableRowValueSync lo, rowIndex, "RECEIVED", ResolveNumberSync(entry, "RECEIVED")
+        SetTableRowValueSync lo, rowIndex, "USED", ResolveNumberSync(entry, "USED")
+        SetTableRowValueSync lo, rowIndex, "MADE", ResolveNumberSync(entry, "MADE")
+        SetTableRowValueSync lo, rowIndex, "SHIPMENTS", ResolveNumberSync(entry, "SHIPMENTS")
         SetTableRowValueSync lo, rowIndex, "QtyOnHand", ResolveNumberSync(entry, "QtyOnHand")
         SetTableRowValueSync lo, rowIndex, "QtyAvailable", ResolveNumberSync(entry, "QtyAvailable")
         SetTableRowValueSync lo, rowIndex, "LocationSummary", ResolveStringSync(entry, "LocationSummary", "")
@@ -318,6 +327,7 @@ Private Function BuildSnapshotRowsSync(ByVal wbInv As Workbook, _
 
     Set snapshotRows = BuildSnapshotRowsFromProjectionsSync(wbInv, warehouseId)
     If Not snapshotRows Is Nothing Then
+        ApplyLatestMovementToSnapshotRowsSync snapshotRows, wbInv, warehouseId
         AppendCatalogRowsSync snapshotRows, wbInv, warehouseId
         report = SNAPSHOT_SOURCE_PROJECTION
         Set BuildSnapshotRowsSync = snapshotRows
@@ -326,6 +336,7 @@ Private Function BuildSnapshotRowsSync(ByVal wbInv As Workbook, _
 
     Set snapshotRows = BuildSnapshotRowsFromLogSync(wbInv, warehouseId)
     If Not snapshotRows Is Nothing Then
+        ApplyLatestMovementToSnapshotRowsSync snapshotRows, wbInv, warehouseId
         AppendCatalogRowsSync snapshotRows, wbInv, warehouseId
         report = SNAPSHOT_SOURCE_LOG
         Set BuildSnapshotRowsSync = snapshotRows
@@ -334,6 +345,7 @@ Private Function BuildSnapshotRowsSync(ByVal wbInv As Workbook, _
 
     Set snapshotRows = BuildSnapshotRowsFromManagedSurfaceSync(wbInv, warehouseId)
     If Not snapshotRows Is Nothing Then
+        ApplyLatestMovementToSnapshotRowsSync snapshotRows, wbInv, warehouseId
         AppendCatalogRowsSync snapshotRows, wbInv, warehouseId
         report = SNAPSHOT_SOURCE_MANAGED_SURFACE
         Set BuildSnapshotRowsSync = snapshotRows
@@ -559,6 +571,66 @@ Private Sub AppendCatalogRowsSync(ByVal snapshotRows As Object, ByVal wbInv As W
 
     Set loCatalog = FindListObjectByNameSync(wbInv, "tblSkuCatalog")
     ApplyCatalogTableToSnapshotRowsSync snapshotRows, loCatalog, warehouseId
+End Sub
+
+Private Sub ApplyLatestMovementToSnapshotRowsSync(ByVal snapshotRows As Object, _
+                                                  ByVal wbInv As Workbook, _
+                                                  ByVal warehouseId As String)
+    Dim loLog As ListObject
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim eventType As String
+    Dim qty As Double
+    Dim eventStamp As Double
+    Dim bestStamp As Double
+    Dim rowDate As Variant
+    Dim entry As Object
+    Dim stampMap As Object
+
+    If snapshotRows Is Nothing Then Exit Sub
+    If wbInv Is Nothing Then Exit Sub
+
+    Set loLog = FindListObjectByNameSync(wbInv, "tblInventoryLog")
+    If loLog Is Nothing Then Exit Sub
+    If loLog.DataBodyRange Is Nothing Then Exit Sub
+
+    Set stampMap = CreateObject("Scripting.Dictionary")
+    stampMap.CompareMode = vbTextCompare
+
+    For rowIndex = 1 To loLog.ListRows.Count
+        sku = SafeTrimSync(GetCellByColumnSync(loLog, rowIndex, "SKU"))
+        If sku = "" Then GoTo ContinueLoop
+
+        Set entry = EnsureSnapshotEntrySync(snapshotRows, sku, warehouseId)
+        eventType = UCase$(SafeTrimSync(GetCellByColumnSync(loLog, rowIndex, "EventType")))
+        qty = Abs(NzDblSync(GetCellByColumnSync(loLog, rowIndex, "QtyDelta")))
+        rowDate = GetCellByColumnSync(loLog, rowIndex, "AppliedAtUTC")
+        If IsDate(rowDate) Then
+            eventStamp = CDbl(CDate(rowDate))
+        Else
+            eventStamp = CDbl(rowIndex)
+        End If
+
+        If stampMap.Exists(sku) Then bestStamp = CDbl(stampMap(sku))
+        If (Not stampMap.Exists(sku)) Or eventStamp >= bestStamp Then
+            stampMap(sku) = eventStamp
+            entry("RECEIVED") = 0#
+            entry("USED") = 0#
+            entry("MADE") = 0#
+            entry("SHIPMENTS") = 0#
+            Select Case eventType
+                Case "RECEIVE"
+                    entry("RECEIVED") = qty
+                Case "SHIP"
+                    entry("SHIPMENTS") = qty
+                Case "PROD_CONSUME"
+                    entry("USED") = qty
+                Case "PROD_COMPLETE"
+                    entry("MADE") = qty
+            End Select
+        End If
+ContinueLoop:
+    Next rowIndex
 End Sub
 
 Private Sub ApplyCatalogTableToSnapshotRowsSync(ByVal snapshotRows As Object, _

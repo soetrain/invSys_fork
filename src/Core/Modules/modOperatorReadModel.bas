@@ -579,6 +579,10 @@ Private Function BuildSnapshotDictionary(ByVal loSnap As ListObject) As Object
     Dim vendorsIdx As Long
     Dim vendorCodeIdx As Long
     Dim categoryIdx As Long
+    Dim receivedIdx As Long
+    Dim usedIdx As Long
+    Dim madeIdx As Long
+    Dim shipmentsIdx As Long
     Dim qtyOnHandIdx As Long
     Dim qtyAvailableIdx As Long
     Dim locationSummaryIdx As Long
@@ -606,6 +610,10 @@ Private Function BuildSnapshotDictionary(ByVal loSnap As ListObject) As Object
     vendorsIdx = GetColumnIndexReadModel(loSnap, "VENDOR(s)")
     vendorCodeIdx = GetColumnIndexReadModel(loSnap, "VENDOR_CODE")
     categoryIdx = GetColumnIndexReadModel(loSnap, "CATEGORY")
+    receivedIdx = GetColumnIndexReadModel(loSnap, "RECEIVED")
+    usedIdx = GetColumnIndexReadModel(loSnap, "USED")
+    madeIdx = GetColumnIndexReadModel(loSnap, "MADE")
+    shipmentsIdx = GetColumnIndexReadModel(loSnap, "SHIPMENTS")
     qtyOnHandIdx = GetColumnIndexReadModel(loSnap, "QtyOnHand")
     qtyAvailableIdx = GetColumnIndexReadModel(loSnap, "QtyAvailable")
     locationSummaryIdx = GetColumnIndexReadModel(loSnap, "LocationSummary")
@@ -624,6 +632,10 @@ Private Function BuildSnapshotDictionary(ByVal loSnap As ListObject) As Object
         payload("QtyAvailable") = ResolveSnapshotQtyAvailable(loSnap, i, qtyAvailableIdx, qtyOnHandIdx)
         payload("LocationSummary") = ResolveSnapshotLocationSummary(loSnap, i, locationSummaryIdx)
         payload("LastAppliedAtUTC") = ResolveSnapshotLastApplied(loSnap, i, appliedIdx)
+        payload("RECEIVED") = ResolveSnapshotNumberFieldReadModel(loSnap, i, receivedIdx)
+        payload("USED") = ResolveSnapshotNumberFieldReadModel(loSnap, i, usedIdx)
+        payload("MADE") = ResolveSnapshotNumberFieldReadModel(loSnap, i, madeIdx)
+        payload("SHIPMENTS") = ResolveSnapshotNumberFieldReadModel(loSnap, i, shipmentsIdx)
         AddSnapshotTextPayloadReadModel payload, "ITEM", ResolveSnapshotTextReadModel(loSnap, i, itemIdx)
         AddSnapshotTextPayloadReadModel payload, "UOM", ResolveSnapshotTextReadModel(loSnap, i, uomIdx)
         AddSnapshotTextPayloadReadModel payload, "LOCATION", ResolveSnapshotTextReadModel(loSnap, i, locationIdx)
@@ -789,11 +801,21 @@ Private Sub ApplySnapshotMetadataToInvSys(ByVal loInv As ListObject, _
     valueText = ResolveSnapshotTextPayloadReadModel(payload, "CATEGORY")
     If valueText <> "" Then SetReadModelValue loInv, rowIndex, "CATEGORY", valueText
 
+    SetReadModelValue loInv, rowIndex, "RECEIVED", ResolveSnapshotNumberPayloadReadModel(payload, "RECEIVED")
+    SetReadModelValue loInv, rowIndex, "USED", ResolveSnapshotNumberPayloadReadModel(payload, "USED")
+    SetReadModelValue loInv, rowIndex, "MADE", ResolveSnapshotNumberPayloadReadModel(payload, "MADE")
+    SetReadModelValue loInv, rowIndex, "SHIPMENTS", ResolveSnapshotNumberPayloadReadModel(payload, "SHIPMENTS")
+
     If Trim$(locationSummary) = "" Then
         valueText = ResolveSnapshotTextPayloadReadModel(payload, "LOCATION")
         If valueText <> "" Then SetReadModelValue loInv, rowIndex, "LOCATION", valueText
     End If
 End Sub
+
+Private Function ResolveSnapshotNumberFieldReadModel(ByVal loSnap As ListObject, ByVal rowIndex As Long, ByVal fieldIndex As Long) As Double
+    If fieldIndex <= 0 Then Exit Function
+    ResolveSnapshotNumberFieldReadModel = NzDblReadModel(loSnap.DataBodyRange.Cells(rowIndex, fieldIndex).Value)
+End Function
 
 Private Sub MarkReadModelState(ByVal loInv As ListObject, _
                                ByVal refreshUtc As Date, _

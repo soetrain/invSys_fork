@@ -220,9 +220,12 @@ Public Function RefreshInvSysFromCanonicalRuntime(ByVal sourceWb As Workbook, _
     Dim loSource As ListObject
     Dim loSku As ListObject
     Dim loLoc As ListObject
+    Dim loLog As ListObject
     Dim skuQty As Object
     Dim skuLast As Object
     Dim locSummary As Object
+    Dim latestEventType As Object
+    Dim latestEventQty As Object
     Dim rowIndex As Long
     Dim sku As String
     Dim sourceSheetWasProtected As Boolean
@@ -264,6 +267,7 @@ Public Function RefreshInvSysFromCanonicalRuntime(ByVal sourceWb As Workbook, _
 
     Set loSku = FindListObjectByNameApply(runtimeWb, "tblSkuBalance")
     Set loLoc = FindListObjectByNameApply(runtimeWb, "tblLocationBalance")
+    Set loLog = FindListObjectByNameApply(runtimeWb, "tblInventoryLog")
     If loSku Is Nothing Then
         report = "SrcWb=" & sourceWb.Name & "|WH=" & warehouseId & "|RuntimePath=" & runtimePath & "|RuntimeWasOpen=" & CStr(runtimeWasOpen) & "|Result=Canonical runtime projection table tblSkuBalance not found."
         modInventoryInit.AppendSyncLogEntry "TRACE", report
@@ -278,9 +282,14 @@ Public Function RefreshInvSysFromCanonicalRuntime(ByVal sourceWb As Workbook, _
     skuLast.CompareMode = vbTextCompare
     Set locSummary = CreateObject("Scripting.Dictionary")
     locSummary.CompareMode = vbTextCompare
+    Set latestEventType = CreateObject("Scripting.Dictionary")
+    latestEventType.CompareMode = vbTextCompare
+    Set latestEventQty = CreateObject("Scripting.Dictionary")
+    latestEventQty.CompareMode = vbTextCompare
 
     BuildSkuProjectionDictionariesApply loSku, skuQty, skuLast
     BuildLocationSummaryDictionaryApply loLoc, locSummary
+    BuildLatestMovementDictionariesApply loLog, latestEventType, latestEventQty
 
     Set sourceSheet = loSource.Parent
     sourceSheetWasProtected = sourceSheet.ProtectContents
@@ -292,9 +301,9 @@ Public Function RefreshInvSysFromCanonicalRuntime(ByVal sourceWb As Workbook, _
             If sku <> "" Then
                 If skuQty.Exists(sku) Or locSummary.Exists(sku) Then
                     matchedCount = matchedCount + 1
-                    If CanonicalRuntimeRowWouldChangeApply(loSource, rowIndex, skuQty, locSummary, sku) Then changedCount = changedCount + 1
+                    If CanonicalRuntimeRowWouldChangeApply(loSource, rowIndex, skuQty, locSummary, latestEventType, latestEventQty, sku) Then changedCount = changedCount + 1
                 End If
-                ApplyCanonicalRuntimeRowApply loSource, rowIndex, skuQty, skuLast, locSummary, sku
+                ApplyCanonicalRuntimeRowApply loSource, rowIndex, skuQty, skuLast, locSummary, latestEventType, latestEventQty, sku
             End If
         Next rowIndex
     End If
@@ -1096,11 +1105,54 @@ ContinueLoop:
     Next rowIndex
 End Sub
 
+Private Sub BuildLatestMovementDictionariesApply(ByVal loLog As ListObject, _
+                                                 ByVal latestEventType As Object, _
+                                                 ByVal latestEventQty As Object)
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim eventType As String
+    Dim qtyDelta As Double
+    Dim appliedAt As Variant
+    Dim stamp As Double
+    Dim bestStamp As Double
+    Dim stampMap As Object
+
+    If loLog Is Nothing Then Exit Sub
+    If loLog.DataBodyRange Is Nothing Then Exit Sub
+
+    Set stampMap = CreateObject("Scripting.Dictionary")
+    stampMap.CompareMode = vbTextCompare
+
+    For rowIndex = 1 To loLog.ListRows.Count
+        sku = SafeTrimApply(GetCellByColumnApply(loLog, rowIndex, "SKU"))
+        If sku = "" Then GoTo ContinueLoop
+
+        eventType = NormalizeEventType(SafeTrimApply(GetCellByColumnApply(loLog, rowIndex, "EventType")))
+        qtyDelta = NzDblApply(GetCellByColumnApply(loLog, rowIndex, "QtyDelta"))
+        appliedAt = GetCellByColumnApply(loLog, rowIndex, "AppliedAtUTC")
+        If IsDate(appliedAt) Then
+            stamp = CDbl(CDate(appliedAt))
+        Else
+            stamp = CDbl(rowIndex)
+        End If
+
+        If stampMap.Exists(sku) Then bestStamp = CDbl(stampMap(sku))
+        If (Not stampMap.Exists(sku)) Or stamp >= bestStamp Then
+            stampMap(sku) = stamp
+            latestEventType(sku) = eventType
+            latestEventQty(sku) = Abs(qtyDelta)
+        End If
+ContinueLoop:
+    Next rowIndex
+End Sub
+
 Private Sub ApplyCanonicalRuntimeRowApply(ByVal loSource As ListObject, _
                                           ByVal rowIndex As Long, _
                                           ByVal skuQty As Object, _
                                           ByVal skuLast As Object, _
                                           ByVal locSummary As Object, _
+                                          ByVal latestEventType As Object, _
+                                          ByVal latestEventQty As Object, _
                                           ByVal sku As String)
     Dim qtyOnHand As Double
     Dim summaryText As String
@@ -1127,6 +1179,7 @@ Private Sub ApplyCanonicalRuntimeRowApply(ByVal loSource As ListObject, _
         SetInvSysValueApply loSource, rowIndex, "LAST EDITED", vbNullString
         SetInvSysValueApply loSource, rowIndex, "TOTAL INV LAST EDIT", vbNullString
     End If
+    ApplyLatestMovementToInvSysApply loSource, rowIndex, latestEventType, latestEventQty, sku
     SetInvSysValueApply loSource, rowIndex, "LastRefreshUTC", Now
     SetInvSysValueApply loSource, rowIndex, "SourceType", "CANONICAL_RUNTIME"
     SetInvSysValueApply loSource, rowIndex, "IsStale", False
@@ -1136,14 +1189,21 @@ Private Function CanonicalRuntimeRowWouldChangeApply(ByVal loSource As ListObjec
                                                      ByVal rowIndex As Long, _
                                                      ByVal skuQty As Object, _
                                                      ByVal locSummary As Object, _
+                                                     ByVal latestEventType As Object, _
+                                                     ByVal latestEventQty As Object, _
                                                      ByVal sku As String) As Boolean
     Dim qtyOnHand As Double
     Dim summaryText As String
     Dim primaryLocation As String
+    Dim expectedReceived As Double
+    Dim expectedUsed As Double
+    Dim expectedMade As Double
+    Dim expectedShipments As Double
 
     If skuQty.Exists(sku) Then qtyOnHand = CDbl(skuQty(sku))
     If locSummary.Exists(sku) Then summaryText = CStr(locSummary(sku))
     If summaryText <> "" Then primaryLocation = ResolvePrimaryLocationFromSummaryApply(summaryText)
+    ResolveLatestMovementValuesApply latestEventType, latestEventQty, sku, expectedReceived, expectedUsed, expectedMade, expectedShipments
 
     If ValuesDifferNumericApply(GetCellByColumnApply(loSource, rowIndex, "TOTAL INV"), qtyOnHand) Then
         CanonicalRuntimeRowWouldChangeApply = True
@@ -1160,9 +1220,71 @@ Private Function CanonicalRuntimeRowWouldChangeApply(ByVal loSource As ListObjec
     If primaryLocation <> "" Then
         If ValuesDifferTextApply(GetCellByColumnApply(loSource, rowIndex, "LOCATION"), primaryLocation) Then
             CanonicalRuntimeRowWouldChangeApply = True
+            Exit Function
         End If
     End If
+    If ValuesDifferNumericApply(GetCellByColumnApply(loSource, rowIndex, "RECEIVED"), expectedReceived) Then
+        CanonicalRuntimeRowWouldChangeApply = True
+        Exit Function
+    End If
+    If ValuesDifferNumericApply(GetCellByColumnApply(loSource, rowIndex, "USED"), expectedUsed) Then
+        CanonicalRuntimeRowWouldChangeApply = True
+        Exit Function
+    End If
+    If ValuesDifferNumericApply(GetCellByColumnApply(loSource, rowIndex, "MADE"), expectedMade) Then
+        CanonicalRuntimeRowWouldChangeApply = True
+        Exit Function
+    End If
+    If ValuesDifferNumericApply(GetCellByColumnApply(loSource, rowIndex, "SHIPMENTS"), expectedShipments) Then
+        CanonicalRuntimeRowWouldChangeApply = True
+    End If
 End Function
+
+Private Sub ApplyLatestMovementToInvSysApply(ByVal loSource As ListObject, _
+                                             ByVal rowIndex As Long, _
+                                             ByVal latestEventType As Object, _
+                                             ByVal latestEventQty As Object, _
+                                             ByVal sku As String)
+    Dim expectedReceived As Double
+    Dim expectedUsed As Double
+    Dim expectedMade As Double
+    Dim expectedShipments As Double
+
+    ResolveLatestMovementValuesApply latestEventType, latestEventQty, sku, expectedReceived, expectedUsed, expectedMade, expectedShipments
+    SetInvSysValueApply loSource, rowIndex, "RECEIVED", expectedReceived
+    SetInvSysValueApply loSource, rowIndex, "USED", expectedUsed
+    SetInvSysValueApply loSource, rowIndex, "MADE", expectedMade
+    SetInvSysValueApply loSource, rowIndex, "SHIPMENTS", expectedShipments
+End Sub
+
+Private Sub ResolveLatestMovementValuesApply(ByVal latestEventType As Object, _
+                                             ByVal latestEventQty As Object, _
+                                             ByVal sku As String, _
+                                             ByRef receivedOut As Double, _
+                                             ByRef usedOut As Double, _
+                                             ByRef madeOut As Double, _
+                                             ByRef shipmentsOut As Double)
+    Dim eventType As String
+    Dim qty As Double
+
+    If latestEventType Is Nothing Then Exit Sub
+    If latestEventQty Is Nothing Then Exit Sub
+    If Not latestEventType.Exists(sku) Then Exit Sub
+
+    eventType = UCase$(SafeTrimApply(latestEventType(sku)))
+    If latestEventQty.Exists(sku) Then qty = NzDblApply(latestEventQty(sku))
+
+    Select Case eventType
+        Case EVENT_TYPE_RECEIVE
+            receivedOut = qty
+        Case EVENT_TYPE_SHIP
+            shipmentsOut = qty
+        Case EVENT_TYPE_PROD_CONSUME
+            usedOut = qty
+        Case EVENT_TYPE_PROD_COMPLETE
+            madeOut = qty
+    End Select
+End Sub
 
 Private Function ResolveInvSysSkuApply(ByVal lo As ListObject, ByVal rowIndex As Long) As String
     ResolveInvSysSkuApply = SafeTrimApply(GetCellByColumnApply(lo, rowIndex, "ITEM_CODE"))

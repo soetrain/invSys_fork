@@ -154,10 +154,9 @@ Private Sub ApplyInventoryManagementPresentationSurface(ByVal wb As Workbook)
     If lo Is Nothing Then Exit Sub
 
     visibleCols = Array("ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "CATEGORY", _
-                        "TOTAL INV", "QtyAvailable", "LocationSummary", "LAST EDITED", _
+                        "RECEIVED", "USED", "MADE", "SHIPMENTS", "TOTAL INV", "QtyAvailable", "LocationSummary", "LAST EDITED", _
                         "LastRefreshUTC", "SnapshotId", "SourceType", "IsStale")
-    hiddenCols = Array("ROW", "VENDOR_CODE", "RECEIVED", "USED", "MADE", "SHIPMENTS", _
-                       "TOTAL INV LAST EDIT")
+    hiddenCols = Array("ROW", "VENDOR_CODE", "TOTAL INV LAST EDIT")
 
     For Each key In visibleCols
         SetTableColumnHiddenSurface lo, CStr(key), False
