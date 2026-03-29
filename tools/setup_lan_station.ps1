@@ -19,6 +19,14 @@ param(
     [string]$StationInboxRoot,
 
     [Parameter(Mandatory = $false)]
+    [string]$StationInboxShareName = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$StationInboxShareHost = "",
+
+    [switch]$PublishStationInboxShare,
+
+    [Parameter(Mandatory = $false)]
     [string]$RoleDefault = "RECEIVE",
 
     [Parameter(Mandatory = $false)]
@@ -188,6 +196,72 @@ function Ensure-Directory {
     }
 }
 
+function Test-IsUncPath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+    return $Path.StartsWith("\\")
+}
+
+function Normalize-ShareHost {
+    param([string]$HostName)
+
+    $normalized = $HostName.Trim()
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        $normalized = $env:COMPUTERNAME
+    }
+    return $normalized
+}
+
+function Normalize-ShareName {
+    param(
+        [string]$ProvidedName,
+        [string]$FallbackPath,
+        [string]$StationId
+    )
+
+    $name = $ProvidedName.Trim()
+    if ([string]::IsNullOrWhiteSpace($name) -and -not [string]::IsNullOrWhiteSpace($FallbackPath)) {
+        $leaf = Split-Path -Path $FallbackPath -Leaf
+        if (-not [string]::IsNullOrWhiteSpace($leaf)) {
+            $name = $leaf
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($name)) {
+        $name = "invSysStation" + $StationId
+    }
+    return $name
+}
+
+function Ensure-StationInboxShare {
+    param(
+        [string]$LocalInboxRoot,
+        [string]$ShareName
+    )
+
+    Ensure-Directory -Path $LocalInboxRoot
+
+    $existing = Get-SmbShare -Name $ShareName -ErrorAction SilentlyContinue
+    if ($null -eq $existing) {
+        New-SmbShare -Name $ShareName -Path $LocalInboxRoot -FullAccess "Everyone" | Out-Null
+        return "CREATED"
+    }
+
+    $currentPath = [string]$existing.Path
+    if (-not [string]::Equals($currentPath, $LocalInboxRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Existing SMB share '$ShareName' points to '$currentPath' instead of '$LocalInboxRoot'."
+    }
+
+    try {
+        Grant-SmbShareAccess -Name $ShareName -AccountName "Everyone" -AccessRight Full -Force -ErrorAction Stop | Out-Null
+    }
+    catch {
+        if ($_.Exception.Message -notmatch "already has") { throw }
+    }
+
+    return "EXISTS"
+}
+
 function Join-PackedArgs {
     param([string[]]$Values)
     return ($Values -join "|")
@@ -296,7 +370,30 @@ if ([string]::IsNullOrWhiteSpace($LocalConfigRoot)) {
 }
 
 $resolvedLocalConfigRoot = [System.IO.Path]::GetFullPath($LocalConfigRoot)
-$resolvedInboxRoot = [System.IO.Path]::GetFullPath($StationInboxRoot)
+$resolvedInboxRoot = ""
+$configuredInboxRoot = ""
+$stationInboxShareStatus = "SKIPPED"
+$stationInboxSharePath = ""
+$stationInboxShellAccessible = $false
+$stationInboxExcelOpenable = $false
+
+if ($PublishStationInboxShare) {
+    if (Test-IsUncPath -Path $StationInboxRoot) {
+        throw "PublishStationInboxShare requires a local StationInboxRoot path, not a UNC path: $StationInboxRoot"
+    }
+
+    $resolvedInboxRoot = [System.IO.Path]::GetFullPath($StationInboxRoot)
+    $shareHost = Normalize-ShareHost -HostName $StationInboxShareHost
+    $shareName = Normalize-ShareName -ProvidedName $StationInboxShareName -FallbackPath $resolvedInboxRoot -StationId $StationId
+    $stationInboxShareStatus = Ensure-StationInboxShare -LocalInboxRoot $resolvedInboxRoot -ShareName $shareName
+    $stationInboxSharePath = "\\" + $shareHost + "\" + $shareName
+    $configuredInboxRoot = $stationInboxSharePath
+}
+else {
+    $resolvedInboxRoot = [System.IO.Path]::GetFullPath($StationInboxRoot)
+    $configuredInboxRoot = $resolvedInboxRoot
+}
+
 $localConfigPath = Join-Path $resolvedLocalConfigRoot ($WarehouseId + ".invSys.Config.xlsb")
 $eventType = Convert-RoleToEventType -RoleName $RoleDefault
 $roleCapability = Convert-RoleToCapability -RoleName $RoleDefault
@@ -332,7 +429,7 @@ try {
             $WarehouseId,
             $StationId,
             $StationName,
-            ($resolvedInboxRoot + "\"),
+            ($configuredInboxRoot + "\"),
             $RoleDefault,
             $sharedConfigPath,
             $resolvedSharedRoot
@@ -378,7 +475,7 @@ try {
         $WarehouseId,
         $StationId,
         $StationName,
-        ($resolvedInboxRoot + "\"),
+        ($configuredInboxRoot + "\"),
         $RoleDefault,
         $localConfigPath,
         $resolvedSharedRoot
@@ -403,6 +500,8 @@ try {
         throw "Station inbox bootstrap failed. Result=$inboxResult"
     }
     $inboxPath = $inboxResult.Substring(3)
+    $stationInboxShellAccessible = Test-Path -LiteralPath $inboxPath
+    $stationInboxExcelOpenable = Test-ExcelWorkbookOpenable -Excel $excel -FullPath $inboxPath
 
     if ($CreateOperatorWorkbook) {
         $roleSetup = Get-RoleSetup -RoleName $RoleDefault -CoreWorkbookName $coreWb.Name
@@ -459,7 +558,8 @@ try {
     $snapshotShellAccessible = Test-Path -LiteralPath $sharedSnapshotPath
     $snapshotExcelOpenable = Test-ExcelWorkbookOpenable -Excel $excel -FullPath $sharedSnapshotPath
     $roleReady = $authValidationStatus.StartsWith("OK|", [System.StringComparison]::OrdinalIgnoreCase) `
-        -and (Test-Path -LiteralPath $inboxPath) `
+        -and $stationInboxShellAccessible `
+        -and $stationInboxExcelOpenable `
         -and $snapshotShellAccessible `
         -and $snapshotExcelOpenable `
         -and ((-not $CreateOperatorWorkbook) -or $operatorRefreshStatus -eq "OK")
@@ -473,7 +573,14 @@ try {
     Write-Output ("SharedAuthPath=" + $sharedAuthPath)
     Write-Output ("LocalConfigPath=" + $localConfigPath)
     Write-Output ("StationInboxRoot=" + $resolvedInboxRoot)
+    Write-Output ("ConfiguredPathInboxRoot=" + $configuredInboxRoot)
+    Write-Output ("StationInboxShareStatus=" + $stationInboxShareStatus)
+    if (-not [string]::IsNullOrWhiteSpace($stationInboxSharePath)) {
+        Write-Output ("StationInboxSharePath=" + $stationInboxSharePath)
+    }
     Write-Output ("InboxPath=" + $inboxPath)
+    Write-Output ("InboxShellAccessible=" + $stationInboxShellAccessible)
+    Write-Output ("InboxExcelOpenable=" + $stationInboxExcelOpenable)
     Write-Output ("RoleDefault=" + $RoleDefault.ToUpperInvariant())
     Write-Output ("RoleCapability=" + $roleCapability)
     Write-Output ("AuthProvision=" + $authProvisionStatus)
