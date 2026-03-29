@@ -73,7 +73,7 @@ Public Function AppendEventToOutbox(ByVal evt As Object, _
     SetTableRowValueSync loOutbox, rowIndex, "DeltaJson", BuildDeltaJsonForOutbox(evt)
     SaveWorkbookSync wbOutbox
 
-    If Trim$(runId) <> "" Then modPerfLog.PerfMark runId, "OutboxWrite", CLng((Timer - t0) * 1000)
+    If Trim$(runId) <> "" Then PerfMarkSafeSync runId, "OutboxWrite", CLng((Timer - t0) * 1000)
     report = "OK"
     AppendEventToOutbox = True
 CleanExit:
@@ -184,7 +184,7 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
     WriteSnapshotRows wbSnap, warehouseId, snapshotRows
     wbSnap.Save
 
-    If Trim$(perfRunId) <> "" Then modPerfLog.PerfMark perfRunId, "SnapshotWrite", CLng((Timer - t0) * 1000)
+    If Trim$(perfRunId) <> "" Then PerfMarkSafeSync perfRunId, "SnapshotWrite", CLng((Timer - t0) * 1000)
     report = savePath
     GenerateWarehouseSnapshot = True
 CleanExit:
@@ -1120,7 +1120,19 @@ Private Sub HideWorkbookWindowsSync(ByVal wb As Workbook)
     For i = 1 To wb.Windows.Count
         wb.Windows(i).Visible = False
     Next i
-    modUiQuiet.ReactivateQuietOwner
+    ReactivateQuietOwnerSafeSync
+    On Error GoTo 0
+End Sub
+
+Private Sub ReactivateQuietOwnerSafeSync()
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modUiQuiet.ReactivateQuietOwner"
+    On Error GoTo 0
+End Sub
+
+Private Sub PerfMarkSafeSync(ByVal runId As String, ByVal segmentName As String, ByVal elapsedMs As Long)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.PerfMark", runId, segmentName, elapsedMs
     On Error GoTo 0
 End Sub
 

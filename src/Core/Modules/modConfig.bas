@@ -1375,7 +1375,7 @@ Private Sub EnsureFolderRecursiveConfig(ByVal folderPath As String)
 End Sub
 
 Private Function NormalizeFolderPathConfig(ByVal folderPath As String, ByVal withTrailingSlash As Boolean) As String
-    folderPath = Trim$(Replace$(folderPath, "/", "\"))
+    folderPath = CollapseBackslashesConfig(Trim$(Replace$(folderPath, "/", "\")))
     If folderPath = "" Then Exit Function
 
     Do While Len(folderPath) > 3 And Right$(folderPath, 1) = "\"
@@ -1386,6 +1386,10 @@ Private Function NormalizeFolderPathConfig(ByVal folderPath As String, ByVal wit
     If withTrailingSlash And Right$(NormalizeFolderPathConfig, 1) <> "\" Then
         NormalizeFolderPathConfig = NormalizeFolderPathConfig & "\"
     End If
+End Function
+
+Public Function NormalizeFolderPathForRuntime(ByVal folderPath As String, Optional ByVal withTrailingSlash As Boolean = False) As String
+    NormalizeFolderPathForRuntime = NormalizeFolderPathConfig(folderPath, withTrailingSlash)
 End Function
 
 Private Function CombinePathConfig(ByVal basePath As String, ByVal childName As String) As String
@@ -1447,6 +1451,47 @@ Private Function IsUncShareRootConfig(ByVal folderPath As String) As Boolean
 
     parts = Split(trimmedPath, "\")
     IsUncShareRootConfig = (UBound(parts) = 1)
+End Function
+
+Private Function CollapseBackslashesConfig(ByVal pathIn As String) As String
+    Dim prefix As String
+    Dim body As String
+
+    pathIn = Trim$(pathIn)
+    If pathIn = "" Then Exit Function
+
+    If Left$(pathIn, 2) = "\\" Then
+        prefix = "\\"
+        body = Mid$(pathIn, 3)
+        Do While InStr(body, "\\") > 0
+            body = Replace$(body, "\\", "\")
+        Loop
+        CollapseBackslashesConfig = prefix & body
+        Exit Function
+    End If
+
+    If Len(pathIn) >= 2 And Mid$(pathIn, 2, 1) = ":" Then
+        prefix = Left$(pathIn, 2)
+        body = Mid$(pathIn, 3)
+        Do While Left$(body, 1) = "\"
+            body = Mid$(body, 2)
+        Loop
+        Do While InStr(body, "\\") > 0
+            body = Replace$(body, "\\", "\")
+        Loop
+        If body <> "" Then
+            CollapseBackslashesConfig = prefix & "\" & body
+        Else
+            CollapseBackslashesConfig = prefix & "\"
+        End If
+        Exit Function
+    End If
+
+    body = pathIn
+    Do While InStr(body, "\\") > 0
+        body = Replace$(body, "\\", "\")
+    Loop
+    CollapseBackslashesConfig = body
 End Function
 
 Private Sub SaveConfigWorkbookIfWritable(ByVal wb As Workbook)

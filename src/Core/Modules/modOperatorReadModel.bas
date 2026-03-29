@@ -389,14 +389,14 @@ Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Wo
     Application.ScreenUpdating = False
     screenSuppressed = True
     processedCount = modProcessor.RunBatch(resolvedWarehouseId, 0, batchReport)
-    If modPerfLog.IsTransactionActive() Then modPerfLog.MarkSegment "ProcessorRunBatch"
+    If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "ProcessorRunBatch"
     Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
-    If modPerfLog.IsTransactionActive() Then modPerfLog.MarkSegment "SurfaceEnsure"
+    If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "SurfaceEnsure"
     If Not RefreshInventoryReadModelForWorkbook(wb, resolvedWarehouseId, sourceType, refreshReport) Then
         report = refreshReport
         GoTo CleanExit
     End If
-    If modPerfLog.IsTransactionActive() Then modPerfLog.MarkSegment "LocalReadModelRefresh"
+    If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "LocalReadModelRefresh"
 
     If Left$(batchReport, 15) = "RunBatch failed" Then
         report = "RunBatch failed after local post/write. " & batchReport & " RefreshReport=" & refreshReport
@@ -404,7 +404,7 @@ Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Wo
     End If
 
     report = "Processed=" & CStr(processedCount) & "; BatchReport=" & batchReport & "; RefreshReport=" & refreshReport
-    modPerfLog.LogDiagnostic "RUNTIME", "RunBatchAndRefresh|Workbook=" & wb.Name & "|WarehouseId=" & resolvedWarehouseId & "|Processed=" & CStr(processedCount) & "|BatchReport=" & batchReport & "|RefreshReport=" & refreshReport
+    LogDiagnosticSafeReadModel "RUNTIME", "RunBatchAndRefresh|Workbook=" & wb.Name & "|WarehouseId=" & resolvedWarehouseId & "|Processed=" & CStr(processedCount) & "|BatchReport=" & batchReport & "|RefreshReport=" & refreshReport
     RunBatchAndRefreshOperatorWorkbook = True
 CleanExit:
     If screenSuppressed Then Application.ScreenUpdating = prevScreenUpdating
@@ -415,7 +415,7 @@ FailRefresh:
     If screenSuppressed Then Application.ScreenUpdating = prevScreenUpdating
     On Error GoTo 0
     report = "RunBatchAndRefreshOperatorWorkbook failed: " & Err.Description
-    modPerfLog.LogDiagnostic "RUNTIME", "RunBatchAndRefreshError|Workbook=" & ResolveWorkbookNameReadModel(wb) & "|WarehouseId=" & resolvedWarehouseId & "|Error=" & Err.Description
+    LogDiagnosticSafeReadModel "RUNTIME", "RunBatchAndRefreshError|Workbook=" & ResolveWorkbookNameReadModel(wb) & "|WarehouseId=" & resolvedWarehouseId & "|Error=" & Err.Description
 End Function
 
 Private Function ResolveOperatorWorkbook(ByVal targetWb As Workbook) As Workbook
@@ -1089,9 +1089,33 @@ Private Sub HideWorkbookWindowsReadModel(ByVal wb As Workbook)
     For i = 1 To wb.Windows.Count
         wb.Windows(i).Visible = False
     Next i
-    modUiQuiet.ReactivateQuietOwner
+    ReactivateQuietOwnerSafeReadModel
     On Error GoTo 0
 End Sub
+
+Private Sub ReactivateQuietOwnerSafeReadModel()
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modUiQuiet.ReactivateQuietOwner"
+    On Error GoTo 0
+End Sub
+
+Private Sub MarkSegmentSafeReadModel(ByVal segmentName As String)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.MarkSegment", segmentName
+    On Error GoTo 0
+End Sub
+
+Private Sub LogDiagnosticSafeReadModel(ByVal categoryName As String, ByVal detailText As String)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.LogDiagnostic", categoryName, detailText
+    On Error GoTo 0
+End Sub
+
+Private Function PerfIsTransactionActiveSafeReadModel() As Boolean
+    On Error Resume Next
+    PerfIsTransactionActiveSafeReadModel = CBool(Application.Run("'" & ThisWorkbook.Name & "'!modPerfLog.IsTransactionActive"))
+    On Error GoTo 0
+End Function
 
 Private Function ResolvePrimaryLocationReadModel(ByVal locationSummary As String, ByVal existingLocation As Variant) As String
     Dim summaryText As String

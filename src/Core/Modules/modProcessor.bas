@@ -89,13 +89,13 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
     lockHeld = True
     totalStart = Timer
     phaseStart = totalStart
-    modPerfLog.PerfBegin runId, "Processor.RunBatch"
+    PerfBeginSafeProcessor runId, "Processor.RunBatch"
     perfOwned = True
     lastHeartbeat = Now
 
     Set inboxTargets = ResolveInboxTargets(warehouseId)
-    modPerfLog.LogDiagnostic "PROCESSOR", "RunBatchStart|WarehouseId=" & warehouseId & "|InboxTargets=" & CStr(GetCollectionCountProcessor(inboxTargets)) & "|RunId=" & runId
-    modPerfLog.PerfMark runId, "Dequeue", CLng((Timer - phaseStart) * 1000)
+    LogDiagnosticSafeProcessor "PROCESSOR", "RunBatchStart|WarehouseId=" & warehouseId & "|InboxTargets=" & CStr(GetCollectionCountProcessor(inboxTargets)) & "|RunId=" & runId
+    PerfMarkSafeProcessor runId, "Dequeue", CLng((Timer - phaseStart) * 1000)
     phaseStart = Timer
     For Each target In inboxTargets
         If Not EnsureInboxTargetSchema(target("Workbook"), CStr(target("TableName")), report) Then GoTo ContinueInbox
@@ -170,8 +170,8 @@ ContinueInbox:
         CloseInboxTargetIfNeeded target
     Next target
 
-    modPerfLog.PerfMark runId, "Apply", CLng((Timer - phaseStart) * 1000)
-    If modPerfLog.IsTransactionActive() Then modPerfLog.MarkSegment "ProcessorApplyLoop"
+    PerfMarkSafeProcessor runId, "Apply", CLng((Timer - phaseStart) * 1000)
+    If PerfIsTransactionActiveSafeProcessor() Then MarkSegmentSafeProcessor "ProcessorApplyLoop"
     report = "Applied=" & CStr(RunBatch) & "; SkipDup=" & CStr(skipDupCount) & "; Poison=" & CStr(poisonCount) & "; RunId=" & runId
     If artifactWarnings > 0 Then report = report & "; ArtifactWarnings=" & CStr(artifactWarnings)
 
@@ -180,9 +180,9 @@ ContinueInbox:
         If report <> "" Then report = report & "; "
         report = report & "SnapshotError=" & artifactReport
     End If
-    If modPerfLog.IsTransactionActive() Then modPerfLog.MarkSegment "SnapshotPublish"
+    If PerfIsTransactionActiveSafeProcessor() Then MarkSegmentSafeProcessor "SnapshotPublish"
     If RunBatch > 0 Then modInventoryDomainBridge.ScheduleSourceWorkbookSyncBridge
-    modPerfLog.LogDiagnostic "PROCESSOR", "RunBatchReport|WarehouseId=" & warehouseId & "|" & report
+    LogDiagnosticSafeProcessor "PROCESSOR", "RunBatchReport|WarehouseId=" & warehouseId & "|" & report
 
 CleanExit:
     If Not inboxTargets Is Nothing Then
@@ -191,12 +191,12 @@ CleanExit:
         Next target
     End If
     If lockHeld Then Call modLockManager.ReleaseLock("INVENTORY", runId, inventoryWb)
-    If perfOwned Then modPerfLog.PerfEnd runId, CLng((Timer - totalStart) * 1000), report
+    If perfOwned Then PerfEndSafeProcessor runId, CLng((Timer - totalStart) * 1000), report
     Exit Function
 
 FailRun:
     report = "RunBatch failed: " & Err.Description
-    modPerfLog.LogDiagnostic "PROCESSOR", "RunBatchError|WarehouseId=" & warehouseId & "|RunId=" & runId & "|Error=" & Err.Description
+    LogDiagnosticSafeProcessor "PROCESSOR", "RunBatchError|WarehouseId=" & warehouseId & "|RunId=" & runId & "|Error=" & Err.Description
     Resume CleanExit
 End Function
 
@@ -494,12 +494,27 @@ Private Sub AddInboxTargetByPath(ByVal targets As Collection, _
 End Sub
 
 Private Function FileExistsProcessor(ByVal fullPath As String) As Boolean
+    Dim fso As Object
+
+    fullPath = modConfig.NormalizeFolderPathForRuntime(fullPath, False)
+    If fullPath = "" Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FileExistsProcessor = fso.FileExists(fullPath)
+    If Err.Number = 0 Then
+        On Error GoTo 0
+        Exit Function
+    End If
+
+    Err.Clear
     On Error GoTo InvalidPath
     FileExistsProcessor = (Len(Dir$(fullPath, vbNormal)) > 0)
+    On Error GoTo 0
     Exit Function
 
 InvalidPath:
-    modPerfLog.LogDiagnostic "PROCESSOR", "SkipInboxTargetInvalidPath|Path=" & fullPath & "|Error=" & Err.Description
+    LogDiagnosticSafeProcessor "PROCESSOR", "SkipInboxTargetInvalidPath|Path=" & fullPath & "|Error=" & Err.Description
     On Error GoTo 0
 End Function
 
@@ -535,7 +550,7 @@ Private Function ExpandInboxPathProcessor(ByVal rawPath As String, ByVal warehou
     If ExpandInboxPathProcessor = "" Then Exit Function
     ExpandInboxPathProcessor = Replace$(ExpandInboxPathProcessor, "{WarehouseId}", warehouseId)
     ExpandInboxPathProcessor = Replace$(ExpandInboxPathProcessor, "{StationId}", stationId)
-    ExpandInboxPathProcessor = Replace$(ExpandInboxPathProcessor, "/", "\")
+    ExpandInboxPathProcessor = modConfig.NormalizeFolderPathForRuntime(ExpandInboxPathProcessor, False)
     Do While Right$(ExpandInboxPathProcessor, 1) = "\"
         ExpandInboxPathProcessor = Left$(ExpandInboxPathProcessor, Len(ExpandInboxPathProcessor) - 1)
     Loop
@@ -555,14 +570,20 @@ End Function
 Private Function OpenInboxWorkbookForProcessor(ByVal fullPath As String) As Workbook
     Dim prevScreenUpdating As Boolean
 
+    fullPath = modConfig.NormalizeFolderPathForRuntime(fullPath, False)
     prevScreenUpdating = Application.ScreenUpdating
     Application.ScreenUpdating = False
     On Error Resume Next
     Set OpenInboxWorkbookForProcessor = Application.Workbooks.Open(Filename:=fullPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+    If Err.Number <> 0 Then
+        LogDiagnosticSafeProcessor "PROCESSOR", "SkipInboxTargetOpenFailed|Path=" & fullPath & "|Error=" & Err.Description
+        Err.Clear
+    End If
     On Error GoTo 0
     Application.ScreenUpdating = prevScreenUpdating
     If OpenInboxWorkbookForProcessor Is Nothing Then Exit Function
     If OpenInboxWorkbookForProcessor.ReadOnly Then
+        LogDiagnosticSafeProcessor "PROCESSOR", "SkipInboxTargetReadOnly|Path=" & fullPath
         OpenInboxWorkbookForProcessor.Close SaveChanges:=False
         Set OpenInboxWorkbookForProcessor = Nothing
         Exit Function
@@ -583,7 +604,9 @@ End Sub
 Private Sub CloseProcessorWorkbookIfNeeded(ByVal wb As Workbook, ByVal saveChanges As Boolean)
     On Error Resume Next
     If wb Is Nothing Then Exit Sub
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
     HideProcessorWorkbookWindows wb
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
     wb.Close SaveChanges:=saveChanges
     On Error GoTo 0
 End Sub
@@ -596,9 +619,51 @@ Private Sub HideProcessorWorkbookWindows(ByVal wb As Workbook)
     For i = 1 To wb.Windows.Count
         wb.Windows(i).Visible = False
     Next i
-    modUiQuiet.ReactivateQuietOwner
+    ReactivateQuietOwnerSafeProcessor
     On Error GoTo 0
 End Sub
+
+Private Sub ReactivateQuietOwnerSafeProcessor()
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modUiQuiet.ReactivateQuietOwner"
+    On Error GoTo 0
+End Sub
+
+Private Sub PerfBeginSafeProcessor(ByVal runId As String, ByVal activityName As String)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.PerfBegin", runId, activityName
+    On Error GoTo 0
+End Sub
+
+Private Sub PerfMarkSafeProcessor(ByVal runId As String, ByVal segmentName As String, ByVal elapsedMs As Long)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.PerfMark", runId, segmentName, elapsedMs
+    On Error GoTo 0
+End Sub
+
+Private Sub PerfEndSafeProcessor(ByVal runId As String, ByVal totalMs As Long, ByVal detailText As String)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.PerfEnd", runId, totalMs, detailText
+    On Error GoTo 0
+End Sub
+
+Private Sub MarkSegmentSafeProcessor(ByVal segmentName As String)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.MarkSegment", segmentName
+    On Error GoTo 0
+End Sub
+
+Private Sub LogDiagnosticSafeProcessor(ByVal categoryName As String, ByVal detailText As String)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.LogDiagnostic", categoryName, detailText
+    On Error GoTo 0
+End Sub
+
+Private Function PerfIsTransactionActiveSafeProcessor() As Boolean
+    On Error Resume Next
+    PerfIsTransactionActiveSafeProcessor = CBool(Application.Run("'" & ThisWorkbook.Name & "'!modPerfLog.IsTransactionActive"))
+    On Error GoTo 0
+End Function
 
 Private Function ResolveSingleInboxWorkbook(ByVal tableName As String) As Workbook
     Dim targets As Collection
@@ -705,7 +770,7 @@ Private Sub UpdateInboxRowStatus(ByVal lo As ListObject, ByVal rowIndex As Long,
 
     SetSheetProtectionProcessor lo.Parent, True
     SaveWorkbookProcessor lo.Parent.Parent
-    modPerfLog.LogDiagnostic "INBOX-STATUS", "Workbook=" & lo.Parent.Parent.Name & "|Table=" & lo.Name & "|EventID=" & eventId & "|Status=" & newStatus & "|ErrorCode=" & errorCode & "|ErrorMessage=" & errorMessage
+    LogDiagnosticSafeProcessor "INBOX-STATUS", "Workbook=" & lo.Parent.Parent.Name & "|Table=" & lo.Name & "|EventID=" & eventId & "|Status=" & newStatus & "|ErrorCode=" & errorCode & "|ErrorMessage=" & errorMessage
 End Sub
 
 Private Function GetDictionaryString(ByVal d As Object, ByVal key As String) As String

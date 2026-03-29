@@ -1,0 +1,11 @@
+[2026-03-29 13:55:46] Creating setup harness.
+[2026-03-29 13:55:48] Running seed macro.
+[2026-03-29 13:55:50] Seed result: ERR|That name is already taken. Try a different one.
+[2026-03-29 13:55:50] Creating session A/B harnesses.
+[2026-03-29 13:55:53] Attaching session A.
+[2026-03-29 13:55:55] Attach A result: OK|Warehouse=WH89|Station=S1
+[2026-03-29 13:55:55] Attaching session B.
+[2026-03-29 13:55:58] Attach B result: OK|Warehouse=WH89|Station=S2
+[2026-03-29 13:55:58] Holding canonical inventory in session A.
+[2026-03-29 13:55:59] Hold result: OK|Path=C:\Users\Justin\repos\invSys_fork\tests\fixtures\phase6_lan_boundary_20260329_135546_352\runtime\WH89.invSys.Data.Inventory.xlsb|ReadOnly=False
+[2026-03-29 13:55:59] Running lock-denied receive in session B.

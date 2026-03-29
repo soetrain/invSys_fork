@@ -210,7 +210,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
     queueRunId = Trim$(perfRunId)
     If queueRunId = "" Then queueRunId = eventIdOut
     If queueRunId <> "" Then
-        modPerfLog.PerfBegin queueRunId, "RoleEventWriter.QueueEvent"
+        PerfBeginSafeRole queueRunId, "RoleEventWriter.QueueEvent"
         perfStarted = True
     End If
 
@@ -221,6 +221,10 @@ Private Function QueueEventCore(ByVal eventType As String, _
         Set wbInbox = targetInboxWb
     End If
     If wbInbox Is Nothing Then Exit Function
+    If wbInbox.ReadOnly Then
+        errorMessage = "Inbox workbook is read-only or locked by another Excel session."
+        GoTo CleanExit
+    End If
     openedTransient = (targetInboxWb Is Nothing) And (Not WorkbookWasAlreadyOpenRole(openPaths, wbInbox))
     If openedTransient Then HideWorkbookWindowsRole wbInbox
 
@@ -274,11 +278,11 @@ Private Function QueueEventCore(ByVal eventType As String, _
     SetTableRowValueRole lo, rowIndex, "FailedAtUTC", ""
 
     SaveWorkbookRole wbInbox
-    If queueRunId <> "" Then modPerfLog.PerfMark queueRunId, "InboxWrite", CLng((Timer - queueStart) * 1000)
+    If queueRunId <> "" Then PerfMarkSafeRole queueRunId, "InboxWrite", CLng((Timer - queueStart) * 1000)
 
     QueueEventCore = True
 CleanExit:
-    If perfStarted Then modPerfLog.PerfEnd queueRunId, CLng((Timer - queueStart) * 1000), IIf(QueueEventCore, "OK", "FAIL") & " EventType=" & UCase$(Trim$(eventType))
+    If perfStarted Then PerfEndSafeRole queueRunId, CLng((Timer - queueStart) * 1000), IIf(QueueEventCore, "OK", "FAIL") & " EventType=" & UCase$(Trim$(eventType))
     On Error Resume Next
     If Not ws Is Nothing Then
         If sheetWasProtected Then RestoreWorksheetProtectionRole ws
@@ -342,6 +346,10 @@ Private Function ResolveInboxWorkbookForEventType(ByVal eventType As String, _
     For Each wb In Application.Workbooks
         If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 _
            Or StrComp(wb.Name, expectedName, vbTextCompare) = 0 Then
+            If wb.ReadOnly Then
+                errorMessage = "Inbox workbook is read-only or locked by another Excel session."
+                Exit Function
+            End If
             Set ResolveInboxWorkbookForEventType = wb
             Exit Function
         End If
@@ -353,11 +361,27 @@ Private Function ResolveInboxWorkbookForEventType(ByVal eventType As String, _
         alertsSuppressed = True
         prevScreenUpdating = Application.ScreenUpdating
         Application.ScreenUpdating = False
-        Set ResolveInboxWorkbookForEventType = Application.Workbooks.Open(fullPath)
-        If Not ResolveInboxWorkbookForEventType Is Nothing Then HideWorkbookWindowsRole ResolveInboxWorkbookForEventType
+        Set ResolveInboxWorkbookForEventType = Application.Workbooks.Open( _
+            Filename:=fullPath, _
+            UpdateLinks:=0, _
+            ReadOnly:=False, _
+            IgnoreReadOnlyRecommended:=True, _
+            Notify:=False, _
+            AddToMru:=False)
         Application.ScreenUpdating = prevScreenUpdating
         Application.DisplayAlerts = prevAlerts
         alertsSuppressed = False
+        If ResolveInboxWorkbookForEventType Is Nothing Then
+            errorMessage = "Inbox workbook open failed."
+            Exit Function
+        End If
+        If ResolveInboxWorkbookForEventType.ReadOnly Then
+            errorMessage = "Inbox workbook is read-only or locked by another Excel session."
+            ResolveInboxWorkbookForEventType.Close SaveChanges:=False
+            Set ResolveInboxWorkbookForEventType = Nothing
+            Exit Function
+        End If
+        HideWorkbookWindowsRole ResolveInboxWorkbookForEventType
     Else
         prevEvents = Application.EnableEvents
         Application.EnableEvents = False
@@ -423,7 +447,8 @@ Private Function ExpandConfigPathRole(ByVal rawPath As String, ByVal warehouseId
 
     ExpandConfigPathRole = Replace$(ExpandConfigPathRole, "{WarehouseId}", warehouseId)
     ExpandConfigPathRole = Replace$(ExpandConfigPathRole, "{StationId}", stationId)
-    ExpandConfigPathRole = Replace$(ExpandConfigPathRole, "/", "\")
+    ExpandConfigPathRole = modConfig.NormalizeFolderPathForRuntime(ExpandConfigPathRole, False)
+    If ExpandConfigPathRole = "" Then Exit Function
     Do While Right$(ExpandConfigPathRole, 1) = "\"
         ExpandConfigPathRole = Left$(ExpandConfigPathRole, Len(ExpandConfigPathRole) - 1)
     Loop
@@ -452,23 +477,29 @@ Private Function CapabilityForEventTypeRole(ByVal eventType As String) As String
 End Function
 
 Private Sub EnsureFolderExistsRole(ByVal folderPath As String)
-    Dim parts As Variant
-    Dim currentPath As String
-    Dim i As Long
+    Dim parentPath As String
+    Dim sepPos As Long
+    Dim fso As Object
 
+    folderPath = NormalizeFolderPathRole(folderPath, False)
     If folderPath = "" Then Exit Sub
-    parts = Split(folderPath, "\")
-    If UBound(parts) < 0 Then Exit Sub
+    If FolderExistsRole(folderPath) Then Exit Sub
+    If IsUncShareRootRole(folderPath) Then Exit Sub
 
-    currentPath = parts(0)
-    If Right$(currentPath, 1) = ":" Then currentPath = currentPath & "\"
+    sepPos = InStrRev(folderPath, "\")
+    If sepPos > 1 Then
+        parentPath = Left$(folderPath, sepPos - 1)
+        If Right$(parentPath, 1) = ":" Then parentPath = parentPath & "\"
+        If parentPath <> "" And Not FolderExistsRole(parentPath) Then EnsureFolderExistsRole parentPath
+    End If
 
-    For i = 1 To UBound(parts)
-        If parts(i) <> "" Then
-            currentPath = CombinePathRole(currentPath, parts(i))
-            If Len(Dir$(currentPath, vbDirectory)) = 0 Then MkDir currentPath
-        End If
-    Next i
+    If FolderExistsRole(folderPath) Then Exit Sub
+    If IsUncPathRole(folderPath) Then
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder folderPath
+    Else
+        MkDir folderPath
+    End If
 End Sub
 
 Private Function CombinePathRole(ByVal basePath As String, ByVal childName As String) As String
@@ -481,8 +512,50 @@ Private Function CombinePathRole(ByVal basePath As String, ByVal childName As St
     End If
 End Function
 
+Private Function NormalizeFolderPathRole(ByVal folderPath As String, ByVal withTrailingSlash As Boolean) As String
+    NormalizeFolderPathRole = modConfig.NormalizeFolderPathForRuntime(folderPath, withTrailingSlash)
+End Function
+
+Private Function FolderExistsRole(ByVal folderPath As String) As Boolean
+    Dim fso As Object
+
+    folderPath = NormalizeFolderPathRole(folderPath, False)
+    If folderPath = "" Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FolderExistsRole = fso.FolderExists(folderPath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FolderExistsRole = (Len(Dir$(folderPath, vbDirectory)) > 0)
+    End If
+    On Error GoTo 0
+End Function
+
+Private Function IsUncPathRole(ByVal folderPath As String) As Boolean
+    folderPath = NormalizeFolderPathRole(folderPath, False)
+    IsUncPathRole = (Left$(folderPath, 2) = "\\")
+End Function
+
+Private Function IsUncShareRootRole(ByVal folderPath As String) As Boolean
+    Dim trimmedPath As String
+    Dim parts() As String
+
+    trimmedPath = NormalizeFolderPathRole(folderPath, False)
+    If Left$(trimmedPath, 2) <> "\\" Then Exit Function
+
+    trimmedPath = Mid$(trimmedPath, 3)
+    If trimmedPath = "" Then Exit Function
+
+    parts = Split(trimmedPath, "\")
+    IsUncShareRootRole = (UBound(parts) = 1)
+End Function
+
 Private Sub SaveWorkbookAsXlsbRole(ByVal wb As Workbook, ByVal fullPath As String)
     If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
+    On Error GoTo 0
     wb.SaveAs fullPath, 50
 End Sub
 
@@ -490,6 +563,9 @@ Private Sub SaveWorkbookRole(ByVal wb As Workbook)
     If wb Is Nothing Then Exit Sub
     If wb.ReadOnly Then Exit Sub
     If wb.Path = "" Then Exit Sub
+    On Error Resume Next
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
+    On Error GoTo 0
     wb.Save
 End Sub
 
@@ -522,7 +598,31 @@ Private Sub HideWorkbookWindowsRole(ByVal wb As Workbook)
     For i = 1 To wb.Windows.Count
         wb.Windows(i).Visible = False
     Next i
-    modUiQuiet.ReactivateQuietOwner
+    ReactivateQuietOwnerSafeRole
+    On Error GoTo 0
+End Sub
+
+Private Sub ReactivateQuietOwnerSafeRole()
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modUiQuiet.ReactivateQuietOwner"
+    On Error GoTo 0
+End Sub
+
+Private Sub PerfBeginSafeRole(ByVal runId As String, ByVal activityName As String)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.PerfBegin", runId, activityName
+    On Error GoTo 0
+End Sub
+
+Private Sub PerfMarkSafeRole(ByVal runId As String, ByVal segmentName As String, ByVal elapsedMs As Long)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.PerfMark", runId, segmentName, elapsedMs
+    On Error GoTo 0
+End Sub
+
+Private Sub PerfEndSafeRole(ByVal runId As String, ByVal totalMs As Long, ByVal detailText As String)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.PerfEnd", runId, totalMs, detailText
     On Error GoTo 0
 End Sub
 
@@ -530,10 +630,12 @@ Private Sub CloseTransientRoleWorkbook(ByVal wb As Workbook)
     If wb Is Nothing Then Exit Sub
 
     On Error Resume Next
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
     HideWorkbookWindowsRole wb
     If Not wb.ReadOnly Then
         If wb.Saved = False Then wb.Save
     End If
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
     wb.Close SaveChanges:=False
     On Error GoTo 0
 End Sub
