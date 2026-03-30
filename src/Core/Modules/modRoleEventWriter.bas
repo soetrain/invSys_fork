@@ -40,6 +40,89 @@ Public Function ResolveInboxWorkbookPath(ByVal eventType As String, _
     ResolveInboxWorkbookPath = ResolveInboxWorkbookPathResolvedRole(eventType, resolvedWh, resolvedSt, errorMessage)
 End Function
 
+Public Function DescribeInboxPendingRows(ByVal eventType As String, _
+                                         Optional ByVal warehouseId As String = "", _
+                                         Optional ByVal stationId As String = "", _
+                                         Optional ByVal eventIdsCsv As String = "", _
+                                         Optional ByRef pendingCount As Long = 0, _
+                                         Optional ByRef matchingPendingCount As Long = 0, _
+                                         Optional ByRef errorMessage As String = "") As String
+    On Error GoTo FailDescribe
+
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+    Dim fullPath As String
+    Dim wbInbox As Workbook
+    Dim lo As ListObject
+    Dim openPaths As Object
+    Dim openedTransient As Boolean
+    Dim rowIndex As Long
+    Dim statusVal As String
+    Dim eventId As String
+    Dim createdVal As Variant
+    Dim oldestCreated As String
+    Dim newestCreated As String
+    Dim sampleIds As String
+
+    pendingCount = 0
+    matchingPendingCount = 0
+    eventIdsCsv = Trim$(eventIdsCsv)
+
+    If Not EnsureContextResolved(resolvedWh, resolvedSt, warehouseId, stationId, errorMessage) Then Exit Function
+
+    fullPath = ResolveInboxWorkbookPathResolvedRole(eventType, resolvedWh, resolvedSt, errorMessage)
+    If fullPath = "" Then Exit Function
+
+    Set openPaths = CaptureOpenWorkbookPathsRole()
+    Set wbInbox = ResolveInboxWorkbookForEventType(eventType, resolvedWh, resolvedSt, errorMessage)
+    If wbInbox Is Nothing Then Exit Function
+    openedTransient = Not WorkbookWasAlreadyOpenRole(openPaths, wbInbox)
+
+    Set lo = FindListObjectByNameRole(wbInbox, InboxTableNameRole(eventType))
+    If lo Is Nothing Then
+        errorMessage = "Inbox table not found for event type '" & eventType & "'."
+        GoTo CleanExit
+    End If
+
+    If Not lo.DataBodyRange Is Nothing Then
+        For rowIndex = 1 To lo.ListRows.Count
+            statusVal = UCase$(Trim$(CStr(GetTableRowValueRole(lo, rowIndex, "Status"))))
+            If statusVal = "" Or statusVal = "NEW" Then
+                pendingCount = pendingCount + 1
+                eventId = Trim$(CStr(GetTableRowValueRole(lo, rowIndex, "EventID")))
+                If EventIdListedRole(eventId, eventIdsCsv) Then matchingPendingCount = matchingPendingCount + 1
+                createdVal = GetTableRowValueRole(lo, rowIndex, "CreatedAtUTC")
+                If IsDate(createdVal) Then
+                    If oldestCreated = "" Then oldestCreated = Format$(CDate(createdVal), "yyyy-mm-dd hh:nn:ss")
+                    newestCreated = Format$(CDate(createdVal), "yyyy-mm-dd hh:nn:ss")
+                End If
+                If sampleIds = "" Then
+                    sampleIds = eventId
+                ElseIf pendingCount <= 3 Then
+                    sampleIds = sampleIds & "," & eventId
+                End If
+            End If
+        Next rowIndex
+    End If
+
+    DescribeInboxPendingRows = "Path=" & fullPath & _
+        "; PendingRows=" & CStr(pendingCount) & _
+        "; MatchingPendingRows=" & CStr(matchingPendingCount) & _
+        "; OldestCreatedAt=" & oldestCreated & _
+        "; NewestCreatedAt=" & newestCreated & _
+        "; SampleEventIds=" & sampleIds
+
+CleanExit:
+    On Error Resume Next
+    If openedTransient Then CloseTransientRoleWorkbook wbInbox
+    On Error GoTo 0
+    Exit Function
+
+FailDescribe:
+    errorMessage = "Inbox pending inspection failed: " & Err.Description
+    Resume CleanExit
+End Function
+
 Public Function QueueReceiveEvent(Optional ByVal warehouseId As String = "", _
                                   Optional ByVal stationId As String = "", _
                                   Optional ByVal userId As String = "", _
@@ -465,6 +548,17 @@ Private Function InboxWorkbookNameRole(ByVal eventType As String, ByVal stationI
     End Select
 End Function
 
+Private Function InboxTableNameRole(ByVal eventType As String) As String
+    Select Case UCase$(Trim$(eventType))
+        Case ROLE_EVENT_TYPE_RECEIVE
+            InboxTableNameRole = TABLE_INBOX_RECEIVE
+        Case ROLE_EVENT_TYPE_SHIP
+            InboxTableNameRole = TABLE_INBOX_SHIP
+        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
+            InboxTableNameRole = TABLE_INBOX_PROD
+    End Select
+End Function
+
 Private Function CapabilityForEventTypeRole(ByVal eventType As String) As String
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
@@ -680,6 +774,14 @@ Private Sub SetTableRowValueRole(ByVal lo As ListObject, ByVal rowIndex As Long,
     lo.DataBodyRange.Cells(rowIndex, idx).Value = valueIn
 End Sub
 
+Private Function GetTableRowValueRole(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As Variant
+    Dim idx As Long
+
+    idx = GetColumnIndexRole(lo, columnName)
+    If idx = 0 Then Exit Function
+    GetTableRowValueRole = lo.DataBodyRange.Cells(rowIndex, idx).Value
+End Function
+
 Private Function GetColumnIndexRole(ByVal lo As ListObject, ByVal columnName As String) As Long
     Dim i As Long
 
@@ -715,6 +817,17 @@ Private Function CreateGuidFallbackRole() As String
         token = token & Mid$(chars, Int((Len(chars) * Rnd) + 1), 1)
     Next i
     CreateGuidFallbackRole = Left$(token, 8) & "-" & Mid$(token, 9, 4) & "-" & Mid$(token, 13, 4) & "-" & Mid$(token, 17, 4) & "-" & Right$(token, 12)
+End Function
+
+Private Function EventIdListedRole(ByVal eventId As String, ByVal eventIdsCsv As String) As Boolean
+    Dim normalizedIds As String
+
+    eventId = Trim$(eventId)
+    eventIdsCsv = Replace$(Trim$(eventIdsCsv), " ", "")
+    If eventId = "" Or eventIdsCsv = "" Then Exit Function
+
+    normalizedIds = "," & eventIdsCsv & ","
+    EventIdListedRole = (InStr(1, normalizedIds, "," & eventId & ",", vbTextCompare) > 0)
 End Function
 
 Private Function DictionaryToJson(ByVal d As Object) As String

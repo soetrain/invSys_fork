@@ -103,6 +103,7 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
         Set loInbox = FindListObjectByNameProcessor(target("Workbook"), CStr(target("TableName")))
         If loInbox Is Nothing Then GoTo ContinueInbox
         If loInbox.DataBodyRange Is Nothing Then GoTo ContinueInbox
+        LogInboxBacklogProcessor loInbox, target("Workbook")
 
         For rowIndex = 1 To loInbox.ListRows.Count
             If RunBatch >= batchSize Then Exit For
@@ -730,6 +731,32 @@ Private Function IsProcessableInboxRow(ByVal lo As ListObject, ByVal rowIndex As
     IsProcessableInboxRow = True
 End Function
 
+Private Sub LogInboxBacklogProcessor(ByVal lo As ListObject, ByVal wb As Workbook)
+    Dim rowIndex As Long
+    Dim newCount As Long
+    Dim oldestCreated As String
+    Dim newestCreated As String
+    Dim createdVal As Variant
+    Dim workbookName As String
+
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    For rowIndex = 1 To lo.ListRows.Count
+        If IsProcessableInboxRow(lo, rowIndex, vbNullString) Then
+            newCount = newCount + 1
+            createdVal = GetCellByColumnProcessor(lo, rowIndex, "CreatedAtUTC")
+            If IsDate(createdVal) Then
+                If oldestCreated = "" Then oldestCreated = Format$(CDate(createdVal), "yyyy-mm-dd hh:nn:ss")
+                newestCreated = Format$(CDate(createdVal), "yyyy-mm-dd hh:nn:ss")
+            End If
+        End If
+    Next rowIndex
+
+    workbookName = ResolveWorkbookNameProcessor(wb)
+    LogDiagnosticSafeProcessor "PROCESSOR", "InboxBacklog|Workbook=" & workbookName & "|Table=" & lo.Name & "|NewRows=" & CStr(newCount) & "|OldestCreatedAt=" & oldestCreated & "|NewestCreatedAt=" & newestCreated
+End Sub
+
 Private Function CapabilityForEventType(ByVal eventType As String) As String
     Select Case UCase$(SafeTrimProcessor(eventType))
         Case PROC_EVENT_TYPE_RECEIVE
@@ -777,6 +804,16 @@ Private Function GetDictionaryString(ByVal d As Object, ByVal key As String) As 
     On Error Resume Next
     GetDictionaryString = SafeTrimProcessor(d(key))
     On Error GoTo 0
+End Function
+
+Private Function ResolveWorkbookNameProcessor(ByVal wb As Workbook) As String
+    If wb Is Nothing Then
+        ResolveWorkbookNameProcessor = "<none>"
+    ElseIf Trim$(wb.Name) <> "" Then
+        ResolveWorkbookNameProcessor = wb.Name
+    Else
+        ResolveWorkbookNameProcessor = "<unnamed>"
+    End If
 End Function
 
 Private Function IsReceiveInboxWorkbookName(ByVal wbName As String) As Boolean

@@ -29,6 +29,7 @@ Private Const SHEET_RECEIVING As String = "ReceivedTally"
 Private Const TABLE_RECEIVING As String = "ReceivedTally"
 Private Const TABLE_AGG_RECEIVED As String = "AggregateReceived"
 Private Const TABLE_INV_RECEIVING As String = "invSysData_Receiving"
+Private Const EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Private Const RECV_LAYOUT_TALLY_ADDR As String = "C3"
 Private Const RECV_LAYOUT_AGG_ADDR As String = "J3"
 Private Const RECV_LAYOUT_INV_ADDR As String = "V3"
@@ -412,6 +413,12 @@ Public Sub ConfirmWrites()
     Dim prevDisplayStatusBar As Boolean
     Dim prevCalculation As Variant
     Dim uiSuppressed As Boolean
+    Dim queueRuntimeReport As String
+    Dim queuePendingReport As String
+    Dim queueInspectError As String
+    Dim queuePendingCount As Long
+    Dim queueMatchingPendingCount As Long
+    Dim queuedEventIdsCsv As String
 
     Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
     If wb Is Nothing Then Set wb = ThisWorkbook
@@ -452,6 +459,20 @@ Public Sub ConfirmWrites()
     End If
     modPerfLog.MarkSegment "Validation"
 
+    queuePendingReport = modRoleEventWriter.DescribeInboxPendingRows(EVENT_TYPE_RECEIVE, "", "", "", queuePendingCount, queueMatchingPendingCount, queueInspectError)
+    If queueInspectError <> "" Then
+        modPerfLog.EndTransaction "InboxInspectFailed"
+        MsgBox "Cannot confirm because the receiving inbox could not be inspected." & vbCrLf & queueInspectError, vbCritical, "invSys Receiving"
+        GoTo CleanExit
+    End If
+    If queuePendingCount > 0 Then
+        modPerfLog.EndTransaction "PendingInboxBlocked"
+        MsgBox "Cannot confirm while the receiving inbox still has pending rows." & vbCrLf & _
+               "Unclog the inbox before posting more receives." & vbCrLf & vbCrLf & _
+               queuePendingReport, vbExclamation, "invSys Receiving"
+        GoTo CleanExit
+    End If
+
     prevEvents = Application.EnableEvents
     prevScreenUpdating = Application.ScreenUpdating
     prevAlerts = Application.DisplayAlerts
@@ -465,7 +486,7 @@ Public Sub ConfirmWrites()
     Application.Calculation = xlCalculationManual
     uiSuppressed = True
 
-    If Not QueueReceiveEventsFromAggregate(agg, errs) Then
+    If Not QueueReceiveEventsFromAggregate(agg, errs, queuedEventIdsCsv) Then
         If uiSuppressed Then
             If IsNumeric(prevCalculation) Then
                 Application.Calculation = CLng(prevCalculation)
@@ -557,6 +578,23 @@ NextRt:
     ClearTable agg
     modPerfLog.MarkSegment "ClearStaging"
     ProcessQueuedReceiveEventsRuntime wb
+
+    queuePendingReport = modRoleEventWriter.DescribeInboxPendingRows(EVENT_TYPE_RECEIVE, "", "", queuedEventIdsCsv, queuePendingCount, queueMatchingPendingCount, queueInspectError)
+    If queueInspectError <> "" Then
+        modPerfLog.LogDiagnostic "RECEIVE-RUNTIME", "Result=PENDING_INSPECT_FAIL|Workbook=" & wb.Name & "|Error=" & queueInspectError
+        MsgBox "Receive rows were queued, but the inbox could not be re-inspected to confirm dequeue state." & vbCrLf & _
+               queueInspectError, vbExclamation, "invSys Receiving"
+        GoTo CleanExit
+    End If
+    If queueMatchingPendingCount > 0 Then
+        queueRuntimeReport = "Queued receive rows remain pending after runtime processing." & vbCrLf & _
+                             "Unclog the inbox before retrying Confirm Writes." & vbCrLf & vbCrLf & _
+                             queuePendingReport
+        modPerfLog.LogDiagnostic "RECEIVE-RUNTIME", "Result=PENDING|Workbook=" & wb.Name & "|Report=" & queuePendingReport
+        MsgBox queueRuntimeReport, vbExclamation, "invSys Receiving"
+        GoTo CleanExit
+    End If
+
     modPerfLog.MarkSegment "RuntimeProcess"
     mRedoReady = True
     GoTo CleanExit
@@ -781,7 +819,7 @@ Private Function ResolveShapeCaptionReceiving(ByVal shp As Shape) As String
     On Error GoTo 0
 End Function
 
-Private Function QueueReceiveEventsFromAggregate(ByVal agg As ListObject, ByRef errorMessage As String) As Boolean
+Private Function QueueReceiveEventsFromAggregate(ByVal agg As ListObject, ByRef errorMessage As String, Optional ByRef queuedEventIdsCsv As String = "") As Boolean
     Dim cols As Object
     Dim arr As Variant
     Dim r As Long
@@ -821,10 +859,21 @@ Private Function QueueReceiveEventsFromAggregate(ByVal agg As ListObject, ByRef 
             errorMessage = "Inbox queue failed for row " & r & ": " & rowError
             Exit Function
         End If
+        If queuedEventId <> "" Then AppendQueuedEventIdReceiving queuedEventIdsCsv, queuedEventId
     Next r
 
     QueueReceiveEventsFromAggregate = True
 End Function
+
+Private Sub AppendQueuedEventIdReceiving(ByRef queuedEventIdsCsv As String, ByVal eventId As String)
+    eventId = Trim$(eventId)
+    If eventId = "" Then Exit Sub
+    If queuedEventIdsCsv = "" Then
+        queuedEventIdsCsv = eventId
+    Else
+        queuedEventIdsCsv = queuedEventIdsCsv & "," & eventId
+    End If
+End Sub
 
 Private Function BuildReceiveEventNote(ByVal arr As Variant, ByVal cols As Object, ByVal rowIndex As Long) As String
     BuildReceiveEventNote = "REF_NUMBER=" & NzStr(arr(rowIndex, cols("REF_NUMBER")))
