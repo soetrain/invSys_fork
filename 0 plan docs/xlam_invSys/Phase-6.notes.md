@@ -1,3 +1,7 @@
+
+
+
+
 Latest update:
 
 - See `Expert Handoff - 2026-03-29 LAN Investigation` near the end of this file for the current state.
@@ -225,98 +229,6 @@ The flip pattern — S1 works, S2 breaks — after a change that fixed S1 almost
 Start with the add-in path check — it is the fastest to verify and the most common cause.
 ***
 That changes the picture significantly. If Excel is holding a file lock on one of the transient workbooks — most likely `WH1.invSys.Snapshot.Inventory.xlsb`, `WH1.Outbox.Events.xlsb`, or `invSys.Inbox.Receiving.S2.xlsb` — the write pipeline either stalls silently or routes around the locked file entirely, which explains why the perf markers never appear: the instrumented code path is being skipped because a lock check earlier in the chain is short-circuiting to a fallback path or silent no-op.
-
-## Scheduler Wiring Update - 2026-03-30
-
-Scheduler-facing WAN entry points are now exposed in the Admin add-in and can be used both manually and from Windows Task Scheduler.
-
-### Admin XLAM macros
-
-- `modAdmin.Scheduler_RunWarehouseBatch`
-- `modAdmin.Scheduler_RunWarehousePublish`
-- `modAdmin.Scheduler_RunHQAggregation`
-
-These are no-argument macros intended for manual execution from the Admin XLAM context. They write the result string to the Immediate window and Excel status bar.
-
-### Scheduler-safe automation functions
-
-- `modAdminConsole.RunScheduledWarehouseBatchForAutomation`
-- `modAdminConsole.RunScheduledWarehousePublishForAutomation`
-- `modAdminConsole.RunScheduledHQAggregationForAutomation`
-
-Result contract:
-
-- `OK|...` means the macro ran successfully
-- `SKIP|...` means the macro ran but intentionally skipped, for example no `PathSharePointRoot`
-- `FAIL|...` means the macro encountered an execution error
-
-### PowerShell wiring
-
-- Runner: `tools/run_wan_scheduler_job.ps1`
-- Task registration helper: `tools/register_wan_scheduler_tasks.ps1`
-
-Example manual command lines:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\run_wan_scheduler_job.ps1 `
-  -RepoRoot . `
-  -JobType WarehousePublish `
-  -WarehouseId WH1
-
-powershell -ExecutionPolicy Bypass -File tools\run_wan_scheduler_job.ps1 `
-  -RepoRoot . `
-  -JobType HqAggregation `
-  -SharePointRoot C:\Share\invSys
-```
-
-Example task preview:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\register_wan_scheduler_tasks.ps1 `
-  -RepoRoot . `
-  -WarehouseId WH1 `
-  -SharePointRoot C:\Share\invSys
-```
-
-Add `-Apply` to actually register the tasks.
-
-### Validation notes
-
-Manual validation:
-
-1. Run `Scheduler_RunWarehousePublish` from the Admin add-in.
-2. Confirm the result begins with `OK|` or `SKIP|`.
-3. Verify `Events\` and `Snapshots\` under `PathSharePointRoot` update as expected.
-4. Run `Scheduler_RunHQAggregation`.
-5. Verify `Global\invSys.Global.InventorySnapshot.xlsb` is rebuilt and `GlobalSnapshotStatus` reflects the latest run.
-
-Scheduled validation:
-
-1. Run `tools/run_wan_scheduler_job.ps1` directly with the intended task arguments.
-2. Confirm exit code `0` for `OK|` and `SKIP|`, or nonzero for `FAIL|`.
-3. If using `-LogPath`, confirm the timestamped scheduler log line is written.
-4. After task registration, use Task Scheduler history plus the log file to confirm repeated reruns remain safe.
-
-## LAN + WAN Proving Update - 2026-03-31
-
-The Phase 6 LAN + WAN proof bundle is now driven by `tools/run_phase6_lan_wan_proving.ps1`.
-
-What it collects:
-
-- WAN publication success, offline non-blocking behavior, retry-safe reruns, interrupted replacement recovery, delayed publication catch-up, and unreadable published snapshot fallback from the phase 5 validation suite
-- operator stale-state metadata and non-destructive refresh behavior from the phase 6 validation suite
-- LAN shared-snapshot and two-station lock-boundary evidence from the phase 6 validation suite
-- central aggregation evidence from both the harness-level HQ boundary validation and the packaged WAN/HQ validation against published artifacts
-
-New targeted stale-visibility coverage:
-
-- `TestPhase6CoreSurfaces.TestSavedReceivingWorkbook_StaleSharePointSnapshotShowsVisibleMetadataWithoutMutatingLocalTables`
-
-Evidence output:
-
-- `tests/unit/phase6_lan_wan_proving_results.md`
-
-This turns the Phase 6 LAN + WAN and central aggregation proof items into a concrete evidence artifact rather than scattered placeholders.
 
 ***
 
