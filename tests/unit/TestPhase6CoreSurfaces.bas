@@ -36,26 +36,45 @@ End Function
 
 Public Function TestLoadConfig_AutoBootstrapsCanonicalWorkbook() As Long
     Dim rootPath As String
+    Dim configPath As String
     Dim wb As Workbook
+    Dim openedForVerify As Boolean
+    Dim loWh As ListObject
+    Dim loSt As ListObject
 
     rootPath = BuildRuntimeTestRoot("phase6_cfg_load")
+    configPath = rootPath & "\WH62.invSys.Config.xlsb"
 
     On Error GoTo CleanFail
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
     If Not modConfig.LoadConfig("WH62", "S2") Then GoTo CleanExit
 
-    Set wb = FindWorkbookByName("WH62.invSys.Config.xlsb")
-    If StrComp(modConfig.GetResolvedWorkbookName(), "WH62.invSys.Config.xlsb", vbTextCompare) = 0 _
+    If Len(Dir$(configPath)) = 0 Then GoTo CleanExit
+    Set wb = FindWorkbookByFullPathForTest(configPath)
+    If wb Is Nothing Then
+        Set wb = Application.Workbooks.Open(configPath)
+        openedForVerify = Not wb Is Nothing
+    End If
+    If wb Is Nothing Then GoTo CleanExit
+    Set loWh = wb.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
+    Set loSt = wb.Worksheets("StationConfig").ListObjects("tblStationConfig")
+
+    If modConfig.IsLoaded() _
+       And StrComp(modConfig.GetResolvedWorkbookName(), "WH62.invSys.Config.xlsb", vbTextCompare) = 0 _
        And StrComp(modConfig.GetWarehouseId(), "WH62", vbTextCompare) = 0 _
        And StrComp(modConfig.GetStationId(), "S2", vbTextCompare) = 0 _
-       And Len(Dir$(rootPath & "\WH62.invSys.Config.xlsb")) > 0 _
-       And (wb Is Nothing Or StrComp(wb.FullName, rootPath & "\WH62.invSys.Config.xlsb", vbTextCompare) = 0) Then
+       And Not loWh Is Nothing _
+       And Not loSt Is Nothing _
+       And StrComp(CStr(GetTableValue(loWh, 1, "WarehouseId")), "WH62", vbTextCompare) = 0 _
+       And StrComp(CStr(GetTableValue(loSt, 1, "StationId")), "S2", vbTextCompare) = 0 Then
         TestLoadConfig_AutoBootstrapsCanonicalWorkbook = 1
     End If
 
 CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
-    CloseWorkbookIfOpen wb
+    If openedForVerify Then
+        CloseWorkbookIfOpen wb
+    End If
     DeleteRuntimeRoot rootPath
     Exit Function
 CleanFail:
@@ -64,26 +83,45 @@ End Function
 
 Public Function TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook() As Long
     Dim rootPath As String
+    Dim configPath As String
     Dim wb As Workbook
+    Dim openedForVerify As Boolean
+    Dim loWh As ListObject
+    Dim loSt As ListObject
 
     rootPath = BuildRuntimeTestRoot("phase6_cfg_blank")
+    configPath = rootPath & "\WH1.invSys.Config.xlsb"
 
     On Error GoTo CleanFail
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
     If Not modConfig.LoadConfig("", "") Then GoTo CleanExit
 
-    Set wb = FindWorkbookByName("WH1.invSys.Config.xlsb")
-    If StrComp(modConfig.GetResolvedWorkbookName(), "WH1.invSys.Config.xlsb", vbTextCompare) = 0 _
+    If Len(Dir$(configPath)) = 0 Then GoTo CleanExit
+    Set wb = FindWorkbookByFullPathForTest(configPath)
+    If wb Is Nothing Then
+        Set wb = Application.Workbooks.Open(configPath)
+        openedForVerify = Not wb Is Nothing
+    End If
+    If wb Is Nothing Then GoTo CleanExit
+    Set loWh = wb.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
+    Set loSt = wb.Worksheets("StationConfig").ListObjects("tblStationConfig")
+
+    If modConfig.IsLoaded() _
+       And StrComp(modConfig.GetResolvedWorkbookName(), "WH1.invSys.Config.xlsb", vbTextCompare) = 0 _
        And StrComp(modConfig.GetWarehouseId(), "WH1", vbTextCompare) = 0 _
        And StrComp(modConfig.GetStationId(), "S1", vbTextCompare) = 0 _
-       And Len(Dir$(rootPath & "\WH1.invSys.Config.xlsb")) > 0 _
-       And (wb Is Nothing Or StrComp(wb.FullName, rootPath & "\WH1.invSys.Config.xlsb", vbTextCompare) = 0) Then
+       And Not loWh Is Nothing _
+       And Not loSt Is Nothing _
+       And StrComp(CStr(GetTableValue(loWh, 1, "WarehouseId")), "WH1", vbTextCompare) = 0 _
+       And StrComp(CStr(GetTableValue(loSt, 1, "StationId")), "S1", vbTextCompare) = 0 Then
         TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook = 1
     End If
 
 CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
-    CloseWorkbookIfOpen wb
+    If openedForVerify Then
+        CloseWorkbookIfOpen wb
+    End If
     DeleteRuntimeRoot rootPath
     Exit Function
 CleanFail:
@@ -248,33 +286,60 @@ End Function
 
 Public Function TestLoadAuth_AutoBootstrapsCanonicalWorkbook() As Long
     Dim rootPath As String
+    Dim configPath As String
+    Dim authPath As String
     Dim wbCfg As Workbook
     Dim wbAuth As Workbook
+    Dim openedCfgForVerify As Boolean
+    Dim openedAuthForVerify As Boolean
+    Dim loWh As ListObject
+    Dim loSt As ListObject
     Dim loUsers As ListObject
 
     rootPath = BuildRuntimeTestRoot("phase6_auth_load")
+    configPath = rootPath & "\WH63.invSys.Config.xlsb"
+    authPath = rootPath & "\WH63.invSys.Auth.xlsb"
 
     On Error GoTo CleanFail
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
     If Not modConfig.LoadConfig("WH63", "S3") Then GoTo CleanExit
     If Not modAuth.LoadAuth("WH63") Then GoTo CleanExit
 
-    Set wbCfg = FindWorkbookByName("WH63.invSys.Config.xlsb")
-    Set wbAuth = FindWorkbookByName("WH63.invSys.Auth.xlsb")
-    If Not wbAuth Is Nothing Then Set loUsers = wbAuth.Worksheets("Users").ListObjects("tblUsers")
-    If StrComp(modConfig.GetResolvedWorkbookName(), "WH63.invSys.Config.xlsb", vbTextCompare) = 0 _
+    If Len(Dir$(configPath)) = 0 Then GoTo CleanExit
+    If Len(Dir$(authPath)) = 0 Then GoTo CleanExit
+
+    Set wbCfg = FindWorkbookByFullPathForTest(configPath)
+    If wbCfg Is Nothing Then
+        Set wbCfg = Application.Workbooks.Open(configPath)
+        openedCfgForVerify = Not wbCfg Is Nothing
+    End If
+    Set wbAuth = FindWorkbookByFullPathForTest(authPath)
+    If wbAuth Is Nothing Then
+        Set wbAuth = Application.Workbooks.Open(authPath)
+        openedAuthForVerify = Not wbAuth Is Nothing
+    End If
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+
+    Set loWh = wbCfg.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
+    Set loSt = wbCfg.Worksheets("StationConfig").ListObjects("tblStationConfig")
+    Set loUsers = wbAuth.Worksheets("Users").ListObjects("tblUsers")
+    If modConfig.IsLoaded() _
+       And modAuth.IsAuthLoaded() _
+       And StrComp(modConfig.GetResolvedWorkbookName(), "WH63.invSys.Config.xlsb", vbTextCompare) = 0 _
        And StrComp(modAuth.GetResolvedAuthWorkbookName(), "WH63.invSys.Auth.xlsb", vbTextCompare) = 0 _
-       And Len(Dir$(rootPath & "\WH63.invSys.Auth.xlsb")) > 0 _
-       And Len(Dir$(rootPath & "\WH63.invSys.Config.xlsb")) > 0 _
-       And (wbCfg Is Nothing Or StrComp(wbCfg.FullName, rootPath & "\WH63.invSys.Config.xlsb", vbTextCompare) = 0) _
-       And (wbAuth Is Nothing Or (Not loUsers Is Nothing And FindUserRow(loUsers, "svc_processor") > 0 And StrComp(wbAuth.FullName, rootPath & "\WH63.invSys.Auth.xlsb", vbTextCompare) = 0)) Then
+       And Not loWh Is Nothing _
+       And Not loSt Is Nothing _
+       And Not loUsers Is Nothing _
+       And StrComp(CStr(GetTableValue(loWh, 1, "WarehouseId")), "WH63", vbTextCompare) = 0 _
+       And StrComp(CStr(GetTableValue(loSt, 1, "StationId")), "S3", vbTextCompare) = 0 _
+       And FindUserRow(loUsers, "svc_processor") > 0 Then
         TestLoadAuth_AutoBootstrapsCanonicalWorkbook = 1
     End If
 
 CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
-    CloseWorkbookIfOpen wbAuth
-    CloseWorkbookIfOpen wbCfg
+    If openedAuthForVerify Then CloseWorkbookIfOpen wbAuth
+    If openedCfgForVerify Then CloseWorkbookIfOpen wbCfg
     DeleteRuntimeRoot rootPath
     Exit Function
 CleanFail:
