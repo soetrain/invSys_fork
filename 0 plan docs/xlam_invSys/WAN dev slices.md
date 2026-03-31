@@ -85,13 +85,13 @@ This file now carries the code-facing WAN contract, the remaining TODO map by sl
 
 ### Slice 7
 
-- [ ] Wire scheduler/admin command surfaces for routine warehouse publish and HQ aggregation
-- [ ] Add operator/admin task setup notes for WAN deployments
+- [x] Wire scheduler/admin command surfaces for routine warehouse publish and HQ aggregation
+- [x] Add operator/admin task setup notes for WAN deployments
 
 ### Slice 8
 
-- [ ] Add full LAN + WAN proving evidence docs
-- [ ] Add smoke harnesses for delayed sync and intermittent connectivity scenarios
+- [x] Add full LAN + WAN proving evidence docs
+- [x] Add smoke harnesses for delayed sync and intermittent connectivity scenarios
 
 ## Test map
 
@@ -125,13 +125,36 @@ This file now carries the code-facing WAN contract, the remaining TODO map by sl
   - Interrupted publish replacement restores the prior published artifact, cleans temporary publish files, and succeeds on deterministic rerun
 - `TestPhase5Sync.TestHqAggregation_TempCopyHelper_PreservesReadableCopyWhenPublishedSourceTurnsCorrupt`
   - HQ temp-copy ingest remains readable even if the published source file becomes corrupt after the temp copy is taken
+- `TestAdminConsole.TestRunScheduledWarehouseBatchForAutomation_ReturnsStableOkResult`
+  - Admin automation wrapper returns a stable `OK|...` batch result for scheduler/manual execution
+- `TestAdminConsole.TestRunScheduledWarehousePublishForAutomation_ReturnsStableOkResult`
+  - Admin automation wrapper publishes the current warehouse snapshot via a scheduler-safe result contract
+- `TestAdminConsole.TestRunScheduledHQAggregationForAutomation_ReturnsStableOkResult`
+  - Admin automation wrapper rebuilds the global snapshot via a scheduler-safe result contract
 
 ### Remaining WAN-focused proving to add
 
-- Freshness/staleness behavior at operator read-model surfaces
-- HQ aggregation behavior under stale-current mixes across more than two warehouses
-- Scheduler-driven WAN publish and HQ aggregation smoke coverage
 - Backup publication to SharePoint `Backups`
+
+## Slice 8 notes
+
+- Consolidated proving runner:
+  - `tools/run_phase6_lan_wan_proving.ps1`
+- Consolidated evidence output:
+  - `tests/unit/phase6_lan_wan_proving_results.md`
+- Proving source runners:
+  - `tools/run_phase5_excel_validation.ps1`
+  - `tools/run_phase6_excel_validation.ps1`
+  - `tools/run_phase5_hq_boundary_validation.ps1`
+  - `tools/validate_phase6_packaged_wan_hq.ps1`
+- Additional saved-operator stale visibility coverage:
+  - `TestPhase6CoreSurfaces.TestSavedReceivingWorkbook_StaleSharePointSnapshotShowsVisibleMetadataWithoutMutatingLocalTables`
+- The proving bundle now captures evidence for:
+  - LAN multi-operator shared snapshot behavior
+  - WAN publish success/failure/retry/recovery
+  - stale and unreadable artifact handling
+  - operator-visible stale metadata with non-destructive refresh
+  - HQ aggregation against real published artifacts, including catch-up runs
 
 ## Slice 5 notes
 
@@ -146,3 +169,22 @@ This file now carries the code-facing WAN contract, the remaining TODO map by sl
 - Publish reruns are deterministic: stale `.uploading` work files are discarded, a prior published target is moved to `.previous` during replacement, and that prior target is restored automatically if the replacement is interrupted.
 - HQ aggregation reports unreadable published snapshots through `SkippedSnapshotFiles` and skip details; it does not mutate warehouse-authoritative files and can catch up on the next run when a readable publish arrives.
 - Operator read-model refresh reports missing or stale published snapshots as `SourceType=CACHED` or stale `SHAREPOINT` metadata; inbox posting remains allowed while stale.
+
+## Slice 7 notes
+
+- Manual Admin XLAM entry macros:
+  - `modAdmin.Scheduler_RunWarehouseBatch`
+  - `modAdmin.Scheduler_RunWarehousePublish`
+  - `modAdmin.Scheduler_RunHQAggregation`
+- Scheduler-safe function results:
+  - `modAdminConsole.RunScheduledWarehouseBatchForAutomation`
+  - `modAdminConsole.RunScheduledWarehousePublishForAutomation`
+  - `modAdminConsole.RunScheduledHQAggregationForAutomation`
+- PowerShell runner:
+  - `tools/run_wan_scheduler_job.ps1`
+- Task registration helper:
+  - `tools/register_wan_scheduler_tasks.ps1`
+- Rerun behavior:
+  - Warehouse batch may legitimately return `Processed=0` and still be `OK`
+  - Warehouse publish is replace-in-place and safe to rerun after failures
+  - HQ aggregation fully rebuilds the global snapshot on each run and is safe to rerun

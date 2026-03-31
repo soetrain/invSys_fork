@@ -95,6 +95,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
         (Join-Path $repo "src/Core/Modules/modLockManager.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
+        (Join-Path $repo "src/Core/Modules/modHqAggregator.bas"),
         (Join-Path $repo "src/Core/Modules/modProcessor.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
         (Join-Path $repo "src/InventoryDomain/Modules/modInventoryBridgeApi.bas"),
@@ -110,7 +111,10 @@ try {
         "TestAdminConsole.TestRunProcessorFromConsole_ProcessesInboxAndWritesAudit",
         "TestAdminConsole.TestReissuePoisonEvent_CreatesChildAndReruns",
         "TestAdminConsole.TestGenerateInventorySnapshot_WritesWorkbookAndAudit",
-        "TestAdminConsole.TestPublishWarehouseArtifacts_WritesAuditAndPublishesSnapshot"
+        "TestAdminConsole.TestPublishWarehouseArtifacts_WritesAuditAndPublishesSnapshot",
+        "TestAdminConsole.TestRunScheduledWarehouseBatchForAutomation_ReturnsStableOkResult",
+        "TestAdminConsole.TestRunScheduledWarehousePublishForAutomation_ReturnsStableOkResult",
+        "TestAdminConsole.TestRunScheduledHQAggregationForAutomation_ReturnsStableOkResult"
     )
 
     if (Test-Path $harnessPath) { Remove-Item $harnessPath -Force }

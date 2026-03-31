@@ -13,6 +13,25 @@ Sub Open_CreateDeleteUser()
     Call modAdminConsole.OpenUserManagement(, report)
 End Sub
 
+Public Sub Scheduler_RunWarehouseBatch()
+    PublishSchedulerResult modAdminConsole.RunScheduledWarehouseBatchForAutomation("", 0)
+End Sub
+
+Public Sub Scheduler_RunWarehousePublish()
+    PublishSchedulerResult modAdminConsole.RunScheduledWarehousePublishForAutomation("", "")
+End Sub
+
+Public Sub Scheduler_RunHQAggregation()
+    PublishSchedulerResult modAdminConsole.RunScheduledHQAggregationForAutomation("", "")
+End Sub
+
+Private Sub PublishSchedulerResult(ByVal resultText As String)
+    Debug.Print resultText
+    On Error Resume Next
+    Application.StatusBar = resultText
+    On Error GoTo 0
+End Sub
+
 ''''''''''''''''''''''''''''''''''''
 ' This module contains administrative functions for the application.
 ' It includes functions to manage user accounts, roles, and permissions. yada yada

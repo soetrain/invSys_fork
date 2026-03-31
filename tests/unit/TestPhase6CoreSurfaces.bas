@@ -864,6 +864,134 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestSavedReceivingWorkbook_StaleSharePointSnapshotShowsVisibleMetadataWithoutMutatingLocalTables() As Long
+    Dim rootPath As String
+    Dim shareRoot As String
+    Dim snapshotRoot As String
+    Dim canonicalPath As String
+    Dim stalePath As String
+    Dim operatorPath As String
+    Dim wbOps As Workbook
+    Dim wbSnap As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim loInv As ListObject
+    Dim loRecv As ListObject
+    Dim loLog As ListObject
+    Dim invRow As Long
+
+    rootPath = BuildRuntimeTestRoot("phase6_saved_receiving_sharepoint_stale")
+    shareRoot = rootPath & "\Share"
+    snapshotRoot = shareRoot & "\Snapshots"
+    canonicalPath = snapshotRoot & "\WH70SP.invSys.Snapshot.Inventory.xlsb"
+    stalePath = snapshotRoot & "\WH70SP.stale.invSys.Snapshot.Inventory.xlsb"
+
+    On Error GoTo CleanFail
+    MkDir shareRoot
+    MkDir snapshotRoot
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH70SP", "S10") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH70SP.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    SetConfigWarehouseValue "WH70SP.invSys.Config.xlsb", "PathSharePointRoot", shareRoot
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    operatorPath = rootPath & "\WH70SP_S10_Receiving_Operator.xlsb"
+    BuildSavedReceivingOperatorWorkbookForTest operatorPath, "SKU-RM-SP-ST-OP", "REF-SP-ST-001", "SNAP-SP-ST-OLD", 4, "OLD"
+    Set wbOps = Application.Workbooks.Open(operatorPath)
+    If wbOps Is Nothing Then
+        failureReason = "Saved receiving operator workbook did not reopen."
+        GoTo CleanExit
+    End If
+    If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+
+    Set wbSnap = CreateSnapshotWorkbook(snapshotRoot, "WH70SP", "SKU-RM-SP-ST-OP", 21, CDate("2026-03-30 08:35:00"), _
+                                        19, "SP2=19", "Saved Stale Share Item", "EA", "SP2")
+    If wbSnap Is Nothing Then GoTo CleanExit
+    wbSnap.SaveCopyAs stalePath
+    wbSnap.Close SaveChanges:=False
+    Set wbSnap = Nothing
+    Kill canonicalPath
+
+    If Not modOperatorReadModel.RefreshInventoryReadModelFromSharePointForWorkbook(wbOps, "WH70SP", report) Then
+        failureReason = "RefreshInventoryReadModelFromSharePointForWorkbook failed: " & report
+        GoTo CleanExit
+    End If
+
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loRecv = FindTableByName(wbOps, "ReceivedTally")
+    Set loLog = FindTableByName(wbOps, "ReceivedLog")
+    If loInv Is Nothing Or loRecv Is Nothing Or loLog Is Nothing Then
+        failureReason = "Saved receiving workbook tables were missing after stale SharePoint refresh."
+        GoTo CleanExit
+    End If
+
+    invRow = FindRowByColumnValueInTable(loInv, "ITEM_CODE", "SKU-RM-SP-ST-OP")
+    If invRow = 0 Then
+        failureReason = "Saved receiving workbook did not expose the refreshed SharePoint SKU."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "TOTAL INV")) <> 21 Then
+        failureReason = "Saved receiving workbook TOTAL INV did not reflect the stale SharePoint snapshot."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "QtyAvailable")) <> 19 Then
+        failureReason = "Saved receiving workbook QtyAvailable did not reflect the stale SharePoint snapshot."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loInv, invRow, "SourceType")), "SHAREPOINT", vbTextCompare) <> 0 Then
+        failureReason = "Saved receiving workbook SourceType was not SHAREPOINT for the stale snapshot case."
+        GoTo CleanExit
+    End If
+    If CBool(GetTableValue(loInv, invRow, "IsStale")) <> True Then
+        failureReason = "Saved receiving workbook did not remain visibly stale for the stale SharePoint snapshot case."
+        GoTo CleanExit
+    End If
+    If InStr(1, CStr(GetTableValue(loInv, invRow, "SnapshotId")), "WH70SP.stale.invSys.Snapshot.Inventory.xlsb|", vbTextCompare) <> 1 Then
+        failureReason = "Saved receiving workbook SnapshotId did not show the stale SharePoint artifact."
+        GoTo CleanExit
+    End If
+    If Not IsDate(GetTableValue(loInv, invRow, "LastRefreshUTC")) Then
+        failureReason = "Saved receiving workbook LastRefreshUTC was not populated."
+        GoTo CleanExit
+    End If
+    If loRecv.ListRows.Count <> 1 Then
+        failureReason = "ReceivedTally changed during stale SharePoint refresh."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loRecv, 1, "REF_NUMBER")), "REF-SP-ST-001", vbTextCompare) <> 0 Then
+        failureReason = "ReceivedTally REF_NUMBER changed during stale SharePoint refresh."
+        GoTo CleanExit
+    End If
+    If loLog.ListRows.Count <> 1 Then
+        failureReason = "ReceivedLog changed during stale SharePoint refresh."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loLog, 1, "REF_NUMBER")), "REF-SP-ST-001", vbTextCompare) <> 0 Then
+        failureReason = "ReceivedLog REF_NUMBER changed during stale SharePoint refresh."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loLog, 1, "SNAPSHOT_ID")), "SNAP-SP-ST-OLD", vbTextCompare) <> 0 Then
+        failureReason = "ReceivedLog SNAPSHOT_ID changed during stale SharePoint refresh."
+        GoTo CleanExit
+    End If
+
+    TestSavedReceivingWorkbook_StaleSharePointSnapshotShowsVisibleMetadataWithoutMutatingLocalTables = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbOps
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7113, "TestSavedReceivingWorkbook_StaleSharePointSnapshotShowsVisibleMetadataWithoutMutatingLocalTables", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestSavedReceivingWorkbook_MissingSnapshotDoesNotBlockQueueAndRefresh() As Long
     Dim rootPath As String
     Dim operatorPath As String
