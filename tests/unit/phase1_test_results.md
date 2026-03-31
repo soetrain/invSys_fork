@@ -1,20 +1,20 @@
 # Phase 1 VBA Test Results
 
-- Date: 2026-03-08 00:11:02
-- Passed: 14
-- Failed: 0
+- Date: 2026-03-30 18:17:51
+- Passed: 8
+- Failed: 6
 
 | Test | Result |
 |---|---|
 | TestCoreConfig.TestLoad_ValidConfig | PASS |
-| TestCoreConfig.TestLoad_MissingRequiredKey | PASS |
-| TestCoreConfig.TestPrecedence_StationOverridesWarehouse | PASS |
+| TestCoreConfig.TestLoad_MissingRequiredKey | FAIL |
+| TestCoreConfig.TestPrecedence_StationOverridesWarehouse | FAIL |
 | TestCoreConfig.TestGetRequired_MissingKey | PASS |
-| TestCoreConfig.TestGetBool_TypeConversion | PASS |
-| TestCoreConfig.TestReload_UpdatedValue | PASS |
-| TestCoreAuth.TestCanPerform_Allow | PASS |
+| TestCoreConfig.TestGetBool_TypeConversion | FAIL |
+| TestCoreConfig.TestReload_UpdatedValue | FAIL |
+| TestCoreAuth.TestCanPerform_Allow | FAIL |
 | TestCoreAuth.TestCanPerform_Deny_MissingCapability | PASS |
-| TestCoreAuth.TestCanPerform_WildcardStation | PASS |
+| TestCoreAuth.TestCanPerform_WildcardStation | FAIL |
 | TestCoreAuth.TestCanPerform_DisabledUser | PASS |
 | TestCoreAuth.TestCanPerform_ExpiredCapability | PASS |
 | TestCoreAuth.TestRequire_RaisesOnDeny | PASS |

@@ -462,6 +462,167 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestRefreshInventoryReadModelFromSharePoint_UpdatesReadModelAndMetadata() As Long
+    Dim rootPath As String
+    Dim shareRoot As String
+    Dim snapshotRoot As String
+    Dim wbOps As Workbook
+    Dim wbSnap As Workbook
+    Dim report As String
+    Dim loInv As ListObject
+
+    rootPath = BuildRuntimeTestRoot("phase6_read_model_sharepoint")
+    shareRoot = rootPath & "\Share"
+    snapshotRoot = shareRoot & "\Snapshots"
+
+    On Error GoTo CleanFail
+    MkDir shareRoot
+    MkDir snapshotRoot
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH68SP", "S8") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH68SP.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    SetConfigWarehouseValue "WH68SP.invSys.Config.xlsb", "PathSharePointRoot", shareRoot
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = wbOps.Worksheets("InventoryManagement").ListObjects("invSys")
+    AddInvSysSeedRow loInv, 950, "SKU-RM-SP-001", "SharePoint Item", "EA", "OLD", 2
+
+    Set wbSnap = CreateSnapshotWorkbook(snapshotRoot, "WH68SP", "SKU-RM-SP-001", 13, CDate("2026-03-30 08:10:00"), _
+                                        12, "SP1=12", "SharePoint Item", "EA", "SP1")
+    If wbSnap Is Nothing Then GoTo CleanExit
+
+    If Not modOperatorReadModel.RefreshInventoryReadModelFromSharePointForWorkbook(wbOps, "WH68SP", report) Then GoTo CleanExit
+
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) = 13 _
+       And CDbl(GetTableValue(loInv, 1, "QtyAvailable")) = 12 _
+       And StrComp(CStr(GetTableValue(loInv, 1, "LOCATION")), "SP1", vbTextCompare) = 0 _
+       And StrComp(CStr(GetTableValue(loInv, 1, "SourceType")), "SHAREPOINT", vbTextCompare) = 0 _
+       And CBool(GetTableValue(loInv, 1, "IsStale")) = False _
+       And InStr(1, CStr(GetTableValue(loInv, 1, "SnapshotId")), "WH68SP.invSys.Snapshot.Inventory.xlsb|", vbTextCompare) = 1 _
+       And IsDate(GetTableValue(loInv, 1, "LastRefreshUTC")) Then
+        TestRefreshInventoryReadModelFromSharePoint_UpdatesReadModelAndMetadata = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbOps
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestRefreshInventoryReadModelFromSharePoint_StaleSnapshotMarksReadModelStale() As Long
+    Dim rootPath As String
+    Dim shareRoot As String
+    Dim snapshotRoot As String
+    Dim canonicalPath As String
+    Dim stalePath As String
+    Dim wbOps As Workbook
+    Dim wbSnap As Workbook
+    Dim report As String
+    Dim loInv As ListObject
+
+    rootPath = BuildRuntimeTestRoot("phase6_read_model_sharepoint_stale")
+    shareRoot = rootPath & "\Share"
+    snapshotRoot = shareRoot & "\Snapshots"
+    canonicalPath = snapshotRoot & "\WH68ST.invSys.Snapshot.Inventory.xlsb"
+    stalePath = snapshotRoot & "\WH68ST.stale.invSys.Snapshot.Inventory.xlsb"
+
+    On Error GoTo CleanFail
+    MkDir shareRoot
+    MkDir snapshotRoot
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH68ST", "S8") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH68ST.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    SetConfigWarehouseValue "WH68ST.invSys.Config.xlsb", "PathSharePointRoot", shareRoot
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = wbOps.Worksheets("InventoryManagement").ListObjects("invSys")
+    AddInvSysSeedRow loInv, 951, "SKU-RM-SP-STALE", "Stale Share Item", "EA", "OLD", 4
+
+    Set wbSnap = CreateSnapshotWorkbook(snapshotRoot, "WH68ST", "SKU-RM-SP-STALE", 21, CDate("2026-03-30 08:20:00"), _
+                                        19, "SP2=19", "Stale Share Item", "EA", "SP2")
+    If wbSnap Is Nothing Then GoTo CleanExit
+    wbSnap.SaveCopyAs stalePath
+    wbSnap.Close SaveChanges:=False
+    Set wbSnap = Nothing
+    Kill canonicalPath
+
+    If Not modOperatorReadModel.RefreshInventoryReadModelFromSharePointForWorkbook(wbOps, "WH68ST", report) Then GoTo CleanExit
+
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) = 21 _
+       And CDbl(GetTableValue(loInv, 1, "QtyAvailable")) = 19 _
+       And StrComp(CStr(GetTableValue(loInv, 1, "SourceType")), "SHAREPOINT", vbTextCompare) = 0 _
+       And CBool(GetTableValue(loInv, 1, "IsStale")) = True _
+       And InStr(1, CStr(GetTableValue(loInv, 1, "SnapshotId")), "WH68ST.stale.invSys.Snapshot.Inventory.xlsb|", vbTextCompare) = 1 Then
+        TestRefreshInventoryReadModelFromSharePoint_StaleSnapshotMarksReadModelStale = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbOps
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestRefreshInventoryReadModelFromCache_PreservesLocalStagingAndLogs() As Long
+    Dim rootPath As String
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim loInv As ListObject
+    Dim loRecv As ListObject
+    Dim loLog As ListObject
+
+    rootPath = BuildRuntimeTestRoot("phase6_read_model_cached")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH69C", "S9") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH69C.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+
+    Set loInv = wbOps.Worksheets("InventoryManagement").ListObjects("invSys")
+    Set loRecv = wbOps.Worksheets("ReceivedTally").ListObjects("ReceivedTally")
+    Set loLog = wbOps.Worksheets("ReceivedLog").ListObjects("ReceivedLog")
+    AddInvSysSeedRow loInv, 952, "SKU-RM-CACHED", "Cached Item", "EA", "C1", 15
+    SetTableCell loInv, 1, "SnapshotId", "WH69C.invSys.Snapshot.Inventory.xlsb|20260330070000"
+    AddReceivedTallyRow loRecv, "REF-CACHED-001", "Cached Item", 5, 952
+    AddReceivedLogRow loLog, "WH69C.invSys.Snapshot.Inventory.xlsb|20260330070000", "REF-CACHED-001", "Cached Item", 5, "EA", "Vendor", "C1", "SKU-RM-CACHED", 952
+
+    If Not modOperatorReadModel.RefreshInventoryReadModelFromCacheForWorkbook(wbOps, "WH69C", report) Then GoTo CleanExit
+
+    If CBool(GetTableValue(loInv, 1, "IsStale")) = True _
+       And StrComp(CStr(GetTableValue(loInv, 1, "SourceType")), "CACHED", vbTextCompare) = 0 _
+       And CDbl(GetTableValue(loInv, 1, "TOTAL INV")) = 15 _
+       And StrComp(CStr(GetTableValue(loInv, 1, "SnapshotId")), "WH69C.invSys.Snapshot.Inventory.xlsb|20260330070000", vbTextCompare) = 0 _
+       And loRecv.ListRows.Count = 1 _
+       And loLog.ListRows.Count = 1 _
+       And StrComp(CStr(GetTableValue(loRecv, 1, "REF_NUMBER")), "REF-CACHED-001", vbTextCompare) = 0 _
+       And StrComp(CStr(GetTableValue(loLog, 1, "REF_NUMBER")), "REF-CACHED-001", vbTextCompare) = 0 Then
+        TestRefreshInventoryReadModelFromCache_PreservesLocalStagingAndLogs = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestRefreshInventoryReadModelFromSnapshot_AddsRowsWhenInvSysStartsEmpty() As Long
     Dim rootPath As String
     Dim wbOps As Workbook
@@ -639,6 +800,59 @@ Public Function TestRefreshInventoryReadModel_MissingSnapshotMarksStaleWithoutMu
        And loRecv.ListRows.Count = 1 _
        And StrComp(CStr(GetTableValue(loRecv, 1, "REF_NUMBER")), "REF-ST-001", vbTextCompare) = 0 Then
         TestRefreshInventoryReadModel_MissingSnapshotMarksStaleWithoutMutatingReceivingTally = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestRefreshInventoryReadModel_MissingSharePointSnapshotMarksCachedWithoutMutatingLocalTables() As Long
+    Dim rootPath As String
+    Dim shareRoot As String
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim loInv As ListObject
+    Dim loRecv As ListObject
+    Dim loLog As ListObject
+
+    rootPath = BuildRuntimeTestRoot("phase6_read_model_missing_sharepoint")
+    shareRoot = rootPath & "\Share"
+
+    On Error GoTo CleanFail
+    MkDir shareRoot
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH69SP", "S9") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH69SP.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    SetConfigWarehouseValue "WH69SP.invSys.Config.xlsb", "PathSharePointRoot", shareRoot
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+
+    Set loInv = wbOps.Worksheets("InventoryManagement").ListObjects("invSys")
+    Set loRecv = wbOps.Worksheets("ReceivedTally").ListObjects("ReceivedTally")
+    Set loLog = wbOps.Worksheets("ReceivedLog").ListObjects("ReceivedLog")
+    AddInvSysSeedRow loInv, 953, "SKU-RM-SP-MISS", "Missing Share Item", "EA", "D1", 17
+    SetTableCell loInv, 1, "SnapshotId", "WH69SP.invSys.Snapshot.Inventory.xlsb|20260330070500"
+    AddReceivedTallyRow loRecv, "REF-SP-MISS-001", "Missing Share Item", 6, 953
+    AddReceivedLogRow loLog, "WH69SP.invSys.Snapshot.Inventory.xlsb|20260330070500", "REF-SP-MISS-001", "Missing Share Item", 6, "EA", "Vendor", "D1", "SKU-RM-SP-MISS", 953
+
+    If Not modOperatorReadModel.RefreshInventoryReadModelFromSharePointForWorkbook(wbOps, "WH69SP", report) Then GoTo CleanExit
+
+    If CBool(GetTableValue(loInv, 1, "IsStale")) = True _
+       And StrComp(CStr(GetTableValue(loInv, 1, "SourceType")), "CACHED", vbTextCompare) = 0 _
+       And CDbl(GetTableValue(loInv, 1, "TOTAL INV")) = 17 _
+       And StrComp(CStr(GetTableValue(loInv, 1, "SnapshotId")), "WH69SP.invSys.Snapshot.Inventory.xlsb|20260330070500", vbTextCompare) = 0 _
+       And loRecv.ListRows.Count = 1 _
+       And loLog.ListRows.Count = 1 _
+       And StrComp(CStr(GetTableValue(loRecv, 1, "REF_NUMBER")), "REF-SP-MISS-001", vbTextCompare) = 0 _
+       And StrComp(CStr(GetTableValue(loLog, 1, "REF_NUMBER")), "REF-SP-MISS-001", vbTextCompare) = 0 Then
+        TestRefreshInventoryReadModel_MissingSharePointSnapshotMarksCachedWithoutMutatingLocalTables = 1
     End If
 
 CleanExit:
@@ -1011,8 +1225,15 @@ Public Function TestSavedReceivingWorkbook_FullRuntimeCloseReopenReloadsCanonica
 
     Set wbInv = FindWorkbookByName("WH78.invSys.Data.Inventory.xlsb")
     If wbInv Is Nothing Then
-        failureReason = "Canonical inventory workbook was not reopened by RunBatch after runtime reload."
-        GoTo CleanExit
+        If Len(Dir$(rootPath & "\WH78.invSys.Data.Inventory.xlsb")) = 0 Then
+            failureReason = "Canonical inventory workbook file was not present after post-restart RunBatch."
+            GoTo CleanExit
+        End If
+        Set wbInv = Application.Workbooks.Open(rootPath & "\WH78.invSys.Data.Inventory.xlsb")
+        If wbInv Is Nothing Then
+            failureReason = "Canonical inventory workbook could not be reopened for verification after post-restart RunBatch."
+            GoTo CleanExit
+        End If
     End If
     Set loInventoryLog = FindTableByName(wbInv, "tblInventoryLog")
     If loInventoryLog Is Nothing Then

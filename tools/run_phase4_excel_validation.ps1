@@ -89,6 +89,7 @@ try {
 
     $modulePaths = @(
         (Join-Path $repo "src/Core/Modules/modConfigDefaults.bas"),
+        (Join-Path $repo "src/Core/Modules/modRuntimeWorkbooks.bas"),
         (Join-Path $repo "src/Core/Modules/modConfig.bas"),
         (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
@@ -96,6 +97,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
         (Join-Path $repo "src/Core/Modules/modProcessor.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
+        (Join-Path $repo "src/InventoryDomain/Modules/modInventoryBridgeApi.bas"),
         (Join-Path $repo "src/InventoryDomain/Modules/modInventorySchema.bas"),
         (Join-Path $repo "src/InventoryDomain/Modules/modInventoryApply.bas"),
         (Join-Path $repo "src/Admin/Modules/modAdminConsole.bas"),
@@ -107,7 +109,8 @@ try {
         "TestAdminConsole.TestBreakInventoryLock_WritesBrokenStatusAndAudit",
         "TestAdminConsole.TestRunProcessorFromConsole_ProcessesInboxAndWritesAudit",
         "TestAdminConsole.TestReissuePoisonEvent_CreatesChildAndReruns",
-        "TestAdminConsole.TestGenerateInventorySnapshot_WritesWorkbookAndAudit"
+        "TestAdminConsole.TestGenerateInventorySnapshot_WritesWorkbookAndAudit",
+        "TestAdminConsole.TestPublishWarehouseArtifacts_WritesAuditAndPublishesSnapshot"
     )
 
     if (Test-Path $harnessPath) { Remove-Item $harnessPath -Force }

@@ -86,6 +86,7 @@ Public Sub InitializeReceivingUiForWorkbook(Optional ByVal targetWb As Workbook 
 End Sub
 
 Public Function RefreshReceivingUiForWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
+                                              Optional ByVal sourceType As String = "LOCAL", _
                                               Optional ByRef report As String = "") As Boolean
     Dim wb As Workbook
 
@@ -100,7 +101,7 @@ Public Function RefreshReceivingUiForWorkbook(Optional ByVal targetWb As Workboo
     End If
 
     InitializeReceivingUiForWorkbook wb
-    RefreshReceivingUiForWorkbook = modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, "", "LOCAL", report)
+    RefreshReceivingUiForWorkbook = modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, "", sourceType, report)
 End Function
 
 Private Function ResolveReceivingWorkbook(Optional ByVal preferredWb As Workbook = Nothing, Optional ByVal requiredSheet As String = "") As Workbook

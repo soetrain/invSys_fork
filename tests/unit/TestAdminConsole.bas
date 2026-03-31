@@ -15,6 +15,7 @@ Public Sub RunAdminConsoleTests()
 End Sub
 
 Public Function TestBreakInventoryLock_WritesBrokenStatusAndAudit() As Long
+    Dim tempFolder As String
     Dim wbCfg As Workbook
     Dim wbAuth As Workbook
     Dim wbInv As Workbook
@@ -25,9 +26,12 @@ Public Function TestBreakInventoryLock_WritesBrokenStatusAndAudit() As Long
     Dim report As String
 
     On Error GoTo CleanFail
-    Set wbCfg = TestPhase2Helpers.BuildPhase2ConfigWorkbook("WHA4", "ADM1", "ADMIN")
-    Set wbAuth = TestPhase2Helpers.BuildPhase2AuthWorkbook("WHA4")
-    Set wbInv = TestPhase2Helpers.BuildPhase2InventoryWorkbook("WHA4", Array("SKU-001"))
+    tempFolder = TestPhase2Helpers.BuildUniqueTestFolder("Phase4BreakLock")
+    modRuntimeWorkbooks.SetCoreDataRootOverride tempFolder
+    Set wbCfg = TestPhase2Helpers.BuildCanonicalConfigWorkbook("WHA4", "ADM1", tempFolder, "ADMIN")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathDataRoot", tempFolder
+    Set wbAuth = TestPhase2Helpers.BuildCanonicalAuthWorkbook("WHA4", tempFolder)
+    Set wbInv = TestPhase2Helpers.BuildCanonicalInventoryWorkbook("WHA4", tempFolder, Array("SKU-001"))
     Set wbAdmin = Application.Workbooks.Add
     Call modAdminConsole.EnsureAdminSchema(wbAdmin, report)
 
@@ -44,6 +48,7 @@ Public Function TestBreakInventoryLock_WritesBrokenStatusAndAudit() As Long
     TestBreakInventoryLock_WritesBrokenStatusAndAudit = 1
 
 CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
     TestPhase2Helpers.CloseNoSave wbAdmin
     TestPhase2Helpers.CloseNoSave wbInv
     TestPhase2Helpers.CloseNoSave wbAuth
@@ -54,6 +59,7 @@ CleanFail:
 End Function
 
 Public Function TestRunProcessorFromConsole_ProcessesInboxAndWritesAudit() As Long
+    Dim tempFolder As String
     Dim wbCfg As Workbook
     Dim wbAuth As Workbook
     Dim wbInv As Workbook
@@ -65,10 +71,13 @@ Public Function TestRunProcessorFromConsole_ProcessesInboxAndWritesAudit() As Lo
     Dim report As String
 
     On Error GoTo CleanFail
-    Set wbCfg = TestPhase2Helpers.BuildPhase2ConfigWorkbook("WHP4", "ADM1", "ADMIN")
-    Set wbAuth = TestPhase2Helpers.BuildPhase2AuthWorkbook("WHP4")
-    Set wbInv = TestPhase2Helpers.BuildPhase2InventoryWorkbook("WHP4", Array("SKU-001"))
-    Set wbInbox = TestPhase2Helpers.BuildReceiveInboxWorkbook("ADM1")
+    tempFolder = TestPhase2Helpers.BuildUniqueTestFolder("Phase4RunProcessor")
+    modRuntimeWorkbooks.SetCoreDataRootOverride tempFolder
+    Set wbCfg = TestPhase2Helpers.BuildCanonicalConfigWorkbook("WHP4", "ADM1", tempFolder, "ADMIN")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathDataRoot", tempFolder
+    Set wbAuth = TestPhase2Helpers.BuildCanonicalAuthWorkbook("WHP4", tempFolder)
+    Set wbInv = TestPhase2Helpers.BuildCanonicalInventoryWorkbook("WHP4", tempFolder, Array("SKU-001"))
+    Set wbInbox = TestPhase2Helpers.BuildCanonicalReceiveInboxWorkbook("ADM1", tempFolder)
     Set wbAdmin = Application.Workbooks.Add
     Call modAdminConsole.EnsureAdminSchema(wbAdmin, report)
 
@@ -83,12 +92,13 @@ Public Function TestRunProcessorFromConsole_ProcessesInboxAndWritesAudit() As Lo
     Set loLog = wbInv.Worksheets("InventoryLog").ListObjects("tblInventoryLog")
     Set loAudit = wbAdmin.Worksheets("AdminAudit").ListObjects("tblAdminAudit")
     If CStr(TestPhase2Helpers.GetRowValue(loInbox, 1, "Status")) <> "PROCESSED" Then GoTo CleanExit
-    If CStr(TestPhase2Helpers.GetRowValue(loLog, 2, "EventID")) <> "EVT-ADMIN-PROC-001" Then GoTo CleanExit
+    If FindRowByColumnValue(loLog, "EventID", "EVT-ADMIN-PROC-001") = 0 Then GoTo CleanExit
     If FindAuditRowByAction(loAudit, "RUN_PROCESSOR") = 0 Then GoTo CleanExit
 
     TestRunProcessorFromConsole_ProcessesInboxAndWritesAudit = 1
 
 CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
     TestPhase2Helpers.CloseNoSave wbAdmin
     TestPhase2Helpers.CloseNoSave wbInbox
     TestPhase2Helpers.CloseNoSave wbInv
@@ -100,6 +110,7 @@ CleanFail:
 End Function
 
 Public Function TestReissuePoisonEvent_CreatesChildAndReruns() As Long
+    Dim tempFolder As String
     Dim wbCfg As Workbook
     Dim wbAuth As Workbook
     Dim wbInv As Workbook
@@ -114,10 +125,13 @@ Public Function TestReissuePoisonEvent_CreatesChildAndReruns() As Long
     Dim newRow As Long
 
     On Error GoTo CleanFail
-    Set wbCfg = TestPhase2Helpers.BuildPhase2ConfigWorkbook("WHQ4", "ADM1", "ADMIN")
-    Set wbAuth = TestPhase2Helpers.BuildPhase2AuthWorkbook("WHQ4")
-    Set wbInv = TestPhase2Helpers.BuildPhase2InventoryWorkbook("WHQ4", Array("SKU-001"))
-    Set wbInbox = TestPhase2Helpers.BuildReceiveInboxWorkbook("ADM1")
+    tempFolder = TestPhase2Helpers.BuildUniqueTestFolder("Phase4ReissuePoison")
+    modRuntimeWorkbooks.SetCoreDataRootOverride tempFolder
+    Set wbCfg = TestPhase2Helpers.BuildCanonicalConfigWorkbook("WHQ4", "ADM1", tempFolder, "ADMIN")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathDataRoot", tempFolder
+    Set wbAuth = TestPhase2Helpers.BuildCanonicalAuthWorkbook("WHQ4", tempFolder)
+    Set wbInv = TestPhase2Helpers.BuildCanonicalInventoryWorkbook("WHQ4", tempFolder, Array("SKU-001"))
+    Set wbInbox = TestPhase2Helpers.BuildCanonicalReceiveInboxWorkbook("ADM1", tempFolder)
     Set wbAdmin = Application.Workbooks.Add
     Call modAdminConsole.EnsureAdminSchema(wbAdmin, report)
 
@@ -150,6 +164,7 @@ Public Function TestReissuePoisonEvent_CreatesChildAndReruns() As Long
     TestReissuePoisonEvent_CreatesChildAndReruns = 1
 
 CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
     TestPhase2Helpers.CloseNoSave wbAdmin
     TestPhase2Helpers.CloseNoSave wbInbox
     TestPhase2Helpers.CloseNoSave wbInv
@@ -161,6 +176,7 @@ CleanFail:
 End Function
 
 Public Function TestGenerateInventorySnapshot_WritesWorkbookAndAudit() As Long
+    Dim runtimeRoot As String
     Dim wbCfg As Workbook
     Dim wbAuth As Workbook
     Dim wbInv As Workbook
@@ -178,11 +194,14 @@ Public Function TestGenerateInventorySnapshot_WritesWorkbookAndAudit() As Long
 
     On Error GoTo CleanFail
     tempFolder = TestPhase2Helpers.BuildUniqueTestFolder("Phase4Snapshot")
+    runtimeRoot = TestPhase2Helpers.BuildUniqueTestFolder("Phase4SnapshotRuntime")
+    modRuntimeWorkbooks.SetCoreDataRootOverride runtimeRoot
     outPath = tempFolder & "\snapshot.test.xlsb"
 
-    Set wbCfg = TestPhase2Helpers.BuildPhase2ConfigWorkbook("WHS4", "ADM1", "ADMIN")
-    Set wbAuth = TestPhase2Helpers.BuildPhase2AuthWorkbook("WHS4")
-    Set wbInv = TestPhase2Helpers.BuildPhase2InventoryWorkbook("WHS4", Array("SKU-001", "SKU-002"))
+    Set wbCfg = TestPhase2Helpers.BuildCanonicalConfigWorkbook("WHS4", "ADM1", runtimeRoot, "ADMIN")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathDataRoot", runtimeRoot
+    Set wbAuth = TestPhase2Helpers.BuildCanonicalAuthWorkbook("WHS4", runtimeRoot)
+    Set wbInv = TestPhase2Helpers.BuildCanonicalInventoryWorkbook("WHS4", runtimeRoot, Array("SKU-001", "SKU-002"))
     Set wbAdmin = Application.Workbooks.Add
     Call modAdminConsole.EnsureAdminSchema(wbAdmin, report)
 
@@ -206,6 +225,7 @@ Public Function TestGenerateInventorySnapshot_WritesWorkbookAndAudit() As Long
     TestGenerateInventorySnapshot_WritesWorkbookAndAudit = 1
 
 CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
     TestPhase2Helpers.CloseAndDeleteWorkbook wbSnap
     TestPhase2Helpers.CloseNoSave wbAdmin
     TestPhase2Helpers.CloseNoSave wbInv

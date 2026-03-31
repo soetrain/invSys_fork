@@ -11,6 +11,10 @@ Private Const SNAPSHOT_SOURCE_PROJECTION As String = "PROJECTION"
 Private Const SNAPSHOT_SOURCE_MANAGED_SURFACE As String = "MANAGED_SURFACE"
 Private Const PUBLISH_LOG_FILE As String = "invSys.Publish.log"
 Private Const PUBLISH_STAGE_SUFFIX As String = ".uploading"
+Private Const PUBLISH_BACKUP_SUFFIX As String = ".previous"
+
+Private mSimulatePublishInterrupt As Boolean
+Private mSimulatePublishInterruptMatch As String
 
 Public Function AppendEventToOutbox(ByVal evt As Object, _
                                     Optional ByVal inventoryWb As Workbook = Nothing, _
@@ -258,6 +262,16 @@ FailPublish:
     report = "PublishWarehouseArtifactsToSharePoint failed: " & Err.Description
     AppendPublishLogSync SafeTrimSync(warehouseId), perfRunId, "FAIL", report
 End Function
+
+Public Sub ConfigurePublishInterruptSimulation(Optional ByVal enabled As Boolean = False, _
+                                               Optional ByVal targetPathMatch As String = "")
+    mSimulatePublishInterrupt = enabled
+    mSimulatePublishInterruptMatch = SafeTrimSync(targetPathMatch)
+End Sub
+
+Public Sub ClearPublishInterruptSimulation()
+    ConfigurePublishInterruptSimulation False, vbNullString
+End Sub
 
 Public Function ResolveOutboxWorkbook(Optional ByVal warehouseId As String = "", _
                                       Optional ByVal targetWb As Workbook = Nothing, _
@@ -953,6 +967,9 @@ Private Function PublishFileToSharePointSync(ByVal sourcePath As String, _
     On Error GoTo FailCopy
 
     Dim stagePath As String
+    Dim backupPath As String
+    Dim hadExistingTarget As Boolean
+    Dim restoredPrior As Boolean
 
     sourcePath = SafeTrimSync(sourcePath)
     targetPath = SafeTrimSync(targetPath)
@@ -974,19 +991,73 @@ Private Function PublishFileToSharePointSync(ByVal sourcePath As String, _
 
     EnsureFolderForFileSync targetPath
     stagePath = targetPath & PUBLISH_STAGE_SUFFIX
+    backupPath = targetPath & PUBLISH_BACKUP_SUFFIX
 
-    DeleteFileIfPresentSync stagePath
+    RecoverInterruptedPublishArtifactsSync targetPath, stagePath, backupPath
     FileCopy sourcePath, stagePath
-    DeleteFileIfPresentSync targetPath
+    hadExistingTarget = FileExistsSync(targetPath)
+    If hadExistingTarget Then
+        DeleteFileIfPresentSync backupPath
+        Name targetPath As backupPath
+    End If
+    If ShouldSimulatePublishInterruptSync(targetPath) Then
+        Err.Raise vbObjectError + 6130, "modWarehouseSync.PublishFileToSharePointSync", "Simulated publish interruption after backup handoff."
+    End If
     Name stagePath As targetPath
+    DeleteFileIfPresentSync backupPath
 
-    statusOut = "COPIED:" & targetPath
+    statusOut = IIf(hadExistingTarget, "REPLACED:", "COPIED:") & targetPath
     PublishFileToSharePointSync = True
     Exit Function
 
 FailCopy:
-    statusOut = "FAILED:" & Err.Description
+    restoredPrior = RestorePublishBackupSync(targetPath, backupPath)
+    If restoredPrior Then
+        statusOut = "FAILED_RESTORED_PRIOR:" & Err.Description
+    Else
+        statusOut = "FAILED:" & Err.Description
+    End If
     DeleteFileIfPresentSync stagePath
+    DeleteFileIfPresentSync backupPath
+End Function
+
+Private Sub RecoverInterruptedPublishArtifactsSync(ByVal targetPath As String, _
+                                                   ByVal stagePath As String, _
+                                                   ByVal backupPath As String)
+    If FileExistsSync(targetPath) Then
+        DeleteFileIfPresentSync stagePath
+        DeleteFileIfPresentSync backupPath
+        Exit Sub
+    End If
+
+    If FileExistsSync(backupPath) Then
+        Name backupPath As targetPath
+    End If
+    DeleteFileIfPresentSync stagePath
+    DeleteFileIfPresentSync backupPath
+End Sub
+
+Private Function RestorePublishBackupSync(ByVal targetPath As String, ByVal backupPath As String) As Boolean
+    On Error GoTo FailRestore
+
+    If FileExistsSync(targetPath) Then Exit Function
+    If Not FileExistsSync(backupPath) Then Exit Function
+
+    Name backupPath As targetPath
+    RestorePublishBackupSync = True
+    Exit Function
+
+FailRestore:
+    RestorePublishBackupSync = False
+End Function
+
+Private Function ShouldSimulatePublishInterruptSync(ByVal targetPath As String) As Boolean
+    If Not mSimulatePublishInterrupt Then Exit Function
+    If mSimulatePublishInterruptMatch = "" Then
+        ShouldSimulatePublishInterruptSync = True
+    Else
+        ShouldSimulatePublishInterruptSync = (InStr(1, targetPath, mSimulatePublishInterruptMatch, vbTextCompare) > 0)
+    End If
 End Function
 
 Private Sub DeleteFileIfPresentSync(ByVal fullPath As String)

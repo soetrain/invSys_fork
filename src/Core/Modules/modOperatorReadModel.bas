@@ -29,8 +29,12 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
     Dim normalizedSource As String
     Dim resolvedWarehouseId As String
     Dim configValidation As String
+    Dim snapshotContext As Object
     Dim snapshotPath As String
     Dim snapshotAlreadyOpen As Boolean
+    Dim effectiveSource As String
+    Dim detailMessage As String
+    Dim snapshotIsStale As Boolean
     Dim invSheet As Worksheet
     Dim invSheetWasProtected As Boolean
     Dim prevScreenUpdating As Boolean
@@ -63,15 +67,33 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
     prevScreenUpdating = Application.ScreenUpdating
     Application.ScreenUpdating = False
     screenSuppressed = True
-    snapshotPath = ResolveSnapshotPathReadModel(resolvedWarehouseId)
-    snapshotAlreadyOpen = WorkbookIsOpenByPathReadModel(snapshotPath)
-    Set wbSnap = ResolveSnapshotWorkbook(resolvedWarehouseId, "", Nothing, False)
-    If wbSnap Is Nothing Then
-        MarkReadModelState loInv, refreshUtc, vbNullString, "CACHED", True
-        report = "Snapshot workbook not found; operator read model marked stale."
+    Set snapshotContext = ResolveSnapshotContextReadModel(resolvedWarehouseId, normalizedSource)
+    snapshotPath = ResolveSnapshotContextValueReadModel(snapshotContext, "SnapshotPath")
+    effectiveSource = ResolveSnapshotContextValueReadModel(snapshotContext, "EffectiveSourceType")
+    detailMessage = ResolveSnapshotContextValueReadModel(snapshotContext, "DetailMessage")
+    snapshotIsStale = ResolveSnapshotContextFlagReadModel(snapshotContext, "IsStale")
+
+    If effectiveSource = "CACHED" Then
+        snapshotId = ResolveExistingSnapshotIdReadModel(loInv)
+        MarkReadModelState loInv, refreshUtc, snapshotId, "CACHED", True
+        report = detailMessage
+        If report = "" Then report = "Snapshot workbook not available; operator read model kept cached."
         If configValidation <> "" Then report = report & " " & configValidation
-        ApplyReadModelStatusSurface wb, refreshUtc, vbNullString, "CACHED", True, report
-        UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, "CACHED", refreshUtc
+        ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, "CACHED", True, report
+        UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, normalizedSource, refreshUtc
+        RefreshInventoryReadModelForWorkbook = True
+        GoTo CleanExit
+    End If
+
+    snapshotAlreadyOpen = WorkbookIsOpenByPathReadModel(snapshotPath)
+    Set wbSnap = ResolveSnapshotWorkbook(resolvedWarehouseId, snapshotPath, Nothing, False)
+    If wbSnap Is Nothing Then
+        snapshotId = ResolveExistingSnapshotIdReadModel(loInv)
+        report = "Snapshot workbook could not be opened for source " & effectiveSource & "; operator read model kept cached."
+        If configValidation <> "" Then report = report & " " & configValidation
+        MarkReadModelState loInv, refreshUtc, snapshotId, "CACHED", True
+        ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, "CACHED", True, report
+        UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, normalizedSource, refreshUtc
         RefreshInventoryReadModelForWorkbook = True
         GoTo CleanExit
     End If
@@ -79,20 +101,29 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
 
     Set loSnap = FindListObjectReadModel(wbSnap, TABLE_SNAPSHOT)
     If loSnap Is Nothing Then
-        MarkReadModelState loInv, refreshUtc, vbNullString, "CACHED", True
-        report = "Snapshot table not found; operator read model marked stale."
+        snapshotId = ResolveExistingSnapshotIdReadModel(loInv)
+        report = "Snapshot table not found for source " & effectiveSource & "; operator read model kept cached."
         If configValidation <> "" Then report = report & " " & configValidation
-        ApplyReadModelStatusSurface wb, refreshUtc, vbNullString, "CACHED", True, report
-        UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, "CACHED", refreshUtc
+        MarkReadModelState loInv, refreshUtc, snapshotId, "CACHED", True
+        ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, "CACHED", True, report
+        UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, normalizedSource, refreshUtc
         RefreshInventoryReadModelForWorkbook = True
         GoTo CleanExit
     End If
 
     Set snapshotRows = BuildSnapshotDictionary(loSnap)
     snapshotId = BuildSnapshotId(wbSnap)
-    ApplySnapshotToInvSys loInv, snapshotRows, refreshUtc, snapshotId, normalizedSource
-    report = "OK"
-    ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, normalizedSource, False, report
+    ApplySnapshotToInvSys loInv, snapshotRows, refreshUtc, snapshotId, effectiveSource, snapshotIsStale
+    report = detailMessage
+    If report = "" Then report = "OK"
+    If configValidation <> "" Then
+        If report = "OK" Then
+            report = configValidation
+        Else
+            report = report & " " & configValidation
+        End If
+    End If
+    ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, effectiveSource, snapshotIsStale, detailMessage
     UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, normalizedSource, refreshUtc
     RefreshInventoryReadModelForWorkbook = True
     
@@ -140,6 +171,24 @@ FailRefreshCurrent:
     MsgBox "RefreshCurrentWorkbookInventoryReadModel failed: " & Err.Description, vbExclamation
 End Sub
 
+Public Function RefreshInventoryReadModelFromLocalForWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
+                                                              Optional ByVal warehouseId As String = "", _
+                                                              Optional ByRef report As String = "") As Boolean
+    RefreshInventoryReadModelFromLocalForWorkbook = RefreshInventoryReadModelForWorkbook(targetWb, warehouseId, "LOCAL", report)
+End Function
+
+Public Function RefreshInventoryReadModelFromSharePointForWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
+                                                                   Optional ByVal warehouseId As String = "", _
+                                                                   Optional ByRef report As String = "") As Boolean
+    RefreshInventoryReadModelFromSharePointForWorkbook = RefreshInventoryReadModelForWorkbook(targetWb, warehouseId, "SHAREPOINT", report)
+End Function
+
+Public Function RefreshInventoryReadModelFromCacheForWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
+                                                              Optional ByVal warehouseId As String = "", _
+                                                              Optional ByRef report As String = "") As Boolean
+    RefreshInventoryReadModelFromCacheForWorkbook = RefreshInventoryReadModelForWorkbook(targetWb, warehouseId, "CACHED", report)
+End Function
+
 Public Function DiagnoseCurrentWorkbookInventoryReadModelRefresh(Optional ByVal warehouseId As String = "", _
                                                                 Optional ByVal sourceType As String = "LOCAL") As String
     DiagnoseCurrentWorkbookInventoryReadModelRefresh = DiagnoseInventoryReadModelRefresh(ResolveOperatorWorkbook(Nothing), warehouseId, sourceType)
@@ -157,6 +206,7 @@ Public Function DiagnoseInventoryReadModelRefresh(Optional ByVal targetWb As Wor
     Dim snapshotRows As Object
     Dim refreshReport As String
     Dim resolvedWarehouseId As String
+    Dim snapshotContext As Object
     Dim snapshotPath As String
     Dim normalizedSource As String
     Dim configLoadedBefore As Boolean
@@ -189,9 +239,10 @@ Public Function DiagnoseInventoryReadModelRefresh(Optional ByVal targetWb As Wor
         configLoadResult = modConfig.LoadConfig(resolvedWarehouseId, "")
     End If
 
-    snapshotPath = ResolveSnapshotPathReadModel(resolvedWarehouseId)
+    Set snapshotContext = ResolveSnapshotContextReadModel(resolvedWarehouseId, normalizedSource)
+    snapshotPath = ResolveSnapshotContextValueReadModel(snapshotContext, "SnapshotPath")
     snapshotAlreadyOpen = WorkbookIsOpenByPathReadModel(snapshotPath)
-    Set wbSnap = ResolveSnapshotWorkbook(resolvedWarehouseId, "", Nothing, False)
+    Set wbSnap = ResolveSnapshotWorkbook(resolvedWarehouseId, snapshotPath, Nothing, False)
     If Not wbSnap Is Nothing Then
         Set loSnap = FindListObjectReadModel(wbSnap, TABLE_SNAPSHOT)
         snapshotTableRows = GetListRowCountReadModel(loSnap)
@@ -208,10 +259,13 @@ Public Function DiagnoseInventoryReadModelRefresh(Optional ByVal targetWb As Wor
         "TargetWorkbook=" & wb.FullName, _
         "WarehouseId=" & resolvedWarehouseId, _
         "SourceType=" & normalizedSource, _
+        "EffectiveSourceType=" & ResolveSnapshotContextValueReadModel(snapshotContext, "EffectiveSourceType"), _
+        "ResolvedSnapshotIsStale=" & CStr(ResolveSnapshotContextFlagReadModel(snapshotContext, "IsStale")), _
         "ConfigLoadedBefore=" & CStr(configLoadedBefore), _
         "ConfigLoadResult=" & CStr(configLoadResult), _
         "ConfigWorkbook=" & modConfig.GetResolvedWorkbookName(), _
         "PathDataRoot=" & modConfig.GetString("PathDataRoot", "<missing>"), _
+        "PathSharePointRoot=" & modConfig.GetString("PathSharePointRoot", "<missing>"), _
         "PathInboxRoot=" & modConfig.GetString("PathInboxRoot", "<missing>"), _
         "SnapshotPath=" & snapshotPath, _
         "SnapshotFileExists=" & CStr(FileExistsReadModel(snapshotPath)), _
@@ -351,7 +405,7 @@ Public Sub RunScheduledOperatorAutoRefresh()
                 Else
                     Call RefreshInventoryReadModelForWorkbook(wb, ResolveMetaValueReadModel(meta, "WarehouseId"), ResolveMetaValueReadModel(meta, "SourceType"), refreshReport)
                     meta("LastRefresh") = refreshUtc
-                    meta("LastSnapshotStamp") = ResolveSnapshotFileStampReadModel(ResolveMetaValueReadModel(meta, "WarehouseId"))
+                    meta("LastSnapshotStamp") = ResolveSnapshotFileStampReadModel(ResolveMetaValueReadModel(meta, "WarehouseId"), ResolveMetaValueReadModel(meta, "SourceType"))
                 End If
             End If
         End If
@@ -550,11 +604,137 @@ Private Function ResolveWarehouseIdFromConfigWorkbookNameReadModel(ByVal wbName 
 End Function
 
 Private Function ResolveSnapshotPathReadModel(ByVal warehouseId As String) As String
+    ResolveSnapshotPathReadModel = ResolveSnapshotPathForSourceReadModel(warehouseId, "LOCAL")
+End Function
+
+Private Function ResolveSnapshotPathForSourceReadModel(ByVal warehouseId As String, ByVal sourceType As String) As String
+    Dim folderPath As String
+
+    warehouseId = Trim$(warehouseId)
+    If warehouseId = "" Then Exit Function
+
+    folderPath = ResolveSnapshotFolderPathReadModel(sourceType)
+    If folderPath = "" Then Exit Function
+
+    ResolveSnapshotPathForSourceReadModel = folderPath & warehouseId & ".invSys.Snapshot.Inventory.xlsb"
+End Function
+
+Private Function ResolveSnapshotFolderPathReadModel(ByVal sourceType As String) As String
+    Dim normalizedSource As String
     Dim rootPath As String
 
-    rootPath = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
-    If rootPath = "" Then rootPath = Trim$(modConfig.GetString("PathDataRoot", Environ$("TEMP")))
-    ResolveSnapshotPathReadModel = NormalizeFolderPathReadModel(rootPath) & warehouseId & ".invSys.Snapshot.Inventory.xlsb"
+    normalizedSource = NormalizeSourceType(sourceType)
+    Select Case normalizedSource
+        Case "LOCAL"
+            rootPath = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
+            If rootPath = "" Then rootPath = Trim$(modConfig.GetString("PathDataRoot", Environ$("TEMP")))
+            ResolveSnapshotFolderPathReadModel = NormalizeFolderPathReadModel(rootPath)
+        Case "SHAREPOINT"
+            rootPath = Trim$(modConfig.GetString("PathSharePointRoot", ""))
+            If rootPath = "" Then Exit Function
+            ResolveSnapshotFolderPathReadModel = NormalizeFolderPathReadModel(rootPath) & "Snapshots\"
+    End Select
+End Function
+
+Private Function ResolveSnapshotContextReadModel(ByVal warehouseId As String, ByVal sourceType As String) As Object
+    Dim ctx As Object
+    Dim normalizedSource As String
+    Dim primaryPath As String
+    Dim stalePath As String
+
+    Set ctx = CreateObject("Scripting.Dictionary")
+    ctx.CompareMode = vbTextCompare
+
+    normalizedSource = NormalizeSourceType(sourceType)
+    ctx("RequestedSourceType") = normalizedSource
+    ctx("EffectiveSourceType") = normalizedSource
+    ctx("SnapshotPath") = vbNullString
+    ctx("DetailMessage") = vbNullString
+    ctx("IsStale") = False
+
+    If normalizedSource = "CACHED" Then
+        ctx("EffectiveSourceType") = "CACHED"
+        ctx("IsStale") = True
+        ctx("DetailMessage") = "Using cached operator read model."
+        Set ResolveSnapshotContextReadModel = ctx
+        Exit Function
+    End If
+
+    primaryPath = ResolveSnapshotPathForSourceReadModel(warehouseId, normalizedSource)
+    If primaryPath = "" Then
+        ctx("EffectiveSourceType") = "CACHED"
+        ctx("IsStale") = True
+        ctx("DetailMessage") = "Snapshot path not configured for source " & normalizedSource & "; operator read model kept cached."
+        Set ResolveSnapshotContextReadModel = ctx
+        Exit Function
+    End If
+
+    If FileExistsReadModel(primaryPath) Then
+        ctx("SnapshotPath") = primaryPath
+        Set ResolveSnapshotContextReadModel = ctx
+        Exit Function
+    End If
+
+    stalePath = ResolveStaleSnapshotPathReadModel(warehouseId, normalizedSource)
+    If stalePath <> "" Then
+        ctx("SnapshotPath") = stalePath
+        ctx("IsStale") = True
+        ctx("DetailMessage") = "Using stale snapshot from " & normalizedSource & "."
+        Set ResolveSnapshotContextReadModel = ctx
+        Exit Function
+    End If
+
+    ctx("EffectiveSourceType") = "CACHED"
+    ctx("IsStale") = True
+    ctx("DetailMessage") = "Snapshot workbook not found for source " & normalizedSource & "; operator read model kept cached."
+    Set ResolveSnapshotContextReadModel = ctx
+End Function
+
+Private Function ResolveStaleSnapshotPathReadModel(ByVal warehouseId As String, ByVal sourceType As String) As String
+    Dim folderPath As String
+    Dim canonicalPath As String
+    Dim pattern As String
+    Dim fileName As String
+    Dim candidatePath As String
+    Dim candidateStamp As Date
+    Dim bestStamp As Date
+
+    warehouseId = Trim$(warehouseId)
+    folderPath = ResolveSnapshotFolderPathReadModel(sourceType)
+    If warehouseId = "" Or folderPath = "" Then Exit Function
+
+    canonicalPath = LCase$(ResolveSnapshotPathForSourceReadModel(warehouseId, sourceType))
+    pattern = folderPath & warehouseId & "*.invSys.Snapshot.Inventory.xls*"
+
+    fileName = Dir$(pattern)
+    Do While fileName <> ""
+        candidatePath = folderPath & fileName
+        If LCase$(candidatePath) <> canonicalPath Then
+            On Error Resume Next
+            candidateStamp = FileDateTime(candidatePath)
+            If Err.Number = 0 Then
+                If ResolveStaleSnapshotPathReadModel = "" Or candidateStamp > bestStamp Then
+                    bestStamp = candidateStamp
+                    ResolveStaleSnapshotPathReadModel = candidatePath
+                End If
+            End If
+            Err.Clear
+            On Error GoTo 0
+        End If
+        fileName = Dir$
+    Loop
+End Function
+
+Private Function ResolveSnapshotContextValueReadModel(ByVal snapshotContext As Object, ByVal keyName As String) As String
+    If snapshotContext Is Nothing Then Exit Function
+    If Not snapshotContext.Exists(keyName) Then Exit Function
+    ResolveSnapshotContextValueReadModel = Trim$(CStr(snapshotContext(keyName)))
+End Function
+
+Private Function ResolveSnapshotContextFlagReadModel(ByVal snapshotContext As Object, ByVal keyName As String) As Boolean
+    If snapshotContext Is Nothing Then Exit Function
+    If Not snapshotContext.Exists(keyName) Then Exit Function
+    ResolveSnapshotContextFlagReadModel = CBool(snapshotContext(keyName))
 End Function
 
 Private Function WorkbookIsOpenByPathReadModel(ByVal targetPath As String) As Boolean
@@ -705,7 +885,8 @@ Private Sub ApplySnapshotToInvSys(ByVal loInv As ListObject, _
                                   ByVal snapshotRows As Object, _
                                   ByVal refreshUtc As Date, _
                                   ByVal snapshotId As String, _
-                                  ByVal sourceType As String)
+                                  ByVal sourceType As String, _
+                                  ByVal isStale As Boolean)
     Dim rowIndex As Long
     Dim sku As String
     Dim payload As Object
@@ -729,15 +910,15 @@ Private Sub ApplySnapshotToInvSys(ByVal loInv As ListObject, _
             qtyAvailable = ResolveSnapshotNumberPayloadReadModel(payload, "QtyAvailable")
             locationSummary = ResolveSnapshotTextPayloadReadModel(payload, "LocationSummary")
             lastApplied = ResolveSnapshotValuePayloadReadModel(payload, "LastAppliedAtUTC")
-            ApplyReadModelValues loInv, rowIndex, qtyOnHand, qtyAvailable, locationSummary, lastApplied, refreshUtc, snapshotId, sourceType, False
+            ApplyReadModelValues loInv, rowIndex, qtyOnHand, qtyAvailable, locationSummary, lastApplied, refreshUtc, snapshotId, sourceType, isStale
             ApplySnapshotMetadataToInvSys loInv, rowIndex, payload, locationSummary
         ElseIf sku <> "" Then
-            ApplyReadModelValues loInv, rowIndex, 0, 0, vbNullString, Empty, refreshUtc, snapshotId, sourceType, False
+            ApplyReadModelValues loInv, rowIndex, 0, 0, vbNullString, Empty, refreshUtc, snapshotId, sourceType, isStale
         Else
             ApplyReadModelValues loInv, rowIndex, NzDblReadModel(GetReadModelValue(loInv, rowIndex, "TOTAL INV")), _
                                 NzDblReadModel(GetReadModelValue(loInv, rowIndex, "QtyAvailable")), _
                                 CStr(GetReadModelValue(loInv, rowIndex, "LocationSummary")), _
-                                GetReadModelValue(loInv, rowIndex, "LAST EDITED"), refreshUtc, snapshotId, sourceType, False
+                                GetReadModelValue(loInv, rowIndex, "LAST EDITED"), refreshUtc, snapshotId, sourceType, isStale
         End If
     Next rowIndex
 End Sub
@@ -830,12 +1011,26 @@ Private Sub ApplySnapshotMetadataToInvSys(ByVal loInv As ListObject, _
                                           ByVal payload As Object, _
                                           ByVal locationSummary As String)
     Dim valueText As String
+    Dim sku As String
+    Dim existingItem As String
 
     If loInv Is Nothing Then Exit Sub
     If payload Is Nothing Then Exit Sub
 
+    sku = ResolveInvSysSku(loInv, rowIndex)
+    existingItem = Trim$(CStr(GetReadModelValue(loInv, rowIndex, "ITEM")))
+
     valueText = ResolveSnapshotTextPayloadReadModel(payload, "ITEM")
-    If valueText <> "" Then SetReadModelValue loInv, rowIndex, "ITEM", valueText
+    If valueText <> "" Then
+        If existingItem <> "" _
+           And sku <> "" _
+           And StrComp(existingItem, sku, vbTextCompare) <> 0 _
+           And StrComp(valueText, sku, vbTextCompare) = 0 Then
+            ' Preserve richer workbook-local item labels when the snapshot only echoes the SKU.
+        Else
+            SetReadModelValue loInv, rowIndex, "ITEM", valueText
+        End If
+    End If
 
     valueText = ResolveSnapshotTextPayloadReadModel(payload, "UOM")
     If valueText <> "" Then SetReadModelValue loInv, rowIndex, "UOM", valueText
@@ -886,6 +1081,22 @@ Private Sub MarkReadModelState(ByVal loInv As ListObject, _
         SetReadModelValue loInv, rowIndex, "IsStale", isStale
     Next rowIndex
 End Sub
+
+Private Function ResolveExistingSnapshotIdReadModel(ByVal loInv As ListObject) As String
+    Dim rowIndex As Long
+    Dim valueText As String
+
+    If loInv Is Nothing Then Exit Function
+    If loInv.DataBodyRange Is Nothing Then Exit Function
+
+    For rowIndex = 1 To loInv.ListRows.Count
+        valueText = Trim$(CStr(GetReadModelValue(loInv, rowIndex, "SnapshotId")))
+        If valueText <> "" Then
+            ResolveExistingSnapshotIdReadModel = valueText
+            Exit Function
+        End If
+    Next rowIndex
+End Function
 
 Private Sub SyncDisplayAliases(ByVal loInv As ListObject, ByVal rowIndex As Long)
     Dim sku As String
@@ -1037,13 +1248,15 @@ Private Function FileExistsReadModel(ByVal fullPath As String) As Boolean
     On Error GoTo 0
 End Function
 
-Private Function ResolveSnapshotFileStampReadModel(ByVal warehouseId As String) As String
+Private Function ResolveSnapshotFileStampReadModel(ByVal warehouseId As String, Optional ByVal sourceType As String = "LOCAL") As String
     Dim snapshotPath As String
+    Dim snapshotContext As Object
 
     On Error GoTo FailStamp
 
     If Trim$(warehouseId) = "" Then Exit Function
-    snapshotPath = ResolveSnapshotPathReadModel(warehouseId)
+    Set snapshotContext = ResolveSnapshotContextReadModel(warehouseId, sourceType)
+    snapshotPath = ResolveSnapshotContextValueReadModel(snapshotContext, "SnapshotPath")
     If Not FileExistsReadModel(snapshotPath) Then Exit Function
     ResolveSnapshotFileStampReadModel = Format$(FileDateTime(snapshotPath), "yyyymmddhhnnss")
     Exit Function
@@ -1315,7 +1528,7 @@ Private Sub RegisterAutoRefreshWorkbookReadModel(ByVal wb As Workbook, _
     meta("SourceType") = NormalizeSourceType(sourceType)
     meta("IntervalSeconds") = CLng(intervalSeconds)
     meta("LastRefresh") = lastRefresh
-    meta("LastSnapshotStamp") = ResolveSnapshotFileStampReadModel(warehouseId)
+    meta("LastSnapshotStamp") = ResolveSnapshotFileStampReadModel(warehouseId, sourceType)
     If mAutoRefreshRegistry.Exists(key) Then mAutoRefreshRegistry.Remove key
     mAutoRefreshRegistry.Add key, meta
 End Sub
@@ -1333,7 +1546,7 @@ Private Sub UpdateAutoRefreshEntryReadModel(ByVal wb As Workbook, _
 
     UpdateAutoRefreshConfigReadModel key, warehouseId, sourceType, ResolveAutoRefreshIntervalSecondsReadModel()
     mAutoRefreshRegistry(key)("LastRefresh") = refreshUtc
-    mAutoRefreshRegistry(key)("LastSnapshotStamp") = ResolveSnapshotFileStampReadModel(warehouseId)
+    mAutoRefreshRegistry(key)("LastSnapshotStamp") = ResolveSnapshotFileStampReadModel(warehouseId, sourceType)
     ScheduleNextAutoRefreshReadModel
 End Sub
 
@@ -1401,7 +1614,7 @@ Private Function ScheduledRefreshCanShortCircuitReadModel(ByVal meta As Object, 
     If meta Is Nothing Then Exit Function
     If Trim$(warehouseId) = "" Then Exit Function
 
-    currentStamp = ResolveSnapshotFileStampReadModel(warehouseId)
+    currentStamp = ResolveSnapshotFileStampReadModel(warehouseId, ResolveMetaValueReadModel(meta, "SourceType"))
     If currentStamp = "" Then Exit Function
     If meta.Exists("LastSnapshotStamp") Then previousStamp = Trim$(CStr(meta("LastSnapshotStamp")))
     If previousStamp = "" Then Exit Function
