@@ -9,6 +9,7 @@ Public Sub RunAdminConsoleTests()
     Tally TestRunProcessorFromConsole_ProcessesInboxAndWritesAudit(), passed, failed
     Tally TestReissuePoisonEvent_CreatesChildAndReruns(), passed, failed
     Tally TestGenerateInventorySnapshot_WritesWorkbookAndAudit(), passed, failed
+    Tally TestPublishWarehouseArtifacts_WritesAuditAndPublishesSnapshot(), passed, failed
 
     Debug.Print "Admin.Console tests - Passed: " & passed & " Failed: " & failed
 End Sub
@@ -203,6 +204,60 @@ Public Function TestGenerateInventorySnapshot_WritesWorkbookAndAudit() As Long
     If FindAuditRowByAction(loAudit, "GENERATE_SNAPSHOT") = 0 Then GoTo CleanExit
 
     TestGenerateInventorySnapshot_WritesWorkbookAndAudit = 1
+
+CleanExit:
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbSnap
+    TestPhase2Helpers.CloseNoSave wbAdmin
+    TestPhase2Helpers.CloseNoSave wbInv
+    TestPhase2Helpers.CloseNoSave wbAuth
+    TestPhase2Helpers.CloseNoSave wbCfg
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestPublishWarehouseArtifacts_WritesAuditAndPublishesSnapshot() As Long
+    Dim tempFolder As String
+    Dim shareRoot As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim wbInv As Workbook
+    Dim wbAdmin As Workbook
+    Dim wbSnap As Workbook
+    Dim loAudit As ListObject
+    Dim loSnap As ListObject
+    Dim evt As Object
+    Dim report As String
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+
+    On Error GoTo CleanFail
+    tempFolder = TestPhase2Helpers.BuildUniqueTestFolder("AdminWanPublishLocal")
+    shareRoot = TestPhase2Helpers.BuildUniqueTestFolder("AdminWanPublishShare")
+
+    Set wbCfg = TestPhase2Helpers.BuildCanonicalConfigWorkbook("WHA5", "ADM1", tempFolder, "ADMIN")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathDataRoot", tempFolder
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathSharePointRoot", shareRoot
+    Set wbAuth = TestPhase2Helpers.BuildCanonicalAuthWorkbook("WHA5", tempFolder)
+    Set wbInv = TestPhase2Helpers.BuildCanonicalInventoryWorkbook("WHA5", tempFolder, Array("SKU-001"))
+    Set wbAdmin = Application.Workbooks.Add
+    Call modAdminConsole.EnsureAdminSchema(wbAdmin, report)
+
+    TestPhase2Helpers.AddCapability wbAuth, "admin1", "ADMIN_MAINT", "WHA5", "ADM1", "ACTIVE"
+    Set evt = TestPhase2Helpers.CreateReceiveEvent("EVT-ADMIN-WAN-001", "WHA5", "ADM1", "user1", "SKU-001", 9, "A1", "admin-wan")
+    If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-ADMIN-WAN", statusOut, errorCode, errorMessage) Then GoTo CleanExit
+
+    If Not modAdminConsole.PublishWarehouseArtifacts("admin1", "WHA5", wbInv, wbAdmin, report) Then GoTo CleanExit
+
+    Set wbSnap = Application.Workbooks.Open(shareRoot & "\Snapshots\WHA5.invSys.Snapshot.Inventory.xlsb")
+    Set loSnap = wbSnap.Worksheets("InventorySnapshot").ListObjects("tblInventorySnapshot")
+    Set loAudit = wbAdmin.Worksheets("AdminAudit").ListObjects("tblAdminAudit")
+    If FindRowByColumnValue(loSnap, "SKU", "SKU-001") = 0 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loSnap, FindRowByColumnValue(loSnap, "SKU", "SKU-001"), "QtyOnHand")) <> 9 Then GoTo CleanExit
+    If FindAuditRowByAction(loAudit, "PUBLISH_WAN") = 0 Then GoTo CleanExit
+
+    TestPublishWarehouseArtifacts_WritesAuditAndPublishesSnapshot = 1
 
 CleanExit:
     TestPhase2Helpers.CloseAndDeleteWorkbook wbSnap

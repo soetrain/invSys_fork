@@ -48,6 +48,7 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
     Dim capability As String
     Dim artifactWarnings As Long
     Dim artifactReport As String
+    Dim publishReport As String
     Dim perfOwned As Boolean
     Dim openWorkbookPaths As Object
     Dim inventoryOpenedTransient As Boolean
@@ -184,6 +185,12 @@ ContinueInbox:
     If Not GenerateWarehouseSnapshot(warehouseId, inventoryWb, "", Nothing, artifactReport, runId) Then
         If report <> "" Then report = report & "; "
         report = report & "SnapshotError=" & artifactReport
+    Else
+        publishReport = vbNullString
+        If Not PublishWarehouseArtifactsToSharePoint(warehouseId, "", "", artifactReport, publishReport, runId) Then
+            If report <> "" Then report = report & "; "
+            report = report & "PublishWarning=" & publishReport
+        End If
     End If
     If PerfIsTransactionActiveSafeProcessor() Then MarkSegmentSafeProcessor "SnapshotPublish"
     If RunBatch > 0 Then modInventoryDomainBridge.ScheduleSourceWorkbookSyncBridge

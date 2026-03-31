@@ -9,6 +9,8 @@ Private Const TABLE_SNAPSHOT As String = "tblInventorySnapshot"
 Private Const SNAPSHOT_SOURCE_LOG As String = "LOG_FALLBACK"
 Private Const SNAPSHOT_SOURCE_PROJECTION As String = "PROJECTION"
 Private Const SNAPSHOT_SOURCE_MANAGED_SURFACE As String = "MANAGED_SURFACE"
+Private Const PUBLISH_LOG_FILE As String = "invSys.Publish.log"
+Private Const PUBLISH_STAGE_SUFFIX As String = ".uploading"
 
 Public Function AppendEventToOutbox(ByVal evt As Object, _
                                     Optional ByVal inventoryWb As Workbook = Nothing, _
@@ -196,6 +198,65 @@ FailSnapshot:
     If openedTransient Then CloseWorkbookQuietlySync wbSnap
     On Error GoTo 0
     report = "GenerateWarehouseSnapshot failed: " & Err.Description
+End Function
+
+Public Function PublishWarehouseArtifactsToSharePoint(Optional ByVal warehouseId As String = "", _
+                                                      Optional ByVal sharePointRoot As String = "", _
+                                                      Optional ByVal localOutboxPath As String = "", _
+                                                      Optional ByVal localSnapshotPath As String = "", _
+                                                      Optional ByRef report As String = "", _
+                                                      Optional ByVal perfRunId As String = "") As Boolean
+    On Error GoTo FailPublish
+
+    Dim t0 As Single
+    Dim resolvedWarehouseId As String
+    Dim resolvedSharePointRoot As String
+    Dim resolvedOutboxPath As String
+    Dim resolvedSnapshotPath As String
+    Dim outboxTargetPath As String
+    Dim snapshotTargetPath As String
+    Dim outboxStatus As String
+    Dim snapshotStatus As String
+    Dim hadFailure As Boolean
+
+    t0 = Timer
+
+    resolvedWarehouseId = SafeTrimSync(warehouseId)
+    If resolvedWarehouseId = "" Then resolvedWarehouseId = SafeTrimSync(modConfig.GetWarehouseId())
+    If resolvedWarehouseId = "" Then
+        report = "WarehouseId not resolved."
+        AppendPublishLogSync resolvedWarehouseId, perfRunId, "FAIL", report
+        Exit Function
+    End If
+
+    resolvedSharePointRoot = ResolveSharePointRootSync(sharePointRoot)
+    If resolvedSharePointRoot = "" Then
+        report = "SKIPPED_NOT_CONFIGURED"
+        AppendPublishLogSync resolvedWarehouseId, perfRunId, "SKIP", report
+        PublishWarehouseArtifactsToSharePoint = True
+        Exit Function
+    End If
+
+    resolvedOutboxPath = SafeTrimSync(localOutboxPath)
+    If resolvedOutboxPath = "" Then resolvedOutboxPath = ResolveOutboxPath(resolvedWarehouseId)
+    resolvedSnapshotPath = SafeTrimSync(localSnapshotPath)
+    If resolvedSnapshotPath = "" Then resolvedSnapshotPath = ResolveSnapshotPath(resolvedWarehouseId, "")
+
+    outboxTargetPath = resolvedSharePointRoot & "Events\" & GetFileNameSync(resolvedOutboxPath)
+    snapshotTargetPath = resolvedSharePointRoot & "Snapshots\" & GetFileNameSync(resolvedSnapshotPath)
+
+    If Not PublishFileToSharePointSync(resolvedOutboxPath, outboxTargetPath, outboxStatus) Then hadFailure = True
+    If Not PublishFileToSharePointSync(resolvedSnapshotPath, snapshotTargetPath, snapshotStatus) Then hadFailure = True
+
+    report = "Root=" & resolvedSharePointRoot & "|Outbox=" & outboxStatus & "|Snapshot=" & snapshotStatus
+    AppendPublishLogSync resolvedWarehouseId, perfRunId, IIf(hadFailure, "FAIL", "OK"), report
+    If Trim$(perfRunId) <> "" Then PerfMarkSafeSync perfRunId, "SharePointPublish", CLng((Timer - t0) * 1000)
+    PublishWarehouseArtifactsToSharePoint = Not hadFailure
+    Exit Function
+
+FailPublish:
+    report = "PublishWarehouseArtifactsToSharePoint failed: " & Err.Description
+    AppendPublishLogSync SafeTrimSync(warehouseId), perfRunId, "FAIL", report
 End Function
 
 Public Function ResolveOutboxWorkbook(Optional ByVal warehouseId As String = "", _
@@ -879,6 +940,107 @@ Private Function ResolveSnapshotPath(ByVal warehouseId As String, ByVal outputPa
     ResolveSnapshotPath = NormalizeFolderPathSync(rootPath) & warehouseId & ".invSys.Snapshot.Inventory.xlsb"
 End Function
 
+Private Function ResolveSharePointRootSync(ByVal sharePointRoot As String) As String
+    sharePointRoot = SafeTrimSync(sharePointRoot)
+    If sharePointRoot = "" Then sharePointRoot = SafeTrimSync(modConfig.GetString("PathSharePointRoot", ""))
+    If sharePointRoot = "" Then Exit Function
+    ResolveSharePointRootSync = NormalizeFolderPathSync(sharePointRoot)
+End Function
+
+Private Function PublishFileToSharePointSync(ByVal sourcePath As String, _
+                                             ByVal targetPath As String, _
+                                             ByRef statusOut As String) As Boolean
+    On Error GoTo FailCopy
+
+    Dim stagePath As String
+
+    sourcePath = SafeTrimSync(sourcePath)
+    targetPath = SafeTrimSync(targetPath)
+
+    If sourcePath = "" Then
+        statusOut = "SKIPPED_SOURCE_BLANK"
+        PublishFileToSharePointSync = True
+        Exit Function
+    End If
+    If targetPath = "" Then
+        statusOut = "FAILED_TARGET_BLANK"
+        Exit Function
+    End If
+    If Not FileExistsSync(sourcePath) Then
+        statusOut = "SKIPPED_LOCAL_MISSING"
+        PublishFileToSharePointSync = True
+        Exit Function
+    End If
+
+    EnsureFolderForFileSync targetPath
+    stagePath = targetPath & PUBLISH_STAGE_SUFFIX
+
+    DeleteFileIfPresentSync stagePath
+    FileCopy sourcePath, stagePath
+    DeleteFileIfPresentSync targetPath
+    Name stagePath As targetPath
+
+    statusOut = "COPIED:" & targetPath
+    PublishFileToSharePointSync = True
+    Exit Function
+
+FailCopy:
+    statusOut = "FAILED:" & Err.Description
+    DeleteFileIfPresentSync stagePath
+End Function
+
+Private Sub DeleteFileIfPresentSync(ByVal fullPath As String)
+    If SafeTrimSync(fullPath) = "" Then Exit Sub
+    On Error Resume Next
+    If FileExistsSync(fullPath) Then Kill fullPath
+    On Error GoTo 0
+End Sub
+
+Private Function GetFileNameSync(ByVal fullPath As String) As String
+    Dim sepPos As Long
+
+    fullPath = SafeTrimSync(fullPath)
+    If fullPath = "" Then Exit Function
+
+    sepPos = InStrRev(fullPath, "\")
+    If sepPos > 0 Then
+        GetFileNameSync = Mid$(fullPath, sepPos + 1)
+    Else
+        GetFileNameSync = fullPath
+    End If
+End Function
+
+Private Sub AppendPublishLogSync(ByVal warehouseId As String, _
+                                 ByVal runId As String, _
+                                 ByVal resultCode As String, _
+                                 ByVal detailText As String)
+    Dim fileNum As Integer
+    Dim logPath As String
+    Dim lineText As String
+
+    On Error Resume Next
+    logPath = ResolvePublishLogPathSync()
+    lineText = Format$(Now, "yyyy-mm-dd hh:nn:ss") & " | WarehouseId=" & SafeTrimSync(warehouseId) & _
+               " | RunId=" & SafeTrimSync(runId) & " | Result=" & SafeTrimSync(resultCode) & _
+               " | " & SafeTrimSync(detailText)
+    fileNum = FreeFile
+    Open logPath For Append As #fileNum
+    Print #fileNum, lineText
+    Close #fileNum
+    LogDiagnosticSafeSync "WAN-PUBLISH", Replace$(lineText, " | ", "|")
+    On Error GoTo 0
+End Sub
+
+Private Function ResolvePublishLogPathSync() As String
+    Dim rootPath As String
+
+    rootPath = Trim$(GetCoreDataRootOverride())
+    If rootPath = "" Then rootPath = SafeTrimSync(modConfig.GetString("PathDataRoot", ""))
+    If rootPath = "" Then rootPath = Environ$("TEMP")
+
+    ResolvePublishLogPathSync = NormalizeFolderPathSync(rootPath) & PUBLISH_LOG_FILE
+End Function
+
 Private Function ResolveWorkbookByPathSync(ByVal targetPath As String, _
                                            ByVal createIfMissing As Boolean, _
                                            Optional ByVal openReadOnly As Boolean = False) As Workbook
@@ -1133,6 +1295,12 @@ End Sub
 Private Sub PerfMarkSafeSync(ByVal runId As String, ByVal segmentName As String, ByVal elapsedMs As Long)
     On Error Resume Next
     Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.PerfMark", runId, segmentName, elapsedMs
+    On Error GoTo 0
+End Sub
+
+Private Sub LogDiagnosticSafeSync(ByVal categoryName As String, ByVal detailText As String)
+    On Error Resume Next
+    Application.Run "'" & ThisWorkbook.Name & "'!modPerfLog.LogDiagnostic", categoryName, detailText
     On Error GoTo 0
 End Sub
 

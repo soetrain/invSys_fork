@@ -106,22 +106,17 @@ Public Function BuildPhase2InventoryWorkbook(ByVal whId As String, _
     DeleteAllTableRows wb.Worksheets("LocationBalance").ListObjects("tblLocationBalance"), True
 
     If Not IsMissing(skuList) Then
-        Set wsSku = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
-        wsSku.Name = "SkuCatalog"
-        wsSku.Range("A1").Value = "SKU"
-        lastRow = 1
+        Set wsSku = wb.Worksheets("SkuCatalog")
+        Set loSku = wsSku.ListObjects("tblSkuCatalog")
+        DeleteAllTableRows loSku, True
+
         If IsArray(skuList) Then
             For i = LBound(skuList) To UBound(skuList)
-                lastRow = lastRow + 1
-                wsSku.Cells(lastRow, 1).Value = skuList(i)
+                AppendSkuCatalogRow loSku, CStr(skuList(i))
             Next i
         ElseIf CStr(skuList) <> "" Then
-            lastRow = 2
-            wsSku.Cells(lastRow, 1).Value = CStr(skuList)
+            AppendSkuCatalogRow loSku, CStr(skuList)
         End If
-        If lastRow = 1 Then lastRow = 2
-        Set loSku = wsSku.ListObjects.Add(xlSrcRange, wsSku.Range("A1:A" & CStr(lastRow)), , xlYes)
-        loSku.Name = "tblSkuCatalog"
     End If
 
     If persistWorkbook Then
@@ -140,6 +135,20 @@ Public Function BuildCanonicalInventoryWorkbook(ByVal whId As String, ByVal root
     SaveWorkbookAsCanonicalFile wb, targetPath, 50
     Set BuildCanonicalInventoryWorkbook = wb
 End Function
+
+Private Sub AppendSkuCatalogRow(ByVal loSku As ListObject, ByVal skuValue As String)
+    Dim r As ListRow
+
+    If loSku Is Nothing Then Exit Sub
+    skuValue = Trim$(skuValue)
+    If skuValue = "" Then Exit Sub
+
+    EnsureTableSheetEditable loSku, "tblSkuCatalog"
+    Set r = loSku.ListRows.Add
+    SetTableRowValue loSku, r.Index, "SKU", skuValue
+    SetTableRowValue loSku, r.Index, "ITEM_CODE", skuValue
+    SetTableRowValue loSku, r.Index, "ITEM", skuValue
+End Sub
 
 Public Function BuildCanonicalConfigWorkbook(ByVal whId As String, _
                                              ByVal stId As String, _

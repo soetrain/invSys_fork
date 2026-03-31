@@ -9,6 +9,9 @@ Public Sub RunPhase5SyncTests()
     Tally TestRunBatch_SnapshotIncludesCatalogRowsWithZeroQty(), passed, failed
     Tally TestRunBatch_SnapshotNormalizesLocationSummaryAndFormatsColumns(), passed, failed
     Tally TestManualCopy_PublishesWarehouseArtifacts(), passed, failed
+    Tally TestWanPublish_OnlineCopy_PublishesLocalArtifactsToSharePoint(), passed, failed
+    Tally TestWanPublish_OfflineFailure_DoesNotBlockLocalProcessing(), passed, failed
+    Tally TestWanPublish_SafeRerun_ReplacesPublishedArtifacts(), passed, failed
     Tally TestHqAggregation_TwoWarehousesPreservesPerWarehouseQty(), passed, failed
     Tally TestHqAggregation_RebuildsGlobalSnapshotAfterStaggeredWarehouseUpdates(), passed, failed
     Tally TestHqAggregation_GlobalSnapshotStatusIsAdvisoryOnly(), passed, failed
@@ -222,6 +225,174 @@ CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
     TestPhase2Helpers.CloseNoSave wbSnap
     TestPhase2Helpers.CloseNoSave wbOutbox
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbInbox
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbInv
+    TestPhase2Helpers.CloseNoSave wbAuth
+    TestPhase2Helpers.CloseNoSave wbCfg
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestWanPublish_OnlineCopy_PublishesLocalArtifactsToSharePoint() As Long
+    Dim localRoot As String
+    Dim shareRoot As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim wbInv As Workbook
+    Dim wbInbox As Workbook
+    Dim wbOutbox As Workbook
+    Dim wbSnap As Workbook
+    Dim loOutbox As ListObject
+    Dim loSnap As ListObject
+    Dim report As String
+
+    On Error GoTo CleanFail
+    localRoot = TestPhase2Helpers.BuildUniqueTestFolder("Phase5WanOnlineLocal")
+    shareRoot = TestPhase2Helpers.BuildUniqueTestFolder("Phase5WanOnlineShare")
+
+    Set wbCfg = TestPhase2Helpers.BuildCanonicalConfigWorkbook("WHW5A", "S1", localRoot, "RECEIVE")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathDataRoot", localRoot
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathSharePointRoot", shareRoot
+    Set wbAuth = TestPhase2Helpers.BuildCanonicalAuthWorkbook("WHW5A", localRoot)
+    TestPhase2Helpers.AddCapability wbAuth, "user1", "RECEIVE_POST", "WHW5A", "S1", "ACTIVE"
+    TestPhase2Helpers.AddCapability wbAuth, "svc_processor", "INBOX_PROCESS", "WHW5A", "*", "ACTIVE"
+    Set wbInv = TestPhase2Helpers.BuildCanonicalInventoryWorkbook("WHW5A", localRoot, Array("SKU-001"))
+    Set wbInbox = TestPhase2Helpers.BuildCanonicalReceiveInboxWorkbook("S1", localRoot)
+    TestPhase2Helpers.AddInboxReceiveRow wbInbox, "EVT-WAN-ONLINE-001", Now, "WHW5A", "S1", "user1", "SKU-001", 6, "A1", "wan-online"
+
+    If RunBatchForRoot("WHW5A", localRoot, 500, report) <> 1 Then GoTo CleanExit
+    If InStr(1, report, "PublishWarning=", vbTextCompare) > 0 Then GoTo CleanExit
+
+    Set wbOutbox = OpenWorkbookIfNeeded(shareRoot & "\Events\WHW5A.Outbox.Events.xlsb")
+    Set wbSnap = OpenWorkbookIfNeeded(shareRoot & "\Snapshots\WHW5A.invSys.Snapshot.Inventory.xlsb")
+    If wbOutbox Is Nothing Or wbSnap Is Nothing Then GoTo CleanExit
+
+    Set loOutbox = wbOutbox.Worksheets("OutboxEvents").ListObjects("tblOutboxEvents")
+    Set loSnap = wbSnap.Worksheets("InventorySnapshot").ListObjects("tblInventorySnapshot")
+    If FindRowByColumnValue(loOutbox, "EventID", "EVT-WAN-ONLINE-001") = 0 Then GoTo CleanExit
+    If FindRowByColumnValue(loSnap, "SKU", "SKU-001") = 0 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loSnap, FindRowByColumnValue(loSnap, "SKU", "SKU-001"), "QtyOnHand")) <> 6 Then GoTo CleanExit
+
+    TestWanPublish_OnlineCopy_PublishesLocalArtifactsToSharePoint = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbSnap
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbOutbox
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbInbox
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbInv
+    TestPhase2Helpers.CloseNoSave wbAuth
+    TestPhase2Helpers.CloseNoSave wbCfg
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestWanPublish_OfflineFailure_DoesNotBlockLocalProcessing() As Long
+    Dim localRoot As String
+    Dim offlineRoot As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim wbInv As Workbook
+    Dim wbInbox As Workbook
+    Dim logText As String
+    Dim report As String
+
+    On Error GoTo CleanFail
+    localRoot = TestPhase2Helpers.BuildUniqueTestFolder("Phase5WanOfflineLocal")
+    offlineRoot = localRoot & "\sharepoint_offline.txt"
+    WriteTextFile offlineRoot, "offline"
+
+    Set wbCfg = TestPhase2Helpers.BuildCanonicalConfigWorkbook("WHW5B", "S1", localRoot, "RECEIVE")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathDataRoot", localRoot
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathSharePointRoot", offlineRoot
+    Set wbAuth = TestPhase2Helpers.BuildCanonicalAuthWorkbook("WHW5B", localRoot)
+    TestPhase2Helpers.AddCapability wbAuth, "user1", "RECEIVE_POST", "WHW5B", "S1", "ACTIVE"
+    TestPhase2Helpers.AddCapability wbAuth, "svc_processor", "INBOX_PROCESS", "WHW5B", "*", "ACTIVE"
+    Set wbInv = TestPhase2Helpers.BuildCanonicalInventoryWorkbook("WHW5B", localRoot, Array("SKU-001"))
+    Set wbInbox = TestPhase2Helpers.BuildCanonicalReceiveInboxWorkbook("S1", localRoot)
+    TestPhase2Helpers.AddInboxReceiveRow wbInbox, "EVT-WAN-OFFLINE-001", Now, "WHW5B", "S1", "user1", "SKU-001", 4, "A1", "wan-offline"
+
+    If RunBatchForRoot("WHW5B", localRoot, 500, report) <> 1 Then GoTo CleanExit
+    If InStr(1, report, "PublishWarning=", vbTextCompare) = 0 Then GoTo CleanExit
+    If Len(Dir$(localRoot & "\WHW5B.Outbox.Events.xlsb")) = 0 Then GoTo CleanExit
+    If Len(Dir$(localRoot & "\WHW5B.invSys.Snapshot.Inventory.xlsb")) = 0 Then GoTo CleanExit
+
+    logText = ReadTextFile(localRoot & "\invSys.Publish.log")
+    If InStr(1, logText, "Result=FAIL", vbTextCompare) = 0 Then GoTo CleanExit
+    If InStr(1, logText, "WHW5B", vbTextCompare) = 0 Then GoTo CleanExit
+
+    TestWanPublish_OfflineFailure_DoesNotBlockLocalProcessing = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbInbox
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbInv
+    TestPhase2Helpers.CloseNoSave wbAuth
+    TestPhase2Helpers.CloseNoSave wbCfg
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestWanPublish_SafeRerun_ReplacesPublishedArtifacts() As Long
+    Dim localRoot As String
+    Dim shareRoot As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim wbInv As Workbook
+    Dim wbInbox As Workbook
+    Dim wbOutbox As Workbook
+    Dim wbSnap As Workbook
+    Dim loOutbox As ListObject
+    Dim loSnap As ListObject
+    Dim publishReport As String
+    Dim report As String
+
+    On Error GoTo CleanFail
+    localRoot = TestPhase2Helpers.BuildUniqueTestFolder("Phase5WanRerunLocal")
+    shareRoot = TestPhase2Helpers.BuildUniqueTestFolder("Phase5WanRerunShare")
+
+    Set wbCfg = TestPhase2Helpers.BuildCanonicalConfigWorkbook("WHW5C", "S1", localRoot, "RECEIVE")
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathDataRoot", localRoot
+    TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathSharePointRoot", shareRoot
+    Set wbAuth = TestPhase2Helpers.BuildCanonicalAuthWorkbook("WHW5C", localRoot)
+    TestPhase2Helpers.AddCapability wbAuth, "user1", "RECEIVE_POST", "WHW5C", "S1", "ACTIVE"
+    TestPhase2Helpers.AddCapability wbAuth, "svc_processor", "INBOX_PROCESS", "WHW5C", "*", "ACTIVE"
+    Set wbInv = TestPhase2Helpers.BuildCanonicalInventoryWorkbook("WHW5C", localRoot, Array("SKU-001"))
+    Set wbInbox = TestPhase2Helpers.BuildCanonicalReceiveInboxWorkbook("S1", localRoot)
+    TestPhase2Helpers.AddInboxReceiveRow wbInbox, "EVT-WAN-RERUN-001", Now, "WHW5C", "S1", "user1", "SKU-001", 8, "A1", "wan-rerun"
+
+    If RunBatchForRoot("WHW5C", localRoot, 500, report) <> 1 Then GoTo CleanExit
+
+    CloseIfOpen shareRoot & "\Events\WHW5C.Outbox.Events.xlsb"
+    CloseIfOpen shareRoot & "\Snapshots\WHW5C.invSys.Snapshot.Inventory.xlsb"
+    publishReport = vbNullString
+    If Not modWarehouseSync.PublishWarehouseArtifactsToSharePoint("WHW5C", shareRoot, localRoot & "\WHW5C.Outbox.Events.xlsb", localRoot & "\WHW5C.invSys.Snapshot.Inventory.xlsb", publishReport) Then GoTo CleanExit
+    publishReport = vbNullString
+    If Not modWarehouseSync.PublishWarehouseArtifactsToSharePoint("WHW5C", shareRoot, localRoot & "\WHW5C.Outbox.Events.xlsb", localRoot & "\WHW5C.invSys.Snapshot.Inventory.xlsb", publishReport) Then GoTo CleanExit
+
+    If Len(Dir$(shareRoot & "\Events\WHW5C.Outbox.Events.xlsb.uploading")) > 0 Then GoTo CleanExit
+    If Len(Dir$(shareRoot & "\Snapshots\WHW5C.invSys.Snapshot.Inventory.xlsb.uploading")) > 0 Then GoTo CleanExit
+
+    Set wbOutbox = OpenWorkbookIfNeeded(shareRoot & "\Events\WHW5C.Outbox.Events.xlsb")
+    Set wbSnap = OpenWorkbookIfNeeded(shareRoot & "\Snapshots\WHW5C.invSys.Snapshot.Inventory.xlsb")
+    If wbOutbox Is Nothing Or wbSnap Is Nothing Then GoTo CleanExit
+
+    Set loOutbox = wbOutbox.Worksheets("OutboxEvents").ListObjects("tblOutboxEvents")
+    Set loSnap = wbSnap.Worksheets("InventorySnapshot").ListObjects("tblInventorySnapshot")
+    If loOutbox.ListRows.Count <> 1 Then GoTo CleanExit
+    If FindRowByColumnValue(loOutbox, "EventID", "EVT-WAN-RERUN-001") = 0 Then GoTo CleanExit
+    If FindRowByColumnValue(loSnap, "SKU", "SKU-001") = 0 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loSnap, FindRowByColumnValue(loSnap, "SKU", "SKU-001"), "QtyOnHand")) <> 8 Then GoTo CleanExit
+
+    TestWanPublish_SafeRerun_ReplacesPublishedArtifacts = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbSnap
+    TestPhase2Helpers.CloseAndDeleteWorkbook wbOutbox
     TestPhase2Helpers.CloseAndDeleteWorkbook wbInbox
     TestPhase2Helpers.CloseAndDeleteWorkbook wbInv
     TestPhase2Helpers.CloseNoSave wbAuth
@@ -886,6 +1057,26 @@ Private Sub WriteCorruptSnapshotPlaceholder(ByVal targetPath As String)
     Print #fileNo, "partial sync artifact"
     Close #fileNo
 End Sub
+
+Private Sub WriteTextFile(ByVal targetPath As String, ByVal contents As String)
+    Dim fileNo As Integer
+
+    fileNo = FreeFile
+    Open targetPath For Output As #fileNo
+    Print #fileNo, contents
+    Close #fileNo
+End Sub
+
+Private Function ReadTextFile(ByVal targetPath As String) As String
+    Dim fileNo As Integer
+
+    If Len(Dir$(targetPath)) = 0 Then Exit Function
+
+    fileNo = FreeFile
+    Open targetPath For Input As #fileNo
+    ReadTextFile = Input$(LOF(fileNo), #fileNo)
+    Close #fileNo
+End Function
 
 Private Sub WaitForNextSecondForTest()
     Dim startSecond As Long

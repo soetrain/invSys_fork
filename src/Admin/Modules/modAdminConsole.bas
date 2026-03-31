@@ -379,6 +379,66 @@ FailSnapshot:
     report = "GenerateInventorySnapshot failed: " & Err.Description
 End Function
 
+Public Function PublishWarehouseArtifacts(Optional ByVal adminUserId As String = "", _
+                                          Optional ByVal warehouseId As String = "", _
+                                          Optional ByVal inventoryWb As Workbook = Nothing, _
+                                          Optional ByVal adminWb As Workbook = Nothing, _
+                                          Optional ByRef report As String = "") As Boolean
+    On Error GoTo FailPublish
+
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+    Dim resolvedUser As String
+    Dim sourceInvWb As Workbook
+    Dim snapshotPath As String
+    Dim publishReport As String
+    Dim detailText As String
+    Dim sharePointRoot As String
+    Dim refreshReport As String
+    Dim resultCode As String
+
+    If Not EnsureAdminContext(adminUserId, warehouseId, resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
+    If Not RequireAdminMaintenance(resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
+
+    sharePointRoot = Trim$(modConfig.GetString("PathSharePointRoot", ""))
+    If sharePointRoot = "" Then
+        report = "PathSharePointRoot not configured."
+        AppendAuditEntry ResolveAdminWorkbook(adminWb), "PUBLISH_WAN", resolvedUser, resolvedWh, resolvedSt, _
+                         "SHAREPOINT", "", "", report, "FAIL"
+        Exit Function
+    End If
+
+    Set sourceInvWb = modInventoryApply.ResolveInventoryWorkbook(resolvedWh, inventoryWb)
+    If sourceInvWb Is Nothing Then
+        report = "Inventory workbook not found."
+        AppendAuditEntry ResolveAdminWorkbook(adminWb), "PUBLISH_WAN", resolvedUser, resolvedWh, resolvedSt, _
+                         "SHAREPOINT", sharePointRoot, "", report, "FAIL"
+        Exit Function
+    End If
+
+    snapshotPath = vbNullString
+    If Not modWarehouseSync.GenerateWarehouseSnapshot(resolvedWh, sourceInvWb, "", Nothing, snapshotPath) Then
+        report = snapshotPath
+        AppendAuditEntry ResolveAdminWorkbook(adminWb), "PUBLISH_WAN", resolvedUser, resolvedWh, resolvedSt, _
+                         "SHAREPOINT", sharePointRoot, "", report, "FAIL"
+        Exit Function
+    End If
+
+    publishReport = vbNullString
+    PublishWarehouseArtifacts = modWarehouseSync.PublishWarehouseArtifactsToSharePoint(resolvedWh, sharePointRoot, "", snapshotPath, publishReport)
+    detailText = "Snapshot=" & snapshotPath & "|Publish=" & publishReport
+    resultCode = IIf(PublishWarehouseArtifacts, "OK", "FAIL")
+    AppendAuditEntry ResolveAdminWorkbook(adminWb), "PUBLISH_WAN", resolvedUser, resolvedWh, resolvedSt, _
+                     "SHAREPOINT", sharePointRoot, "", detailText, resultCode
+    Call RefreshAdminConsole(adminWb, refreshReport)
+
+    report = detailText
+    Exit Function
+
+FailPublish:
+    report = "PublishWarehouseArtifacts failed: " & Err.Description
+End Function
+
 Private Function ResolveAdminWorkbook(ByVal adminWb As Workbook) As Workbook
     If Not adminWb Is Nothing Then
         Set ResolveAdminWorkbook = adminWb
