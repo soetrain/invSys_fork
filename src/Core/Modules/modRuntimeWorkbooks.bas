@@ -104,9 +104,9 @@ Private Function OpenOrCreateRuntimeWorkbook(ByVal targetPath As String, _
 
     Select Case UCase$(workbookKind)
         Case "CONFIG"
-            If Not modConfig.EnsureConfigSchema(wb, warehouseId, stationId, report) Then GoTo FailSoft
+            If Not EnsureConfigSchemaRuntime(wb, warehouseId, stationId, report) Then GoTo FailSoft
         Case "AUTH"
-            If Not modAuth.EnsureAuthSchema(wb, warehouseId, processorServiceUserId, report) Then GoTo FailSoft
+            If Not EnsureAuthSchemaRuntime(wb, warehouseId, processorServiceUserId, report) Then GoTo FailSoft
         Case Else
             report = "Unsupported workbook kind: " & workbookKind
             GoTo FailSoft
@@ -269,7 +269,7 @@ End Function
 
 Private Function ResolveConfiguredRuntimeRoot(ByVal warehouseId As String) As String
     On Error Resume Next
-    ResolveConfiguredRuntimeRoot = Trim$(modConfig.GetString("PathDataRoot", ""))
+    ResolveConfiguredRuntimeRoot = Trim$(GetConfigStringRuntime("PathDataRoot", ""))
     On Error GoTo 0
 
     If ResolveConfiguredRuntimeRoot <> "" Then ResolveConfiguredRuntimeRoot = NormalizeFolderPath(ResolveConfiguredRuntimeRoot)
@@ -306,3 +306,69 @@ Private Sub SaveRuntimeWorkbook(ByVal wb As Workbook)
     If Trim$(wb.Path) = "" Then Exit Sub
     wb.Save
 End Sub
+
+Private Function EnsureConfigSchemaRuntime(ByVal wb As Workbook, _
+                                           ByVal warehouseId As String, _
+                                           ByVal stationId As String, _
+                                           ByRef report As String) As Boolean
+    On Error GoTo FailEnsure
+
+    EnsureConfigSchemaRuntime = CBool(RunRuntimeWorkbookMacro4("modConfig.EnsureConfigSchema", wb, warehouseId, stationId, report))
+    If Not EnsureConfigSchemaRuntime And Len(report) = 0 Then report = "EnsureConfigSchema failed."
+    Exit Function
+
+FailEnsure:
+    If Len(report) = 0 Then report = "EnsureConfigSchema failed: " & Err.Description
+End Function
+
+Private Function EnsureAuthSchemaRuntime(ByVal wb As Workbook, _
+                                         ByVal warehouseId As String, _
+                                         ByVal processorServiceUserId As String, _
+                                         ByRef report As String) As Boolean
+    On Error GoTo FailEnsure
+
+    EnsureAuthSchemaRuntime = CBool(RunRuntimeWorkbookMacro4("modAuth.EnsureAuthSchema", wb, warehouseId, processorServiceUserId, report))
+    If Not EnsureAuthSchemaRuntime And Len(report) = 0 Then report = "EnsureAuthSchema failed."
+    Exit Function
+
+FailEnsure:
+    If Len(report) = 0 Then report = "EnsureAuthSchema failed: " & Err.Description
+End Function
+
+Private Function GetConfigStringRuntime(ByVal key As String, ByVal defaultVal As String) As String
+    Dim result As Variant
+
+    On Error GoTo UseDefault
+    result = RunRuntimeWorkbookMacro2("modConfig.GetString", key, defaultVal)
+    GetConfigStringRuntime = Trim$(CStr(result))
+    Exit Function
+
+UseDefault:
+    GetConfigStringRuntime = defaultVal
+End Function
+
+Private Function RunRuntimeWorkbookMacro2(ByVal macroName As String, _
+                                          ByVal arg0 As Variant, _
+                                          ByVal arg1 As Variant) As Variant
+    On Error GoTo TryUnqualified
+    RunRuntimeWorkbookMacro2 = Application.Run("'" & ThisWorkbook.Name & "'!" & macroName, arg0, arg1)
+    Exit Function
+
+TryUnqualified:
+    Err.Clear
+    RunRuntimeWorkbookMacro2 = Application.Run(macroName, arg0, arg1)
+End Function
+
+Private Function RunRuntimeWorkbookMacro4(ByVal macroName As String, _
+                                          ByVal arg0 As Variant, _
+                                          ByVal arg1 As Variant, _
+                                          ByVal arg2 As Variant, _
+                                          ByVal arg3 As Variant) As Variant
+    On Error GoTo TryUnqualified
+    RunRuntimeWorkbookMacro4 = Application.Run("'" & ThisWorkbook.Name & "'!" & macroName, arg0, arg1, arg2, arg3)
+    Exit Function
+
+TryUnqualified:
+    Err.Clear
+    RunRuntimeWorkbookMacro4 = Application.Run(macroName, arg0, arg1, arg2, arg3)
+End Function
