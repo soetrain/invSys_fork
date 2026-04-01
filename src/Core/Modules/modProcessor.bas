@@ -12,6 +12,7 @@ Private Const PROC_EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Private Const PROC_EVENT_TYPE_SHIP As String = "SHIP"
 Private Const PROC_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
 Private Const PROC_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
+Private Const PROC_EVENT_TYPE_MIGRATION_SEED As String = "MIGRATION_SEED"
 
 Private Const SHEET_INBOX_RECEIVE As String = "InboxReceive"
 Private Const SHEET_INBOX_SHIP As String = "InboxShip"
@@ -314,7 +315,7 @@ Private Function EnsureInboxSchemaCore(ByVal targetWb As Workbook, _
     End If
 
     headers = Array("EventID", "ParentEventId", "UndoOfEventId", "EventType", "CreatedAtUTC", "WarehouseId", "StationId", _
-                    "UserId", "SKU", "Qty", "Location", "Note", "PayloadJson", "Status", "RetryCount", "ErrorCode", _
+                    "UserId", "MigrationSourceId", "SKU", "Qty", "Location", "Note", "PayloadJson", "Status", "RetryCount", "ErrorCode", _
                     "ErrorMessage", "FailedAtUTC")
 
     NormalizeWorkbookSheetsProcessor wb, Array(sheetName)
@@ -710,6 +711,7 @@ Private Function BuildInboxEvent(ByVal lo As ListObject, _
     evt("WarehouseId") = GetCellByColumnProcessor(lo, rowIndex, "WarehouseId")
     evt("StationId") = GetCellByColumnProcessor(lo, rowIndex, "StationId")
     evt("UserId") = GetCellByColumnProcessor(lo, rowIndex, "UserId")
+    evt("MigrationSourceId") = GetCellByColumnProcessor(lo, rowIndex, "MigrationSourceId")
     evt("SKU") = GetCellByColumnProcessor(lo, rowIndex, "SKU")
     evt("Qty") = GetCellByColumnProcessor(lo, rowIndex, "Qty")
     evt("Location") = GetCellByColumnProcessor(lo, rowIndex, "Location")
@@ -777,6 +779,8 @@ Private Function CapabilityForEventType(ByVal eventType As String) As String
             CapabilityForEventType = "SHIP_POST"
         Case PROC_EVENT_TYPE_PROD_CONSUME, PROC_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventType = "PROD_POST"
+        Case PROC_EVENT_TYPE_MIGRATION_SEED
+            CapabilityForEventType = "ADMIN_MAINT"
     End Select
 End Function
 

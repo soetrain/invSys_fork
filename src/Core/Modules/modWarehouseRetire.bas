@@ -95,7 +95,7 @@ Public Function WriteArchivePackage(ByRef spec As RetireMigrateSpec) As Boolean
     mLastRetireReport = vbNullString
     If Not ValidateRetireMigrateSpec(spec, report) Then GoTo FailSoft
 
-    runtimeRoot = ResolveRuntimeRootRetire(spec.SourceWarehouseId)
+    runtimeRoot = ResolveExistingRuntimeRootRetire(spec.SourceWarehouseId)
     If runtimeRoot = "" Then
         report = "Runtime root could not be resolved."
         GoTo FailSoft
@@ -187,6 +187,115 @@ FailArchive:
 CleanExit:
     CloseWorkbookQuietlyRetire wbAuth
     CloseWorkbookQuietlyRetire wbCfg
+    mLastRetireReport = report
+End Function
+
+Public Function MigrateInventoryToTarget(ByRef spec As RetireMigrateSpec) As Boolean
+    Dim report As String
+    Dim archiveFolder As String
+    Dim manifestPath As String
+    Dim snapshotPath As String
+    Dim targetRoot As String
+    Dim targetConfigPath As String
+    Dim targetStationId As String
+    Dim targetCfgWb As Workbook
+    Dim queuedCount As Long
+    Dim processedCount As Long
+    Dim batchReport As String
+    Dim priorRootOverride As String
+
+    On Error GoTo FailMigration
+
+    mLastRetireReport = vbNullString
+    If Not ValidateRetireMigrateSpec(spec, report) Then GoTo FailSoft
+    If Trim$(spec.TargetWarehouseId) = "" Then
+        report = "TargetWarehouseId is required for migration."
+        GoTo FailSoft
+    End If
+
+    archiveFolder = ResolveLatestArchiveFolderRetire(spec.ArchiveDestPath, spec.SourceWarehouseId)
+    manifestPath = archiveFolder & "\manifest.json"
+    If archiveFolder = "" Or Not FileExistsRetire(manifestPath) Then
+        report = "Archive manifest not found. Run WriteArchivePackage successfully before migration."
+        GoTo FailSoft
+    End If
+
+    snapshotPath = ResolveArchivedSnapshotPathRetire(archiveFolder, spec.SourceWarehouseId)
+    If snapshotPath = "" Then
+        report = "Archived snapshot not found for source warehouse."
+        GoTo FailSoft
+    End If
+
+    targetRoot = ResolveExistingRuntimeRootRetire(spec.TargetWarehouseId)
+    If targetRoot = "" Then
+        report = "Target warehouse runtime not found: " & spec.TargetWarehouseId
+        GoTo FailSoft
+    End If
+    If TargetWarehouseRetiredRetire(spec.TargetWarehouseId, targetRoot) Then
+        report = "Target warehouse is retired and cannot accept migration writes: " & spec.TargetWarehouseId
+        GoTo FailSoft
+    End If
+
+    targetConfigPath = targetRoot & "\" & spec.TargetWarehouseId & ".invSys.Config.xlsb"
+    If Not FileExistsRetire(targetConfigPath) Then
+        report = "Target config workbook not found: " & targetConfigPath
+        GoTo FailSoft
+    End If
+
+    Set targetCfgWb = OpenWorkbookReadOnlyRetire(targetConfigPath, report)
+    If targetCfgWb Is Nothing Then GoTo FailSoft
+    targetStationId = ResolvePrimaryStationIdRetire(targetCfgWb, spec.TargetWarehouseId)
+    If targetStationId = "" Then
+        report = "Target station could not be resolved from config workbook."
+        GoTo FailSoft
+    End If
+    CloseWorkbookQuietlyRetire targetCfgWb
+    Set targetCfgWb = Nothing
+
+    priorRootOverride = modRuntimeWorkbooks.GetCoreDataRootOverride()
+    modRuntimeWorkbooks.SetCoreDataRootOverride targetRoot
+
+    If Not modConfig.LoadConfig(spec.TargetWarehouseId, targetStationId) Then
+        report = "Target config load failed: " & modConfig.Validate()
+        GoTo FailSoft
+    End If
+    If Not modAuth.LoadAuth(spec.TargetWarehouseId) Then
+        report = "Target auth load failed: " & modAuth.ValidateAuth()
+        GoTo FailSoft
+    End If
+    If Not EnsureMigrationInboxReadyRetire(spec.TargetWarehouseId, targetStationId, targetConfigPath, report) Then GoTo FailSoft
+    If Not QueueMigrationSeedEventsRetire(spec, archiveFolder, snapshotPath, targetStationId, queuedCount, report) Then GoTo FailSoft
+
+    If queuedCount > 0 Then
+        processedCount = modProcessor.RunBatch(spec.TargetWarehouseId, 0, batchReport)
+        If Left$(batchReport, 15) = "RunBatch failed" Then
+            report = batchReport
+            GoTo FailSoft
+        End If
+    Else
+        processedCount = 0
+        batchReport = "No positive on-hand rows found in archived snapshot."
+    End If
+
+    report = "OK|ArchivePath=" & archiveFolder & "|Queued=" & CStr(queuedCount) & _
+             "|Processed=" & CStr(processedCount) & "|Batch=" & batchReport
+    MigrateInventoryToTarget = True
+    GoTo CleanExit
+
+FailSoft:
+    MigrateInventoryToTarget = False
+    If Len(report) = 0 Then report = "MigrateInventoryToTarget failed."
+    LogDiagnosticSafeRetire "WAREHOUSE-RETIRE", _
+        "Migration failed|Source=" & spec.SourceWarehouseId & "|Target=" & spec.TargetWarehouseId & "|Reason=" & report
+    GoTo CleanExit
+
+FailMigration:
+    report = "MigrateInventoryToTarget failed: " & Err.Description
+    Resume FailSoft
+
+CleanExit:
+    CloseWorkbookQuietlyRetire targetCfgWb
+    RestoreCoreRootOverrideRetire priorRootOverride
     mLastRetireReport = report
 End Function
 
@@ -586,6 +695,432 @@ Private Function OperationModeNameRetire(ByVal modeValue As RetireMigrateOperati
             OperationModeNameRetire = "MODE_UNKNOWN"
     End Select
 End Function
+
+Private Function ResolveLatestArchiveFolderRetire(ByVal archiveRoot As String, ByVal sourceWarehouseId As String) As String
+    Dim candidate As String
+    Dim normalizedRoot As String
+    Dim bestName As String
+
+    normalizedRoot = NormalizeFolderPathRetire(archiveRoot)
+    If normalizedRoot = "" Then Exit Function
+
+    candidate = Dir$(normalizedRoot & sourceWarehouseId & "_archive_*", vbDirectory)
+    Do While candidate <> ""
+        If candidate <> "." And candidate <> ".." Then
+            If InStr(1, candidate, ARCHIVE_TEMP_SUFFIX_RETIRE, vbTextCompare) = 0 Then
+                If FileExistsRetire(normalizedRoot & candidate & "\manifest.json") Then
+                    If candidate > bestName Then bestName = candidate
+                End If
+            End If
+        End If
+        candidate = Dir$
+    Loop
+
+    If bestName <> "" Then ResolveLatestArchiveFolderRetire = normalizedRoot & bestName
+End Function
+
+Private Function ResolveArchivedSnapshotPathRetire(ByVal archiveFolder As String, ByVal sourceWarehouseId As String) As String
+    Dim canonicalPath As String
+    Dim candidate As String
+
+    archiveFolder = NormalizeFolderPathRetire(archiveFolder)
+    If archiveFolder = "" Then Exit Function
+
+    canonicalPath = archiveFolder & "snapshots\" & sourceWarehouseId & ".invSys.Snapshot.Inventory.xlsb"
+    If FileExistsRetire(canonicalPath) Then
+        ResolveArchivedSnapshotPathRetire = canonicalPath
+        Exit Function
+    End If
+
+    candidate = Dir$(archiveFolder & "snapshots\" & sourceWarehouseId & "*.invSys.Snapshot.Inventory.xls*")
+    If candidate <> "" Then ResolveArchivedSnapshotPathRetire = archiveFolder & "snapshots\" & candidate
+End Function
+
+Private Function ResolveExistingRuntimeRootRetire(ByVal warehouseId As String) As String
+    Dim rootPath As String
+    Dim wb As Workbook
+    Dim candidateRoot As String
+    Dim parentPath As String
+
+    On Error GoTo CleanFail
+
+    rootPath = ResolveRuntimeRootRetire(warehouseId)
+    If RuntimeArtifactsExistRetire(rootPath, warehouseId) Then
+        ResolveExistingRuntimeRootRetire = rootPath
+        Exit Function
+    End If
+
+    candidateRoot = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    If RuntimeArtifactsExistRetire(candidateRoot, warehouseId) Then
+        ResolveExistingRuntimeRootRetire = candidateRoot
+        Exit Function
+    End If
+    parentPath = GetParentFolderRetire(candidateRoot)
+    If parentPath <> "" Then
+        candidateRoot = FindRuntimeRootUnderParentRetire(parentPath, warehouseId)
+        If candidateRoot <> "" Then
+            ResolveExistingRuntimeRootRetire = candidateRoot
+            Exit Function
+        End If
+    End If
+
+    On Error Resume Next
+    candidateRoot = Trim$(modConfig.GetString("PathDataRoot", ""))
+    On Error GoTo 0
+    If RuntimeArtifactsExistRetire(candidateRoot, warehouseId) Then
+        ResolveExistingRuntimeRootRetire = candidateRoot
+        Exit Function
+    End If
+    parentPath = GetParentFolderRetire(candidateRoot)
+    If parentPath <> "" Then
+        candidateRoot = FindRuntimeRootUnderParentRetire(parentPath, warehouseId)
+        If candidateRoot <> "" Then
+            ResolveExistingRuntimeRootRetire = candidateRoot
+            Exit Function
+        End If
+    End If
+
+    For Each wb In Application.Workbooks
+        If InStr(1, wb.Name, warehouseId & ".invSys.", vbTextCompare) = 1 Then
+            candidateRoot = wb.Path
+            If RuntimeArtifactsExistRetire(candidateRoot, warehouseId) Then
+                ResolveExistingRuntimeRootRetire = candidateRoot
+                Exit Function
+            End If
+        End If
+    Next wb
+
+    candidateRoot = "C:\invSys\" & Trim$(warehouseId)
+    If RuntimeArtifactsExistRetire(candidateRoot, warehouseId) Then ResolveExistingRuntimeRootRetire = candidateRoot
+    Exit Function
+
+CleanFail:
+    ResolveExistingRuntimeRootRetire = vbNullString
+End Function
+
+Private Function FindRuntimeRootUnderParentRetire(ByVal parentPath As String, ByVal warehouseId As String) As String
+    Dim childName As String
+    Dim childPath As String
+
+    On Error GoTo CleanFail
+
+    parentPath = NormalizeFolderPathRetire(parentPath)
+    If parentPath = "" Then Exit Function
+
+    childName = Dir$(parentPath & "*", vbDirectory)
+    Do While childName <> ""
+        If childName <> "." And childName <> ".." Then
+            childPath = parentPath & childName
+            If FolderExistsRetire(childPath) Then
+                If RuntimeArtifactsExistRetire(childPath, warehouseId) Then
+                    FindRuntimeRootUnderParentRetire = childPath
+                    Exit Function
+                End If
+            End If
+        End If
+        childName = Dir$
+    Loop
+    Exit Function
+
+CleanFail:
+    FindRuntimeRootUnderParentRetire = vbNullString
+End Function
+
+Private Function RuntimeArtifactsExistRetire(ByVal rootPath As String, ByVal warehouseId As String) As Boolean
+    rootPath = NormalizeFolderPathRetire(rootPath)
+    If rootPath = "" Then Exit Function
+    RuntimeArtifactsExistRetire = _
+        FileExistsRetire(rootPath & warehouseId & ".invSys.Config.xlsb") And _
+        FileExistsRetire(rootPath & warehouseId & ".invSys.Auth.xlsb") And _
+        FileExistsRetire(rootPath & warehouseId & ".invSys.Data.Inventory.xlsb")
+End Function
+
+Private Function TargetWarehouseRetiredRetire(ByVal targetWarehouseId As String, ByVal targetRoot As String) As Boolean
+    Dim sharePointRoot As String
+
+    targetRoot = NormalizeFolderPathRetire(targetRoot)
+    If targetRoot = "" Then Exit Function
+
+    If FileExistsRetire(targetRoot & targetWarehouseId & ".retired.json") Then
+        TargetWarehouseRetiredRetire = True
+        Exit Function
+    End If
+    If FileExistsRetire(targetRoot & "config\" & targetWarehouseId & ".retired.json") Then
+        TargetWarehouseRetiredRetire = True
+        Exit Function
+    End If
+
+    sharePointRoot = NormalizeFolderPathRetire(modConfig.GetString("PathSharePointRoot", ""))
+    If sharePointRoot <> "" Then
+        If FileExistsRetire(sharePointRoot & targetWarehouseId & ".retired.json") Then
+            TargetWarehouseRetiredRetire = True
+            Exit Function
+        End If
+    End If
+End Function
+
+Private Function ResolvePrimaryStationIdRetire(ByVal wbCfg As Workbook, ByVal warehouseId As String) As String
+    Dim lo As ListObject
+    Dim rowIndex As Long
+    Dim rowWarehouse As String
+
+    On Error Resume Next
+    Set lo = wbCfg.Worksheets("StationConfig").ListObjects("tblStationConfig")
+    On Error GoTo 0
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
+
+    For rowIndex = 1 To lo.ListRows.Count
+        rowWarehouse = Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("WarehouseId").Index).Value))
+        If rowWarehouse = "" Or StrComp(rowWarehouse, warehouseId, vbTextCompare) = 0 Then
+            ResolvePrimaryStationIdRetire = Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("StationId").Index).Value))
+            If ResolvePrimaryStationIdRetire <> "" Then Exit Function
+        End If
+    Next rowIndex
+End Function
+
+Private Function EnsureMigrationInboxReadyRetire(ByVal targetWarehouseId As String, _
+                                                 ByVal targetStationId As String, _
+                                                 ByVal targetConfigPath As String, _
+                                                 ByRef report As String) As Boolean
+    Dim inboxPath As String
+
+    EnsureMigrationInboxReadyRetire = modConfig.EnsureStationInbox( _
+        targetWarehouseId, targetStationId, "PRODUCTION", targetConfigPath, inboxPath, report)
+End Function
+
+Private Function QueueMigrationSeedEventsRetire(ByRef spec As RetireMigrateSpec, _
+                                                ByVal archiveFolder As String, _
+                                                ByVal snapshotPath As String, _
+                                                ByVal targetStationId As String, _
+                                                ByRef queuedCount As Long, _
+                                                ByRef report As String) As Boolean
+    Dim wbSnap As Workbook
+    Dim loSnap As ListObject
+    Dim rowIndex As Long
+    Dim payloadItems As Collection
+    Dim payloadJson As String
+    Dim eventId As String
+    Dim errorMessage As String
+    Dim createdAtUtc As Date
+
+    On Error GoTo FailQueue
+
+    Set wbSnap = OpenWorkbookReadOnlyRetire(snapshotPath, report)
+    If wbSnap Is Nothing Then Exit Function
+
+    On Error Resume Next
+    Set loSnap = wbSnap.Worksheets("InventorySnapshot").ListObjects("tblInventorySnapshot")
+    On Error GoTo FailQueue
+    If loSnap Is Nothing Or loSnap.DataBodyRange Is Nothing Then
+        report = "Archived snapshot table was not available for migration."
+        GoTo CleanExit
+    End If
+
+    createdAtUtc = ParseArchiveTimestampRetire(archiveFolder)
+    If createdAtUtc = 0 Then createdAtUtc = Now
+
+    For rowIndex = 1 To loSnap.ListRows.Count
+        Set payloadItems = BuildMigrationPayloadItemsRetire(loSnap, rowIndex)
+        If Not payloadItems Is Nothing Then
+            If payloadItems.Count > 0 Then
+                payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
+                eventId = BuildMigrationEventIdRetire(spec.SourceWarehouseId, spec.TargetWarehouseId, archiveFolder, rowIndex)
+                errorMessage = vbNullString
+                If Not modRoleEventWriter.QueueMigrationSeedEvent(spec.TargetWarehouseId, targetStationId, spec.AdminUser, payloadJson, spec.SourceWarehouseId, _
+                                                                  "Migration seed from " & spec.SourceWarehouseId & " via " & GetFileNameRetire(snapshotPath), _
+                                                                  createdAtUtc, Nothing, eventId, errorMessage, eventId) Then
+                    report = "QueueMigrationSeedEvent failed at snapshot row " & CStr(rowIndex) & ": " & errorMessage
+                    GoTo CleanExit
+                End If
+                queuedCount = queuedCount + 1
+            End If
+        End If
+    Next rowIndex
+
+    QueueMigrationSeedEventsRetire = True
+
+CleanExit:
+    CloseWorkbookQuietlyRetire wbSnap
+    Exit Function
+
+FailQueue:
+    report = "QueueMigrationSeedEventsRetire failed: " & Err.Description
+    Resume CleanExit
+End Function
+
+Private Function BuildMigrationPayloadItemsRetire(ByVal loSnap As ListObject, ByVal rowIndex As Long) As Collection
+    Dim sku As String
+    Dim qtyOnHand As Double
+    Dim locationSummary As String
+    Dim locationVal As String
+    Dim meta As Object
+    Dim parsedAny As Boolean
+
+    sku = GetTableTextRetire(loSnap, rowIndex, "SKU")
+    If sku = "" Then Exit Function
+    qtyOnHand = GetTableDoubleRetire(loSnap, rowIndex, "QtyOnHand")
+    If qtyOnHand <= 0 Then Exit Function
+
+    Set meta = BuildSnapshotMetadataRetire(loSnap, rowIndex)
+    locationSummary = GetTableTextRetire(loSnap, rowIndex, "LocationSummary")
+    locationVal = GetTableTextRetire(loSnap, rowIndex, "LOCATION")
+
+    Set BuildMigrationPayloadItemsRetire = New Collection
+    parsedAny = AppendLocationSummaryItemsRetire(BuildMigrationPayloadItemsRetire, sku, locationSummary, meta)
+    If Not parsedAny Then
+        BuildMigrationPayloadItemsRetire.Add CreateMigrationPayloadItemRetire(sku, qtyOnHand, locationVal, locationSummary, meta)
+    End If
+End Function
+
+Private Function BuildSnapshotMetadataRetire(ByVal loSnap As ListObject, ByVal rowIndex As Long) As Object
+    Dim meta As Object
+
+    Set meta = CreateObject("Scripting.Dictionary")
+    meta.CompareMode = vbTextCompare
+    meta("ITEM") = GetTableTextRetire(loSnap, rowIndex, "ITEM")
+    meta("UOM") = GetTableTextRetire(loSnap, rowIndex, "UOM")
+    meta("LOCATION") = GetTableTextRetire(loSnap, rowIndex, "LOCATION")
+    meta("DESCRIPTION") = GetTableTextRetire(loSnap, rowIndex, "DESCRIPTION")
+    meta("VENDOR(s)") = GetTableTextRetire(loSnap, rowIndex, "VENDOR(s)")
+    meta("VENDOR_CODE") = GetTableTextRetire(loSnap, rowIndex, "VENDOR_CODE")
+    meta("CATEGORY") = GetTableTextRetire(loSnap, rowIndex, "CATEGORY")
+    Set BuildSnapshotMetadataRetire = meta
+End Function
+
+Private Function AppendLocationSummaryItemsRetire(ByVal items As Collection, _
+                                                  ByVal sku As String, _
+                                                  ByVal locationSummary As String, _
+                                                  ByVal meta As Object) As Boolean
+    Dim normalized As String
+    Dim tokens() As String
+    Dim token As Variant
+    Dim eqPos As Long
+    Dim locationVal As String
+    Dim qtyText As String
+    Dim qtyVal As Double
+
+    locationSummary = Trim$(locationSummary)
+    If locationSummary = "" Then Exit Function
+
+    normalized = Replace$(locationSummary, vbCrLf, ";")
+    normalized = Replace$(normalized, vbCr, ";")
+    normalized = Replace$(normalized, vbLf, ";")
+    normalized = Replace$(normalized, ",", ";")
+    tokens = Split(normalized, ";")
+    For Each token In tokens
+        token = Trim$(CStr(token))
+        If token <> "" Then
+            eqPos = InStr(1, CStr(token), "=", vbTextCompare)
+            If eqPos <= 1 Then
+                Set items = Nothing
+                Exit Function
+            End If
+            locationVal = Trim$(Left$(CStr(token), eqPos - 1))
+            qtyText = Trim$(Mid$(CStr(token), eqPos + 1))
+            If locationVal = "" Or Not IsNumeric(qtyText) Then
+                Set items = Nothing
+                Exit Function
+            End If
+            qtyVal = CDbl(qtyText)
+            If qtyVal > 0 Then
+                items.Add CreateMigrationPayloadItemRetire(sku, qtyVal, locationVal, "", meta)
+                AppendLocationSummaryItemsRetire = True
+            End If
+        End If
+    Next token
+End Function
+
+Private Function CreateMigrationPayloadItemRetire(ByVal sku As String, _
+                                                  ByVal qtyVal As Double, _
+                                                  ByVal locationVal As String, _
+                                                  ByVal noteVal As String, _
+                                                  ByVal meta As Object) As Object
+    Dim item As Object
+    Dim key As Variant
+
+    Set item = CreateObject("Scripting.Dictionary")
+    item.CompareMode = vbTextCompare
+    item("SKU") = sku
+    item("Qty") = qtyVal
+    item("Location") = locationVal
+    item("IoType") = "SEED"
+    If Trim$(noteVal) <> "" Then item("Note") = noteVal
+    If Not meta Is Nothing Then
+        For Each key In meta.Keys
+            item(CStr(key)) = meta(key)
+        Next key
+    End If
+    Set CreateMigrationPayloadItemRetire = item
+End Function
+
+Private Function BuildMigrationEventIdRetire(ByVal sourceWarehouseId As String, _
+                                             ByVal targetWarehouseId As String, _
+                                             ByVal archiveFolder As String, _
+                                             ByVal rowIndex As Long) As String
+    BuildMigrationEventIdRetire = "MIG-" & SanitizeTokenRetire(sourceWarehouseId) & _
+                                  "-TO-" & SanitizeTokenRetire(targetWarehouseId) & _
+                                  "-" & SanitizeTokenRetire(GetFileNameRetire(archiveFolder)) & _
+                                  "-" & Format$(rowIndex, "000000")
+End Function
+
+Private Function ParseArchiveTimestampRetire(ByVal archiveFolder As String) As Date
+    Dim folderName As String
+    Dim markerPos As Long
+    Dim stampText As String
+
+    folderName = GetFileNameRetire(archiveFolder)
+    markerPos = InStrRev(folderName, "_archive_", -1, vbTextCompare)
+    If markerPos = 0 Then Exit Function
+
+    stampText = Mid$(folderName, markerPos + Len("_archive_"))
+    If Len(stampText) >= 15 Then
+        On Error Resume Next
+        ParseArchiveTimestampRetire = DateSerial(CInt(Left$(stampText, 4)), CInt(Mid$(stampText, 5, 2)), CInt(Mid$(stampText, 7, 2))) + _
+                                      TimeSerial(CInt(Mid$(stampText, 10, 2)), CInt(Mid$(stampText, 12, 2)), CInt(Mid$(stampText, 14, 2)))
+        On Error GoTo 0
+    End If
+End Function
+
+Private Function GetTableTextRetire(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As String
+    Dim idx As Long
+
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
+    idx = lo.ListColumns(columnName).Index
+    If idx <= 0 Then Exit Function
+    GetTableTextRetire = Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, idx).Value))
+End Function
+
+Private Function GetTableDoubleRetire(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As Double
+    Dim valueIn As Variant
+
+    On Error Resume Next
+    valueIn = lo.DataBodyRange.Cells(rowIndex, lo.ListColumns(columnName).Index).Value
+    If IsNumeric(valueIn) Then GetTableDoubleRetire = CDbl(valueIn)
+    On Error GoTo 0
+End Function
+
+Private Function SanitizeTokenRetire(ByVal valueText As String) As String
+    Dim i As Long
+    Dim ch As String
+
+    valueText = UCase$(Trim$(valueText))
+    For i = 1 To Len(valueText)
+        ch = Mid$(valueText, i, 1)
+        If ch Like "[A-Z0-9]" Then
+            SanitizeTokenRetire = SanitizeTokenRetire & ch
+        Else
+            SanitizeTokenRetire = SanitizeTokenRetire & "_"
+        End If
+    Next i
+End Function
+
+Private Sub RestoreCoreRootOverrideRetire(ByVal priorRootOverride As String)
+    If Trim$(priorRootOverride) = "" Then
+        modRuntimeWorkbooks.ClearCoreDataRootOverride
+    Else
+        modRuntimeWorkbooks.SetCoreDataRootOverride priorRootOverride
+    End If
+End Sub
 
 Private Function FileExistsRetire(ByVal filePath As String) As Boolean
     filePath = Trim$(Replace$(filePath, "/", "\"))

@@ -131,6 +131,7 @@ try {
         (Join-Path $repo "tests/unit/test_RetireMigrateSpec.bas"),
         (Join-Path $repo "tests/unit/TestWarehouseRetireReAuth.bas"),
         (Join-Path $repo "tests/unit/TestWarehouseRetireArchive.bas"),
+        (Join-Path $repo "tests/unit/TestWarehouseRetireMigration.bas"),
         (Join-Path $repo "tests/unit/TestPhase6CoreSurfaces.bas"),
         (Join-Path $repo "tests/unit/TestPhase6RoleSurfaces.bas")
     )
@@ -167,6 +168,11 @@ try {
         "TestWarehouseRetireArchive.TestWriteArchivePackage_SuccessCreatesAtomicArchive",
         "TestWarehouseRetireArchive.TestWriteArchivePackage_PartialFailureRollsBackTempArchive",
         "TestWarehouseRetireArchive.TestWriteArchivePackage_AuthExportMasksPinHash",
+        "TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource",
+        "TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingArchiveManifest",
+        "TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse",
+        "TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities",
+        "TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity",
         "TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook",
         "TestPhase6CoreSurfaces.TestLoadConfig_AutoBootstrapsCanonicalWorkbook",
         "TestPhase6CoreSurfaces.TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook",

@@ -33,7 +33,7 @@ Public Function EnsureInventorySchema(Optional ByVal targetWb As Workbook = Noth
 
     EnsureTableWithHeaders wb, SHEET_INVENTORY_LOG, TABLE_INVENTORY_LOG, _
         Array("EventID", "UndoOfEventId", "AppliedSeq", "EventType", "OccurredAtUTC", "AppliedAtUTC", _
-              "WarehouseId", "StationId", "UserId", "SKU", "QtyDelta", "Location", "Note"), issues
+              "WarehouseId", "StationId", "UserId", "MigrationSourceId", "SKU", "QtyDelta", "Location", "Note"), issues
 
     EnsureTableWithHeaders wb, SHEET_APPLIED_EVENTS, TABLE_APPLIED_EVENTS, _
         Array("EventID", "UndoOfEventId", "AppliedSeq", "AppliedAtUTC", "RunId", "SourceInbox", "Status"), issues

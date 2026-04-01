@@ -8,6 +8,7 @@ Public Const EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Public Const EVENT_TYPE_SHIP As String = "SHIP"
 Public Const EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
 Public Const EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
+Public Const EVENT_TYPE_MIGRATION_SEED As String = "MIGRATION_SEED"
 
 Private mSourceSyncStampCache As Object
 
@@ -30,6 +31,7 @@ Public Function ApplyEvent(ByVal evt As Object, _
     Dim userId As String
     Dim sourceInbox As String
     Dim undoOfEventId As String
+    Dim migrationSourceId As String
     Dim occurredAt As Date
     Dim appliedAt As Date
     Dim appliedSeq As Long
@@ -72,6 +74,7 @@ Public Function ApplyEvent(ByVal evt As Object, _
     userId = GetEventString(evt, "UserId")
     sourceInbox = GetEventString(evt, "SourceInbox")
     undoOfEventId = GetEventString(evt, "UndoOfEventId")
+    migrationSourceId = GetEventString(evt, "MigrationSourceId")
 
     If eventId = "" Then
         errorCode = "INVALID_EVENT"
@@ -123,6 +126,7 @@ Public Function ApplyEvent(ByVal evt As Object, _
         SetTableRowValue loLog, r.Index, "WarehouseId", warehouseId
         SetTableRowValue loLog, r.Index, "StationId", stationId
         SetTableRowValue loLog, r.Index, "UserId", userId
+        SetTableRowValue loLog, r.Index, "MigrationSourceId", migrationSourceId
         SetTableRowValue loLog, r.Index, "SKU", CStr(lineItem("SKU"))
         SetTableRowValue loLog, r.Index, "QtyDelta", CDbl(lineItem("QtyDelta"))
         SetTableRowValue loLog, r.Index, "Location", CStr(lineItem("Location"))
@@ -401,7 +405,7 @@ Private Function BuildApplyLines(ByVal evt As Object, _
     Select Case eventType
         Case EVENT_TYPE_RECEIVE
             Set BuildApplyLines = BuildReceiveLines(evt, wb, errorCode, errorMessage)
-        Case EVENT_TYPE_SHIP, EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE
+        Case EVENT_TYPE_SHIP, EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE, EVENT_TYPE_MIGRATION_SEED
             Set BuildApplyLines = BuildPayloadLines(evt, wb, eventType, errorCode, errorMessage)
         Case Else
             errorCode = "INVALID_EVENT_TYPE"
@@ -505,6 +509,9 @@ Private Function BuildPayloadLines(ByVal evt As Object, _
             Set BuildPayloadLines = Nothing
             Exit Function
         End If
+        If eventType = EVENT_TYPE_MIGRATION_SEED Then
+            EnsureSkuCatalogFromPayloadLineApply wb, rawItem
+        End If
         If Not ValidateSkuExists(wb, sku) Then
             errorCode = "INVALID_SKU"
             errorMessage = "SKU '" & sku & "' not found in inventory catalog."
@@ -556,6 +563,13 @@ Private Function ResolvePayloadQtyDelta(ByVal eventType As String, _
             If ioType <> "" And ioType <> "MADE" And ioType <> "COMPLETE" Then
                 errorCode = "INVALID_PAYLOAD"
                 errorMessage = "PROD_COMPLETE payload line items may only use IoType MADE or COMPLETE."
+            Else
+                ResolvePayloadQtyDelta = qty
+            End If
+        Case EVENT_TYPE_MIGRATION_SEED
+            If ioType <> "" And ioType <> "MADE" And ioType <> "SEED" And ioType <> "IMPORT" Then
+                errorCode = "INVALID_PAYLOAD"
+                errorMessage = "MIGRATION_SEED payload line items may only use IoType MADE, SEED, or IMPORT."
             Else
                 ResolvePayloadQtyDelta = qty
             End If
@@ -840,6 +854,50 @@ Private Function ValidateSkuExists(ByVal wb As Workbook, ByVal sku As String) As
     If Not hasCatalog Then ValidateSkuExists = True
 End Function
 
+Private Sub EnsureSkuCatalogFromPayloadLineApply(ByVal wb As Workbook, ByVal rawItem As Object)
+    Dim lo As ListObject
+    Dim sku As String
+    Dim rowIndex As Long
+    Dim r As ListRow
+
+    On Error GoTo CleanExit
+    If wb Is Nothing Then Exit Sub
+    If rawItem Is Nothing Then Exit Sub
+
+    Set lo = FindListObjectByNameApply(wb, "tblSkuCatalog")
+    If lo Is Nothing Then Exit Sub
+
+    sku = SafeTrimApply(GetDictionaryValue(rawItem, "SKU"))
+    If sku = "" Then Exit Sub
+
+    rowIndex = FindRowByColumnValueApply(lo, "SKU", sku)
+    If rowIndex = 0 Then
+        SetSheetProtectionApply lo.Parent, False
+        Set r = lo.ListRows.Add
+        rowIndex = r.Index
+        SetTableRowValue lo, rowIndex, "SKU", sku
+        SetTableRowValue lo, rowIndex, "ITEM_CODE", ResolvePayloadTextApply(rawItem, "ITEM_CODE", sku)
+        SetTableRowValue lo, rowIndex, "ITEM", ResolvePayloadTextApply(rawItem, "ITEM", sku)
+        SetTableRowValue lo, rowIndex, "UOM", ResolvePayloadTextApply(rawItem, "UOM", "")
+        SetTableRowValue lo, rowIndex, "LOCATION", ResolvePayloadTextApply(rawItem, "LOCATION", ResolvePayloadTextApply(rawItem, "Location", ""))
+        SetTableRowValue lo, rowIndex, "DESCRIPTION", ResolvePayloadTextApply(rawItem, "DESCRIPTION", "")
+        SetTableRowValue lo, rowIndex, "VENDOR(s)", ResolvePayloadTextApply(rawItem, "VENDOR(s)", "")
+        SetTableRowValue lo, rowIndex, "VENDOR_CODE", ResolvePayloadTextApply(rawItem, "VENDOR_CODE", "")
+        SetTableRowValue lo, rowIndex, "CATEGORY", ResolvePayloadTextApply(rawItem, "CATEGORY", "")
+        SetSheetProtectionApply lo.Parent, True
+    End If
+
+CleanExit:
+    On Error Resume Next
+    If Not lo Is Nothing Then SetSheetProtectionApply lo.Parent, True
+    On Error GoTo 0
+End Sub
+
+Private Function ResolvePayloadTextApply(ByVal rawItem As Object, ByVal keyName As String, ByVal defaultValue As String) As String
+    ResolvePayloadTextApply = SafeTrimApply(GetDictionaryValue(rawItem, keyName))
+    If ResolvePayloadTextApply = "" Then ResolvePayloadTextApply = defaultValue
+End Function
+
 Private Function SearchSkuInTable(ByVal lo As ListObject, ByVal sku As String, ByRef hasCatalog As Boolean) As Boolean
     Dim idx As Long
     Dim i As Long
@@ -973,6 +1031,24 @@ Private Function GetColumnIndexApply(ByVal lo As ListObject, ByVal columnName As
             Exit Function
         End If
     Next i
+End Function
+
+Private Function FindRowByColumnValueApply(ByVal lo As ListObject, ByVal columnName As String, ByVal matchValue As String) As Long
+    Dim idx As Long
+    Dim rowIndex As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    idx = GetColumnIndexApply(lo, columnName)
+    If idx = 0 Then Exit Function
+
+    For rowIndex = 1 To lo.ListRows.Count
+        If StrComp(SafeTrimApply(lo.DataBodyRange.Cells(rowIndex, idx).Value), SafeTrimApply(matchValue), vbTextCompare) = 0 Then
+            FindRowByColumnValueApply = rowIndex
+            Exit Function
+        End If
+    Next rowIndex
 End Function
 
 Private Function FindListObjectByNameApply(ByVal wb As Workbook, ByVal tableName As String) As ListObject

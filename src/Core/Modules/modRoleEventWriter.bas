@@ -12,6 +12,7 @@ Private Const ROLE_EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Private Const ROLE_EVENT_TYPE_SHIP As String = "SHIP"
 Private Const ROLE_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
 Private Const ROLE_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
+Private Const ROLE_EVENT_TYPE_MIGRATION_SEED As String = "MIGRATION_SEED"
 
 Public Function ResolveCurrentUserId() As String
     ResolveCurrentUserId = Trim$(Environ$("USERNAME"))
@@ -137,7 +138,7 @@ Public Function QueueReceiveEvent(Optional ByVal warehouseId As String = "", _
                                   Optional ByRef eventIdOut As String = "", _
                                   Optional ByRef errorMessage As String = "", _
                                   Optional ByVal perfRunId As String = "") As Boolean
-    QueueReceiveEvent = QueueEventCore(ROLE_EVENT_TYPE_RECEIVE, warehouseId, stationId, userId, sku, qty, location, noteVal, "", parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId)
+    QueueReceiveEvent = QueueEventCore(ROLE_EVENT_TYPE_RECEIVE, warehouseId, stationId, userId, sku, qty, location, noteVal, "", "", parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId)
 End Function
 
 Public Function QueueReceiveEventCurrent(Optional ByVal userId As String = "", _
@@ -166,7 +167,21 @@ Public Function QueuePayloadEvent(ByVal eventType As String, _
                                   Optional ByRef eventIdOut As String = "", _
                                   Optional ByRef errorMessage As String = "", _
                                   Optional ByVal perfRunId As String = "") As Boolean
-    QueuePayloadEvent = QueueEventCore(eventType, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId)
+    QueuePayloadEvent = QueueEventCore(eventType, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, "", parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId)
+End Function
+
+Public Function QueueMigrationSeedEvent(Optional ByVal warehouseId As String = "", _
+                                        Optional ByVal stationId As String = "", _
+                                        Optional ByVal userId As String = "", _
+                                        Optional ByVal payloadJson As String = "", _
+                                        Optional ByVal migrationSourceId As String = "", _
+                                        Optional ByVal noteVal As String = "", _
+                                        Optional ByVal createdAtUtc As Date = 0, _
+                                        Optional ByVal targetInboxWb As Workbook = Nothing, _
+                                        Optional ByRef eventIdOut As String = "", _
+                                        Optional ByRef errorMessage As String = "", _
+                                        Optional ByVal perfRunId As String = "") As Boolean
+    QueueMigrationSeedEvent = QueueEventCore(ROLE_EVENT_TYPE_MIGRATION_SEED, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, migrationSourceId, "", "", createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId)
 End Function
 
 Public Function QueuePayloadEventCurrent(ByVal eventType As String, _
@@ -237,6 +252,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
                                 ByVal location As String, _
                                 ByVal noteVal As String, _
                                 ByVal payloadJson As String, _
+                                ByVal migrationSourceId As String, _
                                 ByVal parentEventId As String, _
                                 ByVal undoOfEventId As String, _
                                 ByVal createdAtUtc As Date, _
@@ -324,7 +340,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
                 GoTo CleanExit
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_SHIP)
-        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
+        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             If Not modProcessor.EnsureProductionInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 GoTo CleanExit
@@ -349,6 +365,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
     SetTableRowValueRole lo, rowIndex, "WarehouseId", resolvedWh
     SetTableRowValueRole lo, rowIndex, "StationId", resolvedSt
     SetTableRowValueRole lo, rowIndex, "UserId", resolvedUser
+    SetTableRowValueRole lo, rowIndex, "MigrationSourceId", migrationSourceId
     SetTableRowValueRole lo, rowIndex, "SKU", sku
     If qty <> 0 Then SetTableRowValueRole lo, rowIndex, "Qty", qty
     SetTableRowValueRole lo, rowIndex, "Location", location
@@ -543,7 +560,7 @@ Private Function InboxWorkbookNameRole(ByVal eventType As String, ByVal stationI
             InboxWorkbookNameRole = "invSys.Inbox.Receiving." & stationId & ".xlsb"
         Case ROLE_EVENT_TYPE_SHIP
             InboxWorkbookNameRole = "invSys.Inbox.Shipping." & stationId & ".xlsb"
-        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
+        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             InboxWorkbookNameRole = "invSys.Inbox.Production." & stationId & ".xlsb"
     End Select
 End Function
@@ -554,7 +571,7 @@ Private Function InboxTableNameRole(ByVal eventType As String) As String
             InboxTableNameRole = TABLE_INBOX_RECEIVE
         Case ROLE_EVENT_TYPE_SHIP
             InboxTableNameRole = TABLE_INBOX_SHIP
-        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
+        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             InboxTableNameRole = TABLE_INBOX_PROD
     End Select
 End Function
@@ -567,6 +584,8 @@ Private Function CapabilityForEventTypeRole(ByVal eventType As String) As String
             CapabilityForEventTypeRole = "SHIP_POST"
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventTypeRole = "PROD_POST"
+        Case ROLE_EVENT_TYPE_MIGRATION_SEED
+            CapabilityForEventTypeRole = "ADMIN_MAINT"
     End Select
 End Function
 
