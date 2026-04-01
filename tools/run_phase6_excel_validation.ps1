@@ -132,6 +132,7 @@ try {
         (Join-Path $repo "tests/unit/TestWarehouseRetireReAuth.bas"),
         (Join-Path $repo "tests/unit/TestWarehouseRetireArchive.bas"),
         (Join-Path $repo "tests/unit/TestWarehouseRetireMigration.bas"),
+        (Join-Path $repo "tests/unit/TestWarehouseRetireLifecycle.bas"),
         (Join-Path $repo "tests/unit/TestPhase6CoreSurfaces.bas"),
         (Join-Path $repo "tests/unit/TestPhase6RoleSurfaces.bas")
     )
@@ -173,6 +174,11 @@ try {
         "TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse",
         "TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities",
         "TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity",
+        "TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker",
+        "TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson",
+        "TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement",
+        "TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutTombstone",
+        "TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutConfirmation",
         "TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook",
         "TestPhase6CoreSurfaces.TestLoadConfig_AutoBootstrapsCanonicalWorkbook",
         "TestPhase6CoreSurfaces.TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook",

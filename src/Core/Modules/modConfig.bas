@@ -888,7 +888,7 @@ Private Function EnsureConfigTables(ByVal wb As Workbook) As Boolean
     whHeaders = Array( _
         "WarehouseId", "WarehouseName", "Timezone", "DefaultLocation", _
         "BatchSize", "LockTimeoutMinutes", "HeartbeatIntervalSeconds", "MaxLockHoldMinutes", _
-        "SnapshotCadence", "BackupCadence", "PathDataRoot", "PathBackupRoot", "PathSharePointRoot", _
+        "SnapshotCadence", "BackupCadence", "PathDataRoot", "PathBackupRoot", "PathSharePointRoot", "WarehouseStatus", "RetiredAtUTC", _
         "DesignsEnabled", "PoisonRetryMax", "AuthCacheTTLSeconds", "ProcessorServiceUserId", _
         "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot", "AutoRefreshIntervalSeconds")
     stHeaders = Array("StationId", "WarehouseId", "StationName", "PathInboxRoot", "RoleDefault")
@@ -1041,6 +1041,8 @@ Private Sub SeedConfigDefaults(ByVal wb As Workbook, ByVal warehouseId As String
     EnsureConfigCellDefault loWh, 1, "PathDataRoot", Replace$("C:\invSys\{WarehouseId}\", "{WarehouseId}", resolvedWh)
     EnsureConfigCellDefault loWh, 1, "PathBackupRoot", Replace$("C:\invSys\Backups\{WarehouseId}\", "{WarehouseId}", resolvedWh)
     EnsureConfigCellDefault loWh, 1, "PathSharePointRoot", ""
+    EnsureConfigCellDefault loWh, 1, "WarehouseStatus", "ACTIVE"
+    EnsureConfigCellDefault loWh, 1, "RetiredAtUTC", ""
     EnsureConfigCellDefault loWh, 1, "DesignsEnabled", False
     EnsureConfigCellDefault loWh, 1, "PoisonRetryMax", 3
     EnsureConfigCellDefault loWh, 1, "AuthCacheTTLSeconds", 300

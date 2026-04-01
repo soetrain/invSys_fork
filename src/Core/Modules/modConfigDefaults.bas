@@ -19,7 +19,7 @@ End Type
 
 Public Function GetConfigSchema(ByRef defs() As ConfigKeyDef) As Long
     Dim idx As Long
-    ReDim defs(1 To 25)
+    ReDim defs(1 To 27)
     idx = 0
 
     AddConfigKey defs, idx, "WarehouseId", CONFIG_TYPE_STRING, "", True, CONFIG_SCOPE_WAREHOUSE
@@ -35,6 +35,8 @@ Public Function GetConfigSchema(ByRef defs() As ConfigKeyDef) As Long
     AddConfigKey defs, idx, "PathDataRoot", CONFIG_TYPE_STRING, "C:\invSys\{WarehouseId}\", False, CONFIG_SCOPE_WAREHOUSE
     AddConfigKey defs, idx, "PathBackupRoot", CONFIG_TYPE_STRING, "C:\invSys\Backups\{WarehouseId}\", False, CONFIG_SCOPE_WAREHOUSE
     AddConfigKey defs, idx, "PathSharePointRoot", CONFIG_TYPE_STRING, "", False, CONFIG_SCOPE_WAREHOUSE
+    AddConfigKey defs, idx, "WarehouseStatus", CONFIG_TYPE_STRING, "ACTIVE", False, CONFIG_SCOPE_WAREHOUSE
+    AddConfigKey defs, idx, "RetiredAtUTC", CONFIG_TYPE_DATETIME, "", False, CONFIG_SCOPE_WAREHOUSE
     AddConfigKey defs, idx, "DesignsEnabled", CONFIG_TYPE_BOOLEAN, "FALSE", False, CONFIG_SCOPE_WAREHOUSE
     AddConfigKey defs, idx, "PoisonRetryMax", CONFIG_TYPE_LONG, "3", False, CONFIG_SCOPE_WAREHOUSE
     AddConfigKey defs, idx, "AuthCacheTTLSeconds", CONFIG_TYPE_LONG, "300", False, CONFIG_SCOPE_WAREHOUSE

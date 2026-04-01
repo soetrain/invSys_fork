@@ -3,6 +3,8 @@ Option Explicit
 
 Private Const ARCHIVE_VERSION_RETIRE As String = "1.0"
 Private Const ARCHIVE_TEMP_SUFFIX_RETIRE As String = "_tmp"
+Private Const TOMBSTONE_FILE_SUFFIX_RETIRE As String = ".tombstone.json"
+Private Const TOMBSTONE_PUBLISH_FOLDER_RETIRE As String = "tombstones"
 
 Private mLastRetireReport As String
 
@@ -299,6 +301,150 @@ CleanExit:
     mLastRetireReport = report
 End Function
 
+Public Function RetireSourceWarehouse(ByRef spec As RetireMigrateSpec) As Boolean
+    Dim report As String
+    Dim archiveFolder As String
+    Dim manifestPath As String
+    Dim sourceRoot As String
+    Dim configPath As String
+    Dim tombstonePath As String
+    Dim sharePointRoot As String
+    Dim publishedTombstonePath As String
+    Dim publishStatus As String
+    Dim publishWarning As String
+    Dim retiredAtUtc As Date
+    Dim warehouseName As String
+    Dim wbCfg As Workbook
+
+    On Error GoTo FailRetire
+
+    mLastRetireReport = vbNullString
+    If Not ValidateRetireMigrateSpec(spec, report) Then GoTo FailSoft
+
+    archiveFolder = ResolveLatestArchiveFolderRetire(spec.ArchiveDestPath, spec.SourceWarehouseId)
+    manifestPath = archiveFolder & "\manifest.json"
+    If archiveFolder = "" Or Not FileExistsRetire(manifestPath) Then
+        report = "Archive manifest not found. Run WriteArchivePackage successfully before retirement."
+        GoTo FailSoft
+    End If
+
+    sourceRoot = ResolveExistingRuntimeRootRetire(spec.SourceWarehouseId)
+    If sourceRoot = "" Then
+        report = "Source warehouse runtime not found: " & spec.SourceWarehouseId
+        GoTo FailSoft
+    End If
+
+    configPath = sourceRoot & "\" & spec.SourceWarehouseId & ".invSys.Config.xlsb"
+    Set wbCfg = OpenWorkbookEditableRetire(configPath, report)
+    If wbCfg Is Nothing Then GoTo FailSoft
+    If Not modConfig.EnsureConfigSchema(wbCfg, spec.SourceWarehouseId, "", report) Then GoTo FailSoft
+
+    retiredAtUtc = Now
+    warehouseName = ResolveWarehouseNameRetire(wbCfg, spec.SourceWarehouseId)
+    If Not StampWarehouseRetiredConfigRetire(wbCfg, spec.SourceWarehouseId, retiredAtUtc, report) Then GoTo FailSoft
+    SaveWorkbookQuietlyRetire wbCfg
+    CloseWorkbookQuietlyRetire wbCfg
+    Set wbCfg = Nothing
+
+    tombstonePath = BuildTombstonePathRetire(spec)
+    If Not WriteRetirementTombstoneRetire(tombstonePath, spec, warehouseName, retiredAtUtc, archiveFolder, report) Then GoTo FailSoft
+
+    If spec.PublishTombstone Then
+        sharePointRoot = ResolveSharePointRootFromConfigRetire(configPath, spec.SourceWarehouseId)
+        If sharePointRoot <> "" Then
+            publishedTombstonePath = NormalizeFolderPathRetire(sharePointRoot) & TOMBSTONE_PUBLISH_FOLDER_RETIRE & "\" & spec.SourceWarehouseId & TOMBSTONE_FILE_SUFFIX_RETIRE
+            If Not modWarehouseSync.PublishFileToTargetPath(tombstonePath, publishedTombstonePath, publishStatus) Then
+                publishWarning = publishStatus
+                LogDiagnosticSafeRetire "WAREHOUSE-RETIRE", "Tombstone publish warning|WarehouseId=" & spec.SourceWarehouseId & "|Detail=" & publishStatus
+            End If
+        Else
+            publishWarning = "SharePoint root not configured."
+            LogDiagnosticSafeRetire "WAREHOUSE-RETIRE", "Tombstone publish skipped|WarehouseId=" & spec.SourceWarehouseId & "|Detail=" & publishWarning
+        End If
+    End If
+
+    report = "OK|ArchivePath=" & archiveFolder & "|TombstonePath=" & tombstonePath
+    If publishWarning <> "" Then
+        report = report & "|PublishWarning=" & publishWarning
+    ElseIf publishStatus <> "" Then
+        report = report & "|Publish=" & publishStatus
+    End If
+    RetireSourceWarehouse = True
+    LogDiagnosticSafeRetire "WAREHOUSE-RETIRE", "Warehouse retired|WarehouseId=" & spec.SourceWarehouseId & "|ArchivePath=" & archiveFolder & "|Tombstone=" & tombstonePath
+    GoTo CleanExit
+
+FailSoft:
+    RetireSourceWarehouse = False
+    If Len(report) = 0 Then report = "RetireSourceWarehouse failed."
+    LogDiagnosticSafeRetire "WAREHOUSE-RETIRE", "Retirement failed|WarehouseId=" & spec.SourceWarehouseId & "|Reason=" & report
+    GoTo CleanExit
+
+FailRetire:
+    report = "RetireSourceWarehouse failed: " & Err.Description
+    Resume FailSoft
+
+CleanExit:
+    CloseWorkbookQuietlyRetire wbCfg
+    mLastRetireReport = report
+End Function
+
+Public Function DeleteLocalRuntime(ByRef spec As RetireMigrateSpec) As Boolean
+    Dim report As String
+    Dim targetRoot As String
+    Dim tombstonePath As String
+
+    On Error GoTo FailDelete
+
+    mLastRetireReport = vbNullString
+    NormalizeRetireMigrateSpec spec
+
+    If spec.OperationMode <> MODE_ARCHIVE_RETIRE_DELETE Then
+        report = "DeleteLocalRuntime is only allowed for MODE_ARCHIVE_RETIRE_DELETE."
+        GoTo FailSoft
+    End If
+    If Not spec.ConfirmedByUser Then
+        report = "DeleteLocalRuntime requires ConfirmedByUser = True."
+        GoTo FailSoft
+    End If
+
+    tombstonePath = BuildTombstonePathRetire(spec)
+    If Not FileExistsRetire(tombstonePath) Then
+        report = "Retirement tombstone not found. RetireSourceWarehouse must succeed before delete."
+        GoTo FailSoft
+    End If
+
+    targetRoot = ResolveExistingRuntimeRootRetire(spec.SourceWarehouseId)
+    If targetRoot = "" Then targetRoot = "C:\invSys\" & spec.SourceWarehouseId
+    If Not FolderExistsRetire(targetRoot) Then
+        report = "Local runtime folder not found: " & targetRoot
+        GoTo FailSoft
+    End If
+
+    DeleteFolderRecursiveRetire targetRoot
+    If FolderExistsRetire(targetRoot) Then
+        report = "Local runtime folder could not be deleted: " & targetRoot
+        GoTo FailSoft
+    End If
+
+    report = "OK|DeletedRoot=" & targetRoot & "|TombstonePath=" & tombstonePath
+    DeleteLocalRuntime = True
+    LogDiagnosticSafeRetire "WAREHOUSE-RETIRE", "Local runtime deleted|WarehouseId=" & spec.SourceWarehouseId & "|DeletedRoot=" & targetRoot & "|AdminUser=" & spec.AdminUser & "|DeletedAtUTC=" & Format$(Now, "yyyy-mm-dd\Thh:nn:ss\Z")
+    GoTo CleanExit
+
+FailSoft:
+    DeleteLocalRuntime = False
+    If Len(report) = 0 Then report = "DeleteLocalRuntime failed."
+    LogDiagnosticSafeRetire "WAREHOUSE-RETIRE", "Delete failed|WarehouseId=" & spec.SourceWarehouseId & "|Reason=" & report
+    GoTo CleanExit
+
+FailDelete:
+    report = "DeleteLocalRuntime failed: " & Err.Description
+    Resume FailSoft
+
+CleanExit:
+    mLastRetireReport = report
+End Function
+
 Public Function SanitizeAuthExport(ByVal authWb As Workbook, _
                                    ByVal exportFolder As String, _
                                    ByRef fileList As Collection, _
@@ -331,6 +477,97 @@ Public Function SanitizeAuthExport(ByVal authWb As Workbook, _
 
 FailSanitize:
     report = "SanitizeAuthExport failed: " & Err.Description
+End Function
+
+Private Function OpenWorkbookEditableRetire(ByVal workbookPath As String, ByRef report As String) As Workbook
+    On Error GoTo FailOpen
+
+    Set OpenWorkbookEditableRetire = FindOpenWorkbookByFullNameRetire(workbookPath)
+    If OpenWorkbookEditableRetire Is Nothing Then
+        Set OpenWorkbookEditableRetire = Application.Workbooks.Open(workbookPath, False, False)
+    ElseIf OpenWorkbookEditableRetire.ReadOnly Then
+        report = "Workbook is read-only: " & workbookPath
+        Set OpenWorkbookEditableRetire = Nothing
+    End If
+    Exit Function
+
+FailOpen:
+    report = "OpenWorkbookEditableRetire failed: " & Err.Description
+End Function
+
+Private Sub SaveWorkbookQuietlyRetire(ByVal wb As Workbook)
+    If wb Is Nothing Then Exit Sub
+    If wb.ReadOnly Then Exit Sub
+    If Trim$(wb.Path) = "" Then Exit Sub
+    wb.Save
+End Sub
+
+Private Function StampWarehouseRetiredConfigRetire(ByVal wbCfg As Workbook, _
+                                                   ByVal warehouseId As String, _
+                                                   ByVal retiredAtUtc As Date, _
+                                                   ByRef report As String) As Boolean
+    Dim loWh As ListObject
+    Dim rowIndex As Long
+
+    On Error GoTo FailStamp
+
+    Set loWh = wbCfg.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
+    If loWh Is Nothing Or loWh.DataBodyRange Is Nothing Then
+        report = "Warehouse config table not available."
+        Exit Function
+    End If
+
+    rowIndex = FindRowByValueInListObjectRetire(loWh, "WarehouseId", warehouseId)
+    If rowIndex = 0 Then rowIndex = 1
+    SetListObjectValueRetire loWh, rowIndex, "WarehouseStatus", "RETIRED"
+    SetListObjectValueRetire loWh, rowIndex, "RetiredAtUTC", retiredAtUtc
+    StampWarehouseRetiredConfigRetire = True
+    Exit Function
+
+FailStamp:
+    report = "StampWarehouseRetiredConfigRetire failed: " & Err.Description
+End Function
+
+Private Function BuildTombstonePathRetire(ByRef spec As RetireMigrateSpec) As String
+    BuildTombstonePathRetire = NormalizeFolderPathRetire(spec.ArchiveDestPath) & spec.SourceWarehouseId & TOMBSTONE_FILE_SUFFIX_RETIRE
+End Function
+
+Private Function WriteRetirementTombstoneRetire(ByVal tombstonePath As String, _
+                                                ByRef spec As RetireMigrateSpec, _
+                                                ByVal warehouseName As String, _
+                                                ByVal retiredAtUtc As Date, _
+                                                ByVal archivePath As String, _
+                                                ByRef report As String) As Boolean
+    Dim fileNum As Integer
+
+    On Error GoTo FailWrite
+
+    EnsureFolderRecursiveRetire GetParentFolderRetire(tombstonePath)
+    fileNum = FreeFile
+    Open tombstonePath For Output As #fileNum
+    Print #fileNum, "{"
+    Print #fileNum, "  ""WarehouseId"": """ & EscapeJsonRetire(spec.SourceWarehouseId) & ""","
+    Print #fileNum, "  ""WarehouseName"": """ & EscapeJsonRetire(warehouseName) & ""","
+    Print #fileNum, "  ""RetiredAtUTC"": """ & EscapeJsonRetire(Format$(retiredAtUtc, "yyyy-mm-dd\Thh:nn:ss\Z")) & ""","
+    Print #fileNum, "  ""RetiredByUser"": """ & EscapeJsonRetire(spec.AdminUser) & ""","
+    Print #fileNum, "  ""OperationMode"": """ & EscapeJsonRetire(OperationModeNameRetire(spec.OperationMode)) & ""","
+    Print #fileNum, "  ""ArchivePath"": """ & EscapeJsonRetire(archivePath) & ""","
+    Print #fileNum, "  ""MigrationTargetId"": """ & EscapeJsonRetire(ResolveMigrationTargetIdRetire(spec)) & """"
+    Print #fileNum, "}"
+    Close #fileNum
+
+    WriteRetirementTombstoneRetire = True
+    Exit Function
+
+FailWrite:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    On Error GoTo 0
+    report = "WriteRetirementTombstoneRetire failed: " & Err.Description
+End Function
+
+Private Function ResolveMigrationTargetIdRetire(ByRef spec As RetireMigrateSpec) As String
+    If spec.OperationMode = MODE_ARCHIVE_MIGRATE Then ResolveMigrationTargetIdRetire = spec.TargetWarehouseId
 End Function
 
 Public Function GetLastWarehouseRetireReport() As String
@@ -470,6 +707,32 @@ Private Function ResolveWarehouseNameRetire(ByVal wbCfg As Workbook, ByVal wareh
 
     ResolveWarehouseNameRetire = Trim$(CStr(lo.DataBodyRange.Cells(1, lo.ListColumns("WarehouseName").Index).Value))
     If ResolveWarehouseNameRetire = "" Then ResolveWarehouseNameRetire = warehouseId
+End Function
+
+Private Function ResolveSharePointRootFromConfigRetire(ByVal configPath As String, ByVal warehouseId As String) As String
+    Dim wbCfg As Workbook
+    Dim report As String
+    Dim loWh As ListObject
+    Dim rowIndex As Long
+
+    On Error GoTo CleanFail
+
+    Set wbCfg = OpenWorkbookReadOnlyRetire(configPath, report)
+    If wbCfg Is Nothing Then GoTo CleanExit
+
+    Set loWh = wbCfg.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
+    If loWh Is Nothing Or loWh.DataBodyRange Is Nothing Then GoTo CleanExit
+    rowIndex = FindRowByValueInListObjectRetire(loWh, "WarehouseId", warehouseId)
+    If rowIndex = 0 Then rowIndex = 1
+    ResolveSharePointRootFromConfigRetire = Trim$(CStr(loWh.DataBodyRange.Cells(rowIndex, loWh.ListColumns("PathSharePointRoot").Index).Value))
+
+CleanExit:
+    CloseWorkbookQuietlyRetire wbCfg
+    Exit Function
+
+CleanFail:
+    ResolveSharePointRootFromConfigRetire = vbNullString
+    Resume CleanExit
 End Function
 
 Private Function ExportConfigTablesRetire(ByVal wbCfg As Workbook, _
@@ -1098,6 +1361,35 @@ Private Function GetTableDoubleRetire(ByVal lo As ListObject, ByVal rowIndex As 
     If IsNumeric(valueIn) Then GetTableDoubleRetire = CDbl(valueIn)
     On Error GoTo 0
 End Function
+
+Private Function FindRowByValueInListObjectRetire(ByVal lo As ListObject, ByVal columnName As String, ByVal matchValue As String) As Long
+    Dim colIndex As Long
+    Dim rowIndex As Long
+
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
+    On Error Resume Next
+    colIndex = lo.ListColumns(columnName).Index
+    On Error GoTo 0
+    If colIndex <= 0 Then Exit Function
+
+    For rowIndex = 1 To lo.ListRows.Count
+        If StrComp(Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, colIndex).Value)), Trim$(matchValue), vbTextCompare) = 0 Then
+            FindRowByValueInListObjectRetire = rowIndex
+            Exit Function
+        End If
+    Next rowIndex
+End Function
+
+Private Sub SetListObjectValueRetire(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueIn As Variant)
+    Dim colIndex As Long
+
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Sub
+    On Error Resume Next
+    colIndex = lo.ListColumns(columnName).Index
+    On Error GoTo 0
+    If colIndex <= 0 Then Exit Sub
+    lo.DataBodyRange.Cells(rowIndex, colIndex).Value = valueIn
+End Sub
 
 Private Function SanitizeTokenRetire(ByVal valueText As String) As String
     Dim i As Long
