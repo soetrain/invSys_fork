@@ -167,6 +167,53 @@ Public Function Require(ByVal capability As String, _
     Require = True
 End Function
 
+Public Function ValidateUserCredential(ByVal AdminUser As String, _
+                                       ByVal Password As String, _
+                                       Optional ByVal RequiredRole As String = "ADMIN_MAINT") As Boolean
+    Dim normalizedUser As String
+    Dim normalizedRole As String
+    Dim expectedHash As String
+    Dim userInfo As Object
+
+    normalizedUser = SafeTrim(AdminUser)
+    normalizedRole = UCase$(SafeTrim(RequiredRole))
+    If normalizedRole = "" Then normalizedRole = "ADMIN_MAINT"
+
+    If normalizedUser = "" Then Exit Function
+    If Len(Password) = 0 Then Exit Function
+    If Not EnsureFreshCache() Then Exit Function
+    If Not mUsers.Exists(normalizedUser) Then Exit Function
+
+    Set userInfo = mUsers(normalizedUser)
+    If Not IsUserActive(normalizedUser, Now) Then Exit Function
+
+    expectedHash = SafeTrim(GetUserPinHashAuth(userInfo))
+    If expectedHash = "" Then Exit Function
+    If StrComp(expectedHash, HashUserCredential(Password), vbTextCompare) <> 0 Then Exit Function
+
+    ValidateUserCredential = CanPerform(normalizedRole, normalizedUser, "", "", "REAUTH", "REAUTH")
+End Function
+
+Public Function HashUserCredential(ByVal rawCredential As String) As String
+    Dim acc As Double
+    Dim i As Long
+    Dim chVal As Long
+    Dim modulusVal As Double
+
+    modulusVal = 2147483647#
+    acc = 5381#
+    For i = 1 To Len(rawCredential)
+        chVal = AscW(Mid$(rawCredential, i, 1))
+        If chVal < 0 Then chVal = chVal + 65536
+        acc = (acc * 33#) + chVal + i
+        Do While acc >= modulusVal
+            acc = acc - modulusVal
+        Loop
+    Next i
+
+    HashUserCredential = Right$("00000000" & Hex$(CLng(acc)), 8)
+End Function
+
 Public Function ValidateAuth() As String
     Dim itm As Variant
     Dim parts() As String
@@ -425,6 +472,7 @@ Private Sub LoadUsers(ByVal loUsers As ListObject)
             Set userInfo = CreateObject("Scripting.Dictionary")
             userInfo.CompareMode = vbTextCompare
             userInfo("UserId") = userId
+            userInfo("PinHash") = SafeTrim(GetCellByColumn(loUsers, i, "PinHash"))
             userInfo("Status") = UCase$(SafeTrim(GetCellByColumn(loUsers, i, "Status")))
             userInfo("ValidFrom") = GetCellByColumn(loUsers, i, "ValidFrom")
             userInfo("ValidTo") = GetCellByColumn(loUsers, i, "ValidTo")
@@ -481,6 +529,13 @@ Private Function IsUserActive(ByVal userId As String, ByVal nowTs As Date) As Bo
     End If
 
     IsUserActive = IsWithinDateRange(d("ValidFrom"), d("ValidTo"), nowTs)
+End Function
+
+Private Function GetUserPinHashAuth(ByVal userInfo As Object) As String
+    On Error Resume Next
+    If userInfo Is Nothing Then Exit Function
+    If userInfo.Exists("PinHash") Then GetUserPinHashAuth = SafeTrim(CStr(userInfo("PinHash")))
+    On Error GoTo 0
 End Function
 
 Private Function HasCapabilityMatch(ByVal caps As Collection, _

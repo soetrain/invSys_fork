@@ -288,6 +288,25 @@ Public Sub AddCapability(ByVal wb As Workbook, _
     r.Range.Cells(1, lo.ListColumns("ValidTo").Index).Value = validTo
 End Sub
 
+Public Sub SetUserPinHash(ByVal wb As Workbook, _
+                          ByVal userId As String, _
+                          ByVal pinHash As String)
+    Dim lo As ListObject
+    Dim i As Long
+
+    EnsureUserExists wb, userId
+    Set lo = wb.Worksheets("Users").ListObjects("tblUsers")
+    EnsureTableSheetEditable lo, "tblUsers"
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Sub
+
+    For i = 1 To lo.ListRows.Count
+        If StrComp(CStr(lo.DataBodyRange.Cells(i, lo.ListColumns("UserId").Index).Value), userId, vbTextCompare) = 0 Then
+            lo.DataBodyRange.Cells(i, lo.ListColumns("PinHash").Index).Value = pinHash
+            Exit Sub
+        End If
+    Next i
+End Sub
+
 Public Sub AddInboxReceiveRow(ByVal wb As Workbook, _
                               ByVal eventId As String, _
                               ByVal createdAtUtc As Variant, _
@@ -539,6 +558,7 @@ Private Function EscapeJson(ByVal textIn As String) As String
 End Function
 
 Private Sub SaveWorkbookAsTestFile(ByVal wb As Workbook, ByVal pathOut As String, ByVal fileFormat As Long)
+    EnsureCanonicalFolder Left$(pathOut, InStrRev(pathOut, "\") - 1)
     CloseWorkbookByFullName pathOut
     On Error Resume Next
     Kill pathOut
@@ -547,6 +567,7 @@ Private Sub SaveWorkbookAsTestFile(ByVal wb As Workbook, ByVal pathOut As String
 End Sub
 
 Private Sub SaveWorkbookAsCanonicalFile(ByVal wb As Workbook, ByVal pathOut As String, ByVal fileFormat As Long)
+    EnsureCanonicalFolder Left$(pathOut, InStrRev(pathOut, "\") - 1)
     CloseWorkbookByFullName pathOut
     On Error Resume Next
     Kill pathOut

@@ -24,6 +24,18 @@ function Import-BasModule {
     [void]$VbProject.VBComponents.Import($BasPath)
 }
 
+function Import-FormModule {
+    Param(
+        [object]$VbProject,
+        [string]$FormPath
+    )
+
+    if (-not (Test-Path $FormPath)) {
+        throw "Missing form module: $FormPath"
+    }
+    [void]$VbProject.VBComponents.Import($FormPath)
+}
+
 function Run-TestFunction {
     Param(
         [object]$Excel,
@@ -96,11 +108,13 @@ try {
     $modulePaths = @(
         (Join-Path $repo "src/Core/Modules/modConfigDefaults.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseBootstrap.bas"),
+        (Join-Path $repo "src/Core/Modules/modWarehouseRetire.bas"),
         (Join-Path $repo "src/Core/Modules/modRuntimeWorkbooks.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleWorkbookSurfaces.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
         (Join-Path $repo "src/Core/Modules/modOperatorReadModel.bas"),
         (Join-Path $repo "src/Core/Modules/modPerfLog.bas"),
+        (Join-Path $repo "src/Core/Modules/modDiagnostics.bas"),
         (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
         (Join-Path $repo "src/Core/Modules/modLockManager.bas"),
@@ -112,9 +126,17 @@ try {
         (Join-Path $repo "src/InventoryDomain/Modules/modInventoryBridgeApi.bas"),
         (Join-Path $repo "src/InventoryDomain/Modules/modInventoryApply.bas"),
         (Join-Path $repo "src/Admin/Modules/modAdminConsole.bas"),
+        (Join-Path $repo "tests/unit/TestPhase2Helpers.bas"),
         (Join-Path $repo "tests/unit/TestWarehouseBootstrap.bas"),
+        (Join-Path $repo "tests/unit/test_RetireMigrateSpec.bas"),
+        (Join-Path $repo "tests/unit/TestWarehouseRetireReAuth.bas"),
+        (Join-Path $repo "tests/unit/TestWarehouseRetireArchive.bas"),
         (Join-Path $repo "tests/unit/TestPhase6CoreSurfaces.bas"),
         (Join-Path $repo "tests/unit/TestPhase6RoleSurfaces.bas")
+    )
+
+    $formPaths = @(
+        (Join-Path $repo "src/Admin/Forms/frmReAuthGate.frm")
     )
 
     $allTests = @(
@@ -132,6 +154,19 @@ try {
         "TestWarehouseBootstrap.TestPublishInitialArtifacts_PublishSuccess",
         "TestWarehouseBootstrap.TestPublishInitialArtifacts_SharePointUnavailableReturnsFalse",
         "TestWarehouseBootstrap.TestPublishInitialArtifacts_RepeatedPublishIsIdempotent",
+        "test_RetireMigrateSpec.TestValidateRetireMigrateSpec_TrimsAndAcceptsArchiveOnly",
+        "test_RetireMigrateSpec.TestValidateRetireMigrateSpec_RejectsEmptySourceWarehouseId",
+        "test_RetireMigrateSpec.TestValidateRetireMigrateSpec_RejectsMissingTargetForMigrate",
+        "test_RetireMigrateSpec.TestValidateRetireMigrateSpec_RejectsEqualSourceAndTarget",
+        "test_RetireMigrateSpec.TestValidateRetireMigrateSpec_RejectsUnconfirmedWriteOperation",
+        "test_RetireMigrateSpec.TestValidateRetireMigrateSpec_RejectsInvalidArchiveDestPath",
+        "TestWarehouseRetireReAuth.TestValidateUserCredential_SucceedsWithCorrectPasswordAndRole",
+        "TestWarehouseRetireReAuth.TestReAuthGate_WrongPassword_ShowsInlineErrorAndDoesNotAuthenticate",
+        "TestWarehouseRetireReAuth.TestReAuthGate_ThreeFailures_LocksOutAndLogs",
+        "TestWarehouseRetireReAuth.TestReAuthGate_Cancel_LeavesUnauthenticatedWithoutLog",
+        "TestWarehouseRetireArchive.TestWriteArchivePackage_SuccessCreatesAtomicArchive",
+        "TestWarehouseRetireArchive.TestWriteArchivePackage_PartialFailureRollsBackTempArchive",
+        "TestWarehouseRetireArchive.TestWriteArchivePackage_AuthExportMasksPinHash",
         "TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook",
         "TestPhase6CoreSurfaces.TestLoadConfig_AutoBootstrapsCanonicalWorkbook",
         "TestPhase6CoreSurfaces.TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook",
@@ -183,6 +218,10 @@ try {
 
     foreach ($m in $modulePaths) {
         Import-BasModule -VbProject $vbProject -BasPath $m
+        [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
+    }
+    foreach ($f in $formPaths) {
+        Import-FormModule -VbProject $vbProject -FormPath $f
         [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
     }
 

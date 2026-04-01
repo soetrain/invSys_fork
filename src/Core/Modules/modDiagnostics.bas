@@ -2,6 +2,40 @@ Attribute VB_Name = "modDiagnostics"
 
 Option Explicit
 
+Private mDiagnosticEventCount As Long
+Private mLastDiagnosticCategory As String
+Private mLastDiagnosticMessage As String
+
+Public Sub ResetDiagnosticCapture()
+    mDiagnosticEventCount = 0
+    mLastDiagnosticCategory = vbNullString
+    mLastDiagnosticMessage = vbNullString
+End Sub
+
+Public Sub LogDiagnosticEvent(ByVal categoryName As String, ByVal detailText As String)
+    mDiagnosticEventCount = mDiagnosticEventCount + 1
+    mLastDiagnosticCategory = Trim$(categoryName)
+    mLastDiagnosticMessage = Trim$(detailText)
+
+    Debug.Print Format$(Now, "yyyy-mm-dd hh:nn:ss"), "DIAG", mLastDiagnosticCategory, mLastDiagnosticMessage
+
+    On Error Resume Next
+    modPerfLog.LogDiagnostic mLastDiagnosticCategory, mLastDiagnosticMessage
+    On Error GoTo 0
+End Sub
+
+Public Function GetDiagnosticEventCount() As Long
+    GetDiagnosticEventCount = mDiagnosticEventCount
+End Function
+
+Public Function GetLastDiagnosticCategory() As String
+    GetLastDiagnosticCategory = mLastDiagnosticCategory
+End Function
+
+Public Function GetLastDiagnosticMessage() As String
+    GetLastDiagnosticMessage = mLastDiagnosticMessage
+End Function
+
 Public Sub DumpActiveWorkbookToImmediate()
     DumpWorkbookToImmediateCore Application.ActiveWorkbook, 0
 End Sub
