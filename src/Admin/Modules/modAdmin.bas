@@ -13,6 +13,12 @@ Sub Open_CreateDeleteUser()
     Call modAdminConsole.OpenUserManagement(, report)
 End Sub
 
+Sub Open_CreateWarehouse()
+    Dim report As String
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
+    frmCreateWarehouse.Show
+End Sub
+
 Public Sub Scheduler_RunWarehouseBatch()
     PublishSchedulerResult modAdminConsole.RunScheduledWarehouseBatchForAutomation("", 0)
 End Sub

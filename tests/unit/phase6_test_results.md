@@ -1,11 +1,25 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-03-31 08:34:24
-- Passed: 42
+- Date: 2026-03-31 19:47:07
+- Passed: 56
 - Failed: 0
 
 | Test | Result |
 |---|---|
+| TestWarehouseBootstrap.TestValidateWarehouseSpec_TrimsFieldsAndAllowsBlankSharePoint | PASS |
+| TestWarehouseBootstrap.TestValidateWarehouseSpec_RejectsEmptyWarehouseId | PASS |
+| TestWarehouseBootstrap.TestValidateWarehouseSpec_RejectsWarehouseIdWithSpaces | PASS |
+| TestWarehouseBootstrap.TestValidateWarehouseSpec_AllowsWarehouseIdWithHyphenAndUnderscore | PASS |
+| TestWarehouseBootstrap.TestValidateWarehouseSpec_RejectsWarehouseIdWithOtherSpecialCharacters | PASS |
+| TestWarehouseBootstrap.TestWarehouseIdExists_LocalFolderExists | PASS |
+| TestWarehouseBootstrap.TestWarehouseIdExists_SharePointArtifactExists | PASS |
+| TestWarehouseBootstrap.TestWarehouseIdExists_NeitherLocalNorSharePointExists | PASS |
+| TestWarehouseBootstrap.TestWarehouseIdExists_SharePointUnavailableReturnsFalseAndLogsSkip | PASS |
+| TestWarehouseBootstrap.TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime | PASS |
+| TestWarehouseBootstrap.TestBootstrapWarehouseLocal_FailureRollsBackPartialFolders | PASS |
+| TestWarehouseBootstrap.TestPublishInitialArtifacts_PublishSuccess | PASS |
+| TestWarehouseBootstrap.TestPublishInitialArtifacts_SharePointUnavailableReturnsFalse | PASS |
+| TestWarehouseBootstrap.TestPublishInitialArtifacts_RepeatedPublishIsIdempotent | PASS |
 | TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook | PASS |
 | TestPhase6CoreSurfaces.TestLoadConfig_AutoBootstrapsCanonicalWorkbook | PASS |
 | TestPhase6CoreSurfaces.TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook | PASS |

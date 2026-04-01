@@ -273,6 +273,12 @@ Public Sub ClearPublishInterruptSimulation()
     ConfigurePublishInterruptSimulation False, vbNullString
 End Sub
 
+Public Function PublishFileToTargetPath(ByVal sourcePath As String, _
+                                        ByVal targetPath As String, _
+                                        Optional ByRef statusOut As String = "") As Boolean
+    PublishFileToTargetPath = PublishFileToSharePointSync(sourcePath, targetPath, statusOut)
+End Function
+
 Public Function ResolveOutboxWorkbook(Optional ByVal warehouseId As String = "", _
                                       Optional ByVal targetWb As Workbook = Nothing, _
                                       Optional ByVal createIfMissing As Boolean = False) As Workbook

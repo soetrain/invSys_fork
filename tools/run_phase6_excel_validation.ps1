@@ -95,10 +95,12 @@ try {
 
     $modulePaths = @(
         (Join-Path $repo "src/Core/Modules/modConfigDefaults.bas"),
+        (Join-Path $repo "src/Core/Modules/modWarehouseBootstrap.bas"),
         (Join-Path $repo "src/Core/Modules/modRuntimeWorkbooks.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleWorkbookSurfaces.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
         (Join-Path $repo "src/Core/Modules/modOperatorReadModel.bas"),
+        (Join-Path $repo "src/Core/Modules/modPerfLog.bas"),
         (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
         (Join-Path $repo "src/Core/Modules/modLockManager.bas"),
@@ -110,11 +112,26 @@ try {
         (Join-Path $repo "src/InventoryDomain/Modules/modInventoryBridgeApi.bas"),
         (Join-Path $repo "src/InventoryDomain/Modules/modInventoryApply.bas"),
         (Join-Path $repo "src/Admin/Modules/modAdminConsole.bas"),
+        (Join-Path $repo "tests/unit/TestWarehouseBootstrap.bas"),
         (Join-Path $repo "tests/unit/TestPhase6CoreSurfaces.bas"),
         (Join-Path $repo "tests/unit/TestPhase6RoleSurfaces.bas")
     )
 
     $allTests = @(
+        "TestWarehouseBootstrap.TestValidateWarehouseSpec_TrimsFieldsAndAllowsBlankSharePoint",
+        "TestWarehouseBootstrap.TestValidateWarehouseSpec_RejectsEmptyWarehouseId",
+        "TestWarehouseBootstrap.TestValidateWarehouseSpec_RejectsWarehouseIdWithSpaces",
+        "TestWarehouseBootstrap.TestValidateWarehouseSpec_AllowsWarehouseIdWithHyphenAndUnderscore",
+        "TestWarehouseBootstrap.TestValidateWarehouseSpec_RejectsWarehouseIdWithOtherSpecialCharacters",
+        "TestWarehouseBootstrap.TestWarehouseIdExists_LocalFolderExists",
+        "TestWarehouseBootstrap.TestWarehouseIdExists_SharePointArtifactExists",
+        "TestWarehouseBootstrap.TestWarehouseIdExists_NeitherLocalNorSharePointExists",
+        "TestWarehouseBootstrap.TestWarehouseIdExists_SharePointUnavailableReturnsFalseAndLogsSkip",
+        "TestWarehouseBootstrap.TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime",
+        "TestWarehouseBootstrap.TestBootstrapWarehouseLocal_FailureRollsBackPartialFolders",
+        "TestWarehouseBootstrap.TestPublishInitialArtifacts_PublishSuccess",
+        "TestWarehouseBootstrap.TestPublishInitialArtifacts_SharePointUnavailableReturnsFalse",
+        "TestWarehouseBootstrap.TestPublishInitialArtifacts_RepeatedPublishIsIdempotent",
         "TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook",
         "TestPhase6CoreSurfaces.TestLoadConfig_AutoBootstrapsCanonicalWorkbook",
         "TestPhase6CoreSurfaces.TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook",
