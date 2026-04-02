@@ -45,7 +45,16 @@ Public Sub EnsureGeneratedButtons()
 
     Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
     If Not RefreshReceivingUiForWorkbook(wb, report) Then
-        If Trim$(report) = "" Then report = "Receiving UI refresh failed."
+        If wb Is Nothing Then
+            If Trim$(report) = "" Then report = "Activate a receiving operator workbook with the ReceivedTally sheet before running Receiving UI actions."
+        Else
+            diag = modOperatorReadModel.DiagnoseInventoryReadModelRefresh(wb, "", "LOCAL")
+            If Trim$(report) = "" Then
+                report = "Receiving UI refresh failed." & vbCrLf & vbCrLf & diag
+            ElseIf Trim$(diag) <> "" Then
+                report = report & vbCrLf & vbCrLf & diag
+            End If
+        End If
         MsgBox report, vbExclamation, "invSys Receiving"
         Exit Sub
     End If
@@ -72,7 +81,7 @@ Public Sub InitializeReceivingUiForWorkbook(Optional ByVal targetWb As Workbook 
     Dim ws As Worksheet
 
     Set wb = ResolveReceivingWorkbook(targetWb, SHEET_RECEIVING)
-    If wb Is Nothing Then Set wb = ThisWorkbook
+    If wb Is Nothing Then Exit Sub
 
     Call modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wb, surfaceReport)
     ArrangeReceivingSurface wb
@@ -92,11 +101,7 @@ Public Function RefreshReceivingUiForWorkbook(Optional ByVal targetWb As Workboo
 
     Set wb = ResolveReceivingWorkbook(targetWb, SHEET_RECEIVING)
     If wb Is Nothing Then
-        report = "Receiving workbook not resolved."
-        Exit Function
-    End If
-    If wb.IsAddin Then
-        report = "Activate the receiving operator workbook before refreshing invSys."
+        report = "Activate a receiving operator workbook with the ReceivedTally sheet before running Receiving UI actions."
         Exit Function
     End If
 
@@ -106,8 +111,15 @@ End Function
 
 Private Function ResolveReceivingWorkbook(Optional ByVal preferredWb As Workbook = Nothing, Optional ByVal requiredSheet As String = "") As Workbook
     If Not preferredWb Is Nothing Then
-        Set ResolveReceivingWorkbook = preferredWb
-        Exit Function
+        If Not preferredWb.IsAddin Then
+            If requiredSheet = "" Then
+                Set ResolveReceivingWorkbook = preferredWb
+                Exit Function
+            ElseIf Not WorkbookSheetExistsReceiving(preferredWb, requiredSheet) Is Nothing Then
+                Set ResolveReceivingWorkbook = preferredWb
+                Exit Function
+            End If
+        End If
     End If
 
     If Not Application.ActiveWorkbook Is Nothing Then
@@ -120,12 +132,6 @@ Private Function ResolveReceivingWorkbook(Optional ByVal preferredWb As Workbook
                 Exit Function
             End If
         End If
-    End If
-
-    If requiredSheet = "" Then
-        Set ResolveReceivingWorkbook = ThisWorkbook
-    ElseIf Not WorkbookSheetExistsReceiving(ThisWorkbook, requiredSheet) Is Nothing Then
-        Set ResolveReceivingWorkbook = ThisWorkbook
     End If
 End Function
 
@@ -422,7 +428,10 @@ Public Sub ConfirmWrites()
     Dim queuedEventIdsCsv As String
 
     Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
-    If wb Is Nothing Then Set wb = ThisWorkbook
+    If wb Is Nothing Then
+        MsgBox "Activate a receiving operator workbook with the ReceivedTally sheet before confirming writes.", vbExclamation, "invSys Receiving"
+        Exit Sub
+    End If
 
     If Not RequireCurrentUserCapability("RECEIVE_POST") Then Exit Sub
     mRedoReady = False
@@ -682,7 +691,7 @@ Private Sub ProcessQueuedReceiveEventsRuntime(Optional ByVal operatorWb As Workb
 
     Set wb = ResolveReceivingWorkbook(operatorWb, SHEET_RECEIVING)
     If wb Is Nothing Then Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
-    If wb Is Nothing Then Set wb = ThisWorkbook
+    If wb Is Nothing Then Exit Sub
 
     If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(wb, warehouseId, "LOCAL", runtimeReport) Then
         modPerfLog.LogDiagnostic "RECEIVE-RUNTIME", "Result=FAIL|Workbook=" & wb.Name & "|WarehouseId=" & warehouseId & "|Report=" & runtimeReport
@@ -934,7 +943,7 @@ Private Function SheetExists(nameOrCode As String) As Worksheet
     Dim ws As Worksheet
 
     Set wb = ResolveReceivingWorkbook(, nameOrCode)
-    If wb Is Nothing Then Set wb = ThisWorkbook
+    If wb Is Nothing Then Exit Function
 
     For Each ws In wb.Worksheets
         If StrComp(ws.Name, nameOrCode, vbTextCompare) = 0 _

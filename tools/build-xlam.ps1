@@ -299,11 +299,15 @@ function Get-RibbonXml {
         foreach ($button in $group.Buttons) {
             $imageXml = ""
             $showImage = "false"
+            $screentipXml = ""
             if ($button.ContainsKey("ImageMso") -and -not [string]::IsNullOrWhiteSpace($button.ImageMso)) {
                 $imageXml = (' imageMso="{0}"' -f $button.ImageMso)
                 $showImage = "true"
             }
-            [void]$xml.AppendLine(("          <button id=""{0}"" label=""{1}"" size=""large"" showImage=""{2}""{3} onAction=""{4}""/>" -f $button.Id, $button.Label, $showImage, $imageXml, $RibbonConfig.CallbackName))
+            if ($button.ContainsKey("Screentip") -and -not [string]::IsNullOrWhiteSpace($button.Screentip)) {
+                $screentipXml = (' screentip="{0}"' -f $button.Screentip)
+            }
+            [void]$xml.AppendLine(("          <button id=""{0}"" label=""{1}"" size=""large"" showImage=""{2}""{3}{4} onAction=""{5}""/>" -f $button.Id, $button.Label, $showImage, $imageXml, $screentipXml, $RibbonConfig.CallbackName))
         }
         [void]$xml.AppendLine("        </group>")
     }
@@ -571,7 +575,8 @@ $projectMap = @(
                     Buttons = @(
                         @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; ImageMso = "FileOpen" },
                         @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; ImageMso = "FileOpen" },
-                        @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; ImageMso = "CreateSite" }
+                        @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; ImageMso = "CreateSite" },
+                        @{ Id = "btnAdminRetireMigrateWarehouse"; Label = "Retire / Migrate Warehouse"; Macro = "modAdmin.Admin_RetireMigrateWarehouse_Click"; ImageMso = "DeleteSite"; Screentip = "Archive, migrate, retire, or delete a warehouse runtime" }
                     )
                 }
             )

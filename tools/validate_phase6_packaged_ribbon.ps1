@@ -73,10 +73,15 @@ function Get-RibbonButtons {
     $result = @{}
     $buttons = $doc.SelectNodes("//cu:button", $ns)
     foreach ($button in $buttons) {
+        $screentip = ""
+        if ($null -ne $button.Attributes["screentip"]) {
+            $screentip = [string]$button.Attributes["screentip"].Value
+        }
         $result[$button.id] = [pscustomobject]@{
-            Id       = [string]$button.id
-            Label    = [string]$button.label
-            OnAction = [string]$button.onAction
+            Id        = [string]$button.id
+            Label     = [string]$button.label
+            OnAction  = [string]$button.onAction
+            Screentip = $screentip
         }
     }
 
@@ -195,7 +200,9 @@ $ribbonSpecs = @(
         Callback = "RibbonOnActionAdmin"
         Buttons = @(
             @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; Execute = $true },
-            @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; Execute = $true }
+            @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; Execute = $true },
+            @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; Execute = $false },
+            @{ Id = "btnAdminRetireMigrateWarehouse"; Label = "Retire / Migrate Warehouse"; Macro = "modAdmin.Admin_RetireMigrateWarehouse_Click"; Execute = $false; Screentip = "Archive, migrate, retire, or delete a warehouse runtime" }
         )
     }
 )
@@ -267,12 +274,18 @@ try {
             $buttonId = [string]$button.Id
             if ($buttons.ContainsKey($buttonId)) {
                 $buttonInfo = $buttons[$buttonId]
-                $detail = "Label=$($buttonInfo.Label); OnAction=$($buttonInfo.OnAction)"
+                $detail = "Label=$($buttonInfo.Label); OnAction=$($buttonInfo.OnAction); Screentip=$($buttonInfo.Screentip)"
                 $passed = ($buttonInfo.Label -eq $button.Label -and $buttonInfo.OnAction -eq $spec.Callback)
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButton.$buttonId" -Passed $passed -Detail $detail
+                if ($button.ContainsKey("Screentip")) {
+                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButtonScreentip.$buttonId" -Passed ($buttonInfo.Screentip -eq $button.Screentip) -Detail $buttonInfo.Screentip
+                }
             }
             else {
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButton.$buttonId" -Passed $false -Detail "Button missing from Ribbon XML."
+                if ($button.ContainsKey("Screentip")) {
+                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButtonScreentip.$buttonId" -Passed $false -Detail "Button missing from Ribbon XML."
+                }
             }
 
             $macroName = [string]$button.Macro
