@@ -106,6 +106,62 @@ function New-NormalizedImportFile {
     return $tempPath
 }
 
+function Get-VbComponentNameFromFile {
+    param(
+        [System.IO.FileInfo]$SourceFile
+    )
+
+    return [System.IO.Path]::GetFileNameWithoutExtension($SourceFile.Name)
+}
+
+function Remove-ExistingVBComponent {
+    param(
+        [object]$VBProject,
+        [string]$ComponentName
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ComponentName)) {
+        return
+    }
+
+    try {
+        $existing = $VBProject.VBComponents.Item($ComponentName)
+    }
+    catch {
+        $existing = $null
+    }
+
+    if ($null -eq $existing) {
+        return
+    }
+
+    if ($existing.Type -eq 100) {
+        throw "Refusing to remove document component '$ComponentName'."
+    }
+
+    [void]$VBProject.VBComponents.Remove($existing)
+}
+
+function Assert-VBComponentType {
+    param(
+        [object]$VBProject,
+        [string]$ComponentName,
+        [int]$ExpectedType,
+        [string]$Context
+    )
+
+    try {
+        $component = $VBProject.VBComponents.Item($ComponentName)
+    }
+    catch {
+        throw "$Context failed: component '$ComponentName' was not present after import."
+    }
+
+    if ($component.Type -ne $ExpectedType) {
+        throw "$Context failed: component '$ComponentName' imported with type $($component.Type), expected $ExpectedType."
+    }
+}
+
 function Ensure-WorksheetNames {
     param(
         [object]$Workbook,
@@ -134,11 +190,14 @@ function Import-Components {
     foreach ($file in $Files) {
         if ($file.Extension -eq ".cls") {
             $firstLine = Get-Content -LiteralPath $file.FullName -TotalCount 1
+            $componentName = Get-VbComponentNameFromFile -SourceFile $file
+            Remove-ExistingVBComponent -VBProject $VBProject -ComponentName $componentName
             if ($firstLine -match '^VERSION 1\.0 CLASS') {
                 Write-Host ("  Importing " + $file.FullName)
                 $normalizedPath = New-NormalizedImportFile -SourceFile $file
                 try {
                     [void]$VBProject.VBComponents.Import($normalizedPath)
+                    Assert-VBComponentType -VBProject $VBProject -ComponentName $componentName -ExpectedType 2 -Context $file.FullName
                 }
                 finally {
                     Remove-Item -LiteralPath (Split-Path $normalizedPath -Parent) -Recurse -Force -ErrorAction SilentlyContinue
@@ -146,7 +205,6 @@ function Import-Components {
                 continue
             }
 
-            $componentName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
             Write-Host ("  Creating class module " + $componentName)
             $rawLines = Get-Content -LiteralPath $file.FullName
             $codeLines = New-Object System.Collections.Generic.List[string]
@@ -185,9 +243,11 @@ function Import-Components {
                 $module.DeleteLines(1, $module.CountOfLines)
             }
             $module.AddFromString(([string]::Join([Environment]::NewLine, $codeLines)))
+            Assert-VBComponentType -VBProject $VBProject -ComponentName $componentName -ExpectedType 2 -Context $file.FullName
             continue
         }
 
+        Remove-ExistingVBComponent -VBProject $VBProject -ComponentName (Get-VbComponentNameFromFile -SourceFile $file)
         Write-Host ("  Importing " + $file.FullName)
         [void]$VBProject.VBComponents.Import($file.FullName)
     }

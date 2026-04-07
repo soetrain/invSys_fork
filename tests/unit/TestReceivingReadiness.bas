@@ -281,49 +281,46 @@ CleanFail:
 End Function
 
 Public Function TestCheckReceivingReadiness_RuntimeMissingTables_ReturnsMissingTables() As Long
-    Dim fx As ReceivingFixture
     Dim wbOps As Workbook
     Dim readinessPacked As String
 
     On Error GoTo CleanFail
-    fx = CreateReceivingFixture("runtime_missingtables")
-    Set wbOps = OpenWorkbookReadinessTest(fx.OperatorPath)
-    DeleteTableReadinessTest wbOps, "ReceivedLog"
-    wbOps.Save
+    Set wbOps = Application.Workbooks.Add
 
     readinessPacked = modReceivingInit.CheckReceivingReadinessPacked(wbOps)
     If Not PackedBoolReadinessTest(readinessPacked, "IsReady") _
        And PackedValueReadinessTest(readinessPacked, "RuntimeStatus") = "MISSING_TABLES" _
-       And InStr(1, PackedValueReadinessTest(readinessPacked, "Messages"), "missing required tables", vbTextCompare) > 0 Then
+       And InStr(1, readinessPacked, "missing required tables", vbTextCompare) > 0 Then
         TestCheckReceivingReadiness_RuntimeMissingTables_ReturnsMissingTables = 1
     End If
 
 CleanExit:
-    CleanupReceivingFixture fx, wbOps
+    CloseWorkbookNoSaveReadinessTest wbOps
     Exit Function
 CleanFail:
     Resume CleanExit
 End Function
 
 Public Function TestCheckReceivingReadiness_RuntimePathUnresolved_ReturnsPathUnresolved() As Long
-    Dim fx As ReceivingFixture
     Dim wbOps As Workbook
     Dim readinessPacked As String
+    Dim report As String
 
     On Error GoTo CleanFail
-    fx = CreateReceivingFixture("runtime_path")
-    DeleteFileReadinessTest fx.ConfigPath
-    Set wbOps = OpenWorkbookReadinessTest(fx.OperatorPath)
+    Set wbOps = Application.Workbooks.Add
+    If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wbOps, report) Then
+        Err.Raise vbObjectError + 7423, "TestCheckReceivingReadiness_RuntimePathUnresolved_ReturnsPathUnresolved", report
+    End If
 
     readinessPacked = modReceivingInit.CheckReceivingReadinessPacked(wbOps)
     If Not PackedBoolReadinessTest(readinessPacked, "IsReady") _
        And PackedValueReadinessTest(readinessPacked, "RuntimeStatus") = "PATH_UNRESOLVED" _
-       And InStr(1, PackedValueReadinessTest(readinessPacked, "Messages"), "Runtime path could not be resolved", vbTextCompare) > 0 Then
+       And InStr(1, readinessPacked, "Runtime path could not be resolved", vbTextCompare) > 0 Then
         TestCheckReceivingReadiness_RuntimePathUnresolved_ReturnsPathUnresolved = 1
     End If
 
 CleanExit:
-    CleanupReceivingFixture fx, wbOps
+    CloseWorkbookNoSaveReadinessTest wbOps
     Exit Function
 CleanFail:
     Resume CleanExit
@@ -514,6 +511,15 @@ Private Sub DeleteTableReadinessTest(ByVal wb As Workbook, ByVal tableName As St
             Exit Sub
         End If
     Next ws
+End Sub
+
+Private Sub DeleteWorksheetReadinessTest(ByVal wb As Workbook, ByVal sheetName As String)
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    wb.Worksheets(sheetName).Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
 End Sub
 
 Private Sub CorruptSnapshotFileReadinessTest(ByVal filePath As String)

@@ -24,6 +24,64 @@ function Import-BasModule {
     [void]$VbProject.VBComponents.Import($BasPath)
 }
 
+function New-NormalizedImportFile {
+    Param([string]$SourcePath)
+
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("invsys-harness-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+    $tempPath = Join-Path $tempDir ([System.IO.Path]::GetFileName($SourcePath))
+    $raw = Get-Content -LiteralPath $SourcePath -Raw
+    $normalized = $raw -replace "`r?`n", "`r`n"
+    [System.IO.File]::WriteAllText($tempPath, $normalized, [System.Text.Encoding]::ASCII)
+    return $tempPath
+}
+
+function Remove-ExistingVBComponent {
+    Param(
+        [object]$VbProject,
+        [string]$ComponentName
+    )
+
+    try {
+        $existing = $VbProject.VBComponents.Item($ComponentName)
+    }
+    catch {
+        $existing = $null
+    }
+
+    if ($null -eq $existing) { return }
+    if ($existing.Type -eq 100) {
+        throw "Refusing to remove document component '$ComponentName'."
+    }
+    [void]$VbProject.VBComponents.Remove($existing)
+}
+
+function Import-ClassModule {
+    Param(
+        [object]$VbProject,
+        [string]$ClassPath
+    )
+
+    if (-not (Test-Path $ClassPath)) {
+        throw "Missing class module: $ClassPath"
+    }
+
+    $componentName = [System.IO.Path]::GetFileNameWithoutExtension($ClassPath)
+    Remove-ExistingVBComponent -VbProject $VbProject -ComponentName $componentName
+    $normalizedPath = New-NormalizedImportFile -SourcePath $ClassPath
+    try {
+        [void]$VbProject.VBComponents.Import($normalizedPath)
+    }
+    finally {
+        Remove-Item -LiteralPath (Split-Path $normalizedPath -Parent) -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    $component = $VbProject.VBComponents.Item($componentName)
+    if ($component.Type -ne 2) {
+        throw "Class import failed for $ClassPath; component '$componentName' resolved as type $($component.Type)."
+    }
+}
+
 function Import-FormModule {
     Param(
         [object]$VbProject,
@@ -258,8 +316,7 @@ try {
         [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
     }
     foreach ($c in $classPaths) {
-        if (-not (Test-Path $c)) { throw "Missing class module: $c" }
-        [void]$vbProject.VBComponents.Import($c)
+        Import-ClassModule -VbProject $vbProject -ClassPath $c
         [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
     }
     foreach ($f in $formPaths) {
