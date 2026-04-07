@@ -26,8 +26,13 @@ Private Const COLOR_WARNING As Long = 192
 
 Private mFormBusy As Boolean
 Private mCurrentPanel As String
-Private mPendingSpec As modWarehouseRetire.RetireMigrateSpec
 Private mReAuthPassed As Boolean
+Private mPendingSourceWarehouseId As String
+Private mPendingTargetWarehouseId As String
+Private mPendingOperationMode As Long
+Private mPendingAdminUser As String
+Private mPendingArchiveDestPath As String
+Private mPendingPublishTombstone As Boolean
 
 Private Sub UserForm_Initialize()
     mFormBusy = True
@@ -113,10 +118,15 @@ Private Sub btnOK_Click()
 End Sub
 
 Private Sub HandleSelectionOk()
-    Dim spec As modWarehouseRetire.RetireMigrateSpec
+    Dim sourceWarehouseId As String
+    Dim targetWarehouseId As String
+    Dim operationMode As Long
+    Dim adminUser As String
+    Dim archiveDestPath As String
+    Dim publishTombstone As Boolean
 
     ClearAllInlineErrors
-    If Not BuildSpecFromSelection(spec) Then
+    If Not BuildSpecFromSelection(sourceWarehouseId, targetWarehouseId, operationMode, adminUser, archiveDestPath, publishTombstone) Then
         ShowFormMessage "Fix the highlighted fields and try again.", COLOR_ERROR
         Exit Sub
     End If
@@ -127,13 +137,17 @@ Private Sub HandleSelectionOk()
         Exit Sub
     End If
 
-    mPendingSpec = spec
+    mPendingSourceWarehouseId = sourceWarehouseId
+    mPendingTargetWarehouseId = targetWarehouseId
+    mPendingOperationMode = operationMode
+    mPendingAdminUser = adminUser
+    mPendingArchiveDestPath = archiveDestPath
+    mPendingPublishTombstone = publishTombstone
     mReAuthPassed = True
     ShowConfirmPanel
 End Sub
 
 Private Sub HandleConfirmOk()
-    Dim spec As modWarehouseRetire.RetireMigrateSpec
     Dim summaryText As String
     Dim failureText As String
 
@@ -147,38 +161,36 @@ Private Sub HandleConfirmOk()
         Exit Sub
     End If
 
-    spec = mPendingSpec
-    spec.ConfirmedByUser = True
-    If Not modWarehouseRetire.ValidateRetireMigrateSpec(spec, failureText) Then
+    If Not modAdminConsole.ValidateRetireMigrateSpecAdmin(mPendingSourceWarehouseId, mPendingTargetWarehouseId, mPendingOperationMode, mPendingAdminUser, True, mPendingArchiveDestPath, mPendingPublishTombstone, failureText) Then
         SetInlineError Me.lblConfirmError, failureText
         Exit Sub
     End If
 
-    If Not modWarehouseRetire.WriteArchivePackage(spec) Then
+    If Not modAdminConsole.WriteArchivePackageAdmin(mPendingSourceWarehouseId, mPendingTargetWarehouseId, mPendingOperationMode, mPendingAdminUser, True, mPendingArchiveDestPath, mPendingPublishTombstone) Then
         ShowResultPanel False, "WriteArchivePackage failed: " & modWarehouseRetire.GetLastWarehouseRetireReport()
         Exit Sub
     End If
     summaryText = "WriteArchivePackage: " & modWarehouseRetire.GetLastWarehouseRetireReport()
 
-    If spec.OperationMode = modWarehouseRetire.MODE_ARCHIVE_MIGRATE Then
-        If Not modWarehouseRetire.MigrateInventoryToTarget(spec) Then
+    If mPendingOperationMode = modWarehouseRetire.MODE_ARCHIVE_MIGRATE Then
+        If Not modAdminConsole.MigrateInventoryToTargetAdmin(mPendingSourceWarehouseId, mPendingTargetWarehouseId, mPendingOperationMode, mPendingAdminUser, True, mPendingArchiveDestPath, mPendingPublishTombstone) Then
             ShowResultPanel False, "MigrateInventoryToTarget failed: " & modWarehouseRetire.GetLastWarehouseRetireReport()
             Exit Sub
         End If
         summaryText = summaryText & vbCrLf & "MigrateInventoryToTarget: " & modWarehouseRetire.GetLastWarehouseRetireReport()
     End If
 
-    If spec.OperationMode = modWarehouseRetire.MODE_ARCHIVE_RETIRE Or _
-       spec.OperationMode = modWarehouseRetire.MODE_ARCHIVE_RETIRE_DELETE Then
-        If Not modWarehouseRetire.RetireSourceWarehouse(spec) Then
+    If mPendingOperationMode = modWarehouseRetire.MODE_ARCHIVE_RETIRE Or _
+       mPendingOperationMode = modWarehouseRetire.MODE_ARCHIVE_RETIRE_DELETE Then
+        If Not modAdminConsole.RetireSourceWarehouseAdmin(mPendingSourceWarehouseId, mPendingTargetWarehouseId, mPendingOperationMode, mPendingAdminUser, True, mPendingArchiveDestPath, mPendingPublishTombstone) Then
             ShowResultPanel False, "RetireSourceWarehouse failed: " & modWarehouseRetire.GetLastWarehouseRetireReport()
             Exit Sub
         End If
         summaryText = summaryText & vbCrLf & "RetireSourceWarehouse: " & modWarehouseRetire.GetLastWarehouseRetireReport()
     End If
 
-    If spec.OperationMode = modWarehouseRetire.MODE_ARCHIVE_RETIRE_DELETE Then
-        If Not modWarehouseRetire.DeleteLocalRuntime(spec) Then
+    If mPendingOperationMode = modWarehouseRetire.MODE_ARCHIVE_RETIRE_DELETE Then
+        If Not modAdminConsole.DeleteLocalRuntimeAdmin(mPendingSourceWarehouseId, mPendingTargetWarehouseId, mPendingOperationMode, mPendingAdminUser, True, mPendingArchiveDestPath, mPendingPublishTombstone) Then
             ShowResultPanel False, "DeleteLocalRuntime failed: " & modWarehouseRetire.GetLastWarehouseRetireReport()
             Exit Sub
         End If
@@ -188,41 +200,45 @@ Private Sub HandleConfirmOk()
     ShowResultPanel True, summaryText
 End Sub
 
-Private Function BuildSpecFromSelection(ByRef spec As modWarehouseRetire.RetireMigrateSpec) As Boolean
+Private Function BuildSpecFromSelection(ByRef sourceWarehouseId As String, _
+                                        ByRef targetWarehouseId As String, _
+                                        ByRef operationMode As Long, _
+                                        ByRef adminUser As String, _
+                                        ByRef archiveDestPath As String, _
+                                        ByRef publishTombstone As Boolean) As Boolean
     Dim isValid As Boolean
 
-    spec.SourceWarehouseId = Trim$(CStr(Me.cmbSourceWarehouse.Value))
-    spec.TargetWarehouseId = Trim$(CStr(Me.cmbTargetWarehouse.Value))
-    spec.OperationMode = ResolveSelectedMode()
-    spec.AdminUser = ResolveCurrentUserForm()
-    spec.ConfirmedByUser = False
-    spec.ArchiveDestPath = Trim$(CStr(Me.txtArchiveDestPath.Value))
-    spec.PublishTombstone = CBool(Me.chkPublishTombstone.Value)
+    sourceWarehouseId = Trim$(CStr(Me.cmbSourceWarehouse.Value))
+    targetWarehouseId = Trim$(CStr(Me.cmbTargetWarehouse.Value))
+    operationMode = ResolveSelectedMode()
+    adminUser = ResolveCurrentUserForm()
+    archiveDestPath = Trim$(CStr(Me.txtArchiveDestPath.Value))
+    publishTombstone = CBool(Me.chkPublishTombstone.Value)
 
-    If spec.SourceWarehouseId = "" Then
+    If sourceWarehouseId = "" Then
         SetInlineError Me.lblSourceWarehouseError, "Source warehouse is required."
         isValid = False
     Else
         isValid = True
     End If
 
-    If spec.OperationMode = modWarehouseRetire.MODE_ARCHIVE_MIGRATE Then
-        If spec.TargetWarehouseId = "" Then
+    If operationMode = modWarehouseRetire.MODE_ARCHIVE_MIGRATE Then
+        If targetWarehouseId = "" Then
             SetInlineError Me.lblTargetWarehouseError, "Target warehouse is required for migrate mode."
             isValid = False
-        ElseIf StrComp(spec.SourceWarehouseId, spec.TargetWarehouseId, vbTextCompare) = 0 Then
+        ElseIf StrComp(sourceWarehouseId, targetWarehouseId, vbTextCompare) = 0 Then
             SetInlineError Me.lblTargetWarehouseError, "Target warehouse must be different from the source."
             isValid = False
         End If
     End If
 
-    If spec.ArchiveDestPath = "" Then
+    If archiveDestPath = "" Then
         SetInlineError Me.lblArchiveDestPathError, "Archive destination path is required."
         isValid = False
     End If
 
     If isValid Then
-        If Not ValidateSelectionSpecForm(spec) Then
+        If Not ValidateSelectionSpecForm(sourceWarehouseId, targetWarehouseId, operationMode, adminUser, archiveDestPath, publishTombstone) Then
             isValid = False
         End If
     End If
@@ -230,14 +246,15 @@ Private Function BuildSpecFromSelection(ByRef spec As modWarehouseRetire.RetireM
     BuildSpecFromSelection = isValid
 End Function
 
-Private Function ValidateSelectionSpecForm(ByRef spec As modWarehouseRetire.RetireMigrateSpec) As Boolean
+Private Function ValidateSelectionSpecForm(ByVal sourceWarehouseId As String, _
+                                           ByVal targetWarehouseId As String, _
+                                           ByVal operationMode As Long, _
+                                           ByVal adminUser As String, _
+                                           ByVal archiveDestPath As String, _
+                                           ByVal publishTombstone As Boolean) As Boolean
     Dim report As String
-    Dim confirmedSpec As modWarehouseRetire.RetireMigrateSpec
 
-    confirmedSpec = spec
-    confirmedSpec.ConfirmedByUser = True
-
-    If modWarehouseRetire.ValidateRetireMigrateSpec(confirmedSpec, report) Then
+    If modAdminConsole.ValidateRetireMigrateSpecAdmin(sourceWarehouseId, targetWarehouseId, operationMode, adminUser, True, archiveDestPath, publishTombstone, report) Then
         ValidateSelectionSpecForm = True
         Exit Function
     End If
@@ -401,7 +418,7 @@ Private Sub UpdateModeUi()
     ClearInlineError Me.lblReAuthError
 End Sub
 
-Private Function ResolveSelectedMode() As modWarehouseRetire.RetireMigrateOperationMode
+Private Function ResolveSelectedMode() As Long
     If CBool(Me.optArchiveMigrate.Value) Then
         ResolveSelectedMode = modWarehouseRetire.MODE_ARCHIVE_MIGRATE
     ElseIf CBool(Me.optArchiveRetire.Value) Then
@@ -433,8 +450,8 @@ Private Sub ShowConfirmPanel()
     Me.btnCancel.Caption = "Cancel"
     Me.btnOK.Caption = "Run"
     Me.chkConfirmAction.Value = False
-    Me.lblConfirmSummary.Caption = BuildConfirmationSummaryForm(mPendingSpec)
-    Me.lblDeleteWarning.Visible = (mPendingSpec.OperationMode = modWarehouseRetire.MODE_ARCHIVE_RETIRE_DELETE)
+    Me.lblConfirmSummary.Caption = BuildConfirmationSummaryForm(mPendingSourceWarehouseId, mPendingTargetWarehouseId, mPendingOperationMode, mPendingArchiveDestPath, mPendingPublishTombstone)
+    Me.lblDeleteWarning.Visible = (mPendingOperationMode = modWarehouseRetire.MODE_ARCHIVE_RETIRE_DELETE)
     ClearInlineError Me.lblConfirmError
     UpdateConfirmOkState
 End Sub
@@ -451,28 +468,32 @@ Private Sub ShowResultPanel(ByVal wasSuccessful As Boolean, ByVal detailText As 
     Me.lblResultSummary.ForeColor = IIf(wasSuccessful, COLOR_SUCCESS, COLOR_ERROR)
 End Sub
 
-Private Function BuildConfirmationSummaryForm(ByRef spec As modWarehouseRetire.RetireMigrateSpec) As String
-    Select Case spec.OperationMode
+Private Function BuildConfirmationSummaryForm(ByVal sourceWarehouseId As String, _
+                                              ByVal targetWarehouseId As String, _
+                                              ByVal operationMode As Long, _
+                                              ByVal archiveDestPath As String, _
+                                              ByVal publishTombstone As Boolean) As String
+    Select Case operationMode
         Case modWarehouseRetire.MODE_ARCHIVE_ONLY
             BuildConfirmationSummaryForm = _
-                "Archive only will create an archive package for " & spec.SourceWarehouseId & "." & vbCrLf & _
+                "Archive only will create an archive package for " & sourceWarehouseId & "." & vbCrLf & _
                 "No migration, retirement, or deletion will occur." & vbCrLf & _
-                "Archive destination: " & spec.ArchiveDestPath
+                "Archive destination: " & archiveDestPath
         Case modWarehouseRetire.MODE_ARCHIVE_MIGRATE
             BuildConfirmationSummaryForm = _
-                "Archive + Migrate will archive " & spec.SourceWarehouseId & " and seed current inventory into " & spec.TargetWarehouseId & "." & vbCrLf & _
+                "Archive + Migrate will archive " & sourceWarehouseId & " and seed current inventory into " & targetWarehouseId & "." & vbCrLf & _
                 "The target remains locally authoritative. No auth, config identity, or inbox files are copied." & vbCrLf & _
-                "Archive destination: " & spec.ArchiveDestPath
+                "Archive destination: " & archiveDestPath
         Case modWarehouseRetire.MODE_ARCHIVE_RETIRE
             BuildConfirmationSummaryForm = _
-                "Archive + Retire will archive " & spec.SourceWarehouseId & ", mark it RETIRED locally, and write a tombstone." & vbCrLf & _
-                IIf(spec.PublishTombstone, "A best-effort SharePoint tombstone publish will also be attempted.", "SharePoint tombstone publish is disabled.") & vbCrLf & _
-                "Archive destination: " & spec.ArchiveDestPath
+                "Archive + Retire will archive " & sourceWarehouseId & ", mark it RETIRED locally, and write a tombstone." & vbCrLf & _
+                IIf(publishTombstone, "A best-effort SharePoint tombstone publish will also be attempted.", "SharePoint tombstone publish is disabled.") & vbCrLf & _
+                "Archive destination: " & archiveDestPath
         Case modWarehouseRetire.MODE_ARCHIVE_RETIRE_DELETE
             BuildConfirmationSummaryForm = _
-                "Archive + Retire + Delete will archive " & spec.SourceWarehouseId & ", mark it RETIRED, write a tombstone, then delete the local runtime folder." & vbCrLf & _
-                IIf(spec.PublishTombstone, "A best-effort SharePoint tombstone publish will also be attempted before deletion.", "SharePoint tombstone publish is disabled.") & vbCrLf & _
-                "Archive destination: " & spec.ArchiveDestPath
+                "Archive + Retire + Delete will archive " & sourceWarehouseId & ", mark it RETIRED, write a tombstone, then delete the local runtime folder." & vbCrLf & _
+                IIf(publishTombstone, "A best-effort SharePoint tombstone publish will also be attempted before deletion.", "SharePoint tombstone publish is disabled.") & vbCrLf & _
+                "Archive destination: " & archiveDestPath
     End Select
 End Function
 

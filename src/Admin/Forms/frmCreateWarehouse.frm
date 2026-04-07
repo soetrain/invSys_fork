@@ -19,7 +19,12 @@ Private mPathLocalTouched As Boolean
 Private mLastSuggestedLocalPath As String
 Private mFormBusy As Boolean
 Private mLocalBootstrapComplete As Boolean
-Private mCreatedSpec As modWarehouseBootstrap.WarehouseSpec
+Private mCreatedWarehouseId As String
+Private mCreatedWarehouseName As String
+Private mCreatedStationId As String
+Private mCreatedAdminUser As String
+Private mCreatedPathLocal As String
+Private mCreatedPathSharePoint As String
 
 Private Const COLOR_ERROR As Long = 255
 Private Const COLOR_SUCCESS As Long = 32768
@@ -90,7 +95,12 @@ Private Sub btnCancel_Click()
 End Sub
 
 Private Sub btnOK_Click()
-    Dim spec As modWarehouseBootstrap.WarehouseSpec
+    Dim warehouseId As String
+    Dim warehouseName As String
+    Dim stationId As String
+    Dim adminUser As String
+    Dim pathLocal As String
+    Dim pathSharePoint As String
     Dim summaryText As String
 
     If mLocalBootstrapComplete And StrComp(Me.btnOK.Caption, "Close", vbTextCompare) = 0 Then
@@ -99,20 +109,20 @@ Private Sub btnOK_Click()
     End If
 
     ClearValidationErrors
-    If Not BuildSpecFromForm(spec) Then
+    If Not BuildSpecFromForm(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint) Then
         ShowSummary "Fix the highlighted fields and try again.", COLOR_ERROR
         Exit Sub
     End If
 
     If mLocalBootstrapComplete Then
-        spec.PathLocal = mCreatedSpec.PathLocal
-        mCreatedSpec.PathSharePoint = spec.PathSharePoint
+        pathLocal = mCreatedPathLocal
+        mCreatedPathSharePoint = pathSharePoint
         If Not CBool(Me.chkPublishInitial.Value) Then
             ShowSummary "Local warehouse already exists. Check the publish box to retry SharePoint publish, or click Close.", COLOR_INFO
             Exit Sub
         End If
 
-        If modWarehouseBootstrap.PublishInitialArtifacts(mCreatedSpec) Then
+        If modAdminConsole.PublishInitialArtifactsAdmin(mCreatedWarehouseId, mCreatedWarehouseName, mCreatedStationId, mCreatedAdminUser, mCreatedPathLocal, mCreatedPathSharePoint) Then
             summaryText = "Local warehouse already existed from this session." & vbCrLf & _
                           "Initial SharePoint publish complete." & vbCrLf & _
                           modWarehouseBootstrap.GetLastWarehouseBootstrapReport()
@@ -127,28 +137,33 @@ Private Sub btnOK_Click()
         Exit Sub
     End If
 
-    If modWarehouseBootstrap.WarehouseIdExists(spec.warehouseId) Then
+    If modWarehouseBootstrap.WarehouseIdExists(warehouseId) Then
         SetErrorCaption Me.lblWarehouseIdError, "WarehouseId already exists locally or on SharePoint."
         ShowSummary "Choose a different WarehouseId and try again.", COLOR_ERROR
         Exit Sub
     End If
 
-    If Not modWarehouseBootstrap.BootstrapWarehouseLocal(spec) Then
+    If Not modAdminConsole.BootstrapWarehouseLocalAdmin(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint) Then
         ShowSummary "Local bootstrap failed:" & vbCrLf & modWarehouseBootstrap.GetLastWarehouseBootstrapReport(), COLOR_ERROR
         Exit Sub
     End If
 
-    mCreatedSpec = spec
+    mCreatedWarehouseId = warehouseId
+    mCreatedWarehouseName = warehouseName
+    mCreatedStationId = stationId
+    mCreatedAdminUser = adminUser
+    mCreatedPathLocal = pathLocal
+    mCreatedPathSharePoint = pathSharePoint
     mLocalBootstrapComplete = True
-    summaryText = "Local bootstrap complete for " & spec.warehouseId & "."
+    summaryText = "Local bootstrap complete for " & warehouseId & "."
 
     If CBool(Me.chkPublishInitial.Value) Then
-        If modWarehouseBootstrap.PublishInitialArtifacts(spec) Then
+        If modAdminConsole.PublishInitialArtifactsAdmin(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint) Then
             summaryText = summaryText & vbCrLf & "Initial SharePoint publish complete." & vbCrLf & _
                           modWarehouseBootstrap.GetLastWarehouseBootstrapReport()
             MarkFormComplete summaryText, True
         Else
-            mCreatedSpec = spec
+            mCreatedPathSharePoint = pathSharePoint
             summaryText = summaryText & vbCrLf & "Initial SharePoint publish failed." & vbCrLf & _
                           modWarehouseBootstrap.GetLastWarehouseBootstrapReport() & vbCrLf & _
                           "Correct the SharePoint path or connectivity, then click Retry Publish."
@@ -170,33 +185,38 @@ Private Sub MarkFormComplete(ByVal summaryText As String, ByVal includeCloseHint
     ShowSummary summaryText, COLOR_SUCCESS
 End Sub
 
-Private Function BuildSpecFromForm(ByRef spec As modWarehouseBootstrap.WarehouseSpec) As Boolean
+Private Function BuildSpecFromForm(ByRef warehouseId As String, _
+                                   ByRef warehouseName As String, _
+                                   ByRef stationId As String, _
+                                   ByRef adminUser As String, _
+                                   ByRef pathLocal As String, _
+                                   ByRef pathSharePoint As String) As Boolean
     Dim report As String
     Dim isValid As Boolean
 
-    spec.warehouseId = Trim$(CStr(Me.txtWarehouseId.Value))
-    spec.WarehouseName = Trim$(CStr(Me.txtWarehouseName.Value))
-    spec.StationId = Trim$(CStr(Me.txtStationId.Value))
-    spec.AdminUser = Trim$(CStr(Me.txtAdminUser.Value))
-    spec.PathLocal = Trim$(CStr(Me.txtPathLocal.Value))
-    spec.PathSharePoint = Trim$(CStr(Me.txtPathSharePoint.Value))
+    warehouseId = Trim$(CStr(Me.txtWarehouseId.Value))
+    warehouseName = Trim$(CStr(Me.txtWarehouseName.Value))
+    stationId = Trim$(CStr(Me.txtStationId.Value))
+    adminUser = Trim$(CStr(Me.txtAdminUser.Value))
+    pathLocal = Trim$(CStr(Me.txtPathLocal.Value))
+    pathSharePoint = Trim$(CStr(Me.txtPathSharePoint.Value))
 
-    isValid = modWarehouseBootstrap.ValidateWarehouseSpec(spec, report)
+    isValid = modAdminConsole.ValidateWarehouseSpecAdmin(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint, report)
     If Not isValid Then SetErrorCaption Me.lblWarehouseIdError, report
 
-    If spec.StationId = "" Then
+    If stationId = "" Then
         SetErrorCaption Me.lblStationIdError, "StationId is required."
         isValid = False
     End If
-    If spec.AdminUser = "" Then
+    If adminUser = "" Then
         SetErrorCaption Me.lblAdminUserError, "AdminUser is required."
         isValid = False
     End If
-    If spec.PathLocal = "" Then
+    If pathLocal = "" Then
         SetErrorCaption Me.lblPathLocalError, "Local path is required."
         isValid = False
     End If
-    If CBool(Me.chkPublishInitial.Value) And spec.PathSharePoint = "" Then
+    If CBool(Me.chkPublishInitial.Value) And pathSharePoint = "" Then
         SetErrorCaption Me.lblPathSharePointError, "SharePoint path is required when initial publish is enabled."
         isValid = False
     End If

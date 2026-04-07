@@ -25,6 +25,102 @@ Public Type RetireMigrateSpec
     PublishTombstone As Boolean
 End Type
 
+Public Function ValidateRetireMigrateSpecValues(ByVal sourceWarehouseId As String, _
+                                                ByVal targetWarehouseId As String, _
+                                                ByVal operationMode As Long, _
+                                                ByVal adminUser As String, _
+                                                ByVal confirmedByUser As Boolean, _
+                                                ByVal archiveDestPath As String, _
+                                                ByVal publishTombstone As Boolean, _
+                                                Optional ByRef report As String = "") As Boolean
+    Dim spec As RetireMigrateSpec
+
+    spec.SourceWarehouseId = sourceWarehouseId
+    spec.TargetWarehouseId = targetWarehouseId
+    spec.OperationMode = operationMode
+    spec.AdminUser = adminUser
+    spec.ConfirmedByUser = confirmedByUser
+    spec.ArchiveDestPath = archiveDestPath
+    spec.PublishTombstone = publishTombstone
+    ValidateRetireMigrateSpecValues = ValidateRetireMigrateSpec(spec, report)
+End Function
+
+Public Function WriteArchivePackageValues(ByVal sourceWarehouseId As String, _
+                                          ByVal targetWarehouseId As String, _
+                                          ByVal operationMode As Long, _
+                                          ByVal adminUser As String, _
+                                          ByVal confirmedByUser As Boolean, _
+                                          ByVal archiveDestPath As String, _
+                                          ByVal publishTombstone As Boolean) As Boolean
+    Dim spec As RetireMigrateSpec
+
+    spec.SourceWarehouseId = sourceWarehouseId
+    spec.TargetWarehouseId = targetWarehouseId
+    spec.OperationMode = operationMode
+    spec.AdminUser = adminUser
+    spec.ConfirmedByUser = confirmedByUser
+    spec.ArchiveDestPath = archiveDestPath
+    spec.PublishTombstone = publishTombstone
+    WriteArchivePackageValues = WriteArchivePackage(spec)
+End Function
+
+Public Function MigrateInventoryToTargetValues(ByVal sourceWarehouseId As String, _
+                                               ByVal targetWarehouseId As String, _
+                                               ByVal operationMode As Long, _
+                                               ByVal adminUser As String, _
+                                               ByVal confirmedByUser As Boolean, _
+                                               ByVal archiveDestPath As String, _
+                                               ByVal publishTombstone As Boolean) As Boolean
+    Dim spec As RetireMigrateSpec
+
+    spec.SourceWarehouseId = sourceWarehouseId
+    spec.TargetWarehouseId = targetWarehouseId
+    spec.OperationMode = operationMode
+    spec.AdminUser = adminUser
+    spec.ConfirmedByUser = confirmedByUser
+    spec.ArchiveDestPath = archiveDestPath
+    spec.PublishTombstone = publishTombstone
+    MigrateInventoryToTargetValues = MigrateInventoryToTarget(spec)
+End Function
+
+Public Function RetireSourceWarehouseValues(ByVal sourceWarehouseId As String, _
+                                            ByVal targetWarehouseId As String, _
+                                            ByVal operationMode As Long, _
+                                            ByVal adminUser As String, _
+                                            ByVal confirmedByUser As Boolean, _
+                                            ByVal archiveDestPath As String, _
+                                            ByVal publishTombstone As Boolean) As Boolean
+    Dim spec As RetireMigrateSpec
+
+    spec.SourceWarehouseId = sourceWarehouseId
+    spec.TargetWarehouseId = targetWarehouseId
+    spec.OperationMode = operationMode
+    spec.AdminUser = adminUser
+    spec.ConfirmedByUser = confirmedByUser
+    spec.ArchiveDestPath = archiveDestPath
+    spec.PublishTombstone = publishTombstone
+    RetireSourceWarehouseValues = RetireSourceWarehouse(spec)
+End Function
+
+Public Function DeleteLocalRuntimeValues(ByVal sourceWarehouseId As String, _
+                                         ByVal targetWarehouseId As String, _
+                                         ByVal operationMode As Long, _
+                                         ByVal adminUser As String, _
+                                         ByVal confirmedByUser As Boolean, _
+                                         ByVal archiveDestPath As String, _
+                                         ByVal publishTombstone As Boolean) As Boolean
+    Dim spec As RetireMigrateSpec
+
+    spec.SourceWarehouseId = sourceWarehouseId
+    spec.TargetWarehouseId = targetWarehouseId
+    spec.OperationMode = operationMode
+    spec.AdminUser = adminUser
+    spec.ConfirmedByUser = confirmedByUser
+    spec.ArchiveDestPath = archiveDestPath
+    spec.PublishTombstone = publishTombstone
+    DeleteLocalRuntimeValues = DeleteLocalRuntime(spec)
+End Function
+
 Public Function ValidateRetireMigrateSpec(ByRef spec As RetireMigrateSpec, _
                                           Optional ByRef report As String = "") As Boolean
     NormalizeRetireMigrateSpec spec

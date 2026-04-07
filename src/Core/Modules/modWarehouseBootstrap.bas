@@ -20,6 +20,58 @@ Public Type WarehouseSpec
     PathSharePoint As String
 End Type
 
+Public Function ValidateWarehouseSpecValues(ByVal warehouseId As String, _
+                                            ByVal warehouseName As String, _
+                                            ByVal stationId As String, _
+                                            ByVal adminUser As String, _
+                                            ByVal pathLocal As String, _
+                                            ByVal pathSharePoint As String, _
+                                            Optional ByRef report As String = "") As Boolean
+    Dim spec As WarehouseSpec
+
+    spec.WarehouseId = warehouseId
+    spec.WarehouseName = warehouseName
+    spec.StationId = stationId
+    spec.AdminUser = adminUser
+    spec.PathLocal = pathLocal
+    spec.PathSharePoint = pathSharePoint
+    ValidateWarehouseSpecValues = ValidateWarehouseSpec(spec, report)
+End Function
+
+Public Function BootstrapWarehouseLocalValues(ByVal warehouseId As String, _
+                                              ByVal warehouseName As String, _
+                                              ByVal stationId As String, _
+                                              ByVal adminUser As String, _
+                                              ByVal pathLocal As String, _
+                                              ByVal pathSharePoint As String) As Boolean
+    Dim spec As WarehouseSpec
+
+    spec.WarehouseId = warehouseId
+    spec.WarehouseName = warehouseName
+    spec.StationId = stationId
+    spec.AdminUser = adminUser
+    spec.PathLocal = pathLocal
+    spec.PathSharePoint = pathSharePoint
+    BootstrapWarehouseLocalValues = BootstrapWarehouseLocal(spec)
+End Function
+
+Public Function PublishInitialArtifactsValues(ByVal warehouseId As String, _
+                                              ByVal warehouseName As String, _
+                                              ByVal stationId As String, _
+                                              ByVal adminUser As String, _
+                                              ByVal pathLocal As String, _
+                                              ByVal pathSharePoint As String) As Boolean
+    Dim spec As WarehouseSpec
+
+    spec.WarehouseId = warehouseId
+    spec.WarehouseName = warehouseName
+    spec.StationId = stationId
+    spec.AdminUser = adminUser
+    spec.PathLocal = pathLocal
+    spec.PathSharePoint = pathSharePoint
+    PublishInitialArtifactsValues = PublishInitialArtifacts(spec)
+End Function
+
 Public Function ValidateWarehouseSpec(ByRef spec As WarehouseSpec, _
                                       Optional ByRef report As String = "") As Boolean
     NormalizeWarehouseSpec spec

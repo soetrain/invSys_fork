@@ -1,6 +1,85 @@
 Attribute VB_Name = "modAdminConsole"
 Option Explicit
 
+Public Function ValidateWarehouseSpecAdmin(ByVal warehouseId As String, _
+                                           ByVal warehouseName As String, _
+                                           ByVal stationId As String, _
+                                           ByVal adminUser As String, _
+                                           ByVal pathLocal As String, _
+                                           ByVal pathSharePoint As String, _
+                                           Optional ByRef report As String = "") As Boolean
+    ValidateWarehouseSpecAdmin = modWarehouseBootstrap.ValidateWarehouseSpecValues(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint, report)
+End Function
+
+Public Function BootstrapWarehouseLocalAdmin(ByVal warehouseId As String, _
+                                             ByVal warehouseName As String, _
+                                             ByVal stationId As String, _
+                                             ByVal adminUser As String, _
+                                             ByVal pathLocal As String, _
+                                             ByVal pathSharePoint As String) As Boolean
+    BootstrapWarehouseLocalAdmin = modWarehouseBootstrap.BootstrapWarehouseLocalValues(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint)
+End Function
+
+Public Function PublishInitialArtifactsAdmin(ByVal warehouseId As String, _
+                                             ByVal warehouseName As String, _
+                                             ByVal stationId As String, _
+                                             ByVal adminUser As String, _
+                                             ByVal pathLocal As String, _
+                                             ByVal pathSharePoint As String) As Boolean
+    PublishInitialArtifactsAdmin = modWarehouseBootstrap.PublishInitialArtifactsValues(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint)
+End Function
+
+Public Function ValidateRetireMigrateSpecAdmin(ByVal sourceWarehouseId As String, _
+                                               ByVal targetWarehouseId As String, _
+                                               ByVal operationMode As Long, _
+                                               ByVal adminUser As String, _
+                                               ByVal confirmedByUser As Boolean, _
+                                               ByVal archiveDestPath As String, _
+                                               ByVal publishTombstone As Boolean, _
+                                               Optional ByRef report As String = "") As Boolean
+    ValidateRetireMigrateSpecAdmin = modWarehouseRetire.ValidateRetireMigrateSpecValues(sourceWarehouseId, targetWarehouseId, operationMode, adminUser, confirmedByUser, archiveDestPath, publishTombstone, report)
+End Function
+
+Public Function WriteArchivePackageAdmin(ByVal sourceWarehouseId As String, _
+                                         ByVal targetWarehouseId As String, _
+                                         ByVal operationMode As Long, _
+                                         ByVal adminUser As String, _
+                                         ByVal confirmedByUser As Boolean, _
+                                         ByVal archiveDestPath As String, _
+                                         ByVal publishTombstone As Boolean) As Boolean
+    WriteArchivePackageAdmin = modWarehouseRetire.WriteArchivePackageValues(sourceWarehouseId, targetWarehouseId, operationMode, adminUser, confirmedByUser, archiveDestPath, publishTombstone)
+End Function
+
+Public Function MigrateInventoryToTargetAdmin(ByVal sourceWarehouseId As String, _
+                                              ByVal targetWarehouseId As String, _
+                                              ByVal operationMode As Long, _
+                                              ByVal adminUser As String, _
+                                              ByVal confirmedByUser As Boolean, _
+                                              ByVal archiveDestPath As String, _
+                                              ByVal publishTombstone As Boolean) As Boolean
+    MigrateInventoryToTargetAdmin = modWarehouseRetire.MigrateInventoryToTargetValues(sourceWarehouseId, targetWarehouseId, operationMode, adminUser, confirmedByUser, archiveDestPath, publishTombstone)
+End Function
+
+Public Function RetireSourceWarehouseAdmin(ByVal sourceWarehouseId As String, _
+                                           ByVal targetWarehouseId As String, _
+                                           ByVal operationMode As Long, _
+                                           ByVal adminUser As String, _
+                                           ByVal confirmedByUser As Boolean, _
+                                           ByVal archiveDestPath As String, _
+                                           ByVal publishTombstone As Boolean) As Boolean
+    RetireSourceWarehouseAdmin = modWarehouseRetire.RetireSourceWarehouseValues(sourceWarehouseId, targetWarehouseId, operationMode, adminUser, confirmedByUser, archiveDestPath, publishTombstone)
+End Function
+
+Public Function DeleteLocalRuntimeAdmin(ByVal sourceWarehouseId As String, _
+                                        ByVal targetWarehouseId As String, _
+                                        ByVal operationMode As Long, _
+                                        ByVal adminUser As String, _
+                                        ByVal confirmedByUser As Boolean, _
+                                        ByVal archiveDestPath As String, _
+                                        ByVal publishTombstone As Boolean) As Boolean
+    DeleteLocalRuntimeAdmin = modWarehouseRetire.DeleteLocalRuntimeValues(sourceWarehouseId, targetWarehouseId, operationMode, adminUser, confirmedByUser, archiveDestPath, publishTombstone)
+End Sub
+
 Private Const SHEET_ADMIN_CONSOLE As String = "AdminConsole"
 Private Const SHEET_ADMIN_AUDIT As String = "AdminAudit"
 Private Const SHEET_ADMIN_POISON As String = "PoisonQueue"

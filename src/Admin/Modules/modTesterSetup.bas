@@ -31,7 +31,6 @@ Public Function SetupTesterStation(ByRef spec As TesterSetupSpec) As Boolean
     Dim configPath As String
     Dim inboxPath As String
     Dim runtimeExists As Boolean
-    Dim bootstrapSpec As modWarehouseBootstrap.WarehouseSpec
     Dim seedReport As String
     Dim authReport As String
     Dim operatorReport As String
@@ -64,13 +63,7 @@ Public Function SetupTesterStation(ByRef spec As TesterSetupSpec) As Boolean
     runtimeExists = FolderExistsTesterSetup(rootPath)
     If Not runtimeExists Then
         PublishTesterSetupProgress "Creating runtime..."
-        bootstrapSpec.WarehouseId = spec.WarehouseId
-        bootstrapSpec.WarehouseName = spec.WarehouseId
-        bootstrapSpec.StationId = spec.StationId
-        bootstrapSpec.AdminUser = spec.UserId
-        bootstrapSpec.PathLocal = rootPath
-        bootstrapSpec.PathSharePoint = vbNullString
-        If Not modWarehouseBootstrap.BootstrapWarehouseLocal(bootstrapSpec) Then
+        If Not modWarehouseBootstrap.BootstrapWarehouseLocalValues(spec.WarehouseId, spec.WarehouseId, spec.StationId, spec.UserId, rootPath, vbNullString) Then
             report = modWarehouseBootstrap.GetLastWarehouseBootstrapReport()
             GoTo FailSoft
         End If
