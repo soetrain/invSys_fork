@@ -1,0 +1,15 @@
+# Build staging output created by tools/build-xlam.ps1
+deploy/current/.build-staging-*/
+
+# Temporary Excel harness workbooks created by integration runners
+tests/fixtures/*_Harness_*.xlsm
+
+# Local machine/session artifacts
+build_xlam_run.log
+xlam_session_status.txt
+
+# Local scratch/render artifacts not part of the product
+tikz_playground.aux
+tikz_playground.fdb_latexmk
+tikz_playground.fls
+tikz_playground.log
