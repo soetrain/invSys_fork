@@ -18,7 +18,6 @@ Private Sub UserForm_Initialize()
     modUserAuth.LoadRolesIntoComboBox Me.cmbRole
 End Sub
 Private Sub btnCreateUser_Click()
-    Dim ws As Worksheet
     Dim tbl As ListObject
     Dim newRow As ListRow
     Dim username As String
@@ -26,9 +25,11 @@ Private Sub btnCreateUser_Click()
     Dim role As String
     Dim userID As String
     Dim foundUser As Range
-    ' Set reference to UserCredentials table
-    Set ws = ThisWorkbook.Sheets("UserCredentials")
-    Set tbl = ws.ListObjects("UserCredentials")
+    Set tbl = ResolveUserCredentialsTableForm()
+    If tbl Is Nothing Then
+        Me.lblMessage.Caption = "UserCredentials table not found in the active admin workbook."
+        Exit Sub
+    End If
     ' Get user input
     username = Trim(Me.txtUsername.value)
     pin = Trim(Me.txtPIN.value)
@@ -78,14 +79,15 @@ Private Sub btnRandomPIN_Click()
     Me.txtPIN.value = randomPIN
 End Sub
 Private Sub btnDeleteUser_Click()
-    Dim ws As Worksheet
     Dim tbl As ListObject
     Dim foundUser As Range
     Dim username As String
     Dim colUsername As Integer
-    ' Set reference to UserCredentials table
-    Set ws = ThisWorkbook.Sheets("UserCredentials")
-    Set tbl = ws.ListObjects("UserCredentials")
+    Set tbl = ResolveUserCredentialsTableForm()
+    If tbl Is Nothing Then
+        Me.lblMessage.Caption = "UserCredentials table not found in the active admin workbook."
+        Exit Sub
+    End If
     ' Get the username from input field
     username = Trim(Me.txtUsername.value)
     ' Validate input
@@ -105,6 +107,19 @@ Private Sub btnDeleteUser_Click()
         Me.lblMessage.Caption = "User not found."
     End If
 End Sub
+
+Private Function ResolveUserCredentialsTableForm() As ListObject
+    Dim wb As Workbook
+    Dim ws As Worksheet
+
+    Set wb = modAdmin.ResolveInteractiveAdminWorkbook(False)
+    If wb Is Nothing Then Exit Function
+
+    On Error Resume Next
+    Set ws = wb.Worksheets("UserCredentials")
+    If Not ws Is Nothing Then Set ResolveUserCredentialsTableForm = ws.ListObjects("UserCredentials")
+    On Error GoTo 0
+End Function
 
 
 

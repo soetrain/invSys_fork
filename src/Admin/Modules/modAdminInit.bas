@@ -3,9 +3,13 @@ Option Explicit
 
 Public Sub InitAdminAddin()
     Dim report As String
+    Dim targetWb As Workbook
 
-    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
-    Call modAdminConsole.EnsureAdminSchema(ThisWorkbook, report)
+    Set targetWb = modAdmin.ResolveInteractiveAdminWorkbook(False)
+    If targetWb Is Nothing Then Exit Sub
+
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
+    Call modAdminConsole.EnsureAdminSchema(targetWb, report)
 End Sub
 
 Public Sub Auto_Open()

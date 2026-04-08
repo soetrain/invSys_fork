@@ -3,25 +3,37 @@ Option Explicit
 
 Sub Admin_Click()
     Dim report As String
-    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
-    Call modAdminConsole.OpenAdminConsole(, report)
+    Dim targetWb As Workbook
+
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
+    Call modAdminConsole.OpenAdminConsole(targetWb, report)
 End Sub
 
 Sub Open_CreateDeleteUser()
     Dim report As String
-    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
-    Call modAdminConsole.OpenUserManagement(, report)
+    Dim targetWb As Workbook
+
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
+    Call modAdminConsole.OpenUserManagement(targetWb, report)
 End Sub
 
 Sub Open_CreateWarehouse()
     Dim report As String
-    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
+    Dim targetWb As Workbook
+
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
     frmCreateWarehouse.Show
 End Sub
 
 Sub Admin_SetupTesterStation_Click()
     Dim report As String
-    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
+    Dim targetWb As Workbook
+
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
     frmSetupTesterStation.Show
 End Sub
 
@@ -32,8 +44,10 @@ End Sub
 Sub Verify_AddinsPublished()
     Dim report As String
     Dim detail As String
+    Dim targetWb As Workbook
 
-    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
     If modAddinsPublish.VerifyAddinsPublished() Then
         MsgBox "All required add-ins are published." & vbCrLf & modAddinsPublish.GetLastAddinsPublishReport(), vbInformation, "invSys Admin"
     Else
@@ -46,8 +60,10 @@ End Sub
 Sub Export_LoadedPackageReport()
     Dim report As String
     Dim pathOut As String
+    Dim targetWb As Workbook
 
-    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
     If modPackageDiagnostics.ExportLoadedPackageReport("", "", "", pathOut, report) Then
         MsgBox "Loaded package report written to:" & vbCrLf & pathOut, vbInformation, "invSys Admin"
     Else
@@ -58,7 +74,10 @@ End Sub
 
 Sub Admin_RetireMigrateWarehouse_Click()
     Dim report As String
-    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(ThisWorkbook, report)
+    Dim targetWb As Workbook
+
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
     frmRetireMigrateWarehouse.Show
 End Sub
 
@@ -84,6 +103,32 @@ Private Sub PublishSchedulerResult(ByVal resultText As String)
     Application.StatusBar = resultText
     On Error GoTo 0
 End Sub
+
+Public Function ResolveInteractiveAdminWorkbook(Optional ByVal allowAddinFallback As Boolean = True) As Workbook
+    Dim wb As Workbook
+
+    On Error Resume Next
+    Set wb = Application.ActiveWorkbook
+    On Error GoTo 0
+
+    If Not wb Is Nothing Then
+        If Not wb.IsAddin Then
+            Set ResolveInteractiveAdminWorkbook = wb
+            Exit Function
+        End If
+    End If
+
+    For Each wb In Application.Workbooks
+        If Not wb Is Nothing Then
+            If Not wb.IsAddin Then
+                Set ResolveInteractiveAdminWorkbook = wb
+                Exit Function
+            End If
+        End If
+    Next wb
+
+    If allowAddinFallback Then Set ResolveInteractiveAdminWorkbook = ThisWorkbook
+End Function
 
 ''''''''''''''''''''''''''''''''''''
 ' This module contains administrative functions for the application.

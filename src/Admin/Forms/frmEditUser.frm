@@ -20,7 +20,6 @@ Private Sub UserForm_Initialize()
     modUserAuth.LoadRolesIntoComboBox Me.cmbRoleChange
 End Sub
 Private Sub btnUpdateUser_Click()
-    Dim ws As Worksheet
     Dim tbl As ListObject
     Dim foundUser As Range
     Dim selectedUsername As String
@@ -28,9 +27,11 @@ Private Sub btnUpdateUser_Click()
     Dim newPIN As String
     Dim newRole As String
     Dim colUsername As Integer, colPIN As Integer, colRole As Integer
-    ' Set reference to UserCredentials table
-    Set ws = ThisWorkbook.Sheets("UserCredentials")
-    Set tbl = ws.ListObjects("UserCredentials")
+    Set tbl = ResolveUserCredentialsTableForm()
+    If tbl Is Nothing Then
+        Me.lblMessages.Caption = "UserCredentials table not found in the active admin workbook."
+        Exit Sub
+    End If
     ' Get user input
     selectedUsername = Trim(Me.cmbUserName.value)
     newUsername = Trim(Me.txtNewUserName.value)
@@ -77,6 +78,19 @@ Private Sub btnUpdateUser_Click()
     ' Confirmation message
     Me.lblMessages.Caption = "User updated successfully."
 End Sub
+
+Private Function ResolveUserCredentialsTableForm() As ListObject
+    Dim wb As Workbook
+    Dim ws As Worksheet
+
+    Set wb = modAdmin.ResolveInteractiveAdminWorkbook(False)
+    If wb Is Nothing Then Exit Function
+
+    On Error Resume Next
+    Set ws = wb.Worksheets("UserCredentials")
+    If Not ws Is Nothing Then Set ResolveUserCredentialsTableForm = ws.ListObjects("UserCredentials")
+    On Error GoTo 0
+End Function
 Private Sub btnNewPIN_Click()
     Dim randomPIN As String
     ' Generate a random 6-digit number

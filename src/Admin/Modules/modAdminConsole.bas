@@ -638,11 +638,33 @@ FailAggregateAutomation:
 End Function
 
 Private Function ResolveAdminWorkbook(ByVal adminWb As Workbook) As Workbook
+    Dim wb As Workbook
+
     If Not adminWb Is Nothing Then
         Set ResolveAdminWorkbook = adminWb
-    Else
-        Set ResolveAdminWorkbook = ThisWorkbook
+        Exit Function
     End If
+
+    On Error Resume Next
+    Set wb = Application.ActiveWorkbook
+    On Error GoTo 0
+    If Not wb Is Nothing Then
+        If Not wb.IsAddin Then
+            Set ResolveAdminWorkbook = wb
+            Exit Function
+        End If
+    End If
+
+    For Each wb In Application.Workbooks
+        If Not wb Is Nothing Then
+            If Not wb.IsAddin Then
+                Set ResolveAdminWorkbook = wb
+                Exit Function
+            End If
+        End If
+    Next wb
+
+    Set ResolveAdminWorkbook = ThisWorkbook
 End Function
 
 Private Function EnsureSchedulerWarehouseContext(ByVal warehouseId As String, _
