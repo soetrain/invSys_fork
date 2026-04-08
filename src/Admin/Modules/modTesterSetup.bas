@@ -260,7 +260,9 @@ Public Function DetectSharePointRoot(Optional ByVal warehouseId As String = TEST
     Dim rootPath As Variant
     Dim fso As Object
     Dim folderObj As Object
+    Dim rootFolder As Object
 
+    On Error GoTo FailDetect
     warehouseId = Trim$(warehouseId)
     If warehouseId = "" Then warehouseId = TESTER_DEFAULT_WAREHOUSE_ID
 
@@ -288,15 +290,48 @@ Public Function DetectSharePointRoot(Optional ByVal warehouseId As String = TEST
             Exit Function
         End If
 
-        If candidate <> "" And fso.FolderExists(candidate) Then
-            For Each folderObj In fso.GetFolder(candidate).SubFolders
-                If CandidateLooksLikeSharePointRootTesterSetup(folderObj.Path, warehouseId) Then
-                    DetectSharePointRoot = NormalizeFolderPathTesterSetup(folderObj.Path, False)
-                    Exit Function
-                End If
-            Next folderObj
+        If candidate <> "" And FolderExistsTesterSetup(candidate) Then
+            On Error Resume Next
+            Set rootFolder = fso.GetFolder(candidate)
+            On Error GoTo FailDetect
+            If Not rootFolder Is Nothing Then
+                For Each folderObj In rootFolder.SubFolders
+                    If CandidateLooksLikeSharePointRootTesterSetup(folderObj.Path, warehouseId) Then
+                        DetectSharePointRoot = NormalizeFolderPathTesterSetup(folderObj.Path, False)
+                        Exit Function
+                    End If
+                Next folderObj
+            End If
+            Set rootFolder = Nothing
         End If
     Next rootPath
+    Exit Function
+
+FailDetect:
+    DetectSharePointRoot = vbNullString
+End Function
+
+Public Function BrowseForSharePointRoot(Optional ByVal initialPath As String = "") As String
+    Const FILE_DIALOG_FOLDER_PICKER As Long = 4
+    Dim picker As Object
+
+    On Error GoTo FailBrowse
+    Set picker = Application.FileDialog(FILE_DIALOG_FOLDER_PICKER)
+    If picker Is Nothing Then Exit Function
+
+    picker.Title = "Select SharePoint Sync Root"
+    picker.AllowMultiSelect = False
+    If Trim$(initialPath) <> "" And FolderExistsTesterSetup(initialPath) Then
+        picker.InitialFileName = NormalizeFolderPathTesterSetup(initialPath, True)
+    End If
+    If picker.Show <> -1 Then Exit Function
+    If picker.SelectedItems.Count = 0 Then Exit Function
+
+    BrowseForSharePointRoot = NormalizeFolderPathTesterSetup(CStr(picker.SelectedItems(1)), False)
+    Exit Function
+
+FailBrowse:
+    BrowseForSharePointRoot = vbNullString
 End Function
 
 Public Function OpenTesterReceivingWorkbook(Optional ByVal workbookPath As String = "") As Boolean
@@ -623,6 +658,7 @@ End Function
 Private Function CandidateLooksLikeSharePointRootTesterSetup(ByVal rootPath As String, ByVal warehouseId As String) As Boolean
     rootPath = NormalizeFolderPathTesterSetup(rootPath, False)
     If rootPath = "" Then Exit Function
+    If Not IsUsableLocalPathTesterSetup(rootPath) Then Exit Function
 
     If FolderExistsTesterSetup(rootPath & "\Addins") Then
         If FileExistsTesterSetup(rootPath & "\Addins\invSys.Core.xlam") _
@@ -1015,15 +1051,37 @@ Private Function NormalizeFolderPathTesterSetup(ByVal folderPath As String, Opti
 End Function
 
 Private Function FolderExistsTesterSetup(ByVal folderPath As String) As Boolean
+    Dim fso As Object
+
     folderPath = NormalizeFolderPathTesterSetup(folderPath, False)
     If folderPath = "" Then Exit Function
-    FolderExistsTesterSetup = (Len(Dir$(folderPath, vbDirectory)) > 0)
+    If Not IsUsableLocalPathTesterSetup(folderPath) Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FolderExistsTesterSetup = fso.FolderExists(folderPath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FolderExistsTesterSetup = (Len(Dir$(folderPath, vbDirectory)) > 0)
+    End If
+    On Error GoTo 0
 End Function
 
 Private Function FileExistsTesterSetup(ByVal filePath As String) As Boolean
+    Dim fso As Object
+
     filePath = Trim$(Replace$(filePath, "/", "\"))
     If filePath = "" Then Exit Function
-    FileExistsTesterSetup = (Len(Dir$(filePath, vbNormal)) > 0)
+    If Not IsUsableLocalPathTesterSetup(filePath) Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FileExistsTesterSetup = fso.FileExists(filePath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FileExistsTesterSetup = (Len(Dir$(filePath, vbNormal)) > 0)
+    End If
+    On Error GoTo 0
 End Function
 
 Private Sub EnsureFolderRecursiveTesterSetup(ByVal folderPath As String)
@@ -1044,7 +1102,21 @@ Private Function GetParentFolderTesterSetup(ByVal pathIn As String) As String
     pathIn = Trim$(Replace$(pathIn, "/", "\"))
     If pathIn = "" Then Exit Function
     slashPos = InStrRev(pathIn, "\")
-    If slashPos > 1 Then GetParentFolderTesterSetup = Left$(pathIn, slashPos - 1)
+    If slashPos = 3 And Mid$(pathIn, 2, 2) = ":\" Then
+        GetParentFolderTesterSetup = Left$(pathIn, 3)
+    ElseIf slashPos > 1 Then
+        GetParentFolderTesterSetup = Left$(pathIn, slashPos - 1)
+    End If
+End Function
+
+Private Function IsUsableLocalPathTesterSetup(ByVal pathIn As String) As Boolean
+    pathIn = Trim$(Replace$(pathIn, "/", "\"))
+    If pathIn = "" Then Exit Function
+    If InStr(1, pathIn, "://", vbTextCompare) > 0 Then Exit Function
+    If Left$(pathIn, 8) = "https:\\" Then Exit Function
+    If Left$(pathIn, 7) = "http:\\" Then Exit Function
+    If InStr(pathIn, "*") > 0 Or InStr(pathIn, "?") > 0 Then Exit Function
+    IsUsableLocalPathTesterSetup = True
 End Function
 
 Private Function SafeTrimTesterSetup(ByVal valueIn As Variant) As String

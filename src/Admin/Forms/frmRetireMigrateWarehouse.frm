@@ -319,8 +319,16 @@ Private Function ResolveWarehouseScanRootForm() As String
         Exit Function
     End If
 
+    If LooksLikeWarehouseRuntimeRootForm(rootPath) Then
+        parentPath = GetParentFolderForm(rootPath)
+        If parentPath <> "" Then
+            ResolveWarehouseScanRootForm = parentPath
+            Exit Function
+        End If
+    End If
+
     parentPath = GetParentFolderForm(rootPath)
-    If parentPath = "" Then
+    If parentPath = "" Or StrComp(parentPath, "C:", vbTextCompare) = 0 Then
         ResolveWarehouseScanRootForm = rootPath
     Else
         ResolveWarehouseScanRootForm = parentPath
@@ -328,28 +336,33 @@ Private Function ResolveWarehouseScanRootForm() As String
 End Function
 
 Private Sub AddWarehousesFromRootForm(ByVal results As Collection, ByVal seen As Object, ByVal rootPath As String)
+    Dim fso As Object
+    Dim rootFolder As Object
+    Dim subFolder As Object
     Dim folderName As String
-    Dim folderPath As String
+    Dim configPath As String
 
     rootPath = NormalizePathForm(rootPath)
     If rootPath = "" Then Exit Sub
-    If Len(Dir$(rootPath, vbDirectory)) = 0 Then Exit Sub
+    If Not FolderExistsForm(rootPath) Then Exit Sub
 
-    folderName = Dir$(rootPath & "\*", vbDirectory)
-    Do While folderName <> ""
-        If folderName <> "." And folderName <> ".." Then
-            folderPath = rootPath & "\" & folderName
-            If (GetAttr(folderPath) And vbDirectory) = vbDirectory Then
-                If Len(Dir$(folderPath & "\" & folderName & ".invSys.Config.xlsb", vbNormal)) > 0 Then
-                    If Not seen.Exists(folderName) Then
-                        seen.Add folderName, True
-                        results.Add folderName
-                    End If
-                End If
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If fso Is Nothing Then Exit Sub
+    Set rootFolder = fso.GetFolder(rootPath)
+    On Error GoTo 0
+    If rootFolder Is Nothing Then Exit Sub
+
+    For Each subFolder In rootFolder.SubFolders
+        folderName = CStr(subFolder.Name)
+        configPath = NormalizePathForm(CStr(subFolder.Path)) & "\" & folderName & ".invSys.Config.xlsb"
+        If FileExistsForm(configPath) Then
+            If Not seen.Exists(folderName) Then
+                seen.Add folderName, True
+                results.Add folderName
             End If
         End If
-        folderName = Dir$
-    Loop
+    Next subFolder
 End Sub
 
 Private Sub ApplyDefaultSelections()
@@ -565,7 +578,67 @@ Private Function GetParentFolderForm(ByVal pathText As String) As String
 
     pathText = NormalizePathForm(pathText)
     sepPos = InStrRev(pathText, "\")
-    If sepPos > 1 Then GetParentFolderForm = Left$(pathText, sepPos - 1)
+    If sepPos = 3 And Mid$(pathText, 2, 2) = ":\" Then
+        GetParentFolderForm = Left$(pathText, 3)
+    ElseIf sepPos > 1 Then
+        GetParentFolderForm = Left$(pathText, sepPos - 1)
+    End If
+End Function
+
+Private Function GetLeafFolderNameForm(ByVal pathText As String) As String
+    Dim sepPos As Long
+
+    pathText = NormalizePathForm(pathText)
+    If pathText = "" Then Exit Function
+    sepPos = InStrRev(pathText, "\")
+    If sepPos > 0 And sepPos < Len(pathText) Then
+        GetLeafFolderNameForm = Mid$(pathText, sepPos + 1)
+    Else
+        GetLeafFolderNameForm = pathText
+    End If
+End Function
+
+Private Function LooksLikeWarehouseRuntimeRootForm(ByVal rootPath As String) As Boolean
+    Dim leafName As String
+
+    rootPath = NormalizePathForm(rootPath)
+    If rootPath = "" Then Exit Function
+    leafName = Trim$(GetLeafFolderNameForm(rootPath))
+    If leafName = "" Then Exit Function
+
+    LooksLikeWarehouseRuntimeRootForm = FileExistsForm(rootPath & "\" & leafName & ".invSys.Config.xlsb")
+End Function
+
+Private Function FolderExistsForm(ByVal folderPath As String) As Boolean
+    Dim fso As Object
+
+    folderPath = NormalizePathForm(folderPath)
+    If folderPath = "" Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FolderExistsForm = fso.FolderExists(folderPath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FolderExistsForm = (Len(Dir$(folderPath, vbDirectory)) > 0)
+    End If
+    On Error GoTo 0
+End Function
+
+Private Function FileExistsForm(ByVal filePath As String) As Boolean
+    Dim fso As Object
+
+    filePath = NormalizePathForm(filePath)
+    If filePath = "" Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FileExistsForm = fso.FileExists(filePath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FileExistsForm = (Len(Dir$(filePath, vbNormal)) > 0)
+    End If
+    On Error GoTo 0
 End Function
 
 Private Sub RestoreRootOverrideForm(ByVal priorRoot As String)

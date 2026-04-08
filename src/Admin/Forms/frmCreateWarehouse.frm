@@ -15,6 +15,9 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
+Private WithEvents mBtnSharePointHelper As MSForms.CommandButton
+Attribute mBtnSharePointHelper.VB_VarHelpID = -1
+
 Private mPathLocalTouched As Boolean
 Private mLastSuggestedLocalPath As String
 Private mFormBusy As Boolean
@@ -39,6 +42,7 @@ Private Sub UserForm_Initialize()
     Me.txtStationId.Value = "S1"
     Me.txtAdminUser.Value = ResolveDefaultAdminUserForm()
     Me.txtPathSharePoint.Value = ResolveDefaultSharePointRootForm()
+    ConfigureSharePointHelperButton
     Me.chkPublishInitial.Value = True
     mPathLocalTouched = False
     mLastSuggestedLocalPath = vbNullString
@@ -83,6 +87,28 @@ End Sub
 Private Sub txtPathSharePoint_Change()
     If mFormBusy Then Exit Sub
     ClearErrorLabel Me.lblPathSharePointError
+End Sub
+
+Private Sub mBtnSharePointHelper_Click()
+    Dim candidate As String
+    Dim warehouseId As String
+
+    warehouseId = Trim$(CStr(Me.txtWarehouseId.Value))
+    candidate = modTesterSetup.DetectSharePointRoot(warehouseId)
+    If candidate = "" Then
+        candidate = modTesterSetup.BrowseForSharePointRoot(Trim$(CStr(Me.txtPathSharePoint.Value)))
+    End If
+
+    If candidate = "" Then
+        ShowSummary "SharePoint root was not detected. Pick the locally synced invSys root folder manually.", COLOR_INFO
+        Exit Sub
+    End If
+
+    mFormBusy = True
+    Me.txtPathSharePoint.Value = candidate
+    mFormBusy = False
+    ClearErrorLabel Me.lblPathSharePointError
+    ShowSummary "SharePoint root detected.", COLOR_SUCCESS
 End Sub
 
 Private Sub chkPublishInitial_Click()
@@ -279,5 +305,26 @@ Private Function ResolveDefaultSharePointRootForm() As String
         ResolveDefaultSharePointRootForm = Trim$(CStr(modConfig.GetString("PathSharePointRoot", "")))
     End If
     On Error GoTo 0
+
+    If ResolveDefaultSharePointRootForm = "" Then
+        ResolveDefaultSharePointRootForm = modTesterSetup.DetectSharePointRoot(Trim$(CStr(Me.txtWarehouseId.Value)))
+    End If
 End Function
+
+Private Sub ConfigureSharePointHelperButton()
+    If mBtnSharePointHelper Is Nothing Then
+        Set mBtnSharePointHelper = Me.Controls.Add("Forms.CommandButton.1", "btnSharePointHelperRuntime", True)
+    End If
+
+    Me.txtPathSharePoint.Width = 258
+    With mBtnSharePointHelper
+        .Caption = "Find..."
+        .Left = Me.txtPathSharePoint.Left + Me.txtPathSharePoint.Width + 8
+        .Top = Me.txtPathSharePoint.Top - 1
+        .Width = 72
+        .Height = Me.txtPathSharePoint.Height + 2
+        .Visible = True
+        .Enabled = True
+    End With
+End Sub
 

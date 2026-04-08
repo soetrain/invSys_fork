@@ -53,6 +53,10 @@ Sub Verify_AddinsPublished()
     Else
         detail = modAddinsPublish.GetLastAddinsPublishReport()
         If Len(detail) = 0 Then detail = "One or more required add-ins are missing or zero-byte."
+        If InStr(1, detail, "PathSharePointRoot is not configured", vbTextCompare) > 0 Then
+            detail = detail & vbCrLf & _
+                     "Use Create New Warehouse or Setup Tester Station to choose the locally synced invSys SharePoint root first."
+        End If
         MsgBox "Add-ins publish verification failed." & vbCrLf & detail, vbExclamation, "invSys Admin"
     End If
 End Sub

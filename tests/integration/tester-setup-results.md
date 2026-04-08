@@ -1,8 +1,8 @@
 # Tester Setup Integration Results
 
-- Date: 2026-04-06 13:38:17
+- Date: 2026-04-08 11:31:18
 - Overall: PASS
-- Harness: C:\Users\Justin\repos\invSys_fork\tests\fixtures\TesterSetup_Integration_Harness_20260406_133758_006.xlsm
+- Harness: C:\Users\Justin\repos\invSys_fork\tests\fixtures\TesterSetup_Integration_Harness_20260408_113048_822.xlsm
 - Summary: Tester station setup passed fresh-machine, rerun-safe, offline-SharePoint, and existing-auth cases.
 - Passed checks: 4
 - Failed checks: 0
