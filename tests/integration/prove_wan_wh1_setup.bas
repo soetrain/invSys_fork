@@ -1,0 +1,552 @@
+Attribute VB_Name = "prove_wan_wh1_setup"
+Option Explicit
+
+Private Const WAREHOUSE_ID_WAN_WH1 As String = "WH1"
+Private Const RUNTIME_ROOT_WAN_WH1 As String = "C:\invSys\WH1"
+Private Const RESULT_RELATIVE_PATH_WAN_WH1 As String = "tests\integration\wan-wh1-setup-proof.md"
+
+Private mSummary As String
+Private mResultPath As String
+Private mMachineName As String
+Private mStationId As String
+Private mSharePointRoot As String
+Private mStepRows As String
+Private mPassed As Long
+Private mFailed As Long
+
+Public Function SetupVerification_WH1() As Long
+    Dim runtimeRoot As String
+    Dim inventoryPath As String
+    Dim outboxPath As String
+    Dim snapshotPath As String
+    Dim publishedSnapshotPath As String
+    Dim sharePointRoot As String
+    Dim stationId As String
+    Dim report As String
+    Dim note As String
+    Dim processedCount As Long
+    Dim okStep As Boolean
+
+    On Error GoTo FailRun
+
+    ResetWanWh1SetupState
+
+    runtimeRoot = RUNTIME_ROOT_WAN_WH1
+    inventoryPath = runtimeRoot & "\" & WAREHOUSE_ID_WAN_WH1 & ".invSys.Data.Inventory.xlsb"
+    outboxPath = runtimeRoot & "\" & WAREHOUSE_ID_WAN_WH1 & ".Outbox.Events.xlsb"
+    snapshotPath = runtimeRoot & "\" & WAREHOUSE_ID_WAN_WH1 & ".invSys.Snapshot.Inventory.xlsb"
+
+    okStep = FolderExistsWanWh1(runtimeRoot)
+    If okStep Then
+        note = "Runtime root exists at " & runtimeRoot & "."
+    Else
+        note = "Missing runtime root: " & runtimeRoot
+    End If
+    RecordWanWh1Step 1, okStep, note
+
+    okStep = FileExistsWanWh1(inventoryPath) And GetFileSizeWanWh1(inventoryPath) > 0
+    If okStep Then
+        note = "Inventory workbook exists and is non-zero at " & inventoryPath & "."
+    ElseIf FileExistsWanWh1(inventoryPath) Then
+        note = "Inventory workbook exists but is zero bytes: " & inventoryPath
+    Else
+        note = "Missing inventory workbook: " & inventoryPath
+    End If
+    RecordWanWh1Step 2, okStep, note
+
+    okStep = FileExistsWanWh1(outboxPath)
+    If okStep Then
+        note = "Outbox workbook exists at " & outboxPath & "."
+    Else
+        note = "Missing outbox workbook: " & outboxPath
+    End If
+    RecordWanWh1Step 3, okStep, note
+
+    okStep = FileExistsWanWh1(snapshotPath)
+    If okStep Then
+        note = "Local snapshot workbook exists at " & snapshotPath & "."
+    Else
+        note = "Missing local snapshot workbook: " & snapshotPath
+    End If
+    RecordWanWh1Step 4, okStep, note
+
+    okStep = ResolveWarehouseContextWanWh1(stationId, sharePointRoot, note)
+    If okStep Then
+        mStationId = stationId
+        mSharePointRoot = sharePointRoot
+    End If
+    RecordWanWh1Step 5, okStep, note
+
+    okStep = False
+    If mSharePointRoot <> "" Then okStep = FolderExistsWanWh1(BuildFolderPathWanWh1(mSharePointRoot, "Events"))
+    If okStep Then
+        note = "SharePoint Events folder exists at " & BuildFolderPathWanWh1(mSharePointRoot, "Events") & "."
+    ElseIf mSharePointRoot <> "" Then
+        note = "Missing SharePoint Events folder: " & BuildFolderPathWanWh1(mSharePointRoot, "Events")
+    Else
+        note = "SharePoint root was not resolved from config."
+    End If
+    RecordWanWh1Step 6, okStep, note
+
+    okStep = False
+    If mSharePointRoot <> "" Then okStep = FolderExistsWanWh1(BuildFolderPathWanWh1(mSharePointRoot, "Snapshots"))
+    If okStep Then
+        note = "SharePoint Snapshots folder exists at " & BuildFolderPathWanWh1(mSharePointRoot, "Snapshots") & "."
+    ElseIf mSharePointRoot <> "" Then
+        note = "Missing SharePoint Snapshots folder: " & BuildFolderPathWanWh1(mSharePointRoot, "Snapshots")
+    Else
+        note = "SharePoint root was not resolved from config."
+    End If
+    RecordWanWh1Step 7, okStep, note
+
+    note = vbNullString
+    okStep = False
+    If mStationId = "" Then
+        note = "StationId could not be resolved from config; RunBatch was not attempted."
+    Else
+        modRuntimeWorkbooks.SetCoreDataRootOverride runtimeRoot
+        If Not modConfig.LoadConfig(WAREHOUSE_ID_WAN_WH1, mStationId) Then
+            note = "Config load failed: " & modConfig.Validate()
+        Else
+            processedCount = modProcessor.RunBatch(WAREHOUSE_ID_WAN_WH1, 0, report)
+            okStep = RunBatchResultIsHealthyWanWh1(report)
+            If okStep Then
+                note = "RunBatch completed without fatal errors. Processed=" & CStr(processedCount) & "; Report=" & report
+            Else
+                note = "RunBatch reported a fatal or degraded result. Processed=" & CStr(processedCount) & "; Report=" & report
+            End If
+        End If
+    End If
+    RecordWanWh1Step 8, okStep, note
+
+    publishedSnapshotPath = BuildFolderPathWanWh1(BuildFolderPathWanWh1(mSharePointRoot, "Snapshots"), WAREHOUSE_ID_WAN_WH1 & ".invSys.Snapshot.Inventory.xlsb")
+    okStep = FileExistsWanWh1(publishedSnapshotPath)
+    If okStep Then
+        note = "Published snapshot exists at " & publishedSnapshotPath & "."
+    Else
+        note = "Missing published snapshot: " & publishedSnapshotPath
+    End If
+    RecordWanWh1Step 9, okStep, note
+
+    okStep = Not FileExistsWanWh1(publishedSnapshotPath & ".uploading")
+    If okStep Then
+        note = "No publish temp file remains at " & publishedSnapshotPath & ".uploading."
+    Else
+        note = "Publish temp file still present: " & publishedSnapshotPath & ".uploading"
+    End If
+    RecordWanWh1Step 10, okStep, note
+
+    If mFailed = 0 And mPassed = 10 Then
+        mSummary = "WH1 WAN setup proof passed all 10 real-machine steps."
+        SetupVerification_WH1 = 1
+    Else
+        mSummary = "WH1 WAN setup proof did not pass all required steps."
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    Exit Function
+
+FailRun:
+    RecordWanWh1Step 0, False, "Harness exception: " & Err.Description
+    mSummary = "WH1 WAN setup proof raised an unexpected exception."
+    Resume CleanExit
+End Function
+
+Public Function GetWanWh1SetupContextPacked() As String
+    GetWanWh1SetupContextPacked = _
+        "Summary=" & SafeTextWanWh1(mSummary) & _
+        "|Machine=" & SafeTextWanWh1(mMachineName) & _
+        "|Warehouse=" & WAREHOUSE_ID_WAN_WH1 & _
+        "|Station=" & SafeTextWanWh1(mStationId) & _
+        "|SharePointRoot=" & SafeTextWanWh1(mSharePointRoot) & _
+        "|ResultPath=" & SafeTextWanWh1(mResultPath) & _
+        "|Passed=" & CStr(mPassed) & _
+        "|Failed=" & CStr(mFailed)
+End Function
+
+Public Function GetWanWh1SetupEvidenceRows() As String
+    GetWanWh1SetupEvidenceRows = mStepRows
+End Function
+
+Public Sub WriteProofResult(ByVal machineName As String, ByVal step As Integer, ByVal passed As Boolean, ByVal note As String)
+    Dim ts As String
+    Dim lineOut As String
+
+    If mResultPath = "" Then mResultPath = ResolveResultPathWanWh1()
+    If mResultPath = "" Then Exit Sub
+
+    EnsureResultFileHeaderWanWh1 mResultPath
+
+    ts = CurrentUtcStampWanWh1()
+    lineOut = "| " & SanitizeMarkdownWanWh1(machineName) & _
+              " | " & CStr(step) & _
+              " | " & IIf(passed, "PASS", "FAIL") & _
+              " | " & SanitizeMarkdownWanWh1(note) & _
+              " | " & SanitizeMarkdownWanWh1(ts) & " |"
+
+    AppendLineWanWh1 mResultPath, lineOut
+End Sub
+
+Private Sub ResetWanWh1SetupState()
+    mSummary = vbNullString
+    mResultPath = ResolveResultPathWanWh1()
+    mMachineName = ResolveMachineNameWanWh1()
+    mStationId = vbNullString
+    mSharePointRoot = vbNullString
+    mStepRows = vbNullString
+    mPassed = 0
+    mFailed = 0
+End Sub
+
+Private Sub RecordWanWh1Step(ByVal stepNo As Long, ByVal passed As Boolean, ByVal note As String)
+    If passed Then
+        mPassed = mPassed + 1
+    Else
+        mFailed = mFailed + 1
+    End If
+
+    If Len(mStepRows) > 0 Then mStepRows = mStepRows & vbLf
+    mStepRows = mStepRows & "Step " & CStr(stepNo) & vbTab & IIf(passed, "PASS", "FAIL") & vbTab & note
+
+    WriteProofResult mMachineName, stepNo, passed, note
+End Sub
+
+Private Function ResolveWarehouseContextWanWh1(ByRef stationId As String, ByRef sharePointRoot As String, ByRef note As String) As Boolean
+    Dim configPath As String
+    Dim wbCfg As Workbook
+    Dim loWh As ListObject
+    Dim loSt As ListObject
+    Dim openedHere As Boolean
+
+    On Error GoTo FailResolve
+
+    configPath = RUNTIME_ROOT_WAN_WH1 & "\" & WAREHOUSE_ID_WAN_WH1 & ".invSys.Config.xlsb"
+    If Not FileExistsWanWh1(configPath) Then
+        note = "Config workbook missing: " & configPath
+        GoTo CleanExit
+    End If
+
+    Set wbCfg = FindOpenWorkbookByPathWanWh1(configPath)
+    If wbCfg Is Nothing Then
+        Set wbCfg = Application.Workbooks.Open(Filename:=configPath, UpdateLinks:=0, ReadOnly:=True, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+        openedHere = Not wbCfg Is Nothing
+    End If
+    If wbCfg Is Nothing Then
+        note = "Config workbook could not be opened: " & configPath
+        GoTo CleanExit
+    End If
+
+    Set loWh = wbCfg.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
+    Set loSt = wbCfg.Worksheets("StationConfig").ListObjects("tblStationConfig")
+    If loWh Is Nothing Or loSt Is Nothing Then
+        note = "Config tables were missing from " & configPath
+        GoTo CleanExit
+    End If
+    If loWh.DataBodyRange Is Nothing Or loSt.DataBodyRange Is Nothing Then
+        note = "Config tables did not contain any data rows."
+        GoTo CleanExit
+    End If
+
+    sharePointRoot = Trim$(CStr(loWh.DataBodyRange.Cells(1, loWh.ListColumns("PathSharePointRoot").Index).Value))
+    stationId = ResolveFirstStationIdWanWh1(loSt)
+    If sharePointRoot = "" Then
+        note = "PathSharePointRoot was blank in " & configPath
+        GoTo CleanExit
+    End If
+    If stationId = "" Then
+        note = "No StationId row was present in tblStationConfig."
+        GoTo CleanExit
+    End If
+
+    sharePointRoot = NormalizeFolderPathWanWh1(sharePointRoot)
+    If Not FolderExistsWanWh1(sharePointRoot) Then
+        note = "PathSharePointRoot was set but unreachable: " & sharePointRoot
+        GoTo CleanExit
+    End If
+
+    note = "PathSharePointRoot=" & sharePointRoot & "; StationId=" & stationId & "; SharePoint root is reachable."
+    ResolveWarehouseContextWanWh1 = True
+
+CleanExit:
+    If openedHere And Not wbCfg Is Nothing Then
+        On Error Resume Next
+        wbCfg.Close SaveChanges:=False
+        On Error GoTo 0
+    End If
+    Exit Function
+
+FailResolve:
+    note = "ResolveWarehouseContext failed: " & Err.Description
+    Resume CleanExit
+End Function
+
+Private Function ResolveFirstStationIdWanWh1(ByVal loSt As ListObject) As String
+    Dim rowIndex As Long
+    Dim colIndex As Long
+    Dim valueText As String
+
+    If loSt Is Nothing Then Exit Function
+    If loSt.DataBodyRange Is Nothing Then Exit Function
+
+    colIndex = loSt.ListColumns("StationId").Index
+    For rowIndex = 1 To loSt.ListRows.Count
+        valueText = Trim$(CStr(loSt.DataBodyRange.Cells(rowIndex, colIndex).Value))
+        If valueText <> "" Then
+            ResolveFirstStationIdWanWh1 = valueText
+            Exit Function
+        End If
+    Next rowIndex
+End Function
+
+Private Function RunBatchResultIsHealthyWanWh1(ByVal report As String) As Boolean
+    Dim upperReport As String
+
+    upperReport = UCase$(Trim$(report))
+    If Left$(upperReport, 15) = "RUNBATCH FAILED" Then Exit Function
+    If InStr(1, upperReport, "SNAPSHOTERROR=", vbTextCompare) > 0 Then Exit Function
+    If InStr(1, upperReport, "PUBLISHWARNING=", vbTextCompare) > 0 Then Exit Function
+    If InStr(1, upperReport, "INVENTORY WORKBOOK IS READ-ONLY OR LOCKED", vbTextCompare) > 0 Then Exit Function
+    If InStr(1, upperReport, "NOT FOUND", vbTextCompare) > 0 Then Exit Function
+    RunBatchResultIsHealthyWanWh1 = True
+End Function
+
+Private Function ResolveResultPathWanWh1() As String
+    Dim repoRoot As String
+
+    repoRoot = FindRepoRootWanWh1(ThisWorkbook.Path)
+    If repoRoot = "" Then repoRoot = FindRepoRootWanWh1(CurDir$)
+    If repoRoot = "" Then Exit Function
+
+    ResolveResultPathWanWh1 = repoRoot & "\" & RESULT_RELATIVE_PATH_WAN_WH1
+End Function
+
+Private Function FindRepoRootWanWh1(ByVal startPath As String) As String
+    Dim fso As Object
+    Dim probe As String
+    Dim parentPath As String
+
+    On Error GoTo FailFind
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    probe = Trim$(startPath)
+    If probe = "" Then Exit Function
+
+    If Not fso.FolderExists(probe) Then
+        If fso.FileExists(probe) Then
+            probe = fso.GetParentFolderName(probe)
+        Else
+            Exit Function
+        End If
+    End If
+
+    Do While probe <> ""
+        If fso.FolderExists(probe & "\.git") And fso.FolderExists(probe & "\tests") Then
+            FindRepoRootWanWh1 = probe
+            Exit Function
+        End If
+        parentPath = fso.GetParentFolderName(probe)
+        If parentPath = probe Then Exit Do
+        probe = parentPath
+    Loop
+    Exit Function
+
+FailFind:
+    FindRepoRootWanWh1 = vbNullString
+End Function
+
+Private Sub EnsureResultFileHeaderWanWh1(ByVal resultPath As String)
+    Dim folderPath As String
+    Dim lines(0 To 6) As String
+
+    If resultPath = "" Then Exit Sub
+    If FileExistsWanWh1(resultPath) Then Exit Sub
+
+    folderPath = GetParentFolderWanWh1(resultPath)
+    If folderPath <> "" Then EnsureFolderRecursiveWanWh1 folderPath
+
+    lines(0) = "# WAN WH1 Setup Proof"
+    lines(1) = ""
+    lines(2) = "- Warehouse: `WH1`"
+    lines(3) = "- Scope note: real-machine setup and publish proof for the WAN proving path Slice A."
+    lines(4) = ""
+    lines(5) = "| Machine | Step | Result | Note | UTC timestamp |"
+    lines(6) = "|---|---|---|---|---|"
+    WriteAllLinesWanWh1 resultPath, lines
+End Sub
+
+Private Sub AppendLineWanWh1(ByVal targetPath As String, ByVal lineOut As String)
+    Dim fso As Object
+    Dim ts As Object
+
+    On Error GoTo FailAppend
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set ts = fso.OpenTextFile(targetPath, 8, True, 0)
+    ts.WriteLine lineOut
+
+CleanExit:
+    On Error Resume Next
+    If Not ts Is Nothing Then ts.Close
+    On Error GoTo 0
+    Exit Sub
+
+FailAppend:
+    Resume CleanExit
+End Sub
+
+Private Sub WriteAllLinesWanWh1(ByVal targetPath As String, ByRef lines() As String)
+    Dim fso As Object
+    Dim ts As Object
+    Dim i As Long
+
+    On Error GoTo CleanExit
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set ts = fso.CreateTextFile(targetPath, True, False)
+    For i = LBound(lines) To UBound(lines)
+        ts.WriteLine lines(i)
+    Next i
+
+CleanExit:
+    On Error Resume Next
+    If Not ts Is Nothing Then ts.Close
+    On Error GoTo 0
+End Sub
+
+Private Function ResolveMachineNameWanWh1() As String
+    On Error Resume Next
+    ResolveMachineNameWanWh1 = Trim$(Environ$("COMPUTERNAME"))
+    If ResolveMachineNameWanWh1 = "" Then ResolveMachineNameWanWh1 = Trim$(CreateObject("WScript.Network").ComputerName)
+    If ResolveMachineNameWanWh1 = "" Then ResolveMachineNameWanWh1 = "UNKNOWN-MACHINE"
+    On Error GoTo 0
+End Function
+
+Private Function CurrentUtcStampWanWh1() As String
+    Dim shellObj As Object
+    Dim execObj As Object
+    Dim outputText As String
+
+    On Error GoTo FallbackStamp
+
+    Set shellObj = CreateObject("WScript.Shell")
+    Set execObj = shellObj.Exec("powershell -NoProfile -Command ""[DateTime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss')""")
+    outputText = Trim$(execObj.StdOut.ReadAll)
+    If outputText <> "" Then
+        CurrentUtcStampWanWh1 = outputText
+        Exit Function
+    End If
+
+FallbackStamp:
+    CurrentUtcStampWanWh1 = Format$(Now, "yyyy-mm-dd hh:nn:ss")
+End Function
+
+Private Function NormalizeFolderPathWanWh1(ByVal folderPath As String) As String
+    NormalizeFolderPathWanWh1 = Trim$(Replace$(folderPath, "/", "\"))
+    If Right$(NormalizeFolderPathWanWh1, 1) = "\" Then
+        NormalizeFolderPathWanWh1 = Left$(NormalizeFolderPathWanWh1, Len(NormalizeFolderPathWanWh1) - 1)
+    End If
+End Function
+
+Private Function BuildFolderPathWanWh1(ByVal rootPath As String, ByVal childName As String) As String
+    rootPath = NormalizeFolderPathWanWh1(rootPath)
+    childName = Trim$(Replace$(childName, "/", "\"))
+    If rootPath = "" Then
+        BuildFolderPathWanWh1 = childName
+    ElseIf childName = "" Then
+        BuildFolderPathWanWh1 = rootPath
+    Else
+        BuildFolderPathWanWh1 = rootPath & "\" & childName
+    End If
+End Function
+
+Private Function FileExistsWanWh1(ByVal fullPath As String) As Boolean
+    Dim fso As Object
+
+    fullPath = Trim$(fullPath)
+    If fullPath = "" Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FileExistsWanWh1 = fso.FileExists(fullPath)
+    If Err.Number = 0 Then
+        On Error GoTo 0
+        Exit Function
+    End If
+
+    Err.Clear
+    FileExistsWanWh1 = (Len(Dir$(fullPath, vbNormal)) > 0)
+    On Error GoTo 0
+End Function
+
+Private Function FolderExistsWanWh1(ByVal folderPath As String) As Boolean
+    Dim fso As Object
+
+    folderPath = Trim$(folderPath)
+    If folderPath = "" Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FolderExistsWanWh1 = fso.FolderExists(folderPath)
+    If Err.Number = 0 Then
+        On Error GoTo 0
+        Exit Function
+    End If
+
+    Err.Clear
+    FolderExistsWanWh1 = (Len(Dir$(folderPath, vbDirectory)) > 0)
+    On Error GoTo 0
+End Function
+
+Private Function GetFileSizeWanWh1(ByVal fullPath As String) As Double
+    On Error Resume Next
+    If FileExistsWanWh1(fullPath) Then GetFileSizeWanWh1 = FileLen(fullPath)
+    On Error GoTo 0
+End Function
+
+Private Function FindOpenWorkbookByPathWanWh1(ByVal fullPath As String) As Workbook
+    Dim wb As Workbook
+
+    fullPath = LCase$(Trim$(fullPath))
+    If fullPath = "" Then Exit Function
+
+    For Each wb In Application.Workbooks
+        If LCase$(Trim$(wb.FullName)) = fullPath Then
+            Set FindOpenWorkbookByPathWanWh1 = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Function GetParentFolderWanWh1(ByVal fullPath As String) As String
+    On Error Resume Next
+    GetParentFolderWanWh1 = CreateObject("Scripting.FileSystemObject").GetParentFolderName(fullPath)
+    On Error GoTo 0
+End Function
+
+Private Sub EnsureFolderRecursiveWanWh1(ByVal folderPath As String)
+    Dim parentPath As String
+    Dim fso As Object
+
+    folderPath = NormalizeFolderPathWanWh1(folderPath)
+    If folderPath = "" Then Exit Sub
+    If FolderExistsWanWh1(folderPath) Then Exit Sub
+
+    parentPath = GetParentFolderWanWh1(folderPath)
+    If parentPath <> "" And Not FolderExistsWanWh1(parentPath) Then EnsureFolderRecursiveWanWh1 parentPath
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then fso.CreateFolder folderPath
+    On Error GoTo 0
+End Sub
+
+Private Function SanitizeMarkdownWanWh1(ByVal textIn As String) As String
+    SanitizeMarkdownWanWh1 = Trim$(Replace$(Replace$(CStr(textIn), "|", " ; "), vbCr, " "))
+    SanitizeMarkdownWanWh1 = Replace$(SanitizeMarkdownWanWh1, vbLf, " ")
+End Function
+
+Private Function SafeTextWanWh1(ByVal textIn As String) As String
+    SafeTextWanWh1 = Replace$(Replace$(CStr(textIn), "|", "/"), vbCr, " ")
+    SafeTextWanWh1 = Replace$(SafeTextWanWh1, vbLf, " ")
+End Function
