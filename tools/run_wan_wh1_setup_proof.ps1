@@ -121,6 +121,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modUiQuiet.bas"),
         (Join-Path $repo "src/Core/Modules/modConfig.bas"),
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
+        (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
         (Join-Path $repo "src/Core/Modules/modDiagnostics.bas"),
         (Join-Path $repo "src/Core/Modules/modPerfLog.bas"),
         (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),
