@@ -1,7 +1,7 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-04-07 12:04:12
-- Passed: 95
+- Date: 2026-04-08 10:17:20
+- Passed: 98
 - Failed: 0
 
 | Test | Result |
@@ -101,3 +101,6 @@
 | TestPhase6RoleSurfaces.TestEnsureProductionWorkbookSurface_CreatesExpectedTables | PASS |
 | TestPhase6RoleSurfaces.TestEnsureProductionWorkbookSurface_RecreatesDeletedArtifacts | PASS |
 | TestPhase6RoleSurfaces.TestEnsureAdminWorkbookSurface_CreatesExpectedTables | PASS |
+| TestPhase6RoleSurfaces.TestResolveAdminTargetWorkbook_PrefersActiveVisibleWorkbook | PASS |
+| TestPhase6RoleSurfaces.TestResolveAdminTargetWorkbook_ExplicitWorkbookWinsOverActiveWorkbook | PASS |
+| TestPhase6RoleSurfaces.TestOpenUserManagement_WithoutWorkbookArgTargetsActiveWorkbook | PASS |

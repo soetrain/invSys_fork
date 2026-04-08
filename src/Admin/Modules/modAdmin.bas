@@ -105,29 +105,7 @@ Private Sub PublishSchedulerResult(ByVal resultText As String)
 End Sub
 
 Public Function ResolveInteractiveAdminWorkbook(Optional ByVal allowAddinFallback As Boolean = True) As Workbook
-    Dim wb As Workbook
-
-    On Error Resume Next
-    Set wb = Application.ActiveWorkbook
-    On Error GoTo 0
-
-    If Not wb Is Nothing Then
-        If Not wb.IsAddin Then
-            Set ResolveInteractiveAdminWorkbook = wb
-            Exit Function
-        End If
-    End If
-
-    For Each wb In Application.Workbooks
-        If Not wb Is Nothing Then
-            If Not wb.IsAddin Then
-                Set ResolveInteractiveAdminWorkbook = wb
-                Exit Function
-            End If
-        End If
-    Next wb
-
-    If allowAddinFallback Then Set ResolveInteractiveAdminWorkbook = ThisWorkbook
+    Set ResolveInteractiveAdminWorkbook = modAdminWorkbookTarget.ResolveAdminTargetWorkbook(Nothing, ThisWorkbook, allowAddinFallback)
 End Function
 
 ''''''''''''''''''''''''''''''''''''

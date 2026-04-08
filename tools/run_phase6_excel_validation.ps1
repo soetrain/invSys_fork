@@ -185,6 +185,7 @@ try {
         (Join-Path $repo "src/InventoryDomain/Modules/modInventoryApply.bas"),
         (Join-Path $repo "src/Receiving/Modules/modReceivingInit.bas"),
         (Join-Path $repo "src/Admin/Modules/modAddinsPublish.bas"),
+        (Join-Path $repo "src/Admin/Modules/modAdminWorkbookTarget.bas"),
         (Join-Path $repo "src/Admin/Modules/modAdminConsole.bas"),
         (Join-Path $repo "tests/unit/TestPhase2Helpers.bas"),
         (Join-Path $repo "tests/unit/TestStub_modTS_Received.bas"),
@@ -303,7 +304,10 @@ try {
         "TestPhase6RoleSurfaces.TestEnsureShippingWorkbookSurface_RecreatesDeletedArtifacts",
         "TestPhase6RoleSurfaces.TestEnsureProductionWorkbookSurface_CreatesExpectedTables",
         "TestPhase6RoleSurfaces.TestEnsureProductionWorkbookSurface_RecreatesDeletedArtifacts",
-        "TestPhase6RoleSurfaces.TestEnsureAdminWorkbookSurface_CreatesExpectedTables"
+        "TestPhase6RoleSurfaces.TestEnsureAdminWorkbookSurface_CreatesExpectedTables",
+        "TestPhase6RoleSurfaces.TestResolveAdminTargetWorkbook_PrefersActiveVisibleWorkbook",
+        "TestPhase6RoleSurfaces.TestResolveAdminTargetWorkbook_ExplicitWorkbookWinsOverActiveWorkbook",
+        "TestPhase6RoleSurfaces.TestOpenUserManagement_WithoutWorkbookArgTargetsActiveWorkbook"
     )
 
     $harness = $excel.Workbooks.Add()

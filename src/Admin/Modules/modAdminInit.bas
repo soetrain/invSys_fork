@@ -5,7 +5,7 @@ Public Sub InitAdminAddin()
     Dim report As String
     Dim targetWb As Workbook
 
-    Set targetWb = modAdmin.ResolveInteractiveAdminWorkbook(False)
+    Set targetWb = modAdminWorkbookTarget.ResolveAdminTargetWorkbook(Nothing, ThisWorkbook, False)
     If targetWb Is Nothing Then Exit Sub
 
     Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)

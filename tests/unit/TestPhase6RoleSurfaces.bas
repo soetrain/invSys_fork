@@ -229,6 +229,80 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestResolveAdminTargetWorkbook_PrefersActiveVisibleWorkbook() As Long
+    Dim wbVisible As Workbook
+    Dim resolved As Workbook
+
+    Set wbVisible = Application.Workbooks.Add
+
+    On Error GoTo CleanFail
+    wbVisible.Activate
+    Set resolved = modAdminWorkbookTarget.ResolveAdminTargetWorkbook(Nothing, ThisWorkbook, False)
+
+    If Not resolved Is Nothing Then
+        If StrComp(resolved.Name, wbVisible.Name, vbTextCompare) = 0 Then
+            TestResolveAdminTargetWorkbook_PrefersActiveVisibleWorkbook = 1
+        End If
+    End If
+
+CleanExit:
+    CloseNoSavePhase6 wbVisible
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestResolveAdminTargetWorkbook_ExplicitWorkbookWinsOverActiveWorkbook() As Long
+    Dim wbActive As Workbook
+    Dim wbExplicit As Workbook
+    Dim resolved As Workbook
+
+    Set wbActive = Application.Workbooks.Add
+    Set wbExplicit = Application.Workbooks.Add
+
+    On Error GoTo CleanFail
+    wbActive.Activate
+    Set resolved = modAdminWorkbookTarget.ResolveAdminTargetWorkbook(wbExplicit, ThisWorkbook, False)
+
+    If Not resolved Is Nothing Then
+        If StrComp(resolved.Name, wbExplicit.Name, vbTextCompare) = 0 Then
+            TestResolveAdminTargetWorkbook_ExplicitWorkbookWinsOverActiveWorkbook = 1
+        End If
+    End If
+
+CleanExit:
+    CloseNoSavePhase6 wbExplicit
+    CloseNoSavePhase6 wbActive
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestOpenUserManagement_WithoutWorkbookArgTargetsActiveWorkbook() As Long
+    Dim wbVisible As Workbook
+    Dim report As String
+
+    Set wbVisible = Application.Workbooks.Add
+
+    On Error GoTo CleanFail
+    If Not modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(wbVisible, report) Then GoTo CleanExit
+    wbVisible.Activate
+
+    If Not modAdminConsole.OpenUserManagement(, report) Then GoTo CleanExit
+
+    If StrComp(Application.ActiveWorkbook.Name, wbVisible.Name, vbTextCompare) = 0 _
+       And StrComp(Application.ActiveSheet.Name, "UserCredentials", vbTextCompare) = 0 _
+       And WorksheetExists(wbVisible, "UserCredentials") Then
+        TestOpenUserManagement_WithoutWorkbookArgTargetsActiveWorkbook = 1
+    End If
+
+CleanExit:
+    CloseNoSavePhase6 wbVisible
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestEnsureProductionWorkbookSurface_RecreatesDeletedArtifacts() As Long
     Dim wb As Workbook
     Dim report As String
