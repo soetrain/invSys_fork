@@ -120,19 +120,29 @@ Public Function SetupVerification_WH1() As Long
     RecordWanWh1Step 8, okStep, note
 
     publishedSnapshotPath = BuildFolderPathWanWh1(BuildFolderPathWanWh1(mSharePointRoot, "Snapshots"), WAREHOUSE_ID_WAN_WH1 & ".invSys.Snapshot.Inventory.xlsb")
-    okStep = FileExistsWanWh1(publishedSnapshotPath)
-    If okStep Then
-        note = "Published snapshot exists at " & publishedSnapshotPath & "."
+    okStep = False
+    If mSharePointRoot = "" Then
+        note = "Published snapshot check blocked because PathSharePointRoot was not resolved from config."
     Else
-        note = "Missing published snapshot: " & publishedSnapshotPath
+        okStep = FileExistsWanWh1(publishedSnapshotPath)
+        If okStep Then
+            note = "Published snapshot exists at " & publishedSnapshotPath & "."
+        Else
+            note = "Missing published snapshot: " & publishedSnapshotPath
+        End If
     End If
     RecordWanWh1Step 9, okStep, note
 
-    okStep = Not FileExistsWanWh1(publishedSnapshotPath & ".uploading")
-    If okStep Then
-        note = "No publish temp file remains at " & publishedSnapshotPath & ".uploading."
+    okStep = False
+    If mSharePointRoot = "" Then
+        note = "Publish temp-file check blocked because PathSharePointRoot was not resolved from config."
     Else
-        note = "Publish temp file still present: " & publishedSnapshotPath & ".uploading"
+        okStep = Not FileExistsWanWh1(publishedSnapshotPath & ".uploading")
+        If okStep Then
+            note = "No publish temp file remains at " & publishedSnapshotPath & ".uploading."
+        Else
+            note = "Publish temp file still present: " & publishedSnapshotPath & ".uploading"
+        End If
     End If
     RecordWanWh1Step 10, okStep, note
 

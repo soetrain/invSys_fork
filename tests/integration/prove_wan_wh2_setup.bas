@@ -103,8 +103,12 @@ Public Function SetupVerification_WH2() As Long
     End If
     RecordWanWh2Step 7, okStep, note
 
-    peerSnapshotPath = BuildFolderPathWanWh2(BuildFolderPathWanWh2(mSharePointRoot, "Snapshots"), PEER_WAREHOUSE_ID_WAN_WH2 & ".invSys.Snapshot.Inventory.xlsb")
-    CapturePeerSnapshotBaselineWanWh2 peerSnapshotPath
+    If mSharePointRoot <> "" Then
+        peerSnapshotPath = BuildFolderPathWanWh2(BuildFolderPathWanWh2(mSharePointRoot, "Snapshots"), PEER_WAREHOUSE_ID_WAN_WH2 & ".invSys.Snapshot.Inventory.xlsb")
+        CapturePeerSnapshotBaselineWanWh2 peerSnapshotPath
+    Else
+        peerSnapshotPath = vbNullString
+    End If
 
     note = vbNullString
     okStep = False
@@ -127,23 +131,38 @@ Public Function SetupVerification_WH2() As Long
     RecordWanWh2Step 8, okStep, note
 
     publishedSnapshotPath = BuildFolderPathWanWh2(BuildFolderPathWanWh2(mSharePointRoot, "Snapshots"), WAREHOUSE_ID_WAN_WH2 & ".invSys.Snapshot.Inventory.xlsb")
-    okStep = FileExistsWanWh2(publishedSnapshotPath)
-    If okStep Then
-        note = "Published snapshot exists at " & publishedSnapshotPath & "."
+    okStep = False
+    If mSharePointRoot = "" Then
+        note = "Published snapshot check blocked because PathSharePointRoot was not resolved from config."
     Else
-        note = "Missing published snapshot: " & publishedSnapshotPath
+        okStep = FileExistsWanWh2(publishedSnapshotPath)
+        If okStep Then
+            note = "Published snapshot exists at " & publishedSnapshotPath & "."
+        Else
+            note = "Missing published snapshot: " & publishedSnapshotPath
+        End If
     End If
     RecordWanWh2Step 9, okStep, note
 
-    okStep = Not FileExistsWanWh2(publishedSnapshotPath & ".uploading")
-    If okStep Then
-        note = "No publish temp file remains at " & publishedSnapshotPath & ".uploading."
+    okStep = False
+    If mSharePointRoot = "" Then
+        note = "Publish temp-file check blocked because PathSharePointRoot was not resolved from config."
     Else
-        note = "Publish temp file still present: " & publishedSnapshotPath & ".uploading"
+        okStep = Not FileExistsWanWh2(publishedSnapshotPath & ".uploading")
+        If okStep Then
+            note = "No publish temp file remains at " & publishedSnapshotPath & ".uploading."
+        Else
+            note = "Publish temp file still present: " & publishedSnapshotPath & ".uploading"
+        End If
     End If
     RecordWanWh2Step 10, okStep, note
 
-    okStep = ValidatePeerSnapshotUnmodifiedWanWh2(peerSnapshotPath, note)
+    okStep = False
+    If mSharePointRoot = "" Then
+        note = "Peer-snapshot cross-contamination check blocked because PathSharePointRoot was not resolved from config."
+    Else
+        okStep = ValidatePeerSnapshotUnmodifiedWanWh2(peerSnapshotPath, note)
+    End If
     RecordWanWh2Step 11, okStep, note
 
     If mFailed = 0 And mPassed = 11 Then
