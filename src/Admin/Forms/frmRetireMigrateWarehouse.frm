@@ -38,6 +38,7 @@ Private Sub UserForm_Initialize()
     mFormBusy = True
     Me.Caption = "Retire / Migrate Warehouse"
     Me.StartUpPosition = 1
+    ConfigureRetireMigrateLayout
 
     Me.optArchiveOnly.Value = True
     Me.chkPublishTombstone.Value = True
@@ -51,6 +52,118 @@ Private Sub UserForm_Initialize()
     ShowFormMessage "Select a source warehouse and operation mode, then click OK.", COLOR_INFO
 
     mFormBusy = False
+End Sub
+
+Private Sub ConfigureRetireMigrateLayout()
+    Me.Width = 760
+    Me.Height = 620
+
+    Me.lblTitle.Left = 18
+    Me.lblTitle.Top = 18
+    Me.lblTitle.Width = 360
+
+    Me.lblSelectionIntro.Left = 18
+    Me.lblSelectionIntro.Top = 52
+    Me.lblSelectionIntro.Width = 700
+    Me.lblSelectionIntro.Height = 36
+
+    Me.lblSourceWarehouse.Left = 18
+    Me.lblSourceWarehouse.Top = 112
+    Me.lblSourceWarehouse.Width = 180
+
+    Me.cmbSourceWarehouse.Left = 220
+    Me.cmbSourceWarehouse.Top = 108
+    Me.cmbSourceWarehouse.Width = 190
+
+    Me.lblSourceWarehouseError.Left = 220
+    Me.lblSourceWarehouseError.Top = 134
+    Me.lblSourceWarehouseError.Width = 460
+
+    Me.lblTargetWarehouse.Left = 18
+    Me.lblTargetWarehouse.Top = 164
+    Me.lblTargetWarehouse.Width = 180
+
+    Me.cmbTargetWarehouse.Left = 220
+    Me.cmbTargetWarehouse.Top = 160
+    Me.cmbTargetWarehouse.Width = 190
+
+    Me.lblTargetWarehouseError.Left = 220
+    Me.lblTargetWarehouseError.Top = 186
+    Me.lblTargetWarehouseError.Width = 460
+
+    Me.fraMode.Left = 18
+    Me.fraMode.Top = 220
+    Me.fraMode.Width = 700
+    Me.fraMode.Height = 138
+
+    Me.optArchiveOnly.Left = 18
+    Me.optArchiveOnly.Top = 24
+    Me.optArchiveOnly.Width = 250
+    Me.optArchiveMigrate.Left = 18
+    Me.optArchiveMigrate.Top = 48
+    Me.optArchiveMigrate.Width = 250
+    Me.optArchiveRetire.Left = 18
+    Me.optArchiveRetire.Top = 72
+    Me.optArchiveRetire.Width = 250
+    Me.optArchiveRetireDelete.Left = 18
+    Me.optArchiveRetireDelete.Top = 96
+    Me.optArchiveRetireDelete.Width = 300
+
+    Me.lblArchiveDestPath.Left = 18
+    Me.lblArchiveDestPath.Top = 376
+    Me.lblArchiveDestPath.Width = 180
+    Me.txtArchiveDestPath.Left = 220
+    Me.txtArchiveDestPath.Top = 372
+    Me.txtArchiveDestPath.Width = 498
+    Me.lblArchiveDestPathError.Left = 220
+    Me.lblArchiveDestPathError.Top = 398
+    Me.lblArchiveDestPathError.Width = 498
+
+    Me.chkPublishTombstone.Left = 220
+    Me.chkPublishTombstone.Top = 428
+    Me.chkPublishTombstone.Width = 340
+    Me.lblReAuthError.Left = 220
+    Me.lblReAuthError.Top = 454
+    Me.lblReAuthError.Width = 498
+    Me.lblDeleteWarning.Left = 220
+    Me.lblDeleteWarning.Top = 478
+    Me.lblDeleteWarning.Width = 498
+
+    Me.fraConfirm.Left = 18
+    Me.fraConfirm.Top = 96
+    Me.fraConfirm.Width = 700
+    Me.fraConfirm.Height = 430
+    Me.lblConfirmSummary.Left = 18
+    Me.lblConfirmSummary.Top = 24
+    Me.lblConfirmSummary.Width = 660
+    Me.lblConfirmSummary.Height = 170
+    Me.chkConfirmAction.Left = 18
+    Me.chkConfirmAction.Top = 210
+    Me.chkConfirmAction.Width = 320
+    Me.lblConfirmError.Left = 18
+    Me.lblConfirmError.Top = 238
+    Me.lblConfirmError.Width = 660
+    Me.lblDeleteWarning.Left = 18
+    Me.lblDeleteWarning.Width = 660
+
+    Me.fraResult.Left = 18
+    Me.fraResult.Top = 96
+    Me.fraResult.Width = 700
+    Me.fraResult.Height = 430
+    Me.lblResultSummary.Left = 18
+    Me.lblResultSummary.Top = 24
+    Me.lblResultSummary.Width = 660
+    Me.lblResultSummary.Height = 360
+
+    Me.btnBack.Left = 396
+    Me.btnBack.Top = 540
+    Me.btnBack.Width = 88
+    Me.btnCancel.Left = 494
+    Me.btnCancel.Top = 540
+    Me.btnCancel.Width = 88
+    Me.btnOK.Left = 592
+    Me.btnOK.Top = 540
+    Me.btnOK.Width = 88
 End Sub
 
 Private Sub cmbSourceWarehouse_Change()

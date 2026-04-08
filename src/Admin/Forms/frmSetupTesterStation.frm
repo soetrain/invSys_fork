@@ -23,6 +23,8 @@ Private WithEvents mTxtConfirmPin As MSForms.TextBox
 Attribute mTxtConfirmPin.VB_VarHelpID = -1
 Private WithEvents mBtnOpen As MSForms.CommandButton
 Attribute mBtnOpen.VB_VarHelpID = -1
+Private WithEvents mBtnSharePointHelper As MSForms.CommandButton
+Attribute mBtnSharePointHelper.VB_VarHelpID = -1
 
 Private mLblConfirmPinError As MSForms.Label
 Private mPathLocalTouched As Boolean
@@ -37,7 +39,7 @@ Private Sub UserForm_Initialize()
     CreateDynamicControls
     ApplyDefaults
     ClearValidationErrors
-    ShowSummary "Enter your tester details, then click Setup.", COLOR_INFO
+    ShowSummary "Use the locally synced invSys root that contains Addins, Events, Snapshots, and TesterPackage, then click Setup.", COLOR_INFO
     mFormBusy = False
 End Sub
 
@@ -76,6 +78,28 @@ End Sub
 Private Sub txtPathSharePoint_Change()
     If mFormBusy Then Exit Sub
     ClearErrorLabel Me.lblPathSharePointError
+End Sub
+
+Private Sub mBtnSharePointHelper_Click()
+    Dim candidate As String
+    Dim warehouseId As String
+
+    warehouseId = Trim$(CStr(Me.txtWarehouseId.Value))
+    candidate = modTesterSetup.DetectSharePointRoot(warehouseId)
+    If candidate = "" Then
+        candidate = modTesterSetup.BrowseForSharePointRoot(Trim$(CStr(Me.txtPathSharePoint.Value)))
+    End If
+
+    If candidate = "" Then
+        ShowSummary "SharePoint root was not detected. Pick the locally synced invSys root folder manually.", COLOR_INFO
+        Exit Sub
+    End If
+
+    mFormBusy = True
+    Me.txtPathSharePoint.Value = candidate
+    mFormBusy = False
+    ClearErrorLabel Me.lblPathSharePointError
+    ShowSummary "SharePoint root detected.", COLOR_SUCCESS
 End Sub
 
 Private Sub mTxtConfirmPin_Change()
@@ -200,7 +224,7 @@ Private Sub ConfigureShellLayout()
 
     Me.txtPathSharePoint.Left = 170
     Me.txtPathSharePoint.Top = 274
-    Me.txtPathSharePoint.Width = 360
+    Me.txtPathSharePoint.Width = 258
 
     Me.lblAdminUserError.Left = 170
     Me.lblAdminUserError.Top = 44
@@ -240,6 +264,20 @@ Private Sub ConfigureShellLayout()
     Me.btnCancel.Top = 420
     Me.btnCancel.Width = 96
     Me.btnCancel.Caption = "Close"
+
+    If mBtnSharePointHelper Is Nothing Then
+        Set mBtnSharePointHelper = Me.Controls.Add("Forms.CommandButton.1", "btnSharePointHelperRuntime", True)
+    End If
+    With mBtnSharePointHelper
+        .Left = Me.txtPathSharePoint.Left + Me.txtPathSharePoint.Width + 8
+        .Top = Me.txtPathSharePoint.Top - 1
+        .Width = 72
+        .Height = Me.txtPathSharePoint.Height + 2
+        .Caption = "Find..."
+        .ControlTipText = "Choose the locally synced invSys SharePoint root folder."
+        .Visible = True
+        .Enabled = True
+    End With
 End Sub
 
 Private Sub CreateDynamicControls()

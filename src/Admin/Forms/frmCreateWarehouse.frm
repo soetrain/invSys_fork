@@ -35,20 +35,22 @@ Private Const COLOR_INFO As Long = 0
 
 Private Sub UserForm_Initialize()
     Me.Caption = "Create Warehouse"
-    Me.Width = 510
-    Me.Height = 430
+    Me.Width = 620
+    Me.Height = 470
     Me.StartUpPosition = 1
     mFormBusy = True
     Me.txtStationId.Value = "S1"
     Me.txtAdminUser.Value = ResolveDefaultAdminUserForm()
     Me.txtPathSharePoint.Value = ResolveDefaultSharePointRootForm()
     ConfigureSharePointHelperButton
+    Me.btnOK.Caption = "Create"
+    Me.btnCancel.Caption = "Cancel"
     Me.chkPublishInitial.Value = True
     mPathLocalTouched = False
     mLastSuggestedLocalPath = vbNullString
     RefreshSuggestedLocalPath True
     ClearValidationErrors
-    ShowSummary "Enter the warehouse details, then click Create.", COLOR_INFO
+    ShowSummary "Pick the locally synced invSys root that contains Addins, Events, Snapshots, and TesterPackage, then click Create.", COLOR_INFO
     mFormBusy = False
 End Sub
 
@@ -323,6 +325,7 @@ Private Sub ConfigureSharePointHelperButton()
         .Top = Me.txtPathSharePoint.Top - 1
         .Width = 72
         .Height = Me.txtPathSharePoint.Height + 2
+        .ControlTipText = "Choose the locally synced invSys SharePoint root folder."
         .Visible = True
         .Enabled = True
     End With
