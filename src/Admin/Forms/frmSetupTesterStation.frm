@@ -124,6 +124,11 @@ Private Sub btnOK_Click()
         Exit Sub
     End If
 
+    If Not modLocalAddinsRegistration.EnsureLocalInvSysAddinsRegistered(spec.PathSharePointRoot & "\Addins", detailText) Then
+        ShowSummary "invSys add-ins are not registered cleanly for this Excel session." & vbCrLf & detailText, COLOR_ERROR
+        Exit Sub
+    End If
+
     Me.btnOK.Enabled = False
     Me.btnCancel.Enabled = False
     If Not mBtnOpen Is Nothing Then mBtnOpen.Enabled = False

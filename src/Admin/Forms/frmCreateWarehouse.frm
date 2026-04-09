@@ -142,6 +142,11 @@ Private Sub btnOK_Click()
         Exit Sub
     End If
 
+    If Not modLocalAddinsRegistration.EnsureLocalInvSysAddinsRegistered(pathSharePoint & "\Addins", summaryText) Then
+        ShowSummary "invSys add-ins are not registered cleanly for this Excel session." & vbCrLf & summaryText, COLOR_ERROR
+        Exit Sub
+    End If
+
     If mLocalBootstrapComplete Then
         pathLocal = mCreatedPathLocal
         mCreatedPathSharePoint = pathSharePoint
