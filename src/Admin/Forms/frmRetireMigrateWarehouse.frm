@@ -64,7 +64,7 @@ Private Sub ConfigureRetireMigrateLayout()
     Dim resultTop As Single
 
     Me.Width = 460
-    Me.Height = 360
+    Me.Height = 388
     On Error Resume Next
     Me.ScrollBars = 0
     Me.KeepScrollBarsVisible = 0
@@ -183,13 +183,13 @@ Private Sub ConfigureRetireMigrateLayout()
     Me.lblResultSummary.Height = 182
 
     Me.btnBack.Left = 156
-    Me.btnBack.Top = 318
+    Me.btnBack.Top = 336
     Me.btnBack.Width = 88
     Me.btnCancel.Left = 252
-    Me.btnCancel.Top = 318
+    Me.btnCancel.Top = 336
     Me.btnCancel.Width = 88
     Me.btnOK.Left = 348
-    Me.btnOK.Top = 318
+    Me.btnOK.Top = 336
     Me.btnOK.Width = 88
 
     ConfigureWrappedLabel Me.lblSelectionIntro
