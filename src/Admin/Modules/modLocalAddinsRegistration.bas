@@ -16,11 +16,7 @@ Public Function EnsureLocalInvSysAddinsRegistered(Optional ByVal preferredFolder
                                                   Optional ByRef report As String = "") As Boolean
     Dim addinsFolder As String
     Dim addinNames As Variant
-    Dim addinName As Variant
-    Dim targetPath As String
-    Dim addinObj As AddIn
     Dim disabledCount As Long
-    Dim enabledCount As Long
 
     On Error GoTo FailEnsure
 
@@ -34,28 +30,8 @@ Public Function EnsureLocalInvSysAddinsRegistered(Optional ByVal preferredFolder
     addinNames = RequiredInvSysAddinNamesLocal()
     If Not FolderHasRequiredInvSysAddinsLocal(addinsFolder, addinNames, report) Then Exit Function
 
-    DisableStaleInvSysAddinsLocal addinsFolder, addinNames, disabledCount
-
-    For Each addinName In addinNames
-        targetPath = addinsFolder & "\" & CStr(addinName)
-        Set addinObj = ResolveAddinByTargetPathLocal(targetPath, CStr(addinName))
-        If addinObj Is Nothing Then
-            Set addinObj = Application.AddIns.Add(targetPath, False)
-        End If
-        If addinObj Is Nothing Then
-            report = "Excel could not register add-in: " & targetPath
-            Exit Function
-        End If
-
-        If Not ShouldSkipInstallToggleLocal(addinObj, targetPath) Then
-            If Not addinObj.Installed Then
-                addinObj.Installed = True
-                enabledCount = enabledCount + 1
-            End If
-        End If
-    Next addinName
-
-    report = "OK|Folder=" & addinsFolder & "|DisabledStale=" & CStr(disabledCount) & "|Enabled=" & CStr(enabledCount)
+    DisableBrokenInvSysAddinsLocal disabledCount
+    report = "OK|Folder=" & addinsFolder & "|DisabledBroken=" & CStr(disabledCount) & "|SessionAddinsPreserved=True"
     EnsureLocalInvSysAddinsRegistered = True
     Exit Function
 
@@ -130,21 +106,14 @@ Private Function FolderHasRequiredInvSysAddinsLocal(ByVal folderPath As String, 
     FolderHasRequiredInvSysAddinsLocal = True
 End Function
 
-Private Sub DisableStaleInvSysAddinsLocal(ByVal targetFolder As String, _
-                                          ByVal addinNames As Variant, _
-                                          ByRef disabledCount As Long)
+Private Sub DisableBrokenInvSysAddinsLocal(ByRef disabledCount As Long)
     Dim addinObj As AddIn
-    Dim targetPath As String
-
-    targetFolder = NormalizeFolderPathLocalAddins(targetFolder, False)
-    If targetFolder = "" Then Exit Sub
 
     On Error Resume Next
     For Each addinObj In Application.AddIns
         If ShouldManageInvSysAddinLocal(addinObj) Then
-            targetPath = targetFolder & "\" & SafeTrimLocalAddins(addinObj.Name)
-            If Not ShouldKeepInvSysAddinLocal(addinObj, targetPath, addinNames) Then
-                If addinObj.Installed Then
+            If addinObj.Installed Then
+                If Not AddinRegistrationLooksUsableLocal(addinObj) Then
                     addinObj.Installed = False
                     disabledCount = disabledCount + 1
                 End If
@@ -153,6 +122,18 @@ Private Sub DisableStaleInvSysAddinsLocal(ByVal targetFolder As String, _
     Next addinObj
     On Error GoTo 0
 End Sub
+
+Private Function AddinRegistrationLooksUsableLocal(ByVal addinObj As AddIn) As Boolean
+    Dim addinPath As String
+
+    If addinObj Is Nothing Then Exit Function
+
+    addinPath = NormalizeFilePathLocalAddins(SafeAddinFullNameLocal(addinObj))
+    If addinPath = "" Then Exit Function
+    If Not FileExistsLocalAddins(addinPath) Then Exit Function
+
+    AddinRegistrationLooksUsableLocal = True
+End Function
 
 Private Function ShouldKeepInvSysAddinLocal(ByVal addinObj As AddIn, _
                                             ByVal targetPath As String, _

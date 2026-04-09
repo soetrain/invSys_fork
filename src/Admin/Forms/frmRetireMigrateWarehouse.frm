@@ -55,115 +55,127 @@ Private Sub UserForm_Initialize()
 End Sub
 
 Private Sub ConfigureRetireMigrateLayout()
-    Me.Width = 760
-    Me.Height = 620
+    Me.Width = 620
+    Me.Height = 470
 
     Me.lblTitle.Left = 18
     Me.lblTitle.Top = 18
-    Me.lblTitle.Width = 360
+    Me.lblTitle.Width = 520
 
     Me.lblSelectionIntro.Left = 18
-    Me.lblSelectionIntro.Top = 52
-    Me.lblSelectionIntro.Width = 700
-    Me.lblSelectionIntro.Height = 36
+    Me.lblSelectionIntro.Top = 44
+    Me.lblSelectionIntro.Width = 560
+    Me.lblSelectionIntro.Height = 28
 
     Me.lblSourceWarehouse.Left = 18
-    Me.lblSourceWarehouse.Top = 112
-    Me.lblSourceWarehouse.Width = 180
+    Me.lblSourceWarehouse.Top = 86
+    Me.lblSourceWarehouse.Width = 132
 
-    Me.cmbSourceWarehouse.Left = 220
-    Me.cmbSourceWarehouse.Top = 108
-    Me.cmbSourceWarehouse.Width = 190
+    Me.cmbSourceWarehouse.Left = 164
+    Me.cmbSourceWarehouse.Top = 82
+    Me.cmbSourceWarehouse.Width = 164
 
-    Me.lblSourceWarehouseError.Left = 220
-    Me.lblSourceWarehouseError.Top = 134
-    Me.lblSourceWarehouseError.Width = 460
+    Me.lblSourceWarehouseError.Left = 164
+    Me.lblSourceWarehouseError.Top = 106
+    Me.lblSourceWarehouseError.Width = 400
 
     Me.lblTargetWarehouse.Left = 18
-    Me.lblTargetWarehouse.Top = 164
-    Me.lblTargetWarehouse.Width = 180
+    Me.lblTargetWarehouse.Top = 120
+    Me.lblTargetWarehouse.Width = 132
 
-    Me.cmbTargetWarehouse.Left = 220
-    Me.cmbTargetWarehouse.Top = 160
-    Me.cmbTargetWarehouse.Width = 190
+    Me.cmbTargetWarehouse.Left = 164
+    Me.cmbTargetWarehouse.Top = 116
+    Me.cmbTargetWarehouse.Width = 164
 
-    Me.lblTargetWarehouseError.Left = 220
-    Me.lblTargetWarehouseError.Top = 186
-    Me.lblTargetWarehouseError.Width = 460
+    Me.lblTargetWarehouseError.Left = 164
+    Me.lblTargetWarehouseError.Top = 140
+    Me.lblTargetWarehouseError.Width = 400
 
     Me.fraMode.Left = 18
-    Me.fraMode.Top = 220
-    Me.fraMode.Width = 700
-    Me.fraMode.Height = 138
+    Me.fraMode.Top = 168
+    Me.fraMode.Width = 560
+    Me.fraMode.Height = 110
 
     Me.optArchiveOnly.Left = 18
-    Me.optArchiveOnly.Top = 24
-    Me.optArchiveOnly.Width = 250
+    Me.optArchiveOnly.Top = 20
+    Me.optArchiveOnly.Width = 240
     Me.optArchiveMigrate.Left = 18
-    Me.optArchiveMigrate.Top = 48
-    Me.optArchiveMigrate.Width = 250
+    Me.optArchiveMigrate.Top = 40
+    Me.optArchiveMigrate.Width = 240
     Me.optArchiveRetire.Left = 18
-    Me.optArchiveRetire.Top = 72
-    Me.optArchiveRetire.Width = 250
+    Me.optArchiveRetire.Top = 60
+    Me.optArchiveRetire.Width = 240
     Me.optArchiveRetireDelete.Left = 18
-    Me.optArchiveRetireDelete.Top = 96
-    Me.optArchiveRetireDelete.Width = 300
+    Me.optArchiveRetireDelete.Top = 80
+    Me.optArchiveRetireDelete.Width = 320
 
     Me.lblArchiveDestPath.Left = 18
-    Me.lblArchiveDestPath.Top = 376
-    Me.lblArchiveDestPath.Width = 180
-    Me.txtArchiveDestPath.Left = 220
-    Me.txtArchiveDestPath.Top = 372
-    Me.txtArchiveDestPath.Width = 498
-    Me.lblArchiveDestPathError.Left = 220
-    Me.lblArchiveDestPathError.Top = 398
-    Me.lblArchiveDestPathError.Width = 498
+    Me.lblArchiveDestPath.Top = 294
+    Me.lblArchiveDestPath.Width = 132
+    Me.txtArchiveDestPath.Left = 164
+    Me.txtArchiveDestPath.Top = 290
+    Me.txtArchiveDestPath.Width = 414
+    Me.lblArchiveDestPathError.Left = 164
+    Me.lblArchiveDestPathError.Top = 314
+    Me.lblArchiveDestPathError.Width = 414
 
-    Me.chkPublishTombstone.Left = 220
-    Me.chkPublishTombstone.Top = 428
-    Me.chkPublishTombstone.Width = 340
-    Me.lblReAuthError.Left = 220
-    Me.lblReAuthError.Top = 454
-    Me.lblReAuthError.Width = 498
-    Me.lblDeleteWarning.Left = 220
-    Me.lblDeleteWarning.Top = 478
-    Me.lblDeleteWarning.Width = 498
+    Me.chkPublishTombstone.Left = 164
+    Me.chkPublishTombstone.Top = 338
+    Me.chkPublishTombstone.Width = 320
+    Me.lblReAuthError.Left = 164
+    Me.lblReAuthError.Top = 362
+    Me.lblReAuthError.Width = 414
+    Me.lblDeleteWarning.Left = 164
+    Me.lblDeleteWarning.Top = 384
+    Me.lblDeleteWarning.Width = 414
+    Me.lblDeleteWarning.Height = 24
 
     Me.fraConfirm.Left = 18
-    Me.fraConfirm.Top = 96
-    Me.fraConfirm.Width = 700
-    Me.fraConfirm.Height = 430
+    Me.fraConfirm.Top = 78
+    Me.fraConfirm.Width = 560
+    Me.fraConfirm.Height = 300
     Me.lblConfirmSummary.Left = 18
-    Me.lblConfirmSummary.Top = 24
-    Me.lblConfirmSummary.Width = 660
-    Me.lblConfirmSummary.Height = 170
+    Me.lblConfirmSummary.Top = 20
+    Me.lblConfirmSummary.Width = 524
+    Me.lblConfirmSummary.Height = 132
     Me.chkConfirmAction.Left = 18
-    Me.chkConfirmAction.Top = 210
-    Me.chkConfirmAction.Width = 320
+    Me.chkConfirmAction.Top = 166
+    Me.chkConfirmAction.Width = 360
     Me.lblConfirmError.Left = 18
-    Me.lblConfirmError.Top = 238
-    Me.lblConfirmError.Width = 660
-    Me.lblDeleteWarning.Left = 18
-    Me.lblDeleteWarning.Width = 660
+    Me.lblConfirmError.Top = 194
+    Me.lblConfirmError.Width = 524
 
     Me.fraResult.Left = 18
-    Me.fraResult.Top = 96
-    Me.fraResult.Width = 700
-    Me.fraResult.Height = 430
+    Me.fraResult.Top = 78
+    Me.fraResult.Width = 560
+    Me.fraResult.Height = 300
     Me.lblResultSummary.Left = 18
-    Me.lblResultSummary.Top = 24
-    Me.lblResultSummary.Width = 660
-    Me.lblResultSummary.Height = 360
+    Me.lblResultSummary.Top = 20
+    Me.lblResultSummary.Width = 524
+    Me.lblResultSummary.Height = 250
 
-    Me.btnBack.Left = 396
-    Me.btnBack.Top = 540
+    Me.btnBack.Left = 314
+    Me.btnBack.Top = 402
     Me.btnBack.Width = 88
-    Me.btnCancel.Left = 494
-    Me.btnCancel.Top = 540
+    Me.btnCancel.Left = 410
+    Me.btnCancel.Top = 402
     Me.btnCancel.Width = 88
-    Me.btnOK.Left = 592
-    Me.btnOK.Top = 540
+    Me.btnOK.Left = 506
+    Me.btnOK.Top = 402
     Me.btnOK.Width = 88
+
+    ConfigureWrappedLabel Me.lblSelectionIntro
+    ConfigureWrappedLabel Me.lblDeleteWarning
+    ConfigureWrappedLabel Me.lblConfirmSummary
+    ConfigureWrappedLabel Me.lblConfirmError
+    ConfigureWrappedLabel Me.lblResultSummary
+End Sub
+
+Private Sub ConfigureWrappedLabel(ByVal lbl As MSForms.Label)
+    If lbl Is Nothing Then Exit Sub
+
+    lbl.WordWrap = True
+    lbl.AutoSize = False
 End Sub
 
 Private Sub cmbSourceWarehouse_Change()
