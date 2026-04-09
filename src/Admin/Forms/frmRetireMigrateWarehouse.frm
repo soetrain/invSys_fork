@@ -56,6 +56,12 @@ End Sub
 
 Private Sub ConfigureRetireMigrateLayout()
     Dim ctl As Control
+    Dim modeLeft As Single
+    Dim modeTop As Single
+    Dim confirmLeft As Single
+    Dim confirmTop As Single
+    Dim resultLeft As Single
+    Dim resultTop As Single
 
     Me.Width = 460
     Me.Height = 360
@@ -111,18 +117,20 @@ Private Sub ConfigureRetireMigrateLayout()
     Me.fraMode.Top = 154
     Me.fraMode.Width = 424
     Me.fraMode.Height = 92
+    modeLeft = Me.fraMode.Left + 12
+    modeTop = Me.fraMode.Top + 16
 
-    Me.optArchiveOnly.Left = 18
-    Me.optArchiveOnly.Top = 18
+    Me.optArchiveOnly.Left = modeLeft
+    Me.optArchiveOnly.Top = modeTop
     Me.optArchiveOnly.Width = 190
-    Me.optArchiveMigrate.Left = 18
-    Me.optArchiveMigrate.Top = 36
+    Me.optArchiveMigrate.Left = modeLeft
+    Me.optArchiveMigrate.Top = modeTop + 18
     Me.optArchiveMigrate.Width = 190
-    Me.optArchiveRetire.Left = 18
-    Me.optArchiveRetire.Top = 54
+    Me.optArchiveRetire.Left = modeLeft
+    Me.optArchiveRetire.Top = modeTop + 36
     Me.optArchiveRetire.Width = 190
-    Me.optArchiveRetireDelete.Left = 18
-    Me.optArchiveRetireDelete.Top = 72
+    Me.optArchiveRetireDelete.Left = modeLeft
+    Me.optArchiveRetireDelete.Top = modeTop + 54
     Me.optArchiveRetireDelete.Width = 240
 
     Me.lblArchiveDestPath.Left = 18
@@ -150,23 +158,27 @@ Private Sub ConfigureRetireMigrateLayout()
     Me.fraConfirm.Top = 70
     Me.fraConfirm.Width = 424
     Me.fraConfirm.Height = 220
-    Me.lblConfirmSummary.Left = 18
-    Me.lblConfirmSummary.Top = 18
+    confirmLeft = Me.fraConfirm.Left + 12
+    confirmTop = Me.fraConfirm.Top + 16
+    Me.lblConfirmSummary.Left = confirmLeft
+    Me.lblConfirmSummary.Top = confirmTop
     Me.lblConfirmSummary.Width = 388
     Me.lblConfirmSummary.Height = 110
-    Me.chkConfirmAction.Left = 18
-    Me.chkConfirmAction.Top = 138
+    Me.chkConfirmAction.Left = confirmLeft
+    Me.chkConfirmAction.Top = confirmTop + 120
     Me.chkConfirmAction.Width = 300
-    Me.lblConfirmError.Left = 18
-    Me.lblConfirmError.Top = 162
+    Me.lblConfirmError.Left = confirmLeft
+    Me.lblConfirmError.Top = confirmTop + 144
     Me.lblConfirmError.Width = 388
 
     Me.fraResult.Left = 18
     Me.fraResult.Top = 70
     Me.fraResult.Width = 424
     Me.fraResult.Height = 220
-    Me.lblResultSummary.Left = 18
-    Me.lblResultSummary.Top = 18
+    resultLeft = Me.fraResult.Left + 12
+    resultTop = Me.fraResult.Top + 16
+    Me.lblResultSummary.Left = resultLeft
+    Me.lblResultSummary.Top = resultTop
     Me.lblResultSummary.Width = 388
     Me.lblResultSummary.Height = 182
 
@@ -688,6 +700,10 @@ Private Sub BringSelectionControlsToFront()
     Me.cmbTargetWarehouse.ZOrder 0
     Me.lblTargetWarehouseError.ZOrder 0
     Me.fraMode.ZOrder 0
+    Me.optArchiveOnly.ZOrder 0
+    Me.optArchiveMigrate.ZOrder 0
+    Me.optArchiveRetire.ZOrder 0
+    Me.optArchiveRetireDelete.ZOrder 0
     Me.lblArchiveDestPath.ZOrder 0
     Me.txtArchiveDestPath.ZOrder 0
     Me.lblArchiveDestPathError.ZOrder 0
