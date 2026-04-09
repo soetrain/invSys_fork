@@ -303,6 +303,45 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestOpenAdminConsole_WithoutRuntime_DoesNotCreateDefaultWarehouse() As Long
+    Dim wbVisible As Workbook
+    Dim report As String
+    Dim tempRoot As String
+    Dim createdFolder As String
+    Dim createdConfig As String
+    Dim statusText As String
+
+    Set wbVisible = Application.Workbooks.Add
+
+    On Error GoTo CleanFail
+    tempRoot = TestPhase2Helpers.BuildUniqueTestFolder("Phase6AdminConsoleNoRuntime")
+    modRuntimeWorkbooks.SetCoreDataRootOverride tempRoot
+
+    If Not modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(wbVisible, report) Then GoTo CleanExit
+    wbVisible.Activate
+
+    If Not modAdminConsole.OpenAdminConsole(wbVisible, report) Then GoTo CleanExit
+
+    createdFolder = tempRoot & "\WH1"
+    createdConfig = createdFolder & "\WH1.invSys.Config.xlsb"
+    statusText = Trim$(CStr(wbVisible.Worksheets("AdminConsole").Range("B16").Value))
+
+    If StrComp(CStr(wbVisible.Worksheets("AdminConsole").Range("B3").Value), "<none>", vbTextCompare) <> 0 Then GoTo CleanExit
+    If StrComp(CStr(wbVisible.Worksheets("AdminConsole").Range("B4").Value), "<none>", vbTextCompare) <> 0 Then GoTo CleanExit
+    If InStr(1, statusText, "did not create any warehouse files", vbTextCompare) = 0 Then GoTo CleanExit
+    If Len(Dir$(createdFolder, vbDirectory)) > 0 Then GoTo CleanExit
+    If Len(Dir$(createdConfig, vbNormal)) > 0 Then GoTo CleanExit
+
+    TestOpenAdminConsole_WithoutRuntime_DoesNotCreateDefaultWarehouse = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseNoSavePhase6 wbVisible
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestEnsureProductionWorkbookSurface_RecreatesDeletedArtifacts() As Long
     Dim wb As Workbook
     Dim report As String

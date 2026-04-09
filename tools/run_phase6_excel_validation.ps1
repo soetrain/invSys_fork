@@ -307,7 +307,8 @@ try {
         "TestPhase6RoleSurfaces.TestEnsureAdminWorkbookSurface_CreatesExpectedTables",
         "TestPhase6RoleSurfaces.TestResolveAdminTargetWorkbook_PrefersActiveVisibleWorkbook",
         "TestPhase6RoleSurfaces.TestResolveAdminTargetWorkbook_ExplicitWorkbookWinsOverActiveWorkbook",
-        "TestPhase6RoleSurfaces.TestOpenUserManagement_WithoutWorkbookArgTargetsActiveWorkbook"
+        "TestPhase6RoleSurfaces.TestOpenUserManagement_WithoutWorkbookArgTargetsActiveWorkbook",
+        "TestPhase6RoleSurfaces.TestOpenAdminConsole_WithoutRuntime_DoesNotCreateDefaultWarehouse"
     )
 
     $harness = $excel.Workbooks.Add()

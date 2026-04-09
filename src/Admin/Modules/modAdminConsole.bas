@@ -17,6 +17,7 @@ Private Const TABLE_INBOX_PROD As String = "tblInboxProd"
 
 Private Const SNAPSHOT_SHEET As String = "InventorySnapshot"
 Private Const SNAPSHOT_TABLE As String = "tblInventorySnapshot"
+Private Const METRIC_STATUS As String = "Status"
 
 Private Const AUTOMATION_OK As String = "OK"
 Private Const AUTOMATION_FAIL As String = "FAIL"
@@ -186,6 +187,11 @@ Public Function RefreshAdminConsole(Optional ByVal adminWb As Workbook = Nothing
     Dim wb As Workbook
     Dim ws As Worksheet
     Dim inventoryWb As Workbook
+    Dim inventoryOpenedTransient As Boolean
+    Dim runtimeWh As String
+    Dim runtimeSt As String
+    Dim processorUser As String
+    Dim statusText As String
     Dim poisonReport As String
     Dim poisonCount As Long
     Dim newCount As Long
@@ -202,15 +208,6 @@ Public Function RefreshAdminConsole(Optional ByVal adminWb As Workbook = Nothing
     End If
     If Not EnsureAdminSchema(wb, report) Then Exit Function
 
-    If Not modConfig.LoadConfig("", "") Then
-        report = "Config load failed: " & modConfig.Validate()
-        Exit Function
-    End If
-    If Not modAuth.LoadAuth(modConfig.GetWarehouseId()) Then
-        report = "Auth load failed: " & modAuth.ValidateAuth()
-        Exit Function
-    End If
-
     poisonCount = RefreshPoisonQueue(wb, poisonReport)
     If poisonReport <> "" And poisonReport <> "OK" Then
         report = poisonReport
@@ -219,17 +216,24 @@ Public Function RefreshAdminConsole(Optional ByVal adminWb As Workbook = Nothing
     CountInboxStatuses newCount, processedCount, skipDupCount
 
     Set ws = wb.Worksheets(SHEET_ADMIN_CONSOLE)
-    Set inventoryWb = modInventoryApply.ResolveInventoryWorkbook(modConfig.GetWarehouseId())
-    If Not inventoryWb Is Nothing Then
-        Set loLocks = FindListObjectByNameAdmin(inventoryWb, TABLE_LOCKS)
-        Set loApplied = FindListObjectByNameAdmin(inventoryWb, TABLE_APPLIED)
+    InitializeAdminConsoleValues ws
+
+    If TryResolveExistingAdminRuntimeContext(runtimeWh, runtimeSt, processorUser, inventoryWb, inventoryOpenedTransient, statusText) Then
+        If Not inventoryWb Is Nothing Then
+            Set loLocks = FindListObjectByNameAdmin(inventoryWb, TABLE_LOCKS)
+            Set loApplied = FindListObjectByNameAdmin(inventoryWb, TABLE_APPLIED)
+        End If
+        ws.Range("B3").Value = runtimeWh
+        ws.Range("B4").Value = runtimeSt
+        ws.Range("B5").Value = processorUser
+    Else
+        ws.Range("B3").Value = "<none>"
+        ws.Range("B4").Value = "<none>"
+        ws.Range("B5").Value = "svc_processor"
     End If
 
     lockRow = FindLockRowAdmin(loLocks, "INVENTORY")
 
-    ws.Range("B3").Value = modConfig.GetWarehouseId()
-    ws.Range("B4").Value = modConfig.GetStationId()
-    ws.Range("B5").Value = modConfig.GetString("ProcessorServiceUserId", "svc_processor")
     ws.Range("B6").Value = newCount
     ws.Range("B7").Value = poisonCount
     ws.Range("B8").Value = processedCount
@@ -240,13 +244,16 @@ Public Function RefreshAdminConsole(Optional ByVal adminWb As Workbook = Nothing
     ws.Range("B13").Value = GetLatestAppliedValue(loApplied, "AppliedAtUTC")
     ws.Range("B14").Value = GetLatestAppliedValue(loApplied, "EventID")
     ws.Range("B15").Value = Now
+    ws.Range("B16").Value = statusText
 
     report = "OK"
     RefreshAdminConsole = True
+    CloseWorkbookIfTransientAdmin inventoryWb, inventoryOpenedTransient
     Exit Function
 
 FailRefresh:
     report = "RefreshAdminConsole failed: " & Err.Description
+    CloseWorkbookIfTransientAdmin inventoryWb, inventoryOpenedTransient
 End Function
 
 Public Function RunProcessorFromConsole(Optional ByVal adminUserId As String = "", _
@@ -702,7 +709,27 @@ Private Sub InitializeAdminConsoleLayout(ByVal ws As Worksheet)
     ws.Range("A13").Value = "LastAppliedAtUTC"
     ws.Range("A14").Value = "LastAppliedEventId"
     ws.Range("A15").Value = "LastRefreshUTC"
+    ws.Range("A16").Value = METRIC_STATUS
     ws.Columns("A:B").AutoFit
+End Sub
+
+Private Sub InitializeAdminConsoleValues(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+
+    ws.Range("B3").Value = vbNullString
+    ws.Range("B4").Value = vbNullString
+    ws.Range("B5").Value = vbNullString
+    ws.Range("B6").Value = 0
+    ws.Range("B7").Value = 0
+    ws.Range("B8").Value = 0
+    ws.Range("B9").Value = 0
+    ws.Range("B10").Value = vbNullString
+    ws.Range("B11").Value = vbNullString
+    ws.Range("B12").Value = vbNullString
+    ws.Range("B13").Value = vbNullString
+    ws.Range("B14").Value = vbNullString
+    ws.Range("B15").Value = vbNullString
+    ws.Range("B16").Value = vbNullString
 End Sub
 
 Private Sub EnsureAdminTableWithHeaders(ByVal wb As Workbook, _
@@ -861,7 +888,8 @@ Private Sub CountStatusesInTable(ByVal lo As ListObject, _
     Dim i As Long
     Dim statusVal As String
 
-    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Sub
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
     For i = 1 To lo.ListRows.Count
         If SafeTrimAdmin(GetCellByColumnAdmin(lo, i, "EventID")) <> "" Then
             statusVal = UCase$(SafeTrimAdmin(GetCellByColumnAdmin(lo, i, "Status")))
@@ -883,7 +911,8 @@ Private Function AppendPoisonRowsFromInbox(ByVal loPoison As ListObject, ByVal s
     Dim r As ListRow
     Dim columnName As Variant
 
-    If loInbox Is Nothing Or loInbox.DataBodyRange Is Nothing Then Exit Function
+    If loInbox Is Nothing Then Exit Function
+    If loInbox.DataBodyRange Is Nothing Then Exit Function
 
     For i = 1 To loInbox.ListRows.Count
         statusVal = UCase$(SafeTrimAdmin(GetCellByColumnAdmin(loInbox, i, "Status")))
@@ -923,9 +952,241 @@ Private Function FindListObjectByNameAdmin(ByVal wb As Workbook, ByVal tableName
     On Error GoTo 0
 End Function
 
+Private Function TryResolveExistingAdminRuntimeContext(ByRef warehouseId As String, _
+                                                       ByRef stationId As String, _
+                                                       ByRef processorUserId As String, _
+                                                       ByRef inventoryWb As Workbook, _
+                                                       ByRef inventoryOpenedTransient As Boolean, _
+                                                       ByRef statusText As String) As Boolean
+    Dim wbCfg As Workbook
+    Dim wbCfgOpenedTransient As Boolean
+    Dim configPath As String
+    Dim rootPath As String
+    Dim loWh As ListObject
+    Dim loSt As ListObject
+    Dim inventoryPath As String
+
+    statusText = "No runtime configured. Admin Console did not create any warehouse files."
+    processorUserId = "svc_processor"
+
+    configPath = FindExistingConfigWorkbookPathAdmin()
+    If configPath = "" Then Exit Function
+
+    Set wbCfg = OpenWorkbookIfExistsAdmin(configPath, wbCfgOpenedTransient)
+    If wbCfg Is Nothing Then
+        statusText = "Runtime config exists but could not be opened: " & configPath
+        Exit Function
+    End If
+
+    Set loWh = FindListObjectByNameAdmin(wbCfg, "tblWarehouseConfig")
+    Set loSt = FindListObjectByNameAdmin(wbCfg, "tblStationConfig")
+    If loWh Is Nothing Then
+        statusText = "Runtime config workbook is missing tblWarehouseConfig."
+        GoTo CleanExit
+    End If
+    If loWh.DataBodyRange Is Nothing Then
+        statusText = "Runtime config workbook is missing tblWarehouseConfig."
+        GoTo CleanExit
+    End If
+
+    warehouseId = SafeTrimAdmin(GetCellByColumnAdmin(loWh, 1, "WarehouseId"))
+    If warehouseId = "" Then warehouseId = InferWarehouseIdFromPathAdmin(configPath)
+    stationId = SafeTrimAdmin(GetCellByColumnAdmin(loSt, 1, "StationId"))
+    processorUserId = SafeTrimAdmin(GetCellByColumnAdmin(loWh, 1, "ProcessorServiceUserId"))
+    If processorUserId = "" Then processorUserId = "svc_processor"
+    rootPath = SafeTrimAdmin(GetCellByColumnAdmin(loWh, 1, "PathDataRoot"))
+    If rootPath = "" Then rootPath = GetParentFolderAdmin(configPath)
+    rootPath = NormalizePathAdmin(rootPath)
+
+    statusText = "Using existing runtime config at " & configPath
+
+    If warehouseId <> "" And rootPath <> "" Then
+        inventoryPath = rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
+        Set inventoryWb = OpenWorkbookIfExistsAdmin(inventoryPath, inventoryOpenedTransient)
+        If inventoryWb Is Nothing Then
+            statusText = statusText & "; inventory workbook not found."
+        End If
+    End If
+
+    TryResolveExistingAdminRuntimeContext = (warehouseId <> "" Or Not inventoryWb Is Nothing)
+
+CleanExit:
+    CloseWorkbookIfTransientAdmin wbCfg, wbCfgOpenedTransient
+End Function
+
+Private Function FindExistingConfigWorkbookPathAdmin() As String
+    Dim wb As Workbook
+    Dim rootPath As String
+    Dim candidate As String
+    Dim fso As Object
+    Dim rootFolder As Object
+    Dim subFolder As Object
+
+    For Each wb In Application.Workbooks
+        If IsConfigWorkbookNameAdmin(wb.Name) Then
+            FindExistingConfigWorkbookPathAdmin = Trim$(wb.FullName)
+            Exit Function
+        End If
+    Next wb
+
+    rootPath = GetAdminRuntimeScanRoot()
+    If rootPath = "" Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If fso Is Nothing Then Exit Function
+    If Not fso.FolderExists(rootPath) Then Exit Function
+    Set rootFolder = fso.GetFolder(rootPath)
+    On Error GoTo 0
+    If rootFolder Is Nothing Then Exit Function
+
+    For Each subFolder In rootFolder.SubFolders
+        candidate = CStr(subFolder.Path) & "\" & CStr(subFolder.Name) & ".invSys.Config.xlsb"
+        If fso.FileExists(candidate) Then
+            FindExistingConfigWorkbookPathAdmin = candidate
+            Exit Function
+        End If
+    Next subFolder
+End Function
+
+Private Function GetAdminRuntimeScanRoot() As String
+    Dim rootPath As String
+    Dim parentPath As String
+
+    rootPath = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    If rootPath = "" Then rootPath = "C:\invSys"
+    rootPath = NormalizePathAdmin(rootPath)
+    If rootPath = "" Then Exit Function
+
+    If LooksLikeWarehouseRuntimeRootAdmin(rootPath) Then
+        parentPath = GetParentFolderAdmin(rootPath)
+        If parentPath <> "" Then
+            GetAdminRuntimeScanRoot = parentPath
+            Exit Function
+        End If
+    End If
+
+    GetAdminRuntimeScanRoot = rootPath
+End Function
+
+Private Function LooksLikeWarehouseRuntimeRootAdmin(ByVal rootPath As String) As Boolean
+    Dim leafName As String
+
+    rootPath = NormalizePathAdmin(rootPath)
+    If rootPath = "" Then Exit Function
+    leafName = GetLeafFolderNameAdmin(rootPath)
+    If leafName = "" Then Exit Function
+
+    LooksLikeWarehouseRuntimeRootAdmin = FileExistsAdmin(rootPath & "\" & leafName & ".invSys.Config.xlsb")
+End Function
+
+Private Function GetLeafFolderNameAdmin(ByVal pathText As String) As String
+    Dim sepPos As Long
+
+    pathText = NormalizePathAdmin(pathText)
+    If pathText = "" Then Exit Function
+    sepPos = InStrRev(pathText, "\")
+    If sepPos > 0 And sepPos < Len(pathText) Then
+        GetLeafFolderNameAdmin = Mid$(pathText, sepPos + 1)
+    Else
+        GetLeafFolderNameAdmin = pathText
+    End If
+End Function
+
+Private Function GetParentFolderAdmin(ByVal pathText As String) As String
+    Dim sepPos As Long
+
+    pathText = NormalizePathAdmin(pathText)
+    If pathText = "" Then Exit Function
+    sepPos = InStrRev(pathText, "\")
+    If sepPos = 3 And Mid$(pathText, 2, 2) = ":\" Then
+        GetParentFolderAdmin = Left$(pathText, 3)
+    ElseIf sepPos > 1 Then
+        GetParentFolderAdmin = Left$(pathText, sepPos - 1)
+    End If
+End Function
+
+Private Function NormalizePathAdmin(ByVal pathText As String) As String
+    pathText = Trim$(Replace$(pathText, "/", "\"))
+    Do While Len(pathText) > 3 And Right$(pathText, 1) = "\"
+        pathText = Left$(pathText, Len(pathText) - 1)
+    Loop
+    NormalizePathAdmin = pathText
+End Function
+
+Private Function FileExistsAdmin(ByVal filePath As String) As Boolean
+    Dim fso As Object
+
+    filePath = NormalizePathAdmin(filePath)
+    If filePath = "" Then Exit Function
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FileExistsAdmin = fso.FileExists(filePath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FileExistsAdmin = (Len(Dir$(filePath, vbNormal)) > 0)
+    End If
+    On Error GoTo 0
+End Function
+
+Private Function OpenWorkbookIfExistsAdmin(ByVal workbookPath As String, ByRef openedTransient As Boolean) As Workbook
+    Dim wb As Workbook
+
+    workbookPath = Trim$(workbookPath)
+    If workbookPath = "" Then Exit Function
+
+    For Each wb In Application.Workbooks
+        If StrComp(Trim$(wb.FullName), workbookPath, vbTextCompare) = 0 Then
+            Set OpenWorkbookIfExistsAdmin = wb
+            Exit Function
+        End If
+    Next wb
+
+    If Not FileExistsAdmin(workbookPath) Then Exit Function
+
+    On Error Resume Next
+    Set OpenWorkbookIfExistsAdmin = Application.Workbooks.Open(Filename:=workbookPath, UpdateLinks:=0, ReadOnly:=True, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+    openedTransient = Not OpenWorkbookIfExistsAdmin Is Nothing
+    On Error GoTo 0
+End Function
+
+Private Sub CloseWorkbookIfTransientAdmin(ByVal wb As Workbook, ByVal openedTransient As Boolean)
+    If Not openedTransient Then Exit Sub
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    wb.Close SaveChanges:=False
+    On Error GoTo 0
+End Sub
+
+Private Function InferWarehouseIdFromPathAdmin(ByVal workbookPath As String) As String
+    Dim fileName As String
+    Dim sepPos As Long
+    Dim dotPos As Long
+
+    workbookPath = Trim$(workbookPath)
+    If workbookPath = "" Then Exit Function
+    sepPos = InStrRev(workbookPath, "\")
+    If sepPos > 0 Then
+        fileName = Mid$(workbookPath, sepPos + 1)
+    Else
+        fileName = workbookPath
+    End If
+    dotPos = InStr(1, fileName, ".invSys.", vbTextCompare)
+    If dotPos > 1 Then InferWarehouseIdFromPathAdmin = Left$(fileName, dotPos - 1)
+End Function
+
+Private Function IsConfigWorkbookNameAdmin(ByVal wbName As String) As Boolean
+    Dim n As String
+    n = LCase$(wbName)
+    IsConfigWorkbookNameAdmin = (n Like "wh*.invsys.config.xlsb") Or _
+                                (n Like "wh*.invsys.config.xlsx") Or _
+                                (n Like "wh*.invsys.config.xlsm")
+End Function
+
 Private Function FindLockRowAdmin(ByVal lo As ListObject, ByVal lockName As String) As Long
     Dim i As Long
-    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
     For i = 1 To lo.ListRows.Count
         If StrComp(UCase$(SafeTrimAdmin(GetCellByColumnAdmin(lo, i, "LockName"))), UCase$(lockName), vbTextCompare) = 0 Then
             FindLockRowAdmin = i
@@ -946,7 +1207,8 @@ Private Function GetLatestAppliedValue(ByVal lo As ListObject, ByVal columnName 
     Dim latestDate As Date
     Dim currentDate As Variant
 
-    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
     For i = 1 To lo.ListRows.Count
         currentDate = GetCellByColumnAdmin(lo, i, "AppliedAtUTC")
         If IsDate(currentDate) Then
@@ -961,7 +1223,8 @@ End Function
 
 Private Function FindRowByColumnValueAdmin(ByVal lo As ListObject, ByVal columnName As String, ByVal expectedValue As String) As Long
     Dim i As Long
-    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
     For i = 1 To lo.ListRows.Count
         If StrComp(SafeTrimAdmin(GetCellByColumnAdmin(lo, i, columnName)), expectedValue, vbTextCompare) = 0 Then
             FindRowByColumnValueAdmin = i
