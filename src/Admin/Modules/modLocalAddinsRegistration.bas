@@ -16,7 +16,6 @@ Public Function EnsureLocalInvSysAddinsRegistered(Optional ByVal preferredFolder
                                                   Optional ByRef report As String = "") As Boolean
     Dim addinsFolder As String
     Dim addinNames As Variant
-    Dim disabledCount As Long
 
     On Error GoTo FailEnsure
 
@@ -30,8 +29,7 @@ Public Function EnsureLocalInvSysAddinsRegistered(Optional ByVal preferredFolder
     addinNames = RequiredInvSysAddinNamesLocal()
     If Not FolderHasRequiredInvSysAddinsLocal(addinsFolder, addinNames, report) Then Exit Function
 
-    DisableBrokenInvSysAddinsLocal disabledCount
-    report = "OK|Folder=" & addinsFolder & "|DisabledBroken=" & CStr(disabledCount) & "|SessionAddinsPreserved=True"
+    report = "OK|Folder=" & addinsFolder & "|SessionAddinsPreserved=True"
     EnsureLocalInvSysAddinsRegistered = True
     Exit Function
 
@@ -104,35 +102,6 @@ Private Function FolderHasRequiredInvSysAddinsLocal(ByVal folderPath As String, 
     End If
 
     FolderHasRequiredInvSysAddinsLocal = True
-End Function
-
-Private Sub DisableBrokenInvSysAddinsLocal(ByRef disabledCount As Long)
-    Dim addinObj As AddIn
-
-    On Error Resume Next
-    For Each addinObj In Application.AddIns
-        If ShouldManageInvSysAddinLocal(addinObj) Then
-            If addinObj.Installed Then
-                If Not AddinRegistrationLooksUsableLocal(addinObj) Then
-                    addinObj.Installed = False
-                    disabledCount = disabledCount + 1
-                End If
-            End If
-        End If
-    Next addinObj
-    On Error GoTo 0
-End Sub
-
-Private Function AddinRegistrationLooksUsableLocal(ByVal addinObj As AddIn) As Boolean
-    Dim addinPath As String
-
-    If addinObj Is Nothing Then Exit Function
-
-    addinPath = NormalizeFilePathLocalAddins(SafeAddinFullNameLocal(addinObj))
-    If addinPath = "" Then Exit Function
-    If Not FileExistsLocalAddins(addinPath) Then Exit Function
-
-    AddinRegistrationLooksUsableLocal = True
 End Function
 
 Private Function ShouldKeepInvSysAddinLocal(ByVal addinObj As AddIn, _

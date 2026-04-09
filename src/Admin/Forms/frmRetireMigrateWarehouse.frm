@@ -55,113 +55,129 @@ Private Sub UserForm_Initialize()
 End Sub
 
 Private Sub ConfigureRetireMigrateLayout()
-    Me.Width = 620
-    Me.Height = 470
+    Dim ctl As Control
+
+    Me.Width = 460
+    Me.Height = 360
+    On Error Resume Next
+    Me.ScrollBars = 0
+    Me.KeepScrollBarsVisible = 0
+    Me.ScrollLeft = 0
+    Me.ScrollTop = 0
+    On Error GoTo 0
+
+    For Each ctl In Me.Controls
+        ctl.Visible = False
+    Next ctl
+
+    Me.btnBack.Visible = True
+    Me.btnCancel.Visible = True
+    Me.btnOK.Visible = True
 
     Me.lblTitle.Left = 18
     Me.lblTitle.Top = 18
-    Me.lblTitle.Width = 520
+    Me.lblTitle.Width = 400
 
     Me.lblSelectionIntro.Left = 18
     Me.lblSelectionIntro.Top = 44
-    Me.lblSelectionIntro.Width = 560
-    Me.lblSelectionIntro.Height = 28
+    Me.lblSelectionIntro.Width = 424
+    Me.lblSelectionIntro.Height = 30
 
     Me.lblSourceWarehouse.Left = 18
-    Me.lblSourceWarehouse.Top = 86
+    Me.lblSourceWarehouse.Top = 82
     Me.lblSourceWarehouse.Width = 132
 
     Me.cmbSourceWarehouse.Left = 164
-    Me.cmbSourceWarehouse.Top = 82
-    Me.cmbSourceWarehouse.Width = 164
+    Me.cmbSourceWarehouse.Top = 78
+    Me.cmbSourceWarehouse.Width = 142
 
     Me.lblSourceWarehouseError.Left = 164
-    Me.lblSourceWarehouseError.Top = 106
-    Me.lblSourceWarehouseError.Width = 400
+    Me.lblSourceWarehouseError.Top = 100
+    Me.lblSourceWarehouseError.Width = 260
 
     Me.lblTargetWarehouse.Left = 18
-    Me.lblTargetWarehouse.Top = 120
+    Me.lblTargetWarehouse.Top = 114
     Me.lblTargetWarehouse.Width = 132
 
     Me.cmbTargetWarehouse.Left = 164
-    Me.cmbTargetWarehouse.Top = 116
-    Me.cmbTargetWarehouse.Width = 164
+    Me.cmbTargetWarehouse.Top = 110
+    Me.cmbTargetWarehouse.Width = 142
 
     Me.lblTargetWarehouseError.Left = 164
-    Me.lblTargetWarehouseError.Top = 140
-    Me.lblTargetWarehouseError.Width = 400
+    Me.lblTargetWarehouseError.Top = 132
+    Me.lblTargetWarehouseError.Width = 260
 
     Me.fraMode.Left = 18
-    Me.fraMode.Top = 168
-    Me.fraMode.Width = 560
-    Me.fraMode.Height = 110
+    Me.fraMode.Top = 154
+    Me.fraMode.Width = 424
+    Me.fraMode.Height = 92
 
     Me.optArchiveOnly.Left = 18
-    Me.optArchiveOnly.Top = 20
-    Me.optArchiveOnly.Width = 240
+    Me.optArchiveOnly.Top = 18
+    Me.optArchiveOnly.Width = 190
     Me.optArchiveMigrate.Left = 18
-    Me.optArchiveMigrate.Top = 40
-    Me.optArchiveMigrate.Width = 240
+    Me.optArchiveMigrate.Top = 36
+    Me.optArchiveMigrate.Width = 190
     Me.optArchiveRetire.Left = 18
-    Me.optArchiveRetire.Top = 60
-    Me.optArchiveRetire.Width = 240
+    Me.optArchiveRetire.Top = 54
+    Me.optArchiveRetire.Width = 190
     Me.optArchiveRetireDelete.Left = 18
-    Me.optArchiveRetireDelete.Top = 80
-    Me.optArchiveRetireDelete.Width = 320
+    Me.optArchiveRetireDelete.Top = 72
+    Me.optArchiveRetireDelete.Width = 240
 
     Me.lblArchiveDestPath.Left = 18
-    Me.lblArchiveDestPath.Top = 294
+    Me.lblArchiveDestPath.Top = 256
     Me.lblArchiveDestPath.Width = 132
     Me.txtArchiveDestPath.Left = 164
-    Me.txtArchiveDestPath.Top = 290
-    Me.txtArchiveDestPath.Width = 414
+    Me.txtArchiveDestPath.Top = 252
+    Me.txtArchiveDestPath.Width = 278
     Me.lblArchiveDestPathError.Left = 164
-    Me.lblArchiveDestPathError.Top = 314
-    Me.lblArchiveDestPathError.Width = 414
+    Me.lblArchiveDestPathError.Top = 274
+    Me.lblArchiveDestPathError.Width = 278
 
     Me.chkPublishTombstone.Left = 164
-    Me.chkPublishTombstone.Top = 338
-    Me.chkPublishTombstone.Width = 320
+    Me.chkPublishTombstone.Top = 292
+    Me.chkPublishTombstone.Width = 260
     Me.lblReAuthError.Left = 164
-    Me.lblReAuthError.Top = 362
-    Me.lblReAuthError.Width = 414
+    Me.lblReAuthError.Top = 312
+    Me.lblReAuthError.Width = 278
     Me.lblDeleteWarning.Left = 164
-    Me.lblDeleteWarning.Top = 384
-    Me.lblDeleteWarning.Width = 414
-    Me.lblDeleteWarning.Height = 24
+    Me.lblDeleteWarning.Top = 330
+    Me.lblDeleteWarning.Width = 278
+    Me.lblDeleteWarning.Height = 20
 
     Me.fraConfirm.Left = 18
-    Me.fraConfirm.Top = 78
-    Me.fraConfirm.Width = 560
-    Me.fraConfirm.Height = 300
+    Me.fraConfirm.Top = 70
+    Me.fraConfirm.Width = 424
+    Me.fraConfirm.Height = 220
     Me.lblConfirmSummary.Left = 18
-    Me.lblConfirmSummary.Top = 20
-    Me.lblConfirmSummary.Width = 524
-    Me.lblConfirmSummary.Height = 132
+    Me.lblConfirmSummary.Top = 18
+    Me.lblConfirmSummary.Width = 388
+    Me.lblConfirmSummary.Height = 110
     Me.chkConfirmAction.Left = 18
-    Me.chkConfirmAction.Top = 166
-    Me.chkConfirmAction.Width = 360
+    Me.chkConfirmAction.Top = 138
+    Me.chkConfirmAction.Width = 300
     Me.lblConfirmError.Left = 18
-    Me.lblConfirmError.Top = 194
-    Me.lblConfirmError.Width = 524
+    Me.lblConfirmError.Top = 162
+    Me.lblConfirmError.Width = 388
 
     Me.fraResult.Left = 18
-    Me.fraResult.Top = 78
-    Me.fraResult.Width = 560
-    Me.fraResult.Height = 300
+    Me.fraResult.Top = 70
+    Me.fraResult.Width = 424
+    Me.fraResult.Height = 220
     Me.lblResultSummary.Left = 18
-    Me.lblResultSummary.Top = 20
-    Me.lblResultSummary.Width = 524
-    Me.lblResultSummary.Height = 250
+    Me.lblResultSummary.Top = 18
+    Me.lblResultSummary.Width = 388
+    Me.lblResultSummary.Height = 182
 
-    Me.btnBack.Left = 314
-    Me.btnBack.Top = 402
+    Me.btnBack.Left = 156
+    Me.btnBack.Top = 318
     Me.btnBack.Width = 88
-    Me.btnCancel.Left = 410
-    Me.btnCancel.Top = 402
+    Me.btnCancel.Left = 252
+    Me.btnCancel.Top = 318
     Me.btnCancel.Width = 88
-    Me.btnOK.Left = 506
-    Me.btnOK.Top = 402
+    Me.btnOK.Left = 348
+    Me.btnOK.Top = 318
     Me.btnOK.Width = 88
 
     ConfigureWrappedLabel Me.lblSelectionIntro
@@ -576,6 +592,7 @@ Private Sub ShowSelectionPanel()
     Me.btnBack.Visible = False
     Me.btnCancel.Caption = "Cancel"
     Me.btnOK.Caption = "OK"
+    BringSelectionControlsToFront
     UpdateModeUi
 End Sub
 
@@ -658,6 +675,29 @@ Private Sub SetSelectionControlsVisible(ByVal isVisible As Boolean)
     Me.lblArchiveDestPathError.Visible = isVisible
     Me.chkPublishTombstone.Visible = isVisible And (ResolveSelectedMode() = modWarehouseRetire.MODE_ARCHIVE_RETIRE Or ResolveSelectedMode() = modWarehouseRetire.MODE_ARCHIVE_RETIRE_DELETE)
     Me.lblReAuthError.Visible = isVisible
+End Sub
+
+Private Sub BringSelectionControlsToFront()
+    On Error Resume Next
+    Me.lblTitle.ZOrder 0
+    Me.lblSelectionIntro.ZOrder 0
+    Me.lblSourceWarehouse.ZOrder 0
+    Me.cmbSourceWarehouse.ZOrder 0
+    Me.lblSourceWarehouseError.ZOrder 0
+    Me.lblTargetWarehouse.ZOrder 0
+    Me.cmbTargetWarehouse.ZOrder 0
+    Me.lblTargetWarehouseError.ZOrder 0
+    Me.fraMode.ZOrder 0
+    Me.lblArchiveDestPath.ZOrder 0
+    Me.txtArchiveDestPath.ZOrder 0
+    Me.lblArchiveDestPathError.ZOrder 0
+    Me.chkPublishTombstone.ZOrder 0
+    Me.lblReAuthError.ZOrder 0
+    Me.lblDeleteWarning.ZOrder 0
+    Me.btnBack.ZOrder 0
+    Me.btnCancel.ZOrder 0
+    Me.btnOK.ZOrder 0
+    On Error GoTo 0
 End Sub
 
 Private Sub ClearAllInlineErrors()
