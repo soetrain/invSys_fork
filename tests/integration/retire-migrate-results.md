@@ -1,8 +1,8 @@
 # Retire / Migrate Integration Results
 
-- Date: 2026-04-01 17:19:48
+- Date: 2026-04-09 13:37:08
 - Overall: PASS
-- Harness: C:\Users\Justin\repos\invSys_fork\tests\fixtures\RetireMigrate_Integration_Harness_20260401_171915_741.xlsm
+- Harness: C:\Users\Justin\repos\invSys_fork\tests\fixtures\RetireMigrate_Integration_Harness_20260409_133625_462.xlsm
 - Summary: Retire/migrate lifecycle cases passed for archive-only, migrate, retire, delete, reuse rejection, and safety guards.
 - Passed checks: 8
 - Failed checks: 0

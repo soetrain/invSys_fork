@@ -33,12 +33,15 @@ Private mPendingOperationMode As Long
 Private mPendingAdminUser As String
 Private mPendingArchiveDestPath As String
 Private mPendingPublishTombstone As Boolean
+Private mAnchors As cFormAnchorManager
+Private mResizeInitialized As Boolean
 
 Private Sub UserForm_Initialize()
     mFormBusy = True
     Me.Caption = "Retire / Migrate Warehouse"
     Me.StartUpPosition = 1
     ConfigureRetireMigrateLayout
+    InitializeRetireMigrateAnchors
 
     Me.optArchiveOnly.Value = True
     Me.chkPublishTombstone.Value = True
@@ -52,6 +55,24 @@ Private Sub UserForm_Initialize()
     ShowFormMessage "Select a source warehouse and operation mode, then click OK.", COLOR_INFO
 
     mFormBusy = False
+End Sub
+
+Private Sub UserForm_Activate()
+    If Not mResizeInitialized Then
+        modUserFormResizeWin.EnableResizableUserForm Me
+        mResizeInitialized = True
+    End If
+
+    If Not mAnchors Is Nothing Then mAnchors.ResizeControls
+End Sub
+
+Private Sub UserForm_Layout()
+    If mAnchors Is Nothing Then Exit Sub
+    mAnchors.ResizeControls
+End Sub
+
+Private Sub UserForm_Terminate()
+    Set mAnchors = Nothing
 End Sub
 
 Private Sub ConfigureRetireMigrateLayout()
@@ -204,6 +225,37 @@ Private Sub ConfigureWrappedLabel(ByVal lbl As MSForms.Label)
 
     lbl.WordWrap = True
     lbl.AutoSize = False
+End Sub
+
+Private Sub InitializeRetireMigrateAnchors()
+    Set mAnchors = New cFormAnchorManager
+    mAnchors.Initialize Me, 460, 388
+
+    mAnchors.Add Me.lblSelectionIntro, anchorLeft Or anchorTop Or anchorRight
+    mAnchors.Add Me.cmbSourceWarehouse, anchorLeft Or anchorTop Or anchorRight
+    mAnchors.Add Me.lblSourceWarehouseError, anchorLeft Or anchorTop Or anchorRight
+    mAnchors.Add Me.cmbTargetWarehouse, anchorLeft Or anchorTop Or anchorRight
+    mAnchors.Add Me.lblTargetWarehouseError, anchorLeft Or anchorTop Or anchorRight
+    mAnchors.Add Me.fraMode, anchorLeft Or anchorTop Or anchorRight
+    mAnchors.Add Me.optArchiveOnly, anchorLeft Or anchorTop
+    mAnchors.Add Me.optArchiveMigrate, anchorLeft Or anchorTop
+    mAnchors.Add Me.optArchiveRetire, anchorLeft Or anchorTop
+    mAnchors.Add Me.optArchiveRetireDelete, anchorLeft Or anchorTop
+    mAnchors.Add Me.lblArchiveDestPath, anchorLeft Or anchorBottom
+    mAnchors.Add Me.txtArchiveDestPath, anchorLeft Or anchorRight Or anchorBottom
+    mAnchors.Add Me.lblArchiveDestPathError, anchorLeft Or anchorRight Or anchorBottom
+    mAnchors.Add Me.chkPublishTombstone, anchorLeft Or anchorBottom
+    mAnchors.Add Me.lblReAuthError, anchorLeft Or anchorRight Or anchorBottom
+    mAnchors.Add Me.lblDeleteWarning, anchorLeft Or anchorRight Or anchorBottom
+    mAnchors.Add Me.fraConfirm, anchorLeft Or anchorTop Or anchorRight Or anchorBottom
+    mAnchors.Add Me.lblConfirmSummary, anchorLeft Or anchorTop Or anchorRight Or anchorBottom
+    mAnchors.Add Me.chkConfirmAction, anchorLeft Or anchorBottom
+    mAnchors.Add Me.lblConfirmError, anchorLeft Or anchorRight Or anchorBottom
+    mAnchors.Add Me.fraResult, anchorLeft Or anchorTop Or anchorRight Or anchorBottom
+    mAnchors.Add Me.lblResultSummary, anchorLeft Or anchorTop Or anchorRight Or anchorBottom
+    mAnchors.Add Me.btnBack, anchorRight Or anchorBottom
+    mAnchors.Add Me.btnCancel, anchorRight Or anchorBottom
+    mAnchors.Add Me.btnOK, anchorRight Or anchorBottom
 End Sub
 
 Private Sub cmbSourceWarehouse_Change()
@@ -606,6 +658,7 @@ Private Sub ShowSelectionPanel()
     Me.btnOK.Caption = "OK"
     BringSelectionControlsToFront
     UpdateModeUi
+    If Not mAnchors Is Nothing Then mAnchors.ResizeControls
 End Sub
 
 Private Sub ShowConfirmPanel()
@@ -620,7 +673,9 @@ Private Sub ShowConfirmPanel()
     Me.lblConfirmSummary.Caption = BuildConfirmationSummaryForm(mPendingSourceWarehouseId, mPendingTargetWarehouseId, mPendingOperationMode, mPendingArchiveDestPath, mPendingPublishTombstone)
     Me.lblDeleteWarning.Visible = (mPendingOperationMode = modWarehouseRetire.MODE_ARCHIVE_RETIRE_DELETE)
     ClearInlineError Me.lblConfirmError
+    BringConfirmControlsToFront
     UpdateConfirmOkState
+    If Not mAnchors Is Nothing Then mAnchors.ResizeControls
 End Sub
 
 Private Sub ShowResultPanel(ByVal wasSuccessful As Boolean, ByVal detailText As String)
@@ -633,6 +688,8 @@ Private Sub ShowResultPanel(ByVal wasSuccessful As Boolean, ByVal detailText As 
     Me.btnOK.Caption = "Close"
     Me.lblResultSummary.Caption = Trim$(detailText)
     Me.lblResultSummary.ForeColor = IIf(wasSuccessful, COLOR_SUCCESS, COLOR_ERROR)
+    BringResultControlsToFront
+    If Not mAnchors Is Nothing Then mAnchors.ResizeControls
 End Sub
 
 Private Function BuildConfirmationSummaryForm(ByVal sourceWarehouseId As String, _
@@ -711,6 +768,27 @@ Private Sub BringSelectionControlsToFront()
     Me.lblReAuthError.ZOrder 0
     Me.lblDeleteWarning.ZOrder 0
     Me.btnBack.ZOrder 0
+    Me.btnCancel.ZOrder 0
+    Me.btnOK.ZOrder 0
+    On Error GoTo 0
+End Sub
+
+Private Sub BringConfirmControlsToFront()
+    On Error Resume Next
+    Me.fraConfirm.ZOrder 0
+    Me.lblConfirmSummary.ZOrder 0
+    Me.chkConfirmAction.ZOrder 0
+    Me.lblConfirmError.ZOrder 0
+    Me.btnBack.ZOrder 0
+    Me.btnCancel.ZOrder 0
+    Me.btnOK.ZOrder 0
+    On Error GoTo 0
+End Sub
+
+Private Sub BringResultControlsToFront()
+    On Error Resume Next
+    Me.fraResult.ZOrder 0
+    Me.lblResultSummary.ZOrder 0
     Me.btnCancel.ZOrder 0
     Me.btnOK.ZOrder 0
     On Error GoTo 0
