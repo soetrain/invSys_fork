@@ -23,6 +23,10 @@ Private Const COLOR_ERROR As Long = 255
 Private Const COLOR_SUCCESS As Long = 32768
 Private Const COLOR_INFO As Long = 0
 Private Const COLOR_WARNING As Long = 192
+Private Const ANCHOR_LEFT As Long = 1
+Private Const ANCHOR_TOP As Long = 2
+Private Const ANCHOR_RIGHT As Long = 4
+Private Const ANCHOR_BOTTOM As Long = 8
 
 Private mFormBusy As Boolean
 Private mCurrentPanel As String
@@ -33,7 +37,7 @@ Private mPendingOperationMode As Long
 Private mPendingAdminUser As String
 Private mPendingArchiveDestPath As String
 Private mPendingPublishTombstone As Boolean
-Private mAnchors As cFormAnchorManager
+Private mAnchors As Object
 Private mResizeInitialized As Boolean
 
 Private Sub UserForm_Initialize()
@@ -228,34 +232,34 @@ Private Sub ConfigureWrappedLabel(ByVal lbl As MSForms.Label)
 End Sub
 
 Private Sub InitializeRetireMigrateAnchors()
-    Set mAnchors = New cFormAnchorManager
+    Set mAnchors = modDynamicForms.CreateFormAnchorManager()
     mAnchors.Initialize Me, 460, 388
 
-    mAnchors.Add Me.lblSelectionIntro, anchorLeft Or anchorTop Or anchorRight
-    mAnchors.Add Me.cmbSourceWarehouse, anchorLeft Or anchorTop Or anchorRight
-    mAnchors.Add Me.lblSourceWarehouseError, anchorLeft Or anchorTop Or anchorRight
-    mAnchors.Add Me.cmbTargetWarehouse, anchorLeft Or anchorTop Or anchorRight
-    mAnchors.Add Me.lblTargetWarehouseError, anchorLeft Or anchorTop Or anchorRight
-    mAnchors.Add Me.fraMode, anchorLeft Or anchorTop Or anchorRight
-    mAnchors.Add Me.optArchiveOnly, anchorLeft Or anchorTop
-    mAnchors.Add Me.optArchiveMigrate, anchorLeft Or anchorTop
-    mAnchors.Add Me.optArchiveRetire, anchorLeft Or anchorTop
-    mAnchors.Add Me.optArchiveRetireDelete, anchorLeft Or anchorTop
-    mAnchors.Add Me.lblArchiveDestPath, anchorLeft Or anchorBottom
-    mAnchors.Add Me.txtArchiveDestPath, anchorLeft Or anchorRight Or anchorBottom
-    mAnchors.Add Me.lblArchiveDestPathError, anchorLeft Or anchorRight Or anchorBottom
-    mAnchors.Add Me.chkPublishTombstone, anchorLeft Or anchorBottom
-    mAnchors.Add Me.lblReAuthError, anchorLeft Or anchorRight Or anchorBottom
-    mAnchors.Add Me.lblDeleteWarning, anchorLeft Or anchorRight Or anchorBottom
-    mAnchors.Add Me.fraConfirm, anchorLeft Or anchorTop Or anchorRight Or anchorBottom
-    mAnchors.Add Me.lblConfirmSummary, anchorLeft Or anchorTop Or anchorRight Or anchorBottom
-    mAnchors.Add Me.chkConfirmAction, anchorLeft Or anchorBottom
-    mAnchors.Add Me.lblConfirmError, anchorLeft Or anchorRight Or anchorBottom
-    mAnchors.Add Me.fraResult, anchorLeft Or anchorTop Or anchorRight Or anchorBottom
-    mAnchors.Add Me.lblResultSummary, anchorLeft Or anchorTop Or anchorRight Or anchorBottom
-    mAnchors.Add Me.btnBack, anchorRight Or anchorBottom
-    mAnchors.Add Me.btnCancel, anchorRight Or anchorBottom
-    mAnchors.Add Me.btnOK, anchorRight Or anchorBottom
+    mAnchors.Add Me.lblSelectionIntro, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.cmbSourceWarehouse, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.lblSourceWarehouseError, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.cmbTargetWarehouse, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.lblTargetWarehouseError, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.fraMode, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.optArchiveOnly, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add Me.optArchiveMigrate, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add Me.optArchiveRetire, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add Me.optArchiveRetireDelete, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add Me.lblArchiveDestPath, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.txtArchiveDestPath, ANCHOR_LEFT Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.lblArchiveDestPathError, ANCHOR_LEFT Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.chkPublishTombstone, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.lblReAuthError, ANCHOR_LEFT Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.lblDeleteWarning, ANCHOR_LEFT Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.fraConfirm, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.lblConfirmSummary, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.chkConfirmAction, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.lblConfirmError, ANCHOR_LEFT Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.fraResult, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.lblResultSummary, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.btnBack, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.btnCancel, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.btnOK, ANCHOR_RIGHT Or ANCHOR_BOTTOM
 End Sub
 
 Private Sub cmbSourceWarehouse_Change()

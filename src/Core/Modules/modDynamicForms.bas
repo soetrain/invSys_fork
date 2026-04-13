@@ -9,3 +9,7 @@ Public Function CreatePickerRouter() As Object
     Set CreatePickerRouter = New cPickerRouter
 End Function
 
+Public Function CreateFormAnchorManager() As Object
+    Set CreateFormAnchorManager = New cFormAnchorManager
+End Function
+
