@@ -36,6 +36,13 @@ Private mDefaultCancelWidth As Single
 Private Const COLOR_ERROR As Long = 255
 Private Const COLOR_SUCCESS As Long = 32768
 Private Const COLOR_INFO As Long = 0
+Private Const ANCHOR_LEFT As Long = 1
+Private Const ANCHOR_TOP As Long = 2
+Private Const ANCHOR_RIGHT As Long = 4
+Private Const ANCHOR_BOTTOM As Long = 8
+
+Private mAnchors As Object
+Private mResizeInitialized As Boolean
 
 Private Sub UserForm_Initialize()
     Me.Caption = "Create Warehouse"
@@ -60,8 +67,27 @@ Private Sub UserForm_Initialize()
     mLastSuggestedLocalPath = vbNullString
     RefreshSuggestedLocalPath True
     ClearValidationErrors
+    InitializeCreateWarehouseAnchors
     ShowSummary "Pick the locally synced invSys root that contains Addins, Events, Snapshots, and TesterPackage, then click Create.", COLOR_INFO
     mFormBusy = False
+End Sub
+
+Private Sub UserForm_Activate()
+    If Not mResizeInitialized Then
+        modUserFormResizeWin.EnableResizableUserForm Me
+        mResizeInitialized = True
+    End If
+
+    If Not mAnchors Is Nothing Then mAnchors.ResizeControls
+End Sub
+
+Private Sub UserForm_Layout()
+    If mAnchors Is Nothing Then Exit Sub
+    mAnchors.ResizeControls
+End Sub
+
+Private Sub UserForm_Terminate()
+    Set mAnchors = Nothing
 End Sub
 
 Private Sub txtWarehouseId_Change()
@@ -225,6 +251,7 @@ Private Sub MarkFormComplete(ByVal summaryText As String, ByVal includeCloseHint
     Me.Tag = "COMPLETE"
     Me.btnOK.Caption = "Close"
     ConfigureCompleteButtonLayout
+    If Not mAnchors Is Nothing Then mAnchors.ResizeControls
     ShowSummary summaryText, COLOR_SUCCESS
 End Sub
 
@@ -338,6 +365,29 @@ Private Sub RestoreDefaultButtonLayout()
     Me.btnCancel.Width = mDefaultCancelWidth
     Me.btnOK.Left = mDefaultOkLeft
     Me.btnOK.Width = mDefaultOkWidth
+End Sub
+
+Private Sub InitializeCreateWarehouseAnchors()
+    Set mAnchors = modDynamicForms.CreateFormAnchorManager()
+    mAnchors.Initialize Me, 620, 470
+
+    mAnchors.Add Me.txtWarehouseId, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.txtWarehouseName, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.txtStationId, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.txtAdminUser, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.txtPathLocal, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.txtPathSharePoint, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.lblWarehouseIdError, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.lblWarehouseNameError, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.lblStationIdError, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.lblAdminUserError, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.lblPathLocalError, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.lblPathSharePointError, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add Me.chkPublishInitial, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.lblSummary, ANCHOR_LEFT Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.btnCancel, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add Me.btnOK, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    If Not mBtnSharePointHelper Is Nothing Then mAnchors.Add mBtnSharePointHelper, ANCHOR_RIGHT Or ANCHOR_TOP
 End Sub
 
 Private Function FormatSummaryMessage(ByVal messageText As String) As String

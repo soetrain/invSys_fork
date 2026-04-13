@@ -20,12 +20,19 @@ Private mFailureCount As Long
 Private mRequiredRole As String
 Private mAdminUser As String
 Private mLockedOut As Boolean
+Private mResizeInitialized As Boolean
 
 Private Sub UserForm_Initialize()
     Me.Caption = "Re-Authenticate"
     Me.StartUpPosition = 1
     Me.txtPassword.PasswordChar = "*"
     InitializeGate "ADMIN_MAINT", ResolveDefaultAdminUserReAuth()
+End Sub
+
+Private Sub UserForm_Activate()
+    If mResizeInitialized Then Exit Sub
+    modUserFormResizeWin.EnableResizableUserForm Me
+    mResizeInitialized = True
 End Sub
 
 Public Sub InitializeGate(Optional ByVal RequiredRole As String = "ADMIN_MAINT", _
