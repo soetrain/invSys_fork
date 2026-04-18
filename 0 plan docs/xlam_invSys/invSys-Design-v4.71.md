@@ -1,7 +1,7 @@
-# invSys Architecture v4.7 - Release 1 Plan
+# invSys Architecture v4.71 - Release 1 Plan
 **Project:** invSys Multi-Warehouse Inventory System  
-**Version:** 4.7 (VBA Release 1)  
-**Date:** March 27, 2026  
+**Version:** 4.71 (VBA Release 1)  
+**Date:** April 13, 2026  
 **Author:** Justin  
 **Purpose:** Complete architectural specification for Release 1 (VBA/Excel only).
 
@@ -32,7 +32,7 @@
 - Phase 6 proving must explicitly cover four stages in order: one-account local use, multi-PC LAN use, LAN + WAN use, then central aggregation.
 
 ---
-## Progress Tracking (v4.7)
+## Progress Tracking (v4.71)
 **Legend:** `[ ]` not started, `[x]` complete
 
 ### Release 1 Milestones
@@ -177,6 +177,8 @@ Example:
 **Decision:** Each role add-in implements role-specific search forms optimized for that workflow (`ufReceivingItemSearch`, `ufShippingItemSearch`, `ufProductionItemSearch`, `ufAdminItemSearch`). Shared search logic lives in `Core.ItemSearch` so bug fixes propagate from one code path without form-copy synchronization.
 
 **Rationale:** Receiving, Shipping, Production, and Admin need different search priorities and defaults (vendor/PO focus vs available-to-pick focus vs BOM/WIP focus vs full diagnostics). A mechanical form sync flow assumes uniform forms and does not hold once role UI diverges.
+
+**UI layout note (v4.71):** For complex VBA userforms, prefer the combined method of **Windows API resize plus Andy Pope's anchor-based layout**. The form receives native corner/edge drag resize behavior via Windows API, while controls resize or reposition declaratively through anchors (`Left`, `Top`, `Right`, `Bottom`) rather than per-form coordinate math. This is the preferred future pattern for Admin and other complex forms, and should be reused instead of introducing new one-off resize logic.
 
 **Implementation Rules:**
 ```text

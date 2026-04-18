@@ -3,7 +3,7 @@
 **What this file is:** The Codex-facing slice feed for the real two-warehouse WAN proving sequence.
 This replaces `LAN WAN development cont.md`, which was scoped to WH1-only local proving and is now deleted.
 
-**Authority:** `invSys-Design-v4.7.md` §Phase 6 and `WAN dev slices.md` (code contract frozen at Slice 1).
+**Authority:** `invSys-Design-v4.71.md` §Phase 6 and `WAN dev slices.md` (code contract frozen at Slice 1).
 **Dependency:** G1 (one-account local) is already proven. Do not re-prove it here.
 **Goal:** You manage two warehouses — WH1 and WH2 — and need to operate both over WAN.
 WH1 processes locally, publishes to SharePoint. WH2 does the same, independently.
@@ -227,4 +227,4 @@ WAN is proven when:
 
 ---
 
-*Last updated: 2026-04-07. Authoritative source: `invSys-Design-v4.7.md` §Phase 6, `WAN dev slices.md` §Code-facing WAN contract.*
+*Last updated: 2026-04-07. Authoritative source: `invSys-Design-v4.71.md` §Phase 6, `WAN dev slices.md` §Code-facing WAN contract.*
