@@ -169,6 +169,7 @@ try {
 
     $modulePaths = @(
         (Join-Path $repo "src/Core/Modules/modConfigDefaults.bas"),
+        (Join-Path $repo "src/Core/Modules/modDeploymentPaths.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseBootstrap.bas"),
         (Join-Path $repo "src/Core/Modules/modRuntimeWorkbooks.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleWorkbookSurfaces.bas"),
