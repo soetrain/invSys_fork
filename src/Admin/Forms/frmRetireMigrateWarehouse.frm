@@ -507,7 +507,8 @@ Private Function DiscoverWarehouseIdsForm() As Collection
 
     rootPath = ResolveWarehouseScanRootForm()
     If rootPath <> "" Then scanRoots.Add rootPath
-    If StrComp(rootPath, "C:\invSys", vbTextCompare) <> 0 Then scanRoots.Add "C:\invSys"
+    If StrComp(rootPath, modDeploymentPaths.DefaultRuntimeHubRootPath(False), vbTextCompare) <> 0 Then _
+        scanRoots.Add modDeploymentPaths.DefaultRuntimeHubRootPath(False)
 
     For Each candidate In scanRoots
         AddWarehousesFromRootForm results, seen, CStr(candidate)
@@ -524,7 +525,7 @@ Private Function ResolveWarehouseScanRootForm() As String
     If rootPath = "" Then rootPath = Trim$(modRuntimeWorkbooks.ResolveCoreDataRoot("", ""))
     rootPath = NormalizePathForm(rootPath)
     If rootPath = "" Then
-        ResolveWarehouseScanRootForm = "C:\invSys"
+        ResolveWarehouseScanRootForm = modDeploymentPaths.DefaultRuntimeHubRootPath(False)
         Exit Function
     End If
 
@@ -599,7 +600,7 @@ Private Function ResolveArchiveDefaultForm(ByVal warehouseId As String) As Strin
     Dim pathValue As String
 
     If warehouseId = "" Then
-        ResolveArchiveDefaultForm = "C:\invSys\Archive"
+        ResolveArchiveDefaultForm = modDeploymentPaths.DefaultArchiveRootPath(False)
         Exit Function
     End If
 
@@ -614,7 +615,7 @@ Private Function ResolveArchiveDefaultForm(ByVal warehouseId As String) As Strin
 
     pathValue = NormalizePathForm(pathValue)
     If pathValue = "" Then
-        ResolveArchiveDefaultForm = "C:\invSys\Archive"
+        ResolveArchiveDefaultForm = modDeploymentPaths.DefaultArchiveRootPath(False)
     Else
         ResolveArchiveDefaultForm = pathValue
     End If

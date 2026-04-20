@@ -3,7 +3,6 @@ Option Explicit
 
 Private Const WAREHOUSE_ID_WAN_WH2 As String = "WH2"
 Private Const PEER_WAREHOUSE_ID_WAN_WH2 As String = "WH1"
-Private Const RUNTIME_ROOT_WAN_WH2 As String = "C:\invSys\WH2"
 Private Const RESULT_RELATIVE_PATH_WAN_WH2 As String = "tests\integration\wan-wh2-setup-proof.md"
 
 Private mSummary As String
@@ -35,7 +34,7 @@ Public Function SetupVerification_WH2() As Long
 
     ResetWanWh2SetupState
 
-    runtimeRoot = RUNTIME_ROOT_WAN_WH2
+    runtimeRoot = ResolveRuntimeRootWanWh2()
     inventoryPath = runtimeRoot & "\" & WAREHOUSE_ID_WAN_WH2 & ".invSys.Data.Inventory.xlsb"
     outboxPath = runtimeRoot & "\" & WAREHOUSE_ID_WAN_WH2 & ".Outbox.Events.xlsb"
     snapshotPath = runtimeRoot & "\" & WAREHOUSE_ID_WAN_WH2 & ".invSys.Snapshot.Inventory.xlsb"
@@ -252,7 +251,7 @@ Private Function ResolveWarehouseContextWanWh2(ByRef stationId As String, ByRef 
 
     On Error GoTo FailResolve
 
-    configPath = RUNTIME_ROOT_WAN_WH2 & "\" & WAREHOUSE_ID_WAN_WH2 & ".invSys.Config.xlsb"
+    configPath = ResolveRuntimeRootWanWh2() & "\" & WAREHOUSE_ID_WAN_WH2 & ".invSys.Config.xlsb"
     If Not FileExistsWanWh2(configPath) Then
         note = "Config workbook missing: " & configPath
         GoTo CleanExit
@@ -310,6 +309,13 @@ CleanExit:
 FailResolve:
     note = "ResolveWarehouseContext failed: " & Err.Description
     Resume CleanExit
+End Function
+
+Private Function ResolveRuntimeRootWanWh2() As String
+    ResolveRuntimeRootWanWh2 = Trim$(modRuntimeWorkbooks.TryResolveExistingRuntimeRoot(WAREHOUSE_ID_WAN_WH2))
+    If ResolveRuntimeRootWanWh2 = "" Then
+        ResolveRuntimeRootWanWh2 = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(WAREHOUSE_ID_WAN_WH2, False)
+    End If
 End Function
 
 Private Function ResolveFirstStationIdWanWh2(ByVal loSt As ListObject) As String

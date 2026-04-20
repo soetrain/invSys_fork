@@ -15,6 +15,8 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
+Private WithEvents mBtnHubPathHelper As MSForms.CommandButton
+Attribute mBtnHubPathHelper.VB_VarHelpID = -1
 Private WithEvents mBtnSharePointHelper As MSForms.CommandButton
 Attribute mBtnSharePointHelper.VB_VarHelpID = -1
 
@@ -59,6 +61,7 @@ Private Sub UserForm_Initialize()
     Me.txtStationId.Value = "S1"
     Me.txtAdminUser.Value = ResolveDefaultAdminUserForm()
     Me.txtPathSharePoint.Value = ResolveDefaultSharePointRootForm()
+    ConfigureHubPathHelperButton
     ConfigureSharePointHelperButton
     Me.btnOK.Caption = "Create"
     Me.btnCancel.Caption = "Cancel"
@@ -68,7 +71,7 @@ Private Sub UserForm_Initialize()
     RefreshSuggestedLocalPath True
     ClearValidationErrors
     InitializeCreateWarehouseAnchors
-    ShowSummary "Pick the locally synced invSys root that contains Addins, Events, Snapshots, and TesterPackage, then click Create.", COLOR_INFO
+    ShowSummary "Choose the warehouse hub folder first. For Synology, this should be the SMB warehouse path, for example \\DS920\<share>\WH1. Then choose the locally synced invSys SharePoint root that contains Addins, Events, Snapshots, and TesterPackage.", COLOR_INFO
     mFormBusy = False
 End Sub
 
@@ -149,6 +152,20 @@ Private Sub mBtnSharePointHelper_Click()
     ShowSummary "SharePoint root detected.", COLOR_SUCCESS
 End Sub
 
+Private Sub mBtnHubPathHelper_Click()
+    Dim candidate As String
+
+    candidate = modDeploymentPaths.BrowseForFolderPath(Trim$(CStr(Me.txtPathLocal.Value)), "Choose Warehouse Hub Folder")
+    If candidate = "" Then Exit Sub
+
+    mFormBusy = True
+    Me.txtPathLocal.Value = candidate
+    mFormBusy = False
+    mPathLocalTouched = True
+    ClearErrorLabel Me.lblPathLocalError
+    ShowSummary "Warehouse hub path selected. For Synology, this should be the SMB warehouse folder, for example \\DS920\<share>\WH1.", COLOR_SUCCESS
+End Sub
+
 Private Sub chkPublishInitial_Click()
     If mFormBusy Then Exit Sub
     ClearErrorLabel Me.lblPathSharePointError
@@ -165,6 +182,7 @@ Private Sub btnOK_Click()
     Dim adminUser As String
     Dim pathLocal As String
     Dim pathSharePoint As String
+    Dim addinsFolder As String
     Dim summaryText As String
 
     If mLocalBootstrapComplete And StrComp(Me.btnOK.Caption, "Close", vbTextCompare) = 0 Then
@@ -178,7 +196,8 @@ Private Sub btnOK_Click()
         Exit Sub
     End If
 
-    If Not modLocalAddinsRegistration.EnsureLocalInvSysAddinsRegistered(pathSharePoint & "\Addins", summaryText) Then
+    If pathSharePoint <> "" Then addinsFolder = pathSharePoint & "\Addins"
+    If Not modLocalAddinsRegistration.EnsureLocalInvSysAddinsRegistered(addinsFolder, summaryText) Then
         ShowSummary "invSys add-ins are not registered cleanly for this Excel session." & vbCrLf & summaryText, COLOR_ERROR
         Exit Sub
     End If
@@ -187,17 +206,17 @@ Private Sub btnOK_Click()
         pathLocal = mCreatedPathLocal
         mCreatedPathSharePoint = pathSharePoint
         If Not CBool(Me.chkPublishInitial.Value) Then
-            ShowSummary "Local warehouse already exists. Check the publish box to retry SharePoint publish, or click Close.", COLOR_INFO
+            ShowSummary "Warehouse hub already exists. Check the publish box to retry SharePoint publish, or click Close.", COLOR_INFO
             Exit Sub
         End If
 
         If modAdminConsole.PublishInitialArtifactsAdmin(mCreatedWarehouseId, mCreatedWarehouseName, mCreatedStationId, mCreatedAdminUser, mCreatedPathLocal, mCreatedPathSharePoint) Then
-            summaryText = "Local warehouse already existed from this session." & vbCrLf & _
+            summaryText = "Warehouse hub already existed from this session." & vbCrLf & _
                           "Initial SharePoint publish complete." & vbCrLf & _
                           modWarehouseBootstrap.GetLastWarehouseBootstrapReport()
             MarkFormComplete summaryText, True
         Else
-            summaryText = "Local warehouse was created, but SharePoint publish still failed." & vbCrLf & _
+            summaryText = "Warehouse hub was created, but SharePoint publish still failed." & vbCrLf & _
                           modWarehouseBootstrap.GetLastWarehouseBootstrapReport()
             Me.btnOK.Caption = "Retry Publish"
             Me.btnCancel.Caption = "Close"
@@ -213,7 +232,7 @@ Private Sub btnOK_Click()
     End If
 
     If Not modAdminConsole.BootstrapWarehouseLocalAdmin(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint) Then
-        ShowSummary "Local bootstrap failed:" & vbCrLf & modWarehouseBootstrap.GetLastWarehouseBootstrapReport(), COLOR_ERROR
+        ShowSummary "Warehouse hub bootstrap failed:" & vbCrLf & modWarehouseBootstrap.GetLastWarehouseBootstrapReport(), COLOR_ERROR
         Exit Sub
     End If
 
@@ -224,7 +243,7 @@ Private Sub btnOK_Click()
     mCreatedPathLocal = pathLocal
     mCreatedPathSharePoint = pathSharePoint
     mLocalBootstrapComplete = True
-    summaryText = "Local bootstrap complete for " & warehouseId & "."
+    summaryText = "Warehouse hub bootstrap complete for " & warehouseId & "."
 
     If CBool(Me.chkPublishInitial.Value) Then
         If modAdminConsole.PublishInitialArtifactsAdmin(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint) Then
@@ -283,7 +302,7 @@ Private Function BuildSpecFromForm(ByRef warehouseId As String, _
         isValid = False
     End If
     If pathLocal = "" Then
-        SetErrorCaption Me.lblPathLocalError, "Local path is required."
+        SetErrorCaption Me.lblPathLocalError, "Warehouse hub path is required."
         isValid = False
     End If
     If CBool(Me.chkPublishInitial.Value) And pathSharePoint = "" Then
@@ -300,8 +319,7 @@ Private Sub RefreshSuggestedLocalPath(ByVal forceApply As Boolean)
     Dim currentValue As String
 
     warehouseId = Trim$(CStr(Me.txtWarehouseId.Value))
-    suggestedPath = "C:\invSys"
-    If warehouseId <> "" Then suggestedPath = suggestedPath & "\" & warehouseId
+    suggestedPath = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(warehouseId, False)
 
     currentValue = Trim$(CStr(Me.txtPathLocal.Value))
     If forceApply Or (Not mPathLocalTouched) Or currentValue = "" Or StrComp(currentValue, mLastSuggestedLocalPath, vbTextCompare) = 0 Then
@@ -387,6 +405,7 @@ Private Sub InitializeCreateWarehouseAnchors()
     mAnchors.Add Me.lblSummary, ANCHOR_LEFT Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add Me.btnCancel, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add Me.btnOK, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    If Not mBtnHubPathHelper Is Nothing Then mAnchors.Add mBtnHubPathHelper, ANCHOR_RIGHT Or ANCHOR_TOP
     If Not mBtnSharePointHelper Is Nothing Then mAnchors.Add mBtnSharePointHelper, ANCHOR_RIGHT Or ANCHOR_TOP
 End Sub
 
@@ -504,6 +523,24 @@ Private Function ResolveDefaultSharePointRootForm() As String
         ResolveDefaultSharePointRootForm = modTesterSetup.DetectSharePointRoot(Trim$(CStr(Me.txtWarehouseId.Value)))
     End If
 End Function
+
+Private Sub ConfigureHubPathHelperButton()
+    If mBtnHubPathHelper Is Nothing Then
+        Set mBtnHubPathHelper = Me.Controls.Add("Forms.CommandButton.1", "btnHubPathHelperRuntime", True)
+    End If
+
+    Me.txtPathLocal.Width = 258
+    With mBtnHubPathHelper
+        .Caption = "Browse..."
+        .Left = Me.txtPathLocal.Left + Me.txtPathLocal.Width + 8
+        .Top = Me.txtPathLocal.Top - 1
+        .Width = 72
+        .Height = Me.txtPathLocal.Height + 2
+        .ControlTipText = "Choose the warehouse hub folder. For Synology, pick the SMB warehouse folder such as \\DS920\\<share>\\WH1."
+        .Visible = True
+        .Enabled = True
+    End With
+End Sub
 
 Private Sub ConfigureSharePointHelperButton()
     If mBtnSharePointHelper Is Nothing Then

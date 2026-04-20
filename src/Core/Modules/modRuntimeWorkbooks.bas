@@ -67,6 +67,57 @@ Public Function OpenFirstRuntimeAuthWorkbook(Optional ByRef report As String = "
     Set OpenFirstRuntimeAuthWorkbook = OpenFirstRuntimeWorkbook("*.invsys.auth.xlsb", "AUTH", report)
 End Function
 
+Public Function TryResolveExistingRuntimeRoot(Optional ByVal warehouseId As String = "") As String
+    Dim resolvedWh As String
+    Dim candidateRoot As String
+    Dim parentPath As String
+    Dim wb As Workbook
+
+    On Error GoTo CleanFail
+
+    resolvedWh = ResolveWarehouseIdRuntime(warehouseId)
+
+    candidateRoot = NormalizeFolderPath(Trim$(mCoreDataRootOverride))
+    If RuntimeArtifactsExistRuntime(candidateRoot, resolvedWh) Then
+        TryResolveExistingRuntimeRoot = candidateRoot
+        Exit Function
+    End If
+
+    candidateRoot = ResolveConfiguredRuntimeRoot(resolvedWh)
+    If RuntimeArtifactsExistRuntime(candidateRoot, resolvedWh) Then
+        TryResolveExistingRuntimeRoot = candidateRoot
+        Exit Function
+    End If
+
+    parentPath = GetParentFolder(candidateRoot)
+    If parentPath <> "" Then
+        candidateRoot = FindRuntimeRootUnderParentRuntime(parentPath, resolvedWh)
+        If candidateRoot <> "" Then
+            TryResolveExistingRuntimeRoot = candidateRoot
+            Exit Function
+        End If
+    End If
+
+    For Each wb In Application.Workbooks
+        If InStr(1, wb.Name, resolvedWh & ".invSys.", vbTextCompare) = 1 Then
+            candidateRoot = NormalizeFolderPath(Trim$(wb.Path))
+            If RuntimeArtifactsExistRuntime(candidateRoot, resolvedWh) Then
+                TryResolveExistingRuntimeRoot = candidateRoot
+                Exit Function
+            End If
+        End If
+    Next wb
+
+    candidateRoot = NormalizeFolderPath(DefaultRuntimeRoot(resolvedWh))
+    If RuntimeArtifactsExistRuntime(candidateRoot, resolvedWh) Then
+        TryResolveExistingRuntimeRoot = candidateRoot
+    End If
+    Exit Function
+
+CleanFail:
+    TryResolveExistingRuntimeRoot = vbNullString
+End Function
+
 Private Function OpenOrCreateRuntimeWorkbook(ByVal targetPath As String, _
                                              ByVal workbookKind As String, _
                                              ByVal warehouseId As String, _
@@ -261,10 +312,7 @@ Private Function NormalizeFolderPath(ByVal folderPath As String) As String
 End Function
 
 Private Function GetParentFolder(ByVal pathIn As String) As String
-    Dim sepPos As Long
-
-    sepPos = InStrRev(pathIn, "\")
-    If sepPos > 1 Then GetParentFolder = Left$(pathIn, sepPos - 1)
+    GetParentFolder = modDeploymentPaths.GetParentFolderManaged(pathIn)
 End Function
 
 Private Function ResolveConfiguredRuntimeRoot(ByVal warehouseId As String) As String
@@ -274,30 +322,54 @@ Private Function ResolveConfiguredRuntimeRoot(ByVal warehouseId As String) As St
 
     If ResolveConfiguredRuntimeRoot <> "" Then ResolveConfiguredRuntimeRoot = NormalizeFolderPath(ResolveConfiguredRuntimeRoot)
     If ResolveConfiguredRuntimeRoot = "" And Trim$(warehouseId) <> "" Then
-        ResolveConfiguredRuntimeRoot = NormalizeFolderPath("C:\invSys\" & ResolveWarehouseIdRuntime(warehouseId) & "\")
+        ResolveConfiguredRuntimeRoot = NormalizeFolderPath(modDeploymentPaths.DefaultWarehouseRuntimeRootPath(ResolveWarehouseIdRuntime(warehouseId), True))
     End If
 End Function
 
 Private Function DefaultRuntimeRoot(ByVal warehouseId As String) As String
-    DefaultRuntimeRoot = NormalizeFolderPath("C:\invSys\" & ResolveWarehouseIdRuntime(warehouseId) & "\")
+    DefaultRuntimeRoot = NormalizeFolderPath(modDeploymentPaths.DefaultWarehouseRuntimeRootPath(ResolveWarehouseIdRuntime(warehouseId), True))
+End Function
+
+Private Function RuntimeArtifactsExistRuntime(ByVal rootPath As String, ByVal warehouseId As String) As Boolean
+    rootPath = NormalizeFolderPath(rootPath)
+    If rootPath = "" Then Exit Function
+
+    RuntimeArtifactsExistRuntime = _
+        (Len(Dir$(rootPath & "\" & warehouseId & ".invSys.Config.xlsb", vbNormal)) > 0) And _
+        (Len(Dir$(rootPath & "\" & warehouseId & ".invSys.Auth.xlsb", vbNormal)) > 0) And _
+        (Len(Dir$(rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb", vbNormal)) > 0)
+End Function
+
+Private Function FindRuntimeRootUnderParentRuntime(ByVal parentPath As String, ByVal warehouseId As String) As String
+    Dim childName As String
+    Dim childPath As String
+
+    On Error GoTo CleanFail
+
+    parentPath = NormalizeFolderPath(parentPath)
+    If parentPath = "" Then Exit Function
+
+    childName = Dir$(parentPath & "\*", vbDirectory)
+    Do While childName <> ""
+        If childName <> "." And childName <> ".." Then
+            childPath = parentPath & "\" & childName
+            If Len(Dir$(childPath, vbDirectory)) > 0 Then
+                If RuntimeArtifactsExistRuntime(childPath, warehouseId) Then
+                    FindRuntimeRootUnderParentRuntime = childPath
+                    Exit Function
+                End If
+            End If
+        End If
+        childName = Dir$
+    Loop
+    Exit Function
+
+CleanFail:
+    FindRuntimeRootUnderParentRuntime = vbNullString
 End Function
 
 Private Sub EnsureFolderRecursiveRuntime(ByVal folderPath As String)
-    Dim parentPath As String
-    Dim sepPos As Long
-
-    folderPath = NormalizeFolderPath(folderPath)
-    If folderPath = "" Then Exit Sub
-    If Len(Dir$(folderPath, vbDirectory)) > 0 Then Exit Sub
-
-    sepPos = InStrRev(folderPath, "\")
-    If sepPos > 1 Then
-        parentPath = Left$(folderPath, sepPos - 1)
-        If Right$(parentPath, 1) = ":" Then parentPath = parentPath & "\"
-        If parentPath <> "" And Len(Dir$(parentPath, vbDirectory)) = 0 Then EnsureFolderRecursiveRuntime parentPath
-    End If
-
-    If Len(Dir$(folderPath, vbDirectory)) = 0 Then MkDir folderPath
+    modDeploymentPaths.EnsureFolderRecursiveManaged folderPath
 End Sub
 
 Private Sub SaveRuntimeWorkbook(ByVal wb As Workbook)

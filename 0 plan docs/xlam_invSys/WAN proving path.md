@@ -3,7 +3,7 @@
 **What this file is:** The Codex-facing slice feed for the real two-warehouse WAN proving sequence.
 This replaces `LAN WAN development cont.md`, which was scoped to WH1-only local proving and is now deleted.
 
-**Authority:** `invSys-Design-v4.71.md` §Phase 6 and `WAN dev slices.md` (code contract frozen at Slice 1).
+**Authority:** `invSys-Design-v4.8.md` §Phase 6 and `WAN dev slices.md` (code contract frozen at Slice 1).
 **Dependency:** G1 (one-account local) is already proven. Do not re-prove it here.
 **Goal:** You manage two warehouses — WH1 and WH2 — and need to operate both over WAN.
 WH1 processes locally, publishes to SharePoint. WH2 does the same, independently.
@@ -42,6 +42,21 @@ SharePoint published:
   <PathSharePointRoot>\Snapshots\<WarehouseId>.invSys.Snapshot.Inventory.xlsb
 ```
 
+**Warehouse hub root contract (v4.8 alignment):**
+
+```
+RULE: <PathDataRoot> is the warehouse hub root for that warehouse.
+It may be a local path during development, but the preferred LAN + WAN deployment
+target is a NAS-backed path owned by that warehouse, for example:
+
+  \\DS920\invSys\WH1\
+  \\DS920\invSys\WH2\
+
+The designated processor PC for that warehouse reads/writes the authoritative
+runtime over SMB. WAN stations do not directly edit these canonical workbooks;
+they relay events into the same processor lane through SharePoint publication.
+```
+
 **Key entry points already in code:**
 ```
 modProcessor.RunBatch                                       — local process + auto publish attempt
@@ -62,7 +77,7 @@ Create tests/integration/prove_wan_wh1_setup.bas.
 This is a real-machine setup verification script for WH1, not a unit test.
 
 SetupVerification_WH1() steps:
-  1. Assert C:\invSys\WH1\ runtime exists (BootstrapWarehouseLocal must have been run already)
+  1. Resolve PathDataRoot for WH1 and assert the warehouse runtime exists there (BootstrapWarehouseLocal must have been run already)
   2. Assert WH1.invSys.Data.Inventory.xlsb exists and is non-zero
   3. Assert WH1.Outbox.Events.xlsb exists (may be empty — presence check only)
   4. Assert WH1.invSys.Snapshot.Inventory.xlsb exists
@@ -92,7 +107,7 @@ Create tests/integration/prove_wan_wh2_setup.bas.
 Identical structure to prove_wan_wh1_setup.bas but for WarehouseId = WH2 on a second machine.
 
 All paths use WH2 substitution:
-  C:\invSys\WH2\
+  <PathDataRoot for WH2>\
   WH2.invSys.Data.Inventory.xlsb
   WH2.Outbox.Events.xlsb
   WH2.invSys.Snapshot.Inventory.xlsb
@@ -227,4 +242,4 @@ WAN is proven when:
 
 ---
 
-*Last updated: 2026-04-07. Authoritative source: `invSys-Design-v4.71.md` §Phase 6, `WAN dev slices.md` §Code-facing WAN contract.*
+*Last updated: 2026-04-07. Authoritative source: `invSys-Design-v4.8.md` §Phase 6, `WAN dev slices.md` §Code-facing WAN contract.*

@@ -226,7 +226,7 @@ Private Function InventoryWorkbookLockedForProcessor(ByVal warehouseId As String
 
     rootPath = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
     If rootPath = "" Then rootPath = Trim$(modConfig.GetString("PathDataRoot", ""))
-    If rootPath = "" Then rootPath = "C:\invSys\" & resolvedWh & "\"
+    If rootPath = "" Then rootPath = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(resolvedWh, True)
     If Right$(rootPath, 1) <> "\" Then rootPath = rootPath & "\"
 
     targetPath = rootPath & resolvedWh & ".invSys.Data.Inventory.xlsb"

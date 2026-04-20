@@ -1054,7 +1054,7 @@ Private Function GetAdminRuntimeScanRoot() As String
     Dim parentPath As String
 
     rootPath = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
-    If rootPath = "" Then rootPath = "C:\invSys"
+    If rootPath = "" Then rootPath = modDeploymentPaths.DefaultRuntimeHubRootPath(False)
     rootPath = NormalizePathAdmin(rootPath)
     If rootPath = "" Then Exit Function
 

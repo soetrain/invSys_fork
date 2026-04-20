@@ -3,7 +3,6 @@ Option Explicit
 
 Private Const TESTER_DEFAULT_WAREHOUSE_ID As String = "WH1"
 Private Const TESTER_DEFAULT_STATION_ID As String = "R1"
-Private Const TESTER_DEFAULT_RUNTIME_ROOT As String = "C:\invSys\"
 Private Const TESTER_DEFAULT_OPERATOR_SUFFIX As String = ".Receiving.Operator.xlsm"
 Private Const TESTER_SEED_SKU As String = "TEST-SKU-001"
 Private Const TESTER_SEED_DESCRIPTION As String = "Test SKU for Confirm Writes"
@@ -625,7 +624,7 @@ End Sub
 Private Sub ApplyTesterSetupDefaults(ByRef spec As TesterSetupSpec)
     If spec.WarehouseId = "" Then spec.WarehouseId = TESTER_DEFAULT_WAREHOUSE_ID
     If spec.StationId = "" Then spec.StationId = TESTER_DEFAULT_STATION_ID
-    If spec.PathLocal = "" Then spec.PathLocal = TESTER_DEFAULT_RUNTIME_ROOT & spec.WarehouseId
+    If spec.PathLocal = "" Then spec.PathLocal = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(spec.WarehouseId, False)
     If spec.PathSharePointRoot = "" Then spec.PathSharePointRoot = DetectSharePointRoot(spec.WarehouseId)
     spec.PathLocal = NormalizeFolderPathTesterSetup(spec.PathLocal, False)
     spec.PathSharePointRoot = NormalizeFolderPathTesterSetup(spec.PathSharePointRoot, False)
@@ -651,7 +650,7 @@ Private Function BuildDefaultTesterSpecTesterSetup() As TesterSetupSpec
     Dim spec As TesterSetupSpec
     spec.WarehouseId = TESTER_DEFAULT_WAREHOUSE_ID
     spec.StationId = TESTER_DEFAULT_STATION_ID
-    spec.PathLocal = TESTER_DEFAULT_RUNTIME_ROOT & TESTER_DEFAULT_WAREHOUSE_ID
+    spec.PathLocal = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(TESTER_DEFAULT_WAREHOUSE_ID, False)
     BuildDefaultTesterSpecTesterSetup = spec
 End Function
 

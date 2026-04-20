@@ -32,8 +32,8 @@ Public Function GetConfigSchema(ByRef defs() As ConfigKeyDef) As Long
     AddConfigKey defs, idx, "MaxLockHoldMinutes", CONFIG_TYPE_LONG, "2", False, CONFIG_SCOPE_WAREHOUSE
     AddConfigKey defs, idx, "SnapshotCadence", CONFIG_TYPE_STRING, "PER_BATCH", False, CONFIG_SCOPE_WAREHOUSE
     AddConfigKey defs, idx, "BackupCadence", CONFIG_TYPE_STRING, "DAILY", False, CONFIG_SCOPE_WAREHOUSE
-    AddConfigKey defs, idx, "PathDataRoot", CONFIG_TYPE_STRING, "C:\invSys\{WarehouseId}\", False, CONFIG_SCOPE_WAREHOUSE
-    AddConfigKey defs, idx, "PathBackupRoot", CONFIG_TYPE_STRING, "C:\invSys\Backups\{WarehouseId}\", False, CONFIG_SCOPE_WAREHOUSE
+    AddConfigKey defs, idx, "PathDataRoot", CONFIG_TYPE_STRING, modDeploymentPaths.DefaultWarehouseRuntimeRootPath("", True), False, CONFIG_SCOPE_WAREHOUSE
+    AddConfigKey defs, idx, "PathBackupRoot", CONFIG_TYPE_STRING, modDeploymentPaths.DefaultWarehouseBackupRootPath("", True), False, CONFIG_SCOPE_WAREHOUSE
     AddConfigKey defs, idx, "PathSharePointRoot", CONFIG_TYPE_STRING, "", False, CONFIG_SCOPE_WAREHOUSE
     AddConfigKey defs, idx, "WarehouseStatus", CONFIG_TYPE_STRING, "ACTIVE", False, CONFIG_SCOPE_WAREHOUSE
     AddConfigKey defs, idx, "RetiredAtUTC", CONFIG_TYPE_DATETIME, "", False, CONFIG_SCOPE_WAREHOUSE

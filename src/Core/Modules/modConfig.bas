@@ -1038,8 +1038,8 @@ Private Sub SeedConfigDefaults(ByVal wb As Workbook, ByVal warehouseId As String
     EnsureConfigCellDefault loWh, 1, "MaxLockHoldMinutes", 2
     EnsureConfigCellDefault loWh, 1, "SnapshotCadence", "PER_BATCH"
     EnsureConfigCellDefault loWh, 1, "BackupCadence", "DAILY"
-    EnsureConfigCellDefault loWh, 1, "PathDataRoot", Replace$("C:\invSys\{WarehouseId}\", "{WarehouseId}", resolvedWh)
-    EnsureConfigCellDefault loWh, 1, "PathBackupRoot", Replace$("C:\invSys\Backups\{WarehouseId}\", "{WarehouseId}", resolvedWh)
+    EnsureConfigCellDefault loWh, 1, "PathDataRoot", modDeploymentPaths.DefaultWarehouseRuntimeRootPath(resolvedWh, True)
+    EnsureConfigCellDefault loWh, 1, "PathBackupRoot", modDeploymentPaths.DefaultWarehouseBackupRootPath(resolvedWh, True)
     EnsureConfigCellDefault loWh, 1, "PathSharePointRoot", ""
     EnsureConfigCellDefault loWh, 1, "WarehouseStatus", "ACTIVE"
     EnsureConfigCellDefault loWh, 1, "RetiredAtUTC", ""

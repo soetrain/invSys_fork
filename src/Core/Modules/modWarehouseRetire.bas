@@ -519,7 +519,7 @@ Public Function DeleteLocalRuntime(ByRef spec As RetireMigrateSpec) As Boolean
     End If
 
     targetRoot = ResolveExistingRuntimeRootRetire(spec.SourceWarehouseId)
-    If targetRoot = "" Then targetRoot = "C:\invSys\" & spec.SourceWarehouseId
+    If targetRoot = "" Then targetRoot = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(spec.SourceWarehouseId, False)
     If Not FolderExistsRetire(targetRoot) Then
         report = "Local runtime folder not found: " & targetRoot
         GoTo FailSoft
@@ -1158,7 +1158,7 @@ Private Function ResolveExistingRuntimeRootRetire(ByVal warehouseId As String) A
         End If
     Next wb
 
-    candidateRoot = "C:\invSys\" & Trim$(warehouseId)
+    candidateRoot = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(Trim$(warehouseId), False)
     If RuntimeArtifactsExistRetire(candidateRoot, warehouseId) Then ResolveExistingRuntimeRootRetire = candidateRoot
     Exit Function
 

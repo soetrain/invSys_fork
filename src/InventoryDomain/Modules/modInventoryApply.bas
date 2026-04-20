@@ -1144,7 +1144,7 @@ Private Function BuildCanonicalInventoryPath(ByVal warehouseId As String) As Str
 
     rootPath = SafeTrimApply(modRuntimeWorkbooks.GetCoreDataRootOverride())
     If rootPath = "" Then rootPath = SafeTrimApply(modConfig.GetString("PathDataRoot", ""))
-    If rootPath = "" Then rootPath = "C:\invSys\" & resolvedWh & "\"
+    If rootPath = "" Then rootPath = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(resolvedWh, True)
 
     BuildCanonicalInventoryPath = NormalizeFolderPathApply(rootPath) & resolvedWh & ".invSys.Data.Inventory.xlsb"
 End Function

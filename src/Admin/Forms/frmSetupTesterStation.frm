@@ -431,8 +431,7 @@ Private Sub RefreshSuggestedLocalPath(ByVal forceApply As Boolean)
     Dim currentValue As String
 
     warehouseId = Trim$(CStr(Me.txtWarehouseId.Value))
-    suggestedPath = "C:\invSys"
-    If warehouseId <> "" Then suggestedPath = suggestedPath & "\" & warehouseId
+    suggestedPath = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(warehouseId, False)
 
     currentValue = Trim$(CStr(Me.txtPathLocal.Value))
     If forceApply Or (Not mPathLocalTouched) Or currentValue = "" Or StrComp(currentValue, mLastSuggestedLocalPath, vbTextCompare) = 0 Then

@@ -531,7 +531,7 @@ Private Function BuildCanonicalInventoryPathLocal(ByVal warehouseId As String) A
 End Function
 
 Private Function DefaultInventoryRootLocal(ByVal warehouseId As String) As String
-    DefaultInventoryRootLocal = "C:\invSys\" & warehouseId & "\"
+    DefaultInventoryRootLocal = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(warehouseId, True)
 End Function
 
 Private Function FindOpenWorkbookByFullNameLocal(ByVal fullNameIn As String) As Workbook

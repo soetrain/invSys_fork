@@ -10,8 +10,6 @@ Private Const TESTER_SEED_FILE As String = "TEST-SKU-001.seed.json"
 Private Const TESTER_AUTH_TEMPLATE_FILE As String = "tester-auth-template.csv"
 Private Const TESTER_MANIFEST_FILE As String = "manifest.json"
 Private Const TESTER_ADDINS_MANIFEST_FILE As String = "addins-manifest.json"
-Private Const TESTER_LOCAL_ROOT As String = "C:\invSys\"
-
 Private mLastTesterBundleReport As String
 Private mLastTesterBundleZipPath As String
 Private mLastTesterBundleReadmePath As String
@@ -320,7 +318,7 @@ Private Function ResolveRuntimeRootTester(ByVal warehouseId As String) As String
         Exit Function
     End If
 
-    defaultRoot = TESTER_LOCAL_ROOT & warehouseId & "\"
+    defaultRoot = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(warehouseId, True)
     If FolderExistsTester(defaultRoot) Then ResolveRuntimeRootTester = defaultRoot
 End Function
 

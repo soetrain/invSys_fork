@@ -1,7 +1,6 @@
 Attribute VB_Name = "modWarehouseBootstrap"
 Option Explicit
 
-Private Const BOOTSTRAP_LOCAL_ROOT As String = "C:\invSys"
 Private Const BOOTSTRAP_SHAREPOINT_CONFIG_FOLDER As String = "Config"
 Private Const BOOTSTRAP_SHAREPOINT_CONFIG_JSON_SUFFIX As String = ".config.json"
 Private Const BOOTSTRAP_SHAREPOINT_CONFIG_WORKBOOK_SUFFIX As String = ".invSys.Config.xlsb"
@@ -86,6 +85,22 @@ Public Function ValidateWarehouseSpec(ByRef spec As WarehouseSpec, _
         Exit Function
     End If
 
+    If spec.PathLocal <> "" Then
+        spec.PathLocal = modDeploymentPaths.NormalizeManagedFolderPath(spec.PathLocal, False)
+        If spec.PathLocal = "" Then
+            report = "Warehouse hub path could not be resolved."
+            Exit Function
+        End If
+    End If
+
+    If spec.PathSharePoint <> "" Then
+        spec.PathSharePoint = modDeploymentPaths.NormalizeManagedFolderPath(spec.PathSharePoint, False)
+        If spec.PathSharePoint = "" Then
+            report = "SharePoint root could not be resolved."
+            Exit Function
+        End If
+    End If
+
     report = "OK"
     ValidateWarehouseSpec = True
 End Function
@@ -126,7 +141,7 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
 
     rootPath = ResolveBootstrapRootPath(spec)
     If rootPath = "" Then
-        report = "PathLocal could not be resolved."
+        report = "Warehouse hub path could not be resolved."
         GoTo FailSoft
     End If
     spec.PathLocal = rootPath
@@ -136,7 +151,7 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
         GoTo FailSoft
     End If
     If FolderExistsBootstrap(rootPath) Then
-        report = "Local warehouse root already exists: " & rootPath
+        report = "Warehouse hub root already exists: " & rootPath
         GoTo FailSoft
     End If
 
@@ -209,7 +224,7 @@ FailSoft:
     CloseWorkbookIfOpenBootstrap wbCfg
     Set wbCfg = Nothing
     If createdRoot Then DeleteFolderRecursiveBootstrap rootPath
-    LogDiagnosticSafeBootstrap "WAREHOUSE-BOOTSTRAP", "Local bootstrap failed|WarehouseId=" & spec.WarehouseId & "|Root=" & rootPath & "|Reason=" & report
+    LogDiagnosticSafeBootstrap "WAREHOUSE-BOOTSTRAP", "Warehouse bootstrap failed|WarehouseId=" & spec.WarehouseId & "|Root=" & rootPath & "|Reason=" & report
     GoTo CleanExit
 
 FailBootstrap:
@@ -242,7 +257,7 @@ Public Function PublishInitialArtifacts(ByRef spec As WarehouseSpec) As Boolean
 
     rootPath = ResolveBootstrapRootPath(spec)
     If rootPath = "" Then
-        report = "PathLocal could not be resolved."
+        report = "Warehouse hub path could not be resolved."
         GoTo FailSoft
     End If
     spec.PathLocal = rootPath
@@ -324,7 +339,7 @@ Private Function IsValidWarehouseIdBootstrap(ByVal warehouseId As String) As Boo
 End Function
 
 Private Function LocalWarehouseIdExistsBootstrap(ByVal warehouseId As String) As Boolean
-    LocalWarehouseIdExistsBootstrap = FolderExistsBootstrap(BOOTSTRAP_LOCAL_ROOT & "\" & warehouseId)
+    LocalWarehouseIdExistsBootstrap = FolderExistsBootstrap(modDeploymentPaths.DefaultWarehouseRuntimeRootPath(warehouseId, False))
 End Function
 
 Private Function SharePointWarehouseIdExistsBootstrap(ByVal warehouseId As String) As Boolean
@@ -351,32 +366,22 @@ SkipUnavailable:
 End Function
 
 Private Function FolderExistsBootstrap(ByVal folderPath As String) As Boolean
-    folderPath = Trim$(Replace$(folderPath, "/", "\"))
-    If folderPath = "" Then Exit Function
-    If Right$(folderPath, 1) = "\" And Len(folderPath) > 3 Then folderPath = Left$(folderPath, Len(folderPath) - 1)
-
-    FolderExistsBootstrap = (Len(Dir$(folderPath, vbDirectory)) > 0)
+    FolderExistsBootstrap = modDeploymentPaths.FolderExistsManaged(folderPath)
 End Function
 
 Private Function FileExistsBootstrap(ByVal filePath As String) As Boolean
-    filePath = Trim$(Replace$(filePath, "/", "\"))
-    If filePath = "" Then Exit Function
-
-    FileExistsBootstrap = (Len(Dir$(filePath, vbNormal)) > 0)
+    FileExistsBootstrap = modDeploymentPaths.FileExistsManaged(filePath)
 End Function
 
 Private Function NormalizeFolderPathBootstrap(ByVal folderPath As String) As String
-    folderPath = Trim$(Replace$(folderPath, "/", "\"))
-    If folderPath = "" Then Exit Function
-    If Right$(folderPath, 1) <> "\" Then folderPath = folderPath & "\"
-    NormalizeFolderPathBootstrap = folderPath
+    NormalizeFolderPathBootstrap = modDeploymentPaths.NormalizeManagedFolderPath(folderPath, True)
 End Function
 
 Private Function ResolveBootstrapRootPath(ByRef spec As WarehouseSpec) As String
     Dim resolvedPath As String
 
     resolvedPath = Trim$(spec.PathLocal)
-    If resolvedPath = "" Then resolvedPath = BOOTSTRAP_LOCAL_ROOT & "\" & spec.WarehouseId
+    If resolvedPath = "" Then resolvedPath = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(spec.WarehouseId, False)
     ResolveBootstrapRootPath = NormalizeFolderPathBootstrap(resolvedPath)
     If Right$(ResolveBootstrapRootPath, 1) = "\" Then
         ResolveBootstrapRootPath = Left$(ResolveBootstrapRootPath, Len(ResolveBootstrapRootPath) - 1)
@@ -559,11 +564,7 @@ Private Sub RestoreCoreRootOverrideBootstrap(ByVal priorRootOverride As String)
 End Sub
 
 Private Function GetParentFolderBootstrap(ByVal pathIn As String) As String
-    Dim sepPos As Long
-
-    pathIn = Trim$(Replace$(pathIn, "/", "\"))
-    sepPos = InStrRev(pathIn, "\")
-    If sepPos > 1 Then GetParentFolderBootstrap = Left$(pathIn, sepPos - 1)
+    GetParentFolderBootstrap = modDeploymentPaths.GetParentFolderManaged(pathIn)
 End Function
 
 Private Sub EnsureFolderForFileBootstrap(ByVal filePath As String)
@@ -588,18 +589,7 @@ Private Function GetFileNameBootstrap(ByVal fullPath As String) As String
 End Function
 
 Private Sub EnsureFolderRecursiveBootstrap(ByVal folderPath As String)
-    Dim parentPath As String
-
-    folderPath = Trim$(Replace$(folderPath, "/", "\"))
-    If folderPath = "" Then Exit Sub
-    If Len(Dir$(folderPath, vbDirectory)) > 0 Then Exit Sub
-
-    parentPath = GetParentFolderBootstrap(folderPath)
-    If parentPath <> "" And Len(Dir$(parentPath, vbDirectory)) = 0 Then EnsureFolderRecursiveBootstrap parentPath
-
-    On Error Resume Next
-    MkDir folderPath
-    On Error GoTo 0
+    modDeploymentPaths.EnsureFolderRecursiveManaged folderPath
 End Sub
 
 Private Sub DeleteFolderRecursiveBootstrap(ByVal folderPath As String)
