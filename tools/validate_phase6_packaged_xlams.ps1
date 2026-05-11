@@ -43,6 +43,24 @@ function Run-WorkbookMacro {
     [void]$Excel.Run($fullMacro)
 }
 
+function Begin-QuietUi {
+    param([object]$Excel)
+
+    try {
+        [void]$Excel.Run("'invSys.Core.xlam'!modUiQuiet.BeginQuietUi")
+    }
+    catch {}
+}
+
+function End-QuietUi {
+    param([object]$Excel)
+
+    try {
+        [void]$Excel.Run("'invSys.Core.xlam'!modUiQuiet.EndQuietUi")
+    }
+    catch {}
+}
+
 function Get-WorksheetSafe {
     param(
         [object]$Workbook,
@@ -124,6 +142,7 @@ $validationSpecs = @(
     @{
         Name = "Receiving"
         File = "invSys.Receiving.xlam"
+        TargetFile = "WH1.Receiving.Operator.xlsx"
         InitMacro = "modReceivingInit.InitReceivingAddin"
         SafeMacro = "modTS_Received.EnsureGeneratedButtons"
         Tables = @(
@@ -136,6 +155,7 @@ $validationSpecs = @(
     @{
         Name = "Shipping"
         File = "invSys.Shipping.xlam"
+        TargetFile = "WH1.Shipping.Operator.xlsx"
         InitMacro = "modShippingInit.InitShippingAddin"
         SafeMacro = "modTS_Shipments.InitializeShipmentsUI"
         Tables = @(
@@ -148,6 +168,7 @@ $validationSpecs = @(
     @{
         Name = "Production"
         File = "invSys.Production.xlam"
+        TargetFile = "WH1.Production.Operator.xlsx"
         InitMacro = "modProductionInit.InitProductionAddin"
         SafeMacro = "mProduction.InitializeProductionUI"
         Tables = @(
@@ -159,6 +180,7 @@ $validationSpecs = @(
     @{
         Name = "Admin"
         File = "invSys.Admin.xlam"
+        TargetFile = "WH1.Admin.Console.xlsx"
         InitMacro = "modAdminInit.InitAdminAddin"
         SafeMacro = ""
         Tables = @(
@@ -174,8 +196,12 @@ $resultRows = New-Object 'System.Collections.Generic.List[object]'
 $excel = $null
 $openedWorkbooks = New-Object 'System.Collections.Generic.List[object]'
 $workbookMap = @{}
+$targetWorkbooks = New-Object 'System.Collections.Generic.List[object]'
+$targetRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("invsys-packaged-surfaces-" + [guid]::NewGuid().ToString("N"))
 
 try {
+    New-Item -ItemType Directory -Path $targetRoot -Force | Out-Null
+
     $excel = New-Object -ComObject Excel.Application
     $excel.Visible = $false
     $excel.DisplayAlerts = $false
@@ -213,8 +239,21 @@ try {
         }
 
         $wb = $workbookMap[$fileName]
+        $targetWb = $null
 
         try {
+            $targetPath = Join-Path $targetRoot $spec.TargetFile
+            $targetWb = $excel.Workbooks.Add()
+            $targetWorkbooks.Add($targetWb) | Out-Null
+            $targetWb.SaveAs($targetPath, 51)
+            $targetWb.Activate()
+        }
+        catch {
+            Add-ResultRow -Rows $resultRows -Check "$($spec.Name).TargetWorkbook" -Passed $false -Detail $_.Exception.Message
+        }
+
+        try {
+            if ($null -ne $targetWb) { $targetWb.Activate() }
             Run-WorkbookMacro -Excel $excel -WorkbookName $wb.Name -MacroName $spec.InitMacro
             Add-ResultRow -Rows $resultRows -Check "$($spec.Name).Init" -Passed $true -Detail $spec.InitMacro
         }
@@ -224,15 +263,21 @@ try {
 
         if ($spec.SafeMacro -ne "") {
             try {
+                if ($null -ne $targetWb) { $targetWb.Activate() }
+                Begin-QuietUi -Excel $excel
                 Run-WorkbookMacro -Excel $excel -WorkbookName $wb.Name -MacroName $spec.SafeMacro
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).SafeMacro" -Passed $true -Detail $spec.SafeMacro
             }
             catch {
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).SafeMacro" -Passed $false -Detail $_.Exception.Message
             }
+            finally {
+                End-QuietUi -Excel $excel
+            }
         }
 
-        $surfaceResult = Test-WorkbookSurface -Workbook $wb -TableSpecs $spec.Tables
+        $surfaceWorkbook = if ($null -ne $targetWb) { $targetWb } else { $wb }
+        $surfaceResult = Test-WorkbookSurface -Workbook $surfaceWorkbook -TableSpecs $spec.Tables
         Add-ResultRow -Rows $resultRows -Check "$($spec.Name).Surface" -Passed ($surfaceResult -eq "OK") -Detail $surfaceResult
     }
 }
@@ -262,10 +307,15 @@ finally {
         try { $wb.Close($false) } catch {}
         Release-ComObject $wb
     }
+    foreach ($wb in $targetWorkbooks) {
+        try { $wb.Close($false) } catch {}
+        Release-ComObject $wb
+    }
     if ($null -ne $excel) {
         try { $excel.Quit() } catch {}
         Release-ComObject $excel
     }
+    Remove-Item -LiteralPath $targetRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 $failed = @($resultRows | Where-Object { -not $_.Passed }).Count

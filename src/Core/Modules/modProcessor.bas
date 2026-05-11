@@ -230,7 +230,7 @@ Private Function InventoryWorkbookLockedForProcessor(ByVal warehouseId As String
     If Right$(rootPath, 1) <> "\" Then rootPath = rootPath & "\"
 
     targetPath = rootPath & resolvedWh & ".invSys.Data.Inventory.xlsb"
-    If Len(Dir$(targetPath)) = 0 Then Exit Function
+    If Not modDeploymentPaths.FileExistsManaged(targetPath) Then Exit Function
 
     On Error GoTo Locked
     fileNum = FreeFile

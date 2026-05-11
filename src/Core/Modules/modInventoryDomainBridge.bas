@@ -455,7 +455,7 @@ Private Function OpenOrCreateCanonicalInventoryWorkbookLocal(ByVal warehouseId A
     Set wb = FindOpenWorkbookByFullNameLocal(targetPath)
     If wb Is Nothing Then
         EnsureFolderRecursiveLocal GetParentFolderLocal(targetPath)
-        If Len(Dir$(targetPath)) > 0 Then
+        If FileExistsLocal(targetPath) Then
             If IsWorkbookFileLockedLocal(targetPath) Then
                 report = "Inventory workbook is read-only or locked by another Excel session."
                 Exit Function
@@ -500,7 +500,7 @@ End Function
 Private Function IsWorkbookFileLockedLocal(ByVal targetPath As String) As Boolean
     Dim fileNum As Integer
 
-    If Len(Dir$(targetPath)) = 0 Then Exit Function
+    If Not FileExistsLocal(targetPath) Then Exit Function
 
     On Error GoTo Locked
     fileNum = FreeFile
@@ -564,15 +564,27 @@ Private Sub EnsureFolderRecursiveLocal(ByVal folderPath As String)
 
     folderPath = Trim$(folderPath)
     If folderPath = "" Then Exit Sub
-    If Len(Dir$(folderPath, vbDirectory)) > 0 Then Exit Sub
+    If FolderExistsLocal(folderPath) Then Exit Sub
 
     parentPath = GetParentFolderLocal(folderPath)
-    If parentPath <> "" And Len(Dir$(parentPath, vbDirectory)) = 0 Then EnsureFolderRecursiveLocal parentPath
+    If parentPath <> "" And Not FolderExistsLocal(parentPath) Then EnsureFolderRecursiveLocal parentPath
 
     On Error Resume Next
-    MkDir folderPath
+    If Left$(folderPath, 2) = "\\" Then
+        CreateObject("Scripting.FileSystemObject").CreateFolder folderPath
+    Else
+        MkDir folderPath
+    End If
     On Error GoTo 0
 End Sub
+
+Private Function FileExistsLocal(ByVal filePath As String) As Boolean
+    FileExistsLocal = modDeploymentPaths.FileExistsManaged(filePath)
+End Function
+
+Private Function FolderExistsLocal(ByVal folderPath As String) As Boolean
+    FolderExistsLocal = modDeploymentPaths.FolderExistsManaged(folderPath)
+End Function
 
 Private Function SafeTrim(ByVal valueIn As Variant) As String
     On Error Resume Next

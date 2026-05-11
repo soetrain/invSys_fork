@@ -55,7 +55,7 @@ Public Sub EnsureGeneratedButtons()
                 report = report & vbCrLf & vbCrLf & diag
             End If
         End If
-        MsgBox report, vbExclamation, "invSys Receiving"
+        If Not modUiQuiet.QuietUiIsActive() Then MsgBox report, vbExclamation, "invSys Receiving"
         Exit Sub
     End If
 
@@ -65,13 +65,15 @@ Public Sub EnsureGeneratedButtons()
     snapshotPath = ResolveDiagnosticValueReceiving(diag, "SnapshotPath")
 
     If StrComp(Trim$(report), "OK", vbTextCompare) = 0 Then
-        MsgBox "invSys refreshed from shared snapshot." & vbCrLf & _
-               "Snapshot rows: " & ValueOrUnknownReceiving(snapshotRows) & vbCrLf & _
-               "invSys rows: " & ValueOrUnknownReceiving(invRows) & vbCrLf & _
-               "Snapshot path: " & ValueOrUnknownReceiving(snapshotPath), _
-               vbInformation, "invSys Receiving"
+        If Not modUiQuiet.QuietUiIsActive() Then
+            MsgBox "invSys refreshed from shared snapshot." & vbCrLf & _
+                   "Snapshot rows: " & ValueOrUnknownReceiving(snapshotRows) & vbCrLf & _
+                   "invSys rows: " & ValueOrUnknownReceiving(invRows) & vbCrLf & _
+                   "Snapshot path: " & ValueOrUnknownReceiving(snapshotPath), _
+                   vbInformation, "invSys Receiving"
+        End If
     Else
-        MsgBox report & vbCrLf & vbCrLf & diag, vbInformation, "invSys Receiving"
+        If Not modUiQuiet.QuietUiIsActive() Then MsgBox report & vbCrLf & vbCrLf & diag, vbInformation, "invSys Receiving"
     End If
 End Sub
 
@@ -80,7 +82,7 @@ Public Sub InitializeReceivingUiForWorkbook(Optional ByVal targetWb As Workbook 
     Dim wb As Workbook
     Dim ws As Worksheet
 
-    Set wb = ResolveReceivingWorkbook(targetWb, SHEET_RECEIVING)
+    Set wb = ResolveReceivingWorkbook(targetWb)
     If wb Is Nothing Then Exit Sub
 
     Call modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wb, surfaceReport)
@@ -99,7 +101,7 @@ Public Function RefreshReceivingUiForWorkbook(Optional ByVal targetWb As Workboo
                                               Optional ByRef report As String = "") As Boolean
     Dim wb As Workbook
 
-    Set wb = ResolveReceivingWorkbook(targetWb, SHEET_RECEIVING)
+    Set wb = ResolveReceivingWorkbook(targetWb)
     If wb Is Nothing Then
         report = "Activate a receiving operator workbook with the ReceivedTally sheet before running Receiving UI actions."
         Exit Function

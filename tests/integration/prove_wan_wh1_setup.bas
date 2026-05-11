@@ -291,6 +291,9 @@ FailResolve:
 End Function
 
 Private Function ResolveRuntimeRootWanWh1() As String
+    ResolveRuntimeRootWanWh1 = NormalizeFolderPathWanWh1(Trim$(Environ$("INVSYS_WH1_RUNTIME_ROOT")))
+    If ResolveRuntimeRootWanWh1 <> "" And FolderExistsWanWh1(ResolveRuntimeRootWanWh1) Then Exit Function
+
     ResolveRuntimeRootWanWh1 = Trim$(modRuntimeWorkbooks.TryResolveExistingRuntimeRoot(WAREHOUSE_ID_WAN_WH1))
     If ResolveRuntimeRootWanWh1 = "" Then
         ResolveRuntimeRootWanWh1 = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(WAREHOUSE_ID_WAN_WH1, False)
