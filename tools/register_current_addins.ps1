@@ -56,18 +56,17 @@ function Find-AddInByName {
     return $null
 }
 
-function Remove-StaleAddinManagerEntries {
+function Remove-InvSysAddinManagerEntries {
     param(
-        [string]$RegistryPath,
-        [string]$KeepPrefix
+        [string]$RegistryPath
     )
 
     if (-not (Test-Path $RegistryPath)) { return }
     $props = Get-ItemProperty -Path $RegistryPath
     foreach ($prop in $props.PSObject.Properties) {
         if ($prop.Name -in @("PSPath", "PSParentPath", "PSChildName", "PSDrive", "PSProvider")) { continue }
-        if ($prop.Name -like "*invSys*" -and -not $prop.Name.StartsWith($KeepPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-            Write-Output ("- remove stale Add-in Manager entry " + $prop.Name)
+        if ($prop.Name -like "*invSys*") {
+            Write-Output ("- remove Add-in Manager entry " + $prop.Name)
             Remove-ItemProperty -Path $RegistryPath -Name $prop.Name -ErrorAction SilentlyContinue
         }
     }
@@ -121,9 +120,6 @@ try {
     Write-Output "Using OPEN-order startup registration only..."
     Write-Output "- dependent invSys XLAMs are not AddIns-installed; Excel opens them once via OPEN keys below"
 
-    Write-Output "Pruning stale registry entries..."
-    Remove-StaleAddinManagerEntries -RegistryPath $addinManagerKey -KeepPrefix $deployPath
-
     Write-Output ""
     Write-Output "Known invSys add-ins:"
     foreach ($fileName in $installOrder) {
@@ -141,6 +137,9 @@ finally {
         Release-ComObject $excel
     }
 }
+
+Write-Output "Pruning Add-in Manager entries..."
+Remove-InvSysAddinManagerEntries -RegistryPath $addinManagerKey
 
 Write-Output "Setting Excel OPEN order..."
 Set-ExcelOpenOrder -RegistryPath $excelOptionsKey -OrderedPaths $orderedPaths
