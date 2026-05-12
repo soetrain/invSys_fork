@@ -97,6 +97,11 @@ function Set-ExcelOpenOrder {
 }
 
 $excel = $null
+$orderedPaths = @()
+foreach ($fileName in $installOrder) {
+    $orderedPaths += (Join-Path $deployPath $fileName)
+}
+
 try {
     $excel = New-Object -ComObject Excel.Application
     $excel.Visible = $false
@@ -113,36 +118,20 @@ try {
         }
     }
 
-    Write-Output "Registering deploy/current add-ins..."
-    foreach ($fileName in $installOrder) {
-        $targetPath = Join-Path $deployPath $fileName
-        $addin = Find-AddInByName -Excel $excel -Name $fileName
-        if ($null -eq $addin -or -not [string]::Equals([string]$addin.FullName, $targetPath, [System.StringComparison]::OrdinalIgnoreCase)) {
-            Write-Output ("- register " + $targetPath)
-            $addin = $excel.AddIns.Add($targetPath, $false)
-        }
-        if (-not [bool]$addin.Installed) {
-            Write-Output ("- enable " + $fileName)
-            $addin.Installed = $true
-        }
-    }
+    Write-Output "Using OPEN-order startup registration only..."
+    Write-Output "- dependent invSys XLAMs are not AddIns-installed; Excel opens them once via OPEN keys below"
 
     Write-Output "Pruning stale registry entries..."
     Remove-StaleAddinManagerEntries -RegistryPath $addinManagerKey -KeepPrefix $deployPath
 
-    Write-Output "Setting Excel OPEN order..."
-    $orderedPaths = @()
-    foreach ($fileName in $installOrder) {
-        $orderedPaths += (Join-Path $deployPath $fileName)
-    }
-    Set-ExcelOpenOrder -RegistryPath $excelOptionsKey -OrderedPaths $orderedPaths
-
     Write-Output ""
-    Write-Output "Active invSys add-ins:"
+    Write-Output "Known invSys add-ins:"
     foreach ($fileName in $installOrder) {
         $addin = Find-AddInByName -Excel $excel -Name $fileName
         if ($null -ne $addin) {
             Write-Output ("- " + $addin.Name + " | Installed=" + [string][bool]$addin.Installed + " | " + $addin.FullName)
+        } else {
+            Write-Output ("- " + $fileName + " | Installed=False | " + (Join-Path $deployPath $fileName))
         }
     }
 }
@@ -152,3 +141,6 @@ finally {
         Release-ComObject $excel
     }
 }
+
+Write-Output "Setting Excel OPEN order..."
+Set-ExcelOpenOrder -RegistryPath $excelOptionsKey -OrderedPaths $orderedPaths
