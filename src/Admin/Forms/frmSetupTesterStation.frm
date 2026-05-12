@@ -27,6 +27,8 @@ Private WithEvents mTxtConfirmPin As MSForms.TextBox
 Attribute mTxtConfirmPin.VB_VarHelpID = -1
 Private WithEvents mBtnOpen As MSForms.CommandButton
 Attribute mBtnOpen.VB_VarHelpID = -1
+Private WithEvents mBtnHubPathHelper As MSForms.CommandButton
+Attribute mBtnHubPathHelper.VB_VarHelpID = -1
 Private WithEvents mBtnSharePointHelper As MSForms.CommandButton
 Attribute mBtnSharePointHelper.VB_VarHelpID = -1
 
@@ -46,7 +48,7 @@ Private Sub UserForm_Initialize()
     ApplyDefaults
     ClearValidationErrors
     InitializeSetupTesterAnchors
-    ShowSummary "Use the locally synced invSys root that contains Addins, Events, Snapshots, and TesterPackage, then click Setup.", COLOR_INFO
+    ShowSummary "Choose the warehouse hub folder first. For Synology, use the SMB warehouse path, for example \\DS920\<share>\WH1. Then choose the locally synced invSys SharePoint root that contains Addins, Events, Snapshots, and TesterPackage.", COLOR_INFO
     mFormBusy = False
 End Sub
 
@@ -103,6 +105,20 @@ End Sub
 Private Sub txtPathSharePoint_Change()
     If mFormBusy Then Exit Sub
     ClearErrorLabel Me.lblPathSharePointError
+End Sub
+
+Private Sub mBtnHubPathHelper_Click()
+    Dim candidate As String
+
+    candidate = modDeploymentPaths.BrowseForFolderPath(Trim$(CStr(Me.txtPathLocal.Value)), "Choose Warehouse Hub Folder")
+    If candidate = "" Then Exit Sub
+
+    mFormBusy = True
+    Me.txtPathLocal.Value = candidate
+    mFormBusy = False
+    mPathLocalTouched = True
+    ClearErrorLabel Me.lblPathLocalError
+    ShowSummary "Warehouse hub path selected. For Synology, this should be the SMB warehouse folder, for example \\DS920\<share>\WH1.", COLOR_SUCCESS
 End Sub
 
 Private Sub mBtnSharePointHelper_Click()
@@ -296,19 +312,7 @@ Private Sub ConfigureShellLayout()
     Me.btnCancel.Width = 96
     Me.btnCancel.Caption = "Close"
 
-    If mBtnSharePointHelper Is Nothing Then
-        Set mBtnSharePointHelper = Me.Controls.Add("Forms.CommandButton.1", "btnSharePointHelperRuntime", True)
-    End If
-    With mBtnSharePointHelper
-        .Left = Me.txtPathSharePoint.Left + Me.txtPathSharePoint.Width + 8
-        .Top = Me.txtPathSharePoint.Top - 1
-        .Width = 72
-        .Height = Me.txtPathSharePoint.Height + 2
-        .Caption = "Find..."
-        .ControlTipText = "Choose the locally synced invSys SharePoint root folder."
-        .Visible = True
-        .Enabled = True
-    End With
+    ConfigurePathHelperButtons
 End Sub
 
 Private Sub CreateDynamicControls()
@@ -317,7 +321,7 @@ Private Sub CreateDynamicControls()
     CreatePromptLabel "lblConfirmPinPrompt", "Confirm PIN", 24, 126, 132
     CreatePromptLabel "lblWarehousePrompt", "Warehouse", 24, 176, 132
     CreatePromptLabel "lblStationPrompt", "Station", 24, 226, 132
-    CreatePromptLabel "lblPathLocalPrompt", "Local Runtime Path", 24, 276, 132
+    CreatePromptLabel "lblPathLocalPrompt", "Warehouse Hub Path", 24, 276, 132
     CreatePromptLabel "lblSharePointPrompt", "SharePoint Root", 24, 326, 132
 
     Set mTxtConfirmPin = Me.Controls.Add("Forms.TextBox.1", "txtConfirmPinRuntime", True)
@@ -352,6 +356,7 @@ Private Sub CreateDynamicControls()
 
     Me.btnOK.Top = 440
     Me.btnCancel.Top = 440
+    ConfigurePathHelperButtons
 
     Set mBtnOpen = Me.Controls.Add("Forms.CommandButton.1", "btnOpenReceivingRuntime", True)
     With mBtnOpen
@@ -360,6 +365,36 @@ Private Sub CreateDynamicControls()
         .Width = 138
         .Caption = "Open Workbook"
         .Visible = False
+    End With
+End Sub
+
+Private Sub ConfigurePathHelperButtons()
+    If mBtnHubPathHelper Is Nothing Then
+        Set mBtnHubPathHelper = Me.Controls.Add("Forms.CommandButton.1", "btnHubPathHelperRuntime", True)
+    End If
+    With mBtnHubPathHelper
+        .Left = Me.txtPathLocal.Left + Me.txtPathLocal.Width + 8
+        .Top = Me.txtPathLocal.Top - 1
+        .Width = 72
+        .Height = Me.txtPathLocal.Height + 2
+        .Caption = "Find..."
+        .ControlTipText = "Choose the warehouse hub folder. For Synology, use the SMB path."
+        .Visible = True
+        .Enabled = True
+    End With
+
+    If mBtnSharePointHelper Is Nothing Then
+        Set mBtnSharePointHelper = Me.Controls.Add("Forms.CommandButton.1", "btnSharePointHelperRuntime", True)
+    End If
+    With mBtnSharePointHelper
+        .Left = Me.txtPathSharePoint.Left + Me.txtPathSharePoint.Width + 8
+        .Top = Me.txtPathSharePoint.Top - 1
+        .Width = 72
+        .Height = Me.txtPathSharePoint.Height + 2
+        .Caption = "Find..."
+        .ControlTipText = "Choose the locally synced invSys SharePoint root folder."
+        .Visible = True
+        .Enabled = True
     End With
 End Sub
 
@@ -401,7 +436,7 @@ Private Function BuildSpecFromForm(ByRef spec As modTesterSetup.TesterSetupSpec,
         isValid = False
     End If
     If spec.PathLocal = "" Then
-        SetErrorLabel Me.lblPathLocalError, "Local runtime path is required."
+        SetErrorLabel Me.lblPathLocalError, "Warehouse hub path is required."
         isValid = False
     End If
     If Not isValid Then Exit Function
@@ -516,5 +551,6 @@ Private Sub InitializeSetupTesterAnchors()
     mAnchors.Add Me.btnOK, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add Me.btnCancel, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     If Not mBtnOpen Is Nothing Then mAnchors.Add mBtnOpen, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    If Not mBtnHubPathHelper Is Nothing Then mAnchors.Add mBtnHubPathHelper, ANCHOR_RIGHT Or ANCHOR_TOP
     If Not mBtnSharePointHelper Is Nothing Then mAnchors.Add mBtnSharePointHelper, ANCHOR_RIGHT Or ANCHOR_TOP
 End Sub
