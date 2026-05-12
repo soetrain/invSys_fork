@@ -43,7 +43,7 @@ Public Sub EnsureGeneratedButtons()
     Dim invRows As String
     Dim snapshotPath As String
 
-    Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook, SHEET_RECEIVING)
+    Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook)
     If Not RefreshReceivingUiForWorkbook(wb, report) Then
         If wb Is Nothing Then
             If Trim$(report) = "" Then report = "Activate a receiving operator workbook with the ReceivedTally sheet before running Receiving UI actions."
