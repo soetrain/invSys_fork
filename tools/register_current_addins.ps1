@@ -24,6 +24,12 @@ $installOrder = @(
 )
 $uninstallOrder = @($installOrder.Clone())
 [array]::Reverse($uninstallOrder)
+$startupOrder = @(
+    "invSys.Receiving.xlam",
+    "invSys.Shipping.xlam",
+    "invSys.Production.xlam",
+    "invSys.Admin.xlam"
+)
 
 foreach ($fileName in $installOrder) {
     $path = Join-Path $deployPath $fileName
@@ -97,7 +103,7 @@ function Set-ExcelOpenOrder {
 
 $excel = $null
 $orderedPaths = @()
-foreach ($fileName in $installOrder) {
+foreach ($fileName in $startupOrder) {
     $orderedPaths += (Join-Path $deployPath $fileName)
 }
 
@@ -117,8 +123,8 @@ try {
         }
     }
 
-    Write-Output "Using OPEN-order startup registration only..."
-    Write-Output "- dependent invSys XLAMs are not AddIns-installed; Excel opens them once via OPEN keys below"
+    Write-Output "Using leaf XLAM startup registration only..."
+    Write-Output "- Core and Domain XLAMs are not explicitly opened; referenced role/Admin XLAMs load them as dependencies"
 
     Write-Output ""
     Write-Output "Known invSys add-ins:"
