@@ -41,27 +41,6 @@ foreach ($fileName in $installOrder) {
 $excelOptionsKey = "HKCU:\Software\Microsoft\Office\16.0\Excel\Options"
 $addinManagerKey = "HKCU:\Software\Microsoft\Office\16.0\Excel\Add-in Manager"
 
-function Release-ComObject {
-    param([object]$Obj)
-    if ($null -ne $Obj) {
-        try { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($Obj) } catch {}
-    }
-}
-
-function Find-AddInByName {
-    param(
-        [object]$Excel,
-        [string]$Name
-    )
-
-    foreach ($addin in $Excel.AddIns) {
-        if ([string]::Equals([string]$addin.Name, $Name, [System.StringComparison]::OrdinalIgnoreCase)) {
-            return $addin
-        }
-    }
-    return $null
-}
-
 function Remove-InvSysAddinManagerEntries {
     param(
         [string]$RegistryPath
@@ -88,61 +67,32 @@ function Set-ExcelOpenOrder {
         New-Item -Path $RegistryPath -Force | Out-Null
     }
 
-    for ($i = 0; $i -lt 10; $i++) {
+    $props = Get-ItemProperty -Path $RegistryPath
+    foreach ($prop in $props.PSObject.Properties) {
+        if ($prop.Name -notmatch '^OPEN\d*$') { continue }
+        Write-Output ("- remove " + $prop.Name + "=" + [string]$prop.Value)
+        Remove-ItemProperty -Path $RegistryPath -Name $prop.Name -ErrorAction SilentlyContinue
+    }
+
+    for ($i = 0; $i -lt $OrderedPaths.Count; $i++) {
         $name = if ($i -eq 0) { "OPEN" } else { "OPEN$i" }
-        if ($i -lt $OrderedPaths.Count) {
-            $value = '"' + $OrderedPaths[$i] + '"'
-            Write-Output ("- set " + $name + "=" + $value)
-            Set-ItemProperty -Path $RegistryPath -Name $name -Value $value -Type String
-        }
-        else {
-            Remove-ItemProperty -Path $RegistryPath -Name $name -ErrorAction SilentlyContinue
-        }
+        $value = '"' + $OrderedPaths[$i] + '"'
+        Write-Output ("- set " + $name + "=" + $value)
+        Set-ItemProperty -Path $RegistryPath -Name $name -Value $value -Type String
     }
 }
 
-$excel = $null
 $orderedPaths = @()
 foreach ($fileName in $startupOrder) {
     $orderedPaths += (Join-Path $deployPath $fileName)
 }
 
-try {
-    $excel = New-Object -ComObject Excel.Application
-    $excel.Visible = $false
-    $excel.DisplayAlerts = $false
-    $excel.EnableEvents = $false
-    $excel.AutomationSecurity = 1
-
-    Write-Output "Disabling registered invSys add-ins..."
-    foreach ($fileName in $uninstallOrder) {
-        $addin = Find-AddInByName -Excel $excel -Name $fileName
-        if ($null -ne $addin -and [bool]$addin.Installed) {
-            Write-Output ("- disable " + $fileName + " (" + $addin.FullName + ")")
-            $addin.Installed = $false
-        }
-    }
-
-    Write-Output "Using leaf XLAM startup registration only..."
-    Write-Output "- Core and Domain XLAMs are not explicitly opened; referenced role/Admin XLAMs load them as dependencies"
-
-    Write-Output ""
-    Write-Output "Known invSys add-ins:"
-    foreach ($fileName in $installOrder) {
-        $addin = Find-AddInByName -Excel $excel -Name $fileName
-        if ($null -ne $addin) {
-            Write-Output ("- " + $addin.Name + " | Installed=" + [string][bool]$addin.Installed + " | " + $addin.FullName)
-        } else {
-            Write-Output ("- " + $fileName + " | Installed=False | " + (Join-Path $deployPath $fileName))
-        }
-    }
+if (Get-Process EXCEL -ErrorAction SilentlyContinue) {
+    throw "Close all Excel windows before registering invSys add-ins."
 }
-finally {
-    if ($null -ne $excel) {
-        try { $excel.Quit() } catch {}
-        Release-ComObject $excel
-    }
-}
+
+Write-Output "Using registry-only leaf XLAM startup registration..."
+Write-Output "- Core and Domain XLAMs are not explicitly opened; referenced role/Admin XLAMs load them as dependencies"
 
 Write-Output "Pruning Add-in Manager entries..."
 Remove-InvSysAddinManagerEntries -RegistryPath $addinManagerKey
