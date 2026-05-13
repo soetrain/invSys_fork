@@ -764,8 +764,19 @@ try {
                 if (-not $builtOutputs.ContainsKey($referenceKey)) {
                     throw "Referenced project '$referenceKey' has not been built yet."
                 }
-                Write-Host ("  Adding project reference " + $referenceKey + " -> " + $builtOutputs[$referenceKey])
-                Add-ReferenceByPath -VBProject $vbProject -ReferencePath $builtOutputs[$referenceKey]
+
+                $referenceProject = $projectMap | Where-Object { $_.Key -eq $referenceKey } | Select-Object -First 1
+                if ($null -eq $referenceProject) {
+                    throw "Referenced project '$referenceKey' is not defined in projectMap."
+                }
+
+                $referencePath = Join-Path $outputDir $referenceProject.OutputFile
+                if (-not (Test-Path -LiteralPath $referencePath)) {
+                    $referencePath = $builtOutputs[$referenceKey]
+                }
+
+                Write-Host ("  Adding project reference " + $referenceKey + " -> " + $referencePath)
+                Add-ReferenceByPath -VBProject $vbProject -ReferencePath $referencePath
             }
 
             if ($project.Sheets.Count -gt 0) {
