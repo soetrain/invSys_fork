@@ -14,12 +14,13 @@ Public Function TestTesterSetup_EndToEnd() As Long
 
     ResetTesterSetupEvidence
     RecordTesterSetupCase "FreshMachine.CreatesRuntimeAndWorkbook", RunFreshMachineCase(detailText), detailText
+    RecordTesterSetupCase "ExistingHub.CreatesNamespacedTesterRuntime", RunExistingHubCreatesTesterRuntimeCase(detailText), detailText
     RecordTesterSetupCase "IdempotentRerun.DoesNotDuplicateSeed", RunIdempotentRerunCase(detailText), detailText
     RecordTesterSetupCase "SharePointUnavailable.LocalSetupStillSucceeds", RunSharePointUnavailableCase(detailText), detailText
     RecordTesterSetupCase "ExistingAuth.HashPreservedCapabilitiesUpdated", RunExistingAuthCase(detailText), detailText
 
     If AllTesterSetupCasesPassed() Then
-        mSummary = "Tester station setup passed fresh-machine, rerun-safe, offline-SharePoint, and existing-auth cases."
+        mSummary = "Tester station setup passed fresh-machine, existing-hub, rerun-safe, offline-SharePoint, and existing-auth cases."
         TestTesterSetup_EndToEnd = 1
     Else
         mSummary = "One or more tester station setup cases failed."
@@ -76,6 +77,51 @@ Private Function RunFreshMachineCase(ByRef detailText As String) As Boolean
 
     RunFreshMachineCase = True
     detailText = "Fresh setup created the runtime tree, auth/config state, TEST-SKU-001 seed, and a valid receiving workbook."
+
+CleanExit:
+    modWarehouseBootstrap.ClearWarehouseBootstrapTemplateRootOverride
+    CleanupTesterSetupRoot runtimeBase
+    Exit Function
+CleanFail:
+    detailText = Err.Description
+    Resume CleanExit
+End Function
+
+Private Function RunExistingHubCreatesTesterRuntimeCase(ByRef detailText As String) As Boolean
+    Dim warehouseId As String
+    Dim runtimeBase As String
+    Dim hubRoot As String
+    Dim shareRoot As String
+    Dim templateRoot As String
+    Dim spec As modTesterSetup.TesterSetupSpec
+    Dim expectedHash As String
+
+    warehouseId = "TESTSTATION"
+    runtimeBase = BuildTesterSetupTempRoot("existing_hub")
+    hubRoot = runtimeBase & "\runtime\hub"
+    shareRoot = runtimeBase & "\sharepoint"
+    templateRoot = runtimeBase & "\templates"
+    expectedHash = modAuth.HashUserCredential("111111")
+
+    On Error GoTo CleanFail
+    EnsureFolderRecursiveTesterSetupCase hubRoot
+    EnsureFolderRecursiveTesterSetupCase shareRoot
+    modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride templateRoot
+
+    spec = BuildTesterSetupSpecCase("tester.hub", "111111", warehouseId, "TS1", hubRoot, shareRoot)
+    If Not modTesterSetup.SetupTesterStation(spec) Then
+        detailText = modTesterSetup.GetLastTesterSetupReport()
+        GoTo CleanExit
+    End If
+
+    If InStr(1, modTesterSetup.GetLastTesterSetupReport(), "Runtime=CREATED", vbTextCompare) = 0 Then
+        detailText = "Existing hub setup did not report tester runtime creation."
+        GoTo CleanExit
+    End If
+    If Not AssertSetupArtifactsTesterSetupCase(spec, expectedHash, detailText) Then GoTo CleanExit
+
+    RunExistingHubCreatesTesterRuntimeCase = True
+    detailText = "Existing hub folder accepted a namespaced tester runtime without requiring matching warehouse artifacts first."
 
 CleanExit:
     modWarehouseBootstrap.ClearWarehouseBootstrapTemplateRootOverride

@@ -770,9 +770,9 @@ try {
                     throw "Referenced project '$referenceKey' is not defined in projectMap."
                 }
 
-                $referencePath = Join-Path $outputDir $referenceProject.OutputFile
+                $referencePath = $builtOutputs[$referenceKey]
                 if (-not (Test-Path -LiteralPath $referencePath)) {
-                    $referencePath = $builtOutputs[$referenceKey]
+                    $referencePath = Join-Path $outputDir $referenceProject.OutputFile
                 }
 
                 Write-Host ("  Adding project reference " + $referenceKey + " -> " + $referencePath)
@@ -814,7 +814,10 @@ finally {
     if ($null -ne $excel) {
         try { $excel.Quit() } catch {}
         Release-ComObject $excel
+        $excel = $null
     }
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
 }
 
 if ($buildSucceeded) {
@@ -822,13 +825,18 @@ if ($buildSucceeded) {
         $stagedPath = $builtOutputs[$project.Key]
         $finalPath = Join-Path $outputDir $project.OutputFile
         Remove-ExistingFile -Path $finalPath
-        Move-Item -LiteralPath $stagedPath -Destination $finalPath -Force
+        Copy-Item -LiteralPath $stagedPath -Destination $finalPath -Force
         Write-Host ("Published " + $finalPath)
     }
 }
 
 if (Test-Path -LiteralPath $stagingDir) {
-    Remove-Item -LiteralPath $stagingDir -Recurse -Force
+    try {
+        Remove-Item -LiteralPath $stagingDir -Recurse -Force
+    }
+    catch {
+        Write-Warning ("Could not remove staging directory " + $stagingDir + ": " + $_.Exception.Message)
+    }
 }
 
 Write-Host "Build complete."

@@ -1085,6 +1085,7 @@ Private Sub EnsureDirectoryExistsAuth(ByVal folderPath As String)
     Dim parts() As String
     Dim currentPath As String
     Dim i As Long
+    Dim startIndex As Long
 
     normalizedPath = SafeTrim(folderPath)
     If normalizedPath = "" Then Exit Sub
@@ -1095,12 +1096,23 @@ Private Sub EnsureDirectoryExistsAuth(ByVal folderPath As String)
     parts = Split(normalizedPath, "\")
     If UBound(parts) < 0 Then Exit Sub
 
-    currentPath = parts(0)
+    If Left$(normalizedPath, 2) = "\\" Then
+        If UBound(parts) < 3 Then Exit Sub
+        currentPath = "\\" & parts(2) & "\" & parts(3)
+        startIndex = 4
+    Else
+        currentPath = parts(0)
+        startIndex = 1
+    End If
+
+    If Len(Dir$(currentPath, vbDirectory)) = 0 Then Exit Sub
     If Right$(currentPath, 1) <> "\" Then currentPath = currentPath & "\"
-    For i = 1 To UBound(parts)
+    For i = startIndex To UBound(parts)
+        If parts(i) = "" Then GoTo ContinuePart
         currentPath = currentPath & parts(i)
         If Len(Dir$(currentPath, vbDirectory)) = 0 Then MkDir currentPath
         currentPath = currentPath & "\"
+ContinuePart:
     Next i
 End Sub
 

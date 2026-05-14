@@ -144,6 +144,7 @@ End Function
 Private Function FindInventoryDomainMacroHostName() As String
     Dim wb As Workbook
     Dim addin As AddIn
+    Dim peerPath As String
 
     For Each wb In Application.Workbooks
         If StrComp(wb.Name, INVENTORY_DOMAIN_ADDIN_NAME, vbTextCompare) = 0 Then
@@ -174,6 +175,22 @@ Private Function FindInventoryDomainMacroHostName() As String
 NextAddIn:
     Next addin
     On Error GoTo 0
+
+    peerPath = ThisWorkbook.Path
+    If Trim$(peerPath) <> "" Then
+        If Right$(peerPath, 1) <> "\" Then peerPath = peerPath & "\"
+        peerPath = peerPath & INVENTORY_DOMAIN_ADDIN_NAME
+        If Len(Dir$(peerPath, vbNormal)) > 0 Then
+            On Error Resume Next
+            Set wb = Application.Workbooks.Open(Filename:=peerPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+            If Not wb Is Nothing Then
+                wb.IsAddin = True
+                FindInventoryDomainMacroHostName = wb.Name
+                Exit Function
+            End If
+            On Error GoTo 0
+        End If
+    End If
 End Function
 
 Private Function RunInventoryDomainMacroFallback0(ByVal macroName As String) As Variant

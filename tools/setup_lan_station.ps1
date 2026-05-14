@@ -132,7 +132,7 @@ function Get-RoleSetup {
                     @{ Workbook = "invSys.Receiving.xlam"; Macro = "modReceivingInit.InitReceivingAddin" }
                 )
                 EnsureSteps = @(
-                    @{ Workbook = "invSys.Receiving.xlam"; Macro = "modReceivingInit.EnsureReceivingSurfaceForWorkbook" }
+                    @{ Workbook = "invSys.Receiving.xlam"; Macro = "modTS_Received.InitializeReceivingUiForWorkbook" }
                 )
             }
         }

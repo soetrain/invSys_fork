@@ -36,6 +36,8 @@ Public Function SetupTesterStation(ByRef spec As TesterSetupSpec) As Boolean
     Dim configReport As String
     Dim operatorPath As String
     Dim priorRootOverride As String
+    Dim runtimeArtifactsExist As Boolean
+    Dim runtimeCreated As Boolean
 
     On Error GoTo FailSetup
 
@@ -60,12 +62,23 @@ Public Function SetupTesterStation(ByRef spec As TesterSetupSpec) As Boolean
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
 
     runtimeExists = FolderExistsTesterSetup(rootPath)
-    If Not runtimeExists Then
-        PublishTesterSetupProgress "Creating runtime..."
-        If Not modWarehouseBootstrap.BootstrapWarehouseLocalValues(spec.WarehouseId, spec.WarehouseId, spec.StationId, spec.UserId, rootPath, vbNullString) Then
-            report = modWarehouseBootstrap.GetLastWarehouseBootstrapReport()
+    runtimeArtifactsExist = RuntimeArtifactsExistTesterSetup(rootPath, spec.WarehouseId)
+    If Not runtimeExists And IsUncPathTesterSetup(rootPath) Then
+        report = "Warehouse hub path is not accessible: " & rootPath
+        GoTo FailSoft
+    End If
+    If Not runtimeArtifactsExist Then
+        If IsUncPathTesterSetup(rootPath) Then
+            PublishTesterSetupProgress "Creating tester runtime in hub..."
+        Else
+            PublishTesterSetupProgress "Creating tester runtime..."
+        End If
+        If Not CreateTesterRuntimeArtifactsTesterSetup(spec, rootPath, report) Then
             GoTo FailSoft
         End If
+        runtimeExists = True
+        runtimeArtifactsExist = True
+        runtimeCreated = True
     End If
     EnsureFolderRecursiveTesterSetup rootPath & "\auth"
 
@@ -103,7 +116,7 @@ Public Function SetupTesterStation(ByRef spec As TesterSetupSpec) As Boolean
     report = "OK|WarehouseId=" & spec.WarehouseId & _
              "|StationId=" & spec.StationId & _
              "|UserId=" & spec.UserId & _
-             "|Runtime=" & IIf(runtimeExists, "EXISTING", "CREATED") & _
+             "|Runtime=" & IIf(runtimeCreated, "CREATED", "EXISTING") & _
              "|Inbox=" & inboxPath & _
              "|Seed=" & seedReport & _
              "|Auth=" & authReport & _
@@ -390,6 +403,8 @@ End Sub
 Private Function SeedTesterScenarioInventory(ByRef spec As TesterSetupSpec, _
                                              ByRef report As String) As Boolean
     Dim inventoryWb As Workbook
+    Dim inventoryPath As String
+    Dim openedTransient As Boolean
     Dim seedPayload As Object
     Dim payloadJson As String
     Dim eventIdOut As String
@@ -402,8 +417,13 @@ Private Function SeedTesterScenarioInventory(ByRef spec As TesterSetupSpec, _
 
     Set inventoryWb = modInventoryApply.ResolveInventoryWorkbook(spec.WarehouseId, Nothing)
     If inventoryWb Is Nothing Then
-        report = "Canonical inventory workbook could not be resolved."
-        GoTo FailSoft
+        inventoryPath = NormalizeFolderPathTesterSetup(spec.PathLocal, False) & "\" & spec.WarehouseId & ".invSys.Data.Inventory.xlsb"
+        Set inventoryWb = OpenWorkbookForWriteTesterSetup(inventoryPath, openedTransient, report)
+        If inventoryWb Is Nothing Then
+            If Len(report) = 0 Then report = "Canonical inventory workbook could not be resolved."
+            GoTo FailSoft
+        End If
+        If Not EnsureInventorySchemaBridge(inventoryWb, report) Then GoTo FailSoft
     End If
 
     If TesterSeedAlreadyPresentTesterSetup(inventoryWb) Then
@@ -466,6 +486,7 @@ FailSeed:
 
 CleanExit:
     RevokeAdminCapabilityTesterSetup spec
+    CloseWorkbookIfTransientTesterSetup inventoryWb, openedTransient
 End Function
 
 Private Function CreateOrVerifyReceivingWorkbook(ByRef spec As TesterSetupSpec, _
@@ -636,6 +657,108 @@ Private Function BuildReceivingOperatorPathTesterSetup(ByRef spec As TesterSetup
     rootPath = NormalizeFolderPathTesterSetup(spec.PathLocal, False)
     If rootPath = "" Then Exit Function
     BuildReceivingOperatorPathTesterSetup = rootPath & "\" & spec.WarehouseId & TESTER_DEFAULT_OPERATOR_SUFFIX
+End Function
+
+Private Function RuntimeArtifactsExistTesterSetup(ByVal rootPath As String, ByVal warehouseId As String) As Boolean
+    rootPath = NormalizeFolderPathTesterSetup(rootPath, False)
+    warehouseId = Trim$(warehouseId)
+    If rootPath = "" Or warehouseId = "" Then Exit Function
+
+    RuntimeArtifactsExistTesterSetup = _
+        FileExistsTesterSetup(rootPath & "\" & warehouseId & ".invSys.Config.xlsb") And _
+        FileExistsTesterSetup(rootPath & "\" & warehouseId & ".invSys.Auth.xlsb") And _
+        FileExistsTesterSetup(rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb")
+End Function
+
+Private Function CreateTesterRuntimeArtifactsTesterSetup(ByRef spec As TesterSetupSpec, _
+                                                         ByVal rootPath As String, _
+                                                         ByRef report As String) As Boolean
+    Dim configPath As String
+    Dim authPath As String
+    Dim inventoryPath As String
+    Dim outboxPath As String
+    Dim snapshotPath As String
+    Dim capabilityOut As String
+    Dim wbInventory As Workbook
+    Dim wbOutbox As Workbook
+    Dim wbConfig As Workbook
+    Dim configOpenedTransient As Boolean
+    Dim inventoryOpenedTransient As Boolean
+    Dim outboxOpenedTransient As Boolean
+
+    On Error GoTo FailCreate
+
+    rootPath = NormalizeFolderPathTesterSetup(rootPath, False)
+    If rootPath = "" Then
+        report = "Warehouse hub path could not be resolved."
+        Exit Function
+    End If
+    If IsUncPathTesterSetup(rootPath) And Not FolderExistsTesterSetup(rootPath) Then
+        report = "Warehouse hub path is not accessible: " & rootPath
+        Exit Function
+    End If
+
+    EnsureFolderRecursiveTesterSetup rootPath
+    EnsureFolderRecursiveTesterSetup rootPath & "\inbox"
+    EnsureFolderRecursiveTesterSetup rootPath & "\outbox"
+    EnsureFolderRecursiveTesterSetup rootPath & "\snapshots"
+    EnsureFolderRecursiveTesterSetup rootPath & "\config"
+    EnsureFolderRecursiveTesterSetup rootPath & "\auth"
+
+    configPath = rootPath & "\" & spec.WarehouseId & ".invSys.Config.xlsb"
+    authPath = rootPath & "\" & spec.WarehouseId & ".invSys.Auth.xlsb"
+    inventoryPath = rootPath & "\" & spec.WarehouseId & ".invSys.Data.Inventory.xlsb"
+    outboxPath = rootPath & "\" & spec.WarehouseId & ".Outbox.Events.xlsb"
+    snapshotPath = rootPath & "\" & spec.WarehouseId & ".invSys.Snapshot.Inventory.xlsb"
+
+    If Not modConfig.EnsureStationConfigEntry(spec.WarehouseId, spec.StationId, spec.UserId, rootPath & "\inbox\", "ADMIN", configPath, rootPath, report) Then GoTo FailSoft
+    configOpenedTransient = (FindOpenWorkbookByPathTesterSetup(configPath) Is Nothing)
+    Set wbConfig = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(spec.WarehouseId, spec.StationId, rootPath, report)
+    If wbConfig Is Nothing Then GoTo FailSoft
+
+    If Not modAuth.EnsureStationRoleAuth(spec.WarehouseId, spec.StationId, spec.UserId, spec.UserId, "ADMIN", authPath, "svc_processor", capabilityOut, report) Then GoTo FailSoft
+
+    inventoryOpenedTransient = (FindOpenWorkbookByPathTesterSetup(inventoryPath) Is Nothing)
+    Set wbInventory = ResolveInventoryWorkbookBridge(spec.WarehouseId)
+    If wbInventory Is Nothing Then
+        report = "Inventory workbook not resolved."
+        GoTo FailSoft
+    End If
+    If Not EnsureInventorySchemaBridge(wbInventory, report) Then GoTo FailSoft
+    If Not wbInventory.ReadOnly Then wbInventory.Save
+
+    If Not GenerateWarehouseSnapshot(spec.WarehouseId, wbInventory, snapshotPath, Nothing, report) Then GoTo FailSoft
+
+    outboxOpenedTransient = (FindOpenWorkbookByPathTesterSetup(outboxPath) Is Nothing)
+    Set wbOutbox = ResolveOutboxWorkbook(spec.WarehouseId, Nothing, True)
+    If wbOutbox Is Nothing Then
+        report = "Outbox workbook not resolved."
+        GoTo FailSoft
+    End If
+    If Not EnsureOutboxSchema(wbOutbox, report) Then GoTo FailSoft
+    If Not wbOutbox.ReadOnly Then wbOutbox.Save
+
+    CreateTesterRuntimeArtifactsTesterSetup = True
+    report = "OK"
+    GoTo CleanExit
+
+FailSoft:
+    If Len(report) = 0 Then report = "CreateTesterRuntimeArtifacts failed."
+    GoTo CleanExit
+
+FailCreate:
+    report = "CreateTesterRuntimeArtifacts failed: " & Err.Description
+    Resume FailSoft
+
+CleanExit:
+    CloseWorkbookIfTransientTesterSetup wbOutbox, outboxOpenedTransient
+    CloseWorkbookIfTransientTesterSetup wbInventory, inventoryOpenedTransient
+    CloseWorkbookIfTransientTesterSetup wbConfig, configOpenedTransient
+End Function
+
+Private Function IsUncPathTesterSetup(ByVal pathIn As String) As Boolean
+    pathIn = NormalizeFolderPathTesterSetup(pathIn, False)
+    IsUncPathTesterSetup = (Left$(pathIn, 2) = "\\")
 End Function
 
 Private Sub PublishTesterSetupProgress(ByVal stepText As String)
