@@ -10,6 +10,7 @@ Public Const CORE_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
 Public Const CORE_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
 
 Private Const INVENTORY_DOMAIN_ADDIN_NAME As String = "invSys.Inventory.Domain.xlam"
+Private Const INVENTORY_DOMAIN_REF_ADDIN_NAME As String = "invSys.Inventory.Domain.ref.xlam"
 
 Public Function ResolveInventoryWorkbookBridge(Optional ByVal warehouseId As String = "", _
                                               Optional ByVal inventoryWb As Workbook = Nothing) As Workbook
@@ -145,9 +146,14 @@ Private Function FindInventoryDomainMacroHostName() As String
     Dim wb As Workbook
     Dim addin As AddIn
     Dim peerPath As String
+    Dim parentPath As String
 
     For Each wb In Application.Workbooks
         If StrComp(wb.Name, INVENTORY_DOMAIN_ADDIN_NAME, vbTextCompare) = 0 Then
+            FindInventoryDomainMacroHostName = wb.Name
+            Exit Function
+        End If
+        If StrComp(wb.Name, INVENTORY_DOMAIN_REF_ADDIN_NAME, vbTextCompare) = 0 Then
             FindInventoryDomainMacroHostName = wb.Name
             Exit Function
         End If
@@ -168,6 +174,10 @@ Private Function FindInventoryDomainMacroHostName() As String
             FindInventoryDomainMacroHostName = addin.Name
             Exit Function
         End If
+        If StrComp(addin.Name, INVENTORY_DOMAIN_REF_ADDIN_NAME, vbTextCompare) = 0 Then
+            FindInventoryDomainMacroHostName = addin.Name
+            Exit Function
+        End If
         If InStr(1, addin.Name, "Inventory.Domain", vbTextCompare) > 0 Then
             FindInventoryDomainMacroHostName = addin.Name
             Exit Function
@@ -179,18 +189,40 @@ NextAddIn:
     peerPath = ThisWorkbook.Path
     If Trim$(peerPath) <> "" Then
         If Right$(peerPath, 1) <> "\" Then peerPath = peerPath & "\"
-        peerPath = peerPath & INVENTORY_DOMAIN_ADDIN_NAME
-        If Len(Dir$(peerPath, vbNormal)) > 0 Then
-            On Error Resume Next
-            Set wb = Application.Workbooks.Open(Filename:=peerPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+        Set wb = OpenInventoryDomainMacroHostIfExists(peerPath & INVENTORY_DOMAIN_ADDIN_NAME)
+        If Not wb Is Nothing Then
+            FindInventoryDomainMacroHostName = wb.Name
+            Exit Function
+        End If
+
+        Set wb = OpenInventoryDomainMacroHostIfExists(peerPath & INVENTORY_DOMAIN_REF_ADDIN_NAME)
+        If Not wb Is Nothing Then
+            FindInventoryDomainMacroHostName = wb.Name
+            Exit Function
+        End If
+
+        If Right$(peerPath, 6) = ".refs\" Then
+            parentPath = Left$(peerPath, Len(peerPath) - 6)
+            Set wb = OpenInventoryDomainMacroHostIfExists(parentPath & INVENTORY_DOMAIN_ADDIN_NAME)
             If Not wb Is Nothing Then
-                wb.IsAddin = True
                 FindInventoryDomainMacroHostName = wb.Name
                 Exit Function
             End If
-            On Error GoTo 0
         End If
     End If
+End Function
+
+Private Function OpenInventoryDomainMacroHostIfExists(ByVal workbookPath As String) As Workbook
+    Dim wb As Workbook
+
+    If Len(Dir$(workbookPath, vbNormal)) = 0 Then Exit Function
+
+    On Error Resume Next
+    Set wb = Application.Workbooks.Open(Filename:=workbookPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+    If Not wb Is Nothing Then wb.IsAddin = True
+    On Error GoTo 0
+
+    Set OpenInventoryDomainMacroHostIfExists = wb
 End Function
 
 Private Function RunInventoryDomainMacroFallback0(ByVal macroName As String) As Variant
