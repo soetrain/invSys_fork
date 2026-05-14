@@ -496,16 +496,12 @@ Private Function CreateOrVerifyReceivingWorkbook(ByRef spec As TesterSetupSpec, 
     Dim openedTransient As Boolean
     Dim refreshReport As String
     Dim parentFolder As String
+    Dim prevEvents As Boolean
+    Dim prevDisplayAlerts As Boolean
 
     On Error GoTo FailCreate
-
-    If FileExistsTesterSetup(operatorPath) Then
-        If VerifyReceivingWorkbook(operatorPath, report) Then
-            CreateOrVerifyReceivingWorkbook = True
-            report = "EXISTING"
-            Exit Function
-        End If
-    End If
+    prevEvents = Application.EnableEvents
+    prevDisplayAlerts = Application.DisplayAlerts
 
     parentFolder = GetParentFolderTesterSetup(operatorPath)
     If parentFolder = "" Then
@@ -514,7 +510,14 @@ Private Function CreateOrVerifyReceivingWorkbook(ByRef spec As TesterSetupSpec, 
     End If
     EnsureFolderRecursiveTesterSetup parentFolder
 
+    Application.EnableEvents = False
+    Application.DisplayAlerts = False
+
     Set wb = FindOpenWorkbookByPathTesterSetup(operatorPath)
+    If wb Is Nothing And FileExistsTesterSetup(operatorPath) Then
+        Set wb = Application.Workbooks.Open(Filename:=operatorPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+        openedTransient = Not wb Is Nothing
+    End If
     If wb Is Nothing Then
         Set wb = Application.Workbooks.Add(xlWBATWorksheet)
         openedTransient = Not wb Is Nothing
@@ -525,6 +528,7 @@ Private Function CreateOrVerifyReceivingWorkbook(ByRef spec As TesterSetupSpec, 
     End If
 
     If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wb, report) Then GoTo FailSoft
+    RemoveNonReceivingOperatorSheetsTesterSetup wb
     Call modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, spec.WarehouseId, "LOCAL", refreshReport)
 
     If Trim$(wb.FullName) = "" Then
@@ -553,8 +557,30 @@ FailCreate:
     Resume FailSoft
 
 CleanExit:
+    Application.DisplayAlerts = prevDisplayAlerts
+    Application.EnableEvents = prevEvents
     CloseWorkbookIfTransientTesterSetup wb, openedTransient
 End Function
+
+Private Sub RemoveNonReceivingOperatorSheetsTesterSetup(ByVal wb As Workbook)
+    Dim keepSheets As Object
+    Dim i As Long
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Sub
+    Set keepSheets = CreateObject("Scripting.Dictionary")
+    keepSheets.CompareMode = vbTextCompare
+    keepSheets("ReceivedTally") = True
+    keepSheets("InventoryManagement") = True
+    keepSheets("ReceivedLog") = True
+
+    For i = wb.Worksheets.Count To 1 Step -1
+        Set ws = wb.Worksheets(i)
+        If Not keepSheets.Exists(ws.Name) Then
+            If wb.Worksheets.Count > 1 Then ws.Delete
+        End If
+    Next i
+End Sub
 
 Private Function UpdateConfigSharePointRoot(ByRef spec As TesterSetupSpec, _
                                             ByRef report As String) As Boolean

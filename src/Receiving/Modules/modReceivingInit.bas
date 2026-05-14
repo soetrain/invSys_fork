@@ -74,6 +74,7 @@ End Function
 Public Function CheckReceivingReadinessPacked(Optional ByVal targetWb As Workbook = Nothing) As String
     Dim readiness As ReceivingReadinessResult
 
+    On Error GoTo FailPacked
     readiness = CheckReceivingReadinessForWorkbook(targetWb)
     CheckReceivingReadinessPacked = _
         "IsReady=" & CStr(readiness.IsReady) & _
@@ -81,6 +82,15 @@ Public Function CheckReceivingReadinessPacked(Optional ByVal targetWb As Workboo
         "|AuthStatus=" & readiness.AuthStatus & _
         "|RuntimeStatus=" & readiness.RuntimeStatus & _
         "|Messages=" & readiness.Messages
+    Exit Function
+
+FailPacked:
+    CheckReceivingReadinessPacked = _
+        "IsReady=False" & _
+        "|SnapshotStatus=ERROR" & _
+        "|AuthStatus=ERROR" & _
+        "|RuntimeStatus=ERROR" & _
+        "|Messages=Readiness check failed: " & Err.Description
 End Function
 
 Public Function CheckReceivingReadinessForWorkbook(Optional ByVal targetWb As Workbook = Nothing) As ReceivingReadinessResult
@@ -88,6 +98,7 @@ Public Function CheckReceivingReadinessForWorkbook(Optional ByVal targetWb As Wo
     Dim ctx As ReceivingContext
     Dim result As ReceivingReadinessResult
 
+    On Error GoTo FailReadiness
     Set wb = targetWb
     If wb Is Nothing Then Set wb = Application.ActiveWorkbook
 
@@ -102,6 +113,15 @@ Public Function CheckReceivingReadinessForWorkbook(Optional ByVal targetWb As Wo
     result.IsReady = (StrComp(result.SnapshotStatus, READINESS_STATUS_OK, vbTextCompare) = 0 _
                       And StrComp(result.AuthStatus, READINESS_STATUS_OK, vbTextCompare) = 0 _
                       And StrComp(result.RuntimeStatus, READINESS_STATUS_OK, vbTextCompare) = 0)
+    CheckReceivingReadinessForWorkbook = result
+    Exit Function
+
+FailReadiness:
+    result.IsReady = False
+    result.SnapshotStatus = "ERROR"
+    result.AuthStatus = "ERROR"
+    result.RuntimeStatus = "ERROR"
+    result.Messages = "Readiness check failed: " & Err.Description
     CheckReceivingReadinessForWorkbook = result
 End Function
 
@@ -179,6 +199,8 @@ Private Function ResolveRuntimeStatusReadiness(ByVal wb As Workbook, _
                                                ByRef ctx As ReceivingContext) As String
     Dim configLoaded As Boolean
     Dim warehouseId As String
+    Dim priorRootOverride As String
+    Dim workbookRoot As String
 
     ctx.CurrentUserId = ResolveCurrentUserIdReadiness()
 
@@ -198,7 +220,12 @@ Private Function ResolveRuntimeStatusReadiness(ByVal wb As Workbook, _
         Exit Function
     End If
 
+    priorRootOverride = modRuntimeWorkbooks.GetCoreDataRootOverride()
+    workbookRoot = ResolveRuntimeRootFromWorkbookReadiness(wb, warehouseId)
+    If workbookRoot <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride workbookRoot
+
     configLoaded = modConfig.LoadConfig(warehouseId, "")
+    RestoreRuntimeRootOverrideReadiness priorRootOverride
     If Not configLoaded Then
         ResolveRuntimeStatusReadiness = RUNTIME_STATUS_PATH_UNRESOLVED
         Exit Function
@@ -734,16 +761,37 @@ Private Function ResolveCurrentUserIdReadiness() As String
 End Function
 
 Private Function NormalizeFolderPathReadiness(ByVal pathIn As String, ByVal includeTrailingSlash As Boolean) As String
-    pathIn = Trim$(pathIn)
-    If pathIn = "" Then Exit Function
-    pathIn = Replace$(pathIn, "/", "\")
-    Do While InStr(pathIn, "\\") > 0
-        pathIn = Replace$(pathIn, "\\", "\")
-    Loop
-    If Right$(pathIn, 1) = "\" Then pathIn = Left$(pathIn, Len(pathIn) - 1)
-    NormalizeFolderPathReadiness = pathIn
-    If includeTrailingSlash And NormalizeFolderPathReadiness <> "" Then NormalizeFolderPathReadiness = NormalizeFolderPathReadiness & "\"
+    NormalizeFolderPathReadiness = modConfig.NormalizeFolderPathForRuntime(pathIn, includeTrailingSlash)
 End Function
+
+Private Function ResolveRuntimeRootFromWorkbookReadiness(ByVal wb As Workbook, ByVal warehouseId As String) As String
+    Dim workbookRoot As String
+    Dim sepPos As Long
+
+    If wb Is Nothing Then Exit Function
+    If warehouseId = "" Then Exit Function
+
+    workbookRoot = NormalizeFolderPathReadiness(wb.Path, False)
+    If workbookRoot = "" Then
+        workbookRoot = NormalizeFolderPathReadiness(SafeWorkbookPathReadiness(wb), False)
+        sepPos = InStrRev(workbookRoot, "\")
+        If sepPos > 0 Then workbookRoot = Left$(workbookRoot, sepPos - 1)
+    End If
+    If workbookRoot = "" Then Exit Function
+
+    If FileExistsReadiness(workbookRoot & "\" & warehouseId & ".invSys.Config.xlsb") _
+       And FileExistsReadiness(workbookRoot & "\" & warehouseId & ".invSys.Auth.xlsb") Then
+        ResolveRuntimeRootFromWorkbookReadiness = workbookRoot
+    End If
+End Function
+
+Private Sub RestoreRuntimeRootOverrideReadiness(ByVal priorRootOverride As String)
+    If Trim$(priorRootOverride) = "" Then
+        modRuntimeWorkbooks.ClearCoreDataRootOverride
+    Else
+        modRuntimeWorkbooks.SetCoreDataRootOverride priorRootOverride
+    End If
+End Sub
 
 Private Function FolderExistsReadiness(ByVal folderPath As String) As Boolean
     On Error Resume Next
