@@ -41,6 +41,16 @@ function Release-ComObject {
     }
 }
 
+function Get-ReferenceOutputPath {
+    param(
+        [object]$Project,
+        [string]$ReferenceDir
+    )
+
+    $referenceFile = $Project.OutputFile -replace "\.xlam$", ".ref.xlam"
+    Join-Path $ReferenceDir $referenceFile
+}
+
 function Get-CodeFiles {
     param(
         [string[]]$SourceDirs
@@ -692,6 +702,11 @@ if (-not (Test-Path -LiteralPath $archiveDir)) {
     New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
 }
 
+$referenceDir = Join-Path $outputDir ".refs"
+if (-not (Test-Path -LiteralPath $referenceDir)) {
+    New-Item -ItemType Directory -Path $referenceDir -Force | Out-Null
+}
+
 $stagingDir = Join-Path $outputDir (".build-staging-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
 
@@ -770,9 +785,9 @@ try {
                     throw "Referenced project '$referenceKey' is not defined in projectMap."
                 }
 
-                $referencePath = $builtOutputs[$referenceKey]
+                $referencePath = Get-ReferenceOutputPath -Project $referenceProject -ReferenceDir $referenceDir
                 if (-not (Test-Path -LiteralPath $referencePath)) {
-                    $referencePath = Join-Path $outputDir $referenceProject.OutputFile
+                    throw "Referenced project output is not published yet: $referencePath"
                 }
 
                 Write-Host ("  Adding project reference " + $referenceKey + " -> " + $referencePath)
@@ -807,6 +822,17 @@ try {
                 Release-ComObject $wb
             }
         }
+
+        $stagedPath = $builtOutputs[$project.Key]
+        $finalPath = Join-Path $outputDir $project.OutputFile
+        Remove-ExistingFile -Path $finalPath
+        Copy-Item -LiteralPath $stagedPath -Destination $finalPath -Force
+        Write-Host ("Published " + $finalPath)
+
+        $referenceCopyPath = Get-ReferenceOutputPath -Project $project -ReferenceDir $referenceDir
+        Remove-ExistingFile -Path $referenceCopyPath
+        Copy-Item -LiteralPath $stagedPath -Destination $referenceCopyPath -Force
+        Write-Host ("Published reference copy " + $referenceCopyPath)
     }
     $buildSucceeded = $true
 }
@@ -818,16 +844,6 @@ finally {
     }
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
-}
-
-if ($buildSucceeded) {
-    foreach ($project in $projectMap) {
-        $stagedPath = $builtOutputs[$project.Key]
-        $finalPath = Join-Path $outputDir $project.OutputFile
-        Remove-ExistingFile -Path $finalPath
-        Copy-Item -LiteralPath $stagedPath -Destination $finalPath -Force
-        Write-Host ("Published " + $finalPath)
-    }
 }
 
 if (Test-Path -LiteralPath $stagingDir) {
