@@ -372,6 +372,91 @@ FailOpen:
     LogDiagnosticEvent "TESTER-SETUP", "OpenTesterReceivingWorkbook failed|Path=" & targetPath & "|Reason=" & Err.Description
 End Function
 
+Public Function DeleteTesterStationGenerated(ByRef spec As TesterSetupSpec, _
+                                             Optional ByVal dryRun As Boolean = False, _
+                                             Optional ByRef report As String = "") As Boolean
+    Dim rootPath As String
+    Dim sharePointRoot As String
+    Dim artifacts As Collection
+    Dim artifactPath As Variant
+    Dim deletedCount As Long
+    Dim missingCount As Long
+    Dim failedCount As Long
+    Dim detail As String
+    Dim deleteStatus As String
+
+    On Error GoTo FailDelete
+
+    NormalizeTesterSetupSpec spec
+    ApplyTesterSetupDefaults spec
+
+    rootPath = NormalizeFolderPathTesterSetup(spec.PathLocal, False)
+    sharePointRoot = NormalizeFolderPathTesterSetup(spec.PathSharePointRoot, False)
+    If rootPath = "" Then
+        report = "Warehouse hub path is required."
+        GoTo FailSoft
+    End If
+    If spec.WarehouseId = "" Then
+        report = "WarehouseId is required."
+        GoTo FailSoft
+    End If
+    If Not IsTesterWarehouseIdForDeleteTesterSetup(spec.WarehouseId) Then
+        report = "Refusing cleanup for non-tester WarehouseId: " & spec.WarehouseId
+        GoTo FailSoft
+    End If
+    If IsUncPathTesterSetup(rootPath) And Not FolderExistsTesterSetup(rootPath) Then
+        report = "Warehouse hub path is not accessible: " & rootPath
+        GoTo FailSoft
+    End If
+
+    Set artifacts = BuildTesterGeneratedArtifactsTesterSetup(spec, rootPath, sharePointRoot)
+    For Each artifactPath In artifacts
+        deleteStatus = DeleteGeneratedArtifactTesterSetup(CStr(artifactPath), dryRun)
+        If Left$(deleteStatus, 8) = "DELETED|" Or Left$(deleteStatus, 7) = "DRYRUN|" Then
+            deletedCount = deletedCount + 1
+        ElseIf Left$(deleteStatus, 8) = "MISSING|" Then
+            missingCount = missingCount + 1
+        Else
+            failedCount = failedCount + 1
+        End If
+        If Len(detail) > 0 Then detail = detail & "; "
+        detail = detail & deleteStatus
+    Next artifactPath
+
+    DeleteEmptyTesterGeneratedFoldersTesterSetup spec, rootPath, sharePointRoot, dryRun, detail
+
+    If failedCount > 0 Then
+        report = "Cleanup completed with failures. Deleted=" & CStr(deletedCount) & _
+                 "; Missing=" & CStr(missingCount) & _
+                 "; Failed=" & CStr(failedCount) & _
+                 "; " & detail
+        GoTo FailSoft
+    End If
+
+    mLastTesterOperatorWorkbookPath = vbNullString
+    report = IIf(dryRun, "DRYRUN", "OK") & _
+             "|Deleted=" & CStr(deletedCount) & _
+             "|Missing=" & CStr(missingCount) & _
+             "|WarehouseId=" & spec.WarehouseId & _
+             "|Hub=" & rootPath & _
+             "|" & detail
+    mLastTesterSetupReport = report
+    DeleteTesterStationGenerated = True
+    LogDiagnosticEvent "TESTER-SETUP", "DeleteTesterStationGenerated|" & report
+    Exit Function
+
+FailSoft:
+    DeleteTesterStationGenerated = False
+    If Len(report) = 0 Then report = "DeleteTesterStationGenerated failed."
+    mLastTesterSetupReport = report
+    LogDiagnosticEvent "TESTER-SETUP", report
+    Exit Function
+
+FailDelete:
+    report = "DeleteTesterStationGenerated failed: " & Err.Description
+    Resume FailSoft
+End Function
+
 Public Function GetLastTesterSetupReport() As String
     GetLastTesterSetupReport = mLastTesterSetupReport
 End Function
@@ -683,6 +768,154 @@ Private Function BuildReceivingOperatorPathTesterSetup(ByRef spec As TesterSetup
     rootPath = NormalizeFolderPathTesterSetup(spec.PathLocal, False)
     If rootPath = "" Then Exit Function
     BuildReceivingOperatorPathTesterSetup = rootPath & "\" & spec.WarehouseId & TESTER_DEFAULT_OPERATOR_SUFFIX
+End Function
+
+Private Function IsTesterWarehouseIdForDeleteTesterSetup(ByVal warehouseId As String) As Boolean
+    warehouseId = UCase$(Trim$(warehouseId))
+    If warehouseId = "" Then Exit Function
+
+    IsTesterWarehouseIdForDeleteTesterSetup = _
+        (warehouseId = "TESTSTATION") Or _
+        (Left$(warehouseId, 4) = "TEST") Or _
+        (InStr(1, warehouseId, "TESTER", vbTextCompare) > 0)
+End Function
+
+Private Function BuildTesterGeneratedArtifactsTesterSetup(ByRef spec As TesterSetupSpec, _
+                                                          ByVal rootPath As String, _
+                                                          ByVal sharePointRoot As String) As Collection
+    Dim artifacts As Collection
+    Dim warehouseId As String
+    Dim stationId As String
+
+    Set artifacts = New Collection
+    warehouseId = Trim$(spec.WarehouseId)
+    stationId = Trim$(spec.StationId)
+    rootPath = NormalizeFolderPathTesterSetup(rootPath, False)
+    sharePointRoot = NormalizeFolderPathTesterSetup(sharePointRoot, False)
+
+    AddGeneratedArtifactTesterSetup artifacts, rootPath & "\" & warehouseId & ".invSys.Config.xlsb"
+    AddGeneratedArtifactTesterSetup artifacts, rootPath & "\" & warehouseId & ".invSys.Auth.xlsb"
+    AddGeneratedArtifactTesterSetup artifacts, rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
+    AddGeneratedArtifactTesterSetup artifacts, rootPath & "\" & warehouseId & ".invSys.Snapshot.Inventory.xlsb"
+    AddGeneratedArtifactTesterSetup artifacts, rootPath & "\" & warehouseId & ".Outbox.Events.xlsb"
+    AddGeneratedArtifactTesterSetup artifacts, rootPath & "\" & warehouseId & TESTER_DEFAULT_OPERATOR_SUFFIX
+
+    If stationId <> "" Then
+        AddGeneratedArtifactTesterSetup artifacts, rootPath & "\inbox\invSys.Inbox.Receiving." & stationId & ".xlsb"
+        AddGeneratedArtifactTesterSetup artifacts, rootPath & "\inbox\invSys.Inbox.Shipping." & stationId & ".xlsb"
+        AddGeneratedArtifactTesterSetup artifacts, rootPath & "\inbox\invSys.Inbox.Production." & stationId & ".xlsb"
+    End If
+
+    If sharePointRoot <> "" Then
+        AddGeneratedArtifactTesterSetup artifacts, sharePointRoot & "\TesterPackage\" & warehouseId & "\" & warehouseId & ".TesterBundle.zip"
+        AddGeneratedArtifactTesterSetup artifacts, sharePointRoot & "\TesterPackage\" & warehouseId & "\README.txt"
+        AddGeneratedArtifactTesterSetup artifacts, sharePointRoot & "\Snapshots\" & warehouseId & ".invSys.Snapshot.Inventory.xlsb"
+        AddGeneratedArtifactTesterSetup artifacts, sharePointRoot & "\Events\" & warehouseId & ".Outbox.Events.xlsb"
+    End If
+
+    Set BuildTesterGeneratedArtifactsTesterSetup = artifacts
+End Function
+
+Private Sub AddGeneratedArtifactTesterSetup(ByVal artifacts As Collection, ByVal artifactPath As String)
+    artifactPath = Trim$(Replace$(artifactPath, "/", "\"))
+    If artifactPath = "" Then Exit Sub
+    artifacts.Add artifactPath
+End Sub
+
+Private Function DeleteGeneratedArtifactTesterSetup(ByVal artifactPath As String, ByVal dryRun As Boolean) As String
+    Dim wb As Workbook
+    Dim fso As Object
+
+    On Error GoTo FailDelete
+    artifactPath = Trim$(Replace$(artifactPath, "/", "\"))
+    If artifactPath = "" Then
+        DeleteGeneratedArtifactTesterSetup = "SKIP|EmptyPath"
+        Exit Function
+    End If
+    If Not IsUsableLocalPathTesterSetup(artifactPath) Then
+        DeleteGeneratedArtifactTesterSetup = "SKIP|UnusablePath=" & artifactPath
+        Exit Function
+    End If
+    If Not FileExistsTesterSetup(artifactPath) Then
+        DeleteGeneratedArtifactTesterSetup = "MISSING|" & artifactPath
+        Exit Function
+    End If
+    If dryRun Then
+        DeleteGeneratedArtifactTesterSetup = "DRYRUN|" & artifactPath
+        Exit Function
+    End If
+
+    Set wb = FindOpenWorkbookByPathTesterSetup(artifactPath)
+    If Not wb Is Nothing Then
+        wb.Close SaveChanges:=False
+    End If
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    fso.DeleteFile artifactPath, True
+    If FileExistsTesterSetup(artifactPath) Then
+        DeleteGeneratedArtifactTesterSetup = "FAILED|" & artifactPath & "|StillExists"
+    Else
+        DeleteGeneratedArtifactTesterSetup = "DELETED|" & artifactPath
+    End If
+    Exit Function
+
+FailDelete:
+    DeleteGeneratedArtifactTesterSetup = "FAILED|" & artifactPath & "|" & Err.Description
+End Function
+
+Private Sub DeleteEmptyTesterGeneratedFoldersTesterSetup(ByRef spec As TesterSetupSpec, _
+                                                         ByVal rootPath As String, _
+                                                         ByVal sharePointRoot As String, _
+                                                         ByVal dryRun As Boolean, _
+                                                         ByRef detail As String)
+    Dim folderPath As String
+    Dim statusText As String
+
+    folderPath = NormalizeFolderPathTesterSetup(sharePointRoot, False)
+    If folderPath <> "" Then
+        statusText = DeleteEmptyFolderTesterSetup(folderPath & "\TesterPackage\" & spec.WarehouseId, dryRun)
+        If statusText <> "" Then detail = detail & "; " & statusText
+    End If
+
+    rootPath = NormalizeFolderPathTesterSetup(rootPath, False)
+    If rootPath = "" Then Exit Sub
+    statusText = DeleteEmptyFolderTesterSetup(rootPath & "\auth", dryRun)
+    If statusText <> "" Then detail = detail & "; " & statusText
+    statusText = DeleteEmptyFolderTesterSetup(rootPath & "\config", dryRun)
+    If statusText <> "" Then detail = detail & "; " & statusText
+    statusText = DeleteEmptyFolderTesterSetup(rootPath & "\snapshots", dryRun)
+    If statusText <> "" Then detail = detail & "; " & statusText
+    statusText = DeleteEmptyFolderTesterSetup(rootPath & "\outbox", dryRun)
+    If statusText <> "" Then detail = detail & "; " & statusText
+    statusText = DeleteEmptyFolderTesterSetup(rootPath & "\inbox", dryRun)
+    If statusText <> "" Then detail = detail & "; " & statusText
+End Sub
+
+Private Function DeleteEmptyFolderTesterSetup(ByVal folderPath As String, ByVal dryRun As Boolean) As String
+    Dim fso As Object
+    Dim folderObj As Object
+
+    On Error GoTo FailDelete
+    folderPath = NormalizeFolderPathTesterSetup(folderPath, False)
+    If folderPath = "" Then Exit Function
+    If Not FolderExistsTesterSetup(folderPath) Then Exit Function
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set folderObj = fso.GetFolder(folderPath)
+    If folderObj.Files.Count > 0 Or folderObj.SubFolders.Count > 0 Then
+        DeleteEmptyFolderTesterSetup = "KEEP_FOLDER_NOT_EMPTY|" & folderPath
+        Exit Function
+    End If
+    If dryRun Then
+        DeleteEmptyFolderTesterSetup = "DRYRUN_EMPTY_FOLDER|" & folderPath
+    Else
+        fso.DeleteFolder folderPath, True
+        DeleteEmptyFolderTesterSetup = "DELETED_EMPTY_FOLDER|" & folderPath
+    End If
+    Exit Function
+
+FailDelete:
+    DeleteEmptyFolderTesterSetup = "FAILED_EMPTY_FOLDER|" & folderPath & "|" & Err.Description
 End Function
 
 Private Function RuntimeArtifactsExistTesterSetup(ByVal rootPath As String, ByVal warehouseId As String) As Boolean

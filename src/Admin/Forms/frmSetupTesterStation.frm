@@ -27,6 +27,8 @@ Private WithEvents mTxtConfirmPin As MSForms.TextBox
 Attribute mTxtConfirmPin.VB_VarHelpID = -1
 Private WithEvents mBtnOpen As MSForms.CommandButton
 Attribute mBtnOpen.VB_VarHelpID = -1
+Private WithEvents mBtnDeleteGenerated As MSForms.CommandButton
+Attribute mBtnDeleteGenerated.VB_VarHelpID = -1
 Private WithEvents mBtnHubPathHelper As MSForms.CommandButton
 Attribute mBtnHubPathHelper.VB_VarHelpID = -1
 Private WithEvents mBtnSharePointHelper As MSForms.CommandButton
@@ -173,6 +175,7 @@ Private Sub btnOK_Click()
     Me.btnOK.Enabled = False
     Me.btnCancel.Enabled = False
     If Not mBtnOpen Is Nothing Then mBtnOpen.Enabled = False
+    If Not mBtnDeleteGenerated Is Nothing Then mBtnDeleteGenerated.Enabled = False
 
     modTesterSetup.SetTesterSetupProgressSink Me
     If modTesterSetup.SetupTesterStation(spec) Then
@@ -187,12 +190,14 @@ Private Sub btnOK_Click()
             mBtnOpen.Visible = True
             mBtnOpen.Enabled = True
         End If
+        If Not mBtnDeleteGenerated Is Nothing Then mBtnDeleteGenerated.Enabled = True
         If Not mAnchors Is Nothing Then mAnchors.ResizeControls
     Else
         detailText = modTesterSetup.GetLastTesterSetupReport()
         ShowSummary "Setup failed. Review the runtime path and try again." & vbCrLf & detailText, COLOR_ERROR
         Me.btnOK.Enabled = True
         Me.btnCancel.Enabled = True
+        If Not mBtnDeleteGenerated Is Nothing Then mBtnDeleteGenerated.Enabled = True
     End If
     modTesterSetup.ClearTesterSetupProgressSink
 End Sub
@@ -212,6 +217,48 @@ Private Sub mBtnOpen_Click()
     Else
         ShowSummary "Setup completed, but the operator workbook could not be opened automatically.", COLOR_ERROR
     End If
+End Sub
+
+Private Sub mBtnDeleteGenerated_Click()
+    Dim spec As modTesterSetup.TesterSetupSpec
+    Dim report As String
+    Dim prompt As String
+    Dim response As VbMsgBoxResult
+
+    ClearValidationErrors
+    If Not BuildCleanupSpecFromForm(spec) Then
+        ShowSummary "Warehouse, station, and warehouse hub path are required before cleanup.", COLOR_ERROR
+        Exit Sub
+    End If
+
+    prompt = "Delete Tester Station generated files for Warehouse '" & spec.WarehouseId & "'?" & vbCrLf & _
+             "Hub: " & spec.PathLocal & vbCrLf & _
+             "This will delete only known tester-generated files and empty tester folders."
+    response = MsgBox(prompt, vbQuestion Or vbYesNo Or vbDefaultButton2, "Delete Tester Station Generated")
+    If response <> vbYes Then Exit Sub
+
+    Me.btnOK.Enabled = False
+    Me.btnCancel.Enabled = False
+    If Not mBtnOpen Is Nothing Then mBtnOpen.Enabled = False
+    If Not mBtnDeleteGenerated Is Nothing Then mBtnDeleteGenerated.Enabled = False
+
+    If modTesterSetup.DeleteTesterStationGenerated(spec, False, report) Then
+        mSetupSucceeded = False
+        mOperatorWorkbookPath = vbNullString
+        If Not mBtnOpen Is Nothing Then
+            mBtnOpen.Visible = False
+            mBtnOpen.Enabled = False
+        End If
+        Me.btnOK.Caption = "Setup"
+        Me.btnCancel.Caption = "Close"
+        ShowSummary "Tester Station generated files deleted." & vbCrLf & report, COLOR_SUCCESS
+    Else
+        ShowSummary "Tester Station cleanup failed." & vbCrLf & report, COLOR_ERROR
+    End If
+
+    Me.btnOK.Enabled = True
+    Me.btnCancel.Enabled = True
+    If Not mBtnDeleteGenerated Is Nothing Then mBtnDeleteGenerated.Enabled = True
 End Sub
 
 Public Sub UpdateSetupProgress(ByVal stepText As String)
@@ -366,6 +413,17 @@ Private Sub CreateDynamicControls()
         .Caption = "Open Workbook"
         .Visible = False
     End With
+
+    Set mBtnDeleteGenerated = Me.Controls.Add("Forms.CommandButton.1", "btnDeleteGeneratedRuntime", True)
+    With mBtnDeleteGenerated
+        .Left = 170
+        .Top = 440
+        .Width = 138
+        .Caption = "Delete Generated"
+        .ControlTipText = "Delete Tester Station generated files for the selected tester warehouse."
+        .Visible = True
+        .Enabled = True
+    End With
 End Sub
 
 Private Sub ConfigurePathHelperButtons()
@@ -443,6 +501,28 @@ Private Function BuildSpecFromForm(ByRef spec As modTesterSetup.TesterSetupSpec,
 
     spec.PinHash = modAuth.HashUserCredential(rawPin)
     BuildSpecFromForm = True
+End Function
+
+Private Function BuildCleanupSpecFromForm(ByRef spec As modTesterSetup.TesterSetupSpec) As Boolean
+    spec.UserId = Trim$(CStr(Me.txtAdminUser.Value))
+    spec.WarehouseId = Trim$(CStr(Me.txtWarehouseId.Value))
+    spec.StationId = Trim$(CStr(Me.txtStationId.Value))
+    spec.PathLocal = Trim$(CStr(Me.txtPathLocal.Value))
+    spec.PathSharePointRoot = Trim$(CStr(Me.txtPathSharePoint.Value))
+
+    BuildCleanupSpecFromForm = True
+    If spec.WarehouseId = "" Then
+        SetErrorLabel Me.lblWarehouseIdError, "Warehouse is required."
+        BuildCleanupSpecFromForm = False
+    End If
+    If spec.StationId = "" Then
+        SetErrorLabel Me.lblStationIdError, "Station is required."
+        BuildCleanupSpecFromForm = False
+    End If
+    If spec.PathLocal = "" Then
+        SetErrorLabel Me.lblPathLocalError, "Warehouse hub path is required."
+        BuildCleanupSpecFromForm = False
+    End If
 End Function
 
 Private Sub ApplyDefaults()
@@ -551,6 +631,7 @@ Private Sub InitializeSetupTesterAnchors()
     mAnchors.Add Me.btnOK, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add Me.btnCancel, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     If Not mBtnOpen Is Nothing Then mAnchors.Add mBtnOpen, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    If Not mBtnDeleteGenerated Is Nothing Then mAnchors.Add mBtnDeleteGenerated, ANCHOR_LEFT Or ANCHOR_BOTTOM
     If Not mBtnHubPathHelper Is Nothing Then mAnchors.Add mBtnHubPathHelper, ANCHOR_RIGHT Or ANCHOR_TOP
     If Not mBtnSharePointHelper Is Nothing Then mAnchors.Add mBtnSharePointHelper, ANCHOR_RIGHT Or ANCHOR_TOP
 End Sub
