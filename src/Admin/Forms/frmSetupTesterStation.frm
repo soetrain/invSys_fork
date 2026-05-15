@@ -251,9 +251,9 @@ Private Sub mBtnDeleteGenerated_Click()
         End If
         Me.btnOK.Caption = "Setup"
         Me.btnCancel.Caption = "Close"
-        ShowSummary "Tester Station generated files deleted." & vbCrLf & report, COLOR_SUCCESS
+        ShowSummary "Tester Station generated files deleted." & vbCrLf & CompactCleanupReportForm(report), COLOR_SUCCESS
     Else
-        ShowSummary "Tester Station cleanup failed." & vbCrLf & report, COLOR_ERROR
+        ShowSummary "Tester Station cleanup failed." & vbCrLf & CompactCleanupReportForm(report), COLOR_ERROR
     End If
 
     Me.btnOK.Enabled = True
@@ -522,6 +522,70 @@ Private Function BuildCleanupSpecFromForm(ByRef spec As modTesterSetup.TesterSet
     If spec.PathLocal = "" Then
         SetErrorLabel Me.lblPathLocalError, "Warehouse hub path is required."
         BuildCleanupSpecFromForm = False
+    End If
+End Function
+
+Private Function CompactCleanupReportForm(ByVal reportText As String) As String
+    Dim parts() As String
+    Dim i As Long
+    Dim partText As String
+    Dim deletedText As String
+    Dim missingText As String
+    Dim failedText As String
+    Dim warehouseText As String
+
+    reportText = Trim$(reportText)
+    If reportText = "" Then Exit Function
+
+    parts = Split(reportText, "|")
+    For i = LBound(parts) To UBound(parts)
+        partText = Trim$(parts(i))
+        If StartsWithTextForm(partText, "Deleted=") Then
+            deletedText = partText
+        ElseIf StartsWithTextForm(partText, "Missing=") Then
+            missingText = partText
+        ElseIf StartsWithTextForm(partText, "Failed=") Then
+            failedText = partText
+        ElseIf StartsWithTextForm(partText, "WarehouseId=") Then
+            warehouseText = partText
+        End If
+    Next i
+
+    If deletedText <> "" Or missingText <> "" Or failedText <> "" Then
+        CompactCleanupReportForm = JoinNonEmptyCleanupSummaryForm(warehouseText, deletedText, missingText, failedText)
+        CompactCleanupReportForm = CompactCleanupReportForm & vbCrLf & "Full detail is in the tester setup diagnostic report."
+    Else
+        CompactCleanupReportForm = TruncateTextForm(reportText, 180)
+    End If
+End Function
+
+Private Function JoinNonEmptyCleanupSummaryForm(ByVal firstText As String, _
+                                                ByVal secondText As String, _
+                                                ByVal thirdText As String, _
+                                                ByVal fourthText As String) As String
+    If firstText <> "" Then JoinNonEmptyCleanupSummaryForm = firstText
+    AppendSummaryPartForm JoinNonEmptyCleanupSummaryForm, secondText
+    AppendSummaryPartForm JoinNonEmptyCleanupSummaryForm, thirdText
+    AppendSummaryPartForm JoinNonEmptyCleanupSummaryForm, fourthText
+End Function
+
+Private Sub AppendSummaryPartForm(ByRef summaryText As String, ByVal partText As String)
+    partText = Trim$(partText)
+    If partText = "" Then Exit Sub
+    If summaryText <> "" Then summaryText = summaryText & "; "
+    summaryText = summaryText & partText
+End Sub
+
+Private Function StartsWithTextForm(ByVal textIn As String, ByVal prefixText As String) As Boolean
+    StartsWithTextForm = (StrComp(Left$(textIn, Len(prefixText)), prefixText, vbTextCompare) = 0)
+End Function
+
+Private Function TruncateTextForm(ByVal textIn As String, ByVal maxLen As Long) As String
+    textIn = Trim$(textIn)
+    If maxLen < 4 Or Len(textIn) <= maxLen Then
+        TruncateTextForm = textIn
+    Else
+        TruncateTextForm = Left$(textIn, maxLen - 3) & "..."
     End If
 End Function
 
