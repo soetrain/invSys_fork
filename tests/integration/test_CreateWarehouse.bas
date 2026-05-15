@@ -10,6 +10,7 @@ Private mWarehouseId As String
 Private mStationId As String
 Private mLocalRoot As String
 Private mSharePointRoot As String
+Private mOperatorRoot As String
 Private mSummary As String
 
 Public Function TestCreateWarehouse_EndToEndLifecycle() As Long
@@ -96,6 +97,7 @@ CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
     modWarehouseBootstrap.ClearWarehouseBootstrapTemplateRootOverride
     DeleteCreateWarehouseFolderRecursive duplicateRoot
+    DeleteCreateWarehouseFolderRecursive mOperatorRoot
     DeleteCreateWarehouseFolderRecursive mSharePointRoot
     DeleteCreateWarehouseFolderRecursive mLocalRoot
     DeleteCreateWarehouseFolderRecursive templateRoot
@@ -137,6 +139,7 @@ Private Sub ResetCreateWarehouseEvidence()
     mStationId = vbNullString
     mLocalRoot = vbNullString
     mSharePointRoot = vbNullString
+    mOperatorRoot = vbNullString
     mSummary = vbNullString
 End Sub
 
@@ -169,6 +172,7 @@ Private Function AssertLocalStructureCreateWarehouse(ByRef spec As modWarehouseB
                                                      ByRef detailText As String) As Boolean
     Dim requiredPaths As Variant
     Dim item As Variant
+    Dim operatorPath As String
 
     requiredPaths = Array( _
         spec.PathLocal, _
@@ -188,6 +192,25 @@ Private Function AssertLocalStructureCreateWarehouse(ByRef spec As modWarehouseB
             Exit Function
         End If
     Next item
+
+    operatorPath = modWarehouseBootstrap.GetLastWarehouseOperatorWorkbookPath()
+    mOperatorRoot = GetParentFolderCreateWarehouse(operatorPath)
+    If operatorPath = "" Or Not CreateWarehousePathExists(operatorPath) Then
+        detailText = "Local receiving operator workbook was not created: " & operatorPath
+        Exit Function
+    End If
+    If StrComp(Left$(operatorPath, Len(spec.PathLocal) + 1), spec.PathLocal & "\", vbTextCompare) = 0 Then
+        detailText = "Receiving operator workbook was created under the warehouse hub: " & operatorPath
+        Exit Function
+    End If
+    If Not CreateWarehousePathExists(mOperatorRoot & "\" & spec.WarehouseId & ".invSys.Config.xlsb") Then
+        detailText = "Local operator config copy missing beside receiving workbook."
+        Exit Function
+    End If
+    If Not CreateWarehousePathExists(mOperatorRoot & "\" & spec.WarehouseId & ".invSys.Auth.xlsb") Then
+        detailText = "Local operator auth copy missing beside receiving workbook."
+        Exit Function
+    End If
 
     detailText = "All required runtime folders and seeded artifacts were created under " & spec.PathLocal
     AssertLocalStructureCreateWarehouse = True
@@ -229,12 +252,12 @@ Private Function AssertConfigSeededCreateWarehouse(ByRef spec As modWarehouseBoo
         detailText = "Admin user was not seeded into StationName."
         GoTo CleanExit
     End If
-    If StrComp(CStr(GetCreateWarehouseTableValue(loSt, 1, "RoleDefault")), "ADMIN", vbTextCompare) <> 0 Then
-        detailText = "RoleDefault was not seeded as ADMIN."
+    If StrComp(CStr(GetCreateWarehouseTableValue(loSt, 1, "RoleDefault")), "RECEIVE", vbTextCompare) <> 0 Then
+        detailText = "RoleDefault was not seeded as RECEIVE."
         GoTo CleanExit
     End If
 
-    detailText = "Config workbook seeded WarehouseId, WarehouseName, StationId, PathDataRoot, PathSharePointRoot, and ADMIN defaults."
+    detailText = "Config workbook seeded WarehouseId, WarehouseName, StationId, PathDataRoot, PathSharePointRoot, and RECEIVE defaults."
     AssertConfigSeededCreateWarehouse = True
 
 CleanExit:
@@ -310,6 +333,16 @@ Private Sub CloseCreateWarehouseWorkbook(ByVal wb As Workbook)
     wb.Close SaveChanges:=False
     On Error GoTo 0
 End Sub
+
+Private Function GetParentFolderCreateWarehouse(ByVal filePath As String) As String
+    Dim sepPos As Long
+
+    filePath = Trim$(Replace$(filePath, "/", "\"))
+    If filePath = "" Then Exit Function
+
+    sepPos = InStrRev(filePath, "\")
+    If sepPos > 1 Then GetParentFolderCreateWarehouse = Left$(filePath, sepPos - 1)
+End Function
 
 Private Function SafeCreateWarehouseText(ByVal textIn As String) As String
     SafeCreateWarehouseText = Replace$(Replace$(Trim$(textIn), vbCr, " "), vbLf, " ")

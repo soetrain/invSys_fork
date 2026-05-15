@@ -228,6 +228,8 @@ Public Function TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime() As Lon
     Dim report As String
     Dim loWh As ListObject
     Dim loSt As ListObject
+    Dim operatorPath As String
+    Dim operatorRoot As String
 
     rootPath = BuildBootstrapTempRoot("warehouse_local_ok")
     templateRoot = BuildBootstrapTempRoot("warehouse_templates_ok")
@@ -253,6 +255,13 @@ Public Function TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime() As Lon
     If Len(Dir$(rootPath & "\" & spec.WarehouseId & ".invSys.Auth.xlsb")) = 0 Then GoTo CleanExit
     If Len(Dir$(rootPath & "\" & spec.WarehouseId & ".Outbox.Events.xlsb")) = 0 Then GoTo CleanExit
     If Len(Dir$(rootPath & "\" & spec.WarehouseId & ".invSys.Snapshot.Inventory.xlsb")) = 0 Then GoTo CleanExit
+    operatorPath = modWarehouseBootstrap.GetLastWarehouseOperatorWorkbookPath()
+    operatorRoot = GetParentFolderBootstrapTest(operatorPath)
+    If operatorPath = "" Then GoTo CleanExit
+    If Len(Dir$(operatorPath, vbNormal)) = 0 Then GoTo CleanExit
+    If StrComp(Left$(operatorPath, Len(rootPath) + 1), rootPath & "\", vbTextCompare) = 0 Then GoTo CleanExit
+    If Len(Dir$(operatorRoot & "\" & spec.WarehouseId & ".invSys.Config.xlsb", vbNormal)) = 0 Then GoTo CleanExit
+    If Len(Dir$(operatorRoot & "\" & spec.WarehouseId & ".invSys.Auth.xlsb", vbNormal)) = 0 Then GoTo CleanExit
 
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
     If Not modConfig.LoadConfig(spec.WarehouseId, spec.StationId) Then GoTo CleanExit
@@ -269,7 +278,7 @@ Public Function TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime() As Lon
     If StrComp(CStr(GetBootstrapTableValue(loWh, 1, "PathSharePointRoot")), spec.PathSharePoint, vbTextCompare) <> 0 Then GoTo CleanExit
     If StrComp(CStr(GetBootstrapTableValue(loSt, 1, "StationId")), spec.StationId, vbTextCompare) <> 0 Then GoTo CleanExit
     If StrComp(CStr(GetBootstrapTableValue(loSt, 1, "StationName")), spec.AdminUser, vbTextCompare) <> 0 Then GoTo CleanExit
-    If StrComp(CStr(GetBootstrapTableValue(loSt, 1, "RoleDefault")), "ADMIN", vbTextCompare) <> 0 Then GoTo CleanExit
+    If StrComp(CStr(GetBootstrapTableValue(loSt, 1, "RoleDefault")), "RECEIVE", vbTextCompare) <> 0 Then GoTo CleanExit
 
     TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime = 1
 
@@ -277,6 +286,7 @@ CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
     modWarehouseBootstrap.ClearWarehouseBootstrapTemplateRootOverride
     CloseNoSaveBootstrapTest wbCfg
+    DeleteFolderRecursiveBootstrapTest operatorRoot
     DeleteFolderRecursiveBootstrapTest rootPath
     DeleteFolderRecursiveBootstrapTest templateRoot
     Exit Function
@@ -568,6 +578,16 @@ Private Function ReadTextFileBootstrapTest(ByVal filePath As String) As String
     Open filePath For Input As #fileNum
     ReadTextFileBootstrapTest = Input$(LOF(fileNum), #fileNum)
     Close #fileNum
+End Function
+
+Private Function GetParentFolderBootstrapTest(ByVal filePath As String) As String
+    Dim sepPos As Long
+
+    filePath = Trim$(Replace$(filePath, "/", "\"))
+    If filePath = "" Then Exit Function
+
+    sepPos = InStrRev(filePath, "\")
+    If sepPos > 1 Then GetParentFolderBootstrapTest = Left$(filePath, sepPos - 1)
 End Function
 
 Private Sub CloseNoSaveBootstrapTest(ByVal wb As Workbook)

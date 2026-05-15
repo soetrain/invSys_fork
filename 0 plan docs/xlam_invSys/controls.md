@@ -47,7 +47,7 @@
 | Setup Tester Station - Find SharePoint Root | `frmSetupTesterStation` dynamic button | Partial | Detects/browses SharePoint sync root. Works enough for current testing, but X1-Pro-Ai vs Zenbook path discovery may vary. |
 | Setup Tester Station - Open Workbook | `frmSetupTesterStation` dynamic button | Partial | Opens generated workbook after setup. The workbook can still be unusable if generated in the wrong location or readiness/auth context is wrong. |
 | Delete Tester Station Generated | `frmSetupTesterStation`, `modTesterSetup.DeleteTesterStationGenerated` | Partial | Removes known tester-generated runtime, inbox, snapshot, outbox, operator workbook, and tester package artifacts with confirmation and a report. Guarded to tester-looking warehouse ids. Needs live NAS validation. |
-| Create New Warehouse | `frmCreateWarehouse`, `modAdminConsole.BootstrapWarehouseLocalAdmin` | Partial | Creates hub artifacts plus a receiving inbox/operator workbook for the first station. Existing hub folders are allowed when warehouse artifacts do not already exist. Seeds demo inventory, lays out receiving tables horizontally, and adds Confirm Writes/Undo/Redo buttons. COM smoke passed; needs live NAS Confirm Writes validation. |
+| Create New Warehouse | `frmCreateWarehouse`, `modAdminConsole.BootstrapWarehouseLocalAdmin` | Partial | Creates hub artifacts plus the first station receiving inbox. The generated receiving operator workbook is station-local under the current Windows user's Documents tree, with local config/auth copies beside it that still point `PathDataRoot` at the hub. Existing hub folders are allowed when warehouse artifacts do not already exist. Seeds demo inventory, lays out receiving tables horizontally, and adds Confirm Writes/Undo/Redo buttons. Needs live NAS Confirm Writes validation. |
 | Create New Warehouse - Publish Initial | `frmCreateWarehouse.chkPublishInitial`, `PublishInitialArtifactsAdmin` | Partial | Can retry publish. Needs verification against real SharePoint sync path. |
 | Create / Delete User | `frmCreateDeleteUser` | Partial | Exists, but appears table-bound to `UserCredentials`; needs alignment with current `Auth.xlsb` users/capabilities model. |
 | Edit User | `frmEditUser` | Partial | Exists, but same concern as Create/Delete User: likely older role model assumptions. |
@@ -139,7 +139,7 @@ Recommended R1 direction:
 
 ## Immediate Next Work
 
-1. Run **Create New Warehouse** against the NAS path and perform a Confirm Writes validation from the generated receiving operator workbook.
+1. Run **Create New Warehouse** against the NAS path and perform a Confirm Writes validation from the generated station-local receiving operator workbook.
 2. Fix **Verify Add-ins Published**.
 3. Decide the correct generated operator workbook location for Tester Station.
 4. Replace or upgrade older Create/Delete/Edit User forms so they manage the real `Auth.xlsb` users/capabilities model.

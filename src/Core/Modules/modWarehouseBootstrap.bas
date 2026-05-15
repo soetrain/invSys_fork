@@ -7,6 +7,7 @@ Private Const BOOTSTRAP_SHAREPOINT_CONFIG_WORKBOOK_SUFFIX As String = ".invSys.C
 Private Const BOOTSTRAP_TEMPLATE_FOLDER_NAME As String = "templates"
 Private Const BOOTSTRAP_INVENTORY_TEMPLATE_FILE As String = "invSys.Data.Inventory.template.xlsb"
 Private Const BOOTSTRAP_RECEIVING_OPERATOR_SUFFIX As String = ".Receiving.Operator.xlsm"
+Private Const BOOTSTRAP_LOCAL_OPERATOR_ROOT As String = "invSys\OperatorWorkbooks"
 Private Const BOOTSTRAP_SEED_SOURCE_ID As String = "CREATE_WAREHOUSE_DEMO_SEED"
 
 Private mBootstrapTemplateRootOverride As String
@@ -161,6 +162,11 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     End If
     spec.PathLocal = rootPath
 
+    If WarehouseIdExists(spec.WarehouseId) And Not RuntimeArtifactsExistBootstrap(rootPath, spec.WarehouseId) Then
+        report = "WarehouseId already exists in the configured warehouse catalog: " & spec.WarehouseId
+        GoTo FailSoft
+    End If
+
     If RuntimeArtifactsExistBootstrap(rootPath, spec.WarehouseId) Then
         report = "Warehouse runtime artifacts already exist at hub path: " & rootPath
         GoTo FailSoft
@@ -244,7 +250,18 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
         GoTo FailSoft
     End If
 
+    CloseWorkbookIfOpenBootstrap wbOutbox
+    Set wbOutbox = Nothing
+    CloseWorkbookIfOpenBootstrap wbInventory
+    Set wbInventory = Nothing
+    CloseWorkbookIfOpenBootstrap wbCfg
+    Set wbCfg = Nothing
+
     operatorPath = BuildReceivingOperatorPathBootstrap(spec)
+    If Not PrepareReceivingOperatorRuntimeFilesBootstrap(spec, operatorPath, operatorReport) Then
+        report = operatorReport
+        GoTo FailSoft
+    End If
     If Not CreateOrVerifyReceivingOperatorWorkbookBootstrap(spec, operatorPath, operatorReport) Then
         report = operatorReport
         GoTo FailSoft
@@ -598,11 +615,109 @@ Private Sub SetTableCellByColumnBootstrap(ByVal lo As ListObject, _
 End Sub
 
 Private Function BuildReceivingOperatorPathBootstrap(ByRef spec As WarehouseSpec) As String
-    Dim rootPath As String
+    Dim operatorRoot As String
 
-    rootPath = ResolveBootstrapRootPath(spec)
-    If rootPath = "" Then Exit Function
-    BuildReceivingOperatorPathBootstrap = rootPath & "\" & spec.WarehouseId & BOOTSTRAP_RECEIVING_OPERATOR_SUFFIX
+    operatorRoot = ResolveLocalOperatorRootBootstrap(spec.WarehouseId, spec.StationId)
+    If operatorRoot = "" Then operatorRoot = ResolveBootstrapRootPath(spec)
+    If operatorRoot = "" Then Exit Function
+    BuildReceivingOperatorPathBootstrap = operatorRoot & "\" & spec.WarehouseId & BOOTSTRAP_RECEIVING_OPERATOR_SUFFIX
+End Function
+
+Private Function ResolveLocalOperatorRootBootstrap(ByVal warehouseId As String, ByVal stationId As String) As String
+    Dim documentsRoot As String
+    Dim userRoot As String
+    Dim whSegment As String
+    Dim stSegment As String
+    Dim localRoot As String
+
+    userRoot = Trim$(Environ$("USERPROFILE"))
+    If userRoot = "" Then userRoot = Trim$(Environ$("HOMEDRIVE") & Environ$("HOMEPATH"))
+    If userRoot = "" Then Exit Function
+
+    whSegment = SafePathSegmentBootstrap(warehouseId)
+    stSegment = SafePathSegmentBootstrap(stationId)
+    If whSegment = "" Then Exit Function
+    If stSegment = "" Then stSegment = "S1"
+
+    documentsRoot = userRoot & "\Documents"
+    localRoot = documentsRoot & "\" & BOOTSTRAP_LOCAL_OPERATOR_ROOT & "\" & whSegment & "\" & stSegment
+    ResolveLocalOperatorRootBootstrap = NormalizeFolderPathBootstrap(localRoot)
+    If Right$(ResolveLocalOperatorRootBootstrap, 1) = "\" Then
+        ResolveLocalOperatorRootBootstrap = Left$(ResolveLocalOperatorRootBootstrap, Len(ResolveLocalOperatorRootBootstrap) - 1)
+    End If
+End Function
+
+Private Function PrepareReceivingOperatorRuntimeFilesBootstrap(ByRef spec As WarehouseSpec, _
+                                                               ByVal operatorPath As String, _
+                                                               ByRef report As String) As Boolean
+    Dim hubRoot As String
+    Dim operatorRoot As String
+    Dim configSource As String
+    Dim authSource As String
+    Dim configTarget As String
+    Dim authTarget As String
+
+    On Error GoTo FailPrepare
+
+    hubRoot = ResolveBootstrapRootPath(spec)
+    operatorRoot = GetParentFolderBootstrap(operatorPath)
+    If hubRoot = "" Or operatorRoot = "" Then
+        report = "Operator workbook runtime paths could not be resolved."
+        Exit Function
+    End If
+
+    EnsureFolderRecursiveBootstrap operatorRoot
+    configSource = hubRoot & "\" & spec.WarehouseId & ".invSys.Config.xlsb"
+    authSource = hubRoot & "\" & spec.WarehouseId & ".invSys.Auth.xlsb"
+    configTarget = operatorRoot & "\" & spec.WarehouseId & ".invSys.Config.xlsb"
+    authTarget = operatorRoot & "\" & spec.WarehouseId & ".invSys.Auth.xlsb"
+
+    If Not FileExistsBootstrap(configSource) Then
+        report = "Warehouse config source not found for operator workbook: " & configSource
+        Exit Function
+    End If
+    If Not FileExistsBootstrap(authSource) Then
+        report = "Warehouse auth source not found for operator workbook: " & authSource
+        Exit Function
+    End If
+
+    If Not CopyBootstrapFileIfDifferent(configSource, configTarget, report) Then Exit Function
+    If Not CopyBootstrapFileIfDifferent(authSource, authTarget, report) Then Exit Function
+
+    PrepareReceivingOperatorRuntimeFilesBootstrap = True
+    report = "OK"
+    Exit Function
+
+FailPrepare:
+    report = "PrepareReceivingOperatorRuntimeFiles failed: " & Err.Description
+End Function
+
+Private Function CopyBootstrapFileIfDifferent(ByVal sourcePath As String, _
+                                              ByVal targetPath As String, _
+                                              ByRef report As String) As Boolean
+    On Error GoTo FailCopy
+
+    sourcePath = Trim$(sourcePath)
+    targetPath = Trim$(targetPath)
+    If sourcePath = "" Or targetPath = "" Then
+        report = "Copy source or target path was blank."
+        Exit Function
+    End If
+    If StrComp(sourcePath, targetPath, vbTextCompare) = 0 Then
+        CopyBootstrapFileIfDifferent = True
+        report = "OK"
+        Exit Function
+    End If
+
+    EnsureFolderForFileBootstrap targetPath
+    If FileExistsBootstrap(targetPath) Then Kill targetPath
+    FileCopy sourcePath, targetPath
+    CopyBootstrapFileIfDifferent = True
+    report = "OK"
+    Exit Function
+
+FailCopy:
+    report = "CopyBootstrapFileIfDifferent failed: " & sourcePath & " -> " & targetPath & ": " & Err.Description
 End Function
 
 Private Function CreateOrVerifyReceivingOperatorWorkbookBootstrap(ByRef spec As WarehouseSpec, _
@@ -901,6 +1016,18 @@ Private Function GetFileNameBootstrap(ByVal fullPath As String) As String
     Else
         GetFileNameBootstrap = fullPath
     End If
+End Function
+
+Private Function SafePathSegmentBootstrap(ByVal segmentText As String) As String
+    Dim invalidChars As Variant
+    Dim item As Variant
+
+    segmentText = Trim$(segmentText)
+    invalidChars = Array("\", "/", ":", "*", "?", Chr$(34), "<", ">", "|")
+    For Each item In invalidChars
+        segmentText = Replace$(segmentText, CStr(item), "_")
+    Next item
+    SafePathSegmentBootstrap = segmentText
 End Function
 
 Private Sub EnsureFolderRecursiveBootstrap(ByVal folderPath As String)
