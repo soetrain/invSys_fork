@@ -16,7 +16,12 @@ Sub Open_CreateDeleteUser()
 
     Set targetWb = ResolveInteractiveAdminWorkbook()
     Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
-    Call modAdminConsole.OpenUserManagement(targetWb, report)
+    If Not modLocalAddinsRegistration.EnsureLocalInvSysAddinsRegistered("", report) Then
+        MsgBox "Current invSys add-ins are not registered cleanly for this Excel session." & vbCrLf & vbCrLf & _
+               report, vbExclamation, "invSys Admin"
+        Exit Sub
+    End If
+    frmCreateDeleteUser.Show
 End Sub
 
 Sub Open_CreateWarehouse()
@@ -128,7 +133,6 @@ End Function
 ' It also includes functions to manage application settings and configurations.
 ' The functions in this module are used by the frmAdminControls form to perform administrative tasks.
 ''''''''''''''''''''''''''''''''''''
-
 
 
 

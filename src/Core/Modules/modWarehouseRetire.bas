@@ -162,13 +162,8 @@ Public Function ValidateRetireMigrateSpec(ByRef spec As RetireMigrateSpec, _
 End Function
 
 Public Function RequireReAuth(ByVal requiredRole As String) As Boolean
-    Dim gate As frmReAuthGate
-
-    Set gate = New frmReAuthGate
-    gate.InitializeGate ResolveRequiredRoleRetire(requiredRole), ResolveCurrentAdminUserRetire()
-    gate.Show vbModal
-    RequireReAuth = gate.Authenticated
-    Unload gate
+    mLastRetireReport = "Re-authentication UI is owned by the Admin add-in."
+    RequireReAuth = False
 End Function
 
 Public Function WriteArchivePackage(ByRef spec As RetireMigrateSpec) As Boolean
@@ -1109,6 +1104,7 @@ Private Function ResolveExistingRuntimeRootRetire(ByVal warehouseId As String) A
     Dim wb As Workbook
     Dim candidateRoot As String
     Dim parentPath As String
+    Dim scanRoot As String
 
     On Error GoTo CleanFail
 
@@ -1117,13 +1113,23 @@ Private Function ResolveExistingRuntimeRootRetire(ByVal warehouseId As String) A
         ResolveExistingRuntimeRootRetire = rootPath
         Exit Function
     End If
-
-    candidateRoot = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
-    If RuntimeArtifactsExistRetire(candidateRoot, warehouseId) Then
+    candidateRoot = FindRuntimeRootUnderParentRetire(rootPath, warehouseId)
+    If candidateRoot <> "" Then
         ResolveExistingRuntimeRootRetire = candidateRoot
         Exit Function
     End If
-    parentPath = GetParentFolderRetire(candidateRoot)
+
+    scanRoot = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    If RuntimeArtifactsExistRetire(scanRoot, warehouseId) Then
+        ResolveExistingRuntimeRootRetire = scanRoot
+        Exit Function
+    End If
+    candidateRoot = FindRuntimeRootUnderParentRetire(scanRoot, warehouseId)
+    If candidateRoot <> "" Then
+        ResolveExistingRuntimeRootRetire = candidateRoot
+        Exit Function
+    End If
+    parentPath = GetParentFolderRetire(scanRoot)
     If parentPath <> "" Then
         candidateRoot = FindRuntimeRootUnderParentRetire(parentPath, warehouseId)
         If candidateRoot <> "" Then
@@ -1133,13 +1139,18 @@ Private Function ResolveExistingRuntimeRootRetire(ByVal warehouseId As String) A
     End If
 
     On Error Resume Next
-    candidateRoot = Trim$(modConfig.GetString("PathDataRoot", ""))
+    scanRoot = Trim$(modConfig.GetString("PathDataRoot", ""))
     On Error GoTo 0
-    If RuntimeArtifactsExistRetire(candidateRoot, warehouseId) Then
+    If RuntimeArtifactsExistRetire(scanRoot, warehouseId) Then
+        ResolveExistingRuntimeRootRetire = scanRoot
+        Exit Function
+    End If
+    candidateRoot = FindRuntimeRootUnderParentRetire(scanRoot, warehouseId)
+    If candidateRoot <> "" Then
         ResolveExistingRuntimeRootRetire = candidateRoot
         Exit Function
     End If
-    parentPath = GetParentFolderRetire(candidateRoot)
+    parentPath = GetParentFolderRetire(scanRoot)
     If parentPath <> "" Then
         candidateRoot = FindRuntimeRootUnderParentRetire(parentPath, warehouseId)
         If candidateRoot <> "" Then
@@ -1533,11 +1544,7 @@ Private Function FolderExistsRetire(ByVal folderPath As String) As Boolean
 End Function
 
 Private Function GetParentFolderRetire(ByVal pathIn As String) As String
-    Dim sepPos As Long
-
-    pathIn = Trim$(Replace$(pathIn, "/", "\"))
-    sepPos = InStrRev(pathIn, "\")
-    If sepPos > 1 Then GetParentFolderRetire = Left$(pathIn, sepPos - 1)
+    GetParentFolderRetire = modDeploymentPaths.GetParentFolderManaged(pathIn)
 End Function
 
 Private Function GetFileNameRetire(ByVal fullPath As String) As String

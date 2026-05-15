@@ -34,9 +34,14 @@ Public Function OpenOrCreateConfigWorkbookRuntime(Optional ByVal warehouseId As 
                                                   Optional ByRef report As String = "") As Workbook
     Dim resolvedWh As String
     Dim targetPath As String
+    Dim resolvedRoot As String
 
     resolvedWh = ResolveWarehouseIdRuntime(warehouseId)
-    targetPath = BuildCanonicalWorkbookPath(ResolveCoreDataRoot(rootPath, resolvedWh), resolvedWh, "Config")
+    resolvedRoot = ResolveCoreDataRoot(rootPath, resolvedWh)
+    If Trim$(rootPath) = "" Then
+        If TryResolveExistingRuntimeRoot(resolvedWh) <> "" Then resolvedRoot = TryResolveExistingRuntimeRoot(resolvedWh)
+    End If
+    targetPath = BuildCanonicalWorkbookPath(resolvedRoot, resolvedWh, "Config")
 
     Set OpenOrCreateConfigWorkbookRuntime = OpenOrCreateRuntimeWorkbook( _
         targetPath, "CONFIG", resolvedWh, ResolveStationIdRuntime(stationId), "", report)
@@ -49,11 +54,16 @@ Public Function OpenOrCreateAuthWorkbookRuntime(Optional ByVal warehouseId As St
     Dim resolvedWh As String
     Dim resolvedServiceUser As String
     Dim targetPath As String
+    Dim resolvedRoot As String
 
     resolvedWh = ResolveWarehouseIdRuntime(warehouseId)
     resolvedServiceUser = Trim$(processorServiceUserId)
     If resolvedServiceUser = "" Then resolvedServiceUser = "svc_processor"
-    targetPath = BuildCanonicalWorkbookPath(ResolveCoreDataRoot(rootPath, resolvedWh), resolvedWh, "Auth")
+    resolvedRoot = ResolveCoreDataRoot(rootPath, resolvedWh)
+    If Trim$(rootPath) = "" Then
+        If TryResolveExistingRuntimeRoot(resolvedWh) <> "" Then resolvedRoot = TryResolveExistingRuntimeRoot(resolvedWh)
+    End If
+    targetPath = BuildCanonicalWorkbookPath(resolvedRoot, resolvedWh, "Auth")
 
     Set OpenOrCreateAuthWorkbookRuntime = OpenOrCreateRuntimeWorkbook( _
         targetPath, "AUTH", resolvedWh, "", resolvedServiceUser, report)
@@ -70,6 +80,7 @@ End Function
 Public Function TryResolveExistingRuntimeRoot(Optional ByVal warehouseId As String = "") As String
     Dim resolvedWh As String
     Dim candidateRoot As String
+    Dim scanRoot As String
     Dim parentPath As String
     Dim wb As Workbook
 
@@ -77,19 +88,29 @@ Public Function TryResolveExistingRuntimeRoot(Optional ByVal warehouseId As Stri
 
     resolvedWh = ResolveWarehouseIdRuntime(warehouseId)
 
-    candidateRoot = NormalizeFolderPath(Trim$(mCoreDataRootOverride))
-    If RuntimeArtifactsExistRuntime(candidateRoot, resolvedWh) Then
+    scanRoot = NormalizeFolderPath(Trim$(mCoreDataRootOverride))
+    If RuntimeArtifactsExistRuntime(scanRoot, resolvedWh) Then
+        TryResolveExistingRuntimeRoot = scanRoot
+        Exit Function
+    End If
+    candidateRoot = FindRuntimeRootUnderParentRuntime(scanRoot, resolvedWh)
+    If candidateRoot <> "" Then
         TryResolveExistingRuntimeRoot = candidateRoot
         Exit Function
     End If
 
-    candidateRoot = ResolveConfiguredRuntimeRoot(resolvedWh)
-    If RuntimeArtifactsExistRuntime(candidateRoot, resolvedWh) Then
+    scanRoot = ResolveConfiguredRuntimeRoot(resolvedWh)
+    If RuntimeArtifactsExistRuntime(scanRoot, resolvedWh) Then
+        TryResolveExistingRuntimeRoot = scanRoot
+        Exit Function
+    End If
+    candidateRoot = FindRuntimeRootUnderParentRuntime(scanRoot, resolvedWh)
+    If candidateRoot <> "" Then
         TryResolveExistingRuntimeRoot = candidateRoot
         Exit Function
     End If
 
-    parentPath = GetParentFolder(candidateRoot)
+    parentPath = GetParentFolder(scanRoot)
     If parentPath <> "" Then
         candidateRoot = FindRuntimeRootUnderParentRuntime(parentPath, resolvedWh)
         If candidateRoot <> "" Then

@@ -6,6 +6,7 @@ Private mCaseResults() As String
 Private mCaseDetails() As String
 Private mCaseCount As Long
 Private mSummary As String
+Private mLastSeedFailure As String
 
 Public Function TestRetireMigrate_EndToEndLifecycle() As Long
     Dim detailText As String
@@ -74,7 +75,7 @@ Private Function RunArchiveOnlyCase(ByRef detailText As String) As Boolean
         GoTo CleanExit
     End If
     If Not SeedRetireMigrateInventory(warehouseId, runtimeRoot, "EVT-ARCHIVE-ONLY", "admin.e2e", 4, "A1", "archive-only-seed", "SKU-RM-001") Then
-        detailText = "Inventory seed failed."
+        detailText = "Inventory seed failed. " & mLastSeedFailure
         GoTo CleanExit
     End If
 
@@ -169,11 +170,11 @@ Private Function RunArchiveMigrateCase(ByRef detailText As String) As Boolean
         GoTo CleanExit
     End If
     If Not SeedRetireMigrateInventory(sourceWh, sourceRoot, "EVT-MIG-SRC", "admin.e2e", 5, "A1", "source-seed", "SKU-RM-002") Then
-        detailText = "Source seed failed."
+        detailText = "Source seed failed. " & mLastSeedFailure
         GoTo CleanExit
     End If
     If Not SeedRetireMigrateInventory(targetWh, targetRoot, "EVT-MIG-TGT", "admin.e2e", 2, "B1", "target-seed", "SKU-RM-002") Then
-        detailText = "Target seed failed."
+        detailText = "Target seed failed. " & mLastSeedFailure
         GoTo CleanExit
     End If
     If Not AddSourceOnlyAuthUserRetireMigrate(sourceWh, sourceRoot) Then
@@ -294,7 +295,7 @@ Private Function RunArchiveRetireCase(ByRef detailText As String) As Boolean
         GoTo CleanExit
     End If
     If Not SeedRetireMigrateInventory(warehouseId, runtimeRoot, "EVT-RETIRE", "admin.e2e", 6, "A1", "retire-seed", "SKU-RM-003") Then
-        detailText = "Inventory seed failed."
+        detailText = "Inventory seed failed. " & mLastSeedFailure
         GoTo CleanExit
     End If
     If Not SetWarehouseSharePointPathRetireMigrate(warehouseId, runtimeRoot, sharePointRoot) Then
@@ -381,7 +382,7 @@ Private Function RunArchiveRetireDeleteCase(ByRef detailText As String) As Boole
         GoTo CleanExit
     End If
     If Not SeedRetireMigrateInventory(warehouseId, runtimeRoot, "EVT-RETIRE-DELETE", "admin.e2e", 3, "A1", "retire-delete-seed", "SKU-RM-004") Then
-        detailText = "Inventory seed failed."
+        detailText = "Inventory seed failed. " & mLastSeedFailure
         GoTo CleanExit
     End If
 
@@ -466,7 +467,7 @@ Private Function RunRetiredReuseRejectedCase(ByRef detailText As String) As Bool
         GoTo CleanExit
     End If
     If Not SeedRetireMigrateInventory(warehouseId, sourceRoot, "EVT-REUSE", "admin.e2e", 2, "A1", "reuse-seed", "SKU-RM-005") Then
-        detailText = "Inventory seed failed."
+        detailText = "Inventory seed failed. " & mLastSeedFailure
         GoTo CleanExit
     End If
     If Not modWarehouseBootstrap.PublishInitialArtifacts(sourceSpec) Then
@@ -608,7 +609,7 @@ Private Function RunDeleteWithoutConfirmationCase(ByRef detailText As String) As
         GoTo CleanExit
     End If
     If Not SeedRetireMigrateInventory(warehouseId, runtimeRoot, "EVT-DELETE-NO-CONFIRM", "admin.e2e", 2, "A1", "delete-no-confirm", "SKU-RM-007") Then
-        detailText = "Inventory seed failed."
+        detailText = "Inventory seed failed. " & mLastSeedFailure
         GoTo CleanExit
     End If
 
@@ -674,7 +675,7 @@ Private Function RunSharePointUnavailableRetireCase(ByRef detailText As String) 
         GoTo CleanExit
     End If
     If Not SeedRetireMigrateInventory(warehouseId, runtimeRoot, "EVT-SP-UNAVAILABLE", "admin.e2e", 8, "A1", "sp-unavailable", "SKU-RM-008") Then
-        detailText = "Inventory seed failed."
+        detailText = "Inventory seed failed. " & mLastSeedFailure
         GoTo CleanExit
     End If
     If Not SetWarehouseSharePointPathRetireMigrate(warehouseId, runtimeRoot, "Z:\invSys-unavailable") Then
@@ -831,13 +832,27 @@ Private Function SeedRetireMigrateInventory(ByVal warehouseId As String, _
     Dim report As String
 
     On Error GoTo FailSeed
+    mLastSeedFailure = vbNullString
 
     Set wbInv = OpenWorkbookIfNeededRetireMigrate(runtimeRoot & "\" & warehouseId & ".invSys.Data.Inventory.xlsb")
-    If wbInv Is Nothing Then GoTo CleanExit
+    If wbInv Is Nothing Then
+        mLastSeedFailure = "Inventory workbook could not be opened: " & runtimeRoot & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
+        GoTo CleanExit
+    End If
+    If Not EnsureRetireMigrateSkuCatalog(wbInv, skuValue) Then
+        mLastSeedFailure = "SKU catalog seed failed for " & skuValue & "."
+        GoTo CleanExit
+    End If
 
     Set evt = TestPhase2Helpers.CreateReceiveEvent(eventId, warehouseId, "ADM1", userId, skuValue, qty, locationVal, noteVal, Now, "seed-inbox")
-    If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-" & eventId, statusOut, errorCode, errorMessage) Then GoTo CleanExit
-    If Not GenerateWarehouseSnapshot(warehouseId, wbInv, runtimeRoot & "\" & warehouseId & ".invSys.Snapshot.Inventory.xlsb", Nothing, report) Then GoTo CleanExit
+    If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-" & eventId, statusOut, errorCode, errorMessage) Then
+        mLastSeedFailure = "ApplyEvent failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+    If Not GenerateWarehouseSnapshot(warehouseId, wbInv, runtimeRoot & "\" & warehouseId & ".invSys.Snapshot.Inventory.xlsb", Nothing, report) Then
+        mLastSeedFailure = "GenerateWarehouseSnapshot failed: " & report
+        GoTo CleanExit
+    End If
     SeedRetireMigrateInventory = True
 
 CleanExit:
@@ -845,8 +860,56 @@ CleanExit:
     Exit Function
 
 FailSeed:
+    mLastSeedFailure = "Seed exception: " & Err.Description
     Resume CleanExit
 End Function
+
+Private Function EnsureRetireMigrateSkuCatalog(ByVal wbInv As Workbook, ByVal skuValue As String) As Boolean
+    Dim loSku As ListObject
+    Dim rowIndex As Long
+    Dim r As ListRow
+
+    On Error GoTo CleanFail
+
+    skuValue = Trim$(skuValue)
+    If wbInv Is Nothing Or skuValue = "" Then Exit Function
+
+    Set loSku = wbInv.Worksheets("SkuCatalog").ListObjects("tblSkuCatalog")
+    If loSku Is Nothing Then Exit Function
+
+    rowIndex = FindRowByValueRetireMigrate(loSku, "SKU", skuValue)
+    If rowIndex = 0 Then
+        loSku.Parent.Unprotect
+        Set r = loSku.ListRows.Add
+        rowIndex = r.Index
+    End If
+
+    SetTableCellIfColumnRetireMigrate loSku, rowIndex, "SKU", skuValue
+    SetTableCellIfColumnRetireMigrate loSku, rowIndex, "ITEM_CODE", skuValue
+    SetTableCellIfColumnRetireMigrate loSku, rowIndex, "ITEM", skuValue
+    SetTableCellIfColumnRetireMigrate loSku, rowIndex, "UOM", "EA"
+    loSku.Parent.Protect UserInterfaceOnly:=True, AllowFiltering:=True, AllowSorting:=True
+    EnsureRetireMigrateSkuCatalog = True
+    Exit Function
+
+CleanFail:
+    EnsureRetireMigrateSkuCatalog = False
+End Function
+
+Private Sub SetTableCellIfColumnRetireMigrate(ByVal lo As ListObject, _
+                                              ByVal rowIndex As Long, _
+                                              ByVal columnName As String, _
+                                              ByVal valueOut As Variant)
+    Dim columnIndex As Long
+
+    On Error Resume Next
+    columnIndex = lo.ListColumns(columnName).Index
+    On Error GoTo 0
+    If columnIndex <= 0 Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    lo.DataBodyRange.Cells(rowIndex, columnIndex).Value = valueOut
+End Sub
 
 Private Function AddSourceOnlyAuthUserRetireMigrate(ByVal warehouseId As String, ByVal runtimeRoot As String) As Boolean
     Dim wbAuth As Workbook

@@ -316,8 +316,51 @@ function Add-StubUserForm {
     if ($module.CountOfLines -gt 0) {
         $module.DeleteLines(1, $module.CountOfLines)
     }
-    $module.AddFromString("Option Explicit")
+    $stubCode = Get-StubUserFormCode -FormFile $FormFile
+    $module.AddFromString($stubCode)
     Assert-VBComponentType -VBProject $VBProject -ComponentName $formName -ExpectedType 3 -Context $FormFile.FullName
+}
+
+function Get-StubUserFormCode {
+    param(
+        [System.IO.FileInfo]$FormFile
+    )
+
+    $rawLines = Get-Content -LiteralPath $FormFile.FullName
+    $hasRuntimeMarker = $false
+    foreach ($line in $rawLines) {
+        if ($line -match "'@RuntimeStubUserFormCode") {
+            $hasRuntimeMarker = $true
+            break
+        }
+    }
+
+    if (-not $hasRuntimeMarker) {
+        return "Option Explicit"
+    }
+
+    $codeLines = New-Object System.Collections.Generic.List[string]
+    $inCode = $false
+    foreach ($line in $rawLines) {
+        if (-not $inCode) {
+            if ($line -match "'@RuntimeStubUserFormCode") {
+                $inCode = $true
+            }
+            continue
+        }
+
+        if ($line -match '^Attribute VB_') {
+            continue
+        }
+
+        [void]$codeLines.Add($line)
+    }
+
+    if ($codeLines.Count -eq 0) {
+        return "Option Explicit"
+    }
+
+    return [string]::Join([Environment]::NewLine, $codeLines)
 }
 
 function Import-Forms {

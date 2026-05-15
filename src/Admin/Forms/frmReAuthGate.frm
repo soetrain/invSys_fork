@@ -35,6 +35,14 @@ Private Sub UserForm_Activate()
     mResizeInitialized = True
 End Sub
 
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    If CloseMode = vbFormControlMenu Then
+        Cancel = True
+        mAuthenticated = False
+        Me.Hide
+    End If
+End Sub
+
 Public Sub InitializeGate(Optional ByVal RequiredRole As String = "ADMIN_MAINT", _
                           Optional ByVal AdminUser As String = "")
     mRequiredRole = Trim$(RequiredRole)
@@ -47,7 +55,7 @@ Public Sub InitializeGate(Optional ByVal RequiredRole As String = "ADMIN_MAINT",
     mFailureCount = 0
     mLockedOut = False
 
-    Me.lblPrompt.Caption = "Re-enter your password to continue."
+    Me.lblPrompt.Caption = "Enter your admin password or PIN to continue."
     Me.lblAdminUserValue.Caption = mAdminUser
     Me.lblRoleValue.Caption = mRequiredRole
     Me.txtPassword.Value = ""
@@ -139,4 +147,3 @@ Private Function ResolveDefaultAdminUserReAuth() As String
     ResolveDefaultAdminUserReAuth = Trim$(Environ$("USERNAME"))
     If ResolveDefaultAdminUserReAuth = "" Then ResolveDefaultAdminUserReAuth = Trim$(Application.UserName)
 End Function
-
