@@ -19,6 +19,8 @@ Private WithEvents mBtnHubPathHelper As MSForms.CommandButton
 Attribute mBtnHubPathHelper.VB_VarHelpID = -1
 Private WithEvents mBtnSharePointHelper As MSForms.CommandButton
 Attribute mBtnSharePointHelper.VB_VarHelpID = -1
+Private WithEvents mBtnOpenReceiving As MSForms.CommandButton
+Attribute mBtnOpenReceiving.VB_VarHelpID = -1
 
 Private mPathLocalTouched As Boolean
 Private mLastSuggestedLocalPath As String
@@ -30,6 +32,7 @@ Private mCreatedStationId As String
 Private mCreatedAdminUser As String
 Private mCreatedPathLocal As String
 Private mCreatedPathSharePoint As String
+Private mCreatedOperatorWorkbookPath As String
 Private mDefaultOkLeft As Single
 Private mDefaultOkWidth As Single
 Private mDefaultCancelLeft As Single
@@ -63,6 +66,7 @@ Private Sub UserForm_Initialize()
     Me.txtPathSharePoint.Value = ResolveDefaultSharePointRootForm()
     ConfigureHubPathHelperButton
     ConfigureSharePointHelperButton
+    ConfigureOpenReceivingButton
     Me.btnOK.Caption = "Create"
     Me.btnCancel.Caption = "Cancel"
     Me.chkPublishInitial.Value = True
@@ -225,9 +229,9 @@ Private Sub btnOK_Click()
         Exit Sub
     End If
 
-    If modWarehouseBootstrap.WarehouseIdExists(warehouseId) Then
-        SetErrorCaption Me.lblWarehouseIdError, "WarehouseId already exists locally or on SharePoint."
-        ShowSummary "Choose a different WarehouseId and try again.", COLOR_ERROR
+    If modWarehouseBootstrap.WarehouseArtifactsExistAtPath(warehouseId, pathLocal) Then
+        SetErrorCaption Me.lblWarehouseIdError, "Warehouse artifacts already exist at the selected hub path."
+        ShowSummary "Choose a different WarehouseId or hub path and try again.", COLOR_ERROR
         Exit Sub
     End If
 
@@ -242,8 +246,16 @@ Private Sub btnOK_Click()
     mCreatedAdminUser = adminUser
     mCreatedPathLocal = pathLocal
     mCreatedPathSharePoint = pathSharePoint
+    mCreatedOperatorWorkbookPath = modWarehouseBootstrap.GetLastWarehouseOperatorWorkbookPath()
     mLocalBootstrapComplete = True
     summaryText = "Warehouse hub bootstrap complete for " & warehouseId & "."
+    If mCreatedOperatorWorkbookPath <> "" Then
+        summaryText = summaryText & vbCrLf & "Receiving workbook created: " & GetFileNameForm(mCreatedOperatorWorkbookPath)
+        If Not mBtnOpenReceiving Is Nothing Then
+            mBtnOpenReceiving.Visible = True
+            mBtnOpenReceiving.Enabled = True
+        End If
+    End If
 
     If CBool(Me.chkPublishInitial.Value) Then
         If modAdminConsole.PublishInitialArtifactsAdmin(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint) Then
@@ -263,6 +275,29 @@ Private Sub btnOK_Click()
         summaryText = summaryText & vbCrLf & "Initial SharePoint publish skipped."
         MarkFormComplete summaryText, True
     End If
+End Sub
+
+Private Sub mBtnOpenReceiving_Click()
+    Dim wb As Workbook
+
+    If mCreatedOperatorWorkbookPath = "" Then
+        ShowSummary "Receiving workbook path was not captured.", COLOR_ERROR
+        Exit Sub
+    End If
+    If Len(Dir$(mCreatedOperatorWorkbookPath, vbNormal)) = 0 Then
+        ShowSummary "Receiving workbook was not found: " & mCreatedOperatorWorkbookPath, COLOR_ERROR
+        Exit Sub
+    End If
+
+    On Error GoTo FailOpen
+    Set wb = Application.Workbooks.Open(Filename:=mCreatedOperatorWorkbookPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+    If wb Is Nothing Then GoTo FailOpen
+    wb.Activate
+    ShowSummary "Receiving workbook opened. Use Confirm Writes to test the new warehouse.", COLOR_SUCCESS
+    Exit Sub
+
+FailOpen:
+    ShowSummary "Receiving workbook could not be opened: " & Err.Description, COLOR_ERROR
 End Sub
 
 Private Sub MarkFormComplete(ByVal summaryText As String, ByVal includeCloseHint As Boolean)
@@ -407,6 +442,7 @@ Private Sub InitializeCreateWarehouseAnchors()
     mAnchors.Add Me.btnOK, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     If Not mBtnHubPathHelper Is Nothing Then mAnchors.Add mBtnHubPathHelper, ANCHOR_RIGHT Or ANCHOR_TOP
     If Not mBtnSharePointHelper Is Nothing Then mAnchors.Add mBtnSharePointHelper, ANCHOR_RIGHT Or ANCHOR_TOP
+    If Not mBtnOpenReceiving Is Nothing Then mAnchors.Add mBtnOpenReceiving, ANCHOR_LEFT Or ANCHOR_BOTTOM
 End Sub
 
 Private Function FormatSummaryMessage(ByVal messageText As String) As String
@@ -524,6 +560,18 @@ Private Function ResolveDefaultSharePointRootForm() As String
     End If
 End Function
 
+Private Function GetFileNameForm(ByVal fullPath As String) As String
+    Dim slashPos As Long
+
+    fullPath = Trim$(Replace$(fullPath, "/", "\"))
+    slashPos = InStrRev(fullPath, "\")
+    If slashPos > 0 Then
+        GetFileNameForm = Mid$(fullPath, slashPos + 1)
+    Else
+        GetFileNameForm = fullPath
+    End If
+End Function
+
 Private Sub ConfigureHubPathHelperButton()
     If mBtnHubPathHelper Is Nothing Then
         Set mBtnHubPathHelper = Me.Controls.Add("Forms.CommandButton.1", "btnHubPathHelperRuntime", True)
@@ -539,6 +587,23 @@ Private Sub ConfigureHubPathHelperButton()
         .ControlTipText = "Choose the warehouse hub folder. For Synology, pick the SMB warehouse folder such as \\DS920\\<share>\\WH1."
         .Visible = True
         .Enabled = True
+    End With
+End Sub
+
+Private Sub ConfigureOpenReceivingButton()
+    If mBtnOpenReceiving Is Nothing Then
+        Set mBtnOpenReceiving = Me.Controls.Add("Forms.CommandButton.1", "btnOpenReceivingRuntime", True)
+    End If
+
+    With mBtnOpenReceiving
+        .Caption = "Open Workbook"
+        .Left = 18
+        .Top = Me.btnOK.Top
+        .Width = 120
+        .Height = Me.btnOK.Height
+        .ControlTipText = "Open the generated receiving operator workbook for this warehouse."
+        .Visible = False
+        .Enabled = False
     End With
 End Sub
 
@@ -559,4 +624,3 @@ Private Sub ConfigureSharePointHelperButton()
         .Enabled = True
     End With
 End Sub
-

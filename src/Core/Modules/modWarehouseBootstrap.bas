@@ -6,9 +6,11 @@ Private Const BOOTSTRAP_SHAREPOINT_CONFIG_JSON_SUFFIX As String = ".config.json"
 Private Const BOOTSTRAP_SHAREPOINT_CONFIG_WORKBOOK_SUFFIX As String = ".invSys.Config.xlsb"
 Private Const BOOTSTRAP_TEMPLATE_FOLDER_NAME As String = "templates"
 Private Const BOOTSTRAP_INVENTORY_TEMPLATE_FILE As String = "invSys.Data.Inventory.template.xlsb"
+Private Const BOOTSTRAP_RECEIVING_OPERATOR_SUFFIX As String = ".Receiving.Operator.xlsm"
 
 Private mBootstrapTemplateRootOverride As String
 Private mLastBootstrapReport As String
+Private mLastBootstrapOperatorWorkbookPath As String
 
 Public Type WarehouseSpec
     WarehouseId As String
@@ -117,6 +119,12 @@ Public Function WarehouseIdExists(ByVal warehouseId As String) As Boolean
     WarehouseIdExists = SharePointWarehouseIdExistsBootstrap(warehouseId)
 End Function
 
+Public Function WarehouseArtifactsExistAtPath(ByVal warehouseId As String, ByVal rootPath As String) As Boolean
+    rootPath = NormalizeFolderPathBootstrap(rootPath)
+    If Right$(rootPath, 1) = "\" Then rootPath = Left$(rootPath, Len(rootPath) - 1)
+    WarehouseArtifactsExistAtPath = RuntimeArtifactsExistBootstrap(rootPath, warehouseId)
+End Function
+
 Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     Dim rootPath As String
     Dim priorRootOverride As String
@@ -129,10 +137,15 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     Dim wbInventory As Workbook
     Dim wbOutbox As Workbook
     Dim createdRoot As Boolean
+    Dim rootExisted As Boolean
+    Dim inboxPath As String
+    Dim operatorPath As String
+    Dim operatorReport As String
 
     On Error GoTo FailBootstrap
 
     mLastBootstrapReport = vbNullString
+    mLastBootstrapOperatorWorkbookPath = vbNullString
     If Not ValidateWarehouseSpec(spec, report) Then GoTo FailSoft
     If Trim$(spec.AdminUser) = "" Then
         report = "AdminUser is required."
@@ -146,17 +159,20 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     End If
     spec.PathLocal = rootPath
 
-    If WarehouseIdExists(spec.WarehouseId) Then
-        report = "WarehouseId already exists."
-        GoTo FailSoft
-    End If
-    If FolderExistsBootstrap(rootPath) Then
-        report = "Warehouse hub root already exists: " & rootPath
+    If RuntimeArtifactsExistBootstrap(rootPath, spec.WarehouseId) Then
+        report = "Warehouse runtime artifacts already exist at hub path: " & rootPath
         GoTo FailSoft
     End If
 
-    EnsureFolderRecursiveBootstrap rootPath
-    createdRoot = True
+    rootExisted = FolderExistsBootstrap(rootPath)
+    If Not rootExisted Then
+        EnsureFolderRecursiveBootstrap rootPath
+        createdRoot = True
+    ElseIf Not FolderExistsBootstrap(rootPath) Then
+        report = "Warehouse hub path is not accessible: " & rootPath
+        GoTo FailSoft
+    End If
+
     EnsureFolderRecursiveBootstrap rootPath & "\inbox"
     EnsureFolderRecursiveBootstrap rootPath & "\outbox"
     EnsureFolderRecursiveBootstrap rootPath & "\snapshots"
@@ -175,10 +191,17 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(spec.WarehouseId, spec.StationId, rootPath, report)
     If wbCfg Is Nothing Then GoTo FailSoft
     If Not StampBootstrapConfigWorkbook(wbCfg, spec, report) Then GoTo FailSoft
+    If Not modConfig.EnsureStationConfigEntry(spec.WarehouseId, spec.StationId, spec.AdminUser, rootPath & "\inbox\", "RECEIVE", configPath, rootPath, report) Then GoTo FailSoft
+    If Not modConfig.EnsureStationInbox(spec.WarehouseId, spec.StationId, "RECEIVE", configPath, inboxPath, report) Then GoTo FailSoft
 
     If Not modAuth.EnsureStationRoleAuth(spec.WarehouseId, spec.StationId, spec.AdminUser, spec.AdminUser, "ADMIN", authPath, "svc_processor", capabilityOut, report) Then GoTo FailSoft
     If StrComp(capabilityOut, "ADMIN_MAINT", vbTextCompare) <> 0 Then
         report = "Admin capability was not provisioned."
+        GoTo FailSoft
+    End If
+    If Not modAuth.EnsureStationRoleAuth(spec.WarehouseId, spec.StationId, spec.AdminUser, spec.AdminUser, "RECEIVE", authPath, "svc_processor", capabilityOut, report) Then GoTo FailSoft
+    If StrComp(capabilityOut, "RECEIVE_POST", vbTextCompare) <> 0 Then
+        report = "Receiving capability was not provisioned."
         GoTo FailSoft
     End If
 
@@ -209,9 +232,19 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
         report = "Admin user was not granted ADMIN_MAINT."
         GoTo FailSoft
     End If
+    If Not modAuth.CanPerform("RECEIVE_POST", spec.AdminUser, spec.WarehouseId, spec.StationId, "BOOTSTRAP", "WAREHOUSE-BOOTSTRAP") Then
+        report = "Admin user was not granted RECEIVE_POST."
+        GoTo FailSoft
+    End If
+
+    operatorPath = BuildReceivingOperatorPathBootstrap(spec)
+    If Not CreateOrVerifyReceivingOperatorWorkbookBootstrap(spec, operatorPath, operatorReport) Then
+        report = operatorReport
+        GoTo FailSoft
+    End If
 
     BootstrapWarehouseLocal = True
-    report = "OK"
+    report = "OK|Hub=" & rootPath & "|Inbox=" & inboxPath & "|Operator=" & operatorPath
     GoTo CleanExit
 
 FailSoft:
@@ -314,6 +347,10 @@ Public Function GetLastWarehouseBootstrapReport() As String
     GetLastWarehouseBootstrapReport = mLastBootstrapReport
 End Function
 
+Public Function GetLastWarehouseOperatorWorkbookPath() As String
+    GetLastWarehouseOperatorWorkbookPath = mLastBootstrapOperatorWorkbookPath
+End Function
+
 Public Sub SetWarehouseBootstrapTemplateRootOverride(ByVal rootPath As String)
     mBootstrapTemplateRootOverride = Trim$(rootPath)
 End Sub
@@ -363,6 +400,21 @@ SkipUnavailable:
         "SharePoint collision check skipped|WarehouseId=" & warehouseId & _
         "|Root=" & sharePointRoot & "|Reason=" & Err.Description
     SharePointWarehouseIdExistsBootstrap = False
+End Function
+
+Private Function RuntimeArtifactsExistBootstrap(ByVal rootPath As String, ByVal warehouseId As String) As Boolean
+    rootPath = NormalizeFolderPathBootstrap(rootPath)
+    If Right$(rootPath, 1) = "\" Then rootPath = Left$(rootPath, Len(rootPath) - 1)
+    warehouseId = Trim$(warehouseId)
+    If rootPath = "" Or warehouseId = "" Then Exit Function
+
+    RuntimeArtifactsExistBootstrap = _
+        FileExistsBootstrap(rootPath & "\" & warehouseId & ".invSys.Config.xlsb") Or _
+        FileExistsBootstrap(rootPath & "\" & warehouseId & ".invSys.Auth.xlsb") Or _
+        FileExistsBootstrap(rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb") Or _
+        FileExistsBootstrap(rootPath & "\" & warehouseId & ".invSys.Snapshot.Inventory.xlsb") Or _
+        FileExistsBootstrap(rootPath & "\" & warehouseId & ".Outbox.Events.xlsb") Or _
+        FileExistsBootstrap(rootPath & "\" & warehouseId & BOOTSTRAP_RECEIVING_OPERATOR_SUFFIX)
 End Function
 
 Private Function FolderExistsBootstrap(ByVal folderPath As String) As Boolean
@@ -517,7 +569,7 @@ Private Function StampBootstrapConfigWorkbook(ByVal wbCfg As Workbook, _
     SetTableCellByColumnBootstrap loSt, 1, "WarehouseId", spec.WarehouseId
     SetTableCellByColumnBootstrap loSt, 1, "StationName", spec.AdminUser
     SetTableCellByColumnBootstrap loSt, 1, "PathInboxRoot", spec.PathLocal & "\inbox\"
-    SetTableCellByColumnBootstrap loSt, 1, "RoleDefault", "ADMIN"
+    SetTableCellByColumnBootstrap loSt, 1, "RoleDefault", "RECEIVE"
 
     SaveWorkbookIfWritableBootstrap wbCfg
     StampBootstrapConfigWorkbook = True
@@ -537,6 +589,118 @@ Private Sub SetTableCellByColumnBootstrap(ByVal lo As ListObject, _
     idx = lo.ListColumns(columnName).Index
     lo.DataBodyRange.Cells(rowIndex, idx).Value = valueOut
 End Sub
+
+Private Function BuildReceivingOperatorPathBootstrap(ByRef spec As WarehouseSpec) As String
+    Dim rootPath As String
+
+    rootPath = ResolveBootstrapRootPath(spec)
+    If rootPath = "" Then Exit Function
+    BuildReceivingOperatorPathBootstrap = rootPath & "\" & spec.WarehouseId & BOOTSTRAP_RECEIVING_OPERATOR_SUFFIX
+End Function
+
+Private Function CreateOrVerifyReceivingOperatorWorkbookBootstrap(ByRef spec As WarehouseSpec, _
+                                                                  ByVal operatorPath As String, _
+                                                                  ByRef report As String) As Boolean
+    Dim wb As Workbook
+    Dim openedTransient As Boolean
+    Dim refreshReport As String
+    Dim parentFolder As String
+    Dim prevEvents As Boolean
+    Dim prevDisplayAlerts As Boolean
+
+    On Error GoTo FailCreate
+    prevEvents = Application.EnableEvents
+    prevDisplayAlerts = Application.DisplayAlerts
+
+    parentFolder = GetParentFolderBootstrap(operatorPath)
+    If parentFolder = "" Then
+        report = "Operator workbook parent folder could not be resolved."
+        GoTo FailSoft
+    End If
+    EnsureFolderRecursiveBootstrap parentFolder
+
+    Application.EnableEvents = False
+    Application.DisplayAlerts = False
+
+    Set wb = FindOpenWorkbookByPathBootstrap(operatorPath)
+    If wb Is Nothing And FileExistsBootstrap(operatorPath) Then
+        Set wb = Application.Workbooks.Open(Filename:=operatorPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+        openedTransient = Not wb Is Nothing
+    End If
+    If wb Is Nothing Then
+        Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+        openedTransient = Not wb Is Nothing
+    End If
+    If wb Is Nothing Then
+        report = "Operator workbook could not be created."
+        GoTo FailSoft
+    End If
+
+    If Not modRoleWorkbookSurfaces.EnsureReceivingWorkbookSurface(wb, report) Then GoTo FailSoft
+    RemoveNonReceivingOperatorSheetsBootstrap wb
+    Call modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, spec.WarehouseId, "LOCAL", refreshReport)
+
+    If Trim$(wb.FullName) = "" Then
+        wb.SaveAs Filename:=operatorPath, FileFormat:=52
+    ElseIf StrComp(wb.FullName, operatorPath, vbTextCompare) <> 0 Then
+        wb.SaveAs Filename:=operatorPath, FileFormat:=52
+    Else
+        wb.Save
+    End If
+
+    mLastBootstrapOperatorWorkbookPath = operatorPath
+    CreateOrVerifyReceivingOperatorWorkbookBootstrap = True
+    report = "OK"
+    GoTo CleanExit
+
+FailSoft:
+    CreateOrVerifyReceivingOperatorWorkbookBootstrap = False
+    If Len(report) = 0 Then report = "CreateOrVerifyReceivingOperatorWorkbook failed."
+    GoTo CleanExit
+
+FailCreate:
+    report = "CreateOrVerifyReceivingOperatorWorkbook failed: " & Err.Description
+    Resume FailSoft
+
+CleanExit:
+    Application.DisplayAlerts = prevDisplayAlerts
+    Application.EnableEvents = prevEvents
+    CloseWorkbookIfOpenBootstrap wb
+End Function
+
+Private Sub RemoveNonReceivingOperatorSheetsBootstrap(ByVal wb As Workbook)
+    Dim keepSheets As Object
+    Dim i As Long
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Sub
+    Set keepSheets = CreateObject("Scripting.Dictionary")
+    keepSheets.CompareMode = vbTextCompare
+    keepSheets("ReceivedTally") = True
+    keepSheets("InventoryManagement") = True
+    keepSheets("ReceivedLog") = True
+
+    For i = wb.Worksheets.Count To 1 Step -1
+        Set ws = wb.Worksheets(i)
+        If Not keepSheets.Exists(ws.Name) Then
+            If wb.Worksheets.Count > 1 Then ws.Delete
+        End If
+    Next i
+End Sub
+
+Private Function FindOpenWorkbookByPathBootstrap(ByVal workbookPath As String) As Workbook
+    Dim wb As Workbook
+
+    workbookPath = Trim$(workbookPath)
+    If workbookPath = "" Then Exit Function
+
+    For Each wb In Application.Workbooks
+        If StrComp(Trim$(wb.FullName), workbookPath, vbTextCompare) = 0 Then
+            Set FindOpenWorkbookByPathBootstrap = wb
+            Exit Function
+        End If
+    Next wb
+End Function
 
 Private Sub SaveWorkbookIfWritableBootstrap(ByVal wb As Workbook)
     If wb Is Nothing Then Exit Sub

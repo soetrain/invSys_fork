@@ -19,7 +19,7 @@
 | --- | --- | --- | --- |
 | P0 | Setup Tester Station | Partial | Disposable smoke-test warehouse that proves NAS, SharePoint path, auth, seed data, processor, and operator workbook flow. |
 | P0 | Delete Tester Station Generated | Partial | Remove the test warehouse/runtime artifacts created by Setup Tester Station so the user can reset and move on. Initial control exists; needs live validation on NAS. |
-| P0 | Create New Warehouse | Partial | Real warehouse onboarding path after Tester Station passes. Must create runtime, config, auth, initial users/roles, and required workbooks on the intended paths. |
+| P0 | Create New Warehouse | Partial | Real warehouse onboarding path after Tester Station passes. Now creates runtime, config, auth, receiving inbox, initial admin/receiving user capabilities, and a receiving operator workbook for Confirm Writes. Needs live NAS validation. |
 | P0 | Add Users and Roles | Partial / Needs Definition | Must provision real warehouse users, PINs, roles/capabilities, active/inactive state, and station scoping. |
 | P0 | Admin Console | Needs Definition | Needs a clear R1 job description: operator-facing admin launcher, processor dashboard, warehouse maintenance console, or all of these. |
 | P0 | Verify Add-ins Published | Broken | User reports it does not work. Must be debugged before R1 deployment flow can be trusted. |
@@ -47,7 +47,7 @@
 | Setup Tester Station - Find SharePoint Root | `frmSetupTesterStation` dynamic button | Partial | Detects/browses SharePoint sync root. Works enough for current testing, but X1-Pro-Ai vs Zenbook path discovery may vary. |
 | Setup Tester Station - Open Workbook | `frmSetupTesterStation` dynamic button | Partial | Opens generated workbook after setup. The workbook can still be unusable if generated in the wrong location or readiness/auth context is wrong. |
 | Delete Tester Station Generated | `frmSetupTesterStation`, `modTesterSetup.DeleteTesterStationGenerated` | Partial | Removes known tester-generated runtime, inbox, snapshot, outbox, operator workbook, and tester package artifacts with confirmation and a report. Guarded to tester-looking warehouse ids. Needs live NAS validation. |
-| Create New Warehouse | `frmCreateWarehouse`, `modAdminConsole.BootstrapWarehouseLocalAdmin` | Partial | Form exists with hub path and SharePoint root fields. Needs live NAS validation and final answer on exactly which runtime and operator files it creates. |
+| Create New Warehouse | `frmCreateWarehouse`, `modAdminConsole.BootstrapWarehouseLocalAdmin` | Partial | Creates hub artifacts plus a receiving inbox/operator workbook for the first station. Existing hub folders are allowed when warehouse artifacts do not already exist. Needs live NAS validation. |
 | Create New Warehouse - Publish Initial | `frmCreateWarehouse.chkPublishInitial`, `PublishInitialArtifactsAdmin` | Partial | Can retry publish. Needs verification against real SharePoint sync path. |
 | Create / Delete User | `frmCreateDeleteUser` | Partial | Exists, but appears table-bound to `UserCredentials`; needs alignment with current `Auth.xlsb` users/capabilities model. |
 | Edit User | `frmEditUser` | Partial | Exists, but same concern as Create/Delete User: likely older role model assumptions. |
