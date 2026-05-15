@@ -7,6 +7,7 @@ Private Const BOOTSTRAP_SHAREPOINT_CONFIG_WORKBOOK_SUFFIX As String = ".invSys.C
 Private Const BOOTSTRAP_TEMPLATE_FOLDER_NAME As String = "templates"
 Private Const BOOTSTRAP_INVENTORY_TEMPLATE_FILE As String = "invSys.Data.Inventory.template.xlsb"
 Private Const BOOTSTRAP_RECEIVING_OPERATOR_SUFFIX As String = ".Receiving.Operator.xlsm"
+Private Const BOOTSTRAP_SEED_SOURCE_ID As String = "CREATE_WAREHOUSE_DEMO_SEED"
 
 Private mBootstrapTemplateRootOverride As String
 Private mLastBootstrapReport As String
@@ -141,6 +142,7 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     Dim inboxPath As String
     Dim operatorPath As String
     Dim operatorReport As String
+    Dim seedReport As String
 
     On Error GoTo FailBootstrap
 
@@ -237,6 +239,11 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
         GoTo FailSoft
     End If
 
+    If Not SeedBootstrapDemoInventory(spec, seedReport) Then
+        report = seedReport
+        GoTo FailSoft
+    End If
+
     operatorPath = BuildReceivingOperatorPathBootstrap(spec)
     If Not CreateOrVerifyReceivingOperatorWorkbookBootstrap(spec, operatorPath, operatorReport) Then
         report = operatorReport
@@ -244,7 +251,7 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     End If
 
     BootstrapWarehouseLocal = True
-    report = "OK|Hub=" & rootPath & "|Inbox=" & inboxPath & "|Operator=" & operatorPath
+    report = "OK|Hub=" & rootPath & "|Inbox=" & inboxPath & "|Seed=" & seedReport & "|Operator=" & operatorPath
     GoTo CleanExit
 
 FailSoft:
@@ -666,6 +673,150 @@ CleanExit:
     Application.DisplayAlerts = prevDisplayAlerts
     Application.EnableEvents = prevEvents
     CloseWorkbookIfOpenBootstrap wb
+End Function
+
+Private Function SeedBootstrapDemoInventory(ByRef spec As WarehouseSpec, ByRef report As String) As Boolean
+    Dim inventoryWb As Workbook
+    Dim payloadItems As Collection
+    Dim payloadJson As String
+    Dim eventIdOut As String
+    Dim queueError As String
+    Dim batchReport As String
+    Dim processedCount As Long
+
+    On Error GoTo FailSeed
+
+    Set inventoryWb = ResolveInventoryWorkbookBridge(spec.WarehouseId)
+    If inventoryWb Is Nothing Then
+        report = "Inventory workbook could not be resolved for demo seed."
+        GoTo FailSoft
+    End If
+    If BootstrapDemoSeedAlreadyPresent(inventoryWb) Then
+        SeedBootstrapDemoInventory = True
+        report = "SKIPPED"
+        Exit Function
+    End If
+
+    Set payloadItems = BuildBootstrapDemoPayload()
+    payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
+    If payloadJson = "" Or payloadJson = "[]" Then
+        report = "Demo seed payload was empty."
+        GoTo FailSoft
+    End If
+
+    If Not modRoleEventWriter.QueueMigrationSeedEvent(spec.WarehouseId, spec.StationId, spec.AdminUser, payloadJson, "", BOOTSTRAP_SEED_SOURCE_ID, 0, Nothing, eventIdOut, queueError, "") Then
+        report = "QueueMigrationSeedEvent failed: " & queueError
+        GoTo FailSoft
+    End If
+
+    processedCount = modProcessor.RunBatch(spec.WarehouseId, 0, batchReport)
+    If processedCount < 1 Then
+        If Not BootstrapDemoSeedAlreadyPresent(inventoryWb) Then
+            report = "Processor did not apply demo inventory seed. " & batchReport
+            GoTo FailSoft
+        End If
+    End If
+
+    If Not BootstrapDemoSeedAlreadyPresent(inventoryWb) Then
+        report = "Demo inventory seed was not present after processor run."
+        GoTo FailSoft
+    End If
+
+    SeedBootstrapDemoInventory = True
+    report = "SEEDED"
+    Exit Function
+
+FailSoft:
+    SeedBootstrapDemoInventory = False
+    If Len(report) = 0 Then report = "SeedBootstrapDemoInventory failed."
+    Exit Function
+
+FailSeed:
+    report = "SeedBootstrapDemoInventory failed: " & Err.Description
+    Resume FailSoft
+End Function
+
+Private Function BuildBootstrapDemoPayload() As Collection
+    Dim items As Collection
+
+    Set items = New Collection
+    items.Add BuildBootstrapDemoPayloadItem(1, "DEMO-RAW-BLACK-TEA", "Black Tea", "lbs", "CLEARVIEW", "Loose black tea for receiving test.", "Tea Importers", "TEA-001", "raw", 500#)
+    items.Add BuildBootstrapDemoPayloadItem(2, "DEMO-RAW-CARDAMOM", "Cardamom", "lbs", "CLEARVIEW", "Cardamom for receiving test.", "Spice House", "SPICE-001", "raw", 50#)
+    items.Add BuildBootstrapDemoPayloadItem(3, "DEMO-FG-CLASSIC-CHAI", "Classic Chai Concentrate", "gal", "CLEARVIEW", "Finished good receiving test item.", "Internal", "FG-001", "shippable", 25#)
+    Set BuildBootstrapDemoPayload = items
+End Function
+
+Private Function BuildBootstrapDemoPayloadItem(ByVal rowVal As Long, _
+                                               ByVal sku As String, _
+                                               ByVal itemName As String, _
+                                               ByVal uom As String, _
+                                               ByVal locationVal As String, _
+                                               ByVal description As String, _
+                                               ByVal vendorName As String, _
+                                               ByVal vendorCode As String, _
+                                               ByVal category As String, _
+                                               ByVal qty As Double) As Object
+    Dim item As Object
+
+    Set item = modRoleEventWriter.CreatePayloadItem(rowVal, sku, qty, locationVal, BOOTSTRAP_SEED_SOURCE_ID, "IMPORT")
+    item("Description") = description
+    item("ITEM_CODE") = sku
+    item("Item") = itemName
+    item("UOM") = uom
+    item("VENDOR(s)") = vendorName
+    item("VENDOR_CODE") = vendorCode
+    item("CATEGORY") = category
+    Set BuildBootstrapDemoPayloadItem = item
+End Function
+
+Private Function BootstrapDemoSeedAlreadyPresent(ByVal inventoryWb As Workbook) As Boolean
+    BootstrapDemoSeedAlreadyPresent = InventoryWorkbookHasSkuBootstrap(inventoryWb, "DEMO-RAW-BLACK-TEA") _
+        And InventoryWorkbookHasSkuBootstrap(inventoryWb, "DEMO-RAW-CARDAMOM") _
+        And InventoryWorkbookHasSkuBootstrap(inventoryWb, "DEMO-FG-CLASSIC-CHAI")
+End Function
+
+Private Function InventoryWorkbookHasSkuBootstrap(ByVal inventoryWb As Workbook, ByVal sku As String) As Boolean
+    Dim lo As ListObject
+    Dim rowIndex As Long
+
+    Set lo = FindTableByNameBootstrap(inventoryWb, "tblSkuBalance")
+    If lo Is Nothing Then Set lo = FindTableByNameBootstrap(inventoryWb, "invSys")
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    For rowIndex = 1 To lo.ListRows.Count
+        If TableCellEqualsBootstrap(lo, rowIndex, "SKU", sku) _
+           Or TableCellEqualsBootstrap(lo, rowIndex, "ITEM_CODE", sku) Then
+            InventoryWorkbookHasSkuBootstrap = True
+            Exit Function
+        End If
+    Next rowIndex
+End Function
+
+Private Function FindTableByNameBootstrap(ByVal wb As Workbook, ByVal tableName As String) As ListObject
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        On Error Resume Next
+        Set FindTableByNameBootstrap = ws.ListObjects(tableName)
+        On Error GoTo 0
+        If Not FindTableByNameBootstrap Is Nothing Then Exit Function
+    Next ws
+End Function
+
+Private Function TableCellEqualsBootstrap(ByVal lo As ListObject, _
+                                          ByVal rowIndex As Long, _
+                                          ByVal columnName As String, _
+                                          ByVal expectedValue As String) As Boolean
+    Dim idx As Long
+
+    If lo Is Nothing Then Exit Function
+    On Error Resume Next
+    idx = lo.ListColumns(columnName).Index
+    On Error GoTo 0
+    If idx = 0 Then Exit Function
+    TableCellEqualsBootstrap = (StrComp(Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, idx).Value)), expectedValue, vbTextCompare) = 0)
 End Function
 
 Private Sub RemoveNonReceivingOperatorSheetsBootstrap(ByVal wb As Workbook)

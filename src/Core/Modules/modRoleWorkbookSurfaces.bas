@@ -8,11 +8,13 @@ Public Function EnsureReceivingWorkbookSurface(Optional ByVal targetWb As Workbo
     Dim wb As Workbook
     Set wb = ResolveTargetWorkbookSurface(targetWb)
 
-    EnsureTableSurface wb, "ReceivedTally", "ReceivedTally", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW"), True
-    EnsureTableSurface wb, "ReceivedTally", "AggregateReceived", Array("REF_NUMBER", "ITEM_CODE", "VENDORS", "VENDOR_CODE", "DESCRIPTION", "ITEM", "UOM", "QUANTITY", "LOCATION", "ROW"), False
-    EnsureTableSurface wb, "ReceivedTally", "invSysData_Receiving", InventoryManagementHeadersSurface(), False
+    EnsureTableSurface wb, "ReceivedTally", "ReceivedTally", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW"), True, "C3"
+    EnsureTableSurface wb, "ReceivedTally", "AggregateReceived", Array("REF_NUMBER", "ITEM_CODE", "VENDORS", "VENDOR_CODE", "DESCRIPTION", "ITEM", "UOM", "QUANTITY", "LOCATION", "ROW"), False, "J3"
+    EnsureTableSurface wb, "ReceivedTally", "invSysData_Receiving", InventoryManagementHeadersSurface(), False, "V3"
     EnsureInventoryManagementSurface wb
     EnsureTableSurface wb, "ReceivedLog", "ReceivedLog", Array("SNAPSHOT_ID", "ENTRY_DATE", "REF_NUMBER", "ITEMS", "QUANTITY", "UOM", "VENDOR", "LOCATION", "ITEM_CODE", "ROW"), False
+    ArrangeReceivingTablesSurface wb
+    EnsureReceivingButtonsSurface wb
     FormatWorkbookSurface wb
 
     EnsureReceivingWorkbookSurface = True
@@ -264,7 +266,8 @@ Private Sub EnsureTableSurface(ByVal wb As Workbook, _
                                ByVal sheetName As String, _
                                ByVal tableName As String, _
                                ByVal headers As Variant, _
-                               ByVal seedEntryRow As Boolean)
+                               ByVal seedEntryRow As Boolean, _
+                               Optional ByVal startAddress As String = "")
     Dim ws As Worksheet
     Dim lo As ListObject
     Dim i As Long
@@ -279,7 +282,11 @@ Private Sub EnsureTableSurface(ByVal wb As Workbook, _
     On Error GoTo 0
 
     If lo Is Nothing Then
-        Set startCell = GetNextTableStartCellSurface(ws)
+        If Trim$(startAddress) <> "" Then
+            Set startCell = ws.Range(startAddress)
+        Else
+            Set startCell = GetNextTableStartCellSurface(ws)
+        End If
         For i = LBound(headers) To UBound(headers)
             startCell.Offset(0, i - LBound(headers)).Value = headers(i)
         Next i
@@ -300,6 +307,113 @@ Private Sub EnsureTableSurface(ByVal wb As Workbook, _
     ElseIf Not lo.DataBodyRange Is Nothing Then
         If lo.ListRows.Count = 1 And TableRowIsBlankSurface(lo, 1) Then lo.ListRows(1).Delete
     End If
+End Sub
+
+Private Sub ArrangeReceivingTablesSurface(ByVal wb As Workbook)
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    Set ws = wb.Worksheets("ReceivedTally")
+    On Error GoTo 0
+    If ws Is Nothing Then Exit Sub
+
+    MoveTableTopLeftSurface ws, "ReceivedTally", "C3"
+    MoveTableTopLeftSurface ws, "AggregateReceived", "J3"
+    MoveTableTopLeftSurface ws, "invSysData_Receiving", "V3"
+End Sub
+
+Private Sub MoveTableTopLeftSurface(ByVal ws As Worksheet, ByVal tableName As String, ByVal targetAddress As String)
+    Dim lo As ListObject
+    Dim targetCell As Range
+
+    If ws Is Nothing Then Exit Sub
+    On Error Resume Next
+    Set lo = ws.ListObjects(tableName)
+    Set targetCell = ws.Range(targetAddress)
+    On Error GoTo 0
+    If lo Is Nothing Or targetCell Is Nothing Then Exit Sub
+    If lo.Range.Cells(1, 1).Address(False, False) = targetCell.Address(False, False) Then Exit Sub
+
+    On Error Resume Next
+    lo.Range.Cut Destination:=targetCell
+    On Error GoTo 0
+End Sub
+
+Private Sub EnsureReceivingButtonsSurface(ByVal wb As Workbook)
+    Const BTN_TOP As Double = 6
+    Const BTN_HEIGHT As Double = 20
+    Const BTN_WIDTH As Double = 118
+    Const BTN_SPACING As Double = 8
+
+    Dim ws As Worksheet
+    Dim leftPos As Double
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    Set ws = wb.Worksheets("ReceivedTally")
+    On Error GoTo 0
+    If ws Is Nothing Then Exit Sub
+
+    DeleteReceivingButtonsSurface ws
+
+    leftPos = ws.Range("C1").Left
+    EnsureReceivingButtonSurface ws, "btnConfirmWrites", "Confirm Writes", "'invSys.Receiving.xlam'!modTS_Received.ConfirmWrites", leftPos, BTN_TOP, BTN_WIDTH, BTN_HEIGHT
+    leftPos = leftPos + BTN_WIDTH + BTN_SPACING
+    EnsureReceivingButtonSurface ws, "btnUndoMacro", "Undo", "'invSys.Receiving.xlam'!modTS_Received.MacroUndo", leftPos, BTN_TOP, 82, BTN_HEIGHT
+    leftPos = leftPos + 82 + BTN_SPACING
+    EnsureReceivingButtonSurface ws, "btnRedoMacro", "Redo", "'invSys.Receiving.xlam'!modTS_Received.MacroRedo", leftPos, BTN_TOP, 82, BTN_HEIGHT
+End Sub
+
+Private Sub EnsureReceivingButtonSurface(ByVal ws As Worksheet, _
+                                         ByVal shapeName As String, _
+                                         ByVal caption As String, _
+                                         ByVal onActionMacro As String, _
+                                         ByVal leftPos As Double, _
+                                         ByVal topPos As Double, _
+                                         ByVal widthPts As Double, _
+                                         ByVal heightPts As Double)
+    Dim shp As Shape
+
+    If ws Is Nothing Then Exit Sub
+    On Error Resume Next
+    Set shp = ws.Shapes(shapeName)
+    On Error GoTo 0
+
+    If shp Is Nothing Then
+        Set shp = ws.Shapes.AddFormControl(xlButtonControl, leftPos, topPos, widthPts, heightPts)
+        shp.Name = shapeName
+    Else
+        shp.Left = leftPos
+        shp.Top = topPos
+        shp.Width = widthPts
+        shp.Height = heightPts
+    End If
+
+    On Error Resume Next
+    shp.TextFrame.Characters.Text = caption
+    shp.OnAction = onActionMacro
+    On Error GoTo 0
+End Sub
+
+Private Sub DeleteReceivingButtonsSurface(ByVal ws As Worksheet)
+    Dim shp As Shape
+    Dim names As Collection
+    Dim item As Variant
+    Dim shpName As String
+
+    If ws Is Nothing Then Exit Sub
+    Set names = New Collection
+    For Each shp In ws.Shapes
+        shpName = LCase$(Trim$(shp.Name))
+        If shpName = "btnconfirmwrites" Or shpName = "btnundomacro" Or shpName = "btnredomacro" Then names.Add shp.Name
+    Next shp
+
+    For Each item In names
+        On Error Resume Next
+        ws.Shapes(CStr(item)).Delete
+        On Error GoTo 0
+    Next item
 End Sub
 
 Private Sub PruneInventoryAliasColumnsSurface(ByVal lo As ListObject)
