@@ -34,6 +34,7 @@ Public Function SetupTesterStation(ByRef spec As TesterSetupSpec) As Boolean
     Dim authReport As String
     Dim operatorReport As String
     Dim configReport As String
+    Dim sharePointReport As String
     Dim operatorPath As String
     Dim priorRootOverride As String
     Dim runtimeArtifactsExist As Boolean
@@ -89,6 +90,12 @@ Public Function SetupTesterStation(ByRef spec As TesterSetupSpec) As Boolean
     If Not modConfig.EnsureStationInbox(spec.WarehouseId, spec.StationId, "RECEIVE", configPath, inboxPath, report) Then
         GoTo FailSoft
     End If
+    If Not modConfig.EnsureStationInbox(spec.WarehouseId, spec.StationId, "SHIP", configPath, inboxPath, report) Then
+        GoTo FailSoft
+    End If
+    If Not modConfig.EnsureStationInbox(spec.WarehouseId, spec.StationId, "PRODUCTION", configPath, inboxPath, report) Then
+        GoTo FailSoft
+    End If
 
     PublishTesterSetupProgress "Seeding test data..."
     If Not SeedTesterScenarioInventory(spec, seedReport) Then
@@ -112,6 +119,10 @@ Public Function SetupTesterStation(ByRef spec As TesterSetupSpec) As Boolean
         report = configReport
         GoTo FailSoft
     End If
+    If Not EnsureTesterSharePointPackage(spec, sharePointReport) Then
+        report = sharePointReport
+        GoTo FailSoft
+    End If
 
     report = "OK|WarehouseId=" & spec.WarehouseId & _
              "|StationId=" & spec.StationId & _
@@ -121,7 +132,8 @@ Public Function SetupTesterStation(ByRef spec As TesterSetupSpec) As Boolean
              "|Seed=" & seedReport & _
              "|Auth=" & authReport & _
              "|Operator=" & operatorPath & _
-             "|SharePoint=" & spec.PathSharePointRoot
+             "|SharePoint=" & spec.PathSharePointRoot & _
+             "|SharePointPackage=" & sharePointReport
     PublishTesterSetupProgress "Done"
     SetupTesterStation = True
     GoTo CleanExit
@@ -183,6 +195,8 @@ Public Function ProvisionTesterAuth(ByRef spec As TesterSetupSpec, _
 
     EnsureCapabilityActiveTesterSetup loCaps, spec.UserId, "RECEIVE_POST", spec.WarehouseId, spec.StationId
     EnsureCapabilityActiveTesterSetup loCaps, spec.UserId, "RECEIVE_VIEW", spec.WarehouseId, spec.StationId
+    EnsureCapabilityActiveTesterSetup loCaps, spec.UserId, "SHIP_POST", spec.WarehouseId, spec.StationId
+    EnsureCapabilityActiveTesterSetup loCaps, spec.UserId, "PROD_POST", spec.WarehouseId, spec.StationId
     EnsureCapabilityActiveTesterSetup loCaps, spec.UserId, "READMODEL_REFRESH", spec.WarehouseId, spec.StationId
     DeactivateCapabilityTesterSetup loCaps, spec.UserId, "ADMIN_MAINT", spec.WarehouseId, spec.StationId
 
@@ -190,6 +204,8 @@ Public Function ProvisionTesterAuth(ByRef spec As TesterSetupSpec, _
     capabilitiesReady = _
         CapabilityIsActiveTesterSetup(loCaps, spec.UserId, "RECEIVE_POST", spec.WarehouseId, spec.StationId) And _
         CapabilityIsActiveTesterSetup(loCaps, spec.UserId, "RECEIVE_VIEW", spec.WarehouseId, spec.StationId) And _
+        CapabilityIsActiveTesterSetup(loCaps, spec.UserId, "SHIP_POST", spec.WarehouseId, spec.StationId) And _
+        CapabilityIsActiveTesterSetup(loCaps, spec.UserId, "PROD_POST", spec.WarehouseId, spec.StationId) And _
         CapabilityIsActiveTesterSetup(loCaps, spec.UserId, "READMODEL_REFRESH", spec.WarehouseId, spec.StationId) And _
         Not CapabilityIsActiveTesterSetup(loCaps, spec.UserId, "ADMIN_MAINT", spec.WarehouseId, spec.StationId)
 
@@ -1015,6 +1031,59 @@ CleanExit:
     CloseWorkbookIfTransientTesterSetup wbConfig, configOpenedTransient
 End Function
 
+Private Function EnsureTesterSharePointPackage(ByRef spec As TesterSetupSpec, _
+                                               ByRef report As String) As Boolean
+    Dim sharePointRoot As String
+    Dim addinsRoot As String
+    Dim sourceAddinsRoot As String
+    Dim requiredAddins As Variant
+    Dim addinName As Variant
+    Dim sourcePath As String
+    Dim targetPath As String
+    Dim copiedCount As Long
+
+    On Error GoTo FailPackage
+
+    sharePointRoot = NormalizeFolderPathTesterSetup(spec.PathSharePointRoot, False)
+    If sharePointRoot = "" Then
+        report = "SKIPPED|PathSharePointRoot not configured."
+        EnsureTesterSharePointPackage = True
+        Exit Function
+    End If
+
+    EnsureFolderRecursiveTesterSetup sharePointRoot
+    EnsureFolderRecursiveTesterSetup sharePointRoot & "\Addins"
+    EnsureFolderRecursiveTesterSetup sharePointRoot & "\Events"
+    EnsureFolderRecursiveTesterSetup sharePointRoot & "\Snapshots"
+    EnsureFolderRecursiveTesterSetup sharePointRoot & "\TesterPackage"
+    EnsureFolderRecursiveTesterSetup sharePointRoot & "\TesterPackage\" & spec.WarehouseId
+
+    sourceAddinsRoot = ResolveCurrentAddinsRootTesterSetup()
+    If sourceAddinsRoot = "" Then
+        report = "Current add-ins folder could not be resolved for tester package publish."
+        Exit Function
+    End If
+
+    addinsRoot = sharePointRoot & "\Addins"
+    requiredAddins = RequiredTesterAddinNamesTesterSetup()
+    For Each addinName In requiredAddins
+        sourcePath = sourceAddinsRoot & "\" & CStr(addinName)
+        targetPath = addinsRoot & "\" & CStr(addinName)
+        If Not FileExistsTesterSetup(sourcePath) Then
+            report = "Source add-in missing: " & sourcePath
+            Exit Function
+        End If
+        If CopyFileIfNeededTesterSetup(sourcePath, targetPath) Then copiedCount = copiedCount + 1
+    Next addinName
+
+    report = "OK|Addins=" & addinsRoot & "|Copied=" & CStr(copiedCount)
+    EnsureTesterSharePointPackage = True
+    Exit Function
+
+FailPackage:
+    report = "EnsureTesterSharePointPackage failed: " & Err.Description
+End Function
+
 Private Function IsUncPathTesterSetup(ByVal pathIn As String) As Boolean
     pathIn = NormalizeFolderPathTesterSetup(pathIn, False)
     IsUncPathTesterSetup = (Left$(pathIn, 2) = "\\")
@@ -1462,6 +1531,74 @@ Private Function FileExistsTesterSetup(ByVal filePath As String) As Boolean
         Err.Clear
         FileExistsTesterSetup = (Len(Dir$(filePath, vbNormal)) > 0)
     End If
+    On Error GoTo 0
+End Function
+
+Private Function RequiredTesterAddinNamesTesterSetup() As Variant
+    RequiredTesterAddinNamesTesterSetup = Array( _
+        "invSys.Core.xlam", _
+        "invSys.Inventory.Domain.xlam", _
+        "invSys.Designs.Domain.xlam", _
+        "invSys.Receiving.xlam", _
+        "invSys.Shipping.xlam", _
+        "invSys.Production.xlam", _
+        "invSys.Admin.xlam")
+End Function
+
+Private Function ResolveCurrentAddinsRootTesterSetup() As String
+    Dim candidate As String
+
+    candidate = NormalizeFolderPathTesterSetup(ThisWorkbook.Path, False)
+    If CandidateHasRequiredTesterAddinsTesterSetup(candidate) Then
+        ResolveCurrentAddinsRootTesterSetup = candidate
+        Exit Function
+    End If
+
+    candidate = NormalizeFolderPathTesterSetup(Environ$("USERPROFILE") & "\source\repos\invSys_fork\deploy\current", False)
+    If CandidateHasRequiredTesterAddinsTesterSetup(candidate) Then
+        ResolveCurrentAddinsRootTesterSetup = candidate
+        Exit Function
+    End If
+
+    candidate = NormalizeFolderPathTesterSetup(modConfig.GetString("PathSharePointRoot", ""), False)
+    If CandidateHasRequiredTesterAddinsTesterSetup(candidate & "\Addins") Then
+        ResolveCurrentAddinsRootTesterSetup = NormalizeFolderPathTesterSetup(candidate & "\Addins", False)
+    End If
+End Function
+
+Private Function CandidateHasRequiredTesterAddinsTesterSetup(ByVal folderPath As String) As Boolean
+    Dim addinName As Variant
+    Dim requiredAddins As Variant
+
+    folderPath = NormalizeFolderPathTesterSetup(folderPath, False)
+    If folderPath = "" Then Exit Function
+    If Not FolderExistsTesterSetup(folderPath) Then Exit Function
+
+    requiredAddins = RequiredTesterAddinNamesTesterSetup()
+    For Each addinName In requiredAddins
+        If Not FileExistsTesterSetup(folderPath & "\" & CStr(addinName)) Then Exit Function
+    Next addinName
+
+    CandidateHasRequiredTesterAddinsTesterSetup = True
+End Function
+
+Private Function CopyFileIfNeededTesterSetup(ByVal sourcePath As String, ByVal targetPath As String) As Boolean
+    sourcePath = Trim$(Replace$(sourcePath, "/", "\"))
+    targetPath = Trim$(Replace$(targetPath, "/", "\"))
+    If sourcePath = "" Or targetPath = "" Then Exit Function
+    If Not FileExistsTesterSetup(sourcePath) Then Exit Function
+    If FileExistsTesterSetup(targetPath) Then
+        If SafeFileLenTesterSetup(sourcePath) = SafeFileLenTesterSetup(targetPath) Then Exit Function
+        Kill targetPath
+    End If
+    EnsureFolderRecursiveTesterSetup GetParentFolderTesterSetup(targetPath)
+    FileCopy sourcePath, targetPath
+    CopyFileIfNeededTesterSetup = True
+End Function
+
+Private Function SafeFileLenTesterSetup(ByVal filePath As String) As Long
+    On Error Resume Next
+    SafeFileLenTesterSetup = FileLen(filePath)
     On Error GoTo 0
 End Function
 

@@ -693,6 +693,7 @@ End Function
 
 Private Sub InitializeAdminConsoleLayout(ByVal ws As Worksheet)
     If ws Is Nothing Then Exit Sub
+    ClearAdminConsoleActionButtons ws
     ws.Range("A1").Value = "Admin Console"
     ws.Range("A2").Value = "Metric"
     ws.Range("B2").Value = "Value"
@@ -710,7 +711,54 @@ Private Sub InitializeAdminConsoleLayout(ByVal ws As Worksheet)
     ws.Range("A14").Value = "LastAppliedEventId"
     ws.Range("A15").Value = "LastRefreshUTC"
     ws.Range("A16").Value = METRIC_STATUS
-    ws.Columns("A:B").AutoFit
+    ws.Range("A18").Value = "Setup / test actions"
+    ws.Range("A19").Value = "Generate complete test warehouse"
+    ws.Range("A20").Value = "Open tester receiving workbook"
+    ws.Range("A21").Value = "Verify add-ins published"
+    ws.Range("A22").Value = "Users & Roles"
+    ws.Range("A23").Value = "Retire / Migrate Warehouse"
+    ws.Range("A24").Value = "Refresh Admin Console"
+    ws.Range("B19").Value = "Creates/repairs config, auth, inventory, receive/ship/production inboxes, snapshots, add-ins package, and a receiving operator workbook."
+    ws.Range("B20").Value = "Open the generated workbook before running Refresh Inventory or Confirm Writes."
+    ws.Range("B21").Value = "Checks the SharePoint/Addins folder configured for this warehouse."
+    ws.Range("B22").Value = "Create test users and copy their account card."
+    ws.Range("B23").Value = "Retire, archive, migrate, or delete a warehouse runtime."
+    ws.Range("B24").Value = "Reloads the status values above."
+    AddAdminConsoleActionButton ws, "btnAdminGenerateTesterWarehouse", "Generate Test Warehouse", "'invSys.Admin.xlam'!modAdmin.Admin_SetupTesterStation_Click", "D19"
+    AddAdminConsoleActionButton ws, "btnAdminOpenTesterWorkbook", "Open Tester Workbook", "'invSys.Admin.xlam'!modAdmin.Open_LastTesterWorkbook", "D20"
+    AddAdminConsoleActionButton ws, "btnAdminVerifyAddins", "Verify Add-ins", "'invSys.Admin.xlam'!modAdmin.Verify_AddinsPublished", "D21"
+    AddAdminConsoleActionButton ws, "btnAdminUsersRoles", "Users & Roles", "'invSys.Admin.xlam'!modAdmin.Open_CreateDeleteUser", "D22"
+    AddAdminConsoleActionButton ws, "btnAdminRetireMigrate", "Retire / Migrate", "'invSys.Admin.xlam'!modAdmin.Admin_RetireMigrateWarehouse_Click", "D23"
+    AddAdminConsoleActionButton ws, "btnAdminRefreshConsole", "Refresh Console", "'invSys.Admin.xlam'!modAdmin.Admin_Click", "D24"
+    ws.Columns("A:D").AutoFit
+End Sub
+
+Private Sub ClearAdminConsoleActionButtons(ByVal ws As Worksheet)
+    Dim idx As Long
+
+    If ws Is Nothing Then Exit Sub
+    For idx = ws.Shapes.Count To 1 Step -1
+        If Left$(ws.Shapes(idx).Name, 8) = "btnAdmin" Then ws.Shapes(idx).Delete
+    Next idx
+End Sub
+
+Private Sub AddAdminConsoleActionButton(ByVal ws As Worksheet, _
+                                        ByVal shapeName As String, _
+                                        ByVal caption As String, _
+                                        ByVal onActionMacro As String, _
+                                        ByVal anchorAddress As String)
+    Const BTN_WIDTH As Double = 150
+    Const BTN_HEIGHT As Double = 22
+
+    Dim anchorCell As Range
+    Dim shp As Shape
+
+    If ws Is Nothing Then Exit Sub
+    Set anchorCell = ws.Range(anchorAddress)
+    Set shp = ws.Shapes.AddFormControl(xlButtonControl, anchorCell.Left, anchorCell.Top, BTN_WIDTH, BTN_HEIGHT)
+    shp.Name = shapeName
+    shp.TextFrame.Characters.Text = caption
+    shp.OnAction = onActionMacro
 End Sub
 
 Private Sub InitializeAdminConsoleValues(ByVal ws As Worksheet)

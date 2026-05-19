@@ -64,6 +64,7 @@ Public Function DescribeInboxPendingRows(ByVal eventType As String, _
     Dim oldestCreated As String
     Dim newestCreated As String
     Dim sampleIds As String
+    Dim report As String
 
     pendingCount = 0
     matchingPendingCount = 0
@@ -78,6 +79,24 @@ Public Function DescribeInboxPendingRows(ByVal eventType As String, _
     Set wbInbox = ResolveInboxWorkbookForEventType(eventType, resolvedWh, resolvedSt, errorMessage)
     If wbInbox Is Nothing Then Exit Function
     openedTransient = Not WorkbookWasAlreadyOpenRole(openPaths, wbInbox)
+
+    Select Case UCase$(Trim$(eventType))
+        Case ROLE_EVENT_TYPE_RECEIVE
+            If Not modProcessor.EnsureReceiveInboxSchema(wbInbox, report) Then
+                errorMessage = report
+                GoTo CleanExit
+            End If
+        Case ROLE_EVENT_TYPE_SHIP
+            If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
+                errorMessage = report
+                GoTo CleanExit
+            End If
+        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
+            If Not modProcessor.EnsureProductionInboxSchema(wbInbox, report) Then
+                errorMessage = report
+                GoTo CleanExit
+            End If
+    End Select
 
     Set lo = FindListObjectByNameRole(wbInbox, InboxTableNameRole(eventType))
     If lo Is Nothing Then

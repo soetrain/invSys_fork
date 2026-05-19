@@ -56,6 +56,14 @@ Sub Open_SetupTesterStation()
     Admin_SetupTesterStation_Click
 End Sub
 
+Sub Open_LastTesterWorkbook()
+    If modTesterSetup.OpenTesterReceivingWorkbook("") Then
+        MsgBox "Tester receiving workbook opened. Use Refresh Inventory, then run Confirm Writes.", vbInformation, "invSys Admin"
+    Else
+        MsgBox "No tester receiving workbook is available in this Excel session. Run Generate Test Warehouse first.", vbExclamation, "invSys Admin"
+    End If
+End Sub
+
 Sub Verify_AddinsPublished()
     Dim report As String
     Dim detail As String
@@ -133,7 +141,6 @@ End Function
 ' It also includes functions to manage application settings and configurations.
 ' The functions in this module are used by the frmAdminControls form to perform administrative tasks.
 ''''''''''''''''''''''''''''''''''''
-
 
 
 
