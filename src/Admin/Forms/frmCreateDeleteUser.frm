@@ -370,15 +370,18 @@ Private Sub mBtnGeneratePin_Click()
 End Sub
 
 Private Sub mBtnCopyPin_Click()
-    If Len(CStr(mTxtPin.Value)) = 0 Then
-        ShowStatusForm "No PIN/password value to copy.", COLOR_WARNING
+    Dim accountText As String
+
+    accountText = BuildAccountClipboardTextForm()
+    If Len(accountText) = 0 Then
+        ShowStatusForm "Enter user account details before copying.", COLOR_WARNING
         Exit Sub
     End If
 
-    If CopyTextToClipboardForm(CStr(mTxtPin.Value)) Then
-        ShowStatusForm "PIN/password copied. Store it now; only the hash is saved in the auth workbook.", COLOR_SUCCESS
+    If CopyTextToClipboardForm(accountText) Then
+        ShowStatusForm "User account details copied. Store the PIN/password now; only the hash is saved.", COLOR_SUCCESS
     Else
-        ShowStatusForm "Could not copy automatically. The PIN/password is visible for manual copy.", COLOR_WARNING
+        ShowStatusForm "Could not copy automatically. Account details are visible for manual copy.", COLOR_WARNING
     End If
 End Sub
 
@@ -1178,6 +1181,48 @@ End Function
 Private Function SafeTextForm(ByVal valueIn As Variant) As String
     If IsError(valueIn) Or IsNull(valueIn) Or IsEmpty(valueIn) Then Exit Function
     SafeTextForm = Trim$(CStr(valueIn))
+End Function
+
+Private Function BuildAccountClipboardTextForm() As String
+    Dim userId As String
+    Dim displayName As String
+    Dim pinText As String
+    Dim warehouseId As String
+    Dim stationId As String
+    Dim textOut As String
+
+    userId = Trim$(CStr(mTxtUserId.Value))
+    displayName = Trim$(CStr(mTxtDisplayName.Value))
+    pinText = CStr(mTxtPin.Value)
+    warehouseId = Trim$(CStr(mTxtWarehouseId.Value))
+    stationId = Trim$(CStr(mTxtStationId.Value))
+
+    If userId = "" And displayName = "" And pinText = "" And warehouseId = "" And stationId = "" Then Exit Function
+    If stationId = "" Then stationId = "*"
+
+    textOut = "invSys user account" & vbCrLf & _
+              "User ID: " & userId & vbCrLf & _
+              "Display name: " & displayName & vbCrLf & _
+              "PIN/password: " & pinText & vbCrLf & _
+              "Warehouse scope: " & warehouseId & vbCrLf & _
+              "Station: " & stationId & vbCrLf & _
+              "Roles / capabilities:" & vbCrLf & _
+              "- Admin maintenance: " & YesNoTextForm(CBool(mChkAdmin.Value)) & vbCrLf & _
+              "- Receiving post: " & YesNoTextForm(CBool(mChkReceivePost.Value)) & vbCrLf & _
+              "- Receiving view: " & YesNoTextForm(CBool(mChkReceiveView.Value)) & vbCrLf & _
+              "- Shipping post: " & YesNoTextForm(CBool(mChkShipPost.Value)) & vbCrLf & _
+              "- Production post: " & YesNoTextForm(CBool(mChkProdPost.Value)) & vbCrLf & _
+              "- Inbox processor: " & YesNoTextForm(CBool(mChkInboxProcess.Value))
+
+    BuildAccountClipboardTextForm = textOut
+End Function
+
+Private Function YesNoTextForm(ByVal selected As Boolean) As String
+    If selected Then
+        YesNoTextForm = "Yes"
+    Else
+        YesNoTextForm = "No"
+    End If
 End Function
 
 Private Function CopyTextToClipboardForm(ByVal valueText As String) As Boolean
