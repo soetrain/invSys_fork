@@ -78,6 +78,7 @@ Private Type NETRESOURCE
 End Type
 
 Private Declare PtrSafe Function WNetAddConnection2 Lib "mpr.dll" Alias "WNetAddConnection2A" (ByRef lpNetResource As NETRESOURCE, ByVal lpPassword As String, ByVal lpUserName As String, ByVal dwFlags As Long) As Long
+Private Declare PtrSafe Function WNetCancelConnection2 Lib "mpr.dll" Alias "WNetCancelConnection2A" (ByVal lpName As String, ByVal dwFlags As Long, ByVal fForce As Long) As Long
 #Else
 Private Type NETRESOURCE
     dwScope As Long
@@ -91,6 +92,7 @@ Private Type NETRESOURCE
 End Type
 
 Private Declare Function WNetAddConnection2 Lib "mpr.dll" Alias "WNetAddConnection2A" (ByRef lpNetResource As NETRESOURCE, ByVal lpPassword As String, ByVal lpUserName As String, ByVal dwFlags As Long) As Long
+Private Declare Function WNetCancelConnection2 Lib "mpr.dll" Alias "WNetCancelConnection2A" (ByVal lpName As String, ByVal dwFlags As Long, ByVal fForce As Long) As Long
 #End If
 
 Private Sub UserForm_Initialize()
@@ -405,6 +407,7 @@ Private Sub RefreshWarehouseListForm(ByVal showScanResult As Boolean)
     Dim item As Variant
     Dim rootPath As String
     Dim rootReachable As Boolean
+    Dim connectReport As String
 
     mBusy = True
     mCmbWarehouse.Clear
@@ -414,6 +417,11 @@ Private Sub RefreshWarehouseListForm(ByVal showScanResult As Boolean)
     rootPath = NormalizePathForm(CStr(mTxtRoot.Value))
     If rootPath = "" Then rootPath = ResolveDefaultWarehouseRootForm()
     rootReachable = (rootPath <> "" And FolderExistsForm(rootPath))
+    If Not rootReachable And IsUncPathForm(rootPath) Then
+        If Trim$(CStr(mTxtNasUser.Value)) <> "" Or CStr(mTxtNasPassword.Value) <> "" Then
+            If ConnectSelectedRootForm(connectReport) Then rootReachable = FolderExistsForm(rootPath)
+        End If
+    End If
     Set results = DiscoverWarehousesForm()
 
     For Each item In results
@@ -433,7 +441,11 @@ Private Sub RefreshWarehouseListForm(ByVal showScanResult As Boolean)
 
     If showScanResult Then
         If Not rootReachable Then
-            ShowStatusForm "Warehouse root is not reachable from Excel. Enter NAS credentials and click Connect, then scan again.", COLOR_ERROR
+            If connectReport <> "" Then
+                ShowStatusForm connectReport, COLOR_ERROR
+            Else
+                ShowStatusForm "Warehouse root is not reachable from Excel. Enter NAS credentials and click Connect, then scan again.", COLOR_ERROR
+            End If
         ElseIf mCmbWarehouse.ListCount = 0 Then
             ShowStatusForm "No warehouse auth/config workbooks found under this root. Connect to the NAS if the folder requires credentials.", COLOR_WARNING
         Else
@@ -988,7 +1000,6 @@ Private Function ConnectSelectedRootForm(ByRef report As String) As Boolean
     Dim shareRoot As String
     Dim userName As String
     Dim passwordText As String
-    Dim resource As NETRESOURCE
     Dim resultCode As Long
 
     rootPath = NormalizePathForm(CStr(mTxtRoot.Value))
@@ -1015,20 +1026,51 @@ Private Function ConnectSelectedRootForm(ByRef report As String) As Boolean
         Exit Function
     End If
 
-    resource.dwType = RESOURCETYPE_DISK
-    resource.lpRemoteName = shareRoot
-    resultCode = WNetAddConnection2(resource, passwordText, userName, CONNECT_TEMPORARY)
-    If resultCode = NO_ERROR_WIN32 Then
+    resultCode = ConnectToShareWithCredentialsForm(shareRoot, userName, passwordText)
+    If resultCode = ERROR_SESSION_CREDENTIAL_CONFLICT Then
+        WNetCancelConnection2 shareRoot, 0, True
+        resultCode = ConnectToShareWithCredentialsForm(shareRoot, userName, passwordText)
+    End If
+
+    If resultCode = NO_ERROR_WIN32 And FolderExistsForm(rootPath) Then
         mTxtNasPassword.Value = ""
         ConnectSelectedRootForm = True
-        report = "Connected to NAS share."
+        report = "Connected to NAS root."
+    ElseIf resultCode = NO_ERROR_WIN32 Then
+        report = "Connected to NAS share, but the Warehouse root folder was not found."
     ElseIf resultCode = ERROR_SESSION_CREDENTIAL_CONFLICT And FolderExistsForm(rootPath) Then
         mTxtNasPassword.Value = ""
         ConnectSelectedRootForm = True
         report = "Using existing Windows NAS connection."
     Else
-        report = "NAS connection failed. Windows error " & CStr(resultCode) & "."
+        report = WNetConnectionErrorTextForm(resultCode)
     End If
+End Function
+
+Private Function ConnectToShareWithCredentialsForm(ByVal shareRoot As String, ByVal userName As String, _
+                                                   ByVal passwordText As String) As Long
+    Dim resource As NETRESOURCE
+    Dim qualifiedUser As String
+
+    resource.dwType = RESOURCETYPE_DISK
+    resource.lpRemoteName = shareRoot
+
+    ConnectToShareWithCredentialsForm = WNetAddConnection2(resource, passwordText, userName, CONNECT_TEMPORARY)
+    If ConnectToShareWithCredentialsForm = NO_ERROR_WIN32 Then Exit Function
+    If InStr(1, userName, "\", vbTextCompare) > 0 Or InStr(1, userName, "@", vbTextCompare) > 0 Then Exit Function
+
+    qualifiedUser = ResolveUncServerForm(shareRoot) & "\" & userName
+    If qualifiedUser <> "\" & userName Then
+        ConnectToShareWithCredentialsForm = WNetAddConnection2(resource, passwordText, qualifiedUser, CONNECT_TEMPORARY)
+    End If
+End Function
+
+Private Function ResolveUncServerForm(ByVal pathValue As String) As String
+    Dim parts() As String
+    pathValue = NormalizePathForm(pathValue)
+    If Not IsUncPathForm(pathValue) Then Exit Function
+    parts = Split(Mid$(pathValue, 3), "\")
+    If UBound(parts) >= 0 Then ResolveUncServerForm = parts(0)
 End Function
 
 Private Function ResolveUncShareRootForm(ByVal pathValue As String) As String
@@ -1038,6 +1080,23 @@ Private Function ResolveUncShareRootForm(ByVal pathValue As String) As String
     parts = Split(Mid$(pathValue, 3), "\")
     If UBound(parts) < 1 Then Exit Function
     ResolveUncShareRootForm = "\\" & parts(0) & "\" & parts(1)
+End Function
+
+Private Function WNetConnectionErrorTextForm(ByVal resultCode As Long) As String
+    Select Case resultCode
+        Case 5
+            WNetConnectionErrorTextForm = "NAS access denied. Check username permissions for this share."
+        Case 53
+            WNetConnectionErrorTextForm = "NAS path was not found. Check the server, share name, and network connection."
+        Case 67
+            WNetConnectionErrorTextForm = "NAS network name was not found. Check the share name."
+        Case 86, 1326
+            WNetConnectionErrorTextForm = "NAS login failed. Check username and password."
+        Case ERROR_SESSION_CREDENTIAL_CONFLICT
+            WNetConnectionErrorTextForm = "Windows already has a connection to this NAS with different credentials. Disconnect that NAS session in Windows, then connect again."
+        Case Else
+            WNetConnectionErrorTextForm = "NAS connection failed. Windows error " & CStr(resultCode) & "."
+    End Select
 End Function
 
 Private Function IsUncPathForm(ByVal pathValue As String) As Boolean
@@ -1066,14 +1125,34 @@ Private Function NormalizePathForm(ByVal pathValue As String) As String
 End Function
 
 Private Function FolderExistsForm(ByVal folderPath As String) As Boolean
+    Dim fso As Object
+
+    folderPath = NormalizePathForm(folderPath)
+    If folderPath = "" Then Exit Function
+
     On Error Resume Next
-    FolderExistsForm = CreateObject("Scripting.FileSystemObject").FolderExists(folderPath)
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FolderExistsForm = fso.FolderExists(folderPath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FolderExistsForm = (Len(Dir$(folderPath, vbDirectory)) > 0)
+    End If
     On Error GoTo 0
 End Function
 
 Private Function FileExistsForm(ByVal filePath As String) As Boolean
+    Dim fso As Object
+
+    filePath = NormalizePathForm(filePath)
+    If filePath = "" Then Exit Function
+
     On Error Resume Next
-    FileExistsForm = CreateObject("Scripting.FileSystemObject").FileExists(filePath)
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FileExistsForm = fso.FileExists(filePath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FileExistsForm = (Len(Dir$(filePath, vbNormal)) > 0)
+    End If
     On Error GoTo 0
 End Function
 
