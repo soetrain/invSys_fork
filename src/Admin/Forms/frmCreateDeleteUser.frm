@@ -37,6 +37,7 @@ Private WithEvents mChkShipPost As MSForms.CheckBox
 Private WithEvents mChkProdPost As MSForms.CheckBox
 Private WithEvents mChkInboxProcess As MSForms.CheckBox
 Private WithEvents mBtnGeneratePin As MSForms.CommandButton
+Private WithEvents mBtnCopyPin As MSForms.CommandButton
 Private WithEvents mBtnRefreshUsers As MSForms.CommandButton
 Private WithEvents mBtnSave As MSForms.CommandButton
 Private WithEvents mBtnDeactivate As MSForms.CommandButton
@@ -46,12 +47,18 @@ Private WithEvents mBtnClose As MSForms.CommandButton
 
 Private mLblStatus As MSForms.Label
 Private mWarehousePathById As Object
+Private mAnchors As Object
 Private mBusy As Boolean
+Private mResizeInitialized As Boolean
 
 Private Const COLOR_INFO As Long = 0
 Private Const COLOR_SUCCESS As Long = 32768
 Private Const COLOR_WARNING As Long = 192
 Private Const COLOR_ERROR As Long = 255
+Private Const ANCHOR_LEFT As Long = 1
+Private Const ANCHOR_TOP As Long = 2
+Private Const ANCHOR_RIGHT As Long = 4
+Private Const ANCHOR_BOTTOM As Long = 8
 Private Const NO_ERROR_WIN32 As Long = 0
 Private Const ERROR_SESSION_CREDENTIAL_CONFLICT As Long = 1219
 Private Const RESOURCETYPE_DISK As Long = 1
@@ -91,7 +98,14 @@ Private Sub UserForm_Initialize()
     Me.Caption = "Users & Roles"
     Me.Width = 740
     Me.Height = 560
+    On Error Resume Next
+    Me.ScrollBars = 0
+    Me.KeepScrollBarsVisible = 0
+    Me.ScrollLeft = 0
+    Me.ScrollTop = 0
+    On Error GoTo 0
     BuildUsersRolesLayout
+    InitializeUsersRolesAnchors
     Set mWarehousePathById = CreateObject("Scripting.Dictionary")
     mWarehousePathById.CompareMode = vbTextCompare
     mTxtRoot.Value = ResolveDefaultWarehouseRootForm()
@@ -99,6 +113,24 @@ Private Sub UserForm_Initialize()
     RefreshWarehouseListForm False
     ShowStatusForm "Select a warehouse auth workbook, then create users and assign roles.", COLOR_INFO
     mBusy = False
+End Sub
+
+Private Sub UserForm_Activate()
+    If Not mResizeInitialized Then
+        modUserFormResizeWin.EnableResizableUserForm Me
+        mResizeInitialized = True
+    End If
+
+    If Not mAnchors Is Nothing Then mAnchors.ResizeControls
+End Sub
+
+Private Sub UserForm_Layout()
+    If mAnchors Is Nothing Then Exit Sub
+    mAnchors.ResizeControls
+End Sub
+
+Private Sub UserForm_Terminate()
+    Set mAnchors = Nothing
 End Sub
 
 Private Sub BuildUsersRolesLayout()
@@ -142,8 +174,9 @@ Private Sub BuildUsersRolesLayout()
     Set mTxtDisplayName = AddTextBoxForm("txtDisplayName", 420, topPos + 28, 210, 22)
     AddLabelForm "lblPin", "PIN/password", 316, topPos + 64, 90, 18, False
     Set mTxtPin = AddTextBoxForm("txtPin", 420, topPos + 60, 116, 22)
-    mTxtPin.PasswordChar = "*"
-    Set mBtnGeneratePin = AddButtonForm("btnGeneratePin", "Generate", 544, topPos + 59, 86, 24)
+    mTxtPin.ControlTipText = "This value is visible on purpose. Record it before saving; only the hash is stored."
+    Set mBtnGeneratePin = AddButtonForm("btnGeneratePin", "Generate PIN", 544, topPos + 59, 86, 24)
+    Set mBtnCopyPin = AddButtonForm("btnCopyPin", "Copy", 638, topPos + 59, 52, 24)
     AddLabelForm "lblWhScope", "Warehouse scope", 316, topPos + 96, 90, 18, False
     Set mTxtWarehouseId = AddTextBoxForm("txtWarehouseId", 420, topPos + 92, 116, 22)
     AddLabelForm "lblStationScope", "Station", 544, topPos + 96, 48, 18, False
@@ -162,6 +195,42 @@ Private Sub BuildUsersRolesLayout()
     Set mBtnDelete = AddButtonForm("btnDelete", "Delete", 190, 474, 70, 26)
     Set mBtnSave = AddButtonForm("btnSave", "Create / Update", 504, 512, 126, 28)
     Set mBtnClose = AddButtonForm("btnClose", "Close", 638, 512, 70, 28)
+End Sub
+
+Private Sub InitializeUsersRolesAnchors()
+    Set mAnchors = modDynamicForms.CreateFormAnchorManager()
+    mAnchors.Initialize Me, 740, 560
+
+    mAnchors.Add mLblStatus, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mTxtRoot, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mBtnRootFind, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mBtnRootScan, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mTxtNasUser, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mTxtNasPassword, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mBtnNasConnect, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mCmbWarehouse, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mBtnRefreshUsers, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mTxtAuthPath, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mLstWarehouses, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mLstUsers, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_BOTTOM
+    mAnchors.Add mTxtUserId, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mTxtDisplayName, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mTxtPin, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mBtnGeneratePin, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mBtnCopyPin, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mTxtWarehouseId, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mTxtStationId, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mChkAdmin, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mChkReceivePost, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mChkReceiveView, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mChkShipPost, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mChkProdPost, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mChkInboxProcess, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnClear, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnDeactivate, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnDelete, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnSave, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnClose, ANCHOR_RIGHT Or ANCHOR_BOTTOM
 End Sub
 
 Private Function AddLabelForm(ByVal controlName As String, ByVal captionText As String, _
@@ -292,6 +361,22 @@ End Sub
 
 Private Sub mBtnGeneratePin_Click()
     mTxtPin.Value = Format$(CLng(Int((9000000# * Rnd) + 1000000#)), "0000000")
+    mTxtPin.SelStart = 0
+    mTxtPin.SelLength = Len(CStr(mTxtPin.Value))
+    ShowStatusForm "Generated PIN is visible in the PIN/password field. Record or copy it before saving.", COLOR_WARNING
+End Sub
+
+Private Sub mBtnCopyPin_Click()
+    If Len(CStr(mTxtPin.Value)) = 0 Then
+        ShowStatusForm "No PIN/password value to copy.", COLOR_WARNING
+        Exit Sub
+    End If
+
+    If CopyTextToClipboardForm(CStr(mTxtPin.Value)) Then
+        ShowStatusForm "PIN/password copied. Store it now; only the hash is saved in the auth workbook.", COLOR_SUCCESS
+    Else
+        ShowStatusForm "Could not copy automatically. The PIN/password is visible for manual copy.", COLOR_WARNING
+    End If
 End Sub
 
 Private Sub mBtnClear_Click()
@@ -591,8 +676,7 @@ Private Sub SaveUserAndRolesForm()
     SaveCapabilityChoiceForm loCaps, userId, "INBOX_PROCESS", whId, stId, CBool(mChkInboxProcess.Value)
 
     wb.Save
-    mTxtPin.Value = ""
-    ShowStatusForm "User and role assignments saved.", COLOR_SUCCESS
+    ShowStatusForm "User and role assignments saved. Store the visible PIN/password now; it cannot be recovered later.", COLOR_SUCCESS
     RefreshUsersForm
 
 CleanExit:
@@ -975,6 +1059,20 @@ End Function
 Private Function SafeTextForm(ByVal valueIn As Variant) As String
     If IsError(valueIn) Or IsNull(valueIn) Or IsEmpty(valueIn) Then Exit Function
     SafeTextForm = Trim$(CStr(valueIn))
+End Function
+
+Private Function CopyTextToClipboardForm(ByVal valueText As String) As Boolean
+    On Error GoTo FailCopy
+
+    Dim dataObj As MSForms.DataObject
+    Set dataObj = New MSForms.DataObject
+    dataObj.SetText valueText
+    dataObj.PutInClipboard
+    CopyTextToClipboardForm = True
+    Exit Function
+
+FailCopy:
+    CopyTextToClipboardForm = False
 End Function
 
 Private Sub ShowStatusForm(ByVal messageText As String, ByVal colorValue As Long)
