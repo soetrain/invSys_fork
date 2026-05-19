@@ -433,7 +433,11 @@ Private Sub RefreshWarehouseListForm(ByVal showScanResult As Boolean)
         End If
     End If
 
-    RefreshUsersForm
+    If mCmbWarehouse.ListCount > 0 Then
+        RefreshUsersForm
+    Else
+        mLstUsers.Clear
+    End If
 End Sub
 
 Private Function DiscoverWarehousesForm() As Collection
