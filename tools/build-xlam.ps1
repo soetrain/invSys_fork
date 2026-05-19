@@ -418,6 +418,14 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add("ErrHandler:")
     [void]$lines.Add('    MsgBox "Ribbon action failed: " & Err.Description, vbExclamation')
     [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonRuntimeStatusGetLabel(control As IRibbonControl, ByRef returnedVal)")
+    [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetStatusLabel(control.ID)")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonRuntimeStatusRefresh(control As IRibbonControl)")
+    [void]$lines.Add("    modRibbonRuntimeStatus.RefreshRuntimeContext")
+    [void]$lines.Add("End Sub")
 
     $component = $VBProject.VBComponents.Add(1)
     $component.Name = "modRibbonGenerated"
@@ -454,6 +462,23 @@ function Get-RibbonXml {
                 $screentipXml = (' screentip="{0}"' -f $button.Screentip)
             }
             [void]$xml.AppendLine(("          <button id=""{0}"" label=""{1}"" size=""large"" showImage=""{2}""{3}{4} onAction=""{5}""/>" -f $button.Id, $button.Label, $showImage, $imageXml, $screentipXml, $RibbonConfig.CallbackName))
+        }
+        if ($group.ContainsKey("StatusMenus")) {
+            foreach ($menu in $group.StatusMenus) {
+                $imageXml = ""
+                $showImage = "false"
+                if ($menu.ContainsKey("ImageMso") -and -not [string]::IsNullOrWhiteSpace($menu.ImageMso)) {
+                    $imageXml = (' imageMso="{0}"' -f $menu.ImageMso)
+                    $showImage = "true"
+                }
+                [void]$xml.AppendLine(("          <menu id=""{0}"" label=""{1}"" size=""large"" showImage=""{2}""{3}>" -f $menu.Id, $menu.Label, $showImage, $imageXml))
+                foreach ($statusButton in $menu.StatusButtons) {
+                    [void]$xml.AppendLine(("            <button id=""{0}"" getLabel=""RibbonRuntimeStatusGetLabel"" enabled=""false""/>" -f $statusButton.Id))
+                }
+                [void]$xml.AppendLine("            <menuSeparator id=""sepRuntimeContextRefresh""/>")
+                [void]$xml.AppendLine(("            <button id=""{0}"" label=""Refresh / Details"" imageMso=""Refresh"" onAction=""RibbonRuntimeStatusRefresh""/>" -f $menu.RefreshButtonId))
+                [void]$xml.AppendLine("          </menu>")
+            }
         }
         [void]$xml.AppendLine("        </group>")
     }
@@ -599,6 +624,21 @@ $projectMap = @(
                 @{
                     Id      = "grpReceivingActions"
                     Label   = "Actions"
+                    StatusMenus = @(
+                        @{
+                            Id = "mnuReceivingRuntimeContext"
+                            Label = "Runtime Context"
+                            ImageMso = "Info"
+                            RefreshButtonId = "btnReceivingRuntimeRefresh"
+                            StatusButtons = @(
+                                @{ Id = "btnRuntimeWarehouse" },
+                                @{ Id = "btnRuntimeDataRoot" },
+                                @{ Id = "btnRuntimeInboxRoot" },
+                                @{ Id = "btnRuntimeProcessor" },
+                                @{ Id = "btnRuntimeHqAggregator" }
+                            )
+                        }
+                    )
                     Buttons = @(
                         @{ Id = "btnReceivingSetup"; Label = "Setup UI"; Macro = "modTS_Received.EnsureGeneratedButtons"; ImageMso = "FileNew" },
                         @{ Id = "btnReceivingConfirm"; Label = "Confirm Writes"; Macro = "modTS_Received.ConfirmWrites"; ImageMso = "FileSave" },
@@ -626,6 +666,21 @@ $projectMap = @(
                 @{
                     Id      = "grpShippingSetup"
                     Label   = "Setup"
+                    StatusMenus = @(
+                        @{
+                            Id = "mnuShippingRuntimeContext"
+                            Label = "Runtime Context"
+                            ImageMso = "Info"
+                            RefreshButtonId = "btnShippingRuntimeRefresh"
+                            StatusButtons = @(
+                                @{ Id = "btnRuntimeWarehouse" },
+                                @{ Id = "btnRuntimeDataRoot" },
+                                @{ Id = "btnRuntimeInboxRoot" },
+                                @{ Id = "btnRuntimeProcessor" },
+                                @{ Id = "btnRuntimeHqAggregator" }
+                            )
+                        }
+                    )
                     Buttons = @(
                         @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; ImageMso = "FileNew" },
                         @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder"; ImageMso = "Repeat" },
@@ -666,6 +721,21 @@ $projectMap = @(
                 @{
                     Id      = "grpProductionSetup"
                     Label   = "Setup"
+                    StatusMenus = @(
+                        @{
+                            Id = "mnuProductionRuntimeContext"
+                            Label = "Runtime Context"
+                            ImageMso = "Info"
+                            RefreshButtonId = "btnProductionRuntimeRefresh"
+                            StatusButtons = @(
+                                @{ Id = "btnRuntimeWarehouse" },
+                                @{ Id = "btnRuntimeDataRoot" },
+                                @{ Id = "btnRuntimeInboxRoot" },
+                                @{ Id = "btnRuntimeProcessor" },
+                                @{ Id = "btnRuntimeHqAggregator" }
+                            )
+                        }
+                    )
                     Buttons = @(
                         @{ Id = "btnProductionSetup"; Label = "Setup UI"; Macro = "mProduction.InitializeProductionUI"; ImageMso = "FileNew" },
                         @{ Id = "btnProductionHide"; Label = "Hide System"; Macro = "mProduction.BtnHideSystem"; ImageMso = "Clear" },
