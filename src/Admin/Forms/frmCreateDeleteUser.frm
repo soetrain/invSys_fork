@@ -471,12 +471,17 @@ Private Function DiscoverWarehousesForm() As Collection
 
     rootPath = NormalizePathForm(CStr(mTxtRoot.Value))
     If rootPath = "" Then rootPath = ResolveDefaultWarehouseRootForm()
-    If rootPath = "" Or Not FolderExistsForm(rootPath) Then
+    If rootPath = "" Then
         Set DiscoverWarehousesForm = results
         Exit Function
     End If
 
     AddWarehousesFromFolderForm results, seen, rootPath
+    If Not FolderExistsForm(rootPath) Then
+        Set DiscoverWarehousesForm = results
+        Exit Function
+    End If
+
     AddWarehousesFromChildFoldersForm results, seen, rootPath, 1
 
     Set DiscoverWarehousesForm = results
@@ -1126,6 +1131,7 @@ End Function
 
 Private Function FolderExistsForm(ByVal folderPath As String) As Boolean
     Dim fso As Object
+    Dim dirResult As String
 
     folderPath = NormalizePathForm(folderPath)
     If folderPath = "" Then Exit Function
@@ -1133,15 +1139,22 @@ Private Function FolderExistsForm(ByVal folderPath As String) As Boolean
     On Error Resume Next
     Set fso = CreateObject("Scripting.FileSystemObject")
     If Not fso Is Nothing Then FolderExistsForm = fso.FolderExists(folderPath)
+    If Err.Number <> 0 Then Err.Clear
+    If FolderExistsForm Then GoTo CleanExit
+
+    dirResult = Dir$(folderPath, vbDirectory)
     If Err.Number <> 0 Then
         Err.Clear
-        FolderExistsForm = (Len(Dir$(folderPath, vbDirectory)) > 0)
+    Else
+        FolderExistsForm = (Len(dirResult) > 0)
     End If
+CleanExit:
     On Error GoTo 0
 End Function
 
 Private Function FileExistsForm(ByVal filePath As String) As Boolean
     Dim fso As Object
+    Dim dirResult As String
 
     filePath = NormalizePathForm(filePath)
     If filePath = "" Then Exit Function
@@ -1149,10 +1162,16 @@ Private Function FileExistsForm(ByVal filePath As String) As Boolean
     On Error Resume Next
     Set fso = CreateObject("Scripting.FileSystemObject")
     If Not fso Is Nothing Then FileExistsForm = fso.FileExists(filePath)
+    If Err.Number <> 0 Then Err.Clear
+    If FileExistsForm Then GoTo CleanExit
+
+    dirResult = Dir$(filePath, vbNormal)
     If Err.Number <> 0 Then
         Err.Clear
-        FileExistsForm = (Len(Dir$(filePath, vbNormal)) > 0)
+    Else
+        FileExistsForm = (Len(dirResult) > 0)
     End If
+CleanExit:
     On Error GoTo 0
 End Function
 
