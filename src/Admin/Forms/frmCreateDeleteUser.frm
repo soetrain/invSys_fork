@@ -97,7 +97,7 @@ Private Sub UserForm_Initialize()
     mBusy = True
     Me.Caption = "Users & Roles"
     Me.Width = 740
-    Me.Height = 560
+    Me.Height = 585
     On Error Resume Next
     Me.ScrollBars = 0
     Me.KeepScrollBarsVisible = 0
@@ -199,7 +199,7 @@ End Sub
 
 Private Sub InitializeUsersRolesAnchors()
     Set mAnchors = modDynamicForms.CreateFormAnchorManager()
-    mAnchors.Initialize Me, 740, 560
+    mAnchors.Initialize Me, 740, 585
 
     mAnchors.Add mLblStatus, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mTxtRoot, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
@@ -220,12 +220,12 @@ Private Sub InitializeUsersRolesAnchors()
     mAnchors.Add mBtnCopyPin, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mTxtWarehouseId, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mTxtStationId, ANCHOR_TOP Or ANCHOR_RIGHT
-    mAnchors.Add mChkAdmin, ANCHOR_LEFT Or ANCHOR_BOTTOM
-    mAnchors.Add mChkReceivePost, ANCHOR_LEFT Or ANCHOR_BOTTOM
-    mAnchors.Add mChkReceiveView, ANCHOR_LEFT Or ANCHOR_BOTTOM
-    mAnchors.Add mChkShipPost, ANCHOR_LEFT Or ANCHOR_BOTTOM
-    mAnchors.Add mChkProdPost, ANCHOR_LEFT Or ANCHOR_BOTTOM
-    mAnchors.Add mChkInboxProcess, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mChkAdmin, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mChkReceivePost, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mChkReceiveView, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mChkShipPost, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mChkProdPost, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mChkInboxProcess, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mBtnClear, ANCHOR_LEFT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnDeactivate, ANCHOR_LEFT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnDelete, ANCHOR_LEFT Or ANCHOR_BOTTOM
