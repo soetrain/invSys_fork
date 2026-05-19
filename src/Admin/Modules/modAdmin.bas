@@ -64,6 +64,20 @@ Sub Open_LastTesterWorkbook()
     End If
 End Sub
 
+Sub Open_WarehouseDirectory()
+    Dim report As String
+    Dim targetWb As Workbook
+
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
+    If modAdminConsole.OpenWarehouseDirectory(targetWb, report) Then
+        MsgBox "Warehouse directory refreshed.", vbInformation, "invSys Admin"
+    Else
+        If Len(Trim$(report)) = 0 Then report = "Warehouse directory could not be opened."
+        MsgBox report, vbExclamation, "invSys Admin"
+    End If
+End Sub
+
 Sub Verify_AddinsPublished()
     Dim report As String
     Dim detail As String
@@ -141,7 +155,6 @@ End Function
 ' It also includes functions to manage application settings and configurations.
 ' The functions in this module are used by the frmAdminControls form to perform administrative tasks.
 ''''''''''''''''''''''''''''''''''''
-
 
 
 

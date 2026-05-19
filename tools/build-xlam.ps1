@@ -467,6 +467,9 @@ function Get-RibbonXml {
     foreach ($group in $RibbonConfig.Groups) {
         [void]$xml.AppendLine(("        <group id=""{0}"" label=""{1}"">" -f $group.Id, $group.Label))
         foreach ($button in $group.Buttons) {
+            if ($null -eq $button) {
+                continue
+            }
             $imageXml = ""
             $showImage = "false"
             $screentipXml = ""
@@ -485,6 +488,9 @@ function Get-RibbonXml {
         }
         if ($group.ContainsKey("StatusMenus")) {
             foreach ($menu in $group.StatusMenus) {
+                if ($null -eq $menu) {
+                    continue
+                }
                 $imageXml = ""
                 $showImage = "false"
                 if ($menu.ContainsKey("ImageMso") -and -not [string]::IsNullOrWhiteSpace($menu.ImageMso)) {
@@ -493,6 +499,9 @@ function Get-RibbonXml {
                 }
                 [void]$xml.AppendLine(("          <menu id=""{0}"" label=""{1}"" size=""large"" showImage=""{2}""{3}>" -f $menu.Id, $menu.Label, $showImage, $imageXml))
                 foreach ($statusButton in $menu.StatusButtons) {
+                    if ($null -eq $statusButton) {
+                        continue
+                    }
                     [void]$xml.AppendLine(("            <button id=""{0}"" getLabel=""RibbonRuntimeStatusGetLabel"" enabled=""false""/>" -f $statusButton.Id))
                 }
                 [void]$xml.AppendLine("            <menuSeparator id=""sepRuntimeContextRefresh""/>")
@@ -823,6 +832,7 @@ $projectMap = @(
                     Buttons = @(
                         @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; ImageMso = "FileOpen" },
                         @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; ImageMso = "FileOpen" },
+                        @{ Id = "btnAdminWarehouses"; Label = "View Warehouses"; Macro = "modAdmin.Open_WarehouseDirectory"; ImageMso = "TablePropertiesDialog" },
                         @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; ImageMso = "FileNew" },
                         @{ Id = "btnAdminSetupTesterStation"; Label = "Setup Tester Station"; Macro = "modAdmin.Admin_SetupTesterStation_Click"; ImageMso = "CreateForm" },
                         @{ Id = "btnAdminVerifyAddinsPublished"; Label = "Verify Add-ins Published"; Macro = "modAdmin.Verify_AddinsPublished"; ImageMso = "FileDocumentInspect" },

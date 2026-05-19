@@ -4,9 +4,11 @@ Option Explicit
 Private Const SHEET_ADMIN_CONSOLE As String = "AdminConsole"
 Private Const SHEET_ADMIN_AUDIT As String = "AdminAudit"
 Private Const SHEET_ADMIN_POISON As String = "PoisonQueue"
+Private Const SHEET_WAREHOUSE_DIRECTORY As String = "WarehouseDirectory"
 
 Private Const TABLE_ADMIN_AUDIT As String = "tblAdminAudit"
 Private Const TABLE_ADMIN_POISON As String = "tblAdminPoisonQueue"
+Private Const TABLE_WAREHOUSE_DIRECTORY As String = "tblWarehouseDirectory"
 Private Const TABLE_LOCKS As String = "tblLocks"
 Private Const TABLE_APPLIED As String = "tblAppliedEvents"
 Private Const TABLE_LOG As String = "tblInventoryLog"
@@ -147,6 +149,23 @@ Public Function OpenUserManagement(Optional ByVal adminWb As Workbook = Nothing,
     OpenUserManagement = True
 End Function
 
+Public Function OpenWarehouseDirectory(Optional ByVal adminWb As Workbook = Nothing, _
+                                       Optional ByRef report As String = "") As Boolean
+    Dim wb As Workbook
+
+    Set wb = ResolveAdminWorkbook(adminWb)
+    If wb Is Nothing Then
+        report = "Admin workbook not resolved."
+        Exit Function
+    End If
+
+    If Not EnsureAdminSchema(wb, report) Then Exit Function
+    If Not RefreshWarehouseDirectory(wb, report) Then Exit Function
+
+    wb.Worksheets(SHEET_WAREHOUSE_DIRECTORY).Activate
+    OpenWarehouseDirectory = True
+End Function
+
 Public Function EnsureAdminSchema(Optional ByVal adminWb As Workbook = Nothing, _
                                   Optional ByRef report As String = "") As Boolean
     On Error GoTo FailEnsure
@@ -171,6 +190,9 @@ Public Function EnsureAdminSchema(Optional ByVal adminWb As Workbook = Nothing, 
         Array("SourceWorkbook", "SourceTable", "RowIndex", "EventID", "ParentEventId", "UndoOfEventId", "EventType", "CreatedAtUTC", _
               "WarehouseId", "StationId", "UserId", "SKU", "Qty", "Location", "Note", "PayloadJson", "Status", "RetryCount", _
               "ErrorCode", "ErrorMessage", "FailedAtUTC"), issues
+    EnsureAdminTableWithHeaders wb, SHEET_WAREHOUSE_DIRECTORY, TABLE_WAREHOUSE_DIRECTORY, _
+        Array("WarehouseId", "StationId", "WarehouseName", "RuntimeRoot", "ConfigWorkbook", "AuthWorkbook", "InventoryWorkbook", _
+              "ReceiveInbox", "ShipInbox", "ProdInbox", "ProcessorServiceUserId", "PathSharePointRoot", "RoleDefault", "Status"), issues
 
     report = JoinIssuesAdmin(issues)
     EnsureAdminSchema = True
@@ -718,18 +740,21 @@ Private Sub InitializeAdminConsoleLayout(ByVal ws As Worksheet)
     ws.Range("A22").Value = "Users & Roles"
     ws.Range("A23").Value = "Retire / Migrate Warehouse"
     ws.Range("A24").Value = "Refresh Admin Console"
+    ws.Range("A25").Value = "View warehouses"
     ws.Range("B19").Value = "Creates/repairs config, auth, inventory, receive/ship/production inboxes, snapshots, add-ins package, and a receiving operator workbook."
     ws.Range("B20").Value = "Open the generated workbook before running Refresh Inventory or Confirm Writes."
     ws.Range("B21").Value = "Checks the SharePoint/Addins folder configured for this warehouse."
     ws.Range("B22").Value = "Create test users and copy their account card."
     ws.Range("B23").Value = "Retire, archive, migrate, or delete a warehouse runtime."
     ws.Range("B24").Value = "Reloads the status values above."
+    ws.Range("B25").Value = "Lists warehouse configs, runtime roots, inboxes, and publish roots visible to Admin."
     AddAdminConsoleActionButton ws, "btnAdminGenerateTesterWarehouse", "Generate Test Warehouse", "'invSys.Admin.xlam'!modAdmin.Admin_SetupTesterStation_Click", "D19"
     AddAdminConsoleActionButton ws, "btnAdminOpenTesterWorkbook", "Open Tester Workbook", "'invSys.Admin.xlam'!modAdmin.Open_LastTesterWorkbook", "D20"
     AddAdminConsoleActionButton ws, "btnAdminVerifyAddins", "Verify Add-ins", "'invSys.Admin.xlam'!modAdmin.Verify_AddinsPublished", "D21"
     AddAdminConsoleActionButton ws, "btnAdminUsersRoles", "Users & Roles", "'invSys.Admin.xlam'!modAdmin.Open_CreateDeleteUser", "D22"
     AddAdminConsoleActionButton ws, "btnAdminRetireMigrate", "Retire / Migrate", "'invSys.Admin.xlam'!modAdmin.Admin_RetireMigrateWarehouse_Click", "D23"
     AddAdminConsoleActionButton ws, "btnAdminRefreshConsole", "Refresh Console", "'invSys.Admin.xlam'!modAdmin.Admin_Click", "D24"
+    AddAdminConsoleActionButton ws, "btnAdminViewWarehouses", "View Warehouses", "'invSys.Admin.xlam'!modAdmin.Open_WarehouseDirectory", "D25"
     ws.Columns("A:D").AutoFit
 End Sub
 
@@ -829,6 +854,236 @@ End Sub
 
 Private Function HasListColumnAdmin(ByVal lo As ListObject, ByVal columnName As String) As Boolean
     HasListColumnAdmin = (GetColumnIndexAdmin(lo, columnName) > 0)
+End Function
+
+Private Function RefreshWarehouseDirectory(Optional ByVal adminWb As Workbook = Nothing, _
+                                           Optional ByRef report As String = "") As Boolean
+    On Error GoTo FailRefresh
+
+    Dim wb As Workbook
+    Dim lo As ListObject
+    Dim seen As Object
+    Dim issues As Collection
+    Dim scanRoot As String
+
+    Set wb = ResolveAdminWorkbook(adminWb)
+    If wb Is Nothing Then
+        report = "Admin workbook not resolved."
+        Exit Function
+    End If
+
+    Set issues = New Collection
+    EnsureAdminTableWithHeaders wb, SHEET_WAREHOUSE_DIRECTORY, TABLE_WAREHOUSE_DIRECTORY, _
+        Array("WarehouseId", "StationId", "WarehouseName", "RuntimeRoot", "ConfigWorkbook", "AuthWorkbook", "InventoryWorkbook", _
+              "ReceiveInbox", "ShipInbox", "ProdInbox", "ProcessorServiceUserId", "PathSharePointRoot", "RoleDefault", "Status"), issues
+    If JoinIssuesAdmin(issues) <> "" Then
+        report = JoinIssuesAdmin(issues)
+        Exit Function
+    End If
+
+    Set lo = wb.Worksheets(SHEET_WAREHOUSE_DIRECTORY).ListObjects(TABLE_WAREHOUSE_DIRECTORY)
+    DeleteAllAdminTableRows lo
+    Set seen = CreateObject("Scripting.Dictionary")
+    seen.CompareMode = vbTextCompare
+
+    AddOpenWarehouseConfigsToDirectory lo, seen
+
+    scanRoot = GetAdminRuntimeScanRoot()
+    AddWarehouseConfigsUnderRootToDirectory lo, seen, scanRoot
+    AddWarehouseConfigsUnderRootToDirectory lo, seen, modDeploymentPaths.DefaultRuntimeHubRootPath(False)
+
+    If lo.ListRows.Count = 0 Then
+        lo.ListRows.Add
+        SetTableRowValueAdmin lo, 1, "Status", "No warehouse config workbooks found. Use Create New Warehouse or Setup Tester Station first."
+    End If
+
+    wb.Worksheets(SHEET_WAREHOUSE_DIRECTORY).Columns.AutoFit
+    report = "OK"
+    RefreshWarehouseDirectory = True
+    Exit Function
+
+FailRefresh:
+    report = "RefreshWarehouseDirectory failed: " & Err.Description
+End Function
+
+Private Sub AddOpenWarehouseConfigsToDirectory(ByVal loDirectory As ListObject, ByVal seen As Object)
+    Dim wb As Workbook
+    Dim loWh As ListObject
+
+    For Each wb In Application.Workbooks
+        Set loWh = FindListObjectByNameAdmin(wb, "tblWarehouseConfig")
+        If IsConfigWorkbookNameAdmin(wb.Name) Or Not loWh Is Nothing Then
+            AddConfigWorkbookToWarehouseDirectory loDirectory, seen, wb, Trim$(wb.FullName)
+        End If
+    Next wb
+End Sub
+
+Private Sub AddWarehouseConfigsUnderRootToDirectory(ByVal loDirectory As ListObject, _
+                                                   ByVal seen As Object, _
+                                                   ByVal rootPath As String)
+    Dim fso As Object
+    Dim rootFolder As Object
+    Dim subFolder As Object
+    Dim fileObj As Object
+
+    rootPath = NormalizePathAdmin(rootPath)
+    If rootPath = "" Then Exit Sub
+
+    On Error GoTo CleanExit
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If fso Is Nothing Then Exit Sub
+    If Not fso.FolderExists(rootPath) Then Exit Sub
+    Set rootFolder = fso.GetFolder(rootPath)
+
+    For Each fileObj In rootFolder.Files
+        If IsConfigWorkbookNameAdmin(CStr(fileObj.Name)) Then AddConfigPathToWarehouseDirectory loDirectory, seen, CStr(fileObj.Path)
+    Next fileObj
+
+    For Each subFolder In rootFolder.SubFolders
+        For Each fileObj In subFolder.Files
+            If IsConfigWorkbookNameAdmin(CStr(fileObj.Name)) Then AddConfigPathToWarehouseDirectory loDirectory, seen, CStr(fileObj.Path)
+        Next fileObj
+    Next subFolder
+
+CleanExit:
+End Sub
+
+Private Sub AddConfigPathToWarehouseDirectory(ByVal loDirectory As ListObject, _
+                                             ByVal seen As Object, _
+                                             ByVal configPath As String)
+    Dim wbCfg As Workbook
+    Dim openedTransient As Boolean
+
+    Set wbCfg = OpenWorkbookIfExistsAdmin(configPath, openedTransient)
+    If Not wbCfg Is Nothing Then
+        AddConfigWorkbookToWarehouseDirectory loDirectory, seen, wbCfg, configPath
+    End If
+    CloseWorkbookIfTransientAdmin wbCfg, openedTransient
+End Sub
+
+Private Sub AddConfigWorkbookToWarehouseDirectory(ByVal loDirectory As ListObject, _
+                                                 ByVal seen As Object, _
+                                                 ByVal wbCfg As Workbook, _
+                                                 ByVal configPath As String)
+    Dim loWh As ListObject
+    Dim loSt As ListObject
+    Dim whId As String
+    Dim whName As String
+    Dim rootPath As String
+    Dim processorUser As String
+    Dim sharePointRoot As String
+    Dim stationId As String
+    Dim roleDefault As String
+    Dim stationRow As Long
+
+    Set loWh = FindListObjectByNameAdmin(wbCfg, "tblWarehouseConfig")
+    Set loSt = FindListObjectByNameAdmin(wbCfg, "tblStationConfig")
+    If loWh Is Nothing Then Exit Sub
+    If loWh.DataBodyRange Is Nothing Then Exit Sub
+
+    whId = SafeTrimAdmin(GetCellByColumnAdmin(loWh, 1, "WarehouseId"))
+    If whId = "" Then whId = InferWarehouseIdFromPathAdmin(configPath)
+    whName = SafeTrimAdmin(GetCellByColumnAdmin(loWh, 1, "WarehouseName"))
+    rootPath = NormalizePathAdmin(SafeTrimAdmin(GetCellByColumnAdmin(loWh, 1, "PathDataRoot")))
+    If rootPath = "" Then rootPath = GetParentFolderAdmin(configPath)
+    processorUser = SafeTrimAdmin(GetCellByColumnAdmin(loWh, 1, "ProcessorServiceUserId"))
+    If processorUser = "" Then processorUser = "svc_processor"
+    sharePointRoot = NormalizePathAdmin(SafeTrimAdmin(GetCellByColumnAdmin(loWh, 1, "PathSharePointRoot")))
+
+    If loSt Is Nothing Or loSt.DataBodyRange Is Nothing Then
+        AddWarehouseDirectoryRow loDirectory, seen, whId, "S1", whName, rootPath, configPath, processorUser, sharePointRoot, "", ""
+        Exit Sub
+    End If
+
+    For stationRow = 1 To loSt.ListRows.Count
+        stationId = SafeTrimAdmin(GetCellByColumnAdmin(loSt, stationRow, "StationId"))
+        roleDefault = SafeTrimAdmin(GetCellByColumnAdmin(loSt, stationRow, "RoleDefault"))
+        If stationId = "" Then stationId = "S1"
+        AddWarehouseDirectoryRow loDirectory, seen, whId, stationId, whName, rootPath, _
+                                 configPath, processorUser, sharePointRoot, roleDefault, _
+                                 SafeTrimAdmin(GetCellByColumnAdmin(loSt, stationRow, "PathInboxRoot"))
+    Next stationRow
+End Sub
+
+Private Sub AddWarehouseDirectoryRow(ByVal loDirectory As ListObject, _
+                                     ByVal seen As Object, _
+                                     ByVal warehouseId As String, _
+                                     ByVal stationId As String, _
+                                     ByVal warehouseName As String, _
+                                     ByVal rootPath As String, _
+                                     ByVal configPath As String, _
+                                     ByVal processorUser As String, _
+                                     ByVal sharePointRoot As String, _
+                                     ByVal roleDefault As String, _
+                                     ByVal pathInboxRoot As String)
+    Dim key As String
+    Dim r As ListRow
+    Dim receiveInbox As String
+    Dim shipInbox As String
+    Dim prodInbox As String
+    Dim statusText As String
+
+    warehouseId = SafeTrimAdmin(warehouseId)
+    stationId = SafeTrimAdmin(stationId)
+    If warehouseId = "" Then Exit Sub
+    If stationId = "" Then stationId = "S1"
+    rootPath = NormalizePathAdmin(rootPath)
+    configPath = NormalizePathAdmin(configPath)
+    pathInboxRoot = NormalizePathAdmin(pathInboxRoot)
+    If pathInboxRoot = "" Then pathInboxRoot = rootPath & "\inbox"
+
+    key = UCase$(warehouseId) & "|" & UCase$(stationId) & "|" & UCase$(rootPath)
+    If seen.Exists(key) Then Exit Sub
+    seen(key) = True
+
+    receiveInbox = pathInboxRoot & "\invSys.Inbox.Receiving." & stationId & ".xlsb"
+    shipInbox = pathInboxRoot & "\invSys.Inbox.Shipping." & stationId & ".xlsb"
+    prodInbox = pathInboxRoot & "\invSys.Inbox.Production." & stationId & ".xlsb"
+
+    statusText = BuildWarehouseDirectoryStatus(warehouseId, rootPath, configPath, receiveInbox, shipInbox, prodInbox)
+
+    Set r = loDirectory.ListRows.Add
+    SetTableRowValueAdmin loDirectory, r.Index, "WarehouseId", warehouseId
+    SetTableRowValueAdmin loDirectory, r.Index, "StationId", stationId
+    SetTableRowValueAdmin loDirectory, r.Index, "WarehouseName", warehouseName
+    SetTableRowValueAdmin loDirectory, r.Index, "RuntimeRoot", rootPath
+    SetTableRowValueAdmin loDirectory, r.Index, "ConfigWorkbook", configPath
+    SetTableRowValueAdmin loDirectory, r.Index, "AuthWorkbook", rootPath & "\" & warehouseId & ".invSys.Auth.xlsb"
+    SetTableRowValueAdmin loDirectory, r.Index, "InventoryWorkbook", rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
+    SetTableRowValueAdmin loDirectory, r.Index, "ReceiveInbox", receiveInbox
+    SetTableRowValueAdmin loDirectory, r.Index, "ShipInbox", shipInbox
+    SetTableRowValueAdmin loDirectory, r.Index, "ProdInbox", prodInbox
+    SetTableRowValueAdmin loDirectory, r.Index, "ProcessorServiceUserId", processorUser
+    SetTableRowValueAdmin loDirectory, r.Index, "PathSharePointRoot", sharePointRoot
+    SetTableRowValueAdmin loDirectory, r.Index, "RoleDefault", roleDefault
+    SetTableRowValueAdmin loDirectory, r.Index, "Status", statusText
+End Sub
+
+Private Function BuildWarehouseDirectoryStatus(ByVal warehouseId As String, _
+                                               ByVal rootPath As String, _
+                                               ByVal configPath As String, _
+                                               ByVal receiveInbox As String, _
+                                               ByVal shipInbox As String, _
+                                               ByVal prodInbox As String) As String
+    Dim missing As String
+
+    If Not FileExistsAdmin(configPath) Then missing = AppendMissingAdmin(missing, "config")
+    If Not FileExistsAdmin(rootPath & "\" & warehouseId & ".invSys.Auth.xlsb") Then missing = AppendMissingAdmin(missing, "auth")
+    If Not FileExistsAdmin(rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb") Then missing = AppendMissingAdmin(missing, "inventory")
+    If Not FileExistsAdmin(receiveInbox) Then missing = AppendMissingAdmin(missing, "receive inbox")
+    If Not FileExistsAdmin(shipInbox) Then missing = AppendMissingAdmin(missing, "ship inbox")
+    If Not FileExistsAdmin(prodInbox) Then missing = AppendMissingAdmin(missing, "prod inbox")
+
+    If missing = "" Then
+        BuildWarehouseDirectoryStatus = "Ready"
+    Else
+        BuildWarehouseDirectoryStatus = "Missing " & missing
+    End If
+End Function
+
+Private Function AppendMissingAdmin(ByVal currentText As String, ByVal itemText As String) As String
+    If currentText <> "" Then currentText = currentText & ", "
+    AppendMissingAdmin = currentText & itemText
 End Function
 
 Private Function JoinIssuesAdmin(ByVal issues As Collection) As String
@@ -1226,9 +1481,9 @@ End Function
 Private Function IsConfigWorkbookNameAdmin(ByVal wbName As String) As Boolean
     Dim n As String
     n = LCase$(wbName)
-    IsConfigWorkbookNameAdmin = (n Like "wh*.invsys.config.xlsb") Or _
-                                (n Like "wh*.invsys.config.xlsx") Or _
-                                (n Like "wh*.invsys.config.xlsm")
+    IsConfigWorkbookNameAdmin = (n Like "*.invsys.config.xlsb") Or _
+                                (n Like "*.invsys.config.xlsx") Or _
+                                (n Like "*.invsys.config.xlsm")
 End Function
 
 Private Function FindLockRowAdmin(ByVal lo As ListObject, ByVal lockName As String) As Long
