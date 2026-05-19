@@ -426,6 +426,22 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add("Public Sub RibbonRuntimeStatusRefresh(control As IRibbonControl)")
     [void]$lines.Add("    modRibbonRuntimeStatus.RefreshRuntimeContext")
     [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonWarehouseGetItemCount(control As IRibbonControl, ByRef returnedVal)")
+    [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetWarehouseTargetCount()")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonWarehouseGetItemLabel(control As IRibbonControl, index As Integer, ByRef returnedVal)")
+    [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetWarehouseTargetLabel(index)")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonWarehouseGetSelectedItemIndex(control As IRibbonControl, ByRef returnedVal)")
+    [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetSelectedWarehouseTargetIndex()")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonWarehouseOnAction(control As IRibbonControl, selectedId As String, selectedIndex As Integer)")
+    [void]$lines.Add("    modRibbonRuntimeStatus.SelectWarehouseTarget selectedIndex")
+    [void]$lines.Add("End Sub")
 
     $component = $VBProject.VBComponents.Add(1)
     $component.Name = "modRibbonGenerated"
@@ -462,6 +478,10 @@ function Get-RibbonXml {
                 $screentipXml = (' screentip="{0}"' -f $button.Screentip)
             }
             [void]$xml.AppendLine(("          <button id=""{0}"" label=""{1}"" size=""large"" showImage=""{2}""{3}{4} onAction=""{5}""/>" -f $button.Id, $button.Label, $showImage, $imageXml, $screentipXml, $RibbonConfig.CallbackName))
+        }
+        if ($group.ContainsKey("WarehouseSelector")) {
+            $selector = $group.WarehouseSelector
+            [void]$xml.AppendLine(("          <dropDown id=""{0}"" label=""{1}"" getItemCount=""RibbonWarehouseGetItemCount"" getItemLabel=""RibbonWarehouseGetItemLabel"" getSelectedItemIndex=""RibbonWarehouseGetSelectedItemIndex"" onAction=""RibbonWarehouseOnAction""/>" -f $selector.Id, $selector.Label))
         }
         if ($group.ContainsKey("StatusMenus")) {
             foreach ($menu in $group.StatusMenus) {
@@ -624,6 +644,10 @@ $projectMap = @(
                 @{
                     Id      = "grpReceivingActions"
                     Label   = "Actions"
+                    WarehouseSelector = @{
+                        Id = "ddReceivingWarehouseTarget"
+                        Label = "Send To"
+                    }
                     StatusMenus = @(
                         @{
                             Id = "mnuReceivingRuntimeContext"
@@ -666,6 +690,10 @@ $projectMap = @(
                 @{
                     Id      = "grpShippingSetup"
                     Label   = "Setup"
+                    WarehouseSelector = @{
+                        Id = "ddShippingWarehouseTarget"
+                        Label = "Send To"
+                    }
                     StatusMenus = @(
                         @{
                             Id = "mnuShippingRuntimeContext"
@@ -721,6 +749,10 @@ $projectMap = @(
                 @{
                     Id      = "grpProductionSetup"
                     Label   = "Setup"
+                    WarehouseSelector = @{
+                        Id = "ddProductionWarehouseTarget"
+                        Label = "Send To"
+                    }
                     StatusMenus = @(
                         @{
                             Id = "mnuProductionRuntimeContext"
