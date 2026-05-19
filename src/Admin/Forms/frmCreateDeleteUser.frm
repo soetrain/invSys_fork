@@ -63,6 +63,7 @@ Private Const NO_ERROR_WIN32 As Long = 0
 Private Const ERROR_SESSION_CREDENTIAL_CONFLICT As Long = 1219
 Private Const RESOURCETYPE_DISK As Long = 1
 Private Const CONNECT_TEMPORARY As Long = 4
+Private Const MAX_WAREHOUSE_SCAN_DEPTH As Long = 4
 
 #If VBA7 Then
 Private Type NETRESOURCE
@@ -402,12 +403,17 @@ End Sub
 Private Sub RefreshWarehouseListForm(ByVal showScanResult As Boolean)
     Dim results As Collection
     Dim item As Variant
+    Dim rootPath As String
+    Dim rootReachable As Boolean
 
     mBusy = True
     mCmbWarehouse.Clear
     mLstWarehouses.Clear
     Set mWarehousePathById = CreateObject("Scripting.Dictionary")
     mWarehousePathById.CompareMode = vbTextCompare
+    rootPath = NormalizePathForm(CStr(mTxtRoot.Value))
+    If rootPath = "" Then rootPath = ResolveDefaultWarehouseRootForm()
+    rootReachable = (rootPath <> "" And FolderExistsForm(rootPath))
     Set results = DiscoverWarehousesForm()
 
     For Each item In results
@@ -426,7 +432,9 @@ Private Sub RefreshWarehouseListForm(ByVal showScanResult As Boolean)
     mBusy = False
 
     If showScanResult Then
-        If mCmbWarehouse.ListCount = 0 Then
+        If Not rootReachable Then
+            ShowStatusForm "Warehouse root is not reachable from Excel. Enter NAS credentials and click Connect, then scan again.", COLOR_ERROR
+        ElseIf mCmbWarehouse.ListCount = 0 Then
             ShowStatusForm "No warehouse auth/config workbooks found under this root. Connect to the NAS if the folder requires credentials.", COLOR_WARNING
         Else
             ShowStatusForm "Warehouse root scanned. Found " & CStr(mCmbWarehouse.ListCount) & " warehouse(s).", COLOR_SUCCESS
@@ -444,9 +452,6 @@ Private Function DiscoverWarehousesForm() As Collection
     Dim results As Collection
     Dim seen As Object
     Dim rootPath As String
-    Dim fso As Object
-    Dim rootFolder As Object
-    Dim subFolder As Object
 
     Set results = New Collection
     Set seen = CreateObject("Scripting.Dictionary")
@@ -460,24 +465,36 @@ Private Function DiscoverWarehousesForm() As Collection
     End If
 
     AddWarehousesFromFolderForm results, seen, rootPath
+    AddWarehousesFromChildFoldersForm results, seen, rootPath, 1
+
+    Set DiscoverWarehousesForm = results
+End Function
+
+Private Sub AddWarehousesFromChildFoldersForm(ByVal results As Collection, ByVal seen As Object, _
+                                             ByVal folderPath As String, ByVal currentDepth As Long)
+    Dim fso As Object
+    Dim rootFolder As Object
+    Dim subFolder As Object
+
+    If currentDepth > MAX_WAREHOUSE_SCAN_DEPTH Then Exit Sub
 
     On Error Resume Next
     Set fso = CreateObject("Scripting.FileSystemObject")
-    Set rootFolder = fso.GetFolder(rootPath)
-    On Error GoTo 0
-    If rootFolder Is Nothing Then
-        Set DiscoverWarehousesForm = results
-        Exit Function
+    Set rootFolder = fso.GetFolder(folderPath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        Exit Sub
     End If
+    On Error GoTo 0
+    If rootFolder Is Nothing Then Exit Sub
 
     On Error Resume Next
     For Each subFolder In rootFolder.SubFolders
         AddWarehousesFromFolderForm results, seen, CStr(subFolder.Path)
+        AddWarehousesFromChildFoldersForm results, seen, CStr(subFolder.Path), currentDepth + 1
     Next subFolder
     On Error GoTo 0
-
-    Set DiscoverWarehousesForm = results
-End Function
+End Sub
 
 Private Sub AddWarehousesFromFolderForm(ByVal results As Collection, ByVal seen As Object, ByVal folderPath As String)
     AddWarehousesBySuffixForm results, seen, folderPath, ".invSys.Config.xlsb"
