@@ -70,12 +70,46 @@ Sub Open_WarehouseDirectory()
 
     Set targetWb = ResolveInteractiveAdminWorkbook()
     Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
+    PromptForWarehouseDirectoryRootIfNeeded
     If modAdminConsole.OpenWarehouseDirectory(targetWb, report) Then
         MsgBox "Warehouse directory refreshed.", vbInformation, "invSys Admin"
     Else
         If Len(Trim$(report)) = 0 Then report = "Warehouse directory could not be opened."
         MsgBox report, vbExclamation, "invSys Admin"
     End If
+End Sub
+
+Sub Add_WarehouseDirectoryRoot()
+    Dim report As String
+    Dim targetWb As Workbook
+    Dim rootPath As String
+
+    rootPath = InputBox("Enter a NAS/server warehouse hub folder or a specific warehouse runtime folder to include in Admin warehouse scans.", _
+                        "invSys Admin - Warehouse Root", _
+                        "\\100.84.136.19\invSysWH1")
+    rootPath = Trim$(rootPath)
+    If rootPath = "" Then Exit Sub
+
+    modAdminConsole.RememberWarehouseScanRoot rootPath
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
+    If modAdminConsole.OpenWarehouseDirectory(targetWb, report) Then
+        MsgBox "Warehouse root remembered and directory refreshed.", vbInformation, "invSys Admin"
+    Else
+        If Len(Trim$(report)) = 0 Then report = "Warehouse directory could not be opened."
+        MsgBox report, vbExclamation, "invSys Admin"
+    End If
+End Sub
+
+Private Sub PromptForWarehouseDirectoryRootIfNeeded()
+    Dim rootPath As String
+
+    If modAdminConsole.HasRememberedWarehouseScanRoots() Then Exit Sub
+    rootPath = InputBox("Optional: enter a NAS/server warehouse root to include in this warehouse scan. Leave blank to scan only local/open warehouse configs.", _
+                        "invSys Admin - Warehouse Root", _
+                        "\\100.84.136.19\invSysWH1")
+    rootPath = Trim$(rootPath)
+    If rootPath <> "" Then modAdminConsole.RememberWarehouseScanRoot rootPath
 End Sub
 
 Sub Verify_AddinsPublished()
@@ -155,7 +189,6 @@ End Function
 ' It also includes functions to manage application settings and configurations.
 ' The functions in this module are used by the frmAdminControls form to perform administrative tasks.
 ''''''''''''''''''''''''''''''''''''
-
 
 
 

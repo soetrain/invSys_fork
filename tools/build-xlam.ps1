@@ -833,6 +833,7 @@ $projectMap = @(
                         @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; ImageMso = "FileOpen" },
                         @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; ImageMso = "FileOpen" },
                         @{ Id = "btnAdminWarehouses"; Label = "View Warehouses"; Macro = "modAdmin.Open_WarehouseDirectory"; ImageMso = "TablePropertiesDialog" },
+                        @{ Id = "btnAdminWarehouseRoot"; Label = "Add Warehouse Root"; Macro = "modAdmin.Add_WarehouseDirectoryRoot"; ImageMso = "Folder" },
                         @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; ImageMso = "FileNew" },
                         @{ Id = "btnAdminSetupTesterStation"; Label = "Setup Tester Station"; Macro = "modAdmin.Admin_SetupTesterStation_Click"; ImageMso = "CreateForm" },
                         @{ Id = "btnAdminVerifyAddinsPublished"; Label = "Verify Add-ins Published"; Macro = "modAdmin.Verify_AddinsPublished"; ImageMso = "FileDocumentInspect" },

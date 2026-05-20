@@ -425,6 +425,7 @@ Private Sub RefreshWarehouseListForm(ByVal showScanResult As Boolean)
             If ConnectSelectedRootForm(connectReport) Then rootReachable = FolderExistsForm(rootPath)
         End If
     End If
+    If rootReachable Then RememberWarehouseRootForAdminForm rootPath
     Set results = DiscoverWarehousesForm()
 
     For Each item In results
@@ -1043,17 +1044,25 @@ Private Function ConnectSelectedRootForm(ByRef report As String) As Boolean
     If resultCode = NO_ERROR_WIN32 And FolderExistsForm(rootPath) Then
         mTxtNasPassword.Value = ""
         ConnectSelectedRootForm = True
+        RememberWarehouseRootForAdminForm rootPath
         report = "Connected to NAS root."
     ElseIf resultCode = NO_ERROR_WIN32 Then
         report = "Connected to NAS share, but the Warehouse root folder was not found."
     ElseIf resultCode = ERROR_SESSION_CREDENTIAL_CONFLICT And FolderExistsForm(rootPath) Then
         mTxtNasPassword.Value = ""
         ConnectSelectedRootForm = True
+        RememberWarehouseRootForAdminForm rootPath
         report = "Using existing Windows NAS connection."
     Else
         report = WNetConnectionErrorTextForm(resultCode)
     End If
 End Function
+
+Private Sub RememberWarehouseRootForAdminForm(ByVal rootPath As String)
+    On Error Resume Next
+    modAdminConsole.RememberWarehouseScanRoot rootPath
+    On Error GoTo 0
+End Sub
 
 Private Function ConnectToShareWithCredentialsForm(ByVal shareRoot As String, ByVal userName As String, _
                                                    ByVal passwordText As String) As Long

@@ -25,6 +25,11 @@ Private Const AUTOMATION_OK As String = "OK"
 Private Const AUTOMATION_FAIL As String = "FAIL"
 Private Const AUTOMATION_SKIP As String = "SKIP"
 
+Private Const SETTINGS_APP As String = "invSys"
+Private Const SETTINGS_SECTION_ADMIN As String = "Admin"
+Private Const SETTINGS_WAREHOUSE_SCAN_ROOTS As String = "WarehouseScanRoots"
+Private Const WAREHOUSE_SCAN_ROOT_DELIMITER As String = "|"
+
 Public Function ValidateWarehouseSpecAdmin(ByVal warehouseId As String, _
                                            ByVal warehouseName As String, _
                                            ByVal stationId As String, _
@@ -164,6 +169,39 @@ Public Function OpenWarehouseDirectory(Optional ByVal adminWb As Workbook = Noth
 
     wb.Worksheets(SHEET_WAREHOUSE_DIRECTORY).Activate
     OpenWarehouseDirectory = True
+End Function
+
+Public Sub RememberWarehouseScanRoot(ByVal rootPath As String)
+    Dim normalizedRoot As String
+    Dim roots As Collection
+    Dim persistedText As String
+    Dim item As Variant
+    Dim countWritten As Long
+
+    normalizedRoot = NormalizePathAdmin(rootPath)
+    If normalizedRoot = "" Then Exit Sub
+
+    Set roots = GetRememberedWarehouseScanRoots()
+    persistedText = normalizedRoot
+    countWritten = 1
+
+    For Each item In roots
+        If StrComp(CStr(item), normalizedRoot, vbTextCompare) <> 0 Then
+            persistedText = persistedText & WAREHOUSE_SCAN_ROOT_DELIMITER & CStr(item)
+            countWritten = countWritten + 1
+            If countWritten >= 8 Then Exit For
+        End If
+    Next item
+
+    On Error Resume Next
+    SaveSetting SETTINGS_APP, SETTINGS_SECTION_ADMIN, SETTINGS_WAREHOUSE_SCAN_ROOTS, persistedText
+    On Error GoTo 0
+End Sub
+
+Public Function HasRememberedWarehouseScanRoots() As Boolean
+    Dim roots As Collection
+    Set roots = GetRememberedWarehouseScanRoots()
+    HasRememberedWarehouseScanRoots = (roots.Count > 0)
 End Function
 
 Public Function EnsureAdminSchema(Optional ByVal adminWb As Workbook = Nothing, _
@@ -741,6 +779,7 @@ Private Sub InitializeAdminConsoleLayout(ByVal ws As Worksheet)
     ws.Range("A23").Value = "Retire / Migrate Warehouse"
     ws.Range("A24").Value = "Refresh Admin Console"
     ws.Range("A25").Value = "View warehouses"
+    ws.Range("A26").Value = "Add warehouse root"
     ws.Range("B19").Value = "Creates/repairs config, auth, inventory, receive/ship/production inboxes, snapshots, add-ins package, and a receiving operator workbook."
     ws.Range("B20").Value = "Open the generated workbook before running Refresh Inventory or Confirm Writes."
     ws.Range("B21").Value = "Checks the SharePoint/Addins folder configured for this warehouse."
@@ -748,6 +787,7 @@ Private Sub InitializeAdminConsoleLayout(ByVal ws As Worksheet)
     ws.Range("B23").Value = "Retire, archive, migrate, or delete a warehouse runtime."
     ws.Range("B24").Value = "Reloads the status values above."
     ws.Range("B25").Value = "Lists warehouse configs, runtime roots, inboxes, and publish roots visible to Admin."
+    ws.Range("B26").Value = "Remember a NAS/server warehouse hub folder and refresh the warehouse directory."
     AddAdminConsoleActionButton ws, "btnAdminGenerateTesterWarehouse", "Generate Test Warehouse", "'invSys.Admin.xlam'!modAdmin.Admin_SetupTesterStation_Click", "D19"
     AddAdminConsoleActionButton ws, "btnAdminOpenTesterWorkbook", "Open Tester Workbook", "'invSys.Admin.xlam'!modAdmin.Open_LastTesterWorkbook", "D20"
     AddAdminConsoleActionButton ws, "btnAdminVerifyAddins", "Verify Add-ins", "'invSys.Admin.xlam'!modAdmin.Verify_AddinsPublished", "D21"
@@ -755,6 +795,7 @@ Private Sub InitializeAdminConsoleLayout(ByVal ws As Worksheet)
     AddAdminConsoleActionButton ws, "btnAdminRetireMigrate", "Retire / Migrate", "'invSys.Admin.xlam'!modAdmin.Admin_RetireMigrateWarehouse_Click", "D23"
     AddAdminConsoleActionButton ws, "btnAdminRefreshConsole", "Refresh Console", "'invSys.Admin.xlam'!modAdmin.Admin_Click", "D24"
     AddAdminConsoleActionButton ws, "btnAdminViewWarehouses", "View Warehouses", "'invSys.Admin.xlam'!modAdmin.Open_WarehouseDirectory", "D25"
+    AddAdminConsoleActionButton ws, "btnAdminAddWarehouseRoot", "Add Root", "'invSys.Admin.xlam'!modAdmin.Add_WarehouseDirectoryRoot", "D26"
     ws.Columns("A:D").AutoFit
 End Sub
 
@@ -864,7 +905,8 @@ Private Function RefreshWarehouseDirectory(Optional ByVal adminWb As Workbook = 
     Dim lo As ListObject
     Dim seen As Object
     Dim issues As Collection
-    Dim scanRoot As String
+    Dim scanRoots As Collection
+    Dim scanRoot As Variant
 
     Set wb = ResolveAdminWorkbook(adminWb)
     If wb Is Nothing Then
@@ -888,13 +930,14 @@ Private Function RefreshWarehouseDirectory(Optional ByVal adminWb As Workbook = 
 
     AddOpenWarehouseConfigsToDirectory lo, seen
 
-    scanRoot = GetAdminRuntimeScanRoot()
-    AddWarehouseConfigsUnderRootToDirectory lo, seen, scanRoot
-    AddWarehouseConfigsUnderRootToDirectory lo, seen, modDeploymentPaths.DefaultRuntimeHubRootPath(False)
+    Set scanRoots = GetWarehouseDirectoryScanRoots()
+    For Each scanRoot In scanRoots
+        AddWarehouseConfigsUnderRootToDirectory lo, seen, CStr(scanRoot)
+    Next scanRoot
 
     If lo.ListRows.Count = 0 Then
         lo.ListRows.Add
-        SetTableRowValueAdmin lo, 1, "Status", "No warehouse config workbooks found. Use Create New Warehouse or Setup Tester Station first."
+        SetTableRowValueAdmin lo, 1, "Status", "No warehouse config workbooks found. Open Users & Roles or Retire / Migrate, connect to the NAS root, then view warehouses again."
     End If
 
     wb.Worksheets(SHEET_WAREHOUSE_DIRECTORY).Columns.AutoFit
@@ -904,6 +947,67 @@ Private Function RefreshWarehouseDirectory(Optional ByVal adminWb As Workbook = 
 
 FailRefresh:
     report = "RefreshWarehouseDirectory failed: " & Err.Description
+End Function
+
+Private Function GetWarehouseDirectoryScanRoots() As Collection
+    Dim roots As Collection
+    Dim rememberedRoots As Collection
+    Dim item As Variant
+
+    Set roots = New Collection
+    AddWarehouseDirectoryScanRoot roots, GetAdminRuntimeScanRoot()
+    AddWarehouseDirectoryScanRoot roots, Trim$(modConfig.GetString("PathDataRoot", ""))
+    AddWarehouseDirectoryScanRoot roots, modRuntimeWorkbooks.GetCoreDataRootOverride()
+
+    Set rememberedRoots = GetRememberedWarehouseScanRoots()
+    For Each item In rememberedRoots
+        AddWarehouseDirectoryScanRoot roots, CStr(item)
+    Next item
+
+    AddWarehouseDirectoryScanRoot roots, modDeploymentPaths.DefaultRuntimeHubRootPath(False)
+    Set GetWarehouseDirectoryScanRoots = roots
+End Function
+
+Private Sub AddWarehouseDirectoryScanRoot(ByVal roots As Collection, ByVal rootPath As String)
+    Dim normalizedRoot As String
+    Dim parentPath As String
+    Dim item As Variant
+
+    normalizedRoot = NormalizePathAdmin(rootPath)
+    If normalizedRoot = "" Then Exit Sub
+
+    If LooksLikeWarehouseRuntimeRootAdmin(normalizedRoot) Then
+        parentPath = GetParentFolderAdmin(normalizedRoot)
+        If parentPath <> "" Then normalizedRoot = parentPath
+    End If
+
+    For Each item In roots
+        If StrComp(CStr(item), normalizedRoot, vbTextCompare) = 0 Then Exit Sub
+    Next item
+    roots.Add normalizedRoot
+End Sub
+
+Private Function GetRememberedWarehouseScanRoots() As Collection
+    Dim roots As Collection
+    Dim persistedText As String
+    Dim parts() As String
+    Dim idx As Long
+
+    Set roots = New Collection
+    On Error Resume Next
+    persistedText = GetSetting(SETTINGS_APP, SETTINGS_SECTION_ADMIN, SETTINGS_WAREHOUSE_SCAN_ROOTS, "")
+    On Error GoTo 0
+    If Trim$(persistedText) = "" Then
+        Set GetRememberedWarehouseScanRoots = roots
+        Exit Function
+    End If
+
+    parts = Split(persistedText, WAREHOUSE_SCAN_ROOT_DELIMITER)
+    For idx = LBound(parts) To UBound(parts)
+        AddWarehouseDirectoryScanRoot roots, CStr(parts(idx))
+    Next idx
+
+    Set GetRememberedWarehouseScanRoots = roots
 End Function
 
 Private Sub AddOpenWarehouseConfigsToDirectory(ByVal loDirectory As ListObject, ByVal seen As Object)

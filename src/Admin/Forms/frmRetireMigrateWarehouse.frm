@@ -948,6 +948,7 @@ Private Sub RefreshWarehouseListsFromSelectedRoot(ByVal successMessage As String
         ShowFormMessage "Warehouse root is not reachable. Enter NAS credentials and click Connect.", COLOR_ERROR
         Exit Sub
     End If
+    If rootPath <> "" And FolderExistsForm(rootPath) Then RememberWarehouseRootForAdminForm rootPath
 
     mFormBusy = True
     PopulateWarehouseDropdowns
@@ -1017,6 +1018,7 @@ Private Function ConnectSelectedWarehouseRootCredentialsForm(ByRef report As Str
         mTxtNasPassword.Value = ""
         If FolderExistsForm(rootPath) Then
             report = "Connected to NAS root."
+            RememberWarehouseRootForAdminForm rootPath
             ConnectSelectedWarehouseRootCredentialsForm = True
         Else
             report = "Connected to NAS share, but the Warehouse root folder was not found."
@@ -1027,12 +1029,19 @@ Private Function ConnectSelectedWarehouseRootCredentialsForm(ByRef report As Str
     If resultCode = ERROR_SESSION_CREDENTIAL_CONFLICT And FolderExistsForm(rootPath) Then
         mTxtNasPassword.Value = ""
         report = "Using existing Windows NAS connection."
+        RememberWarehouseRootForAdminForm rootPath
         ConnectSelectedWarehouseRootCredentialsForm = True
         Exit Function
     End If
 
     report = WNetConnectionErrorTextForm(resultCode)
 End Function
+
+Private Sub RememberWarehouseRootForAdminForm(ByVal rootPath As String)
+    On Error Resume Next
+    modAdminConsole.RememberWarehouseScanRoot rootPath
+    On Error GoTo 0
+End Sub
 
 Private Function DiscoverWarehouseIdsForm() As Collection
     Dim results As Collection
