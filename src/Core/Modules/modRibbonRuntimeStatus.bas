@@ -377,9 +377,13 @@ Private Function RuntimeArtifactsExistStatus(ByVal rootPath As String, ByVal war
     If rootPath = "" Or warehouseId = "" Then Exit Function
 
     RuntimeArtifactsExistStatus = _
-        (Len(Dir$(rootPath & "\" & warehouseId & ".invSys.Config.xlsb", vbNormal)) > 0) And _
-        (Len(Dir$(rootPath & "\" & warehouseId & ".invSys.Auth.xlsb", vbNormal)) > 0) And _
-        (Len(Dir$(rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb", vbNormal)) > 0)
+        FileExistsStatus(rootPath & "\" & warehouseId & ".invSys.Config.xlsb") And _
+        FileExistsStatus(rootPath & "\" & warehouseId & ".invSys.Auth.xlsb") And _
+        FileExistsStatus(rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb")
+End Function
+
+Private Function FileExistsStatus(ByVal filePath As String) As Boolean
+    FileExistsStatus = modDeploymentPaths.FileExistsManaged(filePath)
 End Function
 
 Private Function FindListObjectByNameStatus(ByVal wb As Workbook, ByVal tableName As String) As ListObject
