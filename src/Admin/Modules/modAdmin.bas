@@ -191,8 +191,14 @@ Private Function SeedDemoInventoryForWarehouse(ByVal warehouseId As String, _
     Dim queueError As String
     Dim batchReport As String
     Dim processedCount As Long
+    Dim inboxReport As String
 
     On Error GoTo FailSeed
+
+    If Not EnsureDemoStationInboxes(warehouseId, stationId, inboxReport) Then
+        report = inboxReport
+        Exit Function
+    End If
 
     Set payloadItems = BuildAdminDemoInventoryPayload()
     payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
@@ -225,6 +231,35 @@ Private Function SeedDemoInventoryForWarehouse(ByVal warehouseId As String, _
 
 FailSeed:
     report = "SeedDemoInventory failed: " & Err.Description
+End Function
+
+Private Function EnsureDemoStationInboxes(ByVal warehouseId As String, _
+                                          ByVal stationId As String, _
+                                          ByRef report As String) As Boolean
+    Dim inboxPath As String
+    Dim stepReport As String
+
+    If Not modConfig.EnsureStationInbox(warehouseId, stationId, "RECEIVE", "", inboxPath, stepReport) Then
+        report = "Receiving inbox could not be created or repaired: " & stepReport
+        Exit Function
+    End If
+
+    inboxPath = ""
+    stepReport = ""
+    If Not modConfig.EnsureStationInbox(warehouseId, stationId, "SHIP", "", inboxPath, stepReport) Then
+        report = "Shipping inbox could not be created or repaired: " & stepReport
+        Exit Function
+    End If
+
+    inboxPath = ""
+    stepReport = ""
+    If Not modConfig.EnsureStationInbox(warehouseId, stationId, "PRODUCTION", "", inboxPath, stepReport) Then
+        report = "Production inbox could not be created or repaired: " & stepReport
+        Exit Function
+    End If
+
+    report = "OK"
+    EnsureDemoStationInboxes = True
 End Function
 
 Private Function BuildAdminDemoInventoryPayload() As Collection
