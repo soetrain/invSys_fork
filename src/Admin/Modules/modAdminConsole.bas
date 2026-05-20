@@ -788,14 +788,6 @@ Private Sub InitializeAdminConsoleLayout(ByVal ws As Worksheet)
     ws.Range("B24").Value = "Reloads the status values above."
     ws.Range("B25").Value = "Lists warehouse configs, runtime roots, inboxes, and publish roots visible to Admin."
     ws.Range("B26").Value = "Remember a NAS/server warehouse hub folder and refresh the warehouse directory."
-    AddAdminConsoleActionButton ws, "btnAdminGenerateTesterWarehouse", "Generate Test Warehouse", "'invSys.Admin.xlam'!modAdmin.Admin_SetupTesterStation_Click", "D19"
-    AddAdminConsoleActionButton ws, "btnAdminOpenTesterWorkbook", "Open Tester Workbook", "'invSys.Admin.xlam'!modAdmin.Open_LastTesterWorkbook", "D20"
-    AddAdminConsoleActionButton ws, "btnAdminVerifyAddins", "Verify Add-ins", "'invSys.Admin.xlam'!modAdmin.Verify_AddinsPublished", "D21"
-    AddAdminConsoleActionButton ws, "btnAdminUsersRoles", "Users & Roles", "'invSys.Admin.xlam'!modAdmin.Open_CreateDeleteUser", "D22"
-    AddAdminConsoleActionButton ws, "btnAdminRetireMigrate", "Retire / Migrate", "'invSys.Admin.xlam'!modAdmin.Admin_RetireMigrateWarehouse_Click", "D23"
-    AddAdminConsoleActionButton ws, "btnAdminRefreshConsole", "Refresh Console", "'invSys.Admin.xlam'!modAdmin.Admin_Click", "D24"
-    AddAdminConsoleActionButton ws, "btnAdminViewWarehouses", "View Warehouses", "'invSys.Admin.xlam'!modAdmin.Open_WarehouseDirectory", "D25"
-    AddAdminConsoleActionButton ws, "btnAdminAddWarehouseRoot", "Add Root", "'invSys.Admin.xlam'!modAdmin.Add_WarehouseDirectoryRoot", "D26"
     ws.Columns("A:D").AutoFit
 End Sub
 
@@ -806,25 +798,6 @@ Private Sub ClearAdminConsoleActionButtons(ByVal ws As Worksheet)
     For idx = ws.Shapes.Count To 1 Step -1
         If Left$(ws.Shapes(idx).Name, 8) = "btnAdmin" Then ws.Shapes(idx).Delete
     Next idx
-End Sub
-
-Private Sub AddAdminConsoleActionButton(ByVal ws As Worksheet, _
-                                        ByVal shapeName As String, _
-                                        ByVal caption As String, _
-                                        ByVal onActionMacro As String, _
-                                        ByVal anchorAddress As String)
-    Const BTN_WIDTH As Double = 150
-    Const BTN_HEIGHT As Double = 22
-
-    Dim anchorCell As Range
-    Dim shp As Shape
-
-    If ws Is Nothing Then Exit Sub
-    Set anchorCell = ws.Range(anchorAddress)
-    Set shp = ws.Shapes.AddFormControl(xlButtonControl, anchorCell.Left, anchorCell.Top, BTN_WIDTH, BTN_HEIGHT)
-    shp.Name = shapeName
-    shp.TextFrame.Characters.Text = caption
-    shp.OnAction = onActionMacro
 End Sub
 
 Private Sub InitializeAdminConsoleValues(ByVal ws As Worksheet)

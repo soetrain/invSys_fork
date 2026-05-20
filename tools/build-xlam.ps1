@@ -836,6 +836,7 @@ $projectMap = @(
                         @{ Id = "btnAdminWarehouseRoot"; Label = "Add Warehouse Root"; Macro = "modAdmin.Add_WarehouseDirectoryRoot"; ImageMso = "Folder" },
                         @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; ImageMso = "FileNew" },
                         @{ Id = "btnAdminSetupTesterStation"; Label = "Setup Tester Station"; Macro = "modAdmin.Admin_SetupTesterStation_Click"; ImageMso = "CreateForm" },
+                        @{ Id = "btnAdminSeedInventory"; Label = "Seed Demo Inventory"; Macro = "modAdmin.Seed_DemoInventory"; ImageMso = "TableInsertRowsAbove" },
                         @{ Id = "btnAdminVerifyAddinsPublished"; Label = "Verify Add-ins Published"; Macro = "modAdmin.Verify_AddinsPublished"; ImageMso = "FileDocumentInspect" },
                         @{ Id = "btnAdminRetireMigrateWarehouse"; Label = "Retire / Migrate Warehouse"; Macro = "modAdmin.Admin_RetireMigrateWarehouse_Click"; ImageMso = "DeleteSite"; Screentip = "Archive, migrate, retire, or delete a warehouse runtime" }
                     )

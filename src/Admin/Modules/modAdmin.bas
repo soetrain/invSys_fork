@@ -101,6 +101,143 @@ Sub Add_WarehouseDirectoryRoot()
     End If
 End Sub
 
+Sub Seed_DemoInventory()
+    Dim warehouseId As String
+    Dim stationId As String
+    Dim userId As String
+    Dim report As String
+
+    If Not ResolveSeedInventoryContext(warehouseId, stationId, userId, report) Then
+        MsgBox report, vbExclamation, "invSys Admin"
+        Exit Sub
+    End If
+
+    If SeedDemoInventoryForWarehouse(warehouseId, stationId, userId, report) Then
+        MsgBox report, vbInformation, "invSys Admin"
+    Else
+        MsgBox report, vbExclamation, "invSys Admin"
+    End If
+End Sub
+
+Private Function ResolveSeedInventoryContext(ByRef warehouseId As String, _
+                                             ByRef stationId As String, _
+                                             ByRef userId As String, _
+                                             ByRef report As String) As Boolean
+    warehouseId = Trim$(modConfig.GetWarehouseId())
+    stationId = Trim$(modConfig.GetStationId())
+    If warehouseId = "" Then warehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
+    If stationId = "" Then stationId = Trim$(modConfig.GetString("StationId", "S1"))
+
+    warehouseId = Trim$(InputBox("Seed demo inventory into which warehouse?", _
+                                 "invSys Admin - Seed Inventory", warehouseId))
+    If warehouseId = "" Then
+        report = "WarehouseId is required."
+        Exit Function
+    End If
+
+    stationId = Trim$(InputBox("Station for the seed event:", _
+                               "invSys Admin - Seed Inventory", IIf(stationId = "", "S1", stationId)))
+    If stationId = "" Then stationId = "S1"
+
+    If Not modConfig.LoadConfig(warehouseId, stationId) Then
+        report = "Config load failed: " & modConfig.Validate()
+        Exit Function
+    End If
+
+    userId = Trim$(modRoleEventWriter.ResolveCurrentUserId())
+    If userId = "" Then userId = Trim$(Application.UserName)
+    userId = Trim$(InputBox("Admin user for the seed event. This user must have ADMIN_MAINT.", _
+                            "invSys Admin - Seed Inventory", userId))
+    If userId = "" Then
+        report = "Admin user is required."
+        Exit Function
+    End If
+
+    ResolveSeedInventoryContext = True
+End Function
+
+Private Function SeedDemoInventoryForWarehouse(ByVal warehouseId As String, _
+                                               ByVal stationId As String, _
+                                               ByVal userId As String, _
+                                               ByRef report As String) As Boolean
+    Dim payloadItems As Collection
+    Dim payloadJson As String
+    Dim eventIdOut As String
+    Dim queueError As String
+    Dim batchReport As String
+    Dim processedCount As Long
+
+    On Error GoTo FailSeed
+
+    Set payloadItems = BuildAdminDemoInventoryPayload()
+    payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
+    If payloadJson = "" Or payloadJson = "[]" Then
+        report = "Demo inventory payload was empty."
+        Exit Function
+    End If
+
+    If Not modRoleEventWriter.QueueMigrationSeedEvent(warehouseId, stationId, userId, payloadJson, _
+                                                      "ADMIN_DEMO_INVENTORY", "Admin demo inventory seed", _
+                                                      0, Nothing, eventIdOut, queueError, "") Then
+        report = "Seed event could not be queued: " & queueError & vbCrLf & _
+                 "Use Users & Roles to grant ADMIN_MAINT to '" & userId & "' for " & warehouseId & " / " & stationId & "."
+        Exit Function
+    End If
+
+    processedCount = modProcessor.RunBatch(warehouseId, 0, batchReport)
+    If processedCount < 1 Then
+        report = "Seed event was queued but not applied. " & batchReport
+        Exit Function
+    End If
+
+    report = "Demo inventory seeded." & vbCrLf & _
+             "Warehouse: " & warehouseId & vbCrLf & _
+             "Applied events: " & CStr(processedCount) & vbCrLf & _
+             "Processor: " & batchReport & vbCrLf & _
+             "Now click Refresh Inventory in Receiving."
+    SeedDemoInventoryForWarehouse = True
+    Exit Function
+
+FailSeed:
+    report = "SeedDemoInventory failed: " & Err.Description
+End Function
+
+Private Function BuildAdminDemoInventoryPayload() As Collection
+    Dim rows As Collection
+    Dim item As Object
+
+    Set rows = New Collection
+
+    Set item = modRoleEventWriter.CreatePayloadItem(1, "DEMO-RAW-BLACK-TEA", 100, "NAS-A1", "Admin demo seed", "IMPORT")
+    item("ITEM_CODE") = "DEMO-RAW-BLACK-TEA"
+    item("ITEM") = "Black Tea Base"
+    item("UOM") = "LB"
+    item("DESCRIPTION") = "Demo raw black tea for receiving tests"
+    item("VENDOR(s)") = "Demo Vendor"
+    item("CATEGORY") = "Raw Material"
+    rows.Add item
+
+    Set item = modRoleEventWriter.CreatePayloadItem(2, "DEMO-SPICE-CARDAMOM", 25, "NAS-A2", "Admin demo seed", "IMPORT")
+    item("ITEM_CODE") = "DEMO-SPICE-CARDAMOM"
+    item("ITEM") = "Cardamom Pods"
+    item("UOM") = "LB"
+    item("DESCRIPTION") = "Demo spice inventory for receiving tests"
+    item("VENDOR(s)") = "Demo Vendor"
+    item("CATEGORY") = "Spice"
+    rows.Add item
+
+    Set item = modRoleEventWriter.CreatePayloadItem(3, "DEMO-PKG-TIN", 48, "NAS-P1", "Admin demo seed", "IMPORT")
+    item("ITEM_CODE") = "DEMO-PKG-TIN"
+    item("ITEM") = "Retail Tea Tin"
+    item("UOM") = "EA"
+    item("DESCRIPTION") = "Demo packaging item for picker tests"
+    item("VENDOR(s)") = "Demo Vendor"
+    item("CATEGORY") = "Packaging"
+    rows.Add item
+
+    Set BuildAdminDemoInventoryPayload = rows
+End Function
+
 Private Sub PromptForWarehouseDirectoryRootIfNeeded()
     Dim rootPath As String
 
@@ -189,6 +326,5 @@ End Function
 ' It also includes functions to manage application settings and configurations.
 ' The functions in this module are used by the frmAdminControls form to perform administrative tasks.
 ''''''''''''''''''''''''''''''''''''
-
 
 
