@@ -2,6 +2,9 @@ Attribute VB_Name = "modRibbonRuntimeStatus"
 Option Explicit
 
 Private Const TARGET_DELIM As String = "|"
+Private Const SETTINGS_APP As String = "invSys"
+Private Const SETTINGS_SECTION_RUNTIME As String = "Runtime"
+Private Const SETTINGS_SELECTED_WAREHOUSE_TARGET As String = "SelectedWarehouseTarget"
 
 Public Function GetStatusLabel(ByVal controlId As String) As String
     EnsureRuntimeStatusConfigLoaded
@@ -95,6 +98,7 @@ Public Sub SelectWarehouseTarget(ByVal selectedIndex As Long)
 
     If targetRoot <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride targetRoot
     If modConfig.LoadConfig(targetWh, targetSt) Then
+        RememberSelectedWarehouseTargetStatus targetText
         MsgBox "Warehouse target selected:" & vbCrLf & vbCrLf & _
                TargetLabelStatus(targetText) & vbCrLf & _
                "Inbox root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathInboxRoot", "")), _
@@ -108,8 +112,12 @@ End Sub
 
 Public Sub RefreshRuntimeContext()
     Dim report As String
+    Dim configLoaded As Boolean
 
-    If modConfig.LoadConfig("", "") Then
+    configLoaded = ApplyRememberedWarehouseTargetStatus()
+    If Not configLoaded Then configLoaded = modConfig.LoadConfig("", "")
+
+    If configLoaded Then
         report = "Warehouse: " & ValueOrPlaceholderStatus(modConfig.GetWarehouseId()) & vbCrLf & _
                  "Station: " & ValueOrPlaceholderStatus(modConfig.GetStationId()) & vbCrLf & _
                  "Data root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathDataRoot", "")) & vbCrLf & _
@@ -122,6 +130,34 @@ Public Sub RefreshRuntimeContext()
         MsgBox "Runtime config could not be loaded." & vbCrLf & vbCrLf & modConfig.Validate(), vbExclamation, "invSys Runtime Context"
     End If
 End Sub
+
+Private Sub RememberSelectedWarehouseTargetStatus(ByVal targetText As String)
+    On Error Resume Next
+    SaveSetting SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_SELECTED_WAREHOUSE_TARGET, targetText
+    On Error GoTo 0
+End Sub
+
+Private Function ApplyRememberedWarehouseTargetStatus() As Boolean
+    Dim targetText As String
+    Dim targetWh As String
+    Dim targetSt As String
+    Dim targetRoot As String
+
+    On Error Resume Next
+    targetText = GetSetting(SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_SELECTED_WAREHOUSE_TARGET, "")
+    On Error GoTo 0
+    targetText = Trim$(targetText)
+    If targetText = "" Then Exit Function
+
+    targetWh = TargetPartStatus(targetText, 0)
+    targetSt = TargetPartStatus(targetText, 1)
+    targetRoot = NormalizeFolderForStatus(TargetPartStatus(targetText, 2))
+    If targetWh = "" Or targetRoot = "" Then Exit Function
+    If Not RuntimeArtifactsExistStatus(targetRoot, targetWh) Then Exit Function
+
+    modRuntimeWorkbooks.SetCoreDataRootOverride targetRoot
+    ApplyRememberedWarehouseTargetStatus = modConfig.LoadConfig(targetWh, targetSt)
+End Function
 
 Private Function BuildWarehouseTargetsStatus() As Collection
     Dim targets As Collection
@@ -333,6 +369,17 @@ End Function
 
 Private Function FolderExistsStatus(ByVal folderPath As String) As Boolean
     FolderExistsStatus = modDeploymentPaths.FolderExistsManaged(folderPath)
+End Function
+
+Private Function RuntimeArtifactsExistStatus(ByVal rootPath As String, ByVal warehouseId As String) As Boolean
+    rootPath = NormalizeFolderForStatus(rootPath)
+    warehouseId = Trim$(warehouseId)
+    If rootPath = "" Or warehouseId = "" Then Exit Function
+
+    RuntimeArtifactsExistStatus = _
+        (Len(Dir$(rootPath & "\" & warehouseId & ".invSys.Config.xlsb", vbNormal)) > 0) And _
+        (Len(Dir$(rootPath & "\" & warehouseId & ".invSys.Auth.xlsb", vbNormal)) > 0) And _
+        (Len(Dir$(rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb", vbNormal)) > 0)
 End Function
 
 Private Function FindListObjectByNameStatus(ByVal wb As Workbook, ByVal tableName As String) As ListObject
