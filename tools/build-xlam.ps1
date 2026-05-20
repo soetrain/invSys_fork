@@ -409,7 +409,11 @@ function Add-RibbonCallbacksModule {
     foreach ($group in $RibbonConfig.Groups) {
         foreach ($button in $group.Buttons) {
             [void]$lines.Add(("        Case ""{0}""" -f $button.Id))
-            [void]$lines.Add(("            Application.Run ""'"" & ThisWorkbook.Name & ""'!{0}""" -f $button.Macro))
+            if ($button.ContainsKey("DirectAction") -and -not [string]::IsNullOrWhiteSpace($button.DirectAction)) {
+                [void]$lines.Add(("            {0}" -f $button.DirectAction))
+            } else {
+                [void]$lines.Add(("            Application.Run ""'"" & ThisWorkbook.Name & ""'!{0}""" -f $button.Macro))
+            }
         }
     }
 
@@ -429,6 +433,13 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonRuntimeUserPrompt(control As IRibbonControl)")
     [void]$lines.Add("    modRoleEventWriter.PromptSetCurrentUser")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonCurrentUserGetLabel(control As IRibbonControl, ByRef returnedVal)")
+    [void]$lines.Add("    Dim userId As String")
+    [void]$lines.Add('    userId = Trim$(modRoleEventWriter.ResolveCurrentUserId())')
+    [void]$lines.Add('    If userId = "" Then userId = "<not set>"')
+    [void]$lines.Add('    returnedVal = "User: " & userId')
     [void]$lines.Add("End Sub")
     [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonWarehouseGetItemCount(control As IRibbonControl, ByRef returnedVal)")
@@ -477,6 +488,7 @@ function Get-RibbonXml {
             $imageXml = ""
             $showImage = "false"
             $screentipXml = ""
+            $labelXml = (' label="{0}"' -f $button.Label)
             if ($button.ContainsKey("ImageMso") -and -not [string]::IsNullOrWhiteSpace($button.ImageMso)) {
                 $imageXml = (' imageMso="{0}"' -f $button.ImageMso)
                 $showImage = "true"
@@ -484,7 +496,10 @@ function Get-RibbonXml {
             if ($button.ContainsKey("Screentip") -and -not [string]::IsNullOrWhiteSpace($button.Screentip)) {
                 $screentipXml = (' screentip="{0}"' -f $button.Screentip)
             }
-            [void]$xml.AppendLine(("          <button id=""{0}"" label=""{1}"" size=""large"" showImage=""{2}""{3}{4} onAction=""{5}""/>" -f $button.Id, $button.Label, $showImage, $imageXml, $screentipXml, $RibbonConfig.CallbackName))
+            if ($button.ContainsKey("GetLabel") -and -not [string]::IsNullOrWhiteSpace($button.GetLabel)) {
+                $labelXml = (' getLabel="{0}"' -f $button.GetLabel)
+            }
+            [void]$xml.AppendLine(("          <button id=""{0}""{1} size=""large"" showImage=""{2}""{3}{4} onAction=""{5}""/>" -f $button.Id, $labelXml, $showImage, $imageXml, $screentipXml, $RibbonConfig.CallbackName))
         }
         if ($group.ContainsKey("WarehouseSelector")) {
             $selector = $group.WarehouseSelector
@@ -679,6 +694,7 @@ $projectMap = @(
                         }
                     )
                     Buttons = @(
+                        @{ Id = "btnReceivingCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUser"; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
                         @{ Id = "btnReceivingSetup"; Label = "Setup UI"; Macro = "modTS_Received.EnsureGeneratedButtons"; ImageMso = "FileNew" },
                         @{ Id = "btnReceivingConfirm"; Label = "Confirm Writes"; Macro = "modTS_Received.ConfirmWrites"; ImageMso = "FileSave" },
                         @{ Id = "btnReceivingUndo"; Label = "Undo"; Macro = "modTS_Received.MacroUndo"; ImageMso = "Undo" },
@@ -726,6 +742,7 @@ $projectMap = @(
                         }
                     )
                     Buttons = @(
+                        @{ Id = "btnShippingCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUser"; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
                         @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; ImageMso = "FileNew" },
                         @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder"; ImageMso = "Repeat" },
                         @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox"; ImageMso = "FileSave" },
@@ -786,6 +803,7 @@ $projectMap = @(
                         }
                     )
                     Buttons = @(
+                        @{ Id = "btnProductionCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUser"; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
                         @{ Id = "btnProductionSetup"; Label = "Setup UI"; Macro = "mProduction.InitializeProductionUI"; ImageMso = "FileNew" },
                         @{ Id = "btnProductionHide"; Label = "Hide System"; Macro = "mProduction.BtnHideSystem"; ImageMso = "Clear" },
                         @{ Id = "btnProductionShow"; Label = "Show System"; Macro = "mProduction.BtnShowSystem"; ImageMso = "FileOpen" }
@@ -839,7 +857,7 @@ $projectMap = @(
                     Label   = "Actions"
                     Buttons = @(
                         @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; ImageMso = "FileOpen" },
-                        @{ Id = "btnAdminCurrentUser"; Label = "Current User"; Macro = "modAdmin.Set_CurrentUser"; ImageMso = "ContactCard" },
+                        @{ Id = "btnAdminCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUser"; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
                         @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; ImageMso = "FileOpen" },
                         @{ Id = "btnAdminWarehouses"; Label = "View Warehouses"; Macro = "modAdmin.Open_WarehouseDirectory"; ImageMso = "TablePropertiesDialog" },
                         @{ Id = "btnAdminWarehouseRoot"; Label = "Add Warehouse Root"; Macro = "modAdmin.Add_WarehouseDirectoryRoot"; ImageMso = "Folder" },
