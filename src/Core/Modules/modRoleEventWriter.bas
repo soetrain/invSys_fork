@@ -96,12 +96,14 @@ Private Function ValidateCurrentUserCredential(ByVal userId As String, _
         Exit Function
     End If
 
-    If Not modAuth.ValidateUserCredentialForCapability(userId, pinText, requiredCapability) Then
-        If Trim$(requiredCapability) <> "" Then
-            report = "Invalid credentials or '" & userId & "' lacks " & requiredCapability & " for " & whId & " / " & stId & "."
-        Else
-            report = "Invalid credentials for '" & userId & "'."
-        End If
+    If Not modAuth.ValidateUserCredentialForCapability(userId, pinText, "") Then
+        report = "Invalid credentials for '" & userId & "'."
+        Exit Function
+    End If
+
+    If Trim$(requiredCapability) <> "" _
+       And Not modAuth.CanPerform(requiredCapability, userId, whId, stId, "REAUTH", "REAUTH") Then
+        report = "'" & userId & "' lacks " & requiredCapability & " for " & whId & " / " & stId & "."
         Exit Function
     End If
 

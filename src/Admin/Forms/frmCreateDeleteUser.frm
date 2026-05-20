@@ -577,10 +577,11 @@ End Sub
 
 Private Sub ApplySelectedWarehouseForm(ByVal warehouseId As String)
     Dim folderPath As String
+    Dim scopeWarehouseId As String
 
     warehouseId = Trim$(warehouseId)
-    mTxtWarehouseId.Value = warehouseId
     If warehouseId = "" Then
+        mTxtWarehouseId.Value = ""
         mTxtAuthPath.Value = ""
         Exit Sub
     End If
@@ -590,7 +591,45 @@ Private Sub ApplySelectedWarehouseForm(ByVal warehouseId As String)
     End If
     If folderPath = "" Then folderPath = NormalizePathForm(CStr(mTxtRoot.Value))
     mTxtAuthPath.Value = folderPath & "\" & warehouseId & ".invSys.Auth.xlsb"
+    scopeWarehouseId = ResolveConfigWarehouseIdForScopeForm(folderPath, warehouseId)
+    If scopeWarehouseId = "" Then scopeWarehouseId = warehouseId
+    mTxtWarehouseId.Value = scopeWarehouseId
 End Sub
+
+Private Function ResolveConfigWarehouseIdForScopeForm(ByVal folderPath As String, ByVal fileWarehouseId As String) As String
+    Dim configPath As String
+    Dim wb As Workbook
+    Dim openedTransient As Boolean
+    Dim lo As ListObject
+
+    folderPath = NormalizePathForm(folderPath)
+    fileWarehouseId = Trim$(fileWarehouseId)
+    If folderPath = "" Or fileWarehouseId = "" Then Exit Function
+
+    configPath = folderPath & "\" & fileWarehouseId & ".invSys.Config.xlsb"
+    If Not FileExistsForm(configPath) Then Exit Function
+
+    For Each wb In Application.Workbooks
+        If StrComp(NormalizePathForm(wb.FullName), configPath, vbTextCompare) = 0 Then
+            Set lo = FindListObjectForm(wb, "tblWarehouseConfig")
+            If Not lo Is Nothing Then ResolveConfigWarehouseIdForScopeForm = SafeTextForm(GetCellByColumnForm(lo, 1, "WarehouseId"))
+            Exit Function
+        End If
+    Next wb
+
+    On Error GoTo CleanExit
+    Set wb = Application.Workbooks.Open(Filename:=configPath, UpdateLinks:=0, ReadOnly:=True, AddToMru:=False)
+    openedTransient = True
+    Set lo = FindListObjectForm(wb, "tblWarehouseConfig")
+    If Not lo Is Nothing Then ResolveConfigWarehouseIdForScopeForm = SafeTextForm(GetCellByColumnForm(lo, 1, "WarehouseId"))
+
+CleanExit:
+    If openedTransient And Not wb Is Nothing Then
+        On Error Resume Next
+        wb.Close SaveChanges:=False
+        On Error GoTo 0
+    End If
+End Function
 
 Private Sub RefreshUsersForm()
     Dim wb As Workbook
