@@ -5,6 +5,30 @@ Private Const TARGET_DELIM As String = "|"
 Private Const SETTINGS_APP As String = "invSys"
 Private Const SETTINGS_SECTION_RUNTIME As String = "Runtime"
 Private Const SETTINGS_SELECTED_WAREHOUSE_TARGET As String = "SelectedWarehouseTarget"
+Private mRibbonUis As Collection
+
+Public Sub RegisterRibbonUi(ByVal ribbon As Object)
+    If mRibbonUis Is Nothing Then Set mRibbonUis = New Collection
+    If ribbon Is Nothing Then Exit Sub
+    On Error Resume Next
+    mRibbonUis.Add ribbon
+    On Error GoTo 0
+End Sub
+
+Public Sub InvalidateCurrentUserRibbons()
+    Dim ribbon As Variant
+    If mRibbonUis Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    For Each ribbon In mRibbonUis
+        ribbon.InvalidateControl "btnReceivingCurrentUser"
+        ribbon.InvalidateControl "btnShippingCurrentUser"
+        ribbon.InvalidateControl "btnProductionCurrentUser"
+        ribbon.InvalidateControl "btnAdminCurrentUser"
+        ribbon.InvalidateControl "btnRuntimeUser"
+    Next ribbon
+    On Error GoTo 0
+End Sub
 
 Public Function GetStatusLabel(ByVal controlId As String) As String
     EnsureRuntimeStatusConfigLoaded

@@ -402,6 +402,10 @@ function Add-RibbonCallbacksModule {
     $lines = New-Object System.Collections.Generic.List[string]
     [void]$lines.Add("Option Explicit")
     [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonOnLoad(ribbon As IRibbonUI)")
+    [void]$lines.Add("    modRibbonRuntimeStatus.RegisterRibbonUi ribbon")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
     [void]$lines.Add("Public Sub " + $RibbonConfig.CallbackName + "(control As IRibbonControl)")
     [void]$lines.Add("    On Error GoTo ErrHandler")
     [void]$lines.Add("    Select Case control.ID")
@@ -409,6 +413,9 @@ function Add-RibbonCallbacksModule {
     foreach ($group in $RibbonConfig.Groups) {
         foreach ($button in $group.Buttons) {
             [void]$lines.Add(("        Case ""{0}""" -f $button.Id))
+            if ($button.ContainsKey("RequiredCapability") -and -not [string]::IsNullOrWhiteSpace($button.RequiredCapability)) {
+                [void]$lines.Add(("            If Not modRoleUiAccess.RequireCurrentUserCapability(""{0}"", ""Current user does not have {0} for this warehouse/station."") Then Exit Sub" -f $button.RequiredCapability))
+            }
             if ($button.ContainsKey("DirectAction") -and -not [string]::IsNullOrWhiteSpace($button.DirectAction)) {
                 [void]$lines.Add(("            {0}" -f $button.DirectAction))
             } else {
@@ -474,7 +481,7 @@ function Get-RibbonXml {
 
     $xml = New-Object System.Text.StringBuilder
     [void]$xml.AppendLine("<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>")
-    [void]$xml.AppendLine("<customUI xmlns=""http://schemas.microsoft.com/office/2006/01/customui"">")
+    [void]$xml.AppendLine("<customUI xmlns=""http://schemas.microsoft.com/office/2006/01/customui"" onLoad=""RibbonOnLoad"">")
     [void]$xml.AppendLine("  <ribbon startFromScratch=""false"">")
     [void]$xml.AppendLine("    <tabs>")
     [void]$xml.AppendLine(("      <tab id=""{0}"" label=""{1}"">" -f $RibbonConfig.TabId, $RibbonConfig.Label))
@@ -694,11 +701,11 @@ $projectMap = @(
                         }
                     )
                     Buttons = @(
-                        @{ Id = "btnReceivingCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUser"; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
-                        @{ Id = "btnReceivingSetup"; Label = "Setup UI"; Macro = "modTS_Received.EnsureGeneratedButtons"; ImageMso = "FileNew" },
-                        @{ Id = "btnReceivingConfirm"; Label = "Confirm Writes"; Macro = "modTS_Received.ConfirmWrites"; ImageMso = "FileSave" },
-                        @{ Id = "btnReceivingUndo"; Label = "Undo"; Macro = "modTS_Received.MacroUndo"; ImageMso = "Undo" },
-                        @{ Id = "btnReceivingRedo"; Label = "Redo"; Macro = "modTS_Received.MacroRedo"; ImageMso = "Redo" }
+                        @{ Id = "btnReceivingCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""RECEIVE_POST"""; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
+                        @{ Id = "btnReceivingSetup"; Label = "Setup UI"; Macro = "modTS_Received.EnsureGeneratedButtons"; ImageMso = "FileNew"; RequiredCapability = "RECEIVE_POST" },
+                        @{ Id = "btnReceivingConfirm"; Label = "Confirm Writes"; Macro = "modTS_Received.ConfirmWrites"; ImageMso = "FileSave"; RequiredCapability = "RECEIVE_POST" },
+                        @{ Id = "btnReceivingUndo"; Label = "Undo"; Macro = "modTS_Received.MacroUndo"; ImageMso = "Undo"; RequiredCapability = "RECEIVE_POST" },
+                        @{ Id = "btnReceivingRedo"; Label = "Redo"; Macro = "modTS_Received.MacroRedo"; ImageMso = "Redo"; RequiredCapability = "RECEIVE_POST" }
                     )
                 }
             )
@@ -742,24 +749,24 @@ $projectMap = @(
                         }
                     )
                     Buttons = @(
-                        @{ Id = "btnShippingCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUser"; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
-                        @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; ImageMso = "FileNew" },
-                        @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder"; ImageMso = "Repeat" },
-                        @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox"; ImageMso = "FileSave" },
-                        @{ Id = "btnShippingUnship"; Label = "Toggle NotShipped"; Macro = "modTS_Shipments.BtnUnship"; ImageMso = "Clear" },
-                        @{ Id = "btnShippingHold"; Label = "Send To Hold"; Macro = "modTS_Shipments.BtnSendHold"; ImageMso = "Cut" },
-                        @{ Id = "btnShippingReturnHold"; Label = "Return From Hold"; Macro = "modTS_Shipments.BtnReturnHold"; ImageMso = "Paste" }
+                        @{ Id = "btnShippingCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""SHIP_POST"""; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
+                        @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; ImageMso = "FileNew"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder"; ImageMso = "Repeat"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingUnship"; Label = "Toggle NotShipped"; Macro = "modTS_Shipments.BtnUnship"; ImageMso = "Clear"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingHold"; Label = "Send To Hold"; Macro = "modTS_Shipments.BtnSendHold"; ImageMso = "Cut"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingReturnHold"; Label = "Return From Hold"; Macro = "modTS_Shipments.BtnReturnHold"; ImageMso = "Paste"; RequiredCapability = "SHIP_POST" }
                     )
                 }
                 @{
                     Id      = "grpShippingActions"
                     Label   = "Actions"
                     Buttons = @(
-                        @{ Id = "btnShippingConfirm"; Label = "Confirm Inventory"; Macro = "modTS_Shipments.BtnConfirmInventory"; ImageMso = "FileSave" },
-                        @{ Id = "btnShippingBoxesMade"; Label = "Boxes Made"; Macro = "modTS_Shipments.BtnBoxesMade"; ImageMso = "FileSave" },
-                        @{ Id = "btnShippingTotal"; Label = "To Total Inv"; Macro = "modTS_Shipments.BtnToTotalInv"; ImageMso = "FileSave" },
-                        @{ Id = "btnShippingStage"; Label = "To Shipments"; Macro = "modTS_Shipments.BtnToShipments"; ImageMso = "FileOpen" },
-                        @{ Id = "btnShippingSend"; Label = "Shipments Sent"; Macro = "modTS_Shipments.BtnShipmentsSent"; ImageMso = "FileSave" }
+                        @{ Id = "btnShippingConfirm"; Label = "Confirm Inventory"; Macro = "modTS_Shipments.BtnConfirmInventory"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingBoxesMade"; Label = "Boxes Made"; Macro = "modTS_Shipments.BtnBoxesMade"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingTotal"; Label = "To Total Inv"; Macro = "modTS_Shipments.BtnToTotalInv"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingStage"; Label = "To Shipments"; Macro = "modTS_Shipments.BtnToShipments"; ImageMso = "FileOpen"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingSend"; Label = "Shipments Sent"; Macro = "modTS_Shipments.BtnShipmentsSent"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" }
                     )
                 }
             )
@@ -803,36 +810,36 @@ $projectMap = @(
                         }
                     )
                     Buttons = @(
-                        @{ Id = "btnProductionCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUser"; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
-                        @{ Id = "btnProductionSetup"; Label = "Setup UI"; Macro = "mProduction.InitializeProductionUI"; ImageMso = "FileNew" },
-                        @{ Id = "btnProductionHide"; Label = "Hide System"; Macro = "mProduction.BtnHideSystem"; ImageMso = "Clear" },
-                        @{ Id = "btnProductionShow"; Label = "Show System"; Macro = "mProduction.BtnShowSystem"; ImageMso = "FileOpen" }
+                        @{ Id = "btnProductionCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""PROD_POST"""; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
+                        @{ Id = "btnProductionSetup"; Label = "Setup UI"; Macro = "mProduction.InitializeProductionUI"; ImageMso = "FileNew"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionHide"; Label = "Hide System"; Macro = "mProduction.BtnHideSystem"; ImageMso = "Clear"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionShow"; Label = "Show System"; Macro = "mProduction.BtnShowSystem"; ImageMso = "FileOpen"; RequiredCapability = "PROD_POST" }
                     )
                 }
                 @{
                     Id      = "grpProductionRecipe"
                     Label   = "Recipe"
                     Buttons = @(
-                        @{ Id = "btnProductionLoad"; Label = "Load Recipe"; Macro = "mProduction.BtnLoadRecipe"; ImageMso = "FileOpen" },
-                        @{ Id = "btnProductionSaveRecipe"; Label = "Save Recipe"; Macro = "mProduction.BtnSaveRecipe"; ImageMso = "FileSave" },
-                        @{ Id = "btnProductionSaveFormulas"; Label = "Save Formulas"; Macro = "mProduction.BtnSaveFormulas"; ImageMso = "FileSave" },
-                        @{ Id = "btnProductionAddTables"; Label = "Add Process Table"; Macro = "mProduction.BtnBuildRecipeProcessTables"; ImageMso = "FileNew" },
-                        @{ Id = "btnProductionRemoveTables"; Label = "Remove Process Table"; Macro = "mProduction.BtnRemoveRecipeProcessTables"; ImageMso = "Clear" },
-                        @{ Id = "btnProductionClearBuilder"; Label = "Clear Recipe Builder"; Macro = "mProduction.BtnClearRecipeBuilder"; ImageMso = "Clear" }
+                        @{ Id = "btnProductionLoad"; Label = "Load Recipe"; Macro = "mProduction.BtnLoadRecipe"; ImageMso = "FileOpen"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionSaveRecipe"; Label = "Save Recipe"; Macro = "mProduction.BtnSaveRecipe"; ImageMso = "FileSave"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionSaveFormulas"; Label = "Save Formulas"; Macro = "mProduction.BtnSaveFormulas"; ImageMso = "FileSave"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionAddTables"; Label = "Add Process Table"; Macro = "mProduction.BtnBuildRecipeProcessTables"; ImageMso = "FileNew"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionRemoveTables"; Label = "Remove Process Table"; Macro = "mProduction.BtnRemoveRecipeProcessTables"; ImageMso = "Clear"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionClearBuilder"; Label = "Clear Recipe Builder"; Macro = "mProduction.BtnClearRecipeBuilder"; ImageMso = "Clear"; RequiredCapability = "PROD_POST" }
                     )
                 }
                 @{
                     Id      = "grpProductionActions"
                     Label   = "Actions"
                     Buttons = @(
-                        @{ Id = "btnProductionSavePalette"; Label = "Save Palette"; Macro = "mProduction.BtnSavePalette"; ImageMso = "FileSave" },
-                        @{ Id = "btnProductionClearPalette"; Label = "Clear Palette Builder"; Macro = "mProduction.BtnClearPaletteBuilder"; ImageMso = "Clear" },
-                        @{ Id = "btnProductionClearChooser"; Label = "Clear Chosen Recipe"; Macro = "mProduction.BtnClearRecipeChooser"; ImageMso = "Clear" },
-                        @{ Id = "btnProductionUsed"; Label = "To Used"; Macro = "mProduction.BtnToUsed"; ImageMso = "FileSave" },
-                        @{ Id = "btnProductionMade"; Label = "To Made"; Macro = "mProduction.BtnToMade"; ImageMso = "FileSave" },
-                        @{ Id = "btnProductionTotal"; Label = "To Total Inv"; Macro = "mProduction.BtnToTotalInv"; ImageMso = "FileSave" },
-                        @{ Id = "btnProductionNextBatch"; Label = "Next Batch"; Macro = "mProduction.BtnNextBatch"; ImageMso = "Repeat" },
-                        @{ Id = "btnProductionPrintCodes"; Label = "Print Recall Codes"; Macro = "mProduction.BtnPrintRecallCodes"; ImageMso = "FilePrint" }
+                        @{ Id = "btnProductionSavePalette"; Label = "Save Palette"; Macro = "mProduction.BtnSavePalette"; ImageMso = "FileSave"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionClearPalette"; Label = "Clear Palette Builder"; Macro = "mProduction.BtnClearPaletteBuilder"; ImageMso = "Clear"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionClearChooser"; Label = "Clear Chosen Recipe"; Macro = "mProduction.BtnClearRecipeChooser"; ImageMso = "Clear"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionUsed"; Label = "To Used"; Macro = "mProduction.BtnToUsed"; ImageMso = "FileSave"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionMade"; Label = "To Made"; Macro = "mProduction.BtnToMade"; ImageMso = "FileSave"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionTotal"; Label = "To Total Inv"; Macro = "mProduction.BtnToTotalInv"; ImageMso = "FileSave"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionNextBatch"; Label = "Next Batch"; Macro = "mProduction.BtnNextBatch"; ImageMso = "Repeat"; RequiredCapability = "PROD_POST" },
+                        @{ Id = "btnProductionPrintCodes"; Label = "Print Recall Codes"; Macro = "mProduction.BtnPrintRecallCodes"; ImageMso = "FilePrint"; RequiredCapability = "PROD_POST" }
                     )
                 }
             )
@@ -857,7 +864,7 @@ $projectMap = @(
                     Label   = "Actions"
                     Buttons = @(
                         @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; ImageMso = "FileOpen" },
-                        @{ Id = "btnAdminCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUser"; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
+                        @{ Id = "btnAdminCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""ADMIN_MAINT"""; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
                         @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; ImageMso = "FileOpen" },
                         @{ Id = "btnAdminWarehouses"; Label = "View Warehouses"; Macro = "modAdmin.Open_WarehouseDirectory"; ImageMso = "TablePropertiesDialog" },
                         @{ Id = "btnAdminWarehouseRoot"; Label = "Add Warehouse Root"; Macro = "modAdmin.Add_WarehouseDirectoryRoot"; ImageMso = "Folder" },

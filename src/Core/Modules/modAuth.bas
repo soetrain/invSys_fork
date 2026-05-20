@@ -170,14 +170,19 @@ End Function
 Public Function ValidateUserCredential(ByVal AdminUser As String, _
                                        ByVal Password As String, _
                                        Optional ByVal RequiredRole As String = "ADMIN_MAINT") As Boolean
+    ValidateUserCredential = ValidateUserCredentialForCapability(AdminUser, Password, RequiredRole)
+End Function
+
+Public Function ValidateUserCredentialForCapability(ByVal userId As String, _
+                                                    ByVal Password As String, _
+                                                    Optional ByVal requiredCapability As String = "") As Boolean
     Dim normalizedUser As String
-    Dim normalizedRole As String
+    Dim normalizedCapability As String
     Dim expectedHash As String
     Dim userInfo As Object
 
-    normalizedUser = SafeTrim(AdminUser)
-    normalizedRole = UCase$(SafeTrim(RequiredRole))
-    If normalizedRole = "" Then normalizedRole = "ADMIN_MAINT"
+    normalizedUser = SafeTrim(userId)
+    normalizedCapability = UCase$(SafeTrim(requiredCapability))
 
     If normalizedUser = "" Then Exit Function
     If Len(Password) = 0 Then Exit Function
@@ -191,7 +196,11 @@ Public Function ValidateUserCredential(ByVal AdminUser As String, _
     If expectedHash = "" Then Exit Function
     If StrComp(expectedHash, HashUserCredential(Password), vbTextCompare) <> 0 Then Exit Function
 
-    ValidateUserCredential = CanPerform(normalizedRole, normalizedUser, "", "", "REAUTH", "REAUTH")
+    If normalizedCapability = "" Then
+        ValidateUserCredentialForCapability = True
+    Else
+        ValidateUserCredentialForCapability = CanPerform(normalizedCapability, normalizedUser, "", "", "REAUTH", "REAUTH")
+    End If
 End Function
 
 Public Function HashUserCredential(ByVal rawCredential As String) As String

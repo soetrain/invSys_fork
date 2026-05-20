@@ -30,6 +30,7 @@ Private WithEvents mTxtDisplayName As MSForms.TextBox
 Private WithEvents mTxtPin As MSForms.TextBox
 Private WithEvents mTxtWarehouseId As MSForms.TextBox
 Private WithEvents mTxtStationId As MSForms.TextBox
+Private WithEvents mChkRoamingStation As MSForms.CheckBox
 Private WithEvents mChkAdmin As MSForms.CheckBox
 Private WithEvents mChkReceivePost As MSForms.CheckBox
 Private WithEvents mChkReceiveView As MSForms.CheckBox
@@ -113,6 +114,8 @@ Private Sub UserForm_Initialize()
     mWarehousePathById.CompareMode = vbTextCompare
     mTxtRoot.Value = ResolveDefaultWarehouseRootForm()
     mTxtStationId.Value = "*"
+    mChkRoamingStation.Value = True
+    mTxtStationId.Enabled = False
     RefreshWarehouseListForm False
     ShowStatusForm "Select a warehouse auth workbook, then create users and assign roles.", COLOR_INFO
     mBusy = False
@@ -184,6 +187,7 @@ Private Sub BuildUsersRolesLayout()
     Set mTxtWarehouseId = AddTextBoxForm("txtWarehouseId", 420, topPos + 92, 116, 22)
     AddLabelForm "lblStationScope", "Station", 544, topPos + 96, 48, 18, False
     Set mTxtStationId = AddTextBoxForm("txtStationId", 594, topPos + 92, 36, 22)
+    Set mChkRoamingStation = AddCheckBoxForm("chkRoamingStation", "Roaming", 638, topPos + 94, 70, 18)
 
     AddLabelForm "lblRoles", "Roles / capabilities", 316, 430, 140, 18, True
     Set mChkAdmin = AddCheckBoxForm("chkAdmin", "Admin maintenance", 316, 452, 146, 18)
@@ -223,6 +227,7 @@ Private Sub InitializeUsersRolesAnchors()
     mAnchors.Add mBtnCopyPin, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mTxtWarehouseId, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mTxtStationId, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mChkRoamingStation, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mChkAdmin, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mChkReceivePost, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mChkReceiveView, ANCHOR_LEFT Or ANCHOR_TOP
@@ -382,6 +387,16 @@ Private Sub mBtnCopyPin_Click()
         ShowStatusForm "User account details copied. Store the PIN/password now; only the hash is saved.", COLOR_SUCCESS
     Else
         ShowStatusForm "Could not copy automatically. Account details are visible for manual copy.", COLOR_WARNING
+    End If
+End Sub
+
+Private Sub mChkRoamingStation_Click()
+    If CBool(mChkRoamingStation.Value) Then
+        mTxtStationId.Value = "*"
+        mTxtStationId.Enabled = False
+    Else
+        mTxtStationId.Enabled = True
+        If Trim$(CStr(mTxtStationId.Value)) = "*" Then mTxtStationId.Value = ""
     End If
 End Sub
 
@@ -637,6 +652,8 @@ Private Sub LoadSelectedUserForm(ByVal userId As String)
     whId = Trim$(CStr(mTxtWarehouseId.Value))
     stId = Trim$(CStr(mTxtStationId.Value))
     If stId = "" Then stId = "*"
+    mChkRoamingStation.Value = (stId = "*")
+    mTxtStationId.Enabled = Not CBool(mChkRoamingStation.Value)
 
     mTxtUserId.Value = userId
     mTxtDisplayName.Value = SafeTextForm(GetCellByColumnForm(loUsers, rowIndex, "DisplayName"))
@@ -670,6 +687,7 @@ Private Sub SaveUserAndRolesForm()
     pinText = CStr(mTxtPin.Value)
     whId = Trim$(CStr(mTxtWarehouseId.Value))
     stId = Trim$(CStr(mTxtStationId.Value))
+    If CBool(mChkRoamingStation.Value) Then stId = "*"
     If stId = "" Then stId = "*"
 
     If userId = "" Then
@@ -995,6 +1013,9 @@ Private Sub ClearUserFieldsForm()
     mTxtUserId.Value = ""
     mTxtDisplayName.Value = ""
     mTxtPin.Value = ""
+    mTxtStationId.Value = "*"
+    mTxtStationId.Enabled = False
+    mChkRoamingStation.Value = True
     mChkAdmin.Value = False
     mChkReceivePost.Value = False
     mChkReceiveView.Value = False
@@ -1205,6 +1226,7 @@ Private Function BuildAccountClipboardTextForm() As String
     pinText = CStr(mTxtPin.Value)
     warehouseId = Trim$(CStr(mTxtWarehouseId.Value))
     stationId = Trim$(CStr(mTxtStationId.Value))
+    If CBool(mChkRoamingStation.Value) Then stationId = "*"
 
     If userId = "" And displayName = "" And pinText = "" And warehouseId = "" And stationId = "" Then Exit Function
     If stationId = "" Then stationId = "*"

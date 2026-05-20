@@ -40,17 +40,34 @@ Public Sub SetCurrentUserId(ByVal userId As String)
     Else
         SaveSetting SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_CURRENT_USER_ID, userId
     End If
+    modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
 End Sub
 
 Public Sub PromptSetCurrentUser()
+    PromptSetCurrentUserForCapability ""
+End Sub
+
+Public Sub PromptSetCurrentUserForCapability(Optional ByVal requiredCapability As String = "")
     Dim currentUser As String
     Dim userIn As String
+    Dim pinText As String
+    Dim report As String
 
     currentUser = ResolveCurrentUserId()
     userIn = Trim$(InputBox("Enter the invSys user ID for posting transactions.", _
                            "invSys Current User", _
                            currentUser))
     If userIn = "" Then Exit Sub
+
+    pinText = InputBox("Enter the PIN/password for '" & userIn & "'.", _
+                       "invSys Current User")
+    If pinText = "" Then Exit Sub
+
+    If Not ValidateCurrentUserCredential(userIn, pinText, requiredCapability, report) Then
+        If report = "" Then report = "Invalid credentials or missing capability."
+        MsgBox report, vbExclamation, "invSys Current User"
+        Exit Sub
+    End If
 
     SetCurrentUserId userIn
     MsgBox "Current invSys user: " & ResolveCurrentUserId(), vbInformation, "invSys Current User"
@@ -59,6 +76,37 @@ End Sub
 Public Sub ShowCurrentUser()
     MsgBox "Current invSys user: " & ResolveCurrentUserId(), vbInformation, "invSys Current User"
 End Sub
+
+Private Function ValidateCurrentUserCredential(ByVal userId As String, _
+                                               ByVal pinText As String, _
+                                               ByVal requiredCapability As String, _
+                                               ByRef report As String) As Boolean
+    Dim whId As String
+    Dim stId As String
+
+    If Not modConfig.LoadConfig("", "") Then
+        report = "Runtime config could not be loaded: " & modConfig.Validate()
+        Exit Function
+    End If
+
+    whId = modConfig.GetWarehouseId()
+    stId = modConfig.GetStationId()
+    If Not modAuth.LoadAuth(whId) Then
+        report = "Auth workbook could not be loaded: " & modAuth.ValidateAuth()
+        Exit Function
+    End If
+
+    If Not modAuth.ValidateUserCredentialForCapability(userId, pinText, requiredCapability) Then
+        If Trim$(requiredCapability) <> "" Then
+            report = "Invalid credentials or '" & userId & "' lacks " & requiredCapability & " for " & whId & " / " & stId & "."
+        Else
+            report = "Invalid credentials for '" & userId & "'."
+        End If
+        Exit Function
+    End If
+
+    ValidateCurrentUserCredential = True
+End Function
 
 Public Function OpenInboxWorkbook(ByVal eventType As String, _
                                   Optional ByVal warehouseId As String = "", _
