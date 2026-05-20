@@ -203,6 +203,48 @@ Public Function ValidateUserCredentialForCapability(ByVal userId As String, _
     End If
 End Function
 
+Public Function DiagnoseUserCredential(ByVal userId As String, ByVal Password As String) As String
+    Dim normalizedUser As String
+    Dim expectedHash As String
+    Dim userInfo As Object
+
+    normalizedUser = SafeTrim(userId)
+    If normalizedUser = "" Then
+        DiagnoseUserCredential = "User ID is blank."
+        Exit Function
+    End If
+    If Len(Password) = 0 Then
+        DiagnoseUserCredential = "PIN/password is blank."
+        Exit Function
+    End If
+    If Not EnsureFreshCache() Then
+        DiagnoseUserCredential = "Auth cache could not be loaded: " & ValidateAuth()
+        Exit Function
+    End If
+    If Not mUsers.Exists(normalizedUser) Then
+        DiagnoseUserCredential = "User '" & normalizedUser & "' was not found in " & GetResolvedAuthWorkbookName() & "."
+        Exit Function
+    End If
+
+    Set userInfo = mUsers(normalizedUser)
+    If Not IsUserActive(normalizedUser, Now) Then
+        DiagnoseUserCredential = "User '" & normalizedUser & "' is inactive or outside its valid date range."
+        Exit Function
+    End If
+
+    expectedHash = SafeTrim(GetUserPinHashAuth(userInfo))
+    If expectedHash = "" Then
+        DiagnoseUserCredential = "User '" & normalizedUser & "' has no PIN/password hash stored."
+        Exit Function
+    End If
+    If StrComp(expectedHash, HashUserCredential(Password), vbTextCompare) <> 0 Then
+        DiagnoseUserCredential = "PIN/password does not match the stored hash for '" & normalizedUser & "'."
+        Exit Function
+    End If
+
+    DiagnoseUserCredential = "OK"
+End Function
+
 Public Function HashUserCredential(ByVal rawCredential As String) As String
     Dim acc As Double
     Dim i As Long

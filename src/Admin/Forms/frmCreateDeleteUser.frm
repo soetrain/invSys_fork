@@ -21,6 +21,7 @@ Private WithEvents mTxtNasPassword As MSForms.TextBox
 Private WithEvents mBtnRootFind As MSForms.CommandButton
 Private WithEvents mBtnRootScan As MSForms.CommandButton
 Private WithEvents mBtnNasConnect As MSForms.CommandButton
+Private WithEvents mBtnNasLogout As MSForms.CommandButton
 Private WithEvents mCmbWarehouse As MSForms.ComboBox
 Private WithEvents mLstWarehouses As MSForms.ListBox
 Private WithEvents mLstUsers As MSForms.ListBox
@@ -64,7 +65,10 @@ Private Const NO_ERROR_WIN32 As Long = 0
 Private Const ERROR_SESSION_CREDENTIAL_CONFLICT As Long = 1219
 Private Const RESOURCETYPE_DISK As Long = 1
 Private Const CONNECT_TEMPORARY As Long = 4
+Private Const CONNECT_UPDATE_PROFILE As Long = 1
 Private Const MAX_WAREHOUSE_SCAN_DEPTH As Long = 4
+Private Const SETTINGS_APP As String = "invSys"
+Private Const SETTINGS_SECTION_NAS As String = "NAS"
 
 #If VBA7 Then
 Private Type NETRESOURCE
@@ -113,6 +117,7 @@ Private Sub UserForm_Initialize()
     Set mWarehousePathById = CreateObject("Scripting.Dictionary")
     mWarehousePathById.CompareMode = vbTextCompare
     mTxtRoot.Value = ResolveDefaultWarehouseRootForm()
+    mTxtNasUser.Value = ResolveRememberedNasUserForm()
     mTxtStationId.Value = "*"
     mChkRoamingStation.Value = True
     mTxtStationId.Enabled = False
@@ -156,6 +161,7 @@ Private Sub BuildUsersRolesLayout()
     Set mTxtNasPassword = AddTextBoxForm("txtNasPassword", 386, 106, 112, 22)
     mTxtNasPassword.PasswordChar = "*"
     Set mBtnNasConnect = AddButtonForm("btnNasConnect", "Connect", 506, 105, 70, 24)
+    Set mBtnNasLogout = AddButtonForm("btnNasLogout", "Logout", 584, 105, 58, 24)
 
     AddLabelForm "lblWarehouse", "Warehouse", 18, 144, 100, 18, False
     Set mCmbWarehouse = AddComboBoxForm("cmbWarehouse", 126, 140, 220, 22)
@@ -215,6 +221,7 @@ Private Sub InitializeUsersRolesAnchors()
     mAnchors.Add mTxtNasUser, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mTxtNasPassword, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mBtnNasConnect, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mBtnNasLogout, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mCmbWarehouse, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mBtnRefreshUsers, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mTxtAuthPath, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
@@ -344,6 +351,16 @@ Private Sub mBtnNasConnect_Click()
         RefreshWarehouseListForm True
     Else
         ShowStatusForm report, COLOR_ERROR
+    End If
+End Sub
+
+Private Sub mBtnNasLogout_Click()
+    Dim report As String
+    If LogoutSelectedRootForm(report) Then
+        ShowStatusForm report, COLOR_SUCCESS
+        RefreshWarehouseListForm True
+    Else
+        ShowStatusForm report, COLOR_WARNING
     End If
 End Sub
 
@@ -1105,6 +1122,7 @@ Private Function ConnectSelectedRootForm(ByRef report As String) As Boolean
         mTxtNasPassword.Value = ""
         ConnectSelectedRootForm = True
         RememberWarehouseRootForAdminForm rootPath
+        RememberNasSignInForm shareRoot, userName
         report = "Connected to NAS root."
     ElseIf resultCode = NO_ERROR_WIN32 Then
         report = "Connected to NAS share, but the Warehouse root folder was not found."
@@ -1112,7 +1130,37 @@ Private Function ConnectSelectedRootForm(ByRef report As String) As Boolean
         mTxtNasPassword.Value = ""
         ConnectSelectedRootForm = True
         RememberWarehouseRootForAdminForm rootPath
+        RememberNasSignInForm shareRoot, userName
         report = "Using existing Windows NAS connection."
+    Else
+        report = WNetConnectionErrorTextForm(resultCode)
+    End If
+End Function
+
+Private Function LogoutSelectedRootForm(ByRef report As String) As Boolean
+    Dim rootPath As String
+    Dim shareRoot As String
+    Dim resultCode As Long
+
+    rootPath = NormalizePathForm(CStr(mTxtRoot.Value))
+    If rootPath = "" Then rootPath = ResolveDefaultWarehouseRootForm()
+    If rootPath = "" Or Not IsUncPathForm(rootPath) Then
+        report = "Warehouse root is not a NAS/UNC path."
+        Exit Function
+    End If
+
+    shareRoot = ResolveUncShareRootForm(rootPath)
+    If shareRoot = "" Then
+        report = "Could not resolve NAS share root."
+        Exit Function
+    End If
+
+    resultCode = WNetCancelConnection2(shareRoot, CONNECT_UPDATE_PROFILE, True)
+    If resultCode = NO_ERROR_WIN32 Then
+        ForgetNasSignInForm
+        mTxtNasPassword.Value = ""
+        LogoutSelectedRootForm = True
+        report = "Logged out of NAS share."
     Else
         report = WNetConnectionErrorTextForm(resultCode)
     End If
@@ -1132,14 +1180,34 @@ Private Function ConnectToShareWithCredentialsForm(ByVal shareRoot As String, By
     resource.dwType = RESOURCETYPE_DISK
     resource.lpRemoteName = shareRoot
 
-    ConnectToShareWithCredentialsForm = WNetAddConnection2(resource, passwordText, userName, CONNECT_TEMPORARY)
+    ConnectToShareWithCredentialsForm = WNetAddConnection2(resource, passwordText, userName, CONNECT_UPDATE_PROFILE)
     If ConnectToShareWithCredentialsForm = NO_ERROR_WIN32 Then Exit Function
     If InStr(1, userName, "\", vbTextCompare) > 0 Or InStr(1, userName, "@", vbTextCompare) > 0 Then Exit Function
 
     qualifiedUser = ResolveUncServerForm(shareRoot) & "\" & userName
     If qualifiedUser <> "\" & userName Then
-        ConnectToShareWithCredentialsForm = WNetAddConnection2(resource, passwordText, qualifiedUser, CONNECT_TEMPORARY)
+        ConnectToShareWithCredentialsForm = WNetAddConnection2(resource, passwordText, qualifiedUser, CONNECT_UPDATE_PROFILE)
     End If
+End Function
+
+Private Sub RememberNasSignInForm(ByVal shareRoot As String, ByVal userName As String)
+    On Error Resume Next
+    SaveSetting SETTINGS_APP, SETTINGS_SECTION_NAS, "ShareRoot", shareRoot
+    SaveSetting SETTINGS_APP, SETTINGS_SECTION_NAS, "UserName", userName
+    On Error GoTo 0
+End Sub
+
+Private Sub ForgetNasSignInForm()
+    On Error Resume Next
+    DeleteSetting SETTINGS_APP, SETTINGS_SECTION_NAS, "ShareRoot"
+    DeleteSetting SETTINGS_APP, SETTINGS_SECTION_NAS, "UserName"
+    On Error GoTo 0
+End Sub
+
+Private Function ResolveRememberedNasUserForm() As String
+    On Error Resume Next
+    ResolveRememberedNasUserForm = Trim$(GetSetting(SETTINGS_APP, SETTINGS_SECTION_NAS, "UserName", ""))
+    On Error GoTo 0
 End Function
 
 Private Function ResolveUncServerForm(ByVal pathValue As String) As String

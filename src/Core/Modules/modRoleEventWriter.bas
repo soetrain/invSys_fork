@@ -83,6 +83,7 @@ Private Function ValidateCurrentUserCredential(ByVal userId As String, _
                                                ByRef report As String) As Boolean
     Dim whId As String
     Dim stId As String
+    Dim credentialStatus As String
 
     If Not modConfig.LoadConfig("", "") Then
         report = "Runtime config could not be loaded: " & modConfig.Validate()
@@ -97,13 +98,17 @@ Private Function ValidateCurrentUserCredential(ByVal userId As String, _
     End If
 
     If Not modAuth.ValidateUserCredentialForCapability(userId, pinText, "") Then
-        report = "Invalid credentials for '" & userId & "'."
+        credentialStatus = modAuth.DiagnoseUserCredential(userId, pinText)
+        report = "Invalid credentials for '" & userId & "'." & vbCrLf & _
+                 "Auth workbook: " & modAuth.GetResolvedAuthWorkbookName() & vbCrLf & _
+                 "Detail: " & credentialStatus
         Exit Function
     End If
 
     If Trim$(requiredCapability) <> "" _
        And Not modAuth.CanPerform(requiredCapability, userId, whId, stId, "REAUTH", "REAUTH") Then
-        report = "'" & userId & "' lacks " & requiredCapability & " for " & whId & " / " & stId & "."
+        report = "'" & userId & "' lacks " & requiredCapability & " for " & whId & " / " & stId & "." & vbCrLf & _
+                 "Auth workbook: " & modAuth.GetResolvedAuthWorkbookName()
         Exit Function
     End If
 
