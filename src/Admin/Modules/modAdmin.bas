@@ -123,33 +123,58 @@ Private Function ResolveSeedInventoryContext(ByRef warehouseId As String, _
                                              ByRef stationId As String, _
                                              ByRef userId As String, _
                                              ByRef report As String) As Boolean
+    Dim warehouseOptions As Collection
+    Dim runtimeRoot As String
+    Dim formReport As String
+
     warehouseId = Trim$(modConfig.GetWarehouseId())
     stationId = Trim$(modConfig.GetStationId())
     If warehouseId = "" Then warehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
     If stationId = "" Then stationId = Trim$(modConfig.GetString("StationId", "S1"))
 
-    warehouseId = Trim$(InputBox("Seed demo inventory into which warehouse?", _
-                                 "invSys Admin - Seed Inventory", warehouseId))
+    userId = Trim$(modRoleEventWriter.ResolveCurrentUserId())
+    If userId = "" Then userId = Trim$(Application.UserName)
+
+    Set warehouseOptions = modAdminConsole.GetWarehouseDirectoryOptions(Nothing, formReport)
+    If warehouseOptions Is Nothing Then
+        report = "No warehouse configs were found. Use Add Warehouse Root or View Warehouses first."
+        Exit Function
+    End If
+    If warehouseOptions.Count = 0 Then
+        If Trim$(formReport) = "" Or StrComp(formReport, "OK", vbTextCompare) = 0 Then
+            formReport = "No warehouse configs were found. Use Add Warehouse Root or View Warehouses first."
+        End If
+        report = formReport
+        Exit Function
+    End If
+
+    frmSeedInventory.Configure warehouseOptions, warehouseId, stationId, userId
+    frmSeedInventory.Show
+    If Not frmSeedInventory.Accepted Then
+        report = "Seed inventory cancelled."
+        Unload frmSeedInventory
+        Exit Function
+    End If
+
+    warehouseId = Trim$(frmSeedInventory.SelectedWarehouseId)
+    stationId = Trim$(frmSeedInventory.SelectedStationId)
+    runtimeRoot = Trim$(frmSeedInventory.SelectedRuntimeRoot)
+    userId = Trim$(frmSeedInventory.SelectedUserId)
+    Unload frmSeedInventory
+
     If warehouseId = "" Then
         report = "WarehouseId is required."
         Exit Function
     End If
-
-    stationId = Trim$(InputBox("Station for the seed event:", _
-                               "invSys Admin - Seed Inventory", IIf(stationId = "", "S1", stationId)))
     If stationId = "" Then stationId = "S1"
+    If userId = "" Then
+        report = "Admin user is required."
+        Exit Function
+    End If
+    If runtimeRoot <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride runtimeRoot
 
     If Not modConfig.LoadConfig(warehouseId, stationId) Then
         report = "Config load failed: " & modConfig.Validate()
-        Exit Function
-    End If
-
-    userId = Trim$(modRoleEventWriter.ResolveCurrentUserId())
-    If userId = "" Then userId = Trim$(Application.UserName)
-    userId = Trim$(InputBox("Admin user for the seed event. This user must have ADMIN_MAINT.", _
-                            "invSys Admin - Seed Inventory", userId))
-    If userId = "" Then
-        report = "Admin user is required."
         Exit Function
     End If
 
@@ -326,5 +351,3 @@ End Function
 ' It also includes functions to manage application settings and configurations.
 ' The functions in this module are used by the frmAdminControls form to perform administrative tasks.
 ''''''''''''''''''''''''''''''''''''
-
-

@@ -171,6 +171,74 @@ Public Function OpenWarehouseDirectory(Optional ByVal adminWb As Workbook = Noth
     OpenWarehouseDirectory = True
 End Function
 
+Public Function GetWarehouseDirectoryOptions(Optional ByVal adminWb As Workbook = Nothing, _
+                                             Optional ByRef report As String = "") As Collection
+    On Error GoTo FailOptions
+
+    Dim wb As Workbook
+    Dim lo As ListObject
+    Dim rowIndex As Long
+    Dim warehouseId As String
+    Dim stationId As String
+    Dim runtimeRoot As String
+    Dim statusText As String
+    Dim labelText As String
+    Dim options As Collection
+
+    Set options = New Collection
+    Set wb = ResolveAdminWorkbook(adminWb)
+    If wb Is Nothing Then
+        report = "Admin workbook not resolved."
+        Set GetWarehouseDirectoryOptions = options
+        Exit Function
+    End If
+
+    If Not EnsureAdminSchema(wb, report) Then
+        Set GetWarehouseDirectoryOptions = options
+        Exit Function
+    End If
+    If Not RefreshWarehouseDirectory(wb, report) Then
+        Set GetWarehouseDirectoryOptions = options
+        Exit Function
+    End If
+
+    Set lo = wb.Worksheets(SHEET_WAREHOUSE_DIRECTORY).ListObjects(TABLE_WAREHOUSE_DIRECTORY)
+    If lo Is Nothing Then
+        report = "No warehouse configs were found."
+        Set GetWarehouseDirectoryOptions = options
+        Exit Function
+    End If
+    If lo.DataBodyRange Is Nothing Then
+        report = "No warehouse configs were found."
+        Set GetWarehouseDirectoryOptions = options
+        Exit Function
+    End If
+
+    For rowIndex = 1 To lo.ListRows.Count
+        warehouseId = SafeTrimAdmin(GetCellByColumnAdmin(lo, rowIndex, "WarehouseId"))
+        stationId = SafeTrimAdmin(GetCellByColumnAdmin(lo, rowIndex, "StationId"))
+        runtimeRoot = NormalizePathAdmin(SafeTrimAdmin(GetCellByColumnAdmin(lo, rowIndex, "RuntimeRoot")))
+        statusText = SafeTrimAdmin(GetCellByColumnAdmin(lo, rowIndex, "Status"))
+
+        If warehouseId <> "" And runtimeRoot <> "" Then
+            If stationId = "" Then stationId = "S1"
+            labelText = warehouseId & " | " & stationId & " | " & runtimeRoot
+            If statusText <> "" And StrComp(statusText, "Ready", vbTextCompare) <> 0 Then
+                labelText = labelText & " (" & statusText & ")"
+            End If
+            options.Add Array(labelText, warehouseId, stationId, runtimeRoot, statusText)
+        End If
+    Next rowIndex
+
+    report = "OK"
+    Set GetWarehouseDirectoryOptions = options
+    Exit Function
+
+FailOptions:
+    report = "GetWarehouseDirectoryOptions failed: " & Err.Description
+    Set GetWarehouseDirectoryOptions = New Collection
+End Function
+
 Public Sub RememberWarehouseScanRoot(ByVal rootPath As String)
     Dim normalizedRoot As String
     Dim roots As Collection
