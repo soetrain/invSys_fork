@@ -699,9 +699,9 @@ End Function
 Private Function IsConfigWorkbookName(ByVal wbName As String) As Boolean
     Dim n As String
     n = LCase$(wbName)
-    IsConfigWorkbookName = (n Like "wh*.invsys.config.xlsb") Or _
-                           (n Like "wh*.invsys.config.xlsx") Or _
-                           (n Like "wh*.invsys.config.xlsm")
+    IsConfigWorkbookName = (n Like "*.invsys.config.xlsb") Or _
+                           (n Like "*.invsys.config.xlsx") Or _
+                           (n Like "*.invsys.config.xlsm")
 End Function
 
 Private Function WorkbookHasListObject(ByVal wb As Workbook, ByVal tableName As String) As Boolean

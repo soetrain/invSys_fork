@@ -3,6 +3,11 @@ Option Explicit
 
 Private mCoreDataRootOverride As String
 
+Private Const SETTINGS_APP As String = "invSys"
+Private Const SETTINGS_SECTION_ADMIN As String = "Admin"
+Private Const SETTINGS_WAREHOUSE_SCAN_ROOTS As String = "WarehouseScanRoots"
+Private Const WAREHOUSE_SCAN_ROOT_DELIMITER As String = "|"
+
 Public Sub SetCoreDataRootOverride(ByVal rootPath As String)
     mCoreDataRootOverride = Trim$(rootPath)
 End Sub
@@ -119,6 +124,12 @@ Public Function TryResolveExistingRuntimeRoot(Optional ByVal warehouseId As Stri
         End If
     End If
 
+    candidateRoot = FindRuntimeRootUnderRememberedRootsRuntime(resolvedWh)
+    If candidateRoot <> "" Then
+        TryResolveExistingRuntimeRoot = candidateRoot
+        Exit Function
+    End If
+
     For Each wb In Application.Workbooks
         If InStr(1, wb.Name, resolvedWh & ".invSys.", vbTextCompare) = 1 Then
             candidateRoot = NormalizeFolderPath(Trim$(wb.Path))
@@ -138,6 +149,61 @@ Public Function TryResolveExistingRuntimeRoot(Optional ByVal warehouseId As Stri
 CleanFail:
     TryResolveExistingRuntimeRoot = vbNullString
 End Function
+
+Private Function FindRuntimeRootUnderRememberedRootsRuntime(ByVal warehouseId As String) As String
+    Dim roots As Collection
+    Dim rootPath As Variant
+    Dim candidateRoot As String
+
+    Set roots = GetRememberedWarehouseScanRootsRuntime()
+    For Each rootPath In roots
+        If RuntimeArtifactsExistRuntime(CStr(rootPath), warehouseId) Then
+            FindRuntimeRootUnderRememberedRootsRuntime = NormalizeFolderPath(CStr(rootPath))
+            Exit Function
+        End If
+        candidateRoot = FindRuntimeRootUnderParentRuntime(CStr(rootPath), warehouseId)
+        If candidateRoot <> "" Then
+            FindRuntimeRootUnderRememberedRootsRuntime = candidateRoot
+            Exit Function
+        End If
+    Next rootPath
+End Function
+
+Public Function GetRememberedWarehouseScanRootsRuntime() As Collection
+    Dim roots As Collection
+    Dim persistedText As String
+    Dim parts() As String
+    Dim idx As Long
+
+    Set roots = New Collection
+    On Error Resume Next
+    persistedText = GetSetting(SETTINGS_APP, SETTINGS_SECTION_ADMIN, SETTINGS_WAREHOUSE_SCAN_ROOTS, "")
+    On Error GoTo 0
+    If Trim$(persistedText) = "" Then
+        Set GetRememberedWarehouseScanRootsRuntime = roots
+        Exit Function
+    End If
+
+    parts = Split(persistedText, WAREHOUSE_SCAN_ROOT_DELIMITER)
+    For idx = LBound(parts) To UBound(parts)
+        AddRememberedWarehouseScanRootRuntime roots, CStr(parts(idx))
+    Next idx
+
+    Set GetRememberedWarehouseScanRootsRuntime = roots
+End Function
+
+Private Sub AddRememberedWarehouseScanRootRuntime(ByVal roots As Collection, ByVal rootPath As String)
+    Dim normalizedRoot As String
+    Dim item As Variant
+
+    normalizedRoot = NormalizeFolderPath(rootPath)
+    If normalizedRoot = "" Then Exit Sub
+
+    For Each item In roots
+        If StrComp(CStr(item), normalizedRoot, vbTextCompare) = 0 Then Exit Sub
+    Next item
+    roots.Add normalizedRoot
+End Sub
 
 Private Function OpenOrCreateRuntimeWorkbook(ByVal targetPath As String, _
                                              ByVal workbookKind As String, _

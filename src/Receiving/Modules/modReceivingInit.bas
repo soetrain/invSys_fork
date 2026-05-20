@@ -225,7 +225,7 @@ Private Function ResolveRuntimeStatusReadiness(ByVal wb As Workbook, _
     If workbookRoot <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride workbookRoot
 
     configLoaded = modConfig.LoadConfig(warehouseId, "")
-    RestoreRuntimeRootOverrideReadiness priorRootOverride
+    If Not configLoaded Then RestoreRuntimeRootOverrideReadiness priorRootOverride
     If Not configLoaded Then
         ResolveRuntimeStatusReadiness = RUNTIME_STATUS_PATH_UNRESOLVED
         Exit Function
@@ -237,10 +237,12 @@ Private Function ResolveRuntimeStatusReadiness(ByVal wb As Workbook, _
     ctx.PathSharePointRoot = NormalizeFolderPathReadiness(modConfig.GetString("PathSharePointRoot", ""), False)
 
     If ctx.WarehouseId = "" Or ctx.PathDataRoot = "" Or Not FolderExistsReadiness(ctx.PathDataRoot) Then
+        RestoreRuntimeRootOverrideReadiness priorRootOverride
         ResolveRuntimeStatusReadiness = RUNTIME_STATUS_PATH_UNRESOLVED
         Exit Function
     End If
 
+    modRuntimeWorkbooks.SetCoreDataRootOverride ctx.PathDataRoot
     ResolveRuntimeStatusReadiness = READINESS_STATUS_OK
 End Function
 
@@ -537,6 +539,10 @@ Private Function IsLikelyReceivingWorkbookReadiness(ByVal wb As Workbook) As Boo
         IsLikelyReceivingWorkbookReadiness = True
         Exit Function
     End If
+
+    If modConfig.IsLoaded() Then
+        IsLikelyReceivingWorkbookReadiness = (Trim$(modConfig.GetWarehouseId()) <> "")
+    End If
 End Function
 
 Private Function ResolveWarehouseIdFromWorkbookReadiness(ByVal wb As Workbook) As String
@@ -556,7 +562,10 @@ Private Function ResolveWarehouseIdFromWorkbookReadiness(ByVal wb As Workbook) A
     If markerPos > 1 Then
         nameParts = Split(Left$(wbName, markerPos - 1), "_")
         If UBound(nameParts) >= 0 Then ResolveWarehouseIdFromWorkbookReadiness = nameParts(0)
+        If ResolveWarehouseIdFromWorkbookReadiness <> "" Then Exit Function
     End If
+
+    If modConfig.IsLoaded() Then ResolveWarehouseIdFromWorkbookReadiness = Trim$(modConfig.GetWarehouseId())
 End Function
 
 Private Function ResolveSnapshotPathForMessageReadiness(ByVal wb As Workbook) As String
@@ -771,6 +780,18 @@ Private Function ResolveRuntimeRootFromWorkbookReadiness(ByVal wb As Workbook, B
     If wb Is Nothing Then Exit Function
     If warehouseId = "" Then Exit Function
 
+    workbookRoot = NormalizeFolderPathReadiness(modRuntimeWorkbooks.GetCoreDataRootOverride(), False)
+    If RuntimeRootHasWarehouseArtifactsReadiness(workbookRoot, warehouseId) Then
+        ResolveRuntimeRootFromWorkbookReadiness = workbookRoot
+        Exit Function
+    End If
+
+    workbookRoot = NormalizeFolderPathReadiness(modRuntimeWorkbooks.TryResolveExistingRuntimeRoot(warehouseId), False)
+    If RuntimeRootHasWarehouseArtifactsReadiness(workbookRoot, warehouseId) Then
+        ResolveRuntimeRootFromWorkbookReadiness = workbookRoot
+        Exit Function
+    End If
+
     workbookRoot = NormalizeFolderPathReadiness(wb.Path, False)
     If workbookRoot = "" Then
         workbookRoot = NormalizeFolderPathReadiness(SafeWorkbookPathReadiness(wb), False)
@@ -779,10 +800,19 @@ Private Function ResolveRuntimeRootFromWorkbookReadiness(ByVal wb As Workbook, B
     End If
     If workbookRoot = "" Then Exit Function
 
-    If FileExistsReadiness(workbookRoot & "\" & warehouseId & ".invSys.Config.xlsb") _
-       And FileExistsReadiness(workbookRoot & "\" & warehouseId & ".invSys.Auth.xlsb") Then
+    If RuntimeRootHasWarehouseArtifactsReadiness(workbookRoot, warehouseId) Then
         ResolveRuntimeRootFromWorkbookReadiness = workbookRoot
     End If
+End Function
+
+Private Function RuntimeRootHasWarehouseArtifactsReadiness(ByVal rootPath As String, ByVal warehouseId As String) As Boolean
+    rootPath = NormalizeFolderPathReadiness(rootPath, False)
+    warehouseId = Trim$(warehouseId)
+    If rootPath = "" Or warehouseId = "" Then Exit Function
+
+    RuntimeRootHasWarehouseArtifactsReadiness = _
+        FileExistsReadiness(rootPath & "\" & warehouseId & ".invSys.Config.xlsb") _
+        And FileExistsReadiness(rootPath & "\" & warehouseId & ".invSys.Auth.xlsb")
 End Function
 
 Private Sub RestoreRuntimeRootOverrideReadiness(ByVal priorRootOverride As String)

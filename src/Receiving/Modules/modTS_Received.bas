@@ -235,6 +235,7 @@ Public Sub ShowDynamicItemSearch(ByVal targetCell As Range)
         Debug.Print "  targetCell is Nothing, exiting"
         Exit Sub
     End If
+    RefreshReadModelForPicker targetCell.Worksheet.Parent
 
     If mDynSearch Is Nothing Then
         Debug.Print "  mDynSearch is Nothing, creating new cDynItemSearch"
@@ -255,6 +256,16 @@ ErrHandler:
     Debug.Print "  ERROR creating cDynItemSearch:", Err.Number, Err.Description
     Debug.Print "  Dynamic receiving search unavailable"
     MsgBox "Receiving item picker is unavailable: " & Err.Description, vbExclamation
+End Sub
+
+Private Sub RefreshReadModelForPicker(ByVal wb As Workbook)
+    Dim report As String
+
+    On Error Resume Next
+    If wb Is Nothing Then Exit Sub
+    If wb.IsAddin Then Exit Sub
+    Call modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, "", "LOCAL", report)
+    On Error GoTo 0
 End Sub
 
 Public Sub HandleReceivingSelectionChange(ByVal target As Range)
@@ -1580,4 +1591,3 @@ Public Function LoadItemList(Optional ByVal includeCategory As Boolean = False) 
     ReDim Preserve outArr(1 To outRow, 1 To colCount)
     LoadItemList = outArr
 End Function
-

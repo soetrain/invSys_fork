@@ -140,9 +140,20 @@ Private Function BuildWarehouseTargetsStatus() As Collection
     AddOpenConfigTargetsStatus targets, seen
     AddConfigTargetsUnderRootStatus targets, seen, modDeploymentPaths.DefaultRuntimeHubRootPath(False)
     If currentRoot <> "" Then AddConfigTargetsUnderRootStatus targets, seen, ParentFolderStatus(currentRoot)
+    AddRememberedConfigTargetsStatus targets, seen
 
     Set BuildWarehouseTargetsStatus = targets
 End Function
+
+Private Sub AddRememberedConfigTargetsStatus(ByVal targets As Collection, ByVal seen As Object)
+    Dim roots As Collection
+    Dim rootPath As Variant
+
+    Set roots = modRuntimeWorkbooks.GetRememberedWarehouseScanRootsRuntime()
+    For Each rootPath In roots
+        AddConfigTargetsUnderRootStatus targets, seen, CStr(rootPath)
+    Next rootPath
+End Sub
 
 Private Sub AddOpenConfigTargetsStatus(ByVal targets As Collection, ByVal seen As Object)
     Dim wb As Workbook
