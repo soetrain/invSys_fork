@@ -10,6 +10,10 @@ Sub Admin_Click()
     Call modAdminConsole.OpenAdminConsole(targetWb, report)
 End Sub
 
+Sub Set_CurrentUser()
+    modRoleEventWriter.PromptSetCurrentUser
+End Sub
+
 Sub Open_CreateDeleteUser()
     Dim report As String
     Dim targetWb As Workbook

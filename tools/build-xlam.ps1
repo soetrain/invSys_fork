@@ -427,6 +427,10 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add("    modRibbonRuntimeStatus.RefreshRuntimeContext")
     [void]$lines.Add("End Sub")
     [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonRuntimeUserPrompt(control As IRibbonControl)")
+    [void]$lines.Add("    modRoleEventWriter.PromptSetCurrentUser")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonWarehouseGetItemCount(control As IRibbonControl, ByRef returnedVal)")
     [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetWarehouseTargetCount()")
     [void]$lines.Add("End Sub")
@@ -505,6 +509,7 @@ function Get-RibbonXml {
                     [void]$xml.AppendLine(("            <button id=""{0}"" getLabel=""RibbonRuntimeStatusGetLabel"" enabled=""false""/>" -f $statusButton.Id))
                 }
                 [void]$xml.AppendLine("            <menuSeparator id=""sepRuntimeContextRefresh""/>")
+                [void]$xml.AppendLine("            <button id=""btnRuntimeSetUser"" label=""Set Current User"" imageMso=""ContactCard"" onAction=""RibbonRuntimeUserPrompt""/>")
                 [void]$xml.AppendLine(("            <button id=""{0}"" label=""Refresh / Details"" imageMso=""Refresh"" onAction=""RibbonRuntimeStatusRefresh""/>" -f $menu.RefreshButtonId))
                 [void]$xml.AppendLine("          </menu>")
             }
@@ -834,6 +839,7 @@ $projectMap = @(
                     Label   = "Actions"
                     Buttons = @(
                         @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; ImageMso = "FileOpen" },
+                        @{ Id = "btnAdminCurrentUser"; Label = "Current User"; Macro = "modAdmin.Set_CurrentUser"; ImageMso = "ContactCard" },
                         @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; ImageMso = "FileOpen" },
                         @{ Id = "btnAdminWarehouses"; Label = "View Warehouses"; Macro = "modAdmin.Open_WarehouseDirectory"; ImageMso = "TablePropertiesDialog" },
                         @{ Id = "btnAdminWarehouseRoot"; Label = "Add Warehouse Root"; Macro = "modAdmin.Add_WarehouseDirectoryRoot"; ImageMso = "Folder" },

@@ -11,7 +11,7 @@ Option Explicit
 '   - ReceivedTally is minimal (REF_NUMBER, ITEMS, QUANTITY) for fast entry.
 '   - AggregateReceived holds detail: REF_NUMBER, ITEM_CODE, VENDORS, VENDOR_CODE, DESCRIPTION, ITEM, UOM, QUANTITY, LOCATION, ROW.
 '   - Confirm only adds QUANTITY to existing invSys rows (items must pre-exist).
-'   - ReceivedLog: REF_NUMBER, ITEMS, QUANTITY, UOM, VENDOR, LOCATION, ITEM_CODE, ROW, SNAPSHOT_ID, ENTRY_DATE.
+'   - ReceivedLog: USER, REF_NUMBER, ITEMS, QUANTITY, UOM, VENDOR, LOCATION, ITEM_CODE, ROW, SNAPSHOT_ID, ENTRY_DATE.
 '   - invSys table (InventoryManagement sheet): columns include ROW, ITEM_CODE, ITEM, UOM, LOCATION, RECEIVED, TOTAL INV, TIMESTAMP, etc.
 '   - Single-level undo/redo for last confirm.
 ' =============================================================
@@ -1079,9 +1079,9 @@ End Function
 
 Private Sub AppendLogRow(logTbl As ListObject, cols As Object, arr As Variant, r As Long, snapshotId As String, entryDate As Date)
     Dim newRow As ListRow: Set newRow = logTbl.ListRows.Add
-    ' Write only columns that exist in ReceivedLog (current headers: SNAPSHOT_ID, ENTRY_DATE, REF_NUMBER, ITEMS, QUANTITY, UOM, ROW, LOCATION)
+    ' Write only columns that exist in ReceivedLog.
     Dim cRef As Long, cItems As Long, cQty As Long, cUOM As Long
-    Dim cRow As Long, cLoc As Long, cSnap As Long, cEntry As Long
+    Dim cRow As Long, cLoc As Long, cSnap As Long, cEntry As Long, cUser As Long
     cRef = LogColIndex(logTbl, "REF_NUMBER")
     cItems = LogColIndex(logTbl, "ITEMS")
     cQty = LogColIndex(logTbl, "QUANTITY")
@@ -1090,8 +1090,10 @@ Private Sub AppendLogRow(logTbl As ListObject, cols As Object, arr As Variant, r
     cLoc = LogColIndex(logTbl, "LOCATION")
     cSnap = LogColIndex(logTbl, "SNAPSHOT_ID")
     cEntry = LogColIndex(logTbl, "ENTRY_DATE")
+    cUser = LogColIndex(logTbl, "USER")
 
     With newRow.Range
+        If cUser > 0 Then .Cells(1, cUser).value = modRoleEventWriter.ResolveCurrentUserId()
         If cRef > 0 Then .Cells(1, cRef).value = NzStr(arr(r, cols("REF_NUMBER")))
         If cItems > 0 Then .Cells(1, cItems).value = NzStr(arr(r, cols("ITEM")))
         If cQty > 0 Then .Cells(1, cQty).value = NzDbl(arr(r, cols("QUANTITY")))
@@ -1109,7 +1111,7 @@ Private Sub AppendLogRowFromRT(logTbl As ListObject, ByVal refNum As String, ByV
     If logTbl Is Nothing Then Exit Sub
     Dim newRow As ListRow: Set newRow = logTbl.ListRows.Add
     Dim cRef As Long, cItems As Long, cQty As Long, cUOM As Long
-    Dim cRow As Long, cLoc As Long, cSnap As Long, cEntry As Long, cCode As Long
+    Dim cRow As Long, cLoc As Long, cSnap As Long, cEntry As Long, cCode As Long, cUser As Long
     cRef = LogColIndex(logTbl, "REF_NUMBER")
     cItems = LogColIndex(logTbl, "ITEMS")
     cQty = LogColIndex(logTbl, "QUANTITY")
@@ -1119,8 +1121,10 @@ Private Sub AppendLogRowFromRT(logTbl As ListObject, ByVal refNum As String, ByV
     cSnap = LogColIndex(logTbl, "SNAPSHOT_ID")
     cEntry = LogColIndex(logTbl, "ENTRY_DATE")
     cCode = LogColIndex(logTbl, "ITEM_CODE")
+    cUser = LogColIndex(logTbl, "USER")
 
     With newRow.Range
+        If cUser > 0 Then .Cells(1, cUser).value = modRoleEventWriter.ResolveCurrentUserId()
         If cRef > 0 Then .Cells(1, cRef).value = refNum
         If cItems > 0 Then .Cells(1, cItems).value = itemName
         If cQty > 0 Then .Cells(1, cQty).value = qty
@@ -1242,7 +1246,7 @@ Private Function CriticalLogCols() As Object
     Dim d As Object: Set d = CreateObject("Scripting.Dictionary")
     d.CompareMode = vbTextCompare
     Dim names
-    names = Array("REF_NUMBER", "ITEMS", "QUANTITY", "UOM", "VENDOR", "LOCATION", "ITEM_CODE", "ROW", "SNAPSHOT_ID", "ENTRY_DATE")
+    names = Array("USER", "REF_NUMBER", "ITEMS", "QUANTITY", "UOM", "VENDOR", "LOCATION", "ITEM_CODE", "ROW", "SNAPSHOT_ID", "ENTRY_DATE")
     Dim i As Long
     For i = LBound(names) To UBound(names)
         d.Add names(i), True

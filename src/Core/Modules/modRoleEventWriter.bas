@@ -13,11 +13,52 @@ Private Const ROLE_EVENT_TYPE_SHIP As String = "SHIP"
 Private Const ROLE_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
 Private Const ROLE_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
 Private Const ROLE_EVENT_TYPE_MIGRATION_SEED As String = "MIGRATION_SEED"
+Private Const SETTINGS_APP As String = "invSys"
+Private Const SETTINGS_SECTION_RUNTIME As String = "Runtime"
+Private Const SETTINGS_CURRENT_USER_ID As String = "CurrentUserId"
 
 Public Function ResolveCurrentUserId() As String
+    ResolveCurrentUserId = Trim$(GetCurrentUserOverride())
+    If ResolveCurrentUserId <> "" Then Exit Function
+
     ResolveCurrentUserId = Trim$(Environ$("USERNAME"))
     If ResolveCurrentUserId = "" Then ResolveCurrentUserId = Trim$(Application.UserName)
 End Function
+
+Public Function GetCurrentUserOverride() As String
+    On Error Resume Next
+    GetCurrentUserOverride = Trim$(GetSetting(SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_CURRENT_USER_ID, ""))
+    On Error GoTo 0
+End Function
+
+Public Sub SetCurrentUserId(ByVal userId As String)
+    userId = Trim$(userId)
+    If userId = "" Then
+        On Error Resume Next
+        DeleteSetting SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_CURRENT_USER_ID
+        On Error GoTo 0
+    Else
+        SaveSetting SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_CURRENT_USER_ID, userId
+    End If
+End Sub
+
+Public Sub PromptSetCurrentUser()
+    Dim currentUser As String
+    Dim userIn As String
+
+    currentUser = ResolveCurrentUserId()
+    userIn = Trim$(InputBox("Enter the invSys user ID for posting transactions.", _
+                           "invSys Current User", _
+                           currentUser))
+    If userIn = "" Then Exit Sub
+
+    SetCurrentUserId userIn
+    MsgBox "Current invSys user: " & ResolveCurrentUserId(), vbInformation, "invSys Current User"
+End Sub
+
+Public Sub ShowCurrentUser()
+    MsgBox "Current invSys user: " & ResolveCurrentUserId(), vbInformation, "invSys Current User"
+End Sub
 
 Public Function OpenInboxWorkbook(ByVal eventType As String, _
                                   Optional ByVal warehouseId As String = "", _

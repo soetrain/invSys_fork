@@ -5168,7 +5168,7 @@ Private Sub ApplyRecallCodesForOutput(ByVal wsProd As Worksheet, ByVal loOut As 
                 If cLogBatch > 0 And cBatch > 0 Then lr.Range.Cells(1, cLogBatch).value = loOut.DataBodyRange.Cells(idx, cBatch).value
                 If cLogRecall > 0 Then lr.Range.Cells(1, cLogRecall).value = codeVal
                 If cLogTime > 0 Then lr.Range.Cells(1, cLogTime).value = Now
-                If cLogUser > 0 Then lr.Range.Cells(1, cLogUser).value = Environ$("USERNAME")
+                If cLogUser > 0 Then lr.Range.Cells(1, cLogUser).value = modRoleEventWriter.ResolveCurrentUserId()
                 If cLogGuid > 0 Then lr.Range.Cells(1, cLogGuid).value = modUR_Snapshot.GenerateGUID()
                 If cLogLoc > 0 Then
                     Dim locVal As String
@@ -5335,7 +5335,7 @@ NextSourceRow:
         .Range("A3").Value = "Rows"
         .Range("B3").Value = rowCount
         .Range("C3").Value = "User"
-        .Range("D3").Value = Environ$("USERNAME")
+        .Range("D3").Value = modRoleEventWriter.ResolveCurrentUserId()
         .Range("A1:D3").Font.Bold = True
 
         Dim tableRange As Range

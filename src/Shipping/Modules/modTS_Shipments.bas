@@ -2905,7 +2905,7 @@ Private Sub LogShippingChanges(ByVal logTableName As String, logEntries As Colle
         Set newRow = tbl.ListRows.Add
         With newRow.Range
             .Cells(1, 1).Value = modUR_Snapshot.GenerateGUID()
-            .Cells(1, 2).Value = Environ$("USERNAME")
+            .Cells(1, 2).Value = modRoleEventWriter.ResolveCurrentUserId()
             .Cells(1, 3).Value = entry(0)
             .Cells(1, 4).Value = entry(1)
             .Cells(1, 5).Value = entry(2)
