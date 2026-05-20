@@ -19,6 +19,8 @@ Private WithEvents mCmbWarehouse As MSForms.ComboBox
 Attribute mCmbWarehouse.VB_VarHelpID = -1
 Private WithEvents mBtnOK As MSForms.CommandButton
 Attribute mBtnOK.VB_VarHelpID = -1
+Private WithEvents mBtnRepairInboxes As MSForms.CommandButton
+Attribute mBtnRepairInboxes.VB_VarHelpID = -1
 Private WithEvents mBtnCancel As MSForms.CommandButton
 Attribute mBtnCancel.VB_VarHelpID = -1
 Private mLblTitle As MSForms.Label
@@ -123,9 +125,10 @@ Private Sub EnsureControls()
     Set mLblRootValue = AddLabel("lblRootValue", 108, 116, 348, 36, "")
     mLblRootValue.WordWrap = True
 
-    Set mLblStatus = AddLabel("lblStatus", 108, 158, 348, 18, "")
+    Set mLblStatus = AddLabel("lblStatus", 108, 154, 348, 24, "")
     mLblStatus.ForeColor = 255
 
+    Set mBtnRepairInboxes = AddButton("btnRepairInboxes", 158, 186, 116, 28, "Repair Inboxes")
     Set mBtnOK = AddButton("btnOK", 284, 186, 82, 28, "OK")
     Set mBtnCancel = AddButton("btnCancel", 374, 186, 82, 28, "Cancel")
 End Sub
@@ -213,6 +216,35 @@ Private Sub mBtnCancel_Click()
     Me.Hide
 End Sub
 
+Private Sub mBtnRepairInboxes_Click()
+    Dim warehouseId As String
+    Dim stationId As String
+    Dim runtimeRoot As String
+    Dim report As String
+
+    If mCmbWarehouse.ListIndex < 0 Then
+        mLblStatus.ForeColor = 255
+        mLblStatus.Caption = "Choose a warehouse."
+        Exit Sub
+    End If
+
+    warehouseId = CStr(mCmbWarehouse.List(mCmbWarehouse.ListIndex, 1))
+    stationId = Trim$(CStr(mTxtStation.Value))
+    runtimeRoot = CStr(mCmbWarehouse.List(mCmbWarehouse.ListIndex, 3))
+    If stationId = "" Then stationId = "S1"
+
+    If RepairStationInboxes(warehouseId, stationId, runtimeRoot, report) Then
+        mCmbWarehouse.List(mCmbWarehouse.ListIndex, 0) = warehouseId & " | " & stationId & " | " & runtimeRoot
+        mCmbWarehouse.List(mCmbWarehouse.ListIndex, 2) = stationId
+        mCmbWarehouse.List(mCmbWarehouse.ListIndex, 4) = "Ready"
+        mLblStatus.ForeColor = 32768
+        mLblStatus.Caption = "Inboxes repaired."
+    Else
+        mLblStatus.ForeColor = 255
+        mLblStatus.Caption = report
+    End If
+End Sub
+
 Private Sub ApplyWarehouseSelection()
     If mCmbWarehouse.ListIndex < 0 Then
         mLblRootValue.Caption = ""
@@ -223,8 +255,50 @@ Private Sub ApplyWarehouseSelection()
     mLblRootValue.Caption = CStr(mCmbWarehouse.List(mCmbWarehouse.ListIndex, 3))
     If Trim$(CStr(mCmbWarehouse.List(mCmbWarehouse.ListIndex, 4))) = "" _
        Or StrComp(CStr(mCmbWarehouse.List(mCmbWarehouse.ListIndex, 4)), "Ready", vbTextCompare) = 0 Then
+        mLblStatus.ForeColor = 32768
         mLblStatus.Caption = ""
     Else
+        mLblStatus.ForeColor = 255
         mLblStatus.Caption = CStr(mCmbWarehouse.List(mCmbWarehouse.ListIndex, 4))
     End If
 End Sub
+
+Private Function RepairStationInboxes(ByVal warehouseId As String, _
+                                      ByVal stationId As String, _
+                                      ByVal runtimeRoot As String, _
+                                      ByRef report As String) As Boolean
+    Dim inboxPath As String
+    Dim stepReport As String
+
+    warehouseId = Trim$(warehouseId)
+    stationId = Trim$(stationId)
+    runtimeRoot = Trim$(runtimeRoot)
+    If warehouseId = "" Then
+        report = "WarehouseId is required."
+        Exit Function
+    End If
+    If stationId = "" Then stationId = "S1"
+    If runtimeRoot <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride runtimeRoot
+
+    If Not modConfig.EnsureStationInbox(warehouseId, stationId, "RECEIVE", "", inboxPath, stepReport) Then
+        report = "Receiving inbox repair failed: " & stepReport
+        Exit Function
+    End If
+
+    inboxPath = ""
+    stepReport = ""
+    If Not modConfig.EnsureStationInbox(warehouseId, stationId, "SHIP", "", inboxPath, stepReport) Then
+        report = "Shipping inbox repair failed: " & stepReport
+        Exit Function
+    End If
+
+    inboxPath = ""
+    stepReport = ""
+    If Not modConfig.EnsureStationInbox(warehouseId, stationId, "PRODUCTION", "", inboxPath, stepReport) Then
+        report = "Production inbox repair failed: " & stepReport
+        Exit Function
+    End If
+
+    report = "OK"
+    RepairStationInboxes = True
+End Function
