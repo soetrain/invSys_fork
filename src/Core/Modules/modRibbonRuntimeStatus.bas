@@ -14,6 +14,8 @@ Public Function GetStatusLabel(ByVal controlId As String) As String
             GetStatusLabel = "Data root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathDataRoot", ""))
         Case "btnRuntimeInboxRoot"
             GetStatusLabel = "Inbox root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathInboxRoot", ""))
+        Case "btnRuntimeUser"
+            GetStatusLabel = "User: " & ValueOrPlaceholderStatus(ResolveRuntimeUserStatus())
         Case "btnRuntimeProcessor"
             GetStatusLabel = "Processor: " & ValueOrPlaceholderStatus(modConfig.GetString("ProcessorServiceUserId", "svc_processor"))
         Case "btnRuntimeHqAggregator"
@@ -112,6 +114,7 @@ Public Sub RefreshRuntimeContext()
                  "Station: " & ValueOrPlaceholderStatus(modConfig.GetStationId()) & vbCrLf & _
                  "Data root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathDataRoot", "")) & vbCrLf & _
                  "Inbox root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathInboxRoot", "")) & vbCrLf & _
+                 "User: " & ValueOrPlaceholderStatus(ResolveRuntimeUserStatus()) & vbCrLf & _
                  "Processor: " & ValueOrPlaceholderStatus(modConfig.GetString("ProcessorServiceUserId", "svc_processor")) & vbCrLf & _
                  "HQ aggregator: " & ResolveHqAggregatorLabelStatus()
         MsgBox report, vbInformation, "invSys Runtime Context"
@@ -269,6 +272,11 @@ Private Function ResolveHqAggregatorLabelStatus() As String
     Else
         ResolveHqAggregatorLabelStatus = "Admin scheduled aggregation via " & NormalizeFolderForStatus(sharePointRoot) & "\Snapshots"
     End If
+End Function
+
+Private Function ResolveRuntimeUserStatus() As String
+    ResolveRuntimeUserStatus = Trim$(modRoleEventWriter.ResolveCurrentUserId())
+    If ResolveRuntimeUserStatus = "" Then ResolveRuntimeUserStatus = Trim$(Application.UserName)
 End Function
 
 Private Function ValueOrPlaceholderStatus(ByVal valueIn As String) As String

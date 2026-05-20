@@ -667,6 +667,7 @@ $projectMap = @(
                                 @{ Id = "btnRuntimeWarehouse" },
                                 @{ Id = "btnRuntimeDataRoot" },
                                 @{ Id = "btnRuntimeInboxRoot" },
+                                @{ Id = "btnRuntimeUser" },
                                 @{ Id = "btnRuntimeProcessor" },
                                 @{ Id = "btnRuntimeHqAggregator" }
                             )
@@ -713,6 +714,7 @@ $projectMap = @(
                                 @{ Id = "btnRuntimeWarehouse" },
                                 @{ Id = "btnRuntimeDataRoot" },
                                 @{ Id = "btnRuntimeInboxRoot" },
+                                @{ Id = "btnRuntimeUser" },
                                 @{ Id = "btnRuntimeProcessor" },
                                 @{ Id = "btnRuntimeHqAggregator" }
                             )
@@ -772,6 +774,7 @@ $projectMap = @(
                                 @{ Id = "btnRuntimeWarehouse" },
                                 @{ Id = "btnRuntimeDataRoot" },
                                 @{ Id = "btnRuntimeInboxRoot" },
+                                @{ Id = "btnRuntimeUser" },
                                 @{ Id = "btnRuntimeProcessor" },
                                 @{ Id = "btnRuntimeHqAggregator" }
                             )
