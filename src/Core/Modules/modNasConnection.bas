@@ -143,35 +143,12 @@ Public Function TryRevalidateRememberedRoot(ByVal rootPath As String) As NasStat
 End Function
 
 Public Sub ShowWarehouseConnectionPrompt(Optional ByVal reason As String = "")
-    Dim rootPath As String
-    Dim targets As Collection
-    Dim runtimeRoot As String
-    Dim target As WarehouseTarget
-    Dim statusCode As NasStatusCode
+    Dim frm As frmWarehouseConnection
 
-    rootPath = InputBox(PromptTextNas("Warehouse NAS/root path", reason), "invSys Warehouse Connection", ResolvePromptDefaultRootNas())
-    rootPath = NormalizeFolderNas(rootPath)
-    If rootPath = "" Then Exit Sub
-
-    If IsUncPathNas(rootPath) And Not FolderExistsNas(rootPath) Then
-        SetStatusNas NAS_TARGET_UNREACHABLE, "NAS root is unreachable. Use the Core credential form once implemented, or establish the Windows SMB session first."
-        MsgBox GetConnectionStatus(), vbExclamation, "invSys Warehouse Connection"
-        Exit Sub
-    Else
-        RememberRoot rootPath
-    End If
-
-    Set targets = ScanNasRoot(rootPath)
-    If targets.Count = 0 Then
-        MsgBox "No warehouse runtime folders were found under:" & vbCrLf & rootPath, vbExclamation, "invSys Warehouse Connection"
-        Exit Sub
-    End If
-
-    runtimeRoot = CStr(targets(1))
-    statusCode = SelectWarehouseTarget(rootPath, runtimeRoot, target)
-    If statusCode <> NAS_OK Then
-        MsgBox "Warehouse target could not be selected. Status: " & CStr(statusCode), vbExclamation, "invSys Warehouse Connection"
-    End If
+    Set frm = New frmWarehouseConnection
+    frm.InitializeConnectionPrompt reason
+    frm.Show vbModal
+    Unload frm
 End Sub
 
 Public Sub DisconnectNasRoot(ByVal rootPath As String, Optional ByVal disconnectWindowsSession As Boolean = False)
@@ -457,6 +434,17 @@ Public Function GetCurrentTarget() As WarehouseTarget
     Set GetCurrentTarget = CloneTargetNas(m_CurrentTarget)
 End Function
 
+Public Function IsWarehouseTargetAllowed(ByVal target As WarehouseTarget, _
+                                         Optional ByVal requireNasTarget As Boolean = False) As Boolean
+    If target Is Nothing Then Exit Function
+    If requireNasTarget And target.SourceType = WH_SOURCE_FALLBACK Then Exit Function
+    IsWarehouseTargetAllowed = True
+End Function
+
+Public Function IsCurrentTargetAllowed(Optional ByVal requireNasTarget As Boolean = False) As Boolean
+    IsCurrentTargetAllowed = IsWarehouseTargetAllowed(m_CurrentTarget, requireNasTarget)
+End Function
+
 Public Sub RememberTarget(ByVal target As WarehouseTarget)
     If target Is Nothing Then Exit Sub
     SaveSetting SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_REMEMBERED_TARGET, SerializeTargetNas(target)
@@ -500,6 +488,14 @@ Public Function GetConnectionStatus() As String
     Else
         GetConnectionStatus = "No warehouse target selected"
     End If
+End Function
+
+Public Function GetPromptDefaultRoot() As String
+    GetPromptDefaultRoot = ResolvePromptDefaultRootNas()
+End Function
+
+Public Function GetRememberedNasUser() As String
+    GetRememberedNasUser = ResolveRememberedNasUserNas()
 End Function
 
 Private Function TryResolveOpenOrConfiguredTargetNas(ByRef outTarget As WarehouseTarget) As Boolean

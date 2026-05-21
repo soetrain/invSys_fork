@@ -96,6 +96,77 @@ function Assert-VBComponentType {
     }
 }
 
+function Test-FormRequiresStub {
+    Param([string]$FormPath)
+
+    $frxPath = [System.IO.Path]::ChangeExtension($FormPath, ".frx")
+    return -not (Test-Path -LiteralPath $frxPath)
+}
+
+function Get-StubUserFormCode {
+    Param([string]$FormPath)
+
+    $rawLines = Get-Content -LiteralPath $FormPath
+    $hasRuntimeMarker = $false
+    foreach ($line in $rawLines) {
+        if ($line -match "'@RuntimeStubUserFormCode") {
+            $hasRuntimeMarker = $true
+            break
+        }
+    }
+    if (-not $hasRuntimeMarker) {
+        return "Option Explicit"
+    }
+
+    $codeLines = New-Object System.Collections.Generic.List[string]
+    $inCode = $false
+    foreach ($line in $rawLines) {
+        if (-not $inCode) {
+            if ($line -match "'@RuntimeStubUserFormCode") {
+                $inCode = $true
+            }
+            continue
+        }
+        if ($line -match '^Attribute VB_') {
+            continue
+        }
+        [void]$codeLines.Add($line)
+    }
+
+    if ($codeLines.Count -eq 0) {
+        return "Option Explicit"
+    }
+    return [string]::Join([Environment]::NewLine, $codeLines)
+}
+
+function Add-StubUserForm {
+    Param(
+        [object]$VbProject,
+        [string]$FormPath
+    )
+
+    $formName = [System.IO.Path]::GetFileNameWithoutExtension($FormPath)
+    Remove-ExistingVBComponent -VbProject $VbProject -ComponentName $formName
+    $component = $VbProject.VBComponents.Add(3)
+    $component.Name = $formName
+
+    $captionLine = Get-Content -LiteralPath $FormPath | Where-Object { $_ -match '^\s*Caption\s*=\s*"' } | Select-Object -First 1
+    if ($null -ne $captionLine) {
+        $caption = [regex]::Match($captionLine, '"([^"]*)"').Groups[1].Value
+        if ($caption -ne "") {
+            try { $component.Designer.Caption = $caption } catch {}
+        }
+    }
+
+    $module = $component.CodeModule
+    if ($module.CountOfLines -gt 0) {
+        $module.DeleteLines(1, $module.CountOfLines)
+    }
+    $stubCode = Get-StubUserFormCode -FormPath $FormPath
+    $module.AddFromString($stubCode)
+    Assert-VBComponentType -VbProject $VbProject -ComponentName $formName -ExpectedType 3 -Context $FormPath
+}
+
 function Import-ClassModule {
     Param(
         [object]$VbProject,
@@ -133,6 +204,11 @@ function Import-FormModule {
     }
 
     $componentName = [System.IO.Path]::GetFileNameWithoutExtension($FormPath)
+    if (Test-FormRequiresStub -FormPath $FormPath) {
+        Add-StubUserForm -VbProject $VbProject -FormPath $FormPath
+        return
+    }
+
     Remove-ExistingVBComponent -VbProject $VbProject -ComponentName $componentName
     $normalizedPath = New-NormalizedFormImportFile -FormPath $FormPath
     try {
@@ -254,6 +330,7 @@ try {
     )
 
     $formPaths = @(
+        (Join-Path $repo "src/Core/Forms/frmWarehouseConnection.frm"),
         (Join-Path $repo "src/Admin/Forms/frmReAuthGate.frm")
     )
 
@@ -265,6 +342,11 @@ try {
     $allTests = @(
         "TestPhase6CoreSurfaces.TestNasSelectWarehouseTarget_ReadsWarehouseIdFromConfig",
         "TestPhase6CoreSurfaces.TestNasGetCurrentTarget_ReturnsDeepCopy",
+        "TestPhase6CoreSurfaces.TestNasSelectWarehouseTarget_RequiresStationInboxRejectsBlankStation",
+        "TestPhase6CoreSurfaces.TestNasScanRoot_ReturnsPathStringsWithoutWarehouseInference",
+        "TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_UnreachableFailsClosed",
+        "TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_ReachableRecomputesCachedHints",
+        "TestPhase6CoreSurfaces.TestNasFallbackPolicy_RoleRejectsFallbackAdminAccepts",
         "TestAddinsPublish.TestVerifyAddinsPublished_AllPresent",
         "TestAddinsPublish.TestVerifyAddinsPublished_OneMissingLogsDiagnostic",
         "TestAddinsPublish.TestVerifyAddinsPublished_ZeroByteFileLogsDiagnostic",
@@ -374,14 +456,13 @@ try {
     foreach ($c in $classPaths) {
         Import-ClassModule -VbProject $vbProject -ClassPath $c
     }
+    foreach ($f in $formPaths) {
+        Import-FormModule -VbProject $vbProject -FormPath $f
+    }
     foreach ($m in $modulePaths) {
         Import-BasModule -VbProject $vbProject -BasPath $m
     }
     [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
-    foreach ($f in $formPaths) {
-        Import-FormModule -VbProject $vbProject -FormPath $f
-        [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
-    }
 
     $wrapperNames = Add-TestWrappers -BootstrapComponent $bootstrap -TargetFunctions $allTests
     [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")

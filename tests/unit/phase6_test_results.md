@@ -1,13 +1,18 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-05-21 14:33:41
-- Passed: 90
+- Date: 2026-05-21 15:44:26
+- Passed: 95
 - Failed: 11
 
 | Test | Result |
 |---|---|
 | TestPhase6CoreSurfaces.TestNasSelectWarehouseTarget_ReadsWarehouseIdFromConfig | PASS |
 | TestPhase6CoreSurfaces.TestNasGetCurrentTarget_ReturnsDeepCopy | PASS |
+| TestPhase6CoreSurfaces.TestNasSelectWarehouseTarget_RequiresStationInboxRejectsBlankStation | PASS |
+| TestPhase6CoreSurfaces.TestNasScanRoot_ReturnsPathStringsWithoutWarehouseInference | PASS |
+| TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_UnreachableFailsClosed | PASS |
+| TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_ReachableRecomputesCachedHints | PASS |
+| TestPhase6CoreSurfaces.TestNasFallbackPolicy_RoleRejectsFallbackAdminAccepts | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_AllPresent | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_OneMissingLogsDiagnostic | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_ZeroByteFileLogsDiagnostic | PASS |
