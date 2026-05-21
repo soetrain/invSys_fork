@@ -1,7 +1,7 @@
-# invSys Architecture v4.8 - Release 1 Plan
+# invSys Architecture v4.9 - Release 1 Plan
 **Project:** invSys Multi-Warehouse Inventory System  
-**Version:** 4.8 (VBA Release 1)  
-**Date:** April 18, 2026  
+**Version:** 4.9 (VBA Release 1)  
+**Date:** May 21, 2026  
 **Author:** Justin  
 **Purpose:** Complete architectural specification for Release 1 (VBA/Excel only).
 
@@ -32,7 +32,7 @@
 - Phase 6 proving must explicitly cover four stages in order: one-account local use, multi-PC LAN use, LAN + WAN use, then central aggregation.
 
 ---
-## Progress Tracking (v4.8)
+## Progress Tracking (v4.9)
 **Legend:** `[ ]` not started, `[x]` complete
 
 ### Release 1 Milestones
@@ -149,9 +149,40 @@ reconciliation is performed.
 - Internet connectivity is optional for warehouse availability. The non-negotiable availability guarantee is that a warehouse continues operating on **LAN + NAS + one processor PC** even when WAN/internet is unavailable.
 
 ---
+### D-NAS -- Three-Layer Warehouse Connection Model
+**Decision:** Runtime warehouse access is a three-layer connection model owned by Core and shared by all role/Admin XLAMs:
+1. **NAS / Windows credential layer:** establishes the current Windows/Excel session's SMB access to a warehouse root such as `\\100.84.136.19\invSysWH1`.
+2. **Warehouse target layer:** selects the active warehouse runtime root, config workbook, auth workbook, inbox roots, processor identity, and HQ publication context.
+3. **invSys user layer:** signs in the operator against the selected warehouse's auth workbook and enforces role/capability access.
+
+**Rationale:**
+- Receiving, Shipping, and Production operators may not have `invSys.Admin.xlam` loaded, so Admin cannot be the only place where NAS access is established.
+- A valid NAS login does not identify the invSys operator; it only proves the Excel session can reach the files.
+- A valid invSys user login is scoped to a selected warehouse target and must be validated against that target's auth workbook.
+- A local fallback such as `C:\invSys\WH1` must not silently override a deliberately selected NAS/server warehouse.
+
+**Resolver priority rule:**
+```text
+RULE: Runtime resolution must prefer explicit and remembered operator intent over local defaults.
+
+Priority:
+1. Current in-session warehouse target override
+2. Remembered warehouse target from the current Office/Windows profile
+3. Remembered warehouse scan roots / NAS roots that still contain valid config/auth workbooks
+4. Open workbook-local or active runtime config, when explicitly selected or unambiguous
+5. Default local development root such as C:\invSys\WH1
+
+If a higher-priority NAS/server target is unreachable, role/Admin XLAMs must surface
+a clear connect/reconnect prompt. They must not silently fall back to a local
+warehouse with the same or similar WarehouseId.
+```
+
+**Operational rule:** Core owns the shared NAS connection UI/API, remembered warehouse target, current user state, and runtime resolver. Admin may expose richer management forms, but Receiving/Shipping/Production must also expose enough ribbon UI to connect to a NAS/server root, select a warehouse target, and sign in as an invSys user.
+
+---
 ### D3 -- Clear Ownership Boundaries
 **Decision:**
-- **Core:** Authorization gate, orchestration, config, lock manager, processor runner, shared utilities
+- **Core:** Authorization gate, orchestration, config, lock manager, processor runner, shared utilities, NAS connection/session handling, warehouse target selection, current-user state, and runtime resolver
 - **Domain XLAMs:** All writes to authoritative data stores + domain invariants
 - **Role XLAMs:** UI + event creation only
 - **Admin XLAM:** Orchestration console only (invokes Core + domain routines; does not write domain tables directly)
@@ -712,7 +743,7 @@ sequenceDiagram
 ### Phase 6: User Systems and XLAM Hardening
 **Goal:** Full workbook-backed user systems and production-grade XLAM packaging
 
-**Status note:** Phase 6 is in progress. The dependency-root bootstrap for canonical Core/Auth/Config runtime workbooks is implemented and validated, and packaged workflow automation is partially green, but the system is not yet operationally proven. Current evidence is still weighted toward controlled Excel automation. Single-account saved-workbook use is the minimum operator baseline; LAN, LAN + WAN, and central aggregation proving remain separate hardening gates. Phase 6 is also where D9 and D10 become operationally binding: operator `invSys` tables must prove themselves as snapshot-fed read models, and inventory projections must prove themselves as rebuildable non-authoritative views.
+**Status note:** Phase 6 is in progress. The dependency-root bootstrap for canonical Core/Auth/Config runtime workbooks is implemented and validated, and packaged workflow automation is partially green, but the system is not yet operationally proven. Current evidence is still weighted toward controlled Excel automation. Single-account saved-workbook use is the minimum operator baseline; LAN, LAN + WAN, and central aggregation proving remain separate hardening gates. Phase 6 is also where D-NAS, D9, and D10 become operationally binding: Core must own shared NAS connection and warehouse target selection, operator `invSys` tables must prove themselves as snapshot-fed read models, and inventory projections must prove themselves as rebuildable non-authoritative views.
 
 **Phase 6 LAN operationalization note:** As of v4.7, the former standalone LAN addendum is merged into this Phase 6 section. The rules below are now part of the main authoritative spec and are binding for LAN user-system proving.
 
@@ -723,6 +754,7 @@ sequenceDiagram
 4. **Central aggregation:** HQ aggregation and global snapshot production operate correctly against published warehouse artifacts.
 
 **Phase 6 LAN operationalization requirements (binding):**
+- LAN proving cannot be considered complete until NAS connection handling and warehouse target selection are moved into Core and exposed from Receiving, Shipping, Production, and Admin ribbons.
 - LAN station bootstrap is not complete until config, inbox, and shared-auth provisioning for the station user are complete.
 - The operator-managed inventory list on each station is the local operator workbook's snapshot-fed `InventoryManagement!invSys` table, not a separate local catalog.
 - When `FF_AutoSnapshot = true`, role workbooks must refresh on open, after successful post/write, and on the configured cadence without mutating local staging tables or workbook-local logs.
@@ -1050,6 +1082,7 @@ If any of those are false, LAN architecture may be partially proven, but LAN end
 - [x] Validate XLAM startup/load order, references, and deployment-path behavior in clean Excel sessions
 - [x] Complete end-to-end ribbon-button testing against real role workbooks and tables
 - [ ] Prove role/Admin workflows from saved operator workbooks (`.xlsm` / `.xlsb`) under one-account use
+- [ ] Move NAS connection handling, remembered warehouse target selection, and runtime resolver priority into Core; expose connect/select/sign-in controls from Receiving, Shipping, Production, and Admin ribbons
 - [ ] Prove operator `invSys` tables refresh from snapshot copy/import without mutating local workflow/staging tables
 - [ ] Expose and validate read-model freshness metadata (`LastRefreshUTC`, `SnapshotId`, `SourceType`, `IsStale`) in operator workbooks
 - [ ] Operationalize `FF_AutoSnapshot` for dependable LAN role use: on-open refresh, post-write refresh, optional cadence refresh, and visible stale-state signaling
@@ -1066,6 +1099,7 @@ If any of those are false, LAN architecture may be partially proven, but LAN end
 - [x] Test: Ribbon controls execute against live workbook/table systems without missing-object/runtime failures
 - [ ] Test: Full packaged XLAM set loads and remains stable across Excel restart/reopen scenarios
 - [ ] Test: Receiving/Shipping/Production/Admin workflows complete from saved `.xlsm` / `.xlsb` operator workbooks under one-account use
+- [ ] Test: Receiving/Shipping/Production can connect to a NAS/server warehouse root, select the intended warehouse target, sign in as an invSys user, and retain that target across form/ribbon refresh without silently falling back to a local runtime
 - [ ] Test: Manual snapshot refresh updates the operator `invSys` read model without clearing `ReceivedTally`, shipping staging, production staging, or workbook-local logs
 - [ ] Test: Missing/stale snapshot marks the operator workbook stale but does not block `Confirm Writes` / inbox posting
 - [ ] Test: Operator `invSys` read model exposes `LastRefreshUTC`, `SnapshotId`, `SourceType`, and `IsStale`
@@ -1099,6 +1133,7 @@ If any of those are false, LAN architecture may be partially proven, but LAN end
 - [ ] Snapshot-fed operator read models operational, with freshness metadata and non-destructive refresh, for one account use
 - [ ] Rebuildable inventory projections operational and proven non-authoritative, for one account use
 - [ ] User systems operational across role/Admin XLAMs, for LAN use
+- [ ] Core-owned NAS connection and warehouse target selection operational across role/Admin XLAMs, for LAN use
 - [ ] Full XLAM operational hardening complete, for LAN use
 - [ ] Snapshot-fed operator read models operational, with freshness metadata and non-destructive refresh, for LAN use
 - [ ] Auto-refresh contract operational for LAN role workbooks, including visible stale-state signaling and post-write refresh
