@@ -179,6 +179,8 @@ warehouse with the same or similar WarehouseId.
 
 **Operational rule:** Core owns the shared NAS connection UI/API, remembered warehouse target, current user state, and runtime resolver. Admin may expose richer management forms, but Receiving/Shipping/Production must also expose enough ribbon UI to connect to a NAS/server root, select a warehouse target, and sign in as an invSys user.
 
+**Procedure contract:** The binding VBA API, resolver behavior, ribbon callback rules, credential handling rules, and Phase 6 D-NAS tests are maintained in `D-NAS_Procedure_Contract.md`. This architecture section defines the model; the procedure contract defines the implementation surface.
+
 ---
 ### D3 -- Clear Ownership Boundaries
 **Decision:**
@@ -186,6 +188,8 @@ warehouse with the same or similar WarehouseId.
 - **Domain XLAMs:** All writes to authoritative data stores + domain invariants
 - **Role XLAMs:** UI + event creation only
 - **Admin XLAM:** Orchestration console only (invokes Core + domain routines; does not write domain tables directly)
+
+**D-NAS implementation boundary:** Core-owned NAS connection, warehouse target, current-user, and capability-gate procedures must follow `D-NAS_Procedure_Contract.md`. Role and Admin XLAMs consume that Core API; they must not implement independent NAS credential prompts, warehouse target resolvers, current-user caches, or direct capability checks.
 
 **Boundary clarification:**
 ```text
@@ -754,7 +758,7 @@ sequenceDiagram
 4. **Central aggregation:** HQ aggregation and global snapshot production operate correctly against published warehouse artifacts.
 
 **Phase 6 LAN operationalization requirements (binding):**
-- LAN proving cannot be considered complete until NAS connection handling and warehouse target selection are moved into Core and exposed from Receiving, Shipping, Production, and Admin ribbons.
+- LAN proving cannot be considered complete until NAS connection handling and warehouse target selection are moved into Core and exposed from Receiving, Shipping, Production, and Admin ribbons according to `D-NAS_Procedure_Contract.md`.
 - LAN station bootstrap is not complete until config, inbox, and shared-auth provisioning for the station user are complete.
 - The operator-managed inventory list on each station is the local operator workbook's snapshot-fed `InventoryManagement!invSys` table, not a separate local catalog.
 - When `FF_AutoSnapshot = true`, role workbooks must refresh on open, after successful post/write, and on the configured cadence without mutating local staging tables or workbook-local logs.
@@ -1082,7 +1086,7 @@ If any of those are false, LAN architecture may be partially proven, but LAN end
 - [x] Validate XLAM startup/load order, references, and deployment-path behavior in clean Excel sessions
 - [x] Complete end-to-end ribbon-button testing against real role workbooks and tables
 - [ ] Prove role/Admin workflows from saved operator workbooks (`.xlsm` / `.xlsb`) under one-account use
-- [ ] Move NAS connection handling, remembered warehouse target selection, and runtime resolver priority into Core; expose connect/select/sign-in controls from Receiving, Shipping, Production, and Admin ribbons
+- [ ] Move NAS connection handling, remembered warehouse target selection, and runtime resolver priority into Core per `D-NAS_Procedure_Contract.md`; expose connect/select/sign-in controls from Receiving, Shipping, Production, and Admin ribbons
 - [ ] Prove operator `invSys` tables refresh from snapshot copy/import without mutating local workflow/staging tables
 - [ ] Expose and validate read-model freshness metadata (`LastRefreshUTC`, `SnapshotId`, `SourceType`, `IsStale`) in operator workbooks
 - [ ] Operationalize `FF_AutoSnapshot` for dependable LAN role use: on-open refresh, post-write refresh, optional cadence refresh, and visible stale-state signaling
@@ -1133,7 +1137,7 @@ If any of those are false, LAN architecture may be partially proven, but LAN end
 - [ ] Snapshot-fed operator read models operational, with freshness metadata and non-destructive refresh, for one account use
 - [ ] Rebuildable inventory projections operational and proven non-authoritative, for one account use
 - [ ] User systems operational across role/Admin XLAMs, for LAN use
-- [ ] Core-owned NAS connection and warehouse target selection operational across role/Admin XLAMs, for LAN use
+- [ ] Core-owned NAS connection and warehouse target selection operational across role/Admin XLAMs per `D-NAS_Procedure_Contract.md`, for LAN use
 - [ ] Full XLAM operational hardening complete, for LAN use
 - [ ] Snapshot-fed operator read models operational, with freshness metadata and non-destructive refresh, for LAN use
 - [ ] Auto-refresh contract operational for LAN role workbooks, including visible stale-state signaling and post-write refresh
