@@ -1,6 +1,87 @@
 Attribute VB_Name = "TestPhase6CoreSurfaces"
 Option Explicit
 
+Public Function TestNasSelectWarehouseTarget_ReadsWarehouseIdFromConfig() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim report As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_dnas_select_not_folder_WH")
+
+    On Error GoTo CleanFail
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH77", "S3", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH77", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S3", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    If target Is Nothing Then GoTo CleanExit
+    If StrComp(target.WarehouseId, "WH77", vbTextCompare) = 0 _
+       And InStr(1, rootPath, "WH77", vbTextCompare) = 0 _
+       And StrComp(target.StationId, "S3", vbTextCompare) = 0 Then
+        TestNasSelectWarehouseTarget_ReadsWarehouseIdFromConfig = 1
+    End If
+
+CleanExit:
+    modNasConnection.ForgetTarget "WH77"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestNasGetCurrentTarget_ReturnsDeepCopy() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim selectedTarget As WarehouseTarget
+    Dim targetCopy As WarehouseTarget
+    Dim secondCopy As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim report As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_dnas_copy")
+
+    On Error GoTo CleanFail
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH78", "S4", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH78", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, selectedTarget, "S4", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+
+    Set targetCopy = modNasConnection.GetCurrentTarget()
+    If targetCopy Is Nothing Then GoTo CleanExit
+    targetCopy.WarehouseId = "MUTATED"
+    targetCopy.RuntimeRoot = "C:\mutated"
+
+    Set secondCopy = modNasConnection.GetCurrentTarget()
+    If Not secondCopy Is Nothing Then
+        If StrComp(secondCopy.WarehouseId, "WH78", vbTextCompare) = 0 _
+           And StrComp(secondCopy.RuntimeRoot, rootPath, vbTextCompare) = 0 Then
+            TestNasGetCurrentTarget_ReturnsDeepCopy = 1
+        End If
+    End If
+
+CleanExit:
+    modNasConnection.ForgetTarget "WH78"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook() As Long
     Dim rootPath As String
     Dim wb As Workbook

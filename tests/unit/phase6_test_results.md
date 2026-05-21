@@ -1,11 +1,13 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-05-10 19:01:58
-- Passed: 99
-- Failed: 0
+- Date: 2026-05-21 14:33:41
+- Passed: 90
+- Failed: 11
 
 | Test | Result |
 |---|---|
+| TestPhase6CoreSurfaces.TestNasSelectWarehouseTarget_ReadsWarehouseIdFromConfig | PASS |
+| TestPhase6CoreSurfaces.TestNasGetCurrentTarget_ReturnsDeepCopy | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_AllPresent | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_OneMissingLogsDiagnostic | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_ZeroByteFileLogsDiagnostic | PASS |
@@ -18,7 +20,7 @@
 | TestWarehouseBootstrap.TestWarehouseIdExists_LocalFolderExists | PASS |
 | TestWarehouseBootstrap.TestWarehouseIdExists_SharePointArtifactExists | PASS |
 | TestWarehouseBootstrap.TestWarehouseIdExists_NeitherLocalNorSharePointExists | PASS |
-| TestWarehouseBootstrap.TestWarehouseIdExists_SharePointUnavailableReturnsFalseAndLogsSkip | PASS |
+| TestWarehouseBootstrap.TestWarehouseIdExists_SharePointUnavailableReturnsFalseAndLogsSkip | FAIL |
 | TestWarehouseBootstrap.TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime | PASS |
 | TestWarehouseBootstrap.TestBootstrapWarehouseLocal_FailureRollsBackPartialFolders | PASS |
 | TestWarehouseBootstrap.TestPublishInitialArtifacts_PublishSuccess | PASS |
@@ -37,16 +39,16 @@
 | TestWarehouseRetireArchive.TestWriteArchivePackage_SuccessCreatesAtomicArchive | PASS |
 | TestWarehouseRetireArchive.TestWriteArchivePackage_PartialFailureRollsBackTempArchive | PASS |
 | TestWarehouseRetireArchive.TestWriteArchivePackage_AuthExportMasksPinHash | PASS |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource | PASS |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource | FAIL |
 | TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingArchiveManifest | PASS |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse | PASS |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities | PASS |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | PASS |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker | PASS |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson | PASS |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement | PASS |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse | FAIL |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities | FAIL |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | FAIL |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker | FAIL |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson | FAIL |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement | FAIL |
 | TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutTombstone | PASS |
-| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutConfirmation | PASS |
+| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutConfirmation | FAIL |
 | TestReceivingReadiness.TestCheckReceivingReadiness_AllReady_ReturnsReady | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_SnapshotOk_WhenAuthMissingCapability | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_SnapshotStale_ReturnsStale | PASS |
@@ -58,10 +60,10 @@
 | TestReceivingReadiness.TestCheckReceivingReadiness_AuthInactive_ReturnsInactive | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_RuntimeOk_WhenSnapshotMissingAndNoUser | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_RuntimeMissingTables_ReturnsMissingTables | PASS |
-| TestReceivingReadiness.TestCheckReceivingReadiness_RuntimePathUnresolved_ReturnsPathUnresolved | PASS |
+| TestReceivingReadiness.TestCheckReceivingReadiness_RuntimePathUnresolved_ReturnsPathUnresolved | FAIL |
 | TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook | PASS |
 | TestPhase6CoreSurfaces.TestLoadConfig_AutoBootstrapsCanonicalWorkbook | PASS |
-| TestPhase6CoreSurfaces.TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook | PASS |
+| TestPhase6CoreSurfaces.TestLoadConfig_BlankContextAutoBootstrapsDefaultRuntimeWorkbook | FAIL |
 | TestPhase6CoreSurfaces.TestEnsureStationBootstrap_CreatesLocalConfigAndInbox | PASS |
 | TestPhase6CoreSurfaces.TestLoadConfig_QuarantinesContaminatedConfigSheet | PASS |
 | TestPhase6CoreSurfaces.TestLoadAuth_AutoBootstrapsCanonicalWorkbook | PASS |

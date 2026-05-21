@@ -36,6 +36,26 @@ function New-NormalizedImportFile {
     return $tempPath
 }
 
+function New-NormalizedFormImportFile {
+    Param([string]$FormPath)
+
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("invsys-harness-form-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+
+    $tempFrmPath = Join-Path $tempDir ([System.IO.Path]::GetFileName($FormPath))
+    $raw = Get-Content -LiteralPath $FormPath -Raw
+    $normalized = $raw -replace "`r?`n", "`r`n"
+    [System.IO.File]::WriteAllText($tempFrmPath, $normalized, [System.Text.Encoding]::ASCII)
+
+    $sourceFrxPath = [System.IO.Path]::ChangeExtension($FormPath, ".frx")
+    if (Test-Path -LiteralPath $sourceFrxPath) {
+        $tempFrxPath = [System.IO.Path]::ChangeExtension($tempFrmPath, ".frx")
+        Copy-Item -LiteralPath $sourceFrxPath -Destination $tempFrxPath -Force
+    }
+
+    return $tempFrmPath
+}
+
 function Remove-ExistingVBComponent {
     Param(
         [object]$VbProject,
@@ -54,6 +74,26 @@ function Remove-ExistingVBComponent {
         throw "Refusing to remove document component '$ComponentName'."
     }
     [void]$VbProject.VBComponents.Remove($existing)
+}
+
+function Assert-VBComponentType {
+    Param(
+        [object]$VbProject,
+        [string]$ComponentName,
+        [int]$ExpectedType,
+        [string]$Context
+    )
+
+    try {
+        $component = $VbProject.VBComponents.Item($ComponentName)
+    }
+    catch {
+        throw "$Context failed: component '$ComponentName' was not present after import."
+    }
+
+    if ($component.Type -ne $ExpectedType) {
+        throw "$Context failed: component '$ComponentName' imported with type $($component.Type), expected $ExpectedType."
+    }
 }
 
 function Import-ClassModule {
@@ -91,7 +131,17 @@ function Import-FormModule {
     if (-not (Test-Path $FormPath)) {
         throw "Missing form module: $FormPath"
     }
-    [void]$VbProject.VBComponents.Import($FormPath)
+
+    $componentName = [System.IO.Path]::GetFileNameWithoutExtension($FormPath)
+    Remove-ExistingVBComponent -VbProject $VbProject -ComponentName $componentName
+    $normalizedPath = New-NormalizedFormImportFile -FormPath $FormPath
+    try {
+        [void]$VbProject.VBComponents.Import($normalizedPath)
+        Assert-VBComponentType -VbProject $VbProject -ComponentName $componentName -ExpectedType 3 -Context $FormPath
+    }
+    finally {
+        Remove-Item -LiteralPath (Split-Path $normalizedPath -Parent) -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Run-TestFunction {
@@ -169,6 +219,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modWarehouseBootstrap.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseRetire.bas"),
         (Join-Path $repo "src/Core/Modules/modRuntimeWorkbooks.bas"),
+        (Join-Path $repo "src/Core/Modules/modNasConnection.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleWorkbookSurfaces.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
         (Join-Path $repo "src/Core/Modules/modOperatorReadModel.bas"),
@@ -207,10 +258,13 @@ try {
     )
 
     $classPaths = @(
+        (Join-Path $repo "src/Core/ClassModules/WarehouseTarget.cls"),
         (Join-Path $repo "src/Receiving/ClassModules/cAppEvents.cls")
     )
 
     $allTests = @(
+        "TestPhase6CoreSurfaces.TestNasSelectWarehouseTarget_ReadsWarehouseIdFromConfig",
+        "TestPhase6CoreSurfaces.TestNasGetCurrentTarget_ReturnsDeepCopy",
         "TestAddinsPublish.TestVerifyAddinsPublished_AllPresent",
         "TestAddinsPublish.TestVerifyAddinsPublished_OneMissingLogsDiagnostic",
         "TestAddinsPublish.TestVerifyAddinsPublished_ZeroByteFileLogsDiagnostic",
@@ -317,14 +371,13 @@ try {
     $vbProject = $harness.VBProject
     [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
 
-    foreach ($m in $modulePaths) {
-        Import-BasModule -VbProject $vbProject -BasPath $m
-        [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
-    }
     foreach ($c in $classPaths) {
         Import-ClassModule -VbProject $vbProject -ClassPath $c
-        [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
     }
+    foreach ($m in $modulePaths) {
+        Import-BasModule -VbProject $vbProject -BasPath $m
+    }
+    [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
     foreach ($f in $formPaths) {
         Import-FormModule -VbProject $vbProject -FormPath $f
         [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
