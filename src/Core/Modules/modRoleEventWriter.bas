@@ -48,28 +48,23 @@ Public Sub PromptSetCurrentUser()
 End Sub
 
 Public Sub PromptSetCurrentUserForCapability(Optional ByVal requiredCapability As String = "")
-    Dim currentUser As String
-    Dim userIn As String
-    Dim pinText As String
-    Dim report As String
+    Dim target As WarehouseTarget
+    Dim authStatus As AuthStatusCode
 
-    currentUser = ResolveCurrentUserId()
-    userIn = Trim$(InputBox("Enter the invSys user ID for posting transactions.", _
-                           "invSys Current User", _
-                           currentUser))
-    If userIn = "" Then Exit Sub
-
-    pinText = InputBox("Enter the PIN/password for '" & userIn & "'.", _
-                       "invSys Current User")
-    If pinText = "" Then Exit Sub
-
-    If Not ValidateCurrentUserCredential(userIn, pinText, requiredCapability, report) Then
-        If report = "" Then report = "Invalid credentials or missing capability."
-        MsgBox report, vbExclamation, "invSys Current User"
+    If Not modNasConnection.EnsureWarehouseTargetInteractive("Sign in to invSys.", CapabilityRequiresNasTargetRole(requiredCapability)) Then
+        MsgBox "Warehouse target is not available for sign-in.", vbExclamation, "invSys Current User"
         Exit Sub
     End If
 
-    SetCurrentUserId userIn
+    Set target = modNasConnection.GetCurrentTarget()
+    authStatus = modAuth.ShowSignInPrompt(target, requiredCapability)
+    If authStatus = AUTH_CANCELLED Then Exit Sub
+
+    If authStatus <> AUTH_OK Then
+        MsgBox AuthStatusMessageRole(authStatus, target, requiredCapability), vbExclamation, "invSys Current User"
+        Exit Sub
+    End If
+
     MsgBox "Current invSys user: " & ResolveCurrentUserId(), vbInformation, "invSys Current User"
 End Sub
 
@@ -113,6 +108,42 @@ Private Function ValidateCurrentUserCredential(ByVal userId As String, _
     End If
 
     ValidateCurrentUserCredential = True
+End Function
+
+Private Function CapabilityRequiresNasTargetRole(ByVal requiredCapability As String) As Boolean
+    Select Case UCase$(Trim$(requiredCapability))
+        Case "RECEIVE_POST", "SHIP_POST", "PROD_POST"
+            CapabilityRequiresNasTargetRole = True
+    End Select
+End Function
+
+Private Function AuthStatusMessageRole(ByVal authStatus As AuthStatusCode, _
+                                       ByVal target As WarehouseTarget, _
+                                       ByVal requiredCapability As String) As String
+    Dim targetLabel As String
+
+    If target Is Nothing Then
+        targetLabel = "<no warehouse target>"
+    Else
+        targetLabel = target.WarehouseId & " / " & IIf(Trim$(target.StationId) = "", "<roaming>", target.StationId)
+    End If
+
+    Select Case authStatus
+        Case AUTH_WAREHOUSE_MISMATCH
+            AuthStatusMessageRole = "Warehouse target mismatch."
+        Case AUTH_USER_NOT_FOUND
+            AuthStatusMessageRole = "User was not found for " & targetLabel & "."
+        Case AUTH_CREDENTIAL_REJECTED
+            AuthStatusMessageRole = "PIN/password was rejected."
+        Case AUTH_WORKBOOK_UNREADABLE
+            AuthStatusMessageRole = "Auth workbook could not be read for " & targetLabel & "."
+        Case AUTH_NO_CAPABILITIES
+            AuthStatusMessageRole = "User lacks " & UCase$(Trim$(requiredCapability)) & " for " & targetLabel & "."
+        Case AUTH_REAUTH_REQUIRED, AUTH_CACHE_EXPIRED
+            AuthStatusMessageRole = "Sign-in expired. Sign in again."
+        Case Else
+            AuthStatusMessageRole = "Sign-in failed. Status: " & CStr(authStatus)
+    End Select
 End Function
 
 Public Function OpenInboxWorkbook(ByVal eventType As String, _
@@ -265,8 +296,10 @@ Public Function QueueReceiveEventCurrent(Optional ByVal userId As String = "", _
                                          Optional ByRef errorMessage As String = "", _
                                          Optional ByVal perfRunId As String = "") As Boolean
     Dim targetInboxWb As Workbook
+    Dim resolvedUser As String
 
-    QueueReceiveEventCurrent = QueueReceiveEvent("", "", userId, sku, qty, location, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage, perfRunId)
+    If Not EnsureCurrentRoleWriteAllowed("RECEIVE_POST", userId, resolvedUser, errorMessage) Then Exit Function
+    QueueReceiveEventCurrent = QueueReceiveEvent("", "", resolvedUser, sku, qty, location, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage, perfRunId)
 End Function
 
 Public Function QueuePayloadEvent(ByVal eventType As String, _
@@ -307,8 +340,12 @@ Public Function QueuePayloadEventCurrent(ByVal eventType As String, _
                                          Optional ByRef errorMessage As String = "", _
                                          Optional ByVal perfRunId As String = "") As Boolean
     Dim targetInboxWb As Workbook
+    Dim resolvedUser As String
+    Dim capability As String
 
-    QueuePayloadEventCurrent = QueuePayloadEvent(eventType, "", "", userId, payloadJson, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage, perfRunId)
+    capability = CapabilityForEventTypeRole(eventType)
+    If Not EnsureCurrentRoleWriteAllowed(capability, userId, resolvedUser, errorMessage) Then Exit Function
+    QueuePayloadEventCurrent = QueuePayloadEvent(eventType, "", "", resolvedUser, payloadJson, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage, perfRunId)
 End Function
 
 Public Function BuildPayloadJson(ParamArray items() As Variant) As String
@@ -513,6 +550,52 @@ FailQueue:
         If sheetWasProtected Then RestoreWorksheetProtectionRole ws
     End If
     If openedTransient Then CloseTransientRoleWorkbook wbInbox
+End Function
+
+Private Function EnsureCurrentRoleWriteAllowed(ByVal requiredCapability As String, _
+                                               ByVal requestedUserId As String, _
+                                               ByRef resolvedUserId As String, _
+                                               ByRef errorMessage As String) As Boolean
+    Dim target As WarehouseTarget
+
+    requiredCapability = UCase$(Trim$(requiredCapability))
+    requestedUserId = Trim$(requestedUserId)
+    If requiredCapability = "" Then
+        errorMessage = "Unsupported event type."
+        Exit Function
+    End If
+
+    If Not modNasConnection.IsCurrentTargetAllowed(True) Then
+        errorMessage = "A connected NAS warehouse target is required before posting role events."
+        Exit Function
+    End If
+
+    If Not modAuth.IsSignedIn() Then
+        errorMessage = "Current invSys user is not signed in."
+        Exit Function
+    End If
+
+    resolvedUserId = Trim$(modAuth.GetCurrentUserId())
+    If resolvedUserId = "" Then
+        errorMessage = "Current invSys user is not signed in."
+        Exit Function
+    End If
+    If requestedUserId <> "" And StrComp(requestedUserId, resolvedUserId, vbTextCompare) <> 0 Then
+        errorMessage = "Requested user does not match the signed-in invSys user."
+        Exit Function
+    End If
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        errorMessage = "A connected NAS warehouse target is required before posting role events."
+        Exit Function
+    End If
+    If Not modAuth.CanPerform(requiredCapability, resolvedUserId, target.WarehouseId, target.StationId, "ROLE_UI", "") Then
+        errorMessage = "Current user lacks " & requiredCapability & " capability."
+        Exit Function
+    End If
+
+    EnsureCurrentRoleWriteAllowed = True
 End Function
 
 Private Function EnsureContextResolved(ByRef resolvedWh As String, _

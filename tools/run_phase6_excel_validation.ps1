@@ -296,6 +296,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modWarehouseRetire.bas"),
         (Join-Path $repo "src/Core/Modules/modRuntimeWorkbooks.bas"),
         (Join-Path $repo "src/Core/Modules/modNasConnection.bas"),
+        (Join-Path $repo "src/Core/Modules/modRibbonRuntimeStatus.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleWorkbookSurfaces.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
         (Join-Path $repo "src/Core/Modules/modOperatorReadModel.bas"),
@@ -331,6 +332,7 @@ try {
 
     $formPaths = @(
         (Join-Path $repo "src/Core/Forms/frmWarehouseConnection.frm"),
+        (Join-Path $repo "src/Core/Forms/frmSignIn.frm"),
         (Join-Path $repo "src/Admin/Forms/frmReAuthGate.frm")
     )
 
@@ -347,6 +349,14 @@ try {
         "TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_UnreachableFailsClosed",
         "TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_ReachableRecomputesCachedHints",
         "TestPhase6CoreSurfaces.TestNasFallbackPolicy_RoleRejectsFallbackAdminAccepts",
+        "TestPhase6CoreSurfaces.TestAuthValidateUserCredentialForTarget_SignsInAndStatusOk",
+        "TestPhase6CoreSurfaces.TestAuthFailedCredential_DoesNotReplaceSignedInUser",
+        "TestPhase6CoreSurfaces.TestAuthCorrectCredentialWithoutCapability_ReturnsNoCapabilities",
+        "TestPhase6CoreSurfaces.TestRuntimeStatusUserLabel_TracksAuthSignIn",
+        "TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsUnsignedUser",
+        "TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsMissingCapability",
+        "TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsFallbackTarget",
+        "TestPhase6CoreSurfaces.TestRoleWriteCurrent_AllowsSignedInReceivePost",
         "TestAddinsPublish.TestVerifyAddinsPublished_AllPresent",
         "TestAddinsPublish.TestVerifyAddinsPublished_OneMissingLogsDiagnostic",
         "TestAddinsPublish.TestVerifyAddinsPublished_ZeroByteFileLogsDiagnostic",

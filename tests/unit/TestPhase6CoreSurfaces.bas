@@ -288,6 +288,392 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestAuthValidateUserCredentialForTarget_SignsInAndStatusOk() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_auth_target_signin")
+    authPath = rootPath & "\WH85.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH85", "S11", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH85", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH85", "S11", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S11", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target, "RECEIVE_POST")
+
+    If authStatus = AUTH_OK _
+       And modAuth.IsSignedIn() _
+       And StrComp(modAuth.GetCurrentUserId(), "dilbert", vbTextCompare) = 0 _
+       And modAuth.GetAuthStatus() = AUTH_OK Then
+        TestAuthValidateUserCredentialForTarget_SignsInAndStatusOk = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH85"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestAuthFailedCredential_DoesNotReplaceSignedInUser() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim firstStatus As AuthStatusCode
+    Dim secondStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_auth_failed_preserve")
+    authPath = rootPath & "\WH86.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH86", "S12", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH86", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH86", "S12", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH86", "S12", "calvin", "Calvin", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("123456")
+    TestPhase2Helpers.SetUserPinHash wbAuth, "calvin", modAuth.HashUserCredential("654321")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S12", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    firstStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target, "RECEIVE_POST")
+    secondStatus = modAuth.ValidateUserCredentialForTarget("calvin", "wrong", target, "RECEIVE_POST")
+
+    If firstStatus = AUTH_OK _
+       And secondStatus = AUTH_CREDENTIAL_REJECTED _
+       And StrComp(modAuth.GetCurrentUserId(), "dilbert", vbTextCompare) = 0 Then
+        TestAuthFailedCredential_DoesNotReplaceSignedInUser = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH86"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestAuthCorrectCredentialWithoutCapability_ReturnsNoCapabilities() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_auth_no_capability")
+    authPath = rootPath & "\WH87.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    modAuth.SignOut
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH87", "S13", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH87", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH87", "S13", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S13", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target, "SHIP_POST")
+
+    If authStatus = AUTH_NO_CAPABILITIES _
+       And Not modAuth.IsSignedIn() _
+       And modAuth.GetCurrentUserId() = "" Then
+        TestAuthCorrectCredentialWithoutCapability_ReturnsNoCapabilities = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH87"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestRuntimeStatusUserLabel_TracksAuthSignIn() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_runtime_user_status")
+    authPath = rootPath & "\WH88.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    modAuth.SignOut
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH88", "S14", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH88", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH88", "S14", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S14", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target, "RECEIVE_POST")
+
+    If authStatus = AUTH_OK _
+       And StrComp(modRibbonRuntimeStatus.GetStatusLabel("btnRuntimeUser"), "User: dilbert", vbTextCompare) = 0 Then
+        TestRuntimeStatusUserLabel_TracksAuthSignIn = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH88"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestRoleWriteCurrent_RejectsUnsignedUser() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim report As String
+    Dim authPath As String
+    Dim eventIdOut As String
+    Dim queued As Boolean
+
+    rootPath = BuildRuntimeTestRoot("phase6_role_write_unsigned")
+    authPath = rootPath & "\WH89.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    modAuth.SignOut
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH89", "S15", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH89", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH89", "S15", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S15", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    report = ""
+    queued = modRoleEventWriter.QueueReceiveEventCurrent("", "SKU-RM-UNSIGNED", 1, "A1", "unsigned", eventIdOut, report)
+
+    If Not queued _
+       And eventIdOut = "" _
+       And InStr(1, report, "not signed in", vbTextCompare) > 0 Then
+        TestRoleWriteCurrent_RejectsUnsignedUser = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH89"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestRoleWriteCurrent_RejectsMissingCapability() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+    Dim eventIdOut As String
+    Dim queued As Boolean
+    Dim payloadJson As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_role_write_no_cap")
+    authPath = rootPath & "\WH90.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    modAuth.SignOut
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH90", "S16", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH90", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH90", "S16", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S16", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target)
+    If authStatus <> AUTH_OK Then GoTo CleanExit
+
+    payloadJson = modRoleEventWriter.BuildPayloadJson( _
+        modRoleEventWriter.CreatePayloadItem(1, "SKU-RM-NOCAP", 1, "A1", "no-cap"))
+    report = ""
+    queued = modRoleEventWriter.QueuePayloadEventCurrent(CORE_EVENT_TYPE_SHIP, "", payloadJson, "no-cap", eventIdOut, report)
+
+    If Not queued _
+       And eventIdOut = "" _
+       And InStr(1, report, "lacks SHIP_POST", vbTextCompare) > 0 Then
+        TestRoleWriteCurrent_RejectsMissingCapability = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH90"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestRoleWriteCurrent_RejectsFallbackTarget() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+    Dim eventIdOut As String
+    Dim queued As Boolean
+
+    rootPath = BuildRuntimeTestRoot("phase6_role_write_fallback")
+    authPath = rootPath & "\WH91.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    modAuth.SignOut
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH91", "S17", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH91", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH91", "S17", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S17", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target, "RECEIVE_POST")
+    If authStatus <> AUTH_OK Then GoTo CleanExit
+    If Not modNasConnection.SetCurrentTargetSourceTypeForTest(WH_SOURCE_FALLBACK) Then GoTo CleanExit
+
+    report = ""
+    queued = modRoleEventWriter.QueueReceiveEventCurrent("", "SKU-RM-FALLBACK", 1, "A1", "fallback", eventIdOut, report)
+
+    If Not queued _
+       And eventIdOut = "" _
+       And InStr(1, report, "NAS warehouse target", vbTextCompare) > 0 Then
+        TestRoleWriteCurrent_RejectsFallbackTarget = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH91"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestRoleWriteCurrent_AllowsSignedInReceivePost() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+    Dim eventIdOut As String
+    Dim queued As Boolean
+
+    rootPath = BuildRuntimeTestRoot("phase6_role_write_receive_ok")
+    authPath = rootPath & "\WH92.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    modAuth.SignOut
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH92", "S18", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH92", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH92", "S18", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S18", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target, "RECEIVE_POST")
+    If authStatus <> AUTH_OK Then GoTo CleanExit
+
+    report = ""
+    queued = modRoleEventWriter.QueueReceiveEventCurrent("", "SKU-RM-ALLOW", 2, "A1", "allowed", eventIdOut, report)
+
+    If queued _
+       And eventIdOut <> "" _
+       And report = "" Then
+        TestRoleWriteCurrent_AllowsSignedInReceivePost = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH92"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook() As Long
     Dim rootPath As String
     Dim wb As Workbook

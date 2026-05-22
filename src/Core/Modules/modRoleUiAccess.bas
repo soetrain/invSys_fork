@@ -12,9 +12,38 @@ Public Function CanCurrentUserPerformCapability(ByVal capability As String, _
     Dim resolvedWh As String
     Dim resolvedSt As String
     Dim resolvedUser As String
+    Dim currentTarget As WarehouseTarget
 
     resolvedWh = Trim$(warehouseId)
     resolvedSt = Trim$(stationId)
+
+    If CapabilityRequiresNasTargetAccess(capability) Then
+        If Not modNasConnection.IsCurrentTargetAllowed(True) Then
+            errorMessage = "A connected NAS warehouse target is required before using role controls."
+            Exit Function
+        End If
+        If Not modAuth.IsSignedIn() Then
+            errorMessage = "Current invSys user is not signed in."
+            Exit Function
+        End If
+        resolvedUser = Trim$(userId)
+        If resolvedUser = "" Then resolvedUser = Trim$(modAuth.GetCurrentUserId())
+        If resolvedUser = "" Then
+            errorMessage = "Current invSys user is not signed in."
+            Exit Function
+        End If
+        If StrComp(resolvedUser, Trim$(modAuth.GetCurrentUserId()), vbTextCompare) <> 0 Then
+            errorMessage = "Requested user does not match the signed-in invSys user."
+            Exit Function
+        End If
+        Set currentTarget = modNasConnection.GetCurrentTarget()
+        If currentTarget Is Nothing Then
+            errorMessage = "A connected NAS warehouse target is required before using role controls."
+            Exit Function
+        End If
+        If resolvedWh = "" Then resolvedWh = currentTarget.WarehouseId
+        If resolvedSt = "" Then resolvedSt = currentTarget.StationId
+    End If
 
     If Not modConfig.LoadConfig(resolvedWh, resolvedSt) Then
         errorMessage = "Config load failed: " & modConfig.Validate()
@@ -46,6 +75,13 @@ Public Function CanCurrentUserPerformCapability(ByVal capability As String, _
     End If
 
     CanCurrentUserPerformCapability = True
+End Function
+
+Private Function CapabilityRequiresNasTargetAccess(ByVal capability As String) As Boolean
+    Select Case UCase$(Trim$(capability))
+        Case "RECEIVE_POST", "SHIP_POST", "PROD_POST"
+            CapabilityRequiresNasTargetAccess = True
+    End Select
 End Function
 
 Public Function RequireCurrentUserCapability(ByVal capability As String, _

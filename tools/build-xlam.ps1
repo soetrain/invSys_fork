@@ -449,6 +449,21 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add('    returnedVal = "User: " & userId')
     [void]$lines.Add("End Sub")
     [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonRequiredCapabilityGetEnabled(control As IRibbonControl, ByRef returnedVal)")
+    [void]$lines.Add("    Select Case control.ID")
+    foreach ($group in $RibbonConfig.Groups) {
+        foreach ($button in $group.Buttons) {
+            if ($button.ContainsKey("RequiredCapability") -and -not [string]::IsNullOrWhiteSpace($button.RequiredCapability)) {
+                [void]$lines.Add(("        Case ""{0}""" -f $button.Id))
+                [void]$lines.Add(("            returnedVal = modRoleUiAccess.CanCurrentUserPerformCapability(""{0}"")" -f $button.RequiredCapability))
+            }
+        }
+    }
+    [void]$lines.Add("        Case Else")
+    [void]$lines.Add("            returnedVal = True")
+    [void]$lines.Add("    End Select")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonWarehouseGetItemCount(control As IRibbonControl, ByRef returnedVal)")
     [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetWarehouseTargetCount()")
     [void]$lines.Add("End Sub")
@@ -506,7 +521,11 @@ function Get-RibbonXml {
             if ($button.ContainsKey("GetLabel") -and -not [string]::IsNullOrWhiteSpace($button.GetLabel)) {
                 $labelXml = (' getLabel="{0}"' -f $button.GetLabel)
             }
-            [void]$xml.AppendLine(("          <button id=""{0}""{1} size=""large"" showImage=""{2}""{3}{4} onAction=""{5}""/>" -f $button.Id, $labelXml, $showImage, $imageXml, $screentipXml, $RibbonConfig.CallbackName))
+            $enabledXml = ""
+            if ($button.ContainsKey("RequiredCapability") -and -not [string]::IsNullOrWhiteSpace($button.RequiredCapability)) {
+                $enabledXml = ' getEnabled="RibbonRequiredCapabilityGetEnabled"'
+            }
+            [void]$xml.AppendLine(("          <button id=""{0}""{1} size=""large"" showImage=""{2}""{3}{4}{5} onAction=""{6}""/>" -f $button.Id, $labelXml, $showImage, $imageXml, $screentipXml, $enabledXml, $RibbonConfig.CallbackName))
         }
         if ($group.ContainsKey("WarehouseSelector")) {
             $selector = $group.WarehouseSelector

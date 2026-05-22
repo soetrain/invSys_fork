@@ -445,6 +445,12 @@ Public Function IsCurrentTargetAllowed(Optional ByVal requireNasTarget As Boolea
     IsCurrentTargetAllowed = IsWarehouseTargetAllowed(m_CurrentTarget, requireNasTarget)
 End Function
 
+Public Function SetCurrentTargetSourceTypeForTest(ByVal sourceType As WH_SourceType) As Boolean
+    If m_CurrentTarget Is Nothing Then Exit Function
+    m_CurrentTarget.SourceType = sourceType
+    SetCurrentTargetSourceTypeForTest = True
+End Function
+
 Public Sub RememberTarget(ByVal target As WarehouseTarget)
     If target Is Nothing Then Exit Sub
     SaveSetting SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_REMEMBERED_TARGET, SerializeTargetNas(target)

@@ -73,15 +73,33 @@ function Get-RibbonButtons {
     $result = @{}
     $buttons = $doc.SelectNodes("//cu:button", $ns)
     foreach ($button in $buttons) {
+        $label = ""
+        if ($null -ne $button.Attributes["label"]) {
+            $label = [string]$button.Attributes["label"].Value
+        }
+        $getLabel = ""
+        if ($null -ne $button.Attributes["getLabel"]) {
+            $getLabel = [string]$button.Attributes["getLabel"].Value
+        }
+        $onAction = ""
+        if ($null -ne $button.Attributes["onAction"]) {
+            $onAction = [string]$button.Attributes["onAction"].Value
+        }
         $screentip = ""
         if ($null -ne $button.Attributes["screentip"]) {
             $screentip = [string]$button.Attributes["screentip"].Value
         }
+        $getEnabled = ""
+        if ($null -ne $button.Attributes["getEnabled"]) {
+            $getEnabled = [string]$button.Attributes["getEnabled"].Value
+        }
         $result[$button.id] = [pscustomobject]@{
-            Id        = [string]$button.id
-            Label     = [string]$button.label
-            OnAction  = [string]$button.onAction
-            Screentip = $screentip
+            Id         = [string]$button.id
+            Label      = $label
+            GetLabel   = $getLabel
+            OnAction   = $onAction
+            Screentip  = $screentip
+            GetEnabled = $getEnabled
         }
     }
 
@@ -164,10 +182,10 @@ $ribbonSpecs = @(
         File = "invSys.Receiving.xlam"
         Callback = "RibbonOnActionReceiving"
         Buttons = @(
-            @{ Id = "btnReceivingSetup"; Label = "Setup UI"; Macro = "modTS_Received.EnsureGeneratedButtons"; Execute = $true },
-            @{ Id = "btnReceivingConfirm"; Label = "Confirm Writes"; Macro = "modTS_Received.ConfirmWrites"; Execute = $false },
-            @{ Id = "btnReceivingUndo"; Label = "Undo"; Macro = "modTS_Received.MacroUndo"; Execute = $false },
-            @{ Id = "btnReceivingRedo"; Label = "Redo"; Macro = "modTS_Received.MacroRedo"; Execute = $false }
+            @{ Id = "btnReceivingSetup"; Label = "Setup UI"; Macro = "modTS_Received.EnsureGeneratedButtons"; Execute = $false; RequiredCapability = "RECEIVE_POST" },
+            @{ Id = "btnReceivingConfirm"; Label = "Confirm Writes"; Macro = "modTS_Received.ConfirmWrites"; Execute = $false; RequiredCapability = "RECEIVE_POST" },
+            @{ Id = "btnReceivingUndo"; Label = "Undo"; Macro = "modTS_Received.MacroUndo"; Execute = $false; RequiredCapability = "RECEIVE_POST" },
+            @{ Id = "btnReceivingRedo"; Label = "Redo"; Macro = "modTS_Received.MacroRedo"; Execute = $false; RequiredCapability = "RECEIVE_POST" }
         )
     }
     @{
@@ -175,10 +193,10 @@ $ribbonSpecs = @(
         File = "invSys.Shipping.xlam"
         Callback = "RibbonOnActionShipping"
         Buttons = @(
-            @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; Execute = $true },
-            @{ Id = "btnShippingConfirm"; Label = "Confirm Inventory"; Macro = "modTS_Shipments.BtnConfirmInventory"; Execute = $false },
-            @{ Id = "btnShippingStage"; Label = "To Shipments"; Macro = "modTS_Shipments.BtnToShipments"; Execute = $false },
-            @{ Id = "btnShippingSend"; Label = "Shipments Sent"; Macro = "modTS_Shipments.BtnShipmentsSent"; Execute = $false }
+            @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; Execute = $false; RequiredCapability = "SHIP_POST" },
+            @{ Id = "btnShippingConfirm"; Label = "Confirm Inventory"; Macro = "modTS_Shipments.BtnConfirmInventory"; Execute = $false; RequiredCapability = "SHIP_POST" },
+            @{ Id = "btnShippingStage"; Label = "To Shipments"; Macro = "modTS_Shipments.BtnToShipments"; Execute = $false; RequiredCapability = "SHIP_POST" },
+            @{ Id = "btnShippingSend"; Label = "Shipments Sent"; Macro = "modTS_Shipments.BtnShipmentsSent"; Execute = $false; RequiredCapability = "SHIP_POST" }
         )
     }
     @{
@@ -186,12 +204,12 @@ $ribbonSpecs = @(
         File = "invSys.Production.xlam"
         Callback = "RibbonOnActionProduction"
         Buttons = @(
-            @{ Id = "btnProductionSetup"; Label = "Setup UI"; Macro = "mProduction.InitializeProductionUI"; Execute = $true },
-            @{ Id = "btnProductionLoad"; Label = "Load Recipe"; Macro = "mProduction.BtnLoadRecipe"; Execute = $false },
-            @{ Id = "btnProductionUsed"; Label = "To Used"; Macro = "mProduction.BtnToUsed"; Execute = $false },
-            @{ Id = "btnProductionMade"; Label = "To Made"; Macro = "mProduction.BtnToMade"; Execute = $false },
-            @{ Id = "btnProductionTotal"; Label = "To Total Inv"; Macro = "mProduction.BtnToTotalInv"; Execute = $false },
-            @{ Id = "btnProductionPrintCodes"; Label = "Print Recall Codes"; Macro = "mProduction.BtnPrintRecallCodes"; Execute = $false }
+            @{ Id = "btnProductionSetup"; Label = "Setup UI"; Macro = "mProduction.InitializeProductionUI"; Execute = $false; RequiredCapability = "PROD_POST" },
+            @{ Id = "btnProductionLoad"; Label = "Load Recipe"; Macro = "mProduction.BtnLoadRecipe"; Execute = $false; RequiredCapability = "PROD_POST" },
+            @{ Id = "btnProductionUsed"; Label = "To Used"; Macro = "mProduction.BtnToUsed"; Execute = $false; RequiredCapability = "PROD_POST" },
+            @{ Id = "btnProductionMade"; Label = "To Made"; Macro = "mProduction.BtnToMade"; Execute = $false; RequiredCapability = "PROD_POST" },
+            @{ Id = "btnProductionTotal"; Label = "To Total Inv"; Macro = "mProduction.BtnToTotalInv"; Execute = $false; RequiredCapability = "PROD_POST" },
+            @{ Id = "btnProductionPrintCodes"; Label = "Print Recall Codes"; Macro = "mProduction.BtnPrintRecallCodes"; Execute = $false; RequiredCapability = "PROD_POST" }
         )
     }
     @{
@@ -199,8 +217,8 @@ $ribbonSpecs = @(
         File = "invSys.Admin.xlam"
         Callback = "RibbonOnActionAdmin"
         Buttons = @(
-            @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; Execute = $true },
-            @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; Execute = $true },
+            @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; Execute = $false },
+            @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; Execute = $false },
             @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; Execute = $false },
             @{ Id = "btnAdminSetupTesterStation"; Label = "Setup Tester Station"; Macro = "modAdmin.Admin_SetupTesterStation_Click"; Execute = $false },
             @{ Id = "btnAdminVerifyAddinsPublished"; Label = "Verify Add-ins Published"; Macro = "modAdmin.Verify_AddinsPublished"; Execute = $false },
@@ -276,17 +294,23 @@ try {
             $buttonId = [string]$button.Id
             if ($buttons.ContainsKey($buttonId)) {
                 $buttonInfo = $buttons[$buttonId]
-                $detail = "Label=$($buttonInfo.Label); OnAction=$($buttonInfo.OnAction); Screentip=$($buttonInfo.Screentip)"
+                $detail = "Label=$($buttonInfo.Label); OnAction=$($buttonInfo.OnAction); GetEnabled=$($buttonInfo.GetEnabled); Screentip=$($buttonInfo.Screentip)"
                 $passed = ($buttonInfo.Label -eq $button.Label -and $buttonInfo.OnAction -eq $spec.Callback)
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButton.$buttonId" -Passed $passed -Detail $detail
                 if ($button.ContainsKey("Screentip")) {
                     Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButtonScreentip.$buttonId" -Passed ($buttonInfo.Screentip -eq $button.Screentip) -Detail $buttonInfo.Screentip
+                }
+                if ($button.ContainsKey("RequiredCapability")) {
+                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButtonGetEnabled.$buttonId" -Passed ($buttonInfo.GetEnabled -eq "RibbonRequiredCapabilityGetEnabled") -Detail $buttonInfo.GetEnabled
                 }
             }
             else {
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButton.$buttonId" -Passed $false -Detail "Button missing from Ribbon XML."
                 if ($button.ContainsKey("Screentip")) {
                     Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButtonScreentip.$buttonId" -Passed $false -Detail "Button missing from Ribbon XML."
+                }
+                if ($button.ContainsKey("RequiredCapability")) {
+                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButtonGetEnabled.$buttonId" -Passed $false -Detail "Button missing from Ribbon XML."
                 }
             }
 
@@ -296,6 +320,10 @@ try {
             $callbackHasButton = (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -and $callbackModuleText.Contains($buttonId)
             $callbackHasMacro = (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -and $callbackModuleText.Contains($macroName)
             Add-ResultRow -Rows $resultRows -Check "$($spec.Name).CallbackMap.$buttonId" -Passed ($callbackHasButton -and $callbackHasMacro) -Detail "$buttonId -> $macroName"
+            if ($button.ContainsKey("RequiredCapability")) {
+                $callbackHasEnabled = (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -and $callbackModuleText.Contains("RibbonRequiredCapabilityGetEnabled") -and $callbackModuleText.Contains([string]$button.RequiredCapability)
+                Add-ResultRow -Rows $resultRows -Check "$($spec.Name).CallbackGetEnabled.$buttonId" -Passed $callbackHasEnabled -Detail "$buttonId -> $($button.RequiredCapability)"
+            }
 
             if ($button.Execute) {
                 try {

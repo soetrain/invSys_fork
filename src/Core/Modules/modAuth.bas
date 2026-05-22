@@ -3,6 +3,19 @@ Option Explicit
 
 Public Const ERR_AUTH_DENIED As Long = vbObjectError + 7200
 
+Public Enum AuthStatusCode
+    AUTH_OK = 0
+    AUTH_CANCELLED = 1
+    AUTH_WAREHOUSE_MISMATCH = 2
+    AUTH_USER_NOT_FOUND = 3
+    AUTH_CREDENTIAL_REJECTED = 4
+    AUTH_WORKBOOK_UNREADABLE = 5
+    AUTH_NO_CAPABILITIES = 6
+    AUTH_NOT_SIGNED_IN = 7
+    AUTH_REAUTH_REQUIRED = 8
+    AUTH_CACHE_EXPIRED = 9
+End Enum
+
 Private mUsers As Object
 Private mAllowCaps As Collection
 Private mDenyCaps As Collection
@@ -11,6 +24,11 @@ Private mAuthWorkbook As String
 Private mIsLoaded As Boolean
 Private mLoadedAt As Date
 Private mCacheTtlSeconds As Long
+Private mCurrentUserId As String
+Private mCurrentAuthStatus As AuthStatusCode
+Private mSignedInWarehouseId As String
+Private mSignedInStationId As String
+Private mSignedInAt As Date
 
 Public Function LoadAuth(Optional ByVal whId As String = "") As Boolean
     On Error GoTo FailLoad
@@ -113,6 +131,156 @@ End Function
 
 Public Function GetResolvedAuthWorkbookName() As String
     GetResolvedAuthWorkbookName = SafeTrim(mAuthWorkbook)
+End Function
+
+Public Function ValidateUserCredentialForTarget(ByVal userId As String, _
+                                                ByVal secretText As String, _
+                                                ByVal target As WarehouseTarget, _
+                                                Optional ByVal requiredCapability As String = "") As AuthStatusCode
+    On Error GoTo FailValidate
+
+    Dim normalizedUser As String
+    Dim normalizedCapability As String
+    Dim priorRootOverride As String
+    Dim configLoaded As Boolean
+    Dim authLoaded As Boolean
+
+    normalizedUser = SafeTrim(userId)
+    normalizedCapability = UCase$(SafeTrim(requiredCapability))
+    If target Is Nothing Then
+        SetAuthFailureStatus AUTH_WAREHOUSE_MISMATCH
+        ValidateUserCredentialForTarget = AUTH_WAREHOUSE_MISMATCH
+        Exit Function
+    End If
+    If normalizedUser = "" Then
+        SetAuthFailureStatus AUTH_USER_NOT_FOUND
+        ValidateUserCredentialForTarget = AUTH_USER_NOT_FOUND
+        Exit Function
+    End If
+    If Len(secretText) = 0 Then
+        SetAuthFailureStatus AUTH_CREDENTIAL_REJECTED
+        ValidateUserCredentialForTarget = AUTH_CREDENTIAL_REJECTED
+        Exit Function
+    End If
+
+    priorRootOverride = modRuntimeWorkbooks.GetCoreDataRootOverride()
+    If SafeTrim(target.RuntimeRoot) <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride target.RuntimeRoot
+    configLoaded = modConfig.LoadConfig(target.WarehouseId, target.StationId)
+    authLoaded = LoadAuth(target.WarehouseId)
+    RestoreRootOverrideAuth priorRootOverride
+
+    If Not configLoaded Or Not authLoaded Then
+        SetAuthFailureStatus AUTH_WORKBOOK_UNREADABLE
+        ValidateUserCredentialForTarget = AUTH_WORKBOOK_UNREADABLE
+        Exit Function
+    End If
+    If mUsers Is Nothing Then
+        SetAuthFailureStatus AUTH_WORKBOOK_UNREADABLE
+        ValidateUserCredentialForTarget = AUTH_WORKBOOK_UNREADABLE
+        Exit Function
+    End If
+    If Not mUsers.Exists(normalizedUser) Then
+        SetAuthFailureStatus AUTH_USER_NOT_FOUND
+        ValidateUserCredentialForTarget = AUTH_USER_NOT_FOUND
+        Exit Function
+    End If
+    If Not ValidateUserCredentialForCapability(normalizedUser, secretText, normalizedCapability) Then
+        If normalizedCapability <> "" Then
+            If UserSecretMatchesAuth(normalizedUser, secretText) Then
+                SetAuthFailureStatus AUTH_NO_CAPABILITIES
+                ValidateUserCredentialForTarget = AUTH_NO_CAPABILITIES
+                Exit Function
+            End If
+        End If
+        SetAuthFailureStatus AUTH_CREDENTIAL_REJECTED
+        ValidateUserCredentialForTarget = AUTH_CREDENTIAL_REJECTED
+        Exit Function
+    End If
+
+    mCurrentUserId = normalizedUser
+    mSignedInWarehouseId = target.WarehouseId
+    mSignedInStationId = target.StationId
+    mSignedInAt = Now
+    SetAuthSessionStatus AUTH_OK
+    On Error Resume Next
+    modRoleEventWriter.SetCurrentUserId normalizedUser
+    On Error GoTo 0
+    ValidateUserCredentialForTarget = AUTH_OK
+    Exit Function
+
+FailValidate:
+    RestoreRootOverrideAuth priorRootOverride
+    SetAuthFailureStatus AUTH_WORKBOOK_UNREADABLE
+    ValidateUserCredentialForTarget = AUTH_WORKBOOK_UNREADABLE
+End Function
+
+Public Function ShowSignInPrompt(ByVal target As WarehouseTarget, _
+                                 Optional ByVal requiredCapability As String = "") As AuthStatusCode
+    On Error GoTo FailPrompt
+
+    Dim frm As frmSignIn
+
+    If target Is Nothing Then
+        SetAuthFailureStatus AUTH_WAREHOUSE_MISMATCH
+        ShowSignInPrompt = AUTH_WAREHOUSE_MISMATCH
+        Exit Function
+    End If
+
+    Set frm = New frmSignIn
+    frm.InitializeSignIn target, requiredCapability
+    frm.Show vbModal
+    ShowSignInPrompt = frm.ResultStatus
+    Unload frm
+    Exit Function
+
+FailPrompt:
+    On Error Resume Next
+    If Not frm Is Nothing Then Unload frm
+    On Error GoTo 0
+    SetAuthFailureStatus AUTH_WORKBOOK_UNREADABLE
+    ShowSignInPrompt = AUTH_WORKBOOK_UNREADABLE
+End Function
+
+Public Sub SignOut()
+    mCurrentUserId = vbNullString
+    mSignedInWarehouseId = vbNullString
+    mSignedInStationId = vbNullString
+    mSignedInAt = 0
+    SetAuthSessionStatus AUTH_NOT_SIGNED_IN
+    On Error Resume Next
+    modRoleEventWriter.SetCurrentUserId vbNullString
+    On Error GoTo 0
+End Sub
+
+Public Function GetCurrentUserId() As String
+    GetCurrentUserId = mCurrentUserId
+End Function
+
+Public Function IsSignedIn() As Boolean
+    If mCurrentUserId = "" Then
+        If mCurrentAuthStatus = AUTH_OK Then SetAuthSessionStatus AUTH_NOT_SIGNED_IN
+        Exit Function
+    End If
+    If mCurrentAuthStatus <> AUTH_OK Then Exit Function
+    If mCacheTtlSeconds <= 0 Then mCacheTtlSeconds = 300
+    If DateDiff("s", mSignedInAt, Now) > mCacheTtlSeconds Then
+        SetAuthSessionStatus AUTH_REAUTH_REQUIRED
+        Exit Function
+    End If
+    IsSignedIn = True
+End Function
+
+Public Function GetAuthStatus() As AuthStatusCode
+    If mCurrentAuthStatus = AUTH_OK Then
+        If Not IsSignedIn() Then
+            GetAuthStatus = mCurrentAuthStatus
+            Exit Function
+        End If
+    End If
+    If mCurrentAuthStatus = 0 And mCurrentUserId = "" Then
+        mCurrentAuthStatus = AUTH_NOT_SIGNED_IN
+    End If
+    GetAuthStatus = mCurrentAuthStatus
 End Function
 
 Public Function CanPerform(ByVal capability As String, _
@@ -509,6 +677,39 @@ Private Function EnsureFreshCache() As Boolean
 
     EnsureFreshCache = ReloadAuth()
 End Function
+
+Private Sub SetAuthSessionStatus(ByVal statusCode As AuthStatusCode)
+    mCurrentAuthStatus = statusCode
+End Sub
+
+Private Sub SetAuthFailureStatus(ByVal statusCode As AuthStatusCode)
+    If mCurrentUserId <> "" And mCurrentAuthStatus = AUTH_OK Then Exit Sub
+    mCurrentAuthStatus = statusCode
+End Sub
+
+Private Function UserSecretMatchesAuth(ByVal userId As String, ByVal secretText As String) As Boolean
+    Dim userInfo As Object
+    Dim expectedHash As String
+
+    userId = SafeTrim(userId)
+    If userId = "" Or Len(secretText) = 0 Then Exit Function
+    If mUsers Is Nothing Then Exit Function
+    If Not mUsers.Exists(userId) Then Exit Function
+    If Not IsUserActive(userId, Now) Then Exit Function
+
+    Set userInfo = mUsers(userId)
+    expectedHash = SafeTrim(GetUserPinHashAuth(userInfo))
+    If expectedHash = "" Then Exit Function
+    UserSecretMatchesAuth = (StrComp(expectedHash, HashUserCredential(secretText), vbTextCompare) = 0)
+End Function
+
+Private Sub RestoreRootOverrideAuth(ByVal priorRootOverride As String)
+    If SafeTrim(priorRootOverride) = "" Then
+        modRuntimeWorkbooks.ClearCoreDataRootOverride
+    Else
+        modRuntimeWorkbooks.SetCoreDataRootOverride priorRootOverride
+    End If
+End Sub
 
 Private Sub LoadUsers(ByVal loUsers As ListObject)
     Dim i As Long

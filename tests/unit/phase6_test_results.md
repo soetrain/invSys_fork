@@ -1,7 +1,7 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-05-21 15:44:26
-- Passed: 95
+- Date: 2026-05-21 18:08:22
+- Passed: 103
 - Failed: 11
 
 | Test | Result |
@@ -13,6 +13,14 @@
 | TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_UnreachableFailsClosed | PASS |
 | TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_ReachableRecomputesCachedHints | PASS |
 | TestPhase6CoreSurfaces.TestNasFallbackPolicy_RoleRejectsFallbackAdminAccepts | PASS |
+| TestPhase6CoreSurfaces.TestAuthValidateUserCredentialForTarget_SignsInAndStatusOk | PASS |
+| TestPhase6CoreSurfaces.TestAuthFailedCredential_DoesNotReplaceSignedInUser | PASS |
+| TestPhase6CoreSurfaces.TestAuthCorrectCredentialWithoutCapability_ReturnsNoCapabilities | PASS |
+| TestPhase6CoreSurfaces.TestRuntimeStatusUserLabel_TracksAuthSignIn | PASS |
+| TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsUnsignedUser | PASS |
+| TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsMissingCapability | PASS |
+| TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsFallbackTarget | PASS |
+| TestPhase6CoreSurfaces.TestRoleWriteCurrent_AllowsSignedInReceivePost | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_AllPresent | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_OneMissingLogsDiagnostic | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_ZeroByteFileLogsDiagnostic | PASS |
