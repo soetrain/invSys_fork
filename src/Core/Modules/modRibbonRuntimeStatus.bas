@@ -21,6 +21,7 @@ Public Sub InvalidateCurrentUserRibbons()
 
     On Error Resume Next
     For Each ribbon In mRibbonUis
+        ribbon.Invalidate
         ribbon.InvalidateControl "btnReceivingCurrentUser"
         ribbon.InvalidateControl "btnShippingCurrentUser"
         ribbon.InvalidateControl "btnProductionCurrentUser"
@@ -50,6 +51,18 @@ Public Function GetStatusLabel(ByVal controlId As String) As String
         Case Else
             GetStatusLabel = "Runtime context"
     End Select
+End Function
+
+Public Function GetServerStatusLabel(ByVal controlId As String) As String
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If modNasConnection.IsCurrentTargetAllowed(True) And Not target Is Nothing Then
+        GetServerStatusLabel = "Server: Connected - " & target.WarehouseId
+        If Trim$(target.StationId) <> "" Then GetServerStatusLabel = GetServerStatusLabel & " / " & target.StationId
+    Else
+        GetServerStatusLabel = "Server: Not connected"
+    End If
 End Function
 
 Public Function GetWarehouseTargetCount() As Long
@@ -335,8 +348,11 @@ Private Function ResolveHqAggregatorLabelStatus() As String
 End Function
 
 Private Function ResolveRuntimeUserStatus() As String
-    ResolveRuntimeUserStatus = Trim$(modRoleEventWriter.ResolveCurrentUserId())
-    If ResolveRuntimeUserStatus = "" Then ResolveRuntimeUserStatus = Trim$(Application.UserName)
+    If modAuth.IsSignedIn() Then
+        ResolveRuntimeUserStatus = Trim$(modAuth.GetCurrentUserId())
+    Else
+        ResolveRuntimeUserStatus = "<not signed in>"
+    End If
 End Function
 
 Private Function ValueOrPlaceholderStatus(ByVal valueIn As String) As String

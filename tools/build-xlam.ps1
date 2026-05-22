@@ -434,6 +434,10 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetStatusLabel(control.ID)")
     [void]$lines.Add("End Sub")
     [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonServerStatusGetLabel(control As IRibbonControl, ByRef returnedVal)")
+    [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetServerStatusLabel(control.ID)")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonRuntimeStatusRefresh(control As IRibbonControl)")
     [void]$lines.Add("    modRibbonRuntimeStatus.RefreshRuntimeContext")
     [void]$lines.Add("End Sub")
@@ -444,9 +448,13 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonCurrentUserGetLabel(control As IRibbonControl, ByRef returnedVal)")
     [void]$lines.Add("    Dim userId As String")
-    [void]$lines.Add('    userId = Trim$(modRoleEventWriter.ResolveCurrentUserId())')
-    [void]$lines.Add('    If userId = "" Then userId = "<not set>"')
-    [void]$lines.Add('    returnedVal = "User: " & userId')
+    [void]$lines.Add("    If modAuth.IsSignedIn() Then")
+    [void]$lines.Add('        userId = Trim$(modAuth.GetCurrentUserId())')
+    [void]$lines.Add('        If userId = "" Then userId = "<not signed in>"')
+    [void]$lines.Add('        returnedVal = "User: " & userId')
+    [void]$lines.Add("    Else")
+    [void]$lines.Add('        returnedVal = "Sign In"')
+    [void]$lines.Add("    End If")
     [void]$lines.Add("End Sub")
     [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonRequiredCapabilityGetEnabled(control As IRibbonControl, ByRef returnedVal)")
@@ -527,6 +535,14 @@ function Get-RibbonXml {
             }
             [void]$xml.AppendLine(("          <button id=""{0}""{1} size=""large"" showImage=""{2}""{3}{4}{5} onAction=""{6}""/>" -f $button.Id, $labelXml, $showImage, $imageXml, $screentipXml, $enabledXml, $RibbonConfig.CallbackName))
         }
+        if ($group.ContainsKey("StatusLabels")) {
+            foreach ($statusLabel in $group.StatusLabels) {
+                if ($null -eq $statusLabel) {
+                    continue
+                }
+                [void]$xml.AppendLine(("          <labelControl id=""{0}"" getLabel=""{1}""/>" -f $statusLabel.Id, $statusLabel.GetLabel))
+            }
+        }
         if ($group.ContainsKey("WarehouseSelector")) {
             $selector = $group.WarehouseSelector
             [void]$xml.AppendLine(("          <dropDown id=""{0}"" label=""{1}"" getItemCount=""RibbonWarehouseGetItemCount"" getItemLabel=""RibbonWarehouseGetItemLabel"" getSelectedItemIndex=""RibbonWarehouseGetSelectedItemIndex"" onAction=""RibbonWarehouseOnAction""/>" -f $selector.Id, $selector.Label))
@@ -550,7 +566,7 @@ function Get-RibbonXml {
                     [void]$xml.AppendLine(("            <button id=""{0}"" getLabel=""RibbonRuntimeStatusGetLabel"" enabled=""false""/>" -f $statusButton.Id))
                 }
                 [void]$xml.AppendLine("            <menuSeparator id=""sepRuntimeContextRefresh""/>")
-                [void]$xml.AppendLine("            <button id=""btnRuntimeSetUser"" label=""Set Current User"" imageMso=""ContactCard"" onAction=""RibbonRuntimeUserPrompt""/>")
+                [void]$xml.AppendLine("            <button id=""btnRuntimeSetUser"" label=""Sign In"" imageMso=""ContactCard"" onAction=""RibbonRuntimeUserPrompt""/>")
                 [void]$xml.AppendLine(("            <button id=""{0}"" label=""Refresh / Details"" imageMso=""Refresh"" onAction=""RibbonRuntimeStatusRefresh""/>" -f $menu.RefreshButtonId))
                 [void]$xml.AppendLine("          </menu>")
             }
@@ -720,11 +736,16 @@ $projectMap = @(
                         }
                     )
                     Buttons = @(
-                        @{ Id = "btnReceivingCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""RECEIVE_POST"""; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
+                        @{ Id = "btnReceivingConnectServer"; Label = "Connect Server"; DirectAction = "modRoleEventWriter.ConnectWarehouseStorageForCapability ""RECEIVE_POST"""; ImageMso = "FileOpen"; Screentip = "Connect to warehouse storage" },
+                        @{ Id = "btnReceivingCurrentUser"; Label = "Sign In"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""RECEIVE_POST"""; ImageMso = "AddressBook"; Screentip = "Sign in as an invSys user" },
+                        @{ Id = "btnReceivingSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; ImageMso = "Clear"; Screentip = "Sign out of invSys without disconnecting storage" },
                         @{ Id = "btnReceivingSetup"; Label = "Setup UI"; Macro = "modTS_Received.EnsureGeneratedButtons"; ImageMso = "FileNew"; RequiredCapability = "RECEIVE_POST" },
                         @{ Id = "btnReceivingConfirm"; Label = "Confirm Writes"; Macro = "modTS_Received.ConfirmWrites"; ImageMso = "FileSave"; RequiredCapability = "RECEIVE_POST" },
                         @{ Id = "btnReceivingUndo"; Label = "Undo"; Macro = "modTS_Received.MacroUndo"; ImageMso = "Undo"; RequiredCapability = "RECEIVE_POST" },
                         @{ Id = "btnReceivingRedo"; Label = "Redo"; Macro = "modTS_Received.MacroRedo"; ImageMso = "Redo"; RequiredCapability = "RECEIVE_POST" }
+                    )
+                    StatusLabels = @(
+                        @{ Id = "lblReceivingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
                     )
                 }
             )
@@ -768,13 +789,18 @@ $projectMap = @(
                         }
                     )
                     Buttons = @(
-                        @{ Id = "btnShippingCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""SHIP_POST"""; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
+                        @{ Id = "btnShippingConnectServer"; Label = "Connect Server"; DirectAction = "modRoleEventWriter.ConnectWarehouseStorageForCapability ""SHIP_POST"""; ImageMso = "FileOpen"; Screentip = "Connect to warehouse storage" },
+                        @{ Id = "btnShippingCurrentUser"; Label = "Sign In"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""SHIP_POST"""; ImageMso = "AddressBook"; Screentip = "Sign in as an invSys user" },
+                        @{ Id = "btnShippingSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; ImageMso = "Clear"; Screentip = "Sign out of invSys without disconnecting storage" },
                         @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; ImageMso = "FileNew"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder"; ImageMso = "Repeat"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingUnship"; Label = "Toggle NotShipped"; Macro = "modTS_Shipments.BtnUnship"; ImageMso = "Clear"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingHold"; Label = "Send To Hold"; Macro = "modTS_Shipments.BtnSendHold"; ImageMso = "Cut"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingReturnHold"; Label = "Return From Hold"; Macro = "modTS_Shipments.BtnReturnHold"; ImageMso = "Paste"; RequiredCapability = "SHIP_POST" }
+                    )
+                    StatusLabels = @(
+                        @{ Id = "lblShippingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
                     )
                 }
                 @{
@@ -829,10 +855,15 @@ $projectMap = @(
                         }
                     )
                     Buttons = @(
-                        @{ Id = "btnProductionCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""PROD_POST"""; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
+                        @{ Id = "btnProductionConnectServer"; Label = "Connect Server"; DirectAction = "modRoleEventWriter.ConnectWarehouseStorageForCapability ""PROD_POST"""; ImageMso = "FileOpen"; Screentip = "Connect to warehouse storage" },
+                        @{ Id = "btnProductionCurrentUser"; Label = "Sign In"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""PROD_POST"""; ImageMso = "AddressBook"; Screentip = "Sign in as an invSys user" },
+                        @{ Id = "btnProductionSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; ImageMso = "Clear"; Screentip = "Sign out of invSys without disconnecting storage" },
                         @{ Id = "btnProductionSetup"; Label = "Setup UI"; Macro = "mProduction.InitializeProductionUI"; ImageMso = "FileNew"; RequiredCapability = "PROD_POST" },
                         @{ Id = "btnProductionHide"; Label = "Hide System"; Macro = "mProduction.BtnHideSystem"; ImageMso = "Clear"; RequiredCapability = "PROD_POST" },
                         @{ Id = "btnProductionShow"; Label = "Show System"; Macro = "mProduction.BtnShowSystem"; ImageMso = "FileOpen"; RequiredCapability = "PROD_POST" }
+                    )
+                    StatusLabels = @(
+                        @{ Id = "lblProductionServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
                     )
                 }
                 @{
@@ -883,7 +914,9 @@ $projectMap = @(
                     Label   = "Actions"
                     Buttons = @(
                         @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; ImageMso = "FileOpen" },
-                        @{ Id = "btnAdminCurrentUser"; Label = "Current User"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""ADMIN_MAINT"""; ImageMso = "AddressBook"; Screentip = "Set the invSys user used for posts and logs" },
+                        @{ Id = "btnAdminConnectServer"; Label = "Connect Server"; DirectAction = "modRoleEventWriter.ConnectWarehouseStorageForCapability ""ADMIN_MAINT"""; ImageMso = "FileOpen"; Screentip = "Connect to warehouse storage" },
+                        @{ Id = "btnAdminCurrentUser"; Label = "Sign In"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""ADMIN_MAINT"""; ImageMso = "AddressBook"; Screentip = "Sign in as an invSys user" },
+                        @{ Id = "btnAdminSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; ImageMso = "Clear"; Screentip = "Sign out of invSys without disconnecting storage" },
                         @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; ImageMso = "FileOpen" },
                         @{ Id = "btnAdminWarehouses"; Label = "View Warehouses"; Macro = "modAdmin.Open_WarehouseDirectory"; ImageMso = "TablePropertiesDialog" },
                         @{ Id = "btnAdminWarehouseRoot"; Label = "Add Warehouse Root"; Macro = "modAdmin.Add_WarehouseDirectoryRoot"; ImageMso = "Folder" },

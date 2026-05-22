@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmWarehouseConnection
-   Caption         =   "Connect / Select Warehouse"
+   Caption         =   "Connect Warehouse Storage"
    ClientHeight    =   3600
    ClientLeft      =   120
    ClientTop       =   465
@@ -36,7 +36,7 @@ Private Const COLOR_WARNING As Long = 192
 Private Const COLOR_ERROR As Long = 255
 
 Private Sub UserForm_Initialize()
-    Me.Caption = "Connect / Select Warehouse"
+    Me.Caption = "Connect Warehouse Storage"
     Me.Width = 560
     Me.Height = 390
     BuildConnectionLayout
@@ -45,7 +45,7 @@ Private Sub UserForm_Initialize()
     If mReason <> "" Then
         ShowStatus mReason, COLOR_INFO
     Else
-        ShowStatus "Enter a warehouse root, connect if needed, then scan.", COLOR_INFO
+        ShowStatus "Select warehouse storage. Use Connect only if Windows cannot already reach the network root.", COLOR_INFO
     End If
 End Sub
 
@@ -55,7 +55,7 @@ Public Sub InitializeConnectionPrompt(Optional ByVal reason As String = "")
         If mReason <> "" Then
             ShowStatus mReason, COLOR_INFO
         Else
-            ShowStatus "Enter a warehouse root, connect if needed, then scan.", COLOR_INFO
+            ShowStatus "Select warehouse storage. Use Connect only if Windows cannot already reach the network root.", COLOR_INFO
         End If
     End If
 End Sub
@@ -65,14 +65,14 @@ Public Property Get WasAccepted() As Boolean
 End Property
 
 Private Sub BuildConnectionLayout()
-    AddLabel "lblTitle", "Connect / Select Warehouse", 18, 14, 260, 18, True
+    AddLabel "lblTitle", "Connect Warehouse Storage", 18, 14, 260, 18, True
     Set mLblStatus = AddLabel("lblStatus", "", 18, 40, 500, 34, False)
 
     AddLabel "lblRoot", "Root", 18, 88, 84, 18, False
     Set mTxtRoot = AddTextBox("txtRoot", 104, 84, 322, 22)
     Set mBtnScan = AddButton("btnScan", "Scan", 436, 83, 70, 24)
 
-    AddLabel "lblUser", "NAS user", 18, 122, 84, 18, False
+    AddLabel "lblUser", "Network user", 18, 122, 84, 18, False
     Set mTxtUser = AddTextBox("txtUser", 104, 118, 160, 22)
     AddLabel "lblPassword", "Password", 276, 122, 66, 18, False
     Set mTxtPassword = AddTextBox("txtPassword", 346, 118, 80, 22)
@@ -179,14 +179,14 @@ Private Sub mBtnConnect_Click()
     userName = Trim$(CStr(mTxtUser.Value))
     passwordText = CStr(mTxtPassword.Value)
     If rootPath = "" Or userName = "" Or Len(passwordText) = 0 Then
-        ShowStatus "Enter root, NAS user, and password before connecting.", COLOR_WARNING
+        ShowStatus "Enter root, network user, and network password before connecting.", COLOR_WARNING
         Exit Sub
     End If
 
     statusCode = modNasConnection.ConnectNasRootWithCredentials(rootPath, userName, passwordText)
     mTxtPassword.Value = vbNullString
     If statusCode = NAS_OK Then
-        ShowStatus "Connected. Scan the root to choose a warehouse.", COLOR_SUCCESS
+        ShowStatus "Storage connected. Scan the root, select a warehouse, then continue to invSys sign-in.", COLOR_SUCCESS
         ScanRoot
     Else
         ShowStatus modNasConnection.GetConnectionStatus(), COLOR_ERROR
@@ -254,7 +254,7 @@ Private Sub ScanRoot()
 
     If mLstTargets.ListCount > 0 Then
         mLstTargets.ListIndex = 0
-        ShowStatus "Found " & CStr(mLstTargets.ListCount) & " warehouse runtime(s).", COLOR_SUCCESS
+        ShowStatus "Found " & CStr(mLstTargets.ListCount) & " warehouse runtime(s). Select one and continue to invSys sign-in.", COLOR_SUCCESS
     Else
         ShowStatus "No warehouse runtime folders were found under this root.", COLOR_WARNING
     End If

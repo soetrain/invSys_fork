@@ -49,14 +49,20 @@ End Sub
 
 Public Sub PromptSetCurrentUserForCapability(Optional ByVal requiredCapability As String = "")
     Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
     Dim authStatus As AuthStatusCode
 
-    If Not modNasConnection.EnsureWarehouseTargetInteractive("Sign in to invSys.", CapabilityRequiresNasTargetRole(requiredCapability)) Then
-        MsgBox "Warehouse target is not available for sign-in.", vbExclamation, "invSys Current User"
+    If Not modNasConnection.ResolveWarehouseTarget(target, statusCode) Then
+        MsgBox "Warehouse storage is not connected. Use Connect Server or Runtime Context before signing in.", vbExclamation, "invSys Current User"
+        modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
+        Exit Sub
+    End If
+    If CapabilityRequiresNasTargetRole(requiredCapability) And Not modNasConnection.IsWarehouseTargetAllowed(target, True) Then
+        MsgBox "Receiving, Shipping, and Production require a connected NAS warehouse target before invSys sign-in.", vbExclamation, "invSys Current User"
+        modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
         Exit Sub
     End If
 
-    Set target = modNasConnection.GetCurrentTarget()
     authStatus = modAuth.ShowSignInPrompt(target, requiredCapability)
     If authStatus = AUTH_CANCELLED Then Exit Sub
 
@@ -65,11 +71,31 @@ Public Sub PromptSetCurrentUserForCapability(Optional ByVal requiredCapability A
         Exit Sub
     End If
 
-    MsgBox "Current invSys user: " & ResolveCurrentUserId(), vbInformation, "invSys Current User"
+    MsgBox "Current invSys user: " & CurrentInvSysUserDisplayRole(), vbInformation, "invSys Current User"
 End Sub
 
 Public Sub ShowCurrentUser()
-    MsgBox "Current invSys user: " & ResolveCurrentUserId(), vbInformation, "invSys Current User"
+    MsgBox "Current invSys user: " & CurrentInvSysUserDisplayRole(), vbInformation, "invSys Current User"
+End Sub
+
+Public Sub ConnectWarehouseStorageForCapability(Optional ByVal requiredCapability As String = "")
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+
+    If modNasConnection.ResolveWarehouseTarget(target, statusCode) _
+       And modNasConnection.IsWarehouseTargetAllowed(target, CapabilityRequiresNasTargetRole(requiredCapability)) Then
+        modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
+        Exit Sub
+    End If
+
+    modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
+    MsgBox "No connected NAS warehouse target was found. Check Runtime Context, make sure the NAS path is reachable, or select the warehouse storage from Admin/setup.", vbExclamation, "invSys Warehouse Storage"
+End Sub
+
+Public Sub SignOutCurrentUser()
+    modAuth.SignOut
+    modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
+    MsgBox "Signed out of invSys. Warehouse storage remains selected.", vbInformation, "invSys Current User"
 End Sub
 
 Private Function ValidateCurrentUserCredential(ByVal userId As String, _
@@ -115,6 +141,13 @@ Private Function CapabilityRequiresNasTargetRole(ByVal requiredCapability As Str
         Case "RECEIVE_POST", "SHIP_POST", "PROD_POST"
             CapabilityRequiresNasTargetRole = True
     End Select
+End Function
+
+Private Function CurrentInvSysUserDisplayRole() As String
+    If modAuth.IsSignedIn() Then
+        CurrentInvSysUserDisplayRole = Trim$(modAuth.GetCurrentUserId())
+    End If
+    If CurrentInvSysUserDisplayRole = "" Then CurrentInvSysUserDisplayRole = "<not signed in>"
 End Function
 
 Private Function AuthStatusMessageRole(ByVal authStatus As AuthStatusCode, _

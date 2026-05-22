@@ -106,6 +106,33 @@ function Get-RibbonButtons {
     return $result
 }
 
+function Get-RibbonLabelControls {
+    param([string]$CustomUiXml)
+
+    if ([string]::IsNullOrWhiteSpace($CustomUiXml)) { return @{} }
+
+    $doc = New-Object System.Xml.XmlDocument
+    $doc.LoadXml($CustomUiXml)
+
+    $ns = New-Object System.Xml.XmlNamespaceManager($doc.NameTable)
+    $ns.AddNamespace("cu", "http://schemas.microsoft.com/office/2006/01/customui")
+
+    $result = @{}
+    $labels = $doc.SelectNodes("//cu:labelControl", $ns)
+    foreach ($label in $labels) {
+        $getLabel = ""
+        if ($null -ne $label.Attributes["getLabel"]) {
+            $getLabel = [string]$label.Attributes["getLabel"].Value
+        }
+        $result[$label.id] = [pscustomobject]@{
+            Id       = [string]$label.id
+            GetLabel = $getLabel
+        }
+    }
+
+    return $result
+}
+
 function Get-ModuleText {
     param(
         [object]$Workbook,
@@ -181,7 +208,13 @@ $ribbonSpecs = @(
         Name = "Receiving"
         File = "invSys.Receiving.xlam"
         Callback = "RibbonOnActionReceiving"
+        StatusLabels = @(
+            @{ Id = "lblReceivingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
+        )
         Buttons = @(
+            @{ Id = "btnReceivingConnectServer"; Label = "Connect Server"; DirectAction = 'modRoleEventWriter.ConnectWarehouseStorageForCapability "RECEIVE_POST"'; Execute = $false },
+            @{ Id = "btnReceivingCurrentUser"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = 'modRoleEventWriter.PromptSetCurrentUserForCapability "RECEIVE_POST"'; Execute = $false; Screentip = "Sign in as an invSys user" },
+            @{ Id = "btnReceivingSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; Execute = $false },
             @{ Id = "btnReceivingSetup"; Label = "Setup UI"; Macro = "modTS_Received.EnsureGeneratedButtons"; Execute = $false; RequiredCapability = "RECEIVE_POST" },
             @{ Id = "btnReceivingConfirm"; Label = "Confirm Writes"; Macro = "modTS_Received.ConfirmWrites"; Execute = $false; RequiredCapability = "RECEIVE_POST" },
             @{ Id = "btnReceivingUndo"; Label = "Undo"; Macro = "modTS_Received.MacroUndo"; Execute = $false; RequiredCapability = "RECEIVE_POST" },
@@ -192,7 +225,13 @@ $ribbonSpecs = @(
         Name = "Shipping"
         File = "invSys.Shipping.xlam"
         Callback = "RibbonOnActionShipping"
+        StatusLabels = @(
+            @{ Id = "lblShippingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
+        )
         Buttons = @(
+            @{ Id = "btnShippingConnectServer"; Label = "Connect Server"; DirectAction = 'modRoleEventWriter.ConnectWarehouseStorageForCapability "SHIP_POST"'; Execute = $false },
+            @{ Id = "btnShippingCurrentUser"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = 'modRoleEventWriter.PromptSetCurrentUserForCapability "SHIP_POST"'; Execute = $false; Screentip = "Sign in as an invSys user" },
+            @{ Id = "btnShippingSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; Execute = $false },
             @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; Execute = $false; RequiredCapability = "SHIP_POST" },
             @{ Id = "btnShippingConfirm"; Label = "Confirm Inventory"; Macro = "modTS_Shipments.BtnConfirmInventory"; Execute = $false; RequiredCapability = "SHIP_POST" },
             @{ Id = "btnShippingStage"; Label = "To Shipments"; Macro = "modTS_Shipments.BtnToShipments"; Execute = $false; RequiredCapability = "SHIP_POST" },
@@ -203,7 +242,13 @@ $ribbonSpecs = @(
         Name = "Production"
         File = "invSys.Production.xlam"
         Callback = "RibbonOnActionProduction"
+        StatusLabels = @(
+            @{ Id = "lblProductionServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
+        )
         Buttons = @(
+            @{ Id = "btnProductionConnectServer"; Label = "Connect Server"; DirectAction = 'modRoleEventWriter.ConnectWarehouseStorageForCapability "PROD_POST"'; Execute = $false },
+            @{ Id = "btnProductionCurrentUser"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = 'modRoleEventWriter.PromptSetCurrentUserForCapability "PROD_POST"'; Execute = $false; Screentip = "Sign in as an invSys user" },
+            @{ Id = "btnProductionSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; Execute = $false },
             @{ Id = "btnProductionSetup"; Label = "Setup UI"; Macro = "mProduction.InitializeProductionUI"; Execute = $false; RequiredCapability = "PROD_POST" },
             @{ Id = "btnProductionLoad"; Label = "Load Recipe"; Macro = "mProduction.BtnLoadRecipe"; Execute = $false; RequiredCapability = "PROD_POST" },
             @{ Id = "btnProductionUsed"; Label = "To Used"; Macro = "mProduction.BtnToUsed"; Execute = $false; RequiredCapability = "PROD_POST" },
@@ -218,6 +263,9 @@ $ribbonSpecs = @(
         Callback = "RibbonOnActionAdmin"
         Buttons = @(
             @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; Execute = $false },
+            @{ Id = "btnAdminConnectServer"; Label = "Connect Server"; DirectAction = 'modRoleEventWriter.ConnectWarehouseStorageForCapability "ADMIN_MAINT"'; Execute = $false },
+            @{ Id = "btnAdminCurrentUser"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = 'modRoleEventWriter.PromptSetCurrentUserForCapability "ADMIN_MAINT"'; Execute = $false; Screentip = "Sign in as an invSys user" },
+            @{ Id = "btnAdminSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; Execute = $false },
             @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; Execute = $false },
             @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; Execute = $false },
             @{ Id = "btnAdminSetupTesterStation"; Label = "Setup Tester Station"; Macro = "modAdmin.Admin_SetupTesterStation_Click"; Execute = $false },
@@ -287,15 +335,34 @@ try {
 
         Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonXml" -Passed $true -Detail "customUI/customUI.xml present."
         $buttons = Get-RibbonButtons -CustomUiXml $customUiXml
+        $labels = Get-RibbonLabelControls -CustomUiXml $customUiXml
         $callbackModuleText = Get-ModuleText -Workbook $wb -ComponentName "modRibbonGenerated"
         Add-ResultRow -Rows $resultRows -Check "$($spec.Name).CallbackModule" -Passed (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -Detail "modRibbonGenerated"
+
+        if ($spec.ContainsKey("StatusLabels")) {
+            foreach ($statusLabel in $spec.StatusLabels) {
+                $labelId = [string]$statusLabel.Id
+                if ($labels.ContainsKey($labelId)) {
+                    $labelInfo = $labels[$labelId]
+                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).StatusLabel.$labelId" -Passed ($labelInfo.GetLabel -eq $statusLabel.GetLabel) -Detail "GetLabel=$($labelInfo.GetLabel)"
+                }
+                else {
+                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).StatusLabel.$labelId" -Passed $false -Detail "Label control missing from Ribbon XML."
+                }
+            }
+        }
 
         foreach ($button in $spec.Buttons) {
             $buttonId = [string]$button.Id
             if ($buttons.ContainsKey($buttonId)) {
                 $buttonInfo = $buttons[$buttonId]
                 $detail = "Label=$($buttonInfo.Label); OnAction=$($buttonInfo.OnAction); GetEnabled=$($buttonInfo.GetEnabled); Screentip=$($buttonInfo.Screentip)"
-                $passed = ($buttonInfo.Label -eq $button.Label -and $buttonInfo.OnAction -eq $spec.Callback)
+                if ($button.ContainsKey("GetLabel")) {
+                    $passed = ($buttonInfo.GetLabel -eq $button.GetLabel -and $buttonInfo.OnAction -eq $spec.Callback)
+                }
+                else {
+                    $passed = ($buttonInfo.Label -eq $button.Label -and $buttonInfo.OnAction -eq $spec.Callback)
+                }
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButton.$buttonId" -Passed $passed -Detail $detail
                 if ($button.ContainsKey("Screentip")) {
                     Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButtonScreentip.$buttonId" -Passed ($buttonInfo.Screentip -eq $button.Screentip) -Detail $buttonInfo.Screentip
@@ -314,18 +381,26 @@ try {
                 }
             }
 
-            $macroName = [string]$button.Macro
-            Add-ResultRow -Rows $resultRows -Check "$($spec.Name).MacroExists.$buttonId" -Passed (Test-ProcedureExists -Workbook $wb -QualifiedMacroName $macroName) -Detail $macroName
-
             $callbackHasButton = (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -and $callbackModuleText.Contains($buttonId)
-            $callbackHasMacro = (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -and $callbackModuleText.Contains($macroName)
-            Add-ResultRow -Rows $resultRows -Check "$($spec.Name).CallbackMap.$buttonId" -Passed ($callbackHasButton -and $callbackHasMacro) -Detail "$buttonId -> $macroName"
+            if ($button.ContainsKey("Macro")) {
+                $macroName = [string]$button.Macro
+                Add-ResultRow -Rows $resultRows -Check "$($spec.Name).MacroExists.$buttonId" -Passed (Test-ProcedureExists -Workbook $wb -QualifiedMacroName $macroName) -Detail $macroName
+
+                $callbackHasMacro = (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -and $callbackModuleText.Contains($macroName)
+                Add-ResultRow -Rows $resultRows -Check "$($spec.Name).CallbackMap.$buttonId" -Passed ($callbackHasButton -and $callbackHasMacro) -Detail "$buttonId -> $macroName"
+            }
+            elseif ($button.ContainsKey("DirectAction")) {
+                $directAction = [string]$button.DirectAction
+                $callbackHasDirectAction = (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -and $callbackModuleText.Contains($directAction)
+                Add-ResultRow -Rows $resultRows -Check "$($spec.Name).CallbackMap.$buttonId" -Passed ($callbackHasButton -and $callbackHasDirectAction) -Detail "$buttonId -> $directAction"
+            }
             if ($button.ContainsKey("RequiredCapability")) {
                 $callbackHasEnabled = (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -and $callbackModuleText.Contains("RibbonRequiredCapabilityGetEnabled") -and $callbackModuleText.Contains([string]$button.RequiredCapability)
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).CallbackGetEnabled.$buttonId" -Passed $callbackHasEnabled -Detail "$buttonId -> $($button.RequiredCapability)"
             }
 
-            if ($button.Execute) {
+            if ($button.ContainsKey("Macro") -and $button.Execute) {
+                $macroName = [string]$button.Macro
                 try {
                     [void](Run-WorkbookMacro -Excel $excel -WorkbookName $wb.Name -MacroName $macroName)
                     Add-ResultRow -Rows $resultRows -Check "$($spec.Name).SafeExec.$buttonId" -Passed $true -Detail $macroName

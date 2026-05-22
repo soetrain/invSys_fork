@@ -35,9 +35,17 @@ Add-Check "Build.GetEnabledCallback" ($buildText.Contains('Public Sub RibbonRequ
 Add-Check "Build.ReceivingCapability" ($buildText.Contains('RequiredCapability = "RECEIVE_POST"')) "Receiving buttons declare capability."
 Add-Check "Build.ShippingCapability" ($buildText.Contains('RequiredCapability = "SHIP_POST"')) "Shipping buttons declare capability."
 Add-Check "Build.ProductionCapability" ($buildText.Contains('RequiredCapability = "PROD_POST"')) "Production buttons declare capability."
+Add-Check "Build.RoleConnectServerButtons" ($buildText.Contains('btnReceivingConnectServer') -and $buildText.Contains('btnShippingConnectServer') -and $buildText.Contains('btnProductionConnectServer')) "Role ribbons expose Connect Server buttons."
+Add-Check "Build.RoleSignOutButtons" ($buildText.Contains('btnReceivingSignOut') -and $buildText.Contains('btnShippingSignOut') -and $buildText.Contains('btnProductionSignOut')) "Role ribbons expose Sign Out buttons."
+Add-Check "Build.SignInLabelCallback" ($buildText.Contains('returnedVal = "Sign In"') -and $buildText.Contains('RibbonCurrentUserGetLabel')) "Current user button acts as Sign In while signed out."
+Add-Check "Build.ServerStatusLabelControl" ($buildText.Contains('<labelControl id=""{0}"" getLabel=""{1}""/>') -and $buildText.Contains('RibbonServerStatusGetLabel')) "Role ribbons emit server status label controls."
+Add-Check "Core.RoleConnectNonModal" ((Get-Content -LiteralPath (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas") -Raw).Contains('ResolveWarehouseTarget(target, statusCode)') -and -not ((Get-Content -LiteralPath (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas") -Raw).Contains('ConnectWarehouseStorageForCapability(Optional ByVal requiredCapability As String = "")' + [Environment]::NewLine + '    If modNasConnection.EnsureWarehouseTargetInteractive'))) "Role Connect Server resolves without opening the warehouse connection form."
+Add-Check "Core.RibbonFullInvalidate" ((Get-Content -LiteralPath (Join-Path $repo "src/Core/Modules/modRibbonRuntimeStatus.bas") -Raw).Contains('ribbon.Invalidate')) "Auth/storage changes refresh enabled callbacks."
 Add-Check "Validator.ButtonGetEnabledRead" ($validatorText.Contains('GetEnabled = $getEnabled')) "Packaged validator reads getEnabled."
 Add-Check "Validator.ButtonGetEnabledAssert" ($validatorText.Contains('RibbonButtonGetEnabled')) "Packaged validator asserts getEnabled on required buttons."
 Add-Check "Validator.CallbackGetEnabledAssert" ($validatorText.Contains('CallbackGetEnabled')) "Packaged validator asserts callback capability mapping."
+Add-Check "Validator.DirectActionAssert" ($validatorText.Contains('DirectAction') -and $validatorText.Contains('callbackHasDirectAction')) "Packaged validator asserts direct ribbon actions."
+Add-Check "Validator.StatusLabelAssert" ($validatorText.Contains('Get-RibbonLabelControls') -and $validatorText.Contains('StatusLabel')) "Packaged validator asserts server status labels."
 
 $failed = @($checks | Where-Object { -not $_.Passed }).Count
 $passed = $checks.Count - $failed

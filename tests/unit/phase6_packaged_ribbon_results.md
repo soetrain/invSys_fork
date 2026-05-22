@@ -1,9 +1,9 @@
 # Phase 6 Packaged Ribbon Validation Results
 
-- Date: 2026-05-21 18:20:03
+- Date: 2026-05-22 14:36:10
 - Deploy root: C:\Users\justu\source\repos\invSys_fork\deploy\current
-- Runtime root override: C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-62ba24908df5468089d96a96d7ed2048
-- Passed: 105
+- Runtime root override: C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-c9c639bed74941778b24999ec9b1399b
+- Passed: 136
 - Failed: 0
 
 | Check | Result | Detail |
@@ -15,9 +15,17 @@
 | invSys.Shipping.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Shipping.xlam |
 | invSys.Production.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Production.xlam |
 | invSys.Admin.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Admin.xlam |
-| Core.RuntimeRootOverride | PASS | C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-62ba24908df5468089d96a96d7ed2048 |
+| Core.RuntimeRootOverride | PASS | C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-c9c639bed74941778b24999ec9b1399b |
 | Receiving.RibbonXml | PASS | customUI/customUI.xml present. |
 | Receiving.CallbackModule | PASS | modRibbonGenerated |
+| Receiving.StatusLabel.lblReceivingServerStatus | PASS | GetLabel=RibbonServerStatusGetLabel |
+| Receiving.RibbonButton.btnReceivingConnectServer | PASS | Label=Connect Server; OnAction=RibbonOnActionReceiving; GetEnabled=; Screentip=Connect to warehouse storage |
+| Receiving.CallbackMap.btnReceivingConnectServer | PASS | btnReceivingConnectServer -> modRoleEventWriter.ConnectWarehouseStorageForCapability "RECEIVE_POST" |
+| Receiving.RibbonButton.btnReceivingCurrentUser | PASS | Label=; OnAction=RibbonOnActionReceiving; GetEnabled=; Screentip=Sign in as an invSys user |
+| Receiving.RibbonButtonScreentip.btnReceivingCurrentUser | PASS | Sign in as an invSys user |
+| Receiving.CallbackMap.btnReceivingCurrentUser | PASS | btnReceivingCurrentUser -> modRoleEventWriter.PromptSetCurrentUserForCapability "RECEIVE_POST" |
+| Receiving.RibbonButton.btnReceivingSignOut | PASS | Label=Sign Out; OnAction=RibbonOnActionReceiving; GetEnabled=; Screentip=Sign out of invSys without disconnecting storage |
+| Receiving.CallbackMap.btnReceivingSignOut | PASS | btnReceivingSignOut -> modRoleEventWriter.SignOutCurrentUser |
 | Receiving.RibbonButton.btnReceivingSetup | PASS | Label=Setup UI; OnAction=RibbonOnActionReceiving; GetEnabled=RibbonRequiredCapabilityGetEnabled; Screentip= |
 | Receiving.RibbonButtonGetEnabled.btnReceivingSetup | PASS | RibbonRequiredCapabilityGetEnabled |
 | Receiving.MacroExists.btnReceivingSetup | PASS | modTS_Received.EnsureGeneratedButtons |
@@ -40,6 +48,14 @@
 | Receiving.CallbackGetEnabled.btnReceivingRedo | PASS | btnReceivingRedo -> RECEIVE_POST |
 | Shipping.RibbonXml | PASS | customUI/customUI.xml present. |
 | Shipping.CallbackModule | PASS | modRibbonGenerated |
+| Shipping.StatusLabel.lblShippingServerStatus | PASS | GetLabel=RibbonServerStatusGetLabel |
+| Shipping.RibbonButton.btnShippingConnectServer | PASS | Label=Connect Server; OnAction=RibbonOnActionShipping; GetEnabled=; Screentip=Connect to warehouse storage |
+| Shipping.CallbackMap.btnShippingConnectServer | PASS | btnShippingConnectServer -> modRoleEventWriter.ConnectWarehouseStorageForCapability "SHIP_POST" |
+| Shipping.RibbonButton.btnShippingCurrentUser | PASS | Label=; OnAction=RibbonOnActionShipping; GetEnabled=; Screentip=Sign in as an invSys user |
+| Shipping.RibbonButtonScreentip.btnShippingCurrentUser | PASS | Sign in as an invSys user |
+| Shipping.CallbackMap.btnShippingCurrentUser | PASS | btnShippingCurrentUser -> modRoleEventWriter.PromptSetCurrentUserForCapability "SHIP_POST" |
+| Shipping.RibbonButton.btnShippingSignOut | PASS | Label=Sign Out; OnAction=RibbonOnActionShipping; GetEnabled=; Screentip=Sign out of invSys without disconnecting storage |
+| Shipping.CallbackMap.btnShippingSignOut | PASS | btnShippingSignOut -> modRoleEventWriter.SignOutCurrentUser |
 | Shipping.RibbonButton.btnShippingSetup | PASS | Label=Setup UI; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabled; Screentip= |
 | Shipping.RibbonButtonGetEnabled.btnShippingSetup | PASS | RibbonRequiredCapabilityGetEnabled |
 | Shipping.MacroExists.btnShippingSetup | PASS | modTS_Shipments.InitializeShipmentsUI |
@@ -62,6 +78,14 @@
 | Shipping.CallbackGetEnabled.btnShippingSend | PASS | btnShippingSend -> SHIP_POST |
 | Production.RibbonXml | PASS | customUI/customUI.xml present. |
 | Production.CallbackModule | PASS | modRibbonGenerated |
+| Production.StatusLabel.lblProductionServerStatus | PASS | GetLabel=RibbonServerStatusGetLabel |
+| Production.RibbonButton.btnProductionConnectServer | PASS | Label=Connect Server; OnAction=RibbonOnActionProduction; GetEnabled=; Screentip=Connect to warehouse storage |
+| Production.CallbackMap.btnProductionConnectServer | PASS | btnProductionConnectServer -> modRoleEventWriter.ConnectWarehouseStorageForCapability "PROD_POST" |
+| Production.RibbonButton.btnProductionCurrentUser | PASS | Label=; OnAction=RibbonOnActionProduction; GetEnabled=; Screentip=Sign in as an invSys user |
+| Production.RibbonButtonScreentip.btnProductionCurrentUser | PASS | Sign in as an invSys user |
+| Production.CallbackMap.btnProductionCurrentUser | PASS | btnProductionCurrentUser -> modRoleEventWriter.PromptSetCurrentUserForCapability "PROD_POST" |
+| Production.RibbonButton.btnProductionSignOut | PASS | Label=Sign Out; OnAction=RibbonOnActionProduction; GetEnabled=; Screentip=Sign out of invSys without disconnecting storage |
+| Production.CallbackMap.btnProductionSignOut | PASS | btnProductionSignOut -> modRoleEventWriter.SignOutCurrentUser |
 | Production.RibbonButton.btnProductionSetup | PASS | Label=Setup UI; OnAction=RibbonOnActionProduction; GetEnabled=RibbonRequiredCapabilityGetEnabled; Screentip= |
 | Production.RibbonButtonGetEnabled.btnProductionSetup | PASS | RibbonRequiredCapabilityGetEnabled |
 | Production.MacroExists.btnProductionSetup | PASS | mProduction.InitializeProductionUI |
@@ -97,6 +121,13 @@
 | Admin.RibbonButton.btnAdminOpen | PASS | Label=Admin Console; OnAction=RibbonOnActionAdmin; GetEnabled=; Screentip= |
 | Admin.MacroExists.btnAdminOpen | PASS | modAdmin.Admin_Click |
 | Admin.CallbackMap.btnAdminOpen | PASS | btnAdminOpen -> modAdmin.Admin_Click |
+| Admin.RibbonButton.btnAdminConnectServer | PASS | Label=Connect Server; OnAction=RibbonOnActionAdmin; GetEnabled=; Screentip=Connect to warehouse storage |
+| Admin.CallbackMap.btnAdminConnectServer | PASS | btnAdminConnectServer -> modRoleEventWriter.ConnectWarehouseStorageForCapability "ADMIN_MAINT" |
+| Admin.RibbonButton.btnAdminCurrentUser | PASS | Label=; OnAction=RibbonOnActionAdmin; GetEnabled=; Screentip=Sign in as an invSys user |
+| Admin.RibbonButtonScreentip.btnAdminCurrentUser | PASS | Sign in as an invSys user |
+| Admin.CallbackMap.btnAdminCurrentUser | PASS | btnAdminCurrentUser -> modRoleEventWriter.PromptSetCurrentUserForCapability "ADMIN_MAINT" |
+| Admin.RibbonButton.btnAdminSignOut | PASS | Label=Sign Out; OnAction=RibbonOnActionAdmin; GetEnabled=; Screentip=Sign out of invSys without disconnecting storage |
+| Admin.CallbackMap.btnAdminSignOut | PASS | btnAdminSignOut -> modRoleEventWriter.SignOutCurrentUser |
 | Admin.RibbonButton.btnAdminUsers | PASS | Label=Users and Roles; OnAction=RibbonOnActionAdmin; GetEnabled=; Screentip= |
 | Admin.MacroExists.btnAdminUsers | PASS | modAdmin.Open_CreateDeleteUser |
 | Admin.CallbackMap.btnAdminUsers | PASS | btnAdminUsers -> modAdmin.Open_CreateDeleteUser |

@@ -426,6 +426,21 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestRuntimeStatusUserLabel_UnsignedShowsNotSignedIn() As Long
+    On Error GoTo CleanFail
+    modAuth.SignOut
+
+    If StrComp(modRibbonRuntimeStatus.GetStatusLabel("btnRuntimeUser"), "User: <not signed in>", vbTextCompare) = 0 Then
+        TestRuntimeStatusUserLabel_UnsignedShowsNotSignedIn = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestRuntimeStatusUserLabel_TracksAuthSignIn() As Long
     Dim rootPath As String
     Dim wbCfg As Workbook
@@ -664,6 +679,59 @@ Public Function TestRoleWriteCurrent_AllowsSignedInReceivePost() As Long
 CleanExit:
     modAuth.SignOut
     modNasConnection.ForgetTarget "WH92"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestAuthSignOut_ClearsUserButKeepsWarehouseTarget() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim targetAfterSignOut As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_auth_signout_keeps_target")
+    authPath = rootPath & "\WH93.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    modAuth.SignOut
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH93", "S19", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH93", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH93", "S19", "calvin", "Calvin", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "calvin", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S19", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("calvin", "123456", target, "RECEIVE_POST")
+    If authStatus <> AUTH_OK Then GoTo CleanExit
+
+    modAuth.SignOut
+    Set targetAfterSignOut = modNasConnection.GetCurrentTarget()
+    If Not modAuth.IsSignedIn() _
+       And modAuth.GetCurrentUserId() = "" _
+       And Not targetAfterSignOut Is Nothing Then
+        If StrComp(targetAfterSignOut.WarehouseId, "WH93", vbTextCompare) = 0 _
+           And StrComp(targetAfterSignOut.StationId, "S19", vbTextCompare) = 0 _
+           And modNasConnection.IsCurrentTargetAllowed(True) Then
+            TestAuthSignOut_ClearsUserButKeepsWarehouseTarget = 1
+        End If
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH93"
     modNasConnection.ForgetRoot rootPath
     modNasConnection.ClearWarehouseTarget
     CloseWorkbookIfOpen wbCfg

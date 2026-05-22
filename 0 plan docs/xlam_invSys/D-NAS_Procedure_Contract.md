@@ -123,17 +123,19 @@ Station inbox policy is enforced by `SelectWarehouseTarget` via the `requireStat
 `Workbook_Open` calls only `ResolveWarehouseTarget`, which is non-modal and safe in any context. It stores the result (or the `NAS_TARGET_UNREACHABLE` state) in module-level session state and updates ribbon label/enabled state via `IRibbonUI.Invalidate`. The operator sees the ribbon status change (e.g., "NAS unreachable" label, Connect button enabled) and acts explicitly.
 
 The modal connection flow (`EnsureWarehouseTargetInteractive`) is triggered only by:
-1. The **Connect / Select Warehouse** ribbon button (`onAction` callback) — explicit operator action
-2. A role write ribbon button (`onAction` callback) that detects `IsTargetResolved() = False` — operator is already taking an explicit action
+1. Admin/setup storage-management UI or Runtime Context troubleshooting — explicit operator action outside the normal role workflow
+2. A role write ribbon button (`onAction` callback) only if the implementation intentionally offers a recovery prompt; the preferred role behavior is fail-closed with clear status/message
 
 `EnsureWarehouseTargetInteractive` must never be called from `Workbook_Open`, `Workbook_Activate`, `Application.OnTime` callbacks, ribbon `getEnabled`/`getLabel`/`getImage` callbacks, or background refresh paths.
+
+Storage connection and invSys authentication are separate workflows. The warehouse connection prompt may collect Windows/NAS credentials and select a target, but it must not claim to sign in the invSys operator. Receiving, Shipping, and Production **Connect Server** buttons are non-modal: they re-run target resolution, refresh server status, and fail closed if no acceptable NAS target is available. The Sign In prompt is the invSys user/PIN or user/password action against the selected warehouse auth workbook and must not show NAS credential fields.
 
 ### Fallback Policy by Context
 
 A `WH_SOURCE_FALLBACK` target (priority 5, local dev root) is handled differently depending on `requireNasTarget`:
 
 - **`requireNasTarget = False` (Admin XLAM default):** Fallback is an acceptable resolved state. Post/write controls enabled normally.
-- **`requireNasTarget = True` (role XLAM default):** Fallback is not an acceptable resolved state. `EnsureWarehouseTargetInteractive` re-prompts to connect to a NAS target. All post/write ribbon controls remain disabled until a non-fallback target is resolved. This prevents accidental production use of the local dev root by a role operator.
+- **`requireNasTarget = True` (role write/sign-in policy):** Fallback is not an acceptable resolved state. Role XLAMs normally enforce this non-modally through cached target checks, server status labels, and disabled post/write controls. Admin/setup may still use `EnsureWarehouseTargetInteractive` to repair or select storage.
 
 The role XLAM fallback restriction is also enforced independently in the ribbon `getEnabled` callback by checking `GetCurrentTarget().SourceType <> WH_SOURCE_FALLBACK` so that the button stays disabled even if `EnsureWarehouseTargetInteractive` is not called first.
 
@@ -218,13 +220,14 @@ Public Sub ShowWarehouseConnectionPrompt( _
 )
 ```
 
-**Purpose:** Surface the Core-owned modal form for NAS root connection, warehouse target selection, and Windows credential entry. Called only from `EnsureWarehouseTargetInteractive`.
+**Purpose:** Surface the Core-owned modal form for NAS root connection, warehouse target selection, and Windows credential entry. Called only from `EnsureWarehouseTargetInteractive`. This form establishes storage access only; it does not sign in an invSys user.
 
 **Parameters:**
 - `reason` — Optional display string explaining why the prompt appeared.
 
 **Rules:**
 - The form owns credential input. It calls `ConnectNasRootWithCredentials` internally. `windowsPassword` never leaves the form.
+- UI copy must use storage/network language such as "Connect to Server", "Select Warehouse Storage", and "Network user/password". It must not present the Windows/NAS credential as an invSys sign-in.
 - On successful connect and target selection, the form calls `SelectWarehouseTarget` and `RememberTarget` before closing.
 - On cancel, resolved target is unchanged.
 - **Must not be called directly from `Workbook_Open`, ribbon `getEnabled`/`getLabel`/`getImage`, `Application.OnTime` callbacks, or background refresh paths.** Only `EnsureWarehouseTargetInteractive` may call this procedure.
@@ -381,29 +384,29 @@ Public Function EnsureWarehouseTargetInteractive( _
 
 **Parameters:**
 - `reason` — Optional display string forwarded to `ShowWarehouseConnectionPrompt`.
-- `requireNasTarget` — When `True`, a `WH_SOURCE_FALLBACK` result is not accepted. The function prompts again until the operator connects to a NAS target or cancels. Role XLAMs pass `True`. Admin XLAM passes `False` (default).
+- `requireNasTarget` — When `True`, a `WH_SOURCE_FALLBACK` result is not accepted. The function prompts again until the operator connects to a NAS target or cancels. Admin/setup may pass `True` for repair workflows. The normal role ribbon path does not call this form.
 
 **Returns:** `True` if a live target meeting the `requireNasTarget` constraint is resolved. `False` if the operator cancelled or connection failed.
 
 **Recommended call pattern:**
 
 ```vb
-' Role XLAM Connect button onAction
-If Core.NasConnection.EnsureWarehouseTargetInteractive( _
-    reason:="Connect to warehouse", _
-    requireNasTarget:=True) Then
-    ' proceed with sign-in
+' Role XLAM Connect Server button onAction
+Dim target As WarehouseTarget
+Dim statusCode As NasStatusCode
+If Core.NasConnection.ResolveWarehouseTarget(target, statusCode) Then
+    ' server status label is refreshed; no storage credential form opens
 End If
 
-' Admin XLAM Connect button onAction
+' Admin/setup Connect / Select Warehouse Storage button onAction
 If Core.NasConnection.EnsureWarehouseTargetInteractive() Then
-    ' proceed with sign-in (fallback accepted)
+    ' storage target selected; fallback accepted for Admin
 End If
 ```
 
 **Permitted callers:**
-- **Connect / Select Warehouse** ribbon button `onAction` callback
-- Role write ribbon button `onAction` callbacks that detect `IsTargetResolved() = False`
+- Admin/setup **Connect / Select Warehouse Storage** button `onAction` callback
+- Runtime Context troubleshooting action
 
 **Forbidden callers:** `Workbook_Open`, `Workbook_Activate`, `Application.OnTime`, ribbon `getEnabled`/`getLabel`/`getImage`, any background path.
 
@@ -662,11 +665,13 @@ Public Function CanPerform( _
 
 | Ribbon element | `onAction` / binding | Enabled condition |
 |---|---|---|
-| **Connect / Select Warehouse** button | `EnsureWarehouseTargetInteractive(requireNasTarget:=True/False)` | Always enabled |
+| **Connect Server** button (role XLAMs) | Non-modal `ResolveWarehouseTarget`; refresh ribbon; no storage credential form | Always enabled |
+| **Connect / Select Warehouse Storage** button (Admin/setup) | `EnsureWarehouseTargetInteractive(requireNasTarget:=False)` | Always enabled |
+| **Server status** label (role XLAMs) | cached target status label | Always visible; no network probe |
 | **Warehouse status** label | `GetConnectionStatus` | Always visible |
-| **Sign In** button | `ShowSignInPrompt(GetCurrentTarget())` | `IsTargetResolved() = True` AND `IsSignedIn() = False` |
+| **Sign In** button | If target is acceptable, `ShowSignInPrompt(GetCurrentTarget())`; otherwise message/status only | `IsSignedIn() = False`; writes remain disabled until target and auth pass |
 | **Sign Out** button | `SignOut` | `IsSignedIn() = True` |
-| **Current user / auth status** label | `GetCurrentUserId` + `GetAuthStatus` | Always visible |
+| **Current user / auth status** label | `IsSignedIn` + `GetCurrentUserId` + `GetAuthStatus` | Always visible; signed-out display is `Sign In` or `<not signed in>`, never Windows/NAS identity |
 | **Post / Confirm Writes** button (role XLAMs) | Role event creator | `IsSignedIn() = True` AND `CanPerform(cap, ...)` AND `GetCurrentTarget().SourceType <> WH_SOURCE_FALLBACK` |
 | **Post / Confirm Writes** button (Admin XLAM) | Admin action | `IsSignedIn() = True` AND `CanPerform(cap, ...)` |
 
@@ -692,30 +697,38 @@ Core.NasConnection.ResolveWarehouseTarget tgt, sc
 ribbonUI.Invalidate   ' refresh all ribbon getEnabled / getLabel callbacks
 
 
-' Connect / Select Warehouse ribbon button onAction
+' Role Connect Server ribbon button onAction
 '
-' Explicit operator action. Modal prompt permitted.
-' Role XLAM: requireNasTarget = True
-' Admin XLAM: requireNasTarget = False (default)
+' Explicit operator action. No modal storage form.
 
-If Core.NasConnection.EnsureWarehouseTargetInteractive( _
-    reason:="Connect to warehouse", _
-    requireNasTarget:=True) Then   ' False for Admin XLAM
-    Dim result As AuthStatusCode
-    result = Core.Auth.ShowSignInPrompt(Core.NasConnection.GetCurrentTarget())
-    ' AUTH_OK: ribbon write controls enabled by IsSignedIn() getEnabled
-    ' AUTH_CANCELLED or failure: ribbon remains in signed-out state
+Dim connectTarget As WarehouseTarget
+Dim connectStatus As NasStatusCode
+Call Core.NasConnection.ResolveWarehouseTarget(connectTarget, connectStatus)
+ribbonUI.Invalidate
+
+
+' Sign In ribbon button onAction
+'
+' Explicit operator action. InvSys auth is separate from storage access.
+
+If Not Core.NasConnection.IsTargetResolved() Then
+    MsgBox "Warehouse storage is not connected. Use Connect Server or Runtime Context before signing in.", vbExclamation
+    Exit Sub
 End If
+Dim result As AuthStatusCode
+result = Core.Auth.ShowSignInPrompt(Core.NasConnection.GetCurrentTarget())
+' AUTH_OK: ribbon write controls enabled by IsSignedIn() getEnabled
+' AUTH_CANCELLED or failure: ribbon remains in signed-out state
 ribbonUI.Invalidate
 
 
 ' Role write button onAction (e.g., Confirm Writes in Receiving)
 '
-' Explicit operator action. May prompt if state has changed since startup.
+' Explicit operator action. Fail closed if storage is unavailable.
 
 If Not Core.NasConnection.IsTargetResolved() Then
-    If Not Core.NasConnection.EnsureWarehouseTargetInteractive( _
-        requireNasTarget:=True) Then Exit Sub
+    MsgBox "Warehouse storage is not connected. Use Connect Server before posting.", vbExclamation
+    Exit Sub
 End If
 If Core.NasConnection.GetCurrentTarget().SourceType = WH_SOURCE_FALLBACK Then
     MsgBox "Connect to a NAS warehouse to enable writes.", vbExclamation
@@ -749,10 +762,17 @@ End If
 | `SelectWarehouseTarget` on folder `invsys_Zenbook_WH` returns `WarehouseId` from config workbook | `SelectWarehouseTarget` | `outTarget.WarehouseId` = config value, not folder name |
 | Select `invsys_Zenbook_WH`, restart Excel, Windows session active: resolves to NAS, not `C:\invSys\WH1` | Priority 2 restore | `outTarget.HubRoot` = NAS path; `SourceType ≠ WH_SOURCE_FALLBACK` |
 | Select `invsys_Zenbook_WH`, restart Excel, Windows session expired: ribbon shows unreachable, no fallback | Priority 2 probe → `NAS_CREDENTIAL_REJECTED` | Returns `False`; `NAS_TARGET_UNREACHABLE`; local root not loaded |
-| Role XLAM `EnsureWarehouseTargetInteractive(requireNasTarget:=True)` re-prompts on fallback | `EnsureWarehouseTargetInteractive` with `WH_SOURCE_FALLBACK` active | Re-prompt shown; returns `False` on cancel |
+| Role XLAM Connect Server does not open storage credential form | Ribbon `onAction` | Calls non-modal resolver, refreshes server label, and shows no warehouse connection form |
+| Role XLAM server status label reflects target state | Ribbon `getLabel` | Shows `Server: Connected ...` for acceptable NAS target; `Server: Not connected` otherwise |
 | Admin XLAM `EnsureWarehouseTargetInteractive()` accepts fallback without re-prompt | `EnsureWarehouseTargetInteractive` with `WH_SOURCE_FALLBACK` active, `requireNasTarget` default `False` | Returns `True`; no re-prompt |
 | Role XLAM `WH_SOURCE_FALLBACK` target: Post button disabled via `getEnabled` | Ribbon `getEnabled` | `CanPerform = True` but Post button disabled; `SourceType = WH_SOURCE_FALLBACK` |
 | Admin XLAM `WH_SOURCE_FALLBACK` target: Post button enabled | Ribbon `getEnabled` | Post button enabled normally |
+| Signed-out role ribbon user label does not display Windows/NAS identity | Ribbon `getLabel` / runtime status label | Shows `Sign In` or `<not signed in>` until `IsSignedIn() = True` |
+| Role current write rejects signed-out operator | Role event creator using current user | Write blocked before queueing; no fallback user is substituted |
+| Role current write rejects signed-in user without required capability | Role event creator using current user | Write blocked before queueing; capability error surfaced |
+| Role current write rejects fallback target even when auth/capability otherwise pass | Role event creator using current user | Write blocked before queueing; operator is told to connect to NAS warehouse |
+| Role current write allows signed-in user with required capability on NAS target | Role event creator using current user | Event queued under current invSys user |
+| Packaged ribbon capability buttons include `getEnabled` callback mapping | Packaged RibbonX validation | Required-capability buttons use centralized enabled callback; missing callback fails validation |
 | `SelectWarehouseTarget` with `requireStationInbox:=True` and `stationId = ""` returns `WH_TARGET_INCOMPLETE` | `SelectWarehouseTarget` | `WH_TARGET_INCOMPLETE`; `outTarget` null |
 | `SelectWarehouseTarget` with `requireStationInbox:=False` and `stationId = ""` returns `NAS_OK` | `SelectWarehouseTarget` | `NAS_OK`; `InboxRoot` = warehouse-global path |
 | `GetCurrentTarget()` returns copy; mutation by caller does not affect resolver state | `GetCurrentTarget` + field mutation | Second `GetCurrentTarget()` call returns original values |

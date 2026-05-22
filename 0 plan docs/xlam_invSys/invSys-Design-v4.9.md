@@ -179,6 +179,14 @@ warehouse with the same or similar WarehouseId.
 
 **Operational rule:** Core owns the shared NAS connection UI/API, remembered warehouse target, current user state, and runtime resolver. Admin may expose richer management forms, but Receiving/Shipping/Production must also expose enough ribbon UI to connect to a NAS/server root, select a warehouse target, and sign in as an invSys user.
 
+**Operator sign-in workflow:** Role XLAMs must allow a normal operator to work without loading `invSys.Admin.xlam`:
+1. **Connect Server** on role XLAMs revalidates the remembered/current warehouse storage target and refreshes visible server status. It does not open the warehouse storage credential/selection form in Receiving, Shipping, or Production.
+2. Storage credential/selection UI belongs in Admin/setup or Runtime Context troubleshooting, not in the normal role operator path. This is storage authority only.
+3. **Sign In** authenticates the operator as an invSys user against the selected warehouse auth workbook. If no usable target is selected, Sign In tells the operator to connect/select storage first; it does not show NAS credentials as an invSys login.
+4. Ribbon labels show both server state (`Server: Connected ...` / `Server: Not connected`) and user state (`Sign In` / `User: <id>`). Windows, Office, and NAS account names must not be displayed as the invSys user.
+5. **Sign Out** clears only the invSys user session/capability cache. It does not disconnect the remembered NAS/session target.
+6. Role write/send buttons require an allowed warehouse target, a signed-in invSys user, and the required capability. Admin remains the authority for creating invSys users and assigning capabilities, but role XLAM sign-in must not require Admin to be loaded.
+
 **Procedure contract:** The binding VBA API, resolver behavior, ribbon callback rules, credential handling rules, and Phase 6 D-NAS tests are maintained in `D-NAS_Procedure_Contract.md`. This architecture section defines the model; the procedure contract defines the implementation surface.
 
 ---
@@ -1086,7 +1094,7 @@ If any of those are false, LAN architecture may be partially proven, but LAN end
 - [x] Validate XLAM startup/load order, references, and deployment-path behavior in clean Excel sessions
 - [x] Complete end-to-end ribbon-button testing against real role workbooks and tables
 - [ ] Prove role/Admin workflows from saved operator workbooks (`.xlsm` / `.xlsb`) under one-account use
-- [ ] Move NAS connection handling, remembered warehouse target selection, and runtime resolver priority into Core per `D-NAS_Procedure_Contract.md`; expose connect/select/sign-in controls from Receiving, Shipping, Production, and Admin ribbons
+- [ ] Move NAS connection handling, remembered warehouse target selection, and runtime resolver priority into Core per `D-NAS_Procedure_Contract.md`; expose separate storage connection, invSys sign-in, sign-out, and current-user status controls from Receiving, Shipping, Production, and Admin ribbons
 - [ ] Prove operator `invSys` tables refresh from snapshot copy/import without mutating local workflow/staging tables
 - [ ] Expose and validate read-model freshness metadata (`LastRefreshUTC`, `SnapshotId`, `SourceType`, `IsStale`) in operator workbooks
 - [ ] Operationalize `FF_AutoSnapshot` for dependable LAN role use: on-open refresh, post-write refresh, optional cadence refresh, and visible stale-state signaling
@@ -1103,7 +1111,7 @@ If any of those are false, LAN architecture may be partially proven, but LAN end
 - [x] Test: Ribbon controls execute against live workbook/table systems without missing-object/runtime failures
 - [ ] Test: Full packaged XLAM set loads and remains stable across Excel restart/reopen scenarios
 - [ ] Test: Receiving/Shipping/Production/Admin workflows complete from saved `.xlsm` / `.xlsb` operator workbooks under one-account use
-- [ ] Test: Receiving/Shipping/Production can connect to a NAS/server warehouse root, select the intended warehouse target, sign in as an invSys user, and retain that target across form/ribbon refresh without silently falling back to a local runtime
+- [ ] Test: Receiving/Shipping/Production can connect to a NAS/server warehouse root, select the intended warehouse target, sign in/out as an invSys user without Admin loaded, show signed-out state without Windows/NAS fallback identity, and retain the selected target across form/ribbon refresh without silently falling back to a local runtime
 - [ ] Test: Manual snapshot refresh updates the operator `invSys` read model without clearing `ReceivedTally`, shipping staging, production staging, or workbook-local logs
 - [ ] Test: Missing/stale snapshot marks the operator workbook stale but does not block `Confirm Writes` / inbox posting
 - [ ] Test: Operator `invSys` read model exposes `LastRefreshUTC`, `SnapshotId`, `SourceType`, and `IsStale`

@@ -54,13 +54,13 @@ Public Property Get ResultStatus() As AuthStatusCode
 End Property
 
 Private Sub BuildSignInLayout()
-    AddLabel "lblTitle", "invSys Sign In", 18, 14, 180, 20, True
+    AddLabel "lblTitle", "Sign in to invSys", 18, 14, 180, 20, True
     Set mLblTarget = AddLabel("lblTarget", "", 18, 42, 350, 32, False)
     Set mLblStatus = AddLabel("lblStatus", "", 18, 78, 350, 32, False)
 
-    AddLabel "lblUser", "User ID", 18, 122, 76, 18, False
+    AddLabel "lblUser", "Account", 18, 122, 76, 18, False
     Set mTxtUser = AddTextBox("txtUser", 102, 118, 180, 22)
-    AddLabel "lblSecret", "PIN/password", 18, 156, 76, 18, False
+    AddLabel "lblSecret", "PIN/password", 18, 156, 84, 18, False
     Set mTxtSecret = AddTextBox("txtSecret", 102, 152, 180, 22)
     mTxtSecret.PasswordChar = "*"
 
@@ -148,9 +148,9 @@ End Sub
 Private Sub RenderTarget()
     If mLblTarget Is Nothing Then Exit Sub
     If mTarget Is Nothing Then
-        mLblTarget.Caption = "No warehouse target selected."
+        mLblTarget.Caption = "No warehouse server connected."
     Else
-        mLblTarget.Caption = mTarget.WarehouseId & " / " & IIf(mTarget.StationId = "", "<roaming>", mTarget.StationId)
+        mLblTarget.Caption = "Warehouse: " & mTarget.WarehouseId & "    Station: " & IIf(mTarget.StationId = "", "<roaming>", mTarget.StationId)
     End If
 End Sub
 

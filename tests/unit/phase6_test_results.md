@@ -1,7 +1,7 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-05-21 18:08:22
-- Passed: 103
+- Date: 2026-05-22 14:34:33
+- Passed: 105
 - Failed: 11
 
 | Test | Result |
@@ -16,11 +16,13 @@
 | TestPhase6CoreSurfaces.TestAuthValidateUserCredentialForTarget_SignsInAndStatusOk | PASS |
 | TestPhase6CoreSurfaces.TestAuthFailedCredential_DoesNotReplaceSignedInUser | PASS |
 | TestPhase6CoreSurfaces.TestAuthCorrectCredentialWithoutCapability_ReturnsNoCapabilities | PASS |
+| TestPhase6CoreSurfaces.TestRuntimeStatusUserLabel_UnsignedShowsNotSignedIn | PASS |
 | TestPhase6CoreSurfaces.TestRuntimeStatusUserLabel_TracksAuthSignIn | PASS |
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsUnsignedUser | PASS |
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsMissingCapability | PASS |
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsFallbackTarget | PASS |
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_AllowsSignedInReceivePost | PASS |
+| TestPhase6CoreSurfaces.TestAuthSignOut_ClearsUserButKeepsWarehouseTarget | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_AllPresent | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_OneMissingLogsDiagnostic | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_ZeroByteFileLogsDiagnostic | PASS |
