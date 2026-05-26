@@ -145,6 +145,7 @@ Public Function ValidateUserCredentialForTarget(ByVal userId As String, _
     Dim priorRootOverride As String
     Dim configLoaded As Boolean
     Dim authLoaded As Boolean
+    Dim currentTarget As WarehouseTarget
 
     normalizedUser = SafeTrim(userId)
     normalizedCapability = UCase$(SafeTrim(requiredCapability))
@@ -163,6 +164,15 @@ Public Function ValidateUserCredentialForTarget(ByVal userId As String, _
         ValidateUserCredentialForTarget = AUTH_CREDENTIAL_REJECTED
         Exit Function
     End If
+    Set currentTarget = modNasConnection.GetCurrentTarget()
+    If Not currentTarget Is Nothing Then
+        If StrComp(SafeTrim(currentTarget.WarehouseId), SafeTrim(target.WarehouseId), vbTextCompare) <> 0 _
+           Or StrComp(SafeTrim(currentTarget.StationId), SafeTrim(target.StationId), vbTextCompare) <> 0 Then
+            SetAuthFailureStatus AUTH_WAREHOUSE_MISMATCH
+            ValidateUserCredentialForTarget = AUTH_WAREHOUSE_MISMATCH
+            Exit Function
+        End If
+    End If
 
     priorRootOverride = modRuntimeWorkbooks.GetCoreDataRootOverride()
     If SafeTrim(target.RuntimeRoot) <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride target.RuntimeRoot
@@ -173,6 +183,11 @@ Public Function ValidateUserCredentialForTarget(ByVal userId As String, _
     If Not configLoaded Or Not authLoaded Then
         SetAuthFailureStatus AUTH_WORKBOOK_UNREADABLE
         ValidateUserCredentialForTarget = AUTH_WORKBOOK_UNREADABLE
+        Exit Function
+    End If
+    If StrComp(SafeTrim(modConfig.GetWarehouseId()), SafeTrim(target.WarehouseId), vbTextCompare) <> 0 Then
+        SetAuthFailureStatus AUTH_WAREHOUSE_MISMATCH
+        ValidateUserCredentialForTarget = AUTH_WAREHOUSE_MISMATCH
         Exit Function
     End If
     If mUsers Is Nothing Then

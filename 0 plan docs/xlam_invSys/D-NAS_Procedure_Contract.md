@@ -528,7 +528,8 @@ Public Function GetConnectionStatus() As String
 
 ```vb
 Public Function ShowSignInPrompt( _
-    ByVal target As WarehouseTarget _
+    ByVal target As WarehouseTarget, _
+    Optional ByVal requiredCapability As String = "" _
 ) As AuthStatusCode
 ```
 
@@ -541,31 +542,32 @@ Public Function ShowSignInPrompt( _
 
 **Rules:**
 - Must not be called before `IsTargetResolved() = True`.
-- The form calls `ValidateUserCredential` internally. `secretText` (invSys PIN/password) never leaves the form.
+- The form calls `ValidateUserCredentialForTarget` internally. `secretText` (invSys PIN/password) never leaves the form.
+- The sign-in account field accepts **exact `tblUsers.UserId` only**. `DisplayName` is display-only for ribbon/status labels and is not accepted as a login alias. If future releases use email addresses, the email address belongs in `UserId`.
 - **Cancel:** Form closes. Currently signed-in user (if any) unchanged. Returns `AUTH_CANCELLED`.
 - **Failed credential during attempted user switch:** Currently signed-in user unchanged. Failed attempt logged. Form remains open for retry or cancel. Returns failure code only after form is closed by operator.
 - **Success:** In-session user replaced with newly validated user. Returns `AUTH_OK`.
 
 ---
 
-#### `ValidateUserCredential`
+#### `ValidateUserCredentialForTarget`
 
 ```vb
-Public Function ValidateUserCredential( _
+Public Function ValidateUserCredentialForTarget( _
     ByVal userId As String, _
     ByVal secretText As String, _
     ByVal target As WarehouseTarget, _
-    Optional ByVal stationId As String = "" _
+    Optional ByVal requiredCapability As String = "" _
 ) As AuthStatusCode
 ```
 
-**Purpose:** Internal validation call used by `ShowSignInPrompt`. Not a public entry point for role or Admin XLAMs — sign-in always goes through `ShowSignInPrompt`.
+**Purpose:** Internal validation call used by `ShowSignInPrompt` and Phase 6 automation. Role and Admin UI sign-in always goes through `ShowSignInPrompt`.
 
 **Parameters:**
-- `userId` — invSys user identifier.
+- `userId` — exact invSys user identifier from `tblUsers.UserId`. This is the login identity; `DisplayName` is never used for credential lookup.
 - `secretText` — invSys user PIN or password. This is the invSys credential, distinct from the Windows/NAS password used in `Core.NasConnection`. Never logged or persisted.
 - `target` — Must be the currently resolved `WarehouseTarget`.
-- `stationId` — Optional.
+- `requiredCapability` — Optional capability required for this sign-in context, e.g. `RECEIVE_POST`.
 
 **Returns:** `AuthStatusCode`.
 
@@ -579,7 +581,7 @@ Public Function ValidateUserCredential( _
 
 | Code | Condition |
 |---|---|
-| `AUTH_WAREHOUSE_MISMATCH` | `target.WarehouseId` ≠ current resolver's `WarehouseId` |
+| `AUTH_WAREHOUSE_MISMATCH` | `target.WarehouseId` does not match the current resolver target or the loaded config identity |
 | `AUTH_USER_NOT_FOUND` | `userId` not in `tblUsers` for this warehouse |
 | `AUTH_CREDENTIAL_REJECTED` | User found but `secretText` does not validate |
 | `AUTH_WORKBOOK_UNREADABLE` | Auth workbook cannot be opened |
@@ -606,6 +608,16 @@ Public Function GetCurrentUserId() As String
 ```
 
 **Returns:** `UserId` of the signed-in invSys user. Empty string if none.
+
+---
+
+#### `GetCurrentUserDisplayName`
+
+```vb
+Public Function GetCurrentUserDisplayName() As String
+```
+
+**Returns:** Display name for the signed-in invSys user. Falls back to `UserId` if the display name is blank or unavailable. Display name is presentation only and is never a credential lookup key.
 
 ---
 
@@ -636,8 +648,11 @@ Public Function GetAuthStatus() As AuthStatusCode
 ```vb
 Public Function CanPerform( _
     ByVal capability As String, _
-    ByVal target As WarehouseTarget, _
-    Optional ByVal stationId As String = "" _
+    ByVal userId As String, _
+    Optional ByVal warehouseId As String = "", _
+    Optional ByVal stationId As String = "", _
+    Optional ByVal source As String = "UI", _
+    Optional ByVal requestId As String = "" _
 ) As Boolean
 ```
 
@@ -648,6 +663,7 @@ Public Function CanPerform( _
 **Rules:**
 - `CanPerform` is the only capability check entry point. Role XLAMs do not read capability flags directly from `WarehouseTarget` or the auth workbook.
 - If `IsSignedIn()` returns `False` for any reason, `CanPerform` returns `False` without opening the auth workbook.
+- Role ribbon `getEnabled` callbacks use `Core.RoleUiAccess.CanCurrentUserPerformCapabilityCached`, which is a cached-state facade over the current target/auth state and must remain non-modal and network-free.
 - See `Core.Auth` capability contract for capability name constants, scope rules, and TTL refresh behavior.
 
 ---
@@ -669,9 +685,9 @@ Public Function CanPerform( _
 | **Connect / Select Warehouse Storage** button (Admin/setup) | `EnsureWarehouseTargetInteractive(requireNasTarget:=False)` | Always enabled |
 | **Server status** label (role XLAMs) | cached target status label | Always visible; no network probe |
 | **Warehouse status** label | `GetConnectionStatus` | Always visible |
-| **Sign In** button | If target is acceptable, `ShowSignInPrompt(GetCurrentTarget())`; otherwise message/status only | `IsSignedIn() = False`; writes remain disabled until target and auth pass |
+| **Sign In** button | If target is acceptable, `ShowSignInPrompt(GetCurrentTarget(), requiredCapability)`; otherwise message/status only | `IsSignedIn() = False`; writes remain disabled until target and auth pass |
 | **Sign Out** button | `SignOut` | `IsSignedIn() = True` |
-| **Current user / auth status** label | `IsSignedIn` + `GetCurrentUserId` + `GetAuthStatus` | Always visible; signed-out display is `Sign In` or `<not signed in>`, never Windows/NAS identity |
+| **Current user / auth status** label | `IsSignedIn` + `GetCurrentUserDisplayName` + `GetAuthStatus` | Always visible; signed-out display is `Sign In` or `<not signed in>`, never Windows/NAS identity; runtime diagnostics may separately show `UserId` |
 | **Post / Confirm Writes** button (role XLAMs) | Role event creator | `IsSignedIn() = True` AND `CanPerform(cap, ...)` AND `GetCurrentTarget().SourceType <> WH_SOURCE_FALLBACK` |
 | **Post / Confirm Writes** button (Admin XLAM) | Admin action | `IsSignedIn() = True` AND `CanPerform(cap, ...)` |
 
@@ -716,7 +732,7 @@ If Not Core.NasConnection.IsTargetResolved() Then
     Exit Sub
 End If
 Dim result As AuthStatusCode
-result = Core.Auth.ShowSignInPrompt(Core.NasConnection.GetCurrentTarget())
+result = Core.Auth.ShowSignInPrompt(Core.NasConnection.GetCurrentTarget(), requiredCapability)
 ' AUTH_OK: ribbon write controls enabled by IsSignedIn() getEnabled
 ' AUTH_CANCELLED or failure: ribbon remains in signed-out state
 ribbonUI.Invalidate
@@ -735,9 +751,9 @@ If Core.NasConnection.GetCurrentTarget().SourceType = WH_SOURCE_FALLBACK Then
     Exit Sub
 End If
 If Not Core.Auth.IsSignedIn() Then
-    If Core.Auth.ShowSignInPrompt(Core.NasConnection.GetCurrentTarget()) <> AUTH_OK Then Exit Sub
+    If Core.Auth.ShowSignInPrompt(Core.NasConnection.GetCurrentTarget(), requiredCapability) <> AUTH_OK Then Exit Sub
 End If
-If Not Core.Auth.CanPerform(requiredCapability, Core.NasConnection.GetCurrentTarget()) Then
+If Not Core.Auth.CanPerform(requiredCapability, Core.Auth.GetCurrentUserId(), Core.NasConnection.GetCurrentTarget().WarehouseId, Core.NasConnection.GetCurrentTarget().StationId) Then
     MsgBox "You do not have permission to perform this action.", vbExclamation
     Exit Sub
 End If
@@ -772,6 +788,8 @@ End If
 | Role current write rejects signed-in user without required capability | Role event creator using current user | Write blocked before queueing; capability error surfaced |
 | Role current write rejects fallback target even when auth/capability otherwise pass | Role event creator using current user | Write blocked before queueing; operator is told to connect to NAS warehouse |
 | Role current write allows signed-in user with required capability on NAS target | Role event creator using current user | Event queued under current invSys user |
+| Sign-in uses exact `UserId`, not `DisplayName` | `ValidateUserCredentialForTarget("DisplayName", ...)` where `DisplayName <> UserId` | Returns `AUTH_USER_NOT_FOUND`; signed-in user unchanged |
+| Password/PIN reset for existing `UserId` works | Admin updates `tblUsers.PinHash`, then `ValidateUserCredentialForTarget(UserId, newSecret, ...)` | Returns `AUTH_OK`; display label may show `DisplayName` |
 | Packaged ribbon capability buttons include `getEnabled` callback mapping | Packaged RibbonX validation | Required-capability buttons use centralized enabled callback; missing callback fails validation |
 | `SelectWarehouseTarget` with `requireStationInbox:=True` and `stationId = ""` returns `WH_TARGET_INCOMPLETE` | `SelectWarehouseTarget` | `WH_TARGET_INCOMPLETE`; `outTarget` null |
 | `SelectWarehouseTarget` with `requireStationInbox:=False` and `stationId = ""` returns `NAS_OK` | `SelectWarehouseTarget` | `NAS_OK`; `InboxRoot` = warehouse-global path |
@@ -779,7 +797,7 @@ End If
 | Dilbert signed in; Calvin submits wrong PIN; Dilbert remains signed in | `ShowSignInPrompt` / `ValidateUserCredential` | `GetCurrentUserId() = "Dilbert"` after failed Calvin attempt |
 | `ShowSignInPrompt` returns `AUTH_CANCELLED` on operator dismiss | `ShowSignInPrompt` | Return value = `AUTH_CANCELLED`; `IsSignedIn()` unchanged |
 | Failed sign-in log row contains no `secretText` | `ValidateUserCredential` failure | Log fields: `userId`, warehouse, station, timestamp, `AuthStatusCode` only |
-| `ValidateUserCredential` rejects mismatched `target.WarehouseId` | Mismatched target | Returns `AUTH_WAREHOUSE_MISMATCH`; cache unchanged |
+| `ValidateUserCredentialForTarget` rejects mismatched `target.WarehouseId` | Mismatched target | Returns `AUTH_WAREHOUSE_MISMATCH`; cache unchanged |
 | `IsSignedIn()` returns `False` after TTL expiry; `GetAuthStatus()` returns `AUTH_REAUTH_REQUIRED` | TTL expiry simulation | `IsSignedIn() = False`; ribbon label reflects expiry; `CanPerform` returns `False` |
 | `CanPerform` returns `False` when `IsSignedIn() = False` without opening auth workbook | `CanPerform` with signed-out state | Returns `False`; no workbook open event fired |
 | Two LAN stations: same `WarehouseId`, distinct `StationId`, independent `InboxRoot` | `GetCurrentTarget()` per station | Each station's `StationId` and `InboxRoot` independent |

@@ -114,6 +114,94 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestNasSelectWarehouseTarget_AllowsRoamingBlankStationWithoutInboxRequirement() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim report As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_dnas_roaming_blank_station")
+
+    On Error GoTo CleanFail
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH74", "S7", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH74", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "", False)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    If target Is Nothing Then GoTo CleanExit
+    If StrComp(target.WarehouseId, "WH74", vbTextCompare) = 0 _
+       And target.StationId = "" _
+       And StrComp(target.InboxRoot, rootPath, vbTextCompare) = 0 _
+       And target.SourceType = WH_SOURCE_NAS Then
+        TestNasSelectWarehouseTarget_AllowsRoamingBlankStationWithoutInboxRequirement = 1
+    End If
+
+CleanExit:
+    modNasConnection.ForgetTarget "WH74"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestNasSelectWarehouseTarget_TwoStationsHaveIndependentInboxRoots() As Long
+    Dim rootPath As String
+    Dim inboxRootA As String
+    Dim inboxRootB As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim targetA As WarehouseTarget
+    Dim targetB As WarehouseTarget
+    Dim statusA As NasStatusCode
+    Dim statusB As NasStatusCode
+    Dim report As String
+    Dim configPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_dnas_two_station_inbox")
+    inboxRootA = rootPath & "\station_s21"
+    inboxRootB = rootPath & "\station_s22"
+    configPath = rootPath & "\WH75.invSys.Config.xlsb"
+
+    On Error GoTo CleanFail
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH75", "S21", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH75", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modConfig.EnsureStationConfigEntry("WH75", "S21", "Station 21", inboxRootA, "RECEIVE", configPath, rootPath, report) Then GoTo CleanExit
+    If Not modConfig.EnsureStationConfigEntry("WH75", "S22", "Station 22", inboxRootB, "RECEIVE", configPath, rootPath, report) Then GoTo CleanExit
+
+    statusA = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, targetA, "S21", True)
+    statusB = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, targetB, "S22", True)
+    If statusA <> NAS_OK Or statusB <> NAS_OK Then GoTo CleanExit
+    If targetA Is Nothing Or targetB Is Nothing Then GoTo CleanExit
+
+    If StrComp(targetA.WarehouseId, "WH75", vbTextCompare) = 0 _
+       And StrComp(targetB.WarehouseId, "WH75", vbTextCompare) = 0 _
+       And StrComp(targetA.StationId, "S21", vbTextCompare) = 0 _
+       And StrComp(targetB.StationId, "S22", vbTextCompare) = 0 _
+       And StrComp(targetA.InboxRoot, inboxRootA, vbTextCompare) = 0 _
+       And StrComp(targetB.InboxRoot, inboxRootB, vbTextCompare) = 0 Then
+        TestNasSelectWarehouseTarget_TwoStationsHaveIndependentInboxRoots = 1
+    End If
+
+CleanExit:
+    modNasConnection.ForgetTarget "WH75"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestNasScanRoot_ReturnsPathStringsWithoutWarehouseInference() As Long
     Dim rootPath As String
     Dim wbCfg As Workbook
@@ -347,6 +435,7 @@ Public Function TestAuthValidateUserCredentialForTarget_AcceptsResetPinForUserId
     authPath = rootPath & "\WH88.invSys.Auth.xlsb"
 
     On Error GoTo CleanFail
+    modAuth.SignOut
     Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH88", "S14", rootPath, report)
     Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH88", "svc_processor", rootPath, report)
     If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
@@ -394,6 +483,7 @@ Public Function TestAuthValidateUserCredentialForTarget_RejectsDisplayNameAsUser
     authPath = rootPath & "\WH82.invSys.Auth.xlsb"
 
     On Error GoTo CleanFail
+    modAuth.SignOut
     Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH82", "S15", rootPath, report)
     Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH82", "svc_processor", rootPath, report)
     If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
@@ -414,6 +504,52 @@ Public Function TestAuthValidateUserCredentialForTarget_RejectsDisplayNameAsUser
 CleanExit:
     modAuth.SignOut
     modNasConnection.ForgetTarget "WH82"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestAuthValidateUserCredentialForTarget_RejectsMismatchedTargetWarehouse() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_auth_target_mismatch")
+    authPath = rootPath & "\WH83.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    modAuth.SignOut
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH83", "S16", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH83", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH83", "S16", "u1", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "u1", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S16", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    target.WarehouseId = "WH83_MUTATED"
+    authStatus = modAuth.ValidateUserCredentialForTarget("u1", "123456", target, "RECEIVE_POST")
+
+    If authStatus = AUTH_WAREHOUSE_MISMATCH _
+       And Not modAuth.IsSignedIn() _
+       And modAuth.GetCurrentUserId() = "" Then
+        TestAuthValidateUserCredentialForTarget_RejectsMismatchedTargetWarehouse = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH83"
     modNasConnection.ForgetRoot rootPath
     modNasConnection.ClearWarehouseTarget
     CloseWorkbookIfOpen wbCfg

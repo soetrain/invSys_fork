@@ -625,11 +625,11 @@ Private Function ReadConfigIdentityNas(ByVal configPath As String, _
     If warehouseName = "" Then warehouseName = warehouseId
 
     stationId = Trim$(requestedStation)
-    If Not loSt Is Nothing Then
+    If stationId <> "" And Not loSt Is Nothing Then
         If Not loSt.DataBodyRange Is Nothing Then
             rowIndex = FindStationRowNas(loSt, warehouseId, stationId)
             If rowIndex = 0 Then rowIndex = 1
-            If stationId = "" Then stationId = TableValueNas(loSt, rowIndex, "StationId")
+            stationId = TableValueNas(loSt, rowIndex, "StationId")
         End If
     End If
 
@@ -700,6 +700,10 @@ Private Function ResolveInboxRootNas(ByVal runtimeRoot As String, ByVal warehous
     Dim report As String
     Dim inboxPath As String
 
+    If Trim$(stationId) = "" Or Trim$(stationId) = "*" Then
+        ResolveInboxRootNas = runtimeRoot
+        Exit Function
+    End If
     inboxPath = modConfig.ResolveStationInboxPath(warehouseId, stationId, "RECEIVE", runtimeRoot & "\" & warehouseId & ".invSys.Config.xlsb", report)
     If inboxPath <> "" Then
         ResolveInboxRootNas = modDeploymentPaths.GetParentFolderManaged(inboxPath)
