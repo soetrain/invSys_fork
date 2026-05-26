@@ -24,20 +24,41 @@ Public Sub Auto_Open()
 End Sub
 
 Public Sub ScheduleSourceWorkbookSync(Optional ByVal delaySeconds As Long = 3)
+    Dim procedureName As String
+
+    If Not IsSourceSyncSchedulerHostInit() Then
+        gSourceSyncScheduled = False
+        AppendSyncLogEntry "SCHEDULE_SKIP", "Workbook=" & ThisWorkbook.Name & "|Reason=NotInventoryDomainAddin"
+        Exit Sub
+    End If
+
+    procedureName = BuildSourceSyncProcedureInit()
+
     On Error Resume Next
     If gSourceSyncScheduled Then
         Application.OnTime EarliestTime:=gNextSourceSync, _
-                           Procedure:="'" & ThisWorkbook.Name & "'!modInventoryInit.SyncSourceWorkbookFromCanonicalRuntime", _
+                           Procedure:=procedureName, _
                            Schedule:=False
+    End If
+    If Err.Number <> 0 Then
+        AppendSyncLogEntry "CANCEL_WARN", "Workbook=" & ThisWorkbook.Name & "|Error=" & Err.Description
+        Err.Clear
     End If
     On Error GoTo 0
 
+    On Error GoTo ScheduleFailed
     If delaySeconds <= 0 Then delaySeconds = 3
     gNextSourceSync = Now + (CDbl(delaySeconds) / 86400#)
     Application.OnTime EarliestTime:=gNextSourceSync, _
-                       Procedure:="'" & ThisWorkbook.Name & "'!modInventoryInit.SyncSourceWorkbookFromCanonicalRuntime"
+                       Procedure:=procedureName, _
+                       Schedule:=True
     gSourceSyncScheduled = True
     AppendSyncLogEntry "SCHEDULE", "NextRun=" & Format$(gNextSourceSync, "yyyy-mm-dd hh:nn:ss") & "|DelaySeconds=" & CStr(delaySeconds)
+    Exit Sub
+
+ScheduleFailed:
+    gSourceSyncScheduled = False
+    AppendSyncLogEntry "SCHEDULE_ERROR", "Workbook=" & ThisWorkbook.Name & "|Error=" & Err.Description
 End Sub
 
 Public Sub SyncSourceWorkbookFromCanonicalRuntime()
@@ -147,6 +168,23 @@ Private Function ShouldSyncSourceWorkbookInit(ByVal wb As Workbook) As Boolean
              Or WorkbookHasSyncTableInit(wb, "ShipmentsTally") _
              Or WorkbookHasSyncTableInit(wb, "ProductionOutput") _
              Or WorkbookHasSyncTableInit(wb, "Recipes"))
+End Function
+
+Private Function IsSourceSyncSchedulerHostInit() As Boolean
+    Dim wbName As String
+
+    On Error Resume Next
+    wbName = LCase$(Trim$(ThisWorkbook.Name))
+    If ThisWorkbook.IsAddin Then
+        IsSourceSyncSchedulerHostInit = True
+    ElseIf wbName Like "*.xla" Or wbName Like "*.xlam" Then
+        IsSourceSyncSchedulerHostInit = True
+    End If
+    On Error GoTo 0
+End Function
+
+Private Function BuildSourceSyncProcedureInit() As String
+    BuildSourceSyncProcedureInit = "'" & Replace$(ThisWorkbook.Name, "'", "''") & "'!modInventoryInit.SyncSourceWorkbookFromCanonicalRuntime"
 End Function
 
 Private Function WorkbookHasSyncTableInit(ByVal wb As Workbook, ByVal tableName As String) As Boolean

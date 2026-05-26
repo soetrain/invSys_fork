@@ -433,7 +433,9 @@ finally {
         $detail = $detail.Replace("|", "/")
         $lines += "| $($row.Check) | $result | $detail |"
     }
-    [System.IO.File]::WriteAllLines($resultPath, $lines)
+    if ($resultRows.Count -gt 0) {
+        [System.IO.File]::WriteAllLines($resultPath, $lines)
+    }
 
     foreach ($wb in $openedWorkbooks) {
         try { $wb.Close($false) } catch {}

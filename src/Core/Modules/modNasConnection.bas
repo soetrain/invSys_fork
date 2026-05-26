@@ -434,6 +434,66 @@ Public Function GetCurrentTarget() As WarehouseTarget
     Set GetCurrentTarget = CloneTargetNas(m_CurrentTarget)
 End Function
 
+Public Function GetKnownWarehouseTargetRoots() As Collection
+    Dim result As Collection
+    Dim roots As Collection
+    Dim rootPath As Variant
+    Dim remembered As WarehouseTarget
+
+    Set result = New Collection
+    If Not m_CurrentTarget Is Nothing Then
+        AddPathIfMissingNas result, m_CurrentTarget.HubRoot
+        AddPathIfMissingNas result, m_CurrentTarget.RuntimeRoot
+    End If
+
+    Set remembered = LoadRememberedTargetNas()
+    If Not remembered Is Nothing Then
+        AddPathIfMissingNas result, remembered.HubRoot
+        AddPathIfMissingNas result, remembered.RuntimeRoot
+    End If
+
+    Set roots = GetRememberedRootsNas()
+    For Each rootPath In roots
+        AddPathIfMissingNas result, CStr(rootPath)
+    Next rootPath
+
+    Set GetKnownWarehouseTargetRoots = result
+End Function
+
+Public Function ConnectKnownWarehouseServer(ByRef connectedRoot As String, _
+                                           ByRef statusText As String) As Boolean
+    Dim roots As Collection
+    Dim knownRoots As Collection
+    Dim rootPath As Variant
+    Dim statusCode As NasStatusCode
+
+    Set roots = New Collection
+    AddPathIfMissingNas roots, ResolvePromptDefaultRootNas()
+
+    Set knownRoots = GetKnownWarehouseTargetRoots()
+    For Each rootPath In knownRoots
+        AddPathIfMissingNas roots, CStr(rootPath)
+    Next rootPath
+
+    If roots.Count = 0 Then
+        statusText = "No remembered NAS root is available. Use Admin > Add Warehouse Root or setup to save the server path."
+        SetStatusNas WH_NO_TARGET, statusText
+        Exit Function
+    End If
+
+    For Each rootPath In roots
+        statusCode = TryRevalidateRememberedRoot(CStr(rootPath))
+        If statusCode = NAS_OK Then
+            connectedRoot = NormalizeFolderNas(CStr(rootPath))
+            statusText = GetConnectionStatus()
+            ConnectKnownWarehouseServer = True
+            Exit Function
+        End If
+    Next rootPath
+
+    statusText = GetConnectionStatus()
+End Function
+
 Public Function IsWarehouseTargetAllowed(ByVal target As WarehouseTarget, _
                                          Optional ByVal requireNasTarget As Boolean = False) As Boolean
     If target Is Nothing Then Exit Function

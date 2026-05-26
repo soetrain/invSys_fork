@@ -42,6 +42,34 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestCheckReceivingReadiness_AllReady_WhenCapabilityStationWildcard() As Long
+    Dim fx As ReceivingFixture
+    Dim wbOps As Workbook
+    Dim readinessPacked As String
+
+    On Error GoTo CleanFail
+    fx = CreateReceivingFixture("wildcard_station", "*")
+    Set wbOps = OpenWorkbookReadinessTest(fx.OperatorPath)
+    modTS_Received.ResetReceivingUiStub
+
+    readinessPacked = modReceivingInit.CheckReceivingReadinessPacked(wbOps)
+    modReceivingInit.ApplyReceivingReadinessForWorkbook wbOps, True
+
+    If PackedBoolReadinessTest(readinessPacked, "IsReady") _
+       And PackedValueReadinessTest(readinessPacked, "SnapshotStatus") = "OK" _
+       And PackedValueReadinessTest(readinessPacked, "AuthStatus") = "OK" _
+       And PackedValueReadinessTest(readinessPacked, "RuntimeStatus") = "OK" _
+       And modTS_Received.GetReceivingUiStubInitializeCount() = 1 Then
+        TestCheckReceivingReadiness_AllReady_WhenCapabilityStationWildcard = 1
+    End If
+
+CleanExit:
+    CleanupReceivingFixture fx, wbOps
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestCheckReceivingReadiness_SnapshotOk_WhenAuthMissingCapability() As Long
     Dim fx As ReceivingFixture
     Dim wbOps As Workbook
@@ -84,7 +112,7 @@ Public Function TestCheckReceivingReadiness_SnapshotStale_ReturnsStale() As Long
     readinessPacked = modReceivingInit.CheckReceivingReadinessPacked(wbOps)
     If Not PackedBoolReadinessTest(readinessPacked, "IsReady") _
        And PackedValueReadinessTest(readinessPacked, "SnapshotStatus") = "STALE" _
-       And InStr(1, PackedValueReadinessTest(readinessPacked, "Messages"), "Refresh Inventory before posting", vbTextCompare) > 0 Then
+       And InStr(1, PackedValueReadinessTest(readinessPacked, "Messages"), "Run Setup UI to refresh inventory", vbTextCompare) > 0 Then
         TestCheckReceivingReadiness_SnapshotStale_ReturnsStale = 1
     End If
 
@@ -186,7 +214,7 @@ Public Function TestCheckReceivingReadiness_AuthNoUser_ReturnsNoUser() As Long
     readinessPacked = modReceivingInit.CheckReceivingReadinessPacked(wbOps)
     If Not PackedBoolReadinessTest(readinessPacked, "IsReady") _
        And PackedValueReadinessTest(readinessPacked, "AuthStatus") = "NO_USER" _
-       And InStr(1, PackedValueReadinessTest(readinessPacked, "Messages"), "not provisioned", vbTextCompare) > 0 Then
+       And InStr(1, PackedValueReadinessTest(readinessPacked, "Messages"), "Users & Roles", vbTextCompare) > 0 Then
         TestCheckReceivingReadiness_AuthNoUser_ReturnsNoUser = 1
     End If
 
@@ -213,7 +241,7 @@ Public Function TestCheckReceivingReadiness_AuthMissingCapability_ReturnsMissing
     readinessPacked = modReceivingInit.CheckReceivingReadinessPacked(wbOps)
     If Not PackedBoolReadinessTest(readinessPacked, "IsReady") _
        And PackedValueReadinessTest(readinessPacked, "AuthStatus") = "MISSING_CAPABILITY" _
-       And InStr(1, PackedValueReadinessTest(readinessPacked, "Messages"), "does not have RECEIVE_POST", vbTextCompare) > 0 Then
+       And InStr(1, PackedValueReadinessTest(readinessPacked, "Messages"), "Receiving post", vbTextCompare) > 0 Then
         TestCheckReceivingReadiness_AuthMissingCapability_ReturnsMissingCapability = 1
     End If
 
@@ -290,7 +318,7 @@ Public Function TestCheckReceivingReadiness_RuntimeMissingTables_ReturnsMissingT
     readinessPacked = modReceivingInit.CheckReceivingReadinessPacked(wbOps)
     If Not PackedBoolReadinessTest(readinessPacked, "IsReady") _
        And PackedValueReadinessTest(readinessPacked, "RuntimeStatus") = "MISSING_TABLES" _
-       And InStr(1, readinessPacked, "missing required tables", vbTextCompare) > 0 Then
+       And InStr(1, readinessPacked, "missing Receiving tables", vbTextCompare) > 0 Then
         TestCheckReceivingReadiness_RuntimeMissingTables_ReturnsMissingTables = 1
     End If
 
@@ -326,7 +354,7 @@ CleanFail:
     Resume CleanExit
 End Function
 
-Private Function CreateReceivingFixture(ByVal caseToken As String) As ReceivingFixture
+Private Function CreateReceivingFixture(ByVal caseToken As String, Optional ByVal capabilityStationId As String = "") As ReceivingFixture
     Dim fx As ReceivingFixture
     Dim wbCfg As Workbook
     Dim wbAuth As Workbook
@@ -346,6 +374,7 @@ Private Function CreateReceivingFixture(ByVal caseToken As String) As ReceivingF
 
     EnsureFolderReadinessTest fx.RootPath
     EnsureFolderReadinessTest fx.ShareRoot
+    If Trim$(capabilityStationId) = "" Then capabilityStationId = fx.StationId
 
     Set wbCfg = TestPhase2Helpers.BuildCanonicalConfigWorkbook(fx.WarehouseId, fx.StationId, fx.RootPath, "RECEIVE")
     TestPhase2Helpers.SetWarehouseConfigValue wbCfg, "PathDataRoot", fx.RootPath
@@ -355,7 +384,7 @@ Private Function CreateReceivingFixture(ByVal caseToken As String) As ReceivingF
 
     Set wbAuth = TestPhase2Helpers.BuildCanonicalAuthWorkbook(fx.WarehouseId, fx.RootPath)
     TestPhase2Helpers.SetUserPinHash wbAuth, fx.UserId, modAuth.HashUserCredential("123456")
-    TestPhase2Helpers.AddCapability wbAuth, fx.UserId, "RECEIVE_POST", fx.WarehouseId, fx.StationId, "ACTIVE"
+    TestPhase2Helpers.AddCapability wbAuth, fx.UserId, "RECEIVE_POST", fx.WarehouseId, capabilityStationId, "ACTIVE"
     TestPhase2Helpers.AddCapability wbAuth, fx.UserId, "RECEIVE_VIEW", fx.WarehouseId, fx.StationId, "ACTIVE"
     TestPhase2Helpers.AddCapability wbAuth, fx.UserId, "READMODEL_REFRESH", fx.WarehouseId, fx.StationId, "ACTIVE"
     wbAuth.Save
@@ -376,6 +405,7 @@ Private Function CreateReceivingFixture(ByVal caseToken As String) As ReceivingF
     CloseWorkbookNoSaveReadinessTest wbOps
 
     modRuntimeWorkbooks.SetCoreDataRootOverride fx.RootPath
+    modRoleEventWriter.SetCurrentUserId fx.UserId
     CreateReceivingFixture = fx
 End Function
 
@@ -410,7 +440,7 @@ End Sub
 
 Private Function ResolveCurrentReadinessUserTest() As String
     ResolveCurrentReadinessUserTest = Trim$(modRoleEventWriter.ResolveCurrentUserId())
-    If ResolveCurrentReadinessUserTest = "" Then ResolveCurrentReadinessUserTest = Trim$(Application.UserName)
+    If ResolveCurrentReadinessUserTest = "" Then ResolveCurrentReadinessUserTest = "readiness_user"
 End Function
 
 Private Function BuildTempRootReadinessTest(ByVal caseToken As String) As String
@@ -549,6 +579,8 @@ End Sub
 Private Sub CleanupReceivingFixture(ByRef fx As ReceivingFixture, ParamArray workbooksToClose() As Variant)
     Dim i As Long
 
+    modAuth.SignOut
+    modRoleEventWriter.SetCurrentUserId vbNullString
     For i = LBound(workbooksToClose) To UBound(workbooksToClose)
         If IsObject(workbooksToClose(i)) Then CloseWorkbookNoSaveReadinessTest workbooksToClose(i)
     Next i

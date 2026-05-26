@@ -77,6 +77,40 @@ Public Function CanCurrentUserPerformCapability(ByVal capability As String, _
     CanCurrentUserPerformCapability = True
 End Function
 
+Public Function CanCurrentUserPerformCapabilityCached(ByVal capability As String, _
+                                                      Optional ByRef errorMessage As String = "") As Boolean
+    Dim resolvedUser As String
+    Dim currentTarget As WarehouseTarget
+
+    If CapabilityRequiresNasTargetAccess(capability) Then
+        If Not modNasConnection.IsCurrentTargetAllowed(True) Then
+            errorMessage = "A connected NAS warehouse target is required before using role controls."
+            Exit Function
+        End If
+    End If
+
+    If Not modAuth.IsSignedIn() Then
+        errorMessage = "Current invSys user is not signed in."
+        Exit Function
+    End If
+
+    resolvedUser = Trim$(modAuth.GetCurrentUserId())
+    If resolvedUser = "" Then
+        errorMessage = "Current invSys user is not signed in."
+        Exit Function
+    End If
+
+    If CapabilityRequiresNasTargetAccess(capability) Then
+        Set currentTarget = modNasConnection.GetCurrentTarget()
+        If currentTarget Is Nothing Then
+            errorMessage = "A connected NAS warehouse target is required before using role controls."
+            Exit Function
+        End If
+    End If
+
+    CanCurrentUserPerformCapabilityCached = True
+End Function
+
 Private Function CapabilityRequiresNasTargetAccess(ByVal capability As String) As Boolean
     Select Case UCase$(Trim$(capability))
         Case "RECEIVE_POST", "SHIP_POST", "PROD_POST"

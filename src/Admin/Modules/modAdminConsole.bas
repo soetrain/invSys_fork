@@ -993,12 +993,18 @@ End Function
 Private Function GetWarehouseDirectoryScanRoots() As Collection
     Dim roots As Collection
     Dim rememberedRoots As Collection
+    Dim knownTargetRoots As Collection
     Dim item As Variant
 
     Set roots = New Collection
     AddWarehouseDirectoryScanRoot roots, GetAdminRuntimeScanRoot()
     AddWarehouseDirectoryScanRoot roots, Trim$(modConfig.GetString("PathDataRoot", ""))
     AddWarehouseDirectoryScanRoot roots, modRuntimeWorkbooks.GetCoreDataRootOverride()
+
+    Set knownTargetRoots = modNasConnection.GetKnownWarehouseTargetRoots()
+    For Each item In knownTargetRoots
+        AddWarehouseDirectoryScanRoot roots, CStr(item)
+    Next item
 
     Set rememberedRoots = GetRememberedWarehouseScanRoots()
     For Each item In rememberedRoots

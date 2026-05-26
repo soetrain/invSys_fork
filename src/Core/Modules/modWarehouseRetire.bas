@@ -1105,6 +1105,8 @@ Private Function ResolveExistingRuntimeRootRetire(ByVal warehouseId As String) A
     Dim candidateRoot As String
     Dim parentPath As String
     Dim scanRoot As String
+    Dim rememberedRoot As Variant
+    Dim rememberedRoots As Collection
 
     On Error GoTo CleanFail
 
@@ -1158,6 +1160,23 @@ Private Function ResolveExistingRuntimeRootRetire(ByVal warehouseId As String) A
             Exit Function
         End If
     End If
+
+    Set rememberedRoots = modRuntimeWorkbooks.GetRememberedWarehouseScanRootsRuntime()
+    For Each rememberedRoot In rememberedRoots
+        scanRoot = CStr(rememberedRoot)
+        If RuntimeArtifactsExistRetire(scanRoot, warehouseId) Then
+            ResolveExistingRuntimeRootRetire = NormalizeFolderPathRetire(scanRoot)
+            If Right$(ResolveExistingRuntimeRootRetire, 1) = "\" Then
+                ResolveExistingRuntimeRootRetire = Left$(ResolveExistingRuntimeRootRetire, Len(ResolveExistingRuntimeRootRetire) - 1)
+            End If
+            Exit Function
+        End If
+        candidateRoot = FindRuntimeRootUnderParentRetire(scanRoot, warehouseId)
+        If candidateRoot <> "" Then
+            ResolveExistingRuntimeRootRetire = candidateRoot
+            Exit Function
+        End If
+    Next rememberedRoot
 
     For Each wb In Application.Workbooks
         If InStr(1, wb.Name, warehouseId & ".invSys.", vbTextCompare) = 1 Then

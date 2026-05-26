@@ -51,14 +51,12 @@ Public Sub PromptSetCurrentUserForCapability(Optional ByVal requiredCapability A
     Dim target As WarehouseTarget
     Dim statusCode As NasStatusCode
     Dim authStatus As AuthStatusCode
+    Dim requireNasTarget As Boolean
 
-    If Not modNasConnection.ResolveWarehouseTarget(target, statusCode) Then
+    requireNasTarget = CapabilityRequiresNasTargetRole(requiredCapability)
+    Set target = ResolveRoleWarehouseTarget(requireNasTarget, statusCode)
+    If target Is Nothing Then
         MsgBox "Warehouse storage is not connected. Use Connect Server or Runtime Context before signing in.", vbExclamation, "invSys Current User"
-        modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
-        Exit Sub
-    End If
-    If CapabilityRequiresNasTargetRole(requiredCapability) And Not modNasConnection.IsWarehouseTargetAllowed(target, True) Then
-        MsgBox "Receiving, Shipping, and Production require a connected NAS warehouse target before invSys sign-in.", vbExclamation, "invSys Current User"
         modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
         Exit Sub
     End If
@@ -79,23 +77,52 @@ Public Sub ShowCurrentUser()
 End Sub
 
 Public Sub ConnectWarehouseStorageForCapability(Optional ByVal requiredCapability As String = "")
-    Dim target As WarehouseTarget
-    Dim statusCode As NasStatusCode
+    Dim connectedRoot As String
+    Dim statusText As String
 
-    If modNasConnection.ResolveWarehouseTarget(target, statusCode) _
-       And modNasConnection.IsWarehouseTargetAllowed(target, CapabilityRequiresNasTargetRole(requiredCapability)) Then
+    If modNasConnection.ConnectKnownWarehouseServer(connectedRoot, statusText) Then
+        modRibbonRuntimeStatus.InvalidateWarehouseTargets
         modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
         Exit Sub
     End If
 
+    modRibbonRuntimeStatus.InvalidateWarehouseTargets
     modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
-    MsgBox "No connected NAS warehouse target was found. Check Runtime Context, make sure the NAS path is reachable, or select the warehouse storage from Admin/setup.", vbExclamation, "invSys Warehouse Storage"
+    MsgBox "Could not connect to the warehouse server." & vbCrLf & vbCrLf & _
+           "Saved root: " & ValueOrPlaceholderRole(modNasConnection.GetPromptDefaultRoot()) & vbCrLf & _
+           "Status: " & ValueOrPlaceholderRole(statusText) & vbCrLf & vbCrLf & _
+           "Use Admin/setup to add or repair the warehouse server root, then try Connect Server again.", _
+           vbExclamation, "invSys Warehouse Storage"
 End Sub
+
+Private Function ResolveRoleWarehouseTarget(ByVal requireNasTarget As Boolean, _
+                                            ByRef statusCode As NasStatusCode) As WarehouseTarget
+    Dim target As WarehouseTarget
+
+    If modRibbonRuntimeStatus.TryApplyRememberedWarehouseTarget() Then
+        Set target = modNasConnection.GetCurrentTarget()
+        If modNasConnection.IsWarehouseTargetAllowed(target, requireNasTarget) Then
+            Set ResolveRoleWarehouseTarget = target
+            Exit Function
+        End If
+    End If
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If modNasConnection.IsWarehouseTargetAllowed(target, requireNasTarget) Then
+        Set ResolveRoleWarehouseTarget = target
+        Exit Function
+    End If
+End Function
 
 Public Sub SignOutCurrentUser()
     modAuth.SignOut
+    SetCurrentUserId vbNullString
     modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
-    MsgBox "Signed out of invSys. Warehouse storage remains selected.", vbInformation, "invSys Current User"
+    If modAuth.IsSignedIn() Or Trim$(modAuth.GetCurrentUserId()) <> "" Or Trim$(GetCurrentUserOverride()) <> "" Then
+        MsgBox "Sign out did not complete. Close and reopen Excel, then try again.", vbExclamation, "invSys Current User"
+    Else
+        MsgBox "Signed out of invSys. Warehouse storage remains selected.", vbInformation, "invSys Current User"
+    End If
 End Sub
 
 Private Function ValidateCurrentUserCredential(ByVal userId As String, _
@@ -145,7 +172,7 @@ End Function
 
 Private Function CurrentInvSysUserDisplayRole() As String
     If modAuth.IsSignedIn() Then
-        CurrentInvSysUserDisplayRole = Trim$(modAuth.GetCurrentUserId())
+        CurrentInvSysUserDisplayRole = Trim$(modAuth.GetCurrentUserDisplayName())
     End If
     If CurrentInvSysUserDisplayRole = "" Then CurrentInvSysUserDisplayRole = "<not signed in>"
 End Function
@@ -177,6 +204,15 @@ Private Function AuthStatusMessageRole(ByVal authStatus As AuthStatusCode, _
         Case Else
             AuthStatusMessageRole = "Sign-in failed. Status: " & CStr(authStatus)
     End Select
+End Function
+
+Private Function ValueOrPlaceholderRole(ByVal valueText As String) As String
+    valueText = Trim$(valueText)
+    If valueText = "" Then
+        ValueOrPlaceholderRole = "<not saved>"
+    Else
+        ValueOrPlaceholderRole = valueText
+    End If
 End Function
 
 Public Function OpenInboxWorkbook(ByVal eventType As String, _

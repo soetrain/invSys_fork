@@ -43,7 +43,7 @@ Public Function OpenOrCreateConfigWorkbookRuntime(Optional ByVal warehouseId As 
 
     resolvedWh = ResolveWarehouseIdRuntime(warehouseId)
     resolvedRoot = ResolveCoreDataRoot(rootPath, resolvedWh)
-    If Trim$(rootPath) = "" Then
+    If Trim$(rootPath) = "" And Trim$(mCoreDataRootOverride) = "" Then
         If TryResolveExistingRuntimeRoot(resolvedWh) <> "" Then resolvedRoot = TryResolveExistingRuntimeRoot(resolvedWh)
     End If
     targetPath = BuildCanonicalWorkbookPath(resolvedRoot, resolvedWh, "Config")
@@ -65,7 +65,7 @@ Public Function OpenOrCreateAuthWorkbookRuntime(Optional ByVal warehouseId As St
     resolvedServiceUser = Trim$(processorServiceUserId)
     If resolvedServiceUser = "" Then resolvedServiceUser = "svc_processor"
     resolvedRoot = ResolveCoreDataRoot(rootPath, resolvedWh)
-    If Trim$(rootPath) = "" Then
+    If Trim$(rootPath) = "" And Trim$(mCoreDataRootOverride) = "" Then
         If TryResolveExistingRuntimeRoot(resolvedWh) <> "" Then resolvedRoot = TryResolveExistingRuntimeRoot(resolvedWh)
     End If
     targetPath = BuildCanonicalWorkbookPath(resolvedRoot, resolvedWh, "Auth")
@@ -191,6 +191,33 @@ Public Function GetRememberedWarehouseScanRootsRuntime() As Collection
 
     Set GetRememberedWarehouseScanRootsRuntime = roots
 End Function
+
+Public Sub RememberWarehouseScanRootRuntime(ByVal rootPath As String)
+    Dim roots As Collection
+    Dim normalizedRoot As String
+    Dim persistedText As String
+    Dim item As Variant
+    Dim countWritten As Long
+
+    normalizedRoot = NormalizeFolderPath(rootPath)
+    If normalizedRoot = "" Then Exit Sub
+
+    Set roots = GetRememberedWarehouseScanRootsRuntime()
+    persistedText = normalizedRoot
+    countWritten = 1
+
+    For Each item In roots
+        If StrComp(CStr(item), normalizedRoot, vbTextCompare) <> 0 Then
+            persistedText = persistedText & WAREHOUSE_SCAN_ROOT_DELIMITER & CStr(item)
+            countWritten = countWritten + 1
+            If countWritten >= 8 Then Exit For
+        End If
+    Next item
+
+    On Error Resume Next
+    SaveSetting SETTINGS_APP, SETTINGS_SECTION_ADMIN, SETTINGS_WAREHOUSE_SCAN_ROOTS, persistedText
+    On Error GoTo 0
+End Sub
 
 Private Sub AddRememberedWarehouseScanRootRuntime(ByVal roots As Collection, ByVal rootPath As String)
     Dim normalizedRoot As String

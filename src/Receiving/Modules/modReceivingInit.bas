@@ -151,6 +151,17 @@ Public Sub ApplyReceivingReadinessForWorkbook(Optional ByVal targetWb As Workboo
         "|Messages=" & readiness.Messages
 End Sub
 
+Public Sub ClearReceivingReadinessForWorkbook(Optional ByVal targetWb As Workbook = Nothing)
+    Dim wb As Workbook
+
+    Set wb = targetWb
+    If wb Is Nothing Then Set wb = Application.ActiveWorkbook
+    If wb Is Nothing Then Exit Sub
+    If wb.IsAddin Then Exit Sub
+
+    ClearReceivingReadinessPanel wb
+End Sub
+
 Public Function GetReceivingReadinessPanelText(Optional ByVal targetWb As Workbook = Nothing) As String
     Dim wb As Workbook
     Dim ws As Worksheet
@@ -366,34 +377,34 @@ Private Function ResolveSnapshotMessageReadiness(ByVal statusCode As String, ByV
             snapshotPath = ResolveSnapshotPathForMessageReadiness(wb)
             ageSeconds = ResolveSnapshotAgeSecondsReadiness(wb, snapshotPath)
             If ageSeconds < 0 Then
-                ResolveSnapshotMessageReadiness = "Snapshot freshness is unknown. Click Refresh Inventory before posting."
+                ResolveSnapshotMessageReadiness = "Inventory snapshot freshness is unknown. Run Setup UI to refresh inventory before posting."
             Else
-                ResolveSnapshotMessageReadiness = "Snapshot is " & FormatAgeReadiness(ageSeconds) & " old. Click Refresh Inventory before posting."
+                ResolveSnapshotMessageReadiness = "Inventory snapshot is " & FormatAgeReadiness(ageSeconds) & " old. Run Setup UI to refresh inventory before posting."
             End If
         Case SNAPSHOT_STATUS_MISSING
-            ResolveSnapshotMessageReadiness = "Snapshot workbook is missing at the configured path. Click Refresh Inventory before posting."
+            ResolveSnapshotMessageReadiness = "Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI."
         Case SNAPSHOT_STATUS_UNREADABLE
-            ResolveSnapshotMessageReadiness = "Snapshot workbook could not be opened. Click Refresh Inventory or contact your admin."
+            ResolveSnapshotMessageReadiness = "Inventory snapshot could not be opened. Check server access, then run Setup UI again."
     End Select
 End Function
 
 Private Function ResolveAuthMessageReadiness(ByVal statusCode As String) As String
     Select Case UCase$(Trim$(statusCode))
         Case AUTH_STATUS_NO_USER
-            ResolveAuthMessageReadiness = "Your account is not provisioned for this warehouse. Run Setup Tester Station or contact your admin."
+            ResolveAuthMessageReadiness = "Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account."
         Case AUTH_STATUS_MISSING_CAPABILITY
-            ResolveAuthMessageReadiness = "Your account does not have RECEIVE_POST. Contact your admin."
+            ResolveAuthMessageReadiness = "Signed-in user does not have Receiving post for this warehouse/station. Check Users & Roles."
         Case AUTH_STATUS_INACTIVE
-            ResolveAuthMessageReadiness = "Your account is inactive. Contact your admin."
+            ResolveAuthMessageReadiness = "Signed-in user is inactive. Check Users & Roles."
     End Select
 End Function
 
 Private Function ResolveRuntimeMessageReadiness(ByVal statusCode As String) As String
     Select Case UCase$(Trim$(statusCode))
         Case RUNTIME_STATUS_MISSING_TABLES
-            ResolveRuntimeMessageReadiness = "Workbook is missing required tables. Run Setup Tester Station."
+            ResolveRuntimeMessageReadiness = "This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook."
         Case RUNTIME_STATUS_PATH_UNRESOLVED
-            ResolveRuntimeMessageReadiness = "Runtime path could not be resolved. Run Setup Tester Station."
+            ResolveRuntimeMessageReadiness = "Warehouse runtime path could not be resolved. Connect Server and choose Send To."
     End Select
 End Function
 
@@ -565,7 +576,9 @@ Private Function ResolveWarehouseIdFromWorkbookReadiness(ByVal wb As Workbook) A
         If ResolveWarehouseIdFromWorkbookReadiness <> "" Then Exit Function
     End If
 
-    If modConfig.IsLoaded() Then ResolveWarehouseIdFromWorkbookReadiness = Trim$(modConfig.GetWarehouseId())
+    If Trim$(wb.Path) <> "" And modConfig.IsLoaded() Then
+        ResolveWarehouseIdFromWorkbookReadiness = Trim$(modConfig.GetWarehouseId())
+    End If
 End Function
 
 Private Function ResolveSnapshotPathForMessageReadiness(ByVal wb As Workbook) As String
@@ -684,13 +697,20 @@ Private Function HasActiveCapabilityReadiness(ByVal loCaps As ListObject, _
 
         capWarehouse = SafeTrimReadiness(GetTableValueReadiness(loCaps, rowIndex, "WarehouseId"))
         capStation = SafeTrimReadiness(GetTableValueReadiness(loCaps, rowIndex, "StationId"))
-        If capWarehouse <> "" And StrComp(capWarehouse, warehouseId, vbTextCompare) <> 0 Then GoTo ContinueLoop
-        If capStation <> "" And stationId <> "" And StrComp(capStation, stationId, vbTextCompare) <> 0 Then GoTo ContinueLoop
+        If Not ScopeMatchesReadiness(capWarehouse, warehouseId) Then GoTo ContinueLoop
+        If Not ScopeMatchesReadiness(capStation, stationId) Then GoTo ContinueLoop
 
         HasActiveCapabilityReadiness = True
         Exit Function
 ContinueLoop:
     Next rowIndex
+End Function
+
+Private Function ScopeMatchesReadiness(ByVal rowScope As String, ByVal requestedScope As String) As Boolean
+    rowScope = SafeTrimReadiness(rowScope)
+    requestedScope = SafeTrimReadiness(requestedScope)
+    ScopeMatchesReadiness = (rowScope = "" Or rowScope = "*" Or requestedScope = "" Or requestedScope = "*" Or _
+                             StrComp(rowScope, requestedScope, vbTextCompare) = 0)
 End Function
 
 Private Function FindOpenWorkbookByPathReadiness(ByVal workbookPath As String) As Workbook
@@ -765,8 +785,8 @@ Private Sub AppendReadinessMessage(ByRef messageText As String, ByVal nextMessag
 End Sub
 
 Private Function ResolveCurrentUserIdReadiness() As String
-    ResolveCurrentUserIdReadiness = Trim$(modRoleEventWriter.ResolveCurrentUserId())
-    If ResolveCurrentUserIdReadiness = "" Then ResolveCurrentUserIdReadiness = Trim$(Application.UserName)
+    ResolveCurrentUserIdReadiness = Trim$(modAuth.GetCurrentUserId())
+    If ResolveCurrentUserIdReadiness = "" Then ResolveCurrentUserIdReadiness = Trim$(modRoleEventWriter.GetCurrentUserOverride())
 End Function
 
 Private Function NormalizeFolderPathReadiness(ByVal pathIn As String, ByVal includeTrailingSlash As Boolean) As String

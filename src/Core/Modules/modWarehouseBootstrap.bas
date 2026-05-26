@@ -267,6 +267,7 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
         GoTo FailSoft
     End If
 
+    modRuntimeWorkbooks.RememberWarehouseScanRootRuntime rootPath
     BootstrapWarehouseLocal = True
     report = "OK|Hub=" & rootPath & "|Inbox=" & inboxPath & "|Seed=" & seedReport & "|Operator=" & operatorPath
     GoTo CleanExit
@@ -405,18 +406,23 @@ End Function
 
 Private Function SharePointWarehouseIdExistsBootstrap(ByVal warehouseId As String) As Boolean
     Dim sharePointRoot As String
+    Dim normalizedRoot As String
     Dim configFolder As String
 
     sharePointRoot = Trim$(modConfig.GetString("PathSharePointRoot", ""))
     If sharePointRoot = "" Then Exit Function
 
     On Error GoTo SkipUnavailable
-    configFolder = NormalizeFolderPathBootstrap(sharePointRoot) & BOOTSTRAP_SHAREPOINT_CONFIG_FOLDER & "\"
+    normalizedRoot = NormalizeFolderPathBootstrap(sharePointRoot)
+    If normalizedRoot = "" Or Not FolderExistsBootstrap(normalizedRoot) Then
+        Err.Raise vbObjectError + 7385, "modWarehouseBootstrap.SharePointWarehouseIdExistsBootstrap", "SharePoint root is not reachable."
+    End If
+    configFolder = normalizedRoot & BOOTSTRAP_SHAREPOINT_CONFIG_FOLDER & "\"
     SharePointWarehouseIdExistsBootstrap = _
-        FileExistsBootstrap(NormalizeFolderPathBootstrap(sharePointRoot) & warehouseId & BOOTSTRAP_SHAREPOINT_CONFIG_JSON_SUFFIX) Or _
+        FileExistsBootstrap(normalizedRoot & warehouseId & BOOTSTRAP_SHAREPOINT_CONFIG_JSON_SUFFIX) Or _
         FileExistsBootstrap(configFolder & warehouseId & BOOTSTRAP_SHAREPOINT_CONFIG_JSON_SUFFIX) Or _
         FileExistsBootstrap(configFolder & warehouseId & BOOTSTRAP_SHAREPOINT_CONFIG_WORKBOOK_SUFFIX) Or _
-        FileExistsBootstrap(NormalizeFolderPathBootstrap(sharePointRoot) & warehouseId & "\" & warehouseId & BOOTSTRAP_SHAREPOINT_CONFIG_WORKBOOK_SUFFIX)
+        FileExistsBootstrap(normalizedRoot & warehouseId & "\" & warehouseId & BOOTSTRAP_SHAREPOINT_CONFIG_WORKBOOK_SUFFIX)
     Exit Function
 
 SkipUnavailable:

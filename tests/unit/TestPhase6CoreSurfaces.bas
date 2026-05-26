@@ -333,6 +333,97 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestAuthValidateUserCredentialForTarget_AcceptsResetPinForUserId() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_auth_reset_pin")
+    authPath = rootPath & "\WH88.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH88", "S14", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH88", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH88", "S14", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("old-pin")
+    wbAuth.Save
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("new-pin")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S14", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "new-pin", target, "RECEIVE_POST")
+
+    If authStatus = AUTH_OK _
+       And modAuth.IsSignedIn() _
+       And StrComp(modAuth.GetCurrentUserId(), "dilbert", vbTextCompare) = 0 _
+       And StrComp(modAuth.GetCurrentUserDisplayName(), "Dilbert", vbTextCompare) = 0 Then
+        TestAuthValidateUserCredentialForTarget_AcceptsResetPinForUserId = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH88"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestAuthValidateUserCredentialForTarget_RejectsDisplayNameAsUserId() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_auth_reject_display")
+    authPath = rootPath & "\WH82.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH82", "S15", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH82", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH82", "S15", "u1", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "u1", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S15", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("Dilbert", "123456", target, "RECEIVE_POST")
+
+    If authStatus = AUTH_USER_NOT_FOUND _
+       And Not modAuth.IsSignedIn() _
+       And modAuth.GetCurrentUserId() = "" Then
+        TestAuthValidateUserCredentialForTarget_RejectsDisplayNameAsUserId = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH82"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestAuthFailedCredential_DoesNotReplaceSignedInUser() As Long
     Dim rootPath As String
     Dim wbCfg As Workbook
@@ -430,7 +521,7 @@ Public Function TestRuntimeStatusUserLabel_UnsignedShowsNotSignedIn() As Long
     On Error GoTo CleanFail
     modAuth.SignOut
 
-    If StrComp(modRibbonRuntimeStatus.GetStatusLabel("btnRuntimeUser"), "User: <not signed in>", vbTextCompare) = 0 Then
+    If StrComp(modRibbonRuntimeStatus.GetStatusLabel("btnRuntimeUser"), "User ID: <not signed in>", vbTextCompare) = 0 Then
         TestRuntimeStatusUserLabel_UnsignedShowsNotSignedIn = 1
     End If
 
@@ -468,7 +559,7 @@ Public Function TestRuntimeStatusUserLabel_TracksAuthSignIn() As Long
     authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target, "RECEIVE_POST")
 
     If authStatus = AUTH_OK _
-       And StrComp(modRibbonRuntimeStatus.GetStatusLabel("btnRuntimeUser"), "User: dilbert", vbTextCompare) = 0 Then
+       And StrComp(modRibbonRuntimeStatus.GetStatusLabel("btnRuntimeUser"), "User ID: dilbert", vbTextCompare) = 0 Then
         TestRuntimeStatusUserLabel_TracksAuthSignIn = 1
     End If
 

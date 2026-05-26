@@ -6,6 +6,8 @@ Private Const SETTINGS_APP As String = "invSys"
 Private Const SETTINGS_SECTION_RUNTIME As String = "Runtime"
 Private Const SETTINGS_SELECTED_WAREHOUSE_TARGET As String = "SelectedWarehouseTarget"
 Private mRibbonUis As Collection
+Private mWarehouseTargetsCache As Collection
+Private mWarehouseTargetsCacheReady As Boolean
 
 Public Sub RegisterRibbonUi(ByVal ribbon As Object)
     If mRibbonUis Is Nothing Then Set mRibbonUis = New Collection
@@ -43,7 +45,7 @@ Public Function GetStatusLabel(ByVal controlId As String) As String
         Case "btnRuntimeInboxRoot"
             GetStatusLabel = "Inbox root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathInboxRoot", ""))
         Case "btnRuntimeUser"
-            GetStatusLabel = "User: " & ValueOrPlaceholderStatus(ResolveRuntimeUserStatus())
+            GetStatusLabel = "User ID: " & ValueOrPlaceholderStatus(ResolveRuntimeUserStatus())
         Case "btnRuntimeProcessor"
             GetStatusLabel = "Processor: " & ValueOrPlaceholderStatus(modConfig.GetString("ProcessorServiceUserId", "svc_processor"))
         Case "btnRuntimeHqAggregator"
@@ -58,15 +60,17 @@ Public Function GetServerStatusLabel(ByVal controlId As String) As String
 
     Set target = modNasConnection.GetCurrentTarget()
     If modNasConnection.IsCurrentTargetAllowed(True) And Not target Is Nothing Then
-        GetServerStatusLabel = "Server: Connected - " & target.WarehouseId
+        GetServerStatusLabel = "Server: Connected - Send To " & target.WarehouseId
         If Trim$(target.StationId) <> "" Then GetServerStatusLabel = GetServerStatusLabel & " / " & target.StationId
+    ElseIf modNasConnection.IsConnected() Then
+        GetServerStatusLabel = "Server: Connected - choose Send To"
     Else
         GetServerStatusLabel = "Server: Not connected"
     End If
 End Function
 
 Public Function GetWarehouseTargetCount() As Long
-    GetWarehouseTargetCount = BuildWarehouseTargetsStatus().Count
+    GetWarehouseTargetCount = GetWarehouseTargetsCachedStatus().Count
     If GetWarehouseTargetCount = 0 Then GetWarehouseTargetCount = 1
 End Function
 
@@ -74,7 +78,7 @@ Public Function GetWarehouseTargetLabel(ByVal index As Long) As String
     Dim targets As Collection
     Dim targetText As String
 
-    Set targets = BuildWarehouseTargetsStatus()
+    Set targets = GetWarehouseTargetsCachedStatus()
     If targets.Count = 0 Then
         GetWarehouseTargetLabel = "<no warehouse configs found>"
         Exit Function
@@ -99,7 +103,7 @@ Public Function GetSelectedWarehouseTargetIndex() As Long
     EnsureRuntimeStatusConfigLoaded
     currentWh = Trim$(modConfig.GetWarehouseId())
     currentSt = Trim$(modConfig.GetStationId())
-    Set targets = BuildWarehouseTargetsStatus()
+    Set targets = GetWarehouseTargetsCachedStatus()
 
     For i = 1 To targets.Count
         targetWh = TargetPartStatus(CStr(targets(i)), 0)
@@ -120,8 +124,9 @@ Public Sub SelectWarehouseTarget(ByVal selectedIndex As Long)
     Dim targetWh As String
     Dim targetSt As String
     Dim targetRoot As String
+    Dim nasTarget As WarehouseTarget
 
-    Set targets = BuildWarehouseTargetsStatus()
+    Set targets = GetWarehouseTargetsCachedStatus()
     If targets.Count = 0 Then
         MsgBox "No warehouse config workbooks were found. Use Admin > Setup Tester Station or Create New Warehouse first.", vbExclamation, "invSys Warehouse Target"
         Exit Sub
@@ -135,6 +140,9 @@ Public Sub SelectWarehouseTarget(ByVal selectedIndex As Long)
 
     If targetRoot <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride targetRoot
     If modConfig.LoadConfig(targetWh, targetSt) Then
+        If targetRoot <> "" Then
+            Call modNasConnection.SelectWarehouseTarget(targetRoot, targetRoot, nasTarget, targetSt, False)
+        End If
         RememberSelectedWarehouseTargetStatus targetText
         MsgBox "Warehouse target selected:" & vbCrLf & vbCrLf & _
                TargetLabelStatus(targetText) & vbCrLf & _
@@ -147,25 +155,47 @@ Public Sub SelectWarehouseTarget(ByVal selectedIndex As Long)
     End If
 End Sub
 
+Public Sub InvalidateWarehouseTargets()
+    InvalidateWarehouseTargetsCacheStatus
+End Sub
+
+Public Function TryApplyRememberedWarehouseTarget() As Boolean
+    TryApplyRememberedWarehouseTarget = ApplyRememberedWarehouseTargetStatus()
+End Function
+
 Public Sub RefreshRuntimeContext()
     Dim report As String
     Dim configLoaded As Boolean
 
+    InvalidateWarehouseTargetsCacheStatus
     configLoaded = ApplyRememberedWarehouseTargetStatus()
     If Not configLoaded Then configLoaded = modConfig.LoadConfig("", "")
 
     If configLoaded Then
         report = "Warehouse: " & ValueOrPlaceholderStatus(modConfig.GetWarehouseId()) & vbCrLf & _
                  "Station: " & ValueOrPlaceholderStatus(modConfig.GetStationId()) & vbCrLf & _
-                 "Data root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathDataRoot", "")) & vbCrLf & _
-                 "Inbox root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathInboxRoot", "")) & vbCrLf & _
-                 "User: " & ValueOrPlaceholderStatus(ResolveRuntimeUserStatus()) & vbCrLf & _
+                "Data root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathDataRoot", "")) & vbCrLf & _
+                "Inbox root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathInboxRoot", "")) & vbCrLf & _
+                 "User ID: " & ValueOrPlaceholderStatus(ResolveRuntimeUserStatus()) & vbCrLf & _
                  "Processor: " & ValueOrPlaceholderStatus(modConfig.GetString("ProcessorServiceUserId", "svc_processor")) & vbCrLf & _
                  "HQ aggregator: " & ResolveHqAggregatorLabelStatus()
         MsgBox report, vbInformation, "invSys Runtime Context"
     Else
         MsgBox "Runtime config could not be loaded." & vbCrLf & vbCrLf & modConfig.Validate(), vbExclamation, "invSys Runtime Context"
     End If
+End Sub
+
+Private Function GetWarehouseTargetsCachedStatus() As Collection
+    If Not mWarehouseTargetsCacheReady Or mWarehouseTargetsCache Is Nothing Then
+        Set mWarehouseTargetsCache = BuildWarehouseTargetsStatus()
+        mWarehouseTargetsCacheReady = True
+    End If
+    Set GetWarehouseTargetsCachedStatus = mWarehouseTargetsCache
+End Function
+
+Private Sub InvalidateWarehouseTargetsCacheStatus()
+    mWarehouseTargetsCacheReady = False
+    Set mWarehouseTargetsCache = Nothing
 End Sub
 
 Private Sub RememberSelectedWarehouseTargetStatus(ByVal targetText As String)
@@ -179,6 +209,7 @@ Private Function ApplyRememberedWarehouseTargetStatus() As Boolean
     Dim targetWh As String
     Dim targetSt As String
     Dim targetRoot As String
+    Dim nasTarget As WarehouseTarget
 
     On Error Resume Next
     targetText = GetSetting(SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_SELECTED_WAREHOUSE_TARGET, "")
@@ -191,9 +222,14 @@ Private Function ApplyRememberedWarehouseTargetStatus() As Boolean
     targetRoot = NormalizeFolderForStatus(TargetPartStatus(targetText, 2))
     If targetWh = "" Or targetRoot = "" Then Exit Function
     If Not RuntimeArtifactsExistStatus(targetRoot, targetWh) Then Exit Function
+    If Left$(targetRoot, 2) = "\\" Then
+        If modNasConnection.TryRevalidateRememberedRoot(targetRoot) <> NAS_OK Then Exit Function
+    End If
 
     modRuntimeWorkbooks.SetCoreDataRootOverride targetRoot
-    ApplyRememberedWarehouseTargetStatus = modConfig.LoadConfig(targetWh, targetSt)
+    If Not modConfig.LoadConfig(targetWh, targetSt) Then Exit Function
+    Call modNasConnection.SelectWarehouseTarget(targetRoot, targetRoot, nasTarget, targetSt, False)
+    ApplyRememberedWarehouseTargetStatus = Not nasTarget Is Nothing
 End Function
 
 Private Function BuildWarehouseTargetsStatus() As Collection
@@ -212,14 +248,42 @@ Private Function BuildWarehouseTargetsStatus() As Collection
     currentSt = Trim$(modConfig.GetStationId())
     currentRoot = NormalizeFolderForStatus(modConfig.GetString("PathDataRoot", ""))
     AddWarehouseTargetStatus targets, seen, currentWh, currentSt, currentRoot
+    AddRememberedSelectedTargetStatus targets, seen
 
     AddOpenConfigTargetsStatus targets, seen
+    If modNasConnection.IsConnected() Then AddKnownServerConfigTargetsStatus targets, seen
     AddConfigTargetsUnderRootStatus targets, seen, modDeploymentPaths.DefaultRuntimeHubRootPath(False)
-    If currentRoot <> "" Then AddConfigTargetsUnderRootStatus targets, seen, ParentFolderStatus(currentRoot)
-    AddRememberedConfigTargetsStatus targets, seen
 
     Set BuildWarehouseTargetsStatus = targets
 End Function
+
+Private Sub AddKnownServerConfigTargetsStatus(ByVal targets As Collection, ByVal seen As Object)
+    Dim roots As Collection
+    Dim rootPath As Variant
+
+    Set roots = modNasConnection.GetKnownWarehouseTargetRoots()
+    For Each rootPath In roots
+        AddConfigTargetsUnderRootStatus targets, seen, CStr(rootPath)
+    Next rootPath
+End Sub
+
+Private Sub AddRememberedSelectedTargetStatus(ByVal targets As Collection, ByVal seen As Object)
+    Dim targetText As String
+    Dim targetWh As String
+    Dim targetSt As String
+    Dim targetRoot As String
+
+    On Error Resume Next
+    targetText = GetSetting(SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_SELECTED_WAREHOUSE_TARGET, "")
+    On Error GoTo 0
+    targetText = Trim$(targetText)
+    If targetText = "" Then Exit Sub
+
+    targetWh = TargetPartStatus(targetText, 0)
+    targetSt = TargetPartStatus(targetText, 1)
+    targetRoot = TargetPartStatus(targetText, 2)
+    AddWarehouseTargetStatus targets, seen, targetWh, targetSt, targetRoot
+End Sub
 
 Private Sub AddRememberedConfigTargetsStatus(ByVal targets As Collection, ByVal seen As Object)
     Dim roots As Collection
@@ -418,8 +482,7 @@ Private Function RuntimeArtifactsExistStatus(ByVal rootPath As String, ByVal war
 
     RuntimeArtifactsExistStatus = _
         FileExistsStatus(rootPath & "\" & warehouseId & ".invSys.Config.xlsb") And _
-        FileExistsStatus(rootPath & "\" & warehouseId & ".invSys.Auth.xlsb") And _
-        FileExistsStatus(rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb")
+        FileExistsStatus(rootPath & "\" & warehouseId & ".invSys.Auth.xlsb")
 End Function
 
 Private Function FileExistsStatus(ByVal filePath As String) As Boolean

@@ -25,6 +25,7 @@ Private mIsLoaded As Boolean
 Private mLoadedAt As Date
 Private mCacheTtlSeconds As Long
 Private mCurrentUserId As String
+Private mCurrentUserDisplayName As String
 Private mCurrentAuthStatus As AuthStatusCode
 Private mSignedInWarehouseId As String
 Private mSignedInStationId As String
@@ -198,6 +199,7 @@ Public Function ValidateUserCredentialForTarget(ByVal userId As String, _
     End If
 
     mCurrentUserId = normalizedUser
+    mCurrentUserDisplayName = ResolveUserDisplayNameAuth(normalizedUser)
     mSignedInWarehouseId = target.WarehouseId
     mSignedInStationId = target.StationId
     mSignedInAt = Now
@@ -243,6 +245,7 @@ End Function
 
 Public Sub SignOut()
     mCurrentUserId = vbNullString
+    mCurrentUserDisplayName = vbNullString
     mSignedInWarehouseId = vbNullString
     mSignedInStationId = vbNullString
     mSignedInAt = 0
@@ -254,6 +257,11 @@ End Sub
 
 Public Function GetCurrentUserId() As String
     GetCurrentUserId = mCurrentUserId
+End Function
+
+Public Function GetCurrentUserDisplayName() As String
+    GetCurrentUserDisplayName = SafeTrim(mCurrentUserDisplayName)
+    If GetCurrentUserDisplayName = "" Then GetCurrentUserDisplayName = SafeTrim(mCurrentUserId)
 End Function
 
 Public Function IsSignedIn() As Boolean
@@ -724,6 +732,7 @@ Private Sub LoadUsers(ByVal loUsers As ListObject)
             Set userInfo = CreateObject("Scripting.Dictionary")
             userInfo.CompareMode = vbTextCompare
             userInfo("UserId") = userId
+            userInfo("DisplayName") = SafeTrim(GetCellByColumn(loUsers, i, "DisplayName"))
             userInfo("PinHash") = SafeTrim(GetCellByColumn(loUsers, i, "PinHash"))
             userInfo("Status") = UCase$(SafeTrim(GetCellByColumn(loUsers, i, "Status")))
             userInfo("ValidFrom") = GetCellByColumn(loUsers, i, "ValidFrom")
@@ -770,6 +779,27 @@ Private Sub LoadCapabilities(ByVal loCaps As ListObject)
 ContinueLoop:
     Next i
 End Sub
+
+Private Function ResolveUserDisplayNameAuth(ByVal userId As String) As String
+    Dim userInfo As Object
+
+    userId = SafeTrim(userId)
+    If userId = "" Then Exit Function
+    If mUsers Is Nothing Then
+        ResolveUserDisplayNameAuth = userId
+        Exit Function
+    End If
+    If Not mUsers.Exists(userId) Then
+        ResolveUserDisplayNameAuth = userId
+        Exit Function
+    End If
+
+    Set userInfo = mUsers(userId)
+    On Error Resume Next
+    If userInfo.Exists("DisplayName") Then ResolveUserDisplayNameAuth = SafeTrim(CStr(userInfo("DisplayName")))
+    On Error GoTo 0
+    If ResolveUserDisplayNameAuth = "" Then ResolveUserDisplayNameAuth = userId
+End Function
 
 Private Function IsUserActive(ByVal userId As String, ByVal nowTs As Date) As Boolean
     Dim d As Object

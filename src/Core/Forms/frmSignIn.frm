@@ -58,7 +58,7 @@ Private Sub BuildSignInLayout()
     Set mLblTarget = AddLabel("lblTarget", "", 18, 42, 350, 32, False)
     Set mLblStatus = AddLabel("lblStatus", "", 18, 78, 350, 32, False)
 
-    AddLabel "lblUser", "Account", 18, 122, 76, 18, False
+    AddLabel "lblUser", "User ID", 18, 122, 76, 18, False
     Set mTxtUser = AddTextBox("txtUser", 102, 118, 180, 22)
     AddLabel "lblSecret", "PIN/password", 18, 156, 84, 18, False
     Set mTxtSecret = AddTextBox("txtSecret", 102, 152, 180, 22)
@@ -66,7 +66,7 @@ Private Sub BuildSignInLayout()
 
     Set mBtnOK = AddButton("btnOK", "Sign In", 206, 198, 76, 26)
     Set mBtnCancel = AddButton("btnCancel", "Cancel", 292, 198, 76, 26)
-    ShowStatus "Enter your invSys user ID and PIN/password.", COLOR_INFO
+    ShowStatus "Enter your invSys User ID and PIN/password.", COLOR_INFO
 End Sub
 
 Private Function AddLabel(ByVal controlName As String, _
@@ -125,7 +125,7 @@ Private Sub mBtnOK_Click()
     userId = Trim$(CStr(mTxtUser.Value))
     secretText = CStr(mTxtSecret.Value)
     If userId = "" Or Len(secretText) = 0 Then
-        ShowStatus "Enter user ID and PIN/password.", COLOR_WARNING
+        ShowStatus "Enter User ID and PIN/password.", COLOR_WARNING
         Exit Sub
     End If
 

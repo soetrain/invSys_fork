@@ -41,14 +41,13 @@ function Release-ComObject {
     }
 }
 
-function Get-ReferenceOutputPath {
+function Get-DeployedOutputPath {
     param(
         [object]$Project,
-        [string]$ReferenceDir
+        [string]$OutputDir
     )
 
-    $referenceFile = $Project.OutputFile -replace "\.xlam$", ".ref.xlam"
-    Join-Path $ReferenceDir $referenceFile
+    Join-Path $OutputDir $Project.OutputFile
 }
 
 function Get-CodeFiles {
@@ -442,16 +441,12 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add("    modRibbonRuntimeStatus.RefreshRuntimeContext")
     [void]$lines.Add("End Sub")
     [void]$lines.Add("")
-    [void]$lines.Add("Public Sub RibbonRuntimeUserPrompt(control As IRibbonControl)")
-    [void]$lines.Add("    modRoleEventWriter.PromptSetCurrentUser")
-    [void]$lines.Add("End Sub")
-    [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonCurrentUserGetLabel(control As IRibbonControl, ByRef returnedVal)")
-    [void]$lines.Add("    Dim userId As String")
+    [void]$lines.Add("    Dim displayName As String")
     [void]$lines.Add("    If modAuth.IsSignedIn() Then")
-    [void]$lines.Add('        userId = Trim$(modAuth.GetCurrentUserId())')
-    [void]$lines.Add('        If userId = "" Then userId = "<not signed in>"')
-    [void]$lines.Add('        returnedVal = "User: " & userId')
+    [void]$lines.Add('        displayName = Trim$(modAuth.GetCurrentUserDisplayName())')
+    [void]$lines.Add('        If displayName = "" Then displayName = "<not signed in>"')
+    [void]$lines.Add('        returnedVal = "User: " & displayName')
     [void]$lines.Add("    Else")
     [void]$lines.Add('        returnedVal = "Sign In"')
     [void]$lines.Add("    End If")
@@ -463,7 +458,7 @@ function Add-RibbonCallbacksModule {
         foreach ($button in $group.Buttons) {
             if ($button.ContainsKey("RequiredCapability") -and -not [string]::IsNullOrWhiteSpace($button.RequiredCapability)) {
                 [void]$lines.Add(("        Case ""{0}""" -f $button.Id))
-                [void]$lines.Add(("            returnedVal = modRoleUiAccess.CanCurrentUserPerformCapability(""{0}"")" -f $button.RequiredCapability))
+                [void]$lines.Add(("            returnedVal = modRoleUiAccess.CanCurrentUserPerformCapabilityCached(""{0}"")" -f $button.RequiredCapability))
             }
         }
     }
@@ -566,7 +561,6 @@ function Get-RibbonXml {
                     [void]$xml.AppendLine(("            <button id=""{0}"" getLabel=""RibbonRuntimeStatusGetLabel"" enabled=""false""/>" -f $statusButton.Id))
                 }
                 [void]$xml.AppendLine("            <menuSeparator id=""sepRuntimeContextRefresh""/>")
-                [void]$xml.AppendLine("            <button id=""btnRuntimeSetUser"" label=""Sign In"" imageMso=""ContactCard"" onAction=""RibbonRuntimeUserPrompt""/>")
                 [void]$xml.AppendLine(("            <button id=""{0}"" label=""Refresh / Details"" imageMso=""Refresh"" onAction=""RibbonRuntimeStatusRefresh""/>" -f $menu.RefreshButtonId))
                 [void]$xml.AppendLine("          </menu>")
             }
@@ -945,11 +939,6 @@ if (-not (Test-Path -LiteralPath $archiveDir)) {
     New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
 }
 
-$referenceDir = Join-Path $outputDir ".refs"
-if (-not (Test-Path -LiteralPath $referenceDir)) {
-    New-Item -ItemType Directory -Path $referenceDir -Force | Out-Null
-}
-
 $stagingDir = Join-Path $outputDir (".build-staging-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
 
@@ -982,6 +971,12 @@ if ($legacyArtifacts.Count -gt 0) {
 if (-not $Apply) {
     Write-Host "Dry run only. Re-run with -Apply to build the XLAMs."
     exit 0
+}
+
+$referenceDir = Join-Path $outputDir ".refs"
+if (Test-Path -LiteralPath $referenceDir) {
+    Write-Host ("Removing legacy reference copy directory " + $referenceDir)
+    Remove-Item -LiteralPath $referenceDir -Recurse -Force
 }
 
 $builtOutputs = @{}
@@ -1028,7 +1023,7 @@ try {
                     throw "Referenced project '$referenceKey' is not defined in projectMap."
                 }
 
-                $referencePath = Get-ReferenceOutputPath -Project $referenceProject -ReferenceDir $referenceDir
+                $referencePath = Get-DeployedOutputPath -Project $referenceProject -OutputDir $outputDir
                 if (-not (Test-Path -LiteralPath $referencePath)) {
                     throw "Referenced project output is not published yet: $referencePath"
                 }
@@ -1071,11 +1066,6 @@ try {
         Remove-ExistingFile -Path $finalPath
         Copy-Item -LiteralPath $stagedPath -Destination $finalPath -Force
         Write-Host ("Published " + $finalPath)
-
-        $referenceCopyPath = Get-ReferenceOutputPath -Project $project -ReferenceDir $referenceDir
-        Remove-ExistingFile -Path $referenceCopyPath
-        Copy-Item -LiteralPath $stagedPath -Destination $referenceCopyPath -Force
-        Write-Host ("Published reference copy " + $referenceCopyPath)
     }
     $buildSucceeded = $true
 }

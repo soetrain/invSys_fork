@@ -619,6 +619,7 @@ NextRt:
     End If
 
     modPerfLog.MarkSegment "RuntimeProcess"
+    modReceivingInit.ClearReceivingReadinessForWorkbook wb
     mRedoReady = True
     GoTo CleanExit
 
