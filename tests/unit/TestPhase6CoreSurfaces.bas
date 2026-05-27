@@ -1,6 +1,16 @@
 Attribute VB_Name = "TestPhase6CoreSurfaces"
 Option Explicit
 
+Private mLastTestFailure As String
+
+Public Sub ClearLastTestFailure()
+    mLastTestFailure = vbNullString
+End Sub
+
+Public Function GetLastTestFailure() As String
+    GetLastTestFailure = mLastTestFailure
+End Function
+
 Public Function TestNasSelectWarehouseTarget_ReadsWarehouseIdFromConfig() As Long
     Dim rootPath As String
     Dim wbCfg As Workbook
@@ -969,6 +979,102 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestAuthCanPerform_SignedOutFailsClosedWithLoadedAuth() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim report As String
+    Dim authPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_auth_signedout_canperform")
+    authPath = rootPath & "\WH94.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    modAuth.SignOut
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH94", "S20", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH94", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.EnsureStationRoleAuth("WH94", "S20", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S20", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    If Not modAuth.LoadAuth("WH94") Then GoTo CleanExit
+    modAuth.SignOut
+
+    If Not modAuth.CanPerform("RECEIVE_POST", "dilbert", "WH94", "S20", "TEST", "AUTH-SIGNEDOUT") _
+       And Not modAuth.IsSignedIn() Then
+        TestAuthCanPerform_SignedOutFailsClosedWithLoadedAuth = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH94"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestAuthTtlExpiry_FailsClosedForIsSignedInAndCanPerform() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim loWh As ListObject
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim authPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_auth_ttl_expiry")
+    authPath = rootPath & "\WH95.invSys.Auth.xlsb"
+
+    On Error GoTo CleanFail
+    modAuth.SignOut
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH95", "S21", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH95", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    Set loWh = FindTableByName(wbCfg, "tblWarehouseConfig")
+    If loWh Is Nothing Then GoTo CleanExit
+    SetTableCell loWh, 1, "AuthCacheTTLSeconds", 1
+    wbCfg.Save
+    If Not modAuth.EnsureStationRoleAuth("WH95", "S21", "dilbert", "Dilbert", "RECEIVE", authPath, "svc_processor", report:=report) Then GoTo CleanExit
+    TestPhase2Helpers.SetUserPinHash wbAuth, "dilbert", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S21", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target, "RECEIVE_POST")
+    If authStatus <> AUTH_OK Then GoTo CleanExit
+    Application.Wait Now + TimeSerial(0, 0, 2)
+
+    If Not modAuth.IsSignedIn() _
+       And modAuth.GetAuthStatus() = AUTH_REAUTH_REQUIRED _
+       And Not modAuth.CanPerform("RECEIVE_POST", "dilbert", "WH95", "S21", "TEST", "AUTH-TTL") Then
+        TestAuthTtlExpiry_FailsClosedForIsSignedInAndCanPerform = 1
+    End If
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH95"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook() As Long
     Dim rootPath As String
     Dim wb As Workbook
@@ -1317,30 +1423,110 @@ End Function
 Public Function TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities() As Long
     Dim rootPath As String
     Dim currentUser As String
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+    Dim failureReason As String
+    Dim authPath As String
+    Dim capabilityOut As String
+    Dim canReceive As Boolean
+    Dim canShip As Boolean
+    Dim canProd As Boolean
+    Dim canProcess As Boolean
 
     rootPath = BuildRuntimeTestRoot("phase6_auth_caps")
+    authPath = rootPath & "\WH65.invSys.Auth.xlsb"
 
     On Error GoTo CleanFail
+    ClearLastTestFailure
+    modAuth.SignOut
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookByNameIfOpen "WH65.invSys.Config.xlsb"
+    CloseWorkbookByNameIfOpen "WH65.invSys.Auth.xlsb"
+    CloseWorkbookByNameIfOpen "WH65.invSys.Data.Inventory.xlsb"
+    CloseWorkbookByNameIfOpen "WH65.invSys.Snapshot.Inventory.xlsb"
+    CloseWorkbookByNameIfOpen "WH65.Outbox.Events.xlsb"
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
-    If Not modConfig.LoadConfig("WH65", "S5") Then GoTo CleanExit
-    If Not modAuth.LoadAuth("WH65") Then GoTo CleanExit
+    If Not modConfig.LoadConfig("WH65", "S5") Then
+        failureReason = "LoadConfig failed for WH65/S5"
+        GoTo CleanExit
+    End If
 
     currentUser = Trim$(Environ$("USERNAME"))
     If currentUser = "" Then currentUser = Trim$(Application.UserName)
-    If currentUser = "" Then GoTo CleanExit
+    If currentUser = "" Then
+        failureReason = "Current test user could not be resolved"
+        GoTo CleanExit
+    End If
+    If Not modAuth.EnsureStationRoleAuth("WH65", "S5", currentUser, currentUser, "RECEIVE", authPath, "svc_processor", capabilityOut, report) Then
+        failureReason = "EnsureStationRoleAuth RECEIVE failed: " & report
+        GoTo CleanExit
+    End If
+    If Not modAuth.EnsureStationRoleAuth("WH65", "S5", currentUser, currentUser, "SHIP", authPath, "svc_processor", capabilityOut, report) Then
+        failureReason = "EnsureStationRoleAuth SHIP failed: " & report
+        GoTo CleanExit
+    End If
+    If Not modAuth.EnsureStationRoleAuth("WH65", "S5", currentUser, currentUser, "PROD", authPath, "svc_processor", capabilityOut, report) Then
+        failureReason = "EnsureStationRoleAuth PROD failed: " & report
+        GoTo CleanExit
+    End If
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH65", "svc_processor", rootPath, report)
+    If wbAuth Is Nothing Then
+        failureReason = "OpenOrCreateAuthWorkbookRuntime failed: " & report
+        GoTo CleanExit
+    End If
+    TestPhase2Helpers.SetUserPinHash wbAuth, currentUser, modAuth.HashUserCredential("123456")
+    wbAuth.Save
+    If Not modAuth.LoadAuth("WH65") Then
+        failureReason = "LoadAuth failed after provisioning: " & modAuth.ValidateAuth()
+        GoTo CleanExit
+    End If
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S5", True)
+    If statusCode <> NAS_OK Then
+        failureReason = "SelectWarehouseTarget failed: " & CStr(statusCode)
+        GoTo CleanExit
+    End If
+    authStatus = modAuth.ValidateUserCredentialForTarget(currentUser, "123456", target)
+    If authStatus <> AUTH_OK Then
+        failureReason = "ValidateUserCredentialForTarget failed: " & CStr(authStatus)
+        GoTo CleanExit
+    End If
 
-    If modAuth.CanPerform("RECEIVE_POST", currentUser, "WH65", "S5", "TEST", "AUTH-RECV") _
-       And modAuth.CanPerform("SHIP_POST", currentUser, "WH65", "S5", "TEST", "AUTH-SHIP") _
-       And modAuth.CanPerform("PROD_POST", currentUser, "WH65", "S5", "TEST", "AUTH-PROD") _
-       And modAuth.CanPerform("INBOX_PROCESS", "svc_processor", "WH65", "S5", "TEST", "AUTH-PROC") Then
+    canReceive = modAuth.CanPerform("RECEIVE_POST", currentUser, "WH65", "S5", "TEST", "AUTH-RECV")
+    canShip = modAuth.CanPerform("SHIP_POST", currentUser, "WH65", "S5", "TEST", "AUTH-SHIP")
+    canProd = modAuth.CanPerform("PROD_POST", currentUser, "WH65", "S5", "TEST", "AUTH-PROD")
+    canProcess = modAuth.HasProvisionedCapabilityForSystem("INBOX_PROCESS", "svc_processor", "WH65", "S5")
+    If canReceive And canShip And canProd And canProcess Then
         TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities = 1
+    Else
+        failureReason = "Capability check failed: RECEIVE_POST=" & CStr(canReceive) _
+                        & ", SHIP_POST=" & CStr(canShip) _
+                        & ", PROD_POST=" & CStr(canProd) _
+                        & ", INBOX_PROCESS=" & CStr(canProcess)
     End If
 
 CleanExit:
+    On Error Resume Next
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH65"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbAuth
+    CloseWorkbookByNameIfOpen "WH65.invSys.Config.xlsb"
+    CloseWorkbookByNameIfOpen "WH65.invSys.Auth.xlsb"
+    CloseWorkbookByNameIfOpen "WH65.invSys.Data.Inventory.xlsb"
+    CloseWorkbookByNameIfOpen "WH65.invSys.Snapshot.Inventory.xlsb"
+    CloseWorkbookByNameIfOpen "WH65.Outbox.Events.xlsb"
     modRuntimeWorkbooks.ClearCoreDataRootOverride
     DeleteRuntimeRoot rootPath
+    On Error GoTo 0
+    If Len(failureReason) > 0 Then mLastTestFailure = failureReason
     Exit Function
 CleanFail:
+    If Len(failureReason) = 0 Then failureReason = "Unexpected error " & CStr(Err.Number) & ": " & Err.Description
     Resume CleanExit
 End Function
 

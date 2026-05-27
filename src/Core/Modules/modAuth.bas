@@ -320,6 +320,11 @@ Public Function CanPerform(ByVal capability As String, _
 
     nowTs = Now
 
+    If Not IsSignedIn() Then
+        LogDecision requestId, userId, capability, warehouseId, stationId, "DENY", source, "not-signed-in"
+        Exit Function
+    End If
+
     If Not EnsureFreshCache() Then
         LogDecision requestId, userId, capability, warehouseId, stationId, "DENY", source, "auth-cache-unavailable"
         Exit Function
@@ -358,6 +363,14 @@ Public Function Require(ByVal capability As String, _
     Require = True
 End Function
 
+Public Function HasProvisionedCapabilityForSystem(ByVal capability As String, _
+                                                  ByVal userId As String, _
+                                                  Optional ByVal warehouseId As String = "", _
+                                                  Optional ByVal stationId As String = "") As Boolean
+    If Not EnsureFreshCache() Then Exit Function
+    HasProvisionedCapabilityForSystem = HasEffectiveCapabilityAuth(userId, capability, warehouseId, stationId, Now)
+End Function
+
 Public Function ValidateUserCredential(ByVal AdminUser As String, _
                                        ByVal Password As String, _
                                        Optional ByVal RequiredRole As String = "ADMIN_MAINT") As Boolean
@@ -390,7 +403,7 @@ Public Function ValidateUserCredentialForCapability(ByVal userId As String, _
     If normalizedCapability = "" Then
         ValidateUserCredentialForCapability = True
     Else
-        ValidateUserCredentialForCapability = CanPerform(normalizedCapability, normalizedUser, "", "", "REAUTH", "REAUTH")
+        ValidateUserCredentialForCapability = HasEffectiveCapabilityAuth(normalizedUser, normalizedCapability, "", "", Now)
     End If
 End Function
 
@@ -828,6 +841,24 @@ Private Function IsUserActive(ByVal userId As String, ByVal nowTs As Date) As Bo
     IsUserActive = IsWithinDateRange(d("ValidFrom"), d("ValidTo"), nowTs)
 End Function
 
+Private Function HasEffectiveCapabilityAuth(ByVal userId As String, _
+                                            ByVal capability As String, _
+                                            ByVal warehouseId As String, _
+                                            ByVal stationId As String, _
+                                            ByVal nowTs As Date) As Boolean
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+
+    resolvedWh = warehouseId
+    If resolvedWh = "" Then resolvedWh = modConfig.GetString("WarehouseId", "")
+    resolvedSt = stationId
+    If resolvedSt = "" Then resolvedSt = modConfig.GetString("StationId", "")
+
+    If Not IsUserActive(userId, nowTs) Then Exit Function
+    HasEffectiveCapabilityAuth = HasCapabilityMatch(mAllowCaps, userId, capability, resolvedWh, resolvedSt, nowTs) _
+                                 And Not HasCapabilityMatch(mDenyCaps, userId, capability, resolvedWh, resolvedSt, nowTs)
+End Function
+
 Private Function GetUserPinHashAuth(ByVal userInfo As Object) As String
     On Error Resume Next
     If userInfo Is Nothing Then Exit Function
@@ -1114,9 +1145,11 @@ End Sub
 
 Private Sub EnsureUserRow(ByVal lo As ListObject, ByVal userId As String, ByVal displayName As String)
     Dim rowIndex As Long
+    Dim rowWasCreated As Boolean
 
     rowIndex = FindAuthUserRow(lo, userId)
     If rowIndex = 0 Then
+        rowWasCreated = True
         rowIndex = 1
         If Not lo.DataBodyRange Is Nothing Then
             If SafeTrim(lo.DataBodyRange.Cells(1, lo.ListColumns("UserId").Index).Value) <> "" Then
@@ -1128,7 +1161,7 @@ Private Sub EnsureUserRow(ByVal lo As ListObject, ByVal userId As String, ByVal 
 
     lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("UserId").Index).Value = userId
     lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("DisplayName").Index).Value = displayName
-    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("PinHash").Index).Value = ""
+    If rowWasCreated Then lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("PinHash").Index).Value = ""
     lo.DataBodyRange.Cells(rowIndex, lo.ListColumns("Status").Index).Value = "Active"
 End Sub
 

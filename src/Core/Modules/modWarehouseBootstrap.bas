@@ -236,11 +236,11 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
         report = "Auth load failed: " & modAuth.ValidateAuth()
         GoTo FailSoft
     End If
-    If Not modAuth.CanPerform("ADMIN_MAINT", spec.AdminUser, spec.WarehouseId, spec.StationId, "BOOTSTRAP", "WAREHOUSE-BOOTSTRAP") Then
+    If Not modAuth.HasProvisionedCapabilityForSystem("ADMIN_MAINT", spec.AdminUser, spec.WarehouseId, spec.StationId) Then
         report = "Admin user was not granted ADMIN_MAINT."
         GoTo FailSoft
     End If
-    If Not modAuth.CanPerform("RECEIVE_POST", spec.AdminUser, spec.WarehouseId, spec.StationId, "BOOTSTRAP", "WAREHOUSE-BOOTSTRAP") Then
+    If Not modAuth.HasProvisionedCapabilityForSystem("RECEIVE_POST", spec.AdminUser, spec.WarehouseId, spec.StationId) Then
         report = "Admin user was not granted RECEIVE_POST."
         GoTo FailSoft
     End If

@@ -1,5 +1,7 @@
 Param(
-    [string]$RepoRoot = "."
+    [string]$RepoRoot = ".",
+    [int]$StartAt = 1,
+    [int]$EndAt = 0
 )
 
 Set-StrictMode -Version Latest
@@ -238,6 +240,86 @@ function Run-TestFunction {
     return [int]$result
 }
 
+function Format-ProgressBarText {
+    Param(
+        [int]$Current,
+        [int]$Total,
+        [int]$Width = 24
+    )
+
+    if ($Total -le 0) {
+        return ("." * $Width)
+    }
+    $completed = [int][Math]::Floor(($Current / [double]$Total) * $Width)
+    if ($completed -lt 0) { $completed = 0 }
+    if ($completed -gt $Width) { $completed = $Width }
+    return ("#" * $completed) + ("." * ($Width - $completed))
+}
+
+function Write-HarnessStatus {
+    Param(
+        [string]$Phase,
+        [int]$Current,
+        [int]$Total,
+        [string]$Detail = "",
+        [datetime]$StartedAt = (Get-Date)
+    )
+
+    $percent = 0
+    if ($Total -gt 0) {
+        $percent = [int][Math]::Floor(($Current / [double]$Total) * 100)
+        if ($percent -gt 100) { $percent = 100 }
+    }
+
+    $elapsed = (Get-Date) - $StartedAt
+    $bar = Format-ProgressBarText -Current $Current -Total $Total
+    $line = "[{0}] {1,3}% {2}/{3} {4} {5}" -f $bar, $percent, $Current, $Total, $Phase, $Detail
+    if ($elapsed.TotalSeconds -ge 1) {
+        $line = "$line elapsed=$([int]$elapsed.TotalSeconds)s"
+    }
+    Write-Host $line
+
+    $activity = "Phase 6 Excel validation"
+    $status = "$Phase $Current/$Total"
+    if ($Detail -ne "") { $status = "$status - $Detail" }
+    Write-Progress -Activity $activity -Status $status -PercentComplete $percent
+}
+
+function Write-TestResultsFile {
+    Param(
+        [string]$ResultPath,
+        [object[]]$TestRows,
+        [int]$StartAt = 1,
+        [int]$EndAt = 0,
+        [int]$TotalAvailable = 0,
+        [bool]$Complete = $false
+    )
+
+    $passedCount = @($TestRows | Where-Object { $_.Passed }).Count
+    $failedCount = $TestRows.Count - $passedCount
+
+    $lines = @()
+    $lines += "# Phase 6 VBA Test Results"
+    $lines += ""
+    $lines += "- Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    $lines += "- Passed: $passedCount"
+    $lines += "- Failed: $failedCount"
+    if ($TotalAvailable -gt 0) {
+        $lines += "- Range: $StartAt-$EndAt of $TotalAvailable"
+    }
+    if (-not $Complete) {
+        $lines += "- Status: PARTIAL"
+    }
+    $lines += ""
+    $lines += "| Test | Result |"
+    $lines += "|---|---|"
+    foreach ($r in $TestRows) {
+        $detail = if ($r.Passed) { "PASS" } elseif ([string]::IsNullOrWhiteSpace($r.Error)) { "FAIL" } else { "FAIL - $($r.Error)" }
+        $lines += "| $($r.TestName) | $detail |"
+    }
+    [System.IO.File]::WriteAllLines($ResultPath, $lines)
+}
+
 function Add-BootstrapModule {
     Param([object]$Workbook)
     $comp = $Workbook.VBProject.VBComponents.Add(1)
@@ -256,13 +338,22 @@ function Add-TestWrappers {
     $wrappers = @()
     for ($i = 0; $i -lt $TargetFunctions.Count; $i++) {
         $fn = $TargetFunctions[$i]
+        $moduleName = $fn.Split(".")[0]
         $wrapper = "RunT" + ($i + 1)
         $errCell = "A" + ($i + 1)
         $line = @"
 Public Function $wrapper() As Long
 On Error GoTo ErrHandler
 ThisWorkbook.Worksheets(1).Range("$errCell").Value = ""
+On Error Resume Next
+Application.Run("$moduleName.ClearLastTestFailure")
+On Error GoTo ErrHandler
 $wrapper = Application.Run("$fn")
+If $wrapper = 0 Then
+    On Error Resume Next
+    ThisWorkbook.Worksheets(1).Range("$errCell").Value = Application.Run("$moduleName.GetLastTestFailure")
+    On Error GoTo ErrHandler
+End If
 Exit Function
 ErrHandler:
 ThisWorkbook.Worksheets(1).Range("$errCell").Value = Err.Description
@@ -364,6 +455,8 @@ try {
         "TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsFallbackTarget",
         "TestPhase6CoreSurfaces.TestRoleWriteCurrent_AllowsSignedInReceivePost",
         "TestPhase6CoreSurfaces.TestAuthSignOut_ClearsUserButKeepsWarehouseTarget",
+        "TestPhase6CoreSurfaces.TestAuthCanPerform_SignedOutFailsClosedWithLoadedAuth",
+        "TestPhase6CoreSurfaces.TestAuthTtlExpiry_FailsClosedForIsSignedInAndCanPerform",
         "TestAddinsPublish.TestVerifyAddinsPublished_AllPresent",
         "TestAddinsPublish.TestVerifyAddinsPublished_OneMissingLogsDiagnostic",
         "TestAddinsPublish.TestVerifyAddinsPublished_ZeroByteFileLogsDiagnostic",
@@ -466,6 +559,26 @@ try {
         "TestPhase6RoleSurfaces.TestOpenAdminConsole_WithoutRuntime_DoesNotCreateDefaultWarehouse"
     )
 
+    $totalAvailableTests = $allTests.Count
+    if ($EndAt -le 0) { $EndAt = $totalAvailableTests }
+    if ($StartAt -lt 1) { throw "StartAt must be >= 1." }
+    if ($EndAt -lt $StartAt) { throw "EndAt must be >= StartAt." }
+    if ($EndAt -gt $totalAvailableTests) { throw "EndAt $EndAt exceeds available test count $totalAvailableTests." }
+
+    if ($StartAt -ne 1 -or $EndAt -ne $totalAvailableTests) {
+        $rangeSuffix = "{0:D3}_{1:D3}" -f $StartAt, $EndAt
+        $resultPath = Join-Path $repo "tests/unit/phase6_test_results_$rangeSuffix.md"
+    }
+
+    $selectedTests = @()
+    for ($testIndex = $StartAt - 1; $testIndex -le $EndAt - 1; $testIndex++) {
+        $selectedTests += $allTests[$testIndex]
+    }
+    $allTests = $selectedTests
+
+    $scriptStart = Get-Date
+    Write-HarnessStatus -Phase "Preparing harness" -Current 0 -Total $allTests.Count -Detail "Excel workbook/import setup; selected $StartAt-$EndAt of $totalAvailableTests" -StartedAt $scriptStart
+
     $harness = $excel.Workbooks.Add()
     $bootstrap = Add-BootstrapModule -Workbook $harness
     $vbProject = $harness.VBProject
@@ -485,11 +598,19 @@ try {
     $wrapperNames = Add-TestWrappers -BootstrapComponent $bootstrap -TargetFunctions $allTests
     [void](Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName "HarnessPing")
     $harness.SaveAs($harnessPath, 52)
+    Write-HarnessStatus -Phase "Running tests" -Current 0 -Total $allTests.Count -Detail "starting" -StartedAt $scriptStart
 
     $testRows = @()
     for ($i = 0; $i -lt $allTests.Count; $i++) {
         $name = $allTests[$i]
         $wrapperName = $wrapperNames[$i]
+        $testNumber = $i + 1
+        $absoluteTestNumber = ($StartAt + $i)
+        $testLabel = "[global $absoluteTestNumber/$totalAvailableTests] $name"
+        Write-HarnessStatus -Phase "Starting test" -Current $testNumber -Total $allTests.Count -Detail $testLabel -StartedAt $scriptStart
+        Write-Progress -Activity "Phase 6 Excel validation" `
+            -Status ("Running selected {0}/{1}, global {2}/{3}: {4}" -f $testNumber, $allTests.Count, $absoluteTestNumber, $totalAvailableTests, $name) `
+            -PercentComplete ([int][Math]::Floor(($i / [double]$allTests.Count) * 100))
         $passed = Run-TestFunction -Excel $excel -WorkbookName $harness.Name -FunctionName $wrapperName
         $errorText = [string]$harness.Worksheets.Item(1).Range("A$($i + 1)").Value2
         $testRows += [pscustomobject]@{
@@ -497,30 +618,22 @@ try {
             Passed   = ($passed -eq 1)
             Error    = $errorText
         }
+        $resultText = if ($passed -eq 1) { "PASS" } elseif ([string]::IsNullOrWhiteSpace($errorText)) { "FAIL" } else { "FAIL - $errorText" }
+        Write-TestResultsFile -ResultPath $resultPath -TestRows $testRows -StartAt $StartAt -EndAt $EndAt -TotalAvailable $totalAvailableTests -Complete $false
+        Write-HarnessStatus -Phase "Completed test" -Current $testNumber -Total $allTests.Count -Detail "$resultText $testLabel" -StartedAt $scriptStart
     }
+    Write-Progress -Activity "Phase 6 Excel validation" -Completed
 
     $passedCount = @($testRows | Where-Object { $_.Passed }).Count
     $failedCount = $testRows.Count - $passedCount
 
-    $lines = @()
-    $lines += "# Phase 6 VBA Test Results"
-    $lines += ""
-    $lines += "- Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-    $lines += "- Passed: $passedCount"
-    $lines += "- Failed: $failedCount"
-    $lines += ""
-    $lines += "| Test | Result |"
-    $lines += "|---|---|"
-    foreach ($r in $testRows) {
-        $detail = if ($r.Passed) { "PASS" } elseif ([string]::IsNullOrWhiteSpace($r.Error)) { "FAIL" } else { "FAIL - $($r.Error)" }
-        $lines += "| $($r.TestName) | $detail |"
-    }
-    [System.IO.File]::WriteAllLines($resultPath, $lines)
+    Write-TestResultsFile -ResultPath $resultPath -TestRows $testRows -StartAt $StartAt -EndAt $EndAt -TotalAvailable $totalAvailableTests -Complete $true
 
     Write-Output "PHASE6_VALIDATION_OK"
     Write-Output "HARNESS=$harnessPath"
     Write-Output "RESULTS=$resultPath"
     Write-Output "PASSED=$passedCount FAILED=$failedCount TOTAL=$($testRows.Count)"
+    Write-Output "RANGE=$StartAt-$EndAt AVAILABLE=$totalAvailableTests"
 }
 finally {
     if ($null -ne $harness) {

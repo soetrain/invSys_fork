@@ -1278,7 +1278,7 @@ Private Function RequireAdminMaintenance(ByVal adminUserId As String, _
                                          ByVal warehouseId As String, _
                                          ByVal stationId As String, _
                                          ByRef report As String) As Boolean
-    If modAuth.CanPerform("ADMIN_MAINT", adminUserId, warehouseId, stationId, "ADMIN", "ADMIN-MAINT") Then
+    If modAuth.HasProvisionedCapabilityForSystem("ADMIN_MAINT", adminUserId, warehouseId, stationId) Then
         RequireAdminMaintenance = True
     Else
         report = "User lacks ADMIN_MAINT capability."

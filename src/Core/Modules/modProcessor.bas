@@ -71,7 +71,7 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
     heartbeatSeconds = modConfig.GetLong("HeartbeatIntervalSeconds", 30)
     If heartbeatSeconds <= 0 Then heartbeatSeconds = 30
 
-    If Not modAuth.CanPerform("INBOX_PROCESS", serviceUserId, warehouseId, modConfig.GetString("StationId", ""), "PROCESSOR", "PROCESSOR-RUN") Then
+    If Not modAuth.HasProvisionedCapabilityForSystem("INBOX_PROCESS", serviceUserId, warehouseId, modConfig.GetString("StationId", "")) Then
         report = "Processor service identity lacks INBOX_PROCESS."
         Exit Function
     End If
@@ -129,7 +129,7 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
                 GoTo MaybeHeartbeat
             End If
 
-            If Not modAuth.CanPerform(capability, GetDictionaryString(evt, "UserId"), GetDictionaryString(evt, "WarehouseId"), GetDictionaryString(evt, "StationId"), "PROCESSOR_VALIDATE", GetDictionaryString(evt, "EventID")) Then
+            If Not modAuth.HasProvisionedCapabilityForSystem(capability, GetDictionaryString(evt, "UserId"), GetDictionaryString(evt, "WarehouseId"), GetDictionaryString(evt, "StationId")) Then
                 UpdateInboxRowStatus loInbox, rowIndex, INBOX_STATUS_POISON, "AUTH_DENIED", "Event creator lacks " & capability & " capability."
                 poisonCount = poisonCount + 1
                 GoTo MaybeHeartbeat

@@ -266,7 +266,7 @@ Public Function TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime() As Lon
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
     If Not modConfig.LoadConfig(spec.WarehouseId, spec.StationId) Then GoTo CleanExit
     If Not modAuth.LoadAuth(spec.WarehouseId) Then GoTo CleanExit
-    If Not modAuth.CanPerform("ADMIN_MAINT", spec.AdminUser, spec.WarehouseId, spec.StationId, "TEST", "BOOTSTRAP-TEST") Then GoTo CleanExit
+    If Not modAuth.HasProvisionedCapabilityForSystem("ADMIN_MAINT", spec.AdminUser, spec.WarehouseId, spec.StationId) Then GoTo CleanExit
 
     Set wbCfg = Application.Workbooks.Open(rootPath & "\" & spec.WarehouseId & ".invSys.Config.xlsb")
     Set loWh = wbCfg.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")

@@ -1,9 +1,9 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-05-25 20:49:34
-- Passed: 101
-- Failed: 9
-- Status: PARTIAL
+- Date: 2026-05-27 09:41:31
+- Passed: 108
+- Failed: 0
+- Range: 1-108 of 124
 
 | Test | Result |
 |---|---|
@@ -62,16 +62,16 @@
 | TestWarehouseRetireArchive.TestWriteArchivePackage_SuccessCreatesAtomicArchive | PASS |
 | TestWarehouseRetireArchive.TestWriteArchivePackage_PartialFailureRollsBackTempArchive | PASS |
 | TestWarehouseRetireArchive.TestWriteArchivePackage_AuthExportMasksPinHash | PASS |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource | FAIL |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource | PASS |
 | TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingArchiveManifest | PASS |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse | FAIL |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities | FAIL |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | FAIL |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker | FAIL |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson | FAIL |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement | FAIL |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse | PASS |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities | PASS |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | PASS |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker | PASS |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson | PASS |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement | PASS |
 | TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutTombstone | PASS |
-| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutConfirmation | FAIL |
+| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutConfirmation | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_AllReady_ReturnsReady | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_AllReady_WhenCapabilityStationWildcard | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_SnapshotOk_WhenAuthMissingCapability | PASS |
@@ -91,7 +91,7 @@
 | TestPhase6CoreSurfaces.TestEnsureStationBootstrap_CreatesLocalConfigAndInbox | PASS |
 | TestPhase6CoreSurfaces.TestLoadConfig_QuarantinesContaminatedConfigSheet | PASS |
 | TestPhase6CoreSurfaces.TestLoadAuth_AutoBootstrapsCanonicalWorkbook | PASS |
-| TestPhase6CoreSurfaces.TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities | FAIL |
+| TestPhase6CoreSurfaces.TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities | PASS |
 | TestPhase6CoreSurfaces.TestResolveInventoryWorkbookBridge_PrefersCanonicalWorkbookOverOperatorSurface | PASS |
 | TestPhase6CoreSurfaces.TestEnsureInventoryManagementSurface_RemovesDomainArtifacts | PASS |
 | TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_PrunesUnexpectedSheets | PASS |
@@ -115,5 +115,3 @@
 | TestPhase6CoreSurfaces.TestProcessor_DiscoversClosedConfiguredStationInboxWorkbook | PASS |
 | TestPhase6CoreSurfaces.TestSavedShippingWorkbook_RefreshPreservesStagingAndLogs | PASS |
 | TestPhase6CoreSurfaces.TestSavedShippingWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs | PASS |
-| TestPhase6CoreSurfaces.TestSavedProductionWorkbook_RefreshPreservesStagingAndLogs | PASS |
-| TestPhase6CoreSurfaces.TestSavedProductionWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs | PASS |

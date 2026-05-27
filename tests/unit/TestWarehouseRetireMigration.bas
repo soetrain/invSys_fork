@@ -1,6 +1,18 @@
 Attribute VB_Name = "TestWarehouseRetireMigration"
 Option Explicit
 
+Private mLastTestFailure As String
+Private mLastSetupFailure As String
+
+Public Sub ClearLastTestFailure()
+    mLastTestFailure = vbNullString
+    mLastSetupFailure = vbNullString
+End Sub
+
+Public Function GetLastTestFailure() As String
+    GetLastTestFailure = mLastTestFailure
+End Function
+
 Public Function TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource() As Long
     Dim sourceWh As String
     Dim targetWh As String
@@ -58,6 +70,7 @@ Public Function TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSou
     TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource = 1
 
 CleanExit:
+    If TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource = 0 Then RecordRetireMigrationFailure "SuccessAppendsInventoryAndTracesSource"
     CleanupMigrationScenarioRetire runtimeBase, sourceWh, targetWh
     Exit Function
 CleanFail:
@@ -93,6 +106,7 @@ Public Function TestMigrateInventoryToTarget_RejectsMissingArchiveManifest() As 
     TestMigrateInventoryToTarget_RejectsMissingArchiveManifest = 1
 
 CleanExit:
+    If TestMigrateInventoryToTarget_RejectsMissingArchiveManifest = 0 Then RecordRetireMigrationFailure "RejectsMissingArchiveManifest"
     CleanupMigrationScenarioRetire runtimeBase, vbNullString, targetWh
     Exit Function
 CleanFail:
@@ -132,6 +146,7 @@ Public Function TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse() As 
     TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse = 1
 
 CleanExit:
+    If TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse = 0 Then RecordRetireMigrationFailure "RejectsMissingTargetWarehouse"
     CleanupMigrationScenarioRetire runtimeBase, sourceWh, vbNullString
     Exit Function
 CleanFail:
@@ -184,6 +199,7 @@ Public Function TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities() As Long
     TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities = 1
 
 CleanExit:
+    If TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities = 0 Then RecordRetireMigrationFailure "DoesNotCopyAuthIdentities"
     CleanupMigrationScenarioRetire runtimeBase, sourceWh, targetWh
     Exit Function
 CleanFail:
@@ -240,6 +256,7 @@ Public Function TestMigrateInventoryToTarget_PreservesTargetConfigIdentity() As 
     TestMigrateInventoryToTarget_PreservesTargetConfigIdentity = 1
 
 CleanExit:
+    If TestMigrateInventoryToTarget_PreservesTargetConfigIdentity = 0 Then RecordRetireMigrationFailure "PreservesTargetConfigIdentity"
     CleanupMigrationScenarioRetire runtimeBase, sourceWh, targetWh
     Exit Function
 CleanFail:
@@ -275,6 +292,7 @@ Private Function SetupMigrationRuntimeRetire(ByVal warehouseId As String, _
 
 CleanExit:
     On Error Resume Next
+    If Not SetupMigrationRuntimeRetire Then mLastSetupFailure = "SetupMigrationRuntimeRetire failed for " & warehouseId & ": " & modWarehouseBootstrap.GetLastWarehouseBootstrapReport()
     If Not wbAuth Is Nothing Then wbAuth.Close SaveChanges:=False
     modRuntimeWorkbooks.ClearCoreDataRootOverride
     On Error GoTo 0
@@ -283,6 +301,15 @@ CleanExit:
 FailSetup:
     Resume CleanExit
 End Function
+
+Private Sub RecordRetireMigrationFailure(ByVal testName As String)
+    Dim report As String
+
+    report = Trim$(modWarehouseRetire.GetLastWarehouseRetireReport())
+    If report = "" Then report = Trim$(mLastSetupFailure)
+    If report = "" Then report = "No retire/migration report was available."
+    mLastTestFailure = testName & ": " & report
+End Sub
 
 Private Function SeedInventoryStateRetire(ByVal warehouseId As String, _
                                           ByVal runtimeRoot As String, _
@@ -302,6 +329,7 @@ Private Function SeedInventoryStateRetire(ByVal warehouseId As String, _
 
     Set wbInv = OpenWorkbookIfNeededRetire(runtimeRoot & "\" & warehouseId & ".invSys.Data.Inventory.xlsb")
     If wbInv Is Nothing Then GoTo CleanExit
+    If Not EnsureRetireMigrationSkuCatalog(wbInv, "SKU-MIG-001") Then GoTo CleanExit
 
     Set evt = TestPhase2Helpers.CreateReceiveEvent(eventId, warehouseId, "ADM1", userId, "SKU-MIG-001", qty, locationVal, noteVal, Now, "seed-inbox")
     If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-" & eventId, statusOut, errorCode, errorMessage) Then GoTo CleanExit
@@ -309,11 +337,53 @@ Private Function SeedInventoryStateRetire(ByVal warehouseId As String, _
     SeedInventoryStateRetire = True
 
 CleanExit:
+    If Not SeedInventoryStateRetire And mLastSetupFailure = "" Then mLastSetupFailure = "SeedInventoryStateRetire failed for " & warehouseId & ": " & report & "|" & statusOut & "|" & errorCode & "|" & errorMessage
     CloseWorkbookIfOpenRetire wbInv
     Exit Function
 
 FailSeed:
     Resume CleanExit
+End Function
+
+Private Function EnsureRetireMigrationSkuCatalog(ByVal wbInv As Workbook, ByVal sku As String) As Boolean
+    Dim report As String
+    Dim loSku As ListObject
+    Dim rowIndex As Long
+    Dim lr As ListRow
+
+    On Error GoTo FailEnsure
+
+    sku = Trim$(sku)
+    If wbInv Is Nothing Or sku = "" Then Exit Function
+    If Not modInventorySchema.EnsureInventorySchema(wbInv, report) Then
+        mLastSetupFailure = "EnsureInventorySchema failed for " & sku & ": " & report
+        Exit Function
+    End If
+
+    Set loSku = wbInv.Worksheets("SkuCatalog").ListObjects("tblSkuCatalog")
+    If loSku Is Nothing Then
+        mLastSetupFailure = "tblSkuCatalog was not available for " & sku
+        Exit Function
+    End If
+    On Error Resume Next
+    loSku.Parent.Unprotect
+    On Error GoTo FailEnsure
+    rowIndex = FindRowByValueRetire(loSku, "SKU", sku)
+    If rowIndex = 0 Then
+        Set lr = loSku.ListRows.Add
+        rowIndex = lr.Index
+    End If
+    SetRetireTableCell loSku, rowIndex, "SKU", sku
+    SetRetireTableCell loSku, rowIndex, "ITEM_CODE", sku
+    SetRetireTableCell loSku, rowIndex, "ITEM", sku
+    SetRetireTableCell loSku, rowIndex, "UOM", "EA"
+    wbInv.Save
+
+    EnsureRetireMigrationSkuCatalog = True
+    Exit Function
+
+FailEnsure:
+    mLastSetupFailure = "EnsureRetireMigrationSkuCatalog failed for " & sku & ": " & Err.Description
 End Function
 
 Private Function AddSourceOnlyAuthUserRetire(ByVal warehouseId As String, ByVal runtimeRoot As String) As Boolean
@@ -329,12 +399,24 @@ Private Function AddSourceOnlyAuthUserRetire(ByVal warehouseId As String, ByVal 
     AddSourceOnlyAuthUserRetire = True
 
 CleanExit:
+    If Not AddSourceOnlyAuthUserRetire Then mLastSetupFailure = "AddSourceOnlyAuthUserRetire failed for " & warehouseId
     CloseWorkbookIfOpenRetire wbAuth
     Exit Function
 
 FailAdd:
     Resume CleanExit
 End Function
+
+Private Sub SetRetireTableCell(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueIn As Variant)
+    Dim colIndex As Long
+
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Sub
+    On Error Resume Next
+    colIndex = lo.ListColumns(columnName).Index
+    On Error GoTo 0
+    If colIndex <= 0 Then Exit Sub
+    lo.DataBodyRange.Cells(rowIndex, colIndex).Value = valueIn
+End Sub
 
 Private Function RenameTargetConfigIdentityRetire(ByVal warehouseId As String, _
                                                   ByVal runtimeRoot As String, _
@@ -352,6 +434,7 @@ Private Function RenameTargetConfigIdentityRetire(ByVal warehouseId As String, _
     RenameTargetConfigIdentityRetire = True
 
 CleanExit:
+    If Not RenameTargetConfigIdentityRetire Then mLastSetupFailure = "RenameTargetConfigIdentityRetire failed for " & warehouseId
     CloseWorkbookIfOpenRetire wbCfg
     Exit Function
 

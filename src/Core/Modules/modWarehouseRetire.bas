@@ -7,6 +7,9 @@ Private Const TOMBSTONE_FILE_SUFFIX_RETIRE As String = ".tombstone.json"
 Private Const TOMBSTONE_PUBLISH_FOLDER_RETIRE As String = "tombstones"
 
 Private mLastRetireReport As String
+Private mLastArchiveSourceWarehouseId As String
+Private mLastArchiveRoot As String
+Private mLastArchivePath As String
 
 Public Enum RetireMigrateOperationMode
     MODE_ARCHIVE_ONLY = 1
@@ -262,6 +265,9 @@ Public Function WriteArchivePackage(ByRef spec As RetireMigrateSpec) As Boolean
     If Not WriteArchiveManifestRetire(tempArchivePath & "\manifest.json", spec, warehouseName, fileList, report) Then GoTo FailSoft
 
     Name tempArchivePath As finalArchivePath
+    mLastArchiveSourceWarehouseId = spec.SourceWarehouseId
+    mLastArchiveRoot = NormalizeFolderPathRetire(spec.ArchiveDestPath)
+    mLastArchivePath = finalArchivePath
     report = "OK|ArchivePath=" & finalArchivePath
     WriteArchivePackage = True
     GoTo CleanExit
@@ -1060,26 +1066,48 @@ Private Function OperationModeNameRetire(ByVal modeValue As RetireMigrateOperati
 End Function
 
 Private Function ResolveLatestArchiveFolderRetire(ByVal archiveRoot As String, ByVal sourceWarehouseId As String) As String
-    Dim candidate As String
     Dim normalizedRoot As String
     Dim bestName As String
+    Dim bestPath As String
+    Dim fso As Object
+    Dim rootFolder As Object
+    Dim childFolder As Object
+    Dim candidate As String
 
     normalizedRoot = NormalizeFolderPathRetire(archiveRoot)
     If normalizedRoot = "" Then Exit Function
+    If StrComp(mLastArchiveSourceWarehouseId, sourceWarehouseId, vbTextCompare) = 0 _
+       And StrComp(mLastArchiveRoot, normalizedRoot, vbTextCompare) = 0 _
+       And mLastArchivePath <> "" Then
+        If FileExistsRetire(mLastArchivePath & "\manifest.json") Then
+            ResolveLatestArchiveFolderRetire = mLastArchivePath
+            Exit Function
+        End If
+    End If
+    If Not FolderExistsRetire(normalizedRoot) Then Exit Function
 
-    candidate = Dir$(normalizedRoot & sourceWarehouseId & "_archive_*", vbDirectory)
-    Do While candidate <> ""
-        If candidate <> "." And candidate <> ".." Then
+    On Error GoTo CleanFail
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set rootFolder = fso.GetFolder(Left$(normalizedRoot, Len(normalizedRoot) - 1))
+    For Each childFolder In rootFolder.SubFolders
+        candidate = CStr(childFolder.Name)
+        If UCase$(candidate) Like UCase$(sourceWarehouseId & "_archive_*") Then
             If InStr(1, candidate, ARCHIVE_TEMP_SUFFIX_RETIRE, vbTextCompare) = 0 Then
-                If FileExistsRetire(normalizedRoot & candidate & "\manifest.json") Then
-                    If candidate > bestName Then bestName = candidate
+                If fso.FileExists(CStr(childFolder.Path) & "\manifest.json") Then
+                    If candidate > bestName Then
+                        bestName = candidate
+                        bestPath = CStr(childFolder.Path)
+                    End If
                 End If
             End If
         End If
-        candidate = Dir$
-    Loop
+    Next childFolder
 
-    If bestName <> "" Then ResolveLatestArchiveFolderRetire = normalizedRoot & bestName
+    If bestName <> "" Then ResolveLatestArchiveFolderRetire = bestPath
+    Exit Function
+
+CleanFail:
+    ResolveLatestArchiveFolderRetire = vbNullString
 End Function
 
 Private Function ResolveArchivedSnapshotPathRetire(ByVal archiveFolder As String, ByVal sourceWarehouseId As String) As String
@@ -1197,27 +1225,24 @@ CleanFail:
 End Function
 
 Private Function FindRuntimeRootUnderParentRetire(ByVal parentPath As String, ByVal warehouseId As String) As String
-    Dim childName As String
-    Dim childPath As String
+    Dim fso As Object
+    Dim parentFolder As Object
+    Dim childFolder As Object
 
     On Error GoTo CleanFail
 
     parentPath = NormalizeFolderPathRetire(parentPath)
     If parentPath = "" Then Exit Function
+    If Not FolderExistsRetire(parentPath) Then Exit Function
 
-    childName = Dir$(parentPath & "*", vbDirectory)
-    Do While childName <> ""
-        If childName <> "." And childName <> ".." Then
-            childPath = parentPath & childName
-            If FolderExistsRetire(childPath) Then
-                If RuntimeArtifactsExistRetire(childPath, warehouseId) Then
-                    FindRuntimeRootUnderParentRetire = childPath
-                    Exit Function
-                End If
-            End If
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set parentFolder = fso.GetFolder(Left$(parentPath, Len(parentPath) - 1))
+    For Each childFolder In parentFolder.SubFolders
+        If RuntimeArtifactsExistRetire(CStr(childFolder.Path), warehouseId) Then
+            FindRuntimeRootUnderParentRetire = CStr(childFolder.Path)
+            Exit Function
         End If
-        childName = Dir$
-    Loop
+    Next childFolder
     Exit Function
 
 CleanFail:
@@ -1550,15 +1575,35 @@ Private Sub RestoreCoreRootOverrideRetire(ByVal priorRootOverride As String)
 End Sub
 
 Private Function FileExistsRetire(ByVal filePath As String) As Boolean
+    Dim fso As Object
+
     filePath = Trim$(Replace$(filePath, "/", "\"))
     If filePath = "" Then Exit Function
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FileExistsRetire = fso.FileExists(filePath)
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+    If FileExistsRetire Then Exit Function
+
     FileExistsRetire = (Len(Dir$(filePath, vbNormal)) > 0)
 End Function
 
 Private Function FolderExistsRetire(ByVal folderPath As String) As Boolean
+    Dim fso As Object
+
     folderPath = Trim$(Replace$(folderPath, "/", "\"))
     If folderPath = "" Then Exit Function
     If Right$(folderPath, 1) = "\" And Len(folderPath) > 3 Then folderPath = Left$(folderPath, Len(folderPath) - 1)
+
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FolderExistsRetire = fso.FolderExists(folderPath)
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+    If FolderExistsRetire Then Exit Function
+
     FolderExistsRetire = (Len(Dir$(folderPath, vbDirectory)) > 0)
 End Function
 

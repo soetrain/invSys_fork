@@ -154,7 +154,7 @@ Private Function ValidateCurrentUserCredential(ByVal userId As String, _
     End If
 
     If Trim$(requiredCapability) <> "" _
-       And Not modAuth.CanPerform(requiredCapability, userId, whId, stId, "REAUTH", "REAUTH") Then
+       And Not modAuth.HasProvisionedCapabilityForSystem(requiredCapability, userId, whId, stId) Then
         report = "'" & userId & "' lacks " & requiredCapability & " for " & whId & " / " & stId & "." & vbCrLf & _
                  "Auth workbook: " & modAuth.GetResolvedAuthWorkbookName()
         Exit Function
@@ -520,7 +520,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
         errorMessage = "Auth load failed: " & modAuth.ValidateAuth()
         Exit Function
     End If
-    If Not modAuth.CanPerform(capability, resolvedUser, resolvedWh, resolvedSt, "ROLE_UI", eventIdOut) Then
+    If Not modAuth.HasProvisionedCapabilityForSystem(capability, resolvedUser, resolvedWh, resolvedSt) Then
         errorMessage = "Current user lacks " & capability & " capability."
         Exit Function
     End If

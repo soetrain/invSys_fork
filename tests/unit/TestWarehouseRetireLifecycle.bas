@@ -1,6 +1,18 @@
 Attribute VB_Name = "TestWarehouseRetireLifecycle"
 Option Explicit
 
+Private mLastTestFailure As String
+Private mLastSetupFailure As String
+
+Public Sub ClearLastTestFailure()
+    mLastTestFailure = vbNullString
+    mLastSetupFailure = vbNullString
+End Sub
+
+Public Function GetLastTestFailure() As String
+    GetLastTestFailure = mLastTestFailure
+End Function
+
 Public Function TestRetireSourceWarehouse_WritesRetirementMarker() As Long
     Dim warehouseId As String
     Dim runtimeBase As String
@@ -39,6 +51,7 @@ Public Function TestRetireSourceWarehouse_WritesRetirementMarker() As Long
     TestRetireSourceWarehouse_WritesRetirementMarker = 1
 
 CleanExit:
+    If TestRetireSourceWarehouse_WritesRetirementMarker = 0 Then RecordRetireLifecycleFailure "WritesRetirementMarker"
     CleanupRetireLifecycleRuntime runtimeBase, warehouseId
     Exit Function
 CleanFail:
@@ -86,6 +99,7 @@ Public Function TestRetireSourceWarehouse_WritesValidTombstoneJson() As Long
     TestRetireSourceWarehouse_WritesValidTombstoneJson = 1
 
 CleanExit:
+    If TestRetireSourceWarehouse_WritesValidTombstoneJson = 0 Then RecordRetireLifecycleFailure "WritesValidTombstoneJson"
     CleanupRetireLifecycleRuntime runtimeBase, warehouseId
     Exit Function
 CleanFail:
@@ -130,6 +144,7 @@ Public Function TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetir
     TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement = 1
 
 CleanExit:
+    If TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement = 0 Then RecordRetireLifecycleFailure "SharePointUnavailableDoesNotBlockRetirement"
     CleanupRetireLifecycleRuntime runtimeBase, warehouseId
     Exit Function
 CleanFail:
@@ -167,6 +182,7 @@ Public Function TestDeleteLocalRuntime_RejectsWithoutTombstone() As Long
     TestDeleteLocalRuntime_RejectsWithoutTombstone = 1
 
 CleanExit:
+    If TestDeleteLocalRuntime_RejectsWithoutTombstone = 0 Then RecordRetireLifecycleFailure "RejectsWithoutTombstone"
     CleanupRetireLifecycleRuntime runtimeBase, warehouseId
     Exit Function
 CleanFail:
@@ -208,6 +224,7 @@ Public Function TestDeleteLocalRuntime_RejectsWithoutConfirmation() As Long
     TestDeleteLocalRuntime_RejectsWithoutConfirmation = 1
 
 CleanExit:
+    If TestDeleteLocalRuntime_RejectsWithoutConfirmation = 0 Then RecordRetireLifecycleFailure "RejectsWithoutConfirmation"
     CleanupRetireLifecycleRuntime runtimeBase, warehouseId
     Exit Function
 CleanFail:
@@ -251,6 +268,15 @@ FailSetup:
     Resume CleanExit
 End Function
 
+Private Sub RecordRetireLifecycleFailure(ByVal testName As String)
+    Dim report As String
+
+    report = Trim$(modWarehouseRetire.GetLastWarehouseRetireReport())
+    If report = "" Then report = Trim$(mLastSetupFailure)
+    If report = "" Then report = "No retire lifecycle report was available."
+    mLastTestFailure = testName & ": " & report
+End Sub
+
 Private Function SeedRetireLifecycleInventory(ByVal warehouseId As String, _
                                               ByVal runtimeRoot As String, _
                                               ByVal userId As String, _
@@ -266,6 +292,7 @@ Private Function SeedRetireLifecycleInventory(ByVal warehouseId As String, _
 
     Set wbInv = OpenWorkbookIfNeededLifecycle(runtimeRoot & "\" & warehouseId & ".invSys.Data.Inventory.xlsb")
     If wbInv Is Nothing Then GoTo CleanExit
+    If Not EnsureRetireLifecycleSkuCatalog(wbInv, "SKU-RETIRE-001") Then GoTo CleanExit
 
     Set evt = TestPhase2Helpers.CreateReceiveEvent("EVT-" & warehouseId & "-RETIRE", warehouseId, "ADM1", userId, "SKU-RETIRE-001", qty, "A1", "retire-seed", Now, "seed-inbox")
     If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-" & warehouseId, statusOut, errorCode, errorMessage) Then GoTo CleanExit
@@ -273,11 +300,53 @@ Private Function SeedRetireLifecycleInventory(ByVal warehouseId As String, _
     SeedRetireLifecycleInventory = True
 
 CleanExit:
+    If Not SeedRetireLifecycleInventory And mLastSetupFailure = "" Then mLastSetupFailure = "SeedRetireLifecycleInventory failed for " & warehouseId & ": " & report & "|" & statusOut & "|" & errorCode & "|" & errorMessage
     CloseWorkbookIfOpenLifecycle wbInv
     Exit Function
 
 FailSeed:
     Resume CleanExit
+End Function
+
+Private Function EnsureRetireLifecycleSkuCatalog(ByVal wbInv As Workbook, ByVal sku As String) As Boolean
+    Dim report As String
+    Dim loSku As ListObject
+    Dim rowIndex As Long
+    Dim lr As ListRow
+
+    On Error GoTo FailEnsure
+
+    sku = Trim$(sku)
+    If wbInv Is Nothing Or sku = "" Then Exit Function
+    If Not modInventorySchema.EnsureInventorySchema(wbInv, report) Then
+        mLastSetupFailure = "EnsureInventorySchema failed for " & sku & ": " & report
+        Exit Function
+    End If
+
+    Set loSku = wbInv.Worksheets("SkuCatalog").ListObjects("tblSkuCatalog")
+    If loSku Is Nothing Then
+        mLastSetupFailure = "tblSkuCatalog was not available for " & sku
+        Exit Function
+    End If
+    On Error Resume Next
+    loSku.Parent.Unprotect
+    On Error GoTo FailEnsure
+    rowIndex = FindRowByValueLifecycle(loSku, "SKU", sku)
+    If rowIndex = 0 Then
+        Set lr = loSku.ListRows.Add
+        rowIndex = lr.Index
+    End If
+    SetLifecycleTableCell loSku, rowIndex, "SKU", sku
+    SetLifecycleTableCell loSku, rowIndex, "ITEM_CODE", sku
+    SetLifecycleTableCell loSku, rowIndex, "ITEM", sku
+    SetLifecycleTableCell loSku, rowIndex, "UOM", "EA"
+    wbInv.Save
+
+    EnsureRetireLifecycleSkuCatalog = True
+    Exit Function
+
+FailEnsure:
+    mLastSetupFailure = "EnsureRetireLifecycleSkuCatalog failed for " & sku & ": " & Err.Description
 End Function
 
 Private Function SetWarehouseSharePointPathLifecycle(ByVal warehouseId As String, _
@@ -300,6 +369,35 @@ CleanExit:
 FailSet:
     Resume CleanExit
 End Function
+
+Private Function FindRowByValueLifecycle(ByVal lo As ListObject, ByVal columnName As String, ByVal matchValue As String) As Long
+    Dim rowIndex As Long
+    Dim colIndex As Long
+
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
+    On Error Resume Next
+    colIndex = lo.ListColumns(columnName).Index
+    On Error GoTo 0
+    If colIndex <= 0 Then Exit Function
+
+    For rowIndex = 1 To lo.ListRows.Count
+        If StrComp(CStr(lo.DataBodyRange.Cells(rowIndex, colIndex).Value), matchValue, vbTextCompare) = 0 Then
+            FindRowByValueLifecycle = rowIndex
+            Exit Function
+        End If
+    Next rowIndex
+End Function
+
+Private Sub SetLifecycleTableCell(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueIn As Variant)
+    Dim colIndex As Long
+
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Sub
+    On Error Resume Next
+    colIndex = lo.ListColumns(columnName).Index
+    On Error GoTo 0
+    If colIndex <= 0 Then Exit Sub
+    lo.DataBodyRange.Cells(rowIndex, colIndex).Value = valueIn
+End Sub
 
 Private Function OpenWorkbookIfNeededLifecycle(ByVal fullPath As String) As Workbook
     Dim wb As Workbook

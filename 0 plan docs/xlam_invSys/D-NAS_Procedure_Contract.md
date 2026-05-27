@@ -656,15 +656,30 @@ Public Function CanPerform( _
 ) As Boolean
 ```
 
-**Purpose:** Check whether the signed-in user holds a named capability against the current warehouse and station. This is the single capability gate used by all ribbon `getEnabled` callbacks and write action guards. It is defined in full in the `Core.Auth` capability contract (separate document); this reference is included here so that the D-NAS startup sequence and ribbon integration table use a consistent entry point and no role XLAM invents an alternative capability path.
+**Purpose:** Check whether the signed-in user holds a named capability against the current warehouse and station. This is the single signed-in operator capability gate used by all ribbon `getEnabled` callbacks and current-user write action guards. It is defined in full in the `Core.Auth` capability contract (separate document); this reference is included here so that the D-NAS startup sequence and ribbon integration table use a consistent entry point and no role XLAM invents an alternative capability path.
 
 **Returns:** `True` if the user is signed in, the TTL is valid, and the capability is active for the given warehouse/station scope. `False` in all other cases (signed out, TTL expired, capability not held, station mismatch).
 
 **Rules:**
-- `CanPerform` is the only capability check entry point. Role XLAMs do not read capability flags directly from `WarehouseTarget` or the auth workbook.
+- `CanPerform` is the only capability check entry point for signed-in role UI/operator writes. Role XLAMs do not read capability flags directly from `WarehouseTarget` or the auth workbook.
 - If `IsSignedIn()` returns `False` for any reason, `CanPerform` returns `False` without opening the auth workbook.
 - Role ribbon `getEnabled` callbacks use `Core.RoleUiAccess.CanCurrentUserPerformCapabilityCached`, which is a cached-state facade over the current target/auth state and must remain non-modal and network-free.
 - See `Core.Auth` capability contract for capability name constants, scope rules, and TTL refresh behavior.
+
+---
+
+#### `HasProvisionedCapabilityForSystem`
+
+```vb
+Public Function HasProvisionedCapabilityForSystem( _
+    ByVal capability As String, _
+    ByVal userId As String, _
+    Optional ByVal warehouseId As String = "", _
+    Optional ByVal stationId As String = "" _
+) As Boolean
+```
+
+**Purpose:** System-side provisioning check for bootstrap, processor validation, and legacy explicit-user queue paths. This does not establish or depend on an operator sign-in session and must not be used by role UI `getEnabled` callbacks or current-user write buttons.
 
 ---
 
