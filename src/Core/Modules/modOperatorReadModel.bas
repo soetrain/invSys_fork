@@ -1047,10 +1047,9 @@ Private Sub ApplySnapshotMetadataToInvSys(ByVal loInv As ListObject, _
     valueText = ResolveSnapshotTextPayloadReadModel(payload, "CATEGORY")
     If valueText <> "" Then SetReadModelValue loInv, rowIndex, "CATEGORY", valueText
 
-    SetReadModelValue loInv, rowIndex, "RECEIVED", ResolveSnapshotNumberPayloadReadModel(payload, "RECEIVED")
-    SetReadModelValue loInv, rowIndex, "USED", ResolveSnapshotNumberPayloadReadModel(payload, "USED")
-    SetReadModelValue loInv, rowIndex, "MADE", ResolveSnapshotNumberPayloadReadModel(payload, "MADE")
-    SetReadModelValue loInv, rowIndex, "SHIPMENTS", ResolveSnapshotNumberPayloadReadModel(payload, "SHIPMENTS")
+    ' Operator staging columns are workbook-local work in progress.  Snapshot
+    ' refreshes update canonical balances and metadata, but must not rehydrate
+    ' RECEIVE/USED/MADE/SHIPMENTS values from the warehouse data workbook.
 
     If Trim$(locationSummary) = "" Then
         valueText = ResolveSnapshotTextPayloadReadModel(payload, "LOCATION")

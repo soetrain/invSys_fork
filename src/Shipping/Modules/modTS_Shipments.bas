@@ -355,6 +355,67 @@ Public Sub BtnReturnHold()
     MoveSelectionToHold False
 End Sub
 
+Public Function MoveShipmentHoldForAutomation(ByVal refNumber As String, _
+                                              ByVal itemText As String, _
+                                              ByVal qtyMove As Double, _
+                                              ByVal moveToHold As Boolean) As String
+    On Error GoTo Fail
+
+    Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then
+        MoveShipmentHoldForAutomation = "ERR|ShipmentsTally sheet not found."
+        Exit Function
+    End If
+
+    Dim loShip As ListObject: Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
+    Dim loHold As ListObject: Set loHold = GetListObject(ws, TABLE_NOTSHIPPED)
+    If loShip Is Nothing Or loHold Is Nothing Then
+        MoveShipmentHoldForAutomation = "ERR|ShipmentsTally or NotShipped table not found."
+        Exit Function
+    End If
+
+    Dim sourceTable As ListObject
+    Dim targetTable As ListObject
+    If moveToHold Then
+        Set sourceTable = loShip
+        Set targetTable = loHold
+    Else
+        Set sourceTable = loHold
+        Set targetTable = loShip
+    End If
+
+    If qtyMove <= 0 Then
+        MoveShipmentHoldForAutomation = "ERR|Quantity must be positive."
+        Exit Function
+    End If
+
+    Dim rowIndex As Long
+    rowIndex = FindHoldRowIndex(sourceTable, refNumber, itemText)
+    If rowIndex <= 0 Then
+        MoveShipmentHoldForAutomation = "ERR|Source row not found."
+        Exit Function
+    End If
+
+    Dim availableQty As Double
+    availableQty = HoldRowQty(sourceTable, rowIndex)
+    If availableQty <= 0 Then
+        MoveShipmentHoldForAutomation = "ERR|Source row quantity is empty."
+        Exit Function
+    End If
+    If qtyMove > availableQty Then qtyMove = availableQty
+
+    MoveHoldRowQuantity sourceTable, targetTable, rowIndex, qtyMove
+    InvalidateAggregates True
+
+    MoveShipmentHoldForAutomation = "OK|Moved=" & CStr(qtyMove) _
+        & "|SourceQty=" & CStr(HoldRowQtyByKey(sourceTable, refNumber, itemText)) _
+        & "|TargetQty=" & CStr(HoldRowQtyByKey(targetTable, refNumber, itemText))
+    Exit Function
+
+Fail:
+    MoveShipmentHoldForAutomation = "ERR|" & Err.Description
+End Function
+
 Public Sub BtnConfirmInventory()
     On Error GoTo ErrHandler
     Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
@@ -403,7 +464,7 @@ Public Sub BtnConfirmInventory()
         msg = msg & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
         MsgBox msg, vbExclamation
     Else
-        MsgBox msg, vbInformation
+        ShowShippingStatus msg
     End If
     Exit Sub
 ErrHandler:
@@ -461,13 +522,13 @@ Public Sub BtnBoxesMade()
     PrepareComponentLogEntries invLo, usedDeltas, compLogs
     PreparePackageLogEntries invLo, madeDeltas, pkgLogs
 
-    usedTotal = modInvMan.ApplyUsedDeltas(usedDeltas, errNotes, "BTN_BOXES_MADE - Components Used")
+    usedTotal = ApplyUsedDeltasLocal(invLo, usedDeltas, errNotes)
     If usedTotal < 0 Then
         MsgBox "Boxes made cancelled: insufficient inventory to cover all BOM components." & vbCrLf & vbCrLf & errNotes, vbExclamation
         Exit Sub
     End If
 
-    madeTotal = modInvMan.ApplyMadeDeltas(madeDeltas, errNotes, "BTN_BOXES_MADE - Packages Staged")
+    madeTotal = ApplyMadeDeltasLocal(invLo, madeDeltas, errNotes)
     If madeTotal < 0 Then
         MsgBox "Boxes made cancelled: " & errNotes, vbExclamation
         Exit Sub
@@ -484,9 +545,13 @@ Public Sub BtnBoxesMade()
     msg = msg & vbCrLf & "Recorded finished packages (MADE): " & Format$(madeTotal, "0.###")
     If errNotes <> "" Then
         msg = msg & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
-        MsgBox msg, vbExclamation
+        If HasActionableShippingWarning(errNotes) Then
+            MsgBox msg, vbExclamation
+        Else
+            ShowShippingStatus msg
+        End If
     Else
-        MsgBox msg, vbInformation
+        ShowShippingStatus msg
     End If
     Exit Sub
 ErrHandler:
@@ -525,7 +590,7 @@ Public Sub BtnToTotalInv()
     PrepareTotalInventoryLogEntries invLo, deltas, shipLogs
 
     Dim movedTotal As Double
-    movedTotal = modInvMan.ApplyMadeToInventoryDeltas(deltas, errNotes, "BTN_TO_TOTALINV - Added To Total Inv")
+    movedTotal = ApplyMadeToInventoryDeltasLocal(invLo, deltas, errNotes)
     If movedTotal < 0 Then
         If errNotes = "" Then errNotes = "Unable to move packages into TOTAL INV."
         MsgBox errNotes, vbCritical
@@ -539,7 +604,7 @@ Public Sub BtnToTotalInv()
 
     Dim msg As String
     msg = "Moved " & Format$(movedTotal, "0.###") & " packages from MADE into TOTAL INV."
-    MsgBox msg, vbInformation
+    ShowShippingStatus msg
     Exit Sub
 ErrHandler:
     MsgBox "BTN_TO_TOTALINV failed: " & Err.Description, vbCritical
@@ -585,7 +650,7 @@ Public Sub BtnToShipments()
     PrepareShipmentStageLogEntries invLo, deltas, shipLogs
 
     Dim stagedTotal As Double
-    stagedTotal = modInvMan.ApplyShipmentDeltas(deltas, errNotes, "BTN_TO_SHIPMENTS - Inventory Staged")
+    stagedTotal = ApplyShipmentDeltasLocal(invLo, deltas, errNotes)
     If stagedTotal < 0 Then
         If errNotes = "" Then errNotes = "Unable to stage shipments due to inventory shortage."
         MsgBox errNotes, vbCritical
@@ -593,11 +658,12 @@ Public Sub BtnToShipments()
     End If
 
     InvalidateAggregates True
+    RestoreShipmentStageColumns invLo, deltas
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
 
     Dim msg As String
     msg = "Staged " & Format$(stagedTotal, "0.###") & " packages into invSys.SHIPMENTS."
-    MsgBox msg, vbInformation
+    ShowShippingStatus msg
     Exit Sub
 ErrHandler:
     Dim errMsg As String
@@ -661,6 +727,7 @@ Public Sub BtnShipmentsSent()
     ElseIf runtimeReport <> "" Then
         AppendNote errNotes, runtimeReport
     End If
+    ClearShipmentStageAfterRefresh ws.Parent, deltas
 
     Dim msg As String
     msg = "Finalized " & Format$(shippedTotal, "0.###") & " shipments."
@@ -672,16 +739,112 @@ Public Sub BtnShipmentsSent()
     If queuedEventId <> "" Then msg = msg & vbCrLf & "Inbox EventID: " & queuedEventId
     If errNotes <> "" Then
         msg = msg & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
-        MsgBox msg, vbExclamation
+        If HasActionableShippingWarning(errNotes) Then
+            MsgBox msg, vbExclamation
+        Else
+            ShowShippingStatus msg
+        End If
     Else
-        MsgBox msg, vbInformation
+        ShowShippingStatus msg
     End If
+    ClearShipmentStageAfterRefresh ws.Parent, deltas
     Exit Sub
 ErrHandler:
     Dim errMsg As String
     errMsg = "BTN_SHIPMENTS_SENT failed: " & Err.Description
     If queuedEventId <> "" Then errMsg = errMsg & vbCrLf & vbCrLf & "Inbox EventID already queued: " & queuedEventId
     MsgBox errMsg, vbCritical
+End Sub
+
+Private Sub ClearShipmentStageAfterRefresh(ByVal wb As Workbook, ByVal deltas As Collection)
+    Dim attempt As Long
+    Dim invLo As ListObject
+
+    If wb Is Nothing Then Exit Sub
+
+    For attempt = 1 To 3
+        AllowExcelRefreshToSettle
+        Set invLo = GetInvSysTableFromWorkbook(wb)
+        ClearShipmentStageColumns invLo, deltas
+        ClearAllShipmentStageColumns invLo
+        If attempt > 1 Then
+            If Not HasAnyShipmentStage(invLo) Then Exit For
+        End If
+    Next attempt
+End Sub
+
+Private Sub ShowShippingStatus(ByVal messageText As String)
+    On Error Resume Next
+    Application.StatusBar = FlattenStatusText(messageText)
+    On Error GoTo 0
+End Sub
+
+Private Function FlattenStatusText(ByVal messageText As String) As String
+    Dim result As String
+
+    result = Replace(messageText, vbCrLf, "  ")
+    result = Replace(result, vbCr, "  ")
+    result = Replace(result, vbLf, "  ")
+    Do While InStr(result, "   ") > 0
+        result = Replace(result, "   ", "  ")
+    Loop
+    If Len(result) > 240 Then result = Left$(result, 237) & "..."
+    FlattenStatusText = result
+End Function
+
+Private Function HasActionableShippingWarning(ByVal notes As String) As Boolean
+    Dim lowered As String
+
+    lowered = LCase$(Trim$(notes))
+    If lowered = "" Then Exit Function
+
+    HasActionableShippingWarning = _
+        (InStr(1, lowered, "failed", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "error", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "poison", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "cancel", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "insufficient", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "unable", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "did not complete", vbTextCompare) > 0)
+End Function
+
+Private Function HasAnyShipmentStage(ByVal invLo As ListObject) As Boolean
+    If invLo Is Nothing Then Exit Function
+    If invLo.DataBodyRange Is Nothing Then Exit Function
+
+    Dim colShip As Long: colShip = ColumnIndex(invLo, "SHIPMENTS")
+    If colShip = 0 Then Exit Function
+
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        If NzDbl(invLo.DataBodyRange.Cells(r, colShip).Value) <> 0 Then
+            HasAnyShipmentStage = True
+            Exit Function
+        End If
+    Next r
+End Function
+
+Private Sub ClearAllShipmentStageColumns(ByVal invLo As ListObject)
+    If invLo Is Nothing Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim colShip As Long: colShip = ColumnIndex(invLo, "SHIPMENTS")
+    If colShip = 0 Then Exit Sub
+
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        If NzDbl(invLo.DataBodyRange.Cells(r, colShip).Value) <> 0 Then
+            invLo.DataBodyRange.Cells(r, colShip).Value = 0
+        End If
+    Next r
+End Sub
+
+Private Sub AllowExcelRefreshToSettle()
+    On Error Resume Next
+    DoEvents
+    Application.Wait Now + TimeSerial(0, 0, 1)
+    DoEvents
+    On Error GoTo 0
 End Sub
 
 Public Function QueueShipmentsSentEventFromCurrentWorkbook(ByRef eventIdOut As String, ByRef errNotes As String) As Boolean
@@ -729,7 +892,7 @@ Private Function QueueShipmentsSentEvent(ByVal deltas As Collection, ByRef errNo
 
     QueueShipmentsSentEvent = modRoleEventWriter.QueuePayloadEventCurrent( _
         EVENT_TYPE_SHIP, _
-        modRoleEventWriter.ResolveCurrentUserId(), _
+        "", _
         payloadJson, _
         "BTN_SHIPMENTS_SENT", _
         eventIdOut, _
@@ -1695,14 +1858,25 @@ Private Sub HandleHoldRow(sourceTable As ListObject, targetTable As ListObject, 
     If qtyMove <= 0 Then Exit Sub
     If qtyMove > qtyVal Then qtyMove = qtyVal
 
-    AddOrMergeHoldRow targetTable, refVal, itemVal, qtyMove
+    MoveHoldRowQuantity sourceTable, targetTable, rowIndex, qtyMove
+End Sub
+
+Private Sub MoveHoldRowQuantity(sourceTable As ListObject, targetTable As ListObject, rowIndex As Long, qtyMove As Double)
+    If sourceTable Is Nothing Or targetTable Is Nothing Then Exit Sub
+    If rowIndex <= 0 Or rowIndex > sourceTable.ListRows.count Then Exit Sub
+    If qtyMove <= 0 Then Exit Sub
+
+    Dim cQty As Long: cQty = ColumnIndex(sourceTable, "QUANTITY")
+    If cQty = 0 Then Exit Sub
+
+    Dim qtyVal As Double: qtyVal = NzDbl(sourceTable.DataBodyRange.Cells(rowIndex, cQty).Value)
+    If qtyVal <= 0 Then Exit Sub
+    If qtyMove > qtyVal Then qtyMove = qtyVal
+
+    AddOrMergeHoldRowFromSource sourceTable, targetTable, rowIndex, qtyMove
 
     Dim newQty As Double
-    If moveToHold Then
-        newQty = qtyVal - qtyMove
-    Else
-        newQty = qtyVal - qtyMove
-    End If
+    newQty = qtyVal - qtyMove
     If newQty <= 0 Then
         sourceTable.ListRows(rowIndex).Range.ClearContents
     Else
@@ -1710,9 +1884,19 @@ Private Sub HandleHoldRow(sourceTable As ListObject, targetTable As ListObject, 
     End If
 End Sub
 
-Private Sub AddOrMergeHoldRow(targetTable As ListObject, refVal As String, itemVal As String, qtyMove As Double)
+Private Sub AddOrMergeHoldRowFromSource(sourceTable As ListObject, targetTable As ListObject, sourceRowIndex As Long, qtyMove As Double)
     If targetTable Is Nothing Then Exit Sub
     If qtyMove <= 0 Then Exit Sub
+    If sourceTable Is Nothing Then Exit Sub
+    If sourceRowIndex <= 0 Or sourceRowIndex > sourceTable.ListRows.count Then Exit Sub
+
+    Dim sourceRef As Long: sourceRef = ColumnIndex(sourceTable, "REF_NUMBER")
+    Dim sourceItems As Long: sourceItems = ColumnIndex(sourceTable, "ITEMS")
+    If sourceRef = 0 Or sourceItems = 0 Then Exit Sub
+
+    Dim refVal As String: refVal = NzStr(sourceTable.DataBodyRange.Cells(sourceRowIndex, sourceRef).Value)
+    Dim itemVal As String: itemVal = NzStr(sourceTable.DataBodyRange.Cells(sourceRowIndex, sourceItems).Value)
+
     Dim cRef As Long: cRef = ColumnIndex(targetTable, "REF_NUMBER")
     Dim cItems As Long: cItems = ColumnIndex(targetTable, "ITEMS")
     Dim cQty As Long: cQty = ColumnIndex(targetTable, "QUANTITY")
@@ -1733,10 +1917,50 @@ Private Sub AddOrMergeHoldRow(targetTable As ListObject, refVal As String, itemV
     End If
 
     Set lr = targetTable.ListRows.Add
-    lr.Range.Cells(1, cRef).Value = refVal
-    lr.Range.Cells(1, cItems).Value = itemVal
+    Dim lc As ListColumn
+    For Each lc In sourceTable.ListColumns
+        Dim targetIdx As Long
+        targetIdx = ColumnIndex(targetTable, CStr(lc.Name))
+        If targetIdx > 0 Then
+            lr.Range.Cells(1, targetIdx).Value = sourceTable.DataBodyRange.Cells(sourceRowIndex, lc.Index).Value
+        End If
+    Next lc
     lr.Range.Cells(1, cQty).Value = qtyMove
 End Sub
+
+Private Function FindHoldRowIndex(lo As ListObject, ByVal refNumber As String, ByVal itemText As String) As Long
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    Dim cRef As Long: cRef = ColumnIndex(lo, "REF_NUMBER")
+    Dim cItems As Long: cItems = ColumnIndex(lo, "ITEMS")
+    If cRef = 0 Or cItems = 0 Then Exit Function
+
+    Dim i As Long
+    For i = 1 To lo.ListRows.count
+        If StrComp(NzStr(lo.DataBodyRange.Cells(i, cRef).Value), refNumber, vbTextCompare) = 0 _
+           And StrComp(NzStr(lo.DataBodyRange.Cells(i, cItems).Value), itemText, vbTextCompare) = 0 Then
+            FindHoldRowIndex = i
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Function HoldRowQty(lo As ListObject, ByVal rowIndex As Long) As Double
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex <= 0 Or rowIndex > lo.ListRows.count Then Exit Function
+
+    Dim cQty As Long: cQty = ColumnIndex(lo, "QUANTITY")
+    If cQty = 0 Then Exit Function
+    HoldRowQty = NzDbl(lo.DataBodyRange.Cells(rowIndex, cQty).Value)
+End Function
+
+Private Function HoldRowQtyByKey(lo As ListObject, ByVal refNumber As String, ByVal itemText As String) As Double
+    Dim rowIndex As Long
+    rowIndex = FindHoldRowIndex(lo, refNumber, itemText)
+    If rowIndex > 0 Then HoldRowQtyByKey = HoldRowQty(lo, rowIndex)
+End Function
 
 ' ===== helpers reused from modTS_Received =====
 Private Function SheetExists(nameOrCode As String) As Worksheet
@@ -1767,6 +1991,18 @@ Private Function GetInvSysTable() As ListObject
     On Error Resume Next
     Set GetInvSysTable = wsInv.ListObjects("invSys")
     On Error GoTo 0
+End Function
+
+Private Function GetInvSysTableFromWorkbook(ByVal wb As Workbook) As ListObject
+    Dim wsInv As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    Set wsInv = WorkbookSheetExistsShipping(wb, SHEET_INV)
+    If wsInv Is Nothing Then Set wsInv = WorkbookSheetExistsShipping(wb, "Inventory Management")
+    If wsInv Is Nothing Then Set wsInv = WorkbookSheetExistsShipping(wb, "INVENTORY MANAGEMENT")
+    If wsInv Is Nothing Then Exit Function
+
+    Set GetInvSysTableFromWorkbook = GetListObject(wsInv, "invSys")
 End Function
 
 Private Function GetInventoryWorksheetShipping() As Worksheet
@@ -2745,6 +2981,319 @@ NextValidate:
 NextApply:
     Next delta
 End Function
+
+Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collection, ByRef errNotes As String) As Double
+    ApplyShipmentDeltasLocal = 0
+    errNotes = ""
+    If invLo Is Nothing Then
+        errNotes = "invSys table not found."
+        ApplyShipmentDeltasLocal = -1
+        Exit Function
+    End If
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
+
+    Dim colTotal As Long: colTotal = ColumnIndex(invLo, "TOTAL INV")
+    Dim colShip As Long: colShip = ColumnIndex(invLo, "SHIPMENTS")
+    Dim colRow As Long: colRow = ColumnIndex(invLo, "ROW")
+    Dim colLastEdited As Long: colLastEdited = ColumnIndex(invLo, "LAST EDITED")
+    Dim colTotalLastEdit As Long: colTotalLastEdit = ColumnIndex(invLo, "TOTAL INV LAST EDIT")
+    If colTotal = 0 Or colShip = 0 Or colRow = 0 Then
+        errNotes = "invSys table missing TOTAL INV/SHIPMENTS/ROW columns."
+        ApplyShipmentDeltasLocal = -1
+        Exit Function
+    End If
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowVal As Long: rowVal = CLng(delta("ROW"))
+        Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
+        If qtyVal <= 0 Then GoTo NextValidate
+
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If invRow Is Nothing Then
+            AppendNote errNotes, "invSys ROW " & rowVal & " not found."
+            ApplyShipmentDeltasLocal = -1
+            Exit Function
+        End If
+
+        Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
+        Dim currentTotal As Double: currentTotal = NzDbl(totalCell.Value)
+        If qtyVal > currentTotal + 0.0000001 Then
+            AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(currentTotal, "0.###") & " in TOTAL INV but needs " & Format$(qtyVal, "0.###") & "."
+            ApplyShipmentDeltasLocal = -1
+            Exit Function
+        End If
+NextValidate:
+    Next delta
+
+    For Each delta In deltas
+        rowVal = CLng(delta("ROW"))
+        qtyVal = NzDbl(delta("QTY"))
+        If qtyVal <= 0 Then GoTo NextApply
+
+        Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If invRow Is Nothing Then GoTo NextApply
+        Set totalCell = invRow.Range.Cells(1, colTotal)
+        Dim shipCell As Range: Set shipCell = invRow.Range.Cells(1, colShip)
+        totalCell.Value = NzDbl(totalCell.Value) - qtyVal
+        shipCell.Value = NzDbl(shipCell.Value) + qtyVal
+        If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
+        If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
+        ApplyShipmentDeltasLocal = ApplyShipmentDeltasLocal + qtyVal
+NextApply:
+    Next delta
+End Function
+
+Private Sub RestoreShipmentStageColumns(ByVal invLo As ListObject, ByVal deltas As Collection)
+    If invLo Is Nothing Then Exit Sub
+    If deltas Is Nothing Then Exit Sub
+    If deltas.Count = 0 Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim colShip As Long: colShip = ColumnIndex(invLo, "SHIPMENTS")
+    Dim colRow As Long: colRow = ColumnIndex(invLo, "ROW")
+    Dim colItemCode As Long: colItemCode = ColumnIndex(invLo, "ITEM_CODE")
+    If colShip = 0 Then Exit Sub
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowVal As Long: rowVal = CLng(delta("ROW"))
+        Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
+        If qtyVal <= 0 Then GoTo NextDelta
+
+        Dim invRow As ListRow
+        If rowVal > 0 And colRow > 0 Then Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If Not invRow Is Nothing Then
+            invRow.Range.Cells(1, colShip).Value = qtyVal
+        Else
+            RestoreShipmentStageByItemCode invLo, colShip, colItemCode, NzStr(delta("ITEM_CODE")), qtyVal
+        End If
+NextDelta:
+    Next delta
+End Sub
+
+Private Sub RestoreShipmentStageByItemCode(ByVal invLo As ListObject, ByVal shipmentColumn As Long, ByVal itemCodeColumn As Long, ByVal itemCode As String, ByVal qtyVal As Double)
+    If invLo Is Nothing Then Exit Sub
+    If shipmentColumn <= 0 Or itemCodeColumn <= 0 Then Exit Sub
+    If Len(Trim$(itemCode)) = 0 Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        If StrComp(NzStr(invLo.DataBodyRange.Cells(r, itemCodeColumn).Value), itemCode, vbTextCompare) = 0 Then
+            invLo.DataBodyRange.Cells(r, shipmentColumn).Value = qtyVal
+            Exit Sub
+        End If
+    Next r
+End Sub
+
+Private Function ApplyUsedDeltasLocal(invLo As ListObject, deltas As Collection, ByRef errNotes As String) As Double
+    ApplyUsedDeltasLocal = 0
+    errNotes = ""
+    If invLo Is Nothing Then
+        errNotes = "invSys table not found."
+        ApplyUsedDeltasLocal = -1
+        Exit Function
+    End If
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
+
+    Dim colUsed As Long: colUsed = ColumnIndex(invLo, "USED")
+    Dim colTotal As Long: colTotal = ColumnIndex(invLo, "TOTAL INV")
+    Dim colRow As Long: colRow = ColumnIndex(invLo, "ROW")
+    Dim colLastEdited As Long: colLastEdited = ColumnIndex(invLo, "LAST EDITED")
+    Dim colTotalLastEdit As Long: colTotalLastEdit = ColumnIndex(invLo, "TOTAL INV LAST EDIT")
+    If colUsed = 0 Or colTotal = 0 Or colRow = 0 Then
+        errNotes = "invSys table missing USED/TOTAL INV/ROW columns."
+        ApplyUsedDeltasLocal = -1
+        Exit Function
+    End If
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowVal As Long: rowVal = CLng(delta("ROW"))
+        Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
+        If qtyVal <= 0 Then GoTo NextValidate
+
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If invRow Is Nothing Then
+            AppendNote errNotes, "invSys ROW " & rowVal & " not found."
+            ApplyUsedDeltasLocal = -1
+            Exit Function
+        End If
+
+        Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
+        Dim available As Double: available = NzDbl(totalCell.Value)
+        If qtyVal > available + 0.0000001 Then
+            AppendNote errNotes, "ROW " & rowVal & " requires " & Format$(qtyVal, "0.###") & " but only " & Format$(available, "0.###") & " available."
+            ApplyUsedDeltasLocal = -1
+            Exit Function
+        End If
+NextValidate:
+    Next delta
+
+    For Each delta In deltas
+        rowVal = CLng(delta("ROW"))
+        qtyVal = NzDbl(delta("QTY"))
+        If qtyVal <= 0 Then GoTo NextApply
+
+        Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If invRow Is Nothing Then GoTo NextApply
+        Set totalCell = invRow.Range.Cells(1, colTotal)
+        Dim usedCell As Range: Set usedCell = invRow.Range.Cells(1, colUsed)
+        totalCell.Value = NzDbl(totalCell.Value) - qtyVal
+        usedCell.Value = Application.WorksheetFunction.Max(0, NzDbl(usedCell.Value) - qtyVal)
+        If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
+        If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
+        ApplyUsedDeltasLocal = ApplyUsedDeltasLocal + qtyVal
+NextApply:
+    Next delta
+End Function
+
+Private Function ApplyMadeDeltasLocal(invLo As ListObject, deltas As Collection, ByRef errNotes As String) As Double
+    ApplyMadeDeltasLocal = 0
+    errNotes = ""
+    If invLo Is Nothing Then
+        errNotes = "invSys table not found."
+        ApplyMadeDeltasLocal = -1
+        Exit Function
+    End If
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
+
+    Dim colMade As Long: colMade = ColumnIndex(invLo, "MADE")
+    Dim colRow As Long: colRow = ColumnIndex(invLo, "ROW")
+    Dim colLastEdited As Long: colLastEdited = ColumnIndex(invLo, "LAST EDITED")
+    If colMade = 0 Or colRow = 0 Then
+        errNotes = "invSys table missing MADE/ROW columns."
+        ApplyMadeDeltasLocal = -1
+        Exit Function
+    End If
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowVal As Long: rowVal = CLng(delta("ROW"))
+        Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
+        If qtyVal <= 0 Then GoTo NextApply
+
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If invRow Is Nothing Then
+            AppendNote errNotes, "invSys ROW " & rowVal & " not found."
+            ApplyMadeDeltasLocal = -1
+            Exit Function
+        End If
+
+        Dim madeCell As Range: Set madeCell = invRow.Range.Cells(1, colMade)
+        madeCell.Value = NzDbl(madeCell.Value) + qtyVal
+        If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
+        ApplyMadeDeltasLocal = ApplyMadeDeltasLocal + qtyVal
+NextApply:
+    Next delta
+End Function
+
+Private Function ApplyMadeToInventoryDeltasLocal(invLo As ListObject, deltas As Collection, ByRef errNotes As String) As Double
+    ApplyMadeToInventoryDeltasLocal = 0
+    errNotes = ""
+    If invLo Is Nothing Then
+        errNotes = "invSys table not found."
+        ApplyMadeToInventoryDeltasLocal = -1
+        Exit Function
+    End If
+    If deltas Is Nothing Then Exit Function
+    If deltas.Count = 0 Then Exit Function
+
+    Dim colMade As Long: colMade = ColumnIndex(invLo, "MADE")
+    Dim colTotal As Long: colTotal = ColumnIndex(invLo, "TOTAL INV")
+    Dim colRow As Long: colRow = ColumnIndex(invLo, "ROW")
+    Dim colLastEdited As Long: colLastEdited = ColumnIndex(invLo, "LAST EDITED")
+    Dim colTotalLastEdit As Long: colTotalLastEdit = ColumnIndex(invLo, "TOTAL INV LAST EDIT")
+    If colMade = 0 Or colTotal = 0 Or colRow = 0 Then
+        errNotes = "invSys table missing MADE/TOTAL INV/ROW columns."
+        ApplyMadeToInventoryDeltasLocal = -1
+        Exit Function
+    End If
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowVal As Long: rowVal = CLng(delta("ROW"))
+        Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
+        If qtyVal <= 0 Then GoTo NextValidate
+
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If invRow Is Nothing Then
+            AppendNote errNotes, "invSys ROW " & rowVal & " not found."
+            ApplyMadeToInventoryDeltasLocal = -1
+            Exit Function
+        End If
+
+        Dim madeCell As Range: Set madeCell = invRow.Range.Cells(1, colMade)
+        Dim stagedQty As Double: stagedQty = NzDbl(madeCell.Value)
+        If qtyVal > stagedQty + 0.0000001 Then
+            AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(stagedQty, "0.###") & " staged in MADE but requires " & Format$(qtyVal, "0.###") & "."
+            ApplyMadeToInventoryDeltasLocal = -1
+            Exit Function
+        End If
+NextValidate:
+    Next delta
+
+    For Each delta In deltas
+        rowVal = CLng(delta("ROW"))
+        qtyVal = NzDbl(delta("QTY"))
+        If qtyVal <= 0 Then GoTo NextApply
+
+        Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If invRow Is Nothing Then GoTo NextApply
+        Set madeCell = invRow.Range.Cells(1, colMade)
+        Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
+        madeCell.Value = NzDbl(madeCell.Value) - qtyVal
+        totalCell.Value = NzDbl(totalCell.Value) + qtyVal
+        If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
+        If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
+        ApplyMadeToInventoryDeltasLocal = ApplyMadeToInventoryDeltasLocal + qtyVal
+NextApply:
+    Next delta
+End Function
+
+Private Sub ClearShipmentStageColumns(ByVal invLo As ListObject, ByVal deltas As Collection)
+    If invLo Is Nothing Then Exit Sub
+    If deltas Is Nothing Then Exit Sub
+    If deltas.Count = 0 Then Exit Sub
+
+    Dim colShip As Long: colShip = ColumnIndex(invLo, "SHIPMENTS")
+    Dim colRow As Long: colRow = ColumnIndex(invLo, "ROW")
+    Dim colItemCode As Long: colItemCode = ColumnIndex(invLo, "ITEM_CODE")
+    If colShip = 0 Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowVal As Long: rowVal = CLng(delta("ROW"))
+        Dim invRow As ListRow
+        If rowVal > 0 And colRow > 0 Then Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If Not invRow Is Nothing Then
+            invRow.Range.Cells(1, colShip).Value = 0
+        Else
+            ClearShipmentStageByItemCode invLo, colShip, colItemCode, NzStr(delta("ITEM_CODE"))
+        End If
+NextDelta:
+    Next delta
+End Sub
+
+Private Sub ClearShipmentStageByItemCode(ByVal invLo As ListObject, ByVal shipmentColumn As Long, ByVal itemCodeColumn As Long, ByVal itemCode As String)
+    If invLo Is Nothing Then Exit Sub
+    If shipmentColumn <= 0 Or itemCodeColumn <= 0 Then Exit Sub
+    If Len(Trim$(itemCode)) = 0 Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        If StrComp(NzStr(invLo.DataBodyRange.Cells(r, itemCodeColumn).Value), itemCode, vbTextCompare) = 0 Then
+            invLo.DataBodyRange.Cells(r, shipmentColumn).Value = 0
+            Exit Sub
+        End If
+    Next r
+End Sub
 
 Private Function StageComponentsToUsed(invLo As ListObject, aggBom As ListObject, ByRef errNotes As String, Optional ByRef logEntries As Collection) As Double
     StageComponentsToUsed = 0

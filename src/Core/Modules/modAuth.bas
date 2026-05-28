@@ -231,6 +231,32 @@ FailValidate:
     ValidateUserCredentialForTarget = AUTH_WORKBOOK_UNREADABLE
 End Function
 
+Public Function SignInCurrentTargetForAutomation(ByVal userId As String, _
+                                                 ByVal secretText As String, _
+                                                 Optional ByVal requiredCapability As String = "") As String
+    On Error GoTo FailSignIn
+
+    Dim target As WarehouseTarget
+    Dim statusCode As AuthStatusCode
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        SignInCurrentTargetForAutomation = "FAIL|NO_TARGET|" & CStr(AUTH_WAREHOUSE_MISMATCH)
+        Exit Function
+    End If
+
+    statusCode = ValidateUserCredentialForTarget(userId, secretText, target, requiredCapability)
+    If statusCode = AUTH_OK Then
+        SignInCurrentTargetForAutomation = "OK|User=" & GetCurrentUserId() & "|DisplayName=" & GetCurrentUserDisplayName()
+    Else
+        SignInCurrentTargetForAutomation = "FAIL|" & CStr(statusCode)
+    End If
+    Exit Function
+
+FailSignIn:
+    SignInCurrentTargetForAutomation = "FAIL|ERROR|" & Err.Description
+End Function
+
 Public Function ShowSignInPrompt(ByVal target As WarehouseTarget, _
                                  Optional ByVal requiredCapability As String = "") As AuthStatusCode
     On Error GoTo FailPrompt

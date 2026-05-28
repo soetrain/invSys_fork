@@ -457,7 +457,8 @@ Public Sub ConfirmWrites()
     Dim agg As ListObject: Set agg = wsAgg.ListObjects("AggregateReceived")
     Dim inv As ListObject: Set inv = wsInv.ListObjects("invSys")
     Dim logTbl As ListObject: Set logTbl = wsLog.ListObjects("ReceivedLog")
-    If agg Is Nothing Or inv Is Nothing Or logTbl Is Nothing Then Exit Sub
+    Dim rt As ListObject: Set rt = wsRT.ListObjects("ReceivedTally")
+    If agg Is Nothing Or inv Is Nothing Or logTbl Is Nothing Or rt Is Nothing Then Exit Sub
     If agg.DataBodyRange Is Nothing Then Exit Sub
     modPerfLog.BeginTransaction "ConfirmWrites"
 
@@ -491,7 +492,7 @@ Public Sub ConfirmWrites()
     If queuePendingCount > 0 Then
         modPerfLog.EndTransaction "PendingInboxBlocked"
         MsgBox "Cannot confirm while the receiving inbox still has pending rows." & vbCrLf & _
-               "Unclog the inbox before posting more receives." & vbCrLf & vbCrLf & _
+               "Run Connect Server/Confirm Writes again after the processor clears the station inbox. If this stays pending, use Admin or Runtime Context to inspect the inbox path below." & vbCrLf & vbCrLf & _
                queuePendingReport, vbExclamation, "invSys Receiving"
         GoTo CleanExit
     End If
@@ -528,7 +529,7 @@ Public Sub ConfirmWrites()
     modPerfLog.MarkSegment "QueueWrite"
 
     ' Capture undo snapshot
-    CaptureUndoState agg, inv, logTbl
+    CaptureUndoState rt, agg, inv, logTbl
 
     Dim snapshotId As String: snapshotId = NewGuid()
     Dim entryDate As Date: entryDate = Now
@@ -554,9 +555,10 @@ Public Sub ConfirmWrites()
         End If
     Next
 
-    ' Log per REF_NUMBER using staging (ReceivedTally) quantities + ROW/UOM/LOCATION from refMap
-    ' staging table
-    Dim rt As ListObject: Set rt = wsRT.ListObjects("ReceivedTally")
+    ' Local logs are useful operator history, but the queued event is already authoritative.
+    ' Do not leave staging uncleared just because the optional local log path has a workbook-shape issue.
+    Dim localLogError As String
+    On Error Resume Next
     If Not rt Is Nothing And Not rt.DataBodyRange Is Nothing Then
         Dim rtArr As Variant: rtArr = rt.DataBodyRange.value
         Dim rtCols As Object: Set rtCols = CreateObject("Scripting.Dictionary")
@@ -581,7 +583,6 @@ Public Sub ConfirmWrites()
                 logItem = NzStr(mArr(4))
                 If logItem = "" Then logItem = itemRT
             Else
-                ' fallback: try lookup by item name
                 Dim tmpCode As String, tmpVend As String, tmpVCode As String, tmpDesc As String
                 LookupInvSys wsInv.ListObjects("invSys"), itemRT, tmpCode, tmpVend, tmpVCode, tmpDesc, logUOM, logLoc, logRow
                 logItem = itemRT
@@ -589,11 +590,16 @@ Public Sub ConfirmWrites()
             End If
 
             logRow = ResolveInvRowForReceiveLog(inv, logCode, logItem, logRow)
-
             AppendLogRowFromRT logTbl, refNumRT, logItem, qtyRT, logUOM, logLoc, logCode, logRow, snapshotId, entryDate
 NextRt:
         Next rrt
     End If
+    If Err.Number <> 0 Then
+        localLogError = Err.Description
+        Err.Clear
+    End If
+    On Error GoTo ErrHandler
+    If localLogError <> "" Then modPerfLog.LogDiagnostic "RECEIVE-LOCAL-LOG", "Result=SKIPPED|Workbook=" & wb.Name & "|Error=" & localLogError
     modPerfLog.MarkSegment "LocalLogUpdate"
 
     ' Clear staging on success
@@ -611,7 +617,7 @@ NextRt:
     End If
     If queueMatchingPendingCount > 0 Then
         queueRuntimeReport = "Queued receive rows remain pending after runtime processing." & vbCrLf & _
-                             "Unclog the inbox before retrying Confirm Writes." & vbCrLf & vbCrLf & _
+                             "The receive was written to the station inbox, but the processor did not mark it processed. Retry Confirm Writes after the server connection is stable; if it stays pending, inspect the inbox path below." & vbCrLf & vbCrLf & _
                              queuePendingReport
         modPerfLog.LogDiagnostic "RECEIVE-RUNTIME", "Result=PENDING|Workbook=" & wb.Name & "|Report=" & queuePendingReport
         MsgBox queueRuntimeReport, vbExclamation, "invSys Receiving"
@@ -1166,10 +1172,10 @@ Private Sub ClearTable(lo As ListObject)
 End Sub
 
 ' ===== undo helpers =====
-Private Sub CaptureUndoState(agg As ListObject, inv As ListObject, logTbl As ListObject)
+Private Sub CaptureUndoState(rt As ListObject, agg As ListObject, inv As ListObject, logTbl As ListObject)
     Set mUndoInv = New Collection
     Set mUndoLogRows = New Collection
-    mUndoRT = SnapshotTable(SheetExists("ReceivedTally").ListObjects("ReceivedTally"))
+    mUndoRT = SnapshotTable(rt)
     mUndoAGG = SnapshotTable(agg)
     ' log rows added will be captured as we append
 End Sub

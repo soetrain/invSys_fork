@@ -554,7 +554,10 @@ Private Function ResolvePayloadQtyDelta(ByVal eventType As String, _
                 Case "USED"
                     ResolvePayloadQtyDelta = -qty
                 Case "MADE"
-                    ResolvePayloadQtyDelta = qty
+                    ' BTN_TO_MADE records the finished-good line for audit and
+                    ' local staging, but canonical on-hand changes at
+                    ' PROD_COMPLETE / BTN_TO_TOTALINV.
+                    ResolvePayloadQtyDelta = 0
                 Case Else
                     errorCode = "INVALID_PAYLOAD"
                     errorMessage = "PROD_CONSUME payload line items require IoType USED or MADE."
@@ -1320,7 +1323,9 @@ Private Sub ApplyCanonicalRuntimeRowApply(ByVal loSource As ListObject, _
         SetInvSysValueApply loSource, rowIndex, "LAST EDITED", vbNullString
         SetInvSysValueApply loSource, rowIndex, "TOTAL INV LAST EDIT", vbNullString
     End If
-    ApplyLatestMovementToInvSysApply loSource, rowIndex, latestEventType, latestEventQty, sku
+    ' Movement columns are operator-local staging state.  Canonical runtime
+    ' sync refreshes balances and metadata only; replaying the latest event
+    ' into RECEIVED/USED/MADE/SHIPMENTS can resurrect already-posted staging.
     SetInvSysValueApply loSource, rowIndex, "LastRefreshUTC", Now
     SetInvSysValueApply loSource, rowIndex, "SourceType", "CANONICAL_RUNTIME"
     SetInvSysValueApply loSource, rowIndex, "IsStale", False
@@ -1336,15 +1341,10 @@ Private Function CanonicalRuntimeRowWouldChangeApply(ByVal loSource As ListObjec
     Dim qtyOnHand As Double
     Dim summaryText As String
     Dim primaryLocation As String
-    Dim expectedReceived As Double
-    Dim expectedUsed As Double
-    Dim expectedMade As Double
-    Dim expectedShipments As Double
 
     If skuQty.Exists(sku) Then qtyOnHand = CDbl(skuQty(sku))
     If locSummary.Exists(sku) Then summaryText = CStr(locSummary(sku))
     If summaryText <> "" Then primaryLocation = ResolvePrimaryLocationFromSummaryApply(summaryText)
-    ResolveLatestMovementValuesApply latestEventType, latestEventQty, sku, expectedReceived, expectedUsed, expectedMade, expectedShipments
 
     If ValuesDifferNumericApply(GetCellByColumnApply(loSource, rowIndex, "TOTAL INV"), qtyOnHand) Then
         CanonicalRuntimeRowWouldChangeApply = True
@@ -1363,21 +1363,6 @@ Private Function CanonicalRuntimeRowWouldChangeApply(ByVal loSource As ListObjec
             CanonicalRuntimeRowWouldChangeApply = True
             Exit Function
         End If
-    End If
-    If ValuesDifferNumericApply(GetCellByColumnApply(loSource, rowIndex, "RECEIVED"), expectedReceived) Then
-        CanonicalRuntimeRowWouldChangeApply = True
-        Exit Function
-    End If
-    If ValuesDifferNumericApply(GetCellByColumnApply(loSource, rowIndex, "USED"), expectedUsed) Then
-        CanonicalRuntimeRowWouldChangeApply = True
-        Exit Function
-    End If
-    If ValuesDifferNumericApply(GetCellByColumnApply(loSource, rowIndex, "MADE"), expectedMade) Then
-        CanonicalRuntimeRowWouldChangeApply = True
-        Exit Function
-    End If
-    If ValuesDifferNumericApply(GetCellByColumnApply(loSource, rowIndex, "SHIPMENTS"), expectedShipments) Then
-        CanonicalRuntimeRowWouldChangeApply = True
     End If
 End Function
 

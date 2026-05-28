@@ -1,14 +1,16 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-05-27 10:00:49
-- Passed: 16
+- Date: 2026-05-27 10:46:55
+- Passed: 18
 - Failed: 0
-- Range: 109-124 of 124
+- Range: 109-126 of 126
 
 | Test | Result |
 |---|---|
+| TestPhase6CoreSurfaces.TestShippingEventCreator_QueuesSignedInCurrentTargetEvent | PASS |
 | TestPhase6CoreSurfaces.TestSavedProductionWorkbook_RefreshPreservesStagingAndLogs | PASS |
 | TestPhase6CoreSurfaces.TestSavedProductionWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs | PASS |
+| TestPhase6CoreSurfaces.TestProductionEventCreator_QueuesSignedInCurrentTargetEvent | PASS |
 | TestPhase6CoreSurfaces.TestSavedAdminWorkbook_ReopenRefreshReissuePreservesAudit | PASS |
 | TestPhase6CoreSurfaces.TestApplyReceive_RebuildsDeletedProjectionTablesInCanonicalWorkbook | PASS |
 | TestPhase6RoleSurfaces.TestEnsureInventoryManagementSurface_RemovesDuplicateAliasColumns | PASS |

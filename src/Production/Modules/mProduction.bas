@@ -1313,7 +1313,7 @@ Public Sub BtnToUsed()
         msg = msg & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
         MsgBox msg, vbExclamation
     Else
-        MsgBox msg, vbInformation
+        ShowProductionStatus msg
     End If
     Exit Sub
 ErrHandler:
@@ -1424,6 +1424,10 @@ Public Sub BtnToMade()
     ElseIf runtimeReport <> "" Then
         AppendNote errNotes, runtimeReport
     End If
+    AllowExcelRefreshToSettleProduction
+    Set invLo = GetInvSysTableFromWorkbook(wsProd.Parent)
+    ClearUsedStageColumns invLo, usedDeltas
+    RestoreMadeStageColumns invLo, madeDeltas
 
     Dim msg As String
     msg = "Recorded component usage: " & Format$(usedTotal, "0.###") & " units."
@@ -1431,9 +1435,13 @@ Public Sub BtnToMade()
     If queuedEventId <> "" Then msg = msg & vbCrLf & "Inbox EventID: " & queuedEventId
     If errNotes <> "" Then
         msg = msg & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
-        MsgBox msg, vbExclamation
+        If HasActionableProductionWarning(errNotes) Then
+            MsgBox msg, vbExclamation
+        Else
+            ShowProductionStatus msg
+        End If
     Else
-        MsgBox msg, vbInformation
+        ShowProductionStatus msg
     End If
     Exit Sub
 ErrHandler:
@@ -1508,20 +1516,70 @@ Public Sub BtnToTotalInv()
     ElseIf runtimeReport <> "" Then
         AppendNote errNotes, runtimeReport
     End If
+    AllowExcelRefreshToSettleProduction
+    Set invLo = GetInvSysTableFromWorkbook(wsProd.Parent)
+    ClearMadeStageColumns invLo, madeDeltas
 
     Dim msg As String
     msg = "Moved MADE to TOTAL INV: " & Format$(totalMoved, "0.###") & " units."
     If queuedEventId <> "" Then msg = msg & vbCrLf & "Inbox EventID: " & queuedEventId
     If errNotes <> "" Then
         msg = msg & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
-        MsgBox msg, vbExclamation
+        If HasActionableProductionWarning(errNotes) Then
+            MsgBox msg, vbExclamation
+        Else
+            ShowProductionStatus msg
+        End If
     Else
-        MsgBox msg, vbInformation
+        ShowProductionStatus msg
     End If
     Exit Sub
 ErrHandler:
     MsgBox "BTN_TO_TOTALINV failed: " & Err.description, vbCritical
 End Sub
+
+Private Sub AllowExcelRefreshToSettleProduction()
+    On Error Resume Next
+    DoEvents
+    Application.Wait Now + TimeSerial(0, 0, 1)
+    DoEvents
+    On Error GoTo 0
+End Sub
+
+Private Sub ShowProductionStatus(ByVal messageText As String)
+    On Error Resume Next
+    Application.StatusBar = FlattenProductionStatusText(messageText)
+    On Error GoTo 0
+End Sub
+
+Private Function FlattenProductionStatusText(ByVal messageText As String) As String
+    Dim result As String
+
+    result = Replace(messageText, vbCrLf, "  ")
+    result = Replace(result, vbCr, "  ")
+    result = Replace(result, vbLf, "  ")
+    Do While InStr(result, "   ") > 0
+        result = Replace(result, "   ", "  ")
+    Loop
+    If Len(result) > 240 Then result = Left$(result, 237) & "..."
+    FlattenProductionStatusText = result
+End Function
+
+Private Function HasActionableProductionWarning(ByVal notes As String) As Boolean
+    Dim lowered As String
+
+    lowered = LCase$(Trim$(notes))
+    If lowered = "" Then Exit Function
+
+    HasActionableProductionWarning = _
+        (InStr(1, lowered, "failed", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "error", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "poison", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "cancel", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "insufficient", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "unable", vbTextCompare) > 0) _
+        Or (InStr(1, lowered, "did not complete", vbTextCompare) > 0)
+End Function
 
 Public Function QueueProductionCompleteEventFromCurrentWorkbook(ByRef eventIdOut As String, ByRef errNotes As String) As Boolean
     Dim wsProd As Worksheet
@@ -2980,6 +3038,34 @@ Private Function GetInvSysTable() As ListObject
     Next lo
 End Function
 
+Private Function GetInvSysTableFromWorkbook(ByVal wb As Workbook) As ListObject
+    Dim wsInv As Worksheet
+    Dim loInv As ListObject
+    Dim lo As ListObject
+
+    If wb Is Nothing Then Exit Function
+    Set wsInv = WorkbookSheetExists(wb, "InventoryManagement")
+    If wsInv Is Nothing Then Set wsInv = WorkbookSheetExists(wb, "Inventory Management")
+    If wsInv Is Nothing Then Set wsInv = WorkbookSheetExists(wb, "INVENTORY MANAGEMENT")
+    If wsInv Is Nothing Then Exit Function
+
+    Set loInv = GetListObject(wsInv, "invSys")
+    If Not loInv Is Nothing Then
+        Set GetInvSysTableFromWorkbook = loInv
+        Exit Function
+    End If
+
+    For Each lo In wsInv.ListObjects
+        If ColumnIndexLoose(lo, "ROW", "ROWID", "ROW#") > 0 Then
+            If ColumnIndexLoose(lo, "ITEM", "ITEMS", "ITEMNAME", "ITEM NAME") > 0 _
+                Or ColumnIndexLoose(lo, "ITEM_CODE", "ITEMCODE", "ITEM CODE") > 0 Then
+                Set GetInvSysTableFromWorkbook = lo
+                Exit Function
+            End If
+        End If
+    Next lo
+End Function
+
 Private Function BuildUsedDeltasFromPalette(ByVal wsProd As Worksheet) As Object
     If wsProd Is Nothing Then Exit Function
 
@@ -3933,6 +4019,139 @@ Private Function ApplyMadeToInventoryDeltasLocal(ByVal invLo As ListObject, ByVa
     Next delta
 End Function
 
+Private Sub ClearUsedStageColumns(ByVal invLo As ListObject, ByVal deltas As Collection)
+    If invLo Is Nothing Then Exit Sub
+    If deltas Is Nothing Then Exit Sub
+    If deltas.Count = 0 Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim cUsed As Long: cUsed = ColumnIndex(invLo, "USED")
+    If cUsed = 0 Then cUsed = ColumnIndexLoose(invLo, "USED")
+    Dim cItemCode As Long: cItemCode = ColumnIndex(invLo, "ITEM_CODE")
+    If cItemCode = 0 Then cItemCode = ColumnIndexLoose(invLo, "ITEM_CODE", "ITEMCODE", "ITEM CODE")
+    If cUsed = 0 Then Exit Sub
+
+    Dim rowIndex As Object
+    Set rowIndex = BuildInvSysRowIndex(invLo)
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowKey As String: rowKey = CStr(NzLng(delta("ROW")))
+        If Not rowIndex Is Nothing Then
+            If rowIndex.Exists(rowKey) Then
+                invLo.DataBodyRange.Cells(CLng(rowIndex(rowKey)), cUsed).Value = 0
+            Else
+                ClearUsedStageByItemCode invLo, cUsed, cItemCode, NzStr(delta("ITEM_CODE"))
+            End If
+        Else
+            ClearUsedStageByItemCode invLo, cUsed, cItemCode, NzStr(delta("ITEM_CODE"))
+        End If
+    Next delta
+End Sub
+
+Private Sub ClearUsedStageByItemCode(ByVal invLo As ListObject, ByVal usedColumn As Long, ByVal itemCodeColumn As Long, ByVal itemCode As String)
+    If invLo Is Nothing Then Exit Sub
+    If usedColumn <= 0 Or itemCodeColumn <= 0 Then Exit Sub
+    If Len(Trim$(itemCode)) = 0 Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        If StrComp(NzStr(invLo.DataBodyRange.Cells(r, itemCodeColumn).Value), itemCode, vbTextCompare) = 0 Then
+            invLo.DataBodyRange.Cells(r, usedColumn).Value = 0
+            Exit Sub
+        End If
+    Next r
+End Sub
+
+Private Sub RestoreMadeStageColumns(ByVal invLo As ListObject, ByVal deltas As Collection)
+    If invLo Is Nothing Then Exit Sub
+    If deltas Is Nothing Then Exit Sub
+    If deltas.Count = 0 Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim cMade As Long: cMade = ColumnIndex(invLo, "MADE")
+    If cMade = 0 Then cMade = ColumnIndexLoose(invLo, "MADE")
+    Dim cItemCode As Long: cItemCode = ColumnIndex(invLo, "ITEM_CODE")
+    If cItemCode = 0 Then cItemCode = ColumnIndexLoose(invLo, "ITEM_CODE", "ITEMCODE", "ITEM CODE")
+    If cMade = 0 Then Exit Sub
+
+    Dim rowIndex As Object
+    Set rowIndex = BuildInvSysRowIndex(invLo)
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowKey As String: rowKey = CStr(NzLng(delta("ROW")))
+        Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
+        If qtyVal <= 0 Then GoTo NextDelta
+        If Not rowIndex Is Nothing Then
+            If rowIndex.Exists(rowKey) Then
+                invLo.DataBodyRange.Cells(CLng(rowIndex(rowKey)), cMade).Value = qtyVal
+            Else
+                RestoreMadeStageByItemCode invLo, cMade, cItemCode, NzStr(delta("ITEM_CODE")), qtyVal
+            End If
+        Else
+            RestoreMadeStageByItemCode invLo, cMade, cItemCode, NzStr(delta("ITEM_CODE")), qtyVal
+        End If
+NextDelta:
+    Next delta
+End Sub
+
+Private Sub RestoreMadeStageByItemCode(ByVal invLo As ListObject, ByVal madeColumn As Long, ByVal itemCodeColumn As Long, ByVal itemCode As String, ByVal qtyVal As Double)
+    If invLo Is Nothing Then Exit Sub
+    If madeColumn <= 0 Or itemCodeColumn <= 0 Then Exit Sub
+    If Len(Trim$(itemCode)) = 0 Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        If StrComp(NzStr(invLo.DataBodyRange.Cells(r, itemCodeColumn).Value), itemCode, vbTextCompare) = 0 Then
+            invLo.DataBodyRange.Cells(r, madeColumn).Value = qtyVal
+            Exit Sub
+        End If
+    Next r
+End Sub
+
+Private Sub ClearMadeStageColumns(ByVal invLo As ListObject, ByVal deltas As Collection)
+    If invLo Is Nothing Then Exit Sub
+    If deltas Is Nothing Then Exit Sub
+    If deltas.Count = 0 Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+
+    Dim cMade As Long: cMade = ColumnIndex(invLo, "MADE")
+    If cMade = 0 Then cMade = ColumnIndexLoose(invLo, "MADE")
+    Dim cItemCode As Long: cItemCode = ColumnIndex(invLo, "ITEM_CODE")
+    If cItemCode = 0 Then cItemCode = ColumnIndexLoose(invLo, "ITEM_CODE", "ITEMCODE", "ITEM CODE")
+    If cMade = 0 Then Exit Sub
+
+    Dim rowIndex As Object
+    Set rowIndex = BuildInvSysRowIndex(invLo)
+
+    Dim delta As Variant
+    For Each delta In deltas
+        Dim rowKey As String: rowKey = CStr(NzLng(delta("ROW")))
+        If Not rowIndex Is Nothing And rowIndex.Exists(rowKey) Then
+            invLo.DataBodyRange.Cells(CLng(rowIndex(rowKey)), cMade).Value = 0
+        ElseIf cItemCode > 0 Then
+            ClearMadeStageByItemCode invLo, cMade, cItemCode, NzStr(delta("ITEM_CODE"))
+        End If
+    Next delta
+End Sub
+
+Private Sub ClearMadeStageByItemCode(ByVal invLo As ListObject, ByVal madeColumn As Long, ByVal itemCodeColumn As Long, ByVal itemCode As String)
+    If invLo Is Nothing Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+    itemCode = Trim$(itemCode)
+    If itemCode = "" Then Exit Sub
+
+    Dim r As Long
+    For r = 1 To invLo.ListRows.Count
+        If StrComp(Trim$(NzStr(invLo.DataBodyRange.Cells(r, itemCodeColumn).Value)), itemCode, vbTextCompare) = 0 Then
+            invLo.DataBodyRange.Cells(r, madeColumn).Value = 0
+        End If
+    Next r
+End Sub
+
 Private Function QueueProductionConsumeEvent(ByVal usedDeltas As Collection, ByVal madeDeltas As Collection, ByRef errNotes As String, ByRef eventIdOut As String) As Boolean
     Dim payloadItems As Collection
 
@@ -3946,7 +4165,7 @@ Private Function QueueProductionConsumeEvent(ByVal usedDeltas As Collection, ByV
 
     QueueProductionConsumeEvent = modRoleEventWriter.QueuePayloadEventCurrent( _
         EVENT_TYPE_PROD_CONSUME, _
-        modRoleEventWriter.ResolveCurrentUserId(), _
+        "", _
         modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems), _
         "BTN_TO_MADE", _
         eventIdOut, _
@@ -3965,7 +4184,7 @@ Private Function QueueProductionCompleteEvent(ByVal madeDeltas As Collection, By
 
     QueueProductionCompleteEvent = modRoleEventWriter.QueuePayloadEventCurrent( _
         EVENT_TYPE_PROD_COMPLETE, _
-        modRoleEventWriter.ResolveCurrentUserId(), _
+        "", _
         modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems), _
         "BTN_TO_TOTALINV", _
         eventIdOut, _

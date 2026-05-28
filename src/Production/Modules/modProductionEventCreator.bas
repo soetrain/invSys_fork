@@ -58,7 +58,7 @@ Private Function QueueProductionCompleteEventCore(ByVal madeDeltas As Collection
 
     QueueProductionCompleteEventCore = modRoleEventWriter.QueuePayloadEventCurrent( _
         EVENT_TYPE_PROD_COMPLETE, _
-        modRoleEventWriter.ResolveCurrentUserId(), _
+        "", _
         modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems), _
         "BTN_TO_TOTALINV", _
         eventIdOut, _
@@ -268,16 +268,34 @@ End Function
 
 Private Sub AddLookupProd(ByVal dict As Object, ByVal keyText As String, ByVal rowVal As Long)
     Dim norm As String
-    norm = modItemSearch.NormalizeSearchText(keyText)
+    norm = NormalizeLookupKeyProd(keyText)
     If norm = "" Or rowVal = 0 Then Exit Sub
     If Not dict.Exists(norm) Then dict.Add norm, rowVal
 End Sub
 
 Private Function LookupOutputRowProd(ByVal outputLookup As Object, ByVal outputName As String) As Long
     Dim keyText As String
-    keyText = modItemSearch.NormalizeSearchText(outputName)
+    If outputLookup Is Nothing Then Exit Function
+    keyText = NormalizeLookupKeyProd(outputName)
     If keyText = "" Then Exit Function
     If outputLookup.Exists(keyText) Then LookupOutputRowProd = CLng(outputLookup(keyText))
+End Function
+
+Private Function NormalizeLookupKeyProd(ByVal valueIn As String) As String
+    Dim i As Long
+    Dim ch As String
+    Dim textOut As String
+
+    valueIn = LCase$(Trim$(valueIn))
+    For i = 1 To Len(valueIn)
+        ch = Mid$(valueIn, i, 1)
+        If ch Like "[a-z0-9]" Then
+            textOut = textOut & ch
+        ElseIf Len(textOut) > 0 And Right$(textOut, 1) <> " " Then
+            textOut = textOut & " "
+        End If
+    Next i
+    NormalizeLookupKeyProd = Trim$(textOut)
 End Function
 
 Private Function NzStrProd(ByVal valueIn As Variant) As String

@@ -302,6 +302,27 @@ Public Function SelectWarehouseTarget(ByVal hubRoot As String, _
     SelectWarehouseTarget = NAS_OK
 End Function
 
+Public Function SelectWarehouseTargetForAutomation(ByVal hubRoot As String, _
+                                                   ByVal runtimeRoot As String, _
+                                                   Optional ByVal stationId As String = "", _
+                                                   Optional ByVal requireStationInbox As Boolean = False) As String
+    On Error GoTo FailSelect
+
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+
+    statusCode = SelectWarehouseTarget(hubRoot, runtimeRoot, target, stationId, requireStationInbox)
+    If statusCode = NAS_OK Then
+        SelectWarehouseTargetForAutomation = "OK|" & GetConnectionStatus()
+    Else
+        SelectWarehouseTargetForAutomation = "FAIL|" & CStr(statusCode) & "|" & GetConnectionStatus()
+    End If
+    Exit Function
+
+FailSelect:
+    SelectWarehouseTargetForAutomation = "FAIL|ERROR|" & Err.Description
+End Function
+
 Public Function ResolveWarehouseTarget(ByRef outTarget As WarehouseTarget, ByRef statusCode As NasStatusCode) As Boolean
     Dim remembered As WarehouseTarget
     Dim roots As Collection

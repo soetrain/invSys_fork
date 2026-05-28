@@ -3612,6 +3612,163 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingEventCreator_QueuesSignedInCurrentTargetEvent() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim eventIdOut As String
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim processedCount As Long
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim wbOps As Workbook
+    Dim wbInv As Workbook
+    Dim wbInbox As Workbook
+    Dim loInv As ListObject
+    Dim loInventoryLog As ListObject
+    Dim invRow As Long
+    Dim logRow As Long
+    Dim evt As Object
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_shipping_event_creator")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    mLastTestFailure = vbNullString
+    modAuth.SignOut
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH96", "S31", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH96", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then
+        failureReason = "Config/auth runtime workbooks could not be created. " & report
+        GoTo CleanExit
+    End If
+    SetConfigWarehouseValue "WH96.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.LoadConfig("WH96", "S31") Then
+        failureReason = "LoadConfig failed: " & modConfig.Validate()
+        GoTo CleanExit
+    End If
+    If Not modConfig.Reload() Then
+        failureReason = "Config reload failed: " & modConfig.Validate()
+        GoTo CleanExit
+    End If
+
+    EnsureAuthCapabilityForTest "WH96", currentUser, "SHIP_POST", "WH96", "*"
+    EnsureAuthCapabilityForTest "WH96", "svc_processor", "INBOX_PROCESS", "WH96", "*"
+    TestPhase2Helpers.SetUserPinHash wbAuth, currentUser, modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S31", True)
+    If statusCode <> NAS_OK Then
+        failureReason = "SelectWarehouseTarget failed: " & CStr(statusCode)
+        GoTo CleanExit
+    End If
+    authStatus = modAuth.ValidateUserCredentialForTarget(currentUser, "123456", target, "SHIP_POST")
+    If authStatus <> AUTH_OK Then
+        failureReason = "ValidateUserCredentialForTarget failed: " & CStr(authStatus)
+        GoTo CleanExit
+    End If
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH96", Array("SKU-SHIP-CREATOR"))
+    Set wbInbox = CreateCanonicalShipInboxWorkbookForTest(rootPath, "S31")
+    If wbInv Is Nothing Or wbInbox Is Nothing Then
+        failureReason = "Canonical shipping runtime workbooks could not be created."
+        GoTo CleanExit
+    End If
+    Set evt = CreateReceiveEventForTest("EVT-SHIP-CREATOR-SEED", "WH96", "S31", currentUser, "SKU-SHIP-CREATOR", 12, "A1", "shipping creator seed")
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-SHIP-CREATOR-SEED", statusOut, errorCode, errorMessage) Then
+        failureReason = "Canonical shipping seed event failed: " & errorCode & "; " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureShippingWorkbookSurface failed: " & report
+        GoTo CleanExit
+    End If
+    Set loInv = FindTableByName(wbOps, "invSys")
+    If loInv Is Nothing Then
+        failureReason = "Shipping operator invSys table was not created."
+        GoTo CleanExit
+    End If
+    AddInvSysSeedRow loInv, 962, "SKU-SHIP-CREATOR", "Shipping Creator Item", "EA", "A1", 12
+    invRow = FindRowByColumnValueInTable(loInv, "ITEM_CODE", "SKU-SHIP-CREATOR")
+    If invRow = 0 Then
+        failureReason = "Shipping operator SKU row was not staged."
+        GoTo CleanExit
+    End If
+    SetTableCell loInv, invRow, "SHIPMENTS", 4
+
+    If Not modShippingEventCreator.QueueShipmentsSentEventFromWorkbook(wbOps, eventIdOut, report) Then
+        failureReason = "QueueShipmentsSentEventFromWorkbook failed: " & report
+        GoTo CleanExit
+    End If
+    If Trim$(eventIdOut) = "" Then
+        failureReason = "Shipping event creator did not return an EventID."
+        GoTo CleanExit
+    End If
+
+    processedCount = modProcessor.RunBatch("WH96", 500, report)
+    If processedCount <> 1 Then
+        failureReason = "RunBatch did not process the shipping creator event. " & report
+        GoTo CleanExit
+    End If
+    If Not AssertInboxRowStatusForTest(wbInbox, eventIdOut, "PROCESSED") Then
+        failureReason = "Shipping creator inbox row was not marked PROCESSED."
+        GoTo CleanExit
+    End If
+
+    Set loInventoryLog = FindTableByName(wbInv, "tblInventoryLog")
+    If loInventoryLog Is Nothing Then
+        failureReason = "Canonical inventory log was missing after shipping creator process."
+        GoTo CleanExit
+    End If
+    logRow = FindRowByColumnValueInTable(loInventoryLog, "EventID", eventIdOut)
+    If logRow = 0 Then
+        failureReason = "Canonical inventory log did not record the shipping creator event."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loInventoryLog, logRow, "EventType")), CORE_EVENT_TYPE_SHIP, vbTextCompare) <> 0 Then
+        failureReason = "Canonical inventory log recorded unexpected event type for shipping creator workflow."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInventoryLog, logRow, "QtyDelta")) <> -4 Then
+        failureReason = "Canonical inventory log QtyDelta was not negative for shipping creator workflow."
+        GoTo CleanExit
+    End If
+
+    TestShippingEventCreator_QueuesSignedInCurrentTargetEvent = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH96"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbInv
+    CloseWorkbookIfOpen wbAuth
+    CloseWorkbookIfOpen wbCfg
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        mLastTestFailure = failureReason
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7111, "TestShippingEventCreator_QueuesSignedInCurrentTargetEvent", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestSavedProductionWorkbook_RefreshPreservesStagingAndLogs() As Long
     Dim rootPath As String
     Dim operatorPath As String
@@ -3857,6 +4014,150 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7109, "TestSavedProductionWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestProductionEventCreator_QueuesSignedInCurrentTargetEvent() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim eventIdOut As String
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim processedCount As Long
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim wbOps As Workbook
+    Dim wbInv As Workbook
+    Dim wbInbox As Workbook
+    Dim loInv As ListObject
+    Dim loProd As ListObject
+    Dim loInventoryLog As ListObject
+    Dim logRow As Long
+
+    rootPath = BuildRuntimeTestRoot("phase6_production_event_creator")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    mLastTestFailure = vbNullString
+    modAuth.SignOut
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH97", "S32", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH97", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then
+        failureReason = "Config/auth runtime workbooks could not be created. " & report
+        GoTo CleanExit
+    End If
+    SetConfigWarehouseValue "WH97.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.LoadConfig("WH97", "S32") Then
+        failureReason = "LoadConfig failed: " & modConfig.Validate()
+        GoTo CleanExit
+    End If
+    If Not modConfig.Reload() Then
+        failureReason = "Config reload failed: " & modConfig.Validate()
+        GoTo CleanExit
+    End If
+
+    EnsureAuthCapabilityForTest "WH97", currentUser, "PROD_POST", "WH97", "*"
+    EnsureAuthCapabilityForTest "WH97", "svc_processor", "INBOX_PROCESS", "WH97", "*"
+    TestPhase2Helpers.SetUserPinHash wbAuth, currentUser, modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S32", True)
+    If statusCode <> NAS_OK Then
+        failureReason = "SelectWarehouseTarget failed: " & CStr(statusCode)
+        GoTo CleanExit
+    End If
+    authStatus = modAuth.ValidateUserCredentialForTarget(currentUser, "123456", target, "PROD_POST")
+    If authStatus <> AUTH_OK Then
+        failureReason = "ValidateUserCredentialForTarget failed: " & CStr(authStatus)
+        GoTo CleanExit
+    End If
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH97", Array("SKU-PROD-CREATOR"))
+    Set wbInbox = CreateCanonicalProductionInboxWorkbookForTest(rootPath, "S32")
+    If wbInv Is Nothing Or wbInbox Is Nothing Then
+        failureReason = "Canonical production runtime workbooks could not be created."
+        GoTo CleanExit
+    End If
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureProductionWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureProductionWorkbookSurface failed: " & report
+        GoTo CleanExit
+    End If
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loProd = FindTableByName(wbOps, "ProductionOutput")
+    If loInv Is Nothing Or loProd Is Nothing Then
+        failureReason = "Production operator tables were not created."
+        GoTo CleanExit
+    End If
+    AddInvSysSeedRow loInv, 963, "SKU-PROD-CREATOR", "Production Creator Item", "EA", "FG", 0
+    AddProductionOutputRow loProd, "Blend", "Production Creator Item", "EA", 5, "BATCH-CREATOR-001", "RECALL-CREATOR-001", 963
+
+    If Not modProductionEventCreator.QueueProductionCompleteEventFromWorkbook(wbOps, eventIdOut, report) Then
+        failureReason = "QueueProductionCompleteEventFromWorkbook failed: " & report
+        GoTo CleanExit
+    End If
+    If Trim$(eventIdOut) = "" Then
+        failureReason = "Production event creator did not return an EventID."
+        GoTo CleanExit
+    End If
+
+    processedCount = modProcessor.RunBatch("WH97", 500, report)
+    If processedCount <> 1 Then
+        failureReason = "RunBatch did not process the production creator event. " & report
+        GoTo CleanExit
+    End If
+    If Not AssertInboxRowStatusForTest(wbInbox, eventIdOut, "PROCESSED") Then
+        failureReason = "Production creator inbox row was not marked PROCESSED."
+        GoTo CleanExit
+    End If
+
+    Set loInventoryLog = FindTableByName(wbInv, "tblInventoryLog")
+    If loInventoryLog Is Nothing Then
+        failureReason = "Canonical inventory log was missing after production creator process."
+        GoTo CleanExit
+    End If
+    logRow = FindRowByColumnValueInTable(loInventoryLog, "EventID", eventIdOut)
+    If logRow = 0 Then
+        failureReason = "Canonical inventory log did not record the production creator event."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loInventoryLog, logRow, "EventType")), CORE_EVENT_TYPE_PROD_COMPLETE, vbTextCompare) <> 0 Then
+        failureReason = "Canonical inventory log recorded unexpected event type for production creator workflow."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInventoryLog, logRow, "QtyDelta")) <> 5 Then
+        failureReason = "Canonical inventory log QtyDelta was not positive for production creator workflow."
+        GoTo CleanExit
+    End If
+
+    TestProductionEventCreator_QueuesSignedInCurrentTargetEvent = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH97"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbInv
+    CloseWorkbookIfOpen wbAuth
+    CloseWorkbookIfOpen wbCfg
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        mLastTestFailure = failureReason
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7112, "TestProductionEventCreator_QueuesSignedInCurrentTargetEvent", failureReason
     End If
     Exit Function
 CleanFail:
