@@ -24,9 +24,11 @@ End Enum
 
 #If VBA7 Then
 Private Declare PtrSafe Function WNetAddConnection2 Lib "mpr.dll" Alias "WNetAddConnection2A" (ByRef lpNetResource As NETRESOURCE, ByVal lpPassword As String, ByVal lpUserName As String, ByVal dwFlags As Long) As Long
+Private Declare PtrSafe Function WNetAddConnection2CurrentUser Lib "mpr.dll" Alias "WNetAddConnection2A" (ByRef lpNetResource As NETRESOURCE, ByVal lpPassword As LongPtr, ByVal lpUserName As LongPtr, ByVal dwFlags As Long) As Long
 Private Declare PtrSafe Function WNetCancelConnection2 Lib "mpr.dll" Alias "WNetCancelConnection2A" (ByVal lpName As String, ByVal dwFlags As Long, ByVal fForce As Long) As Long
 #Else
 Private Declare Function WNetAddConnection2 Lib "mpr.dll" Alias "WNetAddConnection2A" (ByRef lpNetResource As NETRESOURCE, ByVal lpPassword As String, ByVal lpUserName As String, ByVal dwFlags As Long) As Long
+Private Declare Function WNetAddConnection2CurrentUser Lib "mpr.dll" Alias "WNetAddConnection2A" (ByRef lpNetResource As NETRESOURCE, ByVal lpPassword As Long, ByVal lpUserName As Long, ByVal dwFlags As Long) As Long
 Private Declare Function WNetCancelConnection2 Lib "mpr.dll" Alias "WNetCancelConnection2A" (ByVal lpName As String, ByVal dwFlags As Long, ByVal fForce As Long) As Long
 #End If
 
@@ -45,6 +47,7 @@ Private Const RESOURCETYPE_DISK As Long = 1
 Private Const CONNECT_UPDATE_PROFILE As Long = &H1
 Private Const ERROR_ACCESS_DENIED As Long = 5
 Private Const ERROR_ALREADY_ASSIGNED As Long = 85
+Private Const ERROR_INVALID_PASSWORD As Long = 86
 Private Const ERROR_SESSION_CREDENTIAL_CONFLICT As Long = 1219
 Private Const ERROR_LOGON_FAILURE As Long = 1326
 
@@ -104,6 +107,7 @@ End Function
 
 Public Function TryRevalidateRememberedRoot(ByVal rootPath As String) As NasStatusCode
     Dim shareRoot As String
+    Dim reconnectStatus As NasStatusCode
 
     rootPath = NormalizeFolderNas(rootPath)
     If rootPath = "" Then
@@ -131,25 +135,28 @@ Public Function TryRevalidateRememberedRoot(ByVal rootPath As String) As NasStat
         SetStatusNas NAS_OK, "Remembered NAS root is reachable."
         TryRevalidateRememberedRoot = NAS_OK
     Else
-        Select Case Err.Number
-            Case 5, 1326
-                SetStatusNas NAS_CREDENTIAL_REJECTED, "Remembered NAS credential rejected."
-                TryRevalidateRememberedRoot = NAS_CREDENTIAL_REJECTED
-            Case Else
-                SetStatusNas NAS_TARGET_UNREACHABLE, "Remembered NAS root is unreachable."
-                TryRevalidateRememberedRoot = NAS_TARGET_UNREACHABLE
-        End Select
+        reconnectStatus = TryReconnectRememberedShareNas(rootPath, shareRoot)
+        If reconnectStatus = NAS_OK Then
+            TryRevalidateRememberedRoot = NAS_OK
+        Else
+            TryRevalidateRememberedRoot = reconnectStatus
+        End If
     End If
 End Function
 
 Public Sub ShowWarehouseConnectionPrompt(Optional ByVal reason As String = "")
+    Call ShowWarehouseConnectionPromptForTarget(reason)
+End Sub
+
+Public Function ShowWarehouseConnectionPromptForTarget(Optional ByVal reason As String = "") As Boolean
     Dim frm As frmWarehouseConnection
 
     Set frm = New frmWarehouseConnection
     frm.InitializeConnectionPrompt reason
     frm.Show vbModal
+    ShowWarehouseConnectionPromptForTarget = frm.WasAccepted
     Unload frm
-End Sub
+End Function
 
 Public Sub DisconnectNasRoot(ByVal rootPath As String, Optional ByVal disconnectWindowsSession As Boolean = False)
     Dim shareRoot As String
@@ -482,11 +489,13 @@ Public Function GetKnownWarehouseTargetRoots() As Collection
 End Function
 
 Public Function ConnectKnownWarehouseServer(ByRef connectedRoot As String, _
-                                           ByRef statusText As String) As Boolean
+                                           ByRef statusText As String, _
+                                           Optional ByVal requireUncRoot As Boolean = False) As Boolean
     Dim roots As Collection
     Dim knownRoots As Collection
     Dim rootPath As Variant
     Dim statusCode As NasStatusCode
+    Dim triedUncRoot As Boolean
 
     Set roots = New Collection
     AddPathIfMissingNas roots, ResolvePromptDefaultRootNas()
@@ -503,22 +512,29 @@ Public Function ConnectKnownWarehouseServer(ByRef connectedRoot As String, _
     End If
 
     For Each rootPath In roots
-        statusCode = TryRevalidateRememberedRoot(CStr(rootPath))
-        If statusCode = NAS_OK Then
-            connectedRoot = NormalizeFolderNas(CStr(rootPath))
-            statusText = GetConnectionStatus()
-            ConnectKnownWarehouseServer = True
-            Exit Function
+        If Not requireUncRoot Or IsUncPathNas(CStr(rootPath)) Then
+            If IsUncPathNas(CStr(rootPath)) Then triedUncRoot = True
+            statusCode = TryRevalidateRememberedRoot(CStr(rootPath))
+            If statusCode = NAS_OK Then
+                connectedRoot = NormalizeFolderNas(CStr(rootPath))
+                statusText = m_LastStatusText
+                ConnectKnownWarehouseServer = True
+                Exit Function
+            End If
         End If
     Next rootPath
 
-    statusText = GetConnectionStatus()
+    If requireUncRoot And Not triedUncRoot Then SetStatusNas WH_NO_TARGET, "No remembered NAS root is available. Use Admin/setup to save the server path."
+    statusText = m_LastStatusText
 End Function
 
 Public Function IsWarehouseTargetAllowed(ByVal target As WarehouseTarget, _
                                          Optional ByVal requireNasTarget As Boolean = False) As Boolean
     If target Is Nothing Then Exit Function
-    If requireNasTarget And target.SourceType = WH_SOURCE_FALLBACK Then Exit Function
+    If requireNasTarget Then
+        If target.SourceType = WH_SOURCE_FALLBACK Then Exit Function
+        If Not IsUncPathNas(target.HubRoot) And Not IsUncPathNas(target.RuntimeRoot) Then Exit Function
+    End If
     IsWarehouseTargetAllowed = True
 End Function
 
@@ -559,6 +575,18 @@ End Sub
 Public Function IsConnected() As Boolean
     EnsureSessionRootsNas
     IsConnected = (m_SessionRoots.Count > 0)
+End Function
+
+Public Function HasConnectedUncRoot() As Boolean
+    Dim rootPath As Variant
+
+    EnsureSessionRootsNas
+    For Each rootPath In m_SessionRoots.Keys
+        If IsUncPathNas(CStr(rootPath)) Then
+            HasConnectedUncRoot = True
+            Exit Function
+        End If
+    Next rootPath
 End Function
 
 Public Function GetConnectionStatus() As String
@@ -742,6 +770,42 @@ Private Function ConnectShareNas(ByVal shareRoot As String, _
     resource.dwType = RESOURCETYPE_DISK
     resource.lpRemoteName = shareRoot
     ConnectShareNas = WNetAddConnection2(resource, windowsPassword, userName, IIf(updateProfile, CONNECT_UPDATE_PROFILE, 0))
+End Function
+
+Private Function ConnectShareNasCurrentUser(ByVal shareRoot As String) As Long
+    Dim resource As NETRESOURCE
+
+    resource.dwType = RESOURCETYPE_DISK
+    resource.lpRemoteName = shareRoot
+    ConnectShareNasCurrentUser = WNetAddConnection2CurrentUser(resource, 0, 0, 0)
+End Function
+
+Private Function TryReconnectRememberedShareNas(ByVal rootPath As String, _
+                                                ByVal shareRoot As String) As NasStatusCode
+    Dim resultCode As Long
+
+    resultCode = ConnectShareNasCurrentUser(shareRoot)
+    Select Case resultCode
+        Case 0, ERROR_ALREADY_ASSIGNED
+            If FolderExistsNas(rootPath) Then
+                RememberRoot shareRoot
+                RememberRoot rootPath
+                SetStatusNas NAS_OK, "Remembered NAS root is reachable."
+                TryReconnectRememberedShareNas = NAS_OK
+            Else
+                SetStatusNas NAS_TARGET_UNREACHABLE, "NAS share connected, but the warehouse root is unreachable: " & rootPath
+                TryReconnectRememberedShareNas = NAS_TARGET_UNREACHABLE
+            End If
+        Case ERROR_ACCESS_DENIED, ERROR_INVALID_PASSWORD, ERROR_LOGON_FAILURE
+            SetStatusNas NAS_CREDENTIAL_REJECTED, "Remembered NAS credential rejected or expired."
+            TryReconnectRememberedShareNas = NAS_CREDENTIAL_REJECTED
+        Case ERROR_SESSION_CREDENTIAL_CONFLICT
+            SetStatusNas NAS_CREDENTIAL_REJECTED, "Windows already has a conflicting NAS session for " & shareRoot & "."
+            TryReconnectRememberedShareNas = NAS_CREDENTIAL_REJECTED
+        Case Else
+            SetStatusNas NAS_TARGET_UNREACHABLE, "Remembered NAS root is unreachable. Windows error " & CStr(resultCode) & "."
+            TryReconnectRememberedShareNas = NAS_TARGET_UNREACHABLE
+    End Select
 End Function
 
 Private Sub RememberRoot(ByVal rootPath As String)

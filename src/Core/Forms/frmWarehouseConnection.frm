@@ -45,7 +45,7 @@ Private Sub UserForm_Initialize()
     If mReason <> "" Then
         ShowStatus mReason, COLOR_INFO
     Else
-        ShowStatus "Select warehouse storage. Use Connect only if Windows cannot already reach the network root.", COLOR_INFO
+        ShowStatus "Connect server storage first, then sign in with an invSys user account.", COLOR_INFO
     End If
 End Sub
 
@@ -55,7 +55,7 @@ Public Sub InitializeConnectionPrompt(Optional ByVal reason As String = "")
         If mReason <> "" Then
             ShowStatus mReason, COLOR_INFO
         Else
-            ShowStatus "Select warehouse storage. Use Connect only if Windows cannot already reach the network root.", COLOR_INFO
+            ShowStatus "Connect server storage first, then sign in with an invSys user account.", COLOR_INFO
         End If
     End If
 End Sub
@@ -72,7 +72,7 @@ Private Sub BuildConnectionLayout()
     Set mTxtRoot = AddTextBox("txtRoot", 104, 84, 322, 22)
     Set mBtnScan = AddButton("btnScan", "Scan", 436, 83, 70, 24)
 
-    AddLabel "lblUser", "Network user", 18, 122, 84, 18, False
+    AddLabel "lblUser", "Server user", 18, 122, 84, 18, False
     Set mTxtUser = AddTextBox("txtUser", 104, 118, 160, 22)
     AddLabel "lblPassword", "Password", 276, 122, 66, 18, False
     Set mTxtPassword = AddTextBox("txtPassword", 346, 118, 80, 22)
@@ -179,7 +179,7 @@ Private Sub mBtnConnect_Click()
     userName = Trim$(CStr(mTxtUser.Value))
     passwordText = CStr(mTxtPassword.Value)
     If rootPath = "" Or userName = "" Or Len(passwordText) = 0 Then
-        ShowStatus "Enter root, network user, and network password before connecting.", COLOR_WARNING
+        ShowStatus "Enter root, server user, and server password before connecting.", COLOR_WARNING
         Exit Sub
     End If
 

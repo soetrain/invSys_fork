@@ -79,11 +79,32 @@ End Sub
 Public Sub ConnectWarehouseStorageForCapability(Optional ByVal requiredCapability As String = "")
     Dim connectedRoot As String
     Dim statusText As String
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim requireNasTarget As Boolean
 
-    If modNasConnection.ConnectKnownWarehouseServer(connectedRoot, statusText) Then
+    requireNasTarget = CapabilityRequiresNasTargetRole(requiredCapability)
+    If modNasConnection.ConnectKnownWarehouseServer(connectedRoot, statusText, True) Then
+        Set target = ResolveConnectedRoleWarehouseTarget(connectedRoot, requireNasTarget, statusCode)
         modRibbonRuntimeStatus.InvalidateWarehouseTargets
         modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
+        If target Is Nothing Then
+            MsgBox "Connected to the warehouse server, but no warehouse target was selected." & vbCrLf & vbCrLf & _
+                   "Connected root: " & ValueOrPlaceholderRole(connectedRoot) & vbCrLf & _
+                   "Status: " & ValueOrPlaceholderRole(modNasConnection.GetConnectionStatus()) & vbCrLf & vbCrLf & _
+                   "Use Send To to choose the NAS warehouse. If it is not listed, use Admin > View Warehouses to inspect the server root.", _
+                   vbExclamation, "invSys Warehouse Storage"
+        End If
         Exit Sub
+    End If
+
+    If ShouldPromptForServerCredentialsRole(statusText) Then
+        If modNasConnection.ShowWarehouseConnectionPromptForTarget(ServerCredentialPromptRole(statusText)) Then
+            Set target = modNasConnection.GetCurrentTarget()
+            modRibbonRuntimeStatus.InvalidateWarehouseTargets
+            modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
+            If modNasConnection.IsWarehouseTargetAllowed(target, requireNasTarget) Then Exit Sub
+        End If
     End If
 
     modRibbonRuntimeStatus.InvalidateWarehouseTargets
@@ -94,6 +115,60 @@ Public Sub ConnectWarehouseStorageForCapability(Optional ByVal requiredCapabilit
            "Use Admin/setup to add or repair the warehouse server root, then try Connect Server again.", _
            vbExclamation, "invSys Warehouse Storage"
 End Sub
+
+Private Function ShouldPromptForServerCredentialsRole(ByVal statusText As String) As Boolean
+    statusText = LCase$(Trim$(statusText))
+    ShouldPromptForServerCredentialsRole = _
+        (InStr(1, statusText, "credential rejected", vbTextCompare) > 0) Or _
+        (InStr(1, statusText, "credential", vbTextCompare) > 0 And InStr(1, statusText, "expired", vbTextCompare) > 0) Or _
+        (InStr(1, statusText, "conflicting nas session", vbTextCompare) > 0)
+End Function
+
+Private Function ServerCredentialPromptRole(ByVal statusText As String) As String
+    ServerCredentialPromptRole = _
+        "The warehouse server path is saved, but Windows does not have a usable NAS/server credential for this session." & vbCrLf & vbCrLf & _
+        "Enter the NAS/server account for storage access, connect, select the Zenbook warehouse runtime, then sign in with your invSys user account." & vbCrLf & vbCrLf & _
+        "Status: " & ValueOrPlaceholderRole(statusText)
+End Function
+
+Private Function ResolveConnectedRoleWarehouseTarget(ByVal connectedRoot As String, _
+                                                     ByVal requireNasTarget As Boolean, _
+                                                     ByRef statusCode As NasStatusCode) As WarehouseTarget
+    Dim target As WarehouseTarget
+    Dim runtimeRoots As Collection
+    Dim runtimeRoot As Variant
+
+    If modRibbonRuntimeStatus.TryApplyRememberedWarehouseTarget() Then
+        Set target = modNasConnection.GetCurrentTarget()
+        If modNasConnection.IsWarehouseTargetAllowed(target, requireNasTarget) _
+           And WarehouseTargetMatchesConnectedRootRole(target, connectedRoot) Then
+            statusCode = NAS_OK
+            Set ResolveConnectedRoleWarehouseTarget = target
+            Exit Function
+        End If
+    End If
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If modNasConnection.IsWarehouseTargetAllowed(target, requireNasTarget) _
+       And WarehouseTargetMatchesConnectedRootRole(target, connectedRoot) Then
+        statusCode = NAS_OK
+        Set ResolveConnectedRoleWarehouseTarget = target
+        Exit Function
+    End If
+
+    Set runtimeRoots = modNasConnection.ScanNasRoot(connectedRoot)
+    For Each runtimeRoot In runtimeRoots
+        statusCode = modNasConnection.SelectWarehouseTarget(connectedRoot, CStr(runtimeRoot), target)
+        If statusCode = NAS_OK Then
+            If modNasConnection.IsWarehouseTargetAllowed(target, requireNasTarget) Then
+                Set ResolveConnectedRoleWarehouseTarget = target
+                Exit Function
+            End If
+        End If
+    Next runtimeRoot
+
+    statusCode = WH_NO_TARGET
+End Function
 
 Private Function ResolveRoleWarehouseTarget(ByVal requireNasTarget As Boolean, _
                                             ByRef statusCode As NasStatusCode) As WarehouseTarget
@@ -175,6 +250,40 @@ Private Function CurrentInvSysUserDisplayRole() As String
         CurrentInvSysUserDisplayRole = Trim$(modAuth.GetCurrentUserDisplayName())
     End If
     If CurrentInvSysUserDisplayRole = "" Then CurrentInvSysUserDisplayRole = "<not signed in>"
+End Function
+
+Private Function WarehouseTargetMatchesConnectedRootRole(ByVal target As WarehouseTarget, _
+                                                        ByVal connectedRoot As String) As Boolean
+    If target Is Nothing Then Exit Function
+    connectedRoot = NormalizeFolderRole(connectedRoot)
+    If connectedRoot = "" Then
+        WarehouseTargetMatchesConnectedRootRole = True
+        Exit Function
+    End If
+
+    WarehouseTargetMatchesConnectedRootRole = _
+        PathIsUnderRootRole(target.HubRoot, connectedRoot) Or _
+        PathIsUnderRootRole(target.RuntimeRoot, connectedRoot) Or _
+        PathIsUnderRootRole(connectedRoot, target.HubRoot) Or _
+        PathIsUnderRootRole(connectedRoot, target.RuntimeRoot)
+End Function
+
+Private Function PathIsUnderRootRole(ByVal pathText As String, ByVal rootText As String) As Boolean
+    pathText = LCase$(NormalizeFolderRole(pathText))
+    rootText = LCase$(NormalizeFolderRole(rootText))
+    If pathText = "" Or rootText = "" Then Exit Function
+    If pathText = rootText Then
+        PathIsUnderRootRole = True
+    ElseIf Len(pathText) > Len(rootText) Then
+        PathIsUnderRootRole = (Left$(pathText, Len(rootText) + 1) = rootText & "\")
+    End If
+End Function
+
+Private Function NormalizeFolderRole(ByVal folderPath As String) As String
+    NormalizeFolderRole = Trim$(Replace$(folderPath, "/", "\"))
+    Do While Len(NormalizeFolderRole) > 3 And Right$(NormalizeFolderRole, 1) = "\"
+        NormalizeFolderRole = Left$(NormalizeFolderRole, Len(NormalizeFolderRole) - 1)
+    Loop
 End Function
 
 Private Function AuthStatusMessageRole(ByVal authStatus As AuthStatusCode, _

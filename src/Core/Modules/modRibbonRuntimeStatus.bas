@@ -59,10 +59,10 @@ Public Function GetServerStatusLabel(ByVal controlId As String) As String
     Dim target As WarehouseTarget
 
     Set target = modNasConnection.GetCurrentTarget()
-    If modNasConnection.IsCurrentTargetAllowed(True) And Not target Is Nothing Then
+    If modNasConnection.IsCurrentTargetAllowed(True) And TargetHasUncPathStatus(target) Then
         GetServerStatusLabel = "Server: Connected - Send To " & target.WarehouseId
         If Trim$(target.StationId) <> "" Then GetServerStatusLabel = GetServerStatusLabel & " / " & target.StationId
-    ElseIf modNasConnection.IsConnected() Then
+    ElseIf modNasConnection.HasConnectedUncRoot() Then
         GetServerStatusLabel = "Server: Connected - choose Send To"
     Else
         GetServerStatusLabel = "Server: Not connected"
@@ -157,6 +157,7 @@ End Sub
 
 Public Sub InvalidateWarehouseTargets()
     InvalidateWarehouseTargetsCacheStatus
+    InvalidateWarehouseTargetRibbonsStatus
 End Sub
 
 Public Function TryApplyRememberedWarehouseTarget() As Boolean
@@ -196,6 +197,22 @@ End Function
 Private Sub InvalidateWarehouseTargetsCacheStatus()
     mWarehouseTargetsCacheReady = False
     Set mWarehouseTargetsCache = Nothing
+End Sub
+
+Private Sub InvalidateWarehouseTargetRibbonsStatus()
+    Dim ribbon As Variant
+    If mRibbonUis Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    For Each ribbon In mRibbonUis
+        ribbon.InvalidateControl "ddReceivingWarehouseTarget"
+        ribbon.InvalidateControl "ddShippingWarehouseTarget"
+        ribbon.InvalidateControl "ddProductionWarehouseTarget"
+        ribbon.InvalidateControl "lblReceivingServerStatus"
+        ribbon.InvalidateControl "lblShippingServerStatus"
+        ribbon.InvalidateControl "lblProductionServerStatus"
+    Next ribbon
+    On Error GoTo 0
 End Sub
 
 Private Sub RememberSelectedWarehouseTargetStatus(ByVal targetText As String)
@@ -238,36 +255,72 @@ Private Function BuildWarehouseTargetsStatus() As Collection
     Dim currentRoot As String
     Dim currentWh As String
     Dim currentSt As String
+    Dim connected As Boolean
+    Dim connectedUnc As Boolean
 
     Set targets = New Collection
     Set seen = CreateObject("Scripting.Dictionary")
     seen.CompareMode = vbTextCompare
 
     EnsureRuntimeStatusConfigLoaded
-    currentWh = Trim$(modConfig.GetWarehouseId())
-    currentSt = Trim$(modConfig.GetStationId())
-    currentRoot = NormalizeFolderForStatus(modConfig.GetString("PathDataRoot", ""))
-    AddWarehouseTargetStatus targets, seen, currentWh, currentSt, currentRoot
-    AddRememberedSelectedTargetStatus targets, seen
+    connected = modNasConnection.HasConnectedUncRoot()
+    connectedUnc = connected
 
-    AddOpenConfigTargetsStatus targets, seen
-    If modNasConnection.IsConnected() Then AddKnownServerConfigTargetsStatus targets, seen
-    AddConfigTargetsUnderRootStatus targets, seen, modDeploymentPaths.DefaultRuntimeHubRootPath(False)
+    AddCurrentWarehouseTargetStatus targets, seen, connectedUnc
+    AddRememberedSelectedTargetStatus targets, seen, connectedUnc
+
+    If connected Then
+        AddKnownServerConfigTargetsStatus targets, seen, connectedUnc
+    Else
+        currentWh = Trim$(modConfig.GetWarehouseId())
+        currentSt = Trim$(modConfig.GetStationId())
+        currentRoot = NormalizeFolderForStatus(modConfig.GetString("PathDataRoot", ""))
+        AddWarehouseTargetStatus targets, seen, currentWh, currentSt, currentRoot
+        AddOpenConfigTargetsStatus targets, seen
+    End If
+
+    If targets.Count = 0 And Not connected Then
+        AddConfigTargetsUnderRootStatus targets, seen, modDeploymentPaths.DefaultRuntimeHubRootPath(False)
+    End If
 
     Set BuildWarehouseTargetsStatus = targets
 End Function
 
-Private Sub AddKnownServerConfigTargetsStatus(ByVal targets As Collection, ByVal seen As Object)
+Private Sub AddCurrentWarehouseTargetStatus(ByVal targets As Collection, _
+                                            ByVal seen As Object, _
+                                            Optional ByVal requireUncTarget As Boolean = False)
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then Exit Sub
+    If requireUncTarget And Not TargetHasUncPathStatus(target) Then Exit Sub
+    AddWarehouseTargetStatus targets, seen, target.WarehouseId, target.StationId, target.RuntimeRoot
+End Sub
+
+Private Sub AddKnownServerConfigTargetsStatus(ByVal targets As Collection, _
+                                              ByVal seen As Object, _
+                                              Optional ByVal requireUncRoot As Boolean = False)
     Dim roots As Collection
     Dim rootPath As Variant
 
     Set roots = modNasConnection.GetKnownWarehouseTargetRoots()
     For Each rootPath In roots
-        AddConfigTargetsUnderRootStatus targets, seen, CStr(rootPath)
+        If Not requireUncRoot Or Left$(NormalizeFolderForStatus(CStr(rootPath)), 2) = "\\" Then
+            AddConfigTargetsUnderRootStatus targets, seen, CStr(rootPath)
+        End If
     Next rootPath
 End Sub
 
-Private Sub AddRememberedSelectedTargetStatus(ByVal targets As Collection, ByVal seen As Object)
+Private Function TargetHasUncPathStatus(ByVal target As WarehouseTarget) As Boolean
+    If target Is Nothing Then Exit Function
+    TargetHasUncPathStatus = _
+        (Left$(NormalizeFolderForStatus(target.HubRoot), 2) = "\\") Or _
+        (Left$(NormalizeFolderForStatus(target.RuntimeRoot), 2) = "\\")
+End Function
+
+Private Sub AddRememberedSelectedTargetStatus(ByVal targets As Collection, _
+                                              ByVal seen As Object, _
+                                              Optional ByVal requireUncRoot As Boolean = False)
     Dim targetText As String
     Dim targetWh As String
     Dim targetSt As String
@@ -282,6 +335,7 @@ Private Sub AddRememberedSelectedTargetStatus(ByVal targets As Collection, ByVal
     targetWh = TargetPartStatus(targetText, 0)
     targetSt = TargetPartStatus(targetText, 1)
     targetRoot = TargetPartStatus(targetText, 2)
+    If requireUncRoot And Left$(NormalizeFolderForStatus(targetRoot), 2) <> "\\" Then Exit Sub
     AddWarehouseTargetStatus targets, seen, targetWh, targetSt, targetRoot
 End Sub
 

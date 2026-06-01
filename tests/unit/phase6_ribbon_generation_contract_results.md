@@ -1,7 +1,7 @@
 # Phase 6 Ribbon Generation Contract Results
 
-- Date: 2026-05-25 18:46:41
-- Passed: 27
+- Date: 2026-05-31 22:38:12
+- Passed: 32
 - Failed: 0
 
 | Check | Result | Detail |
@@ -20,13 +20,18 @@
 | Build.ServerStatusLabelControl | PASS | Role ribbons emit server status label controls. |
 | Build.RuntimeReferencesNormalXlams | PASS | Built operator XLAMs reference normal deployed XLAM outputs. |
 | Core.RoleConnectNonModal | PASS | Role Connect Server resolves without opening the warehouse connection form. |
-| Core.ConnectServerRootOnly | PASS | Connect Server validates the saved server root without requiring Send To. |
+| Core.ConnectServerBindsWarehouseTarget | PASS | Connect Server validates the saved NAS root and binds a target from that connected root. |
+| Core.ConnectServerRequiresNasRoot | PASS | Role Connect Server can reject remembered local roots. |
+| Core.ConnectServerReconnectsRememberedShare | PASS | Remembered NAS roots attempt Windows SMB reattach with current/stored credentials before failing. |
+| Core.ConnectServerPromptsForServerCredentials | PASS | Role Connect Server prompts for server credentials when stored SMB credentials fail. |
+| Core.RoleTargetsRejectLocalPaths | PASS | Role-required NAS targets reject stale local/temp targets and report NAS probe status. |
 | Core.SignOutClearsPersistedUser | PASS | Sign Out clears live auth and persisted current-user state. |
 | Core.AuthStoresDisplayName | PASS | Auth cache stores and exposes signed-in display name. |
 | Core.RuntimeContextShowsUserId | PASS | Runtime Context shows signed-in account id. |
 | Core.RememberedTargetUsesConfigAuth | PASS | Remembered server reconnect requires config/auth, not a local inventory workbook. |
 | Admin.DirectoryReadsNasRoots | PASS | Admin View Warehouses includes NAS roots remembered by Connect Server. |
-| Core.SendToScansConnectedRoots | PASS | Send To scans known NAS roots only after Connect Server succeeds. |
+| Core.SendToScansConnectedRoots | PASS | Send To scans connected NAS roots after Connect Server succeeds. |
+| Core.SendToSuppressesLocalFallbackWhenConnected | PASS | Send To suppresses default/local runtime noise while a NAS root is connected. |
 | Core.RibbonFullInvalidate | PASS | Auth/storage changes refresh enabled callbacks. |
 | Validator.ButtonGetEnabledRead | PASS | Packaged validator reads getEnabled. |
 | Validator.ButtonGetEnabledAssert | PASS | Packaged validator asserts getEnabled on required buttons. |
