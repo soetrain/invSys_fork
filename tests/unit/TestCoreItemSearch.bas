@@ -10,6 +10,7 @@ Public Sub RunCoreItemSearchTests()
     Tally TestIdentifiersMatch_UsesTokenOverlap(), passed, failed
     Tally TestResolveSearchCaption_ReturnsRoleSpecificText(), passed, failed
     Tally TestShouldDefaultShippableForRole_UsesRoleDefaults(), passed, failed
+    Tally TestIsShippingRelevantCategory_AcceptsShippingSeedCategories(), passed, failed
 
     Debug.Print "Core.ItemSearch tests - Passed: " & passed & " Failed: " & failed
 End Sub
@@ -52,6 +53,18 @@ Public Function TestShouldDefaultShippableForRole_UsesRoleDefaults() As Long
     If Not modItemSearch.ShouldDefaultShippableForRole("receiving", "item", "ShipmentsTally") Then Exit Function
 
     TestShouldDefaultShippableForRole_UsesRoleDefaults = 1
+End Function
+
+Public Function TestIsShippingRelevantCategory_AcceptsShippingSeedCategories() As Long
+    If Not modItemSearch.IsShippingRelevantCategory("shippable") Then Exit Function
+    If Not modItemSearch.IsShippingRelevantCategory("sell") Then Exit Function
+    If Not modItemSearch.IsShippingRelevantCategory("packaging.ship") Then Exit Function
+    If Not modItemSearch.IsShippingRelevantCategory("Ship.used") Then Exit Function
+    If Not modItemSearch.IsShippingRelevantCategory("") Then Exit Function
+    If modItemSearch.IsShippingRelevantCategory("packaging.cook") Then Exit Function
+    If modItemSearch.IsShippingRelevantCategory("raw") Then Exit Function
+
+    TestIsShippingRelevantCategory_AcceptsShippingSeedCategories = 1
 End Function
 
 Private Sub Tally(ByVal resultIn As Long, ByRef passed As Long, ByRef failed As Long)

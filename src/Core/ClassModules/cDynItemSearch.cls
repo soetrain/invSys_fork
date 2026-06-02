@@ -201,7 +201,7 @@ Private Function BuildForm() As Boolean
     chkShippable.Top = txtSearch.Top + txtSearch.Height + 4
     chkShippable.Width = innerW
     chkShippable.Height = chkH
-    chkShippable.Caption = "Shippable only"
+    chkShippable.Caption = ShippingFilterCaption()
     chkShippable.Value = ShouldDefaultShippable()
 
     lst.Left = m: lst.Top = chkShippable.Top + chkShippable.Height + 6
@@ -512,7 +512,15 @@ Private Function IsRowShippable(ByVal rowIndex As Long) As Boolean
         IsRowShippable = True
         Exit Function
     End If
-    IsRowShippable = (LCase$(Trim$(NzStr(itemsArr(rowIndex, mCategoryCol)))) = "shippable")
+    IsRowShippable = modItemSearch.IsShippingRelevantCategory(NzStr(itemsArr(rowIndex, mCategoryCol)))
+End Function
+
+Private Function ShippingFilterCaption() As String
+    If CurrentRoleKey() = "shipping" Then
+        ShippingFilterCaption = "Shipping items only"
+    Else
+        ShippingFilterCaption = "Shippable only"
+    End If
 End Function
 
 Private Function ShouldDefaultShippable() As Boolean

@@ -168,3 +168,25 @@ Public Function ShouldDefaultShippableForRole(ByVal roleKey As String, _
         ShouldDefaultShippableForRole = True
     End If
 End Function
+
+Public Function IsShippingRelevantCategory(ByVal categoryText As String) As Boolean
+    Dim normalized As String
+
+    normalized = NormalizeSearchText(categoryText)
+    If normalized = "" Then
+        IsShippingRelevantCategory = True
+        Exit Function
+    End If
+
+    If normalized = "shippable" Or normalized = "sell" Then
+        IsShippingRelevantCategory = True
+        Exit Function
+    End If
+
+    If InStr(1, normalized, "packaging.ship", vbTextCompare) > 0 _
+       Or InStr(1, normalized, " ship", vbTextCompare) > 0 _
+       Or InStr(1, normalized, ".ship", vbTextCompare) > 0 _
+       Or InStr(1, normalized, "ship.", vbTextCompare) > 0 Then
+        IsShippingRelevantCategory = True
+    End If
+End Function

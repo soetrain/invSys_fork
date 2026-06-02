@@ -120,6 +120,7 @@ try {
         "TestCoreItemSearch.TestIdentifiersMatch_UsesTokenOverlap",
         "TestCoreItemSearch.TestResolveSearchCaption_ReturnsRoleSpecificText",
         "TestCoreItemSearch.TestShouldDefaultShippableForRole_UsesRoleDefaults",
+        "TestCoreItemSearch.TestIsShippingRelevantCategory_AcceptsShippingSeedCategories",
         "TestPhase3RoleFlows.TestReceivingRoleFlow_QueuesAndProcessesEvent",
         "TestPhase3RoleFlows.TestShippingRoleFlow_QueuesAndProcessesEvent",
         "TestPhase3RoleFlows.TestProductionRoleFlow_QueuesAndProcessesEvent"
