@@ -247,6 +247,43 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestNasScanRoot_RejectsMismatchedConfigAuthPair() As Long
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim targets As Collection
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim report As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_dnas_scan_mismatched_pair")
+
+    On Error GoTo CleanFail
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("BADCFG", "S6", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH80", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+
+    Set targets = modNasConnection.ScanNasRoot(rootPath)
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S6", False)
+    If Not targets Is Nothing Then
+        If targets.Count = 0 And statusCode = WH_AUTH_NOT_FOUND And target Is Nothing Then
+            TestNasScanRoot_RejectsMismatchedConfigAuthPair = 1
+        End If
+    End If
+
+CleanExit:
+    modNasConnection.ForgetTarget "BADCFG"
+    modNasConnection.ForgetTarget "WH80"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestNasResolveRememberedTarget_UnreachableFailsClosed() As Long
     Dim rootPath As String
     Dim remembered As WarehouseTarget

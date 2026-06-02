@@ -184,8 +184,21 @@ Public Function GetWarehouseDirectoryOptions(Optional ByVal adminWb As Workbook 
     Dim statusText As String
     Dim labelText As String
     Dim options As Collection
+    Dim optionKeys As Object
+    Dim optionKey As String
+    Dim connectedUnc As Boolean
+    Dim currentTarget As Object
 
     Set options = New Collection
+    Set optionKeys = CreateObject("Scripting.Dictionary")
+    optionKeys.CompareMode = vbTextCompare
+    connectedUnc = modNasConnection.HasConnectedUncRoot()
+    Set currentTarget = modNasConnection.GetCurrentTarget()
+    If modNasConnection.IsWarehouseTargetAllowed(currentTarget, True) And TargetHasUncPathAdmin(currentTarget) Then
+        AddWarehouseDirectoryOptionAdmin options, optionKeys, _
+                                        currentTarget.WarehouseId, currentTarget.StationId, _
+                                        currentTarget.RuntimeRoot, "Ready"
+    End If
     Set wb = ResolveAdminWorkbook(adminWb)
     If wb Is Nothing Then
         report = "Admin workbook not resolved."
@@ -220,13 +233,10 @@ Public Function GetWarehouseDirectoryOptions(Optional ByVal adminWb As Workbook 
         runtimeRoot = NormalizePathAdmin(SafeTrimAdmin(GetCellByColumnAdmin(lo, rowIndex, "RuntimeRoot")))
         statusText = SafeTrimAdmin(GetCellByColumnAdmin(lo, rowIndex, "Status"))
 
-        If warehouseId <> "" And runtimeRoot <> "" Then
-            If stationId = "" Then stationId = "S1"
-            labelText = warehouseId & " | " & stationId & " | " & runtimeRoot
-            If statusText <> "" And StrComp(statusText, "Ready", vbTextCompare) <> 0 Then
-                labelText = labelText & " (" & statusText & ")"
+        If warehouseId <> "" And runtimeRoot <> "" And WarehouseDirectoryOptionSelectableAdmin(statusText) Then
+            If Not connectedUnc Or IsUncPathAdmin(runtimeRoot) Then
+                AddWarehouseDirectoryOptionAdmin options, optionKeys, warehouseId, stationId, runtimeRoot, statusText
             End If
-            options.Add Array(labelText, warehouseId, stationId, runtimeRoot, statusText)
         End If
     Next rowIndex
 
@@ -237,6 +247,52 @@ Public Function GetWarehouseDirectoryOptions(Optional ByVal adminWb As Workbook 
 FailOptions:
     report = "GetWarehouseDirectoryOptions failed: " & Err.Description
     Set GetWarehouseDirectoryOptions = New Collection
+End Function
+
+Private Sub AddWarehouseDirectoryOptionAdmin(ByVal options As Collection, _
+                                             ByVal optionKeys As Object, _
+                                             ByVal warehouseId As String, _
+                                             ByVal stationId As String, _
+                                             ByVal runtimeRoot As String, _
+                                             ByVal statusText As String)
+    Dim optionKey As String
+    Dim labelText As String
+
+    warehouseId = SafeTrimAdmin(warehouseId)
+    stationId = SafeTrimAdmin(stationId)
+    runtimeRoot = NormalizePathAdmin(runtimeRoot)
+    statusText = SafeTrimAdmin(statusText)
+    If warehouseId = "" Or runtimeRoot = "" Then Exit Sub
+    If stationId = "" Then stationId = "S1"
+
+    optionKey = UCase$(warehouseId) & "|" & UCase$(stationId) & "|" & UCase$(runtimeRoot)
+    If optionKeys.Exists(optionKey) Then Exit Sub
+    optionKeys(optionKey) = True
+
+    labelText = warehouseId & " | " & stationId & " | " & runtimeRoot
+    If statusText <> "" And StrComp(statusText, "Ready", vbTextCompare) <> 0 Then
+        labelText = labelText & " (" & statusText & ")"
+    End If
+    options.Add Array(labelText, warehouseId, stationId, runtimeRoot, statusText)
+End Sub
+
+Private Function WarehouseDirectoryOptionSelectableAdmin(ByVal statusText As String) As Boolean
+    statusText = UCase$(SafeTrimAdmin(statusText))
+    If statusText = "" Or statusText = "READY" Then
+        WarehouseDirectoryOptionSelectableAdmin = True
+    ElseIf InStr(1, statusText, "CONFIG", vbTextCompare) = 0 _
+       And InStr(1, statusText, "AUTH", vbTextCompare) = 0 Then
+        WarehouseDirectoryOptionSelectableAdmin = True
+    End If
+End Function
+
+Private Function TargetHasUncPathAdmin(ByVal target As Object) As Boolean
+    If target Is Nothing Then Exit Function
+    TargetHasUncPathAdmin = IsUncPathAdmin(target.HubRoot) Or IsUncPathAdmin(target.RuntimeRoot)
+End Function
+
+Private Function IsUncPathAdmin(ByVal pathText As String) As Boolean
+    IsUncPathAdmin = (Left$(NormalizePathAdmin(pathText), 2) = "\\")
 End Function
 
 Public Sub RememberWarehouseScanRoot(ByVal rootPath As String)
@@ -1524,14 +1580,62 @@ Private Function GetAdminRuntimeScanRoot() As String
 End Function
 
 Private Function LooksLikeWarehouseRuntimeRootAdmin(ByVal rootPath As String) As Boolean
-    Dim leafName As String
-
     rootPath = NormalizePathAdmin(rootPath)
     If rootPath = "" Then Exit Function
-    leafName = GetLeafFolderNameAdmin(rootPath)
-    If leafName = "" Then Exit Function
 
-    LooksLikeWarehouseRuntimeRootAdmin = FileExistsAdmin(rootPath & "\" & leafName & ".invSys.Config.xlsb")
+    LooksLikeWarehouseRuntimeRootAdmin = (FindPairedConfigWorkbookPathAdmin(rootPath) <> "")
+End Function
+
+Private Function FindPairedConfigWorkbookPathAdmin(ByVal rootPath As String) As String
+    Dim fileName As String
+    Dim warehouseId As String
+
+    On Error GoTo CleanFail
+    rootPath = NormalizePathAdmin(rootPath)
+    If rootPath = "" Then Exit Function
+
+    fileName = Dir$(rootPath & "\*.invsys.config.xls*", vbNormal)
+    Do While fileName <> ""
+        warehouseId = InferWarehouseIdFromPathAdmin(fileName)
+        If warehouseId <> "" Then
+            If FindWarehouseArtifactPathAdmin(rootPath, warehouseId, "Auth") <> "" Then
+                FindPairedConfigWorkbookPathAdmin = rootPath & "\" & fileName
+                Exit Function
+            End If
+        End If
+        fileName = Dir$
+    Loop
+    Exit Function
+
+CleanFail:
+    FindPairedConfigWorkbookPathAdmin = vbNullString
+End Function
+
+Private Function FindWarehouseArtifactPathAdmin(ByVal rootPath As String, _
+                                                ByVal warehouseId As String, _
+                                                ByVal artifactName As String) As String
+    Dim extensions As Variant
+    Dim ext As Variant
+    Dim candidatePath As String
+
+    On Error GoTo CleanFail
+    rootPath = NormalizePathAdmin(rootPath)
+    warehouseId = SafeTrimAdmin(warehouseId)
+    artifactName = SafeTrimAdmin(artifactName)
+    If rootPath = "" Or warehouseId = "" Or artifactName = "" Then Exit Function
+
+    extensions = Array("xlsb", "xlsm", "xlsx", "xls")
+    For Each ext In extensions
+        candidatePath = rootPath & "\" & warehouseId & ".invSys." & artifactName & "." & CStr(ext)
+        If FileExistsAdmin(candidatePath) Then
+            FindWarehouseArtifactPathAdmin = candidatePath
+            Exit Function
+        End If
+    Next ext
+    Exit Function
+
+CleanFail:
+    FindWarehouseArtifactPathAdmin = vbNullString
 End Function
 
 Private Function GetLeafFolderNameAdmin(ByVal pathText As String) As String

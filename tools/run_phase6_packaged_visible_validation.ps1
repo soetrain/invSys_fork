@@ -96,7 +96,7 @@ $visibleSpecs = @(
         Name = "Shipping"
         File = "invSys.Shipping.xlam"
         SafeMacro = "modTS_Shipments.InitializeShipmentsUI"
-        RevealSheets = @("ShipmentsTally", "ShippingBOM", "AggregateBoxBOM_Log", "AggregatePackages_Log")
+        RevealSheets = @("ShipmentsTally", "AggregateBoxBOM_Log", "AggregatePackages_Log")
         ActivateSheet = "ShipmentsTally"
     }
     @{

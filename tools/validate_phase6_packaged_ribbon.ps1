@@ -208,8 +208,10 @@ $ribbonSpecs = @(
         Name = "Receiving"
         File = "invSys.Receiving.xlam"
         Callback = "RibbonOnActionReceiving"
+        EnabledCallback = "RibbonRequiredCapabilityGetEnabledReceiving"
         StatusLabels = @(
-            @{ Id = "lblReceivingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
+            @{ Id = "lblReceivingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" },
+            @{ Id = "lblReceivingAccessStatus"; GetLabel = "RibbonAccessStatusGetLabel" }
         )
         Buttons = @(
             @{ Id = "btnReceivingConnectServer"; Label = "Connect Server"; DirectAction = 'modRoleEventWriter.ConnectWarehouseStorageForCapability "RECEIVE_POST"'; Execute = $false },
@@ -225,8 +227,10 @@ $ribbonSpecs = @(
         Name = "Shipping"
         File = "invSys.Shipping.xlam"
         Callback = "RibbonOnActionShipping"
+        EnabledCallback = "RibbonRequiredCapabilityGetEnabledShipping"
         StatusLabels = @(
-            @{ Id = "lblShippingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
+            @{ Id = "lblShippingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" },
+            @{ Id = "lblShippingAccessStatus"; GetLabel = "RibbonAccessStatusGetLabel" }
         )
         Buttons = @(
             @{ Id = "btnShippingConnectServer"; Label = "Connect Server"; DirectAction = 'modRoleEventWriter.ConnectWarehouseStorageForCapability "SHIP_POST"'; Execute = $false },
@@ -242,8 +246,10 @@ $ribbonSpecs = @(
         Name = "Production"
         File = "invSys.Production.xlam"
         Callback = "RibbonOnActionProduction"
+        EnabledCallback = "RibbonRequiredCapabilityGetEnabledProduction"
         StatusLabels = @(
-            @{ Id = "lblProductionServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
+            @{ Id = "lblProductionServerStatus"; GetLabel = "RibbonServerStatusGetLabel" },
+            @{ Id = "lblProductionAccessStatus"; GetLabel = "RibbonAccessStatusGetLabel" }
         )
         Buttons = @(
             @{ Id = "btnProductionConnectServer"; Label = "Connect Server"; DirectAction = 'modRoleEventWriter.ConnectWarehouseStorageForCapability "PROD_POST"'; Execute = $false },
@@ -261,16 +267,24 @@ $ribbonSpecs = @(
         Name = "Admin"
         File = "invSys.Admin.xlam"
         Callback = "RibbonOnActionAdmin"
+        EnabledCallback = "RibbonRequiredCapabilityGetEnabledAdmin"
+        StatusLabels = @(
+            @{ Id = "lblAdminServerStatus"; GetLabel = "RibbonServerStatusGetLabel" },
+            @{ Id = "lblAdminAccessStatus"; GetLabel = "RibbonAccessStatusGetLabel" }
+        )
         Buttons = @(
-            @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; Execute = $false },
+            @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
             @{ Id = "btnAdminConnectServer"; Label = "Connect Server"; DirectAction = 'modRoleEventWriter.ConnectWarehouseStorageForCapability "ADMIN_MAINT"'; Execute = $false },
             @{ Id = "btnAdminCurrentUser"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = 'modRoleEventWriter.PromptSetCurrentUserForCapability "ADMIN_MAINT"'; Execute = $false; Screentip = "Sign in as an invSys user" },
             @{ Id = "btnAdminSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; Execute = $false },
-            @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; Execute = $false },
-            @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; Execute = $false },
-            @{ Id = "btnAdminSetupTesterStation"; Label = "Setup Tester Station"; Macro = "modAdmin.Admin_SetupTesterStation_Click"; Execute = $false },
-            @{ Id = "btnAdminVerifyAddinsPublished"; Label = "Verify Add-ins Published"; Macro = "modAdmin.Verify_AddinsPublished"; Execute = $false },
-            @{ Id = "btnAdminRetireMigrateWarehouse"; Label = "Retire / Migrate Warehouse"; Macro = "modAdmin.Admin_RetireMigrateWarehouse_Click"; Execute = $false; Screentip = "Archive, migrate, retire, or delete a warehouse runtime" }
+            @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
+            @{ Id = "btnAdminWarehouses"; Label = "View Warehouses"; Macro = "modAdmin.Open_WarehouseDirectory"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
+            @{ Id = "btnAdminWarehouseRoot"; Label = "Add Warehouse Root"; Macro = "modAdmin.Add_WarehouseDirectoryRoot"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
+            @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
+            @{ Id = "btnAdminSetupTesterStation"; Label = "Setup Tester Station"; Macro = "modAdmin.Admin_SetupTesterStation_Click"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
+            @{ Id = "btnAdminSeedInventory"; Label = "Seed Demo Inventory"; Macro = "modAdmin.Seed_DemoInventory"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
+            @{ Id = "btnAdminVerifyAddinsPublished"; Label = "Verify Add-ins Published"; Macro = "modAdmin.Verify_AddinsPublished"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
+            @{ Id = "btnAdminRetireMigrateWarehouse"; Label = "Retire / Migrate Warehouse"; Macro = "modAdmin.Admin_RetireMigrateWarehouse_Click"; Execute = $false; Screentip = "Archive, migrate, retire, or delete a warehouse runtime"; RequiredCapability = "ADMIN_MAINT" }
         )
     }
 )
@@ -368,7 +382,7 @@ try {
                     Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButtonScreentip.$buttonId" -Passed ($buttonInfo.Screentip -eq $button.Screentip) -Detail $buttonInfo.Screentip
                 }
                 if ($button.ContainsKey("RequiredCapability")) {
-                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButtonGetEnabled.$buttonId" -Passed ($buttonInfo.GetEnabled -eq "RibbonRequiredCapabilityGetEnabled") -Detail $buttonInfo.GetEnabled
+                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).RibbonButtonGetEnabled.$buttonId" -Passed ($buttonInfo.GetEnabled -eq $spec.EnabledCallback) -Detail $buttonInfo.GetEnabled
                 }
             }
             else {
@@ -395,8 +409,15 @@ try {
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).CallbackMap.$buttonId" -Passed ($callbackHasButton -and $callbackHasDirectAction) -Detail "$buttonId -> $directAction"
             }
             if ($button.ContainsKey("RequiredCapability")) {
-                $callbackHasEnabled = (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -and $callbackModuleText.Contains("RibbonRequiredCapabilityGetEnabled") -and $callbackModuleText.Contains([string]$button.RequiredCapability)
+                $callbackHasEnabled = (-not [string]::IsNullOrWhiteSpace($callbackModuleText)) -and $callbackModuleText.Contains([string]$spec.EnabledCallback) -and $callbackModuleText.Contains("RibbonRequiredCapabilityIsEnabledById") -and $callbackModuleText.Contains([string]$button.RequiredCapability)
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).CallbackGetEnabled.$buttonId" -Passed $callbackHasEnabled -Detail "$buttonId -> $($button.RequiredCapability)"
+                try {
+                    $enabledOffline = Run-WorkbookMacro -Excel $excel -WorkbookName $wb.Name -MacroName "modRibbonGenerated.RibbonRequiredCapabilityIsEnabledById" -Arguments @($buttonId)
+                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).DisabledOffline.$buttonId" -Passed ([bool]$enabledOffline -eq $false) -Detail "$buttonId enabled=$enabledOffline"
+                }
+                catch {
+                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).DisabledOffline.$buttonId" -Passed $false -Detail $_.Exception.Message
+                }
             }
 
             if ($button.ContainsKey("Macro") -and $button.Execute) {

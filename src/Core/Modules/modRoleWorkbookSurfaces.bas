@@ -39,10 +39,11 @@ Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workboo
     EnsureTableSurface wb, "ShipmentsTally", "BoxBOM", Array("ITEM", "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION"), True
     EnsureTableSurface wb, "ShipmentsTally", "Check_invSys", Array("ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "USED", "MADE", "SHIPMENTS", "TOTAL INV"), False
     EnsureTableSurface wb, "ShipmentsTally", "invSysData_Shipping", InventoryManagementHeadersSurface(), False
+    EnsureTableSurface wb, "ShipmentsTally", "ShippingBOMView", ShippingBomViewHeadersSurface(), False
     EnsureTableSurface wb, "AggregateBoxBOM_Log", "AggregateBoxBOM_Log", Array("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP"), False
     EnsureTableSurface wb, "AggregatePackages_Log", "AggregatePackages_Log", Array("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP"), False
     EnsureInventoryManagementSurface wb
-    EnsureWorksheetSurface wb, "ShippingBOM"
+    DeleteWorksheetSurface wb, "ShippingBOM"
     FormatWorkbookSurface wb
 
     EnsureShippingWorkbookSurface = True
@@ -126,6 +127,13 @@ Private Function InventoryManagementHeadersSurface() As Variant
         "RECEIVED", "USED", "MADE", "SHIPMENTS", "TOTAL INV", "LAST EDITED", "TOTAL INV LAST EDIT", _
         "QtyAvailable", "LocationSummary", "LastRefreshUTC", _
         "SnapshotId", "SourceType", "IsStale")
+End Function
+
+Private Function ShippingBomViewHeadersSurface() As Variant
+    ShippingBomViewHeadersSurface = Array( _
+        "PackageRow", "PackageItem", "PackageUOM", "PackageLocation", "PackageDescription", _
+        "ComponentRow", "ComponentItem", "ComponentQty", "ComponentUOM", "ComponentLocation", "ComponentDescription", _
+        "UpdatedAtUTC", "UpdatedBy")
 End Function
 
 Private Sub EnsureInventoryDomainSupportSurface(ByVal wb As Workbook)

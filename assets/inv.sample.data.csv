@@ -1,0 +1,70 @@
+﻿ROW,ITEM_CODE,VENDOR(s),VENDOR_CODE,SUBSTITUTION,CATEGORY,PHASE,ASSIGNEE,DESCRIPTION,ITEM,UOM,LOCATION
+1,ITEM-0001,,,,packaging.ship,Ship.used,Tyler,,10x10x10 S-4105,EA,CLEARVIEW
+2,ITEM-0002,,,,packaging.ship,Ship.used,Tyler,,10x10x6 S-4107,EA,CLEARVIEW
+3,ITEM-0003,,,,packaging.ship,Ship.used,Tyler,,10x6x4 S-4101,EA,CLEARVIEW
+4,ITEM-0004,,,,packaging.ship,Ship.used,Tyler,,10x8x6 S-16709,EA,CLEARVIEW
+5,ITEM-0005,,,,packaging.ship,Ship.used,Tyler,,12x10x10 S-18182,EA,CLEARVIEW
+6,ITEM-0006,,,,packaging.ship,Ship.used,Tyler,,12x10x10 S-4123,EA,CLEARVIEW
+7,ITEM-0007,,,,packaging.ship,Ship.used,Tyler,,14x10x10 4144,EA,CLEARVIEW
+8,ITEM-0008,,,,packaging.ship,Ship.used,Tyler,,14x10x10 DW S-18920,EA,CLEARVIEW
+9,ITEM-0009,,,,packaging.cook,Cook,justinwj,,28/400 Black,EA,CLEARVIEW
+10,ITEM-0010,,,,packaging.cook,Cook,justinwj,,28/400 White,EA,CLEARVIEW
+11,ITEM-0011,,,,packaging.cook,Cook,justinwj,,38/400 Black 3125/ Box,EA,CLEARVIEW
+12,ITEM-0012,,,,packaging.cook,Cook,justinwj,,38/400 White,EA,CLEARVIEW
+13,ITEM-0013,,,,packaging.cook,Cook,justinwj,,64 oz Bottles,EA,CLEARVIEW
+14,ITEM-0014,,,,packaging.cook,Cook,Bill,,64 oz Bottles,EA,HANSON
+15,ITEM-0015,,,,packaging.cook,Cook,justinwj,,8oz Bottles,EA,CLEARVIEW
+16,ITEM-0016,,,,ingredient,Cook,justinwj,,Apple Juice Concentrate,Lbs ,CLEARVIEW
+17,ITEM-0017,,,,ingredient,Cook,justinwj,,Apple Sauce ,Lbs ,CLEARVIEW
+18,ITEM-0018,,,,packaging.ship,Ship.used,Tyler,,14x12x10 S-15048,EA,CLEARVIEW
+19,ITEM-0019,,,,packaging.ship,Ship.used,Tyler,,14x12x10 S-4141,EA,CLEARVIEW
+20,ITEM-0020,,,,spice blend,Cook,justinwj,,Apple Wassail Spice Blend,OZ,CLEARVIEW
+21,ITEM-0021,,,,flavoring.ingredient,Cook,justinwj,,Apple WONF Flavoring,Lbs ,CLEARVIEW
+22,ITEM-0022,,,,spice.ingredient,Brew,justinwj,,Black Pepper (whole),Lbs ,CLEARVIEW
+23,ITEM-0023,,,,packaging.ship,Ship.used,Tyler,Not Using,18 x 12 x 10 DW S-14230,EA,CLEARVIEW
+24,ITEM-0024,,,,packaging.ship,Ship.used,Tyler,,18x12x12 S-4635,EA,CLEARVIEW
+25,ITEM-0025,,,,packaging.ship,Ship.used,Tyler,,18x1500 80ga ULINE Blown Wrap,ft,CLEARVIEW
+26,ITEM-0026,,,,sell,Cook,justinwj,,Apple Wassail ( 64 oz),EA,CLEARVIEW
+27,ITEM-0027,,,,sell,Cook,justinwj,,Apple Wassail ( 8 oz),EA,CLEARVIEW
+28,ITEM-0028,,,,color,Cook,justinwj,,Brown Color 10.5 gal,Lbs ,CLEARVIEW
+29,ITEM-0029,,,,tea,Brew,justinwj,Black tea from Africa,Bulk Tea,Lbs ,CLEARVIEW
+30,ITEM-0030,,,,spice,Brew,justinwj,,Cardamom Seed,Lbs ,CLEARVIEW
+31,ITEM-0031,,,,oil,Brew,justinwj,very nice aroma,Cassia Oil,Lbs ,CLEARVIEW
+32,ITEM-0032,,,,packaging.ship,Ship.used,Tyler,,Black Polybags,EA,CLEARVIEW
+33,ITEM-0033,,,,sell,Made.ship,justinwj,,Chai ( 8 oz),EA,CLEARVIEW
+34,ITEM-0034,,,,sell,Made.ship,justinwj,,Chai (64 oz),EA,CLEARVIEW
+35,ITEM-0035,,,,spice blend,Brew,justinwj,,Chai Spice Blend,Lbs ,CLEARVIEW
+36,ITEM-0036,,,,spice,Brew,justinwj,,Citric Acid,Lbs ,CLEARVIEW
+37,ITEM-0037,,,,spice,Brew,justinwj,,Clove (Ground),Lbs ,CLEARVIEW
+38,ITEM-0038,Cascade Spices,,,spice,Brew,justinwj,This is good for heartburn,Ginger (Ground),Lbs ,CLEARVIEW
+39,ITEM-0039,,,,sweetener,Cook,justinwj,,Honey,Lbs ,CLEARVIEW
+40,ITEM-0040,,,,sell,Ship,Tyler,,Chai 6 Pack ,EA,CLEARVIEW
+41,ITEM-0041,,,,sell,Ship,Tyler,,Chai 8 Pack ,EA,CLEARVIEW
+42,ITEM-0042,,,,oil,Brew,justinwj,,Lemon Oil 5 X,Lbs ,CLEARVIEW
+43,ITEM-0043,,,,spice,Brew,justinwj,,Nutmeg (Ground),Lbs ,CLEARVIEW
+44,ITEM-0044,,,,oil,Brew,justinwj,"make really long text for orange because nothing rimes with orange. This means orange is the most special fruit of all, totally set apart from all others and completely unique except for all the other citrus that is like, but orange is arguably the best of them and orange is the best color also.",Orange Oil,Lbs ,CLEARVIEW
+45,ITEM-0045,,,,packaging.ship,Ship.used,Tyler,,Kraft Paper,ft,CLEARVIEW
+46,ITEM-0046,,,,packaging.ship,Ship.used,Tyler,,Peanuts Biodegradable,1/4cu.ft.,CLEARVIEW
+47,ITEM-0047,,,,sell,Cook,justinwj,,Peppermint Chai (64 oz),EA,CLEARVIEW
+48,ITEM-0048,,,,oil,Brew,justinwj,,Peppermint Oil,Lbs ,CLEARVIEW
+49,ITEM-0049,,,,spice blend,Brew,justinwj,,Peppermint Spice Blend,OZ,CLEARVIEW
+50,ITEM-0050,,,,sell,Cook,justinwj,,Peppermint Chai (8 oz),EA,CLEARVIEW
+51,ITEM-0051,,,,sell,Ship.used,Tyler,,Pumps,EA,CLEARVIEW
+52,ITEM-0052,,,,packaging.ship,Ship.used,Tyler,,Tape 2X110 CLR 2MIL ,ft,CLEARVIEW
+53,ITEM-0053,C&H,7890-11,1,sweetener,Cook,justinwj,white granulated sweetener,Pure Cane Sugar,Lbs ,CLEARVIEW
+54,ITEM-0054,,,,packaging.ship,Ship.used,Tyler,,USPS Large Flat Rate,EA,CLEARVIEW
+55,ITEM-0055,,,,packaging.ship,Ship.used,Tyler,,USPS Medium Flat Rate,EA,CLEARVIEW
+56,ITEM-0056,,,,packaging.ship,Ship.used,Tyler,,USPS Regional Type A,EA,CLEARVIEW
+57,ITEM-0057,,,,packaging.ship,Ship.used,Tyler,,USPS Small Flat Rate,EA,CLEARVIEW
+58,ITEM-0058,FruitSmart,,,ingredient,Cook,justinwj,,70 Brix Apple Concentrate,Lbs ,CLEARVIEW
+59,ITEM-0059,FruitSmart,discontinued,,ingredient,Cook,justinwj,currently not available,32 Brix Apple puree,Lbs ,CLEARVIEW
+60,ITEM-0060,ZucarMex,1234-56,1,sweetener,Cook,justinwj,cloudy white granulated sweetener,Pure Cane Sugar,Lbs ,CLEARVIEW
+61,ITEM-0061,Publi Utility,,,,Cook,,used a lot but not stocked,Filtered Water,Lbs ,CLEARVIEW
+62,ITEM-0059,FruitSmart,discontinued,,ingredient,Cook,justinwj,currently not available,32 Brix Apple puree,Lbs ,HANSON
+63,ITEM-0062,,,,,,,,Chai (64 oz),EA,FLORIDA
+65,ITEM-0064,,,,shippable,,,9 bottles of 64oz chai,9-pack 64oz chai,ea,clearview
+66,ITEM-0063,,,,shippable,,,4 bottles of king size 64oz chai,4-pack 64oz Chai,ea,clearview
+67,ITEM-0065,,,,shippable,,,1 8oz sample bottle of chai,8oz chai sample bottle,ea,clearview
+68,ITEM-0066,,,,,,,Brewed Black Ted from PROCESS 1-BREWING,Brewed Black Tea,BSC-P1-1/3rd120galBBT,CLEARVIEW
+69,ITEM-0067,,,,shippable,,,two 64of BSC,2-pack,ea,CLEARVIEW
+70,ITEM-0068,,,,Cook,Cook,,chai,Black Scottie Chai Classic,60gal kettle,CLEARVIEW

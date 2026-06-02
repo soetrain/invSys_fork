@@ -7,9 +7,8 @@ Option Explicit
 '          holding subsystem, confirm/build/ship macros, logging).
 ' Notes:
 '   - Buttons are generated dynamically (similar to modTS_Received).
-'   - ShippingBOM sheet stores one ListObject per BOM (Box Name).
-'   - BOM entries store ROW/QUANTITY/UOM only; item metadata is
-'     resolved from invSys (InventoryManagement!invSys).
+'   - Shipping BOM authority is stored in the warehouse runtime workbook.
+'   - Operator workbooks carry ShippingBOMView as a read/view projection.
 '   - Hold subsystem keeps packages on NotShipped until released.
 '   - Additional confirm/build/ship routines will be implemented in
 '     subsequent iterations (placeholders provided below).
@@ -19,6 +18,7 @@ Option Explicit
 Private Const SHEET_SHIPMENTS As String = "ShipmentsTally"
 Private Const SHEET_INV As String = "InventoryManagement"
 Private Const SHEET_BOM As String = "ShippingBOM"
+Private Const SHEET_BOM_TABLES As String = "ShippingBOMTables"
 
 Private Const TABLE_SHIPMENTS As String = "ShipmentsTally"
 Private Const TABLE_NOTSHIPPED As String = "NotShipped"
@@ -27,6 +27,8 @@ Private Const TABLE_AGG_PACK As String = "AggregatePackages"
 Private Const TABLE_BOX_BUILDER As String = "BoxBuilder"
 Private Const TABLE_BOX_BOM As String = "BoxBOM"
 Private Const TABLE_CHECK_INV As String = "Check_invSys"
+Private Const TABLE_SHIPPING_BOM_VIEW As String = "ShippingBOMView"
+Private Const TABLE_CANONICAL_SHIPPING_BOM As String = "tblShippingBOM"
 Private Const COL_BOXBOM_ITEM As String = "ITEM"
 
 Private Const BTN_TOGGLE_BUILDER As String = "BTN_TOGGLE_BUILDER"
@@ -54,6 +56,7 @@ Private Const SHIP_LAYOUT_AGG_BOM_ADDR As String = "AC3"
 Private Const SHIP_LAYOUT_AGG_PACK_ADDR As String = "AK3"
 Private Const SHIP_LAYOUT_CHECK_ADDR As String = "AS3"
 Private Const SHIP_LAYOUT_INV_ADDR As String = "BC3"
+Private Const SHIP_LAYOUT_BOM_VIEW_ADDR As String = "CY3"
 
 Private mDynSearch As Object
 Private mNextInvSysRow As Long
@@ -75,7 +78,8 @@ Public Sub InitializeShipmentsUiForWorkbook(Optional ByVal targetWb As Workbook 
     ArrangeShippingSurface wb
     NormalizeShippingBootstrapArtifacts wb
     EnsureShipmentsButtons wb
-    EnsureBuilderTablesReady
+    EnsureBuilderTablesReady wb
+    RefreshShippingBomViewForWorkbook wb, surfaceReport
     modOperatorReadModel.InitializeAutoSnapshotForWorkbook wb
     If mAggDirty Then RebuildShippingAggregates
 End Sub
@@ -209,6 +213,9 @@ Private Sub ArrangeShippingSurface(ByVal wb As Workbook)
 
     Set lo = GetListObject(ws, "invSysData_Shipping")
     MoveListObjectToAddressShipping lo, SHIP_LAYOUT_INV_ADDR
+
+    Set lo = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
+    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_BOM_VIEW_ADDR
 End Sub
 
 Private Sub MoveListObjectToAddressShipping(ByVal lo As ListObject, ByVal addressText As String)
@@ -305,22 +312,21 @@ Public Sub BtnSaveBox()
         loMeta.DataBodyRange.Cells(1, cBoxRowField).Value = boxRowValue
     End If
 
-    Dim wsBOM As Worksheet: Set wsBOM = SheetExists(SHEET_BOM)
-    If wsBOM Is Nothing Then
-        MsgBox "ShippingBOM sheet not found.", vbCritical
+    Dim bomReport As String
+    If Not SaveShippingBomToRuntime(ws.Parent, boxRowValue, boxName, boxUOM, boxLoc, boxDesc, components, bomReport) Then
+        If bomReport = "" Then bomReport = "Unable to save Shipping BOM to the selected warehouse runtime."
+        MsgBox bomReport, vbCritical
         Exit Sub
     End If
-    Dim bomTable As ListObject, blockRange As Range
-    Set bomTable = EnsureBomTable(wsBOM, boxName, boxRowValue, blockRange)
-    If bomTable Is Nothing Then Exit Sub
-
-    WriteBomData bomTable, blockRange, components
-    PropagateBomMetadata wsBOM, components
+    RefreshShippingBomViewForWorkbook ws.Parent, bomReport
 
     Dim finalMsg As String
-    finalMsg = "Saved BOM '" & boxName & "' (invSys ROW " & boxRowValue & ", " & components.count & " components)."
+    finalMsg = "Saved BOM '" & boxName & "' to warehouse runtime (invSys ROW " & boxRowValue & ", " & components.count & " components)."
     If Len(syncNotes) > 0 Then
         finalMsg = finalMsg & vbCrLf & syncNotes
+    End If
+    If Len(bomReport) > 0 Then
+        finalMsg = finalMsg & vbCrLf & bomReport
     End If
     MsgBox finalMsg, vbInformation
 
@@ -328,6 +334,7 @@ Public Sub BtnSaveBox()
     ClearListObjectData loBom
     EnsureTableHasRow loMeta
     EnsureTableHasRow loBom
+    InvalidateAggregates True
     Exit Sub
 
 ErrHandler:
@@ -1283,12 +1290,102 @@ Private Sub ToggleBuilderTables(ByVal makeVisible As Boolean)
     ws.Range(ws.Columns(firstCol), ws.Columns(lastCol)).EntireColumn.Hidden = Not makeVisible
 End Sub
 
-Private Sub EnsureBuilderTablesReady()
-    Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
+Private Sub EnsureBuilderTablesReady(Optional ByVal targetWb As Workbook = Nothing)
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Set wb = ResolveShippingWorkbook(targetWb, SHEET_SHIPMENTS)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+    Set ws = WorkbookSheetExistsShipping(wb, SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Sub
+    Dim loBuilder As ListObject: Set loBuilder = GetListObject(ws, TABLE_BOX_BUILDER)
     Dim loBom As ListObject: Set loBom = GetListObject(ws, TABLE_BOX_BOM)
-    If Not loBom Is Nothing Then EnsureBoxBomEntryColumns loBom
+    If Not loBuilder Is Nothing Then NormalizeBoxBuilderTable loBuilder
+    If loBom Is Nothing Then
+        Set loBom = CreateBoxBomTable(ws, loBuilder)
+    End If
+    If Not loBom Is Nothing Then
+        EnsureBoxBomEntryColumns loBom
+        EnsureBoxBomStarterRows loBom
+    End If
 End Sub
+
+Private Sub NormalizeBoxBuilderTable(ByVal loBuilder As ListObject)
+    Dim rowIndex As Long
+
+    If loBuilder Is Nothing Then Exit Sub
+    EnsureColumnExists loBuilder, "Box Name"
+    EnsureColumnExists loBuilder, "UOM"
+    EnsureColumnExists loBuilder, "LOCATION"
+    EnsureColumnExists loBuilder, "DESCRIPTION"
+    EnsureColumnExists loBuilder, "ROW"
+    EnsureTableHasRow loBuilder
+
+    If loBuilder.DataBodyRange Is Nothing Then Exit Sub
+    For rowIndex = loBuilder.ListRows.Count To 2 Step -1
+        If TableRowIsBlankShipping(loBuilder, rowIndex) Then loBuilder.ListRows(rowIndex).Delete
+    Next rowIndex
+End Sub
+
+Private Function CreateBoxBomTable(ByVal ws As Worksheet, ByVal loBuilder As ListObject) As ListObject
+    Dim startCell As Range
+    Dim startRow As Long
+    Dim startCol As Long
+    Dim headers As Variant
+    Dim i As Long
+    Dim dataRange As Range
+    Dim lo As ListObject
+
+    If ws Is Nothing Then Exit Function
+    startRow = ws.Range(SHIP_LAYOUT_BOM_ADDR).Row
+    startCol = ws.Range(SHIP_LAYOUT_BOM_ADDR).Column
+    If Not loBuilder Is Nothing Then
+        startRow = Application.WorksheetFunction.Max(startRow, loBuilder.Range.Row + loBuilder.Range.Rows.Count + 2)
+        startCol = loBuilder.Range.Column
+    End If
+
+    headers = Array(COL_BOXBOM_ITEM, "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION")
+    Set startCell = ws.Cells(startRow, startCol)
+    For i = LBound(headers) To UBound(headers)
+        startCell.Offset(0, i - LBound(headers)).Value = headers(i)
+    Next i
+
+    Set dataRange = ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers)))
+    Set lo = ws.ListObjects.Add(xlSrcRange, dataRange, , xlYes)
+    lo.Name = TABLE_BOX_BOM
+    Set CreateBoxBomTable = lo
+End Function
+
+Private Sub EnsureBoxBomStarterRows(ByVal loBom As ListObject)
+    Const STARTER_ROWS As Long = 10
+    Dim rowCount As Long
+
+    If loBom Is Nothing Then Exit Sub
+    If loBom.DataBodyRange Is Nothing Then
+        rowCount = 0
+    Else
+        rowCount = loBom.ListRows.Count
+    End If
+    Do While rowCount < STARTER_ROWS
+        loBom.ListRows.Add
+        rowCount = rowCount + 1
+    Loop
+End Sub
+
+Private Function TableRowIsBlankShipping(ByVal lo As ListObject, ByVal rowIndex As Long) As Boolean
+    Dim cell As Range
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then
+        TableRowIsBlankShipping = True
+        Exit Function
+    End If
+    If rowIndex < 1 Or rowIndex > lo.ListRows.Count Then Exit Function
+
+    For Each cell In lo.ListRows(rowIndex).Range.Cells
+        If Trim$(NzStr(cell.Value)) <> "" Then Exit Function
+    Next cell
+    TableRowIsBlankShipping = True
+End Function
 
 Public Sub ApplyItemSelection(targetCell As Range, lo As ListObject, rowIndex As Long, _
     ByVal itemName As String, ByVal itemCode As String, ByVal itemRow As Long, _
@@ -1496,10 +1593,13 @@ Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, 
         If cLoc > 0 Then loBom.DataBodyRange.Cells(r, cLoc).Value = actualLoc
         If cDesc > 0 Then loBom.DataBodyRange.Cells(r, cDesc).Value = actualDesc
 
-        Dim entry(1 To 3) As Variant
+        Dim entry(1 To 6) As Variant
         entry(1) = partRow
         entry(2) = qty
         entry(3) = uomVal
+        entry(4) = partResolvedName
+        entry(5) = actualLoc
+        entry(6) = actualDesc
         result.Add entry
 NextComponent:
     Next
@@ -1585,6 +1685,462 @@ Private Sub AppendSyncMessage(ByRef target As String, ByVal text As String)
     Else
         target = target & vbCrLf & text
     End If
+End Sub
+
+Private Function ShippingBomHeaders() As Variant
+    ShippingBomHeaders = Array( _
+        "PackageRow", "PackageItem", "PackageUOM", "PackageLocation", "PackageDescription", _
+        "ComponentRow", "ComponentItem", "ComponentQty", "ComponentUOM", "ComponentLocation", "ComponentDescription", _
+        "UpdatedAtUTC", "UpdatedBy")
+End Function
+
+Private Function ShippingBomPackageTableHeaders() As Variant
+    ShippingBomPackageTableHeaders = Array( _
+        "ComponentRow", "ComponentItem", "ComponentQty", "ComponentUOM", "ComponentLocation", "ComponentDescription", _
+        "UpdatedAtUTC", "UpdatedBy")
+End Function
+
+Private Function SaveShippingBomToRuntime(ByVal operatorWb As Workbook, _
+                                          ByVal packageRow As Long, _
+                                          ByVal packageItem As String, _
+                                          ByVal packageUom As String, _
+                                          ByVal packageLocation As String, _
+                                          ByVal packageDescription As String, _
+                                          ByVal components As Collection, _
+                                          ByRef report As String) As Boolean
+    On Error GoTo FailSoft
+
+    Dim target As Object
+    Dim warehouseId As String
+    Dim rootPath As String
+    Dim wbBom As Workbook
+    Dim loBom As ListObject
+    Dim openedTransient As Boolean
+    Dim info As Variant
+    Dim lr As ListRow
+    Dim i As Long
+    Dim updatedAt As Date
+    Dim updatedBy As String
+
+    If packageRow <= 0 Then
+        report = "Package ROW is required before saving Shipping BOM."
+        Exit Function
+    End If
+    If components Is Nothing Then
+        report = "At least one Shipping BOM component is required."
+        Exit Function
+    End If
+    If components.Count = 0 Then
+        report = "At least one Shipping BOM component is required."
+        Exit Function
+    End If
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        report = "A connected warehouse target is required before saving Shipping BOM to the server."
+        Exit Function
+    End If
+
+    warehouseId = Trim$(target.WarehouseId)
+    rootPath = NormalizeFolderPathShipping(target.RuntimeRoot)
+    If warehouseId = "" Or rootPath = "" Then
+        report = "Selected warehouse target is missing WarehouseId or RuntimeRoot."
+        Exit Function
+    End If
+
+    Set wbBom = OpenShippingBomWorkbook(warehouseId, rootPath, True, openedTransient, report)
+    If wbBom Is Nothing Then Exit Function
+    Set loBom = EnsureShippingBomSchema(wbBom, report)
+    If loBom Is Nothing Then GoTo CleanExit
+
+    DeleteShippingBomPackageRows loBom, packageRow
+    updatedAt = Now
+    updatedBy = modRoleEventWriter.ResolveCurrentUserId()
+
+    For i = 1 To components.Count
+        info = components(i)
+        Set lr = loBom.ListRows.Add
+        SetTableCellShipping loBom, lr.Index, "PackageRow", packageRow
+        SetTableCellShipping loBom, lr.Index, "PackageItem", packageItem
+        SetTableCellShipping loBom, lr.Index, "PackageUOM", packageUom
+        SetTableCellShipping loBom, lr.Index, "PackageLocation", packageLocation
+        SetTableCellShipping loBom, lr.Index, "PackageDescription", packageDescription
+        SetTableCellShipping loBom, lr.Index, "ComponentRow", NzLng(info(1))
+        SetTableCellShipping loBom, lr.Index, "ComponentQty", NzDbl(info(2))
+        SetTableCellShipping loBom, lr.Index, "ComponentUOM", NzStr(info(3))
+        If UBound(info) >= 4 Then SetTableCellShipping loBom, lr.Index, "ComponentItem", NzStr(info(4))
+        If UBound(info) >= 5 Then SetTableCellShipping loBom, lr.Index, "ComponentLocation", NzStr(info(5))
+        If UBound(info) >= 6 Then SetTableCellShipping loBom, lr.Index, "ComponentDescription", NzStr(info(6))
+        SetTableCellShipping loBom, lr.Index, "UpdatedAtUTC", updatedAt
+        SetTableCellShipping loBom, lr.Index, "UpdatedBy", updatedBy
+    Next i
+
+    WriteShippingBomPackageTable wbBom, packageRow, packageItem, components, updatedAt, updatedBy
+    wbBom.Save
+    SaveShippingBomToRuntime = True
+    report = "Shipping BOM runtime updated: " & wbBom.FullName
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping wbBom
+    Exit Function
+
+FailSoft:
+    report = "SaveShippingBomToRuntime failed: " & Err.Description
+    Resume CleanExit
+End Function
+
+Private Function RefreshShippingBomViewForWorkbook(ByVal operatorWb As Workbook, ByRef report As String) As Boolean
+    On Error GoTo FailSoft
+
+    Dim target As Object
+    Dim warehouseId As String
+    Dim rootPath As String
+    Dim wbBom As Workbook
+    Dim loBom As ListObject
+    Dim loView As ListObject
+    Dim openedTransient As Boolean
+
+    If operatorWb Is Nothing Then Exit Function
+    Set loView = GetShippingBomViewTable(operatorWb)
+    If loView Is Nothing Then
+        report = "ShippingBOMView table was not found in the operator workbook."
+        Exit Function
+    End If
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        ClearListObjectData loView
+        report = "Shipping BOM view not refreshed: no connected warehouse target."
+        Exit Function
+    End If
+
+    warehouseId = Trim$(target.WarehouseId)
+    rootPath = NormalizeFolderPathShipping(target.RuntimeRoot)
+    If warehouseId = "" Or rootPath = "" Then
+        ClearListObjectData loView
+        report = "Shipping BOM view not refreshed: selected warehouse target is incomplete."
+        Exit Function
+    End If
+
+    Set wbBom = OpenShippingBomWorkbook(warehouseId, rootPath, False, openedTransient, report)
+    If wbBom Is Nothing Then
+        ClearListObjectData loView
+        Exit Function
+    End If
+
+    Set loBom = EnsureShippingBomSchema(wbBom, report)
+    If loBom Is Nothing Then GoTo CleanExit
+    CopyShippingBomTable loBom, loView
+    RefreshShippingBomViewForWorkbook = True
+    report = "Shipping BOM view refreshed from " & wbBom.FullName
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping wbBom
+    Exit Function
+
+FailSoft:
+    report = "RefreshShippingBomViewForWorkbook failed: " & Err.Description
+    Resume CleanExit
+End Function
+
+Private Function GetShippingBomViewTable(ByVal wb As Workbook) As ListObject
+    Dim ws As Worksheet
+
+    Set ws = WorkbookSheetExistsShipping(wb, SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Function
+    Set GetShippingBomViewTable = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
+End Function
+
+Private Function OpenShippingBomWorkbook(ByVal warehouseId As String, _
+                                         ByVal rootPath As String, _
+                                         ByVal createIfMissing As Boolean, _
+                                         ByRef openedTransient As Boolean, _
+                                         ByRef report As String) As Workbook
+    On Error GoTo FailSoft
+
+    Dim targetPath As String
+    Dim wb As Workbook
+
+    targetPath = ShippingBomWorkbookPath(warehouseId, rootPath)
+    If targetPath = "" Then
+        report = "Shipping BOM workbook path could not be resolved."
+        Exit Function
+    End If
+
+    Set wb = FindOpenWorkbookByFullNameShipping(targetPath)
+    If Not wb Is Nothing Then
+        Set OpenShippingBomWorkbook = wb
+        Exit Function
+    End If
+
+    If Len(Dir$(targetPath)) > 0 Then
+        Set wb = Application.Workbooks.Open(Filename:=targetPath, UpdateLinks:=False, ReadOnly:=False)
+        openedTransient = True
+    ElseIf createIfMissing Then
+        EnsureFolderRecursiveShipping GetParentFolderShipping(targetPath)
+        Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+        wb.Worksheets(1).Name = SHEET_BOM
+        If EnsureShippingBomSchema(wb, report) Is Nothing Then
+            CloseWorkbookNoSaveShipping wb
+            Exit Function
+        End If
+        wb.SaveAs Filename:=targetPath, FileFormat:=50
+        openedTransient = True
+    Else
+        report = "Shipping BOM runtime workbook was not found: " & targetPath
+        Exit Function
+    End If
+
+    Set OpenShippingBomWorkbook = wb
+    Exit Function
+
+FailSoft:
+    report = "OpenShippingBomWorkbook failed: " & Err.Description
+End Function
+
+Private Function EnsureShippingBomSchema(ByVal wb As Workbook, ByRef report As String) As ListObject
+    On Error GoTo FailSoft
+
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    Dim headers As Variant
+    Dim i As Long
+    Dim startCell As Range
+    Dim dataRange As Range
+
+    If wb Is Nothing Then Exit Function
+    Set ws = WorkbookSheetExistsShipping(wb, SHEET_BOM)
+    If ws Is Nothing Then
+        Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+        ws.Name = SHEET_BOM
+    End If
+
+    On Error Resume Next
+    Set lo = ws.ListObjects(TABLE_CANONICAL_SHIPPING_BOM)
+    On Error GoTo FailSoft
+
+    headers = ShippingBomHeaders()
+    If lo Is Nothing Then
+        Set startCell = ws.Range("A1")
+        For i = LBound(headers) To UBound(headers)
+            startCell.Offset(0, i - LBound(headers)).Value = headers(i)
+        Next i
+        Set dataRange = ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers)))
+        Set lo = ws.ListObjects.Add(xlSrcRange, dataRange, , xlYes)
+        lo.Name = TABLE_CANONICAL_SHIPPING_BOM
+        If Not lo.DataBodyRange Is Nothing Then lo.ListRows(1).Delete
+    End If
+
+    For i = LBound(headers) To UBound(headers)
+        EnsureColumnExists lo, CStr(headers(i))
+    Next i
+    Set EnsureShippingBomSchema = lo
+    Exit Function
+
+FailSoft:
+    report = "EnsureShippingBomSchema failed: " & Err.Description
+End Function
+
+Private Sub DeleteShippingBomPackageRows(ByVal lo As ListObject, ByVal packageRow As Long)
+    Dim cPackageRow As Long
+    Dim i As Long
+
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Sub
+    cPackageRow = ColumnIndex(lo, "PackageRow")
+    If cPackageRow = 0 Then Exit Sub
+
+    For i = lo.ListRows.Count To 1 Step -1
+        If NzLng(lo.DataBodyRange.Cells(i, cPackageRow).Value) = packageRow Then
+            lo.ListRows(i).Delete
+        End If
+    Next i
+End Sub
+
+Private Sub CopyShippingBomTable(ByVal loSource As ListObject, ByVal loTarget As ListObject)
+    Dim headers As Variant
+    Dim arr() As Variant
+    Dim r As Long
+    Dim c As Long
+    Dim sourceCol As Long
+
+    If loTarget Is Nothing Then Exit Sub
+    ClearListObjectData loTarget
+    If loSource Is Nothing Then Exit Sub
+    If loSource.DataBodyRange Is Nothing Then Exit Sub
+
+    headers = ShippingBomHeaders()
+    ReDim arr(1 To loSource.DataBodyRange.Rows.Count, 1 To UBound(headers) - LBound(headers) + 1)
+    For r = 1 To loSource.DataBodyRange.Rows.Count
+        For c = LBound(headers) To UBound(headers)
+            sourceCol = ColumnIndex(loSource, CStr(headers(c)))
+            If sourceCol > 0 Then arr(r, c - LBound(headers) + 1) = loSource.DataBodyRange.Cells(r, sourceCol).Value
+        Next c
+    Next r
+    WriteArrayToTable loTarget, arr
+End Sub
+
+Private Sub WriteShippingBomPackageTable(ByVal wbBom As Workbook, _
+                                         ByVal packageRow As Long, _
+                                         ByVal packageItem As String, _
+                                         ByVal components As Collection, _
+                                         ByVal updatedAt As Date, _
+                                         ByVal updatedBy As String)
+    On Error GoTo CleanExit
+
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    Dim headers As Variant
+    Dim arr() As Variant
+    Dim i As Long
+    Dim c As Long
+    Dim info As Variant
+
+    If wbBom Is Nothing Then Exit Sub
+    If packageRow <= 0 Then Exit Sub
+    If components Is Nothing Then Exit Sub
+    If components.Count = 0 Then Exit Sub
+
+    Set ws = WorkbookSheetExistsShipping(wbBom, SHEET_BOM_TABLES)
+    If ws Is Nothing Then
+        Set ws = wbBom.Worksheets.Add(After:=wbBom.Worksheets(wbBom.Worksheets.Count))
+        ws.Name = SHEET_BOM_TABLES
+    End If
+
+    Set lo = EnsureShippingBomPackageTable(ws, packageRow, packageItem)
+    If lo Is Nothing Then Exit Sub
+
+    headers = ShippingBomPackageTableHeaders()
+    ReDim arr(1 To components.Count, 1 To UBound(headers) - LBound(headers) + 1)
+    For i = 1 To components.Count
+        info = components(i)
+        arr(i, 1) = NzLng(info(1))
+        If UBound(info) >= 4 Then arr(i, 2) = NzStr(info(4))
+        arr(i, 3) = NzDbl(info(2))
+        arr(i, 4) = NzStr(info(3))
+        If UBound(info) >= 5 Then arr(i, 5) = NzStr(info(5))
+        If UBound(info) >= 6 Then arr(i, 6) = NzStr(info(6))
+        arr(i, 7) = updatedAt
+        arr(i, 8) = updatedBy
+    Next i
+
+    For c = LBound(headers) To UBound(headers)
+        EnsureColumnExists lo, CStr(headers(c))
+    Next c
+    WriteArrayToTable lo, arr
+
+CleanExit:
+End Sub
+
+Private Function EnsureShippingBomPackageTable(ByVal ws As Worksheet, ByVal packageRow As Long, ByVal packageItem As String) As ListObject
+    On Error GoTo FailSoft
+
+    Dim tableName As String
+    Dim lo As ListObject
+    Dim headers As Variant
+    Dim startCell As Range
+    Dim dataRange As Range
+    Dim i As Long
+
+    If ws Is Nothing Then Exit Function
+    tableName = BomTableNameFromRow(packageRow)
+
+    On Error Resume Next
+    Set lo = ws.ListObjects(tableName)
+    On Error GoTo FailSoft
+
+    headers = ShippingBomPackageTableHeaders()
+    If lo Is Nothing Then
+        Set startCell = NextShippingBomPackageTableStartCell(ws)
+        startCell.Offset(-1, 0).Value = "PackageRow"
+        startCell.Offset(-1, 1).Value = packageRow
+        startCell.Offset(-1, 2).Value = packageItem
+        For i = LBound(headers) To UBound(headers)
+            startCell.Offset(0, i - LBound(headers)).Value = headers(i)
+        Next i
+        Set dataRange = ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers)))
+        Set lo = ws.ListObjects.Add(xlSrcRange, dataRange, , xlYes)
+        lo.Name = tableName
+        If Not lo.DataBodyRange Is Nothing Then lo.ListRows(1).Delete
+    Else
+        lo.Range.Cells(1, 1).Offset(-1, 0).Value = "PackageRow"
+        lo.Range.Cells(1, 1).Offset(-1, 1).Value = packageRow
+        lo.Range.Cells(1, 1).Offset(-1, 2).Value = packageItem
+    End If
+
+    For i = LBound(headers) To UBound(headers)
+        EnsureColumnExists lo, CStr(headers(i))
+    Next i
+    Set EnsureShippingBomPackageTable = lo
+    Exit Function
+
+FailSoft:
+End Function
+
+Private Function NextShippingBomPackageTableStartCell(ByVal ws As Worksheet) As Range
+    Dim lo As ListObject
+    Dim maxRow As Long
+
+    If ws Is Nothing Then Exit Function
+    maxRow = 0
+    For Each lo In ws.ListObjects
+        If lo.Range.Row + lo.Range.Rows.Count + 1 > maxRow Then maxRow = lo.Range.Row + lo.Range.Rows.Count + 1
+    Next lo
+    If maxRow < 2 Then maxRow = 2
+    Set NextShippingBomPackageTableStartCell = ws.Cells(maxRow + 2, 1)
+End Function
+
+Private Function ShippingBomWorkbookPath(ByVal warehouseId As String, ByVal rootPath As String) As String
+    rootPath = NormalizeFolderPathShipping(rootPath)
+    warehouseId = Trim$(warehouseId)
+    If rootPath = "" Or warehouseId = "" Then Exit Function
+    ShippingBomWorkbookPath = rootPath & "\" & warehouseId & ".invSys.Data.ShippingBOM.xlsb"
+End Function
+
+Private Function NormalizeFolderPathShipping(ByVal folderPath As String) As String
+    NormalizeFolderPathShipping = Trim$(folderPath)
+    Do While Len(NormalizeFolderPathShipping) > 1 And Right$(NormalizeFolderPathShipping, 1) = "\"
+        NormalizeFolderPathShipping = Left$(NormalizeFolderPathShipping, Len(NormalizeFolderPathShipping) - 1)
+    Loop
+End Function
+
+Private Function GetParentFolderShipping(ByVal fullPath As String) As String
+    Dim pos As Long
+
+    pos = InStrRev(fullPath, "\")
+    If pos > 0 Then GetParentFolderShipping = Left$(fullPath, pos - 1)
+End Function
+
+Private Sub EnsureFolderRecursiveShipping(ByVal folderPath As String)
+    If Trim$(folderPath) = "" Then Exit Sub
+    modDeploymentPaths.EnsureFolderRecursiveManaged folderPath
+End Sub
+
+Private Function FindOpenWorkbookByFullNameShipping(ByVal fullPath As String) As Workbook
+    Dim wb As Workbook
+
+    For Each wb In Application.Workbooks
+        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 Then
+            Set FindOpenWorkbookByFullNameShipping = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Sub CloseWorkbookNoSaveShipping(ByVal wb As Workbook)
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    wb.Close SaveChanges:=False
+    On Error GoTo 0
+End Sub
+
+Private Sub SetTableCellShipping(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal value As Variant)
+    Dim idx As Long
+
+    If lo Is Nothing Then Exit Sub
+    If rowIndex <= 0 Or rowIndex > lo.ListRows.Count Then Exit Sub
+    idx = ColumnIndex(lo, columnName)
+    If idx = 0 Then Exit Sub
+    lo.DataBodyRange.Cells(rowIndex, idx).Value = value
 End Sub
 
 Private Function EnsureBomTable(ws As Worksheet, ByVal boxName As String, ByVal boxRow As Long, ByRef blockRange As Range) As ListObject
@@ -2361,7 +2917,22 @@ Private Function BuildBomSummary(pkgDict As Object, rowCache As Object) As Objec
         Exit Function
     End If
 
-    Dim wsBOM As Worksheet: Set wsBOM = SheetExists(SHEET_BOM)
+    Dim wsShip As Worksheet
+    Dim loView As ListObject
+    Dim refreshReport As String
+
+    Set wsShip = SheetExists(SHEET_SHIPMENTS)
+    If Not wsShip Is Nothing Then
+        Set loView = GetListObject(wsShip, TABLE_SHIPPING_BOM_VIEW)
+        If Not loView Is Nothing Then
+            If loView.DataBodyRange Is Nothing Then RefreshShippingBomViewForWorkbook wsShip.Parent, refreshReport
+            If Not loView.DataBodyRange Is Nothing Then
+                Set BuildBomSummary = BuildBomSummaryFromBomRows(pkgDict, rowCache, loView)
+                Exit Function
+            End If
+        End If
+    End If
+
     Dim key As Variant
     For Each key In pkgDict.Keys
         Dim pkgInfo As Object: Set pkgInfo = pkgDict(key)
@@ -2417,6 +2988,79 @@ NextComponent:
 NextPkg:
     Next key
     Set BuildBomSummary = dict
+End Function
+
+Private Function BuildBomSummaryFromBomRows(pkgDict As Object, rowCache As Object, loBomRows As ListObject) As Object
+    Dim dict As Object: Set dict = CreateObject("Scripting.Dictionary")
+    If pkgDict Is Nothing Or loBomRows Is Nothing Then
+        Set BuildBomSummaryFromBomRows = dict
+        Exit Function
+    End If
+    If pkgDict.Count = 0 Or loBomRows.DataBodyRange Is Nothing Then
+        Set BuildBomSummaryFromBomRows = dict
+        Exit Function
+    End If
+
+    Dim cPackageRow As Long: cPackageRow = ColumnIndex(loBomRows, "PackageRow")
+    Dim cComponentRow As Long: cComponentRow = ColumnIndex(loBomRows, "ComponentRow")
+    Dim cComponentQty As Long: cComponentQty = ColumnIndex(loBomRows, "ComponentQty")
+    Dim cComponentUom As Long: cComponentUom = ColumnIndex(loBomRows, "ComponentUOM")
+    If cPackageRow = 0 Or cComponentRow = 0 Or cComponentQty = 0 Then
+        Set BuildBomSummaryFromBomRows = dict
+        Exit Function
+    End If
+
+    Dim arr As Variant
+    arr = loBomRows.DataBodyRange.Value
+
+    Dim r As Long
+    For r = 1 To UBound(arr, 1)
+        Dim pkgRow As Long: pkgRow = NzLng(arr(r, cPackageRow))
+        Dim pkgKey As String: pkgKey = CStr(pkgRow)
+        If pkgRow = 0 Then GoTo NextBomRow
+        If Not pkgDict.Exists(pkgKey) Then GoTo NextBomRow
+
+        Dim pkgInfo As Object: Set pkgInfo = pkgDict(pkgKey)
+        Dim pkgQty As Double: pkgQty = NzDbl(infovalue(pkgInfo, "QTY"))
+        If pkgQty <= 0 Then GoTo NextBomRow
+
+        Dim compRow As Long: compRow = NzLng(arr(r, cComponentRow))
+        Dim bomQty As Double: bomQty = NzDbl(arr(r, cComponentQty))
+        If compRow = 0 Or bomQty = 0 Then GoTo NextBomRow
+
+        Dim totalUse As Double: totalUse = bomQty * pkgQty
+        If totalUse = 0 Then GoTo NextBomRow
+
+        Dim compKey As String: compKey = CStr(compRow)
+        Dim info As Object
+        If dict.Exists(compKey) Then
+            Set info = dict(compKey)
+        Else
+            Set info = CreateObject("Scripting.Dictionary")
+            info("ROW") = compRow
+            Dim invInfo As Object
+            If Not rowCache Is Nothing Then
+                If rowCache.Exists(compKey) Then Set invInfo = rowCache(compKey)
+            End If
+            If Not invInfo Is Nothing Then
+                info("ITEM") = NzStr(infovalue(invInfo, "ITEM"))
+                info("UOM") = NzStr(infovalue(invInfo, "UOM"))
+            Else
+                info("ITEM") = ""
+                info("UOM") = ""
+            End If
+            info("QTY") = 0#
+            dict.Add compKey, info
+        End If
+        info("QTY") = NzDbl(info("QTY")) + totalUse
+        If cComponentUom > 0 Then
+            Dim bomUom As String: bomUom = NzStr(arr(r, cComponentUom))
+            If bomUom <> "" Then info("UOM") = bomUom
+        End If
+NextBomRow:
+    Next r
+
+    Set BuildBomSummaryFromBomRows = dict
 End Function
 
 Private Sub WriteAggregatePackages(lo As ListObject, pkgDict As Object)

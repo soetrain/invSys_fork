@@ -87,12 +87,14 @@ Public Function TestEnsureShippingWorkbookSurface_CreatesExpectedTables() As Lon
        And HasTable(wb, "AggregatePackages_Log") _
        And HasTable(wb, "Check_invSys") _
        And HasTable(wb, "invSys") _
-       And WorksheetExists(wb, "ShippingBOM") _
+       And HasTable(wb, "ShippingBOMView") _
+       And Not WorksheetExists(wb, "ShippingBOM") _
        And TableHasColumns(wb, "ShipmentsTally", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION")) _
        And TableHasColumns(wb, "BoxBuilder", Array("Box Name", "UOM", "LOCATION", "DESCRIPTION", "ROW")) _
        And TableHasColumns(wb, "BoxBOM", Array("ITEM", "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION")) _
        And TableHasColumns(wb, "AggregatePackages", Array("ROW", "ITEM_CODE", "ITEM", "QUANTITY", "UOM", "LOCATION")) _
        And TableHasColumns(wb, "invSysData_Shipping", Array("ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION")) _
+       And TableHasColumns(wb, "ShippingBOMView", Array("PackageRow", "PackageItem", "ComponentRow", "ComponentQty", "UpdatedAtUTC", "UpdatedBy")) _
        And TableHasColumns(wb, "AggregateBoxBOM_Log", Array("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP")) _
        And TableHasColumns(wb, "AggregatePackages_Log", Array("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP")) Then
         TestEnsureShippingWorkbookSurface_CreatesExpectedTables = 1
@@ -183,13 +185,17 @@ Public Function TestEnsureShippingWorkbookSurface_RecreatesDeletedArtifacts() As
     If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wb, report) Then GoTo CleanExit
 
     DeleteTablePhase6 wb, "BoxBuilder"
+    DeleteTablePhase6 wb, "BoxBOM"
     DeleteTablePhase6 wb, "AggregatePackages_Log"
-    DeleteWorksheetPhase6 wb, "ShippingBOM"
+    DeleteTablePhase6 wb, "ShippingBOMView"
 
     If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wb, report) Then GoTo CleanExit
     If HasTable(wb, "BoxBuilder") _
+       And HasTable(wb, "BoxBOM") _
        And HasTable(wb, "AggregatePackages_Log") _
-       And WorksheetExists(wb, "ShippingBOM") Then
+       And HasTable(wb, "ShippingBOMView") _
+       And TableHasColumns(wb, "BoxBOM", Array("ITEM", "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION")) _
+       And Not WorksheetExists(wb, "ShippingBOM") Then
         TestEnsureShippingWorkbookSurface_RecreatesDeletedArtifacts = 1
     End If
 

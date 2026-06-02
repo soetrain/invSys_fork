@@ -71,8 +71,7 @@ Public Function LoadAuth(Optional ByVal whId As String = "") As Boolean
     LoadUsers loUsers
     LoadCapabilities loCaps
 
-    mCacheTtlSeconds = modConfig.GetLong("AuthCacheTTLSeconds", 300)
-    If mCacheTtlSeconds <= 0 Then mCacheTtlSeconds = 300
+    mCacheTtlSeconds = NormalizeAuthCacheTtlSeconds(modConfig.GetLong("AuthCacheTTLSeconds", 28800))
     mLoadedAt = Now
 
     If CountFatalIssues() > 0 Then GoTo FailSoft
@@ -311,7 +310,7 @@ Public Function IsSignedIn() As Boolean
         Exit Function
     End If
     If mCurrentAuthStatus <> AUTH_OK Then Exit Function
-    If mCacheTtlSeconds <= 0 Then mCacheTtlSeconds = 300
+    mCacheTtlSeconds = NormalizeAuthCacheTtlSeconds(mCacheTtlSeconds)
     If DateDiff("s", mSignedInAt, Now) > mCacheTtlSeconds Then
         SetAuthSessionStatus AUTH_REAUTH_REQUIRED
         Exit Function
@@ -726,7 +725,7 @@ Private Sub InitializeState()
     mAuthWorkbook = vbNullString
     mIsLoaded = False
     mLoadedAt = 0
-    mCacheTtlSeconds = 300
+    mCacheTtlSeconds = 28800
 End Sub
 
 Private Function EnsureFreshCache() As Boolean
@@ -743,6 +742,14 @@ End Function
 Private Sub SetAuthSessionStatus(ByVal statusCode As AuthStatusCode)
     mCurrentAuthStatus = statusCode
 End Sub
+
+Private Function NormalizeAuthCacheTtlSeconds(ByVal ttlSeconds As Long) As Long
+    If ttlSeconds <= 0 Or ttlSeconds = 300 Then
+        NormalizeAuthCacheTtlSeconds = 28800
+    Else
+        NormalizeAuthCacheTtlSeconds = ttlSeconds
+    End If
+End Function
 
 Private Sub SetAuthFailureStatus(ByVal statusCode As AuthStatusCode)
     If mCurrentUserId <> "" And mCurrentAuthStatus = AUTH_OK Then Exit Sub

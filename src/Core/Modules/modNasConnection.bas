@@ -253,8 +253,13 @@ Public Function SelectWarehouseTarget(ByVal hubRoot As String, _
         Exit Function
     End If
 
-    configPath = FindFirstWorkbookNas(runtimeRoot, "*.invsys.config.xls*")
+    configPath = FindCompleteRuntimeConfigNas(runtimeRoot)
     If configPath = "" Then
+        If FindFirstWorkbookNas(runtimeRoot, "*.invsys.config.xls*") <> "" Then
+            SetStatusNas WH_AUTH_NOT_FOUND, "Warehouse auth workbook matching config was not found."
+            SelectWarehouseTarget = WH_AUTH_NOT_FOUND
+            Exit Function
+        End If
         SetStatusNas NAS_ROOT_NO_CONFIG, "Warehouse config workbook was not found."
         SelectWarehouseTarget = NAS_ROOT_NO_CONFIG
         Exit Function
@@ -272,8 +277,8 @@ Public Function SelectWarehouseTarget(ByVal hubRoot As String, _
         Exit Function
     End If
 
-    authPath = runtimeRoot & "\" & whId & ".invSys.Auth.xlsb"
-    If Not WorkbookReadableNas(authPath) Then
+    authPath = FindWarehouseWorkbookNas(runtimeRoot, whId, "Auth")
+    If authPath = "" Or Not WorkbookReadableNas(authPath) Then
         SetStatusNas WH_AUTH_NOT_FOUND, "Warehouse auth workbook was not readable."
         SelectWarehouseTarget = WH_AUTH_NOT_FOUND
         Exit Function
@@ -734,8 +739,72 @@ CleanFail:
 End Function
 
 Private Function RuntimeLooksCompleteNas(ByVal runtimeRoot As String) As Boolean
-    RuntimeLooksCompleteNas = (FindFirstWorkbookNas(runtimeRoot, "*.invsys.config.xls*") <> "") And _
-                              (FindFirstWorkbookNas(runtimeRoot, "*.invsys.auth.xls*") <> "")
+    RuntimeLooksCompleteNas = (FindCompleteRuntimeConfigNas(runtimeRoot) <> "")
+End Function
+
+Private Function FindCompleteRuntimeConfigNas(ByVal runtimeRoot As String) As String
+    Dim fileName As String
+    Dim whId As String
+
+    On Error GoTo CleanFail
+    runtimeRoot = NormalizeFolderNas(runtimeRoot)
+    If runtimeRoot = "" Then Exit Function
+
+    fileName = Dir$(runtimeRoot & "\*.invsys.config.xls*", vbNormal)
+    Do While fileName <> ""
+        whId = RuntimeWorkbookWarehouseIdFromNameNas(fileName, "Config")
+        If whId <> "" Then
+            If FindWarehouseWorkbookNas(runtimeRoot, whId, "Auth") <> "" Then
+                FindCompleteRuntimeConfigNas = runtimeRoot & "\" & fileName
+                Exit Function
+            End If
+        End If
+        fileName = Dir$
+    Loop
+    Exit Function
+
+CleanFail:
+    FindCompleteRuntimeConfigNas = vbNullString
+End Function
+
+Private Function FindWarehouseWorkbookNas(ByVal runtimeRoot As String, _
+                                          ByVal warehouseId As String, _
+                                          ByVal artifactName As String) As String
+    Dim extensions As Variant
+    Dim ext As Variant
+    Dim candidatePath As String
+
+    On Error GoTo CleanFail
+    runtimeRoot = NormalizeFolderNas(runtimeRoot)
+    warehouseId = Trim$(warehouseId)
+    artifactName = Trim$(artifactName)
+    If runtimeRoot = "" Or warehouseId = "" Or artifactName = "" Then Exit Function
+
+    extensions = Array("xlsb", "xlsm", "xlsx", "xls")
+    For Each ext In extensions
+        candidatePath = runtimeRoot & "\" & warehouseId & ".invSys." & artifactName & "." & CStr(ext)
+        If FileExistsNas(candidatePath) Then
+            FindWarehouseWorkbookNas = candidatePath
+            Exit Function
+        End If
+    Next ext
+    Exit Function
+
+CleanFail:
+    FindWarehouseWorkbookNas = vbNullString
+End Function
+
+Private Function RuntimeWorkbookWarehouseIdFromNameNas(ByVal fileName As String, ByVal artifactName As String) As String
+    Dim marker As String
+    Dim markerPos As Long
+
+    fileName = Trim$(fileName)
+    artifactName = Trim$(artifactName)
+    If fileName = "" Or artifactName = "" Then Exit Function
+
+    marker = ".invsys." & LCase$(artifactName) & "."
+    markerPos = InStr(1, LCase$(fileName), marker, vbTextCompare)
+    If markerPos > 1 Then RuntimeWorkbookWarehouseIdFromNameNas = Left$(fileName, markerPos - 1)
 End Function
 
 Private Function FindFirstWorkbookNas(ByVal folderPath As String, ByVal likePattern As String) As String
@@ -974,6 +1043,18 @@ Private Function FolderExistsNas(ByVal folderPath As String) As Boolean
 
 CleanFail:
     FolderExistsNas = False
+End Function
+
+Private Function FileExistsNas(ByVal filePath As String) As Boolean
+    On Error GoTo CleanFail
+    Err.Clear
+    filePath = NormalizeFolderNas(filePath)
+    If filePath = "" Then Exit Function
+    FileExistsNas = ((GetAttr(filePath) And vbDirectory) = 0)
+    Exit Function
+
+CleanFail:
+    FileExistsNas = False
 End Function
 
 Private Function FindOpenWorkbookNas(ByVal fullNameIn As String) As Workbook

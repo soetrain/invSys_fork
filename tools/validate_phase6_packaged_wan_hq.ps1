@@ -340,7 +340,7 @@ function New-ConfigWorkbook {
         "PathSharePointRoot" = $ShareRoot
         "DesignsEnabled" = $false
         "PoisonRetryMax" = 3
-        "AuthCacheTTLSeconds" = 300
+        "AuthCacheTTLSeconds" = 28800
         "ProcessorServiceUserId" = "svc_processor"
         "FF_DesignsEnabled" = $false
         "FF_OutlookAlerts" = $false

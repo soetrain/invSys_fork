@@ -1,14 +1,23 @@
 # Phase 6 Ribbon Generation Contract Results
 
-- Date: 2026-06-01 18:24:58
-- Passed: 32
+- Date: 2026-06-02 12:20:17
+- Passed: 42
 - Failed: 0
 
 | Check | Result | Detail |
 |---|---|---|
-| Build.GetEnabledXml | PASS | RequiredCapability buttons emit getEnabled. |
+| Build.GetEnabledXml | PASS | RequiredCapability buttons emit configured getEnabled callbacks. |
+| Build.GetEnabledUniqueNames | PASS | Each XLAM ribbon has a unique getEnabled callback name. |
 | Build.GetEnabledCallback | PASS | Generated callback exists. |
+| Build.GetEnabledCallbackRibbonCompatible | PASS | Generated getEnabled callback uses Ribbon-compatible Variant ByRef result. |
+| Build.GetEnabledByIdHelper | PASS | Generated getEnabled callback delegates to a testable control-id helper. |
+| Build.GetEnabledByIdHelperExitsFunction | PASS | Generated getEnabled helper exits as a Function. |
 | Build.GetEnabledCached | PASS | Ribbon getEnabled uses cached auth/target state. |
+| Build.GetEnabledFailsClosed | PASS | Ribbon getEnabled callbacks fail closed so gated buttons gray out. |
+| Build.RibbonOnLoadInvalidates | PASS | Ribbon onLoad forces Excel to query enabled state immediately. |
+| Build.ActionRequireCached | PASS | Ribbon actions use cached auth/target state before running macros. |
+| Build.ActionCallbackExitsSub | PASS | Generated ribbon action callbacks exit as Sub procedures. |
+| Build.StubFormsDropAllAttributes | PASS | Stubbed userforms drop exported Attribute lines before AddFromString. |
 | Build.ReceivingCapability | PASS | Receiving buttons declare capability. |
 | Build.ShippingCapability | PASS | Shipping buttons declare capability. |
 | Build.ProductionCapability | PASS | Production buttons declare capability. |
@@ -34,7 +43,8 @@
 | Core.SendToSuppressesLocalFallbackWhenConnected | PASS | Send To suppresses default/local runtime noise while a NAS root is connected. |
 | Core.RibbonFullInvalidate | PASS | Auth/storage changes refresh enabled callbacks. |
 | Validator.ButtonGetEnabledRead | PASS | Packaged validator reads getEnabled. |
-| Validator.ButtonGetEnabledAssert | PASS | Packaged validator asserts getEnabled on required buttons. |
+| Validator.ButtonGetEnabledAssert | PASS | Packaged validator asserts each required button uses its ribbon-specific getEnabled callback. |
 | Validator.CallbackGetEnabledAssert | PASS | Packaged validator asserts callback capability mapping. |
+| Validator.DisabledOfflineAssert | PASS | Packaged validator executes getEnabled helper and asserts gated buttons are disabled before access. |
 | Validator.DirectActionAssert | PASS | Packaged validator asserts direct ribbon actions. |
 | Validator.StatusLabelAssert | PASS | Packaged validator asserts server status labels. |

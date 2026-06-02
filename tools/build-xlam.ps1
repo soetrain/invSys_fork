@@ -348,7 +348,7 @@ function Get-StubUserFormCode {
             continue
         }
 
-        if ($line -match '^Attribute VB_') {
+        if ($line -match '^Attribute ') {
             continue
         }
 
@@ -398,11 +398,19 @@ function Add-RibbonCallbacksModule {
         return
     }
 
+    $enabledCallbackName = "RibbonRequiredCapabilityGetEnabled"
+    if ($RibbonConfig.ContainsKey("EnabledCallbackName") -and -not [string]::IsNullOrWhiteSpace($RibbonConfig.EnabledCallbackName)) {
+        $enabledCallbackName = [string]$RibbonConfig.EnabledCallbackName
+    }
+
     $lines = New-Object System.Collections.Generic.List[string]
     [void]$lines.Add("Option Explicit")
     [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonOnLoad(ribbon As IRibbonUI)")
+    [void]$lines.Add("    On Error Resume Next")
     [void]$lines.Add("    modRibbonRuntimeStatus.RegisterRibbonUi ribbon")
+    [void]$lines.Add("    ribbon.Invalidate")
+    [void]$lines.Add("    On Error GoTo 0")
     [void]$lines.Add("End Sub")
     [void]$lines.Add("")
     [void]$lines.Add("Public Sub " + $RibbonConfig.CallbackName + "(control As IRibbonControl)")
@@ -413,7 +421,7 @@ function Add-RibbonCallbacksModule {
         foreach ($button in $group.Buttons) {
             [void]$lines.Add(("        Case ""{0}""" -f $button.Id))
             if ($button.ContainsKey("RequiredCapability") -and -not [string]::IsNullOrWhiteSpace($button.RequiredCapability)) {
-                [void]$lines.Add(("            If Not modRoleUiAccess.RequireCurrentUserCapability(""{0}"", ""Current user does not have {0} for this warehouse/station."") Then Exit Sub" -f $button.RequiredCapability))
+                [void]$lines.Add(("            If Not modRoleUiAccess.RequireCurrentUserCapabilityCached(""{0}"", ""Current user does not have {0} for this warehouse/station."") Then Exit Sub" -f $button.RequiredCapability))
             }
             if ($button.ContainsKey("DirectAction") -and -not [string]::IsNullOrWhiteSpace($button.DirectAction)) {
                 [void]$lines.Add(("            {0}" -f $button.DirectAction))
@@ -437,6 +445,10 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetServerStatusLabel(control.ID)")
     [void]$lines.Add("End Sub")
     [void]$lines.Add("")
+    [void]$lines.Add("Public Sub RibbonAccessStatusGetLabel(control As IRibbonControl, ByRef returnedVal)")
+    [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetAccessStatusLabel(control.ID)")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonRuntimeStatusRefresh(control As IRibbonControl)")
     [void]$lines.Add("    modRibbonRuntimeStatus.RefreshRuntimeContext")
     [void]$lines.Add("End Sub")
@@ -452,20 +464,33 @@ function Add-RibbonCallbacksModule {
     [void]$lines.Add("    End If")
     [void]$lines.Add("End Sub")
     [void]$lines.Add("")
-    [void]$lines.Add("Public Sub RibbonRequiredCapabilityGetEnabled(control As IRibbonControl, ByRef returnedVal)")
-    [void]$lines.Add("    Select Case control.ID")
+    [void]$lines.Add("Public Sub " + $enabledCallbackName + "(control As IRibbonControl, ByRef returnedVal As Variant)")
+    [void]$lines.Add("    On Error GoTo Disabled")
+    [void]$lines.Add("    returnedVal = CBool(RibbonRequiredCapabilityIsEnabledById(control.ID))")
+    [void]$lines.Add("    Exit Sub")
+    [void]$lines.Add("Disabled:")
+    [void]$lines.Add("    returnedVal = False")
+    [void]$lines.Add("End Sub")
+    [void]$lines.Add("")
+    [void]$lines.Add("Public Function RibbonRequiredCapabilityIsEnabledById(ByVal controlId As String) As Boolean")
+    [void]$lines.Add("    On Error GoTo Disabled")
+    [void]$lines.Add("    RibbonRequiredCapabilityIsEnabledById = False")
+    [void]$lines.Add("    Select Case controlId")
     foreach ($group in $RibbonConfig.Groups) {
         foreach ($button in $group.Buttons) {
             if ($button.ContainsKey("RequiredCapability") -and -not [string]::IsNullOrWhiteSpace($button.RequiredCapability)) {
                 [void]$lines.Add(("        Case ""{0}""" -f $button.Id))
-                [void]$lines.Add(("            returnedVal = modRoleUiAccess.CanCurrentUserPerformCapabilityCached(""{0}"")" -f $button.RequiredCapability))
+                [void]$lines.Add(("            RibbonRequiredCapabilityIsEnabledById = modRoleUiAccess.CanCurrentUserPerformCapabilityCached(""{0}"")" -f $button.RequiredCapability))
             }
         }
     }
     [void]$lines.Add("        Case Else")
-    [void]$lines.Add("            returnedVal = True")
+    [void]$lines.Add("            RibbonRequiredCapabilityIsEnabledById = True")
     [void]$lines.Add("    End Select")
-    [void]$lines.Add("End Sub")
+    [void]$lines.Add("    Exit Function")
+    [void]$lines.Add("Disabled:")
+    [void]$lines.Add("    RibbonRequiredCapabilityIsEnabledById = False")
+    [void]$lines.Add("End Function")
     [void]$lines.Add("")
     [void]$lines.Add("Public Sub RibbonWarehouseGetItemCount(control As IRibbonControl, ByRef returnedVal)")
     [void]$lines.Add("    returnedVal = modRibbonRuntimeStatus.GetWarehouseTargetCount()")
@@ -498,6 +523,11 @@ function Get-RibbonXml {
     }
 
     $xml = New-Object System.Text.StringBuilder
+    $enabledCallbackName = "RibbonRequiredCapabilityGetEnabled"
+    if ($RibbonConfig.ContainsKey("EnabledCallbackName") -and -not [string]::IsNullOrWhiteSpace($RibbonConfig.EnabledCallbackName)) {
+        $enabledCallbackName = [string]$RibbonConfig.EnabledCallbackName
+    }
+
     [void]$xml.AppendLine("<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>")
     [void]$xml.AppendLine("<customUI xmlns=""http://schemas.microsoft.com/office/2006/01/customui"" onLoad=""RibbonOnLoad"">")
     [void]$xml.AppendLine("  <ribbon startFromScratch=""false"">")
@@ -526,7 +556,7 @@ function Get-RibbonXml {
             }
             $enabledXml = ""
             if ($button.ContainsKey("RequiredCapability") -and -not [string]::IsNullOrWhiteSpace($button.RequiredCapability)) {
-                $enabledXml = ' getEnabled="RibbonRequiredCapabilityGetEnabled"'
+                $enabledXml = (' getEnabled="{0}"' -f $enabledCallbackName)
             }
             [void]$xml.AppendLine(("          <button id=""{0}""{1} size=""large"" showImage=""{2}""{3}{4}{5} onAction=""{6}""/>" -f $button.Id, $labelXml, $showImage, $imageXml, $screentipXml, $enabledXml, $RibbonConfig.CallbackName))
         }
@@ -705,6 +735,7 @@ $projectMap = @(
             TabId  = "tabInvSysReceiving"
             Label  = "invSys Receiving"
             CallbackName = "RibbonOnActionReceiving"
+            EnabledCallbackName = "RibbonRequiredCapabilityGetEnabledReceiving"
             Groups = @(
                 @{
                     Id      = "grpReceivingActions"
@@ -739,7 +770,8 @@ $projectMap = @(
                         @{ Id = "btnReceivingRedo"; Label = "Redo"; Macro = "modTS_Received.MacroRedo"; ImageMso = "Redo"; RequiredCapability = "RECEIVE_POST" }
                     )
                     StatusLabels = @(
-                        @{ Id = "lblReceivingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
+                        @{ Id = "lblReceivingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" },
+                        @{ Id = "lblReceivingAccessStatus"; GetLabel = "RibbonAccessStatusGetLabel" }
                     )
                 }
             )
@@ -752,12 +784,13 @@ $projectMap = @(
         LegacyOutputFiles = @()
         SourceDirs = @((Join-Path $repo "src/Shipping"))
         References = @("Core", "InventoryDomain")
-        Sheets     = @("ShipmentsTally", "InventoryManagement", "ShippingBOM")
+        Sheets     = @("ShipmentsTally", "InventoryManagement")
         AddVbideReference = $false
         Ribbon     = @{
             TabId  = "tabInvSysShipping"
             Label  = "invSys Shipping"
             CallbackName = "RibbonOnActionShipping"
+            EnabledCallbackName = "RibbonRequiredCapabilityGetEnabledShipping"
             Groups = @(
                 @{
                     Id      = "grpShippingSetup"
@@ -794,7 +827,8 @@ $projectMap = @(
                         @{ Id = "btnShippingReturnHold"; Label = "Return From Hold"; Macro = "modTS_Shipments.BtnReturnHold"; ImageMso = "Paste"; RequiredCapability = "SHIP_POST" }
                     )
                     StatusLabels = @(
-                        @{ Id = "lblShippingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
+                        @{ Id = "lblShippingServerStatus"; GetLabel = "RibbonServerStatusGetLabel" },
+                        @{ Id = "lblShippingAccessStatus"; GetLabel = "RibbonAccessStatusGetLabel" }
                     )
                 }
                 @{
@@ -824,6 +858,7 @@ $projectMap = @(
             TabId  = "tabInvSysProduction"
             Label  = "invSys Production"
             CallbackName = "RibbonOnActionProduction"
+            EnabledCallbackName = "RibbonRequiredCapabilityGetEnabledProduction"
             Groups = @(
                 @{
                     Id      = "grpProductionSetup"
@@ -857,7 +892,8 @@ $projectMap = @(
                         @{ Id = "btnProductionShow"; Label = "Show System"; Macro = "mProduction.BtnShowSystem"; ImageMso = "FileOpen"; RequiredCapability = "PROD_POST" }
                     )
                     StatusLabels = @(
-                        @{ Id = "lblProductionServerStatus"; GetLabel = "RibbonServerStatusGetLabel" }
+                        @{ Id = "lblProductionServerStatus"; GetLabel = "RibbonServerStatusGetLabel" },
+                        @{ Id = "lblProductionAccessStatus"; GetLabel = "RibbonAccessStatusGetLabel" }
                     )
                 }
                 @{
@@ -902,23 +938,28 @@ $projectMap = @(
             TabId  = "tabInvSysAdmin"
             Label  = "invSys Admin"
             CallbackName = "RibbonOnActionAdmin"
+            EnabledCallbackName = "RibbonRequiredCapabilityGetEnabledAdmin"
             Groups = @(
                 @{
                     Id      = "grpAdminActions"
                     Label   = "Actions"
                     Buttons = @(
-                        @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; ImageMso = "FileOpen" },
+                        @{ Id = "btnAdminOpen"; Label = "Admin Console"; Macro = "modAdmin.Admin_Click"; ImageMso = "FileOpen"; RequiredCapability = "ADMIN_MAINT" },
                         @{ Id = "btnAdminConnectServer"; Label = "Connect Server"; DirectAction = "modRoleEventWriter.ConnectWarehouseStorageForCapability ""ADMIN_MAINT"""; ImageMso = "FileOpen"; Screentip = "Connect to warehouse storage" },
                         @{ Id = "btnAdminCurrentUser"; Label = "Sign In"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""ADMIN_MAINT"""; ImageMso = "AddressBook"; Screentip = "Sign in as an invSys user" },
                         @{ Id = "btnAdminSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; ImageMso = "Clear"; Screentip = "Sign out of invSys without disconnecting storage" },
-                        @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; ImageMso = "FileOpen" },
-                        @{ Id = "btnAdminWarehouses"; Label = "View Warehouses"; Macro = "modAdmin.Open_WarehouseDirectory"; ImageMso = "TablePropertiesDialog" },
-                        @{ Id = "btnAdminWarehouseRoot"; Label = "Add Warehouse Root"; Macro = "modAdmin.Add_WarehouseDirectoryRoot"; ImageMso = "Folder" },
-                        @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; ImageMso = "FileNew" },
-                        @{ Id = "btnAdminSetupTesterStation"; Label = "Setup Tester Station"; Macro = "modAdmin.Admin_SetupTesterStation_Click"; ImageMso = "CreateForm" },
-                        @{ Id = "btnAdminSeedInventory"; Label = "Seed Demo Inventory"; Macro = "modAdmin.Seed_DemoInventory"; ImageMso = "TableInsertRowsAbove" },
-                        @{ Id = "btnAdminVerifyAddinsPublished"; Label = "Verify Add-ins Published"; Macro = "modAdmin.Verify_AddinsPublished"; ImageMso = "FileDocumentInspect" },
-                        @{ Id = "btnAdminRetireMigrateWarehouse"; Label = "Retire / Migrate Warehouse"; Macro = "modAdmin.Admin_RetireMigrateWarehouse_Click"; ImageMso = "DeleteSite"; Screentip = "Archive, migrate, retire, or delete a warehouse runtime" }
+                        @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; ImageMso = "FileOpen"; RequiredCapability = "ADMIN_MAINT" },
+                        @{ Id = "btnAdminWarehouses"; Label = "View Warehouses"; Macro = "modAdmin.Open_WarehouseDirectory"; ImageMso = "TablePropertiesDialog"; RequiredCapability = "ADMIN_MAINT" },
+                        @{ Id = "btnAdminWarehouseRoot"; Label = "Add Warehouse Root"; Macro = "modAdmin.Add_WarehouseDirectoryRoot"; ImageMso = "Folder"; RequiredCapability = "ADMIN_MAINT" },
+                        @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; ImageMso = "FileNew"; RequiredCapability = "ADMIN_MAINT" },
+                        @{ Id = "btnAdminSetupTesterStation"; Label = "Setup Tester Station"; Macro = "modAdmin.Admin_SetupTesterStation_Click"; ImageMso = "CreateForm"; RequiredCapability = "ADMIN_MAINT" },
+                        @{ Id = "btnAdminSeedInventory"; Label = "Seed Demo Inventory"; Macro = "modAdmin.Seed_DemoInventory"; ImageMso = "TableInsertRowsAbove"; RequiredCapability = "ADMIN_MAINT" },
+                        @{ Id = "btnAdminVerifyAddinsPublished"; Label = "Verify Add-ins Published"; Macro = "modAdmin.Verify_AddinsPublished"; ImageMso = "FileDocumentInspect"; RequiredCapability = "ADMIN_MAINT" },
+                        @{ Id = "btnAdminRetireMigrateWarehouse"; Label = "Retire / Migrate Warehouse"; Macro = "modAdmin.Admin_RetireMigrateWarehouse_Click"; ImageMso = "DeleteSite"; Screentip = "Archive, migrate, retire, or delete a warehouse runtime"; RequiredCapability = "ADMIN_MAINT" }
+                    )
+                    StatusLabels = @(
+                        @{ Id = "lblAdminServerStatus"; GetLabel = "RibbonServerStatusGetLabel" },
+                        @{ Id = "lblAdminAccessStatus"; GetLabel = "RibbonAccessStatusGetLabel" }
                     )
                 }
             )

@@ -267,6 +267,24 @@ Private Function EnsureDemoStationInboxes(ByVal warehouseId As String, _
 End Function
 
 Private Function BuildAdminDemoInventoryPayload() As Collection
+    Dim csvPath As String
+    Dim payload As Collection
+
+    csvPath = ResolveAdminDemoInventoryCsvPath()
+    If csvPath <> "" Then
+        Set payload = BuildAdminDemoInventoryPayloadFromCsv(csvPath)
+        If Not payload Is Nothing Then
+            If payload.Count > 0 Then
+                Set BuildAdminDemoInventoryPayload = payload
+                Exit Function
+            End If
+        End If
+    End If
+
+    Set BuildAdminDemoInventoryPayload = BuildAdminDemoInventoryFallbackPayload()
+End Function
+
+Private Function BuildAdminDemoInventoryFallbackPayload() As Collection
     Dim rows As Collection
     Dim item As Object
 
@@ -299,7 +317,198 @@ Private Function BuildAdminDemoInventoryPayload() As Collection
     item("CATEGORY") = "Packaging"
     rows.Add item
 
-    Set BuildAdminDemoInventoryPayload = rows
+    Set BuildAdminDemoInventoryFallbackPayload = rows
+End Function
+
+Private Function BuildAdminDemoInventoryPayloadFromCsv(ByVal csvPath As String) As Collection
+    On Error GoTo FailCsv
+
+    Dim fso As Object
+    Dim textStream As Object
+    Dim headerLine As String
+    Dim fields As Collection
+    Dim headers As Object
+    Dim rows As Collection
+    Dim lineText As String
+    Dim item As Object
+    Dim rowVal As Long
+    Dim sku As String
+    Dim itemName As String
+    Dim uom As String
+    Dim location As String
+    Dim category As String
+    Dim qty As Double
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FileExists(csvPath) Then Exit Function
+
+    Set textStream = fso.OpenTextFile(csvPath, 1, False)
+    If textStream.AtEndOfStream Then GoTo CleanExit
+
+    headerLine = textStream.ReadLine
+    Set headers = CsvHeaderMapAdmin(ParseCsvLineAdmin(headerLine))
+    Set rows = New Collection
+
+    Do While Not textStream.AtEndOfStream
+        lineText = textStream.ReadLine
+        If Trim$(lineText) = "" Then GoTo NextLine
+
+        Set fields = ParseCsvLineAdmin(lineText)
+        sku = CsvFieldAdmin(fields, headers, "ITEM_CODE")
+        itemName = CsvFieldAdmin(fields, headers, "ITEM")
+        If sku = "" And itemName = "" Then GoTo NextLine
+        If sku = "" Then sku = itemName
+
+        rowVal = CLng(Val(CsvFieldAdmin(fields, headers, "ROW")))
+        If rowVal <= 0 Then rowVal = rows.Count + 1
+        uom = CsvFieldAdmin(fields, headers, "UOM")
+        location = CsvFieldAdmin(fields, headers, "LOCATION")
+        category = CsvFieldAdmin(fields, headers, "CATEGORY")
+        qty = ResolveDemoSeedQuantityAdmin(category, CsvFieldAdmin(fields, headers, "PHASE"), uom)
+
+        Set item = modRoleEventWriter.CreatePayloadItem(rowVal, sku, qty, location, "Admin CSV demo inventory seed", "IMPORT")
+        item("ITEM_CODE") = sku
+        item("ITEM") = itemName
+        item("UOM") = uom
+        item("LOCATION") = location
+        item("DESCRIPTION") = CsvFieldAdmin(fields, headers, "DESCRIPTION")
+        item("VENDOR(s)") = CsvFieldAdmin(fields, headers, "VENDOR(s)")
+        item("VENDOR_CODE") = CsvFieldAdmin(fields, headers, "VENDOR_CODE")
+        item("CATEGORY") = category
+        If CsvFieldAdmin(fields, headers, "SUBSTITUTION") <> "" Then item("SUBSTITUTION") = CsvFieldAdmin(fields, headers, "SUBSTITUTION")
+        If CsvFieldAdmin(fields, headers, "PHASE") <> "" Then item("PHASE") = CsvFieldAdmin(fields, headers, "PHASE")
+        If CsvFieldAdmin(fields, headers, "ASSIGNEE") <> "" Then item("ASSIGNEE") = CsvFieldAdmin(fields, headers, "ASSIGNEE")
+        rows.Add item
+NextLine:
+    Loop
+
+    Set BuildAdminDemoInventoryPayloadFromCsv = rows
+
+CleanExit:
+    On Error Resume Next
+    If Not textStream Is Nothing Then textStream.Close
+    On Error GoTo 0
+    Exit Function
+
+FailCsv:
+    Resume CleanExit
+End Function
+
+Private Function ResolveAdminDemoInventoryCsvPath() As String
+    Dim fso As Object
+    Dim candidates As Collection
+    Dim basePath As String
+    Dim parentPath As String
+    Dim candidate As Variant
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set candidates = New Collection
+
+    basePath = ThisWorkbook.Path
+    If basePath <> "" Then
+        candidates.Add basePath & "\assets\inv.sample.data.csv"
+        parentPath = fso.GetParentFolderName(basePath)
+        If parentPath <> "" Then
+            candidates.Add parentPath & "\assets\inv.sample.data.csv"
+            parentPath = fso.GetParentFolderName(parentPath)
+            If parentPath <> "" Then candidates.Add parentPath & "\assets\inv.sample.data.csv"
+        End If
+    End If
+
+    On Error Resume Next
+    candidates.Add CurDir$ & "\assets\inv.sample.data.csv"
+    candidates.Add CurDir$ & "\..\assets\inv.sample.data.csv"
+    On Error GoTo 0
+
+    For Each candidate In candidates
+        If fso.FileExists(CStr(candidate)) Then
+            ResolveAdminDemoInventoryCsvPath = CStr(candidate)
+            Exit Function
+        End If
+    Next candidate
+End Function
+
+Private Function CsvHeaderMapAdmin(ByVal headers As Collection) As Object
+    Dim result As Object
+    Dim i As Long
+    Dim headerText As String
+
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    For i = 1 To headers.Count
+        headerText = Trim$(CStr(headers(i)))
+        If i = 1 Then headerText = Replace$(headerText, ChrW$(&HFEFF), "")
+        If headerText <> "" Then result(headerText) = i
+    Next i
+    Set CsvHeaderMapAdmin = result
+End Function
+
+Private Function CsvFieldAdmin(ByVal fields As Collection, ByVal headers As Object, ByVal headerName As String) As String
+    Dim idx As Long
+
+    If fields Is Nothing Then Exit Function
+    If headers Is Nothing Then Exit Function
+    If Not headers.Exists(headerName) Then Exit Function
+    idx = CLng(headers(headerName))
+    If idx <= 0 Or idx > fields.Count Then Exit Function
+    CsvFieldAdmin = Trim$(CStr(fields(idx)))
+End Function
+
+Private Function ParseCsvLineAdmin(ByVal lineText As String) As Collection
+    Dim result As Collection
+    Dim i As Long
+    Dim ch As String
+    Dim current As String
+    Dim inQuotes As Boolean
+
+    Set result = New Collection
+    For i = 1 To Len(lineText)
+        ch = Mid$(lineText, i, 1)
+        If ch = """" Then
+            If inQuotes And i < Len(lineText) And Mid$(lineText, i + 1, 1) = """" Then
+                current = current & """"
+                i = i + 1
+            Else
+                inQuotes = Not inQuotes
+            End If
+        ElseIf ch = "," And Not inQuotes Then
+            result.Add current
+            current = ""
+        Else
+            current = current & ch
+        End If
+    Next i
+    result.Add current
+    Set ParseCsvLineAdmin = result
+End Function
+
+Private Function ResolveDemoSeedQuantityAdmin(ByVal category As String, ByVal phase As String, ByVal uom As String) As Double
+    Dim keyText As String
+
+    keyText = LCase$(Trim$(category & " " & phase & " " & uom))
+    If InStr(1, keyText, "shippable", vbTextCompare) > 0 Then
+        ResolveDemoSeedQuantityAdmin = 24#
+    ElseIf InStr(1, keyText, "sell", vbTextCompare) > 0 Then
+        ResolveDemoSeedQuantityAdmin = 36#
+    ElseIf InStr(1, keyText, "packaging.ship", vbTextCompare) > 0 Then
+        ResolveDemoSeedQuantityAdmin = 250#
+    ElseIf InStr(1, keyText, "packaging", vbTextCompare) > 0 Then
+        ResolveDemoSeedQuantityAdmin = 150#
+    ElseIf InStr(1, keyText, "oil", vbTextCompare) > 0 Then
+        ResolveDemoSeedQuantityAdmin = 8#
+    ElseIf InStr(1, keyText, "spice", vbTextCompare) > 0 Then
+        ResolveDemoSeedQuantityAdmin = 25#
+    ElseIf InStr(1, keyText, "ingredient", vbTextCompare) > 0 Then
+        ResolveDemoSeedQuantityAdmin = 120#
+    ElseIf InStr(1, keyText, "tea", vbTextCompare) > 0 Then
+        ResolveDemoSeedQuantityAdmin = 200#
+    ElseIf InStr(1, keyText, "lbs", vbTextCompare) > 0 Or InStr(1, keyText, "lb", vbTextCompare) > 0 Then
+        ResolveDemoSeedQuantityAdmin = 80#
+    ElseIf InStr(1, keyText, "ft", vbTextCompare) > 0 Then
+        ResolveDemoSeedQuantityAdmin = 1000#
+    Else
+        ResolveDemoSeedQuantityAdmin = 50#
+    End If
 End Function
 
 Private Sub PromptForWarehouseDirectoryRootIfNeeded()

@@ -112,12 +112,22 @@ Public Function CanCurrentUserPerformCapabilityCached(ByVal capability As String
         End If
     End If
 
+    If Not currentTarget Is Nothing Then
+        If Not modAuth.CanPerform(capability, resolvedUser, currentTarget.WarehouseId, currentTarget.StationId, "RIBBON", capability & ":" & resolvedUser) Then
+            errorMessage = "Current user lacks " & capability & " capability."
+            Exit Function
+        End If
+    ElseIf Not modAuth.CanPerform(capability, resolvedUser, "", "", "RIBBON", capability & ":" & resolvedUser) Then
+        errorMessage = "Current user lacks " & capability & " capability."
+        Exit Function
+    End If
+
     CanCurrentUserPerformCapabilityCached = True
 End Function
 
 Private Function CapabilityRequiresNasTargetAccess(ByVal capability As String) As Boolean
     Select Case UCase$(Trim$(capability))
-        Case "RECEIVE_POST", "SHIP_POST", "PROD_POST"
+        Case "RECEIVE_POST", "SHIP_POST", "PROD_POST", "ADMIN_MAINT"
             CapabilityRequiresNasTargetAccess = True
     End Select
 End Function
@@ -139,6 +149,16 @@ Public Function RequireCurrentUserCapability(ByVal capability As String, _
                                              Optional ByRef errorMessage As String = "") As Boolean
     RequireCurrentUserCapability = CanCurrentUserPerformCapability(capability, userId, warehouseId, stationId, errorMessage)
     If RequireCurrentUserCapability Then Exit Function
+
+    If deniedMessage = "" Then deniedMessage = errorMessage
+    If deniedMessage <> "" Then MsgBox deniedMessage, vbExclamation
+End Function
+
+Public Function RequireCurrentUserCapabilityCached(ByVal capability As String, _
+                                                   Optional ByVal deniedMessage As String = "", _
+                                                   Optional ByRef errorMessage As String = "") As Boolean
+    RequireCurrentUserCapabilityCached = CanCurrentUserPerformCapabilityCached(capability, errorMessage)
+    If RequireCurrentUserCapabilityCached Then Exit Function
 
     If deniedMessage = "" Then deniedMessage = errorMessage
     If deniedMessage <> "" Then MsgBox deniedMessage, vbExclamation

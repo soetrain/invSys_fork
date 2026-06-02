@@ -1045,7 +1045,7 @@ Private Sub SeedConfigDefaults(ByVal wb As Workbook, ByVal warehouseId As String
     EnsureConfigCellDefault loWh, 1, "RetiredAtUTC", ""
     EnsureConfigCellDefault loWh, 1, "DesignsEnabled", False
     EnsureConfigCellDefault loWh, 1, "PoisonRetryMax", 3
-    EnsureConfigCellDefault loWh, 1, "AuthCacheTTLSeconds", 300
+    EnsureConfigCellDefault loWh, 1, "AuthCacheTTLSeconds", 28800
     EnsureConfigCellDefault loWh, 1, "ProcessorServiceUserId", "svc_processor"
     EnsureConfigCellDefault loWh, 1, "FF_DesignsEnabled", False
     EnsureConfigCellDefault loWh, 1, "FF_OutlookAlerts", False

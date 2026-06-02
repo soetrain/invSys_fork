@@ -69,6 +69,27 @@ Public Function GetServerStatusLabel(ByVal controlId As String) As String
     End If
 End Function
 
+Public Function GetAccessStatusLabel(ByVal controlId As String) As String
+    Dim capability As String
+    Dim errorMessage As String
+
+    capability = AccessCapabilityForControlStatus(controlId)
+    If capability = "" Then
+        GetAccessStatusLabel = "Access: Ready"
+        Exit Function
+    End If
+
+    If Not modNasConnection.IsCurrentTargetAllowed(True) Then
+        GetAccessStatusLabel = "Access: Connect server"
+    ElseIf Not modAuth.IsSignedIn() Then
+        GetAccessStatusLabel = "Access: Sign in required"
+    ElseIf modRoleUiAccess.CanCurrentUserPerformCapabilityCached(capability, errorMessage) Then
+        GetAccessStatusLabel = "Access: Ready"
+    Else
+        GetAccessStatusLabel = "Access: Missing " & capability
+    End If
+End Function
+
 Public Function GetWarehouseTargetCount() As Long
     GetWarehouseTargetCount = GetWarehouseTargetsCachedStatus().Count
     If GetWarehouseTargetCount = 0 Then GetWarehouseTargetCount = 1
@@ -211,9 +232,27 @@ Private Sub InvalidateWarehouseTargetRibbonsStatus()
         ribbon.InvalidateControl "lblReceivingServerStatus"
         ribbon.InvalidateControl "lblShippingServerStatus"
         ribbon.InvalidateControl "lblProductionServerStatus"
+        ribbon.InvalidateControl "lblAdminServerStatus"
+        ribbon.InvalidateControl "lblReceivingAccessStatus"
+        ribbon.InvalidateControl "lblShippingAccessStatus"
+        ribbon.InvalidateControl "lblProductionAccessStatus"
+        ribbon.InvalidateControl "lblAdminAccessStatus"
     Next ribbon
     On Error GoTo 0
 End Sub
+
+Private Function AccessCapabilityForControlStatus(ByVal controlId As String) As String
+    Select Case Trim$(controlId)
+        Case "lblReceivingAccessStatus"
+            AccessCapabilityForControlStatus = "RECEIVE_POST"
+        Case "lblShippingAccessStatus"
+            AccessCapabilityForControlStatus = "SHIP_POST"
+        Case "lblProductionAccessStatus"
+            AccessCapabilityForControlStatus = "PROD_POST"
+        Case "lblAdminAccessStatus"
+            AccessCapabilityForControlStatus = "ADMIN_MAINT"
+    End Select
+End Function
 
 Private Sub RememberSelectedWarehouseTargetStatus(ByVal targetText As String)
     On Error Resume Next

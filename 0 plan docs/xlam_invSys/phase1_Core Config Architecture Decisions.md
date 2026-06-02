@@ -68,7 +68,7 @@ The following keys are derived directly from the design doc's processor workflow
 | `PathSharePointRoot` | String | `""` | SharePoint sync folder |
 | `DesignsEnabled` | Boolean | `False` | Designs are "optional per warehouse" |
 | `PoisonRetryMax` | Long | `3` | Poison handling: RetryCount++ |
-| `AuthCacheTTLSeconds` | Long | `300` | "Cached locally with a TTL" |
+| `AuthCacheTTLSeconds` | Long | `28800` | "Cached locally for a normal work session; explicit Sign Out ends the session sooner." |
 
 ### Station-Scope Keys
 

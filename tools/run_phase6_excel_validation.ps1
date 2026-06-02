@@ -442,6 +442,7 @@ try {
         "TestPhase6CoreSurfaces.TestNasSelectWarehouseTarget_AllowsRoamingBlankStationWithoutInboxRequirement",
         "TestPhase6CoreSurfaces.TestNasSelectWarehouseTarget_TwoStationsHaveIndependentInboxRoots",
         "TestPhase6CoreSurfaces.TestNasScanRoot_ReturnsPathStringsWithoutWarehouseInference",
+        "TestPhase6CoreSurfaces.TestNasScanRoot_RejectsMismatchedConfigAuthPair",
         "TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_UnreachableFailsClosed",
         "TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_ReachableRecomputesCachedHints",
         "TestPhase6CoreSurfaces.TestNasFallbackPolicy_RoleRejectsFallbackAdminAccepts",

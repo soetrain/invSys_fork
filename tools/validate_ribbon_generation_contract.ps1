@@ -34,9 +34,19 @@ $nasConnectionText = Get-Content -LiteralPath (Join-Path $repo "src/Core/Modules
 $adminConsoleText = Get-Content -LiteralPath (Join-Path $repo "src/Admin/Modules/modAdminConsole.bas") -Raw
 $authText = Get-Content -LiteralPath (Join-Path $repo "src/Core/Modules/modAuth.bas") -Raw
 
-Add-Check "Build.GetEnabledXml" ($buildText.Contains('getEnabled="RibbonRequiredCapabilityGetEnabled"')) "RequiredCapability buttons emit getEnabled."
-Add-Check "Build.GetEnabledCallback" ($buildText.Contains('Public Sub RibbonRequiredCapabilityGetEnabled')) "Generated callback exists."
+Add-Check "Build.GetEnabledXml" ($buildText.Contains('getEnabled="{0}"') -and $buildText.Contains('$enabledCallbackName')) "RequiredCapability buttons emit configured getEnabled callbacks."
+Add-Check "Build.GetEnabledUniqueNames" ($buildText.Contains('EnabledCallbackName = "RibbonRequiredCapabilityGetEnabledReceiving"') -and $buildText.Contains('EnabledCallbackName = "RibbonRequiredCapabilityGetEnabledShipping"') -and $buildText.Contains('EnabledCallbackName = "RibbonRequiredCapabilityGetEnabledProduction"') -and $buildText.Contains('EnabledCallbackName = "RibbonRequiredCapabilityGetEnabledAdmin"')) "Each XLAM ribbon has a unique getEnabled callback name."
+Add-Check "Build.GetEnabledCallback" ($buildText.Contains('Public Sub " + $enabledCallbackName + "(control As IRibbonControl, ByRef returnedVal As Variant)')) "Generated callback exists."
+Add-Check "Build.GetEnabledCallbackRibbonCompatible" ($buildText.Contains('ByRef returnedVal As Variant') -and $buildText.Contains('returnedVal = CBool(RibbonRequiredCapabilityIsEnabledById(control.ID))') -and -not $buildText.Contains('ByRef returnedVal As Boolean')) "Generated getEnabled callback uses Ribbon-compatible Variant ByRef result."
+Add-Check "Build.GetEnabledByIdHelper" ($buildText.Contains('Public Function RibbonRequiredCapabilityIsEnabledById')) "Generated getEnabled callback delegates to a testable control-id helper."
+Add-Check "Build.GetEnabledByIdHelperExitsFunction" ($buildText.Contains('[void]$lines.Add("    Exit Function")') -and -not $buildText.Contains('[void]$lines.Add("    Exit Sub")' + [Environment]::NewLine + '    [void]$lines.Add("Disabled:")' + [Environment]::NewLine + '    [void]$lines.Add("    RibbonRequiredCapabilityIsEnabledById = False")')) "Generated getEnabled helper exits as a Function."
 Add-Check "Build.GetEnabledCached" ($buildText.Contains('CanCurrentUserPerformCapabilityCached')) "Ribbon getEnabled uses cached auth/target state."
+Add-Check "Build.GetEnabledFailsClosed" ($buildText.Contains('On Error GoTo Disabled') -and $buildText.Contains('returnedVal = False')) "Ribbon getEnabled callbacks fail closed so gated buttons gray out."
+Add-Check "Build.RibbonOnLoadInvalidates" ($buildText.Contains('Public Sub RibbonOnLoad(ribbon As IRibbonUI)') -and $buildText.Contains('ribbon.Invalidate')) "Ribbon onLoad forces Excel to query enabled state immediately."
+Add-Check "Build.ActionRequireCached" ($buildText.Contains('RequireCurrentUserCapabilityCached')) "Ribbon actions use cached auth/target state before running macros."
+$actionCallbackExitPattern = '(?s)\[void\]\$lines\.Add\("    End Select"\)\s+\[void\]\$lines\.Add\("    Exit Sub"\)\s+\[void\]\$lines\.Add\("ErrHandler:"\)\s+\[void\]\$lines\.Add\('
+Add-Check "Build.ActionCallbackExitsSub" ([regex]::IsMatch($buildText, $actionCallbackExitPattern)) "Generated ribbon action callbacks exit as Sub procedures."
+Add-Check "Build.StubFormsDropAllAttributes" ($buildText.Contains("if (`$line -match '^Attribute ')")) "Stubbed userforms drop exported Attribute lines before AddFromString."
 Add-Check "Build.ReceivingCapability" ($buildText.Contains('RequiredCapability = "RECEIVE_POST"')) "Receiving buttons declare capability."
 Add-Check "Build.ShippingCapability" ($buildText.Contains('RequiredCapability = "SHIP_POST"')) "Shipping buttons declare capability."
 Add-Check "Build.ProductionCapability" ($buildText.Contains('RequiredCapability = "PROD_POST"')) "Production buttons declare capability."
@@ -63,8 +73,9 @@ Add-Check "Core.SendToScansConnectedRoots" ($runtimeStatusText.Contains('If conn
 Add-Check "Core.SendToSuppressesLocalFallbackWhenConnected" ($runtimeStatusText.Contains('connected = modNasConnection.HasConnectedUncRoot()') -and $runtimeStatusText.Contains('If targets.Count = 0 And Not connected Then') -and $runtimeStatusText.Contains('TargetHasUncPathStatus')) "Send To suppresses default/local runtime noise while a NAS root is connected."
 Add-Check "Core.RibbonFullInvalidate" ($runtimeStatusText.Contains('ribbon.Invalidate')) "Auth/storage changes refresh enabled callbacks."
 Add-Check "Validator.ButtonGetEnabledRead" ($validatorText.Contains('GetEnabled = $getEnabled')) "Packaged validator reads getEnabled."
-Add-Check "Validator.ButtonGetEnabledAssert" ($validatorText.Contains('RibbonButtonGetEnabled')) "Packaged validator asserts getEnabled on required buttons."
+Add-Check "Validator.ButtonGetEnabledAssert" ($validatorText.Contains('RibbonButtonGetEnabled') -and $validatorText.Contains('$spec.EnabledCallback')) "Packaged validator asserts each required button uses its ribbon-specific getEnabled callback."
 Add-Check "Validator.CallbackGetEnabledAssert" ($validatorText.Contains('CallbackGetEnabled')) "Packaged validator asserts callback capability mapping."
+Add-Check "Validator.DisabledOfflineAssert" ($validatorText.Contains('RibbonRequiredCapabilityIsEnabledById') -and $validatorText.Contains('DisabledOffline')) "Packaged validator executes getEnabled helper and asserts gated buttons are disabled before access."
 Add-Check "Validator.DirectActionAssert" ($validatorText.Contains('DirectAction') -and $validatorText.Contains('callbackHasDirectAction')) "Packaged validator asserts direct ribbon actions."
 Add-Check "Validator.StatusLabelAssert" ($validatorText.Contains('Get-RibbonLabelControls') -and $validatorText.Contains('StatusLabel')) "Packaged validator asserts server status labels."
 
