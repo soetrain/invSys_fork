@@ -905,7 +905,7 @@ Private Function HasCapabilityMatch(ByVal caps As Collection, _
     For Each entry In caps
         If StrComp(SafeTrim(entry("UserId")), SafeTrim(userId), vbTextCompare) <> 0 Then GoTo NextEntry
         If Not CapabilityMatches(SafeTrim(entry("Capability")), wantedCap) Then GoTo NextEntry
-        If Not ScopeMatches(SafeTrim(entry("WarehouseId")), warehouseId) Then GoTo NextEntry
+        If Not WarehouseScopeMatchesAuth(SafeTrim(entry("WarehouseId")), warehouseId) Then GoTo NextEntry
         If Not ScopeMatches(SafeTrim(entry("StationId")), stationId) Then GoTo NextEntry
         If Not IsWithinDateRange(entry("ValidFrom"), entry("ValidTo"), nowTs) Then GoTo NextEntry
 
@@ -915,12 +915,48 @@ NextEntry:
     Next entry
 End Function
 
+Private Function WarehouseScopeMatchesAuth(ByVal scopeValue As String, ByVal currentWarehouseId As String) As Boolean
+    Dim target As WarehouseTarget
+
+    If ScopeMatches(scopeValue, currentWarehouseId) Then
+        WarehouseScopeMatchesAuth = True
+        Exit Function
+    End If
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then Exit Function
+    If StrComp(SafeTrim(scopeValue), PathLeafNameAuth(target.RuntimeRoot), vbTextCompare) = 0 Then
+        WarehouseScopeMatchesAuth = True
+        Exit Function
+    End If
+    If StrComp(SafeTrim(scopeValue), PathLeafNameAuth(target.HubRoot), vbTextCompare) = 0 Then
+        WarehouseScopeMatchesAuth = True
+        Exit Function
+    End If
+    If StrComp(SafeTrim(scopeValue), SafeTrim(target.WarehouseName), vbTextCompare) = 0 Then
+        WarehouseScopeMatchesAuth = True
+        Exit Function
+    End If
+End Function
+
 Private Function CapabilityMatches(ByVal entryCapability As String, ByVal wantedCapability As String) As Boolean
     entryCapability = UCase$(SafeTrim(entryCapability))
     If entryCapability = "*" Then
         CapabilityMatches = True
     Else
         CapabilityMatches = (entryCapability = wantedCapability)
+    End If
+End Function
+
+Private Function PathLeafNameAuth(ByVal rootPath As String) As String
+    rootPath = SafeTrim(Replace$(rootPath, "/", "\"))
+    Do While Len(rootPath) > 3 And Right$(rootPath, 1) = "\"
+        rootPath = Left$(rootPath, Len(rootPath) - 1)
+    Loop
+    If InStrRev(rootPath, "\") > 0 Then
+        PathLeafNameAuth = Mid$(rootPath, InStrRev(rootPath, "\") + 1)
+    Else
+        PathLeafNameAuth = rootPath
     End If
 End Function
 

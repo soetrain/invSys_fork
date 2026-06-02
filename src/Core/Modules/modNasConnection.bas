@@ -548,6 +548,13 @@ Public Function SetCurrentTargetSourceTypeForTest(ByVal sourceType As WH_SourceT
     SetCurrentTargetSourceTypeForTest = True
 End Function
 
+Public Function SetCurrentTargetPathsForTest(ByVal hubRoot As String, ByVal runtimeRoot As String) As Boolean
+    If m_CurrentTarget Is Nothing Then Exit Function
+    m_CurrentTarget.HubRoot = hubRoot
+    m_CurrentTarget.RuntimeRoot = runtimeRoot
+    SetCurrentTargetPathsForTest = True
+End Function
+
 Public Sub RememberTarget(ByVal target As WarehouseTarget)
     If target Is Nothing Then Exit Sub
     SaveSetting SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_REMEMBERED_TARGET, SerializeTargetNas(target)

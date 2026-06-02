@@ -70,7 +70,11 @@ Public Function CanCurrentUserPerformCapability(ByVal capability As String, _
     End If
 
     If Not modAuth.CanPerform(capability, resolvedUser, resolvedWh, resolvedSt, "ROLE_UI", capability & ":" & resolvedUser) Then
-        errorMessage = "Current user lacks " & capability & " capability."
+        errorMessage = "Current user lacks " & capability & " capability." & vbCrLf & _
+                       "User=" & ValueOrBlankRoleUi(resolvedUser) & _
+                       "; Warehouse=" & ValueOrBlankRoleUi(resolvedWh) & _
+                       "; Station=" & ValueOrBlankRoleUi(resolvedSt) & _
+                       "; Auth=" & ValueOrBlankRoleUi(modAuth.GetResolvedAuthWorkbookName())
         Exit Function
     End If
 
@@ -116,6 +120,15 @@ Private Function CapabilityRequiresNasTargetAccess(ByVal capability As String) A
         Case "RECEIVE_POST", "SHIP_POST", "PROD_POST"
             CapabilityRequiresNasTargetAccess = True
     End Select
+End Function
+
+Private Function ValueOrBlankRoleUi(ByVal valueIn As String) As String
+    valueIn = Trim$(valueIn)
+    If valueIn = "" Then
+        ValueOrBlankRoleUi = "<blank>"
+    Else
+        ValueOrBlankRoleUi = valueIn
+    End If
 End Function
 
 Public Function RequireCurrentUserCapability(ByVal capability As String, _

@@ -1,9 +1,9 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-05-27 13:00:29
-- Passed: 63
-- Failed: 0
-- Range: 1-63 of 126
+- Date: 2026-06-01 18:30:51
+- Passed: 62
+- Failed: 1
+- Range: 1-63 of 127
 
 | Test | Result |
 |---|---|
@@ -20,6 +20,7 @@
 | TestPhase6CoreSurfaces.TestAuthValidateUserCredentialForTarget_AcceptsResetPinForUserId | PASS |
 | TestPhase6CoreSurfaces.TestAuthValidateUserCredentialForTarget_RejectsDisplayNameAsUserId | PASS |
 | TestPhase6CoreSurfaces.TestAuthValidateUserCredentialForTarget_RejectsMismatchedTargetWarehouse | PASS |
+| TestPhase6CoreSurfaces.TestAuthCapabilityScope_AllowsSelectedRuntimeFolderAlias | PASS |
 | TestPhase6CoreSurfaces.TestAuthFailedCredential_DoesNotReplaceSignedInUser | PASS |
 | TestPhase6CoreSurfaces.TestAuthCorrectCredentialWithoutCapability_ReturnsNoCapabilities | PASS |
 | TestPhase6CoreSurfaces.TestRuntimeStatusUserLabel_UnsignedShowsNotSignedIn | PASS |
@@ -28,7 +29,7 @@
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsMissingCapability | PASS |
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsFallbackTarget | PASS |
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_AllowsSignedInReceivePost | PASS |
-| TestPhase6CoreSurfaces.TestAuthSignOut_ClearsUserButKeepsWarehouseTarget | PASS |
+| TestPhase6CoreSurfaces.TestAuthSignOut_ClearsUserButKeepsWarehouseTarget | FAIL |
 | TestPhase6CoreSurfaces.TestAuthCanPerform_SignedOutFailsClosedWithLoadedAuth | PASS |
 | TestPhase6CoreSurfaces.TestAuthTtlExpiry_FailsClosedForIsSignedInAndCanPerform | PASS |
 | TestAddinsPublish.TestVerifyAddinsPublished_AllPresent | PASS |
@@ -69,4 +70,3 @@
 | TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | PASS |
 | TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker | PASS |
 | TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson | PASS |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement | PASS |

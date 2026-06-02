@@ -570,6 +570,50 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestAuthCapabilityScope_AllowsSelectedRuntimeFolderAlias() As Long
+    Dim parentRoot As String
+    Dim rootPath As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+    Dim report As String
+
+    parentRoot = BuildRuntimeTestRoot("phase6_auth_scope_alias")
+    rootPath = parentRoot & "\invsys_Zenbook_WH"
+    If Len(Dir$(rootPath, vbDirectory)) = 0 Then MkDir rootPath
+
+    On Error GoTo CleanFail
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH98", "S33", rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH98", "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
+    TestPhase2Helpers.AddCapability wbAuth, "justin", "RECEIVE_POST", "invsys_Zenbook_WH", "S33", "ACTIVE"
+    TestPhase2Helpers.SetUserPinHash wbAuth, "justin", modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(parentRoot, rootPath, target, "S33", True)
+    If statusCode <> NAS_OK Then GoTo CleanExit
+    authStatus = modAuth.ValidateUserCredentialForTarget("justin", "123456", target, "RECEIVE_POST")
+    If authStatus <> AUTH_OK Then GoTo CleanExit
+    If Not modAuth.CanPerform("RECEIVE_POST", "justin", "WH98", "S33", "TEST", "AUTH-SCOPE-ALIAS") Then GoTo CleanExit
+
+    TestAuthCapabilityScope_AllowsSelectedRuntimeFolderAlias = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH98"
+    modNasConnection.ForgetRoot parentRoot
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    DeleteRuntimeRoot parentRoot
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestAuthFailedCredential_DoesNotReplaceSignedInUser() As Long
     Dim rootPath As String
     Dim wbCfg As Workbook
@@ -747,6 +791,7 @@ Public Function TestRoleWriteCurrent_RejectsUnsignedUser() As Long
 
     statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S15", True)
     If statusCode <> NAS_OK Then GoTo CleanExit
+    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\WH89") Then GoTo CleanExit
     report = ""
     queued = modRoleEventWriter.QueueReceiveEventCurrent("", "SKU-RM-UNSIGNED", 1, "A1", "unsigned", eventIdOut, report)
 
@@ -796,6 +841,7 @@ Public Function TestRoleWriteCurrent_RejectsMissingCapability() As Long
 
     statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S16", True)
     If statusCode <> NAS_OK Then GoTo CleanExit
+    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\WH90") Then GoTo CleanExit
     authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target)
     If authStatus <> AUTH_OK Then GoTo CleanExit
 
@@ -901,6 +947,7 @@ Public Function TestRoleWriteCurrent_AllowsSignedInReceivePost() As Long
 
     statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S18", True)
     If statusCode <> NAS_OK Then GoTo CleanExit
+    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\WH92") Then GoTo CleanExit
     authStatus = modAuth.ValidateUserCredentialForTarget("dilbert", "123456", target, "RECEIVE_POST")
     If authStatus <> AUTH_OK Then GoTo CleanExit
 
@@ -951,6 +998,7 @@ Public Function TestAuthSignOut_ClearsUserButKeepsWarehouseTarget() As Long
 
     statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, "S19", True)
     If statusCode <> NAS_OK Then GoTo CleanExit
+    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\WH93") Then GoTo CleanExit
     authStatus = modAuth.ValidateUserCredentialForTarget("calvin", "123456", target, "RECEIVE_POST")
     If authStatus <> AUTH_OK Then GoTo CleanExit
 
@@ -3670,6 +3718,7 @@ Public Function TestShippingEventCreator_QueuesSignedInCurrentTargetEvent() As L
         failureReason = "SelectWarehouseTarget failed: " & CStr(statusCode)
         GoTo CleanExit
     End If
+    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\WH96") Then GoTo CleanExit
     authStatus = modAuth.ValidateUserCredentialForTarget(currentUser, "123456", target, "SHIP_POST")
     If authStatus <> AUTH_OK Then
         failureReason = "ValidateUserCredentialForTarget failed: " & CStr(authStatus)
@@ -4075,6 +4124,7 @@ Public Function TestProductionEventCreator_QueuesSignedInCurrentTargetEvent() As
         failureReason = "SelectWarehouseTarget failed: " & CStr(statusCode)
         GoTo CleanExit
     End If
+    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\WH97") Then GoTo CleanExit
     authStatus = modAuth.ValidateUserCredentialForTarget(currentUser, "123456", target, "PROD_POST")
     If authStatus <> AUTH_OK Then
         failureReason = "ValidateUserCredentialForTarget failed: " & CStr(authStatus)
