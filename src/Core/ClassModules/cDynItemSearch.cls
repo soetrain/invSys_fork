@@ -541,9 +541,24 @@ End Function
 
 Private Function LoadManagedInventoryItems(Optional ByVal includeCategory As Boolean = False) As Variant
     Dim loInv As ListObject
+    Dim attemptedRefresh As Boolean
+
+RetryLoad:
     Set loInv = ResolveManagedInventoryTable()
-    If loInv Is Nothing Then Exit Function
-    If loInv.DataBodyRange Is Nothing Then Exit Function
+    If loInv Is Nothing Then
+        If Not attemptedRefresh Then
+            attemptedRefresh = TryRefreshSearchInventoryReadModel()
+            If attemptedRefresh Then GoTo RetryLoad
+        End If
+        Exit Function
+    End If
+    If loInv.DataBodyRange Is Nothing Then
+        If Not attemptedRefresh Then
+            attemptedRefresh = TryRefreshSearchInventoryReadModel()
+            If attemptedRefresh Then GoTo RetryLoad
+        End If
+        Exit Function
+    End If
 
     Dim cRow As Long
     Dim cCode As Long
@@ -562,8 +577,13 @@ Private Function LoadManagedInventoryItems(Optional ByVal includeCategory As Boo
     cDesc = ColumnIndex(loInv, "DESCRIPTION")
     cVend = ColumnIndexLoose(loInv, "VENDOR(s)", "VENDORS", "VENDOR")
     If includeCategory Then cCat = ColumnIndex(loInv, "CATEGORY")
-    If cRow = 0 Or cCode = 0 Or cItem = 0 Then Exit Function
-
+    If cRow = 0 Or cCode = 0 Or cItem = 0 Then
+        If Not attemptedRefresh Then
+            attemptedRefresh = TryRefreshSearchInventoryReadModel()
+            If attemptedRefresh Then GoTo RetryLoad
+        End If
+        Exit Function
+    End If
     Dim src As Variant
     src = loInv.DataBodyRange.Value
 
@@ -601,7 +621,13 @@ Private Function LoadManagedInventoryItems(Optional ByVal includeCategory As Boo
         End If
     Next r
 
-    If outRow = 0 Then Exit Function
+    If outRow = 0 Then
+        If Not attemptedRefresh Then
+            attemptedRefresh = TryRefreshSearchInventoryReadModel()
+            If attemptedRefresh Then GoTo RetryLoad
+        End If
+        Exit Function
+    End If
     If outRow = rowCount Then
         LoadManagedInventoryItems = result
         Exit Function
@@ -614,6 +640,25 @@ Private Function LoadManagedInventoryItems(Optional ByVal includeCategory As Boo
         Next c
     Next r
     LoadManagedInventoryItems = trimmed
+End Function
+
+Private Function TryRefreshSearchInventoryReadModel() As Boolean
+    On Error GoTo FailRefresh
+
+    Dim wb As Workbook
+    Dim surfaceReport As String
+    Dim refreshReport As String
+
+    Set wb = ResolveSearchWorkbook()
+    If wb Is Nothing Then Exit Function
+    If wb.IsAddin Then Exit Function
+
+    Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
+    TryRefreshSearchInventoryReadModel = modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, "", "LOCAL", refreshReport)
+    Exit Function
+
+FailRefresh:
+    TryRefreshSearchInventoryReadModel = False
 End Function
 
 Private Function ResolveManagedInventoryTable() As ListObject

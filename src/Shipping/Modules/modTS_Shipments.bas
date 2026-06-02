@@ -267,7 +267,7 @@ Public Sub BtnSaveBox()
     End If
 
     EnsureTableHasRow loMeta
-    EnsureColumnExists loMeta, "ROW"
+    RemoveColumnIfExistsShipping loMeta, "ROW"
     EnsureBoxBomEntryColumns loBom
 
     Dim boxName As String
@@ -305,12 +305,10 @@ Public Sub BtnSaveBox()
     End If
 
     Dim boxRowValue As Long
-    boxRowValue = EnsureInvSysItem(boxName, boxUOM, boxLoc, boxDesc, invLo)
+    boxRowValue = ResolveBoxPackageRowValue(ws.Parent, boxName, invLo)
     If boxRowValue = 0 Then Exit Sub
-    Dim cBoxRowField As Long: cBoxRowField = ColumnIndex(loMeta, "ROW")
-    If cBoxRowField > 0 Then
-        loMeta.DataBodyRange.Cells(1, cBoxRowField).Value = boxRowValue
-    End If
+    boxRowValue = EnsureInvSysItem(boxName, boxUOM, boxLoc, boxDesc, invLo, boxRowValue)
+    If boxRowValue = 0 Then Exit Sub
 
     Dim bomReport As String
     If Not SaveShippingBomToRuntime(ws.Parent, boxRowValue, boxName, boxUOM, boxLoc, boxDesc, components, bomReport) Then
@@ -1306,6 +1304,7 @@ Private Sub EnsureBuilderTablesReady(Optional ByVal targetWb As Workbook = Nothi
     If Not loBom Is Nothing Then
         EnsureBoxBomEntryColumns loBom
         EnsureBoxBomStarterRows loBom
+        RepairBoxBomRowsFromInventory loBom
     End If
 End Sub
 
@@ -1317,7 +1316,7 @@ Private Sub NormalizeBoxBuilderTable(ByVal loBuilder As ListObject)
     EnsureColumnExists loBuilder, "UOM"
     EnsureColumnExists loBuilder, "LOCATION"
     EnsureColumnExists loBuilder, "DESCRIPTION"
-    EnsureColumnExists loBuilder, "ROW"
+    RemoveColumnIfExistsShipping loBuilder, "ROW"
     EnsureTableHasRow loBuilder
 
     If loBuilder.DataBodyRange Is Nothing Then Exit Sub
@@ -1462,6 +1461,7 @@ Public Sub ApplyItemToBoxBOM(targetCell As Range, ByVal itemName As String, ByVa
     Dim colDescInv As Long: colDescInv = ColumnIndex(invLo, "DESCRIPTION")
 
     If colRowInv > 0 Then actualRow = NzLng(invLo.DataBodyRange.Cells(invIdx, colRowInv).Value)
+    If actualRow <= 0 Then actualRow = RepairInvSysRowKeyShipping(invLo, invIdx, colRowInv)
     If colItemInv > 0 Then actualItem = NzStr(invLo.DataBodyRange.Cells(invIdx, colItemInv).Value)
     If colUomInv > 0 Then actualUom = NzStr(invLo.DataBodyRange.Cells(invIdx, colUomInv).Value)
     If colLocInv > 0 Then actualLoc = NzStr(invLo.DataBodyRange.Cells(invIdx, colLocInv).Value)
@@ -1496,6 +1496,55 @@ Public Sub ApplyItemToBoxBOM(targetCell As Range, ByVal itemName As String, ByVa
 
 ErrHandler:
     MsgBox "ApplyItemToBoxBOM error: " & Err.Description, vbCritical
+End Sub
+
+Private Function RepairInvSysRowKeyShipping(ByVal invLo As ListObject, ByVal invIdx As Long, ByVal colRowInv As Long) As Long
+    If invLo Is Nothing Then Exit Function
+    If invLo.DataBodyRange Is Nothing Then Exit Function
+    If invIdx <= 0 Or invIdx > invLo.ListRows.Count Then Exit Function
+
+    RepairInvSysRowKeyShipping = invIdx
+    If colRowInv > 0 Then
+        On Error Resume Next
+        invLo.DataBodyRange.Cells(invIdx, colRowInv).Value = RepairInvSysRowKeyShipping
+        On Error GoTo 0
+    End If
+End Function
+
+Private Sub RepairBoxBomRowsFromInventory(ByVal loBom As ListObject)
+    Dim invLo As ListObject
+    Dim cItem As Long
+    Dim cRow As Long
+    Dim r As Long
+    Dim itemName As String
+    Dim rowValue As Long
+    Dim invIdx As Long
+    Dim invRowCol As Long
+
+    If loBom Is Nothing Then Exit Sub
+    If loBom.DataBodyRange Is Nothing Then Exit Sub
+
+    Set invLo = GetInvSysTable()
+    If invLo Is Nothing Then Exit Sub
+
+    cItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
+    cRow = ColumnIndex(loBom, "ROW")
+    invRowCol = ColumnIndex(invLo, "ROW")
+    If cItem = 0 Or cRow = 0 Then Exit Sub
+
+    For r = 1 To loBom.ListRows.Count
+        rowValue = NzLng(loBom.DataBodyRange.Cells(r, cRow).Value)
+        If rowValue <= 0 Then
+            itemName = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cItem).Value))
+            If itemName <> "" Then
+                invIdx = FindInvRowIndexByItem(invLo, itemName)
+                If invIdx > 0 Then
+                    rowValue = RepairInvSysRowKeyShipping(invLo, invIdx, invRowCol)
+                    If rowValue > 0 Then loBom.DataBodyRange.Cells(r, cRow).Value = rowValue
+                End If
+            End If
+        End If
+    Next r
 End Sub
 
 Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, ByRef syncNotes As String) As Collection
@@ -1624,6 +1673,14 @@ Private Sub EnsureBoxBomEntryColumns(loBom As ListObject)
     EnsureColumnExists loBom, "UOM"
     EnsureColumnExists loBom, "LOCATION"
     EnsureColumnExists loBom, "DESCRIPTION"
+End Sub
+
+Private Sub RemoveColumnIfExistsShipping(ByVal lo As ListObject, ByVal colName As String)
+    Dim idx As Long
+
+    If lo Is Nothing Then Exit Sub
+    idx = ColumnIndex(lo, colName)
+    If idx > 0 Then lo.ListColumns(idx).Delete
 End Sub
 
 Private Sub EnsureColumnExists(lo As ListObject, colName As String, Optional afterColumn As String = "")
@@ -2695,23 +2752,109 @@ Private Function NextInvSysRowValue(invLo As ListObject) As Long
     mNextInvSysRow = mNextInvSysRow + 1
 End Function
 
-Private Function EnsureInvSysItem(boxName As String, uom As String, location As String, descr As String, invLo As ListObject) As Long
+Private Function ResolveBoxPackageRowValue(ByVal operatorWb As Workbook, ByVal boxName As String, ByVal invLo As ListObject) As Long
+    Dim existingIdx As Long
+    Dim cRow As Long
+    Dim localRow As Long
+    Dim maxRow As Long
+    Dim runtimeRow As Long
+    Dim runtimeMax As Long
+
+    existingIdx = FindInvRowIndexByItem(invLo, boxName)
+    cRow = ColumnIndex(invLo, "ROW")
+    If existingIdx > 0 And cRow > 0 Then localRow = NzLng(invLo.DataBodyRange.Cells(existingIdx, cRow).Value)
+    If localRow > 0 Then
+        ResolveBoxPackageRowValue = localRow
+        Exit Function
+    End If
+
+    runtimeRow = FindShippingBomPackageRowByName(operatorWb, boxName, runtimeMax)
+    If runtimeRow > 0 Then
+        ResolveBoxPackageRowValue = runtimeRow
+        Exit Function
+    End If
+
+    maxRow = CurrentInvSysMaxRow(invLo)
+    If runtimeMax > maxRow Then maxRow = runtimeMax
+    ResolveBoxPackageRowValue = maxRow + 1
+    If ResolveBoxPackageRowValue <= 0 Then ResolveBoxPackageRowValue = 1
+End Function
+
+Private Function FindShippingBomPackageRowByName(ByVal operatorWb As Workbook, _
+                                                 ByVal boxName As String, _
+                                                 ByRef maxPackageRow As Long) As Long
+    On Error GoTo CleanExit
+
+    Dim target As Object
+    Dim warehouseId As String
+    Dim rootPath As String
+    Dim wbBom As Workbook
+    Dim loBom As ListObject
+    Dim openedTransient As Boolean
+    Dim report As String
+    Dim cPackageRow As Long
+    Dim cPackageItem As Long
+    Dim i As Long
+    Dim rowValue As Long
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then GoTo CleanExit
+
+    warehouseId = Trim$(target.WarehouseId)
+    rootPath = NormalizeFolderPathShipping(target.RuntimeRoot)
+    If warehouseId = "" Or rootPath = "" Then GoTo CleanExit
+
+    Set wbBom = OpenShippingBomWorkbook(warehouseId, rootPath, False, openedTransient, report)
+    If wbBom Is Nothing Then GoTo CleanExit
+
+    Set loBom = EnsureShippingBomSchema(wbBom, report)
+    If loBom Is Nothing Then GoTo CleanExit
+
+    cPackageRow = ColumnIndex(loBom, "PackageRow")
+    cPackageItem = ColumnIndex(loBom, "PackageItem")
+    If cPackageRow = 0 Then GoTo CleanExit
+    If loBom.DataBodyRange Is Nothing Then GoTo CleanExit
+
+    For i = 1 To loBom.ListRows.Count
+        rowValue = NzLng(loBom.DataBodyRange.Cells(i, cPackageRow).Value)
+        If rowValue > maxPackageRow Then maxPackageRow = rowValue
+        If cPackageItem > 0 Then
+            If StrComp(Trim$(NzStr(loBom.DataBodyRange.Cells(i, cPackageItem).Value)), Trim$(boxName), vbTextCompare) = 0 Then
+                FindShippingBomPackageRowByName = rowValue
+            End If
+        End If
+    Next i
+
+CleanExit:
+    On Error Resume Next
+    If openedTransient Then CloseWorkbookNoSaveShipping wbBom
+    On Error GoTo 0
+End Function
+
+Private Function EnsureInvSysItem(boxName As String, uom As String, location As String, descr As String, invLo As ListObject, Optional ByVal preferredRowValue As Long = 0) As Long
     If invLo Is Nothing Then Exit Function
     EnsureInvSysRowSeed invLo
     Dim existingIdx As Long
     existingIdx = FindInvRowIndexByItem(invLo, boxName)
     Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
     If existingIdx > 0 Then
-        EnsureInvSysItem = NzLng(invLo.DataBodyRange.Cells(existingIdx, cRow).Value)
+        If cRow > 0 Then EnsureInvSysItem = NzLng(invLo.DataBodyRange.Cells(existingIdx, cRow).Value)
+        If EnsureInvSysItem <= 0 And preferredRowValue > 0 Then EnsureInvSysItem = preferredRowValue
         If EnsureInvSysItem >= mNextInvSysRow Then
             mNextInvSysRow = EnsureInvSysItem + 1
         End If
-        UpdateInvSysRow invLo.ListRows(existingIdx), boxName, uom, location, descr
+        UpdateInvSysRow invLo.ListRows(existingIdx), boxName, uom, location, descr, EnsureInvSysItem
         Exit Function
     End If
 
     Dim lr As ListRow: Set lr = invLo.ListRows.Add
-    Dim newRowVal As Long: newRowVal = NextInvSysRowValue(invLo)
+    Dim newRowVal As Long
+    If preferredRowValue > 0 Then
+        newRowVal = preferredRowValue
+        If newRowVal >= mNextInvSysRow Then mNextInvSysRow = newRowVal + 1
+    Else
+        newRowVal = NextInvSysRowValue(invLo)
+    End If
     EnsureInvSysItem = newRowVal
     UpdateInvSysRow lr, boxName, uom, location, descr, newRowVal
 End Function
@@ -2746,7 +2889,7 @@ End Sub
 Private Sub ClearListObjectData(lo As ListObject)
     If lo Is Nothing Then Exit Sub
     On Error Resume Next
-    If Not lo.DataBodyRange Is Nothing Then lo.DataBodyRange.Delete
+    If Not lo.DataBodyRange Is Nothing Then lo.DataBodyRange.ClearContents
     On Error GoTo 0
 End Sub
 

@@ -862,6 +862,7 @@ Private Sub EnsureSkuCatalogFromPayloadLineApply(ByVal wb As Workbook, ByVal raw
     Dim sku As String
     Dim rowIndex As Long
     Dim r As ListRow
+    Dim isNewRow As Boolean
 
     On Error GoTo CleanExit
     If wb Is Nothing Then Exit Sub
@@ -874,26 +875,37 @@ Private Sub EnsureSkuCatalogFromPayloadLineApply(ByVal wb As Workbook, ByVal raw
     If sku = "" Then Exit Sub
 
     rowIndex = FindRowByColumnValueApply(lo, "SKU", sku)
+    SetSheetProtectionApply lo.Parent, False
     If rowIndex = 0 Then
-        SetSheetProtectionApply lo.Parent, False
         Set r = lo.ListRows.Add
         rowIndex = r.Index
+        isNewRow = True
         SetTableRowValue lo, rowIndex, "SKU", sku
-        SetTableRowValue lo, rowIndex, "ITEM_CODE", ResolvePayloadTextApply(rawItem, "ITEM_CODE", sku)
-        SetTableRowValue lo, rowIndex, "ITEM", ResolvePayloadTextApply(rawItem, "ITEM", sku)
-        SetTableRowValue lo, rowIndex, "UOM", ResolvePayloadTextApply(rawItem, "UOM", "")
-        SetTableRowValue lo, rowIndex, "LOCATION", ResolvePayloadTextApply(rawItem, "LOCATION", ResolvePayloadTextApply(rawItem, "Location", ""))
-        SetTableRowValue lo, rowIndex, "DESCRIPTION", ResolvePayloadTextApply(rawItem, "DESCRIPTION", "")
-        SetTableRowValue lo, rowIndex, "VENDOR(s)", ResolvePayloadTextApply(rawItem, "VENDOR(s)", "")
-        SetTableRowValue lo, rowIndex, "VENDOR_CODE", ResolvePayloadTextApply(rawItem, "VENDOR_CODE", "")
-        SetTableRowValue lo, rowIndex, "CATEGORY", ResolvePayloadTextApply(rawItem, "CATEGORY", "")
-        SetSheetProtectionApply lo.Parent, True
+        SetTableRowValue lo, rowIndex, "ITEM_CODE", sku
+        SetTableRowValue lo, rowIndex, "ITEM", sku
     End If
+    If rowIndex <= 0 Then GoTo CleanExit
+
+    SetTableRowValueIfNonBlankApply lo, rowIndex, "ROW", ResolvePayloadTextApply(rawItem, "ROW", ResolvePayloadTextApply(rawItem, "Row", ""))
+    SetTableRowValueIfNonBlankApply lo, rowIndex, "ITEM_CODE", ResolvePayloadTextApply(rawItem, "ITEM_CODE", IIf(isNewRow, sku, ""))
+    SetTableRowValueIfNonBlankApply lo, rowIndex, "ITEM", ResolvePayloadTextApply(rawItem, "ITEM", IIf(isNewRow, sku, ""))
+    SetTableRowValueIfNonBlankApply lo, rowIndex, "UOM", ResolvePayloadTextApply(rawItem, "UOM", "")
+    SetTableRowValueIfNonBlankApply lo, rowIndex, "LOCATION", ResolvePayloadTextApply(rawItem, "LOCATION", ResolvePayloadTextApply(rawItem, "Location", ""))
+    SetTableRowValueIfNonBlankApply lo, rowIndex, "DESCRIPTION", ResolvePayloadTextApply(rawItem, "DESCRIPTION", "")
+    SetTableRowValueIfNonBlankApply lo, rowIndex, "VENDOR(s)", ResolvePayloadTextApply(rawItem, "VENDOR(s)", "")
+    SetTableRowValueIfNonBlankApply lo, rowIndex, "VENDOR_CODE", ResolvePayloadTextApply(rawItem, "VENDOR_CODE", "")
+    SetTableRowValueIfNonBlankApply lo, rowIndex, "CATEGORY", ResolvePayloadTextApply(rawItem, "CATEGORY", "")
 
 CleanExit:
     On Error Resume Next
     If Not lo Is Nothing Then SetSheetProtectionApply lo.Parent, True
     On Error GoTo 0
+End Sub
+
+Private Sub SetTableRowValueIfNonBlankApply(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueText As String)
+    valueText = SafeTrimApply(valueText)
+    If valueText = "" Then Exit Sub
+    SetTableRowValue lo, rowIndex, columnName, valueText
 End Sub
 
 Private Function ResolvePayloadTextApply(ByVal rawItem As Object, ByVal keyName As String, ByVal defaultValue As String) As String

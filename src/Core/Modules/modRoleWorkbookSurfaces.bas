@@ -35,7 +35,7 @@ Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workboo
     EnsureTableSurface wb, "ShipmentsTally", "NotShipped", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION"), False
     EnsureTableSurface wb, "ShipmentsTally", "AggregateBoxBOM", Array("ROW", "ITEM_CODE", "ITEM", "QUANTITY", "UOM", "LOCATION"), False
     EnsureTableSurface wb, "ShipmentsTally", "AggregatePackages", Array("ROW", "ITEM_CODE", "ITEM", "QUANTITY", "UOM", "LOCATION"), False
-    EnsureTableSurface wb, "ShipmentsTally", "BoxBuilder", Array("Box Name", "UOM", "LOCATION", "DESCRIPTION", "ROW"), True
+    EnsureTableSurface wb, "ShipmentsTally", "BoxBuilder", Array("Box Name", "UOM", "LOCATION", "DESCRIPTION"), True
     EnsureTableSurface wb, "ShipmentsTally", "BoxBOM", Array("ITEM", "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION"), True
     EnsureTableSurface wb, "ShipmentsTally", "Check_invSys", Array("ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "USED", "MADE", "SHIPMENTS", "TOTAL INV"), False
     EnsureTableSurface wb, "ShipmentsTally", "invSysData_Shipping", InventoryManagementHeadersSurface(), False

@@ -317,7 +317,7 @@ Private Function EnsureSnapshotSchema(ByVal wb As Workbook, ByRef report As Stri
     Dim startCell As Range
     Dim i As Long
 
-    headers = Array("WarehouseId", "SKU", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "VENDOR_CODE", "CATEGORY", _
+    headers = Array("WarehouseId", "SKU", "ROW", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "VENDOR_CODE", "CATEGORY", _
                     "RECEIVED", "USED", "MADE", "SHIPMENTS", _
                     "QtyOnHand", "QtyAvailable", "LocationSummary", "LastAppliedAtUTC")
     NormalizeWorkbookSheetsSync wb, Array(SHEET_SNAPSHOT)
@@ -367,6 +367,7 @@ Private Sub WriteSnapshotRows(ByVal wb As Workbook, _
         lo.ListRows.Add
         SetTableRowValueSync lo, 1, "WarehouseId", warehouseId
         SetTableRowValueSync lo, 1, "SKU", ""
+        SetTableRowValueSync lo, 1, "ROW", ""
         SetTableRowValueSync lo, 1, "ITEM", ""
         SetTableRowValueSync lo, 1, "UOM", ""
         SetTableRowValueSync lo, 1, "LOCATION", ""
@@ -392,6 +393,7 @@ Private Sub WriteSnapshotRows(ByVal wb As Workbook, _
         Set entry = snapshotRows(key)
         SetTableRowValueSync lo, rowIndex, "WarehouseId", ResolveStringSync(entry, "WarehouseId", warehouseId)
         SetTableRowValueSync lo, rowIndex, "SKU", ResolveStringSync(entry, "SKU", CStr(key))
+        SetTableRowValueSync lo, rowIndex, "ROW", ResolveStringSync(entry, "ROW", "")
         SetTableRowValueSync lo, rowIndex, "ITEM", ResolveStringSync(entry, "ITEM", ResolveStringSync(entry, "ItemName", ResolveStringSync(entry, "SKU", CStr(key))))
         SetTableRowValueSync lo, rowIndex, "UOM", ResolveStringSync(entry, "UOM", "")
         SetTableRowValueSync lo, rowIndex, "LOCATION", ResolveStringSync(entry, "LOCATION", "")
@@ -571,6 +573,7 @@ ContinueManagedLoop:
 End Function
 
 Private Sub ApplyManagedSurfaceMetadataSync(ByVal entry As Object, ByVal loInv As ListObject, ByVal rowIndex As Long)
+    ApplyCatalogValueIfPresentSync entry, "ROW", ResolveCatalogCellTextSync(loInv, rowIndex, "ROW")
     ApplyCatalogValueIfPresentSync entry, "ITEM", ResolveCatalogCellTextSync(loInv, rowIndex, "ITEM")
     ApplyCatalogValueIfPresentSync entry, "UOM", ResolveCatalogCellTextSync(loInv, rowIndex, "UOM")
     ApplyCatalogValueIfPresentSync entry, "LOCATION", ResolveCatalogCellTextSync(loInv, rowIndex, "LOCATION")
@@ -637,6 +640,7 @@ Private Function EnsureSnapshotEntrySync(ByVal rows As Object, _
     entry.CompareMode = vbTextCompare
     entry("WarehouseId") = warehouseId
     entry("SKU") = sku
+    entry("ROW") = vbNullString
     entry("QtyOnHand") = 0#
     entry("QtyAvailable") = 0#
     entry("LocationSummary") = vbNullString
@@ -733,6 +737,7 @@ Private Sub ApplyCatalogTableToSnapshotRowsSync(ByVal snapshotRows As Object, _
     Dim uomValue As String
     Dim locationValue As String
     Dim descriptionValue As String
+    Dim rowValue As String
     Dim vendorValue As String
     Dim vendorCodeValue As String
     Dim categoryValue As String
@@ -752,6 +757,9 @@ Private Sub ApplyCatalogTableToSnapshotRowsSync(ByVal snapshotRows As Object, _
         If itemValue = "" Then itemValue = ResolveCatalogCellTextSync(loCatalog, rowIndex, "NAME")
         If itemValue = "" Then itemValue = ResolveCatalogCellTextSync(loCatalog, rowIndex, "SKU")
         If itemValue = "" Then itemValue = ResolveCatalogCellTextSync(loCatalog, rowIndex, "ITEM_CODE")
+
+        rowValue = ResolveCatalogCellTextSync(loCatalog, rowIndex, "ROW")
+        If rowValue = "" Then rowValue = ResolveCatalogCellTextSync(loCatalog, rowIndex, "Row")
 
         uomValue = ResolveCatalogCellTextSync(loCatalog, rowIndex, "UOM")
         If uomValue = "" Then uomValue = ResolveCatalogCellTextSync(loCatalog, rowIndex, "UNITOFMEASURE")
@@ -775,6 +783,7 @@ Private Sub ApplyCatalogTableToSnapshotRowsSync(ByVal snapshotRows As Object, _
         categoryValue = ResolveCatalogCellTextSync(loCatalog, rowIndex, "CATEGORY")
 
         ApplyCatalogValueIfPresentSync entry, "ITEM", itemValue
+        ApplyCatalogValueIfPresentSync entry, "ROW", rowValue
         ApplyCatalogValueIfPresentSync entry, "UOM", uomValue
         ApplyCatalogValueIfPresentSync entry, "LOCATION", locationValue
         ApplyCatalogValueIfPresentSync entry, "DESCRIPTION", descriptionValue

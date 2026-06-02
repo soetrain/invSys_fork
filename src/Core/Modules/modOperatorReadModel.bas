@@ -803,6 +803,7 @@ End Function
 Private Function BuildSnapshotDictionary(ByVal loSnap As ListObject) As Object
     Dim dict As Object
     Dim skuIdx As Long
+    Dim rowIdx As Long
     Dim itemIdx As Long
     Dim uomIdx As Long
     Dim locationIdx As Long
@@ -834,6 +835,7 @@ Private Function BuildSnapshotDictionary(ByVal loSnap As ListObject) As Object
     End If
 
     skuIdx = GetColumnIndexReadModel(loSnap, "SKU")
+    rowIdx = GetColumnIndexReadModel(loSnap, "ROW")
     itemIdx = GetColumnIndexReadModel(loSnap, "ITEM")
     uomIdx = GetColumnIndexReadModel(loSnap, "UOM")
     locationIdx = GetColumnIndexReadModel(loSnap, "LOCATION")
@@ -867,6 +869,7 @@ Private Function BuildSnapshotDictionary(ByVal loSnap As ListObject) As Object
         payload("USED") = ResolveSnapshotNumberFieldReadModel(loSnap, i, usedIdx)
         payload("MADE") = ResolveSnapshotNumberFieldReadModel(loSnap, i, madeIdx)
         payload("SHIPMENTS") = ResolveSnapshotNumberFieldReadModel(loSnap, i, shipmentsIdx)
+        AddSnapshotTextPayloadReadModel payload, "ROW", ResolveSnapshotTextReadModel(loSnap, i, rowIdx)
         AddSnapshotTextPayloadReadModel payload, "ITEM", ResolveSnapshotTextReadModel(loSnap, i, itemIdx)
         AddSnapshotTextPayloadReadModel payload, "UOM", ResolveSnapshotTextReadModel(loSnap, i, uomIdx)
         AddSnapshotTextPayloadReadModel payload, "LOCATION", ResolveSnapshotTextReadModel(loSnap, i, locationIdx)
@@ -1019,6 +1022,13 @@ Private Sub ApplySnapshotMetadataToInvSys(ByVal loInv As ListObject, _
 
     sku = ResolveInvSysSku(loInv, rowIndex)
     existingItem = Trim$(CStr(GetReadModelValue(loInv, rowIndex, "ITEM")))
+
+    valueText = ResolveSnapshotTextPayloadReadModel(payload, "ROW")
+    If valueText <> "" Then
+        SetReadModelValue loInv, rowIndex, "ROW", valueText
+    ElseIf NzDblReadModel(GetReadModelValue(loInv, rowIndex, "ROW")) <= 0 Then
+        SetReadModelValue loInv, rowIndex, "ROW", rowIndex
+    End If
 
     valueText = ResolveSnapshotTextPayloadReadModel(payload, "ITEM")
     If valueText <> "" Then

@@ -52,7 +52,7 @@ Public Function EnsureInventorySchema(Optional ByVal targetWb As Workbook = Noth
               "TotalAppliedEvents", "DistinctSkuCount", "DistinctLocationCount", "ProjectionRebuiltAtUTC", "Notes"), issues
 
     EnsureTableWithHeaders wb, SHEET_SKU_CATALOG, TABLE_SKU_CATALOG, _
-        Array("SKU", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "VENDOR_CODE", "CATEGORY"), issues
+        Array("SKU", "ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "VENDOR_CODE", "CATEGORY"), issues
 
     report = JoinCollection(issues, "; ")
     EnsureInventorySchema = True

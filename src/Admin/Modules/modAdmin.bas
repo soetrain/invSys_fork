@@ -229,7 +229,7 @@ Private Function SeedDemoInventoryForWarehouse(ByVal warehouseId As String, _
              "Warehouse: " & warehouseId & vbCrLf & _
              "Applied events: " & CStr(processedCount) & vbCrLf & _
              "Processor: " & batchReport & vbCrLf & _
-             "Now click Refresh Inventory in Receiving."
+             "Now refresh inventory in any open role workbook, or reopen the picker to auto-refresh."
     SeedDemoInventoryForWarehouse = True
     Exit Function
 

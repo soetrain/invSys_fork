@@ -90,7 +90,8 @@ Public Function TestEnsureShippingWorkbookSurface_CreatesExpectedTables() As Lon
        And HasTable(wb, "ShippingBOMView") _
        And Not WorksheetExists(wb, "ShippingBOM") _
        And TableHasColumns(wb, "ShipmentsTally", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION")) _
-       And TableHasColumns(wb, "BoxBuilder", Array("Box Name", "UOM", "LOCATION", "DESCRIPTION", "ROW")) _
+       And TableHasColumns(wb, "BoxBuilder", Array("Box Name", "UOM", "LOCATION", "DESCRIPTION")) _
+       And Not TableHasColumns(wb, "BoxBuilder", Array("ROW")) _
        And TableHasColumns(wb, "BoxBOM", Array("ITEM", "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION")) _
        And TableHasColumns(wb, "AggregatePackages", Array("ROW", "ITEM_CODE", "ITEM", "QUANTITY", "UOM", "LOCATION")) _
        And TableHasColumns(wb, "invSysData_Shipping", Array("ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION")) _
@@ -194,6 +195,8 @@ Public Function TestEnsureShippingWorkbookSurface_RecreatesDeletedArtifacts() As
        And HasTable(wb, "BoxBOM") _
        And HasTable(wb, "AggregatePackages_Log") _
        And HasTable(wb, "ShippingBOMView") _
+       And TableHasColumns(wb, "BoxBuilder", Array("Box Name", "UOM", "LOCATION", "DESCRIPTION")) _
+       And Not TableHasColumns(wb, "BoxBuilder", Array("ROW")) _
        And TableHasColumns(wb, "BoxBOM", Array("ITEM", "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION")) _
        And Not WorksheetExists(wb, "ShippingBOM") Then
         TestEnsureShippingWorkbookSurface_RecreatesDeletedArtifacts = 1
