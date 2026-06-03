@@ -1309,8 +1309,6 @@ Private Sub EnsureBuilderTablesReady(Optional ByVal targetWb As Workbook = Nothi
 End Sub
 
 Private Sub NormalizeBoxBuilderTable(ByVal loBuilder As ListObject)
-    Dim rowIndex As Long
-
     If loBuilder Is Nothing Then Exit Sub
     EnsureColumnExists loBuilder, "Box Name"
     EnsureColumnExists loBuilder, "UOM"
@@ -1318,11 +1316,6 @@ Private Sub NormalizeBoxBuilderTable(ByVal loBuilder As ListObject)
     EnsureColumnExists loBuilder, "DESCRIPTION"
     RemoveColumnIfExistsShipping loBuilder, "ROW"
     EnsureTableHasRow loBuilder
-
-    If loBuilder.DataBodyRange Is Nothing Then Exit Sub
-    For rowIndex = loBuilder.ListRows.Count To 2 Step -1
-        If TableRowIsBlankShipping(loBuilder, rowIndex) Then loBuilder.ListRows(rowIndex).Delete
-    Next rowIndex
 End Sub
 
 Private Function CreateBoxBomTable(ByVal ws As Worksheet, ByVal loBuilder As ListObject) As ListObject
