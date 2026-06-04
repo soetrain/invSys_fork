@@ -10,6 +10,7 @@ Private Const TABLE_INBOX_SHIP As String = "tblInboxShip"
 Private Const TABLE_INBOX_PROD As String = "tblInboxProd"
 Private Const ROLE_EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Private Const ROLE_EVENT_TYPE_SHIP As String = "SHIP"
+Private Const ROLE_EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
 Private Const ROLE_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
 Private Const ROLE_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
 Private Const ROLE_EVENT_TYPE_MIGRATION_SEED As String = "MIGRATION_SEED"
@@ -391,7 +392,7 @@ Public Function DescribeInboxPendingRows(ByVal eventType As String, _
                 errorMessage = report
                 GoTo CleanExit
             End If
-        Case ROLE_EVENT_TYPE_SHIP
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 GoTo CleanExit
@@ -520,10 +521,16 @@ Public Function QueuePayloadEventCurrent(ByVal eventType As String, _
     Dim targetInboxWb As Workbook
     Dim resolvedUser As String
     Dim capability As String
+    Dim target As WarehouseTarget
 
     capability = CapabilityForEventTypeRole(eventType)
     If Not EnsureCurrentRoleWriteAllowed(capability, userId, resolvedUser, errorMessage) Then Exit Function
-    QueuePayloadEventCurrent = QueuePayloadEvent(eventType, "", "", resolvedUser, payloadJson, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage, perfRunId)
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        errorMessage = "A connected NAS warehouse target is required before posting role events."
+        Exit Function
+    End If
+    QueuePayloadEventCurrent = QueuePayloadEvent(eventType, target.WarehouseId, target.StationId, resolvedUser, payloadJson, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage, perfRunId)
 End Function
 
 Public Function BuildPayloadJson(ParamArray items() As Variant) As String
@@ -630,7 +637,11 @@ Private Function QueueEventCore(ByVal eventType As String, _
         Exit Function
     End If
     If Not modAuth.HasProvisionedCapabilityForSystem(capability, resolvedUser, resolvedWh, resolvedSt) Then
-        errorMessage = "Current user lacks " & capability & " capability."
+        errorMessage = "Current user lacks " & capability & " capability." & vbCrLf & _
+                       "User=" & ValueOrPlaceholderRole(resolvedUser) & _
+                       "; Warehouse=" & ValueOrPlaceholderRole(resolvedWh) & _
+                       "; Station=" & ValueOrPlaceholderRole(resolvedSt) & _
+                       "; Auth=" & ValueOrPlaceholderRole(modAuth.GetResolvedAuthWorkbookName())
         Exit Function
     End If
 
@@ -664,7 +675,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
                 GoTo CleanExit
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_RECEIVE)
-        Case ROLE_EVENT_TYPE_SHIP
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 GoTo CleanExit
@@ -769,7 +780,11 @@ Private Function EnsureCurrentRoleWriteAllowed(ByVal requiredCapability As Strin
         Exit Function
     End If
     If Not modAuth.CanPerform(requiredCapability, resolvedUserId, target.WarehouseId, target.StationId, "ROLE_UI", "") Then
-        errorMessage = "Current user lacks " & requiredCapability & " capability."
+        errorMessage = "Current user lacks " & requiredCapability & " capability." & vbCrLf & _
+                       "User=" & ValueOrPlaceholderRole(resolvedUserId) & _
+                       "; Warehouse=" & ValueOrPlaceholderRole(target.WarehouseId) & _
+                       "; Station=" & ValueOrPlaceholderRole(target.StationId) & _
+                       "; Auth=" & ValueOrPlaceholderRole(modAuth.GetResolvedAuthWorkbookName())
         Exit Function
     End If
 
@@ -934,7 +949,7 @@ Private Function InboxWorkbookNameRole(ByVal eventType As String, ByVal stationI
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             InboxWorkbookNameRole = "invSys.Inbox.Receiving." & stationId & ".xlsb"
-        Case ROLE_EVENT_TYPE_SHIP
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD
             InboxWorkbookNameRole = "invSys.Inbox.Shipping." & stationId & ".xlsb"
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             InboxWorkbookNameRole = "invSys.Inbox.Production." & stationId & ".xlsb"
@@ -945,7 +960,7 @@ Private Function InboxTableNameRole(ByVal eventType As String) As String
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             InboxTableNameRole = TABLE_INBOX_RECEIVE
-        Case ROLE_EVENT_TYPE_SHIP
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD
             InboxTableNameRole = TABLE_INBOX_SHIP
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             InboxTableNameRole = TABLE_INBOX_PROD
@@ -956,7 +971,7 @@ Private Function CapabilityForEventTypeRole(ByVal eventType As String) As String
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             CapabilityForEventTypeRole = "RECEIVE_POST"
-        Case ROLE_EVENT_TYPE_SHIP
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD
             CapabilityForEventTypeRole = "SHIP_POST"
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventTypeRole = "PROD_POST"

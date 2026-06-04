@@ -121,8 +121,10 @@ FailEnsure:
     report = "EnsureAuthSchema failed: " & Err.Description
 End Function
 
-Public Function ReloadAuth() As Boolean
-    ReloadAuth = LoadAuth(modConfig.GetString("WarehouseId", ""))
+Public Function ReloadAuth(Optional ByVal warehouseId As String = "") As Boolean
+    warehouseId = SafeTrim(warehouseId)
+    If warehouseId = "" Then warehouseId = modConfig.GetString("WarehouseId", "")
+    ReloadAuth = LoadAuth(warehouseId)
 End Function
 
 Public Function IsAuthLoaded() As Boolean
@@ -217,6 +219,7 @@ Public Function ValidateUserCredentialForTarget(ByVal userId As String, _
     mSignedInWarehouseId = target.WarehouseId
     mSignedInStationId = target.StationId
     mSignedInAt = Now
+    If SafeTrim(target.RuntimeRoot) <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride target.RuntimeRoot
     SetAuthSessionStatus AUTH_OK
     On Error Resume Next
     modRoleEventWriter.SetCurrentUserId normalizedUser
@@ -350,6 +353,8 @@ Public Function CanPerform(ByVal capability As String, _
         Exit Function
     End If
 
+    ApplyCurrentTargetRootForAuth warehouseId, stationId
+
     If Not EnsureFreshCache() Then
         LogDecision requestId, userId, capability, warehouseId, stationId, "DENY", source, "auth-cache-unavailable"
         Exit Function
@@ -361,12 +366,26 @@ Public Function CanPerform(ByVal capability As String, _
     If resolvedSt = "" Then resolvedSt = modConfig.GetString("StationId", "")
 
     If Not IsUserActive(userId, nowTs) Then
-        LogDecision requestId, userId, capability, resolvedWh, resolvedSt, "DENY", source, "user-inactive-or-missing"
-        Exit Function
+        If Not ReloadAuth(resolvedWh) Then
+            LogDecision requestId, userId, capability, resolvedWh, resolvedSt, "DENY", source, "user-inactive-or-missing"
+            Exit Function
+        End If
+        nowTs = Now
+        If Not IsUserActive(userId, nowTs) Then
+            LogDecision requestId, userId, capability, resolvedWh, resolvedSt, "DENY", source, "user-inactive-or-missing"
+            Exit Function
+        End If
     End If
 
     allowed = HasCapabilityMatch(mAllowCaps, userId, capability, resolvedWh, resolvedSt, nowTs)
     denied = HasCapabilityMatch(mDenyCaps, userId, capability, resolvedWh, resolvedSt, nowTs)
+    If Not (allowed And Not denied) Then
+        If ReloadAuth(resolvedWh) Then
+            nowTs = Now
+            allowed = HasCapabilityMatch(mAllowCaps, userId, capability, resolvedWh, resolvedSt, nowTs)
+            denied = HasCapabilityMatch(mDenyCaps, userId, capability, resolvedWh, resolvedSt, nowTs)
+        End If
+    End If
 
     CanPerform = (allowed And Not denied)
     If CanPerform Then
@@ -392,8 +411,26 @@ Public Function HasProvisionedCapabilityForSystem(ByVal capability As String, _
                                                   ByVal userId As String, _
                                                   Optional ByVal warehouseId As String = "", _
                                                   Optional ByVal stationId As String = "") As Boolean
-    If Not EnsureFreshCache() Then Exit Function
-    HasProvisionedCapabilityForSystem = HasEffectiveCapabilityAuth(userId, capability, warehouseId, stationId, Now)
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+
+    resolvedWh = SafeTrim(warehouseId)
+    resolvedSt = SafeTrim(stationId)
+    If resolvedWh = "" Then resolvedWh = modConfig.GetString("WarehouseId", "")
+    If resolvedSt = "" Then resolvedSt = modConfig.GetString("StationId", "")
+
+    ApplyCurrentTargetRootForAuth resolvedWh, resolvedSt
+
+    If Not EnsureFreshCache() Then
+        If Not ReloadAuth(resolvedWh) Then Exit Function
+    End If
+
+    HasProvisionedCapabilityForSystem = HasEffectiveCapabilityAuth(userId, capability, resolvedWh, resolvedSt, Now)
+    If Not HasProvisionedCapabilityForSystem Then
+        If ReloadAuth(resolvedWh) Then
+            HasProvisionedCapabilityForSystem = HasEffectiveCapabilityAuth(userId, capability, resolvedWh, resolvedSt, Now)
+        End If
+    End If
 End Function
 
 Public Function ValidateUserCredential(ByVal AdminUser As String, _
@@ -771,6 +808,30 @@ Private Function UserSecretMatchesAuth(ByVal userId As String, ByVal secretText 
     If expectedHash = "" Then Exit Function
     UserSecretMatchesAuth = (StrComp(expectedHash, HashUserCredential(secretText), vbTextCompare) = 0)
 End Function
+
+Private Sub ApplyCurrentTargetRootForAuth(ByVal warehouseId As String, ByVal stationId As String)
+    Dim target As WarehouseTarget
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+
+    On Error GoTo CleanExit
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then Exit Sub
+    If SafeTrim(target.RuntimeRoot) = "" Then Exit Sub
+
+    resolvedWh = SafeTrim(warehouseId)
+    resolvedSt = SafeTrim(stationId)
+    If resolvedWh <> "" Then
+        If StrComp(resolvedWh, SafeTrim(target.WarehouseId), vbTextCompare) <> 0 Then Exit Sub
+    End If
+    If resolvedSt <> "" Then
+        If StrComp(resolvedSt, SafeTrim(target.StationId), vbTextCompare) <> 0 Then Exit Sub
+    End If
+
+    modRuntimeWorkbooks.SetCoreDataRootOverride target.RuntimeRoot
+
+CleanExit:
+End Sub
 
 Private Sub RestoreRootOverrideAuth(ByVal priorRootOverride As String)
     If SafeTrim(priorRootOverride) = "" Then

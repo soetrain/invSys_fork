@@ -1214,7 +1214,7 @@ Public Sub CommitSelection()
         Case "boxbuilder"
             Application.Run "modTS_Shipments.ApplyItemToBoxBuilder", callbackCell, itemName, itemRow, uom, location, lst.List(lst.ListIndex, 5)
         Case "boxbom"
-            Application.Run "modTS_Shipments.ApplyItemToBoxBOM", callbackCell, itemName, itemRow, uom, location, lst.List(lst.ListIndex, 5)
+            Application.Run "modTS_Shipments.ApplyItemToBoxBOM", callbackCell, itemName, itemRow, uom, location, lst.List(lst.ListIndex, 5), itemCode
         Case "ip_chooseitem"
             Dim colItem As Long: colItem = ColumnIndex(lo, "ITEMS")
             If colItem = 0 Then colItem = ColumnIndex(lo, "ITEM")

@@ -792,6 +792,10 @@ Private Sub SaveUserAndRolesForm()
     SaveCapabilityChoiceForm loCaps, userId, "INBOX_PROCESS", whId, stId, CBool(mChkInboxProcess.Value)
 
     wb.Save
+    On Error Resume Next
+    modAuth.LoadAuth whId
+    modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
+    On Error GoTo 0
     ShowStatusForm "User and role assignments saved. Store the visible PIN/password now; it cannot be recovered later.", COLOR_SUCCESS
     RefreshUsersForm
 

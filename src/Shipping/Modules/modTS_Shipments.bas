@@ -30,6 +30,8 @@ Private Const TABLE_CHECK_INV As String = "Check_invSys"
 Private Const TABLE_SHIPPING_BOM_VIEW As String = "ShippingBOMView"
 Private Const TABLE_CANONICAL_SHIPPING_BOM As String = "tblShippingBOM"
 Private Const COL_BOXBOM_ITEM As String = "ITEM"
+Private Const COL_CURRENT_INV As String = "CURRENT INV"
+Private Const EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
 
 Private Const BTN_TOGGLE_BUILDER As String = "BTN_TOGGLE_BUILDER"
 Private Const BTN_SAVE_BOX As String = "BTN_SAVE_BOX"
@@ -59,6 +61,8 @@ Private Const SHIP_LAYOUT_AGG_PACK_ADDR As String = "AE3"
 Private Const SHIP_LAYOUT_CHECK_ADDR As String = "AL3"
 Private Const SHIP_LAYOUT_INV_ADDR As String = "AV3"
 Private Const SHIP_LAYOUT_BOM_VIEW_ADDR As String = "BO3"
+Private Const SHIP_LAYOUT_GAP_COLUMNS As Long = 1
+Private Const SHIP_LAYOUT_GAP_ROWS As Long = 2
 
 Private mDynSearch As Object
 Private mNextInvSysRow As Long
@@ -81,6 +85,7 @@ Public Sub InitializeShipmentsUiForWorkbook(Optional ByVal targetWb As Workbook 
     NormalizeShippingBootstrapArtifacts wb
     EnsureShipmentsButtons wb
     EnsureBuilderTablesReady wb
+    ArrangeShippingSurface wb
     RefreshShippingBomViewForWorkbook wb, surfaceReport
     modOperatorReadModel.InitializeAutoSnapshotForWorkbook wb
     If mAggDirty Then RebuildShippingAggregates
@@ -101,49 +106,56 @@ End Sub
 
 Public Sub BtnBoxCreated()
     On Error GoTo ErrHandler
+    Dim stepName As String
 
+    stepName = "require SHIP_POST"
     If Not modRoleUiAccess.RequireCurrentUserCapability("SHIP_POST") Then Exit Sub
 
+    stepName = "resolve ShipmentsTally sheet"
     Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Sub
 
+    stepName = "switch to BoxMaker mode"
     SetBoxMakerMode ws, True
 
+    stepName = "resolve BoxMaker tables"
     Dim invLo As ListObject: Set invLo = GetInvSysTable()
     Dim loBuilder As ListObject: Set loBuilder = GetListObject(ws, TABLE_BOX_BUILDER)
     Dim loBom As ListObject: Set loBom = GetListObject(ws, TABLE_BOX_BOM)
-    Dim loAggBom As ListObject: Set loAggBom = GetListObject(ws, TABLE_AGG_BOM)
-    Dim loAggPack As ListObject: Set loAggPack = GetListObject(ws, TABLE_AGG_PACK)
-    If invLo Is Nothing Or loBuilder Is Nothing Or loBom Is Nothing Or loAggBom Is Nothing Or loAggPack Is Nothing Then
-        MsgBox "BoxMaker requires invSys, BoxBuilder, BoxBOM, AggregateBoxBOM, and AggregatePackages tables.", vbExclamation
+    If invLo Is Nothing Or loBuilder Is Nothing Or loBom Is Nothing Then
+        MsgBox "BoxMaker requires invSys, BoxBuilder, and BoxBOM tables.", vbExclamation
         Exit Sub
     End If
 
+    stepName = "recalculate BoxBOM from BoxBuilder"
     RecalculateBoxMakerBomFromBuilder ws, invLo, loBuilder
 
     Dim errNotes As String
-    If Not BuildBoxMakerAggregateTables(loBuilder, loBom, invLo, loAggBom, loAggPack, errNotes) Then
-        If errNotes = "" Then errNotes = "BoxMaker entries were incomplete."
-        MsgBox errNotes, vbExclamation
-        Exit Sub
-    End If
-
     Dim usedTotal As Double
     Dim madeTotal As Double
-    If Not ApplyBoxCreatedFromAggregates(invLo, loAggBom, loAggPack, usedTotal, madeTotal, errNotes) Then
+    stepName = "apply BoxMaker inventory deltas"
+    If Not ApplyBoxCreatedFromBuilder(loBuilder, loBom, invLo, usedTotal, madeTotal, errNotes) Then
         If errNotes = "" Then errNotes = "Box creation could not be posted."
         MsgBox errNotes, vbExclamation
         Exit Sub
     End If
 
+    stepName = "reset BoxMaker quantities"
     ResetBoxMakerQuantities loBuilder, loBom
+    stepName = "refresh BoxMaker current inventory"
+    RefreshBoxMakerCurrentInventory ws
+    stepName = "invalidate aggregates"
     InvalidateAggregates True, True
 
-    ShowShippingStatus "Box created. Used " & Format$(usedTotal, "0.###") & " component units; added " & Format$(madeTotal, "0.###") & " shippable units to TOTAL INV."
+    stepName = "show Box Created status"
+    Dim msg As String
+    msg = "Box created. Used " & Format$(usedTotal, "0.###") & " component units; added " & Format$(madeTotal, "0.###") & " shippable units to TOTAL INV."
+    If errNotes <> "" Then msg = msg & vbCrLf & vbCrLf & errNotes
+    ShowShippingStatus msg
     Exit Sub
 
 ErrHandler:
-    MsgBox "BTN_BOX_CREATED failed: " & Err.Description, vbCritical
+    MsgBox "BTN_BOX_CREATED failed during " & stepName & ": " & Err.Description, vbCritical
 End Sub
 
 Public Sub BtnBoxUnboxed()
@@ -176,6 +188,7 @@ Public Sub BtnBoxUnboxed()
     End If
 
     ResetBoxMakerQuantities loBuilder, loBom
+    RefreshBoxMakerCurrentInventory ws
     InvalidateAggregates True, True
 
     ShowShippingStatus "Box unboxed. Removed " & Format$(packageReturned, "0.###") & " shippable units; returned " & Format$(componentsReturned, "0.###") & " component units to TOTAL INV."
@@ -296,38 +309,51 @@ End Function
 
 Private Sub ArrangeShippingSurface(ByVal wb As Workbook)
     Dim ws As Worksheet
+    Dim loBuilder As ListObject
+    Dim loBom As ListObject
     Dim lo As ListObject
+    Dim anchorRow As Long
+    Dim anchorCol As Long
+    Dim nextCol As Long
+    Dim leftBandRight As Long
 
     If wb Is Nothing Then Exit Sub
     Set ws = WorkbookSheetExistsShipping(wb, SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Sub
 
-    Set lo = GetListObject(ws, TABLE_BOX_BUILDER)
-    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_BUILDER_ADDR
+    anchorRow = ws.Range(SHIP_LAYOUT_BUILDER_ADDR).Row
+    anchorCol = ws.Range(SHIP_LAYOUT_BUILDER_ADDR).Column
 
-    Set lo = GetListObject(ws, TABLE_BOX_BOM)
-    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_BOM_ADDR
+    Set loBuilder = GetListObject(ws, TABLE_BOX_BUILDER)
+    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+
+    MoveListObjectToRowColShipping loBuilder, anchorRow, anchorCol
+    ArrangeBoxBuilderBandShipping loBuilder, loBom
+
+    leftBandRight = MaxLongShipping(ListObjectRightColumnShipping(loBuilder), ListObjectRightColumnShipping(loBom))
+    If leftBandRight < anchorCol Then leftBandRight = anchorCol
+    nextCol = leftBandRight + SHIP_LAYOUT_GAP_COLUMNS + 1
 
     Set lo = GetListObject(ws, TABLE_SHIPMENTS)
-    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_SHIPMENTS_ADDR
+    nextCol = MoveListObjectAndNextColumnShipping(lo, anchorRow, nextCol)
 
     Set lo = GetListObject(ws, TABLE_NOTSHIPPED)
-    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_NOTSHIPPED_ADDR
+    nextCol = MoveListObjectAndNextColumnShipping(lo, anchorRow, nextCol)
 
     Set lo = GetListObject(ws, TABLE_AGG_BOM)
-    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_AGG_BOM_ADDR
+    nextCol = MoveListObjectAndNextColumnShipping(lo, anchorRow, nextCol)
 
     Set lo = GetListObject(ws, TABLE_AGG_PACK)
-    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_AGG_PACK_ADDR
+    nextCol = MoveListObjectAndNextColumnShipping(lo, anchorRow, nextCol)
 
     Set lo = GetListObject(ws, TABLE_CHECK_INV)
-    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_CHECK_ADDR
+    nextCol = MoveListObjectAndNextColumnShipping(lo, anchorRow, nextCol)
 
     Set lo = GetListObject(ws, "invSysData_Shipping")
-    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_INV_ADDR
+    nextCol = MoveListObjectAndNextColumnShipping(lo, anchorRow, nextCol)
 
     Set lo = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
-    MoveListObjectToAddressShipping lo, SHIP_LAYOUT_BOM_VIEW_ADDR
+    nextCol = MoveListObjectAndNextColumnShipping(lo, anchorRow, nextCol)
 End Sub
 
 Private Sub MoveListObjectToAddressShipping(ByVal lo As ListObject, ByVal addressText As String)
@@ -337,6 +363,7 @@ End Sub
 
 Private Sub MoveListObjectToRowColShipping(ByVal lo As ListObject, ByVal targetRow As Long, ByVal targetCol As Long)
     Dim dest As Range
+    Dim previousAlerts As Boolean
 
     If lo Is Nothing Then Exit Sub
     If targetRow < 1 Or targetCol < 1 Then Exit Sub
@@ -345,11 +372,193 @@ Private Sub MoveListObjectToRowColShipping(ByVal lo As ListObject, ByVal targetR
     Set dest = lo.Parent.Cells(targetRow, targetCol)
 
     On Error Resume Next
+    ClearExcelClipboardStateShipping
+    previousAlerts = Application.DisplayAlerts
+    Application.DisplayAlerts = False
     lo.Range.Cut Destination:=dest
     ClearExcelClipboardStateShipping
+    Application.DisplayAlerts = previousAlerts
     Err.Clear
     On Error GoTo 0
 End Sub
+
+Private Function MoveListObjectAndNextColumnShipping(ByVal lo As ListObject, ByVal targetRow As Long, ByVal targetCol As Long) As Long
+    Dim rightCol As Long
+
+    If lo Is Nothing Then
+        MoveListObjectAndNextColumnShipping = targetCol
+        Exit Function
+    End If
+
+    MoveListObjectToRowColShipping lo, targetRow, targetCol
+    rightCol = ListObjectRightColumnShipping(lo)
+    If rightCol <= 0 Then
+        MoveListObjectAndNextColumnShipping = targetCol
+    Else
+        MoveListObjectAndNextColumnShipping = rightCol + SHIP_LAYOUT_GAP_COLUMNS + 1
+    End If
+End Function
+
+Private Function ListObjectRightColumnShipping(ByVal lo As ListObject) As Long
+    Dim tableRange As Range
+
+    On Error GoTo CleanFail
+    If lo Is Nothing Then Exit Function
+
+    Set tableRange = lo.Range
+    If tableRange Is Nothing Then Set tableRange = lo.HeaderRowRange
+    If tableRange Is Nothing Then Exit Function
+
+    ListObjectRightColumnShipping = tableRange.Column + tableRange.Columns.Count - 1
+    Exit Function
+
+CleanFail:
+    ListObjectRightColumnShipping = 0
+End Function
+
+Private Function ListObjectsOverlapRowsShipping(ByVal leftTable As ListObject, ByVal rightTable As ListObject) As Boolean
+    Dim leftRange As Range
+    Dim rightRange As Range
+    Dim leftBottom As Long
+    Dim rightBottom As Long
+
+    On Error GoTo CleanFail
+    If leftTable Is Nothing Then Exit Function
+    If rightTable Is Nothing Then Exit Function
+
+    Set leftRange = leftTable.Range
+    Set rightRange = rightTable.Range
+    If leftRange Is Nothing Or rightRange Is Nothing Then Exit Function
+
+    leftBottom = leftRange.Row + leftRange.Rows.Count - 1
+    rightBottom = rightRange.Row + rightRange.Rows.Count - 1
+    ListObjectsOverlapRowsShipping = (leftRange.Row <= rightBottom And rightRange.Row <= leftBottom)
+    Exit Function
+
+CleanFail:
+    ListObjectsOverlapRowsShipping = False
+End Function
+
+Private Sub EnsureListObjectColumnInsertSpaceShipping(ByVal lo As ListObject, ByVal extraColumns As Long)
+    Dim ws As Worksheet
+    Dim baseRight As Long
+    Dim shiftBy As Long
+    Dim maxLeft As Long
+    Dim scanCol As Long
+    Dim other As ListObject
+    Dim otherLeft As Long
+
+    On Error GoTo CleanExit
+    If lo Is Nothing Then Exit Sub
+    If extraColumns <= 0 Then Exit Sub
+
+    Set ws = lo.Parent
+    If ws Is Nothing Then Exit Sub
+
+    baseRight = ListObjectRightColumnShipping(lo)
+    If baseRight <= 0 Then Exit Sub
+
+    shiftBy = extraColumns + SHIP_LAYOUT_GAP_COLUMNS
+
+    For Each other In ws.ListObjects
+        If Not other Is lo Then
+            otherLeft = 0
+            On Error Resume Next
+            otherLeft = other.Range.Column
+            On Error GoTo CleanExit
+            If otherLeft > maxLeft Then maxLeft = otherLeft
+        End If
+    Next other
+
+    For scanCol = maxLeft To baseRight + 1 Step -1
+        For Each other In ws.ListObjects
+            If Not other Is lo Then
+                otherLeft = 0
+                On Error Resume Next
+                otherLeft = other.Range.Column
+                On Error GoTo CleanExit
+                If otherLeft = scanCol Then
+                    If ListObjectsOverlapRowsShipping(lo, other) Then
+                        MoveListObjectToRowColShipping other, other.Range.Row, other.Range.Column + shiftBy
+                    End If
+                End If
+            End If
+        Next other
+    Next scanCol
+
+CleanExit:
+End Sub
+
+Private Function ListObjectsOverlapColumnsShipping(ByVal leftTable As ListObject, ByVal rightTable As ListObject) As Boolean
+    Dim leftRange As Range
+    Dim rightRange As Range
+    Dim leftRight As Long
+    Dim rightRight As Long
+
+    On Error GoTo CleanFail
+    If leftTable Is Nothing Then Exit Function
+    If rightTable Is Nothing Then Exit Function
+
+    Set leftRange = leftTable.Range
+    Set rightRange = rightTable.Range
+    If leftRange Is Nothing Or rightRange Is Nothing Then Exit Function
+
+    leftRight = leftRange.Column + leftRange.Columns.Count - 1
+    rightRight = rightRange.Column + rightRange.Columns.Count - 1
+    ListObjectsOverlapColumnsShipping = (leftRange.Column <= rightRight And rightRange.Column <= leftRight)
+    Exit Function
+
+CleanFail:
+    ListObjectsOverlapColumnsShipping = False
+End Function
+
+Private Sub MoveListObjectColumnAddBlockersShipping(ByVal lo As ListObject, ByVal extraColumns As Long)
+    Dim ws As Worksheet
+    Dim other As ListObject
+    Dim maxRight As Long
+    Dim rightCol As Long
+    Dim nextCol As Long
+
+    On Error GoTo CleanExit
+    If lo Is Nothing Then Exit Sub
+    If extraColumns <= 0 Then Exit Sub
+
+    Set ws = lo.Parent
+    If ws Is Nothing Then Exit Sub
+
+    For Each other In ws.ListObjects
+        rightCol = ListObjectRightColumnShipping(other)
+        If rightCol > maxRight Then maxRight = rightCol
+    Next other
+
+    nextCol = maxRight + extraColumns + SHIP_LAYOUT_GAP_COLUMNS + 1
+    If nextCol < 1 Then Exit Sub
+
+    For Each other In ws.ListObjects
+        If Not other Is lo Then
+            If ListObjectsOverlapRowsShipping(lo, other) _
+               Or ListObjectsOverlapColumnsShipping(lo, other) Then
+                MoveListObjectToRowColShipping other, other.Range.Row, nextCol
+                rightCol = ListObjectRightColumnShipping(other)
+                If rightCol > 0 Then
+                    nextCol = rightCol + SHIP_LAYOUT_GAP_COLUMNS + 1
+                Else
+                    nextCol = nextCol + extraColumns + SHIP_LAYOUT_GAP_COLUMNS + 1
+                End If
+            End If
+        End If
+    Next other
+
+CleanExit:
+End Sub
+
+Private Function MaxLongShipping(ByVal leftValue As Long, ByVal rightValue As Long) As Long
+    If leftValue >= rightValue Then
+        MaxLongShipping = leftValue
+    Else
+        MaxLongShipping = rightValue
+    End If
+End Function
 
 Public Sub BtnToggleBuilder()
     Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
@@ -1016,6 +1225,183 @@ Private Function QueueShipmentsSentEvent(ByVal deltas As Collection, ByRef errNo
         errNotes)
 End Function
 
+Private Function QueueBoxBuildEventFromBuilder(ByVal loBuilder As ListObject, _
+                                               ByVal loBom As ListObject, _
+                                               ByVal invLo As ListObject, _
+                                               ByRef usedTotal As Double, _
+                                               ByRef madeTotal As Double, _
+                                               ByRef eventIdOut As String, _
+                                               ByRef errNotes As String) As Boolean
+    Dim payloadItems As Collection
+    Dim payloadJson As String
+    Dim boxName As String
+    Dim boxQty As Double
+    Dim packageRow As Long
+    Dim packageIdx As Long
+    Dim runtimeMax As Long
+    Dim itemCode As String
+    Dim uomVal As String
+    Dim locationVal As String
+    Dim descrVal As String
+
+    errNotes = ""
+    usedTotal = 0
+    madeTotal = 0
+    If loBuilder Is Nothing Or loBom Is Nothing Then
+        errNotes = "BoxMaker required tables are missing."
+        Exit Function
+    End If
+
+    boxName = Trim$(NzStr(ValueFromTable(loBuilder, "Box Name")))
+    boxQty = NzDbl(ValueFromTable(loBuilder, "Quantity"))
+    If boxName = "" Then
+        errNotes = "BoxBuilder Box Name is required."
+        Exit Function
+    End If
+    If boxQty <= 0 Then
+        errNotes = "BoxBuilder Quantity must be greater than zero."
+        Exit Function
+    End If
+
+    If Not invLo Is Nothing Then
+        packageIdx = FindInvRowIndexByItem(invLo, boxName)
+        If packageIdx > 0 Then
+            packageRow = NzLng(GetInvSysValueByIndex(invLo, packageIdx, "ROW"))
+            itemCode = NzStr(GetInvSysValueByIndex(invLo, packageIdx, "ITEM_CODE"))
+        End If
+    End If
+    If packageRow <= 0 Then packageRow = FindShippingBomPackageRowByName(loBuilder.Parent.Parent, boxName, runtimeMax)
+    If packageRow <= 0 Then
+        errNotes = "Box '" & boxName & "' was not found in ShippingBOM runtime."
+        Exit Function
+    End If
+    If itemCode = "" Then itemCode = boxName
+    uomVal = Trim$(NzStr(ValueFromTable(loBuilder, "UOM")))
+    locationVal = Trim$(NzStr(ValueFromTable(loBuilder, "LOCATION")))
+    descrVal = Trim$(NzStr(ValueFromTable(loBuilder, "DESCRIPTION")))
+
+    Set payloadItems = New Collection
+    If Not AddBoxBuildComponentPayloadItems(loBom, invLo, payloadItems, usedTotal, errNotes) Then Exit Function
+    AddBoxBuildPayloadItem payloadItems, packageRow, itemCode, boxName, boxQty, uomVal, locationVal, descrVal, "MADE"
+    madeTotal = boxQty
+
+    payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
+    If payloadJson = "" Or payloadJson = "[]" Then
+        errNotes = "No BoxMaker payload rows were generated."
+        Exit Function
+    End If
+
+    QueueBoxBuildEventFromBuilder = modRoleEventWriter.QueuePayloadEventCurrent( _
+        EVENT_TYPE_BOX_BUILD, _
+        "", _
+        payloadJson, _
+        "BTN_BOX_CREATED", _
+        eventIdOut, _
+        errNotes)
+End Function
+
+Private Function AddBoxBuildComponentPayloadItems(ByVal loBom As ListObject, _
+                                                  ByVal invLo As ListObject, _
+                                                  ByVal payloadItems As Collection, _
+                                                  ByRef usedTotal As Double, _
+                                                  ByRef errNotes As String) As Boolean
+    Dim cItem As Long
+    Dim cCode As Long
+    Dim cRow As Long
+    Dim cQty As Long
+    Dim cUom As Long
+    Dim cLoc As Long
+    Dim cDesc As Long
+    Dim r As Long
+    Dim itemName As String
+    Dim itemCode As String
+    Dim rowVal As Long
+    Dim qtyVal As Double
+    Dim uomVal As String
+    Dim locVal As String
+    Dim descVal As String
+
+    If payloadItems Is Nothing Then Exit Function
+    If loBom Is Nothing Or loBom.DataBodyRange Is Nothing Then
+        errNotes = "BoxBOM has no component rows."
+        Exit Function
+    End If
+
+    EnsureBoxBomEntryColumns loBom
+    cItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
+    cCode = ColumnIndex(loBom, "ITEM_CODE")
+    cRow = ColumnIndex(loBom, "ROW")
+    cQty = ColumnIndex(loBom, "QUANTITY")
+    cUom = ColumnIndex(loBom, "UOM")
+    cLoc = ColumnIndex(loBom, "LOCATION")
+    cDesc = ColumnIndex(loBom, "DESCRIPTION")
+    If cItem = 0 Or cRow = 0 Or cQty = 0 Then
+        errNotes = "BoxBOM must include ITEM, ROW, and QUANTITY columns."
+        Exit Function
+    End If
+
+    For r = 1 To loBom.ListRows.Count
+        itemName = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cItem).Value))
+        itemCode = ""
+        If cCode > 0 Then itemCode = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cCode).Value))
+        rowVal = NzLng(loBom.DataBodyRange.Cells(r, cRow).Value)
+        qtyVal = NzDbl(loBom.DataBodyRange.Cells(r, cQty).Value)
+        If BoxMakerComponentRowIsBlank(itemName, rowVal, qtyVal) Then GoTo NextRow
+        If qtyVal <= 0 Then
+            errNotes = "BoxBOM row " & CStr(r) & " needs a component Quantity greater than zero."
+            Exit Function
+        End If
+
+        If cUom > 0 Then uomVal = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cUom).Value)) Else uomVal = ""
+        If cLoc > 0 Then locVal = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cLoc).Value)) Else locVal = ""
+        If cDesc > 0 Then descVal = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cDesc).Value)) Else descVal = ""
+        If itemCode = "" Then itemCode = ResolveItemCodeForBoxBuildPayload(invLo, rowVal, itemName)
+        If itemCode = "" And itemName <> "" Then itemCode = itemName
+
+        AddBoxBuildPayloadItem payloadItems, rowVal, itemCode, itemName, qtyVal, uomVal, locVal, descVal, "USED"
+        usedTotal = usedTotal + qtyVal
+NextRow:
+    Next r
+
+    If usedTotal <= 0 Then
+        errNotes = "No component quantities were found in BoxBOM."
+        Exit Function
+    End If
+    AddBoxBuildComponentPayloadItems = True
+End Function
+
+Private Sub AddBoxBuildPayloadItem(ByVal payloadItems As Collection, _
+                                   ByVal rowVal As Long, _
+                                   ByVal itemCode As String, _
+                                   ByVal itemName As String, _
+                                   ByVal qtyVal As Double, _
+                                   ByVal uomVal As String, _
+                                   ByVal locationVal As String, _
+                                   ByVal descriptionVal As String, _
+                                   ByVal ioType As String)
+    Dim payloadItem As Object
+
+    If payloadItems Is Nothing Then Exit Sub
+    Set payloadItem = modRoleEventWriter.CreatePayloadItem(rowVal, itemCode, qtyVal, locationVal, itemName, ioType)
+    payloadItem("ROW") = rowVal
+    payloadItem("ITEM_CODE") = itemCode
+    payloadItem("ITEM") = itemName
+    payloadItem("UOM") = uomVal
+    payloadItem("DESCRIPTION") = descriptionVal
+    payloadItem("LOCATION") = locationVal
+    payloadItems.Add payloadItem
+End Sub
+
+Private Function ResolveItemCodeForBoxBuildPayload(ByVal invLo As ListObject, ByVal rowVal As Long, ByVal itemName As String) As String
+    Dim invIdx As Long
+
+    If invLo Is Nothing Then Exit Function
+    If rowVal > 0 Then invIdx = FindInvRowIndexByRow(invLo, rowVal)
+    If invIdx <= 0 And itemName <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+    If invIdx <= 0 Then Exit Function
+    ResolveItemCodeForBoxBuildPayload = NzStr(GetInvSysValueByIndex(invLo, invIdx, "ITEM_CODE"))
+End Function
+
 Private Function BuildQueueableShipmentsSentDeltas(ByVal invLo As ListObject, ByVal ws As Worksheet, ByRef deltasOut As Collection, ByRef errNotes As String) As Boolean
     Dim aggPack As ListObject
     Dim rowFilter As Object
@@ -1169,6 +1555,14 @@ Public Sub HandleShippingSheetChange(ByVal target As Range)
                     GoTo ExitHandler
                 End If
             End If
+        End If
+    End If
+
+    If IsBoxMakerMode(target.Worksheet) Then
+        If BoxMakerCurrentInventoryWasEdited(target.Worksheet, target) Then
+            Application.EnableEvents = False
+            RefreshBoxMakerCurrentInventory target.Worksheet
+            GoTo ExitHandler
         End If
     End If
 
@@ -1458,6 +1852,8 @@ Private Sub EnsureBuilderTablesReady(Optional ByVal targetWb As Workbook = Nothi
     If ws Is Nothing Then Exit Sub
     Dim loBuilder As ListObject: Set loBuilder = GetListObject(ws, TABLE_BOX_BUILDER)
     Dim loBom As ListObject: Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    UnhideListObjectWorksheetColumnsShipping loBuilder
+    UnhideListObjectWorksheetColumnsShipping loBom
     If Not loBuilder Is Nothing Then NormalizeBoxBuilderTable loBuilder
     If loBom Is Nothing Then
         Set loBom = CreateBoxBomTable(ws, loBuilder)
@@ -1472,6 +1868,7 @@ End Sub
 
 Private Sub NormalizeBoxBuilderTable(ByVal loBuilder As ListObject)
     If loBuilder Is Nothing Then Exit Sub
+    UnhideListObjectWorksheetColumnsShipping loBuilder
     EnsureColumnExists loBuilder, "Box Name"
     EnsureColumnExists loBuilder, "UOM"
     EnsureColumnExists loBuilder, "LOCATION"
@@ -1494,15 +1891,631 @@ Private Sub SetBoxMakerMode(ByVal ws As Worksheet, Optional ByVal enabled As Boo
         EnsureColumnExists loBuilder, "Quantity", "Box Name"
     Else
         RemoveColumnIfExistsShipping loBuilder, "Quantity"
+        RemoveBoxMakerInventoryColumns loBuilder, loBom
     End If
 
     If Not loBom Is Nothing Then
         EnsureBoxBomEntryColumns loBom
+        If enabled Then EnsureBoxMakerInventoryColumns loBuilder, loBom
         EnsureBoxBomStarterRows loBom
         RepairBoxBomRowsFromInventory loBom
+    ElseIf enabled Then
+        EnsureBoxMakerInventoryColumns loBuilder, loBom
     End If
-    ArrangeBoxBuilderBandShipping loBuilder, loBom
+    ArrangeShippingSurface ws.Parent
+    If enabled Then RefreshBoxMakerCurrentInventory ws
 End Sub
+
+Private Sub EnsureBoxMakerInventoryColumns(ByVal loBuilder As ListObject, ByVal loBom As ListObject)
+    If Not loBuilder Is Nothing Then
+        EnsureColumnExists loBuilder, COL_CURRENT_INV, "Quantity"
+        FormatCurrentInventoryColumn loBuilder
+    End If
+    If Not loBom Is Nothing Then
+        EnsureColumnExists loBom, COL_CURRENT_INV, "QUANTITY"
+        FormatCurrentInventoryColumn loBom
+    End If
+End Sub
+
+Private Sub RemoveBoxMakerInventoryColumns(ByVal loBuilder As ListObject, ByVal loBom As ListObject)
+    RemoveColumnIfExistsShipping loBuilder, COL_CURRENT_INV
+    RemoveColumnIfExistsShipping loBom, COL_CURRENT_INV
+End Sub
+
+Private Sub FormatCurrentInventoryColumn(ByVal lo As ListObject)
+    Dim colIdx As Long
+
+    If lo Is Nothing Then Exit Sub
+    colIdx = ColumnIndex(lo, COL_CURRENT_INV)
+    If colIdx = 0 Then Exit Sub
+
+    On Error Resume Next
+    lo.ListColumns(colIdx).Range.Locked = True
+    lo.ListColumns(colIdx).Range.Interior.Color = RGB(242, 242, 242)
+    lo.ListColumns(colIdx).Range.Font.Color = RGB(96, 96, 96)
+    On Error GoTo 0
+End Sub
+
+Private Function BoxMakerCurrentInventoryWasEdited(ByVal ws As Worksheet, ByVal target As Range) As Boolean
+    Dim lo As ListObject
+    Dim colIdx As Long
+    Dim hit As Range
+
+    If ws Is Nothing Or target Is Nothing Then Exit Function
+
+    Set lo = GetListObject(ws, TABLE_BOX_BUILDER)
+    If Not lo Is Nothing Then
+        colIdx = ColumnIndex(lo, COL_CURRENT_INV)
+        If colIdx > 0 Then
+            If Not lo.DataBodyRange Is Nothing Then
+                Set hit = Application.Intersect(target, lo.DataBodyRange.Columns(colIdx))
+                If Not hit Is Nothing Then
+                    BoxMakerCurrentInventoryWasEdited = True
+                    Exit Function
+                End If
+            End If
+        End If
+    End If
+
+    Set lo = GetListObject(ws, TABLE_BOX_BOM)
+    If Not lo Is Nothing Then
+        colIdx = ColumnIndex(lo, COL_CURRENT_INV)
+        If colIdx > 0 Then
+            If Not lo.DataBodyRange Is Nothing Then
+                Set hit = Application.Intersect(target, lo.DataBodyRange.Columns(colIdx))
+                If Not hit Is Nothing Then
+                    BoxMakerCurrentInventoryWasEdited = True
+                    Exit Function
+                End If
+            End If
+        End If
+    End If
+End Function
+
+Private Sub RefreshBoxMakerCurrentInventory(ByVal ws As Worksheet)
+    On Error GoTo CleanExit
+
+    Dim loBuilder As ListObject
+    Dim loBom As ListObject
+    Dim invLo As ListObject
+    Dim snapshotCache As Object
+    Dim unresolvedCount As Long
+    Dim refreshReport As String
+    Dim eventsState As Boolean
+    Dim restoreEvents As Boolean
+
+    If ws Is Nothing Then Exit Sub
+    If Not IsBoxMakerMode(ws) Then Exit Sub
+
+    eventsState = Application.EnableEvents
+    restoreEvents = True
+    Application.EnableEvents = False
+
+    Set loBuilder = GetListObject(ws, TABLE_BOX_BUILDER)
+    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    If loBuilder Is Nothing And loBom Is Nothing Then GoTo CleanExit
+
+    EnsureBoxMakerInventoryColumns loBuilder, loBom
+
+    Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
+    If invLo Is Nothing Then Set invLo = GetInvSysTable()
+    If invLo Is Nothing Then
+        ClearBoxMakerCurrentInventory loBuilder
+        ClearBoxMakerCurrentInventory loBom
+        GoTo CleanExit
+    End If
+
+    unresolvedCount = RefreshBoxBuilderCurrentInventory(ws, loBuilder, invLo, snapshotCache)
+    unresolvedCount = unresolvedCount + RefreshBoxBomCurrentInventory(ws, loBom, invLo, snapshotCache)
+
+    If unresolvedCount > 0 Then
+        On Error Resume Next
+        modOperatorReadModel.RefreshInventoryReadModelForWorkbook ws.Parent, "", "LOCAL", refreshReport
+        On Error GoTo CleanExit
+        Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
+        If invLo Is Nothing Then Set invLo = GetInvSysTable()
+        If Not invLo Is Nothing Then
+            Set snapshotCache = Nothing
+            RefreshBoxBuilderCurrentInventory ws, loBuilder, invLo, snapshotCache
+            RefreshBoxBomCurrentInventory ws, loBom, invLo, snapshotCache
+        End If
+    End If
+
+CleanExit:
+    If restoreEvents Then Application.EnableEvents = eventsState
+End Sub
+
+Private Sub ClearBoxMakerCurrentInventory(ByVal lo As ListObject)
+    Dim colIdx As Long
+
+    If lo Is Nothing Then Exit Sub
+    colIdx = ColumnIndex(lo, COL_CURRENT_INV)
+    If colIdx = 0 Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    lo.DataBodyRange.Columns(colIdx).ClearContents
+    FormatCurrentInventoryColumn lo
+End Sub
+
+Private Function RefreshBoxBuilderCurrentInventory(ByVal ws As Worksheet, _
+                                                   ByVal loBuilder As ListObject, _
+                                                   ByVal invLo As ListObject, _
+                                                   ByRef snapshotCache As Object) As Long
+    Dim colInv As Long
+    Dim boxName As String
+    Dim invIdx As Long
+    Dim packageRow As Long
+    Dim currentInv As Variant
+    Dim found As Boolean
+
+    If loBuilder Is Nothing Then Exit Function
+    colInv = ColumnIndex(loBuilder, COL_CURRENT_INV)
+    If colInv = 0 Then Exit Function
+    If loBuilder.DataBodyRange Is Nothing Then Exit Function
+
+    boxName = Trim$(NzStr(ValueFromTable(loBuilder, "Box Name")))
+    If Not invLo Is Nothing Then
+        If boxName <> "" Then invIdx = FindInvRowIndexByItem(invLo, boxName)
+    End If
+    If invIdx <= 0 Then
+        packageRow = ResolveBoxMakerPackageRow(loBuilder, invLo)
+        If packageRow > 0 And Not invLo Is Nothing Then invIdx = FindInvRowIndexByRow(invLo, packageRow)
+    End If
+
+    currentInv = ResolveCurrentInventoryValue(ws, invLo, packageRow, boxName, found, snapshotCache)
+    If found Then
+        loBuilder.DataBodyRange.Cells(1, colInv).Value = currentInv
+    Else
+        loBuilder.DataBodyRange.Cells(1, colInv).ClearContents
+        If boxName <> "" Or packageRow > 0 Then RefreshBoxBuilderCurrentInventory = 1
+    End If
+    FormatCurrentInventoryColumn loBuilder
+End Function
+
+Private Function RefreshBoxBomCurrentInventory(ByVal ws As Worksheet, _
+                                               ByVal loBom As ListObject, _
+                                               ByVal invLo As ListObject, _
+                                               ByRef snapshotCache As Object) As Long
+    Dim cInv As Long
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim r As Long
+    Dim rowVal As Long
+    Dim itemName As String
+    Dim invIdx As Long
+    Dim currentInv As Variant
+    Dim found As Boolean
+
+    If loBom Is Nothing Then Exit Function
+    cInv = ColumnIndex(loBom, COL_CURRENT_INV)
+    If cInv = 0 Then Exit Function
+    If loBom.DataBodyRange Is Nothing Then Exit Function
+
+    cRow = ColumnIndex(loBom, "ROW")
+    cItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
+
+    For r = 1 To loBom.ListRows.Count
+        rowVal = 0
+        itemName = ""
+        invIdx = 0
+        If cRow > 0 Then rowVal = NzLng(loBom.DataBodyRange.Cells(r, cRow).Value)
+        If cItem > 0 Then itemName = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cItem).Value))
+        If Not invLo Is Nothing Then
+            If rowVal > 0 Then invIdx = FindInvRowIndexByRow(invLo, rowVal)
+            If invIdx <= 0 And itemName <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+        End If
+
+        found = False
+        currentInv = ResolveCurrentInventoryValue(ws, invLo, rowVal, itemName, found, snapshotCache)
+        If found Then
+            loBom.DataBodyRange.Cells(r, cInv).Value = currentInv
+        Else
+            loBom.DataBodyRange.Cells(r, cInv).ClearContents
+            If rowVal > 0 Or itemName <> "" Then RefreshBoxBomCurrentInventory = RefreshBoxBomCurrentInventory + 1
+        End If
+    Next r
+    FormatCurrentInventoryColumn loBom
+End Function
+
+Private Function ResolveCurrentInventoryValue(ByVal ws As Worksheet, _
+                                              ByVal invLo As ListObject, _
+                                              ByVal rowVal As Long, _
+                                              ByVal itemName As String, _
+                                              ByRef found As Boolean, _
+                                              ByRef snapshotCache As Object) As Variant
+    Dim invIdx As Long
+    Dim totalVal As Variant
+    Dim cacheKey As String
+
+    found = False
+    If snapshotCache Is Nothing Then Set snapshotCache = BuildRuntimeSnapshotInventoryCache()
+    If Not snapshotCache Is Nothing Then
+        If rowVal > 0 Then
+            cacheKey = "ROW:" & CStr(rowVal)
+            If snapshotCache.Exists(cacheKey) Then
+                found = True
+                ResolveCurrentInventoryValue = snapshotCache(cacheKey)
+                Exit Function
+            End If
+        End If
+        If Trim$(itemName) <> "" Then
+            cacheKey = "ITEM:" & LCase$(Trim$(itemName))
+            If snapshotCache.Exists(cacheKey) Then
+                found = True
+                ResolveCurrentInventoryValue = snapshotCache(cacheKey)
+                Exit Function
+            End If
+        End If
+    End If
+
+    If Not invLo Is Nothing Then
+        If rowVal > 0 Then invIdx = FindInvRowIndexByRow(invLo, rowVal)
+        If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+        If invIdx > 0 Then
+            totalVal = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
+            If Not IsBlankInventoryValue(totalVal) Then
+                found = True
+                ResolveCurrentInventoryValue = totalVal
+                Exit Function
+            End If
+        End If
+    End If
+
+    ResolveCurrentInventoryValue = ResolveCurrentInventoryFromTable(GetListObject(ws, "invSysData_Shipping"), rowVal, itemName, found)
+    If found Then Exit Function
+
+    ResolveCurrentInventoryValue = ResolveCurrentInventoryFromTable(GetListObject(ws, TABLE_CHECK_INV), rowVal, itemName, found)
+    If found Then Exit Function
+End Function
+
+Private Function ResolveCurrentInventoryFromTable(ByVal lo As ListObject, _
+                                                  ByVal rowVal As Long, _
+                                                  ByVal itemName As String, _
+                                                  ByRef found As Boolean) As Variant
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim cTotal As Long
+    Dim r As Long
+    Dim totalVal As Variant
+
+    found = False
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    cRow = ColumnIndex(lo, "ROW")
+    cItem = ColumnIndex(lo, "ITEM")
+    cTotal = ColumnIndex(lo, "TOTAL INV")
+    If cTotal = 0 Then cTotal = ColumnIndex(lo, "QtyAvailable")
+    If cTotal = 0 Then Exit Function
+
+    For r = 1 To lo.ListRows.Count
+        If rowVal > 0 And cRow > 0 Then
+            If NzLng(lo.DataBodyRange.Cells(r, cRow).Value) <> rowVal Then GoTo NextRow
+        ElseIf Trim$(itemName) <> "" And cItem > 0 Then
+            If StrComp(Trim$(NzStr(lo.DataBodyRange.Cells(r, cItem).Value)), Trim$(itemName), vbTextCompare) <> 0 Then GoTo NextRow
+        Else
+            Exit Function
+        End If
+
+        totalVal = lo.DataBodyRange.Cells(r, cTotal).Value
+        If Not IsBlankInventoryValue(totalVal) Then
+            found = True
+            ResolveCurrentInventoryFromTable = totalVal
+            Exit Function
+        End If
+NextRow:
+    Next r
+End Function
+
+Private Function IsBlankInventoryValue(ByVal value As Variant) As Boolean
+    If IsEmpty(value) Then
+        IsBlankInventoryValue = True
+    ElseIf IsError(value) Then
+        IsBlankInventoryValue = True
+    Else
+        IsBlankInventoryValue = (Trim$(NzStr(value)) = "")
+    End If
+End Function
+
+Private Function BuildRuntimeSnapshotInventoryCache() As Object
+    On Error GoTo CleanExit
+
+    Dim result As Object
+    Dim target As Object
+    Dim warehouseId As String
+    Dim rootPath As String
+    Dim snapshotPath As String
+    Dim wbSnap As Workbook
+    Dim loSnap As ListObject
+    Dim openedTransient As Boolean
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim cSku As Long
+    Dim cQty As Long
+    Dim r As Long
+    Dim rowVal As Long
+    Dim itemName As String
+    Dim sku As String
+    Dim qtyVal As Variant
+
+    Set result = CreateObject("Scripting.Dictionary")
+    Set BuildRuntimeSnapshotInventoryCache = result
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then Exit Function
+
+    warehouseId = Trim$(target.WarehouseId)
+    rootPath = NormalizeFolderPathShipping(target.RuntimeRoot)
+    If warehouseId = "" Or rootPath = "" Then Exit Function
+
+    AddCurrentInventoryCacheFromWorkbookPath result, _
+                                             rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb", _
+                                             "invSys", _
+                                             "TOTAL INV", _
+                                             "QtyAvailable"
+    AddSkuBalanceInventoryCacheFromWorkbookPath result, _
+                                                rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
+
+    snapshotPath = rootPath & "\" & warehouseId & ".invSys.Snapshot.Inventory.xlsb"
+    Set wbSnap = FindOpenWorkbookByFullNameShipping(snapshotPath)
+    If wbSnap Is Nothing Then
+        If Len(Dir$(snapshotPath)) = 0 Then Exit Function
+        Set wbSnap = Application.Workbooks.Open(Filename:=snapshotPath, UpdateLinks:=False, ReadOnly:=True)
+        openedTransient = True
+    End If
+
+    Set loSnap = FindSnapshotListObjectShipping(wbSnap)
+    If loSnap Is Nothing Then GoTo CleanExit
+    If loSnap.DataBodyRange Is Nothing Then GoTo CleanExit
+
+    cRow = ColumnIndex(loSnap, "ROW")
+    cItem = ColumnIndex(loSnap, "ITEM")
+    cSku = ColumnIndex(loSnap, "SKU")
+    cQty = ColumnIndex(loSnap, "QtyOnHand")
+    If cQty = 0 Then cQty = ColumnIndex(loSnap, "QtyAvailable")
+    If cQty = 0 Then GoTo CleanExit
+
+    For r = 1 To loSnap.ListRows.Count
+        qtyVal = loSnap.DataBodyRange.Cells(r, cQty).Value
+        If IsBlankInventoryValue(qtyVal) Then GoTo NextSnapshotRow
+
+        rowVal = 0
+        itemName = ""
+        sku = ""
+        If cRow > 0 Then rowVal = NzLng(loSnap.DataBodyRange.Cells(r, cRow).Value)
+        If cItem > 0 Then itemName = Trim$(NzStr(loSnap.DataBodyRange.Cells(r, cItem).Value))
+        If cSku > 0 Then sku = Trim$(NzStr(loSnap.DataBodyRange.Cells(r, cSku).Value))
+
+        If rowVal > 0 Then result("ROW:" & CStr(rowVal)) = qtyVal
+        If itemName <> "" Then result("ITEM:" & LCase$(itemName)) = qtyVal
+        If sku <> "" Then result("ITEM:" & LCase$(sku)) = qtyVal
+NextSnapshotRow:
+    Next r
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping wbSnap
+End Function
+
+Private Sub AddCurrentInventoryCacheFromWorkbookPath(ByVal cache As Object, _
+                                                     ByVal workbookPath As String, _
+                                                     ByVal preferredTableName As String, _
+                                                     ByVal primaryQtyColumn As String, _
+                                                     ByVal fallbackQtyColumn As String)
+    On Error GoTo CleanExit
+
+    Dim wb As Workbook
+    Dim lo As ListObject
+    Dim openedTransient As Boolean
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim cSku As Long
+    Dim cQty As Long
+    Dim r As Long
+    Dim rowVal As Long
+    Dim itemName As String
+    Dim sku As String
+    Dim qtyVal As Variant
+
+    If cache Is Nothing Then Exit Sub
+    If Trim$(workbookPath) = "" Then Exit Sub
+    If Len(Dir$(workbookPath)) = 0 Then Exit Sub
+
+    Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
+    If wb Is Nothing Then
+        Set wb = Application.Workbooks.Open(Filename:=workbookPath, UpdateLinks:=False, ReadOnly:=True)
+        openedTransient = True
+    End If
+    If wb Is Nothing Then GoTo CleanExit
+
+    Set lo = FindListObjectByNameShipping(wb, preferredTableName)
+    If lo Is Nothing Then GoTo CleanExit
+    If lo.DataBodyRange Is Nothing Then GoTo CleanExit
+
+    cRow = ColumnIndex(lo, "ROW")
+    cItem = ColumnIndex(lo, "ITEM")
+    cSku = ColumnIndex(lo, "ITEM_CODE")
+    If cSku = 0 Then cSku = ColumnIndex(lo, "SKU")
+    cQty = ColumnIndex(lo, primaryQtyColumn)
+    If cQty = 0 Then cQty = ColumnIndex(lo, fallbackQtyColumn)
+    If cQty = 0 Then GoTo CleanExit
+
+    For r = 1 To lo.ListRows.Count
+        qtyVal = lo.DataBodyRange.Cells(r, cQty).Value
+        If IsBlankInventoryValue(qtyVal) Then GoTo NextRow
+
+        rowVal = 0
+        itemName = ""
+        sku = ""
+        If cRow > 0 Then rowVal = NzLng(lo.DataBodyRange.Cells(r, cRow).Value)
+        If cItem > 0 Then itemName = Trim$(NzStr(lo.DataBodyRange.Cells(r, cItem).Value))
+        If cSku > 0 Then sku = Trim$(NzStr(lo.DataBodyRange.Cells(r, cSku).Value))
+
+        If rowVal > 0 Then cache("ROW:" & CStr(rowVal)) = qtyVal
+        If itemName <> "" Then cache("ITEM:" & LCase$(itemName)) = qtyVal
+        If sku <> "" Then cache("ITEM:" & LCase$(sku)) = qtyVal
+NextRow:
+    Next r
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping wb
+End Sub
+
+Private Sub AddSkuBalanceInventoryCacheFromWorkbookPath(ByVal cache As Object, _
+                                                        ByVal workbookPath As String)
+    On Error GoTo CleanExit
+
+    Dim wb As Workbook
+    Dim loBalance As ListObject
+    Dim openedTransient As Boolean
+    Dim skuMeta As Object
+    Dim cSku As Long
+    Dim cQty As Long
+    Dim r As Long
+    Dim sku As String
+    Dim qtyVal As Variant
+
+    If cache Is Nothing Then Exit Sub
+    If Trim$(workbookPath) = "" Then Exit Sub
+    If Len(Dir$(workbookPath)) = 0 Then Exit Sub
+
+    Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
+    If wb Is Nothing Then
+        Set wb = Application.Workbooks.Open(Filename:=workbookPath, UpdateLinks:=False, ReadOnly:=True)
+        openedTransient = True
+    End If
+    If wb Is Nothing Then GoTo CleanExit
+
+    Set loBalance = FindListObjectByNameShipping(wb, "tblSkuBalance")
+    If loBalance Is Nothing Then GoTo CleanExit
+    If loBalance.DataBodyRange Is Nothing Then GoTo CleanExit
+
+    Set skuMeta = BuildSkuMetadataCacheShipping(wb)
+
+    cSku = ColumnIndex(loBalance, "SKU")
+    If cSku = 0 Then cSku = ColumnIndex(loBalance, "ITEM_CODE")
+    cQty = ColumnIndex(loBalance, "QtyOnHand")
+    If cQty = 0 Then cQty = ColumnIndex(loBalance, "TOTAL INV")
+    If cSku = 0 Or cQty = 0 Then GoTo CleanExit
+
+    For r = 1 To loBalance.ListRows.Count
+        sku = Trim$(NzStr(loBalance.DataBodyRange.Cells(r, cSku).Value))
+        If sku = "" Then GoTo NextRow
+        qtyVal = loBalance.DataBodyRange.Cells(r, cQty).Value
+        If IsBlankInventoryValue(qtyVal) Then GoTo NextRow
+
+        AddSkuBalanceCacheEntryShipping cache, skuMeta, sku, qtyVal
+NextRow:
+    Next r
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping wb
+End Sub
+
+Private Function BuildSkuMetadataCacheShipping(ByVal wb As Workbook) As Object
+    Dim result As Object
+
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+
+    AddSkuMetadataFromTableShipping result, FindListObjectByNameShipping(wb, "tblSkuCatalog")
+    AddSkuMetadataFromTableShipping result, FindListObjectByNameShipping(wb, "invSys")
+    AddSkuMetadataFromTableShipping result, FindListObjectByNameShipping(wb, "tblItemSearchIndex")
+
+    Set BuildSkuMetadataCacheShipping = result
+End Function
+
+Private Sub AddSkuMetadataFromTableShipping(ByVal cache As Object, ByVal lo As ListObject)
+    Dim cSku As Long
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim r As Long
+    Dim sku As String
+    Dim info As Object
+
+    If cache Is Nothing Then Exit Sub
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    cSku = ColumnIndex(lo, "SKU")
+    If cSku = 0 Then cSku = ColumnIndex(lo, "ITEM_CODE")
+    If cSku = 0 Then Exit Sub
+    cRow = ColumnIndex(lo, "ROW")
+    cItem = ColumnIndex(lo, "ITEM")
+
+    For r = 1 To lo.ListRows.Count
+        sku = Trim$(NzStr(lo.DataBodyRange.Cells(r, cSku).Value))
+        If sku = "" Then GoTo NextRow
+        Set info = CreateObject("Scripting.Dictionary")
+        info.CompareMode = vbTextCompare
+        info("SKU") = sku
+        If cRow > 0 Then info("ROW") = NzLng(lo.DataBodyRange.Cells(r, cRow).Value)
+        If cItem > 0 Then info("ITEM") = Trim$(NzStr(lo.DataBodyRange.Cells(r, cItem).Value))
+        If cache.Exists(sku) Then cache.Remove sku
+        cache.Add sku, info
+NextRow:
+    Next r
+End Sub
+
+Private Sub AddSkuBalanceCacheEntryShipping(ByVal cache As Object, _
+                                            ByVal skuMeta As Object, _
+                                            ByVal sku As String, _
+                                            ByVal qtyVal As Variant)
+    Dim info As Object
+    Dim rowVal As Long
+    Dim itemName As String
+
+    If cache Is Nothing Then Exit Sub
+    sku = Trim$(sku)
+    If sku = "" Then Exit Sub
+
+    cache("ITEM:" & LCase$(sku)) = qtyVal
+    If skuMeta Is Nothing Then Exit Sub
+    If Not skuMeta.Exists(sku) Then Exit Sub
+
+    Set info = skuMeta(sku)
+    On Error Resume Next
+    rowVal = NzLng(info("ROW"))
+    itemName = Trim$(NzStr(info("ITEM")))
+    On Error GoTo 0
+
+    If rowVal > 0 Then cache("ROW:" & CStr(rowVal)) = qtyVal
+    If itemName <> "" Then cache("ITEM:" & LCase$(itemName)) = qtyVal
+End Sub
+
+Private Function FindSnapshotListObjectShipping(ByVal wb As Workbook) As ListObject
+    Dim ws As Worksheet
+    Dim lo As ListObject
+
+    If wb Is Nothing Then Exit Function
+    On Error Resume Next
+    Set ws = wb.Worksheets("InventorySnapshot")
+    If Not ws Is Nothing Then Set FindSnapshotListObjectShipping = ws.ListObjects("tblInventorySnapshot")
+    On Error GoTo 0
+    If Not FindSnapshotListObjectShipping Is Nothing Then Exit Function
+
+    For Each ws In wb.Worksheets
+        For Each lo In ws.ListObjects
+            If StrComp(lo.Name, "tblInventorySnapshot", vbTextCompare) = 0 Then
+                Set FindSnapshotListObjectShipping = lo
+                Exit Function
+            End If
+        Next lo
+    Next ws
+End Function
+
+Private Function FindListObjectByNameShipping(ByVal wb As Workbook, ByVal tableName As String) As ListObject
+    Dim ws As Worksheet
+    Dim lo As ListObject
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        For Each lo In ws.ListObjects
+            If StrComp(lo.Name, tableName, vbTextCompare) = 0 Then
+                Set FindListObjectByNameShipping = lo
+                Exit Function
+            End If
+        Next lo
+    Next ws
+End Function
 
 Private Function IsBoxMakerMode(ByVal ws As Worksheet) As Boolean
     Dim loBuilder As ListObject
@@ -1524,7 +2537,7 @@ Private Sub ArrangeBoxBuilderBandShipping(ByVal loBuilder As ListObject, ByVal l
     Dim targetCol As Long
 
     If loBuilder Is Nothing Or loBom Is Nothing Then Exit Sub
-    targetRow = loBuilder.Range.Row + loBuilder.Range.Rows.Count + 2
+    targetRow = loBuilder.Range.Row + loBuilder.Range.Rows.Count + SHIP_LAYOUT_GAP_ROWS + 1
     targetCol = loBuilder.Range.Column
     If targetRow < 1 Or targetCol < 1 Then Exit Sub
     MoveListObjectToRowColShipping loBom, targetRow, targetCol
@@ -1543,11 +2556,11 @@ Private Function CreateBoxBomTable(ByVal ws As Worksheet, ByVal loBuilder As Lis
     startRow = ws.Range(SHIP_LAYOUT_BOM_ADDR).Row
     startCol = ws.Range(SHIP_LAYOUT_BOM_ADDR).Column
     If Not loBuilder Is Nothing Then
-        startRow = Application.WorksheetFunction.Max(startRow, loBuilder.Range.Row + loBuilder.Range.Rows.Count + 2)
+        startRow = Application.WorksheetFunction.Max(startRow, loBuilder.Range.Row + loBuilder.Range.Rows.Count + SHIP_LAYOUT_GAP_ROWS + 1)
         startCol = loBuilder.Range.Column
     End If
 
-    headers = Array(COL_BOXBOM_ITEM, "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION")
+    headers = Array(COL_BOXBOM_ITEM, "ITEM_CODE", "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION")
     Set startCell = ws.Cells(startRow, startCol)
     For i = LBound(headers) To UBound(headers)
         startCell.Offset(0, i - LBound(headers)).Value = headers(i)
@@ -1633,7 +2646,7 @@ Public Sub ApplyItemSelection(targetCell As Range, lo As ListObject, rowIndex As
 End Sub
 
 Public Sub ApplyItemToBoxBOM(targetCell As Range, ByVal itemName As String, ByVal itemRow As Long, _
-    ByVal uom As String, ByVal location As String, ByVal description As String)
+    ByVal uom As String, ByVal location As String, ByVal description As String, Optional ByVal itemCode As String = "")
 
     On Error GoTo ErrHandler
     Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
@@ -1660,6 +2673,7 @@ Public Sub ApplyItemToBoxBOM(targetCell As Range, ByVal itemName As String, ByVa
     Dim actualUom As String, actualLoc As String, actualDesc As String
 
     Dim colRowInv As Long: colRowInv = ColumnIndex(invLo, "ROW")
+    Dim colItemCodeInv As Long: colItemCodeInv = ColumnIndex(invLo, "ITEM_CODE")
     Dim colItemInv As Long: colItemInv = ColumnIndex(invLo, "ITEM")
     Dim colUomInv As Long: colUomInv = ColumnIndex(invLo, "UOM")
     Dim colLocInv As Long: colLocInv = ColumnIndex(invLo, "LOCATION")
@@ -1667,6 +2681,7 @@ Public Sub ApplyItemToBoxBOM(targetCell As Range, ByVal itemName As String, ByVa
 
     If colRowInv > 0 Then actualRow = NzLng(invLo.DataBodyRange.Cells(invIdx, colRowInv).Value)
     If actualRow <= 0 Then actualRow = RepairInvSysRowKeyShipping(invLo, invIdx, colRowInv)
+    If colItemCodeInv > 0 And itemCode = "" Then itemCode = NzStr(invLo.DataBodyRange.Cells(invIdx, colItemCodeInv).Value)
     If colItemInv > 0 Then actualItem = NzStr(invLo.DataBodyRange.Cells(invIdx, colItemInv).Value)
     If colUomInv > 0 Then actualUom = NzStr(invLo.DataBodyRange.Cells(invIdx, colUomInv).Value)
     If colLocInv > 0 Then actualLoc = NzStr(invLo.DataBodyRange.Cells(invIdx, colLocInv).Value)
@@ -1693,6 +2708,7 @@ Public Sub ApplyItemToBoxBOM(targetCell As Range, ByVal itemName As String, ByVa
     End If
 
     WriteValue lr, COL_BOXBOM_ITEM, actualItem
+    WriteValue lr, "ITEM_CODE", itemCode
     WriteValue lr, "ROW", actualRow
     WriteValue lr, "UOM", actualUom
     WriteValue lr, "LOCATION", actualLoc
@@ -1884,6 +2900,7 @@ Public Sub ApplyItemToBoxBuilder(targetCell As Range, ByVal itemName As String, 
             ShowShippingStatus report
         End If
     End If
+    RefreshBoxMakerCurrentInventory ws
     Exit Sub
 
 ErrHandler:
@@ -1920,6 +2937,7 @@ Private Sub ReloadBoxMakerBomFromBuilder(ByVal ws As Worksheet)
     ElseIf report <> "" Then
         ShowShippingStatus report
     End If
+    RefreshBoxMakerCurrentInventory ws
 
 CleanExit:
 End Sub
@@ -1942,6 +2960,7 @@ Private Sub RecalculateBoxMakerBomFromBuilder(ByVal ws As Worksheet, _
     If packageRow <= 0 Then Exit Sub
 
     LoadBoxMakerBomForPackage ws, packageRow, boxQty, report
+    RefreshBoxMakerCurrentInventory ws
 
 CleanExit:
 End Sub
@@ -1986,6 +3005,7 @@ Private Function LoadBoxMakerBomForPackage(ByVal ws As Worksheet, _
     Dim outRow As Long
     Dim loView As ListObject
     Dim refreshReport As String
+    Dim preservedCurrentInv As Object
 
     report = ""
     If ws Is Nothing Then Exit Function
@@ -2038,6 +3058,8 @@ Private Function LoadBoxMakerBomForPackage(ByVal ws As Worksheet, _
     scaleQty = packageQty
     If scaleQty <= 0 Then scaleQty = 1#
 
+    Set preservedCurrentInv = CaptureBoxBomCurrentInventory(loBom)
+
     ClearListObjectData loBom
     EnsureBoxBomStarterRows loBom
 
@@ -2066,11 +3088,91 @@ NextBomRow:
 
     LoadBoxMakerBomForPackage = True
     report = "Loaded BoxBOM for invSys ROW " & CStr(packageRow) & " (" & CStr(outRow) & " component row(s))."
+    RefreshBoxMakerCurrentInventory ws
+    RestorePreservedBoxBomCurrentInventory loBom, preservedCurrentInv
     Exit Function
 
 FailSoft:
     report = "LoadBoxMakerBomForPackage failed: " & Err.Description
 End Function
+
+Private Function CaptureBoxBomCurrentInventory(ByVal loBom As ListObject) As Object
+    Dim result As Object
+    Dim cInv As Long
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim r As Long
+    Dim rowVal As Long
+    Dim itemName As String
+    Dim currentVal As Variant
+
+    Set result = CreateObject("Scripting.Dictionary")
+    Set CaptureBoxBomCurrentInventory = result
+
+    If loBom Is Nothing Then Exit Function
+    If loBom.DataBodyRange Is Nothing Then Exit Function
+    cInv = ColumnIndex(loBom, COL_CURRENT_INV)
+    If cInv = 0 Then Exit Function
+
+    cRow = ColumnIndex(loBom, "ROW")
+    cItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
+    For r = 1 To loBom.ListRows.Count
+        currentVal = loBom.DataBodyRange.Cells(r, cInv).Value
+        If IsBlankInventoryValue(currentVal) Then GoTo NextRow
+
+        rowVal = 0
+        itemName = ""
+        If cRow > 0 Then rowVal = NzLng(loBom.DataBodyRange.Cells(r, cRow).Value)
+        If cItem > 0 Then itemName = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cItem).Value))
+
+        If rowVal > 0 Then result("ROW:" & CStr(rowVal)) = currentVal
+        If itemName <> "" Then result("ITEM:" & LCase$(itemName)) = currentVal
+NextRow:
+    Next r
+End Function
+
+Private Sub RestorePreservedBoxBomCurrentInventory(ByVal loBom As ListObject, ByVal preserved As Object)
+    Dim cInv As Long
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim r As Long
+    Dim rowVal As Long
+    Dim itemName As String
+    Dim key As String
+
+    If loBom Is Nothing Then Exit Sub
+    If preserved Is Nothing Then Exit Sub
+    If preserved.Count = 0 Then Exit Sub
+    If loBom.DataBodyRange Is Nothing Then Exit Sub
+
+    cInv = ColumnIndex(loBom, COL_CURRENT_INV)
+    If cInv = 0 Then Exit Sub
+    cRow = ColumnIndex(loBom, "ROW")
+    cItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
+
+    For r = 1 To loBom.ListRows.Count
+        If Not IsBlankInventoryValue(loBom.DataBodyRange.Cells(r, cInv).Value) Then GoTo NextRow
+
+        rowVal = 0
+        itemName = ""
+        If cRow > 0 Then rowVal = NzLng(loBom.DataBodyRange.Cells(r, cRow).Value)
+        If cItem > 0 Then itemName = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cItem).Value))
+
+        If rowVal > 0 Then
+            key = "ROW:" & CStr(rowVal)
+            If preserved.Exists(key) Then
+                loBom.DataBodyRange.Cells(r, cInv).Value = preserved(key)
+                GoTo NextRow
+            End If
+        End If
+        If itemName <> "" Then
+            key = "ITEM:" & LCase$(itemName)
+            If preserved.Exists(key) Then loBom.DataBodyRange.Cells(r, cInv).Value = preserved(key)
+        End If
+NextRow:
+    Next r
+    FormatCurrentInventoryColumn loBom
+End Sub
 
 Private Function ValueFromArrayColumn(ByRef arr As Variant, ByVal rowIndex As Long, ByVal colIndex As Long) As Variant
     If colIndex <= 0 Then Exit Function
@@ -2198,6 +3300,8 @@ Private Function BuildBoxMakerAggregateTables(ByVal loBuilder As ListObject, _
                                              ByVal loAggBom As ListObject, _
                                              ByVal loAggPack As ListObject, _
                                              ByRef errNotes As String) As Boolean
+    On Error GoTo FailBuild
+
     Dim boxName As String
     Dim boxQty As Double
     Dim packageIdx As Long
@@ -2214,16 +3318,20 @@ Private Function BuildBoxMakerAggregateTables(ByVal loBuilder As ListObject, _
     Dim invIdx As Long
     Dim runtimeMax As Long
     Dim packageRow As Long
+    Dim stepName As String
 
     errNotes = ""
+    stepName = "check required tables"
     If loBuilder Is Nothing Or loBom Is Nothing Or invLo Is Nothing Or loAggBom Is Nothing Or loAggPack Is Nothing Then
         errNotes = "BoxMaker required tables are missing."
         Exit Function
     End If
 
+    stepName = "ensure BoxMaker columns"
     EnsureColumnExists loBuilder, "Quantity", "Box Name"
     EnsureBoxBomEntryColumns loBom
 
+    stepName = "read BoxBuilder values"
     boxName = Trim$(NzStr(ValueFromTable(loBuilder, "Box Name")))
     boxQty = NzDbl(ValueFromTable(loBuilder, "Quantity"))
     If boxName = "" Then
@@ -2235,10 +3343,13 @@ Private Function BuildBoxMakerAggregateTables(ByVal loBuilder As ListObject, _
         Exit Function
     End If
 
+    stepName = "resolve package row in invSys"
     packageIdx = FindInvRowIndexByItem(invLo, boxName)
     If packageIdx <= 0 Then
+        stepName = "resolve package row in ShippingBOM runtime"
         packageRow = FindShippingBomPackageRowByName(loBuilder.Parent.Parent, boxName, runtimeMax)
         If packageRow > 0 Then
+            stepName = "ensure package row in invSys"
             EnsureInvSysItem boxName, _
                              Trim$(NzStr(ValueFromTable(loBuilder, "UOM"))), _
                              Trim$(NzStr(ValueFromTable(loBuilder, "LOCATION"))), _
@@ -2253,10 +3364,13 @@ Private Function BuildBoxMakerAggregateTables(ByVal loBuilder As ListObject, _
         Exit Function
     End If
 
+    stepName = "clear aggregate tables"
     ClearListObjectData loAggBom
     ClearListObjectData loAggPack
+    stepName = "append package aggregate row"
     AppendAggregateRowFromInventory loAggPack, invLo, packageIdx, boxQty, aggPackRow
 
+    stepName = "resolve BoxBOM columns"
     cItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
     cRow = ColumnIndex(loBom, "ROW")
     cQty = ColumnIndex(loBom, "QUANTITY")
@@ -2270,15 +3384,17 @@ Private Function BuildBoxMakerAggregateTables(ByVal loBuilder As ListObject, _
     End If
 
     For r = 1 To loBom.ListRows.Count
+        stepName = "read BoxBOM row " & CStr(r)
         itemName = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cItem).Value))
         rowVal = NzLng(loBom.DataBodyRange.Cells(r, cRow).Value)
         qtyVal = NzDbl(loBom.DataBodyRange.Cells(r, cQty).Value)
-        If itemName = "" And rowVal = 0 And qtyVal = 0 Then GoTo NextComponent
+        If BoxMakerComponentRowIsBlank(itemName, rowVal, qtyVal) Then GoTo NextComponent
         If qtyVal <= 0 Then
             errNotes = "BoxBOM row " & CStr(r) & " needs a component Quantity greater than zero."
             Exit Function
         End If
 
+        stepName = "resolve BoxBOM component row " & CStr(r)
         invIdx = 0
         If rowVal > 0 Then invIdx = FindInvRowIndexByRow(invLo, rowVal)
         If invIdx <= 0 And itemName <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
@@ -2287,6 +3403,7 @@ Private Function BuildBoxMakerAggregateTables(ByVal loBuilder As ListObject, _
             Exit Function
         End If
 
+        stepName = "append component aggregate row " & CStr(r)
         AppendAggregateRowFromInventory loAggBom, invLo, invIdx, qtyVal, aggBomRow
         componentCount = componentCount + 1
 NextComponent:
@@ -2298,6 +3415,21 @@ NextComponent:
     End If
 
     BuildBoxMakerAggregateTables = True
+    Exit Function
+
+FailBuild:
+    errNotes = "BuildBoxMakerAggregateTables failed during " & stepName
+    If r > 0 Then errNotes = errNotes & " (BoxBOM row " & CStr(r) & ")"
+    errNotes = errNotes & ": " & Err.Description
+End Function
+
+Private Function BoxMakerComponentRowIsBlank(ByVal itemName As String, _
+                                             ByVal rowVal As Long, _
+                                             ByVal qtyVal As Double) As Boolean
+    If itemName <> "" Then Exit Function
+    If rowVal <> 0 Then Exit Function
+    If qtyVal <> 0 Then Exit Function
+    BoxMakerComponentRowIsBlank = True
 End Function
 
 Private Sub AppendAggregateRowFromInventory(ByVal loTarget As ListObject, _
@@ -2348,12 +3480,10 @@ Private Function ApplyBoxCreatedFromAggregates(ByVal invLo As ListObject, _
                                               ByRef madeTotal As Double, _
                                               ByRef errNotes As String) As Boolean
     Dim shortage As String
-    Dim stageLogs As New Collection
     Dim compLogs As New Collection
     Dim pkgLogs As New Collection
     Dim usedDeltas As Collection
     Dim madeDeltas As Collection
-    Dim stagedTotal As Double
     Dim madeStaged As Double
 
     errNotes = ""
@@ -2362,10 +3492,7 @@ Private Function ApplyBoxCreatedFromAggregates(ByVal invLo As ListObject, _
         Exit Function
     End If
 
-    stagedTotal = StageComponentsToUsed(invLo, loAggBom, errNotes, stageLogs)
-    If stagedTotal < 0 Then Exit Function
-
-    Set usedDeltas = BuildUsedDeltaPacket(invLo, loAggBom, errNotes)
+    Set usedDeltas = BuildComponentDeltaPacketFromAggregate(invLo, loAggBom, errNotes)
     If usedDeltas Is Nothing Then Exit Function
     Set madeDeltas = BuildMadeDeltaPacket(invLo, loAggPack, errNotes)
     If madeDeltas Is Nothing Then Exit Function
@@ -2382,10 +3509,44 @@ Private Function ApplyBoxCreatedFromAggregates(ByVal invLo As ListObject, _
     madeTotal = ApplyMadeToInventoryDeltasLocal(invLo, madeDeltas, errNotes)
     If madeTotal < 0 Then Exit Function
 
-    If stageLogs.Count > 0 Then LogShippingChanges "AggregateBoxBOM_Log", stageLogs
     If compLogs.Count > 0 Then LogShippingChanges "AggregateBoxBOM_Log", compLogs
     If pkgLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", pkgLogs
     ApplyBoxCreatedFromAggregates = True
+End Function
+
+Private Function ApplyBoxCreatedFromBuilder(ByVal loBuilder As ListObject, _
+                                           ByVal loBom As ListObject, _
+                                           ByVal invLo As ListObject, _
+                                           ByRef usedTotal As Double, _
+                                           ByRef madeTotal As Double, _
+                                           ByRef errNotes As String) As Boolean
+    Dim eventIdOut As String
+    Dim runtimeReport As String
+
+    errNotes = ""
+    If loBuilder Is Nothing Or loBom Is Nothing Or invLo Is Nothing Then
+        errNotes = "Box Created required tables are missing."
+        Exit Function
+    End If
+    If invLo.DataBodyRange Is Nothing Then
+        errNotes = "invSys has no inventory rows."
+        Exit Function
+    End If
+
+    EnsureColumnExists loBuilder, "Quantity", "Box Name"
+    EnsureBoxBomEntryColumns loBom
+
+    If Not QueueBoxBuildEventFromBuilder(loBuilder, loBom, invLo, usedTotal, madeTotal, eventIdOut, errNotes) Then Exit Function
+
+    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(loBuilder.Parent.Parent, "", "LOCAL", runtimeReport) Then
+        If runtimeReport = "" Then runtimeReport = "Box build event queued, but runtime processing or read-model refresh did not complete cleanly."
+        AppendNote errNotes, runtimeReport
+    ElseIf runtimeReport <> "" Then
+        AppendNote errNotes, runtimeReport
+    End If
+    If eventIdOut <> "" Then AppendNote errNotes, "Inbox EventID: " & eventIdOut
+
+    ApplyBoxCreatedFromBuilder = True
 End Function
 
 Private Function ApplyBoxUnboxedFromBuilder(ByVal loBuilder As ListObject, _
@@ -2660,6 +3821,8 @@ End Function
 
 Private Sub EnsureBoxBomEntryColumns(loBom As ListObject)
     If loBom Is Nothing Then Exit Sub
+    UnhideListObjectWorksheetColumnsShipping loBom
+    RemoveBlankUnexpectedBoxBomColumnsShipping loBom
     Dim idxItem As Long
     idxItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
     If idxItem = 0 Then
@@ -2670,12 +3833,76 @@ Private Sub EnsureBoxBomEntryColumns(loBom As ListObject)
             EnsureColumnExists loBom, COL_BOXBOM_ITEM
         End If
     End If
-    EnsureColumnExists loBom, "QUANTITY", COL_BOXBOM_ITEM
+    EnsureColumnExists loBom, "ITEM_CODE", COL_BOXBOM_ITEM
+    EnsureColumnExists loBom, "QUANTITY", "ITEM_CODE"
     EnsureColumnExists loBom, "ROW"
     EnsureColumnExists loBom, "UOM"
     EnsureColumnExists loBom, "LOCATION"
     EnsureColumnExists loBom, "DESCRIPTION"
+    UnhideListObjectWorksheetColumnsShipping loBom
 End Sub
+
+Private Sub HideListColumnShipping(ByVal lo As ListObject, ByVal columnName As String, ByVal hidden As Boolean)
+    Dim idx As Long
+
+    If lo Is Nothing Then Exit Sub
+    idx = ColumnIndex(lo, columnName)
+    If idx = 0 Then Exit Sub
+    If hidden Then Exit Sub
+
+    On Error Resume Next
+    lo.ListColumns(idx).Range.EntireColumn.Hidden = hidden
+    On Error GoTo 0
+End Sub
+
+Private Sub UnhideListObjectWorksheetColumnsShipping(ByVal lo As ListObject)
+    If lo Is Nothing Then Exit Sub
+    On Error Resume Next
+    lo.Range.EntireColumn.Hidden = False
+    On Error GoTo 0
+End Sub
+
+Private Sub RemoveBlankUnexpectedBoxBomColumnsShipping(ByVal loBom As ListObject)
+    Dim i As Long
+    Dim headerText As String
+
+    If loBom Is Nothing Then Exit Sub
+    For i = loBom.ListColumns.Count To 1 Step -1
+        headerText = Trim$(NzStr(loBom.ListColumns(i).Name))
+        If Not IsAllowedBoxBomHeaderShipping(headerText) Then
+            If ListColumnDataIsBlankShipping(loBom.ListColumns(i)) Then
+                loBom.ListColumns(i).Delete
+            End If
+        End If
+    Next i
+End Sub
+
+Private Function IsAllowedBoxBomHeaderShipping(ByVal headerText As String) As Boolean
+    Select Case UCase$(Trim$(headerText))
+        Case "ITEM", "BOXBOM", "ITEM_CODE", "ROW", "QUANTITY", "CURRENT INV", "UOM", "LOCATION", "DESCRIPTION"
+            IsAllowedBoxBomHeaderShipping = True
+    End Select
+End Function
+
+Private Function ListColumnDataIsBlankShipping(ByVal listCol As ListColumn) As Boolean
+    Dim cell As Range
+
+    On Error GoTo CleanFail
+    If listCol Is Nothing Then Exit Function
+    If listCol.DataBodyRange Is Nothing Then
+        ListColumnDataIsBlankShipping = True
+        Exit Function
+    End If
+
+    For Each cell In listCol.DataBodyRange.Cells
+        If Trim$(NzStr(cell.Value)) <> "" Then Exit Function
+    Next cell
+    ListColumnDataIsBlankShipping = True
+    Exit Function
+
+CleanFail:
+    ListColumnDataIsBlankShipping = False
+End Function
 
 Private Sub RemoveColumnIfExistsShipping(ByVal lo As ListObject, ByVal colName As String)
     Dim idx As Long
@@ -2691,11 +3918,38 @@ Private Sub EnsureColumnExists(lo As ListObject, colName As String, Optional aft
     Dim insertPos As Long
     If afterColumn <> "" Then insertPos = ColumnIndex(lo, afterColumn)
     Dim newCol As ListColumn
+
+    EnsureListObjectColumnInsertSpaceShipping lo, 1
+
+    On Error Resume Next
     If insertPos > 0 Then
         Set newCol = lo.ListColumns.Add(insertPos + 1)
     Else
         Set newCol = lo.ListColumns.Add
     End If
+    If Err.Number <> 0 Or newCol Is Nothing Then
+        Err.Clear
+        MoveListObjectColumnAddBlockersShipping lo, 1
+        EnsureListObjectColumnInsertSpaceShipping lo, 1
+        If insertPos > 0 Then
+            Set newCol = lo.ListColumns.Add(insertPos + 1)
+        Else
+            Set newCol = lo.ListColumns.Add
+        End If
+    End If
+    If Err.Number <> 0 Or newCol Is Nothing Then
+        Err.Clear
+        MoveListObjectColumnAddBlockersShipping lo, 1
+        Set newCol = lo.ListColumns.Add
+    End If
+    On Error GoTo 0
+
+    If newCol Is Nothing Then
+        Err.Raise vbObjectError + 7142, "EnsureColumnExists", _
+                  "Could not add column '" & colName & "' to " & lo.Name & _
+                  ". Move adjacent worksheet tables farther away and retry Setup UI."
+    End If
+
     newCol.Name = colName
 End Sub
 
@@ -3861,6 +5115,35 @@ Private Function EnsureInvSysItem(boxName As String, uom As String, location As 
     UpdateInvSysRow lr, boxName, uom, location, descr, newRowVal
 End Function
 
+Private Function EnsureInvSysItemByRow(ByVal rowValue As Long, _
+                                       ByVal itemName As String, _
+                                       ByVal uom As String, _
+                                       ByVal location As String, _
+                                       ByVal descr As String, _
+                                       ByVal invLo As ListObject) As Long
+    Dim existingIdx As Long
+    Dim lr As ListRow
+
+    If rowValue <= 0 Then
+        EnsureInvSysItemByRow = EnsureInvSysItem(itemName, uom, location, descr, invLo)
+        Exit Function
+    End If
+    If invLo Is Nothing Then Exit Function
+
+    EnsureInvSysRowSeed invLo
+    existingIdx = FindInvRowIndexByRow(invLo, rowValue)
+    If existingIdx > 0 Then
+        UpdateInvSysRow invLo.ListRows(existingIdx), itemName, uom, location, descr, rowValue
+        EnsureInvSysItemByRow = rowValue
+        Exit Function
+    End If
+
+    Set lr = invLo.ListRows.Add
+    UpdateInvSysRow lr, itemName, uom, location, descr, rowValue
+    If rowValue >= mNextInvSysRow Then mNextInvSysRow = rowValue + 1
+    EnsureInvSysItemByRow = rowValue
+End Function
+
 Private Sub UpdateInvSysRow(lr As ListRow, boxName As String, uom As String, location As String, descr As String, Optional forceRowValue As Variant)
     If lr Is Nothing Then Exit Sub
     Dim lo As ListObject: Set lo = lr.Parent
@@ -4319,6 +5602,187 @@ NextRow:
         Exit Function
     End If
     Set BuildUsedDeltaPacket = result
+End Function
+
+Private Function BuildComponentDeltaPacketFromAggregate(invLo As ListObject, aggBom As ListObject, ByRef errNotes As String) As Collection
+    errNotes = ""
+    If invLo Is Nothing Or invLo.DataBodyRange Is Nothing Then
+        errNotes = "invSys table not found."
+        Exit Function
+    End If
+    If aggBom Is Nothing Or aggBom.DataBodyRange Is Nothing Then
+        errNotes = "AggregateBoxBOM has no component rows."
+        Exit Function
+    End If
+
+    Dim cQtyAgg As Long: cQtyAgg = ColumnIndex(aggBom, "QUANTITY")
+    Dim cRowAgg As Long: cRowAgg = ColumnIndex(aggBom, "ROW")
+    If cQtyAgg = 0 Or cRowAgg = 0 Then
+        errNotes = "AggregateBoxBOM is missing QUANTITY or ROW columns."
+        Exit Function
+    End If
+
+    Dim colItemCode As Long: colItemCode = ColumnIndex(invLo, "ITEM_CODE")
+    Dim colItemName As Long: colItemName = ColumnIndex(invLo, "ITEM")
+    Dim requirements As Object: Set requirements = CreateObject("Scripting.Dictionary")
+    Dim arr As Variant: arr = aggBom.DataBodyRange.Value
+    Dim r As Long
+    For r = 1 To UBound(arr, 1)
+        Dim rowVal As Long: rowVal = NzLng(arr(r, cRowAgg))
+        Dim qtyVal As Double: qtyVal = NzDbl(arr(r, cQtyAgg))
+        If rowVal = 0 Or qtyVal <= 0 Then GoTo NextAggRow
+        Dim reqKey As String: reqKey = CStr(rowVal)
+        If requirements.Exists(reqKey) Then
+            requirements(reqKey) = NzDbl(requirements(reqKey)) + qtyVal
+        Else
+            requirements.Add reqKey, qtyVal
+        End If
+NextAggRow:
+    Next r
+
+    If requirements.Count = 0 Then
+        errNotes = "No component quantities were found in AggregateBoxBOM."
+        Exit Function
+    End If
+
+    Dim result As New Collection
+    Dim key As Variant
+    For Each key In requirements.Keys
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, CLng(key))
+        If invRow Is Nothing Then
+            AppendNote errNotes, "Component ROW " & CStr(key) & " not found in invSys."
+        Else
+            Dim delta As Object: Set delta = CreateObject("Scripting.Dictionary")
+            delta("ROW") = CLng(key)
+            delta("QTY") = NzDbl(requirements(key))
+            If colItemCode > 0 Then delta("ITEM_CODE") = NzStr(invRow.Range.Cells(1, colItemCode).Value)
+            If colItemName > 0 Then delta("ITEM_NAME") = NzStr(invRow.Range.Cells(1, colItemName).Value)
+            result.Add delta
+        End If
+    Next key
+
+    If result.Count = 0 Then
+        If errNotes = "" Then errNotes = "No component deltas were available."
+        Exit Function
+    End If
+    Set BuildComponentDeltaPacketFromAggregate = result
+End Function
+
+Private Function BuildComponentDeltaPacketFromBoxBom(invLo As ListObject, loBom As ListObject, ByRef errNotes As String) As Collection
+    errNotes = ""
+    If invLo Is Nothing Or invLo.DataBodyRange Is Nothing Then
+        errNotes = "invSys table not found."
+        Exit Function
+    End If
+    If loBom Is Nothing Or loBom.DataBodyRange Is Nothing Then
+        errNotes = "BoxBOM has no component rows."
+        Exit Function
+    End If
+
+    Dim cItem As Long: cItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
+    Dim cQty As Long: cQty = ColumnIndex(loBom, "QUANTITY")
+    Dim cRow As Long: cRow = ColumnIndex(loBom, "ROW")
+    Dim cUom As Long: cUom = ColumnIndex(loBom, "UOM")
+    Dim cLocation As Long: cLocation = ColumnIndex(loBom, "LOCATION")
+    Dim cDescription As Long: cDescription = ColumnIndex(loBom, "DESCRIPTION")
+    If cItem = 0 Or cQty = 0 Or cRow = 0 Then
+        errNotes = "BoxBOM must include ITEM, ROW, and QUANTITY columns."
+        Exit Function
+    End If
+
+    Dim colItemCode As Long: colItemCode = ColumnIndex(invLo, "ITEM_CODE")
+    Dim colItemName As Long: colItemName = ColumnIndex(invLo, "ITEM")
+    Dim colTotalInv As Long: colTotalInv = ColumnIndex(invLo, "TOTAL INV")
+    Dim requirements As Object: Set requirements = CreateObject("Scripting.Dictionary")
+    Dim r As Long
+    For r = 1 To loBom.ListRows.Count
+        Dim itemName As String: itemName = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cItem).Value))
+        Dim rowVal As Long: rowVal = NzLng(loBom.DataBodyRange.Cells(r, cRow).Value)
+        Dim qtyVal As Double: qtyVal = NzDbl(loBom.DataBodyRange.Cells(r, cQty).Value)
+        If BoxMakerComponentRowIsBlank(itemName, rowVal, qtyVal) Then GoTo NextBomRow
+        If qtyVal <= 0 Then
+            errNotes = "BoxBOM row " & CStr(r) & " needs a component Quantity greater than zero."
+            Exit Function
+        End If
+
+        Dim invIdx As Long
+        If rowVal > 0 Then
+            invIdx = FindInvRowIndexByRow(invLo, rowVal)
+        ElseIf itemName <> "" Then
+            invIdx = FindInvRowIndexByItem(invLo, itemName)
+        End If
+        If invIdx <= 0 And (itemName <> "" Or rowVal > 0) Then
+            Dim uomVal As String
+            Dim locationVal As String
+            Dim descrVal As String
+            Dim currentInv As Variant
+            Dim foundCurrent As Boolean
+            Dim ensuredRow As Long
+            Dim snapshotCache As Object
+
+            If cUom > 0 Then uomVal = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cUom).Value))
+            If cLocation > 0 Then locationVal = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cLocation).Value))
+            If cDescription > 0 Then descrVal = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cDescription).Value))
+
+            ensuredRow = EnsureInvSysItemByRow(rowVal, itemName, uomVal, locationVal, descrVal, invLo)
+            If ensuredRow > 0 Then
+                If rowVal > 0 Then invIdx = FindInvRowIndexByRow(invLo, rowVal)
+                If invIdx <= 0 Then invIdx = FindInvRowIndexByRow(invLo, ensuredRow)
+                If invIdx <= 0 And itemName <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+                If invIdx > 0 And colTotalInv > 0 Then
+                    currentInv = ResolveCurrentInventoryValue(loBom.Parent, invLo, rowVal, itemName, foundCurrent, snapshotCache)
+                    If foundCurrent Then invLo.DataBodyRange.Cells(invIdx, colTotalInv).Value = currentInv
+                End If
+            End If
+        End If
+        If invIdx <= 0 Then
+            errNotes = "BoxBOM component row " & CStr(r) & " was not found in invSys."
+            Exit Function
+        End If
+
+        Dim actualRow As Long
+        actualRow = NzLng(GetInvSysValueByIndex(invLo, invIdx, "ROW"))
+        If actualRow <= 0 Then actualRow = rowVal
+        If actualRow <= 0 Then
+            errNotes = "BoxBOM component row " & CStr(r) & " does not have an invSys ROW."
+            Exit Function
+        End If
+
+        Dim reqKey As String: reqKey = CStr(actualRow)
+        If requirements.Exists(reqKey) Then
+            requirements(reqKey) = NzDbl(requirements(reqKey)) + qtyVal
+        Else
+            requirements.Add reqKey, qtyVal
+        End If
+NextBomRow:
+    Next r
+
+    If requirements.Count = 0 Then
+        errNotes = "No component quantities were found in BoxBOM."
+        Exit Function
+    End If
+
+    Dim result As New Collection
+    Dim key As Variant
+    For Each key In requirements.Keys
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, CLng(key))
+        If invRow Is Nothing Then
+            AppendNote errNotes, "Component ROW " & CStr(key) & " not found in invSys."
+        Else
+            Dim delta As Object: Set delta = CreateObject("Scripting.Dictionary")
+            delta("ROW") = CLng(key)
+            delta("QTY") = NzDbl(requirements(key))
+            If colItemCode > 0 Then delta("ITEM_CODE") = NzStr(invRow.Range.Cells(1, colItemCode).Value)
+            If colItemName > 0 Then delta("ITEM_NAME") = NzStr(invRow.Range.Cells(1, colItemName).Value)
+            result.Add delta
+        End If
+    Next key
+
+    If result.Count = 0 Then
+        If errNotes = "" Then errNotes = "No component deltas were available from BoxBOM."
+        Exit Function
+    End If
+    Set BuildComponentDeltaPacketFromBoxBom = result
 End Function
 
 Private Function BuildMadeDeltaPacket(invLo As ListObject, aggPack As ListObject, ByRef errNotes As String) As Collection
@@ -5267,7 +6731,11 @@ Private Function GetBomTableByRow(ByVal rowValue As Long) As ListObject
 End Function
 
 Public Function NzStr(v As Variant) As String
-    If IsError(v) Or IsNull(v) Or IsEmpty(v) Then
+    If IsError(v) Then
+        NzStr = ""
+    ElseIf IsNull(v) Then
+        NzStr = ""
+    ElseIf IsEmpty(v) Then
         NzStr = ""
     Else
         NzStr = CStr(v)
@@ -5275,18 +6743,44 @@ Public Function NzStr(v As Variant) As String
 End Function
 
 Public Function NzDbl(v As Variant) As Double
-    If IsError(v) Or IsNull(v) Or IsEmpty(v) Or v = "" Then
+    Dim textVal As String
+
+    If IsError(v) Then
+        NzDbl = 0#
+    ElseIf IsNull(v) Then
+        NzDbl = 0#
+    ElseIf IsEmpty(v) Then
         NzDbl = 0#
     Else
-        NzDbl = CDbl(v)
+        textVal = Trim$(CStr(v))
+        If textVal = "" Then
+            NzDbl = 0#
+        ElseIf Not IsNumeric(textVal) Then
+            NzDbl = 0#
+        Else
+            NzDbl = CDbl(textVal)
+        End If
     End If
 End Function
 
 Public Function NzLng(v As Variant) As Long
-    If IsError(v) Or IsNull(v) Or IsEmpty(v) Or v = "" Then
+    Dim textVal As String
+
+    If IsError(v) Then
+        NzLng = 0
+    ElseIf IsNull(v) Then
+        NzLng = 0
+    ElseIf IsEmpty(v) Then
         NzLng = 0
     Else
-        NzLng = CLng(v)
+        textVal = Trim$(CStr(v))
+        If textVal = "" Then
+            NzLng = 0
+        ElseIf Not IsNumeric(textVal) Then
+            NzLng = 0
+        Else
+            NzLng = CLng(CDbl(textVal))
+        End If
     End If
 End Function
 

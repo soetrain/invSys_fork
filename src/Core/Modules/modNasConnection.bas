@@ -745,6 +745,7 @@ End Function
 Private Function FindCompleteRuntimeConfigNas(ByVal runtimeRoot As String) As String
     Dim fileName As String
     Dim whId As String
+    Dim reservedCandidate As String
 
     On Error GoTo CleanFail
     runtimeRoot = NormalizeFolderNas(runtimeRoot)
@@ -755,16 +756,26 @@ Private Function FindCompleteRuntimeConfigNas(ByVal runtimeRoot As String) As St
         whId = RuntimeWorkbookWarehouseIdFromNameNas(fileName, "Config")
         If whId <> "" Then
             If FindWarehouseWorkbookNas(runtimeRoot, whId, "Auth") <> "" Then
-                FindCompleteRuntimeConfigNas = runtimeRoot & "\" & fileName
-                Exit Function
+                If IsReservedWarehouseIdNas(whId) Then
+                    If reservedCandidate = "" Then reservedCandidate = runtimeRoot & "\" & fileName
+                Else
+                    FindCompleteRuntimeConfigNas = runtimeRoot & "\" & fileName
+                    Exit Function
+                End If
             End If
         End If
         fileName = Dir$
     Loop
+    If reservedCandidate <> "" Then FindCompleteRuntimeConfigNas = reservedCandidate
     Exit Function
 
 CleanFail:
     FindCompleteRuntimeConfigNas = vbNullString
+End Function
+
+Private Function IsReservedWarehouseIdNas(ByVal warehouseId As String) As Boolean
+    warehouseId = LCase$(Trim$(warehouseId))
+    IsReservedWarehouseIdNas = (warehouseId = "invsys")
 End Function
 
 Private Function FindWarehouseWorkbookNas(ByVal runtimeRoot As String, _

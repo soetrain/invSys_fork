@@ -114,11 +114,19 @@ Public Function CanCurrentUserPerformCapabilityCached(ByVal capability As String
 
     If Not currentTarget Is Nothing Then
         If Not modAuth.CanPerform(capability, resolvedUser, currentTarget.WarehouseId, currentTarget.StationId, "RIBBON", capability & ":" & resolvedUser) Then
-            errorMessage = "Current user lacks " & capability & " capability."
+            errorMessage = "Current user lacks " & capability & " capability." & vbCrLf & _
+                           "User=" & ValueOrBlankRoleUi(resolvedUser) & _
+                           "; Warehouse=" & ValueOrBlankRoleUi(currentTarget.WarehouseId) & _
+                           "; Station=" & ValueOrBlankRoleUi(currentTarget.StationId) & _
+                           "; Auth=" & ValueOrBlankRoleUi(modAuth.GetResolvedAuthWorkbookName())
             Exit Function
         End If
     ElseIf Not modAuth.CanPerform(capability, resolvedUser, "", "", "RIBBON", capability & ":" & resolvedUser) Then
-        errorMessage = "Current user lacks " & capability & " capability."
+        errorMessage = "Current user lacks " & capability & " capability." & vbCrLf & _
+                       "User=" & ValueOrBlankRoleUi(resolvedUser) & _
+                       "; Warehouse=<no target>" & _
+                       "; Station=<no target>" & _
+                       "; Auth=" & ValueOrBlankRoleUi(modAuth.GetResolvedAuthWorkbookName())
         Exit Function
     End If
 

@@ -6,6 +6,7 @@ Public Const APPLY_STATUS_SKIP_DUP As String = "SKIP_DUP"
 
 Public Const EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Public Const EVENT_TYPE_SHIP As String = "SHIP"
+Public Const EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
 Public Const EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
 Public Const EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
 Public Const EVENT_TYPE_MIGRATION_SEED As String = "MIGRATION_SEED"
@@ -405,7 +406,7 @@ Private Function BuildApplyLines(ByVal evt As Object, _
     Select Case eventType
         Case EVENT_TYPE_RECEIVE
             Set BuildApplyLines = BuildReceiveLines(evt, wb, errorCode, errorMessage)
-        Case EVENT_TYPE_SHIP, EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE, EVENT_TYPE_MIGRATION_SEED
+        Case EVENT_TYPE_SHIP, EVENT_TYPE_BOX_BUILD, EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE, EVENT_TYPE_MIGRATION_SEED
             Set BuildApplyLines = BuildPayloadLines(evt, wb, eventType, errorCode, errorMessage)
         Case Else
             errorCode = "INVALID_EVENT_TYPE"
@@ -490,10 +491,15 @@ Private Function BuildPayloadLines(ByVal evt As Object, _
 
     Set BuildPayloadLines = New Collection
     For Each rawItem In parsedItems
-        sku = SafeTrimApply(GetDictionaryValue(rawItem, "SKU"))
+        sku = ResolvePayloadSkuApply(wb, rawItem)
+        If eventType = EVENT_TYPE_BOX_BUILD Then
+            Dim rowSku As String
+            rowSku = ResolvePayloadSkuByRowApply(wb, rawItem)
+            If rowSku <> "" Then sku = rowSku
+        End If
         If sku = "" Then
             errorCode = "INVALID_SKU"
-            errorMessage = "Every payload line item requires SKU."
+            errorMessage = "Every payload line item requires SKU or resolvable ROW."
             Set BuildPayloadLines = Nothing
             Exit Function
         End If
@@ -509,8 +515,12 @@ Private Function BuildPayloadLines(ByVal evt As Object, _
             Set BuildPayloadLines = Nothing
             Exit Function
         End If
-        If eventType = EVENT_TYPE_MIGRATION_SEED Then
+        rawItem("SKU") = sku
+        If eventType = EVENT_TYPE_MIGRATION_SEED Or eventType = EVENT_TYPE_BOX_BUILD Then
             EnsureSkuCatalogFromPayloadLineApply wb, rawItem
+        End If
+        If Not ValidateSkuExists(wb, sku) Then
+            sku = ResolvePayloadSkuByRowApply(wb, rawItem)
         End If
         If Not ValidateSkuExists(wb, sku) Then
             errorCode = "INVALID_SKU"
@@ -541,6 +551,27 @@ Private Function BuildPayloadLines(ByVal evt As Object, _
     Next rawItem
 End Function
 
+Private Function ResolvePayloadSkuApply(ByVal wb As Workbook, ByVal rawItem As Object) As String
+    ResolvePayloadSkuApply = SafeTrimApply(GetDictionaryValue(rawItem, "SKU"))
+    If ResolvePayloadSkuApply = "" Then ResolvePayloadSkuApply = SafeTrimApply(GetDictionaryValue(rawItem, "ITEM_CODE"))
+    If ResolvePayloadSkuApply = "" Then ResolvePayloadSkuApply = ResolvePayloadSkuByRowApply(wb, rawItem)
+End Function
+
+Private Function ResolvePayloadSkuByRowApply(ByVal wb As Workbook, ByVal rawItem As Object) As String
+    Dim rowValue As Long
+
+    If wb Is Nothing Or rawItem Is Nothing Then Exit Function
+    rowValue = CLng(NzDblApply(GetDictionaryValue(rawItem, "Row")))
+    If rowValue <= 0 Then rowValue = CLng(NzDblApply(GetDictionaryValue(rawItem, "ROW")))
+    If rowValue <= 0 Then Exit Function
+
+    ResolvePayloadSkuByRowApply = SearchSkuByRowInTableApply(FindListObjectByNameApply(wb, "tblSkuCatalog"), rowValue)
+    If ResolvePayloadSkuByRowApply <> "" Then Exit Function
+    ResolvePayloadSkuByRowApply = SearchSkuByRowInTableApply(FindListObjectByNameApply(wb, "invSys"), rowValue)
+    If ResolvePayloadSkuByRowApply <> "" Then Exit Function
+    ResolvePayloadSkuByRowApply = SearchSkuByRowInTableApply(FindListObjectByNameApply(wb, "tblItemSearchIndex"), rowValue)
+End Function
+
 Private Function ResolvePayloadQtyDelta(ByVal eventType As String, _
                                         ByVal ioType As String, _
                                         ByVal qty As Double, _
@@ -549,6 +580,16 @@ Private Function ResolvePayloadQtyDelta(ByVal eventType As String, _
     Select Case eventType
         Case EVENT_TYPE_SHIP
             ResolvePayloadQtyDelta = -qty
+        Case EVENT_TYPE_BOX_BUILD
+            Select Case ioType
+                Case "USED"
+                    ResolvePayloadQtyDelta = -qty
+                Case "MADE", "COMPLETE"
+                    ResolvePayloadQtyDelta = qty
+                Case Else
+                    errorCode = "INVALID_PAYLOAD"
+                    errorMessage = "BOX_BUILD payload line items require IoType USED or MADE."
+            End Select
         Case EVENT_TYPE_PROD_CONSUME
             Select Case ioType
                 Case "USED"
@@ -933,6 +974,29 @@ Private Function SearchSkuInTable(ByVal lo As ListObject, ByVal sku As String, B
                 SearchSkuInTable = True
                 Exit Function
             End If
+        End If
+    Next i
+End Function
+
+Private Function SearchSkuByRowInTableApply(ByVal lo As ListObject, ByVal rowValue As Long) As String
+    Dim cRow As Long
+    Dim cSku As Long
+    Dim i As Long
+
+    If lo Is Nothing Then Exit Function
+    If rowValue <= 0 Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    cRow = GetColumnIndexApply(lo, "ROW")
+    If cRow = 0 Then Exit Function
+    cSku = GetColumnIndexApply(lo, "SKU")
+    If cSku = 0 Then cSku = GetColumnIndexApply(lo, "ITEM_CODE")
+    If cSku = 0 Then Exit Function
+
+    For i = 1 To lo.ListRows.Count
+        If CLng(NzDblApply(lo.DataBodyRange.Cells(i, cRow).Value)) = rowValue Then
+            SearchSkuByRowInTableApply = SafeTrimApply(lo.DataBodyRange.Cells(i, cSku).Value)
+            Exit Function
         End If
     Next i
 End Function
@@ -1417,6 +1481,8 @@ Private Sub ResolveLatestMovementValuesApply(ByVal latestEventType As Object, _
             receivedOut = qty
         Case EVENT_TYPE_SHIP
             shipmentsOut = qty
+        Case EVENT_TYPE_BOX_BUILD
+            madeOut = qty
         Case EVENT_TYPE_PROD_CONSUME
             usedOut = qty
         Case EVENT_TYPE_PROD_COMPLETE
