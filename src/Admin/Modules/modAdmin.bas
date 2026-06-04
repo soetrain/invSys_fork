@@ -1,6 +1,8 @@
 Attribute VB_Name = "modAdmin"
 Option Explicit
 
+Private Const ADMIN_DEMO_INVENTORY_QTY As Double = 1000#
+
 Sub Admin_Click()
     Dim report As String
     Dim targetWb As Workbook
@@ -290,28 +292,34 @@ Private Function BuildAdminDemoInventoryFallbackPayload() As Collection
 
     Set rows = New Collection
 
-    Set item = modRoleEventWriter.CreatePayloadItem(1, "DEMO-RAW-BLACK-TEA", 100, "NAS-A1", "Admin demo seed", "IMPORT")
+    Set item = modRoleEventWriter.CreatePayloadItem(1, "DEMO-RAW-BLACK-TEA", ADMIN_DEMO_INVENTORY_QTY, "NAS-A1", "Admin demo seed", "IMPORT")
     item("ITEM_CODE") = "DEMO-RAW-BLACK-TEA"
     item("ITEM") = "Black Tea Base"
     item("UOM") = "LB"
+    item("TOTAL INV") = ADMIN_DEMO_INVENTORY_QTY
+    item("QtyAvailable") = ADMIN_DEMO_INVENTORY_QTY
     item("DESCRIPTION") = "Demo raw black tea for receiving tests"
     item("VENDOR(s)") = "Demo Vendor"
     item("CATEGORY") = "Raw Material"
     rows.Add item
 
-    Set item = modRoleEventWriter.CreatePayloadItem(2, "DEMO-SPICE-CARDAMOM", 25, "NAS-A2", "Admin demo seed", "IMPORT")
+    Set item = modRoleEventWriter.CreatePayloadItem(2, "DEMO-SPICE-CARDAMOM", ADMIN_DEMO_INVENTORY_QTY, "NAS-A2", "Admin demo seed", "IMPORT")
     item("ITEM_CODE") = "DEMO-SPICE-CARDAMOM"
     item("ITEM") = "Cardamom Pods"
     item("UOM") = "LB"
+    item("TOTAL INV") = ADMIN_DEMO_INVENTORY_QTY
+    item("QtyAvailable") = ADMIN_DEMO_INVENTORY_QTY
     item("DESCRIPTION") = "Demo spice inventory for receiving tests"
     item("VENDOR(s)") = "Demo Vendor"
     item("CATEGORY") = "Spice"
     rows.Add item
 
-    Set item = modRoleEventWriter.CreatePayloadItem(3, "DEMO-PKG-TIN", 48, "NAS-P1", "Admin demo seed", "IMPORT")
+    Set item = modRoleEventWriter.CreatePayloadItem(3, "DEMO-PKG-TIN", ADMIN_DEMO_INVENTORY_QTY, "NAS-P1", "Admin demo seed", "IMPORT")
     item("ITEM_CODE") = "DEMO-PKG-TIN"
     item("ITEM") = "Retail Tea Tin"
     item("UOM") = "EA"
+    item("TOTAL INV") = ADMIN_DEMO_INVENTORY_QTY
+    item("QtyAvailable") = ADMIN_DEMO_INVENTORY_QTY
     item("DESCRIPTION") = "Demo packaging item for picker tests"
     item("VENDOR(s)") = "Demo Vendor"
     item("CATEGORY") = "Packaging"
@@ -364,13 +372,16 @@ Private Function BuildAdminDemoInventoryPayloadFromCsv(ByVal csvPath As String) 
         uom = CsvFieldAdmin(fields, headers, "UOM")
         location = CsvFieldAdmin(fields, headers, "LOCATION")
         category = CsvFieldAdmin(fields, headers, "CATEGORY")
-        qty = ResolveDemoSeedQuantityAdmin(category, CsvFieldAdmin(fields, headers, "PHASE"), uom)
+        qty = Val(CsvFieldAdmin(fields, headers, "QUANTITY"))
+        If qty <= 0 Then qty = ResolveDemoSeedQuantityAdmin(category, CsvFieldAdmin(fields, headers, "PHASE"), uom)
 
         Set item = modRoleEventWriter.CreatePayloadItem(rowVal, sku, qty, location, "Admin CSV demo inventory seed", "IMPORT")
         item("ITEM_CODE") = sku
         item("ITEM") = itemName
         item("UOM") = uom
         item("LOCATION") = location
+        item("TOTAL INV") = qty
+        item("QtyAvailable") = qty
         item("DESCRIPTION") = CsvFieldAdmin(fields, headers, "DESCRIPTION")
         item("VENDOR(s)") = CsvFieldAdmin(fields, headers, "VENDOR(s)")
         item("VENDOR_CODE") = CsvFieldAdmin(fields, headers, "VENDOR_CODE")
@@ -483,32 +494,7 @@ Private Function ParseCsvLineAdmin(ByVal lineText As String) As Collection
 End Function
 
 Private Function ResolveDemoSeedQuantityAdmin(ByVal category As String, ByVal phase As String, ByVal uom As String) As Double
-    Dim keyText As String
-
-    keyText = LCase$(Trim$(category & " " & phase & " " & uom))
-    If InStr(1, keyText, "shippable", vbTextCompare) > 0 Then
-        ResolveDemoSeedQuantityAdmin = 24#
-    ElseIf InStr(1, keyText, "sell", vbTextCompare) > 0 Then
-        ResolveDemoSeedQuantityAdmin = 36#
-    ElseIf InStr(1, keyText, "packaging.ship", vbTextCompare) > 0 Then
-        ResolveDemoSeedQuantityAdmin = 250#
-    ElseIf InStr(1, keyText, "packaging", vbTextCompare) > 0 Then
-        ResolveDemoSeedQuantityAdmin = 150#
-    ElseIf InStr(1, keyText, "oil", vbTextCompare) > 0 Then
-        ResolveDemoSeedQuantityAdmin = 8#
-    ElseIf InStr(1, keyText, "spice", vbTextCompare) > 0 Then
-        ResolveDemoSeedQuantityAdmin = 25#
-    ElseIf InStr(1, keyText, "ingredient", vbTextCompare) > 0 Then
-        ResolveDemoSeedQuantityAdmin = 120#
-    ElseIf InStr(1, keyText, "tea", vbTextCompare) > 0 Then
-        ResolveDemoSeedQuantityAdmin = 200#
-    ElseIf InStr(1, keyText, "lbs", vbTextCompare) > 0 Or InStr(1, keyText, "lb", vbTextCompare) > 0 Then
-        ResolveDemoSeedQuantityAdmin = 80#
-    ElseIf InStr(1, keyText, "ft", vbTextCompare) > 0 Then
-        ResolveDemoSeedQuantityAdmin = 1000#
-    Else
-        ResolveDemoSeedQuantityAdmin = 50#
-    End If
+    ResolveDemoSeedQuantityAdmin = ADMIN_DEMO_INVENTORY_QTY
 End Function
 
 Private Sub PromptForWarehouseDirectoryRootIfNeeded()

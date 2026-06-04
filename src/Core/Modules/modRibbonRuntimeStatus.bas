@@ -26,6 +26,7 @@ Public Sub InvalidateCurrentUserRibbons()
         ribbon.Invalidate
         ribbon.InvalidateControl "btnReceivingCurrentUser"
         ribbon.InvalidateControl "btnShippingCurrentUser"
+        ribbon.InvalidateControl "btnShippingBoxMode"
         ribbon.InvalidateControl "btnProductionCurrentUser"
         ribbon.InvalidateControl "btnAdminCurrentUser"
         ribbon.InvalidateControl "btnRuntimeUser"

@@ -159,12 +159,16 @@ Public Function ShouldDefaultShippableForRole(ByVal roleKey As String, _
         Or resolvedMode = "recipe_chooser" Or resolvedMode = "ingredient" _
         Or resolvedMode = "palette_item" Then Exit Function
 
-    If resolvedRole = "shipping" Then
-        ShouldDefaultShippableForRole = True
-        Exit Function
-    End If
+    Select Case LCase$(Trim$(sourceTableName))
+        Case "shipmentstally", "boxbuilder"
+            ShouldDefaultShippableForRole = True
+            Exit Function
+        Case "boxbom"
+            ShouldDefaultShippableForRole = False
+            Exit Function
+    End Select
 
-    If LCase$(Trim$(sourceTableName)) = "shipmentstally" Then
+    If resolvedRole = "shipping" Then
         ShouldDefaultShippableForRole = True
     End If
 End Function

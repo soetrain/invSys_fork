@@ -237,7 +237,11 @@ $ribbonSpecs = @(
             @{ Id = "btnShippingCurrentUser"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = 'modRoleEventWriter.PromptSetCurrentUserForCapability "SHIP_POST"'; Execute = $false; Screentip = "Sign in as an invSys user" },
             @{ Id = "btnShippingSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; Execute = $false },
             @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; Execute = $false; RequiredCapability = "SHIP_POST" },
+            @{ Id = "btnShippingBoxMode"; GetLabel = "RibbonBoxMakerModeGetLabel"; Macro = "modTS_Shipments.BtnSwitchToBoxMaker"; Execute = $false; RequiredCapability = "SHIP_POST" },
+            @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox"; Execute = $false; RequiredCapability = "SHIP_POST" },
             @{ Id = "btnShippingConfirm"; Label = "Confirm Inventory"; Macro = "modTS_Shipments.BtnConfirmInventory"; Execute = $false; RequiredCapability = "SHIP_POST" },
+            @{ Id = "btnShippingBoxCreated"; Label = "Box Created"; Macro = "modTS_Shipments.BtnBoxCreated"; Execute = $false; RequiredCapability = "SHIP_POST" },
+            @{ Id = "btnShippingBoxUnboxed"; Label = "Box Unboxed"; Macro = "modTS_Shipments.BtnBoxUnboxed"; Execute = $false; RequiredCapability = "SHIP_POST" },
             @{ Id = "btnShippingStage"; Label = "To Shipments"; Macro = "modTS_Shipments.BtnToShipments"; Execute = $false; RequiredCapability = "SHIP_POST" },
             @{ Id = "btnShippingSend"; Label = "Shipments Sent"; Macro = "modTS_Shipments.BtnShipmentsSent"; Execute = $false; RequiredCapability = "SHIP_POST" }
         )

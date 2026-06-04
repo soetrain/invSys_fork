@@ -25,6 +25,9 @@ Private mCategoryCol As Long
 Private mHasCategory As Boolean
 Private mIngredientRecipeId As String
 Private mAllowedRows As Object
+Private mShippingBomPackageRows As Object
+Private mShippingBomPackageItems As Object
+Private mLoadedFromShippingBom As Boolean
 Private mTemplateFormName As String
 Private Const CORE_PICKER_TEMPLATE As String = "frmItemSearch"
 
@@ -270,10 +273,14 @@ End Sub
 
 Private Function LoadItems() As Boolean
     Debug.Print "  LoadItems entered"
+    mLoadedFromShippingBom = False
     If LCase$(mPickerMode) = "recipe" Or LCase$(mPickerMode) = "palette_recipe" Or LCase$(mPickerMode) = "recipe_chooser" Then
         itemsArr = RunRoleMacro0("mProduction.LoadRecipeList")
     ElseIf LCase$(mPickerMode) = "ingredient" Then
         itemsArr = RunRoleMacro1("mProduction.LoadIngredientListForRecipe", mIngredientRecipeId)
+    ElseIf ShouldUseShippingBomFilter() Then
+        itemsArr = LoadShippingBomPackageItems()
+        If Not IsEmpty(itemsArr) Then mLoadedFromShippingBom = True
     Else
         itemsArr = LoadManagedInventoryItems(True)
     End If
@@ -288,6 +295,7 @@ Private Function LoadItems() As Boolean
     If LCase$(mPickerMode) <> "recipe" And LCase$(mPickerMode) <> "palette_recipe" _
         And LCase$(mPickerMode) <> "recipe_chooser" And LCase$(mPickerMode) <> "ingredient" Then
         InitCategoryState
+        InitShippingBomPackageState
     End If
     ApplyFilter
     LoadItems = True
@@ -508,11 +516,204 @@ Private Sub InitCategoryState()
 End Sub
 
 Private Function IsRowShippable(ByVal rowIndex As Long) As Boolean
+    If mLoadedFromShippingBom Then
+        IsRowShippable = True
+        Exit Function
+    End If
+
+    If ShouldUseShippingBomFilter() Then
+        IsRowShippable = IsRowListedInShippingBom(rowIndex)
+        Exit Function
+    End If
+
     If Not mHasCategory Or mCategoryCol = 0 Then
         IsRowShippable = True
         Exit Function
     End If
     IsRowShippable = modItemSearch.IsShippingRelevantCategory(NzStr(itemsArr(rowIndex, mCategoryCol)))
+End Function
+
+Private Sub InitShippingBomPackageState()
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    Dim cPackageRow As Long
+    Dim cPackageItem As Long
+    Dim r As Long
+    Dim rowKey As String
+    Dim itemKey As String
+
+    Set mShippingBomPackageRows = Nothing
+    Set mShippingBomPackageItems = Nothing
+    If Not ShouldUseShippingBomFilter() Then Exit Sub
+
+    Set wb = ResolveSearchWorkbook()
+    If wb Is Nothing Then Exit Sub
+
+    Set lo = ResolveShippingBomViewTable(wb)
+
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    cPackageRow = ColumnIndex(lo, "PackageRow")
+    cPackageItem = ColumnIndex(lo, "PackageItem")
+    If cPackageRow = 0 And cPackageItem = 0 Then Exit Sub
+
+    Set mShippingBomPackageRows = CreateObject("Scripting.Dictionary")
+    Set mShippingBomPackageItems = CreateObject("Scripting.Dictionary")
+
+    For r = 1 To lo.ListRows.Count
+        If cPackageRow > 0 Then
+            rowKey = Trim$(NzStr(lo.DataBodyRange.Cells(r, cPackageRow).Value))
+            If rowKey <> "" Then
+                If Not mShippingBomPackageRows.Exists(rowKey) Then mShippingBomPackageRows.Add rowKey, True
+            End If
+        End If
+        If cPackageItem > 0 Then
+            itemKey = LCase$(Trim$(NzStr(lo.DataBodyRange.Cells(r, cPackageItem).Value)))
+            If itemKey <> "" Then
+                If Not mShippingBomPackageItems.Exists(itemKey) Then mShippingBomPackageItems.Add itemKey, True
+            End If
+        End If
+    Next r
+End Sub
+
+Private Function LoadShippingBomPackageItems() As Variant
+    On Error Resume Next
+    LoadShippingBomPackageItems = RunRoleMacro0("modTS_Shipments.LoadShippingBomPackagePickerItems")
+    If Err.Number <> 0 Then
+        Err.Clear
+    ElseIf Not IsEmpty(LoadShippingBomPackageItems) Then
+        On Error GoTo 0
+        Exit Function
+    End If
+    On Error GoTo 0
+
+    Dim wb As Workbook
+    Dim lo As ListObject
+    Dim cPackageRow As Long
+    Dim cPackageItem As Long
+    Dim cPackageUom As Long
+    Dim cPackageLocation As Long
+    Dim cPackageDescription As Long
+    Dim dict As Object
+    Dim src As Variant
+    Dim result() As Variant
+    Dim trimmed() As Variant
+    Dim r As Long
+    Dim c As Long
+    Dim outRow As Long
+    Dim rowKey As String
+    Dim itemName As String
+    Dim itemKey As String
+    Dim uniqueKey As String
+
+    Set wb = ResolveSearchWorkbook()
+    If wb Is Nothing Then Exit Function
+    Set lo = ResolveShippingBomViewTable(wb)
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    cPackageRow = ColumnIndex(lo, "PackageRow")
+    cPackageItem = ColumnIndex(lo, "PackageItem")
+    cPackageUom = ColumnIndex(lo, "PackageUOM")
+    cPackageLocation = ColumnIndex(lo, "PackageLocation")
+    cPackageDescription = ColumnIndex(lo, "PackageDescription")
+    If cPackageRow = 0 Or cPackageItem = 0 Then Exit Function
+
+    src = lo.DataBodyRange.Value
+    Set dict = CreateObject("Scripting.Dictionary")
+    ReDim result(1 To UBound(src, 1), 1 To 7)
+
+    For r = 1 To UBound(src, 1)
+        rowKey = Trim$(NzStr(src(r, cPackageRow)))
+        itemName = Trim$(NzStr(src(r, cPackageItem)))
+        If rowKey = "" And itemName = "" Then GoTo NextPackage
+
+        itemKey = LCase$(itemName)
+        If rowKey <> "" Then
+            uniqueKey = "ROW:" & rowKey
+        Else
+            uniqueKey = "ITEM:" & itemKey
+        End If
+        If dict.Exists(uniqueKey) Then GoTo NextPackage
+        dict.Add uniqueKey, True
+
+        outRow = outRow + 1
+        result(outRow, 1) = rowKey
+        result(outRow, 2) = itemName
+        result(outRow, 3) = itemName
+        If cPackageUom > 0 Then result(outRow, 4) = NzStr(src(r, cPackageUom))
+        If cPackageLocation > 0 Then result(outRow, 5) = NzStr(src(r, cPackageLocation))
+        If cPackageDescription > 0 Then result(outRow, 6) = NzStr(src(r, cPackageDescription))
+        result(outRow, 7) = ""
+NextPackage:
+    Next r
+
+    If outRow = 0 Then Exit Function
+    If outRow = UBound(src, 1) Then
+        LoadShippingBomPackageItems = result
+        Exit Function
+    End If
+
+    ReDim trimmed(1 To outRow, 1 To 7)
+    For r = 1 To outRow
+        For c = 1 To 7
+            trimmed(r, c) = result(r, c)
+        Next c
+    Next r
+    LoadShippingBomPackageItems = trimmed
+End Function
+
+Private Function ResolveShippingBomViewTable(ByVal wb As Workbook) As ListObject
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        On Error Resume Next
+        Set ResolveShippingBomViewTable = ws.ListObjects("ShippingBOMView")
+        On Error GoTo 0
+        If Not ResolveShippingBomViewTable Is Nothing Then Exit Function
+    Next ws
+End Function
+
+Private Function ShouldUseShippingBomFilter() As Boolean
+    Dim lo As ListObject
+    Dim sourceTable As String
+
+    If CurrentRoleKey() <> "shipping" Then Exit Function
+    On Error Resume Next
+    If Not callbackCell Is Nothing Then Set lo = callbackCell.ListObject
+    On Error GoTo 0
+    If lo Is Nothing Then
+        ShouldUseShippingBomFilter = True
+        Exit Function
+    End If
+
+    sourceTable = LCase$(Trim$(lo.Name))
+    ShouldUseShippingBomFilter = (sourceTable = "shipmentstally" Or sourceTable = "boxbuilder")
+End Function
+
+Private Function IsRowListedInShippingBom(ByVal rowIndex As Long) As Boolean
+    Dim rowKey As String
+    Dim itemKey As String
+
+    If mShippingBomPackageRows Is Nothing And mShippingBomPackageItems Is Nothing Then Exit Function
+
+    rowKey = Trim$(NzStr(itemsArr(rowIndex, 1)))
+    If Not mShippingBomPackageRows Is Nothing Then
+        If rowKey <> "" Then
+            If mShippingBomPackageRows.Exists(rowKey) Then
+                IsRowListedInShippingBom = True
+                Exit Function
+            End If
+        End If
+    End If
+
+    itemKey = LCase$(Trim$(NzStr(itemsArr(rowIndex, 3))))
+    If Not mShippingBomPackageItems Is Nothing Then
+        If itemKey <> "" Then IsRowListedInShippingBom = mShippingBomPackageItems.Exists(itemKey)
+    End If
 End Function
 
 Private Function ShippingFilterCaption() As String
@@ -1010,6 +1211,8 @@ Public Sub CommitSelection()
                 rowIdx
         Case "shipmentstally"
             Application.Run "modTS_Shipments.ApplyItemSelection", callbackCell, lo, rowIdx, itemName, itemCode, itemRow, uom, location, vendor, lst.List(lst.ListIndex, 5)
+        Case "boxbuilder"
+            Application.Run "modTS_Shipments.ApplyItemToBoxBuilder", callbackCell, itemName, itemRow, uom, location, lst.List(lst.ListIndex, 5)
         Case "boxbom"
             Application.Run "modTS_Shipments.ApplyItemToBoxBOM", callbackCell, itemName, itemRow, uom, location, lst.List(lst.ListIndex, 5)
         Case "ip_chooseitem"

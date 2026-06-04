@@ -821,6 +821,7 @@ $projectMap = @(
                         @{ Id = "btnShippingSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; ImageMso = "Clear"; Screentip = "Sign out of invSys without disconnecting storage" },
                         @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; ImageMso = "FileNew"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder"; ImageMso = "Repeat"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingBoxMode"; Label = "BoxBuilder Mode"; GetLabel = "RibbonBoxMakerModeGetLabel"; Macro = "modTS_Shipments.BtnSwitchToBoxMaker"; ImageMso = "HappyFace"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingUnship"; Label = "Toggle NotShipped"; Macro = "modTS_Shipments.BtnUnship"; ImageMso = "Clear"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingHold"; Label = "Send To Hold"; Macro = "modTS_Shipments.BtnSendHold"; ImageMso = "Cut"; RequiredCapability = "SHIP_POST" },
@@ -836,6 +837,8 @@ $projectMap = @(
                     Label   = "Actions"
                     Buttons = @(
                         @{ Id = "btnShippingConfirm"; Label = "Confirm Inventory"; Macro = "modTS_Shipments.BtnConfirmInventory"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingBoxCreated"; Label = "Box Created"; Macro = "modTS_Shipments.BtnBoxCreated"; ImageMso = "CreateReport"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingBoxUnboxed"; Label = "Box Unboxed"; Macro = "modTS_Shipments.BtnBoxUnboxed"; ImageMso = "Refresh"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingBoxesMade"; Label = "Boxes Made"; Macro = "modTS_Shipments.BtnBoxesMade"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingTotal"; Label = "To Total Inv"; Macro = "modTS_Shipments.BtnToTotalInv"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingStage"; Label = "To Shipments"; Macro = "modTS_Shipments.BtnToShipments"; ImageMso = "FileOpen"; RequiredCapability = "SHIP_POST" },
