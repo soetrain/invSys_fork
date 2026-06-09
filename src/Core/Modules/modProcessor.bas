@@ -11,6 +11,7 @@ Private Const PROC_APPLY_STATUS_SKIP_DUP As String = "SKIP_DUP"
 Private Const PROC_EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Private Const PROC_EVENT_TYPE_SHIP As String = "SHIP"
 Private Const PROC_EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
+Private Const PROC_EVENT_TYPE_BOX_UNBOX As String = "BOX_UNBOX"
 Private Const PROC_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
 Private Const PROC_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
 Private Const PROC_EVENT_TYPE_MIGRATION_SEED As String = "MIGRATION_SEED"
@@ -575,7 +576,7 @@ Private Function InboxWorkbookNameProcessor(ByVal eventType As String, ByVal sta
     Select Case UCase$(SafeTrimProcessor(eventType))
         Case PROC_EVENT_TYPE_RECEIVE
             InboxWorkbookNameProcessor = "invSys.Inbox.Receiving." & stationId & ".xlsb"
-        Case PROC_EVENT_TYPE_SHIP, PROC_EVENT_TYPE_BOX_BUILD
+        Case PROC_EVENT_TYPE_SHIP, PROC_EVENT_TYPE_BOX_BUILD, PROC_EVENT_TYPE_BOX_UNBOX
             InboxWorkbookNameProcessor = "invSys.Inbox.Shipping." & stationId & ".xlsb"
         Case PROC_EVENT_TYPE_PROD_CONSUME, PROC_EVENT_TYPE_PROD_COMPLETE
             InboxWorkbookNameProcessor = "invSys.Inbox.Production." & stationId & ".xlsb"
@@ -776,7 +777,7 @@ Private Function CapabilityForEventType(ByVal eventType As String) As String
     Select Case UCase$(SafeTrimProcessor(eventType))
         Case PROC_EVENT_TYPE_RECEIVE
             CapabilityForEventType = "RECEIVE_POST"
-        Case PROC_EVENT_TYPE_SHIP, PROC_EVENT_TYPE_BOX_BUILD
+        Case PROC_EVENT_TYPE_SHIP, PROC_EVENT_TYPE_BOX_BUILD, PROC_EVENT_TYPE_BOX_UNBOX
             CapabilityForEventType = "SHIP_POST"
         Case PROC_EVENT_TYPE_PROD_CONSUME, PROC_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventType = "PROD_POST"

@@ -56,6 +56,16 @@ Public Sub ShowForCell(ByVal targetCell As Range)
     Debug.Print "  uf.Show returned (form should now be visible)"
 End Sub
 
+Public Sub ShowForShippingComponentCell(ByVal targetCell As Range)
+    If targetCell Is Nothing Then Exit Sub
+    mPickerMode = "shipping_component"
+    Set callbackCell = targetCell
+    If Not BuildForm() Then Exit Sub
+    ConfigureForMode
+    If Not LoadItems() Then Exit Sub
+    uf.Show vbModeless
+End Sub
+
 Public Sub ShowForRecipeCell(ByVal targetCell As Range)
     Debug.Print "cDynItemSearch.ShowForRecipeCell entered"
     If targetCell Is Nothing Then Exit Sub
@@ -254,6 +264,16 @@ Private Sub ConfigureForMode()
         Exit Sub
     End If
 
+    If LCase$(mPickerMode) = "shipping_component" Then
+        uf.Caption = modItemSearch.ResolveSearchCaption(CurrentRoleKey(), mPickerMode)
+        If Not chkShippable Is Nothing Then
+            chkShippable.Value = False
+            chkShippable.Enabled = False
+            chkShippable.Visible = False
+        End If
+        Exit Sub
+    End If
+
     If LCase$(mPickerMode) <> "recipe" And LCase$(mPickerMode) <> "palette_recipe" And LCase$(mPickerMode) <> "recipe_chooser" Then Exit Sub
 
     uf.Caption = modItemSearch.ResolveSearchCaption(CurrentRoleKey(), mPickerMode)
@@ -278,6 +298,8 @@ Private Function LoadItems() As Boolean
         itemsArr = RunRoleMacro0("mProduction.LoadRecipeList")
     ElseIf LCase$(mPickerMode) = "ingredient" Then
         itemsArr = RunRoleMacro1("mProduction.LoadIngredientListForRecipe", mIngredientRecipeId)
+    ElseIf LCase$(mPickerMode) = "shipping_component" Then
+        itemsArr = LoadShippingComponentItems()
     ElseIf ShouldUseShippingBomFilter() Then
         itemsArr = LoadShippingBomPackageItems()
         If Not IsEmpty(itemsArr) Then mLoadedFromShippingBom = True
@@ -292,14 +314,77 @@ Private Function LoadItems() As Boolean
         Exit Function
     End If
     Debug.Print "    LoadItems: UBound =", UBound(itemsArr, 1)
+    If LCase$(mPickerMode) = "shipping_component" Then
+        InitCategoryState
+        InitShippingBomPackageState True
+    End If
     If LCase$(mPickerMode) <> "recipe" And LCase$(mPickerMode) <> "palette_recipe" _
-        And LCase$(mPickerMode) <> "recipe_chooser" And LCase$(mPickerMode) <> "ingredient" Then
+        And LCase$(mPickerMode) <> "recipe_chooser" And LCase$(mPickerMode) <> "ingredient" _
+        And LCase$(mPickerMode) <> "shipping_component" Then
         InitCategoryState
         InitShippingBomPackageState
     End If
     ApplyFilter
     LoadItems = True
     Debug.Print "    LoadItems SUCCESS"
+End Function
+
+Private Function LoadShippingComponentItems() As Variant
+    LoadShippingComponentItems = LoadCanonicalManagedInventoryItems()
+    If Not IsEmpty(LoadShippingComponentItems) Then Exit Function
+
+    On Error Resume Next
+    Call TryRefreshSearchInventoryReadModel()
+    On Error GoTo 0
+
+    LoadShippingComponentItems = LoadManagedInventoryItems(True)
+End Function
+
+Private Function FindListObjectInWorkbook(ByVal wb As Workbook, ByVal tableName As String) As ListObject
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        On Error Resume Next
+        Set FindListObjectInWorkbook = ws.ListObjects(tableName)
+        On Error GoTo 0
+        If Not FindListObjectInWorkbook Is Nothing Then Exit Function
+    Next ws
+End Function
+
+Private Function InventoryPickerTableHasRows(ByVal lo As ListObject) As Boolean
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If ColumnIndex(lo, "ROW") = 0 Then Exit Function
+    If ColumnIndexLoose(lo, "ITEM", "ITEMS", "ITEM_NAME", "ITEM NAME") = 0 Then Exit Function
+    InventoryPickerTableHasRows = True
+End Function
+
+Private Function LoadCanonicalManagedInventoryItems() As Variant
+    On Error GoTo FailSoft
+
+    Dim warehouseId As String
+    Dim wbInv As Workbook
+    Dim loInv As ListObject
+
+    warehouseId = ""
+    On Error Resume Next
+    If modConfig.IsLoaded() Then warehouseId = Trim$(modConfig.GetWarehouseId())
+    On Error GoTo FailSoft
+
+    Set wbInv = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+    If wbInv Is Nothing Then Exit Function
+    Set loInv = FindInventoryTableInWorkbook(wbInv)
+    If Not InventoryPickerTableHasRows(loInv) Then Exit Function
+
+    LoadCanonicalManagedInventoryItems = BuildInventoryPickerItemsFromTable(loInv, True)
+    If Not IsEmpty(LoadCanonicalManagedInventoryItems) Then
+        Debug.Print "Shipping component picker canonical inventory source:", wbInv.Name, "rows=" & CStr(UBound(LoadCanonicalManagedInventoryItems, 1))
+    End If
+    Exit Function
+
+FailSoft:
+    LoadCanonicalManagedInventoryItems = Empty
 End Function
 
 Private Sub ApplyEmptyState()
@@ -471,11 +556,31 @@ Private Sub ApplyFilter(Optional ByVal termOverride As Variant)
         On Error GoTo 0
     End If
 
+    AddInventoryRowsToList term, shippableOnly, True
+    If LCase$(mPickerMode) = "shipping_component" Then
+        Debug.Print "Shipping component picker visible rows:", CStr(lst.ListCount)
+    End If
+    If lst.ListCount > 0 Then
+        lst.ListIndex = 0
+        UpdateDescription
+    End If
+End Sub
+
+Private Sub AddInventoryRowsToList(ByVal term As String, _
+                                   ByVal shippableOnly As Boolean, _
+                                   ByVal excludeShippingBomPackages As Boolean)
+    Dim i As Long
+
+    If IsEmpty(itemsArr) Then Exit Sub
+    lst.Clear
     For i = LBound(itemsArr, 1) To UBound(itemsArr, 1)
         If LCase$(mPickerMode) = "palette_item" Then
             Dim rowKey As String
             rowKey = NzStr(itemsArr(i, 1))
             If Not mAllowedRows.Exists(rowKey) Then GoTo NextItem
+        End If
+        If LCase$(mPickerMode) = "shipping_component" And excludeShippingBomPackages Then
+            If IsRowListedInShippingBom(i) Then GoTo NextItem
         End If
         If shippableOnly And Not IsRowShippable(i) Then GoTo NextItem
         ' Match on ITEM (3) or ITEM_CODE (2)
@@ -491,10 +596,6 @@ Private Sub ApplyFilter(Optional ByVal termOverride As Variant)
         End If
 NextItem:
     Next i
-    If lst.ListCount > 0 Then
-        lst.ListIndex = 0
-        UpdateDescription
-    End If
 End Sub
 
 Private Sub InitCategoryState()
@@ -533,19 +634,22 @@ Private Function IsRowShippable(ByVal rowIndex As Long) As Boolean
     IsRowShippable = modItemSearch.IsShippingRelevantCategory(NzStr(itemsArr(rowIndex, mCategoryCol)))
 End Function
 
-Private Sub InitShippingBomPackageState()
+Private Sub InitShippingBomPackageState(Optional ByVal forceLoad As Boolean = False)
     Dim wb As Workbook
     Dim ws As Worksheet
     Dim lo As ListObject
     Dim cPackageRow As Long
     Dim cPackageItem As Long
+    Dim cActive As Long
     Dim r As Long
     Dim rowKey As String
     Dim itemKey As String
 
     Set mShippingBomPackageRows = Nothing
     Set mShippingBomPackageItems = Nothing
-    If Not ShouldUseShippingBomFilter() Then Exit Sub
+    If Not forceLoad Then
+        If Not ShouldUseShippingBomFilter() Then Exit Sub
+    End If
 
     Set wb = ResolveSearchWorkbook()
     If wb Is Nothing Then Exit Sub
@@ -557,12 +661,16 @@ Private Sub InitShippingBomPackageState()
 
     cPackageRow = ColumnIndex(lo, "PackageRow")
     cPackageItem = ColumnIndex(lo, "PackageItem")
+    cActive = ColumnIndex(lo, "IsActive")
     If cPackageRow = 0 And cPackageItem = 0 Then Exit Sub
 
     Set mShippingBomPackageRows = CreateObject("Scripting.Dictionary")
     Set mShippingBomPackageItems = CreateObject("Scripting.Dictionary")
 
     For r = 1 To lo.ListRows.Count
+        If cActive > 0 Then
+            If Not ShippingBomActiveValue(lo.DataBodyRange.Cells(r, cActive).Value) Then GoTo NextPackageStateRow
+        End If
         If cPackageRow > 0 Then
             rowKey = Trim$(NzStr(lo.DataBodyRange.Cells(r, cPackageRow).Value))
             If rowKey <> "" Then
@@ -575,6 +683,7 @@ Private Sub InitShippingBomPackageState()
                 If Not mShippingBomPackageItems.Exists(itemKey) Then mShippingBomPackageItems.Add itemKey, True
             End If
         End If
+NextPackageStateRow:
     Next r
 End Sub
 
@@ -596,6 +705,7 @@ Private Function LoadShippingBomPackageItems() As Variant
     Dim cPackageUom As Long
     Dim cPackageLocation As Long
     Dim cPackageDescription As Long
+    Dim cActive As Long
     Dim dict As Object
     Dim src As Variant
     Dim result() As Variant
@@ -619,6 +729,7 @@ Private Function LoadShippingBomPackageItems() As Variant
     cPackageUom = ColumnIndex(lo, "PackageUOM")
     cPackageLocation = ColumnIndex(lo, "PackageLocation")
     cPackageDescription = ColumnIndex(lo, "PackageDescription")
+    cActive = ColumnIndex(lo, "IsActive")
     If cPackageRow = 0 Or cPackageItem = 0 Then Exit Function
 
     src = lo.DataBodyRange.Value
@@ -626,7 +737,10 @@ Private Function LoadShippingBomPackageItems() As Variant
     ReDim result(1 To UBound(src, 1), 1 To 7)
 
     For r = 1 To UBound(src, 1)
-        rowKey = Trim$(NzStr(src(r, cPackageRow)))
+        If cActive > 0 Then
+            If Not ShippingBomActiveValue(src(r, cActive)) Then GoTo NextPackage
+        End If
+        rowKey = NormalizePickerRowKey(src(r, cPackageRow))
         itemName = Trim$(NzStr(src(r, cPackageItem)))
         If rowKey = "" And itemName = "" Then GoTo NextPackage
 
@@ -677,6 +791,13 @@ Private Function ResolveShippingBomViewTable(ByVal wb As Workbook) As ListObject
     Next ws
 End Function
 
+Private Function CallbackCellIsTableHeader(ByVal lo As ListObject, ByVal targetCell As Range) As Boolean
+    If lo Is Nothing Then Exit Function
+    If targetCell Is Nothing Then Exit Function
+    If lo.HeaderRowRange Is Nothing Then Exit Function
+    CallbackCellIsTableHeader = Not Application.Intersect(targetCell, lo.HeaderRowRange) Is Nothing
+End Function
+
 Private Function ShouldUseShippingBomFilter() As Boolean
     Dim lo As ListObject
     Dim sourceTable As String
@@ -692,6 +813,23 @@ Private Function ShouldUseShippingBomFilter() As Boolean
 
     sourceTable = LCase$(Trim$(lo.Name))
     ShouldUseShippingBomFilter = (sourceTable = "shipmentstally" Or sourceTable = "boxbuilder")
+End Function
+
+Private Function ShippingBomActiveValue(ByVal rawValue As Variant) As Boolean
+    Dim textValue As String
+
+    If IsEmpty(rawValue) Or IsNull(rawValue) Then
+        ShippingBomActiveValue = True
+        Exit Function
+    End If
+    textValue = UCase$(Trim$(NzStr(rawValue)))
+    If textValue = "" Then
+        ShippingBomActiveValue = True
+    ElseIf textValue = "TRUE" Or textValue = "YES" Or textValue = "ACTIVE" Or textValue = "1" Then
+        ShippingBomActiveValue = True
+    Else
+        ShippingBomActiveValue = False
+    End If
 End Function
 
 Private Function IsRowListedInShippingBom(ByVal rowIndex As Long) As Boolean
@@ -761,6 +899,17 @@ RetryLoad:
         Exit Function
     End If
 
+    LoadManagedInventoryItems = BuildInventoryPickerItemsFromTable(loInv, includeCategory)
+    If IsEmpty(LoadManagedInventoryItems) Then
+        If Not attemptedRefresh Then
+            attemptedRefresh = TryRefreshSearchInventoryReadModel()
+            If attemptedRefresh Then GoTo RetryLoad
+        End If
+    End If
+End Function
+
+Private Function BuildInventoryPickerItemsFromTable(ByVal loInv As ListObject, _
+                                                    Optional ByVal includeCategory As Boolean = False) As Variant
     Dim cRow As Long
     Dim cCode As Long
     Dim cItem As Long
@@ -770,21 +919,18 @@ RetryLoad:
     Dim cVend As Long
     Dim cCat As Long
 
+    If loInv Is Nothing Then Exit Function
+    If loInv.DataBodyRange Is Nothing Then Exit Function
+
     cRow = ColumnIndex(loInv, "ROW")
     cCode = ColumnIndex(loInv, "ITEM_CODE")
-    cItem = ColumnIndex(loInv, "ITEM")
-    cUom = ColumnIndex(loInv, "UOM")
-    cLoc = ColumnIndex(loInv, "LOCATION")
-    cDesc = ColumnIndex(loInv, "DESCRIPTION")
+    cItem = ColumnIndexLoose(loInv, "ITEM", "ITEMS", "ITEM_NAME", "ITEM NAME")
+    cUom = ColumnIndexLoose(loInv, "UOM", "UNIT", "UNITOFMEASURE", "UNIT OF MEASURE")
+    cLoc = ColumnIndexLoose(loInv, "LOCATION", "LOC")
+    cDesc = ColumnIndexLoose(loInv, "DESCRIPTION", "DESC")
     cVend = ColumnIndexLoose(loInv, "VENDOR(s)", "VENDORS", "VENDOR")
     If includeCategory Then cCat = ColumnIndex(loInv, "CATEGORY")
-    If cRow = 0 Or cCode = 0 Or cItem = 0 Then
-        If Not attemptedRefresh Then
-            attemptedRefresh = TryRefreshSearchInventoryReadModel()
-            If attemptedRefresh Then GoTo RetryLoad
-        End If
-        Exit Function
-    End If
+    If cRow = 0 Or cItem = 0 Then Exit Function
     Dim src As Variant
     src = loInv.DataBodyRange.Value
 
@@ -805,8 +951,12 @@ RetryLoad:
         itemName = NzStr(src(r, cItem))
         If Trim$(itemName) <> "" Then
             outRow = outRow + 1
-            result(outRow, 1) = NzStr(src(r, cRow))
-            result(outRow, 2) = NzStr(src(r, cCode))
+            result(outRow, 1) = NormalizePickerRowKey(src(r, cRow))
+            If cCode > 0 Then
+                result(outRow, 2) = NzStr(src(r, cCode))
+            Else
+                result(outRow, 2) = itemName
+            End If
             result(outRow, 3) = itemName
             If cUom > 0 Then result(outRow, 4) = NzStr(src(r, cUom))
             If cLoc > 0 Then result(outRow, 5) = NzStr(src(r, cLoc))
@@ -822,15 +972,9 @@ RetryLoad:
         End If
     Next r
 
-    If outRow = 0 Then
-        If Not attemptedRefresh Then
-            attemptedRefresh = TryRefreshSearchInventoryReadModel()
-            If attemptedRefresh Then GoTo RetryLoad
-        End If
-        Exit Function
-    End If
+    If outRow = 0 Then Exit Function
     If outRow = rowCount Then
-        LoadManagedInventoryItems = result
+        BuildInventoryPickerItemsFromTable = result
         Exit Function
     End If
 
@@ -840,7 +984,7 @@ RetryLoad:
             trimmed(r, c) = result(r, c)
         Next c
     Next r
-    LoadManagedInventoryItems = trimmed
+    BuildInventoryPickerItemsFromTable = trimmed
 End Function
 
 Private Function TryRefreshSearchInventoryReadModel() As Boolean
@@ -1165,8 +1309,6 @@ Public Sub CommitSelection()
         Exit Sub
     End If
 
-    callbackCell.Value = lst.List(lst.ListIndex, 2) ' ITEM text in active cell
-
     Dim lo As ListObject
     Dim rowIdx As Long
     Dim tblName As String
@@ -1179,6 +1321,10 @@ Public Sub CommitSelection()
             rowIdx = callbackCell.Row - lo.DataBodyRange.Row + 1
             If rowIdx < 1 Or rowIdx > lo.ListRows.Count Then rowIdx = 0
         End If
+    End If
+
+    If lo Is Nothing Or Not CallbackCellIsTableHeader(lo, callbackCell) Then
+        callbackCell.Value = lst.List(lst.ListIndex, 2) ' ITEM text in active cell
     End If
 
     Dim itemName As String, itemCode As String, itemRow As Long
@@ -1302,7 +1448,38 @@ Private Function NzDbl(v As Variant) As Double
     If IsError(v) Or IsNull(v) Or IsEmpty(v) Or v = "" Then NzDbl = 0# Else NzDbl = CDbl(v)
 End Function
 Private Function NzLng(v As Variant) As Long
-    If IsError(v) Or IsNull(v) Or IsEmpty(v) Or v = "" Then NzLng = 0 Else NzLng = CLng(v)
+    On Error GoTo FailSoft
+
+    Dim textValue As String
+
+    If IsError(v) Or IsNull(v) Or IsEmpty(v) Then Exit Function
+    If IsDate(v) Then
+        NzLng = CLng(CDbl(CDate(v)))
+        Exit Function
+    End If
+
+    textValue = Trim$(CStr(v))
+    If textValue = "" Then Exit Function
+    If IsNumeric(textValue) Then
+        NzLng = CLng(CDbl(textValue))
+    ElseIf IsDate(textValue) Then
+        NzLng = CLng(CDbl(CDate(textValue)))
+    End If
+    Exit Function
+
+FailSoft:
+    NzLng = 0
+End Function
+
+Private Function NormalizePickerRowKey(ByVal rawValue As Variant) As String
+    Dim rowValue As Long
+
+    rowValue = NzLng(rawValue)
+    If rowValue > 0 Then
+        NormalizePickerRowKey = CStr(rowValue)
+    Else
+        NormalizePickerRowKey = Trim$(NzStr(rawValue))
+    End If
 End Function
 Private Function ColumnIndex(lo As ListObject, colName As String) As Long
     Dim lc As ListColumn

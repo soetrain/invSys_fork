@@ -7,6 +7,7 @@ Public Const APPLY_STATUS_SKIP_DUP As String = "SKIP_DUP"
 Public Const EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Public Const EVENT_TYPE_SHIP As String = "SHIP"
 Public Const EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
+Public Const EVENT_TYPE_BOX_UNBOX As String = "BOX_UNBOX"
 Public Const EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
 Public Const EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
 Public Const EVENT_TYPE_MIGRATION_SEED As String = "MIGRATION_SEED"
@@ -406,7 +407,7 @@ Private Function BuildApplyLines(ByVal evt As Object, _
     Select Case eventType
         Case EVENT_TYPE_RECEIVE
             Set BuildApplyLines = BuildReceiveLines(evt, wb, errorCode, errorMessage)
-        Case EVENT_TYPE_SHIP, EVENT_TYPE_BOX_BUILD, EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE, EVENT_TYPE_MIGRATION_SEED
+        Case EVENT_TYPE_SHIP, EVENT_TYPE_BOX_BUILD, EVENT_TYPE_BOX_UNBOX, EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE, EVENT_TYPE_MIGRATION_SEED
             Set BuildApplyLines = BuildPayloadLines(evt, wb, eventType, errorCode, errorMessage)
         Case Else
             errorCode = "INVALID_EVENT_TYPE"
@@ -492,7 +493,7 @@ Private Function BuildPayloadLines(ByVal evt As Object, _
     Set BuildPayloadLines = New Collection
     For Each rawItem In parsedItems
         sku = ResolvePayloadSkuApply(wb, rawItem)
-        If eventType = EVENT_TYPE_BOX_BUILD Then
+        If eventType = EVENT_TYPE_BOX_BUILD Or eventType = EVENT_TYPE_BOX_UNBOX Then
             Dim rowSku As String
             rowSku = ResolvePayloadSkuByRowApply(wb, rawItem)
             If rowSku <> "" Then sku = rowSku
@@ -516,7 +517,7 @@ Private Function BuildPayloadLines(ByVal evt As Object, _
             Exit Function
         End If
         rawItem("SKU") = sku
-        If eventType = EVENT_TYPE_MIGRATION_SEED Or eventType = EVENT_TYPE_BOX_BUILD Then
+        If eventType = EVENT_TYPE_MIGRATION_SEED Or eventType = EVENT_TYPE_BOX_BUILD Or eventType = EVENT_TYPE_BOX_UNBOX Then
             EnsureSkuCatalogFromPayloadLineApply wb, rawItem
         End If
         If Not ValidateSkuExists(wb, sku) Then
@@ -589,6 +590,16 @@ Private Function ResolvePayloadQtyDelta(ByVal eventType As String, _
                 Case Else
                     errorCode = "INVALID_PAYLOAD"
                     errorMessage = "BOX_BUILD payload line items require IoType USED or MADE."
+            End Select
+        Case EVENT_TYPE_BOX_UNBOX
+            Select Case ioType
+                Case "RETURNED", "USED"
+                    ResolvePayloadQtyDelta = qty
+                Case "UNMADE", "MADE", "COMPLETE"
+                    ResolvePayloadQtyDelta = -qty
+                Case Else
+                    errorCode = "INVALID_PAYLOAD"
+                    errorMessage = "BOX_UNBOX payload line items require IoType RETURNED or UNMADE."
             End Select
         Case EVENT_TYPE_PROD_CONSUME
             Select Case ioType
@@ -1481,7 +1492,7 @@ Private Sub ResolveLatestMovementValuesApply(ByVal latestEventType As Object, _
             receivedOut = qty
         Case EVENT_TYPE_SHIP
             shipmentsOut = qty
-        Case EVENT_TYPE_BOX_BUILD
+        Case EVENT_TYPE_BOX_BUILD, EVENT_TYPE_BOX_UNBOX
             madeOut = qty
         Case EVENT_TYPE_PROD_CONSUME
             usedOut = qty

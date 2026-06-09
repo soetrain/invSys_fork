@@ -823,6 +823,8 @@ $projectMap = @(
                         @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder"; ImageMso = "Repeat"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingBoxMode"; Label = "BoxBuilder Mode"; GetLabel = "RibbonBoxMakerModeGetLabel"; Macro = "modTS_Shipments.BtnSwitchToBoxMaker"; ImageMso = "HappyFace"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingDeleteBoxVersion"; Label = "Delete Version"; Macro = "modTS_Shipments.BtnDeleteBoxVersion"; ImageMso = "Delete"; RequiredCapability = "ADMIN_MAINT" },
+                        @{ Id = "btnShippingDeleteBox"; Label = "Delete Box"; Macro = "modTS_Shipments.BtnDeleteBox"; ImageMso = "Delete"; RequiredCapability = "ADMIN_MAINT" },
                         @{ Id = "btnShippingUnship"; Label = "Toggle NotShipped"; Macro = "modTS_Shipments.BtnUnship"; ImageMso = "Clear"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingHold"; Label = "Send To Hold"; Macro = "modTS_Shipments.BtnSendHold"; ImageMso = "Cut"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingReturnHold"; Label = "Return From Hold"; Macro = "modTS_Shipments.BtnReturnHold"; ImageMso = "Paste"; RequiredCapability = "SHIP_POST" }

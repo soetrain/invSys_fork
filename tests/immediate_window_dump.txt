@@ -1,28 +1,32 @@
-```immediate window
-2026-06-02 16:52:29         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:52:29         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:52:30         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:52:35         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:52:35         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:52:35         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:52:36         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:52:36         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:52:53         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:52:54         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:55         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:57         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:52:58         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:12         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:17         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:18         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:18         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:18         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:21         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:22         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:22         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:22         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:28         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:29         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:31         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:48         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
+2026-06-08 16:01:49         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+2026-06-08 16:01:53         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
 cDynItemSearch.ShowForCell entered
   Calling BuildForm
   BuildForm entered
@@ -30,172 +34,21 @@ cDynItemSearch.ShowForCell entered
     BuildForm SUCCESS
   Calling LoadItems
   LoadItems entered
-2026-06-02 16:53:28         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-    LoadItems: UBound =      71 
+2026-06-08 16:01:53         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+    LoadItems: UBound =      6 
     LoadItems SUCCESS
   Showing uf vbModeless
   uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
+2026-06-08 16:01:55         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
   BuildForm entered
     UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
     BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      71 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      71 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      71 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      71 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      71 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      71 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      71 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-2026-06-02 16:54:37         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:54:38         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:54:40         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:54:41         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
   LoadItems entered
     LoadItems: UBound =      72 
+Shipping component picker visible rows:   71
     LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      72 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      72 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      72 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-2026-06-02 16:56:24         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-02 16:56:25         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:56:27         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-02 16:56:28         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      73 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      73 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-cDynItemSearch.ShowForCell entered
-  Calling BuildForm
-  BuildForm entered
-    UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
-    BuildForm SUCCESS
-  Calling LoadItems
-  LoadItems entered
-    LoadItems: UBound =      73 
-    LoadItems SUCCESS
-  Showing uf vbModeless
-  uf.Show returned (form should now be visible)
-2026-06-02 16:57:32         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-```
+Shipping component picker visible rows:   34
+Shipping component picker visible rows:   12
+Shipping component picker visible rows:   12
+Shipping component picker visible rows:   12
+2026-06-08 16:02:08         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.

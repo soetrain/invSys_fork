@@ -503,6 +503,7 @@ Private Function OpenOrCreateCanonicalInventoryWorkbookLocal(ByVal warehouseId A
     If targetPath = "" Then Exit Function
 
     Set wb = FindOpenWorkbookByFullNameLocal(targetPath)
+    If Not wb Is Nothing Then HideInventoryBridgeWorkbookWindows wb
     If wb Is Nothing Then
         EnsureFolderRecursiveLocal GetParentFolderLocal(targetPath)
         If FileExistsLocal(targetPath) Then
@@ -516,6 +517,7 @@ Private Function OpenOrCreateCanonicalInventoryWorkbookLocal(ByVal warehouseId A
                                                 Notify:=False, _
                                                 AddToMru:=False, _
                                                 IgnoreReadOnlyRecommended:=True)
+            HideInventoryBridgeWorkbookWindows wb
             If Not wb Is Nothing Then
                 If wb.ReadOnly Then
                     wb.Close SaveChanges:=False
@@ -528,6 +530,7 @@ Private Function OpenOrCreateCanonicalInventoryWorkbookLocal(ByVal warehouseId A
             Application.EnableEvents = False
             eventsSuppressed = True
             Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+            HideInventoryBridgeWorkbookWindows wb
             wb.SaveAs Filename:=targetPath, FileFormat:=50
             wasCreated = True
             Application.EnableEvents = prevEvents
@@ -546,6 +549,17 @@ FailOpen:
     On Error GoTo 0
     report = "Inventory workbook open/create failed: " & Err.Description
 End Function
+
+Private Sub HideInventoryBridgeWorkbookWindows(ByVal wb As Workbook)
+    Dim i As Long
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    For i = 1 To wb.Windows.Count
+        wb.Windows(i).Visible = False
+    Next i
+    On Error GoTo 0
+End Sub
 
 Private Function IsWorkbookFileLockedLocal(ByVal targetPath As String) As Boolean
     Dim fileNum As Integer

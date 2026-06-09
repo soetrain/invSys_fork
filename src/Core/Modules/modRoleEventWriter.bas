@@ -11,6 +11,7 @@ Private Const TABLE_INBOX_PROD As String = "tblInboxProd"
 Private Const ROLE_EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Private Const ROLE_EVENT_TYPE_SHIP As String = "SHIP"
 Private Const ROLE_EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
+Private Const ROLE_EVENT_TYPE_BOX_UNBOX As String = "BOX_UNBOX"
 Private Const ROLE_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
 Private Const ROLE_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
 Private Const ROLE_EVENT_TYPE_MIGRATION_SEED As String = "MIGRATION_SEED"
@@ -392,7 +393,7 @@ Public Function DescribeInboxPendingRows(ByVal eventType As String, _
                 errorMessage = report
                 GoTo CleanExit
             End If
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 GoTo CleanExit
@@ -675,7 +676,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
                 GoTo CleanExit
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_RECEIVE)
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 GoTo CleanExit
@@ -949,7 +950,7 @@ Private Function InboxWorkbookNameRole(ByVal eventType As String, ByVal stationI
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             InboxWorkbookNameRole = "invSys.Inbox.Receiving." & stationId & ".xlsb"
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             InboxWorkbookNameRole = "invSys.Inbox.Shipping." & stationId & ".xlsb"
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             InboxWorkbookNameRole = "invSys.Inbox.Production." & stationId & ".xlsb"
@@ -960,7 +961,7 @@ Private Function InboxTableNameRole(ByVal eventType As String) As String
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             InboxTableNameRole = TABLE_INBOX_RECEIVE
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             InboxTableNameRole = TABLE_INBOX_SHIP
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             InboxTableNameRole = TABLE_INBOX_PROD
@@ -971,7 +972,7 @@ Private Function CapabilityForEventTypeRole(ByVal eventType As String) As String
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             CapabilityForEventTypeRole = "RECEIVE_POST"
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             CapabilityForEventTypeRole = "SHIP_POST"
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventTypeRole = "PROD_POST"

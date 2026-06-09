@@ -1,9 +1,9 @@
 # Phase 6 Packaged Ribbon Validation Results
 
-- Date: 2026-06-04 14:00:32
+- Date: 2026-06-08 20:09:30
 - Deploy root: C:\Users\justu\source\repos\invSys_fork\deploy\current
-- Runtime root override: C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-2f5772b5e68a47d489f272610932b1cb
-- Passed: 215
+- Runtime root override: C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-4a582d50def143a08f86e05e0ca9951e
+- Passed: 227
 - Failed: 0
 
 | Check | Result | Detail |
@@ -15,7 +15,7 @@
 | invSys.Shipping.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Shipping.xlam |
 | invSys.Production.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Production.xlam |
 | invSys.Admin.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Admin.xlam |
-| Core.RuntimeRootOverride | PASS | C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-2f5772b5e68a47d489f272610932b1cb |
+| Core.RuntimeRootOverride | PASS | C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-4a582d50def143a08f86e05e0ca9951e |
 | Receiving.RibbonXml | PASS | customUI/customUI.xml present. |
 | Receiving.CallbackModule | PASS | modRibbonGenerated |
 | Receiving.StatusLabel.lblReceivingServerStatus | PASS | GetLabel=RibbonServerStatusGetLabel |
@@ -80,6 +80,18 @@
 | Shipping.CallbackMap.btnShippingSaveBox | PASS | btnShippingSaveBox -> modTS_Shipments.BtnSaveBox |
 | Shipping.CallbackGetEnabled.btnShippingSaveBox | PASS | btnShippingSaveBox -> SHIP_POST |
 | Shipping.DisabledOffline.btnShippingSaveBox | PASS | btnShippingSaveBox enabled=False |
+| Shipping.RibbonButton.btnShippingDeleteBoxVersion | PASS | Label=Delete Version; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
+| Shipping.RibbonButtonGetEnabled.btnShippingDeleteBoxVersion | PASS | RibbonRequiredCapabilityGetEnabledShipping |
+| Shipping.MacroExists.btnShippingDeleteBoxVersion | PASS | modTS_Shipments.BtnDeleteBoxVersion |
+| Shipping.CallbackMap.btnShippingDeleteBoxVersion | PASS | btnShippingDeleteBoxVersion -> modTS_Shipments.BtnDeleteBoxVersion |
+| Shipping.CallbackGetEnabled.btnShippingDeleteBoxVersion | PASS | btnShippingDeleteBoxVersion -> ADMIN_MAINT |
+| Shipping.DisabledOffline.btnShippingDeleteBoxVersion | PASS | btnShippingDeleteBoxVersion enabled=False |
+| Shipping.RibbonButton.btnShippingDeleteBox | PASS | Label=Delete Box; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
+| Shipping.RibbonButtonGetEnabled.btnShippingDeleteBox | PASS | RibbonRequiredCapabilityGetEnabledShipping |
+| Shipping.MacroExists.btnShippingDeleteBox | PASS | modTS_Shipments.BtnDeleteBox |
+| Shipping.CallbackMap.btnShippingDeleteBox | PASS | btnShippingDeleteBox -> modTS_Shipments.BtnDeleteBox |
+| Shipping.CallbackGetEnabled.btnShippingDeleteBox | PASS | btnShippingDeleteBox -> ADMIN_MAINT |
+| Shipping.DisabledOffline.btnShippingDeleteBox | PASS | btnShippingDeleteBox enabled=False |
 | Shipping.RibbonButton.btnShippingConfirm | PASS | Label=Confirm Inventory; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
 | Shipping.RibbonButtonGetEnabled.btnShippingConfirm | PASS | RibbonRequiredCapabilityGetEnabledShipping |
 | Shipping.MacroExists.btnShippingConfirm | PASS | modTS_Shipments.BtnConfirmInventory |

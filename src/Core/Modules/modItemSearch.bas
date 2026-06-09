@@ -109,6 +109,8 @@ Public Function ResolveSearchCaption(ByVal roleKey As String, ByVal pickerMode A
     resolvedMode = LCase$(Trim$(pickerMode))
 
     Select Case resolvedMode
+        Case "shipping_component"
+            ResolveSearchCaption = "Shipping Component Search"
         Case "ingredient"
             Select Case resolvedRole
                 Case "production"
@@ -157,7 +159,7 @@ Public Function ShouldDefaultShippableForRole(ByVal roleKey As String, _
 
     If resolvedMode = "recipe" Or resolvedMode = "palette_recipe" _
         Or resolvedMode = "recipe_chooser" Or resolvedMode = "ingredient" _
-        Or resolvedMode = "palette_item" Then Exit Function
+        Or resolvedMode = "palette_item" Or resolvedMode = "shipping_component" Then Exit Function
 
     Select Case LCase$(Trim$(sourceTableName))
         Case "shipmentstally", "boxbuilder"

@@ -1440,6 +1440,31 @@ freshness metadata, and treated as read-only operational state rather than the
 authoritative inventory ledger.
 ```
 
+**Shipping BOM version contract:**
+```text
+Shipping shippables are identified by their inventory item / PackageRow.
+The bill of materials for that shippable is versioned separately.
+
+Runtime authority:
+  <WarehouseId>.invSys.Data.ShippingBOM.xlsb
+  tblShippingBOM
+
+Required version fields:
+  BomVersion
+  BomVersionLabel
+  IsActive
+  EffectiveFromUTC
+  EffectiveToUTC
+  RetiredAtUTC
+
+Saving a changed BOM for an existing shippable must append a new BomVersion,
+mark prior active rows inactive, and preserve prior rows for audit/history.
+Normal BoxMaker and picker workflows load only the active version. A later UI
+slice should expose a version/history table under the selected shippable when
+more than one version exists, with explicit controls for phase-in, retire, or
+delete policy.
+```
+
 ---
 ### Auth Tables (Release 1)
 **Workbook:** `WHx.invSys.Auth.xlsb`
