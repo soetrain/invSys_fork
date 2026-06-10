@@ -74,6 +74,7 @@ Private mSelectedBoxBomVersionLabel As String
 Private mSelectedBoxBomVersionPackageRow As Long
 Private mSelectedBoxBomVersionWorkbookName As String
 Private mSelectedBoxBomVersionWorksheetName As String
+Private mHandlingShippingSheetChange As Boolean
 
 Private Const BOX_VERSION_SAVE_CANCEL As Long = 0
 Private Const BOX_VERSION_SAVE_UPDATE As Long = 1
@@ -1898,12 +1899,14 @@ End Sub
 
 Public Sub HandleShippingSheetChange(ByVal target As Range)
     On Error GoTo ExitHandler
+    If mHandlingShippingSheetChange Then Exit Sub
     If target Is Nothing Then Exit Sub
     If target.Cells.CountLarge > 50 Then Exit Sub
     If target.Worksheet Is Nothing Then Exit Sub
     If target.Worksheet.Parent Is Nothing Then Exit Sub
     If target.Worksheet.Parent.IsAddin Then Exit Sub
     If StrComp(target.Worksheet.Name, SHEET_SHIPMENTS, vbTextCompare) <> 0 Then Exit Sub
+    mHandlingShippingSheetChange = True
 
     Dim lo As ListObject
     Dim qtyCol As ListColumn
@@ -1973,6 +1976,7 @@ Public Sub HandleShippingSheetChange(ByVal target As Range)
     ReloadBoxMakerBomFromBuilder lo.Parent
 ExitHandler:
     Application.EnableEvents = True
+    mHandlingShippingSheetChange = False
 End Sub
 
 Private Function AutoFillBoxBomVersionForChange(ByVal target As Range) As Boolean
@@ -1993,14 +1997,19 @@ Private Function AutoFillBoxBomVersionForChange(ByVal target As Range) As Boolea
     If hit Is Nothing Then Exit Function
 
     Application.EnableEvents = False
+    modUiQuiet.BeginQuietUi target.Worksheet.Parent
     EnsureBoxBomEntryColumns loBom
     FillBlankBoxBomVersionShipping loBom
 
     RebuildBoxBomVersionsForCurrentBoxShipping target.Worksheet
     AutoFillBoxBomVersionForChange = True
+    modUiQuiet.EndQuietUi
     Exit Function
 
 CleanFail:
+    On Error Resume Next
+    modUiQuiet.EndQuietUi
+    On Error GoTo 0
     AutoFillBoxBomVersionForChange = False
 End Function
 
@@ -2730,11 +2739,7 @@ Private Function ResolveCanonicalComponentInfoShipping(ByVal itemName As String,
     workbookPath = rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
     Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
     If Not wb Is Nothing Then HideWorkbookWindowsShipping wb
-    If wb Is Nothing Then
-        Set wb = Application.Workbooks.Open(Filename:=workbookPath, UpdateLinks:=False, ReadOnly:=True, AddToMru:=False, IgnoreReadOnlyRecommended:=True, Notify:=False)
-        HideWorkbookWindowsShipping wb
-        openedTransient = True
-    End If
+    If wb Is Nothing Then Set wb = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient)
     If wb Is Nothing Then GoTo CleanExit
 
     Set lo = FindListObjectByNameShipping(wb, "invSys")
@@ -2849,9 +2854,7 @@ Private Function BuildRuntimeSnapshotInventoryCache() As Object
     If Not wbSnap Is Nothing Then HideWorkbookWindowsShipping wbSnap
     If wbSnap Is Nothing Then
         If Len(Dir$(snapshotPath)) = 0 Then Exit Function
-        Set wbSnap = Application.Workbooks.Open(Filename:=snapshotPath, UpdateLinks:=False, ReadOnly:=True)
-        HideWorkbookWindowsShipping wbSnap
-        openedTransient = True
+        Set wbSnap = OpenWorkbookHiddenShipping(snapshotPath, True, openedTransient)
     End If
 
     Set loSnap = FindSnapshotListObjectShipping(wbSnap)
@@ -2912,11 +2915,7 @@ Private Sub AddCurrentInventoryCacheFromWorkbookPath(ByVal cache As Object, _
 
     Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
     If Not wb Is Nothing Then HideWorkbookWindowsShipping wb
-    If wb Is Nothing Then
-        Set wb = Application.Workbooks.Open(Filename:=workbookPath, UpdateLinks:=False, ReadOnly:=True)
-        HideWorkbookWindowsShipping wb
-        openedTransient = True
-    End If
+    If wb Is Nothing Then Set wb = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient)
     If wb Is Nothing Then GoTo CleanExit
 
     Set lo = FindListObjectByNameShipping(wb, preferredTableName)
@@ -2972,11 +2971,7 @@ Private Sub AddSkuBalanceInventoryCacheFromWorkbookPath(ByVal cache As Object, _
 
     Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
     If Not wb Is Nothing Then HideWorkbookWindowsShipping wb
-    If wb Is Nothing Then
-        Set wb = Application.Workbooks.Open(Filename:=workbookPath, UpdateLinks:=False, ReadOnly:=True)
-        HideWorkbookWindowsShipping wb
-        openedTransient = True
-    End If
+    If wb Is Nothing Then Set wb = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient)
     If wb Is Nothing Then GoTo CleanExit
 
     Set loBalance = FindListObjectByNameShipping(wb, "tblSkuBalance")
@@ -6494,9 +6489,7 @@ Private Function OpenShippingBomWorkbook(ByVal warehouseId As String, _
     End If
 
     If Len(Dir$(targetPath)) > 0 Then
-        Set wb = Application.Workbooks.Open(Filename:=targetPath, UpdateLinks:=False, ReadOnly:=False)
-        HideWorkbookWindowsShipping wb
-        openedTransient = True
+        Set wb = OpenWorkbookHiddenShipping(targetPath, False, openedTransient)
     ElseIf createIfMissing Then
         EnsureFolderRecursiveShipping GetParentFolderShipping(targetPath)
         Set wb = Application.Workbooks.Add(xlWBATWorksheet)
@@ -6507,7 +6500,7 @@ Private Function OpenShippingBomWorkbook(ByVal warehouseId As String, _
             Exit Function
         End If
         wb.SaveAs Filename:=targetPath, FileFormat:=50
-        openedTransient = True
+        openedTransient = False
     Else
         report = "Shipping BOM runtime workbook was not found: " & targetPath
         Exit Function
@@ -6518,6 +6511,54 @@ Private Function OpenShippingBomWorkbook(ByVal warehouseId As String, _
 
 FailSoft:
     report = "OpenShippingBomWorkbook failed: " & Err.Description
+End Function
+
+Private Function OpenWorkbookHiddenShipping(ByVal workbookPath As String, _
+                                            ByVal readOnly As Boolean, _
+                                            ByRef openedTransient As Boolean) As Workbook
+    On Error GoTo FailSoft
+
+    Dim wb As Workbook
+    Dim prevScreenUpdating As Boolean
+    Dim prevDisplayAlerts As Boolean
+
+    prevScreenUpdating = Application.ScreenUpdating
+    prevDisplayAlerts = Application.DisplayAlerts
+    openedTransient = False
+    If Trim$(workbookPath) = "" Then Exit Function
+
+    Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
+    If Not wb Is Nothing Then
+        HideWorkbookWindowsShipping wb
+        Set OpenWorkbookHiddenShipping = wb
+        Exit Function
+    End If
+
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+
+    Set wb = Application.Workbooks.Open(Filename:=workbookPath, _
+                                        UpdateLinks:=False, _
+                                        ReadOnly:=readOnly, _
+                                        AddToMru:=False, _
+                                        IgnoreReadOnlyRecommended:=True, _
+                                        Notify:=False)
+    HideWorkbookWindowsShipping wb
+
+    ' Keep runtime/read-model workbooks open and hidden for the Excel session.
+    ' Closing them after every box selection is the main source of flicker and delay.
+    openedTransient = False
+    Set OpenWorkbookHiddenShipping = wb
+
+CleanExit:
+    On Error Resume Next
+    Application.DisplayAlerts = prevDisplayAlerts
+    Application.ScreenUpdating = prevScreenUpdating
+    On Error GoTo 0
+    Exit Function
+
+FailSoft:
+    Resume CleanExit
 End Function
 
 Private Function EnsureShippingBomSchema(ByVal wb As Workbook, ByRef report As String) As ListObject

@@ -328,6 +328,8 @@ Private Function EnsureInventorySchemaLocal(ByVal wb As Workbook, ByRef report A
         Array("EventID", "UndoOfEventId", "AppliedSeq", "AppliedAtUTC", "RunId", "SourceInbox", "Status"), issues
     EnsureTableWithHeadersLocal wb, "Locks", "tblLocks", _
         Array("LockName", "OwnerStationId", "OwnerUserId", "RunId", "AcquiredAtUTC", "ExpiresAtUTC", "HeartbeatAtUTC", "Status"), issues
+    EnsureTableWithHeadersLocal wb, "SkuCatalog", "tblSkuCatalog", _
+        Array("SKU", "ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "VENDOR_CODE", "CATEGORY"), issues
 
     report = JoinIssuesLocal(issues)
     EnsureInventorySchemaLocal = True

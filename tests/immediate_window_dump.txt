@@ -1,59 +1,199 @@
-2026-06-10 09:18:45         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:15         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:15         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:15         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:16         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:18         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:19         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:19         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:19         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:20         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:27         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:28         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          ADMIN_MAINT:justin          justin        ADMIN_MAINT   invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          ADMIN_MAINT:justin          justin        ADMIN_MAINT   invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:30         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:32         AUTH          SHIP_POST:justin            justin        SHIP_POST     invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:34         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:19:56         AUTH          RECEIVE_POST:justin         justin        RECEIVE_POST  invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:56         AUTH          RECEIVE_POST:justin         justin        RECEIVE_POST  invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:56         AUTH          RECEIVE_POST:justin         justin        RECEIVE_POST  invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:56         AUTH          RECEIVE_POST:justin         justin        RECEIVE_POST  invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:19:56         AUTH          RECEIVE_POST:justin         justin        RECEIVE_POST  invsys_Zenbook_WH           S1            ALLOW         RIBBON        
-2026-06-10 09:20:20         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-cDynItemSearch.ShowForCell entered
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              1
+SHIPPING BoxBOMVersions rebuild done:     1             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+SHIPPING BoxBOMVersions rebuild start:    Book1         ShipmentsTally
+SHIPPING BoxBOMVersions direct write rows:              2
+SHIPPING BoxBOMVersions rebuild done:     2             BoxBuildT4
+2026-06-10 12:52:01         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+cDynItemSearch.ShowForShippingComponentCell entered
   Calling BuildForm
   BuildForm entered
     UserForms.Add('frmItemSearch') SUCCESS, type:       frmItemSearch
     BuildForm SUCCESS
   Calling LoadItems
   LoadItems entered
-2026-06-10 09:20:20         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-    LoadItems: UBound =      6 
-    LoadItems SUCCESS
+2026-06-10 12:52:33         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
+Shipping component inventory source workbook:           invsys_Zenbook_WH.invSys.Data.Inventory.xlsb
+Shipping component inventory source table: NOT FOUND in 'invsys_Zenbook_WH.invSys.Data.Inventory.xlsb'
+LoadShippingComponentItems: canonical source returned empty; no fallback to local Shipping read-model for BoxBOM.
+    LoadItems: itemsArr is Empty
   Showing uf vbModeless
   uf.Show returned (form should now be visible)
-2026-06-10 09:20:23         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:20:24         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:20:24         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:20:25         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:20:25         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:20:25         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:20:26         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:20:26         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:20:26         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.
-2026-06-10 09:20:27         DIAG          RECEIVING-READINESS         Workbook=Book1|SnapshotStatus=MISSING|AuthStatus=NO_USER|RuntimeStatus=MISSING_TABLES|Messages=Inventory snapshot was not found for the selected warehouse. Publish or refresh the warehouse snapshot, then run Setup UI.|Signed-in user was not found in Users & Roles for this warehouse. Ask an admin to add the account.|This workbook is missing Receiving tables. Click Setup UI to repair the operator workbook.

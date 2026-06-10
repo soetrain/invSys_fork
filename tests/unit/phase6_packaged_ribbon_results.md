@@ -1,8 +1,8 @@
 # Phase 6 Packaged Ribbon Validation Results
 
-- Date: 2026-06-10 11:47:57
+- Date: 2026-06-10 13:38:50
 - Deploy root: C:\Users\justu\source\repos\invSys_fork\deploy\current
-- Runtime root override: C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-ec52436f681f42d2837a7abbd246aeb3
+- Runtime root override: C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-a3c582dfd7e34e3eb445431289edb898
 - Passed: 227
 - Failed: 0
 
@@ -15,7 +15,7 @@
 | invSys.Shipping.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Shipping.xlam |
 | invSys.Production.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Production.xlam |
 | invSys.Admin.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Admin.xlam |
-| Core.RuntimeRootOverride | PASS | C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-ec52436f681f42d2837a7abbd246aeb3 |
+| Core.RuntimeRootOverride | PASS | C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-a3c582dfd7e34e3eb445431289edb898 |
 | Receiving.RibbonXml | PASS | customUI/customUI.xml present. |
 | Receiving.CallbackModule | PASS | modRibbonGenerated |
 | Receiving.StatusLabel.lblReceivingServerStatus | PASS | GetLabel=RibbonServerStatusGetLabel |

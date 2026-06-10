@@ -343,7 +343,8 @@ Private Function LoadShippingComponentItems() As Variant
     LoadShippingComponentItems = LoadCanonicalManagedInventoryItems()
     If Not IsEmpty(LoadShippingComponentItems) Then Exit Function
 
-    LoadShippingComponentItems = LoadManagedInventoryItemsLocal(True)
+    Debug.Print "LoadShippingComponentItems: canonical source returned empty; no fallback to local Shipping read-model for BoxBOM."
+    LoadShippingComponentItems = Empty
 End Function
 
 Private Function FindListObjectInWorkbook(ByVal wb As Workbook, ByVal tableName As String) As ListObject
@@ -379,9 +380,24 @@ Private Function LoadCanonicalManagedInventoryItems() As Variant
     On Error GoTo FailSoft
 
     Set wbInv = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
-    If wbInv Is Nothing Then Exit Function
+    If wbInv Is Nothing Then
+        Debug.Print "LoadCanonicalManagedInventoryItems: ResolveInventoryWorkbookBridge returned Nothing (warehouseId='" & warehouseId & "')"
+        Exit Function
+    End If
+    Debug.Print "Shipping component inventory source workbook:", wbInv.Name
+
     Set loInv = FindInventoryTableInWorkbook(wbInv)
-    If Not InventoryPickerTableHasRows(loInv) Then Exit Function
+    If loInv Is Nothing Then
+        Debug.Print "Shipping component inventory source table: NOT FOUND in '" & wbInv.Name & "'"
+        Exit Function
+    End If
+    Debug.Print "Shipping component inventory source table:", loInv.Name
+    Debug.Print "Shipping component inventory rows:", loInv.ListRows.Count
+
+    If Not InventoryPickerTableHasRows(loInv) Then
+        Debug.Print "LoadCanonicalManagedInventoryItems: InventoryPickerTableHasRows = False for '" & loInv.Name & "'"
+        Exit Function
+    End If
 
     LoadCanonicalManagedInventoryItems = BuildInventoryPickerItemsFromTable(loInv, True)
     If Not IsEmpty(LoadCanonicalManagedInventoryItems) Then
@@ -390,6 +406,7 @@ Private Function LoadCanonicalManagedInventoryItems() As Variant
     Exit Function
 
 FailSoft:
+    Debug.Print "LoadCanonicalManagedInventoryItems FailSoft:", Err.Number, Err.Description
     LoadCanonicalManagedInventoryItems = Empty
 End Function
 
@@ -413,6 +430,10 @@ Private Function EmptyStateMessage() As String
         Case "palette_item"
             EmptyStateMessage = "No managed inventory items are available for this ingredient." & vbCrLf & _
                 "Add IngredientPalette mappings and managed invSys rows first."
+        Case "shipping_component"
+            EmptyStateMessage = "No managed inventory table was found for BoxBOM components." & vbCrLf & _
+                "Refresh Inventory or run Setup UI." & vbCrLf & _
+                "BoxBOM must source from managed inventory, not ShippingBOM."
         Case Else
             EmptyStateMessage = "No managed inventory rows were found in invSys." & vbCrLf & _
                 "Seed demo data or add managed inventory before using this picker."
@@ -965,7 +986,7 @@ Private Function BuildInventoryPickerItemsFromTable(ByVal loInv As ListObject, _
 
     For r = 1 To rowCount
         itemName = NzStr(src(r, cItem))
-        If Trim$(itemName) <> "" Then
+        If Trim$(itemName) <> "" And NzLng(src(r, cRow)) > 0 Then
             outRow = outRow + 1
             result(outRow, 1) = NormalizePickerRowKey(src(r, cRow))
             If cCode > 0 Then
@@ -1072,13 +1093,51 @@ End Function
 
 Private Function FindInventoryTableInWorkbook(ByVal wb As Workbook) As ListObject
     Dim ws As Worksheet
+    Dim lo As ListObject
+
+    If IsShippingDomainWorkbook(wb) Then
+        Debug.Print "FindInventoryTableInWorkbook: REJECTED wb '" & wb.Name & "' - shipping domain source"
+        Exit Function
+    End If
+
+    Set lo = FindListObjectInWorkbook(wb, "tblSkuCatalog")
+    If Not lo Is Nothing Then
+        Set FindInventoryTableInWorkbook = lo
+        Exit Function
+    End If
+
+    Set lo = FindListObjectInWorkbook(wb, "invSys")
+    If Not lo Is Nothing Then
+        Set FindInventoryTableInWorkbook = lo
+        Exit Function
+    End If
 
     Set ws = FindInventoryWorksheetInWorkbook(wb)
     If ws Is Nothing Then Exit Function
 
     On Error Resume Next
-    Set FindInventoryTableInWorkbook = ws.ListObjects("invSys")
+    Set lo = ws.ListObjects("invSys")
     On Error GoTo 0
+    If lo Is Nothing Then Exit Function
+
+    Set FindInventoryTableInWorkbook = lo
+End Function
+
+Private Function IsShippingDomainWorkbook(ByVal wb As Workbook) As Boolean
+    Dim wbLower As String
+    Dim rejectTerms As Variant
+    Dim i As Long
+
+    If wb Is Nothing Then Exit Function
+    wbLower = LCase$(Trim$(wb.Name))
+    rejectTerms = Array("shippingbom", "shipping_bom", "boxbom", "boxbomversions", _
+                        "aggregateboxbom", "shipmentstally", "shippingbomview")
+    For i = LBound(rejectTerms) To UBound(rejectTerms)
+        If InStr(1, wbLower, CStr(rejectTerms(i)), vbTextCompare) > 0 Then
+            IsShippingDomainWorkbook = True
+            Exit Function
+        End If
+    Next i
 End Function
 
 Private Function FindInventoryWorksheetInWorkbook(ByVal wb As Workbook) As Worksheet
