@@ -57,13 +57,24 @@ Public Sub ShowForCell(ByVal targetCell As Range)
 End Sub
 
 Public Sub ShowForShippingComponentCell(ByVal targetCell As Range)
+    Debug.Print "cDynItemSearch.ShowForShippingComponentCell entered"
     If targetCell Is Nothing Then Exit Sub
     mPickerMode = "shipping_component"
     Set callbackCell = targetCell
-    If Not BuildForm() Then Exit Sub
+    Debug.Print "  Calling BuildForm"
+    If Not BuildForm() Then
+        Debug.Print "  BuildForm returned False"
+        Exit Sub
+    End If
     ConfigureForMode
-    If Not LoadItems() Then Exit Sub
+    Debug.Print "  Calling LoadItems"
+    If Not LoadItems() Then
+        Debug.Print "  LoadItems returned False"
+        Exit Sub
+    End If
+    Debug.Print "  Showing uf vbModeless"
     uf.Show vbModeless
+    Debug.Print "  uf.Show returned (form should now be visible)"
 End Sub
 
 Public Sub ShowForRecipeCell(ByVal targetCell As Range)
@@ -316,7 +327,6 @@ Private Function LoadItems() As Boolean
     Debug.Print "    LoadItems: UBound =", UBound(itemsArr, 1)
     If LCase$(mPickerMode) = "shipping_component" Then
         InitCategoryState
-        InitShippingBomPackageState True
     End If
     If LCase$(mPickerMode) <> "recipe" And LCase$(mPickerMode) <> "palette_recipe" _
         And LCase$(mPickerMode) <> "recipe_chooser" And LCase$(mPickerMode) <> "ingredient" _
@@ -333,11 +343,7 @@ Private Function LoadShippingComponentItems() As Variant
     LoadShippingComponentItems = LoadCanonicalManagedInventoryItems()
     If Not IsEmpty(LoadShippingComponentItems) Then Exit Function
 
-    On Error Resume Next
-    Call TryRefreshSearchInventoryReadModel()
-    On Error GoTo 0
-
-    LoadShippingComponentItems = LoadManagedInventoryItems(True)
+    LoadShippingComponentItems = LoadManagedInventoryItemsLocal(True)
 End Function
 
 Private Function FindListObjectInWorkbook(ByVal wb As Workbook, ByVal tableName As String) As ListObject
@@ -556,7 +562,7 @@ Private Sub ApplyFilter(Optional ByVal termOverride As Variant)
         On Error GoTo 0
     End If
 
-    AddInventoryRowsToList term, shippableOnly, True
+    AddInventoryRowsToList term, shippableOnly, (LCase$(mPickerMode) <> "shipping_component")
     If LCase$(mPickerMode) = "shipping_component" Then
         Debug.Print "Shipping component picker visible rows:", CStr(lst.ListCount)
     End If
@@ -906,6 +912,16 @@ RetryLoad:
             If attemptedRefresh Then GoTo RetryLoad
         End If
     End If
+End Function
+
+Private Function LoadManagedInventoryItemsLocal(Optional ByVal includeCategory As Boolean = False) As Variant
+    Dim loInv As ListObject
+
+    Set loInv = ResolveManagedInventoryTable()
+    If loInv Is Nothing Then Exit Function
+    If loInv.DataBodyRange Is Nothing Then Exit Function
+
+    LoadManagedInventoryItemsLocal = BuildInventoryPickerItemsFromTable(loInv, includeCategory)
 End Function
 
 Private Function BuildInventoryPickerItemsFromTable(ByVal loInv As ListObject, _

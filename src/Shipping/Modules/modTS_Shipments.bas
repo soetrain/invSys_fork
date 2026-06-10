@@ -75,6 +75,10 @@ Private mSelectedBoxBomVersionPackageRow As Long
 Private mSelectedBoxBomVersionWorkbookName As String
 Private mSelectedBoxBomVersionWorksheetName As String
 
+Private Const BOX_VERSION_SAVE_CANCEL As Long = 0
+Private Const BOX_VERSION_SAVE_UPDATE As Long = 1
+Private Const BOX_VERSION_SAVE_NEW As Long = 2
+
 ' ===== public entry points =====
 Public Sub InitializeShipmentsUI()
     InitializeShipmentsUiForWorkbook Application.ActiveWorkbook
@@ -341,6 +345,7 @@ Private Sub ArrangeShippingSurface(ByVal wb As Workbook)
     ArrangeBoxBuilderBandShipping loBuilder, loBom
 
     leftBandRight = MaxLongShipping(ListObjectRightColumnShipping(loBuilder), ListObjectRightColumnShipping(loBom))
+    leftBandRight = MaxLongShipping(leftBandRight, ListObjectRightColumnShipping(GetListObject(ws, TABLE_BOX_BOM_VERSIONS)))
     If leftBandRight < anchorCol Then leftBandRight = anchorCol
     nextCol = leftBandRight + SHIP_LAYOUT_GAP_COLUMNS + 1
 
@@ -600,6 +605,7 @@ Public Sub BtnSaveBox()
     EnsureTableHasRow loMeta
     RemoveColumnIfExistsShipping loMeta, "ROW"
     EnsureBoxBomEntryColumns loBom
+    FillBlankBoxBomVersionShipping loBom
 
     Dim boxName As String
     boxName = Trim$(NzStr(ValueFromTable(loMeta, "Box Name")))
@@ -616,6 +622,7 @@ Public Sub BtnSaveBox()
     End If
 
     EnsureTableHasRow loBom
+    FillBlankBoxBomVersionShipping loBom
 
     Dim invLo As ListObject: Set invLo = GetInvSysTable()
     If invLo Is Nothing Then
@@ -625,7 +632,23 @@ Public Sub BtnSaveBox()
 
     Dim components As Collection
     Dim syncNotes As String
-    Set components = CollectBomComponents(loBom, invLo, syncNotes)
+    Dim saveVersionLabel As String
+    Dim replaceVersion As Long
+    Dim versionChoice As Long
+    Dim forceNewVersion As Boolean
+
+    saveVersionLabel = ResolveBoxBomSaveVersionLabel(ws, loBom)
+    If saveVersionLabel <> "" Then
+        versionChoice = PromptBoxVersionSaveChoiceShipping(boxName, saveVersionLabel)
+        If versionChoice = BOX_VERSION_SAVE_CANCEL Then Exit Sub
+        If versionChoice = BOX_VERSION_SAVE_UPDATE Then
+            replaceVersion = BomVersionNumberFromLabel(saveVersionLabel)
+        ElseIf versionChoice = BOX_VERSION_SAVE_NEW Then
+            forceNewVersion = True
+        End If
+    End If
+
+    Set components = CollectBomComponents(loBom, invLo, syncNotes, saveVersionLabel)
     If components.count = 0 Then
         MsgBox "Add at least one valid component row (ROW/QUANTITY) to the BoxBOM table.", vbExclamation
         Exit Sub
@@ -642,7 +665,7 @@ Public Sub BtnSaveBox()
     If boxRowValue = 0 Then Exit Sub
 
     Dim bomReport As String
-    If Not SaveShippingBomToRuntime(ws.Parent, boxRowValue, boxName, boxUOM, boxLoc, boxDesc, components, bomReport) Then
+    If Not SaveShippingBomToRuntime(ws.Parent, boxRowValue, boxName, boxUOM, boxLoc, boxDesc, components, bomReport, replaceVersion, forceNewVersion) Then
         If bomReport = "" Then bomReport = "Unable to save Shipping BOM to the selected warehouse runtime."
         MsgBox bomReport, vbCritical
         Exit Sub
@@ -666,6 +689,7 @@ Public Sub BtnSaveBox()
     EnsureTableHasRow loMeta
     EnsureTableHasRow loBom
     RefreshBoxBomVersionList ws, boxRowValue
+    RebuildBoxBomVersionListFromDisplayedBom ws, boxRowValue
     InvalidateAggregates True
     Exit Sub
 
@@ -726,7 +750,12 @@ Public Sub BtnDeleteBoxVersion()
     End If
 
     deleteReport = report
+    DeleteLocalBoxBomRowsForVersion ws, versionLabel
+    DeleteLocalBoxBomVersionSummaryRow loVersions, versionLabel
+    DeleteLocalShippingBomViewRowsForVersion ws, packageRow, versionLabel
+    ClearSelectedBoxBomVersionIfMatches ws, packageRow, versionLabel
     RefreshShippingBomViewForWorkbook ws.Parent, report
+    DeleteLocalShippingBomViewRowsForVersion ws, packageRow, versionLabel
     RefreshBoxBomVersionList ws, packageRow
     MsgBox deleteReport, vbInformation
     Exit Sub
@@ -734,6 +763,35 @@ Public Sub BtnDeleteBoxVersion()
 ErrHandler:
     MsgBox "BTN_DELETE_BOX_VERSION failed: " & Err.Description, vbCritical
 End Sub
+
+Private Function PromptBoxVersionSaveChoiceShipping(ByVal boxName As String, ByVal versionLabel As String) As Long
+    On Error GoTo FallbackPrompt
+
+    frmBoxVersionSaveChoice.InitializeChoice boxName, versionLabel
+    frmBoxVersionSaveChoice.Show vbModal
+    PromptBoxVersionSaveChoiceShipping = frmBoxVersionSaveChoice.Choice
+    Unload frmBoxVersionSaveChoice
+    Exit Function
+
+FallbackPrompt:
+    Dim response As VbMsgBoxResult
+    On Error Resume Next
+    Unload frmBoxVersionSaveChoice
+    On Error GoTo 0
+    response = MsgBox("Save edits to " & boxName & " " & versionLabel & "?" & vbCrLf & vbCrLf & _
+                      "Yes updates the selected version." & vbCrLf & _
+                      "No saves these rows as a new version.", _
+                      vbQuestion + vbYesNoCancel, _
+                      "Save Box Version")
+    Select Case response
+        Case vbYes
+            PromptBoxVersionSaveChoiceShipping = BOX_VERSION_SAVE_UPDATE
+        Case vbNo
+            PromptBoxVersionSaveChoiceShipping = BOX_VERSION_SAVE_NEW
+        Case Else
+            PromptBoxVersionSaveChoiceShipping = BOX_VERSION_SAVE_CANCEL
+    End Select
+End Function
 
 Public Sub BtnDeleteBox()
     On Error GoTo ErrHandler
@@ -1777,7 +1835,7 @@ Private Function ShouldRefreshShippingBomBeforePicker(ByVal targetCell As Range)
     If lo Is Nothing Then Exit Function
 
     tableName = LCase$(Trim$(lo.Name))
-    ShouldRefreshShippingBomBeforePicker = (tableName = "shipmentstally" Or tableName = "boxbuilder")
+    ShouldRefreshShippingBomBeforePicker = False
 End Function
 
 Public Sub HandleShippingSelectionChange(ByVal target As Range)
@@ -1870,6 +1928,8 @@ Public Sub HandleShippingSheetChange(ByVal target As Range)
         End If
     End If
 
+    If AutoFillBoxBomVersionForChange(target) Then GoTo ExitHandler
+
     If IsBoxMakerMode(target.Worksheet) Then
         If BoxMakerCurrentInventoryWasEdited(target.Worksheet, target) Then
             Application.EnableEvents = False
@@ -1886,6 +1946,19 @@ Public Sub HandleShippingSheetChange(ByVal target As Range)
     On Error GoTo 0
     If lo Is Nothing Then Exit Sub
     If lo.DataBodyRange Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Set qtyCol = lo.ListColumns("Box Name")
+    On Error GoTo 0
+    If Not qtyCol Is Nothing Then
+        Set hit = Application.Intersect(target, qtyCol.DataBodyRange)
+        If Not hit Is Nothing Then
+            Application.EnableEvents = False
+            RefreshBoxBomVersionListForCurrentBuilder target.Worksheet
+            GoTo ExitHandler
+        End If
+    End If
+
     If Not IsBoxMakerMode(target.Worksheet) Then Exit Sub
 
     On Error Resume Next
@@ -1900,6 +1973,50 @@ Public Sub HandleShippingSheetChange(ByVal target As Range)
     ReloadBoxMakerBomFromBuilder lo.Parent
 ExitHandler:
     Application.EnableEvents = True
+End Sub
+
+Private Function AutoFillBoxBomVersionForChange(ByVal target As Range) As Boolean
+    On Error GoTo CleanFail
+
+    Dim loBom As ListObject
+    Dim hit As Range
+    Dim packageRow As Long
+    Dim runtimeMax As Long
+    Dim boxName As String
+
+    If target Is Nothing Then Exit Function
+    Set loBom = GetListObject(target.Worksheet, TABLE_BOX_BOM)
+    If loBom Is Nothing Then Exit Function
+    If loBom.DataBodyRange Is Nothing Then Exit Function
+
+    Set hit = Application.Intersect(target, loBom.DataBodyRange)
+    If hit Is Nothing Then Exit Function
+
+    Application.EnableEvents = False
+    EnsureBoxBomEntryColumns loBom
+    FillBlankBoxBomVersionShipping loBom
+
+    RebuildBoxBomVersionsForCurrentBoxShipping target.Worksheet
+    AutoFillBoxBomVersionForChange = True
+    Exit Function
+
+CleanFail:
+    AutoFillBoxBomVersionForChange = False
+End Function
+
+Private Sub RebuildBoxBomVersionsForCurrentBoxShipping(ByVal ws As Worksheet)
+    On Error GoTo CleanExit
+
+    Dim packageRow As Long
+    Dim runtimeMax As Long
+    Dim boxName As String
+
+    If ws Is Nothing Then Exit Sub
+    boxName = CurrentBoxBuilderName(ws)
+    If boxName <> "" Then packageRow = FindShippingBomPackageRowByName(ws.Parent, boxName, runtimeMax)
+    RebuildBoxBomVersionListFromDisplayedBom ws, packageRow
+
+CleanExit:
 End Sub
 
 ' ===== button scaffolding =====
@@ -2175,6 +2292,8 @@ Private Sub EnsureBuilderTablesReady(Optional ByVal targetWb As Workbook = Nothi
         EnsureBoxBomEntryColumns loBom
         EnsureBoxBomStarterRows loBom
         RepairBoxBomRowsFromInventory loBom
+        FillBlankBoxBomVersionShipping loBom
+        SortBoxBomByVersionShipping loBom
     End If
     ArrangeBoxBuilderBandShipping loBuilder, loBom
 End Sub
@@ -2558,8 +2677,10 @@ NextRow:
 End Function
 
 Private Function ResolveCanonicalComponentInfoShipping(ByVal itemName As String, _
+                                                       ByVal itemCode As String, _
                                                        ByRef rowValue As Long, _
                                                        ByRef resolvedItem As String, _
+                                                       ByRef resolvedItemCode As String, _
                                                        ByRef resolvedUom As String, _
                                                        ByRef resolvedLocation As String, _
                                                        ByRef resolvedDescription As String) As Boolean
@@ -2573,15 +2694,32 @@ Private Function ResolveCanonicalComponentInfoShipping(ByVal itemName As String,
     Dim lo As ListObject
     Dim openedTransient As Boolean
     Dim cRow As Long
+    Dim cCode As Long
     Dim cItem As Long
     Dim cUom As Long
     Dim cLoc As Long
     Dim cDesc As Long
     Dim r As Long
     Dim candidate As String
+    Dim candidateCode As String
+    Dim candidateUom As String
+    Dim candidateLocation As String
+    Dim candidateDescription As String
+    Dim normalizedItemName As String
+    Dim normalizedItemCode As String
+    Dim preferredUom As String
+    Dim preferredLocation As String
+    Dim bestRowValue As Long
+    Dim bestScore As Long
+    Dim score As Long
 
     itemName = Trim$(itemName)
-    If itemName = "" Then Exit Function
+    itemCode = Trim$(itemCode)
+    If itemName = "" And itemCode = "" Then Exit Function
+    normalizedItemName = NormalizeInventoryLookupTextShipping(itemName)
+    normalizedItemCode = NormalizeInventoryLookupTextShipping(itemCode)
+    preferredUom = NormalizeInventoryLookupTextShipping(resolvedUom)
+    preferredLocation = NormalizeInventoryLookupTextShipping(resolvedLocation)
 
     Set target = modNasConnection.GetCurrentTarget()
     If target Is Nothing Then Exit Function
@@ -2590,8 +2728,6 @@ Private Function ResolveCanonicalComponentInfoShipping(ByVal itemName As String,
     If warehouseId = "" Or rootPath = "" Then Exit Function
 
     workbookPath = rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
-    If Len(Dir$(workbookPath)) = 0 Then Exit Function
-
     Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
     If Not wb Is Nothing Then HideWorkbookWindowsShipping wb
     If wb Is Nothing Then
@@ -2603,10 +2739,12 @@ Private Function ResolveCanonicalComponentInfoShipping(ByVal itemName As String,
 
     Set lo = FindListObjectByNameShipping(wb, "invSys")
     If lo Is Nothing Then Set lo = FindListObjectByNameShipping(wb, "tblItemSearchIndex")
+    If lo Is Nothing Then Set lo = FindListObjectByNameShipping(wb, "tblSkuCatalog")
     If lo Is Nothing Then GoTo CleanExit
     If lo.DataBodyRange Is Nothing Then GoTo CleanExit
 
     cRow = ColumnIndex(lo, "ROW")
+    cCode = ColumnIndex(lo, "ITEM_CODE")
     cItem = ColumnIndex(lo, "ITEM")
     cUom = ColumnIndex(lo, "UOM")
     cLoc = ColumnIndex(lo, "LOCATION")
@@ -2615,18 +2753,43 @@ Private Function ResolveCanonicalComponentInfoShipping(ByVal itemName As String,
 
     For r = 1 To lo.ListRows.Count
         candidate = Trim$(NzStr(lo.DataBodyRange.Cells(r, cItem).Value))
-        If StrComp(candidate, itemName, vbTextCompare) <> 0 Then GoTo NextRow
+        candidateCode = ""
+        candidateUom = ""
+        candidateLocation = ""
+        candidateDescription = ""
+        If cCode > 0 Then candidateCode = Trim$(NzStr(lo.DataBodyRange.Cells(r, cCode).Value))
+        If cUom > 0 Then candidateUom = Trim$(NzStr(lo.DataBodyRange.Cells(r, cUom).Value))
+        If cLoc > 0 Then candidateLocation = Trim$(NzStr(lo.DataBodyRange.Cells(r, cLoc).Value))
+        If cDesc > 0 Then candidateDescription = Trim$(NzStr(lo.DataBodyRange.Cells(r, cDesc).Value))
+        If normalizedItemCode <> "" Then
+            If NormalizeInventoryLookupTextShipping(candidateCode) <> normalizedItemCode Then GoTo NextRow
+        ElseIf NormalizeInventoryLookupTextShipping(candidate) <> normalizedItemName Then
+            GoTo NextRow
+        End If
 
         rowValue = NzLng(lo.DataBodyRange.Cells(r, cRow).Value)
-        If rowValue <= 0 Then GoTo CleanExit
-        resolvedItem = candidate
-        If cUom > 0 Then resolvedUom = Trim$(NzStr(lo.DataBodyRange.Cells(r, cUom).Value))
-        If cLoc > 0 Then resolvedLocation = Trim$(NzStr(lo.DataBodyRange.Cells(r, cLoc).Value))
-        If cDesc > 0 Then resolvedDescription = Trim$(NzStr(lo.DataBodyRange.Cells(r, cDesc).Value))
-        ResolveCanonicalComponentInfoShipping = True
-        GoTo CleanExit
+        If rowValue <= 0 Then GoTo NextRow
+
+        score = 1
+        If normalizedItemCode <> "" Then score = score + 100
+        If preferredLocation <> "" And NormalizeInventoryLookupTextShipping(candidateLocation) = preferredLocation Then score = score + 20
+        If preferredUom <> "" And NormalizeInventoryLookupTextShipping(candidateUom) = preferredUom Then score = score + 10
+        If score > bestScore Or (score = bestScore And rowValue > bestRowValue) Then
+            bestScore = score
+            bestRowValue = rowValue
+            resolvedItem = candidate
+            resolvedItemCode = candidateCode
+            resolvedUom = candidateUom
+            resolvedLocation = candidateLocation
+            resolvedDescription = candidateDescription
+        End If
 NextRow:
     Next r
+
+    If bestRowValue > 0 Then
+        rowValue = bestRowValue
+        ResolveCanonicalComponentInfoShipping = True
+    End If
 
 CleanExit:
     If openedTransient Then CloseWorkbookNoSaveShipping wb
@@ -2969,26 +3132,44 @@ Private Sub InvalidateShippingRibbonLabels()
 End Sub
 
 Private Sub ArrangeBoxBuilderBandShipping(ByVal loBuilder As ListObject, ByVal loBom As ListObject)
-    Dim targetRow As Long
+    Dim versionsRow As Long
+    Dim bomRow As Long
     Dim targetCol As Long
     Dim loVersions As ListObject
     Dim ws As Worksheet
 
     On Error GoTo CleanExit
     If loBuilder Is Nothing Or loBom Is Nothing Then Exit Sub
-    targetRow = loBuilder.Range.Row + loBuilder.Range.Rows.Count + SHIP_LAYOUT_GAP_ROWS + 1
     targetCol = loBuilder.Range.Column
-    If targetRow < 1 Or targetCol < 1 Then Exit Sub
-    MoveListObjectToRowColShipping loBom, targetRow, targetCol
+    If targetCol < 1 Then Exit Sub
 
-    Set ws = WorksheetFromListObjectShipping(loBom)
+    Set ws = WorksheetFromListObjectShipping(loBuilder)
     If ws Is Nothing Then GoTo CleanExit
     Set loVersions = GetListObject(ws, TABLE_BOX_BOM_VERSIONS)
     If Not loVersions Is Nothing Then
-        MoveListObjectToRowColShipping loVersions, loBom.Range.Row + loBom.Range.Rows.Count + SHIP_LAYOUT_GAP_ROWS + 1, loBom.Range.Column
+        MoveListObjectToRowColShipping loBom, TemporaryBoxBomLayoutRowShipping(loBuilder, loBom, loVersions), targetCol
+        versionsRow = loBuilder.Range.Row + loBuilder.Range.Rows.Count + SHIP_LAYOUT_GAP_ROWS + 1
+        MoveListObjectToRowColShipping loVersions, versionsRow, targetCol
+        bomRow = loVersions.Range.Row + loVersions.Range.Rows.Count + SHIP_LAYOUT_GAP_ROWS + 1
+    Else
+        bomRow = loBuilder.Range.Row + loBuilder.Range.Rows.Count + SHIP_LAYOUT_GAP_ROWS + 1
     End If
+    If bomRow < 1 Then Exit Sub
+    MoveListObjectToRowColShipping loBom, bomRow, targetCol
 CleanExit:
 End Sub
+
+Private Function TemporaryBoxBomLayoutRowShipping(ByVal loBuilder As ListObject, _
+                                                  ByVal loBom As ListObject, _
+                                                  ByVal loVersions As ListObject) As Long
+    Dim bottomRow As Long
+
+    bottomRow = 1
+    If Not loBuilder Is Nothing Then bottomRow = Application.WorksheetFunction.Max(bottomRow, loBuilder.Range.Row + loBuilder.Range.Rows.Count)
+    If Not loBom Is Nothing Then bottomRow = Application.WorksheetFunction.Max(bottomRow, loBom.Range.Row + loBom.Range.Rows.Count)
+    If Not loVersions Is Nothing Then bottomRow = Application.WorksheetFunction.Max(bottomRow, loVersions.Range.Row + loVersions.Range.Rows.Count)
+    TemporaryBoxBomLayoutRowShipping = bottomRow + SHIP_LAYOUT_GAP_ROWS + 5
+End Function
 
 Private Function WorksheetFromListObjectShipping(ByVal lo As ListObject) As Worksheet
     On Error Resume Next
@@ -3014,7 +3195,7 @@ Private Function CreateBoxBomTable(ByVal ws As Worksheet, ByVal loBuilder As Lis
         startCol = loBuilder.Range.Column
     End If
 
-    headers = Array(COL_BOXBOM_ITEM, "ITEM_CODE", "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION")
+    headers = Array("Version", COL_BOXBOM_ITEM, "ITEM_CODE", "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION")
     Set startCell = ws.Cells(startRow, startCol)
     For i = LBound(headers) To UBound(headers)
         startCell.Offset(0, i - LBound(headers)).Value = headers(i)
@@ -3038,20 +3219,18 @@ Private Function EnsureBoxBomVersionsTable(ByVal ws As Worksheet, ByVal loBom As
     If ws Is Nothing Then Exit Function
     Set lo = GetListObject(ws, TABLE_BOX_BOM_VERSIONS)
     If Not lo Is Nothing Then
-        headers = Array("Version", "Status", "Effective From", "Effective To", "Retired At", "Updated At", "Updated By")
+        headers = BoxBomVersionHeadersShipping()
         For i = LBound(headers) To UBound(headers)
             EnsureColumnExists lo, CStr(headers(i))
         Next i
         ApplyBoxBomVersionStatusValidation lo
-        If Not loBom Is Nothing Then
-            MoveListObjectToRowColShipping lo, loBom.Range.Row + loBom.Range.Rows.Count + SHIP_LAYOUT_GAP_ROWS + 1, loBom.Range.Column
-        End If
+        HideBoxBomVersionIdentityColumns lo
         Set EnsureBoxBomVersionsTable = lo
         Exit Function
     End If
 
     If loBom Is Nothing Then Exit Function
-    headers = Array("Version", "Status", "Effective From", "Effective To", "Retired At", "Updated At", "Updated By")
+    headers = BoxBomVersionHeadersShipping()
     startRow = loBom.Range.Row + loBom.Range.Rows.Count + SHIP_LAYOUT_GAP_ROWS + 1
     startCol = loBom.Range.Column
     Set startCell = ws.Cells(startRow, startCol)
@@ -3064,8 +3243,18 @@ Private Function EnsureBoxBomVersionsTable(ByVal ws As Worksheet, ByVal loBom As
     lo.Name = TABLE_BOX_BOM_VERSIONS
     If Not lo.DataBodyRange Is Nothing Then lo.ListRows(1).Delete
     ApplyBoxBomVersionStatusValidation lo
+    HideBoxBomVersionIdentityColumns lo
     Set EnsureBoxBomVersionsTable = lo
 End Function
+
+Private Function BoxBomVersionHeadersShipping() As Variant
+    BoxBomVersionHeadersShipping = Array("Version", "Status", "Effective From", "Effective To", "Retired At", "Updated At", "Updated By", "Box Name")
+End Function
+
+Private Sub HideBoxBomVersionIdentityColumns(ByVal lo As ListObject)
+    If lo Is Nothing Then Exit Sub
+    RemoveListColumnIfExistsShipping lo, "PackageRow"
+End Sub
 
 Private Sub ApplyBoxBomVersionStatusValidation(ByVal lo As ListObject)
     On Error GoTo CleanExit
@@ -3167,7 +3356,12 @@ Public Sub ApplyItemToBoxBOM(targetCell As Range, ByVal itemName As String, ByVa
     ByVal uom As String, ByVal location As String, ByVal description As String, Optional ByVal itemCode As String = "")
 
     On Error GoTo ErrHandler
-    Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
+    Dim ws As Worksheet
+    Debug.Print "SHIPPING ApplyItemToBoxBOM:", itemName, CStr(itemRow)
+    If Not targetCell Is Nothing Then
+        Set ws = targetCell.Worksheet
+    End If
+    If ws Is Nothing Then Set ws = WorkbookSheetExistsShipping(ResolveShippingWorkbook(, SHEET_SHIPMENTS), SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Sub
     Dim loBom As ListObject: Set loBom = GetListObject(ws, TABLE_BOX_BOM)
     If loBom Is Nothing Then Exit Sub
@@ -3229,6 +3423,9 @@ Public Sub ApplyItemToBoxBOM(targetCell As Range, ByVal itemName As String, ByVa
     WriteValue lr, "UOM", actualUom
     WriteValue lr, "LOCATION", actualLoc
     WriteValue lr, "DESCRIPTION", actualDesc
+    FillBlankBoxBomVersionShipping loBom
+    SortBoxBomByVersionShipping loBom
+    RebuildBoxBomVersionsForCurrentBoxShipping ws
     Exit Sub
 
 ErrHandler:
@@ -3238,35 +3435,19 @@ End Sub
 Public Function LoadShippingBomPackagePickerItems() As Variant
     On Error GoTo FailSoft
 
-    Dim target As Object
-    Dim warehouseId As String
-    Dim rootPath As String
-    Dim wbBom As Workbook
     Dim loBom As ListObject
-    Dim openedTransient As Boolean
-    Dim report As String
+    Dim wb As Workbook
 
-    Set target = modNasConnection.GetCurrentTarget()
-    If target Is Nothing Then Exit Function
+    Set wb = ResolveShippingWorkbook(, SHEET_SHIPMENTS)
+    If wb Is Nothing Then Exit Function
 
-    warehouseId = Trim$(target.WarehouseId)
-    rootPath = NormalizeFolderPathShipping(target.RuntimeRoot)
-    If warehouseId = "" Or rootPath = "" Then Exit Function
-
-    Set wbBom = OpenShippingBomWorkbook(warehouseId, rootPath, False, openedTransient, report)
-    If wbBom Is Nothing Then GoTo CleanExit
-
-    Set loBom = EnsureShippingBomSchema(wbBom, report)
-    If loBom Is Nothing Then GoTo CleanExit
-
+    Set loBom = FindListObjectByNameShipping(wb, TABLE_SHIPPING_BOM_VIEW)
+    If loBom Is Nothing Then Exit Function
     LoadShippingBomPackagePickerItems = BuildPackagePickerItemsFromShippingBom(loBom)
-
-CleanExit:
-    If openedTransient Then CloseWorkbookNoSaveShipping wbBom
     Exit Function
 
 FailSoft:
-    Resume CleanExit
+    LoadShippingBomPackagePickerItems = Empty
 End Function
 
 Private Function BuildPackagePickerItemsFromShippingBom(ByVal loBom As ListObject) As Variant
@@ -3517,6 +3698,10 @@ Public Sub ApplyItemToBoxBuilder(targetCell As Range, ByVal itemName As String, 
         End If
     End If
 
+    ClearSelectedBoxBomVersionForWorksheet ws
+    ClearBoxBomVersionListForWorksheet ws
+    ClearDisplayedBoxBomForWorksheet ws
+
     Application.EnableEvents = False
     WriteValue loBuilder.ListRows(1), "Box Name", actualItem
     WriteValue loBuilder.ListRows(1), "UOM", actualUom
@@ -3531,6 +3716,8 @@ Public Sub ApplyItemToBoxBuilder(targetCell As Range, ByVal itemName As String, 
         ElseIf report <> "" Then
             ShowShippingStatus report
         End If
+    Else
+        ClearBoxBomVersionListForWorksheet ws
     End If
     SelectBoxBuilderDataCellForRepeatHeaderPicker loBuilder
     RefreshBoxMakerCurrentInventory ws
@@ -3577,6 +3764,7 @@ Private Sub ReloadBoxMakerBomFromBuilder(ByVal ws As Worksheet)
     packageRow = ResolveBoxMakerPackageRow(loBuilder, invLo)
     If packageRow <= 0 Then Exit Sub
 
+    ClearBoxBomVersionListForWorksheet ws
     If LoadBoxMakerBomForPackage(ws, packageRow, boxQty, report) Then
         ShowShippingStatus report
     ElseIf report <> "" Then
@@ -3604,6 +3792,7 @@ Private Sub RecalculateBoxMakerBomFromBuilder(ByVal ws As Worksheet, _
     packageRow = ResolveBoxMakerPackageRow(loBuilder, invLo)
     If packageRow <= 0 Then Exit Sub
 
+    ClearBoxBomVersionListForWorksheet ws
     LoadBoxMakerBomForPackage ws, packageRow, boxQty, report
     RefreshBoxMakerCurrentInventory ws
 
@@ -3638,7 +3827,11 @@ Private Function LoadBoxMakerBomForPackage(ByVal ws As Worksheet, _
 
     Dim loBom As ListObject
     Dim cPackageRow As Long
+    Dim cPackageItem As Long
+    Dim cVersion As Long
+    Dim cVersionLabel As Long
     Dim cComponentRow As Long
+    Dim cComponentItemCode As Long
     Dim cComponentItem As Long
     Dim cComponentQty As Long
     Dim cComponentUom As Long
@@ -3652,6 +3845,14 @@ Private Function LoadBoxMakerBomForPackage(ByVal ws As Worksheet, _
     Dim loView As ListObject
     Dim refreshReport As String
     Dim preservedCurrentInv As Object
+    Dim componentName As String
+    Dim componentCode As String
+    Dim componentRow As Long
+    Dim componentUom As String
+    Dim componentLocation As String
+    Dim componentDescription As String
+    Dim versionLabel As String
+    Dim repairedRows As Long
 
     report = ""
     If ws Is Nothing Then Exit Function
@@ -3666,10 +3867,15 @@ Private Function LoadBoxMakerBomForPackage(ByVal ws As Worksheet, _
         Exit Function
     End If
     EnsureBoxBomEntryColumns loBom
+    ClearBoxBomVersionListForWorksheet ws
+    ClearSelectedBoxBomVersionForWorksheet ws
 
     If Not TryLoadRuntimeShippingBomRows(arr, _
                                          cPackageRow, _
+                                         cVersion, _
+                                         cVersionLabel, _
                                          cComponentRow, _
+                                         cComponentItemCode, _
                                          cComponentItem, _
                                          cComponentQty, _
                                          cComponentUom, _
@@ -3689,7 +3895,10 @@ Private Function LoadBoxMakerBomForPackage(ByVal ws As Worksheet, _
         End If
 
         cPackageRow = ColumnIndex(loView, "PackageRow")
+        cVersion = ColumnIndex(loView, "BomVersion")
+        cVersionLabel = ColumnIndex(loView, "BomVersionLabel")
         cComponentRow = ColumnIndex(loView, "ComponentRow")
+        cComponentItemCode = ColumnIndex(loView, "ComponentItemCode")
         cComponentItem = ColumnIndex(loView, "ComponentItem")
         cComponentQty = ColumnIndex(loView, "ComponentQty")
         cComponentUom = ColumnIndex(loView, "ComponentUOM")
@@ -3722,16 +3931,34 @@ Private Function LoadBoxMakerBomForPackage(ByVal ws As Worksheet, _
             loBom.ListRows.Add
         Loop
 
-        SetTableCellShipping loBom, outRow, COL_BOXBOM_ITEM, ValueFromArrayColumn(arr, r, cComponentItem)
-        SetTableCellShipping loBom, outRow, "ROW", NzLng(arr(r, cComponentRow))
+        componentName = ValueFromArrayColumn(arr, r, cComponentItem)
+        componentCode = ""
+        If cComponentItemCode > 0 Then componentCode = ValueFromArrayColumn(arr, r, cComponentItemCode)
+        componentRow = NzLng(arr(r, cComponentRow))
+        componentUom = ValueFromArrayColumn(arr, r, cComponentUom)
+        componentLocation = ValueFromArrayColumn(arr, r, cComponentLocation)
+        componentDescription = ValueFromArrayColumn(arr, r, cComponentDescription)
+        versionLabel = VersionLabelShipping(arr, r, cVersion, cVersionLabel)
+        If componentRow <= 0 Then
+            If ResolveCanonicalComponentInfoShipping(componentName, componentCode, componentRow, componentName, componentCode, componentUom, componentLocation, componentDescription) Then
+                repairedRows = repairedRows + 1
+            End If
+        End If
+
+        SetTableCellShipping loBom, outRow, "Version", versionLabel
+        SetTableCellShipping loBom, outRow, COL_BOXBOM_ITEM, componentName
+        SetTableCellShipping loBom, outRow, "ITEM_CODE", componentCode
+        SetTableCellShipping loBom, outRow, "ROW", componentRow
         SetTableCellShipping loBom, outRow, "QUANTITY", NzDbl(arr(r, cComponentQty)) * scaleQty
-        SetTableCellShipping loBom, outRow, "UOM", ValueFromArrayColumn(arr, r, cComponentUom)
-        SetTableCellShipping loBom, outRow, "LOCATION", ValueFromArrayColumn(arr, r, cComponentLocation)
-        SetTableCellShipping loBom, outRow, "DESCRIPTION", ValueFromArrayColumn(arr, r, cComponentDescription)
+        SetTableCellShipping loBom, outRow, "UOM", componentUom
+        SetTableCellShipping loBom, outRow, "LOCATION", componentLocation
+        SetTableCellShipping loBom, outRow, "DESCRIPTION", componentDescription
 NextBomRow:
     Next r
 
     EnsureBoxBomStarterRows loBom
+    FillBlankBoxBomVersionShipping loBom
+    SortBoxBomByVersionShipping loBom
     If outRow = 0 Then
         report = "No saved BoxBOM components were found for invSys ROW " & CStr(packageRow) & "."
         Exit Function
@@ -3739,9 +3966,12 @@ NextBomRow:
 
     LoadBoxMakerBomForPackage = True
     report = "Loaded BoxBOM for invSys ROW " & CStr(packageRow) & " (" & CStr(outRow) & " component row(s))."
+    If repairedRows > 0 Then report = report & " Repaired " & CStr(repairedRows) & " component ROW value(s) from inventory."
     RefreshBoxMakerCurrentInventory ws
     RestorePreservedBoxBomCurrentInventory loBom, preservedCurrentInv
+    RefreshShippingBomViewForWorkbook ws.Parent, refreshReport
     RefreshBoxBomVersionList ws, packageRow
+    If Not BoxBomVersionListHasRows(ws) Then RebuildBoxBomVersionListFromDisplayedBom ws, packageRow
     RefreshBoxMakerBomVersionDisplay ws, packageRow
     Exit Function
 
@@ -3843,22 +4073,512 @@ Private Sub RefreshBoxBomVersionList(ByVal ws As Worksheet, ByVal packageRow As 
 
     If ws Is Nothing Then Exit Sub
     If packageRow <= 0 Then Exit Sub
+    Set loVersions = GetListObject(ws, TABLE_BOX_BOM_VERSIONS)
+    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    Set loView = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
+    If Not loView Is Nothing Then
+        If Not loView.DataBodyRange Is Nothing Then
+            versionRows = BuildBoxBomVersionRows(loView, packageRow, versionCount)
+        End If
+    End If
+    AugmentBoxBomVersionRowsFromLocalBom ws, versionRows, versionCount
+
+    If versionCount = 0 Then
+        If Not loVersions Is Nothing Then DeleteAllListObjectRowsShipping loVersions
+        Exit Sub
+    End If
+
+    Set loVersions = EnsureBoxBomVersionsTable(ws, loBom)
+    If loVersions Is Nothing Then Exit Sub
+    WriteBoxBomVersionRowsToTable loVersions, versionRows
+    ApplyBoxBomVersionStatusValidation loVersions
+    ArrangeBoxBuilderBandShipping GetListObject(ws, TABLE_BOX_BUILDER), loBom
+
+CleanExit:
+End Sub
+
+Private Sub RefreshBoxBomVersionListForCurrentBuilder(ByVal ws As Worksheet)
+    On Error GoTo CleanExit
+
+    Dim packageRow As Long
+    Dim runtimeMax As Long
+    Dim boxName As String
+    Dim loBuilder As ListObject
+    Dim report As String
+
+    If ws Is Nothing Then Exit Sub
+    Set loBuilder = GetListObject(ws, TABLE_BOX_BUILDER)
+    If loBuilder Is Nothing Then
+        ClearSelectedBoxBomVersionForWorksheet ws
+        ClearBoxBomVersionListForWorksheet ws
+        ClearDisplayedBoxBomForWorksheet ws
+        Exit Sub
+    End If
+    boxName = Trim$(NzStr(ValueFromTable(loBuilder, "Box Name")))
+    If boxName = "" Then
+        ClearSelectedBoxBomVersionForWorksheet ws
+        ClearBoxBomVersionListForWorksheet ws
+        ClearDisplayedBoxBomForWorksheet ws
+        Exit Sub
+    End If
+
+    packageRow = FindShippingBomPackageRowByName(ws.Parent, boxName, runtimeMax)
+    If packageRow <= 0 Then
+        ClearSelectedBoxBomVersionForWorksheet ws
+        ClearBoxBomVersionListForWorksheet ws
+        ClearDisplayedBoxBomForWorksheet ws
+        Exit Sub
+    End If
+
+    ClearSelectedBoxBomVersionForWorksheet ws
+    ClearBoxBomVersionListForWorksheet ws
+    ClearDisplayedBoxBomForWorksheet ws
+    If LoadBoxMakerBomForPackage(ws, packageRow, 1#, report) Then
+        ShowShippingStatus report
+    ElseIf report <> "" Then
+        ShowShippingStatus report
+    End If
+
+CleanExit:
+End Sub
+
+Private Sub ClearSelectedBoxBomVersionForWorksheet(ByVal ws As Worksheet)
+    If ws Is Nothing Then Exit Sub
+    If StrComp(mSelectedBoxBomVersionWorkbookName, ws.Parent.Name, vbTextCompare) <> 0 Then Exit Sub
+    If StrComp(mSelectedBoxBomVersionWorksheetName, ws.Name, vbTextCompare) <> 0 Then Exit Sub
+
+    mSelectedBoxBomVersionLabel = ""
+    mSelectedBoxBomVersionPackageRow = 0
+    mSelectedBoxBomVersionWorkbookName = ""
+    mSelectedBoxBomVersionWorksheetName = ""
+End Sub
+
+Private Sub ClearBoxBomVersionListForWorksheet(ByVal ws As Worksheet)
+    Dim loVersions As ListObject
+
+    If ws Is Nothing Then Exit Sub
+    Set loVersions = GetListObject(ws, TABLE_BOX_BOM_VERSIONS)
+    If Not loVersions Is Nothing Then DeleteAllListObjectRowsShipping loVersions
+End Sub
+
+Private Sub ClearDisplayedBoxBomForWorksheet(ByVal ws As Worksheet)
+    Dim loBom As ListObject
+
+    If ws Is Nothing Then Exit Sub
+    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    If loBom Is Nothing Then Exit Sub
+    ClearListObjectData loBom
+    EnsureBoxBomStarterRows loBom
+End Sub
+
+Private Sub RebuildBoxBomVersionListFromDisplayedBom(ByVal ws As Worksheet, Optional ByVal packageRow As Long = 0)
+    On Error GoTo CleanExit
+
+    Dim loBom As ListObject
+    Dim loVersions As ListObject
+    Dim cVersion As Long
+    Dim r As Long
+    Dim c As Long
+    Dim outRow As Long
+    Dim versionLabel As String
+    Dim seen As Object
+    Dim rowsOut() As Variant
+    Dim key As Variant
+    Dim boxName As String
+
+    If ws Is Nothing Then Exit Sub
+    Debug.Print "SHIPPING BoxBOMVersions rebuild start:", ws.Parent.Name, ws.Name
+    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    If loBom Is Nothing Then
+        Debug.Print "SHIPPING BoxBOMVersions rebuild: BoxBOM missing"
+        ClearBoxBomVersionListForWorksheet ws
+        Exit Sub
+    End If
+    If loBom.DataBodyRange Is Nothing Then
+        Debug.Print "SHIPPING BoxBOMVersions rebuild: BoxBOM empty"
+        ClearBoxBomVersionListForWorksheet ws
+        Exit Sub
+    End If
+    cVersion = ColumnIndex(loBom, "Version")
+    If cVersion = 0 Then
+        Debug.Print "SHIPPING BoxBOMVersions rebuild: Version column missing"
+        ClearBoxBomVersionListForWorksheet ws
+        Exit Sub
+    End If
+
+    Set seen = CreateObject("Scripting.Dictionary")
+    For r = 1 To loBom.ListRows.Count
+        If Not BoxBomRowHasComponentDataShipping(loBom, r) Then GoTo NextBomRow
+        versionLabel = NormalizeBoxBomVersionLabelShipping(loBom.DataBodyRange.Cells(r, cVersion).Value)
+        If versionLabel = "" Then
+            versionLabel = "v1"
+            loBom.DataBodyRange.Cells(r, cVersion).Value = versionLabel
+        End If
+        If versionLabel <> "" Then seen(versionLabel) = True
+NextBomRow:
+    Next r
+
+    Set loVersions = EnsureBoxBomVersionsTable(ws, loBom)
+    If loVersions Is Nothing Then Exit Sub
+    If seen.Count = 0 Then
+        Debug.Print "SHIPPING BoxBOMVersions rebuild: no versions found"
+        DeleteAllListObjectRowsShipping loVersions
+        Exit Sub
+    End If
+
+    boxName = CurrentBoxBuilderName(ws)
+    ReDim rowsOut(1 To seen.Count, 1 To 8)
+    For Each key In seen.Keys
+        outRow = outRow + 1
+        rowsOut(outRow, 1) = CStr(key)
+        rowsOut(outRow, 2) = "Active"
+        For c = 3 To 7
+            rowsOut(outRow, c) = vbNullString
+        Next c
+        rowsOut(outRow, 8) = boxName
+    Next key
+    If packageRow > 0 Then FillBoxBomVersionRowsMetadataFromView ws, packageRow, rowsOut
+
+    WriteDisplayedBoxBomVersionRowsDirect loVersions, rowsOut
+    ApplyBoxBomVersionStatusValidation loVersions
+    ArrangeBoxBuilderBandShipping GetListObject(ws, TABLE_BOX_BUILDER), loBom
+    Debug.Print "SHIPPING BoxBOMVersions rebuild done:", CStr(seen.Count), boxName
+
+CleanExit:
+End Sub
+
+Private Sub WriteDisplayedBoxBomVersionRowsDirect(ByVal loVersions As ListObject, ByRef rowsData As Variant)
+    On Error GoTo CleanFail
+
+    Dim rowsNeeded As Long
+    Dim r As Long
+    Dim c As Long
+    Dim headers As Variant
+    Dim colIndex As Long
+
+    If loVersions Is Nothing Then Exit Sub
+    headers = BoxBomVersionHeadersShipping()
+    For c = LBound(headers) To UBound(headers)
+        EnsureColumnExists loVersions, CStr(headers(c))
+    Next c
+    HideBoxBomVersionIdentityColumns loVersions
+    ClearListObjectFiltersShipping loVersions
+
+    rowsNeeded = UBound(rowsData, 1)
+    Do While loVersions.ListRows.Count < rowsNeeded
+        loVersions.ListRows.Add
+    Loop
+    Do While loVersions.ListRows.Count > rowsNeeded
+        loVersions.ListRows(loVersions.ListRows.Count).Delete
+    Loop
+    If loVersions.DataBodyRange Is Nothing Then Exit Sub
+    loVersions.DataBodyRange.ClearContents
+
+    For r = 1 To rowsNeeded
+        For c = LBound(headers) To UBound(headers)
+            colIndex = ColumnIndex(loVersions, CStr(headers(c)))
+            If colIndex > 0 Then loVersions.DataBodyRange.Cells(r, colIndex).Value = rowsData(r, c - LBound(headers) + 1)
+        Next c
+    Next r
+    Debug.Print "SHIPPING BoxBOMVersions direct write rows:", CStr(rowsNeeded)
+    Exit Sub
+
+CleanFail:
+    Debug.Print "SHIPPING BoxBOMVersions direct write failed:", Err.Number, Err.Description
+End Sub
+
+Private Function BoxBomVersionListHasRows(ByVal ws As Worksheet) As Boolean
+    On Error GoTo CleanFail
+
+    Dim loVersions As ListObject
+    Dim cVersion As Long
+    Dim r As Long
+
+    If ws Is Nothing Then Exit Function
+    Set loVersions = GetListObject(ws, TABLE_BOX_BOM_VERSIONS)
+    If loVersions Is Nothing Then Exit Function
+    If loVersions.DataBodyRange Is Nothing Then Exit Function
+    cVersion = ColumnIndex(loVersions, "Version")
+    If cVersion = 0 Then Exit Function
+
+    For r = 1 To loVersions.ListRows.Count
+        If Trim$(NzStr(loVersions.DataBodyRange.Cells(r, cVersion).Value)) <> "" Then
+            BoxBomVersionListHasRows = True
+            Exit Function
+        End If
+    Next r
+    Exit Function
+
+CleanFail:
+    BoxBomVersionListHasRows = False
+End Function
+
+Private Sub WriteBoxBomVersionRowsToTable(ByVal loVersions As ListObject, ByRef rowsData As Variant)
+    On Error GoTo CleanExit
+
+    Dim rowsNeeded As Long
+    Dim r As Long
+    Dim headers As Variant
+    Dim c As Long
+    Dim colIndex As Long
+
+    If loVersions Is Nothing Then Exit Sub
+    ClearListObjectFiltersShipping loVersions
+
+    headers = BoxBomVersionHeadersShipping()
+    For c = LBound(headers) To UBound(headers)
+        EnsureColumnExists loVersions, CStr(headers(c))
+    Next c
+
+    If IsEmpty(rowsData) Then
+        ResizeListObjectDataRowsShipping loVersions, 0
+        Exit Sub
+    End If
+    rowsNeeded = UBound(rowsData, 1)
+    If rowsNeeded <= 0 Then
+        ResizeListObjectDataRowsShipping loVersions, 0
+        Exit Sub
+    End If
+
+    MoveBoxBomAwayFromVersionResize loVersions, rowsNeeded
+    ResizeListObjectDataRowsShipping loVersions, rowsNeeded
+    If loVersions.DataBodyRange Is Nothing Then Exit Sub
+    loVersions.DataBodyRange.ClearContents
+
+    For r = 1 To rowsNeeded
+        For c = LBound(headers) To UBound(headers)
+            colIndex = ColumnIndex(loVersions, CStr(headers(c)))
+            If colIndex > 0 Then loVersions.DataBodyRange.Cells(r, colIndex).Value = rowsData(r, c - LBound(headers) + 1)
+        Next c
+    Next r
+    HideBoxBomVersionIdentityColumns loVersions
+
+CleanExit:
+End Sub
+
+Private Sub MoveBoxBomAwayFromVersionResize(ByVal loVersions As ListObject, ByVal rowsNeeded As Long)
+    On Error GoTo CleanExit
+
+    Dim ws As Worksheet
+    Dim loBom As ListObject
+    Dim targetRow As Long
+
+    If loVersions Is Nothing Then Exit Sub
+    Set ws = loVersions.Parent
+    If ws Is Nothing Then Exit Sub
+    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    If loBom Is Nothing Then Exit Sub
+
+    targetRow = loVersions.Range.Row + rowsNeeded + SHIP_LAYOUT_GAP_ROWS + 8
+    If targetRow < 1 Then Exit Sub
+    MoveListObjectToRowColShipping loBom, targetRow, loVersions.Range.Column
+
+CleanExit:
+End Sub
+
+Private Sub ResizeListObjectDataRowsShipping(ByVal lo As ListObject, ByVal rowsNeeded As Long)
+    On Error GoTo FallbackDelete
+
+    Dim firstCell As Range
+    Dim newRange As Range
+    Dim oldBottomRow As Long
+    Dim oldFirstCol As Long
+    Dim oldRightCol As Long
+
+    If lo Is Nothing Then Exit Sub
+    If rowsNeeded < 0 Then rowsNeeded = 0
+    ClearListObjectFiltersShipping lo
+
+    Set firstCell = lo.HeaderRowRange.Cells(1, 1)
+    oldBottomRow = lo.Range.Row + lo.Range.Rows.Count - 1
+    oldFirstCol = lo.Range.Column
+    oldRightCol = lo.Range.Column + lo.Range.Columns.Count - 1
+
+    If rowsNeeded = 0 Then
+        Set newRange = lo.Parent.Range(firstCell, firstCell.Offset(1, lo.Range.Columns.Count - 1))
+        lo.Resize newRange
+        If Not lo.DataBodyRange Is Nothing Then lo.DataBodyRange.ClearContents
+        DeleteAllListObjectRowsShipping lo
+        ClearListObjectOldFootprintShipping lo, oldBottomRow, oldFirstCol, oldRightCol
+        Exit Sub
+    End If
+
+    Set newRange = lo.Parent.Range(firstCell, firstCell.Offset(rowsNeeded, lo.Range.Columns.Count - 1))
+    lo.Resize newRange
+    If Not lo.DataBodyRange Is Nothing Then lo.DataBodyRange.ClearContents
+    ClearListObjectOldFootprintShipping lo, oldBottomRow, oldFirstCol, oldRightCol
+    Exit Sub
+
+FallbackDelete:
+    Err.Clear
+    On Error Resume Next
+    Do While lo.ListRows.Count < rowsNeeded
+        lo.ListRows.Add
+    Loop
+    Do While lo.ListRows.Count > rowsNeeded
+        lo.ListRows(lo.ListRows.Count).Delete
+    Loop
+    If Not lo.DataBodyRange Is Nothing Then lo.DataBodyRange.ClearContents
+    ClearListObjectOldFootprintShipping lo, oldBottomRow, oldFirstCol, oldRightCol
+    On Error GoTo 0
+End Sub
+
+Private Sub ClearListObjectOldFootprintShipping(ByVal lo As ListObject, _
+                                                ByVal oldBottomRow As Long, _
+                                                ByVal oldFirstCol As Long, _
+                                                ByVal oldRightCol As Long)
+    On Error Resume Next
+
+    Dim newBottomRow As Long
+    Dim clearTopRow As Long
+    Dim clearRange As Range
+
+    If lo Is Nothing Then Exit Sub
+    If oldBottomRow <= 0 Or oldFirstCol <= 0 Or oldRightCol < oldFirstCol Then Exit Sub
+
+    newBottomRow = lo.Range.Row + lo.Range.Rows.Count - 1
+    clearTopRow = newBottomRow + 1
+    If clearTopRow > oldBottomRow Then Exit Sub
+
+    Set clearRange = lo.Parent.Range(lo.Parent.Cells(clearTopRow, oldFirstCol), _
+                                     lo.Parent.Cells(oldBottomRow, oldRightCol))
+    clearRange.Clear
+    On Error GoTo 0
+End Sub
+
+Private Sub FillBoxBomVersionRowsMetadataFromView(ByVal ws As Worksheet, ByVal packageRow As Long, ByRef rowsData As Variant)
+    On Error GoTo CleanExit
+
+    Dim loView As ListObject
+    Dim cPackageRow As Long
+    Dim cPackageItem As Long
+    Dim cVersion As Long
+    Dim cLabel As Long
+    Dim cActive As Long
+    Dim cEffectiveFrom As Long
+    Dim cEffectiveTo As Long
+    Dim cRetiredAt As Long
+    Dim cUpdatedAt As Long
+    Dim cUpdatedBy As Long
+    Dim r As Long
+    Dim outRow As Long
+    Dim rowLabel As String
+    Dim wantedLabel As String
+    Dim rowVersion As Long
+
+    If ws Is Nothing Then Exit Sub
+    If packageRow <= 0 Then Exit Sub
+    If IsEmpty(rowsData) Then Exit Sub
     Set loView = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
     If loView Is Nothing Then Exit Sub
     If loView.DataBodyRange Is Nothing Then Exit Sub
 
-    versionRows = BuildBoxBomVersionRows(loView, packageRow, versionCount)
-    Set loVersions = GetListObject(ws, TABLE_BOX_BOM_VERSIONS)
-    If versionCount <= 1 Then
-        If Not loVersions Is Nothing Then ClearListObjectData loVersions
-        Exit Sub
+    cPackageRow = ColumnIndex(loView, "PackageRow")
+    cPackageItem = ColumnIndex(loView, "PackageItem")
+    cVersion = ColumnIndex(loView, "BomVersion")
+    cLabel = ColumnIndex(loView, "BomVersionLabel")
+    cActive = ColumnIndex(loView, "IsActive")
+    cEffectiveFrom = ColumnIndex(loView, "EffectiveFromUTC")
+    cEffectiveTo = ColumnIndex(loView, "EffectiveToUTC")
+    cRetiredAt = ColumnIndex(loView, "RetiredAtUTC")
+    cUpdatedAt = ColumnIndex(loView, "UpdatedAtUTC")
+    cUpdatedBy = ColumnIndex(loView, "UpdatedBy")
+    If cPackageRow = 0 Then Exit Sub
+
+    For outRow = 1 To UBound(rowsData, 1)
+        wantedLabel = NormalizeBoxBomVersionLabelShipping(rowsData(outRow, 1))
+        If wantedLabel = "" Then GoTo NextOutRow
+
+        For r = 1 To loView.ListRows.Count
+            If NzLng(loView.DataBodyRange.Cells(r, cPackageRow).Value) <> packageRow Then GoTo NextViewRow
+            rowLabel = ""
+            If cLabel > 0 Then rowLabel = NormalizeBoxBomVersionLabelShipping(loView.DataBodyRange.Cells(r, cLabel).Value)
+            If rowLabel = "" And cVersion > 0 Then
+                rowVersion = NzLng(loView.DataBodyRange.Cells(r, cVersion).Value)
+                If rowVersion > 0 Then rowLabel = "v" & CStr(rowVersion)
+            End If
+            If StrComp(rowLabel, wantedLabel, vbTextCompare) <> 0 Then GoTo NextViewRow
+
+            If cActive > 0 And Not ShippingBomActiveValue(loView.DataBodyRange.Cells(r, cActive).Value) Then
+                rowsData(outRow, 2) = "Retired"
+            Else
+                rowsData(outRow, 2) = "Active"
+            End If
+            If cEffectiveFrom > 0 Then rowsData(outRow, 3) = loView.DataBodyRange.Cells(r, cEffectiveFrom).Value
+            If cEffectiveTo > 0 Then rowsData(outRow, 4) = loView.DataBodyRange.Cells(r, cEffectiveTo).Value
+            If cRetiredAt > 0 Then rowsData(outRow, 5) = loView.DataBodyRange.Cells(r, cRetiredAt).Value
+            If cUpdatedAt > 0 Then rowsData(outRow, 6) = loView.DataBodyRange.Cells(r, cUpdatedAt).Value
+            If cUpdatedBy > 0 Then rowsData(outRow, 7) = loView.DataBodyRange.Cells(r, cUpdatedBy).Value
+            If cPackageItem > 0 Then
+                rowsData(outRow, 8) = loView.DataBodyRange.Cells(r, cPackageItem).Value
+            Else
+                rowsData(outRow, 8) = CurrentBoxBuilderName(ws)
+            End If
+            Exit For
+NextViewRow:
+        Next r
+NextOutRow:
+    Next outRow
+
+CleanExit:
+End Sub
+
+Private Sub AugmentBoxBomVersionRowsFromLocalBom(ByVal ws As Worksheet, _
+                                                 ByRef versionRows As Variant, _
+                                                 ByRef versionCount As Long)
+    On Error GoTo CleanExit
+
+    Dim loBom As ListObject
+    Dim cVersion As Long
+    Dim r As Long
+    Dim c As Long
+    Dim versionLabel As String
+    Dim seen As Object
+    Dim newRows() As Variant
+    Dim oldCount As Long
+    Dim copyRow As Long
+
+    If ws Is Nothing Then Exit Sub
+    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    If loBom Is Nothing Then Exit Sub
+    If loBom.DataBodyRange Is Nothing Then Exit Sub
+    cVersion = ColumnIndex(loBom, "Version")
+    If cVersion = 0 Then Exit Sub
+
+    Set seen = CreateObject("Scripting.Dictionary")
+    If versionCount > 0 Then
+        For r = 1 To versionCount
+            versionLabel = NormalizeBoxBomVersionLabelShipping(versionRows(r, 1))
+            If versionLabel <> "" Then seen(versionLabel) = True
+        Next r
     End If
 
-    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
-    Set loVersions = EnsureBoxBomVersionsTable(ws, loBom)
-    If loVersions Is Nothing Then Exit Sub
-    WriteArrayToTable loVersions, versionRows
-    ApplyBoxBomVersionStatusValidation loVersions
+    For r = 1 To loBom.ListRows.Count
+        If Not BoxBomRowHasComponentDataShipping(loBom, r) Then GoTo NextBomRow
+        versionLabel = NormalizeBoxBomVersionLabelShipping(loBom.DataBodyRange.Cells(r, cVersion).Value)
+        If versionLabel = "" Then
+            versionLabel = "v1"
+            loBom.DataBodyRange.Cells(r, cVersion).Value = versionLabel
+        End If
+        If seen.Exists(versionLabel) Then GoTo NextBomRow
+
+        oldCount = versionCount
+        versionCount = versionCount + 1
+        ReDim newRows(1 To versionCount, 1 To 8)
+        If oldCount > 0 Then
+            For c = 1 To 8
+                For copyRow = 1 To oldCount
+                    newRows(copyRow, c) = versionRows(copyRow, c)
+                Next copyRow
+            Next c
+        End If
+        newRows(versionCount, 1) = versionLabel
+        newRows(versionCount, 2) = "Active"
+        newRows(versionCount, 8) = CurrentBoxBuilderName(ws)
+        versionRows = newRows
+        seen(versionLabel) = True
+NextBomRow:
+    Next r
 
 CleanExit:
 End Sub
@@ -3871,6 +4591,7 @@ Public Sub HandleBoxBomVersionSelection(ByVal target As Range)
     Dim versionLabel As String
     Dim report As String
     Dim packageRow As Long
+    Dim rowIndex As Long
 
     If target Is Nothing Then Exit Sub
     If target.Cells.CountLarge > 1 Then Exit Sub
@@ -3886,6 +4607,11 @@ Public Sub HandleBoxBomVersionSelection(ByVal target As Range)
     versionLabel = Trim$(NzStr(target.Value))
     If versionLabel = "" Then Exit Sub
     packageRow = CurrentBoxBuilderPackageRow(target.Worksheet)
+    rowIndex = target.Row - loVersions.DataBodyRange.Row + 1
+    If Not BoxBomVersionRowMatchesPackage(loVersions, rowIndex, packageRow) Then
+        MsgBox "Selected version does not belong to the current BoxBuilder box. Re-select the box and try again.", vbExclamation
+        Exit Sub
+    End If
     RememberSelectedBoxBomVersion target.Worksheet, versionLabel, packageRow
     If Not LoadSelectedBoxBomVersion(target.Worksheet, versionLabel, report) Then
         If report <> "" Then MsgBox report, vbExclamation
@@ -3915,7 +4641,9 @@ Private Function SelectedBoxBomVersionLabel(ByVal ws As Worksheet, _
                             If Not versionCol Is Nothing Then
                                 rowIndex = target.Row - loVersions.DataBodyRange.Row + 1
                                 If rowIndex > 0 And rowIndex <= loVersions.ListRows.Count Then
-                                    SelectedBoxBomVersionLabel = Trim$(NzStr(loVersions.DataBodyRange.Cells(rowIndex, versionCol.Index).Value))
+                                    If BoxBomVersionRowMatchesPackage(loVersions, rowIndex, expectedPackageRow) Then
+                                        SelectedBoxBomVersionLabel = Trim$(NzStr(loVersions.DataBodyRange.Cells(rowIndex, versionCol.Index).Value))
+                                    End If
                                     If SelectedBoxBomVersionLabel <> "" Then
                                         RememberSelectedBoxBomVersion ws, SelectedBoxBomVersionLabel, expectedPackageRow
                                         Exit Function
@@ -3936,10 +4664,210 @@ Private Function SelectedBoxBomVersionLabel(ByVal ws As Worksheet, _
 CleanExit:
 End Function
 
+Private Function ResolveBoxBomSaveVersionLabel(ByVal ws As Worksheet, ByVal loBom As ListObject) As String
+    On Error GoTo CleanExit
+
+    Dim loVersions As ListObject
+    Dim packageRow As Long
+
+    If ws Is Nothing Then Exit Function
+    Set loVersions = GetListObject(ws, TABLE_BOX_BOM_VERSIONS)
+    If loVersions Is Nothing Then Exit Function
+    packageRow = CurrentBoxBuilderPackageRow(ws)
+    If packageRow <= 0 Then Exit Function
+    ResolveBoxBomSaveVersionLabel = SelectedBoxBomVersionLabel(ws, loVersions, packageRow)
+
+CleanExit:
+End Function
+
+Private Function SingleVisibleBoxBomVersionLabel(ByVal loBom As ListObject) As String
+    On Error GoTo CleanExit
+
+    Dim cVersion As Long
+    Dim r As Long
+    Dim versionLabel As String
+    Dim foundLabel As String
+
+    If loBom Is Nothing Then Exit Function
+    If loBom.DataBodyRange Is Nothing Then Exit Function
+    cVersion = ColumnIndex(loBom, "Version")
+    If cVersion = 0 Then Exit Function
+
+    For r = 1 To loBom.ListRows.Count
+        If BoxBomTableRowHiddenShipping(loBom, r) Then GoTo NextRow
+        If Not BoxBomRowHasComponentDataShipping(loBom, r) Then GoTo NextRow
+        versionLabel = NormalizeBoxBomVersionLabelShipping(loBom.DataBodyRange.Cells(r, cVersion).Value)
+        If versionLabel = "" Then GoTo NextRow
+        If foundLabel = "" Then
+            foundLabel = versionLabel
+        ElseIf StrComp(foundLabel, versionLabel, vbTextCompare) <> 0 Then
+            SingleVisibleBoxBomVersionLabel = ""
+            Exit Function
+        End If
+NextRow:
+    Next r
+
+    SingleVisibleBoxBomVersionLabel = foundLabel
+
+CleanExit:
+End Function
+
+Private Function NormalizeBoxBomVersionLabelShipping(ByVal value As Variant) As String
+    Dim textValue As String
+
+    textValue = Trim$(NzStr(value))
+    If textValue = "" Then Exit Function
+    If LCase$(Left$(textValue, 1)) <> "v" Then textValue = "v" & textValue
+    NormalizeBoxBomVersionLabelShipping = textValue
+End Function
+
+Private Function BoxBomTableRowHiddenShipping(ByVal loBom As ListObject, ByVal rowIndex As Long) As Boolean
+    On Error GoTo CleanExit
+
+    If loBom Is Nothing Then Exit Function
+    If loBom.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex < 1 Or rowIndex > loBom.ListRows.Count Then Exit Function
+    BoxBomTableRowHiddenShipping = loBom.DataBodyRange.Rows(rowIndex).EntireRow.Hidden
+
+CleanExit:
+End Function
+
+Private Sub DeleteLocalBoxBomRowsForVersion(ByVal ws As Worksheet, ByVal versionLabel As String)
+    On Error GoTo CleanExit
+
+    Dim loBom As ListObject
+    Dim cVersion As Long
+    Dim i As Long
+
+    If ws Is Nothing Then Exit Sub
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If versionLabel = "" Then Exit Sub
+    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    If loBom Is Nothing Then Exit Sub
+    If loBom.DataBodyRange Is Nothing Then Exit Sub
+    cVersion = ColumnIndex(loBom, "Version")
+    If cVersion = 0 Then Exit Sub
+
+    For i = loBom.ListRows.Count To 1 Step -1
+        If StrComp(NormalizeBoxBomVersionLabelShipping(loBom.DataBodyRange.Cells(i, cVersion).Value), versionLabel, vbTextCompare) = 0 Then
+            loBom.ListRows(i).Delete
+        End If
+    Next i
+    EnsureBoxBomStarterRows loBom
+
+CleanExit:
+End Sub
+
+Private Sub DeleteLocalBoxBomVersionSummaryRow(ByVal loVersions As ListObject, ByVal versionLabel As String)
+    On Error GoTo CleanExit
+
+    Dim cVersion As Long
+    Dim i As Long
+
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If loVersions Is Nothing Or versionLabel = "" Then Exit Sub
+    If loVersions.DataBodyRange Is Nothing Then Exit Sub
+    cVersion = ColumnIndex(loVersions, "Version")
+    If cVersion = 0 Then Exit Sub
+
+    For i = loVersions.ListRows.Count To 1 Step -1
+        If StrComp(NormalizeBoxBomVersionLabelShipping(loVersions.DataBodyRange.Cells(i, cVersion).Value), versionLabel, vbTextCompare) = 0 Then
+            loVersions.ListRows(i).Delete
+        End If
+    Next i
+
+CleanExit:
+End Sub
+
+Private Sub DeleteLocalShippingBomViewRowsForVersion(ByVal ws As Worksheet, ByVal packageRow As Long, ByVal versionLabel As String)
+    On Error GoTo CleanExit
+
+    Dim loView As ListObject
+    Dim cPackageRow As Long
+    Dim cVersion As Long
+    Dim cLabel As Long
+    Dim versionNumber As Long
+    Dim rowVersion As Long
+    Dim rowLabel As String
+    Dim i As Long
+
+    If ws Is Nothing Then Exit Sub
+    If packageRow <= 0 Then Exit Sub
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If versionLabel = "" Then Exit Sub
+    versionNumber = BomVersionNumberFromLabel(versionLabel)
+
+    Set loView = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
+    If loView Is Nothing Then Exit Sub
+    If loView.DataBodyRange Is Nothing Then Exit Sub
+    cPackageRow = ColumnIndex(loView, "PackageRow")
+    cVersion = ColumnIndex(loView, "BomVersion")
+    cLabel = ColumnIndex(loView, "BomVersionLabel")
+    If cPackageRow = 0 Then Exit Sub
+
+    For i = loView.ListRows.Count To 1 Step -1
+        If NzLng(loView.DataBodyRange.Cells(i, cPackageRow).Value) <> packageRow Then GoTo NextRow
+        rowVersion = 0
+        rowLabel = ""
+        If cVersion > 0 Then rowVersion = NzLng(loView.DataBodyRange.Cells(i, cVersion).Value)
+        If cLabel > 0 Then rowLabel = NormalizeBoxBomVersionLabelShipping(loView.DataBodyRange.Cells(i, cLabel).Value)
+        If (versionNumber > 0 And rowVersion = versionNumber) _
+           Or (rowLabel <> "" And StrComp(rowLabel, versionLabel, vbTextCompare) = 0) Then
+            loView.ListRows(i).Delete
+        End If
+NextRow:
+    Next i
+
+CleanExit:
+End Sub
+
+Private Sub ClearSelectedBoxBomVersionIfMatches(ByVal ws As Worksheet, ByVal packageRow As Long, ByVal versionLabel As String)
+    If ws Is Nothing Then Exit Sub
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If versionLabel = "" Then Exit Sub
+    If Not CachedBoxBomVersionSelectionMatches(ws, packageRow) Then Exit Sub
+    If StrComp(NormalizeBoxBomVersionLabelShipping(mSelectedBoxBomVersionLabel), versionLabel, vbTextCompare) <> 0 Then Exit Sub
+
+    mSelectedBoxBomVersionLabel = ""
+    mSelectedBoxBomVersionPackageRow = 0
+    mSelectedBoxBomVersionWorkbookName = ""
+    mSelectedBoxBomVersionWorksheetName = ""
+End Sub
+
+Private Sub DeleteAllListObjectRowsShipping(ByVal lo As ListObject)
+    On Error GoTo CleanExit
+
+    Dim i As Long
+
+    If lo Is Nothing Then Exit Sub
+    ClearListObjectFiltersShipping lo
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    For i = lo.ListRows.Count To 1 Step -1
+        lo.ListRows(i).Delete
+    Next i
+
+CleanExit:
+End Sub
+
+Private Sub ClearListObjectFiltersShipping(ByVal lo As ListObject)
+    On Error Resume Next
+
+    If lo Is Nothing Then Exit Sub
+    If Not lo.AutoFilter Is Nothing Then lo.AutoFilter.ShowAllData
+    If Not lo.Parent Is Nothing Then
+        If lo.Parent.FilterMode Then lo.Parent.ShowAllData
+    End If
+    On Error GoTo 0
+End Sub
+
 Private Sub RememberSelectedBoxBomVersion(ByVal ws As Worksheet, _
                                           ByVal versionLabel As String, _
                                           ByVal packageRow As Long)
     If ws Is Nothing Then Exit Sub
+    If packageRow <= 0 Then
+        ClearSelectedBoxBomVersionForWorksheet ws
+        Exit Sub
+    End If
     mSelectedBoxBomVersionLabel = Trim$(versionLabel)
     mSelectedBoxBomVersionPackageRow = packageRow
     mSelectedBoxBomVersionWorkbookName = ws.Parent.Name
@@ -3952,10 +4880,52 @@ Private Function CachedBoxBomVersionSelectionMatches(ByVal ws As Worksheet, _
     If mSelectedBoxBomVersionLabel = "" Then Exit Function
     If StrComp(mSelectedBoxBomVersionWorkbookName, ws.Parent.Name, vbTextCompare) <> 0 Then Exit Function
     If StrComp(mSelectedBoxBomVersionWorksheetName, ws.Name, vbTextCompare) <> 0 Then Exit Function
-    If expectedPackageRow > 0 And mSelectedBoxBomVersionPackageRow > 0 Then
+    If expectedPackageRow > 0 Then
         If expectedPackageRow <> mSelectedBoxBomVersionPackageRow Then Exit Function
     End If
     CachedBoxBomVersionSelectionMatches = True
+End Function
+
+Private Function BoxBomVersionRowMatchesPackage(ByVal loVersions As ListObject, _
+                                                ByVal rowIndex As Long, _
+                                                ByVal expectedPackageRow As Long) As Boolean
+    On Error GoTo CleanFail
+
+    Dim cPackageRow As Long
+    Dim cBoxName As Long
+    Dim rowPackage As Long
+    Dim currentPackageRow As Long
+    Dim rowBoxName As String
+    Dim currentBoxName As String
+
+    If loVersions Is Nothing Then Exit Function
+    If rowIndex <= 0 Then Exit Function
+    If loVersions.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex > loVersions.ListRows.Count Then Exit Function
+    If expectedPackageRow <= 0 Then Exit Function
+
+    cBoxName = ColumnIndex(loVersions, "Box Name")
+    If cBoxName > 0 Then
+        rowBoxName = Trim$(NzStr(loVersions.DataBodyRange.Cells(rowIndex, cBoxName).Value))
+        currentBoxName = CurrentBoxBuilderName(loVersions.Parent)
+        If rowBoxName <> "" And currentBoxName <> "" Then
+            If StrComp(rowBoxName, currentBoxName, vbTextCompare) <> 0 Then Exit Function
+        End If
+    End If
+
+    cPackageRow = ColumnIndex(loVersions, "PackageRow")
+    If cPackageRow = 0 Then
+        currentPackageRow = CurrentBoxBuilderPackageRow(loVersions.Parent)
+        BoxBomVersionRowMatchesPackage = (currentPackageRow = expectedPackageRow)
+        Exit Function
+    End If
+
+    rowPackage = NzLng(loVersions.DataBodyRange.Cells(rowIndex, cPackageRow).Value)
+    BoxBomVersionRowMatchesPackage = (rowPackage = expectedPackageRow)
+    Exit Function
+
+CleanFail:
+    BoxBomVersionRowMatchesPackage = False
 End Function
 
 Private Function CurrentBoxBuilderPackageRow(ByVal ws As Worksheet) As Long
@@ -3971,6 +4941,19 @@ Private Function CurrentBoxBuilderPackageRow(ByVal ws As Worksheet) As Long
     boxName = Trim$(NzStr(ValueFromTable(loBuilder, "Box Name")))
     If boxName = "" Then Exit Function
     CurrentBoxBuilderPackageRow = FindShippingBomPackageRowByName(ws.Parent, boxName, runtimeMax)
+
+CleanExit:
+End Function
+
+Private Function CurrentBoxBuilderName(ByVal ws As Worksheet) As String
+    On Error GoTo CleanExit
+
+    Dim loBuilder As ListObject
+
+    If ws Is Nothing Then Exit Function
+    Set loBuilder = GetListObject(ws, TABLE_BOX_BUILDER)
+    If loBuilder Is Nothing Then Exit Function
+    CurrentBoxBuilderName = Trim$(NzStr(ValueFromTable(loBuilder, "Box Name")))
 
 CleanExit:
 End Function
@@ -4035,6 +5018,7 @@ Private Function LoadBoxBomForPackageVersion(ByVal ws As Worksheet, _
     Dim cPackageDescription As Long
     Dim cVersion As Long
     Dim cComponentRow As Long
+    Dim cComponentItemCode As Long
     Dim cComponentItem As Long
     Dim cComponentQty As Long
     Dim cComponentUom As Long
@@ -4049,6 +5033,13 @@ Private Function LoadBoxBomForPackageVersion(ByVal ws As Worksheet, _
     Dim refreshReport As String
     Dim r As Long
     Dim outRow As Long
+    Dim componentName As String
+    Dim componentCode As String
+    Dim componentRow As Long
+    Dim componentUom As String
+    Dim componentLocation As String
+    Dim componentDescription As String
+    Dim repairedRows As Long
 
     report = ""
     If ws Is Nothing Then Exit Function
@@ -4091,6 +5082,7 @@ Private Function LoadBoxBomForPackageVersion(ByVal ws As Worksheet, _
     cPackageDescription = ColumnIndex(loRuntime, "PackageDescription")
     cVersion = ColumnIndex(loRuntime, "BomVersion")
     cComponentRow = ColumnIndex(loRuntime, "ComponentRow")
+    cComponentItemCode = ColumnIndex(loRuntime, "ComponentItemCode")
     cComponentItem = ColumnIndex(loRuntime, "ComponentItem")
     cComponentQty = ColumnIndex(loRuntime, "ComponentQty")
     cComponentUom = ColumnIndex(loRuntime, "ComponentUOM")
@@ -4119,16 +5111,33 @@ Private Function LoadBoxBomForPackageVersion(ByVal ws As Worksheet, _
         Do While loBom.ListRows.Count < outRow
             loBom.ListRows.Add
         Loop
-        SetTableCellShipping loBom, outRow, COL_BOXBOM_ITEM, ValueFromArrayColumn(arr, r, cComponentItem)
-        SetTableCellShipping loBom, outRow, "ROW", NzLng(arr(r, cComponentRow))
+        componentName = ValueFromArrayColumn(arr, r, cComponentItem)
+        componentCode = ""
+        If cComponentItemCode > 0 Then componentCode = ValueFromArrayColumn(arr, r, cComponentItemCode)
+        componentRow = NzLng(arr(r, cComponentRow))
+        componentUom = ValueFromArrayColumn(arr, r, cComponentUom)
+        componentLocation = ValueFromArrayColumn(arr, r, cComponentLocation)
+        componentDescription = ValueFromArrayColumn(arr, r, cComponentDescription)
+        If componentRow <= 0 Then
+            If ResolveCanonicalComponentInfoShipping(componentName, componentCode, componentRow, componentName, componentCode, componentUom, componentLocation, componentDescription) Then
+                repairedRows = repairedRows + 1
+            End If
+        End If
+
+        SetTableCellShipping loBom, outRow, "Version", "v" & CStr(versionNumber)
+        SetTableCellShipping loBom, outRow, COL_BOXBOM_ITEM, componentName
+        SetTableCellShipping loBom, outRow, "ITEM_CODE", componentCode
+        SetTableCellShipping loBom, outRow, "ROW", componentRow
         SetTableCellShipping loBom, outRow, "QUANTITY", NzDbl(arr(r, cComponentQty))
-        SetTableCellShipping loBom, outRow, "UOM", ValueFromArrayColumn(arr, r, cComponentUom)
-        SetTableCellShipping loBom, outRow, "LOCATION", ValueFromArrayColumn(arr, r, cComponentLocation)
-        SetTableCellShipping loBom, outRow, "DESCRIPTION", ValueFromArrayColumn(arr, r, cComponentDescription)
+        SetTableCellShipping loBom, outRow, "UOM", componentUom
+        SetTableCellShipping loBom, outRow, "LOCATION", componentLocation
+        SetTableCellShipping loBom, outRow, "DESCRIPTION", componentDescription
 NextBomRow:
     Next r
 
     EnsureBoxBomStarterRows loBom
+    FillBlankBoxBomVersionShipping loBom
+    SortBoxBomByVersionShipping loBom
     If outRow = 0 Then
         report = "No saved BoxBOM rows were found for ROW " & CStr(packageRow) & " v" & CStr(versionNumber) & "."
         GoTo CleanExit
@@ -4137,6 +5146,7 @@ NextBomRow:
     RefreshBoxMakerCurrentInventory ws
     RefreshShippingBomViewForWorkbook ws.Parent, refreshReport
     report = "Loaded " & CStr(outRow) & " component row(s) for v" & CStr(versionNumber) & "."
+    If repairedRows > 0 Then report = report & " Repaired " & CStr(repairedRows) & " component ROW value(s) from inventory."
     LoadBoxBomForPackageVersion = True
 
 CleanExit:
@@ -4205,6 +5215,7 @@ Private Function BuildBoxBomVersionRows(ByVal loView As ListObject, _
                                         ByVal packageRow As Long, _
                                         ByRef versionCount As Long) As Variant
     Dim cPackageRow As Long
+    Dim cPackageItem As Long
     Dim cVersion As Long
     Dim cLabel As Long
     Dim cActive As Long
@@ -4227,6 +5238,7 @@ Private Function BuildBoxBomVersionRows(ByVal loView As ListObject, _
     If loView.DataBodyRange Is Nothing Then Exit Function
 
     cPackageRow = ColumnIndex(loView, "PackageRow")
+    cPackageItem = ColumnIndex(loView, "PackageItem")
     cVersion = ColumnIndex(loView, "BomVersion")
     cLabel = ColumnIndex(loView, "BomVersionLabel")
     cActive = ColumnIndex(loView, "IsActive")
@@ -4245,7 +5257,7 @@ Private Function BuildBoxBomVersionRows(ByVal loView As ListObject, _
         key = VersionKeyShipping(src, r, cVersion)
         If dict.Exists(key) Then GoTo NextRow
 
-        ReDim rowData(1 To 7)
+        ReDim rowData(1 To 8)
         rowData(1) = VersionLabelShipping(src, r, cVersion, cLabel)
         If cActive > 0 And Not ShippingBomActiveValue(src(r, cActive)) Then
             rowData(2) = "Retired"
@@ -4257,6 +5269,7 @@ Private Function BuildBoxBomVersionRows(ByVal loView As ListObject, _
         If cRetiredAt > 0 Then rowData(5) = src(r, cRetiredAt)
         If cUpdatedAt > 0 Then rowData(6) = src(r, cUpdatedAt)
         If cUpdatedBy > 0 Then rowData(7) = src(r, cUpdatedBy)
+        If cPackageItem > 0 Then rowData(8) = src(r, cPackageItem)
         dict.Add key, rowData
 NextRow:
     Next r
@@ -4265,10 +5278,10 @@ NextRow:
     If versionCount = 0 Then Exit Function
 
     keys = dict.Keys
-    ReDim result(1 To versionCount, 1 To 7)
+    ReDim result(1 To versionCount, 1 To 8)
     For r = 0 To UBound(keys)
         rowData = dict(keys(r))
-        For c = 1 To 7
+        For c = 1 To 8
             result(r + 1, c) = rowData(c)
         Next c
     Next r
@@ -4312,7 +5325,10 @@ End Function
 
 Private Function TryLoadRuntimeShippingBomRows(ByRef arr As Variant, _
                                                ByRef cPackageRow As Long, _
+                                               ByRef cVersion As Long, _
+                                               ByRef cVersionLabel As Long, _
                                                ByRef cComponentRow As Long, _
+                                               ByRef cComponentItemCode As Long, _
                                                ByRef cComponentItem As Long, _
                                                ByRef cComponentQty As Long, _
                                                ByRef cComponentUom As Long, _
@@ -4353,7 +5369,10 @@ Private Function TryLoadRuntimeShippingBomRows(ByRef arr As Variant, _
     End If
 
     cPackageRow = ColumnIndex(loBom, "PackageRow")
+    cVersion = ColumnIndex(loBom, "BomVersion")
+    cVersionLabel = ColumnIndex(loBom, "BomVersionLabel")
     cComponentRow = ColumnIndex(loBom, "ComponentRow")
+    cComponentItemCode = ColumnIndex(loBom, "ComponentItemCode")
     cComponentItem = ColumnIndex(loBom, "ComponentItem")
     cComponentQty = ColumnIndex(loBom, "ComponentQty")
     cComponentUom = ColumnIndex(loBom, "ComponentUOM")
@@ -4830,14 +5849,17 @@ Private Sub ResetBoxMakerQuantities(ByVal loBuilder As ListObject, ByVal loBom A
     End If
 End Sub
 
-Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, ByRef syncNotes As String) As Collection
+Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, ByRef syncNotes As String, Optional ByVal targetVersionLabel As String = "") As Collection
     Dim result As New Collection
     If loBom Is Nothing Then
         Set CollectBomComponents = result
         Exit Function
     End If
 
+    targetVersionLabel = NormalizeBoxBomVersionLabelShipping(targetVersionLabel)
     Dim cName As Long: cName = ColumnIndex(loBom, COL_BOXBOM_ITEM)
+    Dim cVersion As Long: cVersion = ColumnIndex(loBom, "Version")
+    Dim cCode As Long: cCode = ColumnIndex(loBom, "ITEM_CODE")
     Dim cRow As Long: cRow = ColumnIndex(loBom, "ROW")
     Dim cQty As Long: cQty = ColumnIndex(loBom, "QUANTITY")
     Dim cUom As Long: cUom = ColumnIndex(loBom, "UOM")
@@ -4854,12 +5876,14 @@ Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, 
     End If
 
     Dim invRowCol As Long
+    Dim invCodeCol As Long
     Dim invItemCol As Long
     Dim invUomCol As Long
     Dim invLocCol As Long
     Dim invDescCol As Long
     If Not invLo Is Nothing Then
         invRowCol = ColumnIndex(invLo, "ROW")
+        invCodeCol = ColumnIndex(invLo, "ITEM_CODE")
         invItemCol = ColumnIndex(invLo, "ITEM")
         invUomCol = ColumnIndex(invLo, "UOM")
         invLocCol = ColumnIndex(invLo, "LOCATION")
@@ -4868,8 +5892,24 @@ Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, 
 
     Dim arr As Variant: arr = loBom.DataBodyRange.Value
     Dim r As Long
+    Dim seenVersions As Object
+    Set seenVersions = CreateObject("Scripting.Dictionary")
     For r = 1 To UBound(arr, 1)
+        If BoxBomTableRowHiddenShipping(loBom, r) Then GoTo NextComponent
+        Dim rowVersionLabel As String
+        If cVersion > 0 Then rowVersionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(arr(r, cVersion)))
+        If targetVersionLabel <> "" Then
+            If rowVersionLabel <> "" And StrComp(rowVersionLabel, targetVersionLabel, vbTextCompare) <> 0 Then GoTo NextComponent
+        ElseIf rowVersionLabel <> "" Then
+            seenVersions(rowVersionLabel) = True
+            If seenVersions.Count > 1 Then
+                Err.Raise vbObjectError + 16, , "BoxBOM contains multiple versions. Filter or select one Version before saving edits."
+            End If
+        End If
+
         Dim partName As String: partName = Trim$(NzStr(arr(r, cName)))
+        Dim partCode As String
+        If cCode > 0 Then partCode = Trim$(NzStr(arr(r, cCode)))
         Dim partRow As Long: partRow = NzLng(arr(r, cRow))
         Dim qty As Double: qty = NzDbl(arr(r, cQty))
         Dim uomVal As String: uomVal = Trim$(NzStr(arr(r, cUom)))
@@ -4883,8 +5923,12 @@ Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, 
         Dim partResolvedName As String
         Dim actualUom As String, actualLoc As String, actualDesc As String
         Dim actualItem As String
+        actualUom = uomVal
+        If cLoc > 0 Then actualLoc = Trim$(NzStr(arr(r, cLoc)))
+        If cDesc > 0 Then actualDesc = Trim$(NzStr(arr(r, cDesc)))
         If Not invLo Is Nothing Then
             If partRow > 0 Then invIdx = FindInvRowIndexByRow(invLo, partRow)
+            If invIdx = 0 And partCode <> "" Then invIdx = FindInvRowIndexByItemCode(invLo, partCode)
             If invIdx = 0 And partName <> "" Then invIdx = FindInvRowIndexByItem(invLo, partName)
         End If
 
@@ -4892,8 +5936,8 @@ Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, 
             partRow = NzLng(invLo.DataBodyRange.Cells(invIdx, invRowCol).Value)
             If partRow > 0 And partName <> "" Then AppendSyncMessage syncNotes, "Updated ROW for '" & partName & "' to " & partRow & "."
         End If
-        If partRow <= 0 And partName <> "" Then
-            If ResolveCanonicalComponentInfoShipping(partName, partRow, actualItem, actualUom, actualLoc, actualDesc) Then
+        If partRow <= 0 And (partName <> "" Or partCode <> "") Then
+            If ResolveCanonicalComponentInfoShipping(partName, partCode, partRow, actualItem, partCode, actualUom, actualLoc, actualDesc) Then
                 If partRow > 0 Then AppendSyncMessage syncNotes, "Updated ROW for '" & partName & "' to " & partRow & "."
             End If
         End If
@@ -4905,6 +5949,7 @@ Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, 
         End If
 
         If invIdx > 0 Then
+            If invCodeCol > 0 Then partCode = NzStr(invLo.DataBodyRange.Cells(invIdx, invCodeCol).Value)
             If invItemCol > 0 Then actualItem = NzStr(invLo.DataBodyRange.Cells(invIdx, invItemCol).Value)
             If invUomCol > 0 Then actualUom = NzStr(invLo.DataBodyRange.Cells(invIdx, invUomCol).Value)
             If invLocCol > 0 Then actualLoc = NzStr(invLo.DataBodyRange.Cells(invIdx, invLocCol).Value)
@@ -4922,18 +5967,20 @@ Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, 
         If cName > 0 And partResolvedName <> "" Then
             loBom.DataBodyRange.Cells(r, cName).Value = partResolvedName
         End If
+        If cCode > 0 Then loBom.DataBodyRange.Cells(r, cCode).Value = partCode
         loBom.DataBodyRange.Cells(r, cRow).Value = partRow
         loBom.DataBodyRange.Cells(r, cUom).Value = uomVal
         If cLoc > 0 Then loBom.DataBodyRange.Cells(r, cLoc).Value = actualLoc
         If cDesc > 0 Then loBom.DataBodyRange.Cells(r, cDesc).Value = actualDesc
 
-        Dim entry(1 To 6) As Variant
+        Dim entry(1 To 7) As Variant
         entry(1) = partRow
         entry(2) = qty
         entry(3) = uomVal
         entry(4) = partResolvedName
         entry(5) = actualLoc
         entry(6) = actualDesc
+        entry(7) = partCode
         result.Add entry
 NextComponent:
     Next
@@ -4944,8 +5991,10 @@ End Function
 Private Sub EnsureBoxBomEntryColumns(loBom As ListObject)
     If loBom Is Nothing Then Exit Sub
     UnhideListObjectWorksheetColumnsShipping loBom
+    RepairMisheadedBoxBomColumnsShipping loBom
     RemoveBlankUnexpectedBoxBomColumnsShipping loBom
     Dim idxItem As Long
+    EnsureColumnExists loBom, "Version"
     idxItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
     If idxItem = 0 Then
         idxItem = ColumnIndex(loBom, "BoxBOM")
@@ -4964,6 +6013,92 @@ Private Sub EnsureBoxBomEntryColumns(loBom As ListObject)
     UnhideListObjectWorksheetColumnsShipping loBom
 End Sub
 
+Private Sub RepairMisheadedBoxBomColumnsShipping(ByVal loBom As ListObject)
+    If loBom Is Nothing Then Exit Sub
+
+    RenameBoxBomColumnIfMissingShipping loBom, "ITEM", "Status"
+    RenameBoxBomColumnIfMissingShipping loBom, "ITEM_CODE", "Effective From"
+    RenameBoxBomColumnIfMissingShipping loBom, "ROW", "Effective To"
+    RenameBoxBomColumnIfMissingShipping loBom, "QUANTITY", "Retired At"
+    RenameBoxBomColumnIfMissingShipping loBom, "UOM", "Updated At"
+    RenameBoxBomColumnIfMissingShipping loBom, "LOCATION", "Updated By"
+End Sub
+
+Private Sub RenameBoxBomColumnIfMissingShipping(ByVal loBom As ListObject, _
+                                                ByVal wantedName As String, _
+                                                ByVal wrongName As String)
+    Dim wrongIdx As Long
+
+    If loBom Is Nothing Then Exit Sub
+    If ColumnIndex(loBom, wantedName) > 0 Then Exit Sub
+    wrongIdx = ColumnIndex(loBom, wrongName)
+    If wrongIdx = 0 Then Exit Sub
+    On Error Resume Next
+    loBom.ListColumns(wrongIdx).Name = wantedName
+    On Error GoTo 0
+End Sub
+
+Private Sub FillBlankBoxBomVersionShipping(ByVal loBom As ListObject)
+    Dim cVersion As Long
+    Dim r As Long
+    Dim lastVersion As String
+
+    If loBom Is Nothing Then Exit Sub
+    If loBom.DataBodyRange Is Nothing Then Exit Sub
+    cVersion = ColumnIndex(loBom, "Version")
+    If cVersion = 0 Then Exit Sub
+
+    For r = 1 To loBom.ListRows.Count
+        If Trim$(NzStr(loBom.DataBodyRange.Cells(r, cVersion).Value)) <> "" Then
+            lastVersion = Trim$(NzStr(loBom.DataBodyRange.Cells(r, cVersion).Value))
+        ElseIf BoxBomRowHasComponentDataShipping(loBom, r) Then
+            If lastVersion = "" Then lastVersion = "v1"
+            loBom.DataBodyRange.Cells(r, cVersion).Value = lastVersion
+        End If
+    Next r
+End Sub
+
+Private Function BoxBomRowHasComponentDataShipping(ByVal loBom As ListObject, ByVal rowIndex As Long) As Boolean
+    Dim cItem As Long
+    Dim cRow As Long
+    Dim cQty As Long
+
+    If loBom Is Nothing Then Exit Function
+    If loBom.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex < 1 Or rowIndex > loBom.ListRows.Count Then Exit Function
+
+    cItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
+    cRow = ColumnIndex(loBom, "ROW")
+    cQty = ColumnIndex(loBom, "QUANTITY")
+    If cItem > 0 Then
+        If Trim$(NzStr(loBom.DataBodyRange.Cells(rowIndex, cItem).Value)) <> "" Then BoxBomRowHasComponentDataShipping = True
+    End If
+    If cRow > 0 Then
+        If NzLng(loBom.DataBodyRange.Cells(rowIndex, cRow).Value) <> 0 Then BoxBomRowHasComponentDataShipping = True
+    End If
+    If cQty > 0 Then
+        If NzDbl(loBom.DataBodyRange.Cells(rowIndex, cQty).Value) <> 0 Then BoxBomRowHasComponentDataShipping = True
+    End If
+End Function
+
+Private Sub SortBoxBomByVersionShipping(ByVal loBom As ListObject)
+    Dim cVersion As Long
+
+    If loBom Is Nothing Then Exit Sub
+    If loBom.DataBodyRange Is Nothing Then Exit Sub
+    cVersion = ColumnIndex(loBom, "Version")
+    If cVersion = 0 Then Exit Sub
+
+    On Error Resume Next
+    With loBom.Sort
+        .SortFields.Clear
+        .SortFields.Add Key:=loBom.ListColumns(cVersion).Range, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .Header = xlYes
+        .Apply
+    End With
+    On Error GoTo 0
+End Sub
+
 Private Sub HideListColumnShipping(ByVal lo As ListObject, ByVal columnName As String, ByVal hidden As Boolean)
     Dim idx As Long
 
@@ -4974,6 +6109,18 @@ Private Sub HideListColumnShipping(ByVal lo As ListObject, ByVal columnName As S
 
     On Error Resume Next
     lo.ListColumns(idx).Range.EntireColumn.Hidden = hidden
+    On Error GoTo 0
+End Sub
+
+Private Sub RemoveListColumnIfExistsShipping(ByVal lo As ListObject, ByVal columnName As String)
+    Dim idx As Long
+
+    If lo Is Nothing Then Exit Sub
+    idx = ColumnIndex(lo, columnName)
+    If idx = 0 Then Exit Sub
+
+    On Error Resume Next
+    lo.ListColumns(idx).Delete
     On Error GoTo 0
 End Sub
 
@@ -5001,7 +6148,7 @@ End Sub
 
 Private Function IsAllowedBoxBomHeaderShipping(ByVal headerText As String) As Boolean
     Select Case UCase$(Trim$(headerText))
-        Case "ITEM", "BOXBOM", "ITEM_CODE", "ROW", "QUANTITY", "CURRENT INV", "UOM", "LOCATION", "DESCRIPTION"
+        Case "VERSION", "ITEM", "BOXBOM", "ITEM_CODE", "ROW", "QUANTITY", "CURRENT INV", "UOM", "LOCATION", "DESCRIPTION"
             IsAllowedBoxBomHeaderShipping = True
     End Select
 End Function
@@ -5126,13 +6273,13 @@ Private Function ShippingBomHeaders() As Variant
     ShippingBomHeaders = Array( _
         "PackageRow", "PackageItem", "PackageUOM", "PackageLocation", "PackageDescription", _
         "BomVersion", "BomVersionLabel", "IsActive", "EffectiveFromUTC", "EffectiveToUTC", "RetiredAtUTC", _
-        "ComponentRow", "ComponentItem", "ComponentQty", "ComponentUOM", "ComponentLocation", "ComponentDescription", _
+        "ComponentRow", "ComponentItemCode", "ComponentItem", "ComponentQty", "ComponentUOM", "ComponentLocation", "ComponentDescription", _
         "UpdatedAtUTC", "UpdatedBy")
 End Function
 
 Private Function ShippingBomPackageTableHeaders() As Variant
     ShippingBomPackageTableHeaders = Array( _
-        "ComponentRow", "ComponentItem", "ComponentQty", "ComponentUOM", "ComponentLocation", "ComponentDescription", _
+        "ComponentRow", "ComponentItemCode", "ComponentItem", "ComponentQty", "ComponentUOM", "ComponentLocation", "ComponentDescription", _
         "UpdatedAtUTC", "UpdatedBy")
 End Function
 
@@ -5143,7 +6290,9 @@ Private Function SaveShippingBomToRuntime(ByVal operatorWb As Workbook, _
                                           ByVal packageLocation As String, _
                                           ByVal packageDescription As String, _
                                           ByVal components As Collection, _
-                                          ByRef report As String) As Boolean
+                                          ByRef report As String, _
+                                          Optional ByVal replaceBomVersion As Long = 0, _
+                                          Optional ByVal forceNewVersion As Boolean = False) As Boolean
     On Error GoTo FailSoft
 
     Dim target As Object
@@ -5194,14 +6343,27 @@ Private Function SaveShippingBomToRuntime(ByVal operatorWb As Workbook, _
     updatedAt = Now
     updatedBy = modRoleEventWriter.ResolveCurrentUserId()
 
-    existingVersion = MatchingShippingBomVersion(loBom, packageRow, components)
-    If existingVersion > 0 Then
-        SaveShippingBomToRuntime = True
-        report = "Shipping BOM unchanged: " & packageItem & " v" & CStr(existingVersion) & " already matches the current BoxBOM."
-        GoTo CleanExit
+    If Not forceNewVersion Then
+        existingVersion = MatchingShippingBomVersion(loBom, packageRow, components)
+        If existingVersion > 0 And (replaceBomVersion <= 0 Or existingVersion = replaceBomVersion) Then
+            SaveShippingBomToRuntime = True
+            report = "Shipping BOM unchanged: " & packageItem & " v" & CStr(existingVersion) & " already matches the current BoxBOM."
+            GoTo CleanExit
+        End If
+        If existingVersion > 0 And replaceBomVersion > 0 And existingVersion <> replaceBomVersion Then
+            SaveShippingBomToRuntime = True
+            report = "Shipping BOM not duplicated: current BoxBOM already matches " & packageItem & " v" & CStr(existingVersion) & "."
+            GoTo CleanExit
+        End If
     End If
 
-    bomVersion = NextShippingBomVersion(loBom, packageRow)
+    If replaceBomVersion > 0 Then
+        bomVersion = replaceBomVersion
+        DeleteShippingBomPackageVersionRows loBom, packageRow, bomVersion
+        DeleteShippingBomPackageTable wbBom, packageRow, bomVersion
+    Else
+        bomVersion = NextShippingBomVersion(loBom, packageRow)
+    End If
 
     For i = 1 To components.Count
         info = components(i)
@@ -5223,6 +6385,7 @@ Private Function SaveShippingBomToRuntime(ByVal operatorWb As Workbook, _
         If UBound(info) >= 4 Then SetTableCellShipping loBom, lr.Index, "ComponentItem", NzStr(info(4))
         If UBound(info) >= 5 Then SetTableCellShipping loBom, lr.Index, "ComponentLocation", NzStr(info(5))
         If UBound(info) >= 6 Then SetTableCellShipping loBom, lr.Index, "ComponentDescription", NzStr(info(6))
+        If UBound(info) >= 7 Then SetTableCellShipping loBom, lr.Index, "ComponentItemCode", NzStr(info(7))
         SetTableCellShipping loBom, lr.Index, "UpdatedAtUTC", updatedAt
         SetTableCellShipping loBom, lr.Index, "UpdatedBy", updatedBy
     Next i
@@ -5230,7 +6393,11 @@ Private Function SaveShippingBomToRuntime(ByVal operatorWb As Workbook, _
     WriteShippingBomPackageTable wbBom, packageRow, bomVersion, packageItem, components, updatedAt, updatedBy
     wbBom.Save
     SaveShippingBomToRuntime = True
-    report = "Shipping BOM runtime updated: " & wbBom.FullName & " (" & packageItem & " v" & CStr(bomVersion) & " active)"
+    If replaceBomVersion > 0 Then
+        report = "Shipping BOM runtime updated: " & wbBom.FullName & " (" & packageItem & " v" & CStr(bomVersion) & " edited)"
+    Else
+        report = "Shipping BOM runtime updated: " & wbBom.FullName & " (" & packageItem & " v" & CStr(bomVersion) & " active)"
+    End If
 
 CleanExit:
     If openedTransient Then CloseWorkbookNoSaveShipping wbBom
@@ -5871,10 +7038,11 @@ End Function
 
 Private Sub CopyShippingBomTable(ByVal loSource As ListObject, ByVal loTarget As ListObject)
     Dim headers As Variant
-    Dim arr() As Variant
     Dim r As Long
     Dim c As Long
     Dim sourceCol As Long
+    Dim targetCol As Long
+    Dim rowsNeeded As Long
 
     If loTarget Is Nothing Then Exit Sub
     ClearListObjectData loTarget
@@ -5886,14 +7054,25 @@ Private Sub CopyShippingBomTable(ByVal loSource As ListObject, ByVal loTarget As
         EnsureColumnExists loTarget, CStr(headers(c))
     Next c
 
-    ReDim arr(1 To loSource.DataBodyRange.Rows.Count, 1 To UBound(headers) - LBound(headers) + 1)
-    For r = 1 To loSource.DataBodyRange.Rows.Count
+    rowsNeeded = loSource.DataBodyRange.Rows.Count
+    Do While loTarget.ListRows.Count < rowsNeeded
+        loTarget.ListRows.Add
+    Loop
+    Do While loTarget.ListRows.Count > rowsNeeded
+        loTarget.ListRows(loTarget.ListRows.Count).Delete
+    Loop
+    If loTarget.DataBodyRange Is Nothing Then Exit Sub
+    loTarget.DataBodyRange.ClearContents
+
+    For r = 1 To rowsNeeded
         For c = LBound(headers) To UBound(headers)
             sourceCol = ColumnIndex(loSource, CStr(headers(c)))
-            If sourceCol > 0 Then arr(r, c - LBound(headers) + 1) = loSource.DataBodyRange.Cells(r, sourceCol).Value
+            targetCol = ColumnIndex(loTarget, CStr(headers(c)))
+            If sourceCol > 0 And targetCol > 0 Then
+                loTarget.DataBodyRange.Cells(r, targetCol).Value = loSource.DataBodyRange.Cells(r, sourceCol).Value
+            End If
         Next c
     Next r
-    WriteArrayToTable loTarget, arr
 End Sub
 
 Private Sub WriteShippingBomPackageTable(ByVal wbBom As Workbook, _
@@ -5933,13 +7112,14 @@ Private Sub WriteShippingBomPackageTable(ByVal wbBom As Workbook, _
     For i = 1 To components.Count
         info = components(i)
         arr(i, 1) = NzLng(info(1))
-        If UBound(info) >= 4 Then arr(i, 2) = NzStr(info(4))
-        arr(i, 3) = NzDbl(info(2))
-        arr(i, 4) = NzStr(info(3))
-        If UBound(info) >= 5 Then arr(i, 5) = NzStr(info(5))
-        If UBound(info) >= 6 Then arr(i, 6) = NzStr(info(6))
-        arr(i, 7) = updatedAt
-        arr(i, 8) = updatedBy
+        If UBound(info) >= 7 Then arr(i, 2) = NzStr(info(7))
+        If UBound(info) >= 4 Then arr(i, 3) = NzStr(info(4))
+        arr(i, 4) = NzDbl(info(2))
+        arr(i, 5) = NzStr(info(3))
+        If UBound(info) >= 5 Then arr(i, 6) = NzStr(info(5))
+        If UBound(info) >= 6 Then arr(i, 7) = NzStr(info(6))
+        arr(i, 8) = updatedAt
+        arr(i, 9) = updatedBy
     Next i
 
     For c = LBound(headers) To UBound(headers)
@@ -6601,13 +7781,47 @@ Private Function FindInvRowIndexByItem(invLo As ListObject, ByVal itemName As St
     If invLo Is Nothing Or invLo.DataBodyRange Is Nothing Then Exit Function
     Dim cItem As Long: cItem = ColumnIndex(invLo, "ITEM")
     If cItem = 0 Then Exit Function
+    Dim wanted As String
+    wanted = NormalizeInventoryLookupTextShipping(itemName)
+    If wanted = "" Then Exit Function
     Dim r As Long
     For r = 1 To invLo.DataBodyRange.Rows.Count
-        If StrComp(Trim$(NzStr(invLo.DataBodyRange.Cells(r, cItem).Value)), Trim$(itemName), vbTextCompare) = 0 Then
+        If NormalizeInventoryLookupTextShipping(invLo.DataBodyRange.Cells(r, cItem).Value) = wanted Then
             FindInvRowIndexByItem = r
             Exit Function
         End If
     Next r
+End Function
+
+Private Function FindInvRowIndexByItemCode(invLo As ListObject, ByVal itemCode As String) As Long
+    If invLo Is Nothing Or invLo.DataBodyRange Is Nothing Then Exit Function
+    Dim cCode As Long: cCode = ColumnIndex(invLo, "ITEM_CODE")
+    If cCode = 0 Then Exit Function
+    Dim wanted As String
+    wanted = NormalizeInventoryLookupTextShipping(itemCode)
+    If wanted = "" Then Exit Function
+    Dim r As Long
+    For r = 1 To invLo.DataBodyRange.Rows.Count
+        If NormalizeInventoryLookupTextShipping(invLo.DataBodyRange.Cells(r, cCode).Value) = wanted Then
+            FindInvRowIndexByItemCode = r
+            Exit Function
+        End If
+    Next r
+End Function
+
+Private Function NormalizeInventoryLookupTextShipping(ByVal rawValue As Variant) As String
+    Dim textValue As String
+
+    textValue = NzStr(rawValue)
+    If textValue = "" Then Exit Function
+    textValue = Replace(textValue, Chr$(160), " ")
+    textValue = Replace(textValue, vbTab, " ")
+    textValue = Replace(textValue, vbCr, " ")
+    textValue = Replace(textValue, vbLf, " ")
+    Do While InStr(1, textValue, "  ", vbBinaryCompare) > 0
+        textValue = Replace(textValue, "  ", " ")
+    Loop
+    NormalizeInventoryLookupTextShipping = LCase$(Trim$(textValue))
 End Function
 
 Private Sub EnsureInvSysRowSeed(invLo As ListObject)
