@@ -610,6 +610,28 @@ Public Sub BtnToggleBuilder()
     ToggleBuilderTables makeVisible
 End Sub
 
+Public Sub BtnOpenBoxBuilder()
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+
+    If Not modRoleUiAccess.RequireCurrentUserCapability("SHIP_POST") Then Exit Sub
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing _
+       Or GetListObject(ws, TABLE_BOX_BUILDER) Is Nothing _
+       Or GetListObject(ws, TABLE_BOX_BOM) Is Nothing Then
+        InitializeShipmentsUiForWorkbook Application.ActiveWorkbook
+    End If
+
+    frmShippingBoxBuilder.InitializeFromShipping
+    frmShippingBoxBuilder.Show
+    Exit Sub
+
+ErrHandler:
+    MsgBox "BOX_BUILDER failed: " & Err.Description, vbCritical
+End Sub
+
 Public Sub BtnSaveBox()
     On Error GoTo ErrHandler
     Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
@@ -3666,6 +3688,241 @@ Public Function LoadShippingComponentPickerItems() As Variant
 
 FailSoft:
     Exit Function
+End Function
+
+Public Function BoxBuilderFormCurrentMeta() As Variant
+    Dim result(1 To 4) As Variant
+    Dim ws As Worksheet
+    Dim loBuilder As ListObject
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then
+        BoxBuilderFormCurrentMeta = result
+        Exit Function
+    End If
+
+    Set loBuilder = GetListObject(ws, TABLE_BOX_BUILDER)
+    If loBuilder Is Nothing Then
+        BoxBuilderFormCurrentMeta = result
+        Exit Function
+    End If
+
+    EnsureTableHasRow loBuilder
+    result(1) = NzStr(ValueFromTable(loBuilder, "Box Name"))
+    result(2) = NzStr(ValueFromTable(loBuilder, "UOM"))
+    result(3) = NzStr(ValueFromTable(loBuilder, "LOCATION"))
+    result(4) = NzStr(ValueFromTable(loBuilder, "DESCRIPTION"))
+    BoxBuilderFormCurrentMeta = result
+End Function
+
+Public Function BoxBuilderFormCurrentComponents() As Variant
+    On Error GoTo FailSoft
+
+    Dim ws As Worksheet
+    Dim loBom As ListObject
+    Dim src As Variant
+    Dim result() As Variant
+    Dim trimmed() As Variant
+    Dim r As Long
+    Dim c As Long
+    Dim outRow As Long
+    Dim cVersion As Long
+    Dim cItem As Long
+    Dim cCode As Long
+    Dim cRow As Long
+    Dim cQty As Long
+    Dim cUom As Long
+    Dim cLoc As Long
+    Dim cDesc As Long
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Function
+
+    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    If loBom Is Nothing Then Exit Function
+    EnsureBoxBomEntryColumns loBom
+    If loBom.DataBodyRange Is Nothing Then Exit Function
+
+    cVersion = ColumnIndex(loBom, "Version")
+    cItem = ColumnIndex(loBom, COL_BOXBOM_ITEM)
+    cCode = ColumnIndex(loBom, "ITEM_CODE")
+    cRow = ColumnIndex(loBom, "ROW")
+    cQty = ColumnIndex(loBom, "QUANTITY")
+    cUom = ColumnIndex(loBom, "UOM")
+    cLoc = ColumnIndex(loBom, "LOCATION")
+    cDesc = ColumnIndex(loBom, "DESCRIPTION")
+    If cItem = 0 Or cRow = 0 Or cQty = 0 Then Exit Function
+
+    src = loBom.DataBodyRange.Value
+    ReDim result(1 To UBound(src, 1), 1 To 8)
+    For r = 1 To UBound(src, 1)
+        If Trim$(NzStr(src(r, cItem))) <> "" Or NzLng(src(r, cRow)) > 0 Or NzDbl(src(r, cQty)) > 0 Then
+            outRow = outRow + 1
+            If cVersion > 0 Then result(outRow, 1) = NzStr(src(r, cVersion)) Else result(outRow, 1) = "v1"
+            result(outRow, 2) = NzStr(src(r, cItem))
+            If cCode > 0 Then result(outRow, 3) = NzStr(src(r, cCode))
+            result(outRow, 4) = NzLng(src(r, cRow))
+            result(outRow, 5) = NzDbl(src(r, cQty))
+            If cUom > 0 Then result(outRow, 6) = NzStr(src(r, cUom))
+            If cLoc > 0 Then result(outRow, 7) = NzStr(src(r, cLoc))
+            If cDesc > 0 Then result(outRow, 8) = NzStr(src(r, cDesc))
+        End If
+    Next r
+
+    If outRow = 0 Then Exit Function
+    ReDim trimmed(1 To outRow, 1 To 8)
+    For r = 1 To outRow
+        For c = 1 To 8
+            trimmed(r, c) = result(r, c)
+        Next c
+    Next r
+    BoxBuilderFormCurrentComponents = trimmed
+    Exit Function
+
+FailSoft:
+    BoxBuilderFormCurrentComponents = Empty
+End Function
+
+Public Sub CommitBoxBuilderFormState(ByVal boxName As String, _
+                                     ByVal boxUom As String, _
+                                     ByVal boxLocation As String, _
+                                     ByVal boxDescription As String, _
+                                     ByVal bomRows As Variant)
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Dim wb As Workbook
+    Dim loBuilder As ListObject
+    Dim loBom As ListObject
+    Dim prevEvents As Boolean
+    Dim quietStarted As Boolean
+    Dim rowCount As Long
+    Dim r As Long
+    Dim errText As String
+
+    prevEvents = Application.EnableEvents
+    boxName = Trim$(boxName)
+    boxUom = Trim$(boxUom)
+    If boxName = "" Then
+        MsgBox "Enter a Box Name before saving.", vbExclamation
+        Exit Sub
+    End If
+    If boxUom = "" Then
+        MsgBox "Box UOM is required.", vbExclamation
+        Exit Sub
+    End If
+    If IsEmpty(bomRows) Then
+        MsgBox "Add at least one component before saving.", vbExclamation
+        Exit Sub
+    End If
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Sub
+    Set wb = ws.Parent
+
+    Set loBuilder = GetListObject(ws, TABLE_BOX_BUILDER)
+    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
+    If loBuilder Is Nothing Or loBom Is Nothing Then
+        MsgBox "Box Builder tables not found on ShipmentsTally sheet.", vbExclamation
+        Exit Sub
+    End If
+
+    rowCount = UBound(bomRows, 1)
+    If rowCount <= 0 Then
+        MsgBox "Add at least one component before saving.", vbExclamation
+        Exit Sub
+    End If
+
+    Application.EnableEvents = False
+    mHandlingShippingSheetChange = True
+    mSuppressGeneratedIdentityEditGuard = True
+    modUiQuiet.BeginQuietUi wb
+    quietStarted = True
+
+    EnsureTableHasRow loBuilder
+    RemoveColumnIfExistsShipping loBuilder, "ROW"
+    ClearListObjectData loBuilder
+    SetTableCellShipping loBuilder, 1, "Box Name", boxName
+    SetTableCellShipping loBuilder, 1, "UOM", boxUom
+    SetTableCellShipping loBuilder, 1, "LOCATION", boxLocation
+    SetTableCellShipping loBuilder, 1, "DESCRIPTION", boxDescription
+
+    EnsureBoxBomEntryColumns loBom
+    ClearListObjectData loBom
+    EnsureListObjectHasRowsShipping loBom, MaxLongShipping(rowCount, 10)
+
+    For r = 1 To rowCount
+        SetTableCellShipping loBom, r, "Version", BoxBuilderFormBomText(bomRows, r, 1, "v1")
+        SetTableCellShipping loBom, r, COL_BOXBOM_ITEM, BoxBuilderFormBomText(bomRows, r, 2, "")
+        SetTableCellShipping loBom, r, "ITEM_CODE", BoxBuilderFormBomText(bomRows, r, 3, "")
+        SetTableCellShipping loBom, r, "ROW", BoxBuilderFormBomLong(bomRows, r, 4)
+        SetTableCellShipping loBom, r, "QUANTITY", BoxBuilderFormBomDouble(bomRows, r, 5)
+        SetTableCellShipping loBom, r, "UOM", BoxBuilderFormBomText(bomRows, r, 6, "")
+        SetTableCellShipping loBom, r, "LOCATION", BoxBuilderFormBomText(bomRows, r, 7, "")
+        SetTableCellShipping loBom, r, "DESCRIPTION", BoxBuilderFormBomText(bomRows, r, 8, "")
+    Next r
+    FillBlankBoxBomVersionShipping loBom
+    SortBoxBomByVersionShipping loBom
+
+CleanRestore:
+    If quietStarted Then
+        On Error Resume Next
+        modUiQuiet.EndQuietUi
+        On Error GoTo ErrHandler
+    End If
+    mSuppressGeneratedIdentityEditGuard = False
+    mHandlingShippingSheetChange = False
+    Application.EnableEvents = prevEvents
+
+    If Err.Number = 0 Then BtnSaveBox
+    Exit Sub
+
+ErrHandler:
+    errText = Err.Description
+    Resume CleanFail
+
+CleanFail:
+    If quietStarted Then
+        On Error Resume Next
+        modUiQuiet.EndQuietUi
+        On Error GoTo 0
+    End If
+    mSuppressGeneratedIdentityEditGuard = False
+    mHandlingShippingSheetChange = False
+    Application.EnableEvents = prevEvents
+    MsgBox "BOX_BUILDER_SAVE failed: " & errText, vbCritical
+End Sub
+
+Private Function BoxBuilderFormBomText(ByVal rowsData As Variant, _
+                                       ByVal rowIndex As Long, _
+                                       ByVal colIndex As Long, _
+                                       ByVal defaultValue As String) As String
+    On Error GoTo UseDefault
+    BoxBuilderFormBomText = NzStr(rowsData(rowIndex, colIndex))
+    If BoxBuilderFormBomText = "" Then BoxBuilderFormBomText = defaultValue
+    Exit Function
+UseDefault:
+    BoxBuilderFormBomText = defaultValue
+End Function
+
+Private Function BoxBuilderFormBomLong(ByVal rowsData As Variant, _
+                                       ByVal rowIndex As Long, _
+                                       ByVal colIndex As Long) As Long
+    On Error GoTo UseZero
+    BoxBuilderFormBomLong = NzLng(rowsData(rowIndex, colIndex))
+    Exit Function
+UseZero:
+    BoxBuilderFormBomLong = 0
+End Function
+
+Private Function BoxBuilderFormBomDouble(ByVal rowsData As Variant, _
+                                         ByVal rowIndex As Long, _
+                                         ByVal colIndex As Long) As Double
+    On Error GoTo UseZero
+    BoxBuilderFormBomDouble = NzDbl(rowsData(rowIndex, colIndex))
+    Exit Function
+UseZero:
+    BoxBuilderFormBomDouble = 0#
 End Function
 
 Private Function ShippingInventoryPickerTableHasRows(ByVal lo As ListObject) As Boolean
@@ -8351,6 +8608,22 @@ End Sub
 Private Sub EnsureTableHasRow(lo As ListObject)
     If lo Is Nothing Then Exit Sub
     If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+End Sub
+
+Private Sub EnsureListObjectHasRowsShipping(ByVal lo As ListObject, ByVal wantedRows As Long)
+    Dim rowCount As Long
+
+    If lo Is Nothing Then Exit Sub
+    If wantedRows < 1 Then wantedRows = 1
+    If lo.DataBodyRange Is Nothing Then
+        rowCount = 0
+    Else
+        rowCount = lo.ListRows.Count
+    End If
+    Do While rowCount < wantedRows
+        lo.ListRows.Add
+        rowCount = rowCount + 1
+    Loop
 End Sub
 
 Private Sub ClearListObjectData(lo As ListObject)

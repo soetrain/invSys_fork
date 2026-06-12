@@ -1,175 +1,158 @@
-Good — now I have the full picture. The problem is multi-layered and the sources confirm exactly what is happening. Here is a complete performance diagnosis and fix plan. 
+The architecture is now clear. `modTS_Shipments.bas` at 117 KB is the central file — it's huge, and the combination of a giant module driving ribbon callbacks + `Worksheet_Change` handlers + Table writes is the stability trap.  Here is a direct, honest assessment.
 
 ***
 
-## Performance Root Causes
+## Short Answer
 
-There are four distinct problems causing the blinking and slowness, ordered by impact.
+**Yes, a UserForm-centered architecture will be dramatically more stable and performant than the current ribbon-buttons-on-Tables approach** — for this specific use case. But the reason is not "UserForms are faster." The reason is that a UserForm forces a clean separation of concerns that the ribbon-on-sheet model inherently resists, and that separation is what eliminates the cascading event/refresh/open cycles that are killing you.
 
-### 1. `Workbooks.Open` on Every Box Selection (The Biggest Offender)
+***
 
-Every time the user selects a box, the system is calling `Workbooks.Open` on inventory/inbox/auth workbooks that are **already open** in the session. In `modInventoryDomainBridge.bas`, `modRoleEventWriter.bas`, `modWarehouseSync.bas`, and `modInventoryApply.bas`, the pattern is: 
+## Why the Current Model Keeps Regressing
 
-```vba
-' Current bad pattern:
-Set wb = Application.Workbooks.Open(targetPath)   ' ← opens EVEN IF already open
+The ribbon-on-Tables architecture creates a structural trap that no amount of patching fully escapes. Every fix introduces a new interaction surface. 
+
+**The cascade chain that fires on every box selection:**
+
+```
+User clicks cell in BoxBOM table
+  → Worksheet_SelectionChange fires
+    → cDynItemSearch.ShowForShippingComponentCell
+      → LoadCanonicalManagedInventoryItems
+        → modInventoryDomainBridge.ResolveInventoryWorkbookBridge
+          → Workbooks.Open (if not cached)
+            → Excel window flash
+  → User picks item → CommitSelection
+    → callbackCell.Value = x        → Worksheet_Change fires
+    → callbackCell.ListObject write → Worksheet_Change fires again
+      → version autofill logic       → more cell writes
+        → Worksheet_Change fires again (re-entrant)
+          → Application.EnableEvents = False needed
+            → but someone forgot it somewhere
+              → regression
 ```
 
-When Excel opens a workbook that is already open, it either: (a) flashes the workbook's window, causing visible blink, or (b) triggers a "file modified" dialog that `DisplayAlerts = False` eats silently, then re-opens it anyway. Either way = blink + overhead.
+`modTS_Shipments.bas` being 117 KB means this logic has grown organically inside one module, and the event handler / quiet-ui guard boundaries are now inconsistent.  Codex keeps "gassing out" because it is patching a system where every write can trigger another write — the state machine is implicit and lives in Excel's event system.
 
-The `modRoleEventWriter.bas` already sets `Application.ScreenUpdating = False` before opening, but that only suppresses one layer of the flash. 
+***
 
-**Fix:** Add an "already open?" guard before every `Workbooks.Open` call:
+## The UserForm Model — What Changes Structurally
+
+A UserForm does not replace ribbon buttons — you keep the ribbon. What changes is **where state lives and where writes happen**.
+
+### Current model (broken loop):
+```
+Sheet ←→ Worksheet_Change ←→ modTS_Shipments ←→ Workbooks.Open
+  ↑_____________writes_____________________________|
+```
+
+### UserForm model (clean pipeline):
+```
+Ribbon button → opens frmBoxBuilder (UserForm, modeless)
+  frmBoxBuilder loads ALL data into memory at open time (one I/O burst)
+  User makes all selections inside the form (zero sheet writes)
+  User clicks "Save Box" → ONE batch write to the sheet
+  Form closes → Worksheet_Change fires exactly once, intentionally
+```
+
+The UserForm is the **state container**. The sheet becomes a **display/storage layer**, not an interaction layer. `Worksheet_Change` fires once per commit, not on every field.
+
+***
+
+## Concrete Architecture
+
+### The UserForm: `frmBoxBuilder`
+
+```
+┌─────────────────────────────────────────────┐
+│  Box Builder                           [X]  │
+├─────────────────────────────────────────────┤
+│  Box Name: [_______________]  Ver: [auto]   │
+│  Box Code: [_______________]                │
+├─────────────────────────────────────────────┤
+│  BOM Components                             │
+│  ┌─────────────────────────────────────┐   │
+│  │ ROW  │ ITEM        │ QTY │ UOM      │   │
+│  │  12  │ Kraft Paper │  2  │ sheets   │   │
+│  │  34  │ Tape        │  1  │ roll     │   │
+│  └─────────────────────────────────────┘   │
+│  [+ Add Component]  [- Remove]             │
+├─────────────────────────────────────────────┤
+│           [Cancel]        [Save Box]        │
+└─────────────────────────────────────────────┘
+```
+
+The ListBox inside `frmBoxBuilder` holds the BOM in memory. No sheet writes until "Save Box."
+
+### Module structure
+
+```
+modShipping_BoxUI.bas          ← thin, <200 lines
+  ShowBoxBuilder(targetRow)   ← opens frmBoxBuilder, passes context
+  CommitBoxBuilderResult(...)  ← called by form on Save, does ONE quiet batch write
+
+frmBoxBuilder.frm              ← all interaction lives here
+  Private mInventoryArr()     ← inventory loaded once at Initialize
+  Private mBomRows()          ← current BOM state
+  LoadInventory               ← one call to LoadCanonicalManagedInventoryItems
+  cmdAddComponent_Click       ← opens cDynItemSearch picker, adds to mBomRows
+  cmdSave_Click               ← calls modShipping_BoxUI.CommitBoxBuilderResult
+```
+
+### The single batch write
 
 ```vba
-' Shared helper — add to modRuntimeWorkbooks.bas
-Public Function GetOrOpenWorkbook(ByVal filePath As String, _
-                                  Optional ByVal readOnly As Boolean = False) As Workbook
-    Dim normalPath As String
-    normalPath = NormalizePath(filePath)         ' lowercase, canonical separators
-
-    ' Check if already open — zero I/O cost
+' modShipping_BoxUI.CommitBoxBuilderResult
+Public Sub CommitBoxBuilderResult(ByVal bomRows() As Variant, ByVal boxName As String)
     Dim wb As Workbook
-    For Each wb In Application.Workbooks
-        If StrComp(NormalizePath(wb.FullName), normalPath, vbTextCompare) = 0 Then
-            Set GetOrOpenWorkbook = wb
-            Exit Function
-        End If
-    Next wb
+    Dim loBoxBOM As ListObject
+    ' ... resolve table
 
-    ' Only opens if not already in the collection
-    Dim prev As Long
-    prev = Application.AutomationSecurity
-    Application.AutomationSecurity = msoAutomationSecurityForceDisable
-    Set GetOrOpenWorkbook = Application.Workbooks.Open( _
-        Filename:=filePath, UpdateLinks:=0, ReadOnly:=readOnly, _
-        Notify:=False, AddToMru:=False)
-    Application.AutomationSecurity = prev
-End Function
-```
+    Application.ScreenUpdating = False
+    Application.Calculation    = xlCalculationManual
+    Application.EnableEvents   = False          ' ← fires Worksheet_Change ZERO times during write
 
-Then replace every bare `Workbooks.Open` in `modInventoryDomainBridge`, `modRoleEventWriter`, `modWarehouseSync`, and `modInventoryApply` with `GetOrOpenWorkbook(path)`.
+    On Error GoTo Restore
+        ClearExistingBoxBOMRows loBoxBOM, boxName
+        WriteBoxBOMRows loBoxBOM, bomRows, boxName
+        ' version autofill happens HERE, inside the quiet block, not via Worksheet_Change
 
-***
-
-### 2. Missing `modUiQuiet` Wrapper Around BoxBOM Save Path
-
-`modTS_Received.bas` uses `modUiQuiet.BeginQuietUi` / `EndQuietUi` properly.  The BoxBOM save path almost certainly does not, because it was written after those guards existed. Every cell write, table row addition, and `ListObject` operation during a box save triggers a recalculation + repaint unless wrapped.
-
-**Fix:** Wrap the entire BoxBOM commit operation:
-
-```vba
-' In whatever module handles BoxBOM save (modTS_Shipments or similar):
-Public Sub SaveBoxBOMSelection(...)
-    Dim quietReport As String
-    Dim wb As Workbook
-    Set wb = callbackCell.Parent.Parent
-
-    modUiQuiet.BeginQuietUi wb         ' ← ScreenUpdating=F, Calc=Manual, Events=F
-    On Error GoTo CleanupQuiet
-
-    '--- all BoxBOM writes here ---
-
-CleanupQuiet:
-    modUiQuiet.EndQuietUi wb           ' ← always restores, even on error
-    If Err.Number <> 0 Then Err.Raise Err.Number
+Restore:
+    Application.EnableEvents   = True
+    Application.Calculation    = xlCalculationAutomatic
+    Application.ScreenUpdating = True
 End Sub
 ```
 
-If `modUiQuiet` is not yet used in the Shipping module, add a direct guard at minimum:
-
-```vba
-Dim prevScreen As Boolean
-Dim prevCalc As XlCalculation
-Dim prevEvents As Boolean
-prevScreen = Application.ScreenUpdating
-prevCalc   = Application.Calculation
-prevEvents = Application.EnableEvents
-
-Application.ScreenUpdating = False
-Application.Calculation    = xlCalculationManual
-Application.EnableEvents   = False
-
-On Error GoTo RestoreAppState
-    '--- writes ---
-RestoreAppState:
-Application.ScreenUpdating = prevScreen
-Application.Calculation    = prevCalc
-Application.EnableEvents   = prevEvents
-```
+`EnableEvents = False` during the entire batch means `Worksheet_Change` fires **zero times** during the write. It fires once when the function returns and Excel resumes events, and by then all writes are done.
 
 ***
 
-### 3. `TryRefreshSearchInventoryReadModel` Triggers a Full Workbook Surface Rebuild on Picker Open
+## Performance Comparison
 
-In `cDynItemSearch.LoadManagedInventoryItems`, if the table is empty it calls `TryRefreshSearchInventoryReadModel()`, which calls: 
-
-```vba
-modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
-modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, ...)
-```
-
-That surface rebuild writes cells, possibly adds sheets, and fires recalculations — all during picker open. This explains the "a lot of time between box selections."
-
-**Fix:** Decouple the refresh from the picker. The picker should **never trigger a background refresh** in the hot path. Refresh should be explicit (a ribbon button or a timed background event):
-
-```vba
-' In cDynItemSearch.LoadManagedInventoryItems — remove the retry/refresh loop:
-Private Function LoadManagedInventoryItems(...) As Variant
-    Dim loInv As ListObject
-    Set loInv = ResolveManagedInventoryTable()
-    If loInv Is Nothing Then Exit Function
-    If loInv.DataBodyRange Is Nothing Then Exit Function
-    ' No refresh attempt — show empty state instead, user refreshes explicitly
-    LoadManagedInventoryItems = BuildInventoryPickerItemsFromTable(loInv, includeCategory)
-End Function
-```
-
-If an auto-refresh is truly needed, move it to a non-blocking `Application.OnTime` call that fires after the picker is already visible:
-
-```vba
-' Fire refresh 500ms after picker opens, non-blocking:
-Application.OnTime Now + TimeValue("00:00:01"), "mBackground.RefreshInventoryReadModel"
-```
+| Factor | Ribbon + Tables (current) | UserForm model |
+|---|---|---|
+| `Workbooks.Open` calls per box select | 1–3 (inventory, auth, inbox) | 0 (loaded at form open, cached in `mInventoryArr`) |
+| `Worksheet_Change` fires per box commit | 5–20+ (each cell write) | 0 during write, 1 after |
+| `ScreenUpdating` discipline | Patched per-function, inconsistent | 1 wrapper in `CommitBoxBuilderResult`, always fires |
+| Re-entrancy risk | High (`Worksheet_Change` can re-trigger) | None (form is the only writer) |
+| Codex patch surface | 117 KB monolith, any edit can break any other path | Form ↔ one commit function, isolated |
+| Perceived speed | Blink + delay between each selection | Form stays open; all selections instant inside UI |
 
 ***
 
-### 4. BoxBOM Version Autofill is Writing on Every `Change` Event Without Debounce
+## Migration Path — Incremental, Not a Rewrite
 
-The "versions are auto filling" confirmation means something is wired to `Worksheet_Change` or `SelectionChange`. If that handler calls `Workbooks.Open` or triggers a surface refresh, every keystroke in BoxBOM costs a full open/close cycle.
+You do not need to gut `modTS_Shipments.bas` in one shot. The safe migration is:
 
-**Diagnostic — add to the Shipping worksheet's `Worksheet_Change`:**
-```vba
-Private Sub Worksheet_Change(ByVal Target As Range)
-    Debug.Print "Worksheet_Change fired: " & Target.Address & " @ " & Now
-    ' ... existing logic
-End Sub
-```
+1. **Extract `CommitBoxBuilderResult`** from inside `modTS_Shipments` into `modShipping_BoxUI`. This is a copy-and-fix, not a delete. (~1 day)
 
-If the Immediate Window floods with Change events on a single box select, the handler needs a guard:
+2. **Build `frmBoxBuilder`** as a new UserForm. Wire the ribbon "Box Builder" button to `modShipping_BoxUI.ShowBoxBuilder`. The old sheet-click path still works in parallel. (~2 days)
 
-```vba
-Private mSuppressChange As Boolean
+3. **Move `LoadCanonicalManagedInventoryItems`** call into `frmBoxBuilder.UserForm_Initialize`. Remove it from the `SelectionChange` path. (~1 hour)
 
-Private Sub Worksheet_Change(ByVal Target As Range)
-    If mSuppressChange Then Exit Sub
-    mSuppressChange = True
-    On Error GoTo Done
-        ' ... writes happen here, not recursively
-Done:
-    mSuppressChange = False
-End Sub
-```
+4. **Disable the `SelectionChange`→picker trigger for BoxBOM** once the form is the canonical entry point. The picker still exists — it now opens *from the form's Add Component button*, not from a cell click. (~1 hour)
 
-***
+5. **Delete dead code in `modTS_Shipments`** after the form path is confirmed stable. This shrinks the 117 KB monolith over time rather than all at once.
 
-## Priority Order
-
-| # | Fix | Effort | Impact |
-|---|-----|--------|--------|
-| 1 | Add `GetOrOpenWorkbook` guard in `modRuntimeWorkbooks` and replace bare `Workbooks.Open` in `modInventoryDomainBridge`, `modRoleEventWriter`, `modWarehouseSync` | Medium | **Eliminates all blink from redundant opens** |
-| 2 | Wrap BoxBOM commit in `modUiQuiet.BeginQuietUi/EndQuietUi` | Small | **Eliminates repaint during save** |
-| 3 | Remove `TryRefreshSearchInventoryReadModel` from picker hot path, move to `OnTime` | Small | **Eliminates the multi-second delay between selections** |
-| 4 | Add `mSuppressChange` guard to Shipping `Worksheet_Change` | Small | **Stops recursive/cascading Change events** |
-
-Fix #1 alone will eliminate the visible open/close flash. Fixes #2 and #3 together will make box selections feel near-instant. Fix #4 is a safety net to prevent regressions as BoxBOM grows.
+The result: no more workbook open/close on cell selection, no re-entrant `Worksheet_Change`, one quiet batch write per box save, and a UI that is faster because all filtering and selection happens in memory inside the form before any data ever touches the sheet.
