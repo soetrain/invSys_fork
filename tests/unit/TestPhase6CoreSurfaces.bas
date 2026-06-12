@@ -3798,6 +3798,11 @@ Public Function TestShippingEventCreator_QueuesSignedInCurrentTargetEvent() As L
         failureReason = "QueueShipmentsSentEventFromWorkbook failed: " & report
         GoTo CleanExit
     End If
+    If Not modNasConnection.SetCurrentTargetPathsForTest(rootPath, rootPath) Then
+        failureReason = "Could not restore local processor target after NAS-gated shipping queue."
+        GoTo CleanExit
+    End If
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
     If Trim$(eventIdOut) = "" Then
         failureReason = "Shipping event creator did not return an EventID."
         GoTo CleanExit
@@ -4195,6 +4200,11 @@ Public Function TestProductionEventCreator_QueuesSignedInCurrentTargetEvent() As
         failureReason = "QueueProductionCompleteEventFromWorkbook failed: " & report
         GoTo CleanExit
     End If
+    If Not modNasConnection.SetCurrentTargetPathsForTest(rootPath, rootPath) Then
+        failureReason = "Could not restore local processor target after NAS-gated production queue."
+        GoTo CleanExit
+    End If
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
     If Trim$(eventIdOut) = "" Then
         failureReason = "Production event creator did not return an EventID."
         GoTo CleanExit
