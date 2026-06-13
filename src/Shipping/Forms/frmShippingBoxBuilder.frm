@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmShippingBoxBuilder
    Caption         =   "Shipping Box Builder"
-   ClientHeight    =   6720
+   ClientHeight    =   7800
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   10560
+   ClientWidth     =   12480
    StartUpPosition =   1  'CenterOwner
 End
 Attribute VB_Name = "frmShippingBoxBuilder"
@@ -15,23 +15,35 @@ Attribute VB_Exposed = False
 '@RuntimeStubUserFormCode
 Option Explicit
 
+Private WithEvents mCboBoxes As MSForms.ComboBox
+Private WithEvents mCboVersions As MSForms.ComboBox
+Private WithEvents mCboStatus As MSForms.ComboBox
 Private WithEvents mTxtBoxName As MSForms.TextBox
 Private WithEvents mTxtUom As MSForms.TextBox
 Private WithEvents mTxtLocation As MSForms.TextBox
 Private WithEvents mTxtDescription As MSForms.TextBox
-Private WithEvents mTxtVersion As MSForms.TextBox
 Private WithEvents mTxtSearch As MSForms.TextBox
 Private WithEvents mTxtQty As MSForms.TextBox
 Private WithEvents mLstInventory As MSForms.ListBox
 Private WithEvents mLstBom As MSForms.ListBox
+Private WithEvents mBtnRefresh As MSForms.CommandButton
+Private WithEvents mBtnNewBox As MSForms.CommandButton
 Private WithEvents mBtnAdd As MSForms.CommandButton
 Private WithEvents mBtnRemove As MSForms.CommandButton
-Private WithEvents mBtnSave As MSForms.CommandButton
+Private WithEvents mBtnUpdateVersion As MSForms.CommandButton
+Private WithEvents mBtnNewVersion As MSForms.CommandButton
+Private WithEvents mBtnDeleteVersion As MSForms.CommandButton
+Private WithEvents mBtnDeleteBox As MSForms.CommandButton
 Private WithEvents mBtnCancel As MSForms.CommandButton
 
 Private mLblStatus As MSForms.Label
+Private mLblInventoryStatus As MSForms.Label
 Private mInventoryData As Variant
+Private mSavedBoxes As Variant
+Private mVersionRows As Variant
+Private mSelectedPackageRow As Long
 Private mBuilt As Boolean
+Private mLoading As Boolean
 
 Private Sub UserForm_Initialize()
     BuildLayout
@@ -39,9 +51,18 @@ End Sub
 
 Public Sub InitializeFromShipping()
     If Not mBuilt Then BuildLayout
+
+    mLoading = True
+    LoadSavedBoxes
     LoadCurrentBoxState
     LoadInventoryCache
     RenderInventoryList
+    mLoading = False
+
+    If mSelectedPackageRow > 0 Then
+        LoadVersionsForPackage mSelectedPackageRow
+        LoadSelectedVersionComponents
+    End If
 End Sub
 
 Private Sub BuildLayout()
@@ -49,55 +70,117 @@ Private Sub BuildLayout()
     mBuilt = True
 
     Me.Caption = "Shipping Box Builder"
-    Me.Width = 760
-    Me.Height = 520
+    Me.Width = 900
+    Me.Height = 610
 
     AddLabel "lblTitle", "Box Builder", 12, 10, 180, 20, True
-    AddLabel "lblBoxName", "Box Name", 12, 42, 70, 18, False
-    AddLabel "lblUom", "UOM", 292, 42, 40, 18, False
-    AddLabel "lblLocation", "Location", 388, 42, 70, 18, False
-    AddLabel "lblVersion", "Version", 582, 42, 60, 18, False
-    AddLabel "lblDesc", "Description", 12, 76, 86, 18, False
-    AddLabel "lblSearch", "Managed Inventory", 12, 122, 140, 18, True
-    AddLabel "lblQty", "Qty", 306, 122, 30, 18, False
-    AddLabel "lblBom", "BOM Components", 390, 122, 160, 18, True
+    AddLabel "lblBoxSelect", "Saved Box", 12, 40, 76, 18, False
+    AddLabel "lblVersionSelect", "Version", 472, 40, 70, 18, False
+    AddLabel "lblStatusSelect", "Status", 606, 40, 54, 18, False
 
-    Set mTxtBoxName = AddTextBox("txtBoxName", 86, 38, 190, 22)
-    Set mTxtUom = AddTextBox("txtUom", 328, 38, 44, 22)
-    Set mTxtLocation = AddTextBox("txtLocation", 452, 38, 110, 22)
-    Set mTxtVersion = AddTextBox("txtVersion", 642, 38, 44, 22)
-    Set mTxtDescription = AddTextBox("txtDescription", 100, 72, 586, 22)
-    Set mTxtSearch = AddTextBox("txtSearch", 12, 144, 280, 22)
-    Set mTxtQty = AddTextBox("txtQty", 336, 144, 38, 22)
+    Set mCboBoxes = AddComboBox("cboBoxes", 88, 36, 294, 22)
+    With mCboBoxes
+        .ColumnCount = 5
+        .ColumnWidths = "0 pt;150 pt;42 pt;72 pt;120 pt"
+        .BoundColumn = 1
+        .TextColumn = 2
+        .Style = 2
+    End With
+    Set mBtnNewBox = AddButton("btnNewBox", "New Box", 392, 34, 72, 26)
+    Set mCboVersions = AddComboBox("cboVersions", 510, 36, 78, 22)
+    With mCboVersions
+        .ColumnCount = 8
+        .ColumnWidths = "42 pt;0 pt;0 pt;0 pt;0 pt;0 pt;0 pt;0 pt"
+        .Style = 2
+    End With
+    Set mCboStatus = AddComboBox("cboStatus", 658, 36, 86, 22)
+    With mCboStatus
+        .Style = 2
+        .AddItem "Active"
+        .AddItem "Retired"
+        .ListIndex = 0
+    End With
+    Set mBtnRefresh = AddButton("btnRefresh", "Refresh", 758, 34, 78, 26)
 
-    Set mLstInventory = AddListBox("lstInventory", 12, 174, 362, 250)
+    AddLabel "lblBoxName", "Box Name", 12, 78, 70, 18, False
+    AddLabel "lblUom", "UOM", 294, 78, 40, 18, False
+    AddLabel "lblLocation", "Location", 392, 78, 70, 18, False
+    AddLabel "lblDesc", "Description", 12, 112, 86, 18, False
+
+    Set mTxtBoxName = AddTextBox("txtBoxName", 88, 74, 190, 22)
+    Set mTxtUom = AddTextBox("txtUom", 330, 74, 44, 22)
+    Set mTxtLocation = AddTextBox("txtLocation", 456, 74, 118, 22)
+    Set mTxtDescription = AddTextBox("txtDescription", 100, 108, 628, 22)
+
+    AddLabel "lblSearch", "Managed Inventory", 12, 154, 140, 18, True
+    Set mLblInventoryStatus = AddLabel("lblInventoryStatus", "", 154, 154, 256, 18, False)
+    AddLabel "lblQty", "Qty", 328, 154, 30, 18, False
+    AddLabel "lblBom", "BOM Components", 450, 154, 160, 18, True
+
+    Set mTxtSearch = AddTextBox("txtSearch", 12, 176, 304, 22)
+    Set mTxtQty = AddTextBox("txtQty", 360, 176, 50, 22)
+
+    Set mLstInventory = AddListBox("lstInventory", 12, 206, 398, 284)
     With mLstInventory
-        .ColumnCount = 6
-        .ColumnWidths = "38 pt;70 pt;120 pt;38 pt;62 pt;120 pt"
+        .ColumnCount = 7
+        .ColumnWidths = "38 pt;62 pt;118 pt;36 pt;58 pt;106 pt;52 pt"
     End With
 
-    Set mLstBom = AddListBox("lstBom", 390, 144, 342, 280)
+    Set mLstBom = AddListBox("lstBom", 450, 176, 386, 314)
     With mLstBom
         .ColumnCount = 8
-        .ColumnWidths = "28 pt;112 pt;70 pt;38 pt;38 pt;36 pt;62 pt;120 pt"
+        .ColumnWidths = "34 pt;126 pt;72 pt;40 pt;42 pt;38 pt;62 pt;124 pt"
     End With
 
-    Set mBtnAdd = AddButton("btnAdd", "Add", 300, 430, 74, 28)
-    Set mBtnRemove = AddButton("btnRemove", "Remove", 390, 430, 74, 28)
-    Set mBtnSave = AddButton("btnSave", "Save Box", 566, 430, 78, 28)
-    Set mBtnCancel = AddButton("btnCancel", "Cancel", 654, 430, 78, 28)
-    Set mLblStatus = AddLabel("lblStatus", "", 12, 466, 720, 28, False)
+    Set mBtnAdd = AddButton("btnAdd", "Add", 250, 498, 76, 28)
+    Set mBtnRemove = AddButton("btnRemove", "Remove", 450, 498, 76, 28)
+    Set mBtnUpdateVersion = AddButton("btnUpdateVersion", "Update Version", 538, 498, 102, 28)
+    Set mBtnNewVersion = AddButton("btnNewVersion", "Save New Version", 650, 498, 118, 28)
+    Set mBtnDeleteVersion = AddButton("btnDeleteVersion", "Delete Version", 538, 534, 102, 28)
+    Set mBtnDeleteBox = AddButton("btnDeleteBox", "Delete Box", 650, 534, 86, 28)
+    Set mBtnCancel = AddButton("btnCancel", "Close", 760, 534, 76, 28)
+    Set mLblStatus = AddLabel("lblStatus", "", 12, 536, 500, 36, False)
 
-    mTxtVersion.Value = "v1"
+    mTxtUom.Value = "ea"
     mTxtQty.Value = "1"
+End Sub
+
+Private Sub LoadSavedBoxes()
+    On Error GoTo FailSoft
+
+    Dim r As Long
+    Dim idx As Long
+
+    mSavedBoxes = modTS_Shipments.BoxBuilderFormLoadSavedBoxes()
+    mCboBoxes.Clear
+    mSelectedPackageRow = 0
+    If IsEmpty(mSavedBoxes) Then
+        ResetForNewBox
+        ShowStatus "No saved boxes found. Create a box, add components, then Save New Version."
+        Exit Sub
+    End If
+
+    For r = 1 To UBound(mSavedBoxes, 1)
+        mCboBoxes.AddItem NzText(mSavedBoxes(r, 1))
+        idx = mCboBoxes.ListCount - 1
+        mCboBoxes.List(idx, 1) = NzText(mSavedBoxes(r, 2))
+        mCboBoxes.List(idx, 2) = NzText(mSavedBoxes(r, 3))
+        mCboBoxes.List(idx, 3) = NzText(mSavedBoxes(r, 4))
+        mCboBoxes.List(idx, 4) = NzText(mSavedBoxes(r, 5))
+    Next r
+    ShowStatus "Loaded " & CStr(mCboBoxes.ListCount) & " saved box design(s)."
+    Exit Sub
+
+FailSoft:
+    ShowStatus "Could not load saved boxes: " & Err.Description
 End Sub
 
 Private Sub LoadCurrentBoxState()
     On Error GoTo FailSoft
 
     Dim meta As Variant
-    Dim rowsData As Variant
-    Dim r As Long
+    Dim currentName As String
+    Dim i As Long
 
     meta = modTS_Shipments.BoxBuilderFormCurrentMeta()
     If Not IsEmpty(meta) Then
@@ -107,9 +190,33 @@ Private Sub LoadCurrentBoxState()
         mTxtDescription.Value = NzText(meta(4))
     End If
     If Trim$(CStr(mTxtUom.Value)) = "" Then mTxtUom.Value = "ea"
-    If Trim$(CStr(mTxtVersion.Value)) = "" Then mTxtVersion.Value = "v1"
+
+    currentName = LCase$(Trim$(CStr(mTxtBoxName.Value)))
+    If currentName <> "" Then
+        For i = 0 To mCboBoxes.ListCount - 1
+            If LCase$(Trim$(CStr(mCboBoxes.List(i, 1)))) = currentName Then
+                mCboBoxes.ListIndex = i
+                mSelectedPackageRow = CLng(Val(CStr(mCboBoxes.List(i, 0))))
+                Exit For
+            End If
+        Next i
+    End If
+
+    If mSelectedPackageRow <= 0 Then LoadCurrentDisplayedComponents
+    Exit Sub
+
+FailSoft:
+    ShowStatus "Could not load current BoxBuilder rows: " & Err.Description
+End Sub
+
+Private Sub LoadCurrentDisplayedComponents()
+    On Error GoTo FailSoft
+
+    Dim rowsData As Variant
+    Dim r As Long
 
     mLstBom.Clear
+    EnsureVersionDefaults
     rowsData = modTS_Shipments.BoxBuilderFormCurrentComponents()
     If IsEmpty(rowsData) Then Exit Sub
     For r = 1 To UBound(rowsData, 1)
@@ -125,16 +232,80 @@ Private Sub LoadCurrentBoxState()
     Exit Sub
 
 FailSoft:
-    ShowStatus "Could not load current BoxBuilder rows: " & Err.Description
+    ShowStatus "Could not load displayed components: " & Err.Description
+End Sub
+
+Private Sub LoadVersionsForPackage(ByVal packageRow As Long)
+    On Error GoTo FailSoft
+
+    Dim r As Long
+    Dim c As Long
+    Dim idx As Long
+
+    mVersionRows = modTS_Shipments.BoxBuilderFormLoadVersions(packageRow)
+    mCboVersions.Clear
+    If IsEmpty(mVersionRows) Then
+        mCboVersions.AddItem "v1"
+        mCboVersions.ListIndex = 0
+        mCboStatus.Value = "Active"
+        Exit Sub
+    End If
+
+    For r = 1 To UBound(mVersionRows, 1)
+        mCboVersions.AddItem NzText(mVersionRows(r, 1))
+        idx = mCboVersions.ListCount - 1
+        For c = 2 To 8
+            mCboVersions.List(idx, c - 1) = NzText(mVersionRows(r, c))
+        Next c
+    Next r
+    If mCboVersions.ListCount > 0 Then mCboVersions.ListIndex = 0
+    Exit Sub
+
+FailSoft:
+    ShowStatus "Could not load versions: " & Err.Description
+End Sub
+
+Private Sub LoadSelectedVersionComponents()
+    On Error GoTo FailSoft
+
+    Dim rowsData As Variant
+    Dim r As Long
+
+    If mSelectedPackageRow <= 0 Then Exit Sub
+    If mCboVersions.ListIndex < 0 Then Exit Sub
+
+    mCboStatus.Value = SelectedVersionStatus()
+    rowsData = modTS_Shipments.BoxBuilderFormLoadVersionComponents(mSelectedPackageRow, SelectedVersionLabel())
+    mLstBom.Clear
+    If IsEmpty(rowsData) Then
+        ShowStatus "No components found for " & SelectedVersionLabel() & "."
+        Exit Sub
+    End If
+
+    For r = 1 To UBound(rowsData, 1)
+        AddBomListRow NzText(rowsData(r, 1)), _
+                      NzText(rowsData(r, 2)), _
+                      NzText(rowsData(r, 3)), _
+                      NzText(rowsData(r, 4)), _
+                      NzText(rowsData(r, 5)), _
+                      NzText(rowsData(r, 6)), _
+                      NzText(rowsData(r, 7)), _
+                      NzText(rowsData(r, 8))
+    Next r
+    ShowStatus "Loaded " & CStr(mLstBom.ListCount) & " component row(s) for " & SelectedVersionLabel() & "."
+    Exit Sub
+
+FailSoft:
+    ShowStatus "Could not load version components: " & Err.Description
 End Sub
 
 Private Sub LoadInventoryCache()
     On Error GoTo FailSoft
     mInventoryData = modTS_Shipments.LoadShippingComponentPickerItems()
     If IsEmpty(mInventoryData) Then
-        ShowStatus "No managed inventory rows are available. Refresh Inventory or run Setup UI."
+        ShowInventoryStatus modTS_Shipments.ShippingComponentPickerLastStatus()
     Else
-        ShowStatus "Loaded " & CStr(UBound(mInventoryData, 1)) & " managed inventory item(s)."
+        ShowInventoryStatus modTS_Shipments.ShippingComponentPickerLastStatus()
     End If
     Exit Sub
 
@@ -168,16 +339,41 @@ Private Sub RenderInventoryList()
             mLstInventory.List(idx, 3) = NzText(mInventoryData(r, 4))
             mLstInventory.List(idx, 4) = NzText(mInventoryData(r, 5))
             mLstInventory.List(idx, 5) = NzText(mInventoryData(r, 6))
+            mLstInventory.List(idx, 6) = NzText(mInventoryData(r, 7))
         End If
     Next r
+    If mLstInventory.ListCount = 0 Then
+        ShowInventoryStatus "Inventory loaded, but no rows match the search filter."
+    Else
+        ShowInventoryStatus CStr(mLstInventory.ListCount) & " inventory row(s) shown."
+    End If
     Exit Sub
 
 FailSoft:
     ShowStatus "Inventory filter failed: " & Err.Description
 End Sub
 
+Private Sub mCboBoxes_Change()
+    If mLoading Then Exit Sub
+    LoadSelectedBox
+End Sub
+
+Private Sub mCboVersions_Change()
+    If mLoading Then Exit Sub
+    LoadSelectedVersionComponents
+End Sub
+
 Private Sub mTxtSearch_Change()
     RenderInventoryList
+End Sub
+
+Private Sub mBtnRefresh_Click()
+    InitializeFromShipping
+End Sub
+
+Private Sub mBtnNewBox_Click()
+    ResetForNewBox
+    ShowStatus "New box design ready. Enter metadata, add inventory components, then Save New Version."
 End Sub
 
 Private Sub mBtnAdd_Click()
@@ -185,19 +381,16 @@ Private Sub mBtnAdd_Click()
         ShowStatus "Select a managed inventory item to add."
         Exit Sub
     End If
-
-    Dim qtyText As String
-    qtyText = Trim$(CStr(mTxtQty.Value))
-    If ParseNumber(qtyText) <= 0 Then
+    If ParseNumber(Trim$(CStr(mTxtQty.Value))) <= 0 Then
         ShowStatus "Enter a positive component quantity."
         Exit Sub
     End If
 
-    AddBomListRow NormalizeVersionText(CStr(mTxtVersion.Value)), _
+    AddBomListRow SelectedVersionLabel(), _
                   CStr(mLstInventory.List(mLstInventory.ListIndex, 2)), _
                   CStr(mLstInventory.List(mLstInventory.ListIndex, 1)), _
                   CStr(mLstInventory.List(mLstInventory.ListIndex, 0)), _
-                  qtyText, _
+                  Trim$(CStr(mTxtQty.Value)), _
                   CStr(mLstInventory.List(mLstInventory.ListIndex, 3)), _
                   CStr(mLstInventory.List(mLstInventory.ListIndex, 4)), _
                   CStr(mLstInventory.List(mLstInventory.ListIndex, 5))
@@ -213,7 +406,86 @@ Private Sub mBtnRemove_Click()
     ShowStatus "Component removed."
 End Sub
 
-Private Sub mBtnSave_Click()
+Private Sub mBtnUpdateVersion_Click()
+    If mSelectedPackageRow <= 0 Or mCboVersions.ListIndex < 0 Then
+        ShowStatus "Select a saved box/version before updating."
+        Exit Sub
+    End If
+    SaveWithAction "UPDATE"
+End Sub
+
+Private Sub mBtnNewVersion_Click()
+    SaveWithAction "NEW"
+End Sub
+
+Private Sub mBtnDeleteVersion_Click()
+    If mSelectedPackageRow <= 0 Or mCboVersions.ListIndex < 0 Then
+        ShowStatus "Select a saved box/version before deleting."
+        Exit Sub
+    End If
+    modTS_Shipments.BoxBuilderFormDeleteVersion mSelectedPackageRow, SelectedVersionLabel()
+    InitializeFromShipping
+End Sub
+
+Private Sub mBtnDeleteBox_Click()
+    If mSelectedPackageRow <= 0 Then
+        ShowStatus "Select a saved box before deleting."
+        Exit Sub
+    End If
+    modTS_Shipments.BoxBuilderFormDeleteBox mSelectedPackageRow
+    InitializeFromShipping
+End Sub
+
+Private Sub mBtnCancel_Click()
+    Me.Hide
+End Sub
+
+Private Sub LoadSelectedBox()
+    On Error GoTo FailSoft
+
+    If mCboBoxes.ListIndex < 0 Then Exit Sub
+    mSelectedPackageRow = CLng(Val(CStr(mCboBoxes.List(mCboBoxes.ListIndex, 0))))
+    mTxtBoxName.Value = CStr(mCboBoxes.List(mCboBoxes.ListIndex, 1))
+    mTxtUom.Value = CStr(mCboBoxes.List(mCboBoxes.ListIndex, 2))
+    mTxtLocation.Value = CStr(mCboBoxes.List(mCboBoxes.ListIndex, 3))
+    mTxtDescription.Value = CStr(mCboBoxes.List(mCboBoxes.ListIndex, 4))
+    If Trim$(CStr(mTxtUom.Value)) = "" Then mTxtUom.Value = "ea"
+
+    LoadVersionsForPackage mSelectedPackageRow
+    LoadSelectedVersionComponents
+    Exit Sub
+
+FailSoft:
+    ShowStatus "Could not load selected box: " & Err.Description
+End Sub
+
+Private Sub ResetForNewBox()
+    On Error Resume Next
+    mSelectedPackageRow = 0
+    mCboBoxes.ListIndex = -1
+    mCboVersions.Clear
+    mCboVersions.AddItem "v1"
+    mCboVersions.ListIndex = 0
+    mCboStatus.Value = "Active"
+    mTxtBoxName.Value = ""
+    mTxtUom.Value = "ea"
+    mTxtLocation.Value = ""
+    mTxtDescription.Value = ""
+    mTxtSearch.Value = ""
+    mTxtQty.Value = "1"
+    mLstBom.Clear
+    RenderInventoryList
+    On Error GoTo 0
+End Sub
+
+Private Sub EnsureVersionDefaults()
+    If mCboVersions.ListCount > 0 Then Exit Sub
+    mCboVersions.AddItem "v1"
+    mCboVersions.ListIndex = 0
+    mCboStatus.Value = "Active"
+End Sub
+
+Private Sub SaveWithAction(ByVal saveAction As String)
     On Error GoTo ErrHandler
 
     Dim bomRows As Variant
@@ -234,7 +506,7 @@ Private Sub mBtnSave_Click()
 
     ReDim bomRows(1 To mLstBom.ListCount, 1 To 8)
     For i = 0 To mLstBom.ListCount - 1
-        bomRows(i + 1, 1) = CStr(mLstBom.List(i, 0))
+        bomRows(i + 1, 1) = SelectedVersionLabel()
         bomRows(i + 1, 2) = CStr(mLstBom.List(i, 1))
         bomRows(i + 1, 3) = CStr(mLstBom.List(i, 2))
         bomRows(i + 1, 4) = CStr(mLstBom.List(i, 3))
@@ -248,16 +520,15 @@ Private Sub mBtnSave_Click()
                                              CStr(mTxtUom.Value), _
                                              CStr(mTxtLocation.Value), _
                                              CStr(mTxtDescription.Value), _
-                                             bomRows
-    Me.Hide
+                                             bomRows, _
+                                             saveAction, _
+                                             SelectedVersionLabel(), _
+                                             CStr(mCboStatus.Value)
+    InitializeFromShipping
     Exit Sub
 
 ErrHandler:
     ShowStatus "Save failed: " & Err.Description
-End Sub
-
-Private Sub mBtnCancel_Click()
-    Me.Hide
 End Sub
 
 Private Sub AddBomListRow(ByVal versionText As String, _
@@ -281,6 +552,23 @@ Private Sub AddBomListRow(ByVal versionText As String, _
     mLstBom.List(idx, 6) = locationText
     mLstBom.List(idx, 7) = descriptionText
 End Sub
+
+Private Function SelectedVersionLabel() As String
+    If Not mCboVersions Is Nothing Then
+        If mCboVersions.ListIndex >= 0 Then SelectedVersionLabel = NzText(mCboVersions.List(mCboVersions.ListIndex, 0))
+    End If
+    If SelectedVersionLabel = "" Then SelectedVersionLabel = "v1"
+    SelectedVersionLabel = NormalizeVersionText(SelectedVersionLabel)
+End Function
+
+Private Function SelectedVersionStatus() As String
+    SelectedVersionStatus = "Active"
+    If mCboVersions Is Nothing Then Exit Function
+    If mCboVersions.ListIndex < 0 Then Exit Function
+    If mCboVersions.ColumnCount < 2 Then Exit Function
+    SelectedVersionStatus = NzText(mCboVersions.List(mCboVersions.ListIndex, 1))
+    If SelectedVersionStatus = "" Then SelectedVersionStatus = "Active"
+End Function
 
 Private Function AddLabel(ByVal controlName As String, _
                           ByVal captionText As String, _
@@ -308,6 +596,20 @@ Private Function AddTextBox(ByVal controlName As String, _
                             ByVal heightVal As Single) As MSForms.TextBox
     Set AddTextBox = Me.Controls.Add("Forms.TextBox.1", controlName, True)
     With AddTextBox
+        .Left = leftPos
+        .Top = topPos
+        .Width = widthVal
+        .Height = heightVal
+    End With
+End Function
+
+Private Function AddComboBox(ByVal controlName As String, _
+                             ByVal leftPos As Single, _
+                             ByVal topPos As Single, _
+                             ByVal widthVal As Single, _
+                             ByVal heightVal As Single) As MSForms.ComboBox
+    Set AddComboBox = Me.Controls.Add("Forms.ComboBox.1", controlName, True)
+    With AddComboBox
         .Left = leftPos
         .Top = topPos
         .Width = widthVal
@@ -348,6 +650,11 @@ End Function
 Private Sub ShowStatus(ByVal messageText As String)
     If mLblStatus Is Nothing Then Exit Sub
     mLblStatus.Caption = messageText
+End Sub
+
+Private Sub ShowInventoryStatus(ByVal messageText As String)
+    If mLblInventoryStatus Is Nothing Then Exit Sub
+    mLblInventoryStatus.Caption = messageText
 End Sub
 
 Private Function NzText(ByVal value As Variant) As String

@@ -821,6 +821,7 @@ $projectMap = @(
                         @{ Id = "btnShippingSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; ImageMso = "Clear"; Screentip = "Sign out of invSys without disconnecting storage" },
                         @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; ImageMso = "FileNew"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingBoxBuilderForm"; Label = "Box Builder"; Macro = "modTS_Shipments.BtnOpenBoxBuilder"; ImageMso = "CreateReport"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingBoxMakerForm"; Label = "Box Maker"; Macro = "modTS_Shipments.BtnOpenBoxMaker"; ImageMso = "TableInsertRowsAbove"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder"; ImageMso = "Repeat"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingBoxMode"; Label = "BoxBuilder Mode"; GetLabel = "RibbonBoxMakerModeGetLabel"; Macro = "modTS_Shipments.BtnSwitchToBoxMaker"; ImageMso = "HappyFace"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox"; ImageMso = "FileSave"; RequiredCapability = "SHIP_POST" },
