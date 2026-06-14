@@ -329,6 +329,26 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestEnsureReceivingSurface_BlankWorkbookWithConfigLoaded_DoesNotApplyReadiness() As Long
+    Dim fx As ReceivingFixture
+    Dim wbOps As Workbook
+
+    On Error GoTo CleanFail
+    fx = CreateReceivingFixture("blank_not_receiving")
+    Set wbOps = Application.Workbooks.Add
+
+    modReceivingInit.EnsureReceivingSurfaceForWorkbook wbOps
+    If modReceivingInit.GetReceivingReadinessPanelText(wbOps) = "" Then
+        TestEnsureReceivingSurface_BlankWorkbookWithConfigLoaded_DoesNotApplyReadiness = 1
+    End If
+
+CleanExit:
+    CleanupReceivingFixture fx, wbOps
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestCheckReceivingReadiness_RuntimePathUnresolved_ReturnsPathUnresolved() As Long
     Dim wbOps As Workbook
     Dim readinessPacked As String

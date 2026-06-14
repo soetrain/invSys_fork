@@ -4482,6 +4482,123 @@ FailSoft:
     BoxMakerFormCurrentInventory = ""
 End Function
 
+Private Function QueueBoxMakerFormPayload(ByVal isMakeAction As Boolean, _
+                                          ByVal packageRow As Long, _
+                                          ByVal boxName As String, _
+                                          ByVal boxUom As String, _
+                                          ByVal boxLocation As String, _
+                                          ByVal boxDescription As String, _
+                                          ByVal boxQty As Double, _
+                                          ByVal componentRows As Variant, _
+                                          ByRef componentTotalOut As Double, _
+                                          ByRef packageTotalOut As Double, _
+                                          ByRef eventIdOut As String, _
+                                          ByRef errNotes As String) As Boolean
+    On Error GoTo FailSoft
+
+    Dim payloadItems As Collection
+    Dim payloadJson As String
+    Dim eventType As String
+    Dim sourceName As String
+    Dim componentIoType As String
+    Dim packageIoType As String
+    Dim r As Long
+    Dim rowVal As Long
+    Dim itemName As String
+    Dim itemCode As String
+    Dim qtyPerBox As Double
+    Dim qtyTotal As Double
+    Dim uomVal As String
+    Dim locationVal As String
+    Dim descriptionVal As String
+
+    errNotes = ""
+    eventIdOut = ""
+    componentTotalOut = 0
+    packageTotalOut = 0
+    boxName = Trim$(boxName)
+    If packageRow <= 0 Then
+        errNotes = "Saved box ROW was not resolved."
+        Exit Function
+    End If
+    If boxName = "" Then
+        errNotes = "Box name is required."
+        Exit Function
+    End If
+    If boxQty <= 0 Then
+        errNotes = "Box quantity must be greater than zero."
+        Exit Function
+    End If
+    If IsEmpty(componentRows) Then
+        errNotes = "Selected box version has no component rows."
+        Exit Function
+    End If
+
+    If isMakeAction Then
+        eventType = EVENT_TYPE_BOX_BUILD
+        sourceName = "FORM_BOX_MAKER"
+        componentIoType = "USED"
+        packageIoType = "MADE"
+    Else
+        eventType = EVENT_TYPE_BOX_UNBOX
+        sourceName = "FORM_BOX_UNMAKE"
+        componentIoType = "RETURNED"
+        packageIoType = "UNMADE"
+    End If
+
+    Set payloadItems = New Collection
+    For r = 1 To UBound(componentRows, 1)
+        itemName = BoxBuilderFormBomText(componentRows, r, 2, "")
+        itemCode = BoxBuilderFormBomText(componentRows, r, 3, "")
+        rowVal = BoxBuilderFormBomLong(componentRows, r, 4)
+        qtyPerBox = BoxBuilderFormBomDouble(componentRows, r, 5)
+        If BoxMakerComponentRowIsBlank(itemName, rowVal, qtyPerBox) Then GoTo NextComponent
+        If qtyPerBox <= 0 Then
+            errNotes = "Component row " & CStr(r) & " needs a quantity greater than zero."
+            Exit Function
+        End If
+        qtyTotal = qtyPerBox * boxQty
+        If qtyTotal <= 0 Then
+            errNotes = "Component row " & CStr(r) & " produced a zero total quantity."
+            Exit Function
+        End If
+        uomVal = BoxBuilderFormBomText(componentRows, r, 6, "")
+        locationVal = BoxBuilderFormBomText(componentRows, r, 7, "")
+        descriptionVal = BoxBuilderFormBomText(componentRows, r, 8, "")
+        If itemCode = "" And itemName <> "" Then itemCode = itemName
+
+        AddBoxBuildPayloadItem payloadItems, rowVal, itemCode, itemName, qtyTotal, uomVal, locationVal, descriptionVal, componentIoType
+        componentTotalOut = componentTotalOut + qtyTotal
+NextComponent:
+    Next r
+
+    If componentTotalOut <= 0 Then
+        errNotes = "No component quantities were found for the selected box version."
+        Exit Function
+    End If
+
+    AddBoxBuildPayloadItem payloadItems, packageRow, boxName, boxName, boxQty, boxUom, boxLocation, boxDescription, packageIoType
+    packageTotalOut = boxQty
+
+    payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
+    If payloadJson = "" Or payloadJson = "[]" Then
+        errNotes = "No BoxMaker payload rows were generated."
+        Exit Function
+    End If
+
+    QueueBoxMakerFormPayload = modRoleEventWriter.QueuePayloadEventCurrent( _
+        eventType, _
+        "", _
+        payloadJson, _
+        sourceName, _
+        eventIdOut, _
+        errNotes)
+    Exit Function
+
+FailSoft:
+    errNotes = "QueueBoxMakerFormPayload failed: " & Err.Description
+End Function
+
 Public Function CommitBoxMakerFormAction(ByVal packageRow As Long, _
                                          ByVal boxName As String, _
                                          ByVal boxUom As String, _
@@ -4494,24 +4611,13 @@ Public Function CommitBoxMakerFormAction(ByVal packageRow As Long, _
                                          Optional ByVal actionText As String = "MAKE") As Boolean
     On Error GoTo ErrHandler
 
-    Dim ws As Worksheet
-    Dim invLo As ListObject
-    Dim loBuilder As ListObject
-    Dim loBom As ListObject
-    Dim prevEvents As Boolean
-    Dim quietStarted As Boolean
-    Dim r As Long
     Dim rowCount As Long
     Dim usedTotal As Double
     Dim madeTotal As Double
     Dim packageReturned As Double
     Dim componentsReturned As Double
     Dim errNotes As String
-    Dim inventoryState As Object
-    Dim eventQueued As Boolean
-    Dim batchProcessed As Boolean
     Dim eventIdOut As String
-    Dim runtimeReport As String
 
     resultMessage = ""
     actionText = UCase$(Trim$(actionText))
@@ -4539,102 +4645,28 @@ Public Function CommitBoxMakerFormAction(ByVal packageRow As Long, _
         Exit Function
     End If
 
-    Set ws = SheetExists(SHEET_SHIPMENTS)
-    If ws Is Nothing Then
-        InitializeShipmentsUiForWorkbook Application.ActiveWorkbook
-        Set ws = SheetExists(SHEET_SHIPMENTS)
-    End If
-    If ws Is Nothing Then
-        resultMessage = "ShipmentsTally sheet was not found."
-        Exit Function
-    End If
-
-    Set invLo = GetInvSysTable()
-    Set loBuilder = GetListObject(ws, TABLE_BOX_BUILDER)
-    Set loBom = GetListObject(ws, TABLE_BOX_BOM)
-    If loBuilder Is Nothing Or loBom Is Nothing Then
-        resultMessage = "BoxMaker requires BoxBuilder and BoxBOM tables."
-        Exit Function
-    End If
-
-    prevEvents = Application.EnableEvents
-    Application.EnableEvents = False
-    mHandlingShippingSheetChange = True
-    mSuppressGeneratedIdentityEditGuard = True
-    modUiQuiet.BeginQuietUi ws.Parent
-    quietStarted = True
-
-    EnsureTableHasRow loBuilder
-    EnsureColumnExists loBuilder, "Quantity", "Box Name"
-    EnsureBoxMakerInventoryColumns loBuilder, loBom
-    ClearListObjectData loBuilder
-    SetTableCellShipping loBuilder, 1, "Box Name", boxName
-    SetTableCellShipping loBuilder, 1, "Quantity", boxQty
-    SetTableCellShipping loBuilder, 1, "UOM", boxUom
-    SetTableCellShipping loBuilder, 1, "LOCATION", boxLocation
-    SetTableCellShipping loBuilder, 1, "DESCRIPTION", boxDescription
-    If packageRow > 0 Then SetTableCellShipping loBuilder, 1, "ROW", packageRow
-
-    EnsureBoxBomEntryColumns loBom
-    ClearListObjectData loBom
-    EnsureListObjectHasRowsShipping loBom, rowCount
-    For r = 1 To rowCount
-        SetTableCellShipping loBom, r, "Version", versionLabel
-        SetTableCellShipping loBom, r, COL_BOXBOM_ITEM, BoxBuilderFormBomText(componentRows, r, 2, "")
-        SetTableCellShipping loBom, r, "ITEM_CODE", BoxBuilderFormBomText(componentRows, r, 3, "")
-        SetTableCellShipping loBom, r, "ROW", BoxBuilderFormBomLong(componentRows, r, 4)
-        SetTableCellShipping loBom, r, "QUANTITY", BoxBuilderFormBomDouble(componentRows, r, 5) * boxQty
-        SetTableCellShipping loBom, r, "UOM", BoxBuilderFormBomText(componentRows, r, 6, "")
-        SetTableCellShipping loBom, r, "LOCATION", BoxBuilderFormBomText(componentRows, r, 7, "")
-        SetTableCellShipping loBom, r, "DESCRIPTION", BoxBuilderFormBomText(componentRows, r, 8, "")
-    Next r
-    FillBlankBoxBomVersionShipping loBom
-
-CleanRestore:
-    If quietStarted Then
-        On Error Resume Next
-        modUiQuiet.EndQuietUi
-        On Error GoTo ErrHandler
-    End If
-    mSuppressGeneratedIdentityEditGuard = False
-    mHandlingShippingSheetChange = False
-    Application.EnableEvents = prevEvents
-
-    If Err.Number <> 0 Then Exit Function
-
     If actionText = "UNMAKE" Or actionText = "UNBOX" Then
-        Set inventoryState = CaptureBoxMakerCurrentInventoryState(loBuilder, loBom)
-        If Not ApplyBoxUnboxedFromBuilder(loBuilder, loBom, invLo, packageReturned, componentsReturned, errNotes, eventQueued, batchProcessed, eventIdOut, runtimeReport) Then
+        If Not QueueBoxMakerFormPayload(False, packageRow, boxName, boxUom, boxLocation, boxDescription, boxQty, componentRows, packageReturned, componentsReturned, eventIdOut, errNotes) Then
             If errNotes = "" Then errNotes = "Box could not be unboxed."
             resultMessage = errNotes
             Exit Function
         End If
-        If batchProcessed Then
-            RefreshBoxMakerCurrentInventory ws
-            ApplyBoxUnboxExpectedCurrentInventoryDisplay loBuilder, loBom, inventoryState
-        End If
-        ResetBoxMakerQuantities loBuilder, loBom
-        If batchProcessed Then
-            InvalidateAggregates True, True
-            resultMessage = "Box unboxed. Removed " & Format$(packageReturned, "0.###") & " shippable units; returned " & Format$(componentsReturned, "0.###") & " component units to TOTAL INV."
-        Else
-            resultMessage = "Box unbox event queued but not processed. No inventory quantities were updated yet."
-        End If
+        resultMessage = "Box unbox event queued for " & FormatBoxMakerQuantityText(boxQty) & " " & boxName & _
+                        ". Removes " & FormatBoxMakerQuantityText(packageReturned) & _
+                        " shippable units and returns " & FormatBoxMakerQuantityText(componentsReturned) & _
+                        " component units after processor sync."
     Else
-        If Not ApplyBoxCreatedFromBuilder(loBuilder, loBom, invLo, usedTotal, madeTotal, errNotes, eventQueued, batchProcessed, eventIdOut, runtimeReport) Then
+        If Not QueueBoxMakerFormPayload(True, packageRow, boxName, boxUom, boxLocation, boxDescription, boxQty, componentRows, usedTotal, madeTotal, eventIdOut, errNotes) Then
             If errNotes = "" Then errNotes = "Box creation could not be posted."
             resultMessage = errNotes
             Exit Function
         End If
-        ResetBoxMakerQuantities loBuilder, loBom
-        If batchProcessed Then
-            RefreshBoxMakerCurrentInventory ws
-            InvalidateAggregates True, True
-            resultMessage = "Box created. Used " & Format$(usedTotal, "0.###") & " component units; added " & Format$(madeTotal, "0.###") & " shippable units to TOTAL INV."
-        Else
-            resultMessage = "Box build event queued but not processed. No inventory quantities were updated yet."
-        End If
+        resultMessage = "Box build event queued for " & FormatBoxMakerQuantityText(boxQty) & " " & boxName & _
+                        ". Uses " & FormatBoxMakerQuantityText(usedTotal) & _
+                        " component units and adds " & FormatBoxMakerQuantityText(madeTotal) & _
+                        " shippable units after processor sync."
     End If
+    If eventIdOut <> "" Then AppendNote errNotes, "Inbox EventID: " & eventIdOut
     If errNotes <> "" Then resultMessage = resultMessage & vbCrLf & vbCrLf & errNotes
     ShowShippingStatus resultMessage
     CommitBoxMakerFormAction = True
@@ -4642,7 +4674,14 @@ CleanRestore:
 
 ErrHandler:
     resultMessage = "BOX_MAKER_FORM_COMMIT failed: " & Err.Description
-    Resume CleanRestore
+End Function
+
+Private Function FormatBoxMakerQuantityText(ByVal qtyValue As Double) As String
+    If Abs(qtyValue - Fix(qtyValue)) < 0.0000001 Then
+        FormatBoxMakerQuantityText = Format$(qtyValue, "0")
+    Else
+        FormatBoxMakerQuantityText = Format$(qtyValue, "0.###")
+    End If
 End Function
 
 Public Sub CommitBoxBuilderFormState(ByVal boxName As String, _

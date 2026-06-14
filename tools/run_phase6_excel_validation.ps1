@@ -515,6 +515,7 @@ try {
         "TestReceivingReadiness.TestCheckReceivingReadiness_AuthInactive_ReturnsInactive",
         "TestReceivingReadiness.TestCheckReceivingReadiness_RuntimeOk_WhenSnapshotMissingAndNoUser",
         "TestReceivingReadiness.TestCheckReceivingReadiness_RuntimeMissingTables_ReturnsMissingTables",
+        "TestReceivingReadiness.TestEnsureReceivingSurface_BlankWorkbookWithConfigLoaded_DoesNotApplyReadiness",
         "TestReceivingReadiness.TestCheckReceivingReadiness_RuntimePathUnresolved_ReturnsPathUnresolved",
         "TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook",
         "TestPhase6CoreSurfaces.TestLoadConfig_AutoBootstrapsCanonicalWorkbook",

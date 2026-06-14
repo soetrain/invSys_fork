@@ -22,6 +22,7 @@ Private WithEvents mBtnRefresh As MSForms.CommandButton
 Private WithEvents mBtnMake As MSForms.CommandButton
 Private WithEvents mBtnUnmake As MSForms.CommandButton
 Private WithEvents mBtnClose As MSForms.CommandButton
+Private WithEvents mTxtBoxPicker As MSForms.TextBox
 
 Private mTxtBoxName As MSForms.TextBox
 Private mTxtUom As MSForms.TextBox
@@ -30,10 +31,12 @@ Private mTxtDescription As MSForms.TextBox
 Private WithEvents mLstShippables As MSForms.ListBox
 Private mLstComponents As MSForms.ListBox
 Private mLblPackageInv As MSForms.Label
+Private mLblSyncState As MSForms.Label
 Private mLblStatus As MSForms.Label
 
 Private mSavedBoxes As Variant
 Private mComponents As Variant
+Private mPendingShippableInv As Object
 Private mSelectedPackageRow As Long
 Private mLoading As Boolean
 Private mBuilt As Boolean
@@ -64,7 +67,7 @@ Private Sub BuildLayout()
 
     Me.Caption = "Shipping Box Maker"
     Me.Width = 780
-    Me.Height = 560
+    Me.Height = 590
 
     AddLabel "lblTitle", "Box Maker", 12, 10, 140, 20, True
     AddLabel "lblBox", "Saved Box", 12, 42, 74, 18, False
@@ -105,25 +108,28 @@ Private Sub BuildLayout()
 
     AddLabel "lblShippables", "Shippable Inventory", 12, 142, 170, 18, True
     Set mLblPackageInv = AddLabel("lblPackageInv", "", 190, 142, 330, 18, False)
-    AddShippableHeaders 12, 164
-    Set mLstShippables = AddListBox("lstShippables", 12, 184, 752, 72)
+    Set mLblSyncState = AddLabel("lblSyncState", "", 522, 142, 242, 18, False)
+    AddLabel "lblBoxPicker", "Box Picker", 12, 166, 72, 18, False
+    Set mTxtBoxPicker = AddTextBox("txtBoxPicker", 86, 162, 320, 22)
+    AddShippableHeaders 12, 194
+    Set mLstShippables = AddListBox("lstShippables", 12, 214, 752, 72)
     With mLstShippables
         .ColumnCount = 5
         .ColumnWidths = "220 pt;70 pt;44 pt;120 pt;56 pt"
     End With
 
-    AddLabel "lblComponents", "Components To Deduct", 12, 270, 170, 18, True
-    AddComponentHeaders 12, 292
-    Set mLstComponents = AddListBox("lstComponents", 12, 312, 752, 142)
+    AddLabel "lblComponents", "Components To Deduct", 12, 300, 170, 18, True
+    AddComponentHeaders 12, 322
+    Set mLstComponents = AddListBox("lstComponents", 12, 342, 752, 142)
     With mLstComponents
         .ColumnCount = 9
         .ColumnWidths = "126 pt;42 pt;50 pt;58 pt;54 pt;38 pt;76 pt;62 pt;150 pt"
     End With
 
-    Set mBtnMake = AddButton("btnMake", "Make Boxes", 506, 466, 86, 30)
-    Set mBtnUnmake = AddButton("btnUnmake", "Unmake Boxes", 604, 466, 92, 30)
-    Set mBtnClose = AddButton("btnClose", "Close", 706, 466, 58, 30)
-    Set mLblStatus = AddLabel("lblStatus", "", 12, 464, 480, 44, False)
+    Set mBtnMake = AddButton("btnMake", "Make Boxes", 506, 496, 86, 30)
+    Set mBtnUnmake = AddButton("btnUnmake", "Unmake Boxes", 604, 496, 92, 30)
+    Set mBtnClose = AddButton("btnClose", "Close", 706, 496, 58, 30)
+    Set mLblStatus = AddLabel("lblStatus", "", 12, 494, 480, 44, False)
 End Sub
 
 Private Sub LoadSavedBoxes()
@@ -251,8 +257,8 @@ Private Sub RenderComponents()
         mLstComponents.AddItem NzText(mComponents(r, 2))
         idx = mLstComponents.ListCount - 1
         mLstComponents.List(idx, 1) = NzText(mComponents(r, 4))
-        mLstComponents.List(idx, 2) = Format$(perBoxQty, "0.###")
-        mLstComponents.List(idx, 3) = Format$(requiredQty, "0.###")
+        mLstComponents.List(idx, 2) = FormatQuantityText(perBoxQty)
+        mLstComponents.List(idx, 3) = FormatQuantityText(requiredQty)
         If NzText(currentInv) = "" Then
             mLstComponents.List(idx, 4) = "unknown"
         Else
@@ -274,16 +280,18 @@ Private Sub RenderPackageInventory()
     On Error GoTo FailSoft
 
     Dim currentInv As Variant
+    Dim displayInv As String
 
     If mSelectedPackageRow <= 0 Then
         mLblPackageInv.Caption = ""
         Exit Sub
     End If
     currentInv = modTS_Shipments.BoxMakerFormCurrentInventory(mSelectedPackageRow, CStr(mTxtBoxName.Value))
-    If NzText(currentInv) = "" Then
+    displayInv = DisplayShippableInventoryText(mSelectedPackageRow, NzText(currentInv))
+    If displayInv = "" Then
         mLblPackageInv.Caption = "Current inventory for shippable box: unknown"
     Else
-        mLblPackageInv.Caption = "Current inventory for shippable box: " & NzText(currentInv)
+        mLblPackageInv.Caption = "Current inventory for shippable box: " & displayInv
     End If
     Exit Sub
 
@@ -305,8 +313,39 @@ Private Sub mTxtQty_Change()
     RenderComponents
 End Sub
 
+Private Sub mTxtBoxPicker_Change()
+    If mLoading Then Exit Sub
+    RenderShippableInventory
+End Sub
+
 Private Sub mBtnRefresh_Click()
-    InitializeFromShipping
+    On Error GoTo FailSoft
+
+    Dim previousPointer As Long
+    Dim previousScreenUpdating As Boolean
+
+    previousPointer = Me.MousePointer
+    previousScreenUpdating = Application.ScreenUpdating
+    Me.MousePointer = fmMousePointerHourGlass
+    Application.ScreenUpdating = False
+    ShowStatus "Refreshing BoxMaker inventory..."
+
+    RenderShippableInventory
+    RenderPackageInventory
+
+CleanExit:
+    On Error Resume Next
+    Application.ScreenUpdating = previousScreenUpdating
+    Me.MousePointer = previousPointer
+    On Error GoTo 0
+    If Err.Number = 0 Then ShowStatus "BoxMaker inventory refreshed."
+    UpdateSyncStateLabel
+    Exit Sub
+
+FailSoft:
+    ShowStatus "BoxMaker refresh failed: " & Err.Description
+    UpdateSyncStateLabel
+    Resume CleanExit
 End Sub
 
 Private Sub mBtnMake_Click()
@@ -349,6 +388,12 @@ Private Sub PostBoxMakerAction(ByVal actionText As String)
 
     Dim qtyMade As Double
     Dim resultMessage As String
+    Dim startedAt As Single
+    Dim elapsedMs As Long
+    Dim postedOk As Boolean
+    Dim previousPointer As Long
+    Dim previousScreenUpdating As Boolean
+    Dim quietStarted As Boolean
 
     qtyMade = ParseNumber(Trim$(CStr(mTxtQty.Value)))
     If qtyMade <= 0 Then
@@ -364,30 +409,74 @@ Private Sub PostBoxMakerAction(ByVal actionText As String)
         Exit Sub
     End If
 
-    If modTS_Shipments.CommitBoxMakerFormAction(mSelectedPackageRow, _
-                                                CStr(mTxtBoxName.Value), _
-                                                CStr(mTxtUom.Value), _
-                                                CStr(mTxtLocation.Value), _
-                                                CStr(mTxtDescription.Value), _
-                                                SelectedVersionLabel(), _
-                                                qtyMade, _
-                                                mComponents, _
-                                                resultMessage, _
-                                                actionText) Then
+    previousPointer = Me.MousePointer
+    previousScreenUpdating = Application.ScreenUpdating
+    Me.MousePointer = fmMousePointerHourGlass
+    ShowStatus "Posting BoxMaker action..."
+    DoEvents
+    Application.ScreenUpdating = False
+    modUiQuiet.BeginQuietUi ActiveWorkbook
+    quietStarted = True
+    startedAt = Timer
+
+    postedOk = modTS_Shipments.CommitBoxMakerFormAction(mSelectedPackageRow, _
+                                                        CStr(mTxtBoxName.Value), _
+                                                        CStr(mTxtUom.Value), _
+                                                        CStr(mTxtLocation.Value), _
+                                                        CStr(mTxtDescription.Value), _
+                                                        SelectedVersionLabel(), _
+                                                        qtyMade, _
+                                                        mComponents, _
+                                                        resultMessage, _
+                                                        actionText)
+    elapsedMs = ElapsedMillisecondsForm(startedAt)
+    If quietStarted Then
+        modUiQuiet.EndQuietUi
+        quietStarted = False
+    End If
+    Application.ScreenUpdating = previousScreenUpdating
+    Me.MousePointer = previousPointer
+
+    If postedOk Then
+        RecordPendingShippableInventory actionText, qtyMade
+        resultMessage = AppendCompletionTiming(resultMessage, elapsedMs)
         MsgBox resultMessage, vbInformation
-        LoadSelectedVersionComponents
+        ShowStatus "Completed in " & Format$(elapsedMs, "#,##0") & " ms."
         RenderPackageInventory
         RenderShippableInventory
+        UpdateSyncStateLabel
     Else
         If resultMessage = "" Then resultMessage = "BoxMaker action did not complete."
+        resultMessage = AppendCompletionTiming(resultMessage, elapsedMs)
         MsgBox resultMessage, vbExclamation
         ShowStatus resultMessage
+        UpdateSyncStateLabel
     End If
     Exit Sub
 
 ErrHandler:
+    On Error Resume Next
+    If quietStarted Then modUiQuiet.EndQuietUi
+    Application.ScreenUpdating = previousScreenUpdating
+    Me.MousePointer = previousPointer
+    On Error GoTo 0
     ShowStatus "BoxMaker action failed: " & Err.Description
 End Sub
+
+Private Function AppendCompletionTiming(ByVal messageText As String, ByVal elapsedMs As Long) As String
+    If Trim$(messageText) <> "" Then
+        AppendCompletionTiming = messageText & vbCrLf & vbCrLf
+    End If
+    AppendCompletionTiming = AppendCompletionTiming & "Completed in " & Format$(elapsedMs, "#,##0") & " ms."
+End Function
+
+Private Function ElapsedMillisecondsForm(ByVal startedAt As Single) As Long
+    Dim deltaSeconds As Single
+
+    deltaSeconds = Timer - startedAt
+    If deltaSeconds < 0 Then deltaSeconds = deltaSeconds + 86400!
+    ElapsedMillisecondsForm = CLng(deltaSeconds * 1000)
+End Function
 
 Private Sub RenderShippableInventory()
     On Error GoTo FailSoft
@@ -396,7 +485,10 @@ Private Sub RenderShippableInventory()
     Dim r As Long
     Dim idx As Long
     Dim currentInv As String
+    Dim rowValue As Long
     Dim prevLoading As Boolean
+    Dim filterText As String
+    Dim shownCount As Long
 
     If mLstShippables Is Nothing Then Exit Sub
     prevLoading = mLoading
@@ -407,8 +499,11 @@ Private Sub RenderShippableInventory()
     rowsData = modTS_Shipments.BoxMakerFormLoadShippableInventory(mSavedBoxes)
     If IsEmpty(rowsData) Then GoTo CleanExit
 
+    filterText = BoxPickerText()
     For r = 1 To UBound(rowsData, 1)
-        currentInv = NzText(rowsData(r, 3))
+        If Not ShippableRowMatchesPicker(rowsData, r, filterText) Then GoTo NextShippable
+        rowValue = CLng(Val(NzText(rowsData(r, 1))))
+        currentInv = DisplayShippableInventoryText(rowValue, NzText(rowsData(r, 3)))
         If currentInv = "" Then currentInv = "unknown"
 
         mLstShippables.AddItem NzText(rowsData(r, 2))
@@ -418,16 +513,149 @@ Private Sub RenderShippableInventory()
         mLstShippables.List(idx, 3) = NzText(rowsData(r, 5))
         mLstShippables.List(idx, 4) = NzText(rowsData(r, 1))
         If CLng(Val(NzText(rowsData(r, 1)))) = mSelectedPackageRow Then mLstShippables.ListIndex = idx
+        shownCount = shownCount + 1
+NextShippable:
     Next r
+    If filterText <> "" And shownCount = 0 Then ShowStatus "No shippable boxes match picker."
 
 CleanExit:
     mLoading = prevLoading
+    UpdateSyncStateLabel
     Exit Sub
 
 FailSoft:
     If Not mLstShippables Is Nothing Then mLstShippables.Clear
     mLoading = prevLoading
+    UpdateSyncStateLabel
 End Sub
+
+Private Sub RecordPendingShippableInventory(ByVal actionText As String, ByVal qtyMade As Double)
+    On Error GoTo CleanExit
+
+    Dim key As String
+    Dim currentText As String
+    Dim projectedQty As Double
+    Dim r As Long
+
+    If mSelectedPackageRow <= 0 Or qtyMade <= 0 Then Exit Sub
+    If mPendingShippableInv Is Nothing Then Set mPendingShippableInv = CreateObject("Scripting.Dictionary")
+
+    currentText = ""
+    If Not mLstShippables Is Nothing Then
+        For r = 0 To mLstShippables.ListCount - 1
+            If CLng(Val(NzText(mLstShippables.List(r, 4)))) = mSelectedPackageRow Then
+                currentText = NzText(mLstShippables.List(r, 1))
+                Exit For
+            End If
+        Next r
+    End If
+    If LCase$(Trim$(currentText)) = "unknown" Then currentText = ""
+    projectedQty = ParseNumber(currentText)
+    Select Case UCase$(Trim$(actionText))
+        Case "UNMAKE", "UNBOX"
+            projectedQty = projectedQty - qtyMade
+            If projectedQty < 0 Then projectedQty = 0
+        Case Else
+            projectedQty = projectedQty + qtyMade
+    End Select
+
+    key = CStr(mSelectedPackageRow)
+    mPendingShippableInv(key) = projectedQty
+    UpdateSyncStateLabel
+
+CleanExit:
+End Sub
+
+Private Function DisplayShippableInventoryText(ByVal rowValue As Long, ByVal backendText As String) As String
+    On Error GoTo CleanExit
+
+    Dim key As String
+    Dim pendingQty As Double
+    Dim backendQty As Double
+
+    DisplayShippableInventoryText = Trim$(backendText)
+    If rowValue <= 0 Then Exit Function
+    If mPendingShippableInv Is Nothing Then Exit Function
+
+    key = CStr(rowValue)
+    If Not mPendingShippableInv.Exists(key) Then Exit Function
+
+    pendingQty = CDbl(mPendingShippableInv(key))
+    If Trim$(backendText) <> "" And IsNumeric(backendText) Then
+        backendQty = CDbl(backendText)
+        If Abs(backendQty - pendingQty) < 0.0000001 Then
+            mPendingShippableInv.Remove key
+            DisplayShippableInventoryText = FormatQuantityText(backendQty)
+            Exit Function
+        End If
+    End If
+
+    DisplayShippableInventoryText = FormatQuantityText(pendingQty)
+
+CleanExit:
+End Function
+
+Private Function FormatQuantityText(ByVal qtyValue As Double) As String
+    If Abs(qtyValue - Fix(qtyValue)) < 0.0000001 Then
+        FormatQuantityText = Format$(qtyValue, "0")
+    Else
+        FormatQuantityText = Format$(qtyValue, "0.###")
+    End If
+End Function
+
+Private Function BoxPickerText() As String
+    If mTxtBoxPicker Is Nothing Then Exit Function
+    BoxPickerText = LCase$(Trim$(NzText(mTxtBoxPicker.Value)))
+End Function
+
+Private Function ShippableRowMatchesPicker(ByVal rowsData As Variant, _
+                                           ByVal rowIndex As Long, _
+                                           ByVal filterText As String) As Boolean
+    If filterText = "" Then
+        ShippableRowMatchesPicker = True
+        Exit Function
+    End If
+
+    ShippableRowMatchesPicker = TextContainsPicker(rowsData(rowIndex, 1), filterText) _
+                                Or TextContainsPicker(rowsData(rowIndex, 2), filterText) _
+                                Or TextContainsPicker(rowsData(rowIndex, 4), filterText) _
+                                Or TextContainsPicker(rowsData(rowIndex, 5), filterText)
+End Function
+
+Private Function TextContainsPicker(ByVal value As Variant, ByVal filterText As String) As Boolean
+    If filterText = "" Then
+        TextContainsPicker = True
+    Else
+        TextContainsPicker = (InStr(1, LCase$(Trim$(NzText(value))), filterText, vbTextCompare) > 0)
+    End If
+End Function
+
+Private Sub UpdateSyncStateLabel()
+    On Error GoTo CleanExit
+
+    Dim pendingCount As Long
+
+    If mLblSyncState Is Nothing Then Exit Sub
+    pendingCount = PendingShippableInventoryCount()
+    If pendingCount > 0 Then
+        mLblSyncState.Caption = "Sync: pending (" & CStr(pendingCount) & " shippable row(s))"
+        mLblSyncState.ForeColor = &H80&
+    Else
+        mLblSyncState.Caption = "Sync: inventory synced"
+        mLblSyncState.ForeColor = &H8000&
+    End If
+
+CleanExit:
+End Sub
+
+Private Function PendingShippableInventoryCount() As Long
+    On Error GoTo CleanExit
+
+    If mPendingShippableInv Is Nothing Then Exit Function
+    PendingShippableInventoryCount = mPendingShippableInv.Count
+
+CleanExit:
+End Function
 
 Private Sub SelectShippableInventoryRow()
     On Error GoTo FailSoft
@@ -466,6 +694,7 @@ Private Sub ClearBoxFields()
     mLstComponents.Clear
     If Not mLstShippables Is Nothing Then mLstShippables.Clear
     mLblPackageInv.Caption = ""
+    UpdateSyncStateLabel
 End Sub
 
 Private Function AddLabel(ByVal name As String, _

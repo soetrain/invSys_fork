@@ -16,34 +16,33 @@ Public Sub Init()
 End Sub
 
 Private Sub App_NewWorkbook(ByVal Wb As Workbook)
-    Application.EnableEvents = True
+    If Not Application.EnableEvents Then Exit Sub
     modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
 End Sub
 
 Private Sub App_WorkbookOpen(ByVal Wb As Workbook)
-    Application.EnableEvents = True
+    If Not Application.EnableEvents Then Exit Sub
     modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
 End Sub
 
 Private Sub App_WorkbookActivate(ByVal Wb As Workbook)
-    Application.EnableEvents = True
+    If Not Application.EnableEvents Then Exit Sub
     modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
 End Sub
 
 Private Sub App_WorkbookBeforeClose(ByVal Wb As Workbook, Cancel As Boolean)
-    Application.EnableEvents = True
     modOperatorReadModel.UnregisterAutoSnapshotWorkbook Wb
 End Sub
 
 Private Sub App_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)
-    Application.EnableEvents = True
+    If Not Application.EnableEvents Then Exit Sub
     On Error Resume Next
     modTS_Received.HandleReceivingSelectionChange Target
     On Error GoTo 0
 End Sub
 
 Private Sub App_SheetChange(ByVal Sh As Object, ByVal Target As Range)
-    Application.EnableEvents = True
+    If Not Application.EnableEvents Then Exit Sub
     On Error Resume Next
     modTS_Received.HandleReceivingSheetChange Target
     On Error GoTo 0

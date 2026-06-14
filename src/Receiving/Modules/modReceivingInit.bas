@@ -550,10 +550,6 @@ Private Function IsLikelyReceivingWorkbookReadiness(ByVal wb As Workbook) As Boo
         IsLikelyReceivingWorkbookReadiness = True
         Exit Function
     End If
-
-    If modConfig.IsLoaded() Then
-        IsLikelyReceivingWorkbookReadiness = (Trim$(modConfig.GetWarehouseId()) <> "")
-    End If
 End Function
 
 Private Function ResolveWarehouseIdFromWorkbookReadiness(ByVal wb As Workbook) As String

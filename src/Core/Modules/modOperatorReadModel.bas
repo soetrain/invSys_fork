@@ -431,6 +431,11 @@ Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Wo
     Dim surfaceReport As String
     Dim prevScreenUpdating As Boolean
     Dim screenSuppressed As Boolean
+    Dim totalTimer As Single
+    Dim segmentTimer As Single
+    Dim batchMs As Long
+    Dim surfaceMs As Long
+    Dim refreshMs As Long
 
     Set wb = ResolveOperatorWorkbook(targetWb)
     If wb Is Nothing Then
@@ -442,30 +447,42 @@ Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Wo
     prevScreenUpdating = Application.ScreenUpdating
     Application.ScreenUpdating = False
     screenSuppressed = True
+    totalTimer = Timer
+    segmentTimer = Timer
     processedCount = modProcessor.RunBatch(resolvedWarehouseId, 0, batchReport)
+    batchMs = ElapsedMillisecondsReadModel(segmentTimer)
     If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "ProcessorRunBatch"
 
     If Left$(batchReport, 15) = "RunBatch failed" Then
-        report = "RunBatch failed after local post/write. " & batchReport & " RefreshReport=Skipped (batch did not process)"
+        report = "RunBatch failed after local post/write. " & batchReport & " RefreshReport=Skipped (batch did not process); " & _
+                 FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, 0, 0)
         GoTo CleanExit
     End If
     If Not BatchReportHandledQueuedRowsReadModel(processedCount, batchReport) Then
         report = "RunBatch did not handle the queued event after local post/write. " & _
-                 "BatchReport=" & batchReport & " RefreshReport=Skipped (batch did not process)"
+                 "BatchReport=" & batchReport & " RefreshReport=Skipped (batch did not process); " & _
+                 FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, 0, 0)
         GoTo CleanExit
     End If
 
+    segmentTimer = Timer
     Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
+    surfaceMs = ElapsedMillisecondsReadModel(segmentTimer)
     If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "SurfaceEnsure"
+    segmentTimer = Timer
     If Not RefreshInventoryReadModelForWorkbook(wb, resolvedWarehouseId, sourceType, refreshReport) Then
+        refreshMs = ElapsedMillisecondsReadModel(segmentTimer)
         report = "RunBatch processed queued event, but read-model refresh failed. " & _
-                 "BatchReport=" & batchReport & " RefreshReport=" & refreshReport
+                 "BatchReport=" & batchReport & " RefreshReport=" & refreshReport & "; " & _
+                 FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, surfaceMs, refreshMs)
         GoTo CleanExit
     End If
+    refreshMs = ElapsedMillisecondsReadModel(segmentTimer)
     If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "LocalReadModelRefresh"
 
-    report = "Processed=" & CStr(processedCount) & "; BatchReport=" & batchReport & "; RefreshReport=" & refreshReport
-    LogDiagnosticSafeReadModel "RUNTIME", "RunBatchAndRefresh|Workbook=" & wb.Name & "|WarehouseId=" & resolvedWarehouseId & "|Processed=" & CStr(processedCount) & "|BatchReport=" & batchReport & "|RefreshReport=" & refreshReport
+    report = "Processed=" & CStr(processedCount) & "; BatchReport=" & batchReport & "; RefreshReport=" & refreshReport & "; " & _
+             FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, surfaceMs, refreshMs)
+    LogDiagnosticSafeReadModel "RUNTIME", "RunBatchAndRefresh|Workbook=" & wb.Name & "|WarehouseId=" & resolvedWarehouseId & "|Processed=" & CStr(processedCount) & "|BatchReport=" & batchReport & "|RefreshReport=" & refreshReport & "|TotalMs=" & CStr(ElapsedMillisecondsReadModel(totalTimer)) & "|BatchMs=" & CStr(batchMs) & "|SurfaceMs=" & CStr(surfaceMs) & "|RefreshMs=" & CStr(refreshMs)
     RunBatchAndRefreshOperatorWorkbook = True
 CleanExit:
     If screenSuppressed Then Application.ScreenUpdating = prevScreenUpdating
@@ -493,6 +510,24 @@ Private Function BatchReportHandledQueuedRowsReadModel(ByVal processedCount As L
     If ExtractBatchMetricReadModel(batchReport, "SkipDup") > 0 Then
         BatchReportHandledQueuedRowsReadModel = True
     End If
+End Function
+
+Private Function FormatRuntimeTimingReadModel(ByVal totalMs As Long, _
+                                             ByVal batchMs As Long, _
+                                             ByVal surfaceMs As Long, _
+                                             ByVal refreshMs As Long) As String
+    FormatRuntimeTimingReadModel = "TimingMs=Total:" & CStr(totalMs) & _
+                                   ";Batch:" & CStr(batchMs) & _
+                                   ";Surface:" & CStr(surfaceMs) & _
+                                   ";Refresh:" & CStr(refreshMs)
+End Function
+
+Private Function ElapsedMillisecondsReadModel(ByVal startedAt As Single) As Long
+    Dim deltaSeconds As Single
+
+    deltaSeconds = Timer - startedAt
+    If deltaSeconds < 0 Then deltaSeconds = deltaSeconds + 86400!
+    ElapsedMillisecondsReadModel = CLng(deltaSeconds * 1000)
 End Function
 
 Private Function ExtractBatchMetricReadModel(ByVal batchReport As String, ByVal metricName As String) As Long

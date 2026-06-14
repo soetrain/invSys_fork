@@ -303,3 +303,225 @@ No reliable user-level workaround besides avoiding blank active workbooks or unl
 Medium-high.
 
 The bug does not corrupt inventory now that BoxMaker processing succeeds, but it creates significant UI noise and likely contributes to perceived slowness. It also reflects a broader architectural issue: role add-ins are still treating unrelated workbooks as role candidates because global config is loaded.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Now I have both files in full. The diagnosis is exact. Here is the complete picture.
+
+***
+
+## Confirmed Root Cause — Three Compounding Bugs
+
+### Bug 1: `IsLikelyReceivingWorkbookReadiness` has a catch-all fallback that returns `True` for any non-addin workbook once config is loaded
+
+```vba
+If modConfig.IsLoaded() Then
+    IsLikelyReceivingWorkbookReadiness = (Trim$(modConfig.GetWarehouseId()) <> "")
+End If
+```
+
+After BoxMaker runs and config loads, `modConfig.IsLoaded()` is `True` and `WarehouseId` is `"WH1"` (or equivalent). `Book1` is not an addin. So this line returns `True` for `Book1`, and every subsequent `WorkbookActivate` on `Book1` triggers the full `ApplyReceivingReadinessForWorkbook` pipeline.
+
+### Bug 2: `App_WorkbookActivate` fires on every Excel focus switch — including hidden workbook opens inside `RunBatchAndRefreshOperatorWorkbook`
+
+Looking at `modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook`, it opens the snapshot workbook (`ResolveSnapshotWorkbook`) and later closes it. Each hidden open/close fires `WorkbookActivate` on whatever workbook regains focus — which is `Book1`. That's the source of the **burst** pattern (multiple entries in the same second): one burst per hidden workbook open/close cycle inside batch processing.
+
+### Bug 3: `Application.EnableEvents = True` is unconditionally set at the top of every event handler
+
+```vba
+Private Sub App_WorkbookActivate(ByVal Wb As Workbook)
+    Application.EnableEvents = True          ' ← Overrides deliberate suppression
+    modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
+End Sub
+```
+
+`RunBatchAndRefreshOperatorWorkbook` sets `Application.ScreenUpdating = False` but **cannot** suppress these events because `cAppEvents` always re-enables them before doing readiness work. This is why readiness checks fire during internal workbook operations that are supposed to be quiet.
+
+***
+
+## The Two Concrete Fixes
+
+### Fix 1 — Remove the global config fallback from `IsLikelyReceivingWorkbookReadiness`
+
+In `modReceivingInit.bas`, change:
+
+```vba
+' BEFORE — returns True for any workbook once config is loaded:
+Private Function IsLikelyReceivingWorkbookReadiness(ByVal wb As Workbook) As Boolean
+    Dim wbName As String
+
+    If wb Is Nothing Or wb.IsAddin Then Exit Function
+    wbName = LCase$(Trim$(wb.Name))
+
+    If WorkbookHasReceivingSurfacesReadiness(wb) Then
+        IsLikelyReceivingWorkbookReadiness = True
+        Exit Function
+    End If
+
+    If wbName Like "*.receiving.operator.xls*" Then
+        IsLikelyReceivingWorkbookReadiness = True
+        Exit Function
+    End If
+
+    If modConfig.IsLoaded() Then
+        IsLikelyReceivingWorkbookReadiness = (Trim$(modConfig.GetWarehouseId()) <> "")
+    End If
+End Function
+```
+
+```vba
+' AFTER — only known Receiving workbooks pass:
+Private Function IsLikelyReceivingWorkbookReadiness(ByVal wb As Workbook) As Boolean
+    If wb Is Nothing Or wb.IsAddin Then Exit Function
+
+    ' Positive evidence required — global config state is not sufficient
+    If WorkbookHasReceivingSurfacesReadiness(wb) Then
+        IsLikelyReceivingWorkbookReadiness = True
+        Exit Function
+    End If
+
+    If LCase$(Trim$(wb.Name)) Like "*.receiving.operator.xls*" Then
+        IsLikelyReceivingWorkbookReadiness = True
+        Exit Function
+    End If
+
+    ' Book1, ShippingBOM.xlsb, and any other non-Receiving workbook: False.
+    IsLikelyReceivingWorkbookReadiness = False
+End Function
+```
+
+This is a **one-line change** (`IsLikelyReceivingWorkbookReadiness = False` replaces the config fallback block) but it eliminates all 114 spurious `RECEIVING-READINESS` log entries immediately.
+
+***
+
+### Fix 2 — Guard `App_WorkbookActivate` against re-entrant events, and skip readiness when events were suppressed by the caller
+
+In `cAppEvents.cls`, change all three event handlers from unconditionally re-enabling events to respecting the caller's intent:
+
+```vba
+' BEFORE — forces events on, fires readiness on every activation:
+Private Sub App_WorkbookActivate(ByVal Wb As Workbook)
+    Application.EnableEvents = True
+    modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
+End Sub
+
+Private Sub App_WorkbookOpen(ByVal Wb As Workbook)
+    Application.EnableEvents = True
+    modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
+End Sub
+
+Private Sub App_NewWorkbook(ByVal Wb As Workbook)
+    Application.EnableEvents = True
+    modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
+End Sub
+
+Private Sub App_WorkbookBeforeClose(ByVal Wb As Workbook, Cancel As Boolean)
+    Application.EnableEvents = True
+    modOperatorReadModel.UnregisterAutoSnapshotWorkbook Wb
+End Sub
+```
+
+```vba
+' AFTER — preserve caller's event state; skip readiness on activation bursts:
+Private Sub App_WorkbookActivate(ByVal Wb As Workbook)
+    ' Do not re-enable events if suppressed — this fires during internal
+    ' hidden workbook open/close cycles and should not run readiness then.
+    If Not Application.EnableEvents Then Exit Sub
+    modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
+End Sub
+
+Private Sub App_WorkbookOpen(ByVal Wb As Workbook)
+    If Not Application.EnableEvents Then Exit Sub
+    modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
+End Sub
+
+Private Sub App_NewWorkbook(ByVal Wb As Workbook)
+    If Not Application.EnableEvents Then Exit Sub
+    modReceivingInit.EnsureReceivingSurfaceForWorkbook Wb
+End Sub
+
+Private Sub App_WorkbookBeforeClose(ByVal Wb As Workbook, Cancel As Boolean)
+    ' BeforeClose always runs — unregistering auto-snapshot is safe regardless.
+    modOperatorReadModel.UnregisterAutoSnapshotWorkbook Wb
+End Sub
+```
+
+`App_WorkbookBeforeClose` is deliberately left unconditional because unregistering auto-snapshot on close is cheap, always safe, and important not to miss.
+
+***
+
+### Optional Fix 3 — Add a same-state debounce cache to `ApplyReceivingReadinessForWorkbook`
+
+Even for genuine Receiving workbooks, logging the identical `MISSING|NO_USER|MISSING_TABLES` status 114 times is wasteful. Add a module-level cache in `modReceivingInit.bas`:
+
+```vba
+' Module-level debounce state
+Private mLastReadinessSignature As String
+Private mLastReadinessWorkbook As String
+Private mLastReadinessTime As Date
+Private Const READINESS_DEBOUNCE_SECONDS As Long = 30
+
+Public Sub ApplyReceivingReadinessForWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
+                                              Optional ByVal initializeUiWhenReady As Boolean = True)
+    Dim wb As Workbook
+    Dim readiness As ReceivingReadinessResult
+    Dim signature As String
+
+    Set wb = targetWb
+    If wb Is Nothing Then Set wb = Application.ActiveWorkbook
+    If wb Is Nothing Then Exit Sub
+    If wb.IsAddin Then Exit Sub
+
+    readiness = CheckReceivingReadinessForWorkbook(wb)
+
+    ' Build a signature of the current result for this workbook
+    signature = SafeWorkbookNameReadiness(wb) & "|" & _
+                readiness.SnapshotStatus & "|" & _
+                readiness.AuthStatus & "|" & _
+                readiness.RuntimeStatus
+
+    ' Skip log and render if same state was reported recently for the same workbook
+    If signature = mLastReadinessSignature _
+       And mLastReadinessWorkbook = SafeWorkbookNameReadiness(wb) _
+       And DateDiff("s", mLastReadinessTime, Now) < READINESS_DEBOUNCE_SECONDS Then
+        Exit Sub   ' Same state, same workbook, within debounce window — do nothing
+    End If
+
+    mLastReadinessSignature = signature
+    mLastReadinessWorkbook = SafeWorkbookNameReadiness(wb)
+    mLastReadinessTime = Now
+
+    If readiness.IsReady Then
+        ClearReceivingReadinessPanel wb
+        If initializeUiWhenReady Then modTS_Received.InitializeReceivingUiForWorkbook wb
+    Else
+        RenderReceivingReadinessPanel wb, readiness
+    End If
+
+    LogDiagnosticEvent "RECEIVING-READINESS", _
+        "Workbook=" & SafeWorkbookNameReadiness(wb) & _
+        "|SnapshotStatus=" & readiness.SnapshotStatus & _
+        "|AuthStatus=" & readiness.AuthStatus & _
+        "|RuntimeStatus=" & readiness.RuntimeStatus & _
+        "|Messages=" & readiness.Messages
+End Sub
+```
+
+***
+
+## Expected Immediate Window After Fix
+
+During a BoxMaker `Make Boxes` click with `Book1` open:
+
+```
+' Before fix — 114 lines like this:
+2026-06-13 18:10:25 DIAG RECEIVING-READINESS Workbook=Book1|SnapshotStatus=MISSING|...
+2026-06-13 18:10:25 DIAG RECEIVING-READINESS Workbook=Book1|SnapshotStatus=MISSING|...
+... (×114)
+
+' After fix — zero lines for Book1:
+Box created. Used 60. component units; added 10. shippable units to TOTAL INV.
+Processed=8; BatchReport=Applied=8; ...
+```
+
+A real Receiving operator workbook (`WH1.Receiving.Operator.xlsb`) still triggers readiness normally because it passes the `*.receiving.operator.xls*` name check or has Receiving surfaces.
