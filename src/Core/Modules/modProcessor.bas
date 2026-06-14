@@ -78,10 +78,12 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
         Exit Function
     End If
 
+    CloseHiddenReadOnlyInventoryWorkbookProcessor warehouseId
     Set openWorkbookPaths = CaptureOpenWorkbookPathsProcessor()
     Set inventoryWb = ResolveInventoryWorkbookBridge(warehouseId)
     If inventoryWb Is Nothing Then
         If InventoryWorkbookLockedForProcessor(warehouseId) Then
+            LogInventoryWorkbookLockDiagnosticsProcessor warehouseId, Nothing, openWorkbookPaths
             report = "Inventory workbook is read-only or locked by another Excel session."
         Else
             report = "Inventory workbook not found."
@@ -91,6 +93,9 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
     inventoryOpenedTransient = Not WorkbookWasAlreadyOpenProcessor(openWorkbookPaths, inventoryWb)
 
     If Not modLockManager.AcquireLock("INVENTORY", warehouseId, serviceUserId, modConfig.GetString("StationId", ""), inventoryWb, runId, message) Then
+        If InStr(1, message, "read-only or locked", vbTextCompare) > 0 Then
+            LogInventoryWorkbookLockDiagnosticsProcessor warehouseId, inventoryWb, openWorkbookPaths
+        End If
         report = message
         Exit Function
     End If
@@ -217,21 +222,10 @@ FailRun:
 End Function
 
 Private Function InventoryWorkbookLockedForProcessor(ByVal warehouseId As String) As Boolean
-    Dim resolvedWh As String
-    Dim rootPath As String
     Dim targetPath As String
     Dim fileNum As Integer
 
-    resolvedWh = Trim$(warehouseId)
-    If resolvedWh = "" Then resolvedWh = modConfig.GetString("WarehouseId", "")
-    If resolvedWh = "" Then resolvedWh = "WH1"
-
-    rootPath = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
-    If rootPath = "" Then rootPath = Trim$(modConfig.GetString("PathDataRoot", ""))
-    If rootPath = "" Then rootPath = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(resolvedWh, True)
-    If Right$(rootPath, 1) <> "\" Then rootPath = rootPath & "\"
-
-    targetPath = rootPath & resolvedWh & ".invSys.Data.Inventory.xlsb"
+    targetPath = ResolveInventoryWorkbookPathProcessor(warehouseId)
     If Not modDeploymentPaths.FileExistsManaged(targetPath) Then Exit Function
 
     On Error GoTo Locked
@@ -246,6 +240,92 @@ Locked:
     On Error GoTo 0
     InventoryWorkbookLockedForProcessor = True
 End Function
+
+Private Function ResolveInventoryWorkbookPathProcessor(ByVal warehouseId As String) As String
+    Dim resolvedWh As String
+    Dim rootPath As String
+
+    resolvedWh = Trim$(warehouseId)
+    If resolvedWh = "" Then resolvedWh = modConfig.GetString("WarehouseId", "")
+    If resolvedWh = "" Then resolvedWh = "WH1"
+
+    rootPath = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    If rootPath = "" Then rootPath = Trim$(modConfig.GetString("PathDataRoot", ""))
+    If rootPath = "" Then rootPath = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(resolvedWh, True)
+    If Right$(rootPath, 1) <> "\" Then rootPath = rootPath & "\"
+
+    ResolveInventoryWorkbookPathProcessor = rootPath & resolvedWh & ".invSys.Data.Inventory.xlsb"
+End Function
+
+Private Sub CloseHiddenReadOnlyInventoryWorkbookProcessor(ByVal warehouseId As String)
+    Dim targetPath As String
+    Dim wb As Workbook
+
+    On Error Resume Next
+
+    targetPath = ResolveInventoryWorkbookPathProcessor(warehouseId)
+    If targetPath = "" Then Exit Sub
+
+    For Each wb In Application.Workbooks
+        If StrComp(Trim$(wb.FullName), targetPath, vbTextCompare) = 0 Then
+            If wb.ReadOnly And Not WorkbookHasVisibleWindowProcessor(wb) Then
+                Debug.Print "RunBatch LOCK: Closing hidden read-only inventory workbook before processor lock: " & wb.Name
+                LogDiagnosticSafeProcessor "PROCESSOR", "RunBatchCloseHiddenReadOnlyInventory|Path=" & targetPath & "|Name=" & wb.Name
+                wb.Close SaveChanges:=False
+                Exit For
+            End If
+        End If
+    Next wb
+    On Error GoTo 0
+End Sub
+
+Private Function WorkbookHasVisibleWindowProcessor(ByVal wb As Workbook) As Boolean
+    Dim win As Window
+
+    If wb Is Nothing Then Exit Function
+    For Each win In wb.Windows
+        If win.Visible Then
+            WorkbookHasVisibleWindowProcessor = True
+            Exit Function
+        End If
+    Next win
+End Function
+
+Private Sub LogInventoryWorkbookLockDiagnosticsProcessor(ByVal warehouseId As String, _
+                                                        Optional ByVal inventoryWb As Workbook = Nothing, _
+                                                        Optional ByVal openWorkbookPaths As Object = Nothing)
+    Dim targetPath As String
+    Dim wb As Workbook
+    Dim alreadyOpen As Boolean
+    Dim existedBeforeResolve As Boolean
+
+    On Error Resume Next
+
+    targetPath = ResolveInventoryWorkbookPathProcessor(warehouseId)
+    If Not openWorkbookPaths Is Nothing Then existedBeforeResolve = openWorkbookPaths.Exists(targetPath)
+    Debug.Print "RunBatch LOCK: InventoryPath=" & targetPath
+    Debug.Print "RunBatch LOCK: FileExists=" & CStr(modDeploymentPaths.FileExistsManaged(targetPath))
+    Debug.Print "RunBatch LOCK: OpenBeforeResolve=" & CStr(existedBeforeResolve)
+
+    If Not inventoryWb Is Nothing Then
+        Debug.Print "RunBatch LOCK: ResolvedWorkbook=" & inventoryWb.Name & ", ReadOnly=" & CStr(inventoryWb.ReadOnly) & ", FullName=" & inventoryWb.FullName
+        LogDiagnosticSafeProcessor "PROCESSOR", "RunBatchLockResolved|InventoryPath=" & targetPath & "|Workbook=" & inventoryWb.Name & "|ReadOnly=" & CStr(inventoryWb.ReadOnly) & "|OpenBeforeResolve=" & CStr(existedBeforeResolve) & "|FullName=" & inventoryWb.FullName
+    End If
+
+    For Each wb In Application.Workbooks
+        If StrComp(Trim$(wb.FullName), targetPath, vbTextCompare) = 0 Then
+            alreadyOpen = True
+            Debug.Print "RunBatch LOCK: AlreadyOpen=TRUE, ReadOnly=" & CStr(wb.ReadOnly) & ", Name=" & wb.Name
+            LogDiagnosticSafeProcessor "PROCESSOR", "RunBatchLock|InventoryPath=" & targetPath & "|FileExists=True|AlreadyOpen=True|ReadOnly=" & CStr(wb.ReadOnly) & "|OpenBeforeResolve=" & CStr(existedBeforeResolve) & "|Name=" & wb.Name
+        End If
+    Next wb
+
+    If Not alreadyOpen Then
+        Debug.Print "RunBatch LOCK: AlreadyOpen=FALSE"
+        LogDiagnosticSafeProcessor "PROCESSOR", "RunBatchLock|InventoryPath=" & targetPath & "|FileExists=" & CStr(modDeploymentPaths.FileExistsManaged(targetPath)) & "|AlreadyOpen=False|OpenBeforeResolve=" & CStr(existedBeforeResolve)
+    End If
+    On Error GoTo 0
+End Sub
 
 Public Function RunBatchForAutomation(Optional ByVal warehouseId As String = "", _
                                       Optional ByVal batchSize As Long = 0) As Long

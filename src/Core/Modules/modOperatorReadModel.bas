@@ -444,23 +444,25 @@ Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Wo
     screenSuppressed = True
     processedCount = modProcessor.RunBatch(resolvedWarehouseId, 0, batchReport)
     If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "ProcessorRunBatch"
-    Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
-    If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "SurfaceEnsure"
-    If Not RefreshInventoryReadModelForWorkbook(wb, resolvedWarehouseId, sourceType, refreshReport) Then
-        report = refreshReport
-        GoTo CleanExit
-    End If
-    If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "LocalReadModelRefresh"
 
     If Left$(batchReport, 15) = "RunBatch failed" Then
-        report = "RunBatch failed after local post/write. " & batchReport & " RefreshReport=" & refreshReport
+        report = "RunBatch failed after local post/write. " & batchReport & " RefreshReport=Skipped (batch did not process)"
         GoTo CleanExit
     End If
     If Not BatchReportHandledQueuedRowsReadModel(processedCount, batchReport) Then
         report = "RunBatch did not handle the queued event after local post/write. " & _
+                 "BatchReport=" & batchReport & " RefreshReport=Skipped (batch did not process)"
+        GoTo CleanExit
+    End If
+
+    Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
+    If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "SurfaceEnsure"
+    If Not RefreshInventoryReadModelForWorkbook(wb, resolvedWarehouseId, sourceType, refreshReport) Then
+        report = "RunBatch processed queued event, but read-model refresh failed. " & _
                  "BatchReport=" & batchReport & " RefreshReport=" & refreshReport
         GoTo CleanExit
     End If
+    If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "LocalReadModelRefresh"
 
     report = "Processed=" & CStr(processedCount) & "; BatchReport=" & batchReport & "; RefreshReport=" & refreshReport
     LogDiagnosticSafeReadModel "RUNTIME", "RunBatchAndRefresh|Workbook=" & wb.Name & "|WarehouseId=" & resolvedWarehouseId & "|Processed=" & CStr(processedCount) & "|BatchReport=" & batchReport & "|RefreshReport=" & refreshReport

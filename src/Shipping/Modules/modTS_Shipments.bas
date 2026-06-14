@@ -2886,7 +2886,7 @@ Private Function ResolveCanonicalComponentInfoShipping(ByVal itemName As String,
     workbookPath = rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
     Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
     If Not wb Is Nothing Then HideWorkbookWindowsShipping wb
-    If wb Is Nothing Then Set wb = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient)
+    If wb Is Nothing Then Set wb = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient, False)
     If wb Is Nothing Then GoTo CleanExit
 
     Set lo = FindListObjectByNameShipping(wb, "invSys")
@@ -3063,7 +3063,7 @@ Private Sub AddCurrentInventoryCacheFromWorkbookPath(ByVal cache As Object, _
 
     Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
     If Not wb Is Nothing Then HideWorkbookWindowsShipping wb
-    If wb Is Nothing Then Set wb = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient)
+    If wb Is Nothing Then Set wb = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient, False)
     If wb Is Nothing Then GoTo CleanExit
 
     Set lo = FindListObjectByNameShipping(wb, preferredTableName)
@@ -3119,7 +3119,7 @@ Private Sub AddSkuBalanceInventoryCacheFromWorkbookPath(ByVal cache As Object, _
 
     Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
     If Not wb Is Nothing Then HideWorkbookWindowsShipping wb
-    If wb Is Nothing Then Set wb = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient)
+    If wb Is Nothing Then Set wb = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient, False)
     If wb Is Nothing Then GoTo CleanExit
 
     Set loBalance = FindListObjectByNameShipping(wb, "tblSkuBalance")
@@ -3769,7 +3769,7 @@ Private Function LoadRuntimeInventoryPickerItems() As Variant
         Exit Function
     End If
 
-    Set wbInv = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient)
+    Set wbInv = OpenWorkbookHiddenShipping(workbookPath, True, openedTransient, False)
     If wbInv Is Nothing Then
         mLastComponentPickerStatus = "Inventory runtime workbook could not be opened: " & workbookPath
         Exit Function
@@ -3781,7 +3781,7 @@ Private Function LoadRuntimeInventoryPickerItems() As Variant
         If Not IsEmpty(result) Then
             mLastComponentPickerStatus = "Loaded inventory from warehouse runtime invSys table."
             LoadRuntimeInventoryPickerItems = result
-            Exit Function
+            GoTo CleanExit
         End If
     End If
 
@@ -3789,15 +3789,19 @@ Private Function LoadRuntimeInventoryPickerItems() As Variant
     If Not IsEmpty(result) Then
         mLastComponentPickerStatus = "Loaded inventory from warehouse runtime SKU catalog."
         LoadRuntimeInventoryPickerItems = result
-        Exit Function
+        GoTo CleanExit
     End If
 
     mLastComponentPickerStatus = "Inventory runtime workbook has no usable invSys or SKU catalog rows."
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping wbInv
     Exit Function
 
 FailSoft:
     mLastComponentPickerStatus = "Runtime inventory lookup failed: " & Err.Description
     LoadRuntimeInventoryPickerItems = Empty
+    Resume CleanExit
 End Function
 
 Public Function ShippingComponentPickerLastStatus() As String
@@ -4206,6 +4210,48 @@ FailSoft:
     BoxMakerFormLoadSavedBoxes = Empty
 End Function
 
+Public Function BoxMakerFormLoadShippableInventory(ByVal savedBoxes As Variant) As Variant
+    On Error GoTo FailSoft
+
+    Dim ws As Worksheet
+    Dim invLo As ListObject
+    Dim snapshotCache As Object
+    Dim result() As Variant
+    Dim r As Long
+    Dim rowCount As Long
+    Dim rowValue As Long
+    Dim itemName As String
+    Dim foundCurrent As Boolean
+    Dim currentInv As Variant
+
+    If IsEmpty(savedBoxes) Then Exit Function
+    rowCount = UBound(savedBoxes, 1)
+    If rowCount <= 0 Then Exit Function
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Function
+    Set invLo = GetInvSysTable()
+
+    ReDim result(1 To rowCount, 1 To 5)
+    For r = 1 To rowCount
+        rowValue = NzLng(savedBoxes(r, 1))
+        itemName = NzStr(savedBoxes(r, 2))
+        foundCurrent = False
+        currentInv = ResolveCurrentInventoryValue(ws, invLo, rowValue, itemName, foundCurrent, snapshotCache)
+
+        result(r, 1) = rowValue
+        result(r, 2) = itemName
+        If foundCurrent Then result(r, 3) = currentInv Else result(r, 3) = ""
+        result(r, 4) = NzStr(savedBoxes(r, 4))
+        result(r, 5) = NzStr(savedBoxes(r, 5))
+    Next r
+    BoxMakerFormLoadShippableInventory = result
+    Exit Function
+
+FailSoft:
+    BoxMakerFormLoadShippableInventory = Empty
+End Function
+
 Public Function BoxMakerFormLoadVersions(ByVal packageRow As Long) As Variant
     On Error GoTo FailSoft
 
@@ -4462,6 +4508,10 @@ Public Function CommitBoxMakerFormAction(ByVal packageRow As Long, _
     Dim componentsReturned As Double
     Dim errNotes As String
     Dim inventoryState As Object
+    Dim eventQueued As Boolean
+    Dim batchProcessed As Boolean
+    Dim eventIdOut As String
+    Dim runtimeReport As String
 
     resultMessage = ""
     actionText = UCase$(Trim$(actionText))
@@ -4554,26 +4604,36 @@ CleanRestore:
 
     If actionText = "UNMAKE" Or actionText = "UNBOX" Then
         Set inventoryState = CaptureBoxMakerCurrentInventoryState(loBuilder, loBom)
-        If Not ApplyBoxUnboxedFromBuilder(loBuilder, loBom, invLo, packageReturned, componentsReturned, errNotes) Then
+        If Not ApplyBoxUnboxedFromBuilder(loBuilder, loBom, invLo, packageReturned, componentsReturned, errNotes, eventQueued, batchProcessed, eventIdOut, runtimeReport) Then
             If errNotes = "" Then errNotes = "Box could not be unboxed."
             resultMessage = errNotes
             Exit Function
         End If
-        RefreshBoxMakerCurrentInventory ws
-        ApplyBoxUnboxExpectedCurrentInventoryDisplay loBuilder, loBom, inventoryState
+        If batchProcessed Then
+            RefreshBoxMakerCurrentInventory ws
+            ApplyBoxUnboxExpectedCurrentInventoryDisplay loBuilder, loBom, inventoryState
+        End If
         ResetBoxMakerQuantities loBuilder, loBom
-        InvalidateAggregates True, True
-        resultMessage = "Box unboxed. Removed " & Format$(packageReturned, "0.###") & " shippable units; returned " & Format$(componentsReturned, "0.###") & " component units to TOTAL INV."
+        If batchProcessed Then
+            InvalidateAggregates True, True
+            resultMessage = "Box unboxed. Removed " & Format$(packageReturned, "0.###") & " shippable units; returned " & Format$(componentsReturned, "0.###") & " component units to TOTAL INV."
+        Else
+            resultMessage = "Box unbox event queued but not processed. No inventory quantities were updated yet."
+        End If
     Else
-        If Not ApplyBoxCreatedFromBuilder(loBuilder, loBom, invLo, usedTotal, madeTotal, errNotes) Then
+        If Not ApplyBoxCreatedFromBuilder(loBuilder, loBom, invLo, usedTotal, madeTotal, errNotes, eventQueued, batchProcessed, eventIdOut, runtimeReport) Then
             If errNotes = "" Then errNotes = "Box creation could not be posted."
             resultMessage = errNotes
             Exit Function
         End If
         ResetBoxMakerQuantities loBuilder, loBom
-        RefreshBoxMakerCurrentInventory ws
-        InvalidateAggregates True, True
-        resultMessage = "Box created. Used " & Format$(usedTotal, "0.###") & " component units; added " & Format$(madeTotal, "0.###") & " shippable units to TOTAL INV."
+        If batchProcessed Then
+            RefreshBoxMakerCurrentInventory ws
+            InvalidateAggregates True, True
+            resultMessage = "Box created. Used " & Format$(usedTotal, "0.###") & " component units; added " & Format$(madeTotal, "0.###") & " shippable units to TOTAL INV."
+        Else
+            resultMessage = "Box build event queued but not processed. No inventory quantities were updated yet."
+        End If
     End If
     If errNotes <> "" Then resultMessage = resultMessage & vbCrLf & vbCrLf & errNotes
     ShowShippingStatus resultMessage
@@ -7158,11 +7218,18 @@ Private Function ApplyBoxCreatedFromBuilder(ByVal loBuilder As ListObject, _
                                            ByVal invLo As ListObject, _
                                            ByRef usedTotal As Double, _
                                            ByRef madeTotal As Double, _
-                                           ByRef errNotes As String) As Boolean
-    Dim eventIdOut As String
+                                           ByRef errNotes As String, _
+                                           Optional ByRef eventQueuedOut As Boolean = False, _
+                                           Optional ByRef batchProcessedOut As Boolean = False, _
+                                           Optional ByRef eventIdOut As String = "", _
+                                           Optional ByRef runtimeReportOut As String = "") As Boolean
     Dim runtimeReport As String
 
     errNotes = ""
+    eventQueuedOut = False
+    batchProcessedOut = False
+    eventIdOut = ""
+    runtimeReportOut = ""
     If loBuilder Is Nothing Or loBom Is Nothing Then
         errNotes = "Box Created required tables are missing."
         Exit Function
@@ -7172,8 +7239,12 @@ Private Function ApplyBoxCreatedFromBuilder(ByVal loBuilder As ListObject, _
     EnsureBoxBomEntryColumns loBom
 
     If Not QueueBoxBuildEventFromBuilder(loBuilder, loBom, invLo, usedTotal, madeTotal, eventIdOut, errNotes) Then Exit Function
+    eventQueuedOut = True
 
-    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(loBuilder.Parent.Parent, "", "LOCAL", runtimeReport) Then
+    batchProcessedOut = modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(loBuilder.Parent.Parent, "", "LOCAL", runtimeReport)
+    If Not batchProcessedOut Then batchProcessedOut = BoxMakerRuntimeReportShowsProcessed(runtimeReport)
+    runtimeReportOut = runtimeReport
+    If Not batchProcessedOut Then
         If runtimeReport = "" Then runtimeReport = "Box build event queued, but runtime processing or read-model refresh did not complete cleanly."
         AppendNote errNotes, runtimeReport
     ElseIf runtimeReport <> "" Then
@@ -7189,11 +7260,18 @@ Private Function ApplyBoxUnboxedFromBuilder(ByVal loBuilder As ListObject, _
                                            ByVal invLo As ListObject, _
                                            ByRef packageReturned As Double, _
                                            ByRef componentsReturned As Double, _
-                                           ByRef errNotes As String) As Boolean
-    Dim eventIdOut As String
+                                           ByRef errNotes As String, _
+                                           Optional ByRef eventQueuedOut As Boolean = False, _
+                                           Optional ByRef batchProcessedOut As Boolean = False, _
+                                           Optional ByRef eventIdOut As String = "", _
+                                           Optional ByRef runtimeReportOut As String = "") As Boolean
     Dim runtimeReport As String
 
     errNotes = ""
+    eventQueuedOut = False
+    batchProcessedOut = False
+    eventIdOut = ""
+    runtimeReportOut = ""
     If loBuilder Is Nothing Or loBom Is Nothing Then
         errNotes = "Box Unboxed required tables are missing."
         Exit Function
@@ -7203,8 +7281,12 @@ Private Function ApplyBoxUnboxedFromBuilder(ByVal loBuilder As ListObject, _
     EnsureBoxBomEntryColumns loBom
 
     If Not QueueBoxUnboxEventFromBuilder(loBuilder, loBom, invLo, componentsReturned, packageReturned, eventIdOut, errNotes) Then Exit Function
+    eventQueuedOut = True
 
-    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(loBuilder.Parent.Parent, "", "LOCAL", runtimeReport) Then
+    batchProcessedOut = modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(loBuilder.Parent.Parent, "", "LOCAL", runtimeReport)
+    If Not batchProcessedOut Then batchProcessedOut = BoxMakerRuntimeReportShowsProcessed(runtimeReport)
+    runtimeReportOut = runtimeReport
+    If Not batchProcessedOut Then
         If runtimeReport = "" Then runtimeReport = "Box unbox event queued, but runtime processing or read-model refresh did not complete cleanly."
         AppendNote errNotes, runtimeReport
     ElseIf runtimeReport <> "" Then
@@ -7213,6 +7295,51 @@ Private Function ApplyBoxUnboxedFromBuilder(ByVal loBuilder As ListObject, _
     If eventIdOut <> "" Then AppendNote errNotes, "Inbox EventID: " & eventIdOut
 
     ApplyBoxUnboxedFromBuilder = True
+End Function
+
+Private Function BoxMakerRuntimeReportShowsProcessed(ByVal runtimeReport As String) As Boolean
+    Dim reportText As String
+
+    reportText = Trim$(runtimeReport)
+    If reportText = "" Then Exit Function
+
+    If InStr(1, reportText, "RunBatch processed queued event", vbTextCompare) > 0 Then
+        BoxMakerRuntimeReportShowsProcessed = True
+        Exit Function
+    End If
+    If BoxMakerRuntimeReportMetric(reportText, "Processed") > 0 Then
+        BoxMakerRuntimeReportShowsProcessed = True
+        Exit Function
+    End If
+    If BoxMakerRuntimeReportMetric(reportText, "Applied") > 0 Then
+        BoxMakerRuntimeReportShowsProcessed = True
+        Exit Function
+    End If
+    If BoxMakerRuntimeReportMetric(reportText, "SkipDup") > 0 Then
+        BoxMakerRuntimeReportShowsProcessed = True
+    End If
+End Function
+
+Private Function BoxMakerRuntimeReportMetric(ByVal runtimeReport As String, ByVal metricName As String) As Long
+    Dim marker As String
+    Dim pos As Long
+    Dim valueStart As Long
+    Dim valueEnd As Long
+    Dim ch As String
+
+    marker = metricName & "="
+    pos = InStr(1, runtimeReport, marker, vbTextCompare)
+    If pos <= 0 Then Exit Function
+
+    valueStart = pos + Len(marker)
+    valueEnd = valueStart
+    Do While valueEnd <= Len(runtimeReport)
+        ch = Mid$(runtimeReport, valueEnd, 1)
+        If ch < "0" Or ch > "9" Then Exit Do
+        valueEnd = valueEnd + 1
+    Loop
+    If valueEnd <= valueStart Then Exit Function
+    BoxMakerRuntimeReportMetric = CLng(Mid$(runtimeReport, valueStart, valueEnd - valueStart))
 End Function
 
 Private Function CaptureBoxMakerCurrentInventoryState(ByVal loBuilder As ListObject, _
@@ -8165,7 +8292,8 @@ End Function
 
 Private Function OpenWorkbookHiddenShipping(ByVal workbookPath As String, _
                                             ByVal readOnly As Boolean, _
-                                            ByRef openedTransient As Boolean) As Workbook
+                                            ByRef openedTransient As Boolean, _
+                                            Optional ByVal keepOpen As Boolean = True) As Workbook
     On Error GoTo FailSoft
 
     Dim wb As Workbook
@@ -8180,6 +8308,7 @@ Private Function OpenWorkbookHiddenShipping(ByVal workbookPath As String, _
     Set wb = FindOpenWorkbookByFullNameShipping(workbookPath)
     If Not wb Is Nothing Then
         HideWorkbookWindowsShipping wb
+        If Not keepOpen Then openedTransient = (readOnly And wb.ReadOnly)
         Set OpenWorkbookHiddenShipping = wb
         Exit Function
     End If
@@ -8195,9 +8324,9 @@ Private Function OpenWorkbookHiddenShipping(ByVal workbookPath As String, _
                                         Notify:=False)
     HideWorkbookWindowsShipping wb
 
-    ' Keep runtime/read-model workbooks open and hidden for the Excel session.
-    ' Closing them after every box selection is the main source of flicker and delay.
-    openedTransient = False
+    ' Keep stable runtime/read-model workbooks open for speed, but allow callers
+    ' that read Data.Inventory to close it before processor write-lock attempts.
+    openedTransient = Not keepOpen
     Set OpenWorkbookHiddenShipping = wb
 
 CleanExit:

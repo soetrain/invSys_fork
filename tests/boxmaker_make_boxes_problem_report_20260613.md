@@ -270,3 +270,183 @@ The next design decision is whether BoxMaker should:
 2. Queue quickly and process/refresh separately.
 
 Given the UserForm direction, option 2 is likely the better UX.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Now I have the full picture from both the attached problem report and the live source. Here is the complete analysis and fix plan.
+
+***
+
+## The Two Problems Are Distinct
+
+The report describes one **UX design problem** masquerading as a performance problem, plus one **messaging bug**. The underlying code path works correctly — the event is queued — but the synchronous design makes the click slow and the result message is dishonest.
+
+***
+
+## Root Cause 1 — Synchronous Batch Processing Inside a Button Click
+
+`RunBatchAndRefreshOperatorWorkbook` does **five heavy synchronous operations** inside `mBtnMakeClick`:
+
+1. `modProcessor.RunBatch` — tries to open and write-lock `WH1.invSys.Data.Inventory.xlsb`
+2. `EnsureInventoryManagementSurface` — repairs/regenerates the InventoryManagement sheet surface
+3. `RefreshInventoryReadModelForWorkbook` — opens the snapshot workbook and syncs all rows in `invSys`
+
+When the runtime inventory workbook is locked by another Excel session (or OneDrive/AV indexer), step 1 blocks, retries, and eventually fails — but steps 2 and 3 still run after the failure, adding their own latency. The user feels all of this as button lag.
+
+***
+
+## Root Cause 2 — Misleading Success Message
+
+The current `CommitBoxMakerFormAction` / `ApplyBoxCreatedFromBuilder` returns a message starting with:
+
+```
+Box created. Used 30. component units added 5. shippable units to TOTAL INV.
+```
+
+…even when `RunBatch` reported `Inventory workbook is read-only or locked`. The event is **queued but not applied**. Inventory quantities were **not updated**. The message is factually wrong and will cause user trust issues — they will believe stock was deducted when it was not.
+
+***
+
+## Fix Plan
+
+### Fix 1 — Return structured status from `ApplyBoxCreatedFromBuilder`
+
+The current function collapses everything into a string. Change it to return a typed result so the caller can distinguish queue success from processing success:
+
+```vba
+' In modTSShipments.bas — replace the current opaque String return
+Public Function ApplyBoxCreatedFromBuilder(...) As Object
+    Dim result As Object
+    Set result = CreateObject("Scripting.Dictionary")
+    result("EventQueued")       = False
+    result("BatchProcessed")    = False
+    result("ReadModelRefreshed") = False
+    result("EventId")           = ""
+    result("BatchReport")       = ""
+    result("RefreshReport")     = ""
+    result("UserMessage")       = ""
+
+    ' --- Queue the BOXBUILD event ---
+    Dim eventId As String
+    eventId = QueueBoxBuildEventFromBuilder(...)
+    If eventId = "" Then
+        result("UserMessage") = "Failed to queue box build event. No changes were made."
+        Set ApplyBoxCreatedFromBuilder = result
+        Exit Function
+    End If
+    result("EventQueued") = True
+    result("EventId")     = eventId
+
+    ' --- Attempt batch processing, but treat failure as non-fatal ---
+    Dim batchReport As String, refreshReport As String
+    Dim batchOk As Boolean
+    batchOk = modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook( _
+        Nothing, "", "LOCAL", batchReport)
+
+    result("BatchReport")       = batchReport
+    result("BatchProcessed")    = batchOk
+    result("ReadModelRefreshed") = (InStr(batchReport, "RefreshReport=OK") > 0)
+
+    ' --- Compose an honest message ---
+    If batchOk Then
+        result("UserMessage") = "Box build posted. Inventory updated. EventID " & eventId
+    Else
+        result("UserMessage") = _
+            "Box build event queued but NOT yet processed." & vbCrLf & _
+            "Runtime inventory workbook is locked or read-only." & vbCrLf & _
+            "No inventory quantities were updated yet." & vbCrLf & _
+            "EventID " & eventId & vbCrLf & _
+            "Run 'Process Pending' when the workbook is available."
+    End If
+
+    result("ReadModelRefreshed") = batchOk
+    Set ApplyBoxCreatedFromBuilder = result
+End Function
+```
+
+### Fix 2 — Move `EnsureInventoryManagementSurface` out of the hot path
+
+`EnsureInventoryManagementSurface` rebuilds sheet chrome every click. It is a setup/repair operation, not a post-commit operation. Move it to the form's `Initialize` or `Load` event (runs once on open), not inside `RunBatchAndRefreshOperatorWorkbook`.
+
+In `RunBatchAndRefreshOperatorWorkbook`, remove or guard the `EnsureInventoryManagementSurface` call:
+
+```vba
+' BEFORE — runs on every Make Boxes click:
+Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
+
+' AFTER — only repair on first load or explicit setup, not hot path:
+' (Move this call to frmShippingBoxMaker_Initialize or a one-time setup ribbon button)
+```
+
+### Fix 3 — Gate the read-model refresh on batch success
+
+`RefreshInventoryReadModelForWorkbook` opens the snapshot and syncs every `invSys` row. If `RunBatch` failed because the runtime workbook is locked, the snapshot will not have updated numbers anyway — the refresh is wasted work. Gate it:
+
+```vba
+' In RunBatchAndRefreshOperatorWorkbook:
+processedCount = modProcessor.RunBatch(resolvedWarehouseId, 0, batchReport)
+If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "ProcessorRunBatch"
+
+' Only refresh read model if batch actually processed rows
+If BatchReportHandledQueuedRowsReadModel(processedCount, batchReport) Then
+    Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
+    If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "SurfaceEnsure"
+    If Not RefreshInventoryReadModelForWorkbook(wb, resolvedWarehouseId, sourceType, refreshReport) Then
+        report = refreshReport
+        GoTo CleanExit
+    End If
+    If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "LocalReadModelRefresh"
+Else
+    ' Batch was blocked. Skip surface repair and read-model refresh.
+    ' Caller should surface a "pending" message, not a success message.
+    refreshReport = "Skipped (batch did not process)"
+End If
+```
+
+### Fix 4 — Add lock diagnostics to `modProcessor.RunBatch`
+
+The Immediate Window currently shows `Inventory workbook is read-only or locked by another Excel session` but not **which path** or **whether a hidden workbook in the same session** is the cause. Add this to the branch that generates that message:
+
+```vba
+Debug.Print "RunBatch LOCK: InventoryPath=" & resolvedInventoryPath
+Debug.Print "RunBatch LOCK: FileExists=" & CStr(FileExistsReadModel(resolvedInventoryPath))
+' Check if already open in this session
+Dim wbCheck As Workbook
+For Each wbCheck In Application.Workbooks
+    If StrComp(wbCheck.FullName, resolvedInventoryPath, vbTextCompare) = 0 Then
+        Debug.Print "RunBatch LOCK: AlreadyOpen=TRUE, ReadOnly=" & CStr(wbCheck.ReadOnly), _
+                    "Name=" & wbCheck.Name
+    End If
+Next wbCheck
+```
+
+This will immediately reveal whether it's a hidden same-session workbook (very common after add-in validation runs leave Excel open) vs. a true external lock.
+
+***
+
+## Expected Immediate Window After Fix
+
+A successful Make Boxes click should show:
+
+```
+RunBatchAndRefreshOperatorWorkbook entered
+  modProcessor.RunBatch entered
+  RunBatch: InventoryPath=C:\...\WH1.invSys.Data.Inventory.xlsb
+  RunBatch: Processed=1; Applied=1
+  EnsureInventoryManagementSurface skipped (no surface rebuild needed)
+  RefreshInventoryReadModelForWorkbook entered
+  Shipping component inventory source workbook: WH1.invSys.Snapshot.Inventory.xlsb
+  Shipping component inventory rows: 47
+Box build posted. Inventory updated. EventID 50EB093B-...
+```
+
+A locked-workbook click should now show:
+
+```
+RunBatch LOCK: InventoryPath=C:\...\WH1.invSys.Data.Inventory.xlsb
+RunBatch LOCK: AlreadyOpen=TRUE, ReadOnly=True, Name=WH1.invSys.Data.Inventory.xlsb
+RunBatchAndRefreshOperatorWorkbook: batch blocked — skipping surface and read-model refresh
+Box build event queued but NOT yet processed. Runtime inventory workbook is locked...
+EventID 50EB093B-...
+```
+
+The click returns fast because the surface repair and read-model refresh are skipped when they would be useless.

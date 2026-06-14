@@ -27,6 +27,7 @@ Private mTxtBoxName As MSForms.TextBox
 Private mTxtUom As MSForms.TextBox
 Private mTxtLocation As MSForms.TextBox
 Private mTxtDescription As MSForms.TextBox
+Private WithEvents mLstShippables As MSForms.ListBox
 Private mLstComponents As MSForms.ListBox
 Private mLblPackageInv As MSForms.Label
 Private mLblStatus As MSForms.Label
@@ -63,12 +64,12 @@ Private Sub BuildLayout()
 
     Me.Caption = "Shipping Box Maker"
     Me.Width = 780
-    Me.Height = 520
+    Me.Height = 560
 
     AddLabel "lblTitle", "Box Maker", 12, 10, 140, 20, True
     AddLabel "lblBox", "Saved Box", 12, 42, 74, 18, False
     AddLabel "lblVersion", "Version", 432, 42, 58, 18, False
-    AddLabel "lblQty", "Qty Made", 570, 42, 66, 18, False
+    AddLabel "lblQty", "Qty", 570, 42, 38, 18, False
 
     Set mCboBoxes = AddComboBox("cboBoxes", 86, 38, 320, 22)
     With mCboBoxes
@@ -102,19 +103,27 @@ Private Sub BuildLayout()
     LockTextBox mTxtLocation
     LockTextBox mTxtDescription
 
-    AddLabel "lblComponents", "Components To Deduct", 12, 148, 170, 18, True
-    Set mLblPackageInv = AddLabel("lblPackageInv", "", 190, 148, 330, 18, False)
-    AddComponentHeaders 12, 170
-    Set mLstComponents = AddListBox("lstComponents", 12, 190, 752, 232)
+    AddLabel "lblShippables", "Shippable Inventory", 12, 142, 170, 18, True
+    Set mLblPackageInv = AddLabel("lblPackageInv", "", 190, 142, 330, 18, False)
+    AddShippableHeaders 12, 164
+    Set mLstShippables = AddListBox("lstShippables", 12, 184, 752, 72)
+    With mLstShippables
+        .ColumnCount = 5
+        .ColumnWidths = "220 pt;70 pt;44 pt;120 pt;56 pt"
+    End With
+
+    AddLabel "lblComponents", "Components To Deduct", 12, 270, 170, 18, True
+    AddComponentHeaders 12, 292
+    Set mLstComponents = AddListBox("lstComponents", 12, 312, 752, 142)
     With mLstComponents
         .ColumnCount = 9
         .ColumnWidths = "126 pt;42 pt;50 pt;58 pt;54 pt;38 pt;76 pt;62 pt;150 pt"
     End With
 
-    Set mBtnMake = AddButton("btnMake", "Make Boxes", 506, 434, 86, 30)
-    Set mBtnUnmake = AddButton("btnUnmake", "Unmake Boxes", 604, 434, 92, 30)
-    Set mBtnClose = AddButton("btnClose", "Close", 706, 434, 58, 30)
-    Set mLblStatus = AddLabel("lblStatus", "", 12, 432, 480, 44, False)
+    Set mBtnMake = AddButton("btnMake", "Make Boxes", 506, 466, 86, 30)
+    Set mBtnUnmake = AddButton("btnUnmake", "Unmake Boxes", 604, 466, 92, 30)
+    Set mBtnClose = AddButton("btnClose", "Close", 706, 466, 58, 30)
+    Set mLblStatus = AddLabel("lblStatus", "", 12, 464, 480, 44, False)
 End Sub
 
 Private Sub LoadSavedBoxes()
@@ -143,6 +152,7 @@ Private Sub LoadSavedBoxes()
             mCboBoxes.List(idx, c - 1) = NzText(mSavedBoxes(r, c))
         Next c
     Next r
+    RenderShippableInventory
     ShowStatus "Loaded " & CStr(mCboBoxes.ListCount) & " active box design(s)."
     Exit Sub
 
@@ -162,6 +172,7 @@ Private Sub LoadSelectedBox()
     LoadVersionsForPackage mSelectedPackageRow
     LoadSelectedVersionComponents
     RenderPackageInventory
+    SelectShippableInventoryRow
     Exit Sub
 
 FailSoft:
@@ -310,6 +321,29 @@ Private Sub mBtnClose_Click()
     Me.Hide
 End Sub
 
+Private Sub mLstShippables_Click()
+    On Error GoTo FailSoft
+
+    Dim packageRow As Long
+    Dim r As Long
+
+    If mLoading Then Exit Sub
+    If mLstShippables.ListIndex < 0 Then Exit Sub
+
+    packageRow = CLng(Val(NzText(mLstShippables.List(mLstShippables.ListIndex, 4))))
+    If packageRow <= 0 Then Exit Sub
+
+    For r = 0 To mCboBoxes.ListCount - 1
+        If CLng(Val(NzText(mCboBoxes.List(r, 0)))) = packageRow Then
+            mCboBoxes.ListIndex = r
+            Exit Sub
+        End If
+    Next r
+    Exit Sub
+
+FailSoft:
+End Sub
+
 Private Sub PostBoxMakerAction(ByVal actionText As String)
     On Error GoTo ErrHandler
 
@@ -343,6 +377,7 @@ Private Sub PostBoxMakerAction(ByVal actionText As String)
         MsgBox resultMessage, vbInformation
         LoadSelectedVersionComponents
         RenderPackageInventory
+        RenderShippableInventory
     Else
         If resultMessage = "" Then resultMessage = "BoxMaker action did not complete."
         MsgBox resultMessage, vbExclamation
@@ -352,6 +387,65 @@ Private Sub PostBoxMakerAction(ByVal actionText As String)
 
 ErrHandler:
     ShowStatus "BoxMaker action failed: " & Err.Description
+End Sub
+
+Private Sub RenderShippableInventory()
+    On Error GoTo FailSoft
+
+    Dim rowsData As Variant
+    Dim r As Long
+    Dim idx As Long
+    Dim currentInv As String
+    Dim prevLoading As Boolean
+
+    If mLstShippables Is Nothing Then Exit Sub
+    prevLoading = mLoading
+    mLoading = True
+    mLstShippables.Clear
+    If IsEmpty(mSavedBoxes) Then GoTo CleanExit
+
+    rowsData = modTS_Shipments.BoxMakerFormLoadShippableInventory(mSavedBoxes)
+    If IsEmpty(rowsData) Then GoTo CleanExit
+
+    For r = 1 To UBound(rowsData, 1)
+        currentInv = NzText(rowsData(r, 3))
+        If currentInv = "" Then currentInv = "unknown"
+
+        mLstShippables.AddItem NzText(rowsData(r, 2))
+        idx = mLstShippables.ListCount - 1
+        mLstShippables.List(idx, 1) = currentInv
+        mLstShippables.List(idx, 2) = NzText(rowsData(r, 4))
+        mLstShippables.List(idx, 3) = NzText(rowsData(r, 5))
+        mLstShippables.List(idx, 4) = NzText(rowsData(r, 1))
+        If CLng(Val(NzText(rowsData(r, 1)))) = mSelectedPackageRow Then mLstShippables.ListIndex = idx
+    Next r
+
+CleanExit:
+    mLoading = prevLoading
+    Exit Sub
+
+FailSoft:
+    If Not mLstShippables Is Nothing Then mLstShippables.Clear
+    mLoading = prevLoading
+End Sub
+
+Private Sub SelectShippableInventoryRow()
+    On Error GoTo FailSoft
+
+    Dim r As Long
+
+    If mLstShippables Is Nothing Then Exit Sub
+    If mSelectedPackageRow <= 0 Then Exit Sub
+
+    For r = 0 To mLstShippables.ListCount - 1
+        If CLng(Val(NzText(mLstShippables.List(r, 4)))) = mSelectedPackageRow Then
+            mLstShippables.ListIndex = r
+            Exit Sub
+        End If
+    Next r
+    Exit Sub
+
+FailSoft:
 End Sub
 
 Private Function SelectedVersionLabel() As String
@@ -370,6 +464,7 @@ Private Sub ClearBoxFields()
     mTxtLocation.Value = ""
     mTxtDescription.Value = ""
     mLstComponents.Clear
+    If Not mLstShippables Is Nothing Then mLstShippables.Clear
     mLblPackageInv.Caption = ""
 End Sub
 
@@ -401,6 +496,14 @@ Private Sub AddComponentHeaders(ByVal leftPos As Single, ByVal topPos As Single)
     AddHeaderLabel "hdrLocation", "Location", leftPos + 382, topPos, 74
     AddHeaderLabel "hdrCode", "Code", leftPos + 460, topPos, 60
     AddHeaderLabel "hdrDesc", "Description", leftPos + 524, topPos, 150
+End Sub
+
+Private Sub AddShippableHeaders(ByVal leftPos As Single, ByVal topPos As Single)
+    AddHeaderLabel "hdrShipBox", "Box", leftPos, topPos, 220
+    AddHeaderLabel "hdrShipCurrent", "Current Inv", leftPos + 222, topPos, 68
+    AddHeaderLabel "hdrShipUom", "UOM", leftPos + 294, topPos, 42
+    AddHeaderLabel "hdrShipLocation", "Location", leftPos + 340, topPos, 118
+    AddHeaderLabel "hdrShipRow", "ROW", leftPos + 462, topPos, 56
 End Sub
 
 Private Sub AddHeaderLabel(ByVal name As String, _
