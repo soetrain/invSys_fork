@@ -55,6 +55,8 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
     Dim perfOwned As Boolean
     Dim openWorkbookPaths As Object
     Dim inventoryOpenedTransient As Boolean
+    Dim localStagingReport As String
+    Dim localStagingOk As Boolean
 
     If Not EnsurePhase2Context(warehouseId, report) Then Exit Function
 
@@ -77,6 +79,8 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
         report = "Processor service identity lacks INBOX_PROCESS."
         Exit Function
     End If
+
+    localStagingOk = modRoleEventWriter.SyncLocalStagedInboxRows(localStagingReport, warehouseId, modConfig.GetString("StationId", ""))
 
     CloseHiddenReadOnlyInventoryWorkbookProcessor warehouseId
     Set openWorkbookPaths = CaptureOpenWorkbookPathsProcessor()
@@ -187,6 +191,9 @@ ContinueInbox:
     PerfMarkSafeProcessor runId, "Apply", CLng((Timer - phaseStart) * 1000)
     If PerfIsTransactionActiveSafeProcessor() Then MarkSegmentSafeProcessor "ProcessorApplyLoop"
     report = "Applied=" & CStr(RunBatch) & "; SkipDup=" & CStr(skipDupCount) & "; Poison=" & CStr(poisonCount) & "; RunId=" & runId
+    If localStagingReport <> "" And InStr(1, localStagingReport, "No local staged inbox rows", vbTextCompare) = 0 Then
+        report = report & "; LocalStagingSync=" & IIf(localStagingOk, "OK", "WARN") & " (" & localStagingReport & ")"
+    End If
     If artifactWarnings > 0 Then report = report & "; ArtifactWarnings=" & CStr(artifactWarnings)
 
     artifactReport = vbNullString

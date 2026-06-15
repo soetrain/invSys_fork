@@ -1,158 +1,299 @@
-The architecture is now clear. `modTS_Shipments.bas` at 117 KB is the central file — it's huge, and the combination of a giant module driving ribbon callbacks + `Worksheet_Change` handlers + Table writes is the stability trap.  Here is a direct, honest assessment.
+The source confirms exactly what you suspected. Here's the precise analysis and the best course of action.
 
 ***
 
-## Short Answer
+## What `QueueEventCore` Actually Does Per Click
 
-**Yes, a UserForm-centered architecture will be dramatically more stable and performant than the current ribbon-buttons-on-Tables approach** — for this specific use case. But the reason is not "UserForms are faster." The reason is that a UserForm forces a clean separation of concerns that the ribbon-on-sheet model inherently resists, and that separation is what eliminates the cascading event/refresh/open cycles that are killing you.
+Reading `QueueEventCore` in `modRoleEventWriter.bas` top to bottom, the latency budget for a single `Make Boxes` click on a NAS/UNC path is: 
 
-***
+| Step | What happens | Typical cost on NAS |
+|---|---|---|
+| `EnsureContextResolved` | `modConfig.LoadConfig` | 10–50 ms |
+| `modAuth.LoadAuth` | Opens auth workbook read-only, scans tables | 50–300 ms |
+| `ResolveInboxWorkbookForEventType` | **Opens `invSys.Inbox.Shipping.*.xlsb` over UNC** | **1000–4000 ms** |
+| `EnsureShipInboxSchema` | Schema validation pass | 10–50 ms |
+| `lo.ListRows.Add` + 18 × `SetTableRowValueRole` | Cell writes | < 50 ms |
+| `SaveWorkbookRole` → `wb.Save` | **Saves .xlsb to NAS** | **500–2000 ms** |
+| `CloseTransientRoleWorkbook` | Close + possibly re-save | 200–500 ms |
 
-## Why the Current Model Keeps Regressing
+The **two NAS I/O walls** are the workbook open and the `wb.Save`. Together they account for nearly all of the 5-second budget. Everything else is negligible.
 
-The ribbon-on-Tables architecture creates a structural trap that no amount of patching fully escapes. Every fix introduces a new interaction surface. 
-
-**The cascade chain that fires on every box selection:**
-
-```
-User clicks cell in BoxBOM table
-  → Worksheet_SelectionChange fires
-    → cDynItemSearch.ShowForShippingComponentCell
-      → LoadCanonicalManagedInventoryItems
-        → modInventoryDomainBridge.ResolveInventoryWorkbookBridge
-          → Workbooks.Open (if not cached)
-            → Excel window flash
-  → User picks item → CommitSelection
-    → callbackCell.Value = x        → Worksheet_Change fires
-    → callbackCell.ListObject write → Worksheet_Change fires again
-      → version autofill logic       → more cell writes
-        → Worksheet_Change fires again (re-entrant)
-          → Application.EnableEvents = False needed
-            → but someone forgot it somewhere
-              → regression
-```
-
-`modTS_Shipments.bas` being 117 KB means this logic has grown organically inside one module, and the event handler / quiet-ui guard boundaries are now inconsistent.  Codex keeps "gassing out" because it is patching a system where every write can trigger another write — the state machine is implicit and lives in Excel's event system.
+There is also a structural inefficiency: every `QueueEventCore` call opens the inbox, writes one row, saves the full `.xlsb`, and closes it — all synchronously inside the button click. The `.xlsb` format is compact but Excel's COM save path is slow because it must recalculate and serialize the entire workbook object model each time. 
 
 ***
 
-## The UserForm Model — What Changes Structurally
+## Best Course of Action
 
-A UserForm does not replace ribbon buttons — you keep the ribbon. What changes is **where state lives and where writes happen**.
+There are three realistic options. Here is an honest assessment of each:
 
-### Current model (broken loop):
-```
-Sheet ←→ Worksheet_Change ←→ modTS_Shipments ←→ Workbooks.Open
-  ↑_____________writes_____________________________|
-```
+### Option A — Keep-alive the inbox workbook (smallest change, fastest win)
 
-### UserForm model (clean pipeline):
-```
-Ribbon button → opens frmBoxBuilder (UserForm, modeless)
-  frmBoxBuilder loads ALL data into memory at open time (one I/O burst)
-  User makes all selections inside the form (zero sheet writes)
-  User clicks "Save Box" → ONE batch write to the sheet
-  Form closes → Worksheet_Change fires exactly once, intentionally
-```
-
-The UserForm is the **state container**. The sheet becomes a **display/storage layer**, not an interaction layer. `Worksheet_Change` fires once per commit, not on every field.
-
-***
-
-## Concrete Architecture
-
-### The UserForm: `frmBoxBuilder`
-
-```
-┌─────────────────────────────────────────────┐
-│  Box Builder                           [X]  │
-├─────────────────────────────────────────────┤
-│  Box Name: [_______________]  Ver: [auto]   │
-│  Box Code: [_______________]                │
-├─────────────────────────────────────────────┤
-│  BOM Components                             │
-│  ┌─────────────────────────────────────┐   │
-│  │ ROW  │ ITEM        │ QTY │ UOM      │   │
-│  │  12  │ Kraft Paper │  2  │ sheets   │   │
-│  │  34  │ Tape        │  1  │ roll     │   │
-│  └─────────────────────────────────────┘   │
-│  [+ Add Component]  [- Remove]             │
-├─────────────────────────────────────────────┤
-│           [Cancel]        [Save Box]        │
-└─────────────────────────────────────────────┘
-```
-
-The ListBox inside `frmBoxBuilder` holds the BOM in memory. No sheet writes until "Save Box."
-
-### Module structure
-
-```
-modShipping_BoxUI.bas          ← thin, <200 lines
-  ShowBoxBuilder(targetRow)   ← opens frmBoxBuilder, passes context
-  CommitBoxBuilderResult(...)  ← called by form on Save, does ONE quiet batch write
-
-frmBoxBuilder.frm              ← all interaction lives here
-  Private mInventoryArr()     ← inventory loaded once at Initialize
-  Private mBomRows()          ← current BOM state
-  LoadInventory               ← one call to LoadCanonicalManagedInventoryItems
-  cmdAddComponent_Click       ← opens cDynItemSearch picker, adds to mBomRows
-  cmdSave_Click               ← calls modShipping_BoxUI.CommitBoxBuilderResult
-```
-
-### The single batch write
+Instead of open → write → save → close on every event, **keep the inbox workbook open in a hidden state** for the session and only save/close it when the add-in unloads or the user explicitly flushes.
 
 ```vba
-' modShipping_BoxUI.CommitBoxBuilderResult
-Public Sub CommitBoxBuilderResult(ByVal bomRows() As Variant, ByVal boxName As String)
+' In modRoleEventWriter.bas — add a module-level cache
+Private mInboxWorkbooks As Object   ' key: fullPath → Workbook
+
+Private Function GetOrOpenInboxWorkbook(ByVal fullPath As String, ...) As Workbook
+    If mInboxWorkbooks Is Nothing Then
+        Set mInboxWorkbooks = CreateObject("Scripting.Dictionary")
+        mInboxWorkbooks.CompareMode = vbTextCompare
+    End If
+
+    If mInboxWorkbooks.Exists(fullPath) Then
+        Dim cached As Workbook
+        Set cached = mInboxWorkbooks(fullPath)
+        ' Validate it is still open and writable
+        On Error Resume Next
+        Dim testName As String
+        testName = cached.Name
+        On Error GoTo 0
+        If testName <> "" And Not cached.ReadOnly Then
+            Set GetOrOpenInboxWorkbook = cached
+            Exit Function
+        End If
+        mInboxWorkbooks.Remove fullPath
+    End If
+
+    ' Normal open path, then cache it
     Dim wb As Workbook
-    Dim loBoxBOM As ListObject
-    ' ... resolve table
+    Set wb = ... ' existing open logic
+    If Not wb Is Nothing Then mInboxWorkbooks(fullPath) = wb
+    Set GetOrOpenInboxWorkbook = wb
+End Function
+```
 
-    Application.ScreenUpdating = False
-    Application.Calculation    = xlCalculationManual
-    Application.EnableEvents   = False          ' ← fires Worksheet_Change ZERO times during write
+Then change `SaveWorkbookRole` inside `QueueEventCore` to a **deferred save** — only flush to disk after a timeout or on workbook close:
 
-    On Error GoTo Restore
-        ClearExistingBoxBOMRows loBoxBOM, boxName
-        WriteBoxBOMRows loBoxBOM, bomRows, boxName
-        ' version autofill happens HERE, inside the quiet block, not via Worksheet_Change
+```vba
+' Replace: SaveWorkbookRole wbInbox
+' With:    MarkInboxDirtyRole wbInbox  (just sets wb.Saved = False conceptually)
+' Then flush on: App_WorkbookBeforeClose, a ribbon "Flush" button, or a 30-second OnTime timer
+```
 
-Restore:
-    Application.EnableEvents   = True
-    Application.Calculation    = xlCalculationAutomatic
-    Application.ScreenUpdating = True
+**Cost of open eliminated. Cost of save amortized across multiple events.**
+Expected result: posting drops from ~5 s to ~50–100 ms per click. The tradeoff is that unsaved events sit in-memory if Excel crashes before flush — but the processor already handles re-queuing from the inbox, so a crash between write and flush only loses in-flight events, not already-processed ones.
+
+***
+
+### Option B — Write to a local staging file first, sync to NAS in background (more robust, more code)
+
+Write the event row to a **local temp `.xlsb`** (fast, `< 50 ms`), return the `EventID` immediately, then push the local file to NAS on a background `OnTime` timer. The processor already reads from a known inbox path, so the sync just means copying or appending the local staging rows into the NAS inbox file.
+
+This is the most resilient design for intermittent NAS connectivity but requires a staging-merge step that doesn't exist yet.
+
+***
+
+### Option C — Write a CSV/TSV append instead of a .xlsb save (breaks format contract, good for R2F#)
+
+Replace the entire `.xlsb` inbox with a flat append-only `.csv` or `.tsv` file. File append is ~5 ms even on NAS. But this would require rewriting `modProcessor` and breaks the existing schema contract — too disruptive for a targeted perf fix.
+
+***
+
+## Recommended Path: Option A, in two steps
+
+**Step 1 — Eliminate the open cost** (immediate, ~1 day of work):
+
+Change `ResolveInboxWorkbookForEventType` to return a cached open workbook when one exists for the session. The inbox workbook stays hidden and open after the first event write. No changes to processor, no format changes.
+
+**Step 2 — Defer the save** (follow-up, ~half day):
+
+Change `SaveWorkbookRole` inside `QueueEventCore` to a dirty-mark instead of an immediate save. Add a flush in `App_WorkbookBeforeClose` in `cAppEvents.cls` and optionally an `OnTime` timer every 60 seconds. This eliminates the NAS save latency from the click path entirely.
+
+The result is that `QueueEventCore` only touches the NAS on first open per session and on periodic/close flushes — not once per button click. With the Receiving readiness fix already landing, **the combined effect should bring `Make Boxes` well under 200 ms** in the steady state (session already has the inbox open).
+
+One diagnostic to add before committing to Option A — confirm the open cost dominates over save cost by adding:
+
+```vba
+Debug.Print "QueueEventCore InboxOpen ms:", CLng((Timer - queueStart) * 1000)
+' ... after ResolveInboxWorkbookForEventType
+Debug.Print "QueueEventCore InboxSave ms:", CLng((Timer - saveStart) * 1000)
+' ... after SaveWorkbookRole
+```
+
+If open > save, Option A Step 1 alone gets you most of the way there. If save > open (NAS is slow but already mounted), Step 2 matters more.
+
+## The Two-Layer Model
+
+**Option A** (keep-alive + deferred save) eliminates latency from the *happy path*. **Option B** (local staging → NAS sync) eliminates the *failure mode* where NAS is unreachable at the moment of posting. Together they form a write-ahead pattern that is standard in any durable queue design.
+
+```
+[User clicks Make Boxes]
+        │
+        ▼
+┌─────────────────────────┐
+│  1. Append to LOCAL     │  ← ~5 ms, always succeeds
+│     staging file        │     even if NAS is down
+└────────────┬────────────┘
+             │ return EventID to caller immediately
+             ▼
+┌─────────────────────────┐
+│  2. Mark local file     │  ← Option A: in-memory wb
+│     dirty; don't save   │     kept open, no NAS touch
+│     to NAS yet          │     on this click
+└────────────┬────────────┘
+             │ background / on-timer / on-close
+             ▼
+┌─────────────────────────┐
+│  3. Sync local → NAS    │  ← Option B: merge staged
+│     inbox               │     rows into NAS inbox wb,
+└─────────────────────────┘     then save once
+```
+
+The key is that step 1 always succeeds — the click returns immediately regardless of NAS state.
+
+## Concrete Implementation
+
+### Layer 1 — Local staging file (Option B write side)
+
+```vba
+' modRoleEventWriter.bas — new private function
+Private Function AppendToLocalStagingInbox(ByVal eventType As String, _
+                                            ByVal resolvedWh As String, _
+                                            ByVal resolvedSt As String, _
+                                            ByVal rowDict As Object, _
+                                            ByRef errorMessage As String) As Boolean
+    Dim stagingPath As String
+    Dim fileNum As Integer
+
+    stagingPath = LocalStagingPathRole(eventType, resolvedSt)
+    If stagingPath = "" Then
+        errorMessage = "Could not resolve local staging path."
+        Exit Function
+    End If
+
+    fileNum = FreeFile
+    On Error GoTo FailAppend
+    Open stagingPath For Append As #fileNum
+    Print #fileNum, DictionaryToJsonRole(rowDict)   ' one JSON line per event
+    Close #fileNum
+    AppendToLocalStagingInbox = True
+    Exit Function
+
+FailAppend:
+    errorMessage = "Local staging append failed: " & Err.Description
+    On Error Resume Next
+    Close #fileNum
+End Function
+
+Private Function LocalStagingPathRole(ByVal eventType As String, _
+                                       ByVal stationId As String) As String
+    ' Always local — Environ("LOCALAPPDATA") or ThisWorkbook.Path
+    Dim localRoot As String
+    localRoot = Environ$("LOCALAPPDATA")
+    If localRoot = "" Then localRoot = Environ$("TEMP")
+    LocalStagingPathRole = localRoot & "\invSys\staging\" & _
+                           InboxWorkbookNameRole(eventType, stationId) & ".staging.jsonl"
+End Function
+```
+
+### Layer 2 — NAS inbox keep-alive (Option A)
+
+```vba
+' Module-level cache — inbox workbook stays open for the session
+Private mInboxCache As Object   ' Dictionary: fullPath → Workbook
+Private mInboxDirty As Object   ' Dictionary: fullPath → Boolean
+
+Private Function GetCachedInboxWorkbook(ByVal fullPath As String, _
+                                         ByRef errorMessage As String) As Workbook
+    If mInboxCache Is Nothing Then
+        Set mInboxCache = CreateObject("Scripting.Dictionary")
+        mInboxCache.CompareMode = vbTextCompare
+        Set mInboxDirty = CreateObject("Scripting.Dictionary")
+        mInboxDirty.CompareMode = vbTextCompare
+    End If
+
+    If mInboxCache.Exists(fullPath) Then
+        Dim wb As Workbook
+        Set wb = mInboxCache(fullPath)
+        On Error Resume Next
+        Dim nameCheck As String
+        nameCheck = wb.Name     ' will error if workbook was closed externally
+        On Error GoTo 0
+        If nameCheck <> "" And Not wb.ReadOnly Then
+            Set GetCachedInboxWorkbook = wb
+            Exit Function
+        End If
+        mInboxCache.Remove fullPath   ' stale — drop and re-open
+    End If
+
+    Set GetCachedInboxWorkbook = ResolveInboxWorkbookForEventType(...)
+    If Not GetCachedInboxWorkbook Is Nothing Then
+        mInboxCache(fullPath) = GetCachedInboxWorkbook
+        mInboxDirty(fullPath) = False
+    End If
+End Function
+
+Public Sub FlushInboxCache()
+    ' Called by: App_WorkbookBeforeClose, ribbon "Flush", OnTime timer
+    If mInboxCache Is Nothing Then Exit Sub
+    Dim key As Variant
+    For Each key In mInboxCache.Keys
+        If mInboxDirty.Exists(CStr(key)) Then
+            If CBool(mInboxDirty(CStr(key))) Then
+                SaveWorkbookRole mInboxCache(CStr(key))
+                mInboxDirty(CStr(key)) = False
+            End If
+        End If
+    Next key
 End Sub
 ```
 
-`EnableEvents = False` during the entire batch means `Worksheet_Change` fires **zero times** during the write. It fires once when the function returns and Excel resumes events, and by then all writes are done.
+### Layer 3 — Background sync (Option B sync side)
 
-***
+```vba
+Public Sub SyncStagingToNasInbox()
+    ' Called by: FlushInboxCache, OnTime timer, or processor pre-run hook
+    Dim stagingFiles As Variant
+    Dim i As Long
 
-## Performance Comparison
+    stagingFiles = ResolvePendingStagingFilesRole()
+    If IsEmpty(stagingFiles) Then Exit Sub
 
-| Factor | Ribbon + Tables (current) | UserForm model |
-|---|---|---|
-| `Workbooks.Open` calls per box select | 1–3 (inventory, auth, inbox) | 0 (loaded at form open, cached in `mInventoryArr`) |
-| `Worksheet_Change` fires per box commit | 5–20+ (each cell write) | 0 during write, 1 after |
-| `ScreenUpdating` discipline | Patched per-function, inconsistent | 1 wrapper in `CommitBoxBuilderResult`, always fires |
-| Re-entrancy risk | High (`Worksheet_Change` can re-trigger) | None (form is the only writer) |
-| Codex patch surface | 117 KB monolith, any edit can break any other path | Form ↔ one commit function, isolated |
-| Perceived speed | Blink + delay between each selection | Form stays open; all selections instant inside UI |
+    For i = LBound(stagingFiles) To UBound(stagingFiles)
+        MergeOneStagingFileToNas CStr(stagingFiles(i))
+    Next i
+End Sub
 
-***
+Private Sub MergeOneStagingFileToNas(ByVal stagingPath As String)
+    ' 1. Read all lines from staging file
+    ' 2. Open NAS inbox (via cache)
+    ' 3. For each line: parse JSON, check EventID not already in inbox, append row
+    ' 4. Delete or archive the staging file on success
+    ' 5. Mark NAS inbox dirty → FlushInboxCache will save it
+End Sub
+```
 
-## Migration Path — Incremental, Not a Rewrite
+### Wiring it into `QueueEventCore`
 
-You do not need to gut `modTS_Shipments.bas` in one shot. The safe migration is:
+The revised write sequence becomes:
 
-1. **Extract `CommitBoxBuilderResult`** from inside `modTS_Shipments` into `modShipping_BoxUI`. This is a copy-and-fix, not a delete. (~1 day)
+```vba
+' Step 1: always write local staging (fast, offline-safe)
+If Not AppendToLocalStagingInbox(eventType, resolvedWh, resolvedSt, rowDict, errorMessage) Then
+    GoTo CleanExit   ' even local write failed — rare, surface the error
+End If
 
-2. **Build `frmBoxBuilder`** as a new UserForm. Wire the ribbon "Box Builder" button to `modShipping_BoxUI.ShowBoxBuilder`. The old sheet-click path still works in parallel. (~2 days)
+' Return success to the caller immediately
+QueueEventCore = True
+eventIdOut = rowDict("EventID")
 
-3. **Move `LoadCanonicalManagedInventoryItems`** call into `frmBoxBuilder.UserForm_Initialize`. Remove it from the `SelectionChange` path. (~1 hour)
+' Step 2: attempt NAS sync opportunistically (non-blocking if NAS is down)
+On Error Resume Next
+SyncStagingToNasInbox
+On Error GoTo 0
+```
 
-4. **Disable the `SelectionChange`→picker trigger for BoxBOM** once the form is the canonical entry point. The picker still exists — it now opens *from the form's Add Component button*, not from a cell click. (~1 hour)
+## Failure Modes Covered
 
-5. **Delete dead code in `modTS_Shipments`** after the form path is confirmed stable. This shrinks the 117 KB monolith over time rather than all at once.
+| Scenario | Outcome |
+|---|---|
+| NAS down during click | Local staging succeeds; click returns in ~5 ms; NAS sync retried on next click or timer |
+| Excel crashes before NAS flush | Staging `.jsonl` survives on disk; sync runs on next session open |
+| NAS inbox locked by processor | Local staging buffers; sync waits for lock release |
+| Station offline for hours | All events accumulate in staging; bulk-merged when NAS reconnects |
+| Duplicate sync (crash mid-merge) | EventID dedup check in `MergeOneStagingFileToNas` makes it idempotent |
 
-The result: no more workbook open/close on cell selection, no re-entrant `Worksheet_Change`, one quiet batch write per box save, and a UI that is faster because all filtering and selection happens in memory inside the form before any data ever touches the sheet.
+## How This Shapes the R2 F# Design
+
+This two-layer model maps almost directly onto what R2 would do natively.  The local staging `.jsonl` file *becomes* the R2 inbox format — the F# processor just reads it directly instead of requiring a merge step. The VBA merge layer (`SyncStagingToNasInbox`) effectively becomes a no-op in R2 because the processor reads from the same append-only file the writer produces. So implementing Option A+B in R1 VBA also pre-shapes the on-disk format toward what R2 expects, making the migration cheaper.

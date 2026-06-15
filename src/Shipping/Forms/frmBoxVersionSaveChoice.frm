@@ -27,15 +27,38 @@ Private mLblBody As MSForms.Label
 Private mChoice As Long
 Private mBoxName As String
 Private mVersionLabel As String
+Private mAnchors As Object
+Private mResizeInitialized As Boolean
 
 Private Const CHOICE_CANCEL As Long = 0
 Private Const CHOICE_UPDATE As Long = 1
 Private Const CHOICE_NEW As Long = 2
+Private Const ANCHOR_LEFT As Long = 1
+Private Const ANCHOR_TOP As Long = 2
+Private Const ANCHOR_RIGHT As Long = 4
+Private Const ANCHOR_BOTTOM As Long = 8
 
 Private Sub UserForm_Initialize()
     mChoice = CHOICE_CANCEL
     BuildChoiceLayout
     RenderChoiceText
+End Sub
+
+Private Sub UserForm_Activate()
+    If Not mResizeInitialized Then
+        modUserFormResizeWin.EnableResizableUserForm Me
+        mResizeInitialized = True
+    End If
+    If Not mAnchors Is Nothing Then mAnchors.ResizeControls
+End Sub
+
+Private Sub UserForm_Layout()
+    If mAnchors Is Nothing Then Exit Sub
+    mAnchors.ResizeControls
+End Sub
+
+Private Sub UserForm_Terminate()
+    Set mAnchors = Nothing
 End Sub
 
 Public Sub InitializeChoice(ByVal boxName As String, ByVal versionLabel As String)
@@ -60,6 +83,7 @@ Private Sub BuildChoiceLayout()
     Set mBtnUpdate = AddButton("btnUpdate", "Update Version", 18, 132, 112, 28)
     Set mBtnNew = AddButton("btnNewVersion", "New Version", 144, 132, 112, 28)
     Set mBtnCancel = AddButton("btnCancel", "Cancel", 270, 132, 90, 28)
+    InitializeChoiceAnchors
 End Sub
 
 Private Sub RenderChoiceText()
@@ -125,4 +149,15 @@ End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     mChoice = CHOICE_CANCEL
+End Sub
+
+Private Sub InitializeChoiceAnchors()
+    Set mAnchors = modDynamicForms.CreateFormAnchorManager()
+    mAnchors.Initialize Me
+
+    mAnchors.Add mLblTitle, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mLblBody, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnUpdate, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnNew, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnCancel, ANCHOR_RIGHT Or ANCHOR_BOTTOM
 End Sub

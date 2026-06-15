@@ -18,6 +18,10 @@ Private Const ROLE_EVENT_TYPE_MIGRATION_SEED As String = "MIGRATION_SEED"
 Private Const SETTINGS_APP As String = "invSys"
 Private Const SETTINGS_SECTION_RUNTIME As String = "Runtime"
 Private Const SETTINGS_CURRENT_USER_ID As String = "CurrentUserId"
+Private Const LOCAL_STAGING_ROOT_FOLDER As String = "invSys\staging"
+Private Const LOCAL_STAGING_ARCHIVE_FOLDER As String = "Archive"
+
+Private mStagingSyncInProgress As Boolean
 
 Public Function ResolveCurrentUserId() As String
     ResolveCurrentUserId = Trim$(GetCurrentUserOverride())
@@ -531,7 +535,24 @@ Public Function QueuePayloadEventCurrent(ByVal eventType As String, _
         errorMessage = "A connected NAS warehouse target is required before posting role events."
         Exit Function
     End If
-    QueuePayloadEventCurrent = QueuePayloadEvent(eventType, target.WarehouseId, target.StationId, resolvedUser, payloadJson, noteVal, "", "", 0, targetInboxWb, eventIdOut, errorMessage, perfRunId)
+    QueuePayloadEventCurrent = QueueEventCore(eventType, _
+                                             target.WarehouseId, _
+                                             target.StationId, _
+                                             resolvedUser, _
+                                             "", _
+                                             0, _
+                                             "", _
+                                             noteVal, _
+                                             payloadJson, _
+                                             "", _
+                                             "", _
+                                             "", _
+                                             0, _
+                                             targetInboxWb, _
+                                             eventIdOut, _
+                                             errorMessage, _
+                                             perfRunId, _
+                                             True)
 End Function
 
 Public Function BuildPayloadJson(ParamArray items() As Variant) As String
@@ -597,7 +618,8 @@ Private Function QueueEventCore(ByVal eventType As String, _
                                 ByVal targetInboxWb As Workbook, _
                                 ByRef eventIdOut As String, _
                                 ByRef errorMessage As String, _
-                                Optional ByVal perfRunId As String = "") As Boolean
+                                Optional ByVal perfRunId As String = "", _
+                                Optional ByVal currentAuthAlreadyChecked As Boolean = False) As Boolean
     On Error GoTo FailQueue
 
     Dim resolvedWh As String
@@ -615,6 +637,9 @@ Private Function QueueEventCore(ByVal eventType As String, _
     Dim queueStart As Single
     Dim queueRunId As String
     Dim perfStarted As Boolean
+    Dim rowValues As Object
+    Dim stagingPath As String
+    Dim localStageOnly As Boolean
 
     queueStart = Timer
 
@@ -633,17 +658,20 @@ Private Function QueueEventCore(ByVal eventType As String, _
         Exit Function
     End If
 
-    If Not modAuth.LoadAuth(resolvedWh) Then
-        errorMessage = "Auth load failed: " & modAuth.ValidateAuth()
-        Exit Function
-    End If
-    If Not modAuth.HasProvisionedCapabilityForSystem(capability, resolvedUser, resolvedWh, resolvedSt) Then
-        errorMessage = "Current user lacks " & capability & " capability." & vbCrLf & _
-                       "User=" & ValueOrPlaceholderRole(resolvedUser) & _
-                       "; Warehouse=" & ValueOrPlaceholderRole(resolvedWh) & _
-                       "; Station=" & ValueOrPlaceholderRole(resolvedSt) & _
-                       "; Auth=" & ValueOrPlaceholderRole(modAuth.GetResolvedAuthWorkbookName())
-        Exit Function
+    localStageOnly = (targetInboxWb Is Nothing And ShouldStageEventLocallyRole(eventType))
+    If Not (localStageOnly And currentAuthAlreadyChecked) Then
+        If Not modAuth.LoadAuth(resolvedWh) Then
+            errorMessage = "Auth load failed: " & modAuth.ValidateAuth()
+            Exit Function
+        End If
+        If Not modAuth.HasProvisionedCapabilityForSystem(capability, resolvedUser, resolvedWh, resolvedSt) Then
+            errorMessage = "Current user lacks " & capability & " capability." & vbCrLf & _
+                           "User=" & ValueOrPlaceholderRole(resolvedUser) & _
+                           "; Warehouse=" & ValueOrPlaceholderRole(resolvedWh) & _
+                           "; Station=" & ValueOrPlaceholderRole(resolvedSt) & _
+                           "; Auth=" & ValueOrPlaceholderRole(modAuth.GetResolvedAuthWorkbookName())
+            Exit Function
+        End If
     End If
 
     If eventIdOut = "" Then eventIdOut = CreateEventIdRole()
@@ -653,6 +681,18 @@ Private Function QueueEventCore(ByVal eventType As String, _
     If queueRunId <> "" Then
         PerfBeginSafeRole queueRunId, "RoleEventWriter.QueueEvent"
         perfStarted = True
+    End If
+
+    Set rowValues = BuildInboxRowValuesRole(eventIdOut, parentEventId, undoOfEventId, _
+        eventType, createdAtUtc, resolvedWh, resolvedSt, resolvedUser, migrationSourceId, _
+        sku, qty, location, noteVal, payloadJson)
+
+    If localStageOnly Then
+        stagingPath = LocalStagingPathRole(eventType, resolvedWh, resolvedSt)
+        If Not AppendInboxRowToLocalStagingRole(rowValues, stagingPath, errorMessage) Then GoTo CleanExit
+        If queueRunId <> "" Then PerfMarkSafeRole queueRunId, "LocalStagingWrite", CLng((Timer - queueStart) * 1000)
+        QueueEventCore = True
+        GoTo CleanExit
     End If
 
     If targetInboxWb Is Nothing Then
@@ -698,26 +738,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
     sheetWasProtected = ws.ProtectContents
     EnsureWorksheetEditableRole ws, lo.Name
 
-    rowIndex = lo.ListRows.Add.Index
-    SetTableRowValueRole lo, rowIndex, "EventID", eventIdOut
-    SetTableRowValueRole lo, rowIndex, "ParentEventId", parentEventId
-    SetTableRowValueRole lo, rowIndex, "UndoOfEventId", undoOfEventId
-    SetTableRowValueRole lo, rowIndex, "EventType", UCase$(Trim$(eventType))
-    SetTableRowValueRole lo, rowIndex, "CreatedAtUTC", createdAtUtc
-    SetTableRowValueRole lo, rowIndex, "WarehouseId", resolvedWh
-    SetTableRowValueRole lo, rowIndex, "StationId", resolvedSt
-    SetTableRowValueRole lo, rowIndex, "UserId", resolvedUser
-    SetTableRowValueRole lo, rowIndex, "MigrationSourceId", migrationSourceId
-    SetTableRowValueRole lo, rowIndex, "SKU", sku
-    If qty <> 0 Then SetTableRowValueRole lo, rowIndex, "Qty", qty
-    SetTableRowValueRole lo, rowIndex, "Location", location
-    SetTableRowValueRole lo, rowIndex, "Note", noteVal
-    SetTableRowValueRole lo, rowIndex, "PayloadJson", payloadJson
-    SetTableRowValueRole lo, rowIndex, "Status", "NEW"
-    SetTableRowValueRole lo, rowIndex, "RetryCount", 0
-    SetTableRowValueRole lo, rowIndex, "ErrorCode", ""
-    SetTableRowValueRole lo, rowIndex, "ErrorMessage", ""
-    SetTableRowValueRole lo, rowIndex, "FailedAtUTC", ""
+    WriteInboxRowValuesRole lo, rowValues
 
     SaveWorkbookRole wbInbox
     If queueRunId <> "" Then PerfMarkSafeRole queueRunId, "InboxWrite", CLng((Timer - queueStart) * 1000)
@@ -741,6 +762,959 @@ FailQueue:
     End If
     If openedTransient Then CloseTransientRoleWorkbook wbInbox
 End Function
+
+Public Function SyncLocalStagedInboxRows(Optional ByRef report As String = "", _
+                                         Optional ByVal warehouseId As String = "", _
+                                         Optional ByVal stationId As String = "") As Boolean
+    On Error GoTo FailSync
+
+    Dim files As Collection
+    Dim filePath As Variant
+    Dim mergedTotal As Long
+    Dim failedCount As Long
+    Dim fileMerged As Long
+    Dim fileReport As String
+    Dim searchRoot As String
+
+    If mStagingSyncInProgress Then
+        report = "Local staging sync already in progress."
+        SyncLocalStagedInboxRows = True
+        Exit Function
+    End If
+
+    mStagingSyncInProgress = True
+    Set files = New Collection
+    searchRoot = LocalStagingSearchRootRole(warehouseId, stationId)
+    CollectLocalStagingFilesRole searchRoot, files
+    If files.Count = 0 Then
+        report = "No local staged inbox rows."
+        SyncLocalStagedInboxRows = True
+        GoTo CleanExit
+    End If
+
+    For Each filePath In files
+        fileMerged = 0
+        fileReport = vbNullString
+        If MergeLocalStagingFileRole(CStr(filePath), fileMerged, fileReport) Then
+            mergedTotal = mergedTotal + fileMerged
+        Else
+            failedCount = failedCount + 1
+            If report <> "" Then report = report & "; "
+            report = report & fileReport
+        End If
+    Next filePath
+
+    If report <> "" Then report = report & "; "
+    report = report & "LocalStagingMerged=" & CStr(mergedTotal) & "; LocalStagingFailed=" & CStr(failedCount)
+    SyncLocalStagedInboxRows = (failedCount = 0)
+
+CleanExit:
+    mStagingSyncInProgress = False
+    Exit Function
+
+FailSync:
+    report = "Local staging sync failed: " & Err.Description
+    Resume CleanExit
+End Function
+
+Public Function GetLocalStagedBoxInventoryDeltas(Optional ByVal warehouseId As String = "", _
+                                                 Optional ByVal stationId As String = "") As Object
+    On Error GoTo FailSoft
+
+    Dim result As Object
+    Dim files As Collection
+    Dim filePath As Variant
+    Dim rows As Collection
+    Dim rowValues As Variant
+    Dim rowDict As Object
+    Dim eventType As String
+    Dim payloadJson As String
+    Dim report As String
+
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    Set GetLocalStagedBoxInventoryDeltas = result
+
+    Set files = New Collection
+    CollectLocalStagingFilesRole LocalStagingSearchRootRole(warehouseId, stationId), files
+    For Each filePath In files
+        report = vbNullString
+        Set rows = ReadStagedInboxRowsRole(CStr(filePath), report)
+        If rows Is Nothing Then GoTo NextFile
+        For Each rowValues In rows
+            Set rowDict = rowValues
+            eventType = UCase$(Trim$(CStr(rowDict("EventType"))))
+            If eventType = ROLE_EVENT_TYPE_BOX_BUILD Or eventType = ROLE_EVENT_TYPE_BOX_UNBOX Then
+                payloadJson = CStr(rowDict("PayloadJson"))
+                AccumulateBoxPayloadInventoryDeltasRole payloadJson, eventType, result
+            End If
+        Next rowValues
+NextFile:
+    Next filePath
+    Exit Function
+
+FailSoft:
+    If GetLocalStagedBoxInventoryDeltas Is Nothing Then
+        Set GetLocalStagedBoxInventoryDeltas = CreateObject("Scripting.Dictionary")
+        GetLocalStagedBoxInventoryDeltas.CompareMode = vbTextCompare
+    End If
+End Function
+
+Public Function GetLocalStagedBoxVersionInventoryDeltas(ByVal packageRow As Long, _
+                                                        Optional ByVal warehouseId As String = "", _
+                                                        Optional ByVal stationId As String = "") As Object
+    On Error GoTo FailSoft
+
+    Dim result As Object
+    Dim files As Collection
+    Dim filePath As Variant
+    Dim rows As Collection
+    Dim rowValues As Variant
+    Dim rowDict As Object
+    Dim eventType As String
+    Dim payloadJson As String
+    Dim report As String
+
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    Set GetLocalStagedBoxVersionInventoryDeltas = result
+    If packageRow <= 0 Then Exit Function
+
+    Set files = New Collection
+    CollectLocalStagingFilesRole LocalStagingSearchRootRole(warehouseId, stationId), files
+    For Each filePath In files
+        report = vbNullString
+        Set rows = ReadStagedInboxRowsRole(CStr(filePath), report)
+        If rows Is Nothing Then GoTo NextFile
+        For Each rowValues In rows
+            Set rowDict = rowValues
+            eventType = UCase$(Trim$(CStr(rowDict("EventType"))))
+            If eventType = ROLE_EVENT_TYPE_BOX_BUILD Or eventType = ROLE_EVENT_TYPE_BOX_UNBOX Then
+                payloadJson = CStr(rowDict("PayloadJson"))
+                AccumulateBoxPayloadVersionInventoryDeltasRole payloadJson, eventType, packageRow, result
+            End If
+        Next rowValues
+NextFile:
+    Next filePath
+    Exit Function
+
+FailSoft:
+    If GetLocalStagedBoxVersionInventoryDeltas Is Nothing Then
+        Set GetLocalStagedBoxVersionInventoryDeltas = CreateObject("Scripting.Dictionary")
+        GetLocalStagedBoxVersionInventoryDeltas.CompareMode = vbTextCompare
+    End If
+End Function
+
+Private Function BuildInboxRowValuesRole(ByVal eventId As String, _
+                                         ByVal parentEventId As String, _
+                                         ByVal undoOfEventId As String, _
+                                         ByVal eventType As String, _
+                                         ByVal createdAtUtc As Date, _
+                                         ByVal warehouseId As String, _
+                                         ByVal stationId As String, _
+                                         ByVal userId As String, _
+                                         ByVal migrationSourceId As String, _
+                                         ByVal sku As String, _
+                                         ByVal qty As Double, _
+                                         ByVal location As String, _
+                                         ByVal noteVal As String, _
+                                         ByVal payloadJson As String) As Object
+    Dim d As Object
+
+    Set d = CreateObject("Scripting.Dictionary")
+    d.CompareMode = vbTextCompare
+    d("EventID") = eventId
+    d("ParentEventId") = parentEventId
+    d("UndoOfEventId") = undoOfEventId
+    d("EventType") = UCase$(Trim$(eventType))
+    d("CreatedAtUTC") = Format$(createdAtUtc, "yyyy-mm-dd hh:nn:ss")
+    d("WarehouseId") = warehouseId
+    d("StationId") = stationId
+    d("UserId") = userId
+    d("MigrationSourceId") = migrationSourceId
+    d("SKU") = sku
+    If qty <> 0 Then
+        d("Qty") = qty
+    Else
+        d("Qty") = ""
+    End If
+    d("Location") = location
+    d("Note") = noteVal
+    d("PayloadJson") = payloadJson
+    d("Status") = "NEW"
+    d("RetryCount") = 0
+    d("ErrorCode") = ""
+    d("ErrorMessage") = ""
+    d("FailedAtUTC") = ""
+    Set BuildInboxRowValuesRole = d
+End Function
+
+Private Function ShouldStageEventLocallyRole(ByVal eventType As String) As Boolean
+    Select Case UCase$(Trim$(eventType))
+        Case ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+            ShouldStageEventLocallyRole = True
+    End Select
+End Function
+
+Private Function AppendInboxRowToLocalStagingRole(ByVal rowValues As Object, _
+                                                  ByVal stagingPath As String, _
+                                                  ByRef errorMessage As String) As Boolean
+    On Error GoTo FailAppend
+
+    Dim fileNum As Integer
+
+    EnsureFolderExistsRole ParentFolderPathRole(stagingPath)
+    fileNum = FreeFile
+    Open stagingPath For Append As #fileNum
+    Print #fileNum, DictionaryToJson(rowValues)
+    Close #fileNum
+    AppendInboxRowToLocalStagingRole = True
+    Exit Function
+
+FailAppend:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    On Error GoTo 0
+    errorMessage = "Local staging append failed: " & Err.Description
+End Function
+
+Private Function MergeLocalStagingFileRole(ByVal stagingPath As String, _
+                                           ByRef mergedCount As Long, _
+                                           ByRef report As String) As Boolean
+    On Error GoTo FailMerge
+
+    Dim workingPath As String
+    Dim sourcePath As String
+    Dim rows As Collection
+    Dim rowValues As Object
+    Dim eventType As String
+    Dim warehouseId As String
+    Dim stationId As String
+    Dim attempt As Long
+    Dim attemptReport As String
+    Dim lockMessage As Boolean
+
+    sourcePath = stagingPath
+    workingPath = SyncingStagingPathRole(stagingPath)
+
+    If Not FileExistsRole(sourcePath) Then
+        MergeLocalStagingFileRole = True
+        Exit Function
+    End If
+
+    If StrComp(sourcePath, workingPath, vbTextCompare) <> 0 Then
+        If FileExistsRole(workingPath) Then
+            report = "Local staging sync deferred because a prior .syncing file exists: " & workingPath
+            Exit Function
+        End If
+        Name sourcePath As workingPath
+    End If
+
+    Set rows = ReadStagedInboxRowsRole(workingPath, report)
+    If rows Is Nothing Then GoTo RestoreWorking
+    If rows.Count = 0 Then
+        ArchiveStagingFileRole workingPath
+        MergeLocalStagingFileRole = True
+        Exit Function
+    End If
+
+    Set rowValues = rows(1)
+    eventType = Trim$(CStr(rowValues("EventType")))
+    warehouseId = Trim$(CStr(rowValues("WarehouseId")))
+    stationId = Trim$(CStr(rowValues("StationId")))
+    If eventType = "" Or warehouseId = "" Or stationId = "" Then
+        report = "Local staged inbox file is missing EventType/WarehouseId/StationId: " & workingPath
+        GoTo RestoreWorking
+    End If
+    If Not ShouldStageEventLocallyRole(eventType) Then
+        ArchiveStagingFileRole workingPath
+        report = "Archived unsupported local staged inbox event type '" & eventType & "': " & workingPath
+        MergeLocalStagingFileRole = True
+        Exit Function
+    End If
+
+    For attempt = 1 To 3
+        attemptReport = vbNullString
+        If MergeRowsIntoNasInboxRole(rows, eventType, warehouseId, stationId, mergedCount, attemptReport) Then
+            ArchiveStagingFileRole workingPath
+            MergeLocalStagingFileRole = True
+            Exit Function
+        End If
+
+        lockMessage = IsLockContentionMessageRole(attemptReport)
+        If Not lockMessage Then Exit For
+        If attempt < 3 Then WaitSecondsRole 1
+    Next attempt
+
+    report = "Local staging sync could not merge " & workingPath & ": " & attemptReport
+
+RestoreWorking:
+    RestoreWorkingStagingFileRole workingPath
+    Exit Function
+
+FailMerge:
+    report = "Local staging merge failed for " & stagingPath & ": " & Err.Description
+    On Error Resume Next
+    If workingPath <> "" Then RestoreWorkingStagingFileRole workingPath
+    On Error GoTo 0
+End Function
+
+Private Function MergeRowsIntoNasInboxRole(ByVal rows As Collection, _
+                                           ByVal eventType As String, _
+                                           ByVal warehouseId As String, _
+                                           ByVal stationId As String, _
+                                           ByRef mergedCount As Long, _
+                                           ByRef report As String) As Boolean
+    On Error GoTo FailMergeRows
+
+    Dim wbInbox As Workbook
+    Dim lo As ListObject
+    Dim rowValues As Variant
+    Dim rowDict As Object
+    Dim openPaths As Object
+    Dim openedTransient As Boolean
+    Dim schemaReport As String
+    Dim ws As Worksheet
+    Dim sheetWasProtected As Boolean
+
+    Set openPaths = CaptureOpenWorkbookPathsRole()
+    Set wbInbox = ResolveInboxWorkbookForEventType(eventType, warehouseId, stationId, report)
+    If wbInbox Is Nothing Then Exit Function
+    If wbInbox.ReadOnly Then
+        report = "Inbox workbook is read-only or locked by another Excel session."
+        GoTo CleanExit
+    End If
+    openedTransient = Not WorkbookWasAlreadyOpenRole(openPaths, wbInbox)
+    If openedTransient Then HideWorkbookWindowsRole wbInbox
+
+    Select Case UCase$(Trim$(eventType))
+        Case ROLE_EVENT_TYPE_RECEIVE
+            If Not modProcessor.EnsureReceiveInboxSchema(wbInbox, schemaReport) Then
+                report = schemaReport
+                GoTo CleanExit
+            End If
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+            If Not modProcessor.EnsureShipInboxSchema(wbInbox, schemaReport) Then
+                report = schemaReport
+                GoTo CleanExit
+            End If
+        Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
+            If Not modProcessor.EnsureProductionInboxSchema(wbInbox, schemaReport) Then
+                report = schemaReport
+                GoTo CleanExit
+            End If
+        Case Else
+            report = "Unsupported event type '" & eventType & "'."
+            GoTo CleanExit
+    End Select
+
+    Set lo = FindListObjectByNameRole(wbInbox, InboxTableNameRole(eventType))
+    If lo Is Nothing Then
+        report = "Inbox table not found for event type '" & eventType & "'."
+        GoTo CleanExit
+    End If
+
+    Set ws = lo.Parent
+    sheetWasProtected = ws.ProtectContents
+    EnsureWorksheetEditableRole ws, lo.Name
+
+    For Each rowValues In rows
+        Set rowDict = rowValues
+        If Not InboxContainsEventIdRole(lo, CStr(rowDict("EventID"))) Then
+            WriteInboxRowValuesRole lo, rowDict
+            mergedCount = mergedCount + 1
+        End If
+    Next rowValues
+
+    SaveWorkbookRole wbInbox
+    MergeRowsIntoNasInboxRole = True
+
+CleanExit:
+    On Error Resume Next
+    If Not ws Is Nothing Then
+        If sheetWasProtected Then RestoreWorksheetProtectionRole ws
+    End If
+    If openedTransient Then CloseTransientRoleWorkbook wbInbox
+    On Error GoTo 0
+    Exit Function
+
+FailMergeRows:
+    report = Err.Description
+    Resume CleanExit
+End Function
+
+Private Sub WriteInboxRowValuesRole(ByVal lo As ListObject, ByVal rowValues As Object)
+    Dim rowIndex As Long
+
+    rowIndex = lo.ListRows.Add.Index
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "EventID"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "ParentEventId"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "UndoOfEventId"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "EventType"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "CreatedAtUTC"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "WarehouseId"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "StationId"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "UserId"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "MigrationSourceId"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "SKU"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "Qty"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "Location"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "Note"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "PayloadJson"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "Status"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "RetryCount"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "ErrorCode"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "ErrorMessage"
+    SetTableRowValueFromDictionaryRole lo, rowIndex, rowValues, "FailedAtUTC"
+End Sub
+
+Private Sub SetTableRowValueFromDictionaryRole(ByVal lo As ListObject, _
+                                               ByVal rowIndex As Long, _
+                                               ByVal rowValues As Object, _
+                                               ByVal columnName As String)
+    If rowValues Is Nothing Then Exit Sub
+    If Not rowValues.Exists(columnName) Then Exit Sub
+    SetTableRowValueRole lo, rowIndex, columnName, rowValues(columnName)
+End Sub
+
+Private Function InboxContainsEventIdRole(ByVal lo As ListObject, ByVal eventId As String) As Boolean
+    Dim rowIndex As Long
+
+    eventId = Trim$(eventId)
+    If eventId = "" Then Exit Function
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+
+    For rowIndex = 1 To lo.ListRows.Count
+        If StrComp(Trim$(CStr(GetTableRowValueRole(lo, rowIndex, "EventID"))), eventId, vbTextCompare) = 0 Then
+            InboxContainsEventIdRole = True
+            Exit Function
+        End If
+    Next rowIndex
+End Function
+
+Private Function ReadStagedInboxRowsRole(ByVal filePath As String, ByRef report As String) As Collection
+    On Error GoTo FailRead
+
+    Dim rows As Collection
+    Dim fileNum As Integer
+    Dim lineText As String
+    Dim rowValues As Object
+    Dim parseReport As String
+
+    Set rows = New Collection
+    fileNum = FreeFile
+    Open filePath For Input As #fileNum
+    Do While Not EOF(fileNum)
+        Line Input #fileNum, lineText
+        lineText = Trim$(lineText)
+        If lineText <> "" Then
+            parseReport = vbNullString
+            Set rowValues = ParseJsonObjectRole(lineText, parseReport)
+            If rowValues Is Nothing Then
+                report = "Unable to parse local staged inbox row in " & filePath & ": " & parseReport
+                Close #fileNum
+                Exit Function
+            End If
+            rows.Add rowValues
+        End If
+    Loop
+    Close #fileNum
+    Set ReadStagedInboxRowsRole = rows
+    Exit Function
+
+FailRead:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    On Error GoTo 0
+    report = "Unable to read local staged inbox file " & filePath & ": " & Err.Description
+End Function
+
+Private Sub AccumulateBoxPayloadInventoryDeltasRole(ByVal payloadJson As String, _
+                                                   ByVal eventType As String, _
+                                                   ByVal deltas As Object)
+    On Error GoTo CleanExit
+
+    Dim rx As Object
+    Dim matches As Object
+    Dim matchItem As Object
+    Dim objectText As String
+    Dim ioType As String
+    Dim rowValue As Long
+    Dim qtyValue As Double
+    Dim deltaValue As Double
+    Dim key As String
+
+    If deltas Is Nothing Then Exit Sub
+    payloadJson = Trim$(payloadJson)
+    If payloadJson = "" Then Exit Sub
+
+    Set rx = CreateObject("VBScript.RegExp")
+    rx.Global = True
+    rx.IgnoreCase = True
+    rx.Pattern = "\{[^{}]*\}"
+    Set matches = rx.Execute(payloadJson)
+
+    For Each matchItem In matches
+        objectText = CStr(matchItem.Value)
+        ioType = UCase$(JsonObjectStringFieldRole(objectText, "IoType"))
+        If ioType <> "MADE" And ioType <> "UNMADE" Then GoTo NextObject
+
+        rowValue = CLng(JsonObjectNumberFieldRole(objectText, "ROW"))
+        If rowValue <= 0 Then rowValue = CLng(JsonObjectNumberFieldRole(objectText, "Row"))
+        If rowValue <= 0 Then GoTo NextObject
+
+        qtyValue = JsonObjectNumberFieldRole(objectText, "Qty")
+        If qtyValue <= 0 Then GoTo NextObject
+
+        If eventType = ROLE_EVENT_TYPE_BOX_UNBOX Or ioType = "UNMADE" Then
+            deltaValue = -qtyValue
+        Else
+            deltaValue = qtyValue
+        End If
+
+        key = CStr(rowValue)
+        If deltas.Exists(key) Then
+            deltas(key) = CDbl(deltas(key)) + deltaValue
+        Else
+            deltas(key) = deltaValue
+        End If
+NextObject:
+    Next matchItem
+
+CleanExit:
+End Sub
+
+Private Sub AccumulateBoxPayloadVersionInventoryDeltasRole(ByVal payloadJson As String, _
+                                                          ByVal eventType As String, _
+                                                          ByVal packageRow As Long, _
+                                                          ByVal deltas As Object)
+    On Error GoTo CleanExit
+
+    Dim rx As Object
+    Dim matches As Object
+    Dim matchItem As Object
+    Dim objectText As String
+    Dim ioType As String
+    Dim rowValue As Long
+    Dim qtyValue As Double
+    Dim deltaValue As Double
+    Dim versionLabel As String
+
+    If deltas Is Nothing Then Exit Sub
+    If packageRow <= 0 Then Exit Sub
+    payloadJson = Trim$(payloadJson)
+    If payloadJson = "" Then Exit Sub
+
+    Set rx = CreateObject("VBScript.RegExp")
+    rx.Global = True
+    rx.IgnoreCase = True
+    rx.Pattern = "\{[^{}]*\}"
+    Set matches = rx.Execute(payloadJson)
+
+    For Each matchItem In matches
+        objectText = CStr(matchItem.Value)
+        ioType = UCase$(JsonObjectStringFieldRole(objectText, "IoType"))
+        If ioType <> "MADE" And ioType <> "UNMADE" Then GoTo NextObject
+
+        rowValue = CLng(JsonObjectNumberFieldRole(objectText, "ROW"))
+        If rowValue <= 0 Then rowValue = CLng(JsonObjectNumberFieldRole(objectText, "Row"))
+        If rowValue <> packageRow Then GoTo NextObject
+
+        versionLabel = NormalizeVersionLabelRole(JsonObjectStringFieldRole(objectText, "BomVersionLabel"))
+        If versionLabel = "" Then versionLabel = NormalizeVersionLabelRole(JsonObjectStringFieldRole(objectText, "Version"))
+        If versionLabel = "" Then GoTo NextObject
+
+        qtyValue = JsonObjectNumberFieldRole(objectText, "Qty")
+        If qtyValue <= 0 Then GoTo NextObject
+
+        If eventType = ROLE_EVENT_TYPE_BOX_UNBOX Or ioType = "UNMADE" Then
+            deltaValue = -qtyValue
+        Else
+            deltaValue = qtyValue
+        End If
+
+        If deltas.Exists(versionLabel) Then
+            deltas(versionLabel) = CDbl(deltas(versionLabel)) + deltaValue
+        Else
+            deltas(versionLabel) = deltaValue
+        End If
+NextObject:
+    Next matchItem
+
+CleanExit:
+End Sub
+
+Private Function NormalizeVersionLabelRole(ByVal versionText As String) As String
+    versionText = LCase$(Trim$(versionText))
+    If versionText = "" Then Exit Function
+    If Left$(versionText, 1) = "v" Then versionText = Mid$(versionText, 2)
+    If IsNumeric(versionText) Then
+        NormalizeVersionLabelRole = "v" & CStr(CLng(versionText))
+    Else
+        NormalizeVersionLabelRole = "v" & versionText
+    End If
+End Function
+
+Private Function JsonObjectStringFieldRole(ByVal objectText As String, ByVal fieldName As String) As String
+    On Error GoTo CleanExit
+
+    Dim rx As Object
+    Dim matches As Object
+
+    Set rx = CreateObject("VBScript.RegExp")
+    rx.Global = False
+    rx.IgnoreCase = True
+    rx.Pattern = """" & EscapeRegexRole(fieldName) & """\s*:\s*""([^""]*)"""
+    Set matches = rx.Execute(objectText)
+    If matches.Count > 0 Then JsonObjectStringFieldRole = JsonUnescapeRole(CStr(matches(0).SubMatches(0)))
+
+CleanExit:
+End Function
+
+Private Function JsonObjectNumberFieldRole(ByVal objectText As String, ByVal fieldName As String) As Double
+    On Error GoTo CleanExit
+
+    Dim rx As Object
+    Dim matches As Object
+    Dim rawValue As String
+
+    Set rx = CreateObject("VBScript.RegExp")
+    rx.Global = False
+    rx.IgnoreCase = True
+    rx.Pattern = """" & EscapeRegexRole(fieldName) & """\s*:\s*(""?-?[0-9]+(?:\.[0-9]+)?""?)"
+    Set matches = rx.Execute(objectText)
+    If matches.Count > 0 Then
+        rawValue = Replace$(CStr(matches(0).SubMatches(0)), """", "")
+        If IsNumeric(rawValue) Then JsonObjectNumberFieldRole = CDbl(rawValue)
+    End If
+
+CleanExit:
+End Function
+
+Private Function JsonUnescapeRole(ByVal textIn As String) As String
+    JsonUnescapeRole = textIn
+    JsonUnescapeRole = Replace$(JsonUnescapeRole, "\t", vbTab)
+    JsonUnescapeRole = Replace$(JsonUnescapeRole, "\n", vbLf)
+    JsonUnescapeRole = Replace$(JsonUnescapeRole, "\r", vbCr)
+    JsonUnescapeRole = Replace$(JsonUnescapeRole, "\" & Chr$(34), Chr$(34))
+    JsonUnescapeRole = Replace$(JsonUnescapeRole, "\\", "\")
+End Function
+
+Private Function EscapeRegexRole(ByVal textIn As String) As String
+    Dim specials As Variant
+    Dim token As Variant
+
+    EscapeRegexRole = textIn
+    specials = Array("\", ".", "+", "*", "?", "^", "$", "(", ")", "[", "]", "{", "}", "|")
+    For Each token In specials
+        EscapeRegexRole = Replace$(EscapeRegexRole, CStr(token), "\" & CStr(token))
+    Next token
+End Function
+
+Private Function LocalStagingPathRole(ByVal eventType As String, _
+                                      ByVal warehouseId As String, _
+                                      ByVal stationId As String) As String
+    Dim folderPath As String
+
+    folderPath = CombinePathRole(LocalStagingRootRole(), SafePathTokenRole(warehouseId))
+    folderPath = CombinePathRole(folderPath, SafePathTokenRole(stationId))
+    LocalStagingPathRole = CombinePathRole(folderPath, InboxWorkbookNameRole(eventType, stationId) & ".staging.jsonl")
+End Function
+
+Private Function LocalStagingRootRole() As String
+    Dim rootPath As String
+
+    rootPath = Trim$(Environ$("LOCALAPPDATA"))
+    If rootPath = "" Then rootPath = Trim$(Environ$("TEMP"))
+    If rootPath = "" Then rootPath = ThisWorkbook.Path
+    LocalStagingRootRole = CombinePathRole(rootPath, LOCAL_STAGING_ROOT_FOLDER)
+End Function
+
+Private Function LocalStagingSearchRootRole(ByVal warehouseId As String, ByVal stationId As String) As String
+    Dim target As WarehouseTarget
+
+    warehouseId = Trim$(warehouseId)
+    stationId = Trim$(stationId)
+
+    If warehouseId = "" Or stationId = "" Then
+        On Error Resume Next
+        Set target = modNasConnection.GetCurrentTarget()
+        If warehouseId = "" And Not target Is Nothing Then warehouseId = Trim$(target.WarehouseId)
+        If stationId = "" And Not target Is Nothing Then stationId = Trim$(target.StationId)
+        If (warehouseId = "" Or stationId = "") And modConfig.LoadConfig("", "") Then
+            If warehouseId = "" Then warehouseId = Trim$(modConfig.GetWarehouseId())
+            If stationId = "" Then stationId = Trim$(modConfig.GetStationId())
+        End If
+        On Error GoTo 0
+    End If
+
+    If warehouseId <> "" And stationId <> "" Then
+        LocalStagingSearchRootRole = CombinePathRole(LocalStagingRootRole(), SafePathTokenRole(warehouseId))
+        LocalStagingSearchRootRole = CombinePathRole(LocalStagingSearchRootRole, SafePathTokenRole(stationId))
+    Else
+        LocalStagingSearchRootRole = LocalStagingRootRole()
+    End If
+End Function
+
+Private Function SafePathTokenRole(ByVal tokenText As String) As String
+    Dim badChars As Variant
+    Dim ch As Variant
+
+    SafePathTokenRole = Trim$(tokenText)
+    badChars = Array("\", "/", ":", "*", "?", Chr$(34), "<", ">", "|")
+    For Each ch In badChars
+        SafePathTokenRole = Replace$(SafePathTokenRole, CStr(ch), "_")
+    Next ch
+    If SafePathTokenRole = "" Then SafePathTokenRole = "_"
+End Function
+
+Private Function ParentFolderPathRole(ByVal filePath As String) As String
+    Dim pos As Long
+
+    filePath = Trim$(Replace$(filePath, "/", "\"))
+    pos = InStrRev(filePath, "\")
+    If pos > 0 Then ParentFolderPathRole = Left$(filePath, pos - 1)
+End Function
+
+Private Function FileExistsRole(ByVal filePath As String) As Boolean
+    Dim fso As Object
+
+    filePath = Trim$(filePath)
+    If filePath = "" Then Exit Function
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FileExistsRole = fso.FileExists(filePath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        FileExistsRole = (Len(Dir$(filePath, vbNormal)) > 0)
+    End If
+    On Error GoTo 0
+End Function
+
+Private Sub CollectLocalStagingFilesRole(ByVal folderPath As String, ByVal files As Object)
+    On Error GoTo CleanExit
+
+    Dim fso As Object
+    Dim folder As Object
+    Dim fileItem As Object
+    Dim subFolder As Object
+    Dim fileName As String
+
+    If files Is Nothing Then Exit Sub
+    If Not FolderExistsRole(folderPath) Then Exit Sub
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set folder = fso.GetFolder(folderPath)
+    For Each fileItem In folder.Files
+        fileName = LCase$(CStr(fileItem.Name))
+        If Right$(fileName, Len(".staging.jsonl")) = ".staging.jsonl" _
+           Or Right$(fileName, Len(".syncing")) = ".syncing" Then
+            files.Add CStr(fileItem.Path)
+        End If
+    Next fileItem
+
+    For Each subFolder In folder.SubFolders
+        If StrComp(CStr(subFolder.Name), LOCAL_STAGING_ARCHIVE_FOLDER, vbTextCompare) <> 0 Then
+            CollectLocalStagingFilesRole CStr(subFolder.Path), files
+        End If
+    Next subFolder
+
+CleanExit:
+End Sub
+
+Private Function SyncingStagingPathRole(ByVal stagingPath As String) As String
+    If Right$(LCase$(stagingPath), Len(".syncing")) = ".syncing" Then
+        SyncingStagingPathRole = stagingPath
+    Else
+        SyncingStagingPathRole = stagingPath & ".syncing"
+    End If
+End Function
+
+Private Sub RestoreWorkingStagingFileRole(ByVal workingPath As String)
+    Dim originalPath As String
+
+    If workingPath = "" Then Exit Sub
+    If Not FileExistsRole(workingPath) Then Exit Sub
+    If Right$(LCase$(workingPath), Len(".syncing")) <> ".syncing" Then Exit Sub
+    originalPath = Left$(workingPath, Len(workingPath) - Len(".syncing"))
+    If FileExistsRole(originalPath) Then Exit Sub
+    Name workingPath As originalPath
+End Sub
+
+Private Sub ArchiveStagingFileRole(ByVal workingPath As String)
+    On Error GoTo FailArchive
+
+    Dim archiveFolder As String
+    Dim archivePath As String
+    Dim fso As Object
+
+    If Not FileExistsRole(workingPath) Then Exit Sub
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    archiveFolder = CombinePathRole(ParentFolderPathRole(workingPath), LOCAL_STAGING_ARCHIVE_FOLDER)
+    EnsureFolderExistsRole archiveFolder
+    archivePath = CombinePathRole(archiveFolder, Format$(Now, "yyyymmdd_hhnnss") & "_" & fso.GetFileName(workingPath) & ".done")
+    Do While FileExistsRole(archivePath)
+        archivePath = CombinePathRole(archiveFolder, Format$(Now, "yyyymmdd_hhnnss") & "_" & CreateGuidFallbackRole() & "_" & fso.GetFileName(workingPath) & ".done")
+    Loop
+    Name workingPath As archivePath
+    Exit Sub
+
+FailArchive:
+    ' Leave the .syncing file in place so a later run can retry or inspect it.
+End Sub
+
+Private Function IsLockContentionMessageRole(ByVal messageText As String) As Boolean
+    messageText = LCase$(Trim$(messageText))
+    IsLockContentionMessageRole = _
+        (InStr(1, messageText, "read-only", vbTextCompare) > 0) Or _
+        (InStr(1, messageText, "locked", vbTextCompare) > 0) Or _
+        (InStr(1, messageText, "permission denied", vbTextCompare) > 0) Or _
+        (InStr(1, messageText, "sharing violation", vbTextCompare) > 0)
+End Function
+
+Private Sub WaitSecondsRole(ByVal secondsToWait As Long)
+    If secondsToWait <= 0 Then Exit Sub
+    Application.Wait Now + TimeSerial(0, 0, secondsToWait)
+End Sub
+
+Private Function ParseJsonObjectRole(ByVal jsonText As String, ByRef report As String) As Object
+    On Error GoTo FailParse
+
+    Dim pos As Long
+    Dim keyText As String
+    Dim valueText As Variant
+    Dim d As Object
+
+    Set d = CreateObject("Scripting.Dictionary")
+    d.CompareMode = vbTextCompare
+    pos = 1
+    SkipJsonWhitespaceRole jsonText, pos
+    If Mid$(jsonText, pos, 1) <> "{" Then
+        report = "Expected object start."
+        Exit Function
+    End If
+    pos = pos + 1
+
+    Do
+        SkipJsonWhitespaceRole jsonText, pos
+        If Mid$(jsonText, pos, 1) = "}" Then
+            pos = pos + 1
+            Exit Do
+        End If
+        keyText = ParseJsonStringRole(jsonText, pos, report)
+        If report <> "" Then Exit Function
+        SkipJsonWhitespaceRole jsonText, pos
+        If Mid$(jsonText, pos, 1) <> ":" Then
+            report = "Expected ':' after key."
+            Exit Function
+        End If
+        pos = pos + 1
+        valueText = ParseJsonValueRole(jsonText, pos, report)
+        If report <> "" Then Exit Function
+        d(keyText) = valueText
+        SkipJsonWhitespaceRole jsonText, pos
+        Select Case Mid$(jsonText, pos, 1)
+            Case ","
+                pos = pos + 1
+            Case "}"
+                pos = pos + 1
+                Exit Do
+            Case Else
+                report = "Expected ',' or object end."
+                Exit Function
+        End Select
+    Loop While pos <= Len(jsonText)
+
+    Set ParseJsonObjectRole = d
+    Exit Function
+
+FailParse:
+    report = Err.Description
+End Function
+
+Private Function ParseJsonValueRole(ByVal jsonText As String, ByRef pos As Long, ByRef report As String) As Variant
+    Dim startPos As Long
+    Dim token As String
+
+    SkipJsonWhitespaceRole jsonText, pos
+    Select Case Mid$(jsonText, pos, 1)
+        Case Chr$(34)
+            ParseJsonValueRole = ParseJsonStringRole(jsonText, pos, report)
+        Case Else
+            startPos = pos
+            Do While pos <= Len(jsonText)
+                Select Case Mid$(jsonText, pos, 1)
+                    Case ",", "}", " ", vbTab, vbCr, vbLf
+                        Exit Do
+                End Select
+                pos = pos + 1
+            Loop
+            token = Trim$(Mid$(jsonText, startPos, pos - startPos))
+            Select Case LCase$(token)
+                Case "null"
+                    ParseJsonValueRole = ""
+                Case "true"
+                    ParseJsonValueRole = True
+                Case "false"
+                    ParseJsonValueRole = False
+                Case Else
+                    If IsNumeric(token) Then
+                        ParseJsonValueRole = CDbl(token)
+                    Else
+                        ParseJsonValueRole = token
+                    End If
+            End Select
+    End Select
+End Function
+
+Private Function ParseJsonStringRole(ByVal jsonText As String, ByRef pos As Long, ByRef report As String) As String
+    Dim ch As String
+    Dim escaped As Boolean
+
+    If Mid$(jsonText, pos, 1) <> Chr$(34) Then
+        report = "Expected string."
+        Exit Function
+    End If
+    pos = pos + 1
+    Do While pos <= Len(jsonText)
+        ch = Mid$(jsonText, pos, 1)
+        pos = pos + 1
+        If escaped Then
+            Select Case ch
+                Case Chr$(34), "\", "/"
+                    ParseJsonStringRole = ParseJsonStringRole & ch
+                Case "n"
+                    ParseJsonStringRole = ParseJsonStringRole & vbLf
+                Case "r"
+                    ParseJsonStringRole = ParseJsonStringRole & vbCr
+                Case "t"
+                    ParseJsonStringRole = ParseJsonStringRole & vbTab
+                Case Else
+                    ParseJsonStringRole = ParseJsonStringRole & ch
+            End Select
+            escaped = False
+        ElseIf ch = "\" Then
+            escaped = True
+        ElseIf ch = Chr$(34) Then
+            Exit Function
+        Else
+            ParseJsonStringRole = ParseJsonStringRole & ch
+        End If
+    Loop
+    report = "Unterminated string."
+End Function
+
+Private Sub SkipJsonWhitespaceRole(ByVal jsonText As String, ByRef pos As Long)
+    Do While pos <= Len(jsonText)
+        Select Case Mid$(jsonText, pos, 1)
+            Case " ", vbTab, vbCr, vbLf
+                pos = pos + 1
+            Case Else
+                Exit Do
+        End Select
+    Loop
+End Sub
 
 Private Function EnsureCurrentRoleWriteAllowed(ByVal requiredCapability As String, _
                                                ByVal requestedUserId As String, _

@@ -44,9 +44,33 @@ Private mVersionRows As Variant
 Private mSelectedPackageRow As Long
 Private mBuilt As Boolean
 Private mLoading As Boolean
+Private mAnchors As Object
+Private mResizeInitialized As Boolean
+
+Private Const ANCHOR_LEFT As Long = 1
+Private Const ANCHOR_TOP As Long = 2
+Private Const ANCHOR_RIGHT As Long = 4
+Private Const ANCHOR_BOTTOM As Long = 8
 
 Private Sub UserForm_Initialize()
     BuildLayout
+End Sub
+
+Private Sub UserForm_Activate()
+    If Not mResizeInitialized Then
+        modUserFormResizeWin.EnableResizableUserForm Me
+        mResizeInitialized = True
+    End If
+    If Not mAnchors Is Nothing Then mAnchors.ResizeControls
+End Sub
+
+Private Sub UserForm_Layout()
+    If mAnchors Is Nothing Then Exit Sub
+    mAnchors.ResizeControls
+End Sub
+
+Private Sub UserForm_Terminate()
+    Set mAnchors = Nothing
 End Sub
 
 Public Sub InitializeFromShipping()
@@ -143,6 +167,7 @@ Private Sub BuildLayout()
 
     mTxtUom.Value = "ea"
     mTxtQty.Value = "1"
+    InitializeBoxBuilderAnchors
 End Sub
 
 Private Sub LoadSavedBoxes()
@@ -569,6 +594,29 @@ Private Function SelectedVersionStatus() As String
     SelectedVersionStatus = NzText(mCboVersions.List(mCboVersions.ListIndex, 1))
     If SelectedVersionStatus = "" Then SelectedVersionStatus = "Active"
 End Function
+
+Private Sub InitializeBoxBuilderAnchors()
+    Set mAnchors = modDynamicForms.CreateFormAnchorManager()
+    mAnchors.Initialize Me
+
+    mAnchors.Add mCboBoxes, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mBtnRefresh, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mTxtDescription, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mLblInventoryStatus, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mTxtSearch, ANCHOR_LEFT Or ANCHOR_TOP
+
+    mAnchors.Add mLstInventory, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_BOTTOM
+    mAnchors.Add mLstBom, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+
+    mAnchors.Add mBtnAdd, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnRemove, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnUpdateVersion, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnNewVersion, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnDeleteVersion, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnDeleteBox, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnCancel, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add mLblStatus, ANCHOR_LEFT Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+End Sub
 
 Private Function AddLabel(ByVal controlName As String, _
                           ByVal captionText As String, _

@@ -17,6 +17,7 @@ Public Sub InitShippingAddin()
 
     Application.EnableEvents = prevEvents
     SetupAllHandlers
+    SyncLocalStagedInboxRowsForStartup
 End Sub
 
 Public Sub Auto_Open()
@@ -67,3 +68,17 @@ Private Function WorkbookTableExistsShippingInit(ByVal wb As Workbook, ByVal tab
         If WorkbookTableExistsShippingInit Then Exit Function
     Next ws
 End Function
+
+Private Sub SyncLocalStagedInboxRowsForStartup()
+    On Error Resume Next
+    Dim report As String
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        modRoleEventWriter.SyncLocalStagedInboxRows report, target.WarehouseId, target.StationId
+    Else
+        modRoleEventWriter.SyncLocalStagedInboxRows report
+    End If
+    On Error GoTo 0
+End Sub

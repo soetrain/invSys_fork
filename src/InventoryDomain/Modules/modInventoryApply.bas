@@ -638,13 +638,20 @@ Private Function ComposeLineNote(ByVal eventType As String, ByVal rawItem As Obj
     Dim itemNote As String
     Dim ioType As String
     Dim rowVal As String
+    Dim versionLabel As String
     Dim detail As String
 
     itemNote = SafeTrimApply(GetDictionaryValue(rawItem, "Note"))
     ioType = SafeTrimApply(GetDictionaryValue(rawItem, "IoType"))
     rowVal = SafeTrimApply(GetDictionaryValue(rawItem, "Row"))
+    versionLabel = SafeTrimApply(GetDictionaryValue(rawItem, "BomVersionLabel"))
+    If versionLabel = "" Then versionLabel = SafeTrimApply(GetDictionaryValue(rawItem, "Version"))
 
     If rowVal <> "" Then detail = "ROW=" & rowVal
+    If versionLabel <> "" Then
+        If detail <> "" Then detail = detail & "; "
+        detail = detail & "VERSION=" & versionLabel
+    End If
     If ioType <> "" Then
         If detail <> "" Then detail = detail & "; "
         detail = detail & "IO=" & UCase$(ioType)

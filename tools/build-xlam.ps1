@@ -820,6 +820,7 @@ $projectMap = @(
                         @{ Id = "btnShippingCurrentUser"; Label = "Sign In"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = "modRoleEventWriter.PromptSetCurrentUserForCapability ""SHIP_POST"""; ImageMso = "AddressBook"; Screentip = "Sign in as an invSys user" },
                         @{ Id = "btnShippingSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; ImageMso = "Clear"; Screentip = "Sign out of invSys without disconnecting storage" },
                         @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; ImageMso = "FileNew"; RequiredCapability = "SHIP_POST" },
+                        @{ Id = "btnShippingShipmentsForm"; Label = "Shipments"; Macro = "modTS_Shipments.BtnOpenShipmentsForm"; ImageMso = "FileSendAsAttachment"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingBoxBuilderForm"; Label = "Box Builder"; Macro = "modTS_Shipments.BtnOpenBoxBuilder"; ImageMso = "CreateReport"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingBoxMakerForm"; Label = "Box Maker"; Macro = "modTS_Shipments.BtnOpenBoxMaker"; ImageMso = "TableInsertRowsAbove"; RequiredCapability = "SHIP_POST" },
                         @{ Id = "btnShippingToggleBuilder"; Label = "Toggle Builder"; Macro = "modTS_Shipments.BtnToggleBuilder"; ImageMso = "Repeat"; RequiredCapability = "SHIP_POST" },
