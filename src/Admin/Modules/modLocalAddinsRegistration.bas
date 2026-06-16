@@ -4,8 +4,6 @@ Option Explicit
 Private Function RequiredInvSysAddinNamesLocal() As Variant
     RequiredInvSysAddinNamesLocal = Array( _
         "invSys.Core.xlam", _
-        "invSys.Inventory.Domain.xlam", _
-        "invSys.Designs.Domain.xlam", _
         "invSys.Receiving.xlam", _
         "invSys.Shipping.xlam", _
         "invSys.Production.xlam", _

@@ -44,8 +44,8 @@ Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workboo
     MoveTableToSheetSurface wb, "AggregateBoxBOM_Log", SHIPPING_BACKEND_SHEET
     MoveTableToSheetSurface wb, "AggregatePackages_Log", SHIPPING_BACKEND_SHEET
 
-    EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "ShipmentsTally", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION"), True
-    EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "NotShipped", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION"), False
+    EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "ShipmentsTally", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION", "AREA", "CARRIER"), True
+    EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "NotShipped", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION", "AREA", "CARRIER"), False
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "AggregateBoxBOM", Array("ROW", "ITEM_CODE", "ITEM", "QUANTITY", "UOM", "LOCATION"), False
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "AggregatePackages", Array("ROW", "ITEM_CODE", "ITEM", "QUANTITY", "UOM", "LOCATION"), False
     EnsureTableSurface wb, "ShipmentsTally", "BoxBuilder", Array("Box Name", "UOM", "LOCATION", "DESCRIPTION"), True
@@ -55,6 +55,7 @@ Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workboo
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "ShippingBOMView", ShippingBomViewHeadersSurface(), False
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "AggregateBoxBOM_Log", Array("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP"), False
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "AggregatePackages_Log", Array("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP"), False
+    ArrangeShippingBackendTablesSurface wb
     EnsureInventoryManagementSurface wb
     DeleteWorksheetSurface wb, "ShippingBOM"
     DeleteWorksheetSurface wb, "AggregateBoxBOM_Log"
@@ -384,6 +385,24 @@ Private Sub MoveTableToSheetSurface(ByVal wb As Workbook, ByVal tableName As Str
     On Error Resume Next
     lo.Range.Cut Destination:=targetCell
     On Error GoTo 0
+End Sub
+
+Private Sub ArrangeShippingBackendTablesSurface(ByVal wb As Workbook)
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Sub
+    Set ws = EnsureWorksheetSurface(wb, SHIPPING_BACKEND_SHEET)
+    ws.Visible = xlSheetVisible
+
+    MoveTableTopLeftSurface ws, "ShipmentsTally", "A1"
+    MoveTableTopLeftSurface ws, "NotShipped", "J1"
+    MoveTableTopLeftSurface ws, "AggregateBoxBOM", "S1"
+    MoveTableTopLeftSurface ws, "AggregatePackages", "AA1"
+    MoveTableTopLeftSurface ws, "Check_invSys", "AI1"
+    MoveTableTopLeftSurface ws, "invSysData_Shipping", "AT1"
+    MoveTableTopLeftSurface ws, "ShippingBOMView", "CJ1"
+    MoveTableTopLeftSurface ws, "AggregateBoxBOM_Log", "DE1"
+    MoveTableTopLeftSurface ws, "AggregatePackages_Log", "DO1"
 End Sub
 
 Private Sub HideWorksheetSurface(ByVal wb As Workbook, ByVal sheetName As String)

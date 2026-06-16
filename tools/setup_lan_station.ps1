@@ -127,7 +127,7 @@ function Get-RoleSetup {
         "RECEIVE" {
             return @{
                 RoleLabel = "Receiving"
-                Addins = @("invSys.Inventory.Domain.xlam", "invSys.Receiving.xlam")
+                Addins = @("invSys.Receiving.xlam")
                 InitSteps = @(
                     @{ Workbook = "invSys.Receiving.xlam"; Macro = "modReceivingInit.InitReceivingAddin" }
                 )
@@ -142,7 +142,7 @@ function Get-RoleSetup {
         "SHIP" {
             return @{
                 RoleLabel = "Shipping"
-                Addins = @("invSys.Inventory.Domain.xlam", "invSys.Shipping.xlam")
+                Addins = @("invSys.Shipping.xlam")
                 InitSteps = @(
                     @{ Workbook = "invSys.Shipping.xlam"; Macro = "modShippingInit.InitShippingAddin" }
                 )
@@ -157,7 +157,7 @@ function Get-RoleSetup {
         "PROD" {
             return @{
                 RoleLabel = "Production"
-                Addins = @("invSys.Inventory.Domain.xlam", "invSys.Designs.Domain.xlam", "invSys.Production.xlam")
+                Addins = @("invSys.Production.xlam")
                 InitSteps = @(
                     @{ Workbook = "invSys.Production.xlam"; Macro = "modProductionInit.InitProductionAddin" }
                 )

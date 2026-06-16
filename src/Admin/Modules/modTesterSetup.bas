@@ -516,7 +516,7 @@ Private Function SeedTesterScenarioInventory(ByRef spec As TesterSetupSpec, _
 
     On Error GoTo FailSeed
 
-    Set inventoryWb = modInventoryApply.ResolveInventoryWorkbook(spec.WarehouseId, Nothing)
+    Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(spec.WarehouseId, Nothing)
     If inventoryWb Is Nothing Then
         inventoryPath = NormalizeFolderPathTesterSetup(spec.PathLocal, False) & "\" & spec.WarehouseId & ".invSys.Data.Inventory.xlsb"
         Set inventoryWb = OpenWorkbookForWriteTesterSetup(inventoryPath, openedTransient, report)
@@ -1112,7 +1112,6 @@ Private Function CandidateLooksLikeSharePointRootTesterSetup(ByVal rootPath As S
 
     If FolderExistsTesterSetup(rootPath & "\Addins") Then
         If FileExistsTesterSetup(rootPath & "\Addins\invSys.Core.xlam") _
-           And FileExistsTesterSetup(rootPath & "\Addins\invSys.Inventory.Domain.xlam") _
            And FileExistsTesterSetup(rootPath & "\Addins\invSys.Receiving.xlam") Then
             CandidateLooksLikeSharePointRootTesterSetup = True
             Exit Function
@@ -1537,8 +1536,6 @@ End Function
 Private Function RequiredTesterAddinNamesTesterSetup() As Variant
     RequiredTesterAddinNamesTesterSetup = Array( _
         "invSys.Core.xlam", _
-        "invSys.Inventory.Domain.xlam", _
-        "invSys.Designs.Domain.xlam", _
         "invSys.Receiving.xlam", _
         "invSys.Shipping.xlam", _
         "invSys.Production.xlam", _
