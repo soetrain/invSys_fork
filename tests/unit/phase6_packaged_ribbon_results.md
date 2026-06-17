@@ -1,9 +1,9 @@
 # Phase 6 Packaged Ribbon Validation Results
 
-- Date: 2026-06-16 10:13:28
+- Date: 2026-06-16 17:19:58
 - Deploy root: C:\Users\justu\source\repos\invSys_fork\deploy\current
-- Runtime root override: C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-563c65c03afe467ba2eb066c07dbdf45
-- Passed: 227
+- Runtime root override: C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-7726d6288a024205a3d98e57291b43eb
+- Passed: 233
 - Failed: 0
 
 | Check | Result | Detail |
@@ -15,7 +15,7 @@
 | invSys.Shipping.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Shipping.xlam |
 | invSys.Production.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Production.xlam |
 | invSys.Admin.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Admin.xlam |
-| Core.RuntimeRootOverride | PASS | C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-563c65c03afe467ba2eb066c07dbdf45 |
+| Core.RuntimeRootOverride | PASS | C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-7726d6288a024205a3d98e57291b43eb |
 | Receiving.RibbonXml | PASS | customUI/customUI.xml present. |
 | Receiving.CallbackModule | PASS | modRibbonGenerated |
 | Receiving.StatusLabel.lblReceivingServerStatus | PASS | GetLabel=RibbonServerStatusGetLabel |
@@ -192,6 +192,12 @@
 | Admin.CallbackMap.btnAdminUsers | PASS | btnAdminUsers -> modAdmin.Open_CreateDeleteUser |
 | Admin.CallbackGetEnabled.btnAdminUsers | PASS | btnAdminUsers -> ADMIN_MAINT |
 | Admin.DisabledOffline.btnAdminUsers | PASS | btnAdminUsers enabled=False |
+| Admin.RibbonButton.btnAdminSettings | PASS | Label=Settings; OnAction=RibbonOnActionAdmin; GetEnabled=RibbonRequiredCapabilityGetEnabledAdmin; Screentip= |
+| Admin.RibbonButtonGetEnabled.btnAdminSettings | PASS | RibbonRequiredCapabilityGetEnabledAdmin |
+| Admin.MacroExists.btnAdminSettings | PASS | modAdmin.Open_Settings |
+| Admin.CallbackMap.btnAdminSettings | PASS | btnAdminSettings -> modAdmin.Open_Settings |
+| Admin.CallbackGetEnabled.btnAdminSettings | PASS | btnAdminSettings -> ADMIN_MAINT |
+| Admin.DisabledOffline.btnAdminSettings | PASS | btnAdminSettings enabled=False |
 | Admin.RibbonButton.btnAdminWarehouses | PASS | Label=View Warehouses; OnAction=RibbonOnActionAdmin; GetEnabled=RibbonRequiredCapabilityGetEnabledAdmin; Screentip= |
 | Admin.RibbonButtonGetEnabled.btnAdminWarehouses | PASS | RibbonRequiredCapabilityGetEnabledAdmin |
 | Admin.MacroExists.btnAdminWarehouses | PASS | modAdmin.Open_WarehouseDirectory |

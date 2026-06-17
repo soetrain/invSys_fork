@@ -284,6 +284,7 @@ $ribbonSpecs = @(
             @{ Id = "btnAdminCurrentUser"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = 'modRoleEventWriter.PromptSetCurrentUserForCapability "ADMIN_MAINT"'; Execute = $false; Screentip = "Sign in as an invSys user" },
             @{ Id = "btnAdminSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; Execute = $false },
             @{ Id = "btnAdminUsers"; Label = "Users and Roles"; Macro = "modAdmin.Open_CreateDeleteUser"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
+            @{ Id = "btnAdminSettings"; Label = "Settings"; Macro = "modAdmin.Open_Settings"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
             @{ Id = "btnAdminWarehouses"; Label = "View Warehouses"; Macro = "modAdmin.Open_WarehouseDirectory"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
             @{ Id = "btnAdminWarehouseRoot"; Label = "Add Warehouse Root"; Macro = "modAdmin.Add_WarehouseDirectoryRoot"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
             @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },

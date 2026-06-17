@@ -85,6 +85,15 @@ Sub Open_WarehouseDirectory()
     End If
 End Sub
 
+Sub Open_Settings()
+    Dim report As String
+    Dim targetWb As Workbook
+
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
+    frmAdminSettings.Show
+End Sub
+
 Sub Add_WarehouseDirectoryRoot()
     Dim report As String
     Dim targetWb As Workbook

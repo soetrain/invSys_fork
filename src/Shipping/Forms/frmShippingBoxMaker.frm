@@ -941,6 +941,7 @@ Private Sub RecordPendingVersionInventory(ByVal actionText As String, ByVal qtyM
     End Select
 
     mPendingVersionInv(VersionPendingKey(mSelectedPackageRow, versionLabel)) = projectedQty
+    modTS_Shipments.RegisterPendingBoxVersionInventoryOverlay mSelectedPackageRow, versionLabel, projectedQty
 
 CleanExit:
 End Sub
@@ -979,8 +980,14 @@ Private Function DisplayBoxVersionInventoryText(ByVal packageRow As Long, _
     key = VersionPendingKey(packageRow, versionLabel)
     If key = "" Then Exit Function
     If versionLabel = "" Then Exit Function
-    If mPendingVersionInv Is Nothing Then Exit Function
-    If Not mPendingVersionInv.Exists(key) Then Exit Function
+    If mPendingVersionInv Is Nothing Then
+        DisplayBoxVersionInventoryText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, versionLabel, backendText)
+        Exit Function
+    End If
+    If Not mPendingVersionInv.Exists(key) Then
+        DisplayBoxVersionInventoryText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, versionLabel, backendText)
+        Exit Function
+    End If
 
     pendingQty = CDbl(mPendingVersionInv(key))
     If Trim$(backendText) <> "" And IsNumeric(Replace$(backendText, ",", "")) Then

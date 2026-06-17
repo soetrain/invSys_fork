@@ -34,6 +34,7 @@ Private Const TABLE_CANONICAL_SHIPPING_BOM As String = "tblShippingBOM"
 Private Const COL_BOXBOM_ITEM As String = "ITEM"
 Private Const COL_CURRENT_INV As String = "CURRENT INV"
 Private Const COL_BOM_VERSION As String = "BOM VERSION"
+Private Const EVENT_TYPE_SHIP As String = "SHIP"
 Private Const EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
 Private Const EVENT_TYPE_BOX_UNBOX As String = "BOX_UNBOX"
 
@@ -85,6 +86,7 @@ Private mGeneratedIdentityEditWorksheetName As String
 Private mGeneratedIdentityEditAddress As String
 Private mSuppressGeneratedIdentityEditGuard As Boolean
 Private mLastComponentPickerStatus As String
+Private mPendingBoxVersionInventoryOverlay As Object
 
 Private Const BOX_VERSION_SAVE_CANCEL As Long = 0
 Private Const BOX_VERSION_SAVE_UPDATE As Long = 1
@@ -975,6 +977,8 @@ Public Function MoveShipmentHoldForAutomation(ByVal refNumber As String, _
     If qtyMove > availableQty Then qtyMove = availableQty
 
     MoveHoldRowQuantity sourceTable, targetTable, rowIndex, qtyMove
+    PersistActiveShipmentRowsLocal loShip
+    PersistHoldRowsLocal loHold
     InvalidateAggregates
 
     MoveShipmentHoldForAutomation = "OK|Moved=" & CStr(qtyMove) _
@@ -4300,11 +4304,16 @@ Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Va
     Dim result() As Variant
     Dim versions As Variant
     Dim versionInv As Object
+    Dim invLo As ListObject
+    Dim snapshotCache As Object
     Dim boxRow As Long
     Dim r As Long
     Dim v As Long
     Dim c As Long
+    Dim activeCount As Long
     Dim versionLabel As String
+    Dim foundCurrent As Boolean
+    Dim currentInv As Variant
 
     If IsEmpty(savedBoxes) Then Exit Function
     Set ws = SheetExists(SHEET_SHIPMENTS)
@@ -4312,6 +4321,7 @@ Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Va
 
     Set loSource = BoxMakerShippingBomSourceTable(ws, wbRuntime, openedTransient, report)
     If loSource Is Nothing Then GoTo CleanExit
+    Set invLo = GetInvSysTable()
 
     Set rows = New Collection
     For r = 1 To UBound(savedBoxes, 1)
@@ -4321,6 +4331,7 @@ Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Va
         versions = BuildBoxBomVersionRows(loSource, boxRow, c)
         If IsEmpty(versions) Then GoTo NextBox
         Set versionInv = BoxMakerFormLoadBoxVersionInventory(boxRow, NzStr(savedBoxes(r, 2)))
+        activeCount = CountActiveBoxBomVersionsShipping(versions)
 
         For v = 1 To UBound(versions, 1)
             If UCase$(NzStr(versions(v, 2))) <> "ACTIVE" Then GoTo NextVersion
@@ -4334,6 +4345,12 @@ Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Va
             If Not versionInv Is Nothing Then
                 If versionInv.Exists(versionLabel) Then rowData(4) = versionInv(versionLabel)
             End If
+            If Trim$(NzStr(rowData(4))) = "" And activeCount = 1 Then
+                foundCurrent = False
+                currentInv = ResolveCurrentInventoryValue(ws, invLo, boxRow, NzStr(savedBoxes(r, 2)), foundCurrent, snapshotCache)
+                If foundCurrent Then rowData(4) = currentInv
+            End If
+            rowData(4) = PendingBoxVersionInventoryOverlayValue(boxRow, versionLabel, rowData(4))
             rowData(5) = NzStr(savedBoxes(r, 4))
             rowData(6) = NzStr(savedBoxes(r, 5))
             rowData(7) = NzStr(savedBoxes(r, 6))
@@ -4360,6 +4377,76 @@ CleanExit:
 FailSoft:
     If openedTransient Then CloseWorkbookNoSaveShipping wbRuntime
     BoxMakerFormLoadShippableVersionInventory = Empty
+End Function
+
+Private Function CountActiveBoxBomVersionsShipping(ByVal versions As Variant) As Long
+    Dim r As Long
+
+    If IsEmpty(versions) Then Exit Function
+    For r = 1 To UBound(versions, 1)
+        If UCase$(NzStr(versions(r, 2))) = "ACTIVE" Then
+            If NormalizeBoxBomVersionLabelShipping(versions(r, 1)) <> "" Then CountActiveBoxBomVersionsShipping = CountActiveBoxBomVersionsShipping + 1
+        End If
+    Next r
+End Function
+
+Public Sub RegisterPendingBoxVersionInventoryOverlay(ByVal packageRow As Long, _
+                                                     ByVal versionLabel As String, _
+                                                     ByVal projectedQty As Double)
+    Dim key As String
+
+    key = PendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If key = "" Then Exit Sub
+    If mPendingBoxVersionInventoryOverlay Is Nothing Then
+        Set mPendingBoxVersionInventoryOverlay = CreateObject("Scripting.Dictionary")
+        mPendingBoxVersionInventoryOverlay.CompareMode = vbTextCompare
+    End If
+    If projectedQty < 0 Then projectedQty = 0
+    mPendingBoxVersionInventoryOverlay(key) = projectedQty
+End Sub
+
+Public Function PendingBoxVersionInventoryOverlayText(ByVal packageRow As Long, _
+                                                      ByVal versionLabel As String, _
+                                                      ByVal backendText As String) As String
+    Dim overlayValue As Variant
+
+    overlayValue = PendingBoxVersionInventoryOverlayValue(packageRow, versionLabel, backendText)
+    PendingBoxVersionInventoryOverlayText = Trim$(NzStr(overlayValue))
+End Function
+
+Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long, _
+                                                       ByVal versionLabel As String, _
+                                                       ByVal backendValue As Variant) As Variant
+    Dim key As String
+    Dim pendingQty As Double
+    Dim backendText As String
+    Dim backendQty As Double
+
+    PendingBoxVersionInventoryOverlayValue = backendValue
+    If mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Function
+
+    key = PendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If key = "" Then Exit Function
+    If Not mPendingBoxVersionInventoryOverlay.Exists(key) Then Exit Function
+
+    pendingQty = CDbl(mPendingBoxVersionInventoryOverlay(key))
+    backendText = Trim$(NzStr(backendValue))
+    If backendText <> "" And IsNumeric(Replace$(backendText, ",", "")) Then
+        backendQty = CDbl(Replace$(backendText, ",", ""))
+        If Abs(backendQty - pendingQty) < 0.0000001 Then
+            mPendingBoxVersionInventoryOverlay.Remove key
+            PendingBoxVersionInventoryOverlayValue = backendQty
+            Exit Function
+        End If
+    End If
+
+    PendingBoxVersionInventoryOverlayValue = pendingQty
+End Function
+
+Private Function PendingBoxVersionInventoryKey(ByVal packageRow As Long, ByVal versionLabel As String) As String
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If packageRow <= 0 Or versionLabel = "" Then Exit Function
+    PendingBoxVersionInventoryKey = CStr(packageRow) & "|" & versionLabel
 End Function
 
 Public Function BoxMakerFormLoadBoxVersionInventory(ByVal packageRow As Long, ByVal boxName As String) As Object
@@ -4421,7 +4508,7 @@ Public Function BoxMakerFormLoadBoxVersionInventory(ByVal packageRow As Long, By
                     src = loLog.DataBodyRange.Value
                     For r = 1 To UBound(src, 1)
                         eventType = UCase$(Trim$(NzStr(src(r, cEventType))))
-                        If eventType <> EVENT_TYPE_BOX_BUILD And eventType <> EVENT_TYPE_BOX_UNBOX Then GoTo NextLogRow
+                        If eventType <> EVENT_TYPE_SHIP And eventType <> EVENT_TYPE_BOX_BUILD And eventType <> EVENT_TYPE_BOX_UNBOX Then GoTo NextLogRow
 
                         skuValue = Trim$(NzStr(src(r, cSku)))
                         If Not skuCandidates.Exists(skuValue) Then GoTo NextLogRow
@@ -4977,6 +5064,8 @@ Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = Fals
     Dim cUom As Long
     Dim cLoc As Long
     Dim cDesc As Long
+    Dim cArea As Long
+    Dim cCarrier As Long
     Dim src As Variant
     Dim rows As Variant
     Dim r As Long
@@ -4987,6 +5076,11 @@ Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = Fals
     If ws Is Nothing Then Exit Function
     If holdRows Then tableName = TABLE_NOTSHIPPED Else tableName = TABLE_SHIPMENTS
     Set lo = GetListObject(ws, tableName)
+    If holdRows Then
+        LoadPersistentHoldRowsLocal lo
+    Else
+        LoadPersistentActiveShipmentRowsLocal lo
+    End If
     If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
 
     cRef = ColumnIndex(lo, "REF_NUMBER")
@@ -5082,6 +5176,11 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         End If
         lo.ListRows(tableRowIndex).Delete
         InvalidateAggregates
+        If isHold Then
+            PersistHoldRowsLocal lo
+        Else
+            PersistActiveShipmentRowsLocal lo
+        End If
         report = "Removed shipment row."
         ShipmentsFormCommitLine = True
         GoTo CleanExit
@@ -5130,6 +5229,11 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     If Trim$(carrierValue) <> "" Or Not mergedExisting Then WriteValue lr, "CARRIER", Trim$(carrierValue)
 
     InvalidateAggregates
+    If isHold Then
+        PersistHoldRowsLocal lo
+    Else
+        PersistActiveShipmentRowsLocal lo
+    End If
     If actionName = "UPDATE" Then
         report = "Updated shipment row."
     ElseIf mergedExisting Then
@@ -5307,12 +5411,16 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     Dim cRowShip As Long
     Dim cItemShip As Long
     Dim cArea As Long
+    Dim cDesc As Long
     Dim colItemCode As Long
     Dim colItemName As Long
     Dim colTotalInv As Long
     Dim colShipments As Long
     Dim requirements As Object
+    Dim versionRequirements As Object
+    Dim versionNames As Object
     Dim names As Object
+    Dim versionLabel As String
     Dim i As Long
     Dim rowIndex As Long
     Dim rowVal As Long
@@ -5348,13 +5456,20 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     cRowShip = ColumnIndex(loShip, "ROW")
     cItemShip = ColumnIndex(loShip, "ITEMS")
     cArea = ColumnIndex(loShip, "AREA")
+    cDesc = ColumnIndex(loShip, "DESCRIPTION")
     If cQtyShip = 0 Or cRowShip = 0 Then
         errNotes = "Shipments table missing QUANTITY/ROW columns."
         Exit Function
     End If
 
     Set requirements = CreateObject("Scripting.Dictionary")
+    requirements.CompareMode = vbTextCompare
     Set names = CreateObject("Scripting.Dictionary")
+    names.CompareMode = vbTextCompare
+    Set versionRequirements = CreateObject("Scripting.Dictionary")
+    versionRequirements.CompareMode = vbTextCompare
+    Set versionNames = CreateObject("Scripting.Dictionary")
+    versionNames.CompareMode = vbTextCompare
     For i = LBound(rowIndexes) To UBound(rowIndexes)
         rowIndex = CLng(rowIndexes(i))
         If rowIndex <= 0 Or rowIndex > loShip.ListRows.Count Then
@@ -5374,12 +5489,26 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
         rowVal = NzLng(loShip.DataBodyRange.Cells(rowIndex, cRowShip).Value)
         qtyVal = NzDbl(loShip.DataBodyRange.Cells(rowIndex, cQtyShip).Value)
         If rowVal = 0 Or qtyVal <= 0 Then GoTo NextSelectedRow
+        versionLabel = ""
+        If cDesc > 0 Then versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(rowIndex, cDesc).Value))
         reqKey = CStr(rowVal)
+        If StrComp(requiredArea, "Shipments", vbTextCompare) = 0 And versionLabel <> "" Then reqKey = CStr(rowVal) & "|" & versionLabel
         If requirements.Exists(reqKey) Then
             requirements(reqKey) = NzDbl(requirements(reqKey)) + qtyVal
         Else
             requirements.Add reqKey, qtyVal
             If cItemShip > 0 Then names.Add reqKey, NzStr(loShip.DataBodyRange.Cells(rowIndex, cItemShip).Value)
+        End If
+        If StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 And cDesc > 0 Then
+            If versionLabel <> "" Then
+                Dim versionKey As String: versionKey = CStr(rowVal) & "|" & versionLabel
+                If versionRequirements.Exists(versionKey) Then
+                    versionRequirements(versionKey) = NzDbl(versionRequirements(versionKey)) + qtyVal
+                Else
+                    versionRequirements.Add versionKey, qtyVal
+                    If cItemShip > 0 Then versionNames.Add versionKey, NzStr(loShip.DataBodyRange.Cells(rowIndex, cItemShip).Value)
+                End If
+            End If
         End If
 NextSelectedRow:
     Next i
@@ -5387,6 +5516,9 @@ NextSelectedRow:
     If requirements.Count = 0 Then
         errNotes = "No selected shipment quantities were found."
         Exit Function
+    End If
+    If StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 Then
+        If Not SelectedVersionInventoryAvailable(invLo, versionRequirements, versionNames, errNotes) Then Exit Function
     End If
 
     colItemCode = ColumnIndex(invLo, "ITEM_CODE")
@@ -5405,28 +5537,31 @@ NextSelectedRow:
         End If
     End If
     For Each key In requirements.Keys
-        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, CLng(key))
+        Dim rowKeyValue As Long: rowKeyValue = ShipmentRequirementRowValue(CStr(key))
+        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowKeyValue)
         If invRow Is Nothing Then
-            AppendNote errNotes, "Package ROW " & CStr(key) & " not found in invSys."
+            AppendNote errNotes, "Package ROW " & CStr(rowKeyValue) & " not found in invSys."
             Exit Function
         End If
         If colTotalInv > 0 Then
             Dim availableQty As Double: availableQty = NzDbl(invRow.Range.Cells(1, colTotalInv).Value)
             If NzDbl(requirements(key)) > availableQty + 0.0000001 Then
-                AppendNote errNotes, "ROW " & CStr(key) & " requires " & Format$(NzDbl(requirements(key)), "0.###") & " but only " & Format$(availableQty, "0.###") & " in TOTAL INV."
+                AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " requires " & Format$(NzDbl(requirements(key)), "0.###") & " but only " & Format$(availableQty, "0.###") & " in TOTAL INV."
                 Exit Function
             End If
         ElseIf colShipments > 0 Then
             Dim stagedQty As Double: stagedQty = NzDbl(invRow.Range.Cells(1, colShipments).Value)
             If NzDbl(requirements(key)) > stagedQty + 0.0000001 Then
-                AppendNote errNotes, "ROW " & CStr(key) & " only has " & Format$(stagedQty, "0.###") & " staged but needs " & Format$(NzDbl(requirements(key)), "0.###") & "."
+                AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " only has " & Format$(stagedQty, "0.###") & " staged but needs " & Format$(NzDbl(requirements(key)), "0.###") & "."
                 Exit Function
             End If
         End If
 
         Dim delta As Object: Set delta = CreateObject("Scripting.Dictionary")
-        delta("ROW") = CLng(key)
+        delta("ROW") = rowKeyValue
         delta("QTY") = NzDbl(requirements(key))
+        versionLabel = ShipmentRequirementVersionLabel(CStr(key))
+        If versionLabel <> "" Then delta("VERSION") = versionLabel
         If colItemCode > 0 Then delta("ITEM_CODE") = NzStr(invRow.Range.Cells(1, colItemCode).Value)
         If colItemName > 0 Then
             delta("ITEM_NAME") = NzStr(invRow.Range.Cells(1, colItemName).Value)
@@ -5437,6 +5572,200 @@ NextSelectedRow:
     Next key
 
     Set BuildSelectedShipmentRowsDeltas = result
+End Function
+
+Private Function ShipmentRequirementRowValue(ByVal requirementKey As String) As Long
+    Dim parts As Variant
+
+    parts = Split(CStr(requirementKey), "|")
+    ShipmentRequirementRowValue = CLng(Val(CStr(parts(0))))
+End Function
+
+Private Function ShipmentRequirementVersionLabel(ByVal requirementKey As String) As String
+    Dim parts As Variant
+
+    parts = Split(CStr(requirementKey), "|")
+    If UBound(parts) >= 1 Then ShipmentRequirementVersionLabel = NormalizeBoxBomVersionLabelShipping(CStr(parts(1)))
+End Function
+
+Private Function SelectedVersionInventoryAvailable(ByVal invLo As ListObject, _
+                                                   ByVal versionRequirements As Object, _
+                                                   ByVal versionNames As Object, _
+                                                   ByRef errNotes As String) As Boolean
+    Dim key As Variant
+    Dim parts As Variant
+    Dim rowVal As Long
+    Dim versionLabel As String
+    Dim itemName As String
+    Dim versionInv As Object
+    Dim availableQty As Double
+    Dim requiredQty As Double
+    Dim hasVersionQty As Boolean
+
+    SelectedVersionInventoryAvailable = True
+    If versionRequirements Is Nothing Then Exit Function
+    If versionRequirements.Count = 0 Then Exit Function
+
+    For Each key In versionRequirements.Keys
+        parts = Split(CStr(key), "|")
+        If UBound(parts) < 1 Then GoTo NextKey
+        rowVal = CLng(Val(CStr(parts(0))))
+        versionLabel = NormalizeBoxBomVersionLabelShipping(CStr(parts(1)))
+        itemName = ""
+        If Not versionNames Is Nothing Then
+            If versionNames.Exists(CStr(key)) Then itemName = NzStr(versionNames(CStr(key)))
+        End If
+
+        Set versionInv = BoxMakerFormLoadBoxVersionInventory(rowVal, itemName)
+        availableQty = 0#
+        hasVersionQty = False
+        If Not versionInv Is Nothing Then
+            If versionInv.Exists(versionLabel) Then
+                availableQty = NzDbl(versionInv(versionLabel))
+                hasVersionQty = True
+            End If
+        End If
+        If Not hasVersionQty Then
+            availableQty = SingleVersionFallbackAvailableQty(invLo, rowVal, itemName, versionLabel)
+        End If
+        If availableQty <= 0.0000001 Then
+            availableQty = PickerVersionAvailableQty(rowVal, itemName, versionLabel)
+        End If
+        availableQty = availableQty - StagedShipmentVersionQty(rowVal, versionLabel)
+        If availableQty < 0 Then availableQty = 0
+        requiredQty = NzDbl(versionRequirements(CStr(key)))
+        If requiredQty > availableQty + 0.0000001 Then
+            If itemName = "" Then itemName = "ROW " & CStr(rowVal)
+            AppendNote errNotes, itemName & " " & versionLabel & " requires " & Format$(requiredQty, "0.###") & " but only " & Format$(availableQty, "0.###") & " is available for that version."
+            SelectedVersionInventoryAvailable = False
+            Exit Function
+        End If
+NextKey:
+    Next key
+End Function
+
+Private Function SingleVersionFallbackAvailableQty(ByVal invLo As ListObject, _
+                                                   ByVal rowVal As Long, _
+                                                   ByVal itemName As String, _
+                                                   ByVal versionLabel As String) As Double
+    Dim ws As Worksheet
+    Dim invIdx As Long
+    Dim totalVal As Variant
+    Dim foundCurrent As Boolean
+    Dim snapshotCache As Object
+
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If rowVal <= 0 Or versionLabel = "" Then Exit Function
+    If CountActiveVersionsForPackageShipping(rowVal) <> 1 Then Exit Function
+
+    If Not invLo Is Nothing Then
+        invIdx = FindInvRowIndexByRow(invLo, rowVal)
+        If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+        If invIdx > 0 Then
+            totalVal = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
+            If Not IsBlankInventoryValue(totalVal) Then
+                SingleVersionFallbackAvailableQty = NzDbl(totalVal)
+                Exit Function
+            End If
+        End If
+    End If
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Function
+    totalVal = ResolveCurrentInventoryValue(ws, invLo, rowVal, itemName, foundCurrent, snapshotCache)
+    If foundCurrent Then SingleVersionFallbackAvailableQty = NzDbl(totalVal)
+End Function
+
+Private Function PickerVersionAvailableQty(ByVal rowVal As Long, _
+                                           ByVal itemName As String, _
+                                           ByVal versionLabel As String) As Double
+    On Error GoTo CleanFail
+
+    Dim savedBoxes As Variant
+    Dim shippables As Variant
+    Dim r As Long
+    Dim rawQty As String
+
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If rowVal <= 0 Or versionLabel = "" Then Exit Function
+
+    savedBoxes = BoxMakerFormLoadSavedBoxes()
+    If IsEmpty(savedBoxes) Then Exit Function
+    shippables = BoxMakerFormLoadShippableVersionInventory(savedBoxes)
+    If IsEmpty(shippables) Then Exit Function
+
+    For r = 1 To UBound(shippables, 1)
+        If NzLng(shippables(r, 1)) = rowVal _
+           And StrComp(NormalizeBoxBomVersionLabelShipping(NzStr(shippables(r, 3))), versionLabel, vbTextCompare) = 0 Then
+            rawQty = Trim$(NzStr(shippables(r, 4)))
+            If rawQty <> "" And LCase$(rawQty) <> "unknown" Then PickerVersionAvailableQty = NzDbl(rawQty)
+            Exit Function
+        End If
+    Next r
+
+CleanFail:
+End Function
+
+Private Function CountActiveVersionsForPackageShipping(ByVal packageRow As Long) As Long
+    On Error GoTo CleanFail
+
+    Dim ws As Worksheet
+    Dim loSource As ListObject
+    Dim wbRuntime As Workbook
+    Dim openedTransient As Boolean
+    Dim report As String
+    Dim versions As Variant
+    Dim ignoredCount As Long
+
+    If packageRow <= 0 Then Exit Function
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Function
+
+    Set loSource = BoxMakerShippingBomSourceTable(ws, wbRuntime, openedTransient, report)
+    If loSource Is Nothing Then GoTo CleanExit
+
+    versions = BuildBoxBomVersionRows(loSource, packageRow, ignoredCount)
+    CountActiveVersionsForPackageShipping = CountActiveBoxBomVersionsShipping(versions)
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping wbRuntime
+    Exit Function
+
+CleanFail:
+    If openedTransient Then CloseWorkbookNoSaveShipping wbRuntime
+End Function
+
+Private Function StagedShipmentVersionQty(ByVal rowVal As Long, ByVal versionLabel As String) As Double
+    Dim ws As Worksheet
+    Dim loShip As ListObject
+    Dim cRow As Long
+    Dim cQty As Long
+    Dim cArea As Long
+    Dim cDesc As Long
+    Dim r As Long
+
+    If rowVal <= 0 Then Exit Function
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If versionLabel = "" Then Exit Function
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Function
+    Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
+    If loShip Is Nothing Then Exit Function
+    If loShip.DataBodyRange Is Nothing Then Exit Function
+
+    cRow = ColumnIndex(loShip, "ROW")
+    cQty = ColumnIndex(loShip, "QUANTITY")
+    cArea = ColumnIndex(loShip, "AREA")
+    cDesc = ColumnIndex(loShip, "DESCRIPTION")
+    If cRow = 0 Or cQty = 0 Or cArea = 0 Or cDesc = 0 Then Exit Function
+
+    For r = 1 To loShip.ListRows.Count
+        If NzLng(loShip.DataBodyRange.Cells(r, cRow).Value) = rowVal _
+           And StrComp(NormalizeShipmentArea(NzStr(loShip.DataBodyRange.Cells(r, cArea).Value)), "Shipments", vbTextCompare) = 0 _
+           And StrComp(NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(r, cDesc).Value)), versionLabel, vbTextCompare) = 0 Then
+            StagedShipmentVersionQty = StagedShipmentVersionQty + NzDbl(loShip.DataBodyRange.Cells(r, cQty).Value)
+        End If
+    Next r
 End Function
 
 Public Function ShipmentsFormMoveHold(ByVal refNumber As String, _
@@ -5496,6 +5825,13 @@ Public Function ShipmentsFormMoveHoldRows(ByVal rowIndexes As Variant, _
             movedRows = movedRows + 1
         End If
     Next i
+    If moveToHold Then
+        PersistActiveShipmentRowsLocal sourceTable
+        PersistHoldRowsLocal targetTable
+    Else
+        PersistHoldRowsLocal sourceTable
+        PersistActiveShipmentRowsLocal targetTable
+    End If
 
     InvalidateAggregates True
     If movedRows = 0 Then
@@ -5515,6 +5851,481 @@ Fail:
     report = "Hold action failed: " & Err.Description
     Resume CleanExit
 End Function
+
+Private Sub PersistHoldRowsLocal(ByVal loHold As ListObject)
+    PersistShipmentRowsLocal loHold, PersistentHoldRowsPath()
+End Sub
+
+Private Sub PersistActiveShipmentRowsLocal(ByVal loShip As ListObject)
+    PersistShipmentRowsLocal loShip, PersistentActiveShipmentRowsPath()
+End Sub
+
+Private Sub PersistShipmentRowsLocal(ByVal lo As ListObject, ByVal filePath As String)
+    On Error GoTo CleanExit
+
+    Dim fileNum As Integer
+    Dim r As Long
+    Dim lineText As String
+
+    If lo Is Nothing Then Exit Sub
+    If filePath = "" Then Exit Sub
+    EnsureLocalFolderExistsShipping ParentFolderPathShipping(filePath)
+
+    fileNum = FreeFile
+    Open filePath For Output As #fileNum
+    If Not lo.DataBodyRange Is Nothing Then
+        For r = 1 To lo.ListRows.Count
+            lineText = HoldRowField(lo, r, "REF_NUMBER") & vbTab & _
+                       HoldRowField(lo, r, "ITEMS") & vbTab & _
+                       HoldRowField(lo, r, "QUANTITY") & vbTab & _
+                       HoldRowField(lo, r, "ROW") & vbTab & _
+                       HoldRowField(lo, r, "UOM") & vbTab & _
+                       HoldRowField(lo, r, "LOCATION") & vbTab & _
+                       HoldRowField(lo, r, "DESCRIPTION") & vbTab & _
+                       HoldRowField(lo, r, "AREA") & vbTab & _
+                       HoldRowField(lo, r, "CARRIER")
+            Print #fileNum, lineText
+        Next r
+    End If
+    Close #fileNum
+
+CleanExit:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    On Error GoTo 0
+End Sub
+
+Private Sub LoadPersistentHoldRowsLocal(ByVal loHold As ListObject)
+    LoadPersistentShipmentRowsLocal loHold, PersistentHoldRowsPath(), "Hold"
+End Sub
+
+Private Sub LoadPersistentActiveShipmentRowsLocal(ByVal loShip As ListObject)
+    LoadPersistentShipmentRowsLocal loShip, PersistentActiveShipmentRowsPath(), "Warehouse"
+End Sub
+
+Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, ByVal filePath As String, ByVal defaultArea As String)
+    On Error GoTo CleanExit
+
+    Static loading As Boolean
+    Dim fileNum As Integer
+    Dim lineText As String
+    Dim parts As Variant
+    Dim lr As ListRow
+
+    If loading Then Exit Sub
+    If lo Is Nothing Then Exit Sub
+    If filePath = "" Then Exit Sub
+    If Len(Dir$(filePath, vbNormal)) = 0 Then Exit Sub
+
+    loading = True
+    EnsureShippingWorksheetEditable lo.Parent
+    ClearListObjectData lo
+
+    fileNum = FreeFile
+    Open filePath For Input As #fileNum
+    Do While Not EOF(fileNum)
+        Line Input #fileNum, lineText
+        If Trim$(lineText) <> "" Then
+            parts = Split(lineText, vbTab)
+            If StrComp(defaultArea, "Warehouse", vbTextCompare) = 0 Then
+                If PersistentSentShipmentRowExists(parts) Then GoTo NextPersistedLine
+            End If
+            Set lr = FirstBlankListRowShipping(lo)
+            If lr Is Nothing Then Set lr = lo.ListRows.Add
+            WriteValue lr, "REF_NUMBER", HoldPart(parts, 0)
+            WriteValue lr, "ITEMS", HoldPart(parts, 1)
+            WriteValue lr, "QUANTITY", HoldPart(parts, 2)
+            WriteValue lr, "ROW", HoldPart(parts, 3)
+            WriteValue lr, "UOM", HoldPart(parts, 4)
+            WriteValue lr, "LOCATION", HoldPart(parts, 5)
+            WriteValue lr, "DESCRIPTION", HoldPart(parts, 6)
+            WriteValue lr, "AREA", IIf(HoldPart(parts, 7) = "", defaultArea, HoldPart(parts, 7))
+            WriteValue lr, "CARRIER", HoldPart(parts, 8)
+        End If
+NextPersistedLine:
+    Loop
+    Close #fileNum
+
+CleanExit:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    loading = False
+    On Error GoTo 0
+End Sub
+
+Private Function HoldRowField(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As String
+    Dim c As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex < 1 Or rowIndex > lo.ListRows.Count Then Exit Function
+    c = ColumnIndex(lo, columnName)
+    If c = 0 Then Exit Function
+    HoldRowField = EscapeHoldField(NzStr(lo.DataBodyRange.Cells(rowIndex, c).Value))
+End Function
+
+Private Function HoldPart(ByVal parts As Variant, ByVal partIndex As Long) As String
+    On Error GoTo CleanExit
+
+    If IsArray(parts) Then
+        If UBound(parts) >= partIndex Then HoldPart = UnescapeHoldField(CStr(parts(partIndex)))
+    End If
+
+CleanExit:
+End Function
+
+Private Sub AppendSentShipmentRowsLocal(ByVal loShip As ListObject, ByVal rowIndexes As Variant)
+    On Error GoTo CleanExit
+
+    Dim filePath As String
+    Dim fileNum As Integer
+    Dim i As Long
+    Dim rowIndex As Long
+    Dim keyText As String
+
+    If loShip Is Nothing Then Exit Sub
+    If loShip.DataBodyRange Is Nothing Then Exit Sub
+    If IsEmpty(rowIndexes) Then Exit Sub
+    filePath = PersistentSentShipmentRowsPath()
+    If filePath = "" Then Exit Sub
+    EnsureLocalFolderExistsShipping ParentFolderPathShipping(filePath)
+
+    fileNum = FreeFile
+    Open filePath For Append As #fileNum
+    For i = LBound(rowIndexes) To UBound(rowIndexes)
+        rowIndex = CLng(rowIndexes(i))
+        If rowIndex >= 1 And rowIndex <= loShip.ListRows.Count Then
+            keyText = ShipmentPersistKeyFromTableRow(loShip, rowIndex)
+            If keyText <> "" Then Print #fileNum, EscapeHoldField(keyText)
+        End If
+    Next i
+    Close #fileNum
+
+CleanExit:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    On Error GoTo 0
+End Sub
+
+Private Function PersistentSentShipmentRowExists(ByVal parts As Variant) As Boolean
+    On Error GoTo CleanExit
+
+    Dim filePath As String
+    Dim fileNum As Integer
+    Dim lineText As String
+    Dim wantedKey As String
+
+    wantedKey = ShipmentPersistKeyFromParts(parts)
+    If wantedKey = "" Then Exit Function
+
+    filePath = PersistentSentShipmentRowsPath()
+    If filePath = "" Then Exit Function
+    If Len(Dir$(filePath, vbNormal)) = 0 Then Exit Function
+
+    fileNum = FreeFile
+    Open filePath For Input As #fileNum
+    Do While Not EOF(fileNum)
+        Line Input #fileNum, lineText
+        If StrComp(UnescapeHoldField(lineText), wantedKey, vbTextCompare) = 0 Then
+            PersistentSentShipmentRowExists = True
+            Exit Do
+        End If
+    Loop
+    Close #fileNum
+
+CleanExit:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    On Error GoTo 0
+End Function
+
+Private Function ShipmentPersistKeyFromTableRow(ByVal lo As ListObject, ByVal rowIndex As Long) As String
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex < 1 Or rowIndex > lo.ListRows.Count Then Exit Function
+
+    ShipmentPersistKeyFromTableRow = ShipmentPersistKey( _
+        HoldRowFieldRaw(lo, rowIndex, "REF_NUMBER"), _
+        HoldRowFieldRaw(lo, rowIndex, "ITEMS"), _
+        HoldRowFieldRaw(lo, rowIndex, "QUANTITY"), _
+        HoldRowFieldRaw(lo, rowIndex, "ROW"), _
+        HoldRowFieldRaw(lo, rowIndex, "UOM"), _
+        HoldRowFieldRaw(lo, rowIndex, "LOCATION"), _
+        HoldRowFieldRaw(lo, rowIndex, "DESCRIPTION"))
+End Function
+
+Private Function ShipmentPersistKeyFromParts(ByVal parts As Variant) As String
+    ShipmentPersistKeyFromParts = ShipmentPersistKey( _
+        HoldPart(parts, 0), _
+        HoldPart(parts, 1), _
+        HoldPart(parts, 2), _
+        HoldPart(parts, 3), _
+        HoldPart(parts, 4), _
+        HoldPart(parts, 5), _
+        HoldPart(parts, 6))
+End Function
+
+Private Function ShipmentPersistKey(ByVal refNumber As String, _
+                                    ByVal itemName As String, _
+                                    ByVal qtyText As String, _
+                                    ByVal rowText As String, _
+                                    ByVal uomText As String, _
+                                    ByVal locationText As String, _
+                                    ByVal versionText As String) As String
+    Dim rowValue As Long
+    Dim qtyValue As Double
+
+    refNumber = ShipmentPersistKeyPart(refNumber)
+    itemName = ShipmentPersistKeyPart(itemName)
+    rowValue = CLng(Val(rowText))
+    qtyValue = NzDbl(qtyText)
+    uomText = ShipmentPersistKeyPart(uomText)
+    locationText = ShipmentPersistKeyPart(locationText)
+    versionText = ShipmentPersistKeyPart(NormalizeBoxBomVersionLabelShipping(versionText))
+    If refNumber = "" Or itemName = "" Or rowValue <= 0 Or qtyValue <= 0 Then Exit Function
+
+    ShipmentPersistKey = refNumber & "|" & itemName & "|" & _
+                         Format$(qtyValue, "0.############") & "|" & _
+                         CStr(rowValue) & "|" & uomText & "|" & locationText & "|" & versionText
+End Function
+
+Private Function ShipmentPersistKeyPart(ByVal valueText As String) As String
+    valueText = LCase$(Trim$(valueText))
+    valueText = Replace$(valueText, "|", " ")
+    Do While InStr(1, valueText, "  ", vbBinaryCompare) > 0
+        valueText = Replace$(valueText, "  ", " ")
+    Loop
+    ShipmentPersistKeyPart = valueText
+End Function
+
+Private Function HoldRowFieldRaw(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As String
+    Dim c As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If rowIndex < 1 Or rowIndex > lo.ListRows.Count Then Exit Function
+    c = ColumnIndex(lo, columnName)
+    If c = 0 Then Exit Function
+    HoldRowFieldRaw = NzStr(lo.DataBodyRange.Cells(rowIndex, c).Value)
+End Function
+
+Private Function EscapeHoldField(ByVal valueText As String) As String
+    valueText = Replace$(valueText, "\", "\\")
+    valueText = Replace$(valueText, vbTab, "\t")
+    valueText = Replace$(valueText, vbCr, "\r")
+    valueText = Replace$(valueText, vbLf, "\n")
+    EscapeHoldField = valueText
+End Function
+
+Private Function UnescapeHoldField(ByVal valueText As String) As String
+    valueText = Replace$(valueText, "\n", vbLf)
+    valueText = Replace$(valueText, "\r", vbCr)
+    valueText = Replace$(valueText, "\t", vbTab)
+    valueText = Replace$(valueText, "\\", "\")
+    UnescapeHoldField = valueText
+End Function
+
+Private Function PersistentHoldRowsPath() As String
+    Dim rootPath As String
+    Dim warehouseId As String
+
+    rootPath = Environ$("LOCALAPPDATA")
+    If Trim$(rootPath) = "" Then rootPath = Environ$("TEMP")
+    If Trim$(rootPath) = "" Then Exit Function
+
+    warehouseId = Trim$(modConfig.GetWarehouseId())
+    If warehouseId = "" Then warehouseId = "default"
+    PersistentHoldRowsPath = NormalizeFolderPathShipping(rootPath) & "invSys\shipping_hold_" & SafeFileTokenShipping(warehouseId) & ".tsv"
+End Function
+
+Private Function PersistentActiveShipmentRowsPath() As String
+    Dim rootPath As String
+    Dim warehouseId As String
+
+    rootPath = Environ$("LOCALAPPDATA")
+    If Trim$(rootPath) = "" Then rootPath = Environ$("TEMP")
+    If Trim$(rootPath) = "" Then Exit Function
+
+    warehouseId = Trim$(modConfig.GetWarehouseId())
+    If warehouseId = "" Then warehouseId = "default"
+    PersistentActiveShipmentRowsPath = NormalizeFolderPathShipping(rootPath) & "invSys\shipping_active_" & SafeFileTokenShipping(warehouseId) & ".tsv"
+End Function
+
+Private Function PersistentSentShipmentRowsPath() As String
+    Dim rootPath As String
+    Dim warehouseId As String
+
+    rootPath = Environ$("LOCALAPPDATA")
+    If Trim$(rootPath) = "" Then rootPath = Environ$("TEMP")
+    If Trim$(rootPath) = "" Then Exit Function
+
+    warehouseId = Trim$(modConfig.GetWarehouseId())
+    If warehouseId = "" Then warehouseId = "default"
+    PersistentSentShipmentRowsPath = NormalizeFolderPathShipping(rootPath) & "invSys\shipping_sent_" & SafeFileTokenShipping(warehouseId) & ".tsv"
+End Function
+
+Private Function ParentFolderPathShipping(ByVal filePath As String) As String
+    Dim pos As Long
+
+    pos = InStrRev(filePath, "\")
+    If pos > 0 Then ParentFolderPathShipping = Left$(filePath, pos - 1)
+End Function
+
+Private Sub EnsureLocalFolderExistsShipping(ByVal folderPath As String)
+    On Error Resume Next
+
+    Dim fso As Object
+    If Trim$(folderPath) = "" Then Exit Sub
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then
+        If Not fso.FolderExists(folderPath) Then fso.CreateFolder folderPath
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Function SafeFileTokenShipping(ByVal tokenText As String) As String
+    Dim i As Long
+    Dim ch As String
+
+    tokenText = Trim$(tokenText)
+    For i = 1 To Len(tokenText)
+        ch = Mid$(tokenText, i, 1)
+        If ch Like "[A-Za-z0-9_-]" Then
+            SafeFileTokenShipping = SafeFileTokenShipping & ch
+        Else
+            SafeFileTokenShipping = SafeFileTokenShipping & "_"
+        End If
+    Next i
+    If SafeFileTokenShipping = "" Then SafeFileTokenShipping = "default"
+End Function
+
+Private Function ShipmentRowsActionSummary(ByVal loShip As ListObject, _
+                                           ByVal rowIndexes As Variant, _
+                                           ByVal actionText As String) As String
+    Dim cItem As Long
+    Dim cQty As Long
+    Dim cDesc As Long
+    Dim summary As Object
+    Dim labels As Object
+    Dim i As Long
+    Dim rowIndex As Long
+    Dim qtyVal As Double
+    Dim itemName As String
+    Dim versionLabel As String
+    Dim key As Variant
+    Dim textOut As String
+
+    If loShip Is Nothing Then Exit Function
+    If loShip.DataBodyRange Is Nothing Then Exit Function
+    If IsEmpty(rowIndexes) Then Exit Function
+
+    cItem = ColumnIndex(loShip, "ITEMS")
+    cQty = ColumnIndex(loShip, "QUANTITY")
+    cDesc = ColumnIndex(loShip, "DESCRIPTION")
+    If cItem = 0 Or cQty = 0 Then Exit Function
+
+    Set summary = CreateObject("Scripting.Dictionary")
+    summary.CompareMode = vbTextCompare
+    Set labels = CreateObject("Scripting.Dictionary")
+    labels.CompareMode = vbTextCompare
+
+    For i = LBound(rowIndexes) To UBound(rowIndexes)
+        rowIndex = CLng(rowIndexes(i))
+        If rowIndex < 1 Or rowIndex > loShip.ListRows.Count Then GoTo NextRow
+        itemName = Trim$(NzStr(loShip.DataBodyRange.Cells(rowIndex, cItem).Value))
+        qtyVal = NzDbl(loShip.DataBodyRange.Cells(rowIndex, cQty).Value)
+        If itemName = "" Or qtyVal <= 0 Then GoTo NextRow
+        If cDesc > 0 Then versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(rowIndex, cDesc).Value)) Else versionLabel = ""
+        key = LCase$(itemName) & "|" & LCase$(versionLabel)
+        If summary.Exists(CStr(key)) Then
+            summary(CStr(key)) = NzDbl(summary(CStr(key))) + qtyVal
+        Else
+            summary.Add CStr(key), qtyVal
+            labels.Add CStr(key), Trim$(itemName & " " & versionLabel)
+        End If
+NextRow:
+    Next i
+
+    If summary.Count = 0 Then Exit Function
+    textOut = "Boxes " & LCase$(Trim$(actionText)) & ":"
+    For Each key In summary.Keys
+        textOut = textOut & vbCrLf & "- " & Format$(NzDbl(summary(CStr(key))), "0.###") & " " & NzStr(labels(CStr(key)))
+    Next key
+    ShipmentRowsActionSummary = textOut
+End Function
+
+Private Sub ApplyStageVersionInventoryOverlayFromRows(ByVal invLo As ListObject, _
+                                                      ByVal loShip As ListObject, _
+                                                      ByVal rowIndexes As Variant)
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim cQty As Long
+    Dim cDesc As Long
+    Dim i As Long
+    Dim rowIndex As Long
+    Dim rowVal As Long
+    Dim qtyVal As Double
+    Dim itemName As String
+    Dim versionLabel As String
+    Dim currentQty As Double
+
+    If loShip Is Nothing Then Exit Sub
+    If loShip.DataBodyRange Is Nothing Then Exit Sub
+    If IsEmpty(rowIndexes) Then Exit Sub
+    cRow = ColumnIndex(loShip, "ROW")
+    cItem = ColumnIndex(loShip, "ITEMS")
+    cQty = ColumnIndex(loShip, "QUANTITY")
+    cDesc = ColumnIndex(loShip, "DESCRIPTION")
+    If cRow = 0 Or cQty = 0 Or cDesc = 0 Then Exit Sub
+
+    For i = LBound(rowIndexes) To UBound(rowIndexes)
+        rowIndex = CLng(rowIndexes(i))
+        If rowIndex < 1 Or rowIndex > loShip.ListRows.Count Then GoTo NextRow
+        rowVal = NzLng(loShip.DataBodyRange.Cells(rowIndex, cRow).Value)
+        qtyVal = NzDbl(loShip.DataBodyRange.Cells(rowIndex, cQty).Value)
+        If cItem > 0 Then itemName = Trim$(NzStr(loShip.DataBodyRange.Cells(rowIndex, cItem).Value)) Else itemName = ""
+        versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(rowIndex, cDesc).Value))
+        If rowVal <= 0 Or qtyVal <= 0 Or versionLabel = "" Then GoTo NextRow
+
+        currentQty = PickerVersionAvailableQty(rowVal, itemName, versionLabel)
+        If currentQty <= 0.0000001 Then currentQty = SingleVersionFallbackAvailableQty(invLo, rowVal, itemName, versionLabel)
+        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, currentQty - qtyVal
+NextRow:
+    Next i
+End Sub
+
+Private Sub SyncSingleVersionInventoryOverlayFromInvSysRows(ByVal invLo As ListObject, _
+                                                            ByVal loShip As ListObject, _
+                                                            ByVal rowIndexes As Variant)
+    Dim cRow As Long
+    Dim cDesc As Long
+    Dim cTotal As Long
+    Dim i As Long
+    Dim rowIndex As Long
+    Dim rowVal As Long
+    Dim invIdx As Long
+    Dim versionLabel As String
+
+    If invLo Is Nothing Or loShip Is Nothing Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Or loShip.DataBodyRange Is Nothing Then Exit Sub
+    If IsEmpty(rowIndexes) Then Exit Sub
+    cRow = ColumnIndex(loShip, "ROW")
+    cDesc = ColumnIndex(loShip, "DESCRIPTION")
+    cTotal = ColumnIndex(invLo, "TOTAL INV")
+    If cRow = 0 Or cDesc = 0 Or cTotal = 0 Then Exit Sub
+
+    For i = LBound(rowIndexes) To UBound(rowIndexes)
+        rowIndex = CLng(rowIndexes(i))
+        If rowIndex < 1 Or rowIndex > loShip.ListRows.Count Then GoTo NextRow
+        rowVal = NzLng(loShip.DataBodyRange.Cells(rowIndex, cRow).Value)
+        versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(rowIndex, cDesc).Value))
+        If rowVal <= 0 Or versionLabel = "" Then GoTo NextRow
+        If CountActiveVersionsForPackageShipping(rowVal) <> 1 Then GoTo NextRow
+        invIdx = FindInvRowIndexByRow(invLo, rowVal)
+        If invIdx > 0 Then RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value)
+NextRow:
+    Next i
+End Sub
 
 Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
                                                 ByVal carrierValue As String, _
@@ -5539,10 +6350,10 @@ Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
         report = "ShipmentsTally sheet not found."
         Exit Function
     End If
-    Set invLo = GetInvSysTable()
+    Set invLo = GetWritableShippingInvSysTable(ws, report)
     Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
     If invLo Is Nothing Then
-        report = "InventoryManagement!invSys table not found."
+        If report = "" Then report = "InventoryManagement!invSys table not found."
         Exit Function
     End If
     If loShip Is Nothing Then
@@ -5572,7 +6383,9 @@ Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
         GoTo CleanExit
     End If
     SetShipmentRowsArea loShip, rowIndexes, "Shipments", carrierValue
+    ApplyStageVersionInventoryOverlayFromRows invLo, loShip, rowIndexes
     InvalidateAggregates True
+    PersistActiveShipmentRowsLocal loShip
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
 
     report = "Moved " & Format$(stagedTotal, "0.###") & " package(s) to Shipments."
@@ -5599,7 +6412,6 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     Dim deltas As Collection
     Dim errNotes As String
     Dim queuedEventId As String
-    Dim runtimeReport As String
     Dim shipLogs As New Collection
     Dim shippedTotal As Double
     Dim previousVisibility As XlSheetVisibility
@@ -5607,6 +6419,7 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     Dim previousEvents As Boolean
     Dim previousHandling As Boolean
     Dim mutationStarted As Boolean
+    Dim sentSummary As String
 
     If Not modRoleUiAccess.CanCurrentUserPerformCapability("SHIP_POST", "", "", "", errNotes) Then
         report = errNotes
@@ -5618,10 +6431,10 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
         report = "ShipmentsTally sheet not found."
         Exit Function
     End If
-    Set invLo = GetInvSysTable()
+    Set invLo = GetWritableShippingInvSysTable(ws, report)
     Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
     If invLo Is Nothing Then
-        report = "InventoryManagement!invSys table not found."
+        If report = "" Then report = "InventoryManagement!invSys table not found."
         Exit Function
     End If
     If loShip Is Nothing Then
@@ -5640,6 +6453,7 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
         report = errNotes
         Exit Function
     End If
+    sentSummary = ShipmentRowsActionSummary(loShip, rowIndexes, "Sent")
     If Not QueueShipmentsSentEvent(deltas, errNotes, queuedEventId) Then
         If errNotes = "" Then errNotes = "Unable to queue shipment event."
         report = errNotes
@@ -5656,18 +6470,16 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
         report = errNotes
         GoTo CleanExit
     End If
+    SyncSingleVersionInventoryOverlayFromInvSysRows invLo, loShip, rowIndexes
+    AppendSentShipmentRowsLocal loShip, rowIndexes
     DeleteShipmentRows loShip, rowIndexes
     InvalidateAggregates True
+    PersistActiveShipmentRowsLocal loShip
     ClearInstructionStaging ws
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
-    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(ws.Parent, "", "LOCAL", runtimeReport) Then
-        If runtimeReport = "" Then runtimeReport = "Local shipment post succeeded, but runtime processing or read-model refresh did not complete cleanly."
-        AppendNote errNotes, runtimeReport
-    ElseIf runtimeReport <> "" Then
-        AppendNote errNotes, runtimeReport
-    End If
 
     report = "Shipments sent: " & Format$(shippedTotal, "0.###") & " package(s)."
+    If sentSummary <> "" Then report = report & vbCrLf & sentSummary
     If Trim$(carrierValue) <> "" Then report = report & vbCrLf & "Carrier: " & Trim$(carrierValue)
     If queuedEventId <> "" Then report = report & vbCrLf & "Inbox EventID: " & queuedEventId
     If errNotes <> "" Then report = report & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
@@ -10777,6 +11589,8 @@ Private Sub MoveSelectionToHold(ByVal moveToHold As Boolean)
     Next idx
 
     InvalidateAggregates True
+    PersistActiveShipmentRowsLocal loShip
+    PersistHoldRowsLocal loHold
 End Sub
 
 Private Sub ExpandTableToSelection(lo As ListObject, sel As Range)
@@ -11009,6 +11823,302 @@ Private Function GetInvSysTableFromWorkbook(ByVal wb As Workbook) As ListObject
 
     Set GetInvSysTableFromWorkbook = GetListObject(wsInv, "invSys")
 End Function
+
+Private Function GetWritableShippingInvSysTable(ByVal wsShip As Worksheet, ByRef report As String) As ListObject
+    Dim invLo As ListObject
+    Dim sourceLo As ListObject
+
+    If wsShip Is Nothing Then
+        report = "ShipmentsTally sheet not found."
+        Exit Function
+    End If
+
+    Set invLo = GetInvSysTableFromWorkbook(wsShip.Parent)
+    If invLo Is Nothing Then
+        modRoleWorkbookSurfaces.EnsureInventoryManagementSurface wsShip.Parent
+        Set invLo = GetInvSysTableFromWorkbook(wsShip.Parent)
+    End If
+    If invLo Is Nothing Then
+        report = "InventoryManagement!invSys table not found."
+        Exit Function
+    End If
+    If ShippingInventoryPickerTableHasRows(invLo) Then
+        EnsureMissingInvSysRowsFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
+        ReconcileShipmentStagingFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
+        ReconcileShippableTotalsFromVersionInventory invLo
+        Set GetWritableShippingInvSysTable = invLo
+        Exit Function
+    End If
+
+    Set sourceLo = GetListObject(wsShip, "invSysData_Shipping")
+    If Not ShippingInventoryPickerTableHasRows(sourceLo) Then Set sourceLo = GetListObject(wsShip, TABLE_CHECK_INV)
+    If Not ShippingInventoryPickerTableHasRows(sourceLo) Then
+        HydrateInvSysFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
+        ReconcileShipmentStagingFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
+        ReconcileShippableTotalsFromVersionInventory invLo
+        If ShippingInventoryPickerTableHasRows(invLo) Then
+            Set GetWritableShippingInvSysTable = invLo
+        Else
+            report = "Inventory read model has no rows to initialize invSys."
+        End If
+        Exit Function
+    End If
+
+    HydrateInvSysFromShippingReadModel invLo, sourceLo
+    EnsureMissingInvSysRowsFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
+    ReconcileShipmentStagingFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
+    ReconcileShippableTotalsFromVersionInventory invLo
+    If ShippingInventoryPickerTableHasRows(invLo) Then
+        Set GetWritableShippingInvSysTable = invLo
+    Else
+        report = "InventoryManagement!invSys could not be initialized from the shipping read model."
+    End If
+End Function
+
+Private Sub HydrateInvSysFromShippingReadModel(ByVal invLo As ListObject, ByVal sourceLo As ListObject)
+    Dim rowCount As Long
+    Dim r As Long
+    Dim lc As ListColumn
+    Dim sourceCol As Long
+
+    If invLo Is Nothing Or sourceLo Is Nothing Then Exit Sub
+    If sourceLo.DataBodyRange Is Nothing Then Exit Sub
+    rowCount = sourceLo.DataBodyRange.Rows.Count
+    If rowCount <= 0 Then Exit Sub
+
+    EnsureShippingWorksheetEditable invLo.Parent
+    ClearListObjectData invLo
+    ResizeListObjectRowsForWrite invLo, rowCount
+    For r = 1 To rowCount
+        For Each lc In invLo.ListColumns
+            sourceCol = ColumnIndex(sourceLo, CStr(lc.Name))
+            If sourceCol > 0 Then
+                invLo.DataBodyRange.Cells(r, lc.Index).Value = sourceLo.DataBodyRange.Cells(r, sourceCol).Value
+            End If
+        Next lc
+    Next r
+End Sub
+
+Private Sub HydrateInvSysFromShipmentLines(ByVal invLo As ListObject, ByVal loShip As ListObject)
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim cUom As Long
+    Dim cLoc As Long
+    Dim cDesc As Long
+    Dim seen As Object
+    Dim r As Long
+    Dim rowVal As Long
+    Dim itemName As String
+    Dim lr As ListRow
+
+    If invLo Is Nothing Or loShip Is Nothing Then Exit Sub
+    If loShip.DataBodyRange Is Nothing Then Exit Sub
+    cRow = ColumnIndex(loShip, "ROW")
+    cItem = ColumnIndex(loShip, "ITEMS")
+    cUom = ColumnIndex(loShip, "UOM")
+    cLoc = ColumnIndex(loShip, "LOCATION")
+    cDesc = ColumnIndex(loShip, "DESCRIPTION")
+    If cRow = 0 Or cItem = 0 Then Exit Sub
+
+    EnsureShippingWorksheetEditable invLo.Parent
+    ClearListObjectData invLo
+    Set seen = CreateObject("Scripting.Dictionary")
+    For r = 1 To loShip.ListRows.Count
+        rowVal = NzLng(loShip.DataBodyRange.Cells(r, cRow).Value)
+        itemName = Trim$(NzStr(loShip.DataBodyRange.Cells(r, cItem).Value))
+        If rowVal <= 0 Or itemName = "" Then GoTo NextLine
+        If seen.Exists(CStr(rowVal)) Then GoTo NextLine
+        seen.Add CStr(rowVal), True
+
+        Set lr = FirstBlankListRowShipping(invLo)
+        If lr Is Nothing Then Set lr = invLo.ListRows.Add
+        WriteValue lr, "ROW", rowVal
+        WriteValue lr, "ITEM_CODE", itemName
+        WriteValue lr, "ITEM", itemName
+        If cUom > 0 Then WriteValue lr, "UOM", NzStr(loShip.DataBodyRange.Cells(r, cUom).Value)
+        If cLoc > 0 Then WriteValue lr, "LOCATION", NzStr(loShip.DataBodyRange.Cells(r, cLoc).Value)
+        If cDesc > 0 Then WriteValue lr, "DESCRIPTION", NzStr(loShip.DataBodyRange.Cells(r, cDesc).Value)
+        WriteValue lr, "TOTAL INV", 0
+        WriteValue lr, "SHIPMENTS", 0
+NextLine:
+    Next r
+End Sub
+
+Private Sub EnsureMissingInvSysRowsFromShipmentLines(ByVal invLo As ListObject, ByVal loShip As ListObject)
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim cUom As Long
+    Dim cLoc As Long
+    Dim cDesc As Long
+    Dim r As Long
+    Dim rowVal As Long
+    Dim itemName As String
+
+    If invLo Is Nothing Or loShip Is Nothing Then Exit Sub
+    If loShip.DataBodyRange Is Nothing Then Exit Sub
+    cRow = ColumnIndex(loShip, "ROW")
+    cItem = ColumnIndex(loShip, "ITEMS")
+    cUom = ColumnIndex(loShip, "UOM")
+    cLoc = ColumnIndex(loShip, "LOCATION")
+    cDesc = ColumnIndex(loShip, "DESCRIPTION")
+    If cRow = 0 Or cItem = 0 Then Exit Sub
+
+    EnsureShippingWorksheetEditable invLo.Parent
+    For r = 1 To loShip.ListRows.Count
+        rowVal = NzLng(loShip.DataBodyRange.Cells(r, cRow).Value)
+        itemName = Trim$(NzStr(loShip.DataBodyRange.Cells(r, cItem).Value))
+        If rowVal <= 0 Or itemName = "" Then GoTo NextLine
+        If FindInvRowIndexByRow(invLo, rowVal) <= 0 Then
+            AddInvSysRowFromShipmentLine invLo, loShip, r, cRow, cItem, cUom, cLoc, cDesc
+        End If
+NextLine:
+    Next r
+End Sub
+
+Private Sub AddInvSysRowFromShipmentLine(ByVal invLo As ListObject, _
+                                         ByVal loShip As ListObject, _
+                                         ByVal sourceRow As Long, _
+                                         ByVal cRow As Long, _
+                                         ByVal cItem As Long, _
+                                         ByVal cUom As Long, _
+                                         ByVal cLoc As Long, _
+                                         ByVal cDesc As Long)
+    Dim lr As ListRow
+    Dim rowVal As Long
+    Dim itemName As String
+    Dim versionInv As Object
+    Dim key As Variant
+    Dim totalQty As Double
+
+    If invLo Is Nothing Or loShip Is Nothing Then Exit Sub
+    If loShip.DataBodyRange Is Nothing Then Exit Sub
+    rowVal = NzLng(loShip.DataBodyRange.Cells(sourceRow, cRow).Value)
+    itemName = Trim$(NzStr(loShip.DataBodyRange.Cells(sourceRow, cItem).Value))
+    If rowVal <= 0 Or itemName = "" Then Exit Sub
+
+    Set lr = FirstBlankListRowShipping(invLo)
+    If lr Is Nothing Then Set lr = invLo.ListRows.Add
+    WriteValue lr, "ROW", rowVal
+    WriteValue lr, "ITEM_CODE", itemName
+    WriteValue lr, "ITEM", itemName
+    If cUom > 0 Then WriteValue lr, "UOM", NzStr(loShip.DataBodyRange.Cells(sourceRow, cUom).Value)
+    If cLoc > 0 Then WriteValue lr, "LOCATION", NzStr(loShip.DataBodyRange.Cells(sourceRow, cLoc).Value)
+    If cDesc > 0 Then WriteValue lr, "DESCRIPTION", NzStr(loShip.DataBodyRange.Cells(sourceRow, cDesc).Value)
+
+    Set versionInv = BoxMakerFormLoadBoxVersionInventory(rowVal, itemName)
+    If Not versionInv Is Nothing Then
+        For Each key In versionInv.Keys
+            totalQty = totalQty + NzDbl(versionInv(key))
+        Next key
+    End If
+    WriteValue lr, "TOTAL INV", totalQty
+    WriteValue lr, "SHIPMENTS", 0
+End Sub
+
+Private Sub ReconcileShipmentStagingFromShipmentLines(ByVal invLo As ListObject, ByVal loShip As ListObject)
+    On Error GoTo FailSoft
+
+    Dim cInvShip As Long
+    Dim cInvRow As Long
+    Dim cShipRow As Long
+    Dim cShipQty As Long
+    Dim cShipArea As Long
+    Dim stagedByRow As Object
+    Dim r As Long
+    Dim rowVal As Long
+    Dim qtyVal As Double
+    Dim invIdx As Long
+    Dim key As Variant
+
+    If invLo Is Nothing Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+    cInvShip = ColumnIndex(invLo, "SHIPMENTS")
+    cInvRow = ColumnIndex(invLo, "ROW")
+    If cInvShip = 0 Or cInvRow = 0 Then Exit Sub
+
+    EnsureShippingWorksheetEditable invLo.Parent
+    For r = 1 To invLo.ListRows.Count
+        invLo.DataBodyRange.Cells(r, cInvShip).Value = 0
+    Next r
+
+    If loShip Is Nothing Then Exit Sub
+    If loShip.DataBodyRange Is Nothing Then Exit Sub
+    cShipRow = ColumnIndex(loShip, "ROW")
+    cShipQty = ColumnIndex(loShip, "QUANTITY")
+    cShipArea = ColumnIndex(loShip, "AREA")
+    If cShipRow = 0 Or cShipQty = 0 Then Exit Sub
+
+    Set stagedByRow = CreateObject("Scripting.Dictionary")
+    stagedByRow.CompareMode = vbTextCompare
+    For r = 1 To loShip.ListRows.Count
+        If cShipArea > 0 Then
+            If StrComp(NormalizeShipmentArea(NzStr(loShip.DataBodyRange.Cells(r, cShipArea).Value), False), "Shipments", vbTextCompare) <> 0 Then GoTo NextLine
+        End If
+        rowVal = NzLng(loShip.DataBodyRange.Cells(r, cShipRow).Value)
+        qtyVal = NzDbl(loShip.DataBodyRange.Cells(r, cShipQty).Value)
+        If rowVal <= 0 Or qtyVal <= 0 Then GoTo NextLine
+        If stagedByRow.Exists(CStr(rowVal)) Then
+            stagedByRow(CStr(rowVal)) = NzDbl(stagedByRow(CStr(rowVal))) + qtyVal
+        Else
+            stagedByRow.Add CStr(rowVal), qtyVal
+        End If
+NextLine:
+    Next r
+
+    For Each key In stagedByRow.Keys
+        invIdx = FindInvRowIndexByRow(invLo, CLng(key))
+        If invIdx > 0 Then invLo.DataBodyRange.Cells(invIdx, cInvShip).Value = NzDbl(stagedByRow(CStr(key)))
+    Next key
+
+FailSoft:
+End Sub
+
+Private Sub ReconcileShippableTotalsFromVersionInventory(ByVal invLo As ListObject)
+    On Error GoTo FailSoft
+
+    Dim savedBoxes As Variant
+    Dim versionInv As Object
+    Dim r As Long
+    Dim invIdx As Long
+    Dim totalVersionQty As Double
+    Dim availableVersionQty As Double
+    Dim key As Variant
+    Dim cTotal As Long
+    Dim cShip As Long
+
+    If invLo Is Nothing Then Exit Sub
+    If invLo.DataBodyRange Is Nothing Then Exit Sub
+    cTotal = ColumnIndex(invLo, "TOTAL INV")
+    If cTotal = 0 Then Exit Sub
+    cShip = ColumnIndex(invLo, "SHIPMENTS")
+
+    savedBoxes = BoxMakerFormLoadSavedBoxes()
+    If IsEmpty(savedBoxes) Then Exit Sub
+
+    For r = 1 To UBound(savedBoxes, 1)
+        invIdx = FindInvRowIndexByRow(invLo, NzLng(savedBoxes(r, 1)))
+        If invIdx <= 0 Then invIdx = FindInvRowIndexByItem(invLo, NzStr(savedBoxes(r, 2)))
+        If invIdx <= 0 Then GoTo NextBox
+
+        Set versionInv = BoxMakerFormLoadBoxVersionInventory(NzLng(savedBoxes(r, 1)), NzStr(savedBoxes(r, 2)))
+        totalVersionQty = 0#
+        If Not versionInv Is Nothing Then
+            For Each key In versionInv.Keys
+                totalVersionQty = totalVersionQty + NzDbl(versionInv(key))
+            Next key
+        End If
+        availableVersionQty = totalVersionQty
+        If cShip > 0 Then availableVersionQty = availableVersionQty - NzDbl(invLo.DataBodyRange.Cells(invIdx, cShip).Value)
+        If availableVersionQty < 0 Then availableVersionQty = 0
+        If availableVersionQty > NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value) + 0.0000001 Then
+            invLo.DataBodyRange.Cells(invIdx, cTotal).Value = availableVersionQty
+        End If
+NextBox:
+    Next r
+    Exit Sub
+
+FailSoft:
+End Sub
 
 Private Function GetInventoryWorksheetShipping() As Worksheet
     Set GetInventoryWorksheetShipping = SheetExists(SHEET_INV)
@@ -12372,6 +13482,14 @@ Private Function BuildPayloadJsonFromDeltas(ByVal deltas As Collection, Optional
             "", _
             NzStr(delta("ITEM_NAME")), _
             ioType)
+        If delta.Exists("VERSION") Then
+            If Trim$(NzStr(delta("VERSION"))) <> "" Then
+                Dim payloadVersion As String: payloadVersion = NormalizeBoxBomVersionLabelShipping(NzStr(delta("VERSION")))
+                payloadItem("Version") = payloadVersion
+                payloadItem("BomVersionLabel") = payloadVersion
+                payloadItem("Note") = Trim$(NzStr(delta("ITEM_NAME")) & " VERSION=" & payloadVersion)
+            End If
+        End If
         payloadItems.Add payloadItem
     Next delta
 
@@ -12570,10 +13688,25 @@ Private Function ApplyShipmentsSentDeltas(invLo As ListObject, deltas As Collect
     End If
 
     Dim delta As Variant
+    Dim validationByRow As Object
+    Dim key As Variant
+    Set validationByRow = CreateObject("Scripting.Dictionary")
+    validationByRow.CompareMode = vbTextCompare
     For Each delta In deltas
         Dim rowVal As Long: rowVal = CLng(delta("ROW"))
         Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
         If qtyVal <= 0 Then GoTo NextValidate
+        If validationByRow.Exists(CStr(rowVal)) Then
+            validationByRow(CStr(rowVal)) = NzDbl(validationByRow(CStr(rowVal))) + qtyVal
+        Else
+            validationByRow.Add CStr(rowVal), qtyVal
+        End If
+NextValidate:
+    Next delta
+
+    For Each key In validationByRow.Keys
+        rowVal = CLng(key)
+        qtyVal = NzDbl(validationByRow(CStr(key)))
         Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
         If invRow Is Nothing Then
             AppendNote errNotes, "invSys ROW " & rowVal & " not found."
@@ -12596,8 +13729,7 @@ Private Function ApplyShipmentsSentDeltas(invLo As ListObject, deltas As Collect
                 Exit Function
             End If
         End If
-NextValidate:
-    Next delta
+    Next key
 
     For Each delta In deltas
         rowVal = CLng(delta("ROW"))

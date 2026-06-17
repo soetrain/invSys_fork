@@ -38,9 +38,9 @@ Private mTxtVersion As MSForms.TextBox
 Private mTxtUom As MSForms.TextBox
 Private mTxtLocation As MSForms.TextBox
 Private mTxtRow As MSForms.TextBox
-Private mTxtCarrier As MSForms.TextBox
+Private mTxtCarrier As MSForms.ComboBox
+Private mTxtStatus As MSForms.TextBox
 Private mLstReadiness As MSForms.ListBox
-Private mLblStatus As MSForms.Label
 
 Private mShippables As Variant
 Private mLoading As Boolean
@@ -87,6 +87,7 @@ Public Sub InitializeFromShipping()
     quietStarted = True
 
     mLoading = True
+    LoadCarrierChoices
     mChkUseExisting.Value = modTS_Shipments.ShipmentsFormUseExistingInventory()
     LoadShippables
     LoadShipmentState
@@ -126,8 +127,6 @@ Private Sub BuildLayout()
     AddLabel "lblPicker", "Search Boxes", 12, 42, 78, 18, False
     Set mTxtPicker = AddTextBox("txtPicker", 96, 38, 300, 22)
     Set mChkUseExisting = AddCheckBox("chkUseExisting", "Use existing shippable inventory", 420, 38, 190, 22)
-    AddLabel "lblCarrier", "Carrier", 620, 42, 44, 18, False
-    Set mTxtCarrier = AddTextBox("txtCarrier", 670, 38, 90, 22)
 
     AddShippableHeaders 12, 70
     Set mLstShippables = AddListBox("lstShippables", 12, 90, 820, 92)
@@ -143,6 +142,7 @@ Private Sub BuildLayout()
     AddLabel "lblUom", "UOM", 410, 194, 40, 18, False
     AddLabel "lblLocation", "Location", 470, 194, 60, 18, False
     AddLabel "lblRow", "ROW", 620, 194, 40, 18, False
+    AddLabel "lblCarrier", "Carrier", 12, 242, 54, 18, False
 
     Set mTxtRef = AddTextBox("txtRef", 12, 212, 82, 22)
     Set mTxtBox = AddTextBox("txtBox", 108, 212, 148, 22)
@@ -151,6 +151,7 @@ Private Sub BuildLayout()
     Set mTxtUom = AddTextBox("txtUom", 410, 212, 44, 22)
     Set mTxtLocation = AddTextBox("txtLocation", 470, 212, 132, 22)
     Set mTxtRow = AddTextBox("txtRow", 620, 212, 52, 22)
+    Set mTxtCarrier = AddComboBox("txtCarrier", 108, 238, 148, 22)
     Set mTxtDescription = AddTextBox("txtDescription", 12, 240, 1, 1)
     mTxtDescription.Visible = False
     LockTextBox mTxtBox
@@ -162,44 +163,121 @@ Private Sub BuildLayout()
     Set mBtnUpdate = AddButton("btnUpdate", "Update Row", 718, 210, 62, 26)
     Set mBtnRemove = AddButton("btnRemove", "Remove", 786, 210, 58, 26)
 
-    AddLabel "lblShipments", "Shipments", 12, 252, 90, 18, True
-    Set mBtnStage = AddButton("btnStage", "To Shipments", 596, 248, 98, 28)
-    Set mBtnSend = AddButton("btnSend", "Shipments Sent", 704, 248, 128, 28)
-    AddShipmentLineHeaders 12, 276
-    Set mLstShipments = AddListBox("lstShipments", 12, 296, 820, 120)
+    AddLabel "lblShipments", "Shipments", 12, 276, 90, 18, True
+    Set mBtnStage = AddButton("btnStage", "To Shipments", 596, 272, 98, 28)
+    Set mBtnSend = AddButton("btnSend", "Shipments Sent", 704, 272, 128, 28)
+    AddShipmentLineHeaders 12, 300
+    Set mLstShipments = AddListBox("lstShipments", 12, 320, 820, 108)
     With mLstShipments
         .ColumnCount = 10
-        .ColumnWidths = "78 pt;160 pt;54 pt;44 pt;76 pt;48 pt;58 pt;84 pt;0 pt;0 pt"
+        .ColumnWidths = "82 pt;164 pt;56 pt;48 pt;106 pt;52 pt;64 pt;84 pt;0 pt;0 pt"
         .MultiSelect = fmMultiSelectExtended
     End With
-    Set mBtnHold = AddButton("btnHold", "Send Hold", 498, 250, 88, 24)
+    Set mBtnHold = AddButton("btnHold", "Send Hold", 498, 274, 88, 24)
 
-    AddLabel "lblHold", "Not Shipped", 12, 432, 100, 18, True
-    AddShipmentLineHeaders 12, 456
-    Set mLstHold = AddListBox("lstHold", 12, 476, 820, 72)
+    AddLabel "lblHold", "Not Shipped", 12, 444, 100, 18, True
+    AddShipmentLineHeaders 12, 468
+    Set mLstHold = AddListBox("lstHold", 12, 488, 820, 60)
     With mLstHold
         .ColumnCount = 10
-        .ColumnWidths = "78 pt;160 pt;54 pt;44 pt;76 pt;48 pt;58 pt;84 pt;0 pt;0 pt"
+        .ColumnWidths = "82 pt;164 pt;56 pt;48 pt;106 pt;52 pt;64 pt;84 pt;0 pt;0 pt"
         .MultiSelect = fmMultiSelectExtended
     End With
-    Set mBtnReturn = AddButton("btnReturn", "Return", 744, 432, 88, 24)
+    Set mBtnReturn = AddButton("btnReturn", "Return", 744, 444, 88, 24)
 
-    Set mLblStatus = AddLabel("lblStatus", "", 12, 568, 590, 42, False)
+    Set mTxtStatus = AddTextBox("txtStatus", 12, 568, 590, 42)
+    With mTxtStatus
+        .MultiLine = True
+        .WordWrap = True
+        .ScrollBars = fmScrollBarsVertical
+        .Locked = True
+        .BackColor = &H8000000F
+    End With
     Set mBtnClose = AddButton("btnClose", "Close", 776, 568, 56, 30)
 
     InitializeAnchors
+    LoadCarrierChoices
+End Sub
+
+Private Sub LoadCarrierChoices()
+    On Error GoTo CleanExit
+
+    Dim carriers As Variant
+    Dim idx As Long
+    Dim currentValue As String
+
+    If mTxtCarrier Is Nothing Then Exit Sub
+    currentValue = NzText(mTxtCarrier.Value)
+    mTxtCarrier.Clear
+    carriers = modCarrierSettings.GetConfiguredCarriers()
+    If Not IsEmpty(carriers) Then
+        For idx = LBound(carriers) To UBound(carriers)
+            If Trim$(NzText(carriers(idx))) <> "" Then mTxtCarrier.AddItem NzText(carriers(idx))
+        Next idx
+    End If
+    If currentValue <> "" Then mTxtCarrier.Value = currentValue
+
+CleanExit:
 End Sub
 
 Private Sub LoadShippables()
     On Error GoTo FailSoft
 
+    Dim previousInv As Object
+
+    Set previousInv = CurrentShippableInventoryCache()
     mShippables = modTS_Shipments.ShipmentsFormLoadShippables()
+    PreserveMissingShippableInventory previousInv
     RenderShippables
     Exit Sub
 
 FailSoft:
     ShowStatus "Could not load shippables: " & Err.Description
 End Sub
+
+Private Function CurrentShippableInventoryCache() As Object
+    Dim result As Object
+    Dim r As Long
+    Dim key As String
+    Dim invText As String
+
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    If IsEmpty(mShippables) Then
+        Set CurrentShippableInventoryCache = result
+        Exit Function
+    End If
+
+    For r = 1 To UBound(mShippables, 1)
+        key = ShippableInventoryKey(NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
+        invText = NzText(mShippables(r, 4))
+        If key <> "" And Trim$(invText) <> "" Then result(key) = invText
+    Next r
+    Set CurrentShippableInventoryCache = result
+End Function
+
+Private Sub PreserveMissingShippableInventory(ByVal previousInv As Object)
+    Dim r As Long
+    Dim key As String
+
+    If previousInv Is Nothing Then Exit Sub
+    If IsEmpty(mShippables) Then Exit Sub
+    For r = 1 To UBound(mShippables, 1)
+        If Trim$(NzText(mShippables(r, 4))) = "" Then
+            key = ShippableInventoryKey(NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
+            If key <> "" Then
+                If previousInv.Exists(key) Then mShippables(r, 4) = previousInv(key)
+            End If
+        End If
+    Next r
+End Sub
+
+Private Function ShippableInventoryKey(ByVal boxName As String, ByVal versionLabel As String) As String
+    boxName = Trim$(boxName)
+    versionLabel = Trim$(versionLabel)
+    If boxName = "" Or versionLabel = "" Then Exit Function
+    ShippableInventoryKey = LCase$(boxName) & "|" & LCase$(versionLabel)
+End Function
 
 Private Sub LoadShipmentState()
     RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False)
@@ -539,6 +617,7 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     End If
     Me.MousePointer = previousPointer
     LoadShipmentState
+    If ok Then LoadShippables
     report = AppendTiming(report, elapsedMs)
     ShowStatus report
     If report <> "" Then MsgBox report, IIf(ok, vbInformation, vbExclamation)
@@ -577,7 +656,7 @@ Private Sub InitializeAnchors()
 
     mAnchors.Add mBtnRefresh, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mTxtPicker, ANCHOR_LEFT Or ANCHOR_TOP
-    mAnchors.Add mTxtCarrier, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mTxtCarrier, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mLstShippables, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mBtnAdd, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mBtnUpdate, ANCHOR_TOP Or ANCHOR_RIGHT
@@ -586,7 +665,7 @@ Private Sub InitializeAnchors()
     mAnchors.Add mBtnHold, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mLstHold, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mBtnReturn, ANCHOR_TOP Or ANCHOR_RIGHT
-    mAnchors.Add mLblStatus, ANCHOR_LEFT Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add mTxtStatus, ANCHOR_LEFT Or ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnStage, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mBtnSend, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mBtnClose, ANCHOR_RIGHT Or ANCHOR_BOTTOM
@@ -681,6 +760,22 @@ Private Function AddListBox(ByVal name As String, _
     End With
 End Function
 
+Private Function AddComboBox(ByVal name As String, _
+                             ByVal leftPos As Single, _
+                             ByVal topPos As Single, _
+                             ByVal widthVal As Single, _
+                             ByVal heightVal As Single) As MSForms.ComboBox
+    Set AddComboBox = Me.Controls.Add("Forms.ComboBox.1", name, True)
+    With AddComboBox
+        .Left = leftPos
+        .Top = topPos
+        .Width = widthVal
+        .Height = heightVal
+        .Style = fmStyleDropDownCombo
+        .MatchEntry = fmMatchEntryComplete
+    End With
+End Function
+
 Private Function AddButton(ByVal name As String, _
                            ByVal caption As String, _
                            ByVal leftPos As Single, _
@@ -724,8 +819,11 @@ Private Sub LockTextBox(ByVal txt As MSForms.TextBox)
 End Sub
 
 Private Sub ShowStatus(ByVal message As String)
-    If mLblStatus Is Nothing Then Exit Sub
-    mLblStatus.Caption = message
+    If mTxtStatus Is Nothing Then Exit Sub
+    mTxtStatus.Value = message
+    On Error Resume Next
+    mTxtStatus.SelStart = 0
+    On Error GoTo 0
 End Sub
 
 Private Function NzText(ByVal value As Variant) As String

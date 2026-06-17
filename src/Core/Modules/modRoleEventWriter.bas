@@ -889,7 +889,7 @@ Public Function GetLocalStagedBoxVersionInventoryDeltas(ByVal packageRow As Long
         For Each rowValues In rows
             Set rowDict = rowValues
             eventType = UCase$(Trim$(CStr(rowDict("EventType"))))
-            If eventType = ROLE_EVENT_TYPE_BOX_BUILD Or eventType = ROLE_EVENT_TYPE_BOX_UNBOX Then
+            If eventType = ROLE_EVENT_TYPE_SHIP Or eventType = ROLE_EVENT_TYPE_BOX_BUILD Or eventType = ROLE_EVENT_TYPE_BOX_UNBOX Then
                 payloadJson = CStr(rowDict("PayloadJson"))
                 AccumulateBoxPayloadVersionInventoryDeltasRole payloadJson, eventType, packageRow, result
             End If
@@ -951,7 +951,7 @@ End Function
 
 Private Function ShouldStageEventLocallyRole(ByVal eventType As String) As Boolean
     Select Case UCase$(Trim$(eventType))
-        Case ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             ShouldStageEventLocallyRole = True
     End Select
 End Function
@@ -1258,7 +1258,11 @@ Private Sub AccumulateBoxPayloadInventoryDeltasRole(ByVal payloadJson As String,
     For Each matchItem In matches
         objectText = CStr(matchItem.Value)
         ioType = UCase$(JsonObjectStringFieldRole(objectText, "IoType"))
-        If ioType <> "MADE" And ioType <> "UNMADE" Then GoTo NextObject
+        If eventType = ROLE_EVENT_TYPE_SHIP Then
+            If ioType <> "" And ioType <> "SHIPPED" Then GoTo NextObject
+        ElseIf ioType <> "MADE" And ioType <> "UNMADE" Then
+            GoTo NextObject
+        End If
 
         rowValue = CLng(JsonObjectNumberFieldRole(objectText, "ROW"))
         If rowValue <= 0 Then rowValue = CLng(JsonObjectNumberFieldRole(objectText, "Row"))
@@ -1267,7 +1271,9 @@ Private Sub AccumulateBoxPayloadInventoryDeltasRole(ByVal payloadJson As String,
         qtyValue = JsonObjectNumberFieldRole(objectText, "Qty")
         If qtyValue <= 0 Then GoTo NextObject
 
-        If eventType = ROLE_EVENT_TYPE_BOX_UNBOX Or ioType = "UNMADE" Then
+        If eventType = ROLE_EVENT_TYPE_SHIP Then
+            deltaValue = -qtyValue
+        ElseIf eventType = ROLE_EVENT_TYPE_BOX_UNBOX Or ioType = "UNMADE" Then
             deltaValue = -qtyValue
         Else
             deltaValue = qtyValue
@@ -1315,7 +1321,11 @@ Private Sub AccumulateBoxPayloadVersionInventoryDeltasRole(ByVal payloadJson As 
     For Each matchItem In matches
         objectText = CStr(matchItem.Value)
         ioType = UCase$(JsonObjectStringFieldRole(objectText, "IoType"))
-        If ioType <> "MADE" And ioType <> "UNMADE" Then GoTo NextObject
+        If eventType = ROLE_EVENT_TYPE_SHIP Then
+            If ioType <> "" And ioType <> "SHIPPED" Then GoTo NextObject
+        ElseIf ioType <> "MADE" And ioType <> "UNMADE" Then
+            GoTo NextObject
+        End If
 
         rowValue = CLng(JsonObjectNumberFieldRole(objectText, "ROW"))
         If rowValue <= 0 Then rowValue = CLng(JsonObjectNumberFieldRole(objectText, "Row"))
@@ -1328,7 +1338,9 @@ Private Sub AccumulateBoxPayloadVersionInventoryDeltasRole(ByVal payloadJson As 
         qtyValue = JsonObjectNumberFieldRole(objectText, "Qty")
         If qtyValue <= 0 Then GoTo NextObject
 
-        If eventType = ROLE_EVENT_TYPE_BOX_UNBOX Or ioType = "UNMADE" Then
+        If eventType = ROLE_EVENT_TYPE_SHIP Then
+            deltaValue = -qtyValue
+        ElseIf eventType = ROLE_EVENT_TYPE_BOX_UNBOX Or ioType = "UNMADE" Then
             deltaValue = -qtyValue
         Else
             deltaValue = qtyValue
