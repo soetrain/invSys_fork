@@ -6,6 +6,8 @@ Public Const APPLY_STATUS_SKIP_DUP As String = "SKIP_DUP"
 
 Public Const EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Public Const EVENT_TYPE_SHIP As String = "SHIP"
+Public Const EVENT_TYPE_SHIP_RESERVE As String = "SHIP_RESERVE"
+Public Const EVENT_TYPE_SHIP_RELEASE As String = "SHIP_RELEASE"
 Public Const EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
 Public Const EVENT_TYPE_BOX_UNBOX As String = "BOX_UNBOX"
 Public Const EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
@@ -407,7 +409,7 @@ Private Function BuildApplyLines(ByVal evt As Object, _
     Select Case eventType
         Case EVENT_TYPE_RECEIVE
             Set BuildApplyLines = BuildReceiveLines(evt, wb, errorCode, errorMessage)
-        Case EVENT_TYPE_SHIP, EVENT_TYPE_BOX_BUILD, EVENT_TYPE_BOX_UNBOX, EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE, EVENT_TYPE_MIGRATION_SEED
+        Case EVENT_TYPE_SHIP, EVENT_TYPE_SHIP_RESERVE, EVENT_TYPE_SHIP_RELEASE, EVENT_TYPE_BOX_BUILD, EVENT_TYPE_BOX_UNBOX, EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE, EVENT_TYPE_MIGRATION_SEED
             Set BuildApplyLines = BuildPayloadLines(evt, wb, eventType, errorCode, errorMessage)
         Case Else
             errorCode = "INVALID_EVENT_TYPE"
@@ -579,8 +581,10 @@ Private Function ResolvePayloadQtyDelta(ByVal eventType As String, _
                                         ByRef errorCode As String, _
                                         ByRef errorMessage As String) As Double
     Select Case eventType
-        Case EVENT_TYPE_SHIP
+        Case EVENT_TYPE_SHIP, EVENT_TYPE_SHIP_RESERVE
             ResolvePayloadQtyDelta = -qty
+        Case EVENT_TYPE_SHIP_RELEASE
+            ResolvePayloadQtyDelta = qty
         Case EVENT_TYPE_BOX_BUILD
             Select Case ioType
                 Case "USED"
@@ -1497,7 +1501,7 @@ Private Sub ResolveLatestMovementValuesApply(ByVal latestEventType As Object, _
     Select Case eventType
         Case EVENT_TYPE_RECEIVE
             receivedOut = qty
-        Case EVENT_TYPE_SHIP
+        Case EVENT_TYPE_SHIP, EVENT_TYPE_SHIP_RESERVE, EVENT_TYPE_SHIP_RELEASE
             shipmentsOut = qty
         Case EVENT_TYPE_BOX_BUILD, EVENT_TYPE_BOX_UNBOX
             madeOut = qty

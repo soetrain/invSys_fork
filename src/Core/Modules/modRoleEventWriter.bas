@@ -10,6 +10,8 @@ Private Const TABLE_INBOX_SHIP As String = "tblInboxShip"
 Private Const TABLE_INBOX_PROD As String = "tblInboxProd"
 Private Const ROLE_EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Private Const ROLE_EVENT_TYPE_SHIP As String = "SHIP"
+Private Const ROLE_EVENT_TYPE_SHIP_RESERVE As String = "SHIP_RESERVE"
+Private Const ROLE_EVENT_TYPE_SHIP_RELEASE As String = "SHIP_RELEASE"
 Private Const ROLE_EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
 Private Const ROLE_EVENT_TYPE_BOX_UNBOX As String = "BOX_UNBOX"
 Private Const ROLE_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
@@ -397,7 +399,7 @@ Public Function DescribeInboxPendingRows(ByVal eventType As String, _
                 errorMessage = report
                 GoTo CleanExit
             End If
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 GoTo CleanExit
@@ -716,7 +718,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
                 GoTo CleanExit
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_RECEIVE)
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 GoTo CleanExit
@@ -889,7 +891,7 @@ Public Function GetLocalStagedBoxVersionInventoryDeltas(ByVal packageRow As Long
         For Each rowValues In rows
             Set rowDict = rowValues
             eventType = UCase$(Trim$(CStr(rowDict("EventType"))))
-            If eventType = ROLE_EVENT_TYPE_SHIP Or eventType = ROLE_EVENT_TYPE_BOX_BUILD Or eventType = ROLE_EVENT_TYPE_BOX_UNBOX Then
+            If eventType = ROLE_EVENT_TYPE_SHIP Or eventType = ROLE_EVENT_TYPE_SHIP_RESERVE Or eventType = ROLE_EVENT_TYPE_SHIP_RELEASE Or eventType = ROLE_EVENT_TYPE_BOX_BUILD Or eventType = ROLE_EVENT_TYPE_BOX_UNBOX Then
                 payloadJson = CStr(rowDict("PayloadJson"))
                 AccumulateBoxPayloadVersionInventoryDeltasRole payloadJson, eventType, packageRow, result
             End If
@@ -951,7 +953,7 @@ End Function
 
 Private Function ShouldStageEventLocallyRole(ByVal eventType As String) As Boolean
     Select Case UCase$(Trim$(eventType))
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             ShouldStageEventLocallyRole = True
     End Select
 End Function
@@ -1093,7 +1095,7 @@ Private Function MergeRowsIntoNasInboxRole(ByVal rows As Collection, _
                 report = schemaReport
                 GoTo CleanExit
             End If
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, schemaReport) Then
                 report = schemaReport
                 GoTo CleanExit
@@ -1258,8 +1260,8 @@ Private Sub AccumulateBoxPayloadInventoryDeltasRole(ByVal payloadJson As String,
     For Each matchItem In matches
         objectText = CStr(matchItem.Value)
         ioType = UCase$(JsonObjectStringFieldRole(objectText, "IoType"))
-        If eventType = ROLE_EVENT_TYPE_SHIP Then
-            If ioType <> "" And ioType <> "SHIPPED" Then GoTo NextObject
+        If eventType = ROLE_EVENT_TYPE_SHIP Or eventType = ROLE_EVENT_TYPE_SHIP_RESERVE Or eventType = ROLE_EVENT_TYPE_SHIP_RELEASE Then
+            If ioType <> "" And ioType <> "SHIPPED" And ioType <> "RESERVED" And ioType <> "RELEASED" Then GoTo NextObject
         ElseIf ioType <> "MADE" And ioType <> "UNMADE" Then
             GoTo NextObject
         End If
@@ -1271,8 +1273,10 @@ Private Sub AccumulateBoxPayloadInventoryDeltasRole(ByVal payloadJson As String,
         qtyValue = JsonObjectNumberFieldRole(objectText, "Qty")
         If qtyValue <= 0 Then GoTo NextObject
 
-        If eventType = ROLE_EVENT_TYPE_SHIP Then
+        If eventType = ROLE_EVENT_TYPE_SHIP Or eventType = ROLE_EVENT_TYPE_SHIP_RESERVE Then
             deltaValue = -qtyValue
+        ElseIf eventType = ROLE_EVENT_TYPE_SHIP_RELEASE Then
+            deltaValue = qtyValue
         ElseIf eventType = ROLE_EVENT_TYPE_BOX_UNBOX Or ioType = "UNMADE" Then
             deltaValue = -qtyValue
         Else
@@ -1321,8 +1325,8 @@ Private Sub AccumulateBoxPayloadVersionInventoryDeltasRole(ByVal payloadJson As 
     For Each matchItem In matches
         objectText = CStr(matchItem.Value)
         ioType = UCase$(JsonObjectStringFieldRole(objectText, "IoType"))
-        If eventType = ROLE_EVENT_TYPE_SHIP Then
-            If ioType <> "" And ioType <> "SHIPPED" Then GoTo NextObject
+        If eventType = ROLE_EVENT_TYPE_SHIP Or eventType = ROLE_EVENT_TYPE_SHIP_RESERVE Or eventType = ROLE_EVENT_TYPE_SHIP_RELEASE Then
+            If ioType <> "" And ioType <> "SHIPPED" And ioType <> "RESERVED" And ioType <> "RELEASED" Then GoTo NextObject
         ElseIf ioType <> "MADE" And ioType <> "UNMADE" Then
             GoTo NextObject
         End If
@@ -1338,8 +1342,10 @@ Private Sub AccumulateBoxPayloadVersionInventoryDeltasRole(ByVal payloadJson As 
         qtyValue = JsonObjectNumberFieldRole(objectText, "Qty")
         If qtyValue <= 0 Then GoTo NextObject
 
-        If eventType = ROLE_EVENT_TYPE_SHIP Then
+        If eventType = ROLE_EVENT_TYPE_SHIP Or eventType = ROLE_EVENT_TYPE_SHIP_RESERVE Then
             deltaValue = -qtyValue
+        ElseIf eventType = ROLE_EVENT_TYPE_SHIP_RELEASE Then
+            deltaValue = qtyValue
         ElseIf eventType = ROLE_EVENT_TYPE_BOX_UNBOX Or ioType = "UNMADE" Then
             deltaValue = -qtyValue
         Else
@@ -1936,7 +1942,7 @@ Private Function InboxWorkbookNameRole(ByVal eventType As String, ByVal stationI
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             InboxWorkbookNameRole = "invSys.Inbox.Receiving." & stationId & ".xlsb"
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             InboxWorkbookNameRole = "invSys.Inbox.Shipping." & stationId & ".xlsb"
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             InboxWorkbookNameRole = "invSys.Inbox.Production." & stationId & ".xlsb"
@@ -1947,7 +1953,7 @@ Private Function InboxTableNameRole(ByVal eventType As String) As String
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             InboxTableNameRole = TABLE_INBOX_RECEIVE
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             InboxTableNameRole = TABLE_INBOX_SHIP
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             InboxTableNameRole = TABLE_INBOX_PROD
@@ -1958,7 +1964,7 @@ Private Function CapabilityForEventTypeRole(ByVal eventType As String) As String
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             CapabilityForEventTypeRole = "RECEIVE_POST"
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             CapabilityForEventTypeRole = "SHIP_POST"
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventTypeRole = "PROD_POST"

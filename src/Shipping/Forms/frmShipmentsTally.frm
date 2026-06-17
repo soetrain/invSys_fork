@@ -131,8 +131,8 @@ Private Sub BuildLayout()
     AddShippableHeaders 12, 70
     Set mLstShippables = AddListBox("lstShippables", 12, 90, 820, 92)
     With mLstShippables
-        .ColumnCount = 6
-        .ColumnWidths = "190 pt;52 pt;70 pt;42 pt;116 pt;52 pt"
+        .ColumnCount = 7
+        .ColumnWidths = "178 pt;52 pt;62 pt;74 pt;42 pt;108 pt;46 pt"
     End With
 
     AddLabel "lblRef", "Ref", 12, 194, 34, 18, False
@@ -306,16 +306,17 @@ Private Sub RenderShippables()
     Next r
     If shownCount = 0 Then Exit Sub
 
-    ReDim displayRows(0 To shownCount - 1, 0 To 5)
+    ReDim displayRows(0 To shownCount - 1, 0 To 6)
     idx = 0
     For r = 1 To UBound(mShippables, 1)
         If Not ShippableMatchesFilter(r, filterText) Then GoTo NextRow
         displayRows(idx, 0) = NzText(mShippables(r, 2))
         displayRows(idx, 1) = NzText(mShippables(r, 3))
         displayRows(idx, 2) = DisplayQtyText(NzText(mShippables(r, 4)))
-        displayRows(idx, 3) = NzText(mShippables(r, 5))
-        displayRows(idx, 4) = NzText(mShippables(r, 6))
-        displayRows(idx, 5) = NzText(mShippables(r, 1))
+        displayRows(idx, 3) = DisplayQtyText(NzText(mShippables(r, 8)))
+        displayRows(idx, 4) = NzText(mShippables(r, 5))
+        displayRows(idx, 5) = NzText(mShippables(r, 6))
+        displayRows(idx, 6) = NzText(mShippables(r, 1))
         idx = idx + 1
 NextRow:
     Next r
@@ -397,9 +398,9 @@ Private Sub LoadSelectedShippable()
     If mLstShippables.ListIndex < 0 Then Exit Sub
     mTxtBox.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 0))
     mTxtVersion.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 1))
-    mTxtUom.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 3))
-    mTxtLocation.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 4))
-    mTxtRow.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 5))
+    mTxtUom.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 4))
+    mTxtLocation.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 5))
+    mTxtRow.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 6))
     If Trim$(NzText(mTxtQty.Value)) = "" Then mTxtQty.Value = "1"
     mTxtDescription.Value = NzText(mTxtVersion.Value)
 End Sub
@@ -617,7 +618,7 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     End If
     Me.MousePointer = previousPointer
     LoadShipmentState
-    If ok Then LoadShippables
+    If ok Then RefreshProjectedShippableInventory
     report = AppendTiming(report, elapsedMs)
     ShowStatus report
     If report <> "" Then MsgBox report, IIf(ok, vbInformation, vbExclamation)
@@ -629,6 +630,22 @@ FailSoft:
     Me.MousePointer = previousPointer
     On Error GoTo 0
     ShowStatus "Shipping action failed: " & Err.Description
+End Sub
+
+Private Sub RefreshProjectedShippableInventory()
+    On Error GoTo CleanExit
+
+    Dim r As Long
+
+    If IsEmpty(mShippables) Then Exit Sub
+    For r = 1 To UBound(mShippables, 1)
+        mShippables(r, 8) = modTS_Shipments.PendingBoxVersionInventoryOverlayText(CLng(Val(NzText(mShippables(r, 1)))), _
+                                                                                   NzText(mShippables(r, 3)), _
+                                                                                   NzText(mShippables(r, 4)))
+    Next r
+    RenderShippables
+
+CleanExit:
 End Sub
 
 Private Sub mBtnClose_Click()
@@ -674,10 +691,11 @@ End Sub
 Private Sub AddShippableHeaders(ByVal leftPos As Single, ByVal topPos As Single)
     AddHeaderLabel "hdrShipBox", "Box", leftPos, topPos, 184
     AddHeaderLabel "hdrShipVersion", "Version", leftPos + 194, topPos, 54
-    AddHeaderLabel "hdrShipInv", "Current Inv", leftPos + 252, topPos, 72
-    AddHeaderLabel "hdrShipUom", "UOM", leftPos + 330, topPos, 42
-    AddHeaderLabel "hdrShipLoc", "Location", leftPos + 378, topPos, 116
-    AddHeaderLabel "hdrShipRow", "ROW", leftPos + 500, topPos, 54
+    AddHeaderLabel "hdrShipInv", "NAS Inv", leftPos + 252, topPos, 60
+    AddHeaderLabel "hdrShipProjected", "Projected Inv", leftPos + 318, topPos, 76
+    AddHeaderLabel "hdrShipUom", "UOM", leftPos + 400, topPos, 42
+    AddHeaderLabel "hdrShipLoc", "Location", leftPos + 448, topPos, 108
+    AddHeaderLabel "hdrShipRow", "ROW", leftPos + 562, topPos, 54
 End Sub
 
 Private Sub AddShipmentLineHeaders(ByVal leftPos As Single, ByVal topPos As Single)

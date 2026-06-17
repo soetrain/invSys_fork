@@ -715,7 +715,7 @@ Private Sub ApplyLatestMovementToSnapshotRowsSync(ByVal snapshotRows As Object, 
             Select Case eventType
                 Case "RECEIVE"
                     entry("RECEIVED") = qty
-                Case "SHIP"
+                Case "SHIP", "SHIP_RESERVE", "SHIP_RELEASE"
                     entry("SHIPMENTS") = qty
                 Case "PROD_CONSUME"
                     entry("USED") = qty

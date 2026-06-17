@@ -89,7 +89,7 @@ Public Function TestEnsureShippingWorkbookSurface_CreatesExpectedTables() As Lon
        And HasTable(wb, "invSys") _
        And HasTable(wb, "ShippingBOMView") _
        And Not WorksheetExists(wb, "ShippingBOM") _
-       And TableHasColumns(wb, "ShipmentsTally", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION")) _
+       And TableHasColumns(wb, "ShipmentsTally", Array("LINE_ID", "SERVER_RESERVE_EVENT_ID", "REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION")) _
        And TableHasColumns(wb, "BoxBuilder", Array("Box Name", "UOM", "LOCATION", "DESCRIPTION")) _
        And Not TableHasColumns(wb, "BoxBuilder", Array("ROW")) _
        And TableHasColumns(wb, "BoxBOM", Array("ITEM", "ROW", "QUANTITY", "UOM", "LOCATION", "DESCRIPTION")) _

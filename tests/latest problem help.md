@@ -1,299 +1,241 @@
-The source confirms exactly what you suspected. Here's the precise analysis and the best course of action.
+Now I have everything I need. Here is the complete analysis and test specification.
 
 ***
 
-## What `QueueEventCore` Actually Does Per Click
+## What's Actually In the Repo Right Now
 
-Reading `QueueEventCore` in `modRoleEventWriter.bas` top to bottom, the latency budget for a single `Make Boxes` click on a NAS/UNC path is: 
+The `frmShipmentsTally.frm` on main is a **stub** — it has `btnSend_Click → ProcessShipmentsBatch` and `PopulateShipmentsForm`, but none of the local-cache, tombstone, or `LINE_ID` machinery described in the problem report exists in the committed code yet.  The `modTS_Shipments.bas` contains only the worksheet-surface flow (`BtnToShipments`, `BtnShipmentsSent`, `AggregatePackages`, etc.) and has zero references to `LINE_ID`, `shipping_active_*.tsv`, `PersistentSentShipmentRowExists`, or `ReconcileShipmentStagingFromShipmentLines`. 
 
-| Step | What happens | Typical cost on NAS |
+That means the dirty-transaction machinery described in the problem report is either in uncommitted local code or was described as the intended design that needs to be built. Either way, the tests need to be written **against the intended behavior**, so they catch violations before or as the code is added.
+
+***
+
+## The Core Failure Modes to Guard Against
+
+From the problem report, there are four distinct failure classes:
+
+| # | Class | What goes wrong |
 |---|---|---|
-| `EnsureContextResolved` | `modConfig.LoadConfig` | 10–50 ms |
-| `modAuth.LoadAuth` | Opens auth workbook read-only, scans tables | 50–300 ms |
-| `ResolveInboxWorkbookForEventType` | **Opens `invSys.Inbox.Shipping.*.xlsb` over UNC** | **1000–4000 ms** |
-| `EnsureShipInboxSchema` | Schema validation pass | 10–50 ms |
-| `lo.ListRows.Add` + 18 × `SetTableRowValueRole` | Cell writes | < 50 ms |
-| `SaveWorkbookRole` → `wb.Save` | **Saves .xlsb to NAS** | **500–2000 ms** |
-| `CloseTransientRoleWorkbook` | Close + possibly re-save | 200–500 ms |
-
-The **two NAS I/O walls** are the workbook open and the `wb.Save`. Together they account for nearly all of the 5-second budget. Everything else is negligible.
-
-There is also a structural inefficiency: every `QueueEventCore` call opens the inbox, writes one row, saves the full `.xlsb`, and closes it — all synchronously inside the button click. The `.xlsb` format is compact but Excel's COM save path is slow because it must recalculate and serialize the entire workbook object model each time. 
+| **A** | **Row resurrection** | A sent row reappears in active Shipments after close/reopen |
+| **B** | **SHIPMENTS staging drift** | `invSys.SHIPMENTS` is 0, but the form row claims `Area=Shipments`, so `Shipments Sent` fails |
+| **C** | **Double-deduction** | Stale active row is reloaded → reconcile rebuilds SHIPMENTS from it → second send succeeds |
+| **D** | **Illogical workflow sequence** | Buttons pressed out of order (e.g. `Shipments Sent` before `To Shipments`, `Boxes Made` before `Confirm Inventory`) produce wrong inventory math |
 
 ***
 
-## Best Course of Action
+## Test Specifications
 
-There are three realistic options. Here is an honest assessment of each:
+### Test Group 1 — Workflow Sequence Guard (Class D)
 
-### Option A — Keep-alive the inbox workbook (smallest change, fastest win)
+These are the "illogical workflow" tests the problem report asks for. Each test calls the validation-only surface (`ValidateQueueShipmentsSentEventFromCurrentWorkbook`) or the delta builders in isolation, with a controlled invSys state, and asserts the correct error or early-exit.
 
-Instead of open → write → save → close on every event, **keep the inbox workbook open in a hidden state** for the session and only save/close it when the add-in unloads or the user explicitly flushes.
+**Test 1.1 — `Shipments Sent` with zero SHIPMENTS staged must fail cleanly**
 
-```vba
-' In modRoleEventWriter.bas — add a module-level cache
-Private mInboxWorkbooks As Object   ' key: fullPath → Workbook
+```text
+Setup:
+  invSys ROW 87 has:  TOTAL INV=10, MADE=0, SHIPMENTS=0
+  AggregatePackages has ROW=87, QUANTITY=2
 
-Private Function GetOrOpenInboxWorkbook(ByVal fullPath As String, ...) As Workbook
-    If mInboxWorkbooks Is Nothing Then
-        Set mInboxWorkbooks = CreateObject("Scripting.Dictionary")
-        mInboxWorkbooks.CompareMode = vbTextCompare
-    End If
+Action:
+  Call ValidateQueueShipmentsSentEventFromCurrentWorkbook()
 
-    If mInboxWorkbooks.Exists(fullPath) Then
-        Dim cached As Workbook
-        Set cached = mInboxWorkbooks(fullPath)
-        ' Validate it is still open and writable
-        On Error Resume Next
-        Dim testName As String
-        testName = cached.Name
-        On Error GoTo 0
-        If testName <> "" And Not cached.ReadOnly Then
-            Set GetOrOpenInboxWorkbook = cached
-            Exit Function
-        End If
-        mInboxWorkbooks.Remove fullPath
-    End If
-
-    ' Normal open path, then cache it
-    Dim wb As Workbook
-    Set wb = ... ' existing open logic
-    If Not wb Is Nothing Then mInboxWorkbooks(fullPath) = wb
-    Set GetOrOpenInboxWorkbook = wb
-End Function
+Expected:
+  Returns error string containing "No staged shipments found in invSys.SHIPMENTS"
+  Does NOT return "OK"
+  invSys.SHIPMENTS unchanged (still 0)
 ```
 
-Then change `SaveWorkbookRole` inside `QueueEventCore` to a **deferred save** — only flush to disk after a timeout or on workbook close:
+**Test 1.2 — `To Shipments` with TOTAL INV < requested quantity must fail cleanly**
 
-```vba
-' Replace: SaveWorkbookRole wbInbox
-' With:    MarkInboxDirtyRole wbInbox  (just sets wb.Saved = False conceptually)
-' Then flush on: App_WorkbookBeforeClose, a ribbon "Flush" button, or a 30-second OnTime timer
+```text
+Setup:
+  invSys ROW 87 has:  TOTAL INV=1, SHIPMENTS=0
+  AggregatePackages has ROW=87, QUANTITY=2
+
+Action:
+  Call BtnToShipments (or BuildShipmentDeltaPacket directly)
+
+Expected:
+  Returns/shows error "ROW 87 requires 2 but only 1 in TOTAL INV"
+  invSys.SHIPMENTS unchanged (still 0)
 ```
 
-**Cost of open eliminated. Cost of save amortized across multiple events.**
-Expected result: posting drops from ~5 s to ~50–100 ms per click. The tradeoff is that unsaved events sit in-memory if Excel crashes before flush — but the processor already handles re-queuing from the inbox, so a crash between write and flush only loses in-flight events, not already-processed ones.
+**Test 1.3 — `Boxes Made` with insufficient component inventory must fail cleanly**
+
+```text
+Setup:
+  invSys ROW 10 (kraft paper) has: TOTAL INV=3, USED=0
+  AggregateBoxBOM requires ROW=10, QUANTITY=5
+
+Action:
+  Call ValidateComponentInventory (or BtnBoxesMade path)
+
+Expected:
+  Returns/shows "ROW 10 requires 5 but only 3 available"
+  invSys.USED unchanged (still 0)
+```
+
+**Test 1.4 — `Confirm Inventory` with Use Existing Inventory checked must warn and exit**
+
+```text
+Setup:
+  CHK_USE_EXISTING checkbox is checked (Value=1)
+
+Action:
+  Call BtnConfirmInventory
+
+Expected:
+  Shows "Use existing inventory is enabled. Skip Confirm inventory..."
+  No staging changes applied
+```
+
+**Test 1.5 — Math: `Boxes Made` component deduction must equal BOM qty × package qty**
+
+```vba
+' This is the critical math guard.
+' Box T25 BOM: kraft paper ROW=10 qty=2, tape ROW=11 qty=1
+' ShipmentsTally: T25 qty=3
+' Expected AggregateBoxBOM: ROW=10 qty=6, ROW=11 qty=3
+'
+' Assert:
+'   AggregateBoxBOM.ROW(10).QUANTITY = 6   (2 per box × 3 boxes)
+'   AggregateBoxBOM.ROW(11).QUANTITY = 3   (1 per box × 3 boxes)
+'
+' If these are wrong, BOM expansion (BuildBomSummary) is broken.
+```
+
+This test can be run as a worksheet validation: hydrate `ShipmentsTally` with one T25 row qty=3, run `RebuildShippingAggregates`, read `AggregateBoxBOM`, assert.
 
 ***
 
-### Option B — Write to a local staging file first, sync to NAS in background (more robust, more code)
+### Test Group 2 — Transaction State Guards (Classes A, B, C)
 
-Write the event row to a **local temp `.xlsb`** (fast, `< 50 ms`), return the `EventID` immediately, then push the local file to NAS on a background `OnTime` timer. The processor already reads from a known inbox path, so the sync just means copying or appending the local staging rows into the NAS inbox file.
+These require the `LINE_ID` and local state ledger that the problem report recommends building. Write these as the spec before or alongside the implementation.
 
-This is the most resilient design for intermittent NAS connectivity but requires a staging-merge step that doesn't exist yet.
+**Test 2.1 — `TestShippingForm_SentRowsDoNotResurrectAcrossUnsavedWorkbookReopen`** *(exact name from problem report)*
+
+```text
+Steps:
+  1. Open fresh unsaved workbook
+  2. Open Shipping form
+  3. Add order: Ref=TXN-001, Box=T25, Version=v1, Qty=2
+  4. Move To Shipments → verify active list row has Area=Shipments
+  5. Click Shipments Sent → capture EventID
+  6. Assert active list does NOT contain TXN-001
+  7. Assert LINE_ID of TXN-001 is in sent tombstone file
+  8. Close form and workbook without saving
+  9. Fully close Excel
+ 10. Reopen Excel, open Shipping form
+ 11. Assert TXN-001 is NOT in active Shipments listbox
+ 12. Assert TXN-001 is NOT in Not Shipped listbox
+ 13. Assert T25 v1 TOTAL INV or SHIPMENTS column is deducted by 2
+
+Guards against:
+  - Row resurrection (Class A)
+  - Tombstone-by-value false negative (Class A)
+  - Missing LINE_ID allowing match bypass (Class A)
+```
+
+**Test 2.2 — Reconcile must not reactivate a tombstoned row**
+
+```text
+Setup:
+  Local active cache contains one row with LINE_ID=abc123, Area=Shipments
+  Tombstone file contains LINE_ID=abc123
+
+Action:
+  Call LoadPersistentActiveShipmentRowsLocal (or ShipmentsFormLoadLines)
+
+Expected:
+  Zero rows loaded into active list
+  LINE_ID abc123 was filtered by tombstone check
+
+Guards against: Class A and Class C
+```
+
+**Test 2.3 — Double-send of same order must be impossible**
+
+```text
+Setup:
+  Order TXN-002, LINE_ID=def456 is sent successfully
+  Tombstone file has def456
+  invSys.SHIPMENTS for ROW=87 was decremented to 0
+
+Action:
+  Force-load active cache back with same LINE_ID=def456
+  Attempt to call Shipments Sent
+
+Expected:
+  Either:
+    (a) Row is filtered before send attempt → "No staged shipments found"
+    OR
+    (b) Validation fails → "ROW 87 only has 0 staged but needs 2"
+  Either outcome is acceptable. Both prevent double-deduction.
+  invSys.SHIPMENTS must not go negative.
+
+Guards against: Class C
+```
+
+**Test 2.4 — SHIPMENTS staging and active cache must agree**
+
+```text
+Setup:
+  Active cache has ROW=87, Area=Shipments, Qty=2
+  invSys.SHIPMENTS for ROW=87 = 0 (drift / stale)
+
+Action:
+  Call ReconcileShipmentStagingFromShipmentLines (if it exists)
+  OR call BuildQueueableShipmentsSentDeltas
+
+Expected (strict contract):
+  If the row has no tombstone (i.e., it is a legitimate pending order):
+    invSys.SHIPMENTS for ROW=87 must be rebuilt to 2 before send proceeds
+  If the row IS tombstoned:
+    Row must be excluded from reconciliation
+    invSys.SHIPMENTS must remain 0
+
+Guards against: Class B and Class C (the dangerous reconcile path)
+```
 
 ***
 
-### Option C — Write a CSV/TSV append instead of a .xlsb save (breaks format contract, good for R2F#)
+### Test Group 3 — Column/Schema Guards
 
-Replace the entire `.xlsb` inbox with a flat append-only `.csv` or `.tsv` file. File append is ~5 ms even on NAS. But this would require rewriting `modProcessor` and breaks the existing schema contract — too disruptive for a targeted perf fix.
+These can run as part of the existing Phase 6 validation.
+
+**Test 3.1 — `BtnShipmentsSent` must fail if invSys lacks SHIPMENTS column**
+
+```text
+Setup: invSys has no SHIPMENTS column
+
+Expected: Returns "invSys table missing SHIPMENTS/ROW columns."
+```
+
+**Test 3.2 — `BtnBoxesMade` must fail if AggregateBoxBOM has no ROW column**
+
+```text
+Expected: "AggregateBoxBOM missing QUANTITY/ROW columns." or similar early exit
+```
+
+**Test 3.3 — `BuildShipmentDeltaPacket` returns Nothing if AggPack is empty**
+
+```text
+Setup: AggregatePackages has no DataBodyRange
+
+Expected: Returns Nothing, errNotes = ""  (the "no shipments required" path)
+```
 
 ***
 
-## Recommended Path: Option A, in two steps
+## Implementation Order
 
-**Step 1 — Eliminate the open cost** (immediate, ~1 day of work):
+Given that `LINE_ID` doesn't exist in the repo yet, the suggested build-then-test order is:
 
-Change `ResolveInboxWorkbookForEventType` to return a cached open workbook when one exists for the session. The inbox workbook stays hidden and open after the first event write. No changes to processor, no format changes.
+1. **Add `LINE_ID` column to the active cache TSV schema** — generate it on row creation, persist on every write.
+2. **Write Test 2.1 as a manual checklist** (automated later) — run it against current code to confirm resurrection.
+3. **Implement tombstone by `LINE_ID`** — filter in `LoadPersistentActiveShipmentRowsLocal`.
+4. **Re-run Test 2.1** — should now pass.
+5. **Add Tests 1.1–1.5 as automated Phase 6 entries** — these test the already-committed `modTS_Shipments.bas` math and validation guards and can be added to `run_phase6_excel_validation.ps1` immediately. 
+6. **Add Tests 2.2–2.4** once the state ledger is implemented.
 
-**Step 2 — Defer the save** (follow-up, ~half day):
-
-Change `SaveWorkbookRole` inside `QueueEventCore` to a dirty-mark instead of an immediate save. Add a flush in `App_WorkbookBeforeClose` in `cAppEvents.cls` and optionally an `OnTime` timer every 60 seconds. This eliminates the NAS save latency from the click path entirely.
-
-The result is that `QueueEventCore` only touches the NAS on first open per session and on periodic/close flushes — not once per button click. With the Receiving readiness fix already landing, **the combined effect should bring `Make Boxes` well under 200 ms** in the steady state (session already has the inbox open).
-
-One diagnostic to add before committing to Option A — confirm the open cost dominates over save cost by adding:
-
-```vba
-Debug.Print "QueueEventCore InboxOpen ms:", CLng((Timer - queueStart) * 1000)
-' ... after ResolveInboxWorkbookForEventType
-Debug.Print "QueueEventCore InboxSave ms:", CLng((Timer - saveStart) * 1000)
-' ... after SaveWorkbookRole
-```
-
-If open > save, Option A Step 1 alone gets you most of the way there. If save > open (NAS is slow but already mounted), Step 2 matters more.
-
-## The Two-Layer Model
-
-**Option A** (keep-alive + deferred save) eliminates latency from the *happy path*. **Option B** (local staging → NAS sync) eliminates the *failure mode* where NAS is unreachable at the moment of posting. Together they form a write-ahead pattern that is standard in any durable queue design.
-
-```
-[User clicks Make Boxes]
-        │
-        ▼
-┌─────────────────────────┐
-│  1. Append to LOCAL     │  ← ~5 ms, always succeeds
-│     staging file        │     even if NAS is down
-└────────────┬────────────┘
-             │ return EventID to caller immediately
-             ▼
-┌─────────────────────────┐
-│  2. Mark local file     │  ← Option A: in-memory wb
-│     dirty; don't save   │     kept open, no NAS touch
-│     to NAS yet          │     on this click
-└────────────┬────────────┘
-             │ background / on-timer / on-close
-             ▼
-┌─────────────────────────┐
-│  3. Sync local → NAS    │  ← Option B: merge staged
-│     inbox               │     rows into NAS inbox wb,
-└─────────────────────────┘     then save once
-```
-
-The key is that step 1 always succeeds — the click returns immediately regardless of NAS state.
-
-## Concrete Implementation
-
-### Layer 1 — Local staging file (Option B write side)
-
-```vba
-' modRoleEventWriter.bas — new private function
-Private Function AppendToLocalStagingInbox(ByVal eventType As String, _
-                                            ByVal resolvedWh As String, _
-                                            ByVal resolvedSt As String, _
-                                            ByVal rowDict As Object, _
-                                            ByRef errorMessage As String) As Boolean
-    Dim stagingPath As String
-    Dim fileNum As Integer
-
-    stagingPath = LocalStagingPathRole(eventType, resolvedSt)
-    If stagingPath = "" Then
-        errorMessage = "Could not resolve local staging path."
-        Exit Function
-    End If
-
-    fileNum = FreeFile
-    On Error GoTo FailAppend
-    Open stagingPath For Append As #fileNum
-    Print #fileNum, DictionaryToJsonRole(rowDict)   ' one JSON line per event
-    Close #fileNum
-    AppendToLocalStagingInbox = True
-    Exit Function
-
-FailAppend:
-    errorMessage = "Local staging append failed: " & Err.Description
-    On Error Resume Next
-    Close #fileNum
-End Function
-
-Private Function LocalStagingPathRole(ByVal eventType As String, _
-                                       ByVal stationId As String) As String
-    ' Always local — Environ("LOCALAPPDATA") or ThisWorkbook.Path
-    Dim localRoot As String
-    localRoot = Environ$("LOCALAPPDATA")
-    If localRoot = "" Then localRoot = Environ$("TEMP")
-    LocalStagingPathRole = localRoot & "\invSys\staging\" & _
-                           InboxWorkbookNameRole(eventType, stationId) & ".staging.jsonl"
-End Function
-```
-
-### Layer 2 — NAS inbox keep-alive (Option A)
-
-```vba
-' Module-level cache — inbox workbook stays open for the session
-Private mInboxCache As Object   ' Dictionary: fullPath → Workbook
-Private mInboxDirty As Object   ' Dictionary: fullPath → Boolean
-
-Private Function GetCachedInboxWorkbook(ByVal fullPath As String, _
-                                         ByRef errorMessage As String) As Workbook
-    If mInboxCache Is Nothing Then
-        Set mInboxCache = CreateObject("Scripting.Dictionary")
-        mInboxCache.CompareMode = vbTextCompare
-        Set mInboxDirty = CreateObject("Scripting.Dictionary")
-        mInboxDirty.CompareMode = vbTextCompare
-    End If
-
-    If mInboxCache.Exists(fullPath) Then
-        Dim wb As Workbook
-        Set wb = mInboxCache(fullPath)
-        On Error Resume Next
-        Dim nameCheck As String
-        nameCheck = wb.Name     ' will error if workbook was closed externally
-        On Error GoTo 0
-        If nameCheck <> "" And Not wb.ReadOnly Then
-            Set GetCachedInboxWorkbook = wb
-            Exit Function
-        End If
-        mInboxCache.Remove fullPath   ' stale — drop and re-open
-    End If
-
-    Set GetCachedInboxWorkbook = ResolveInboxWorkbookForEventType(...)
-    If Not GetCachedInboxWorkbook Is Nothing Then
-        mInboxCache(fullPath) = GetCachedInboxWorkbook
-        mInboxDirty(fullPath) = False
-    End If
-End Function
-
-Public Sub FlushInboxCache()
-    ' Called by: App_WorkbookBeforeClose, ribbon "Flush", OnTime timer
-    If mInboxCache Is Nothing Then Exit Sub
-    Dim key As Variant
-    For Each key In mInboxCache.Keys
-        If mInboxDirty.Exists(CStr(key)) Then
-            If CBool(mInboxDirty(CStr(key))) Then
-                SaveWorkbookRole mInboxCache(CStr(key))
-                mInboxDirty(CStr(key)) = False
-            End If
-        End If
-    Next key
-End Sub
-```
-
-### Layer 3 — Background sync (Option B sync side)
-
-```vba
-Public Sub SyncStagingToNasInbox()
-    ' Called by: FlushInboxCache, OnTime timer, or processor pre-run hook
-    Dim stagingFiles As Variant
-    Dim i As Long
-
-    stagingFiles = ResolvePendingStagingFilesRole()
-    If IsEmpty(stagingFiles) Then Exit Sub
-
-    For i = LBound(stagingFiles) To UBound(stagingFiles)
-        MergeOneStagingFileToNas CStr(stagingFiles(i))
-    Next i
-End Sub
-
-Private Sub MergeOneStagingFileToNas(ByVal stagingPath As String)
-    ' 1. Read all lines from staging file
-    ' 2. Open NAS inbox (via cache)
-    ' 3. For each line: parse JSON, check EventID not already in inbox, append row
-    ' 4. Delete or archive the staging file on success
-    ' 5. Mark NAS inbox dirty → FlushInboxCache will save it
-End Sub
-```
-
-### Wiring it into `QueueEventCore`
-
-The revised write sequence becomes:
-
-```vba
-' Step 1: always write local staging (fast, offline-safe)
-If Not AppendToLocalStagingInbox(eventType, resolvedWh, resolvedSt, rowDict, errorMessage) Then
-    GoTo CleanExit   ' even local write failed — rare, surface the error
-End If
-
-' Return success to the caller immediately
-QueueEventCore = True
-eventIdOut = rowDict("EventID")
-
-' Step 2: attempt NAS sync opportunistically (non-blocking if NAS is down)
-On Error Resume Next
-SyncStagingToNasInbox
-On Error GoTo 0
-```
-
-## Failure Modes Covered
-
-| Scenario | Outcome |
-|---|---|
-| NAS down during click | Local staging succeeds; click returns in ~5 ms; NAS sync retried on next click or timer |
-| Excel crashes before NAS flush | Staging `.jsonl` survives on disk; sync runs on next session open |
-| NAS inbox locked by processor | Local staging buffers; sync waits for lock release |
-| Station offline for hours | All events accumulate in staging; bulk-merged when NAS reconnects |
-| Duplicate sync (crash mid-merge) | EventID dedup check in `MergeOneStagingFileToNas` makes it idempotent |
-
-## How This Shapes the R2 F# Design
-
-This two-layer model maps almost directly onto what R2 would do natively.  The local staging `.jsonl` file *becomes* the R2 inbox format — the F# processor just reads it directly instead of requiring a merge step. The VBA merge layer (`SyncStagingToNasInbox`) effectively becomes a no-op in R2 because the processor reads from the same append-only file the writer produces. So implementing Option A+B in R1 VBA also pre-shapes the on-disk format toward what R2 expects, making the migration cheaper.
+The Phase 6 tests that already pass (PASSED=21) don't cover any of the seven failure scenarios listed in the problem report, so all six of the above groups would be net-new coverage. 

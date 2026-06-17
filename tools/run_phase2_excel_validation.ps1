@@ -194,9 +194,12 @@ try {
     & (Join-Path $repo "tools/create_phase2_fixture_xlsx.ps1") -OutputDir $fixtures | Out-Null
 
     $modulePaths = @(
+        (Join-Path $repo "src/Core/ClassModules/WarehouseTarget.cls"),
         (Join-Path $repo "src/Core/Modules/modConfigDefaults.bas"),
+        (Join-Path $repo "src/Core/Modules/modDeploymentPaths.bas"),
         (Join-Path $repo "src/Core/Modules/modConfig.bas"),
         (Join-Path $repo "src/Core/Modules/modRuntimeWorkbooks.bas"),
+        (Join-Path $repo "src/Core/Modules/modNasConnection.bas"),
         (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
         (Join-Path $repo "src/Core/Modules/modLockManager.bas"),
@@ -239,6 +242,7 @@ try {
         "TestInventoryApply.TestApplyReceive_RebuildsProjectionTables",
         "TestInventoryApply.TestResolveInventoryWorkbook_UsesConfiguredPathDataRoot",
         "TestInventoryApply.TestApplyShip_MultiLineEvent",
+        "TestInventoryApply.TestApplyShipReserveAndReleaseEvents",
         "TestInventoryApply.TestApplyProdConsume_MultiLineEvent",
         "TestInventoryApply.TestApplyProdComplete_MultiLineEvent",
         "TestCoreProcessor.TestRunBatch_ProcessesInboxRow",

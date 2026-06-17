@@ -4546,7 +4546,13 @@ CleanFail:
 End Function
 
 Private Function GetTableValue(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String) As Variant
-    GetTableValue = lo.DataBodyRange.Cells(rowIndex, lo.ListColumns(columnName).Index).Value
+    Dim colIndex As Long
+
+    colIndex = GetTableColumnIndexForTest(lo, columnName)
+    If colIndex = 0 Then Err.Raise vbObjectError + 7198, "GetTableValue", "Column '" & columnName & "' was not found in table '" & TableNameForTest(lo) & "'."
+    If lo.DataBodyRange Is Nothing Or rowIndex < 1 Or rowIndex > lo.ListRows.Count Then _
+        Err.Raise vbObjectError + 7198, "GetTableValue", "Row " & CStr(rowIndex) & " was not available in table '" & TableNameForTest(lo) & "'."
+    GetTableValue = lo.DataBodyRange.Cells(rowIndex, colIndex).Value
 End Function
 
 Private Function AssertLanWorkbookState(ByVal wbOps As Workbook, _
@@ -5031,7 +5037,11 @@ Private Sub AddShippingTallyRow(ByVal lo As ListObject, _
     Dim lr As ListRow
 
     If lo Is Nothing Then Exit Sub
-    Set lr = lo.ListRows(1)
+    If lo.DataBodyRange Is Nothing Or lo.ListRows.Count = 0 Then
+        Set lr = lo.ListRows.Add
+    Else
+        Set lr = lo.ListRows(1)
+    End If
     SetTableCell lo, lr.Index, "REF_NUMBER", refNumber
     SetTableCell lo, lr.Index, "ITEMS", itemName
     SetTableCell lo, lr.Index, "QUANTITY", qty
@@ -5174,9 +5184,35 @@ Private Sub AddAdminAuditRow(ByVal lo As ListObject, _
 End Sub
 
 Private Sub SetTableCell(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueIn As Variant)
+    Dim colIndex As Long
+
     If lo Is Nothing Then Exit Sub
-    lo.DataBodyRange.Cells(rowIndex, lo.ListColumns(columnName).Index).Value = valueIn
+    colIndex = GetTableColumnIndexForTest(lo, columnName)
+    If colIndex = 0 Then Err.Raise vbObjectError + 7198, "SetTableCell", "Column '" & columnName & "' was not found in table '" & TableNameForTest(lo) & "'."
+    If lo.DataBodyRange Is Nothing Or rowIndex < 1 Or rowIndex > lo.ListRows.Count Then _
+        Err.Raise vbObjectError + 7198, "SetTableCell", "Row " & CStr(rowIndex) & " was not available in table '" & TableNameForTest(lo) & "'."
+    lo.DataBodyRange.Cells(rowIndex, colIndex).Value = valueIn
 End Sub
+
+Private Function GetTableColumnIndexForTest(ByVal lo As ListObject, ByVal columnName As String) As Long
+    Dim i As Long
+
+    If lo Is Nothing Then Exit Function
+    For i = 1 To lo.ListColumns.Count
+        If StrComp(CStr(lo.ListColumns(i).Name), columnName, vbTextCompare) = 0 Then
+            GetTableColumnIndexForTest = i
+            Exit Function
+        End If
+    Next i
+End Function
+
+Private Function TableNameForTest(ByVal lo As ListObject) As String
+    If lo Is Nothing Then
+        TableNameForTest = "<nothing>"
+    Else
+        TableNameForTest = lo.Name
+    End If
+End Function
 
 Private Sub SetConfigWarehouseValue(ByVal workbookName As String, ByVal columnName As String, ByVal valueIn As Variant)
     Dim wb As Workbook

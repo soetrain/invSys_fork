@@ -12,6 +12,7 @@ Public Sub RunInventoryApplyTests()
     Tally TestApplyReceive_RebuildsProjectionTables(), passed, failed
     Tally TestResolveInventoryWorkbook_UsesConfiguredPathDataRoot(), passed, failed
     Tally TestApplyShip_MultiLineEvent(), passed, failed
+    Tally TestApplyShipReserveAndReleaseEvents(), passed, failed
     Tally TestApplyProdConsume_MultiLineEvent(), passed, failed
     Tally TestApplyProdComplete_MultiLineEvent(), passed, failed
 
@@ -227,6 +228,42 @@ Public Function TestApplyShip_MultiLineEvent() As Long
     If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> -2 Then GoTo CleanExit
 
     TestApplyShip_MultiLineEvent = 1
+
+CleanExit:
+    TestPhase2Helpers.CloseNoSave wbInv
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
+Public Function TestApplyShipReserveAndReleaseEvents() As Long
+    Dim wbInv As Workbook
+    Dim evtReserve As Object
+    Dim evtRelease As Object
+    Dim payloadJson As String
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+    Dim loLog As ListObject
+
+    Set wbInv = TestPhase2Helpers.BuildPhase2InventoryWorkbook("WH1", Array("SKU-RESERVE"))
+    payloadJson = TestPhase2Helpers.BuildPayloadJson( _
+        TestPhase2Helpers.CreatePayloadItem(101, "SKU-RESERVE", 3, "DOCK", "reserve shipment", "RESERVED"))
+    Set evtReserve = TestPhase2Helpers.CreatePayloadEvent("EVT-SHIP-RESERVE-001", EVENT_TYPE_SHIP_RESERVE, "WH1", "S1", "user1", payloadJson)
+    Set evtRelease = TestPhase2Helpers.CreatePayloadEvent("EVT-SHIP-RELEASE-001", EVENT_TYPE_SHIP_RELEASE, "WH1", "S1", "user1", payloadJson)
+
+    On Error GoTo CleanFail
+    If Not modInventoryApply.ApplyEvent(evtReserve, wbInv, "RUN-001", statusOut, errorCode, errorMessage) Then GoTo CleanExit
+    If Not modInventoryApply.ApplyEvent(evtRelease, wbInv, "RUN-002", statusOut, errorCode, errorMessage) Then GoTo CleanExit
+
+    Set loLog = wbInv.Worksheets("InventoryLog").ListObjects("tblInventoryLog")
+    If loLog.ListRows.Count <> 2 Then GoTo CleanExit
+    If CStr(TestPhase2Helpers.GetRowValue(loLog, 1, "EventType")) <> EVENT_TYPE_SHIP_RESERVE Then GoTo CleanExit
+    If CStr(TestPhase2Helpers.GetRowValue(loLog, 2, "EventType")) <> EVENT_TYPE_SHIP_RELEASE Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 1, "QtyDelta")) <> -3 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> 3 Then GoTo CleanExit
+
+    TestApplyShipReserveAndReleaseEvents = 1
 
 CleanExit:
     TestPhase2Helpers.CloseNoSave wbInv

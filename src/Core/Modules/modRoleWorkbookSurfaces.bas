@@ -44,8 +44,8 @@ Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workboo
     MoveTableToSheetSurface wb, "AggregateBoxBOM_Log", SHIPPING_BACKEND_SHEET
     MoveTableToSheetSurface wb, "AggregatePackages_Log", SHIPPING_BACKEND_SHEET
 
-    EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "ShipmentsTally", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION", "AREA", "CARRIER"), True
-    EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "NotShipped", Array("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION", "AREA", "CARRIER"), False
+    EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "ShipmentsTally", Array("LINE_ID", "SERVER_RESERVE_EVENT_ID", "REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION", "AREA", "CARRIER"), True
+    EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "NotShipped", Array("LINE_ID", "SERVER_RESERVE_EVENT_ID", "REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION", "AREA", "CARRIER"), False
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "AggregateBoxBOM", Array("ROW", "ITEM_CODE", "ITEM", "QUANTITY", "UOM", "LOCATION"), False
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "AggregatePackages", Array("ROW", "ITEM_CODE", "ITEM", "QUANTITY", "UOM", "LOCATION"), False
     EnsureTableSurface wb, "ShipmentsTally", "BoxBuilder", Array("Box Name", "UOM", "LOCATION", "DESCRIPTION"), True
@@ -395,14 +395,14 @@ Private Sub ArrangeShippingBackendTablesSurface(ByVal wb As Workbook)
     ws.Visible = xlSheetVisible
 
     MoveTableTopLeftSurface ws, "ShipmentsTally", "A1"
-    MoveTableTopLeftSurface ws, "NotShipped", "J1"
-    MoveTableTopLeftSurface ws, "AggregateBoxBOM", "S1"
-    MoveTableTopLeftSurface ws, "AggregatePackages", "AA1"
-    MoveTableTopLeftSurface ws, "Check_invSys", "AI1"
-    MoveTableTopLeftSurface ws, "invSysData_Shipping", "AT1"
-    MoveTableTopLeftSurface ws, "ShippingBOMView", "CJ1"
-    MoveTableTopLeftSurface ws, "AggregateBoxBOM_Log", "DE1"
-    MoveTableTopLeftSurface ws, "AggregatePackages_Log", "DO1"
+    MoveTableTopLeftSurface ws, "NotShipped", "M1"
+    MoveTableTopLeftSurface ws, "AggregateBoxBOM", "Y1"
+    MoveTableTopLeftSurface ws, "AggregatePackages", "AF1"
+    MoveTableTopLeftSurface ws, "Check_invSys", "AM1"
+    MoveTableTopLeftSurface ws, "invSysData_Shipping", "AW1"
+    MoveTableTopLeftSurface ws, "ShippingBOMView", "BT1"
+    MoveTableTopLeftSurface ws, "AggregateBoxBOM_Log", "CO1"
+    MoveTableTopLeftSurface ws, "AggregatePackages_Log", "CY1"
 End Sub
 
 Private Sub HideWorksheetSurface(ByVal wb As Workbook, ByVal sheetName As String)
