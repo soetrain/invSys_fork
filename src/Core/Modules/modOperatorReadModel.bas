@@ -436,6 +436,7 @@ Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Wo
     Dim batchMs As Long
     Dim surfaceMs As Long
     Dim refreshMs As Long
+    Dim publishReport As String
 
     Set wb = ResolveOperatorWorkbook(targetWb)
     If wb Is Nothing Then
@@ -463,6 +464,14 @@ Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Wo
                  "BatchReport=" & batchReport & " RefreshReport=Skipped (batch did not process); " & _
                  FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, 0, 0)
         GoTo CleanExit
+    End If
+    If processedCount > 0 Then
+        If Not modInventoryDomainBridge.PublishInventorySnapshotBridge(resolvedWarehouseId, Nothing, publishReport) Then
+            report = "RunBatch processed queued event, but snapshot publish failed. " & _
+                     "BatchReport=" & batchReport & " PublishReport=" & publishReport & " RefreshReport=Skipped; " & _
+                     FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, 0, 0)
+            GoTo CleanExit
+        End If
     End If
 
     segmentTimer = Timer

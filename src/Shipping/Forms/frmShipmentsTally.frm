@@ -538,8 +538,17 @@ Private Sub mChkUseExisting_Click()
 End Sub
 
 Private Sub mBtnRefresh_Click()
+    Dim report As String
+    Dim ok As Boolean
+
+    ok = modTS_Shipments.ShipmentsFormRefreshRuntimeInventory(report)
     InitializeFromShipping
-    ShowStatus "Shipments form refreshed."
+    If Trim$(report) <> "" Then
+        ShowStatus "Shipments form refreshed. " & report
+    Else
+        ShowStatus "Shipments form refreshed."
+    End If
+    If Not ok And Trim$(report) <> "" Then MsgBox report, vbExclamation
 End Sub
 
 Private Sub mBtnAdd_Click()

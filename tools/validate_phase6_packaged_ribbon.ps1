@@ -236,16 +236,9 @@ $ribbonSpecs = @(
             @{ Id = "btnShippingConnectServer"; Label = "Connect Server"; DirectAction = 'modRoleEventWriter.ConnectWarehouseStorageForCapability "SHIP_POST"'; Execute = $false },
             @{ Id = "btnShippingCurrentUser"; GetLabel = "RibbonCurrentUserGetLabel"; DirectAction = 'modRoleEventWriter.PromptSetCurrentUserForCapability "SHIP_POST"'; Execute = $false; Screentip = "Sign in as an invSys user" },
             @{ Id = "btnShippingSignOut"; Label = "Sign Out"; DirectAction = "modRoleEventWriter.SignOutCurrentUser"; Execute = $false },
-            @{ Id = "btnShippingSetup"; Label = "Setup UI"; Macro = "modTS_Shipments.InitializeShipmentsUI"; Execute = $false; RequiredCapability = "SHIP_POST" },
-            @{ Id = "btnShippingBoxMode"; GetLabel = "RibbonBoxMakerModeGetLabel"; Macro = "modTS_Shipments.BtnSwitchToBoxMaker"; Execute = $false; RequiredCapability = "SHIP_POST" },
-            @{ Id = "btnShippingSaveBox"; Label = "Save Box"; Macro = "modTS_Shipments.BtnSaveBox"; Execute = $false; RequiredCapability = "SHIP_POST" },
-            @{ Id = "btnShippingDeleteBoxVersion"; Label = "Delete Version"; Macro = "modTS_Shipments.BtnDeleteBoxVersion"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
-            @{ Id = "btnShippingDeleteBox"; Label = "Delete Box"; Macro = "modTS_Shipments.BtnDeleteBox"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
-            @{ Id = "btnShippingConfirm"; Label = "Confirm Inventory"; Macro = "modTS_Shipments.BtnConfirmInventory"; Execute = $false; RequiredCapability = "SHIP_POST" },
-            @{ Id = "btnShippingBoxCreated"; Label = "Box Created"; Macro = "modTS_Shipments.BtnBoxCreated"; Execute = $false; RequiredCapability = "SHIP_POST" },
-            @{ Id = "btnShippingBoxUnboxed"; Label = "Box Unboxed"; Macro = "modTS_Shipments.BtnBoxUnboxed"; Execute = $false; RequiredCapability = "SHIP_POST" },
-            @{ Id = "btnShippingStage"; Label = "To Shipments"; Macro = "modTS_Shipments.BtnToShipments"; Execute = $false; RequiredCapability = "SHIP_POST" },
-            @{ Id = "btnShippingSend"; Label = "Shipments Sent"; Macro = "modTS_Shipments.BtnShipmentsSent"; Execute = $false; RequiredCapability = "SHIP_POST" }
+            @{ Id = "btnShippingShipmentsForm"; Label = "Shipments"; Macro = "modTS_Shipments.BtnOpenShipmentsForm"; Execute = $false; RequiredCapability = "SHIP_POST" },
+            @{ Id = "btnShippingBoxBuilderForm"; Label = "Box Builder"; Macro = "modTS_Shipments.BtnOpenBoxBuilder"; Execute = $false; RequiredCapability = "SHIP_POST" },
+            @{ Id = "btnShippingBoxMakerForm"; Label = "Box Maker"; Macro = "modTS_Shipments.BtnOpenBoxMaker"; Execute = $false; RequiredCapability = "SHIP_POST" }
         )
     }
     @{

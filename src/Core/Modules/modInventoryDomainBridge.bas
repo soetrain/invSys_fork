@@ -99,6 +99,37 @@ Public Sub ScheduleSourceWorkbookSyncBridge()
     On Error GoTo 0
 End Sub
 
+Public Function PublishInventorySnapshotBridge(Optional ByVal warehouseId As String = "", _
+                                               Optional ByVal inventoryWb As Workbook = Nothing, _
+                                               Optional ByRef report As String = "") As Boolean
+    Dim encoded As String
+    Dim parts() As String
+    Dim i As Long
+
+    On Error GoTo FailPublish
+    If inventoryWb Is Nothing Then Set inventoryWb = ResolveInventoryWorkbookBridge(warehouseId)
+    If inventoryWb Is Nothing Then
+        report = "Canonical runtime inventory workbook could not be resolved."
+        Exit Function
+    End If
+
+    encoded = CStr(RunInventoryDomainMacro1("modInventoryBridgeApi.PublishInventorySnapshotBridgeEncoded", inventoryWb))
+    If encoded = "" Then Exit Function
+    parts = Split(encoded, vbTab)
+    If UBound(parts) >= 0 Then PublishInventorySnapshotBridge = (Trim$(parts(0)) = "1")
+    If UBound(parts) >= 1 Then
+        report = parts(1)
+        For i = 2 To UBound(parts)
+            report = report & vbTab & parts(i)
+        Next i
+    End If
+    Exit Function
+
+FailPublish:
+    report = Err.Description
+    PublishInventorySnapshotBridge = False
+End Function
+
 Private Function RunInventoryDomainMacro0(ByVal macroName As String) As Variant
     RunInventoryDomainMacro0 = RunInventoryDomainMacroFallback0(macroName)
 End Function

@@ -1,9 +1,9 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-06-18 09:44:06
-- Passed: 15
+- Date: 2026-06-18 09:03:26
+- Passed: 18
 - Failed: 0
-- Range: 119-133 of 151
+- Range: 119-136 of 151
 
 | Test | Result |
 |---|---|
@@ -22,3 +22,6 @@
 | TestPhase6CoreSurfaces.TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatchesUp | PASS |
 | TestPhase6CoreSurfaces.TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected | PASS |
 | TestPhase6CoreSurfaces.TestShippingReservationTotals_IgnoreSameWorkbookStaleActiveReservationWithoutLocalLine | PASS |
+| TestPhase6CoreSurfaces.TestShippingReservationTotals_IgnoreLocallySentActiveLedgerRows | PASS |
+| TestPhase6CoreSurfaces.TestSavedProductionWorkbook_RefreshPreservesStagingAndLogs | PASS |
+| TestPhase6CoreSurfaces.TestSavedProductionWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs | PASS |

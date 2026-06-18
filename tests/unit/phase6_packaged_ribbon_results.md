@@ -1,9 +1,9 @@
 # Phase 6 Packaged Ribbon Validation Results
 
-- Date: 2026-06-16 17:19:58
+- Date: 2026-06-17 20:10:00
 - Deploy root: C:\Users\justu\source\repos\invSys_fork\deploy\current
-- Runtime root override: C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-7726d6288a024205a3d98e57291b43eb
-- Passed: 233
+- Runtime root override: C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-f87112eb26014a4083633454afade1d3
+- Passed: 191
 - Failed: 0
 
 | Check | Result | Detail |
@@ -15,7 +15,7 @@
 | invSys.Shipping.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Shipping.xlam |
 | invSys.Production.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Production.xlam |
 | invSys.Admin.xlam.Open | PASS | Opened from C:\Users\justu\source\repos\invSys_fork\deploy\current\invSys.Admin.xlam |
-| Core.RuntimeRootOverride | PASS | C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-7726d6288a024205a3d98e57291b43eb |
+| Core.RuntimeRootOverride | PASS | C:\Users\justu\AppData\Local\Temp\invsys-phase6-ribbon-f87112eb26014a4083633454afade1d3 |
 | Receiving.RibbonXml | PASS | customUI/customUI.xml present. |
 | Receiving.CallbackModule | PASS | modRibbonGenerated |
 | Receiving.StatusLabel.lblReceivingServerStatus | PASS | GetLabel=RibbonServerStatusGetLabel |
@@ -62,66 +62,24 @@
 | Shipping.CallbackMap.btnShippingCurrentUser | PASS | btnShippingCurrentUser -> modRoleEventWriter.PromptSetCurrentUserForCapability "SHIP_POST" |
 | Shipping.RibbonButton.btnShippingSignOut | PASS | Label=Sign Out; OnAction=RibbonOnActionShipping; GetEnabled=; Screentip=Sign out of invSys without disconnecting storage |
 | Shipping.CallbackMap.btnShippingSignOut | PASS | btnShippingSignOut -> modRoleEventWriter.SignOutCurrentUser |
-| Shipping.RibbonButton.btnShippingSetup | PASS | Label=Setup UI; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
-| Shipping.RibbonButtonGetEnabled.btnShippingSetup | PASS | RibbonRequiredCapabilityGetEnabledShipping |
-| Shipping.MacroExists.btnShippingSetup | PASS | modTS_Shipments.InitializeShipmentsUI |
-| Shipping.CallbackMap.btnShippingSetup | PASS | btnShippingSetup -> modTS_Shipments.InitializeShipmentsUI |
-| Shipping.CallbackGetEnabled.btnShippingSetup | PASS | btnShippingSetup -> SHIP_POST |
-| Shipping.DisabledOffline.btnShippingSetup | PASS | btnShippingSetup enabled=False |
-| Shipping.RibbonButton.btnShippingBoxMode | PASS | Label=; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
-| Shipping.RibbonButtonGetEnabled.btnShippingBoxMode | PASS | RibbonRequiredCapabilityGetEnabledShipping |
-| Shipping.MacroExists.btnShippingBoxMode | PASS | modTS_Shipments.BtnSwitchToBoxMaker |
-| Shipping.CallbackMap.btnShippingBoxMode | PASS | btnShippingBoxMode -> modTS_Shipments.BtnSwitchToBoxMaker |
-| Shipping.CallbackGetEnabled.btnShippingBoxMode | PASS | btnShippingBoxMode -> SHIP_POST |
-| Shipping.DisabledOffline.btnShippingBoxMode | PASS | btnShippingBoxMode enabled=False |
-| Shipping.RibbonButton.btnShippingSaveBox | PASS | Label=Save Box; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
-| Shipping.RibbonButtonGetEnabled.btnShippingSaveBox | PASS | RibbonRequiredCapabilityGetEnabledShipping |
-| Shipping.MacroExists.btnShippingSaveBox | PASS | modTS_Shipments.BtnSaveBox |
-| Shipping.CallbackMap.btnShippingSaveBox | PASS | btnShippingSaveBox -> modTS_Shipments.BtnSaveBox |
-| Shipping.CallbackGetEnabled.btnShippingSaveBox | PASS | btnShippingSaveBox -> SHIP_POST |
-| Shipping.DisabledOffline.btnShippingSaveBox | PASS | btnShippingSaveBox enabled=False |
-| Shipping.RibbonButton.btnShippingDeleteBoxVersion | PASS | Label=Delete Version; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
-| Shipping.RibbonButtonGetEnabled.btnShippingDeleteBoxVersion | PASS | RibbonRequiredCapabilityGetEnabledShipping |
-| Shipping.MacroExists.btnShippingDeleteBoxVersion | PASS | modTS_Shipments.BtnDeleteBoxVersion |
-| Shipping.CallbackMap.btnShippingDeleteBoxVersion | PASS | btnShippingDeleteBoxVersion -> modTS_Shipments.BtnDeleteBoxVersion |
-| Shipping.CallbackGetEnabled.btnShippingDeleteBoxVersion | PASS | btnShippingDeleteBoxVersion -> ADMIN_MAINT |
-| Shipping.DisabledOffline.btnShippingDeleteBoxVersion | PASS | btnShippingDeleteBoxVersion enabled=False |
-| Shipping.RibbonButton.btnShippingDeleteBox | PASS | Label=Delete Box; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
-| Shipping.RibbonButtonGetEnabled.btnShippingDeleteBox | PASS | RibbonRequiredCapabilityGetEnabledShipping |
-| Shipping.MacroExists.btnShippingDeleteBox | PASS | modTS_Shipments.BtnDeleteBox |
-| Shipping.CallbackMap.btnShippingDeleteBox | PASS | btnShippingDeleteBox -> modTS_Shipments.BtnDeleteBox |
-| Shipping.CallbackGetEnabled.btnShippingDeleteBox | PASS | btnShippingDeleteBox -> ADMIN_MAINT |
-| Shipping.DisabledOffline.btnShippingDeleteBox | PASS | btnShippingDeleteBox enabled=False |
-| Shipping.RibbonButton.btnShippingConfirm | PASS | Label=Confirm Inventory; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
-| Shipping.RibbonButtonGetEnabled.btnShippingConfirm | PASS | RibbonRequiredCapabilityGetEnabledShipping |
-| Shipping.MacroExists.btnShippingConfirm | PASS | modTS_Shipments.BtnConfirmInventory |
-| Shipping.CallbackMap.btnShippingConfirm | PASS | btnShippingConfirm -> modTS_Shipments.BtnConfirmInventory |
-| Shipping.CallbackGetEnabled.btnShippingConfirm | PASS | btnShippingConfirm -> SHIP_POST |
-| Shipping.DisabledOffline.btnShippingConfirm | PASS | btnShippingConfirm enabled=False |
-| Shipping.RibbonButton.btnShippingBoxCreated | PASS | Label=Box Created; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
-| Shipping.RibbonButtonGetEnabled.btnShippingBoxCreated | PASS | RibbonRequiredCapabilityGetEnabledShipping |
-| Shipping.MacroExists.btnShippingBoxCreated | PASS | modTS_Shipments.BtnBoxCreated |
-| Shipping.CallbackMap.btnShippingBoxCreated | PASS | btnShippingBoxCreated -> modTS_Shipments.BtnBoxCreated |
-| Shipping.CallbackGetEnabled.btnShippingBoxCreated | PASS | btnShippingBoxCreated -> SHIP_POST |
-| Shipping.DisabledOffline.btnShippingBoxCreated | PASS | btnShippingBoxCreated enabled=False |
-| Shipping.RibbonButton.btnShippingBoxUnboxed | PASS | Label=Box Unboxed; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
-| Shipping.RibbonButtonGetEnabled.btnShippingBoxUnboxed | PASS | RibbonRequiredCapabilityGetEnabledShipping |
-| Shipping.MacroExists.btnShippingBoxUnboxed | PASS | modTS_Shipments.BtnBoxUnboxed |
-| Shipping.CallbackMap.btnShippingBoxUnboxed | PASS | btnShippingBoxUnboxed -> modTS_Shipments.BtnBoxUnboxed |
-| Shipping.CallbackGetEnabled.btnShippingBoxUnboxed | PASS | btnShippingBoxUnboxed -> SHIP_POST |
-| Shipping.DisabledOffline.btnShippingBoxUnboxed | PASS | btnShippingBoxUnboxed enabled=False |
-| Shipping.RibbonButton.btnShippingStage | PASS | Label=To Shipments; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
-| Shipping.RibbonButtonGetEnabled.btnShippingStage | PASS | RibbonRequiredCapabilityGetEnabledShipping |
-| Shipping.MacroExists.btnShippingStage | PASS | modTS_Shipments.BtnToShipments |
-| Shipping.CallbackMap.btnShippingStage | PASS | btnShippingStage -> modTS_Shipments.BtnToShipments |
-| Shipping.CallbackGetEnabled.btnShippingStage | PASS | btnShippingStage -> SHIP_POST |
-| Shipping.DisabledOffline.btnShippingStage | PASS | btnShippingStage enabled=False |
-| Shipping.RibbonButton.btnShippingSend | PASS | Label=Shipments Sent; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
-| Shipping.RibbonButtonGetEnabled.btnShippingSend | PASS | RibbonRequiredCapabilityGetEnabledShipping |
-| Shipping.MacroExists.btnShippingSend | PASS | modTS_Shipments.BtnShipmentsSent |
-| Shipping.CallbackMap.btnShippingSend | PASS | btnShippingSend -> modTS_Shipments.BtnShipmentsSent |
-| Shipping.CallbackGetEnabled.btnShippingSend | PASS | btnShippingSend -> SHIP_POST |
-| Shipping.DisabledOffline.btnShippingSend | PASS | btnShippingSend enabled=False |
+| Shipping.RibbonButton.btnShippingShipmentsForm | PASS | Label=Shipments; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
+| Shipping.RibbonButtonGetEnabled.btnShippingShipmentsForm | PASS | RibbonRequiredCapabilityGetEnabledShipping |
+| Shipping.MacroExists.btnShippingShipmentsForm | PASS | modTS_Shipments.BtnOpenShipmentsForm |
+| Shipping.CallbackMap.btnShippingShipmentsForm | PASS | btnShippingShipmentsForm -> modTS_Shipments.BtnOpenShipmentsForm |
+| Shipping.CallbackGetEnabled.btnShippingShipmentsForm | PASS | btnShippingShipmentsForm -> SHIP_POST |
+| Shipping.DisabledOffline.btnShippingShipmentsForm | PASS | btnShippingShipmentsForm enabled=False |
+| Shipping.RibbonButton.btnShippingBoxBuilderForm | PASS | Label=Box Builder; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
+| Shipping.RibbonButtonGetEnabled.btnShippingBoxBuilderForm | PASS | RibbonRequiredCapabilityGetEnabledShipping |
+| Shipping.MacroExists.btnShippingBoxBuilderForm | PASS | modTS_Shipments.BtnOpenBoxBuilder |
+| Shipping.CallbackMap.btnShippingBoxBuilderForm | PASS | btnShippingBoxBuilderForm -> modTS_Shipments.BtnOpenBoxBuilder |
+| Shipping.CallbackGetEnabled.btnShippingBoxBuilderForm | PASS | btnShippingBoxBuilderForm -> SHIP_POST |
+| Shipping.DisabledOffline.btnShippingBoxBuilderForm | PASS | btnShippingBoxBuilderForm enabled=False |
+| Shipping.RibbonButton.btnShippingBoxMakerForm | PASS | Label=Box Maker; OnAction=RibbonOnActionShipping; GetEnabled=RibbonRequiredCapabilityGetEnabledShipping; Screentip= |
+| Shipping.RibbonButtonGetEnabled.btnShippingBoxMakerForm | PASS | RibbonRequiredCapabilityGetEnabledShipping |
+| Shipping.MacroExists.btnShippingBoxMakerForm | PASS | modTS_Shipments.BtnOpenBoxMaker |
+| Shipping.CallbackMap.btnShippingBoxMakerForm | PASS | btnShippingBoxMakerForm -> modTS_Shipments.BtnOpenBoxMaker |
+| Shipping.CallbackGetEnabled.btnShippingBoxMakerForm | PASS | btnShippingBoxMakerForm -> SHIP_POST |
+| Shipping.DisabledOffline.btnShippingBoxMakerForm | PASS | btnShippingBoxMakerForm enabled=False |
 | Production.RibbonXml | PASS | customUI/customUI.xml present. |
 | Production.CallbackModule | PASS | modRibbonGenerated |
 | Production.StatusLabel.lblProductionServerStatus | PASS | GetLabel=RibbonServerStatusGetLabel |

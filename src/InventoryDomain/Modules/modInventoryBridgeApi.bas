@@ -84,3 +84,11 @@ Public Sub ScheduleSourceWorkbookSyncBridgeResult()
     Application.Run "'" & ThisWorkbook.Name & "'!modInventoryInit.ScheduleSourceWorkbookSync"
     On Error GoTo 0
 End Sub
+
+Public Function PublishInventorySnapshotBridgeEncoded(Optional ByVal targetWb As Workbook = Nothing) As String
+    Dim report As String
+    Dim success As Boolean
+
+    success = modInventoryPublisher.EnsureSnapshotPublicationForWorkbook(targetWb, report)
+    PublishInventorySnapshotBridgeEncoded = CStr(Abs(CLng(success))) & vbTab & report
+End Function

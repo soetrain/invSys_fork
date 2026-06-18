@@ -4848,6 +4848,137 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim eventIdOut As String
+    Dim payloadJson As String
+    Dim wbInv As Workbook
+    Dim wbInbox As Workbook
+    Dim wbSnap As Workbook
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loBomView As ListObject
+    Dim invRow As Long
+    Dim evt As Object
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+    Dim savedBoxes(1 To 1, 1 To 7) As Variant
+    Dim shippables As Variant
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_reserve_refresh_nas")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH102", "S31", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH102", Array("SKU-SHIP-RESERVE-CATCHUP"))
+    Set wbInbox = CreateCanonicalShipInboxWorkbookForTest(rootPath, "S31")
+    If wbInv Is Nothing Or wbInbox Is Nothing Then
+        failureReason = "Canonical shipping runtime workbooks could not be created."
+        GoTo CleanExit
+    End If
+    Set evt = CreateReceiveEventForTest("EVT-SHIP-RESERVE-CATCHUP-SEED", "WH102", "S31", currentUser, "SKU-SHIP-RESERVE-CATCHUP", 10, "A1", "shipping reserve catch-up seed")
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-SHIP-RESERVE-CATCHUP-SEED", statusOut, errorCode, errorMessage) Then
+        failureReason = "Canonical shipping seed event failed: " & errorCode & "; " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set wbSnap = CreateSnapshotWorkbook(rootPath, "WH102", "SKU-SHIP-RESERVE-CATCHUP", 10, CDate("2026-03-25 12:15:00"), 10, "A1=10", "T27", "EA", "A1", "", "", "", "", "986")
+    If wbSnap Is Nothing Then
+        failureReason = "Stale snapshot workbook could not be created."
+        GoTo CleanExit
+    End If
+    wbSnap.Close SaveChanges:=False
+    Set wbSnap = Nothing
+
+    payloadJson = modRoleEventWriter.BuildPayloadJson( _
+        modRoleEventWriter.CreatePayloadItem(986, _
+                                             "SKU-SHIP-RESERVE-CATCHUP", _
+                                             1, _
+                                             "A1", _
+                                             "v1"))
+    If Not modRoleEventWriter.QueuePayloadEvent(CORE_EVENT_TYPE_SHIP_RESERVE, "WH102", "S31", currentUser, payloadJson, "reserve-refresh-nas", "", "", Now, wbInbox, eventIdOut, report) Then
+        failureReason = "QueuePayloadEvent failed for shipping reserve: " & report
+        GoTo CleanExit
+    End If
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureShippingWorkbookSurface failed: " & report
+        GoTo CleanExit
+    End If
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loBomView Is Nothing Then
+        failureReason = "Shipping operator surface tables were missing."
+        GoTo CleanExit
+    End If
+    AddInvSysSeedRow loInv, 986, "SKU-SHIP-RESERVE-CATCHUP", "T27", "EA", "A1", 10
+    AddShippingBomViewRow loBomView, 986, "T27", 986, "T27", 1, "EA"
+
+    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(wbOps, "WH102", "LOCAL", report) Then
+        failureReason = "RunBatchAndRefreshOperatorWorkbook failed after shipping reserve: " & report
+        GoTo CleanExit
+    End If
+    Set loInv = FindTableByName(wbOps, "invSys")
+    invRow = FindRowByColumnValueInTable(loInv, "ITEM_CODE", "SKU-SHIP-RESERVE-CATCHUP")
+    If invRow = 0 Then
+        failureReason = "Operator invSys row was missing after reserve refresh."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "TOTAL INV")) <> 9 Then
+        failureReason = "Reserve processor refresh left NAS inventory stale; expected 9 but found " & CStr(GetTableValue(loInv, invRow, "TOTAL INV")) & "."
+        GoTo CleanExit
+    End If
+
+    savedBoxes(1, 1) = 986
+    savedBoxes(1, 2) = "T27"
+    savedBoxes(1, 3) = "T27"
+    savedBoxes(1, 4) = "EA"
+    savedBoxes(1, 5) = "A1"
+    savedBoxes(1, 6) = ""
+    savedBoxes(1, 7) = ""
+
+    wbOps.Activate
+    shippables = RunShippingMacro1ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes)
+    If IsEmpty(shippables) Then
+        failureReason = "Shippable version inventory returned no rows after reserve refresh."
+        GoTo CleanExit
+    End If
+    If CDbl(NzDblForTest(shippables(1, 4))) <> 9 Then
+        failureReason = "Shipping form NAS Inv did not catch up to projected reserve; expected 9 but found " & CStr(shippables(1, 4)) & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH102"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbInv
+    CloseWorkbookIfOpen FindWorkbookByName("WH102.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH102.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7134, "TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion() As Long
     Dim report As String
     Dim failureReason As String

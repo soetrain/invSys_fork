@@ -247,17 +247,6 @@ ErrHandler:
     MsgBox "BTN_BOX_UNBOXED failed: " & Err.Description, vbCritical
 End Sub
 
-Public Sub RibbonBoxMakerModeGetLabel(control As IRibbonControl, ByRef returnedVal)
-    Dim ws As Worksheet
-
-    Set ws = SheetExists(SHEET_SHIPMENTS)
-    If IsBoxMakerMode(ws) Then
-        returnedVal = "BoxMaker Mode"
-    Else
-        returnedVal = "BoxBuilder Mode"
-    End If
-End Sub
-
 Private Sub NormalizeShippingBootstrapArtifacts(ByVal wb As Workbook)
     Dim ws As Worksheet
 
@@ -5290,6 +5279,37 @@ Public Function ShipmentsFormLoadShippables() As Variant
     ShipmentsFormLoadShippables = BoxMakerFormLoadShippableVersionInventory(savedBoxes)
 End Function
 
+Public Function ShipmentsFormRefreshRuntimeInventory(ByRef report As String) As Boolean
+    On Error GoTo FailSoft
+
+    Dim wb As Workbook
+    Dim runtimeReport As String
+    Dim bomReport As String
+
+    Set wb = ActiveWorkbook
+    If wb Is Nothing Then
+        report = "No active operator workbook to refresh."
+        Exit Function
+    End If
+
+    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(wb, "", "LOCAL", runtimeReport) Then
+        report = runtimeReport
+        Exit Function
+    End If
+    If Not RefreshShippingBomViewForWorkbook(wb, bomReport) Then
+        report = bomReport
+        Exit Function
+    End If
+
+    report = runtimeReport
+    If Trim$(bomReport) <> "" Then AppendNote report, bomReport
+    ShipmentsFormRefreshRuntimeInventory = True
+    Exit Function
+
+FailSoft:
+    report = "Shipments refresh failed: " & Err.Description
+End Function
+
 Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = False) As Variant
     On Error GoTo FailSoft
 
@@ -5574,6 +5594,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             report = errNotes
             GoTo CleanExit
         End If
+        ApplyStageVersionInventoryOverlayFromRows invLo, lo, singleRow
         WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, reserveEventId
         WriteValue lr, "AREA", "Warehouse"
     End If
@@ -6952,12 +6973,44 @@ Private Sub ApplyStageVersionInventoryOverlayFromRows(ByVal invLo As ListObject,
         versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(rowIndex, cDesc).Value))
         If rowVal <= 0 Or qtyVal <= 0 Or versionLabel = "" Then GoTo NextRow
 
-        currentQty = PickerVersionAvailableQty(rowVal, itemName, versionLabel)
-        If currentQty <= 0.0000001 Then currentQty = SingleVersionFallbackAvailableQty(invLo, rowVal, itemName, versionLabel)
-        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, currentQty - qtyVal
+        currentQty = StageVersionInventoryCurrentQty(invLo, rowVal, itemName, versionLabel)
+        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, currentQty
 NextRow:
     Next i
 End Sub
+
+Private Function StageVersionInventoryCurrentQty(ByVal invLo As ListObject, _
+                                                 ByVal rowVal As Long, _
+                                                 ByVal itemName As String, _
+                                                 ByVal versionLabel As String) As Double
+    Dim invIdx As Long
+    Dim totalVal As Variant
+    Dim versionInv As Object
+
+    If rowVal <= 0 Or NormalizeBoxBomVersionLabelShipping(versionLabel) = "" Then Exit Function
+
+    If Not invLo Is Nothing Then
+        invIdx = FindInvRowIndexByRow(invLo, rowVal)
+        If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+        If invIdx > 0 Then
+            totalVal = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
+            If Not IsBlankInventoryValue(totalVal) Then
+                StageVersionInventoryCurrentQty = NzDbl(totalVal)
+                Exit Function
+            End If
+        End If
+    End If
+
+    Set versionInv = BoxMakerFormLoadBoxVersionInventory(rowVal, itemName)
+    If Not versionInv Is Nothing Then
+        If versionInv.Exists(NormalizeBoxBomVersionLabelShipping(versionLabel)) Then
+            StageVersionInventoryCurrentQty = NzDbl(versionInv(NormalizeBoxBomVersionLabelShipping(versionLabel)))
+            Exit Function
+        End If
+    End If
+
+    StageVersionInventoryCurrentQty = SingleVersionFallbackAvailableQty(invLo, rowVal, itemName, versionLabel)
+End Function
 
 Private Sub SyncSingleVersionInventoryOverlayFromInvSysRows(ByVal invLo As ListObject, _
                                                             ByVal loShip As ListObject, _
