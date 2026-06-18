@@ -3862,6 +3862,1149 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingState_TombstoneFiltersSentLineIdFromActiveCache() As Long
+    Dim rootPath As String
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim activePath As String
+    Dim sentPath As String
+    Dim rows As Variant
+    Dim loShip As ListObject
+
+    rootPath = BuildRuntimeTestRoot("phase6_shipping_tombstone")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH91", "S21") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH91.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    activePath = LocalShippingStatePathForTest("active", "WH91")
+    sentPath = LocalShippingStatePathForTest("sent", "WH91")
+    DeleteFileIfExistsForTest activePath
+    DeleteFileIfExistsForTest sentPath
+    EnsureFolderForTest ParentFolderPathForTest(activePath)
+    WriteTextFileForTest activePath, "REF-TOMB-001" & vbTab & "Tombstone Package" & vbTab & "2" & vbTab & "977" & vbTab & "EA" & vbTab & "A1" & vbTab & "v1" & vbTab & "Shipments" & vbTab & "Carrier" & vbTab & "SHIPLINE-TOMB-001" & vbTab & "RESERVE-TOMB-001"
+    WriteTextFileForTest sentPath, "ID:SHIPLINE-TOMB-001"
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureShippingWorkbookSurface failed: " & report
+        GoTo CleanExit
+    End If
+
+    wbOps.Activate
+    rows = RunShippingMacro1ForTest("ShipmentsFormLoadLines", False)
+    If Not IsEmpty(rows) Then
+        failureReason = "Tombstoned active cache row was loaded back into the Shipments form."
+        GoTo CleanExit
+    End If
+
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If Not loShip Is Nothing Then
+        If Not loShip.DataBodyRange Is Nothing Then
+            If loShip.ListRows.Count > 0 Then
+                If Trim$(CStr(GetTableValue(loShip, 1, "REF_NUMBER"))) <> "" Then
+                    failureReason = "Tombstoned row remained in ShipmentsTally projection after load."
+                    GoTo CleanExit
+                End If
+            End If
+        End If
+    End If
+
+    TestShippingState_TombstoneFiltersSentLineIdFromActiveCache = 1
+
+CleanExit:
+    DeleteFileIfExistsForTest activePath
+    DeleteFileIfExistsForTest sentPath
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7114, "TestShippingState_TombstoneFiltersSentLineIdFromActiveCache", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingWorkflowGuard_ShipmentsSentWithZeroStagedFails() As Long
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim loInv As ListObject
+    Dim resultText As String
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    If loInv Is Nothing Then GoTo CleanExit
+    AddInvSysSeedRow loInv, 987, "SKU-SHIP-ZERO", "Zero Staged Package", "EA", "A1", 10
+    SetTableCell loInv, 1, "SHIPMENTS", 0
+
+    resultText = modShippingEventCreator.ValidateShipmentsSentStagingFromWorkbook(wbOps)
+    If InStr(1, resultText, "No staged shipments found in invSys.SHIPMENTS", vbTextCompare) = 0 Then
+        failureReason = "Unexpected Shipments Sent zero-staged validation result: " & resultText
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 0 Then
+        failureReason = "Validation mutated invSys.SHIPMENTS."
+        GoTo CleanExit
+    End If
+
+    TestShippingWorkflowGuard_ShipmentsSentWithZeroStagedFails = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7115, "TestShippingWorkflowGuard_ShipmentsSentWithZeroStagedFails", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingWorkflowGuard_ToShipmentsInsufficientInventoryFails() As Long
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim loInv As ListObject
+    Dim loAggPack As ListObject
+    Dim resultText As String
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loAggPack = FindTableByName(wbOps, "AggregatePackages")
+    If loInv Is Nothing Or loAggPack Is Nothing Then GoTo CleanExit
+    AddInvSysSeedRow loInv, 988, "SKU-SHIP-SHORT", "Short Package", "EA", "A1", 1
+    AddAggregatePackagesRow loAggPack, 988, "Short Package", 2, "EA", "A1"
+
+    resultText = modShippingEventCreator.ValidateToShipmentsFromWorkbook(wbOps)
+    If InStr(1, resultText, "ROW 988 requires", vbTextCompare) = 0 _
+       Or InStr(1, resultText, "only", vbTextCompare) = 0 _
+       Or InStr(1, resultText, "TOTAL INV", vbTextCompare) = 0 Then
+        failureReason = "Unexpected To Shipments shortage validation result: " & resultText
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 0 Then
+        failureReason = "Validation staged inventory despite shortage."
+        GoTo CleanExit
+    End If
+
+    TestShippingWorkflowGuard_ToShipmentsInsufficientInventoryFails = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7116, "TestShippingWorkflowGuard_ToShipmentsInsufficientInventoryFails", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingWorkflowGuard_BoxesMadeInsufficientComponentFails() As Long
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim loInv As ListObject
+    Dim loAggBom As ListObject
+    Dim resultText As String
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loAggBom = FindTableByName(wbOps, "AggregateBoxBOM")
+    If loInv Is Nothing Or loAggBom Is Nothing Then GoTo CleanExit
+    AddInvSysSeedRow loInv, 989, "SKU-COMP-SHORT", "Short Component", "EA", "A1", 3
+    AddAggregateBomRow loAggBom, 989, "Short Component", 5, "EA", "A1"
+
+    resultText = modShippingEventCreator.ValidateBoxesMadeFromWorkbook(wbOps)
+    If InStr(1, resultText, "ROW 989 requires", vbTextCompare) = 0 _
+       Or InStr(1, resultText, "only", vbTextCompare) = 0 _
+       Or InStr(1, resultText, "available", vbTextCompare) = 0 Then
+        failureReason = "Unexpected Boxes Made shortage validation result: " & resultText
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "USED")) <> 0 Then
+        failureReason = "Validation staged component usage despite shortage."
+        GoTo CleanExit
+    End If
+
+    TestShippingWorkflowGuard_BoxesMadeInsufficientComponentFails = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7117, "TestShippingWorkflowGuard_BoxesMadeInsufficientComponentFails", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingWorkflowGuard_ConfirmInventoryUseExistingWarns() As Long
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim resultText As String
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    SetUseExistingInventoryForTest wbOps.Worksheets("ShipmentsTally"), True
+
+    resultText = modShippingEventCreator.ValidateConfirmInventoryFromWorkbook(wbOps)
+    If InStr(1, resultText, "Use existing inventory is enabled", vbTextCompare) = 0 Then
+        failureReason = "Unexpected Confirm Inventory use-existing validation result: " & resultText
+        GoTo CleanExit
+    End If
+
+    TestShippingWorkflowGuard_ConfirmInventoryUseExistingWarns = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7118, "TestShippingWorkflowGuard_ConfirmInventoryUseExistingWarns", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingAggregateBomMath_MultipliesComponentQtyByPackageQty() As Long
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim loAggBom As ListObject
+    Dim rowKraft As Long
+    Dim rowTape As Long
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    Set loAggBom = FindTableByName(wbOps, "AggregateBoxBOM")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Or loAggBom Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 990, "SKU-T25", "T25", "EA", "A1", 10
+    AddInvSysSeedRow loInv, 991, "SKU-KRAFT", "Kraft Paper", "EA", "A1", 100
+    AddInvSysSeedRow loInv, 992, "SKU-TAPE", "Tape", "EA", "A1", 100
+    AddShippingTallyRow loShip, "REF-BOM-001", "T25", 3, 990, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    AddShippingBomViewRow loBomView, 990, "T25", 991, "Kraft Paper", 2, "EA"
+    AddShippingBomViewRow loBomView, 990, "T25", 992, "Tape", 1, "EA"
+
+    If Not modShippingEventCreator.RebuildShippingAggregatesForWorkbook(wbOps, report) Then
+        failureReason = "RebuildShippingAggregatesForWorkbook failed: " & report
+        GoTo CleanExit
+    End If
+    rowKraft = FindRowByColumnValueInTable(loAggBom, "ROW", "991")
+    rowTape = FindRowByColumnValueInTable(loAggBom, "ROW", "992")
+    If rowKraft = 0 Or rowTape = 0 Then
+        failureReason = "AggregateBoxBOM did not include expected component rows."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loAggBom, rowKraft, "QUANTITY")) <> 6 Then
+        failureReason = "Kraft Paper aggregate quantity was not 2 per box x 3 boxes."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loAggBom, rowTape, "QUANTITY")) <> 3 Then
+        failureReason = "Tape aggregate quantity was not 1 per box x 3 boxes."
+        GoTo CleanExit
+    End If
+
+    TestShippingAggregateBomMath_MultipliesComponentQtyByPackageQty = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7119, "TestShippingAggregateBomMath_MultipliesComponentQtyByPackageQty", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingCommitLine_MergesPostedSameRefBoxVersionCarrier() As Long
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim ok As Boolean
+    Dim matchCount As Long
+    Dim rowIndex As Long
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 987, "SKU-T25", "T25", "ea", "CLEARVIEW", 5
+    AddShippingTallyRow loShip, "12", "T25", 1, 87, "ea", "CLEARVIEW", "v2"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+
+    wbOps.Activate
+    ok = RunShippingCommitLineForTest("SHIP", "ADD", 0, "12", "T25", 1, 87, "ea", "CLEARVIEW", "v2", "UPS", report)
+    matchCount = CountShipmentRowsForTest(loShip, "12", "T25", "v2", "UPS")
+    If matchCount <> 1 Then
+        failureReason = "Expected same Ref/Box/Version/Carrier to merge into one row; found " & CStr(matchCount) & ". Commit result: " & CStr(ok) & "; " & report
+        GoTo CleanExit
+    End If
+
+    rowIndex = FindShipmentRowForTest(loShip, "12", "T25", "v2", "UPS")
+    If rowIndex = 0 Then
+        failureReason = "Merged shipment row was not found."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loShip, rowIndex, "QUANTITY")) <> 2 Then
+        failureReason = "Merged shipment quantity was not 2."
+        GoTo CleanExit
+    End If
+
+    TestShippingCommitLine_MergesPostedSameRefBoxVersionCarrier = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7120, "TestShippingCommitLine_MergesPostedSameRefBoxVersionCarrier", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingBoard_TwoAddsSameRefBoxVersionCarrierShowOneRow() As Long
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim ok As Boolean
+    Dim matchCount As Long
+    Dim rowIndex As Long
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 989, "SKU-T25", "T25", "ea", "CLEARVIEW", 5
+    AddShippingTallyRow loShip, "REF-BOARD-MERGE-001", "T25", 1, 989, "ea", "CLEARVIEW", "v2"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+
+    wbOps.Activate
+    ok = RunShippingCommitLineForTest("SHIP", "ADD", 0, "REF-BOARD-MERGE-001", "T25", 1, 989, "ea", "CLEARVIEW", "v2", "UPS", report)
+
+    matchCount = CountShipmentRowsForTest(loShip, "REF-BOARD-MERGE-001", "T25", "v2", "UPS")
+    If matchCount <> 1 Then
+        failureReason = "Shipments board should show one row for same Ref/Box/Version/Carrier; found " & CStr(matchCount) & ". Commit result: " & CStr(ok) & "; " & report
+        GoTo CleanExit
+    End If
+
+    rowIndex = FindShipmentRowForTest(loShip, "REF-BOARD-MERGE-001", "T25", "v2", "UPS")
+    If rowIndex = 0 Then
+        failureReason = "Merged shipment board row was not found."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loShip, rowIndex, "QUANTITY")) <> 2 Then
+        failureReason = "Merged shipment board quantity was not 2. Commit result: " & CStr(ok) & "; " & report
+        GoTo CleanExit
+    End If
+
+    TestShippingBoard_TwoAddsSameRefBoxVersionCarrierShowOneRow = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7123, "TestShippingBoard_TwoAddsSameRefBoxVersionCarrierShowOneRow", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingAdd_DefaultsOrderToWarehouseArea() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 984, "SKU-ADD-LOCKED", "Add Locked Item", "EA", "A1", 5
+    AddShippingBomViewRow loBomView, 984, "Add Locked Item", 984, "Add Locked Item", 1, "EA"
+
+    wbOps.Activate
+    ok = RunShippingCommitLineForTest("SHIP", "ADD", 0, "REF-ADD-LOCKED", "Add Locked Item", 1, 984, "EA", "A1", "v1", "DHL", report)
+    If Not ok Then
+        If Trim$(CStr(GetTableValue(loShip, 1, "ITEMS"))) = "" Then
+            failureReason = "Add did not create a visible order row. Result: " & CStr(ok) & "; " & report
+            GoTo CleanExit
+        End If
+    End If
+    If StrComp(Trim$(CStr(GetTableValue(loShip, 1, "AREA"))), "Warehouse", vbTextCompare) <> 0 Then
+        failureReason = "Add should leave the order in Warehouse area until To Shipments."
+        GoTo CleanExit
+    End If
+
+    TestShippingAdd_DefaultsOrderToWarehouseArea = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7125, "TestShippingAdd_DefaultsOrderToWarehouseArea", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingAdd_BlankCarrierRequiresCarrier() As Long
+    Dim report As String
+    Dim failureReason As String
+
+    On Error GoTo CleanFail
+    report = RunShippingValidateCommitInputsReportForTest("SHIP", "ADD", "Carrier Required Item", 1, 986, "")
+    If InStr(1, report, "Select a Carrier", vbTextCompare) = 0 Then
+        failureReason = "Blank Carrier did not return the expected user message. Report: " & report
+        GoTo CleanExit
+    End If
+
+    TestShippingAdd_BlankCarrierRequiresCarrier = 1
+
+CleanExit:
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7127, "TestShippingAdd_BlankCarrierRequiresCarrier", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingRemove_LockedRowReleasesInventory() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim ok As Boolean
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 987, "SKU-REMOVE-LOCKED", "Remove Locked Item", "EA", "A1", 4
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-REMOVE-LOCKED", "Remove Locked Item", 1, 987, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "DHL"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-REMOVE-LOCKED-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-REMOVE-LOCKED-001"
+
+    wbOps.Activate
+    ok = RunShippingCommitLineForTest("SHIP", "DELETE", 1, "", "", 0, 0, "", "", "", "", report)
+    If Not ok Then
+        failureReason = "Remove locked row failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 5 Then
+        failureReason = "Remove did not release locked inventory back to TOTAL INV."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 0 Then
+        failureReason = "Remove did not clear locked SHIPMENTS staging."
+        GoTo CleanExit
+    End If
+    If Not loShip.DataBodyRange Is Nothing Then
+        If loShip.ListRows.Count > 0 Then
+            If Trim$(CStr(GetTableValue(loShip, 1, "ITEMS"))) <> "" Then
+                failureReason = "Remove left the locked shipment row visible."
+                GoTo CleanExit
+            End If
+        End If
+    End If
+
+    TestShippingRemove_LockedRowReleasesInventory = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7128, "TestShippingRemove_LockedRowReleasesInventory", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim ok As Boolean
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 986, "SKU-REMOVE-STALE-LOCK", "Stale Locked Item", "EA", "A1", 5
+    SetTableCell loInv, 1, "SHIPMENTS", 0
+    AddShippingTallyRow loShip, "REF-REMOVE-STALE-LOCK", "Stale Locked Item", 1, 986, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "DHL"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-REMOVE-STALE-LOCK-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-REMOVE-STALE-LOCK-001"
+
+    wbOps.Activate
+    ok = RunShippingCommitLineForTest("SHIP", "DELETE", 1, "", "", 0, 0, "", "", "", "", report)
+    If Not ok Then
+        failureReason = "Remove stale locked row failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 5 Then
+        failureReason = "Remove stale locked row inflated TOTAL INV."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 0 Then
+        failureReason = "Remove stale locked row changed SHIPMENTS staging."
+        GoTo CleanExit
+    End If
+    If Not loShip.DataBodyRange Is Nothing Then
+        If loShip.ListRows.Count > 0 Then
+            If Trim$(CStr(GetTableValue(loShip, 1, "ITEMS"))) <> "" Then
+                failureReason = "Remove left the stale locked shipment row visible."
+                GoTo CleanExit
+            End If
+        End If
+    End If
+
+    TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7129, "TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim wbInbox As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim selectedRows(1 To 1) As Long
+    Dim ok As Boolean
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_sent_reserved_no_addback")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 981, "SKU-SENT-RESERVED", "Reserved Sent Item", "EA", "A1", 4
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-SENT-RESERVED", "Reserved Sent Item", 1, 981, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-SENT-001"
+
+    selectedRows(1) = 1
+    wbOps.Activate
+    ok = RunShippingApplySentRowsInventoryForTest(selectedRows, report)
+    If Not ok Then
+        failureReason = "Shipments Sent reserved-row macro failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 4 Then
+        failureReason = "Reserved Shipments Sent changed TOTAL INV; expected it to stay at already-deducted 4."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 0 Then
+        failureReason = "Reserved Shipments Sent did not clear SHIPMENTS staging."
+        GoTo CleanExit
+    End If
+
+    TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH98"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH98.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH98.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7121, "TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim wbInbox As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim selectedRows(1 To 1) As Long
+    Dim ok As Boolean
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_sent_unreserved_deduct")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 982, "SKU-SENT-DIRTY", "Dirty Sent Item", "EA", "A1", 5
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-SENT-DIRTY", "Dirty Sent Item", 1, 982, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+
+    selectedRows(1) = 1
+    wbOps.Activate
+    ok = RunShippingApplySentRowsInventoryForTest(selectedRows, report)
+    If Not ok Then
+        failureReason = "Shipments Sent unreserved-row macro failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 4 Then
+        failureReason = "Unreserved Shipments Sent did not deduct TOTAL INV; expected 4."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 0 Then
+        failureReason = "Unreserved Shipments Sent did not clear SHIPMENTS staging."
+        GoTo CleanExit
+    End If
+
+    TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH99"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH99.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH99.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7122, "TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingSentRows_ReservedRowClearsLockedReservationTotal() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim wbInbox As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim selectedRows(1 To 1) As Long
+    Dim ok As Boolean
+    Dim totals As Object
+    Dim key As String
+    Dim reserveEventId As String
+    Dim lineId As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_sent_clears_locked")
+    currentUser = "calvin"
+    reserveEventId = "RESERVE-SENT-LOCKED-001"
+    lineId = "SHIPLINE-SENT-LOCKED-001"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH100", "S31", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 983, "SKU-SENT-LOCKED", "Locked Sent Item", "EA", "A1", 8
+    SetTableCell loInv, 1, "SHIPMENTS", 2
+    AddShippingTallyRow loShip, "REF-SENT-LOCKED", "Locked Sent Item", 2, 983, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "LINE_ID", lineId
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", reserveEventId
+    CreateShippingReservationLedgerForTest rootPath, "WH100", reserveEventId, lineId, "REF-SENT-LOCKED", "Locked Sent Item", 983, "v1", 2, "EA", "A1"
+
+    selectedRows(1) = 1
+    wbOps.Activate
+    ok = RunShippingCompleteSentRowsForTest(selectedRows, report)
+    If Not ok Then
+        failureReason = "Shipments Sent reserved-row completion failed: " & report
+        GoTo CleanExit
+    End If
+
+    Set totals = RunShippingReservationTotalsForTest()
+    key = "983|v1"
+    If Not totals Is Nothing Then
+        If totals.Exists(key) Then
+            If CDbl(totals(key)) <> 0 Then
+                failureReason = "Reserved shipment still contributes to Locked after Shipments Sent; expected 0 but found " & CStr(totals(key)) & "."
+                GoTo CleanExit
+            End If
+        End If
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 0 Then
+        failureReason = "Reserved Shipments Sent did not clear SHIPMENTS staging."
+        GoTo CleanExit
+    End If
+
+    TestShippingSentRows_ReservedRowClearsLockedReservationTotal = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH100"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH100.invSys.Data.ShippingReservations.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH100.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH100.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7124, "TestShippingSentRows_ReservedRowClearsLockedReservationTotal", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingSentRows_DoesNotIncreaseProjectedInventoryOverlay() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim selectedRows(1 To 1) As Long
+    Dim ok As Boolean
+    Dim projectedText As String
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 988, "SKU-PROJECTED-SENT", "Projected Sent Item", "EA", "A1", 4
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-PROJECTED-SENT", "Projected Sent Item", 1, 988, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "DHL"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-PROJECTED-SENT-001"
+
+    wbOps.Activate
+    RunShippingRegisterProjectedOverlayForTest 988, "v1", 3
+    selectedRows(1) = 1
+    ok = RunShippingCompleteSentRowsForTest(selectedRows, report)
+    If Not ok Then
+        failureReason = "Shipments Sent completion failed: " & report
+        GoTo CleanExit
+    End If
+
+    projectedText = RunShippingProjectedOverlayTextForTest(988, "v1", "4")
+    If CDbl(NzDblForTest(projectedText)) > 3.0000001 Then
+        failureReason = "Shipments Sent increased projected inventory overlay; expected 3 or less but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingSentRows_DoesNotIncreaseProjectedInventoryOverlay = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7129, "TestShippingSentRows_DoesNotIncreaseProjectedInventoryOverlay", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim wbInbox As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim selectedRows(1 To 1) As Long
+    Dim runResult As String
+    Dim projectedAfter As Double
+    Dim overlayPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_sent_full_never_adds_projected")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH101", "S31", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 985, "SKU-SENT-FULL-PROJECTED", "Full Sent Projected Item", "EA", "A1", 10
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-SENT-FULL-PROJECTED", "Full Sent Projected Item", 1, 985, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "USPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-SENT-FULL-PROJECTED-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-SENT-FULL-PROJECTED-001"
+
+    wbOps.Activate
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    If CDbl(NzDblForTest(RunShippingProjectedOverlayTextForTest(985, "v1", "10"))) <> 10 Then
+        failureReason = "Test setup expected no projected overlay before Shipments Sent."
+        GoTo CleanExit
+    End If
+    selectedRows(1) = 1
+    runResult = RunShippingSentRowsReportForTest(selectedRows, "USPS")
+    If Left$(runResult, 3) <> "OK|" Then
+        failureReason = "Full Shipments Sent run failed: " & Mid$(runResult, 6)
+        GoTo CleanExit
+    End If
+
+    projectedAfter = NzDblForTest(RunShippingProjectedOverlayTextForTest(985, "v1", "10"))
+    If projectedAfter <> 9 Then
+        failureReason = "Full Shipments Sent did not preserve the user-side projected deduction against stale NAS inventory; expected 9 but found " & CStr(projectedAfter) & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingSentRows_FullRunNeverIncreasesProjectedInventory = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH101"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH101.invSys.Data.ShippingReservations.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH101.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH101.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7130, "TestShippingSentRows_FullRunNeverIncreasesProjectedInventory", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatchesUp() As Long
+    Dim failureReason As String
+    Dim overlayPath As String
+    Dim projectedText As String
+
+    On Error GoTo CleanFail
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    RunShippingRegisterProjectedOverlayForTest 979, "v1", 9
+    RunShippingClearProjectedOverlayForTest
+    projectedText = RunShippingProjectedOverlayTextForTest(979, "v1", "10")
+    If CDbl(NzDblForTest(projectedText)) <> 9 Then
+        failureReason = "Projected overlay did not persist across restart; expected 9 with stale NAS 10 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    projectedText = RunShippingProjectedOverlayTextForTest(979, "v1", "9")
+    If CDbl(NzDblForTest(projectedText)) <> 9 Then
+        failureReason = "Projected overlay did not return NAS value after backend caught up."
+        GoTo CleanExit
+    End If
+    RunShippingClearProjectedOverlayForTest
+    projectedText = RunShippingProjectedOverlayTextForTest(979, "v1", "10")
+    If CDbl(NzDblForTest(projectedText)) <> 10 Then
+        failureReason = "Projected overlay persisted after backend catch-up cleanup."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatchesUp = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7133, "TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatchesUp", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loBomView As ListObject
+    Dim savedBoxes(1 To 1, 1 To 7) As Variant
+    Dim shippables As Variant
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 980, "SKU-T27", "T27", "EA", "A1", 9
+    AddShippingBomViewRow loBomView, 980, "T27", 980, "T27", 1, "EA"
+    AddInventoryLogRowForTest wbOps, "BOX_BUILD", "SKU-T27", 10, "VERSION=v1"
+
+    savedBoxes(1, 1) = 980
+    savedBoxes(1, 2) = "T27"
+    savedBoxes(1, 3) = "T27"
+    savedBoxes(1, 4) = "EA"
+    savedBoxes(1, 5) = "A1"
+    savedBoxes(1, 6) = ""
+    savedBoxes(1, 7) = ""
+
+    wbOps.Activate
+    shippables = RunShippingMacro1ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes)
+    If IsEmpty(shippables) Then
+        failureReason = "Shippable version inventory returned no rows."
+        GoTo CleanExit
+    End If
+    If CDbl(NzDblForTest(shippables(1, 4))) <> 9 Then
+        failureReason = "NAS Inv used stale version-log total instead of current invSys TOTAL INV; expected 9 but found " & CStr(shippables(1, 4)) & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7131, "TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingReservationTotals_IgnoreSameWorkbookStaleActiveReservationWithoutLocalLine() As Long
+    Dim failureReason As String
+    Dim wbReservations As Workbook
+    Dim loReservations As ListObject
+    Dim totals As Object
+    Dim key As String
+    Dim lineId As String
+    Dim sourcePath As String
+
+    lineId = "SHIPLINE-STALE-LOCAL-001"
+    key = "984|v1"
+    sourcePath = "C:\ops\ShippingStation.xlsm"
+
+    On Error GoTo CleanFail
+    Set wbReservations = Application.Workbooks.Add(xlWBATWorksheet)
+    Set loReservations = CreateShippingReservationTableForTest(wbReservations, "WH103", "RESERVE-STALE-LOCAL-001", lineId, "REF-STALE-LOCAL", "Stale Local Lock Item", 984, "v1", 1, "EA", "A1")
+    If loReservations Is Nothing Then
+        failureReason = "Could not create reservation table for test."
+        GoTo CleanExit
+    End If
+    SetTableCell loReservations, 1, "SourceWorkbook", sourcePath
+
+    Set totals = RunShippingReservationTotalsForTableWithLocalLinesForTest(loReservations, "WH103", sourcePath, lineId)
+    If totals Is Nothing Or Not totals.Exists(key) Or CDbl(totals(key)) <> 1 Then
+        failureReason = "Active same-workbook reservation with a local shipment line should appear in Locked totals."
+        GoTo CleanExit
+    End If
+
+    Set totals = RunShippingReservationTotalsForTableWithLocalLinesForTest(loReservations, "WH103", sourcePath, "")
+    If Not totals Is Nothing Then
+        If totals.Exists(key) Then
+            failureReason = "Stale same-workbook active reservation without a local shipment line still appears in Locked totals."
+            GoTo CleanExit
+        End If
+    End If
+
+    TestShippingReservationTotals_IgnoreSameWorkbookStaleActiveReservationWithoutLocalLine = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbReservations
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7132, "TestShippingReservationTotals_IgnoreSameWorkbookStaleActiveReservationWithoutLocalLine", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingReservationTotals_IgnoreLocallySentActiveLedgerRows() As Long
+    Dim failureReason As String
+    Dim wbReservations As Workbook
+    Dim loReservations As ListObject
+    Dim totals As Object
+    Dim key As String
+    Dim lineId As String
+    Dim sentPath As String
+
+    lineId = "SHIPLINE-LOCKED-SENT-001"
+    key = "985|v2"
+    sentPath = LocalShippingStatePathForTest("sent", "WH102")
+    DeleteFileIfExistsForTest sentPath
+
+    On Error GoTo CleanFail
+    Set wbReservations = Application.Workbooks.Add(xlWBATWorksheet)
+    Set loReservations = CreateShippingReservationTableForTest(wbReservations, "WH102", "RESERVE-LOCKED-SENT-001", lineId, "REF-LOCKED-SENT", "Locked Sent Item", 985, "v2", 2, "EA", "A1")
+    If loReservations Is Nothing Then
+        failureReason = "Could not create reservation table for test."
+        GoTo CleanExit
+    End If
+
+    Set totals = RunShippingReservationTotalsForTableForTest(loReservations, "WH102")
+    If totals Is Nothing Or Not totals.Exists(key) Or CDbl(totals(key)) <> 2 Then
+        failureReason = "Active reservation seed did not appear in Locked totals before sent tombstone."
+        GoTo CleanExit
+    End If
+
+    EnsureFolderForTest ParentFolderPathForTest(sentPath)
+    WriteTextFileForTest sentPath, "ID:" & lineId
+
+    Set totals = RunShippingReservationTotalsForTableForTest(loReservations, "WH102")
+    If Not totals Is Nothing Then
+        If totals.Exists(key) Then
+            failureReason = "Locally sent shipment line still appears in Locked totals after refresh/restart tombstone; found " & CStr(totals(key)) & "."
+            GoTo CleanExit
+        End If
+    End If
+
+    TestShippingReservationTotals_IgnoreLocallySentActiveLedgerRows = 1
+
+CleanExit:
+    DeleteFileIfExistsForTest sentPath
+    CloseWorkbookIfOpen wbReservations
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7126, "TestShippingReservationTotals_IgnoreLocallySentActiveLedgerRows", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestSavedProductionWorkbook_RefreshPreservesStagingAndLogs() As Long
     Dim rootPath As String
     Dim operatorPath As String
@@ -5051,6 +6194,150 @@ Private Sub AddShippingTallyRow(ByVal lo As ListObject, _
     SetTableCell lo, lr.Index, "DESCRIPTION", descriptionVal
 End Sub
 
+Private Sub CreateShippingReservationLedgerForTest(ByVal rootPath As String, _
+                                                   ByVal warehouseId As String, _
+                                                   ByVal reserveEventId As String, _
+                                                   ByVal lineId As String, _
+                                                   ByVal refNumber As String, _
+                                                   ByVal itemName As String, _
+                                                   ByVal packageRow As Long, _
+                                                   ByVal versionText As String, _
+                                                   ByVal qty As Double, _
+                                                   ByVal uom As String, _
+                                                   ByVal locationVal As String)
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    Dim headers As Variant
+    Dim i As Long
+    Dim targetPath As String
+
+    headers = Array("ReservationID", "Status", "WarehouseId", "StationId", "UserId", _
+                    "LineID", "EventID", "RefNumber", "ItemName", "PackageRow", _
+                    "Version", "Qty", "UOM", "Location", "SourceWorkbook", _
+                    "CreatedAtUTC", "UpdatedAtUTC", "ReleasedAtUTC", "CompletedAtUTC", "ReleaseEventID")
+    targetPath = NormalizeTestPath(rootPath) & "\" & warehouseId & ".invSys.Data.ShippingReservations.xlsb"
+    CloseWorkbookIfOpen FindWorkbookByName(warehouseId & ".invSys.Data.ShippingReservations.xlsb")
+    DeleteFileIfExistsForTest targetPath
+
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+    Set ws = wb.Worksheets(1)
+    ws.Name = "ShippingReservations"
+    For i = LBound(headers) To UBound(headers)
+        ws.Cells(1, i + 1).Value = headers(i)
+    Next i
+    ws.Cells(2, 1).Value = lineId & "|" & reserveEventId
+    ws.Cells(2, 2).Value = "ACTIVE"
+    ws.Cells(2, 3).Value = warehouseId
+    ws.Cells(2, 4).Value = "S31"
+    ws.Cells(2, 5).Value = "calvin"
+    ws.Cells(2, 6).Value = lineId
+    ws.Cells(2, 7).Value = reserveEventId
+    ws.Cells(2, 8).Value = refNumber
+    ws.Cells(2, 9).Value = itemName
+    ws.Cells(2, 10).Value = packageRow
+    ws.Cells(2, 11).Value = versionText
+    ws.Cells(2, 12).Value = qty
+    ws.Cells(2, 13).Value = uom
+    ws.Cells(2, 14).Value = locationVal
+    ws.Cells(2, 15).Value = "phase6-test"
+    ws.Cells(2, 16).Value = CDate("2026-03-25 13:00:00")
+    ws.Cells(2, 17).Value = CDate("2026-03-25 13:00:00")
+
+    Set lo = ws.ListObjects.Add(xlSrcRange, ws.Range(ws.Cells(1, 1), ws.Cells(2, UBound(headers) + 1)), , xlYes)
+    lo.Name = "tblShippingReservations"
+    wb.SaveAs Filename:=targetPath, FileFormat:=50
+    wb.Close SaveChanges:=False
+End Sub
+
+Private Function CreateShippingReservationTableForTest(ByVal wb As Workbook, _
+                                                       ByVal warehouseId As String, _
+                                                       ByVal reserveEventId As String, _
+                                                       ByVal lineId As String, _
+                                                       ByVal refNumber As String, _
+                                                       ByVal itemName As String, _
+                                                       ByVal packageRow As Long, _
+                                                       ByVal versionText As String, _
+                                                       ByVal qty As Double, _
+                                                       ByVal uom As String, _
+                                                       ByVal locationVal As String) As ListObject
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    Dim headers As Variant
+    Dim i As Long
+
+    headers = Array("ReservationID", "Status", "WarehouseId", "StationId", "UserId", _
+                    "LineID", "EventID", "RefNumber", "ItemName", "PackageRow", _
+                    "Version", "Qty", "UOM", "Location", "SourceWorkbook", _
+                    "CreatedAtUTC", "UpdatedAtUTC", "ReleasedAtUTC", "CompletedAtUTC", "ReleaseEventID")
+    If wb Is Nothing Then Exit Function
+    Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+    ws.Name = "ShippingReservations"
+    For i = LBound(headers) To UBound(headers)
+        ws.Cells(1, i + 1).Value = headers(i)
+    Next i
+    ws.Cells(2, 1).Value = lineId & "|" & reserveEventId
+    ws.Cells(2, 2).Value = "ACTIVE"
+    ws.Cells(2, 3).Value = warehouseId
+    ws.Cells(2, 4).Value = "S31"
+    ws.Cells(2, 5).Value = "calvin"
+    ws.Cells(2, 6).Value = lineId
+    ws.Cells(2, 7).Value = reserveEventId
+    ws.Cells(2, 8).Value = refNumber
+    ws.Cells(2, 9).Value = itemName
+    ws.Cells(2, 10).Value = packageRow
+    ws.Cells(2, 11).Value = versionText
+    ws.Cells(2, 12).Value = qty
+    ws.Cells(2, 13).Value = uom
+    ws.Cells(2, 14).Value = locationVal
+    ws.Cells(2, 15).Value = "phase6-test"
+    ws.Cells(2, 16).Value = CDate("2026-03-25 13:00:00")
+    ws.Cells(2, 17).Value = CDate("2026-03-25 13:00:00")
+
+    Set lo = ws.ListObjects.Add(xlSrcRange, ws.Range(ws.Cells(1, 1), ws.Cells(2, UBound(headers) + 1)), , xlYes)
+    lo.Name = "tblShippingReservationsForTest"
+    Set CreateShippingReservationTableForTest = lo
+End Function
+
+Private Sub AddInventoryLogRowForTest(ByVal wb As Workbook, _
+                                      ByVal eventType As String, _
+                                      ByVal sku As String, _
+                                      ByVal qtyDelta As Double, _
+                                      ByVal noteText As String)
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    Dim lr As ListRow
+    Dim headers As Variant
+    Dim i As Long
+
+    If wb Is Nothing Then Exit Sub
+    On Error Resume Next
+    Set ws = wb.Worksheets("InventoryLog")
+    On Error GoTo 0
+    If ws Is Nothing Then
+        Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+        ws.Name = "InventoryLog"
+    End If
+
+    Set lo = FindTableByName(wb, "tblInventoryLog")
+    If lo Is Nothing Then
+        headers = Array("EventID", "EventType", "SKU", "QtyDelta", "Note")
+        For i = LBound(headers) To UBound(headers)
+            ws.Cells(1, i + 1).Value = headers(i)
+        Next i
+        Set lo = ws.ListObjects.Add(xlSrcRange, ws.Range(ws.Cells(1, 1), ws.Cells(2, UBound(headers) + 1)), , xlYes)
+        lo.Name = "tblInventoryLog"
+        If Not lo.DataBodyRange Is Nothing Then lo.ListRows(1).Delete
+    End If
+
+    Set lr = lo.ListRows.Add
+    SetTableCell lo, lr.Index, "EventID", "LOG-" & CStr(lr.Index)
+    SetTableCell lo, lr.Index, "EventType", eventType
+    SetTableCell lo, lr.Index, "SKU", sku
+    SetTableCell lo, lr.Index, "QtyDelta", qtyDelta
+    SetTableCell lo, lr.Index, "Note", noteText
+End Sub
+
 Private Sub AddAggregatePackagesLogRow(ByVal lo As ListObject, _
                                        ByVal guidVal As String, _
                                        ByVal userId As String, _
@@ -5081,6 +6368,92 @@ Private Sub AddAggregatePackagesLogRow(ByVal lo As ListObject, _
     SetTableCell lo, lr.Index, "QTY_DELTA", qtyDelta
     SetTableCell lo, lr.Index, "NEW_VALUE", newValue
     SetTableCell lo, lr.Index, "TIMESTAMP", CDate("2026-03-25 10:45:00")
+End Sub
+
+Private Sub AddAggregatePackagesRow(ByVal lo As ListObject, _
+                                    ByVal rowValue As Long, _
+                                    ByVal itemName As String, _
+                                    ByVal qty As Double, _
+                                    ByVal uom As String, _
+                                    ByVal locationVal As String)
+    Dim lr As ListRow
+
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then
+        Set lr = lo.ListRows.Add
+    ElseIf lo.ListRows.Count = 1 _
+        And Trim$(CStr(GetTableValue(lo, 1, "ITEM"))) = "" _
+        And NzDblForTest(GetTableValue(lo, 1, "QUANTITY")) = 0 Then
+        Set lr = lo.ListRows(1)
+    Else
+        Set lr = lo.ListRows.Add
+    End If
+    SetTableCell lo, lr.Index, "ROW", rowValue
+    SetOptionalTableCell lo, lr.Index, "ITEM_CODE", "SKU-" & CStr(rowValue)
+    SetTableCell lo, lr.Index, "ITEM", itemName
+    SetTableCell lo, lr.Index, "QUANTITY", qty
+    SetTableCell lo, lr.Index, "UOM", uom
+    SetTableCell lo, lr.Index, "LOCATION", locationVal
+End Sub
+
+Private Sub AddAggregateBomRow(ByVal lo As ListObject, _
+                               ByVal rowValue As Long, _
+                               ByVal itemName As String, _
+                               ByVal qty As Double, _
+                               ByVal uom As String, _
+                               ByVal locationVal As String)
+    Dim lr As ListRow
+
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then
+        Set lr = lo.ListRows.Add
+    ElseIf lo.ListRows.Count = 1 _
+        And Trim$(CStr(GetTableValue(lo, 1, "ITEM"))) = "" _
+        And NzDblForTest(GetTableValue(lo, 1, "QUANTITY")) = 0 Then
+        Set lr = lo.ListRows(1)
+    Else
+        Set lr = lo.ListRows.Add
+    End If
+    SetTableCell lo, lr.Index, "ROW", rowValue
+    SetOptionalTableCell lo, lr.Index, "ITEM_CODE", "SKU-" & CStr(rowValue)
+    SetTableCell lo, lr.Index, "ITEM", itemName
+    SetTableCell lo, lr.Index, "QUANTITY", qty
+    SetTableCell lo, lr.Index, "UOM", uom
+    SetTableCell lo, lr.Index, "LOCATION", locationVal
+End Sub
+
+Private Sub AddShippingBomViewRow(ByVal lo As ListObject, _
+                                  ByVal packageRow As Long, _
+                                  ByVal packageItem As String, _
+                                  ByVal componentRow As Long, _
+                                  ByVal componentItem As String, _
+                                  ByVal componentQty As Double, _
+                                  ByVal componentUom As String)
+    Dim lr As ListRow
+
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then
+        Set lr = lo.ListRows.Add
+    ElseIf lo.ListRows.Count = 1 _
+        And NzDblForTest(GetTableValue(lo, 1, "PackageRow")) = 0 _
+        And Trim$(CStr(GetTableValue(lo, 1, "ComponentItem"))) = "" Then
+        Set lr = lo.ListRows(1)
+    Else
+        Set lr = lo.ListRows.Add
+    End If
+    SetTableCell lo, lr.Index, "PackageRow", packageRow
+    SetTableCell lo, lr.Index, "PackageItem", packageItem
+    SetOptionalTableCell lo, lr.Index, "PackageUOM", "EA"
+    SetOptionalTableCell lo, lr.Index, "PackageLocation", "A1"
+    SetOptionalTableCell lo, lr.Index, "BomVersionLabel", "v1"
+    SetOptionalTableCell lo, lr.Index, "IsActive", True
+    SetTableCell lo, lr.Index, "ComponentRow", componentRow
+    SetTableCell lo, lr.Index, "ComponentItem", componentItem
+    SetTableCell lo, lr.Index, "ComponentQty", componentQty
+    SetTableCell lo, lr.Index, "ComponentUOM", componentUom
+    SetOptionalTableCell lo, lr.Index, "ComponentLocation", "A1"
+    SetOptionalTableCell lo, lr.Index, "UpdatedAtUTC", CDate("2026-03-25 10:50:00")
+    SetOptionalTableCell lo, lr.Index, "UpdatedBy", "phase6-test"
 End Sub
 
 Private Sub AddProductionOutputRow(ByVal lo As ListObject, _
@@ -5193,6 +6566,365 @@ Private Sub SetTableCell(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal c
         Err.Raise vbObjectError + 7198, "SetTableCell", "Row " & CStr(rowIndex) & " was not available in table '" & TableNameForTest(lo) & "'."
     lo.DataBodyRange.Cells(rowIndex, colIndex).Value = valueIn
 End Sub
+
+Private Sub SetOptionalTableCell(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueIn As Variant)
+    Dim colIndex As Long
+
+    If lo Is Nothing Then Exit Sub
+    colIndex = GetTableColumnIndexForTest(lo, columnName)
+    If colIndex = 0 Then Exit Sub
+    If lo.DataBodyRange Is Nothing Or rowIndex < 1 Or rowIndex > lo.ListRows.Count Then _
+        Err.Raise vbObjectError + 7198, "SetOptionalTableCell", "Row " & CStr(rowIndex) & " was not available in table '" & TableNameForTest(lo) & "'."
+    lo.DataBodyRange.Cells(rowIndex, colIndex).Value = valueIn
+End Sub
+
+Private Sub SetUseExistingInventoryForTest(ByVal ws As Worksheet, ByVal enabled As Boolean)
+    Dim shp As Shape
+    Dim expectedValue As Long
+
+    If ws Is Nothing Then Exit Sub
+    expectedValue = IIf(enabled, 1, xlOff)
+    If ws.ProtectContents Then ws.Unprotect
+    On Error Resume Next
+    Set shp = ws.Shapes("CHK_USE_EXISTING")
+    On Error GoTo 0
+    If shp Is Nothing Then
+        Set shp = ws.Shapes.AddFormControl(xlCheckBox, 12, 12, 160, 18)
+        shp.Name = "CHK_USE_EXISTING"
+    End If
+    shp.ControlFormat.Value = expectedValue
+    If shp.ControlFormat.Value <> expectedValue Then
+        Err.Raise vbObjectError + 7197, "SetUseExistingInventoryForTest", "Could not set CHK_USE_EXISTING to the requested state."
+    End If
+End Sub
+
+Private Function RunShippingMacro0ForTest(ByVal procedureName As String) As Variant
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest(procedureName)
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingMacro0ForTest = Application.Run(macroName)
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingMacro1ForTest(ByVal procedureName As String, ByVal arg1 As Variant) As Variant
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest(procedureName)
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingMacro1ForTest = Application.Run(macroName, arg1)
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingCommitLineForTest(ByVal targetName As String, _
+                                              ByVal actionName As String, _
+                                              ByVal tableRowIndex As Long, _
+                                              ByVal refNumber As String, _
+                                              ByVal itemName As String, _
+                                              ByVal qtyValue As Double, _
+                                              ByVal rowValue As Long, _
+                                              ByVal uomValue As String, _
+                                              ByVal locationValue As String, _
+                                              ByVal descriptionValue As String, _
+                                              ByVal carrierValue As String, _
+                                              ByRef report As String) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsFormCommitLine")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingCommitLineForTest = CBool(Application.Run(macroName, _
+                                                         targetName, _
+                                                         actionName, _
+                                                         tableRowIndex, _
+                                                         refNumber, _
+                                                         itemName, _
+                                                         qtyValue, _
+                                                         rowValue, _
+                                                         uomValue, _
+                                                         locationValue, _
+                                                         descriptionValue, _
+                                                         carrierValue, _
+                                                         report))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingValidateCommitInputsReportForTest(ByVal targetName As String, _
+                                                              ByVal actionName As String, _
+                                                              ByVal itemName As String, _
+                                                              ByVal qtyValue As Double, _
+                                                              ByVal rowValue As Long, _
+                                                              ByVal carrierValue As String) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ValidateShipmentCommitInputsReportForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingValidateCommitInputsReportForTest = CStr(Application.Run(macroName, _
+                                                                        targetName, _
+                                                                        actionName, _
+                                                                        itemName, _
+                                                                        qtyValue, _
+                                                                        rowValue, _
+                                                                        carrierValue))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingSentRowsForTest(ByVal rowIndexes As Variant, ByVal carrierValue As String, ByRef report As String) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsFormRunShipmentsSentRows")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingSentRowsForTest = CBool(Application.Run(macroName, rowIndexes, carrierValue, report))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingSentRowsReportForTest(ByVal rowIndexes As Variant, ByVal carrierValue As String) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsFormRunShipmentsSentRowsReportForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingSentRowsReportForTest = CStr(Application.Run(macroName, rowIndexes, carrierValue))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingApplySentRowsInventoryForTest(ByVal rowIndexes As Variant, ByRef report As String) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ValidateApplyShipmentsSentRowsInventoryFromCurrentWorkbook")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingApplySentRowsInventoryForTest = CBool(Application.Run(macroName, rowIndexes, report))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingCompleteSentRowsForTest(ByVal rowIndexes As Variant, ByRef report As String) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ValidateCompleteShipmentsSentRowsFromCurrentWorkbook")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingCompleteSentRowsForTest = CBool(Application.Run(macroName, rowIndexes, report))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingReservationTotalsForTest() As Object
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsFormLoadNasReservationTotals")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Set RunShippingReservationTotalsForTest = Application.Run(macroName)
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingReservationTotalsForTableForTest(ByVal loReservations As ListObject, ByVal warehouseId As String) As Object
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ValidateShippingReservationTotalsFromTableForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Set RunShippingReservationTotalsForTableForTest = Application.Run(macroName, loReservations, warehouseId)
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingReservationTotalsForTableWithLocalLinesForTest(ByVal loReservations As ListObject, _
+                                                                           ByVal warehouseId As String, _
+                                                                           ByVal localSourceWorkbook As String, _
+                                                                           ByVal activeLineIdsCsv As String) As Object
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ValidateShippingReservationTotalsFromTableWithLocalLinesForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Set RunShippingReservationTotalsForTableWithLocalLinesForTest = Application.Run(macroName, _
+                                                                                   loReservations, _
+                                                                                   warehouseId, _
+                                                                                   localSourceWorkbook, _
+                                                                                   activeLineIdsCsv)
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Sub RunShippingRegisterProjectedOverlayForTest(ByVal packageRow As Long, ByVal versionLabel As String, ByVal projectedQty As Double)
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("RegisterPendingBoxVersionInventoryOverlay")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Application.Run macroName, packageRow, versionLabel, projectedQty
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Sub
+
+Private Sub RunShippingClearProjectedOverlayForTest()
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ClearPendingBoxVersionInventoryOverlayForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Application.Run macroName
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Sub
+
+Private Function RunShippingProjectedOverlayPathForTest() As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("PendingBoxVersionInventoryOverlayPathForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingProjectedOverlayPathForTest = CStr(Application.Run(macroName))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingProjectedOverlayTextForTest(ByVal packageRow As Long, ByVal versionLabel As String, ByVal backendText As String) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("PendingBoxVersionInventoryOverlayText")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingProjectedOverlayTextForTest = CStr(Application.Run(macroName, packageRow, versionLabel, backendText))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function ShippingMacroNameForTest(ByVal procedureName As String) As String
+    Dim wb As Workbook
+
+    Set wb = EnsureShippingAddinForTest()
+    If wb Is Nothing Then Err.Raise vbObjectError + 7197, "ShippingMacroNameForTest", "Could not open deploy\current\invSys.Shipping.xlam for Shipping macro validation."
+    ShippingMacroNameForTest = "'" & wb.Name & "'!modTS_Shipments." & procedureName
+End Function
+
+Private Function EnsureShippingAddinForTest() As Workbook
+    Dim wb As Workbook
+    Dim repoPath As String
+    Dim addinPath As String
+
+    For Each wb In Application.Workbooks
+        If StrComp(wb.Name, "invSys.Shipping.xlam", vbTextCompare) = 0 Then
+            Set EnsureShippingAddinForTest = wb
+            Exit Function
+        End If
+    Next wb
+
+    repoPath = ParentFolderPathForTest(ParentFolderPathForTest(ThisWorkbook.Path))
+    addinPath = repoPath & "\deploy\current\invSys.Shipping.xlam"
+    If Len(Dir$(addinPath, vbNormal)) = 0 Then Exit Function
+    Set EnsureShippingAddinForTest = Application.Workbooks.Open(Filename:=addinPath, ReadOnly:=True)
+End Function
+
+Private Function CountShipmentRowsForTest(ByVal lo As ListObject, _
+                                          ByVal refNumber As String, _
+                                          ByVal itemName As String, _
+                                          ByVal versionText As String, _
+                                          ByVal carrierText As String) As Long
+    Dim r As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    For r = 1 To lo.ListRows.Count
+        If ShipmentRowMatchesForTest(lo, r, refNumber, itemName, versionText, carrierText) Then
+            CountShipmentRowsForTest = CountShipmentRowsForTest + 1
+        End If
+    Next r
+End Function
+
+Private Function FindShipmentRowForTest(ByVal lo As ListObject, _
+                                        ByVal refNumber As String, _
+                                        ByVal itemName As String, _
+                                        ByVal versionText As String, _
+                                        ByVal carrierText As String) As Long
+    Dim r As Long
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    For r = 1 To lo.ListRows.Count
+        If ShipmentRowMatchesForTest(lo, r, refNumber, itemName, versionText, carrierText) Then
+            FindShipmentRowForTest = r
+            Exit Function
+        End If
+    Next r
+End Function
+
+Private Function ShipmentRowMatchesForTest(ByVal lo As ListObject, _
+                                           ByVal rowIndex As Long, _
+                                           ByVal refNumber As String, _
+                                           ByVal itemName As String, _
+                                           ByVal versionText As String, _
+                                           ByVal carrierText As String) As Boolean
+    If Trim$(CStr(GetTableValue(lo, rowIndex, "REF_NUMBER"))) <> refNumber Then Exit Function
+    If Trim$(CStr(GetTableValue(lo, rowIndex, "ITEMS"))) <> itemName Then Exit Function
+    If Trim$(CStr(GetTableValue(lo, rowIndex, "DESCRIPTION"))) <> versionText Then Exit Function
+    If Trim$(CStr(GetTableValue(lo, rowIndex, "CARRIER"))) <> carrierText Then Exit Function
+    ShipmentRowMatchesForTest = True
+End Function
+
+Private Function PrepareShippingPostSessionForTest(ByVal rootPath As String, _
+                                                   ByVal warehouseId As String, _
+                                                   ByVal stationId As String, _
+                                                   ByVal userId As String, _
+                                                   ByRef failureReason As String) As Boolean
+    Dim report As String
+    Dim wbCfg As Workbook
+    Dim wbAuth As Workbook
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+
+    modAuth.SignOut
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(warehouseId, stationId, rootPath, report)
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime(warehouseId, "svc_processor", rootPath, report)
+    If wbCfg Is Nothing Or wbAuth Is Nothing Then
+        failureReason = "Config/auth runtime workbooks could not be created. " & report
+        Exit Function
+    End If
+    SetConfigWarehouseValue warehouseId & ".invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.LoadConfig(warehouseId, stationId) Then
+        failureReason = "LoadConfig failed: " & modConfig.Validate()
+        Exit Function
+    End If
+    If Not modConfig.Reload() Then
+        failureReason = "Config reload failed: " & modConfig.Validate()
+        Exit Function
+    End If
+
+    EnsureAuthCapabilityForTest warehouseId, userId, "SHIP_POST", warehouseId, "*"
+    EnsureAuthCapabilityForTest warehouseId, "svc_processor", "INBOX_PROCESS", warehouseId, "*"
+    TestPhase2Helpers.SetUserPinHash wbAuth, userId, modAuth.HashUserCredential("123456")
+    wbAuth.Save
+
+    statusCode = modNasConnection.SelectWarehouseTarget(rootPath, rootPath, target, stationId, True)
+    If statusCode <> NAS_OK Then
+        failureReason = "SelectWarehouseTarget failed: " & CStr(statusCode)
+        Exit Function
+    End If
+    authStatus = modAuth.ValidateUserCredentialForTarget(userId, "123456", target, "SHIP_POST")
+    If authStatus <> AUTH_OK Then
+        failureReason = "ValidateUserCredentialForTarget failed: " & CStr(authStatus)
+        Exit Function
+    End If
+
+    PrepareShippingPostSessionForTest = True
+End Function
 
 Private Function GetTableColumnIndexForTest(ByVal lo As ListObject, ByVal columnName As String) As Long
     Dim i As Long
@@ -5562,6 +7294,65 @@ Private Function NormalizeTestPath(ByVal pathText As String) As String
     Loop
     NormalizeTestPath = pathText
 End Function
+
+Private Function LocalShippingStatePathForTest(ByVal kind As String, ByVal warehouseId As String) As String
+    Dim rootPath As String
+
+    rootPath = Environ$("LOCALAPPDATA")
+    If Trim$(rootPath) = "" Then rootPath = Environ$("TEMP")
+    LocalShippingStatePathForTest = NormalizeTestPath(rootPath) & "\invSys\shipping_" & kind & "_" & SafeFileTokenForTest(warehouseId) & ".tsv"
+End Function
+
+Private Function SafeFileTokenForTest(ByVal valueText As String) As String
+    Dim i As Long
+    Dim ch As String
+    Dim outText As String
+
+    valueText = Trim$(valueText)
+    For i = 1 To Len(valueText)
+        ch = Mid$(valueText, i, 1)
+        If ch Like "[A-Za-z0-9_-]" Then
+            outText = outText & ch
+        Else
+            outText = outText & "_"
+        End If
+    Next i
+    If outText = "" Then outText = "default"
+    SafeFileTokenForTest = outText
+End Function
+
+Private Function ParentFolderPathForTest(ByVal filePath As String) As String
+    Dim pos As Long
+
+    pos = InStrRev(filePath, "\")
+    If pos > 0 Then ParentFolderPathForTest = Left$(filePath, pos - 1)
+End Function
+
+Private Sub EnsureFolderForTest(ByVal folderPath As String)
+    Dim parentPath As String
+
+    folderPath = NormalizeTestPath(folderPath)
+    If folderPath = "" Then Exit Sub
+    If Len(Dir$(folderPath, vbDirectory)) > 0 Then Exit Sub
+    parentPath = ParentFolderPathForTest(folderPath)
+    If parentPath <> "" And Len(Dir$(parentPath, vbDirectory)) = 0 Then EnsureFolderForTest parentPath
+    MkDir folderPath
+End Sub
+
+Private Sub WriteTextFileForTest(ByVal filePath As String, ByVal textValue As String)
+    Dim fileNo As Integer
+
+    fileNo = FreeFile
+    Open filePath For Output As #fileNo
+    Print #fileNo, textValue
+    Close #fileNo
+End Sub
+
+Private Sub DeleteFileIfExistsForTest(ByVal filePath As String)
+    On Error Resume Next
+    If Len(Dir$(filePath, vbNormal)) > 0 Then Kill filePath
+    On Error GoTo 0
+End Sub
 
 Private Sub DeleteRuntimeRoot(ByVal rootPath As String)
     Dim fileName As String

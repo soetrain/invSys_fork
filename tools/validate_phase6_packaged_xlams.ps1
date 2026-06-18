@@ -124,6 +124,41 @@ function Test-WorkbookSurface {
     return "OK"
 }
 
+function Test-VbComponentCode {
+    param(
+        [object]$Workbook,
+        [string]$ComponentName,
+        [string[]]$MustContain = @(),
+        [string[]]$MustNotContain = @()
+    )
+
+    try {
+        $component = $Workbook.VBProject.VBComponents.Item($ComponentName)
+    }
+    catch {
+        return "Missing VB component: $ComponentName"
+    }
+
+    $lineCount = $component.CodeModule.CountOfLines
+    if ($lineCount -le 0) {
+        return "VB component has no code: $ComponentName"
+    }
+
+    $code = $component.CodeModule.Lines(1, $lineCount)
+    foreach ($needle in $MustContain) {
+        if ($code.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+            return "Missing expected code text '$needle' in $ComponentName"
+        }
+    }
+    foreach ($needle in $MustNotContain) {
+        if ($code.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            return "Found retired code text '$needle' in $ComponentName"
+        }
+    }
+
+    return "OK"
+}
+
 $repo = (Resolve-Path $RepoRoot).Path
 $deployPath = Join-Path $repo $DeployRoot
 $resultPath = Join-Path $repo "tests/unit/phase6_packaged_xlam_results.md"
@@ -159,10 +194,17 @@ $validationSpecs = @(
         InitMacro = "modShippingInit.InitShippingAddin"
         SafeMacro = "modTS_Shipments.InitializeShipmentsUI"
         Tables = @(
-            @{ Sheet = "ShipmentsTally"; Table = "ShipmentsTally"; Columns = @("REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION") },
-            @{ Sheet = "ShipmentsTally"; Table = "AggregatePackages"; Columns = @("ROW", "ITEM_CODE", "ITEM", "QUANTITY", "UOM", "LOCATION") },
-            @{ Sheet = "AggregateBoxBOM_Log"; Table = "AggregateBoxBOM_Log"; Columns = @("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP") },
-            @{ Sheet = "AggregatePackages_Log"; Table = "AggregatePackages_Log"; Columns = @("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP") }
+            @{ Sheet = "ShippingBackend"; Table = "ShipmentsTally"; Columns = @("LINE_ID", "SERVER_RESERVE_EVENT_ID", "REF_NUMBER", "ITEMS", "QUANTITY", "ROW", "UOM", "LOCATION", "DESCRIPTION") },
+            @{ Sheet = "ShippingBackend"; Table = "AggregatePackages"; Columns = @("ROW", "ITEM_CODE", "ITEM", "QUANTITY", "UOM", "LOCATION") },
+            @{ Sheet = "ShippingBackend"; Table = "AggregateBoxBOM_Log"; Columns = @("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP") },
+            @{ Sheet = "ShippingBackend"; Table = "AggregatePackages_Log"; Columns = @("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP") }
+        )
+        FormCode = @(
+            @{
+                Component = "frmShipmentsTally"
+                MustContain = @("NAS Inv", "Projected Inv", "Locked")
+                MustNotContain = @("Current Inv", "Posted")
+            }
         )
     },
     @{
@@ -235,11 +277,23 @@ try {
             if ($spec.SafeMacro -ne "") {
                 Add-ResultRow -Rows $resultRows -Check "$($spec.Name).SafeMacro" -Passed $false -Detail "Workbook not open."
             }
+            if ($spec.ContainsKey("FormCode")) {
+                foreach ($formSpec in $spec.FormCode) {
+                    Add-ResultRow -Rows $resultRows -Check "$($spec.Name).$($formSpec.Component).Code" -Passed $false -Detail "Workbook not open."
+                }
+            }
             continue
         }
 
         $wb = $workbookMap[$fileName]
         $targetWb = $null
+
+        if ($spec.ContainsKey("FormCode")) {
+            foreach ($formSpec in $spec.FormCode) {
+                $codeResult = Test-VbComponentCode -Workbook $wb -ComponentName $formSpec.Component -MustContain $formSpec.MustContain -MustNotContain $formSpec.MustNotContain
+                Add-ResultRow -Rows $resultRows -Check "$($spec.Name).$($formSpec.Component).Code" -Passed ($codeResult -eq "OK") -Detail $codeResult
+            }
+        }
 
         try {
             $targetPath = Join-Path $targetRoot $spec.TargetFile

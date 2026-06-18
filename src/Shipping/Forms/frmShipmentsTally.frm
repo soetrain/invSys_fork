@@ -43,6 +43,7 @@ Private mTxtStatus As MSForms.TextBox
 Private mLstReadiness As MSForms.ListBox
 
 Private mShippables As Variant
+Private mNasReservationTotals As Object
 Private mLoading As Boolean
 Private mBuilt As Boolean
 Private mAnchors As Object
@@ -79,24 +80,30 @@ Public Sub InitializeFromShipping()
 
     Dim previousPointer As Long
     Dim quietStarted As Boolean
+    Dim startedAt As Single
+    Dim elapsedMs As Long
 
     If Not mBuilt Then BuildLayout
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
     modUiQuiet.BeginQuietUi ActiveWorkbook
     quietStarted = True
+    startedAt = Timer
 
     mLoading = True
     LoadCarrierChoices
     mChkUseExisting.Value = modTS_Shipments.ShipmentsFormUseExistingInventory()
     LoadShippables
     LoadShipmentState
+    RefreshProjectedShippableInventory
     mLoading = False
 
     If mLstShippables.ListCount > 0 Then
         mLstShippables.ListIndex = 0
         LoadSelectedShippable
     End If
+    elapsedMs = ElapsedMilliseconds(startedAt)
+    ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms."
 
 CleanExit:
     On Error Resume Next
@@ -131,8 +138,8 @@ Private Sub BuildLayout()
     AddShippableHeaders 12, 70
     Set mLstShippables = AddListBox("lstShippables", 12, 90, 820, 92)
     With mLstShippables
-        .ColumnCount = 7
-        .ColumnWidths = "178 pt;52 pt;62 pt;74 pt;42 pt;108 pt;46 pt"
+        .ColumnCount = 8
+        .ColumnWidths = "138 pt;48 pt;54 pt;68 pt;50 pt;38 pt;96 pt;42 pt"
     End With
 
     AddLabel "lblRef", "Ref", 12, 194, 34, 18, False
@@ -169,8 +176,8 @@ Private Sub BuildLayout()
     AddShipmentLineHeaders 12, 300
     Set mLstShipments = AddListBox("lstShipments", 12, 320, 820, 108)
     With mLstShipments
-        .ColumnCount = 10
-        .ColumnWidths = "82 pt;164 pt;56 pt;48 pt;106 pt;52 pt;64 pt;84 pt;0 pt;0 pt"
+        .ColumnCount = 12
+        .ColumnWidths = "76 pt;150 pt;50 pt;40 pt;68 pt;44 pt;46 pt;58 pt;76 pt;0 pt;0 pt;0 pt"
         .MultiSelect = fmMultiSelectExtended
     End With
     Set mBtnHold = AddButton("btnHold", "Send Hold", 498, 274, 88, 24)
@@ -179,8 +186,8 @@ Private Sub BuildLayout()
     AddShipmentLineHeaders 12, 468
     Set mLstHold = AddListBox("lstHold", 12, 488, 820, 60)
     With mLstHold
-        .ColumnCount = 10
-        .ColumnWidths = "82 pt;164 pt;56 pt;48 pt;106 pt;52 pt;64 pt;84 pt;0 pt;0 pt"
+        .ColumnCount = 12
+        .ColumnWidths = "76 pt;150 pt;50 pt;40 pt;68 pt;44 pt;46 pt;58 pt;76 pt;0 pt;0 pt;0 pt"
         .MultiSelect = fmMultiSelectExtended
     End With
     Set mBtnReturn = AddButton("btnReturn", "Return", 744, 444, 88, 24)
@@ -306,7 +313,7 @@ Private Sub RenderShippables()
     Next r
     If shownCount = 0 Then Exit Sub
 
-    ReDim displayRows(0 To shownCount - 1, 0 To 6)
+    ReDim displayRows(0 To shownCount - 1, 0 To 7)
     idx = 0
     For r = 1 To UBound(mShippables, 1)
         If Not ShippableMatchesFilter(r, filterText) Then GoTo NextRow
@@ -314,9 +321,10 @@ Private Sub RenderShippables()
         displayRows(idx, 1) = NzText(mShippables(r, 3))
         displayRows(idx, 2) = DisplayQtyText(NzText(mShippables(r, 4)))
         displayRows(idx, 3) = DisplayQtyText(NzText(mShippables(r, 8)))
-        displayRows(idx, 4) = NzText(mShippables(r, 5))
-        displayRows(idx, 5) = NzText(mShippables(r, 6))
-        displayRows(idx, 6) = NzText(mShippables(r, 1))
+        displayRows(idx, 4) = DisplayQtyText(CStr(LockedShipmentQtyForShippable(CLng(Val(NzText(mShippables(r, 1)))), NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))))
+        displayRows(idx, 5) = NzText(mShippables(r, 5))
+        displayRows(idx, 6) = NzText(mShippables(r, 6))
+        displayRows(idx, 7) = NzText(mShippables(r, 1))
         idx = idx + 1
 NextRow:
     Next r
@@ -349,18 +357,20 @@ Private Sub RenderLineList(ByVal lst As MSForms.ListBox, ByVal rowsData As Varia
 
     lst.Clear
     If IsEmpty(rowsData) Then Exit Sub
-    ReDim displayRows(0 To UBound(rowsData, 1) - 1, 0 To 9)
+    ReDim displayRows(0 To UBound(rowsData, 1) - 1, 0 To 11)
     For r = 1 To UBound(rowsData, 1)
         displayRows(r - 1, 0) = NzText(rowsData(r, 1))
         displayRows(r - 1, 1) = NzText(rowsData(r, 2))
         displayRows(r - 1, 2) = FormatQuantity(ParseNumber(NzText(rowsData(r, 3))))
         displayRows(r - 1, 3) = NzText(rowsData(r, 4))
         displayRows(r - 1, 4) = NzText(rowsData(r, 9))
-        displayRows(r - 1, 5) = NzText(rowsData(r, 6))
-        displayRows(r - 1, 6) = NzText(rowsData(r, 7))
-        displayRows(r - 1, 7) = NzText(rowsData(r, 10))
-        displayRows(r - 1, 8) = NzText(rowsData(r, 5))
-        displayRows(r - 1, 9) = NzText(rowsData(r, 8))
+        If Trim$(NzText(rowsData(r, 11))) <> "" Then displayRows(r - 1, 5) = "Yes" Else displayRows(r - 1, 5) = ""
+        displayRows(r - 1, 6) = NzText(rowsData(r, 6))
+        displayRows(r - 1, 7) = NzText(rowsData(r, 7))
+        displayRows(r - 1, 8) = NzText(rowsData(r, 10))
+        displayRows(r - 1, 9) = NzText(rowsData(r, 5))
+        displayRows(r - 1, 10) = NzText(rowsData(r, 8))
+        displayRows(r - 1, 11) = NzText(rowsData(r, 11))
     Next r
     lst.List = displayRows
     Exit Sub
@@ -398,9 +408,9 @@ Private Sub LoadSelectedShippable()
     If mLstShippables.ListIndex < 0 Then Exit Sub
     mTxtBox.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 0))
     mTxtVersion.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 1))
-    mTxtUom.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 4))
-    mTxtLocation.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 5))
-    mTxtRow.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 6))
+    mTxtUom.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 5))
+    mTxtLocation.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 6))
+    mTxtRow.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 7))
     If Trim$(NzText(mTxtQty.Value)) = "" Then mTxtQty.Value = "1"
     mTxtDescription.Value = NzText(mTxtVersion.Value)
 End Sub
@@ -412,11 +422,11 @@ Private Sub LoadSelectedLine(ByVal lst As MSForms.ListBox)
     mTxtBox.Value = NzText(lst.List(lst.ListIndex, 1))
     mTxtQty.Value = NzText(lst.List(lst.ListIndex, 2))
     mTxtUom.Value = NzText(lst.List(lst.ListIndex, 3))
-    mTxtLocation.Value = NzText(lst.List(lst.ListIndex, 8))
-    mTxtRow.Value = NzText(lst.List(lst.ListIndex, 5))
-    mTxtDescription.Value = NzText(lst.List(lst.ListIndex, 6))
-    mTxtVersion.Value = NzText(lst.List(lst.ListIndex, 6))
-    mTxtCarrier.Value = NzText(lst.List(lst.ListIndex, 7))
+    mTxtLocation.Value = NzText(lst.List(lst.ListIndex, 9))
+    mTxtRow.Value = NzText(lst.List(lst.ListIndex, 6))
+    mTxtDescription.Value = NzText(lst.List(lst.ListIndex, 7))
+    mTxtVersion.Value = NzText(lst.List(lst.ListIndex, 7))
+    mTxtCarrier.Value = NzText(lst.List(lst.ListIndex, 8))
 End Sub
 
 Private Sub CommitCurrentLine(ByVal actionName As String)
@@ -449,13 +459,13 @@ End Sub
 Private Function SelectedShipmentTableRow() As Long
     If mLstShipments Is Nothing Then Exit Function
     If mLstShipments.ListIndex < 0 Then Exit Function
-    SelectedShipmentTableRow = CLng(Val(NzText(mLstShipments.List(mLstShipments.ListIndex, 9))))
+    SelectedShipmentTableRow = CLng(Val(NzText(mLstShipments.List(mLstShipments.ListIndex, 10))))
 End Function
 
 Private Function SelectedHoldTableRow() As Long
     If mLstHold Is Nothing Then Exit Function
     If mLstHold.ListIndex < 0 Then Exit Function
-    SelectedHoldTableRow = CLng(Val(NzText(mLstHold.List(mLstHold.ListIndex, 9))))
+    SelectedHoldTableRow = CLng(Val(NzText(mLstHold.List(mLstHold.ListIndex, 10))))
 End Function
 
 Private Function SelectedListTableRows(ByVal lst As MSForms.ListBox) As Variant
@@ -467,7 +477,7 @@ Private Function SelectedListTableRows(ByVal lst As MSForms.ListBox) As Variant
     If lst Is Nothing Then Exit Function
     For i = 0 To lst.ListCount - 1
         If lst.Selected(i) Then
-            tableRow = CLng(Val(NzText(lst.List(i, 9))))
+            tableRow = CLng(Val(NzText(lst.List(i, 10))))
             If tableRow > 0 Then
                 countRows = countRows + 1
                 ReDim Preserve rowIndexes(1 To countRows)
@@ -476,7 +486,7 @@ Private Function SelectedListTableRows(ByVal lst As MSForms.ListBox) As Variant
         End If
     Next i
     If countRows = 0 And lst.ListIndex >= 0 Then
-        tableRow = CLng(Val(NzText(lst.List(lst.ListIndex, 9))))
+        tableRow = CLng(Val(NzText(lst.List(lst.ListIndex, 10))))
         If tableRow > 0 Then
             ReDim rowIndexes(1 To 1)
             rowIndexes(1) = tableRow
@@ -493,6 +503,7 @@ Private Sub RefreshAfterAction(ByVal report As String, ByVal ok As Boolean)
     Me.MousePointer = fmMousePointerHourGlass
     mLoading = True
     LoadShipmentLineState
+    RefreshProjectedShippableInventory
     mLoading = False
     Me.MousePointer = previousPointer
     ShowStatus report
@@ -523,6 +534,7 @@ Private Sub mChkUseExisting_Click()
     If mLoading Then Exit Sub
     modTS_Shipments.ShipmentsFormSetUseExistingInventory CBool(mChkUseExisting.Value)
     LoadShipmentState
+    RefreshProjectedShippableInventory
 End Sub
 
 Private Sub mBtnRefresh_Click()
@@ -621,7 +633,7 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     If ok Then RefreshProjectedShippableInventory
     report = AppendTiming(report, elapsedMs)
     ShowStatus report
-    If report <> "" Then MsgBox report, IIf(ok, vbInformation, vbExclamation)
+    If report <> "" And ShouldShowShippingActionPopup(report, ok) Then MsgBox report, IIf(ok, vbInformation, vbExclamation)
     Exit Sub
 
 FailSoft:
@@ -632,21 +644,87 @@ FailSoft:
     ShowStatus "Shipping action failed: " & Err.Description
 End Sub
 
+Private Function ShouldShowShippingActionPopup(ByVal report As String, ByVal ok As Boolean) As Boolean
+    ShouldShowShippingActionPopup = True
+    If Not ok Then Exit Function
+    If InStr(1, report, "selected row(s) were already locked", vbTextCompare) > 0 Then
+        ShouldShowShippingActionPopup = False
+    End If
+End Function
+
 Private Sub RefreshProjectedShippableInventory()
     On Error GoTo CleanExit
 
     Dim r As Long
+    Dim activeQty As Double
+    Dim backendText As String
+    Dim projectedText As String
+    Dim projectedQty As Double
 
     If IsEmpty(mShippables) Then Exit Sub
+    Set mNasReservationTotals = modTS_Shipments.ShipmentsFormLoadNasReservationTotals()
     For r = 1 To UBound(mShippables, 1)
-        mShippables(r, 8) = modTS_Shipments.PendingBoxVersionInventoryOverlayText(CLng(Val(NzText(mShippables(r, 1)))), _
-                                                                                   NzText(mShippables(r, 3)), _
-                                                                                   NzText(mShippables(r, 4)))
+        backendText = NzText(mShippables(r, 4))
+        activeQty = ActiveShipmentQtyForShippable(NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
+        If activeQty > 0 Then
+            projectedQty = ParseNumber(backendText) - activeQty
+            If projectedQty < 0 Then projectedQty = 0
+            mShippables(r, 8) = FormatQuantity(projectedQty)
+        Else
+            projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(CLng(Val(NzText(mShippables(r, 1)))), _
+                                                                                  NzText(mShippables(r, 3)), _
+                                                                                  backendText)
+            mShippables(r, 8) = projectedText
+        End If
     Next r
     RenderShippables
 
 CleanExit:
 End Sub
+
+Private Function ActiveShipmentQtyForShippable(ByVal boxName As String, ByVal versionLabel As String) As Double
+    Dim i As Long
+    Dim rowBox As String
+    Dim rowVersion As String
+
+    If mLstShipments Is Nothing Then Exit Function
+    boxName = LCase$(Trim$(boxName))
+    versionLabel = LCase$(Trim$(versionLabel))
+    For i = 0 To mLstShipments.ListCount - 1
+        rowBox = LCase$(Trim$(NzText(mLstShipments.List(i, 1))))
+        rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
+        If rowBox = boxName And rowVersion = versionLabel Then
+            ActiveShipmentQtyForShippable = ActiveShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
+        End If
+    Next i
+End Function
+
+Private Function LockedShipmentQtyForShippable(ByVal packageRow As Long, ByVal boxName As String, ByVal versionLabel As String) As Double
+    Dim i As Long
+    Dim rowBox As String
+    Dim rowVersion As String
+    Dim key As String
+
+    key = modTS_Shipments.ShipmentsFormReservationKey(packageRow, versionLabel)
+    If Not mNasReservationTotals Is Nothing Then
+        If mNasReservationTotals.Exists(key) Then
+            LockedShipmentQtyForShippable = ParseNumber(NzText(mNasReservationTotals(key)))
+            Exit Function
+        End If
+    End If
+    If mLstShipments Is Nothing Then Exit Function
+    boxName = LCase$(Trim$(boxName))
+    versionLabel = LCase$(Trim$(versionLabel))
+    For i = 0 To mLstShipments.ListCount - 1
+        rowBox = LCase$(Trim$(NzText(mLstShipments.List(i, 1))))
+        rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
+        If rowBox = boxName And rowVersion = versionLabel Then
+            If Trim$(NzText(mLstShipments.List(i, 11))) <> "" Then
+                LockedShipmentQtyForShippable = LockedShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
+            End If
+        End If
+    Next i
+End Function
 
 Private Sub mBtnClose_Click()
     Me.Hide
@@ -689,24 +767,26 @@ Private Sub InitializeAnchors()
 End Sub
 
 Private Sub AddShippableHeaders(ByVal leftPos As Single, ByVal topPos As Single)
-    AddHeaderLabel "hdrShipBox", "Box", leftPos, topPos, 184
-    AddHeaderLabel "hdrShipVersion", "Version", leftPos + 194, topPos, 54
-    AddHeaderLabel "hdrShipInv", "NAS Inv", leftPos + 252, topPos, 60
-    AddHeaderLabel "hdrShipProjected", "Projected Inv", leftPos + 318, topPos, 76
-    AddHeaderLabel "hdrShipUom", "UOM", leftPos + 400, topPos, 42
-    AddHeaderLabel "hdrShipLoc", "Location", leftPos + 448, topPos, 108
-    AddHeaderLabel "hdrShipRow", "ROW", leftPos + 562, topPos, 54
+    AddHeaderLabel "hdrShipBox", "Box", leftPos, topPos, 138
+    AddHeaderLabel "hdrShipVersion", "Version", leftPos + 148, topPos, 48
+    AddHeaderLabel "hdrShipInv", "NAS Inv", leftPos + 200, topPos, 54
+    AddHeaderLabel "hdrShipProjected", "Projected Inv", leftPos + 258, topPos, 68
+    AddHeaderLabel "hdrShipLocked", "Locked", leftPos + 330, topPos, 50
+    AddHeaderLabel "hdrShipUom", "UOM", leftPos + 384, topPos, 38
+    AddHeaderLabel "hdrShipLoc", "Location", leftPos + 426, topPos, 96
+    AddHeaderLabel "hdrShipRow", "ROW", leftPos + 528, topPos, 42
 End Sub
 
 Private Sub AddShipmentLineHeaders(ByVal leftPos As Single, ByVal topPos As Single)
     AddHeaderLabel UniqueHeaderName("hdrRef", topPos), "Ref", leftPos, topPos, 76
-    AddHeaderLabel UniqueHeaderName("hdrLineBox", topPos), "Box", leftPos + 82, topPos, 154
-    AddHeaderLabel UniqueHeaderName("hdrLineQty", topPos), "Qty", leftPos + 246, topPos, 50
-    AddHeaderLabel UniqueHeaderName("hdrLineUom", topPos), "UOM", leftPos + 302, topPos, 40
-    AddHeaderLabel UniqueHeaderName("hdrLineArea", topPos), "Area", leftPos + 350, topPos, 72
-    AddHeaderLabel UniqueHeaderName("hdrLineRow", topPos), "ROW", leftPos + 456, topPos, 46
-    AddHeaderLabel UniqueHeaderName("hdrLineDesc", topPos), "Version", leftPos + 508, topPos, 58
-    AddHeaderLabel UniqueHeaderName("hdrLineCarrier", topPos), "Carrier", leftPos + 572, topPos, 84
+    AddHeaderLabel UniqueHeaderName("hdrLineBox", topPos), "Box", leftPos + 82, topPos, 144
+    AddHeaderLabel UniqueHeaderName("hdrLineQty", topPos), "Qty", leftPos + 236, topPos, 50
+    AddHeaderLabel UniqueHeaderName("hdrLineUom", topPos), "UOM", leftPos + 292, topPos, 40
+    AddHeaderLabel UniqueHeaderName("hdrLineArea", topPos), "Area", leftPos + 340, topPos, 68
+    AddHeaderLabel UniqueHeaderName("hdrLineLocked", topPos), "Locked", leftPos + 414, topPos, 48
+    AddHeaderLabel UniqueHeaderName("hdrLineRow", topPos), "ROW", leftPos + 468, topPos, 46
+    AddHeaderLabel UniqueHeaderName("hdrLineDesc", topPos), "Version", leftPos + 520, topPos, 58
+    AddHeaderLabel UniqueHeaderName("hdrLineCarrier", topPos), "Carrier", leftPos + 584, topPos, 84
 End Sub
 
 Private Sub AddReadinessHeaders(ByVal leftPos As Single, ByVal topPos As Single)

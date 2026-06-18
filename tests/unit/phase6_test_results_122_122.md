@@ -1,10 +1,10 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-06-01 18:38:13
+- Date: 2026-06-17 14:35:46
 - Passed: 1
 - Failed: 0
-- Range: 122-122 of 127
+- Range: 122-122 of 145
 
 | Test | Result |
 |---|---|
-| TestPhase6RoleSurfaces.TestEnsureProductionWorkbookSurface_RecreatesDeletedArtifacts | PASS |
+| TestPhase6CoreSurfaces.TestShippingAdd_BlankCarrierRequiresCarrier | PASS |

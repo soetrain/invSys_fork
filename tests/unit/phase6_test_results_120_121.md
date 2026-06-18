@@ -1,11 +1,11 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-06-16 22:49:31
+- Date: 2026-06-17 11:15:38
 - Passed: 2
 - Failed: 0
-- Range: 120-121 of 129
+- Range: 120-121 of 138
 
 | Test | Result |
 |---|---|
-| TestPhase6RoleSurfaces.TestEnsureReceivingWorkbookSurface_RecreatesDeletedArtifacts | PASS |
-| TestPhase6RoleSurfaces.TestEnsureShippingWorkbookSurface_CreatesExpectedTables | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv | PASS |
