@@ -3715,8 +3715,10 @@ Public Function TestShippingEventCreator_QueuesSignedInCurrentTargetEvent() As L
     Dim wbInv As Workbook
     Dim wbInbox As Workbook
     Dim loInv As ListObject
+    Dim loInbox As ListObject
     Dim loInventoryLog As ListObject
     Dim invRow As Long
+    Dim inboxRow As Long
     Dim logRow As Long
     Dim evt As Object
     Dim statusOut As String
@@ -3757,7 +3759,6 @@ Public Function TestShippingEventCreator_QueuesSignedInCurrentTargetEvent() As L
         failureReason = "SelectWarehouseTarget failed: " & CStr(statusCode)
         GoTo CleanExit
     End If
-    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\WH96") Then GoTo CleanExit
     authStatus = modAuth.ValidateUserCredentialForTarget(currentUser, "123456", target, "SHIP_POST")
     If authStatus <> AUTH_OK Then
         failureReason = "ValidateUserCredentialForTarget failed: " & CStr(authStatus)
@@ -3794,6 +3795,7 @@ Public Function TestShippingEventCreator_QueuesSignedInCurrentTargetEvent() As L
     End If
     SetTableCell loInv, invRow, "SHIPMENTS", 4
 
+    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\WH96") Then GoTo CleanExit
     If Not modShippingEventCreator.QueueShipmentsSentEventFromWorkbook(wbOps, eventIdOut, report) Then
         failureReason = "QueueShipmentsSentEventFromWorkbook failed: " & report
         GoTo CleanExit
@@ -3805,6 +3807,20 @@ Public Function TestShippingEventCreator_QueuesSignedInCurrentTargetEvent() As L
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
     If Trim$(eventIdOut) = "" Then
         failureReason = "Shipping event creator did not return an EventID."
+        GoTo CleanExit
+    End If
+    Set loInbox = FindTableByName(wbInbox, "tblInboxShip")
+    inboxRow = FindRowByColumnValueInTable(loInbox, "EventID", eventIdOut)
+    If inboxRow = 0 Then
+        failureReason = "Shipping event creator did not write the shipment event directly to the NAS shipping inbox before processor catch-up."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loInbox, inboxRow, "EventType")), CORE_EVENT_TYPE_SHIP, vbTextCompare) <> 0 Then
+        failureReason = "Shipping inbox recorded unexpected event type before processor catch-up."
+        GoTo CleanExit
+    End If
+    If Not AssertInboxRowStatusForTest(wbInbox, eventIdOut, "NEW") Then
+        failureReason = "Shipping inbox row was not NEW before processor catch-up."
         GoTo CleanExit
     End If
 
@@ -4141,6 +4157,105 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7119, "TestShippingAggregateBomMath_MultipliesComponentQtyByPackageQty", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestBoxBuilderArchive_HidesArchivedBoxesUnlessRequested() As Long
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim loBomView As ListObject
+    Dim activeReport As String
+    Dim archivedReport As String
+    Dim allReport As String
+
+    On Error GoTo CleanFail
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureShippingWorkbookSurface failed: " & report
+        GoTo CleanExit
+    End If
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loBomView Is Nothing Then
+        failureReason = "ShippingBOMView was not created."
+        GoTo CleanExit
+    End If
+
+    AddShippingBomViewRow loBomView, 990, "T25", 991, "Kraft Paper", 2, "EA"
+    AddShippingBomViewRow loBomView, 991, "T26", 992, "Tape", 1, "EA"
+    SetTableCell loBomView, 2, "IsActive", False
+    SetOptionalTableCell loBomView, 2, "RetiredAtUTC", CDate("2026-06-18 12:00:00")
+
+    wbOps.Activate
+    activeReport = RunBoxBuilderSavedBoxesReportForTest(True, False)
+    If InStr(1, activeReport, "COUNT=1", vbTextCompare) = 0 _
+       Or InStr(1, activeReport, "BOX=T25", vbTextCompare) = 0 Then
+        failureReason = "Active BoxBuilder list was wrong; expected only T25. " & activeReport
+        GoTo CleanExit
+    End If
+    If InStr(1, activeReport, "BOX=T26", vbTextCompare) > 0 Then
+        failureReason = "Active BoxBuilder list did not hide retired T26. " & activeReport
+        GoTo CleanExit
+    End If
+
+    archivedReport = RunBoxBuilderSavedBoxesReportForTest(False, True)
+    If InStr(1, archivedReport, "COUNT=1", vbTextCompare) = 0 _
+       Or InStr(1, archivedReport, "BOX=T26", vbTextCompare) = 0 Then
+        failureReason = "Archived BoxBuilder list was wrong; expected only retired T26. " & archivedReport
+        GoTo CleanExit
+    End If
+    If InStr(1, archivedReport, "BOX=T25", vbTextCompare) > 0 Then
+        failureReason = "Archived BoxBuilder list included active T25 when Show Active was off. " & archivedReport
+        GoTo CleanExit
+    End If
+
+    allReport = RunBoxBuilderSavedBoxesReportForTest(True, True)
+    If InStr(1, allReport, "COUNT=2", vbTextCompare) = 0 Then
+        failureReason = "Archived BoxBuilder list did not include both active and retired designs. " & allReport
+        GoTo CleanExit
+    End If
+    If InStr(1, allReport, "BOX=T26", vbTextCompare) = 0 Then
+        failureReason = "Archived BoxBuilder list did not expose retired T26 for review/resurrection. " & allReport
+        GoTo CleanExit
+    End If
+
+    TestBoxBuilderArchive_HidesArchivedBoxesUnlessRequested = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7142, "TestBoxBuilderArchive_HidesArchivedBoxesUnlessRequested", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestBoxBuilderForm_InitializesWithActiveArchiveFilters() As Long
+    Dim report As String
+    Dim failureReason As String
+
+    On Error GoTo CleanFail
+    If Not RunBoxBuilderInitializeSmokeForTest(report) Then
+        failureReason = "BoxBuilder form initialization failed: " & report
+        GoTo CleanExit
+    End If
+
+    TestBoxBuilderForm_InitializesWithActiveArchiveFilters = 1
+
+CleanExit:
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7144, "TestBoxBuilderForm_InitializesWithActiveArchiveFilters", failureReason
     End If
     Exit Function
 CleanFail:
@@ -4694,7 +4809,7 @@ Public Function TestShippingSentRows_DoesNotIncreaseProjectedInventoryOverlay() 
     SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-PROJECTED-SENT-001"
 
     wbOps.Activate
-    RunShippingRegisterProjectedOverlayForTest 988, "v1", 3
+    RunShippingRegisterProjectedOverlayForTest 988, "v1", 3, 4
     selectedRows(1) = 1
     ok = RunShippingCompleteSentRowsForTest(selectedRows, report)
     If Not ok Then
@@ -4770,6 +4885,14 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
         failureReason = "Full Shipments Sent run failed: " & Mid$(runResult, 6)
         GoTo CleanExit
     End If
+    If InStr(1, runResult, "already reserved at To Shipments", vbTextCompare) > 0 Then
+        failureReason = "Full Shipments Sent returned the old confusing already-reserved popup text: " & runResult
+        GoTo CleanExit
+    End If
+    If InStr(1, runResult, "completed the reservation", vbTextCompare) = 0 Then
+        failureReason = "Full Shipments Sent did not explain that reserved rows complete an existing server reservation: " & runResult
+        GoTo CleanExit
+    End If
 
     projectedAfter = NzDblForTest(RunShippingProjectedOverlayTextForTest(985, "v1", "10"))
     If projectedAfter <> 9 Then
@@ -4813,7 +4936,7 @@ Public Function TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatche
     overlayPath = RunShippingProjectedOverlayPathForTest()
     If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
 
-    RunShippingRegisterProjectedOverlayForTest 979, "v1", 9
+    RunShippingRegisterProjectedOverlayForTest 979, "v1", 9, 10
     RunShippingClearProjectedOverlayForTest
     projectedText = RunShippingProjectedOverlayTextForTest(979, "v1", "10")
     If CDbl(NzDblForTest(projectedText)) <> 9 Then
@@ -4828,8 +4951,8 @@ Public Function TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatche
     End If
     RunShippingClearProjectedOverlayForTest
     projectedText = RunShippingProjectedOverlayTextForTest(979, "v1", "10")
-    If CDbl(NzDblForTest(projectedText)) <> 10 Then
-        failureReason = "Projected overlay persisted after backend catch-up cleanup."
+    If CDbl(NzDblForTest(projectedText)) <> 9 Then
+        failureReason = "Projected overlay was cleared by a local backend catch-up and allowed stale NAS 10 to inflate projected inventory; found " & projectedText & "."
         GoTo CleanExit
     End If
 
@@ -4841,6 +4964,85 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7133, "TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatchesUp", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingProjectedOverlay_LocalCatchupDoesNotClearBeforeNas() As Long
+    Dim failureReason As String
+    Dim overlayPath As String
+    Dim projectedText As String
+
+    On Error GoTo CleanFail
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    RunShippingRegisterProjectedOverlayForTest 978, "v1", 9, 10
+    projectedText = RunShippingProjectedOverlayTextForTest(978, "v1", "9")
+    If CDbl(NzDblForTest(projectedText)) <> 9 Then
+        failureReason = "Projected overlay did not show local deducted value when backend also read 9."
+        GoTo CleanExit
+    End If
+
+    RunShippingClearProjectedOverlayForTest
+    projectedText = RunShippingProjectedOverlayTextForTest(978, "v1", "10")
+    If CDbl(NzDblForTest(projectedText)) <> 9 Then
+        failureReason = "Projected overlay was cleared by local catch-up and allowed stale NAS 10 to inflate projected inventory; found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedOverlay_LocalCatchupDoesNotClearBeforeNas = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7135, "TestShippingProjectedOverlay_LocalCatchupDoesNotClearBeforeNas", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingProjectedOverlay_ClearsWhenBackendRisesAboveBaseline() As Long
+    Dim failureReason As String
+    Dim overlayPath As String
+    Dim projectedText As String
+
+    On Error GoTo CleanFail
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    RunShippingRegisterProjectedOverlayForTest 977, "v1", 4, 4
+    RunShippingClearProjectedOverlayForTest
+    projectedText = RunShippingProjectedOverlayTextForTest(977, "v1", "24")
+    If CDbl(NzDblForTest(projectedText)) <> 24 Then
+        failureReason = "Stale shipment projected overlay masked a backend inventory increase; expected 24 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    RunShippingClearProjectedOverlayForTest
+    projectedText = RunShippingProjectedOverlayTextForTest(977, "v1", "24")
+    If CDbl(NzDblForTest(projectedText)) <> 24 Then
+        failureReason = "Cleared stale overlay did not persist after reload."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedOverlay_ClearsWhenBackendRisesAboveBaseline = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7145, "TestShippingProjectedOverlay_ClearsWhenBackendRisesAboveBaseline", failureReason
     End If
     Exit Function
 CleanFail:
@@ -4979,6 +5181,331 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingRefresh_MergesLocalBoxBuildStagingAndClearsStaleOverlay() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim eventIdOut As String
+    Dim payloadJson As String
+    Dim wbInv As Workbook
+    Dim wbInbox As Workbook
+    Dim wbSnap As Workbook
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loBomView As ListObject
+    Dim invRow As Long
+    Dim targetText As String
+    Dim evt As Object
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+    Dim savedBoxes(1 To 1, 1 To 7) As Variant
+    Dim shippables As Variant
+    Dim overlayPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_box_build_refresh_nas")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH108", "S31", currentUser, failureReason) Then GoTo CleanExit
+    EnsureConfigStationRowValue "WH108.invSys.Config.xlsb", "S31", "WH108", "PathInboxRoot", rootPath & "\stale_inbox\"
+    If Not modConfig.Reload() Then
+        failureReason = "Config reload failed after stale inbox route setup: " & modConfig.Validate()
+        GoTo CleanExit
+    End If
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH108", Array("SKU-T24-BOX-BUILD-CATCHUP"))
+    Set wbInbox = CreateCanonicalShipInboxWorkbookForTest(rootPath, "S31")
+    If wbInv Is Nothing Or wbInbox Is Nothing Then
+        failureReason = "Canonical shipping runtime workbooks could not be created."
+        GoTo CleanExit
+    End If
+    Set evt = CreateReceiveEventForTest("EVT-BOX-BUILD-CATCHUP-SEED", "WH108", "S31", currentUser, "SKU-T24-BOX-BUILD-CATCHUP", 4, "CLEARVIEW", "box build catch-up seed")
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-BOX-BUILD-CATCHUP-SEED", statusOut, errorCode, errorMessage) Then
+        failureReason = "Canonical seed event failed: " & errorCode & "; " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set wbSnap = CreateSnapshotWorkbook(rootPath, "WH108", "SKU-T24-BOX-BUILD-CATCHUP", 4, CDate("2026-06-19 08:00:00"), 4, "CLEARVIEW=4", "T24", "EA", "CLEARVIEW", "", "", "", "", "986")
+    If wbSnap Is Nothing Then
+        failureReason = "Stale snapshot workbook could not be created."
+        GoTo CleanExit
+    End If
+    wbSnap.Close SaveChanges:=False
+    Set wbSnap = Nothing
+
+    payloadJson = modRoleEventWriter.BuildPayloadJson( _
+        modRoleEventWriter.CreatePayloadItem(986, _
+                                             "SKU-T24-BOX-BUILD-CATCHUP", _
+                                             20, _
+                                             "CLEARVIEW", _
+                                             "T24 VERSION=v1", _
+                                             "MADE"))
+    If Not modRoleEventWriter.QueuePayloadEvent(CORE_EVENT_TYPE_BOX_BUILD, "WH108", "S31", currentUser, payloadJson, "box-build-refresh-nas", "", "", Now, Nothing, eventIdOut, report) Then
+        failureReason = "QueuePayloadEvent failed for local staged box build: " & report
+        GoTo CleanExit
+    End If
+
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingRegisterProjectedOverlayForTest 986, "v1", 4, 4
+
+    If Not modRoleEventWriter.SyncLocalStagedInboxRows(report, "WH108", "S31") Then
+        failureReason = "Local staged Box Maker row did not merge to NAS inbox: " & report
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "LocalStagingMerged=1", vbTextCompare) = 0 Then
+        failureReason = "Local staging sync did not report merging the Box Maker row: " & report
+        GoTo CleanExit
+    End If
+
+    Set loInv = FindTableByName(wbInbox, "tblInboxShip")
+    If loInv Is Nothing Then
+        failureReason = "Shipping inbox table was missing after local staging sync."
+        GoTo CleanExit
+    End If
+    If loInv.ListRows.Count <> 1 Then
+        failureReason = "Expected one merged Box Maker inbox row, found " & CStr(loInv.ListRows.Count) & "."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loInv, 1, "EventType")), CORE_EVENT_TYPE_BOX_BUILD, vbTextCompare) <> 0 Then
+        failureReason = "Merged inbox row was not BOX_BUILD: " & CStr(GetTableValue(loInv, 1, "EventType"))
+        GoTo CleanExit
+    End If
+    If InStr(1, CStr(GetTableValue(loInv, 1, "PayloadJson")), "SKU-T24-BOX-BUILD-CATCHUP", vbTextCompare) = 0 Then
+        failureReason = "Merged BOX_BUILD payload did not include the shippable SKU."
+        GoTo CleanExit
+    End If
+
+    wbInbox.Save
+    wbInbox.Close SaveChanges:=False
+    Set wbInbox = Nothing
+
+    targetText = modProcessor.DescribeInboxTargetsForAutomation("WH108")
+    If InStr(1, targetText, rootPath & "\invSys.Inbox.Shipping.S31.xlsb", vbTextCompare) = 0 _
+       Or InStr(1, targetText, "Table=tblInboxShip", vbTextCompare) = 0 Then
+        failureReason = "Processor inbox targets did not include the connected NAS shipping inbox after local staging merge. " & targetText
+        GoTo CleanExit
+    End If
+
+    If CDbl(NzDblForTest(RunShippingProjectedOverlayTextForTest(986, "v1", "24"))) <> 24 Then
+        failureReason = "Stale Projected Inv overlay masked box build catch-up after backend rose to 24."
+        GoTo CleanExit
+    End If
+
+    TestShippingRefresh_MergesLocalBoxBuildStagingAndClearsStaleOverlay = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH108"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbInv
+    CloseWorkbookIfOpen FindWorkbookByName("WH108.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH108.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7146, "TestShippingRefresh_MergesLocalBoxBuildStagingAndClearsStaleOverlay", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingRefresh_FindsBackendShippingBomViewWithoutInvSysSurface() As Long
+    Dim wbOps As Workbook
+    Dim wsShip As Worksheet
+    Dim wsBackend As Worksheet
+    Dim loBomView As ListObject
+    Dim macroName As String
+    Dim foundView As Boolean
+    Dim failureReason As String
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    Set wsShip = wbOps.Worksheets(1)
+    wsShip.Name = "ShipmentsTally"
+    Set wsBackend = wbOps.Worksheets.Add(After:=wsShip)
+    wsBackend.Name = "ShippingBackend"
+    wsBackend.Range("A1:H1").Value = Array("PackageRow", "PackageName", "BomVersion", "BomVersionLabel", "IsActive", "ComponentRow", "ComponentQty", "ComponentUOM")
+    wsBackend.Range("A2:H2").Value = Array(989, "T28", 1, "v1", True, 1001, 1, "ea")
+    Set loBomView = wsBackend.ListObjects.Add(xlSrcRange, wsBackend.Range("A1:H2"), , xlYes)
+    loBomView.Name = "ShippingBOMView"
+
+    If HasTableByName(wbOps, "invSys") Then
+        failureReason = "Test setup unexpectedly created the generic invSys InventoryManagement table."
+        GoTo CleanExit
+    End If
+
+    macroName = ShippingMacroNameForTest("ShippingBomViewTableExistsForWorkbookForTest")
+    wbOps.Activate
+    foundView = CBool(Application.Run(macroName, wbOps.Name))
+    If Not foundView Then
+        failureReason = "Shipping BOM lookup did not find ShippingBOMView on the backend sheet."
+        GoTo CleanExit
+    End If
+    If HasTableByName(wbOps, "invSys") Then
+        failureReason = "Shipping BOM lookup created the generic invSys InventoryManagement table."
+        GoTo CleanExit
+    End If
+
+    TestShippingRefresh_FindsBackendShippingBomViewWithoutInvSysSurface = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7147, "TestShippingRefresh_FindsBackendShippingBomViewWithoutInvSysSurface", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestBoxMakerUnbox_QtyGreaterThanInventoryFailsBeforeQueue() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim componentRows(1 To 1, 1 To 8) As Variant
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    If loInv Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 86, "SKU-T24", "T24", "EA", "CLEARVIEW", 26
+    AddInvSysSeedRow loInv, 900, "SKU-T24-COMP", "T24 component", "EA", "CLEARVIEW", 100
+
+    componentRows(1, 2) = "T24 component"
+    componentRows(1, 3) = "SKU-T24-COMP"
+    componentRows(1, 4) = 900
+    componentRows(1, 5) = 7
+    componentRows(1, 6) = "ea"
+    componentRows(1, 7) = "CLEARVIEW"
+    componentRows(1, 8) = "component"
+
+    wbOps.Activate
+    report = RunBoxMakerCommitActionReportForTest(86, _
+                                                  "T24", _
+                                                  "ea", _
+                                                  "CLEARVIEW", _
+                                                  "T24 test box", _
+                                                  "v1", _
+                                                  58, _
+                                                  componentRows, _
+                                                  "UNBOX")
+    If InStr(1, report, "Posted=1", vbTextCompare) > 0 Then
+        failureReason = "Box Maker unbox posted even though Qty exceeded inventory."
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "Qty exceeds inventory", vbTextCompare) = 0 Then
+        failureReason = "Box Maker unbox failure did not tell the user Qty exceeds inventory: " & report
+        GoTo CleanExit
+    End If
+
+    TestBoxMakerUnbox_QtyGreaterThanInventoryFailsBeforeQueue = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7148, "TestBoxMakerUnbox_QtyGreaterThanInventoryFailsBeforeQueue", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestBoxMakerUnbox_UsesShippingReadModelInventoryWhenInvSysMissing() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim componentRows(1 To 1, 1 To 8) As Variant
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSysData_Shipping")
+    If loInv Is Nothing Then GoTo CleanExit
+
+    DeleteTableSurfaceForTest wbOps.Worksheets("InventoryManagement"), "invSys"
+    AddInvSysSeedRow loInv, 89, "SKU-T28", "T28", "EA", "CLEARVIEW", 77
+
+    componentRows(1, 2) = "T28 component"
+    componentRows(1, 3) = "SKU-T28-COMP"
+    componentRows(1, 4) = 900
+    componentRows(1, 5) = 7
+    componentRows(1, 6) = "ea"
+    componentRows(1, 7) = "CLEARVIEW"
+    componentRows(1, 8) = "component"
+
+    wbOps.Activate
+    report = RunBoxMakerCommitActionReportForTest(89, _
+                                                  "T28", _
+                                                  "ea", _
+                                                  "CLEARVIEW", _
+                                                  "T28 test box", _
+                                                  "v1", _
+                                                  78, _
+                                                  componentRows, _
+                                                  "UNBOX")
+    If InStr(1, report, "current inventory was not resolved", vbTextCompare) > 0 Then
+        failureReason = "Box Maker unbox did not use invSysData_Shipping inventory: " & report
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "Qty exceeds inventory", vbTextCompare) = 0 Then
+        failureReason = "Box Maker unbox did not compare against Shipping read-model inventory: " & report
+        GoTo CleanExit
+    End If
+
+    report = RunBoxMakerCommitActionReportForTest(89, _
+                                                  "T28", _
+                                                  "ea", _
+                                                  "CLEARVIEW", _
+                                                  "T28 test box", _
+                                                  "v1", _
+                                                  79, _
+                                                  componentRows, _
+                                                  "UNBOX", _
+                                                  "78")
+    If InStr(1, report, "current inventory was not resolved", vbTextCompare) > 0 Then
+        failureReason = "Box Maker unbox ignored displayed NAS inventory and fell back to unresolved workbook state: " & report
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "has 78 in inventory", vbTextCompare) = 0 Then
+        failureReason = "Box Maker unbox did not use displayed NAS inventory for the over-qty guard: " & report
+        GoTo CleanExit
+    End If
+
+    TestBoxMakerUnbox_UsesShippingReadModelInventoryWhenInvSysMissing = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7149, "TestBoxMakerUnbox_UsesShippingReadModelInventoryWhenInvSysMissing", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion() As Long
     Dim report As String
     Dim failureReason As String
@@ -5032,6 +5559,53 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows() As Long
+    Dim failureReason As String
+
+    On Error GoTo CleanFail
+
+    If CDbl(RunShippingProjectedDisplayQtyForTest(10, 1, 0, 0, 10)) <> 9 Then
+        failureReason = "Stale server lock was not deducted from Projected Inv."
+        GoTo CleanExit
+    End If
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 0, 2, 0, 20)) <> 18 Then
+        failureReason = "New local unreserved shipment row was not deducted from Projected Inv."
+        GoTo CleanExit
+    End If
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 3, 0, 0, 20)) <> 17 Then
+        failureReason = "Locked reservation total was not fully deducted from Projected Inv."
+        GoTo CleanExit
+    End If
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 3, 2, 0, 20)) <> 15 Then
+        failureReason = "Projected Inv did not combine stale/server locks with new local unreserved rows."
+        GoTo CleanExit
+    End If
+    If CDbl(RunShippingProjectedDisplayQtyForTest(1, 3, 2, 0, 1)) <> 0 Then
+        failureReason = "Projected Inv went negative instead of clamping to zero."
+        GoTo CleanExit
+    End If
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 3, 0, 2, 18)) <> 17 Then
+        failureReason = "Projected Inv double-counted or ignored stale locks when active local reservations were already represented by the overlay."
+        GoTo CleanExit
+    End If
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 1, 0, 0, 18)) <> 17 Then
+        failureReason = "Projected Inv increased after Shipments Sent released the completed row lock while NAS was still stale."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows = 1
+
+CleanExit:
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7143, "TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingReservationTotals_IgnoreSameWorkbookStaleActiveReservationWithoutLocalLine() As Long
     Dim failureReason As String
     Dim wbReservations As Workbook
@@ -5064,6 +5638,33 @@ Public Function TestShippingReservationTotals_IgnoreSameWorkbookStaleActiveReser
     If Not totals Is Nothing Then
         If totals.Exists(key) Then
             failureReason = "Stale same-workbook active reservation without a local shipment line still appears in Locked totals."
+            GoTo CleanExit
+        End If
+    End If
+
+    SetTableCell loReservations, 1, "SourceWorkbook", ""
+    Set totals = RunShippingReservationTotalsForTableWithLocalLinesForTest(loReservations, "WH103", sourcePath, "")
+    If Not totals Is Nothing Then
+        If totals.Exists(key) Then
+            failureReason = "Stale blank-source active reservation without a local shipment line still appears in Locked totals."
+            GoTo CleanExit
+        End If
+    End If
+
+    SetTableCell loReservations, 1, "SourceWorkbook", "C:\ops\OldShippingStation.xlsm"
+    Set totals = RunShippingReservationTotalsForTableWithLocalLinesForTest(loReservations, "WH103", sourcePath, "")
+    If Not totals Is Nothing Then
+        If totals.Exists(key) Then
+            failureReason = "Stale same-station active reservation from an old workbook without a local shipment line still appears in Locked totals."
+            GoTo CleanExit
+        End If
+    End If
+
+    SetTableCell loReservations, 1, "LineID", ""
+    Set totals = RunShippingReservationTotalsForTableWithLocalLinesForTest(loReservations, "WH103", sourcePath, "")
+    If Not totals Is Nothing Then
+        If totals.Exists(key) Then
+            failureReason = "Stale same-station active reservation with blank LineID still appears in Locked totals."
             GoTo CleanExit
         End If
     End If
@@ -5749,6 +6350,391 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7105, "TestSavedAdminWorkbook_ReopenRefreshReissuePreservesAudit", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestAdminShipmentReconcile_AppliesSignedDeltaWithCorrectedShipEvidence() As Long
+    Dim rootPath As String
+    Dim wbInv As Workbook
+    Dim evt As Object
+    Dim item As Object
+    Dim payloadJson As String
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+    Dim loLog As ListObject
+    Dim loSku As ListObject
+    Dim logRow As Long
+    Dim skuRow As Long
+    Dim failureReason As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_admin_ship_reconcile_apply")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH103", "S31") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH103.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH103", Array("SKU-ADMIN-RECON"))
+    Set evt = CreateReceiveEventForTest("EVT-ADMIN-RECON-SEED", "WH103", "S31", "admin1", "SKU-ADMIN-RECON", 10, "A1", "seed")
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-ADMIN-RECON-SEED", statusOut, errorCode, errorMessage) Then
+        failureReason = "Seed receive failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RECON", 1, "A1", "shipment sent", "SHIPPED")
+    payloadJson = modRoleEventWriter.BuildPayloadJson(item)
+    Set evt = CreatePayloadEventForTest("EVT-SHIP-ADMIN-RECON-001", CORE_EVENT_TYPE_SHIP, "WH103", "S31", "shipper1", payloadJson, "ship one")
+    If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-SHIP-ADMIN-RECON", statusOut, errorCode, errorMessage) Then
+        failureReason = "Ship event failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RECON", 1, "A1", "dirty add-back", "RELEASED")
+    payloadJson = modRoleEventWriter.BuildPayloadJson(item)
+    Set evt = CreatePayloadEventForTest("EVT-DIRTY-ADMIN-RECON-001", CORE_EVENT_TYPE_SHIP_RELEASE, "WH103", "S31", "shipper1", payloadJson, "dirty add-back")
+    If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-DIRTY-ADMIN-RECON", statusOut, errorCode, errorMessage) Then
+        failureReason = "Dirty add-back setup failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RECON", -1, "A1", "Correct stale NAS value after shipment test", "RECONCILE")
+    item("CorrectedShipEventId") = "EVT-SHIP-ADMIN-RECON-001"
+    item("RepairNarrative") = "Correct stale NAS value after shipment test"
+    item("MismatchFlag") = "NAS_INCREASED_AFTER_SHIP"
+    payloadJson = modRoleEventWriter.BuildPayloadJson(item)
+    Set evt = CreatePayloadEventForTest("EVT-ADMIN-RECON-001", CORE_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE, "WH103", "S31", "admin1", payloadJson, "admin reconcile")
+    If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-ADMIN-RECON", statusOut, errorCode, errorMessage) Then
+        failureReason = "Admin reconcile failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set loLog = FindTableByName(wbInv, "tblInventoryLog")
+    Set loSku = FindTableByName(wbInv, "tblSkuBalance")
+    logRow = FindRowByColumnValueInTable(loLog, "EventID", "EVT-ADMIN-RECON-001")
+    skuRow = FindRowByColumnValueInTable(loSku, "SKU", "SKU-ADMIN-RECON")
+    If logRow = 0 Then
+        failureReason = "Admin reconcile event was not written to tblInventoryLog."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loLog, logRow, "QtyDelta")) <> -1 Then
+        failureReason = "Admin reconcile did not preserve signed correction delta."
+        GoTo CleanExit
+    End If
+    If InStr(1, CStr(GetTableValue(loLog, logRow, "Note")), "CorrectsShipEventId=EVT-SHIP-ADMIN-RECON-001", vbTextCompare) = 0 Then
+        failureReason = "Admin reconcile log note did not carry corrected Shipments Sent EventID evidence."
+        GoTo CleanExit
+    End If
+    If InStr(1, CStr(GetTableValue(loLog, logRow, "Note")), "Correct stale NAS value after shipment test", vbTextCompare) = 0 Then
+        failureReason = "Admin reconcile log note did not carry human repair narrative."
+        GoTo CleanExit
+    End If
+    If skuRow = 0 Or CDbl(GetTableValue(loSku, skuRow, "QtyOnHand")) <> 9 Then
+        failureReason = "Admin reconcile did not update derived NAS quantity back to 9."
+        GoTo CleanExit
+    End If
+
+    TestAdminShipmentReconcile_AppliesSignedDeltaWithCorrectedShipEvidence = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInv
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7137, "TestAdminShipmentReconcile_AppliesSignedDeltaWithCorrectedShipEvidence", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestAdminShipmentReconcile_RejectsOrphanAndMissingNarrative() As Long
+    Dim report As String
+    Dim failureReason As String
+
+    On Error GoTo CleanFail
+    If modAdminShipmentReconcile.ValidateShipmentReconcileRequest("SKU-ADMIN-RECON-REQ", -1, "", "orphan correction", report) Then
+        failureReason = "Blank CorrectedShipEventId was accepted."
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "CorrectedShipEventId", vbTextCompare) = 0 Then
+        failureReason = "CorrectedShipEventId rejection did not explain the requirement: " & report
+        GoTo CleanExit
+    End If
+
+    report = vbNullString
+    If modAdminShipmentReconcile.ValidateShipmentReconcileRequest("SKU-ADMIN-RECON-REQ", -1, "EVT-SHIP-ADMIN-RECON-REQ", "", report) Then
+        failureReason = "Missing RepairNarrative was accepted."
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "narrative", vbTextCompare) = 0 Then
+        failureReason = "Missing narrative rejection was not explicit: " & report
+        GoTo CleanExit
+    End If
+
+    TestAdminShipmentReconcile_RejectsOrphanAndMissingNarrative = 1
+
+CleanExit:
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7138, "TestAdminShipmentReconcile_RejectsOrphanAndMissingNarrative", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestAdminShipmentReconcile_DetectsNasIncreaseAfterLatestShip() As Long
+    Dim rootPath As String
+    Dim wbInv As Workbook
+    Dim evt As Object
+    Dim item As Object
+    Dim payloadJson As String
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+    Dim correctedShipEventId As String
+    Dim currentNasQty As Double
+    Dim qtyAfterShip As Double
+    Dim flags As String
+    Dim report As String
+    Dim failureReason As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_admin_ship_reconcile_detect")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH105", "S31") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH105.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH105", Array("SKU-ADMIN-RECON-DETECT"))
+    Set evt = CreateReceiveEventForTest("EVT-ADMIN-RECON-DETECT-SEED", "WH105", "S31", "admin1", "SKU-ADMIN-RECON-DETECT", 10, "A1", "seed")
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-ADMIN-RECON-DETECT-SEED", statusOut, errorCode, errorMessage) Then
+        failureReason = "Seed receive failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RECON-DETECT", 1, "A1", "shipment sent", "SHIPPED")
+    payloadJson = modRoleEventWriter.BuildPayloadJson(item)
+    Set evt = CreatePayloadEventForTest("EVT-SHIP-ADMIN-RECON-DETECT", CORE_EVENT_TYPE_SHIP, "WH105", "S31", "shipper1", payloadJson, "ship one")
+    If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-SHIP-ADMIN-RECON-DETECT", statusOut, errorCode, errorMessage) Then
+        failureReason = "Ship event failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RECON-DETECT", 1, "A1", "dirty add-back", "RELEASED")
+    payloadJson = modRoleEventWriter.BuildPayloadJson(item)
+    Set evt = CreatePayloadEventForTest("EVT-DIRTY-ADMIN-RECON-DETECT", CORE_EVENT_TYPE_SHIP_RELEASE, "WH105", "S31", "shipper1", payloadJson, "dirty add-back")
+    If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-DIRTY-ADMIN-RECON-DETECT", statusOut, errorCode, errorMessage) Then
+        failureReason = "Dirty add-back setup failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    If Not modAdminShipmentReconcile.DetectNasIncreaseAfterLastShip(wbInv, "SKU-ADMIN-RECON-DETECT", correctedShipEventId, currentNasQty, qtyAfterShip, report) Then
+        failureReason = "NAS increase after SHIP was not detected: " & report
+        GoTo CleanExit
+    End If
+    If StrComp(correctedShipEventId, "EVT-SHIP-ADMIN-RECON-DETECT", vbTextCompare) <> 0 Then
+        failureReason = "Detector returned wrong corrected SHIP EventID: " & correctedShipEventId
+        GoTo CleanExit
+    End If
+    If currentNasQty <> 10 Or qtyAfterShip <> 9 Then
+        failureReason = "Detector compared wrong quantities. Current=" & CStr(currentNasQty) & "; AfterShip=" & CStr(qtyAfterShip)
+        GoTo CleanExit
+    End If
+
+    currentNasQty = 0
+    qtyAfterShip = 0
+    report = vbNullString
+    If Not modAdminShipmentReconcile.DetectNasIncreaseAfterShipEvent(wbInv, "EVT-SHIP-ADMIN-RECON-DETECT", "SKU-ADMIN-RECON-DETECT", currentNasQty, qtyAfterShip, report) Then
+        failureReason = "Selected Shipments Sent EventID did not drive detection: " & report
+        GoTo CleanExit
+    End If
+    If currentNasQty <> 10 Or qtyAfterShip <> 9 Then
+        failureReason = "Selected EventID detector compared wrong quantities. Current=" & CStr(currentNasQty) & "; AfterShip=" & CStr(qtyAfterShip)
+        GoTo CleanExit
+    End If
+
+    flags = modAdminShipmentReconcile.BuildShipmentMismatchFlags(9, 10, 0, False, False, True)
+    If InStr(1, flags, "NAS_INCREASED_AFTER_SHIP", vbTextCompare) = 0 Then
+        failureReason = "Mismatch flags did not include NAS_INCREASED_AFTER_SHIP."
+        GoTo CleanExit
+    End If
+
+    TestAdminShipmentReconcile_DetectsNasIncreaseAfterLatestShip = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInv
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7139, "TestAdminShipmentReconcile_DetectsNasIncreaseAfterLatestShip", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestAdminShipmentReconcile_RecentShipmentsSentLogShowsLast20() As Long
+    Dim rootPath As String
+    Dim wbInv As Workbook
+    Dim evt As Object
+    Dim item As Object
+    Dim payloadJson As String
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+    Dim recentText As String
+    Dim i As Long
+    Dim failureReason As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_admin_ship_reconcile_recent")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH106", "S31") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH106.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH106", Array("SKU-ADMIN-RECENT"))
+    Set evt = CreateReceiveEventForTest("EVT-ADMIN-RECENT-SEED", "WH106", "S31", "admin1", "SKU-ADMIN-RECENT", 40, "A1", "seed")
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-ADMIN-RECENT-SEED", statusOut, errorCode, errorMessage) Then
+        failureReason = "Seed receive failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    For i = 1 To 25
+        Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RECENT", 1, "A1", "shipment sent", "SHIPPED")
+        payloadJson = modRoleEventWriter.BuildPayloadJson(item)
+        Set evt = CreatePayloadEventForTest("EVT-SHIP-RECENT-" & Format$(i, "000"), CORE_EVENT_TYPE_SHIP, "WH106", "S31", "shipper1", payloadJson, "ship one")
+        If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-SHIP-RECENT-" & Format$(i, "000"), statusOut, errorCode, errorMessage) Then
+            failureReason = "Ship event " & CStr(i) & " failed: " & errorCode & " " & errorMessage
+            GoTo CleanExit
+        End If
+    Next i
+
+    recentText = modAdminShipmentReconcile.BuildRecentShipmentSentLogText(wbInv, 20)
+    If InStr(1, recentText, "EVT-SHIP-RECENT-025", vbTextCompare) = 0 Then
+        failureReason = "Recent shipment list did not include newest Shipments Sent event."
+        GoTo CleanExit
+    End If
+    If InStr(1, recentText, "EVT-SHIP-RECENT-006", vbTextCompare) = 0 Then
+        failureReason = "Recent shipment list did not include the 20th newest Shipments Sent event."
+        GoTo CleanExit
+    End If
+    If InStr(1, recentText, "EVT-SHIP-RECENT-005", vbTextCompare) > 0 Then
+        failureReason = "Recent shipment list included an event older than the last 20."
+        GoTo CleanExit
+    End If
+
+    TestAdminShipmentReconcile_RecentShipmentsSentLogShowsLast20 = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInv
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7140, "TestAdminShipmentReconcile_RecentShipmentsSentLogShowsLast20", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestAdminShipmentReconcile_RecentLogIncludesShipReserveEvidence() As Long
+    Dim rootPath As String
+    Dim wbInv As Workbook
+    Dim evt As Object
+    Dim item As Object
+    Dim payloadJson As String
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+    Dim recentText As String
+    Dim currentNasQty As Double
+    Dim qtyAfterShip As Double
+    Dim report As String
+    Dim diagnostics As String
+    Dim failureReason As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_admin_ship_reconcile_reserve")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH107", "S31") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH107.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH107", Array("SKU-ADMIN-RESERVE-DETECT"))
+    Set evt = CreateReceiveEventForTest("EVT-ADMIN-RESERVE-SEED", "WH107", "S31", "admin1", "SKU-ADMIN-RESERVE-DETECT", 10, "A1", "seed")
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-ADMIN-RESERVE-SEED", statusOut, errorCode, errorMessage) Then
+        failureReason = "Seed receive failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RESERVE-DETECT", 1, "A1", "shipment reserved", "RESERVED")
+    payloadJson = modRoleEventWriter.BuildPayloadJson(item)
+    Set evt = CreatePayloadEventForTest("EVT-RESERVE-ADMIN-RECON-001", CORE_EVENT_TYPE_SHIP_RESERVE, "WH107", "S31", "shipper1", payloadJson, "reserve one")
+    If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-RESERVE-ADMIN-RECON", statusOut, errorCode, errorMessage) Then
+        failureReason = "Ship reserve event failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RESERVE-DETECT", 1, "A1", "dirty add-back", "RELEASED")
+    payloadJson = modRoleEventWriter.BuildPayloadJson(item)
+    Set evt = CreatePayloadEventForTest("EVT-DIRTY-ADMIN-RESERVE-001", CORE_EVENT_TYPE_SHIP_RELEASE, "WH107", "S31", "shipper1", payloadJson, "dirty add-back")
+    If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-DIRTY-ADMIN-RESERVE", statusOut, errorCode, errorMessage) Then
+        failureReason = "Dirty add-back setup failed: " & errorCode & " " & errorMessage
+        GoTo CleanExit
+    End If
+
+    recentText = modAdminShipmentReconcile.BuildRecentShipmentSentLogText(wbInv, 20)
+    If InStr(1, recentText, "EVT-RESERVE-ADMIN-RECON-001", vbTextCompare) = 0 Then
+        failureReason = "Recent shipment evidence list did not include SHIP_RESERVE EventID: " & recentText
+        GoTo CleanExit
+    End If
+    If InStr(1, recentText, "SHIP_RESERVE", vbTextCompare) = 0 Then
+        failureReason = "Recent shipment evidence list did not label reserve event type: " & recentText
+        GoTo CleanExit
+    End If
+
+    If Not modAdminShipmentReconcile.DetectNasIncreaseAfterShipEvent(wbInv, "EVT-RESERVE-ADMIN-RECON-001", "SKU-ADMIN-RESERVE-DETECT", currentNasQty, qtyAfterShip, report) Then
+        failureReason = "Selected SHIP_RESERVE EventID did not drive stale NAS detection: " & report
+        GoTo CleanExit
+    End If
+    If currentNasQty <> 10 Or qtyAfterShip <> 9 Then
+        failureReason = "SHIP_RESERVE detector compared wrong quantities. Current=" & CStr(currentNasQty) & "; AfterReserve=" & CStr(qtyAfterShip)
+        GoTo CleanExit
+    End If
+
+    diagnostics = modAdminShipmentReconcile.ShipmentLogDiagnosticsText(wbInv)
+    If InStr(1, diagnostics, "SHIP_RESERVE rows: 1", vbTextCompare) = 0 Then
+        failureReason = "Diagnostics did not count SHIP_RESERVE rows: " & diagnostics
+        GoTo CleanExit
+    End If
+
+    TestAdminShipmentReconcile_RecentLogIncludesShipReserveEvidence = 1
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInv
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7141, "TestAdminShipmentReconcile_RecentLogIncludesShipReserveEvidence", failureReason
     End If
     Exit Function
 CleanFail:
@@ -6829,6 +7815,71 @@ Private Function RunShippingSentRowsReportForTest(ByVal rowIndexes As Variant, B
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
+Private Function RunBoxBuilderSavedBoxesReportForTest(ByVal includeActive As Boolean, ByVal includeArchived As Boolean) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("BoxBuilderFormLoadSavedBoxesReportForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunBoxBuilderSavedBoxesReportForTest = CStr(Application.Run(macroName, includeActive, includeArchived))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunBoxBuilderInitializeSmokeForTest(ByRef report As String) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("BoxBuilderFormInitializeSmokeForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunBoxBuilderInitializeSmokeForTest = CBool(Application.Run(macroName, report))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunBoxMakerCommitActionReportForTest(ByVal packageRow As Long, _
+                                                      ByVal boxName As String, _
+                                                      ByVal boxUom As String, _
+                                                      ByVal boxLocation As String, _
+                                                      ByVal boxDescription As String, _
+                                                      ByVal versionLabel As String, _
+                                                      ByVal boxQty As Double, _
+                                                      ByVal componentRows As Variant, _
+                                                      ByVal actionText As String, _
+                                                      Optional ByVal displayedAvailableQty As Variant) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("CommitBoxMakerFormActionReportForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    If IsMissing(displayedAvailableQty) Then
+        RunBoxMakerCommitActionReportForTest = CStr(Application.Run(macroName, _
+                                                                    packageRow, _
+                                                                    boxName, _
+                                                                    boxUom, _
+                                                                    boxLocation, _
+                                                                    boxDescription, _
+                                                                    versionLabel, _
+                                                                    boxQty, _
+                                                                    componentRows, _
+                                                                    actionText))
+    Else
+        RunBoxMakerCommitActionReportForTest = CStr(Application.Run(macroName, _
+                                                                    packageRow, _
+                                                                    boxName, _
+                                                                    boxUom, _
+                                                                    boxLocation, _
+                                                                    boxDescription, _
+                                                                    versionLabel, _
+                                                                    boxQty, _
+                                                                    componentRows, _
+                                                                    actionText, _
+                                                                    displayedAvailableQty))
+    End If
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
 Private Function RunShippingApplySentRowsInventoryForTest(ByVal rowIndexes As Variant, ByRef report As String) As Boolean
     Dim targetWb As Workbook
     Dim macroName As String
@@ -6891,14 +7942,21 @@ Private Function RunShippingReservationTotalsForTableWithLocalLinesForTest(ByVal
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
-Private Sub RunShippingRegisterProjectedOverlayForTest(ByVal packageRow As Long, ByVal versionLabel As String, ByVal projectedQty As Double)
+Private Sub RunShippingRegisterProjectedOverlayForTest(ByVal packageRow As Long, _
+                                                       ByVal versionLabel As String, _
+                                                       ByVal projectedQty As Double, _
+                                                       Optional ByVal baselineQty As Variant)
     Dim targetWb As Workbook
     Dim macroName As String
 
     Set targetWb = ActiveWorkbook
     macroName = ShippingMacroNameForTest("RegisterPendingBoxVersionInventoryOverlay")
     If Not targetWb Is Nothing Then targetWb.Activate
-    Application.Run macroName, packageRow, versionLabel, projectedQty
+    If IsMissing(baselineQty) Then
+        Application.Run macroName, packageRow, versionLabel, projectedQty
+    Else
+        Application.Run macroName, packageRow, versionLabel, projectedQty, CDbl(baselineQty)
+    End If
     If Not targetWb Is Nothing Then targetWb.Activate
 End Sub
 
@@ -6932,6 +7990,21 @@ Private Function RunShippingProjectedOverlayTextForTest(ByVal packageRow As Long
     macroName = ShippingMacroNameForTest("PendingBoxVersionInventoryOverlayText")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingProjectedOverlayTextForTest = CStr(Application.Run(macroName, packageRow, versionLabel, backendText))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingProjectedDisplayQtyForTest(ByVal nasQty As Double, _
+                                                       ByVal lockedQty As Double, _
+                                                       ByVal unreservedLocalQty As Double, _
+                                                       ByVal reservedLocalQty As Double, _
+                                                       ByVal pendingOverlayQty As Double) As Double
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsProjectedDisplayQtyForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingProjectedDisplayQtyForTest = CDbl(Application.Run(macroName, nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
@@ -7285,6 +8358,29 @@ Private Function CreateReceiveEventForTest(ByVal eventId As String, _
     evt("Location") = locationVal
     evt("Note") = noteVal
     Set CreateReceiveEventForTest = evt
+End Function
+
+Private Function CreatePayloadEventForTest(ByVal eventId As String, _
+                                           ByVal eventType As String, _
+                                           ByVal warehouseId As String, _
+                                           ByVal stationId As String, _
+                                           ByVal userId As String, _
+                                           ByVal payloadJson As String, _
+                                           ByVal noteVal As String) As Object
+    Dim evt As Object
+
+    Set evt = CreateObject("Scripting.Dictionary")
+    evt.CompareMode = vbTextCompare
+    evt("EventID") = eventId
+    evt("EventType") = eventType
+    evt("CreatedAtUTC") = Now
+    evt("WarehouseId") = warehouseId
+    evt("StationId") = stationId
+    evt("UserId") = userId
+    evt("SourceInbox") = "phase6-test-inbox"
+    evt("PayloadJson") = payloadJson
+    evt("Note") = noteVal
+    Set CreatePayloadEventForTest = evt
 End Function
 
 Private Sub DeleteTableSurfaceForTest(ByVal ws As Worksheet, ByVal tableName As String)

@@ -23,6 +23,7 @@ Private WithEvents mChkUseExisting As MSForms.CheckBox
 Private WithEvents mLstShippables As MSForms.ListBox
 Private WithEvents mLstShipments As MSForms.ListBox
 Private WithEvents mLstHold As MSForms.ListBox
+Private WithEvents mBtnHistory As MSForms.CommandButton
 Private WithEvents mBtnRefresh As MSForms.CommandButton
 Private WithEvents mBtnAdd As MSForms.CommandButton
 Private WithEvents mBtnUpdate As MSForms.CommandButton
@@ -41,6 +42,7 @@ Private mTxtRow As MSForms.TextBox
 Private mTxtCarrier As MSForms.ComboBox
 Private mTxtStatus As MSForms.TextBox
 Private mLstReadiness As MSForms.ListBox
+Private mLblSyncState As MSForms.Label
 
 Private mShippables As Variant
 Private mNasReservationTotals As Object
@@ -96,6 +98,7 @@ Public Sub InitializeFromShipping()
     LoadShippables
     LoadShipmentState
     RefreshProjectedShippableInventory
+    UpdateSyncStateLabel
     mLoading = False
 
     If mLstShippables.ListCount > 0 Then
@@ -129,11 +132,13 @@ Private Sub BuildLayout()
     Me.ScrollHeight = 650
 
     AddLabel "lblTitle", "Shipments", 12, 10, 140, 20, True
+    Set mBtnHistory = AddButton("btnHistory", "History", 708, 10, 58, 24)
     Set mBtnRefresh = AddButton("btnRefresh", "Refresh", 774, 10, 58, 24)
 
     AddLabel "lblPicker", "Search Boxes", 12, 42, 78, 18, False
     Set mTxtPicker = AddTextBox("txtPicker", 96, 38, 300, 22)
     Set mChkUseExisting = AddCheckBox("chkUseExisting", "Use existing shippable inventory", 420, 38, 190, 22)
+    Set mLblSyncState = AddLabel("lblSyncState", "", 620, 42, 210, 18, False)
 
     AddShippableHeaders 12, 70
     Set mLstShippables = AddListBox("lstShippables", 12, 90, 820, 92)
@@ -289,11 +294,13 @@ End Function
 Private Sub LoadShipmentState()
     RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False)
     RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True)
+    UpdateSyncStateLabel
 End Sub
 
 Private Sub LoadShipmentLineState()
     RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False)
     RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True)
+    UpdateSyncStateLabel
 End Sub
 
 Private Sub RenderShippables()
@@ -329,10 +336,12 @@ Private Sub RenderShippables()
 NextRow:
     Next r
     mLstShippables.List = displayRows
+    UpdateSyncStateLabel
     Exit Sub
 
 FailSoft:
     ShowStatus "Shippable render failed: " & Err.Description
+    UpdateSyncStateLabel
 End Sub
 
 Private Function ShippableMatchesFilter(ByVal rowIndex As Long, ByVal filterText As String) As Boolean
@@ -551,6 +560,15 @@ Private Sub mBtnRefresh_Click()
     If Not ok And Trim$(report) <> "" Then MsgBox report, vbExclamation
 End Sub
 
+Private Sub mBtnHistory_Click()
+    Dim historyText As String
+
+    historyText = modTS_Shipments.ShipmentsFormRecentHistoryText(20)
+    If Trim$(historyText) = "" Then historyText = "No shipment history was found."
+    ShowStatus historyText
+    MsgBox historyText, vbInformation, "Shipments History"
+End Sub
+
 Private Sub mBtnAdd_Click()
     CommitCurrentLine "ADD"
 End Sub
@@ -666,6 +684,9 @@ Private Sub RefreshProjectedShippableInventory()
 
     Dim r As Long
     Dim activeQty As Double
+    Dim lockedQty As Double
+    Dim unreservedQty As Double
+    Dim reservedQty As Double
     Dim backendText As String
     Dim projectedText As String
     Dim projectedQty As Double
@@ -675,20 +696,35 @@ Private Sub RefreshProjectedShippableInventory()
     For r = 1 To UBound(mShippables, 1)
         backendText = NzText(mShippables(r, 4))
         activeQty = ActiveShipmentQtyForShippable(NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
-        If activeQty > 0 Then
-            projectedQty = ParseNumber(backendText) - activeQty
-            If projectedQty < 0 Then projectedQty = 0
+        lockedQty = LockedShipmentQtyForShippable(CLng(Val(NzText(mShippables(r, 1)))), NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
+        unreservedQty = UnreservedShipmentQtyForShippable(NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
+        reservedQty = activeQty - unreservedQty
+        If reservedQty < 0 Then reservedQty = 0
+        If lockedQty > 0 Or unreservedQty > 0 Then
+            projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(CLng(Val(NzText(mShippables(r, 1)))), _
+                                                                                  NzText(mShippables(r, 3)), _
+                                                                                  backendText)
+            projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQty(ParseNumber(backendText), _
+                                                                        lockedQty, _
+                                                                        unreservedQty, _
+                                                                        reservedQty, _
+                                                                        ParseNumber(projectedText))
             mShippables(r, 8) = FormatQuantity(projectedQty)
-        Else
+        ElseIf activeQty <= 0 Then
             projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(CLng(Val(NzText(mShippables(r, 1)))), _
                                                                                   NzText(mShippables(r, 3)), _
                                                                                   backendText)
             mShippables(r, 8) = projectedText
+        Else
+            projectedQty = ParseNumber(backendText) - activeQty
+            If projectedQty < 0 Then projectedQty = 0
+            mShippables(r, 8) = FormatQuantity(projectedQty)
         End If
     Next r
     RenderShippables
 
 CleanExit:
+    UpdateSyncStateLabel
 End Sub
 
 Private Function ActiveShipmentQtyForShippable(ByVal boxName As String, ByVal versionLabel As String) As Double
@@ -704,6 +740,25 @@ Private Function ActiveShipmentQtyForShippable(ByVal boxName As String, ByVal ve
         rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
         If rowBox = boxName And rowVersion = versionLabel Then
             ActiveShipmentQtyForShippable = ActiveShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
+        End If
+    Next i
+End Function
+
+Private Function UnreservedShipmentQtyForShippable(ByVal boxName As String, ByVal versionLabel As String) As Double
+    Dim i As Long
+    Dim rowBox As String
+    Dim rowVersion As String
+
+    If mLstShipments Is Nothing Then Exit Function
+    boxName = LCase$(Trim$(boxName))
+    versionLabel = LCase$(Trim$(versionLabel))
+    For i = 0 To mLstShipments.ListCount - 1
+        rowBox = LCase$(Trim$(NzText(mLstShipments.List(i, 1))))
+        rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
+        If rowBox = boxName And rowVersion = versionLabel Then
+            If Trim$(NzText(mLstShipments.List(i, 11))) = "" Then
+                UnreservedShipmentQtyForShippable = UnreservedShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
+            End If
         End If
     Next i
 End Function
@@ -758,7 +813,9 @@ Private Sub InitializeAnchors()
     Set mAnchors = modDynamicForms.CreateFormAnchorManager()
     mAnchors.Initialize Me
 
+    mAnchors.Add mBtnHistory, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mBtnRefresh, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mLblSyncState, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mTxtPicker, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mTxtCarrier, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mLstShippables, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
@@ -774,6 +831,45 @@ Private Sub InitializeAnchors()
     mAnchors.Add mBtnSend, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mBtnClose, ANCHOR_RIGHT Or ANCHOR_BOTTOM
 End Sub
+
+Private Sub UpdateSyncStateLabel()
+    On Error GoTo CleanExit
+
+    Dim pendingCount As Long
+
+    If mLblSyncState Is Nothing Then Exit Sub
+    pendingCount = PendingShipmentSyncCount()
+    If pendingCount > 0 Then
+        mLblSyncState.Caption = "Sync: pending (" & CStr(pendingCount) & " inventory row(s))"
+        mLblSyncState.ForeColor = &H80&
+    Else
+        mLblSyncState.Caption = "Sync: complete"
+        mLblSyncState.ForeColor = &H8000&
+    End If
+
+CleanExit:
+End Sub
+
+Private Function PendingShipmentSyncCount() As Long
+    On Error GoTo CleanExit
+
+    Dim r As Long
+    Dim nasText As String
+    Dim projectedText As String
+
+    If Not IsEmpty(mShippables) Then
+        For r = 1 To UBound(mShippables, 1)
+            nasText = Trim$(NzText(mShippables(r, 4)))
+            projectedText = Trim$(NzText(mShippables(r, 8)))
+            If projectedText <> "" And StrComp(nasText, projectedText, vbTextCompare) <> 0 Then
+                PendingShipmentSyncCount = PendingShipmentSyncCount + 1
+            End If
+        Next r
+    End If
+    If Not mLstShipments Is Nothing Then PendingShipmentSyncCount = PendingShipmentSyncCount + mLstShipments.ListCount
+
+CleanExit:
+End Function
 
 Private Sub AddShippableHeaders(ByVal leftPos As Single, ByVal topPos As Single)
     AddHeaderLabel "hdrShipBox", "Box", leftPos, topPos, 138

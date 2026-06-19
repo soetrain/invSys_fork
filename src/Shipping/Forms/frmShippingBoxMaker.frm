@@ -165,16 +165,16 @@ Private Sub BuildLayout()
     AddShippableHeaders 12, 194
     Set mLstShippables = AddListBox("lstShippables", 12, 214, 752, 72)
     With mLstShippables
-        .ColumnCount = 6
-        .ColumnWidths = "190 pt;54 pt;70 pt;44 pt;116 pt;56 pt"
+        .ColumnCount = 7
+        .ColumnWidths = "174 pt;54 pt;58 pt;72 pt;42 pt;110 pt;48 pt"
     End With
 
     AddLabel "lblComponents", "Components To Deduct", 12, 300, 170, 18, True
     AddComponentHeaders 12, 322
     Set mLstComponents = AddListBox("lstComponents", 12, 342, 752, 232)
     With mLstComponents
-        .ColumnCount = 9
-        .ColumnWidths = "126 pt;42 pt;50 pt;58 pt;54 pt;38 pt;76 pt;62 pt;150 pt"
+        .ColumnCount = 10
+        .ColumnWidths = "112 pt;38 pt;46 pt;54 pt;50 pt;68 pt;34 pt;70 pt;58 pt;132 pt"
     End With
 
     Set mBtnMake = AddButton("btnMake", "Make Boxes", 506, 586, 86, 30)
@@ -349,7 +349,8 @@ Private Sub RenderComponents()
     Dim qtyMade As Double
     Dim perBoxQty As Double
     Dim requiredQty As Double
-    Dim currentInv As String
+    Dim nasInv As String
+    Dim projectedInv As String
     Dim rowValue As Long
 
     mLstComponents.Clear
@@ -365,22 +366,28 @@ Private Sub RenderComponents()
         perBoxQty = ParseNumber(NzText(mComponents(r, 5)))
         requiredQty = perBoxQty * qtyMade
         rowValue = CLng(Val(NzText(mComponents(r, 4))))
-        currentInv = DisplayComponentInventoryText(rowValue, NzText(mComponents(r, 9)))
+        nasInv = NzText(mComponents(r, 9))
+        projectedInv = DisplayComponentInventoryText(rowValue, nasInv)
 
         mLstComponents.AddItem NzText(mComponents(r, 2))
         idx = mLstComponents.ListCount - 1
         mLstComponents.List(idx, 1) = NzText(mComponents(r, 4))
         mLstComponents.List(idx, 2) = FormatQuantityText(perBoxQty)
         mLstComponents.List(idx, 3) = FormatQuantityText(requiredQty)
-        If currentInv = "" Then
+        If nasInv = "" Then
             mLstComponents.List(idx, 4) = "unknown"
         Else
-            mLstComponents.List(idx, 4) = currentInv
+            mLstComponents.List(idx, 4) = nasInv
         End If
-        mLstComponents.List(idx, 5) = NzText(mComponents(r, 6))
-        mLstComponents.List(idx, 6) = NzText(mComponents(r, 7))
-        mLstComponents.List(idx, 7) = NzText(mComponents(r, 3))
-        mLstComponents.List(idx, 8) = NzText(mComponents(r, 8))
+        If projectedInv = "" Then
+            mLstComponents.List(idx, 5) = "unknown"
+        Else
+            mLstComponents.List(idx, 5) = projectedInv
+        End If
+        mLstComponents.List(idx, 6) = NzText(mComponents(r, 6))
+        mLstComponents.List(idx, 7) = NzText(mComponents(r, 7))
+        mLstComponents.List(idx, 8) = NzText(mComponents(r, 3))
+        mLstComponents.List(idx, 9) = NzText(mComponents(r, 8))
     Next r
     ShowStatus "Loaded " & CStr(mLstComponents.ListCount) & " component row(s) for " & SelectedVersionLabel() & "."
     Exit Sub
@@ -465,19 +472,19 @@ CleanExit:
 End Function
 
 Private Sub SetPackageInventoryCaption(ByVal backendInventoryText As String)
-    Dim displayInv As String
+    Dim nasInv As String
+    Dim projectedInv As String
 
     If mLblPackageInv Is Nothing Then Exit Sub
     If mSelectedPackageRow <= 0 Then
         mLblPackageInv.Caption = ""
         Exit Sub
     End If
-    displayInv = DisplayShippableInventoryText(mSelectedPackageRow, backendInventoryText)
-    If displayInv = "" Then
-        mLblPackageInv.Caption = "Current inventory for shippable box: unknown"
-    Else
-        mLblPackageInv.Caption = "Current inventory for shippable box: " & displayInv
-    End If
+    nasInv = Trim$(backendInventoryText)
+    If nasInv = "" Then nasInv = "unknown"
+    projectedInv = DisplayBoxVersionInventoryText(mSelectedPackageRow, SelectedVersionLabel(), backendInventoryText)
+    If projectedInv = "" Then projectedInv = "unknown"
+    mLblPackageInv.Caption = "NAS Inv: " & nasInv & "    Projected Inv: " & projectedInv
 End Sub
 
 Private Sub mCboBoxes_Change()
@@ -557,7 +564,7 @@ Private Sub mLstShippables_Click()
     If mLoading Then Exit Sub
     If mLstShippables.ListIndex < 0 Then Exit Sub
 
-    packageRow = CLng(Val(NzText(mLstShippables.List(mLstShippables.ListIndex, 5))))
+    packageRow = CLng(Val(NzText(mLstShippables.List(mLstShippables.ListIndex, 6))))
     versionLabel = NormalizeVersionText(NzText(mLstShippables.List(mLstShippables.ListIndex, 1)))
     If packageRow <= 0 Then Exit Sub
     If packageRow = mSelectedPackageRow _
@@ -593,9 +600,11 @@ Private Sub PostBoxMakerAction(ByVal actionText As String)
     Dim startedAt As Single
     Dim elapsedMs As Long
     Dim postedOk As Boolean
+    Dim syncCompleted As Boolean
     Dim previousPointer As Long
     Dim previousScreenUpdating As Boolean
     Dim quietStarted As Boolean
+    Dim selectedNasInv As String
 
     qtyMade = ParseNumber(Trim$(CStr(mTxtQty.Value)))
     If qtyMade <= 0 Then
@@ -620,6 +629,7 @@ Private Sub PostBoxMakerAction(ByVal actionText As String)
     modUiQuiet.BeginQuietUi ActiveWorkbook
     quietStarted = True
     startedAt = Timer
+    selectedNasInv = CachedShippableInventoryText(mSelectedPackageRow)
 
     postedOk = modTS_Shipments.CommitBoxMakerFormAction(mSelectedPackageRow, _
                                                         CStr(mTxtBoxName.Value), _
@@ -630,7 +640,9 @@ Private Sub PostBoxMakerAction(ByVal actionText As String)
                                                         qtyMade, _
                                                         mComponents, _
                                                         resultMessage, _
-                                                        actionText)
+                                                        actionText, _
+                                                        syncCompleted, _
+                                                        selectedNasInv)
     elapsedMs = ElapsedMillisecondsForm(startedAt)
     If quietStarted Then
         modUiQuiet.EndQuietUi
@@ -640,9 +652,13 @@ Private Sub PostBoxMakerAction(ByVal actionText As String)
     Me.MousePointer = previousPointer
 
     If postedOk Then
-        RecordPendingShippableInventory actionText, qtyMade
-        RecordPendingComponentInventory actionText, qtyMade
-        RecordPendingVersionInventory actionText, qtyMade
+        If syncCompleted Then
+            RefreshShippableInventoryCache True
+        Else
+            RecordPendingComponentInventory actionText, qtyMade
+            RecordPendingVersionInventory actionText, qtyMade
+        End If
+        mTxtQty.Value = ""
         resultMessage = AppendCompletionTiming(resultMessage, elapsedMs)
         MsgBox resultMessage, vbInformation
         ShowStatus "Completed in " & Format$(elapsedMs, "#,##0") & " ms."
@@ -717,7 +733,8 @@ Private Sub RenderShippableInventoryFromCache()
 
     Dim r As Long
     Dim idx As Long
-    Dim currentInv As String
+    Dim nasInv As String
+    Dim projectedInv As String
     Dim rowValue As Long
     Dim prevLoading As Boolean
     Dim filterText As String
@@ -740,21 +757,24 @@ Private Sub RenderShippableInventoryFromCache()
         GoTo CleanExit
     End If
 
-    ReDim displayRows(0 To shownCount - 1, 0 To 5)
+    ReDim displayRows(0 To shownCount - 1, 0 To 6)
     selectedIndex = -1
     idx = 0
     For r = 1 To UBound(mShippableRows, 1)
         If Not ShippableRowMatchesPicker(mShippableRows, r, filterText) Then GoTo NextShippable
         rowValue = CLng(Val(NzText(mShippableRows(r, 1))))
-        currentInv = DisplayBoxVersionInventoryText(rowValue, NzText(mShippableRows(r, 3)), NzText(mShippableRows(r, 4)))
-        If currentInv = "" Then currentInv = "unknown"
+        nasInv = NzText(mShippableRows(r, 4))
+        If nasInv = "" Then nasInv = "unknown"
+        projectedInv = DisplayBoxVersionInventoryText(rowValue, NzText(mShippableRows(r, 3)), NzText(mShippableRows(r, 4)))
+        If projectedInv = "" Then projectedInv = "unknown"
 
         displayRows(idx, 0) = NzText(mShippableRows(r, 2))
         displayRows(idx, 1) = NzText(mShippableRows(r, 3))
-        displayRows(idx, 2) = currentInv
-        displayRows(idx, 3) = NzText(mShippableRows(r, 5))
-        displayRows(idx, 4) = NzText(mShippableRows(r, 6))
-        displayRows(idx, 5) = NzText(mShippableRows(r, 1))
+        displayRows(idx, 2) = nasInv
+        displayRows(idx, 3) = projectedInv
+        displayRows(idx, 4) = NzText(mShippableRows(r, 5))
+        displayRows(idx, 5) = NzText(mShippableRows(r, 6))
+        displayRows(idx, 6) = NzText(mShippableRows(r, 1))
         If rowValue = mSelectedPackageRow _
            And StrComp(NormalizeVersionText(NzText(mShippableRows(r, 3))), SelectedVersionLabel(), vbTextCompare) = 0 Then
             selectedIndex = idx
@@ -790,9 +810,9 @@ Private Sub RecordPendingShippableInventory(ByVal actionText As String, ByVal qt
     currentText = ""
     If Not mLstShippables Is Nothing Then
         For r = 0 To mLstShippables.ListCount - 1
-            If CLng(Val(NzText(mLstShippables.List(r, 5)))) = mSelectedPackageRow _
+            If CLng(Val(NzText(mLstShippables.List(r, 6)))) = mSelectedPackageRow _
                And StrComp(NormalizeVersionText(NzText(mLstShippables.List(r, 1))), SelectedVersionLabel(), vbTextCompare) = 0 Then
-                currentText = NzText(mLstShippables.List(r, 2))
+                currentText = NzText(mLstShippables.List(r, 3))
                 Exit For
             End If
         Next r
@@ -956,9 +976,9 @@ Private Function SelectedShippableVersionInventoryText() As String
     If mSelectedPackageRow <= 0 Then Exit Function
     versionLabel = SelectedVersionLabel()
     For r = 0 To mLstShippables.ListCount - 1
-        If CLng(Val(NzText(mLstShippables.List(r, 5)))) = mSelectedPackageRow _
+        If CLng(Val(NzText(mLstShippables.List(r, 6)))) = mSelectedPackageRow _
            And StrComp(NormalizeVersionText(NzText(mLstShippables.List(r, 1))), versionLabel, vbTextCompare) = 0 Then
-            SelectedShippableVersionInventoryText = NzText(mLstShippables.List(r, 2))
+            SelectedShippableVersionInventoryText = NzText(mLstShippables.List(r, 3))
             Exit Function
         End If
     Next r
@@ -1067,7 +1087,6 @@ End Sub
 Private Function PendingShippableInventoryCount() As Long
     On Error GoTo CleanExit
 
-    If Not mPendingShippableInv Is Nothing Then PendingShippableInventoryCount = PendingShippableInventoryCount + mPendingShippableInv.Count
     If Not mPendingComponentInv Is Nothing Then PendingShippableInventoryCount = PendingShippableInventoryCount + mPendingComponentInv.Count
     If Not mPendingVersionInv Is Nothing Then PendingShippableInventoryCount = PendingShippableInventoryCount + mPendingVersionInv.Count
 
@@ -1085,7 +1104,7 @@ Private Sub SelectShippableInventoryRow()
     versionLabel = SelectedVersionLabel()
 
     For r = 0 To mLstShippables.ListCount - 1
-        If CLng(Val(NzText(mLstShippables.List(r, 5)))) = mSelectedPackageRow _
+        If CLng(Val(NzText(mLstShippables.List(r, 6)))) = mSelectedPackageRow _
            And StrComp(NormalizeVersionText(NzText(mLstShippables.List(r, 1))), versionLabel, vbTextCompare) = 0 Then
             mLstShippables.ListIndex = r
             Exit Sub
@@ -1157,24 +1176,26 @@ Private Function AddLabel(ByVal name As String, _
 End Function
 
 Private Sub AddComponentHeaders(ByVal leftPos As Single, ByVal topPos As Single)
-    AddHeaderLabel "hdrItem", "Item", leftPos, topPos, 126
-    AddHeaderLabel "hdrRow", "ROW", leftPos + 128, topPos, 40
-    AddHeaderLabel "hdrPerBox", "Per Box", leftPos + 170, topPos, 48
-    AddHeaderLabel "hdrRequired", "Required", leftPos + 222, topPos, 56
-    AddHeaderLabel "hdrCurrent", "Current Inv", leftPos + 282, topPos, 58
-    AddHeaderLabel "hdrUom", "UOM", leftPos + 342, topPos, 38
-    AddHeaderLabel "hdrLocation", "Location", leftPos + 382, topPos, 74
-    AddHeaderLabel "hdrCode", "Code", leftPos + 460, topPos, 60
-    AddHeaderLabel "hdrDesc", "Description", leftPos + 524, topPos, 150
+    AddHeaderLabel "hdrItem", "Item", leftPos, topPos, 110
+    AddHeaderLabel "hdrRow", "ROW", leftPos + 114, topPos, 36
+    AddHeaderLabel "hdrPerBox", "Per Box", leftPos + 154, topPos, 44
+    AddHeaderLabel "hdrRequired", "Required", leftPos + 204, topPos, 54
+    AddHeaderLabel "hdrNas", "NAS Inv", leftPos + 264, topPos, 50
+    AddHeaderLabel "hdrProjected", "Projected Inv", leftPos + 318, topPos, 72
+    AddHeaderLabel "hdrUom", "UOM", leftPos + 394, topPos, 34
+    AddHeaderLabel "hdrLocation", "Location", leftPos + 432, topPos, 68
+    AddHeaderLabel "hdrCode", "Code", leftPos + 506, topPos, 56
+    AddHeaderLabel "hdrDesc", "Description", leftPos + 568, topPos, 132
 End Sub
 
 Private Sub AddShippableHeaders(ByVal leftPos As Single, ByVal topPos As Single)
-    AddHeaderLabel "hdrShipBox", "Box", leftPos, topPos, 184
-    AddHeaderLabel "hdrShipVersion", "Version", leftPos + 192, topPos, 58
-    AddHeaderLabel "hdrShipCurrent", "Current Inv", leftPos + 254, topPos, 76
-    AddHeaderLabel "hdrShipUom", "UOM", leftPos + 334, topPos, 42
-    AddHeaderLabel "hdrShipLocation", "Location", leftPos + 384, topPos, 118
-    AddHeaderLabel "hdrShipRow", "ROW", leftPos + 506, topPos, 56
+    AddHeaderLabel "hdrShipBox", "Box", leftPos, topPos, 168
+    AddHeaderLabel "hdrShipVersion", "Version", leftPos + 176, topPos, 58
+    AddHeaderLabel "hdrShipNas", "NAS Inv", leftPos + 238, topPos, 56
+    AddHeaderLabel "hdrShipProjected", "Projected Inv", leftPos + 298, topPos, 76
+    AddHeaderLabel "hdrShipUom", "UOM", leftPos + 378, topPos, 42
+    AddHeaderLabel "hdrShipLocation", "Location", leftPos + 426, topPos, 110
+    AddHeaderLabel "hdrShipRow", "ROW", leftPos + 542, topPos, 56
 End Sub
 
 Private Sub AddHeaderLabel(ByVal name As String, _

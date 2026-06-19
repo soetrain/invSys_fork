@@ -8,6 +8,7 @@ Public Const EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Public Const EVENT_TYPE_SHIP As String = "SHIP"
 Public Const EVENT_TYPE_SHIP_RESERVE As String = "SHIP_RESERVE"
 Public Const EVENT_TYPE_SHIP_RELEASE As String = "SHIP_RELEASE"
+Public Const EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE As String = "ADMIN_SHIPMENT_RECONCILE"
 Public Const EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
 Public Const EVENT_TYPE_BOX_UNBOX As String = "BOX_UNBOX"
 Public Const EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
@@ -113,6 +114,9 @@ Public Function ApplyEvent(ByVal evt As Object, _
         errorCode = "INVALID_PAYLOAD"
         errorMessage = "Event did not produce any inventory lines."
         GoTo CleanExit
+    End If
+    If eventType = EVENT_TYPE_BOX_UNBOX Then
+        If Not ValidateBoxUnboxDoesNotCreateNegativeInventory(loLog, linesToApply, errorCode, errorMessage) Then GoTo CleanExit
     End If
 
     appliedAt = Now
@@ -409,7 +413,7 @@ Private Function BuildApplyLines(ByVal evt As Object, _
     Select Case eventType
         Case EVENT_TYPE_RECEIVE
             Set BuildApplyLines = BuildReceiveLines(evt, wb, errorCode, errorMessage)
-        Case EVENT_TYPE_SHIP, EVENT_TYPE_SHIP_RESERVE, EVENT_TYPE_SHIP_RELEASE, EVENT_TYPE_BOX_BUILD, EVENT_TYPE_BOX_UNBOX, EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE, EVENT_TYPE_MIGRATION_SEED
+        Case EVENT_TYPE_SHIP, EVENT_TYPE_SHIP_RESERVE, EVENT_TYPE_SHIP_RELEASE, EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE, EVENT_TYPE_BOX_BUILD, EVENT_TYPE_BOX_UNBOX, EVENT_TYPE_PROD_CONSUME, EVENT_TYPE_PROD_COMPLETE, EVENT_TYPE_MIGRATION_SEED
             Set BuildApplyLines = BuildPayloadLines(evt, wb, eventType, errorCode, errorMessage)
         Case Else
             errorCode = "INVALID_EVENT_TYPE"
@@ -506,17 +510,33 @@ Private Function BuildPayloadLines(ByVal evt As Object, _
             Set BuildPayloadLines = Nothing
             Exit Function
         End If
+        If eventType = EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE Then
+            If Not ValidateAdminShipmentReconcileLine(rawItem, wb, errorCode, errorMessage) Then
+                Set BuildPayloadLines = Nothing
+                Exit Function
+            End If
+        End If
+
         If Not TryGetDictionaryDouble(rawItem, "Qty", qty) Then
             errorCode = "INVALID_QTY"
             errorMessage = "Every payload line item requires numeric Qty."
             Set BuildPayloadLines = Nothing
             Exit Function
         End If
-        If qty <= 0 Then
-            errorCode = "INVALID_QTY"
-            errorMessage = "Payload Qty must be greater than zero."
-            Set BuildPayloadLines = Nothing
-            Exit Function
+        If eventType = EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE Then
+            If qty = 0 Then
+                errorCode = "INVALID_QTY"
+                errorMessage = "ADMIN_SHIPMENT_RECONCILE Qty must be the signed inventory correction delta and cannot be zero."
+                Set BuildPayloadLines = Nothing
+                Exit Function
+            End If
+        Else
+            If qty <= 0 Then
+                errorCode = "INVALID_QTY"
+                errorMessage = "Payload Qty must be greater than zero."
+                Set BuildPayloadLines = Nothing
+                Exit Function
+            End If
         End If
         rawItem("SKU") = sku
         If eventType = EVENT_TYPE_MIGRATION_SEED Or eventType = EVENT_TYPE_BOX_BUILD Or eventType = EVENT_TYPE_BOX_UNBOX Then
@@ -554,6 +574,115 @@ Private Function BuildPayloadLines(ByVal evt As Object, _
     Next rawItem
 End Function
 
+Private Function ValidateBoxUnboxDoesNotCreateNegativeInventory(ByVal loLog As ListObject, _
+                                                                ByVal linesToApply As Collection, _
+                                                                ByRef errorCode As String, _
+                                                                ByRef errorMessage As String) As Boolean
+    Dim balances As Object
+    Dim lineItem As Variant
+    Dim sku As String
+    Dim qtyDelta As Double
+    Dim currentQty As Double
+    Dim nextQty As Double
+
+    Set balances = BuildCurrentSkuBalanceFromLogApply(loLog)
+
+    For Each lineItem In linesToApply
+        sku = SafeTrimApply(CStr(lineItem("SKU")))
+        qtyDelta = CDbl(lineItem("QtyDelta"))
+        If sku = "" Then GoTo NextLine
+
+        If balances.Exists(sku) Then currentQty = CDbl(balances(sku)) Else currentQty = 0
+        nextQty = currentQty + qtyDelta
+        If qtyDelta < 0 And nextQty < -0.0000001 Then
+            errorCode = "INSUFFICIENT_INVENTORY"
+            errorMessage = "BOX_UNBOX would make inventory negative for SKU '" & sku & "'. Current=" & _
+                           Format$(currentQty, "0.###") & "; Requested=" & Format$(Abs(qtyDelta), "0.###") & "."
+            Exit Function
+        End If
+        balances(sku) = nextQty
+NextLine:
+    Next lineItem
+
+    ValidateBoxUnboxDoesNotCreateNegativeInventory = True
+End Function
+
+Private Function BuildCurrentSkuBalanceFromLogApply(ByVal loLog As ListObject) As Object
+    Dim balances As Object
+    Dim rowIndex As Long
+    Dim sku As String
+    Dim qtyDelta As Double
+
+    Set balances = CreateObject("Scripting.Dictionary")
+    balances.CompareMode = vbTextCompare
+
+    If loLog Is Nothing Then
+        Set BuildCurrentSkuBalanceFromLogApply = balances
+        Exit Function
+    End If
+    If loLog.DataBodyRange Is Nothing Then
+        Set BuildCurrentSkuBalanceFromLogApply = balances
+        Exit Function
+    End If
+
+    For rowIndex = 1 To loLog.ListRows.Count
+        sku = SafeTrimApply(GetCellByColumnApply(loLog, rowIndex, "SKU"))
+        If sku <> "" Then
+            qtyDelta = NzDblApply(GetCellByColumnApply(loLog, rowIndex, "QtyDelta"))
+            If balances.Exists(sku) Then
+                balances(sku) = CDbl(balances(sku)) + qtyDelta
+            Else
+                balances.Add sku, qtyDelta
+            End If
+        End If
+    Next rowIndex
+
+    Set BuildCurrentSkuBalanceFromLogApply = balances
+End Function
+
+Private Function ValidateAdminShipmentReconcileLine(ByVal rawItem As Object, _
+                                                    ByVal wb As Workbook, _
+                                                    ByRef errorCode As String, _
+                                                    ByRef errorMessage As String) As Boolean
+    Dim correctedShipEventId As String
+
+    correctedShipEventId = SafeTrimApply(GetDictionaryValue(rawItem, "CorrectedShipEventId"))
+    If correctedShipEventId = "" Then
+        errorCode = "INVALID_PAYLOAD"
+        errorMessage = "ADMIN_SHIPMENT_RECONCILE requires CorrectedShipEventId evidence."
+        Exit Function
+    End If
+    If Not InventoryLogEventExistsApply(wb, correctedShipEventId) Then
+        errorCode = "INVALID_PAYLOAD"
+        errorMessage = "ADMIN_SHIPMENT_RECONCILE CorrectedShipEventId was not found in tblInventoryLog."
+        Exit Function
+    End If
+    If SafeTrimApply(GetDictionaryValue(rawItem, "RepairNarrative")) = "" Then
+        errorCode = "INVALID_PAYLOAD"
+        errorMessage = "ADMIN_SHIPMENT_RECONCILE requires a human repair narrative."
+        Exit Function
+    End If
+
+    ValidateAdminShipmentReconcileLine = True
+End Function
+
+Private Function InventoryLogEventExistsApply(ByVal wb As Workbook, ByVal eventId As String) As Boolean
+    Dim loLog As ListObject
+    Dim rowIndex As Long
+
+    eventId = SafeTrimApply(eventId)
+    If wb Is Nothing Or eventId = "" Then Exit Function
+    Set loLog = FindListObjectByNameApply(wb, "tblInventoryLog")
+    If loLog Is Nothing Or loLog.DataBodyRange Is Nothing Then Exit Function
+
+    For rowIndex = 1 To loLog.ListRows.Count
+        If StrComp(SafeTrimApply(GetCellByColumnApply(loLog, rowIndex, "EventID")), eventId, vbTextCompare) = 0 Then
+            InventoryLogEventExistsApply = True
+            Exit Function
+        End If
+    Next rowIndex
+End Function
+
 Private Function ResolvePayloadSkuApply(ByVal wb As Workbook, ByVal rawItem As Object) As String
     ResolvePayloadSkuApply = SafeTrimApply(GetDictionaryValue(rawItem, "SKU"))
     If ResolvePayloadSkuApply = "" Then ResolvePayloadSkuApply = SafeTrimApply(GetDictionaryValue(rawItem, "ITEM_CODE"))
@@ -585,6 +714,13 @@ Private Function ResolvePayloadQtyDelta(ByVal eventType As String, _
             ResolvePayloadQtyDelta = -qty
         Case EVENT_TYPE_SHIP_RELEASE
             ResolvePayloadQtyDelta = qty
+        Case EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE
+            If ioType <> "" And ioType <> "ADJUST" And ioType <> "RECONCILE" Then
+                errorCode = "INVALID_PAYLOAD"
+                errorMessage = "ADMIN_SHIPMENT_RECONCILE payload line items may only use IoType ADJUST or RECONCILE."
+            Else
+                ResolvePayloadQtyDelta = qty
+            End If
         Case EVENT_TYPE_BOX_BUILD
             Select Case ioType
                 Case "USED"
@@ -643,6 +779,9 @@ Private Function ComposeLineNote(ByVal eventType As String, ByVal rawItem As Obj
     Dim ioType As String
     Dim rowVal As String
     Dim versionLabel As String
+    Dim correctedShipEventId As String
+    Dim repairNarrative As String
+    Dim mismatchFlag As String
     Dim detail As String
 
     itemNote = SafeTrimApply(GetDictionaryValue(rawItem, "Note"))
@@ -650,6 +789,9 @@ Private Function ComposeLineNote(ByVal eventType As String, ByVal rawItem As Obj
     rowVal = SafeTrimApply(GetDictionaryValue(rawItem, "Row"))
     versionLabel = SafeTrimApply(GetDictionaryValue(rawItem, "BomVersionLabel"))
     If versionLabel = "" Then versionLabel = SafeTrimApply(GetDictionaryValue(rawItem, "Version"))
+    correctedShipEventId = SafeTrimApply(GetDictionaryValue(rawItem, "CorrectedShipEventId"))
+    repairNarrative = SafeTrimApply(GetDictionaryValue(rawItem, "RepairNarrative"))
+    mismatchFlag = SafeTrimApply(GetDictionaryValue(rawItem, "MismatchFlag"))
 
     If rowVal <> "" Then detail = "ROW=" & rowVal
     If versionLabel <> "" Then
@@ -660,8 +802,20 @@ Private Function ComposeLineNote(ByVal eventType As String, ByVal rawItem As Obj
         If detail <> "" Then detail = detail & "; "
         detail = detail & "IO=" & UCase$(ioType)
     End If
+    If correctedShipEventId <> "" Then
+        If detail <> "" Then detail = detail & "; "
+        detail = detail & "CorrectsShipEventId=" & correctedShipEventId
+    End If
+    If mismatchFlag <> "" Then
+        If detail <> "" Then detail = detail & "; "
+        detail = detail & "MismatchFlag=" & mismatchFlag
+    End If
 
-    ComposeLineNote = itemNote
+    If eventType = EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE And repairNarrative <> "" Then
+        ComposeLineNote = repairNarrative
+    Else
+        ComposeLineNote = itemNote
+    End If
     If ComposeLineNote = "" Then ComposeLineNote = eventNote
     If detail <> "" Then
         If ComposeLineNote <> "" Then

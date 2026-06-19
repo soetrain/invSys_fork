@@ -941,6 +941,7 @@ $projectMap = @(
                         @{ Id = "btnAdminCreateWarehouse"; Label = "Create New Warehouse"; Macro = "modAdmin.Open_CreateWarehouse"; ImageMso = "FileNew"; RequiredCapability = "ADMIN_MAINT" },
                         @{ Id = "btnAdminSetupTesterStation"; Label = "Setup Tester Station"; Macro = "modAdmin.Admin_SetupTesterStation_Click"; ImageMso = "CreateForm"; RequiredCapability = "ADMIN_MAINT" },
                         @{ Id = "btnAdminSeedInventory"; Label = "Seed Demo Inventory"; Macro = "modAdmin.Seed_DemoInventory"; ImageMso = "TableInsertRowsAbove"; RequiredCapability = "ADMIN_MAINT" },
+                        @{ Id = "btnAdminShipmentReconcile"; Label = "Shipment Reconcile"; Macro = "modAdminShipmentReconcile.OpenShipmentReconcileTool"; ImageMso = "RefreshAll"; Screentip = "Queue an audited admin correction linked to a Shipments Sent event"; RequiredCapability = "ADMIN_MAINT" },
                         @{ Id = "btnAdminVerifyAddinsPublished"; Label = "Verify Add-ins Published"; Macro = "modAdmin.Verify_AddinsPublished"; ImageMso = "FileDocumentInspect"; RequiredCapability = "ADMIN_MAINT" },
                         @{ Id = "btnAdminRetireMigrateWarehouse"; Label = "Retire / Migrate Warehouse"; Macro = "modAdmin.Admin_RetireMigrateWarehouse_Click"; ImageMso = "DeleteSite"; Screentip = "Archive, migrate, retire, or delete a warehouse runtime"; RequiredCapability = "ADMIN_MAINT" }
                     )

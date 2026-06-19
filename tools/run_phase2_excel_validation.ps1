@@ -243,6 +243,7 @@ try {
         "TestInventoryApply.TestResolveInventoryWorkbook_UsesConfiguredPathDataRoot",
         "TestInventoryApply.TestApplyShip_MultiLineEvent",
         "TestInventoryApply.TestApplyShipReserveAndReleaseEvents",
+        "TestInventoryApply.TestApplyBoxUnbox_RejectsNegativePackageInventory",
         "TestInventoryApply.TestApplyProdConsume_MultiLineEvent",
         "TestInventoryApply.TestApplyProdComplete_MultiLineEvent",
         "TestCoreProcessor.TestRunBatch_ProcessesInboxRow",

@@ -12,6 +12,7 @@ Private Const PROC_EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Private Const PROC_EVENT_TYPE_SHIP As String = "SHIP"
 Private Const PROC_EVENT_TYPE_SHIP_RESERVE As String = "SHIP_RESERVE"
 Private Const PROC_EVENT_TYPE_SHIP_RELEASE As String = "SHIP_RELEASE"
+Private Const PROC_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE As String = "ADMIN_SHIPMENT_RECONCILE"
 Private Const PROC_EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
 Private Const PROC_EVENT_TYPE_BOX_UNBOX As String = "BOX_UNBOX"
 Private Const PROC_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
@@ -352,6 +353,43 @@ Public Function RunBatchReportForAutomation(Optional ByVal warehouseId As String
     RunBatchReportForAutomation = "Processed=" & CStr(processedCount) & "; Report=" & report
 End Function
 
+Public Function DescribeInboxTargetsForAutomation(Optional ByVal warehouseId As String = "") As String
+    On Error GoTo FailDescribe
+
+    Dim targets As Collection
+    Dim target As Variant
+    Dim part As String
+
+    If Not EnsurePhase2Context(warehouseId, DescribeInboxTargetsForAutomation) Then Exit Function
+    warehouseId = modConfig.GetString("WarehouseId", warehouseId)
+
+    Set targets = ResolveInboxTargets(warehouseId)
+    DescribeInboxTargetsForAutomation = "Count=" & CStr(GetCollectionCountProcessor(targets))
+    For Each target In targets
+        part = "Table=" & CStr(target("TableName")) & _
+               ";DefaultEventType=" & CStr(target("DefaultEventType")) & _
+               ";CloseWhenDone=" & CStr(target("CloseWhenDone"))
+        If Not target("Workbook") Is Nothing Then
+            part = part & ";Workbook=" & target("Workbook").Name & ";Path=" & target("Workbook").FullName
+        End If
+        DescribeInboxTargetsForAutomation = DescribeInboxTargetsForAutomation & " | " & part
+    Next target
+
+CleanExit:
+    On Error Resume Next
+    If Not targets Is Nothing Then
+        For Each target In targets
+            CloseInboxTargetIfNeeded target
+        Next target
+    End If
+    On Error GoTo 0
+    Exit Function
+
+FailDescribe:
+    DescribeInboxTargetsForAutomation = "DescribeInboxTargetsForAutomation failed: " & Err.Description
+    Resume CleanExit
+End Function
+
 Public Function EnsureReceiveInboxSchema(Optional ByVal targetWb As Workbook = Nothing, _
                                          Optional ByRef report As String = "") As Boolean
     EnsureReceiveInboxSchema = EnsureInboxSchemaCore(targetWb, report, SHEET_INBOX_RECEIVE, TABLE_INBOX_RECEIVE, PROC_EVENT_TYPE_RECEIVE)
@@ -489,6 +527,7 @@ Private Function ResolveInboxTargets(Optional ByVal warehouseId As String = "") 
                        IsProductionInboxWorkbookName(wb.Name) Or WorkbookHasListObjectProcessor(wb, TABLE_INBOX_PROD)
     Next wb
 
+    AddCurrentTargetInboxTargets ResolveInboxTargets, seen, warehouseId
     AddConfiguredInboxTargets ResolveInboxTargets, seen, warehouseId
 End Function
 
@@ -515,6 +554,31 @@ Private Sub AddInboxTarget(ByVal targets As Collection, _
     target.Add "CloseWhenDone", False
     targets.Add target
     seen.Add key, True
+End Sub
+
+Private Sub AddCurrentTargetInboxTargets(ByVal targets As Collection, ByVal seen As Object, ByVal warehouseId As String)
+    Dim target As WarehouseTarget
+    Dim rootPath As String
+    Dim stationId As String
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then Exit Sub
+    If Trim$(target.RuntimeRoot) = "" Then Exit Sub
+    If Trim$(target.WarehouseId) = "" Then Exit Sub
+    If warehouseId <> "" Then
+        If StrComp(Trim$(target.WarehouseId), Trim$(warehouseId), vbTextCompare) <> 0 Then Exit Sub
+    End If
+
+    stationId = SafeTrimProcessor(target.StationId)
+    If stationId = "" Then stationId = modConfig.GetString("StationId", "")
+    If stationId = "" Then Exit Sub
+
+    rootPath = modConfig.NormalizeFolderPathForRuntime(Trim$(target.RuntimeRoot), False)
+    If rootPath = "" Then Exit Sub
+
+    AddInboxTargetByPath targets, seen, CombinePathProcessor(rootPath, InboxWorkbookNameProcessor(PROC_EVENT_TYPE_RECEIVE, stationId)), TABLE_INBOX_RECEIVE, SHEET_INBOX_RECEIVE, PROC_EVENT_TYPE_RECEIVE
+    AddInboxTargetByPath targets, seen, CombinePathProcessor(rootPath, InboxWorkbookNameProcessor(PROC_EVENT_TYPE_SHIP, stationId)), TABLE_INBOX_SHIP, SHEET_INBOX_SHIP, PROC_EVENT_TYPE_SHIP
+    AddInboxTargetByPath targets, seen, CombinePathProcessor(rootPath, InboxWorkbookNameProcessor(PROC_EVENT_TYPE_PROD_CONSUME, stationId)), TABLE_INBOX_PROD, SHEET_INBOX_PROD, PROC_EVENT_TYPE_PROD_CONSUME
 End Sub
 
 Private Sub AddConfiguredInboxTargets(ByVal targets As Collection, ByVal seen As Object, ByVal warehouseId As String)
@@ -665,7 +729,7 @@ Private Function InboxWorkbookNameProcessor(ByVal eventType As String, ByVal sta
     Select Case UCase$(SafeTrimProcessor(eventType))
         Case PROC_EVENT_TYPE_RECEIVE
             InboxWorkbookNameProcessor = "invSys.Inbox.Receiving." & stationId & ".xlsb"
-        Case PROC_EVENT_TYPE_SHIP, PROC_EVENT_TYPE_SHIP_RESERVE, PROC_EVENT_TYPE_SHIP_RELEASE, PROC_EVENT_TYPE_BOX_BUILD, PROC_EVENT_TYPE_BOX_UNBOX
+        Case PROC_EVENT_TYPE_SHIP, PROC_EVENT_TYPE_SHIP_RESERVE, PROC_EVENT_TYPE_SHIP_RELEASE, PROC_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE, PROC_EVENT_TYPE_BOX_BUILD, PROC_EVENT_TYPE_BOX_UNBOX
             InboxWorkbookNameProcessor = "invSys.Inbox.Shipping." & stationId & ".xlsb"
         Case PROC_EVENT_TYPE_PROD_CONSUME, PROC_EVENT_TYPE_PROD_COMPLETE
             InboxWorkbookNameProcessor = "invSys.Inbox.Production." & stationId & ".xlsb"
@@ -868,6 +932,8 @@ Private Function CapabilityForEventType(ByVal eventType As String) As String
             CapabilityForEventType = "RECEIVE_POST"
         Case PROC_EVENT_TYPE_SHIP, PROC_EVENT_TYPE_SHIP_RESERVE, PROC_EVENT_TYPE_SHIP_RELEASE, PROC_EVENT_TYPE_BOX_BUILD, PROC_EVENT_TYPE_BOX_UNBOX
             CapabilityForEventType = "SHIP_POST"
+        Case PROC_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE
+            CapabilityForEventType = "ADMIN_MAINT"
         Case PROC_EVENT_TYPE_PROD_CONSUME, PROC_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventType = "PROD_POST"
         Case PROC_EVENT_TYPE_MIGRATION_SEED

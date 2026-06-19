@@ -41,6 +41,7 @@ Private Const COL_BOM_VERSION As String = "BOM VERSION"
 Private Const EVENT_TYPE_SHIP As String = "SHIP"
 Private Const EVENT_TYPE_SHIP_RESERVE As String = "SHIP_RESERVE"
 Private Const EVENT_TYPE_SHIP_RELEASE As String = "SHIP_RELEASE"
+Private Const EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE As String = "ADMIN_SHIPMENT_RECONCILE"
 Private Const EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
 Private Const EVENT_TYPE_BOX_UNBOX As String = "BOX_UNBOX"
 Private Const SHIP_RESERVATION_ACTIVE As String = "ACTIVE"
@@ -96,6 +97,7 @@ Private mGeneratedIdentityEditAddress As String
 Private mSuppressGeneratedIdentityEditGuard As Boolean
 Private mLastComponentPickerStatus As String
 Private mPendingBoxVersionInventoryOverlay As Object
+Private mPendingBoxVersionInventoryOverlayBaseline As Object
 Private mPendingBoxVersionInventoryOverlayPath As String
 
 Private Const BOX_VERSION_SAVE_CANCEL As Long = 0
@@ -1301,7 +1303,7 @@ Public Sub BtnShipmentsSent()
     ClearInstructionStaging ws
 
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
-    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(ws.Parent, "", "LOCAL", runtimeReport) Then
+    If Not RunShippingRuntimeQueueRefresh(ws.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport) Then
         If runtimeReport = "" Then runtimeReport = "Local shipment post succeeded, but runtime processing or read-model refresh did not complete cleanly."
         AppendNote errNotes, runtimeReport
     ElseIf runtimeReport <> "" Then
@@ -2904,6 +2906,19 @@ Private Function ResolveCurrentInventoryValue(ByVal ws As Worksheet, _
     Dim cacheKey As String
 
     found = False
+    If Not invLo Is Nothing Then
+        If rowVal > 0 Then invIdx = FindInvRowIndexByRow(invLo, rowVal)
+        If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+        If invIdx > 0 Then
+            totalVal = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
+            If Not IsBlankInventoryValue(totalVal) Then
+                found = True
+                ResolveCurrentInventoryValue = totalVal
+                Exit Function
+            End If
+        End If
+    End If
+
     If snapshotCache Is Nothing Then Set snapshotCache = BuildRuntimeSnapshotInventoryCache()
     If Not snapshotCache Is Nothing Then
         If rowVal > 0 Then
@@ -2919,19 +2934,6 @@ Private Function ResolveCurrentInventoryValue(ByVal ws As Worksheet, _
             If snapshotCache.Exists(cacheKey) Then
                 found = True
                 ResolveCurrentInventoryValue = snapshotCache(cacheKey)
-                Exit Function
-            End If
-        End If
-    End If
-
-    If Not invLo Is Nothing Then
-        If rowVal > 0 Then invIdx = FindInvRowIndexByRow(invLo, rowVal)
-        If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
-        If invIdx > 0 Then
-            totalVal = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
-            If Not IsBlankInventoryValue(totalVal) Then
-                found = True
-                ResolveCurrentInventoryValue = totalVal
                 Exit Function
             End If
         End If
@@ -4176,7 +4178,9 @@ FailSoft:
     BoxBuilderFormCurrentComponents = Empty
 End Function
 
-Public Function BoxBuilderFormLoadSavedBoxes() As Variant
+Public Function BoxBuilderFormLoadSavedBoxes(Optional ByVal includeActive As Boolean = True, _
+                                             Optional ByVal includeArchived As Boolean = False, _
+                                             Optional ByVal skipRuntimeRefreshForTest As Boolean = False) As Variant
     On Error GoTo FailSoft
 
     Dim ws As Worksheet
@@ -4194,12 +4198,16 @@ Public Function BoxBuilderFormLoadSavedBoxes() As Variant
     Dim cPackageUom As Long
     Dim cPackageLocation As Long
     Dim cPackageDescription As Long
+    Dim cActive As Long
     Dim refreshReport As String
+    Dim activePackages As Object
+    Dim outputCount As Long
+    Dim key As Variant
 
     Set ws = SheetExists(SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Function
 
-    RefreshShippingBomViewForWorkbook ws.Parent, refreshReport
+    If Not skipRuntimeRefreshForTest Then RefreshShippingBomViewForWorkbook ws.Parent, refreshReport
     Set loView = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
     If loView Is Nothing Then Exit Function
     If loView.DataBodyRange Is Nothing Then Exit Function
@@ -4209,13 +4217,16 @@ Public Function BoxBuilderFormLoadSavedBoxes() As Variant
     cPackageUom = ColumnIndex(loView, "PackageUOM")
     cPackageLocation = ColumnIndex(loView, "PackageLocation")
     cPackageDescription = ColumnIndex(loView, "PackageDescription")
+    cActive = ColumnIndex(loView, "IsActive")
     If cPackageRow = 0 Or cPackageItem = 0 Then Exit Function
 
     Set dict = CreateObject("Scripting.Dictionary")
+    Set activePackages = CreateObject("Scripting.Dictionary")
     src = loView.DataBodyRange.Value
     For r = 1 To UBound(src, 1)
         packageRow = NzLng(src(r, cPackageRow))
         If packageRow <= 0 Then GoTo NextRow
+        If cActive = 0 Or ShippingBomActiveValue(src(r, cActive)) Then activePackages(CStr(packageRow)) = True
         If dict.Exists(CStr(packageRow)) Then GoTo NextRow
 
         ReDim rowData(1 To 5)
@@ -4230,18 +4241,81 @@ NextRow:
 
     If dict.Count = 0 Then Exit Function
     keys = dict.Keys
-    ReDim result(1 To dict.Count, 1 To 5)
-    For r = 0 To UBound(keys)
-        rowData = dict(keys(r))
+    For Each key In keys
+        If ShouldIncludeBoxBuilderPackage(CStr(key), activePackages, includeActive, includeArchived) Then outputCount = outputCount + 1
+    Next key
+    If outputCount = 0 Then Exit Function
+
+    ReDim result(1 To outputCount, 1 To 5)
+    r = 0
+    For Each key In keys
+        If Not ShouldIncludeBoxBuilderPackage(CStr(key), activePackages, includeActive, includeArchived) Then GoTo NextOutput
+        r = r + 1
+        rowData = dict(key)
         For c = 1 To 5
-            result(r + 1, c) = rowData(c)
+            result(r, c) = rowData(c)
         Next c
-    Next r
+NextOutput:
+    Next key
     BoxBuilderFormLoadSavedBoxes = result
     Exit Function
 
 FailSoft:
     BoxBuilderFormLoadSavedBoxes = Empty
+End Function
+
+Private Function ShouldIncludeBoxBuilderPackage(ByVal packageKey As String, _
+                                                ByVal activePackages As Object, _
+                                                ByVal includeActive As Boolean, _
+                                                ByVal includeArchived As Boolean) As Boolean
+    Dim isActive As Boolean
+
+    If activePackages Is Nothing Then Exit Function
+    isActive = activePackages.Exists(packageKey)
+    If isActive Then
+        ShouldIncludeBoxBuilderPackage = includeActive
+    Else
+        ShouldIncludeBoxBuilderPackage = includeArchived
+    End If
+End Function
+
+Public Function BoxBuilderFormLoadSavedBoxesReportForTest(Optional ByVal includeActive As Boolean = True, _
+                                                          Optional ByVal includeArchived As Boolean = False) As String
+    On Error GoTo FailSoft
+
+    Dim rowsData As Variant
+    Dim r As Long
+
+    rowsData = BoxBuilderFormLoadSavedBoxes(includeActive, includeArchived, True)
+    If IsEmpty(rowsData) Then
+        BoxBuilderFormLoadSavedBoxesReportForTest = "COUNT=0"
+        Exit Function
+    End If
+
+    BoxBuilderFormLoadSavedBoxesReportForTest = "COUNT=" & CStr(UBound(rowsData, 1))
+    For r = 1 To UBound(rowsData, 1)
+        BoxBuilderFormLoadSavedBoxesReportForTest = BoxBuilderFormLoadSavedBoxesReportForTest & _
+            ";ROW=" & CStr(rowsData(r, 1)) & "|BOX=" & CStr(rowsData(r, 2))
+    Next r
+    Exit Function
+
+FailSoft:
+    BoxBuilderFormLoadSavedBoxesReportForTest = "ERROR=" & Err.Description
+End Function
+
+Public Function BoxBuilderFormInitializeSmokeForTest(ByRef report As String) As Boolean
+    On Error GoTo FailSoft
+
+    Dim frm As frmShippingBoxBuilder
+
+    Set frm = New frmShippingBoxBuilder
+    report = "OK"
+    BoxBuilderFormInitializeSmokeForTest = True
+    Set frm = Nothing
+    Exit Function
+
+FailSoft:
+    report = Err.Description
 End Function
 
 Public Function BoxBuilderFormLoadVersions(ByVal packageRow As Long) As Variant
@@ -4538,8 +4612,10 @@ End Function
 
 Public Sub RegisterPendingBoxVersionInventoryOverlay(ByVal packageRow As Long, _
                                                      ByVal versionLabel As String, _
-                                                     ByVal projectedQty As Double)
+                                                     ByVal projectedQty As Double, _
+                                                     Optional ByVal baselineQty As Variant)
     Dim key As String
+    Dim resolvedBaseline As Double
 
     EnsurePendingBoxVersionInventoryOverlayLoaded
     key = PendingBoxVersionInventoryKey(packageRow, versionLabel)
@@ -4548,13 +4624,25 @@ Public Sub RegisterPendingBoxVersionInventoryOverlay(ByVal packageRow As Long, _
         Set mPendingBoxVersionInventoryOverlay = CreateObject("Scripting.Dictionary")
         mPendingBoxVersionInventoryOverlay.CompareMode = vbTextCompare
     End If
+    If mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
+        Set mPendingBoxVersionInventoryOverlayBaseline = CreateObject("Scripting.Dictionary")
+        mPendingBoxVersionInventoryOverlayBaseline.CompareMode = vbTextCompare
+    End If
     If projectedQty < 0 Then projectedQty = 0
+    If IsMissing(baselineQty) Or Not IsNumeric(baselineQty) Then
+        resolvedBaseline = projectedQty
+    Else
+        resolvedBaseline = CDbl(baselineQty)
+        If resolvedBaseline < projectedQty Then resolvedBaseline = projectedQty
+    End If
     mPendingBoxVersionInventoryOverlay(key) = projectedQty
+    mPendingBoxVersionInventoryOverlayBaseline(key) = resolvedBaseline
     PersistPendingBoxVersionInventoryOverlay
 End Sub
 
 Public Sub ClearPendingBoxVersionInventoryOverlayForTest()
     Set mPendingBoxVersionInventoryOverlay = Nothing
+    Set mPendingBoxVersionInventoryOverlayBaseline = Nothing
     mPendingBoxVersionInventoryOverlayPath = ""
 End Sub
 
@@ -4576,8 +4664,8 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
                                                        ByVal backendValue As Variant) As Variant
     Dim key As String
     Dim pendingQty As Double
-    Dim backendText As String
     Dim backendQty As Double
+    Dim baselineQty As Double
 
     EnsurePendingBoxVersionInventoryOverlayLoaded
     PendingBoxVersionInventoryOverlayValue = backendValue
@@ -4588,17 +4676,21 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
     If Not mPendingBoxVersionInventoryOverlay.Exists(key) Then Exit Function
 
     pendingQty = CDbl(mPendingBoxVersionInventoryOverlay(key))
-    backendText = Trim$(NzStr(backendValue))
-    If backendText <> "" And IsNumeric(Replace$(backendText, ",", "")) Then
-        backendQty = CDbl(Replace$(backendText, ",", ""))
-        If Abs(backendQty - pendingQty) < 0.0000001 Then
+    If IsNumeric(backendValue) Then
+        backendQty = CDbl(backendValue)
+        baselineQty = pendingQty
+        If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
+            If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then baselineQty = CDbl(mPendingBoxVersionInventoryOverlayBaseline(key))
+        End If
+        If backendQty > baselineQty + 0.0000001 Then
             mPendingBoxVersionInventoryOverlay.Remove key
+            If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
+                If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then mPendingBoxVersionInventoryOverlayBaseline.Remove key
+            End If
             PersistPendingBoxVersionInventoryOverlay
-            PendingBoxVersionInventoryOverlayValue = backendQty
             Exit Function
         End If
     End If
-
     PendingBoxVersionInventoryOverlayValue = pendingQty
 End Function
 
@@ -4611,12 +4703,15 @@ Private Sub EnsurePendingBoxVersionInventoryOverlayLoaded()
     Dim parts As Variant
     Dim key As String
     Dim qtyText As String
+    Dim baselineText As String
 
     filePath = PersistentPendingBoxVersionInventoryOverlayPath()
     If mPendingBoxVersionInventoryOverlayPath = filePath And Not mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Sub
 
     Set mPendingBoxVersionInventoryOverlay = CreateObject("Scripting.Dictionary")
     mPendingBoxVersionInventoryOverlay.CompareMode = vbTextCompare
+    Set mPendingBoxVersionInventoryOverlayBaseline = CreateObject("Scripting.Dictionary")
+    mPendingBoxVersionInventoryOverlayBaseline.CompareMode = vbTextCompare
     mPendingBoxVersionInventoryOverlayPath = filePath
     If filePath = "" Then Exit Sub
     If Len(Dir$(filePath, vbNormal)) = 0 Then Exit Sub
@@ -4629,7 +4724,16 @@ Private Sub EnsurePendingBoxVersionInventoryOverlayLoaded()
         If UBound(parts) >= 1 Then
             key = Trim$(UnescapeHoldField(CStr(parts(0))))
             qtyText = Trim$(UnescapeHoldField(CStr(parts(1))))
-            If key <> "" And IsNumeric(Replace$(qtyText, ",", "")) Then mPendingBoxVersionInventoryOverlay(key) = CDbl(Replace$(qtyText, ",", ""))
+            baselineText = qtyText
+            If UBound(parts) >= 2 Then baselineText = Trim$(UnescapeHoldField(CStr(parts(2))))
+            If key <> "" And IsNumeric(Replace$(qtyText, ",", "")) Then
+                mPendingBoxVersionInventoryOverlay(key) = CDbl(Replace$(qtyText, ",", ""))
+                If IsNumeric(Replace$(baselineText, ",", "")) Then
+                    mPendingBoxVersionInventoryOverlayBaseline(key) = CDbl(Replace$(baselineText, ",", ""))
+                Else
+                    mPendingBoxVersionInventoryOverlayBaseline(key) = CDbl(Replace$(qtyText, ",", ""))
+                End If
+            End If
         End If
     Loop
     Close #fileNum
@@ -4656,7 +4760,9 @@ Private Sub PersistPendingBoxVersionInventoryOverlay()
     Open filePath For Output As #fileNum
     If Not mPendingBoxVersionInventoryOverlay Is Nothing Then
         For Each key In mPendingBoxVersionInventoryOverlay.Keys
-            Print #fileNum, EscapeHoldField(CStr(key)) & vbTab & EscapeHoldField(CStr(mPendingBoxVersionInventoryOverlay(key)))
+            Print #fileNum, EscapeHoldField(CStr(key)) & vbTab & _
+                            EscapeHoldField(CStr(mPendingBoxVersionInventoryOverlay(key))) & vbTab & _
+                            EscapeHoldField(CStr(PendingOverlayBaselineForKey(CStr(key))))
         Next key
     End If
     Close #fileNum
@@ -4666,6 +4772,18 @@ CleanExit:
     If fileNum <> 0 Then Close #fileNum
     On Error GoTo 0
 End Sub
+
+Private Function PendingOverlayBaselineForKey(ByVal key As String) As Double
+    If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
+        If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then
+            PendingOverlayBaselineForKey = CDbl(mPendingBoxVersionInventoryOverlayBaseline(key))
+            Exit Function
+        End If
+    End If
+    If Not mPendingBoxVersionInventoryOverlay Is Nothing Then
+        If mPendingBoxVersionInventoryOverlay.Exists(key) Then PendingOverlayBaselineForKey = CDbl(mPendingBoxVersionInventoryOverlay(key))
+    End If
+End Function
 
 Private Function PendingBoxVersionInventoryKey(ByVal packageRow As Long, ByVal versionLabel As String) As String
     versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
@@ -5178,7 +5296,9 @@ Public Function CommitBoxMakerFormAction(ByVal packageRow As Long, _
                                          ByVal boxQty As Double, _
                                          ByVal componentRows As Variant, _
                                          ByRef resultMessage As String, _
-                                         Optional ByVal actionText As String = "MAKE") As Boolean
+                                         Optional ByVal actionText As String = "MAKE", _
+                                         Optional ByRef syncCompletedOut As Boolean = False, _
+                                         Optional ByVal displayedAvailableQty As Variant) As Boolean
     On Error GoTo ErrHandler
 
     Dim rowCount As Long
@@ -5188,8 +5308,13 @@ Public Function CommitBoxMakerFormAction(ByVal packageRow As Long, _
     Dim componentsReturned As Double
     Dim errNotes As String
     Dim eventIdOut As String
+    Dim runtimeReport As String
+    Dim batchProcessed As Boolean
+    Dim currentQty As Double
+    Dim foundCurrentQty As Boolean
 
     resultMessage = ""
+    syncCompletedOut = False
     actionText = UCase$(Trim$(actionText))
     boxName = Trim$(boxName)
     boxUom = Trim$(boxUom)
@@ -5215,6 +5340,23 @@ Public Function CommitBoxMakerFormAction(ByVal packageRow As Long, _
     End If
 
     If actionText = "UNMAKE" Or actionText = "UNBOX" Then
+        If Not IsMissing(displayedAvailableQty) Then
+            If IsNumeric(Replace$(Trim$(NzStr(displayedAvailableQty)), ",", "")) Then
+                currentQty = CDbl(Replace$(Trim$(NzStr(displayedAvailableQty)), ",", ""))
+                foundCurrentQty = True
+            End If
+        End If
+        If Not foundCurrentQty Then currentQty = ResolveBoxMakerUnboxAvailableQty(packageRow, boxName, foundCurrentQty)
+        If Not foundCurrentQty Then
+            resultMessage = "Not allowed: current inventory was not resolved for " & boxName & " " & versionLabel & "."
+            Exit Function
+        End If
+        If boxQty > currentQty + 0.0000001 Then
+            resultMessage = "Not allowed: Qty exceeds inventory. " & boxName & " " & versionLabel & _
+                            " has " & FormatBoxMakerQuantityText(currentQty) & _
+                            " in inventory, but Qty is " & FormatBoxMakerQuantityText(boxQty) & "."
+            Exit Function
+        End If
         If Not QueueBoxMakerFormPayload(False, _
                                         packageRow, _
                                         boxName, _
@@ -5224,8 +5366,8 @@ Public Function CommitBoxMakerFormAction(ByVal packageRow As Long, _
                                         versionLabel, _
                                         boxQty, _
                                         componentRows, _
-                                        packageReturned, _
                                         componentsReturned, _
+                                        packageReturned, _
                                         eventIdOut, _
                                         errNotes) Then
             If errNotes = "" Then errNotes = "Box could not be unboxed."
@@ -5261,6 +5403,15 @@ Public Function CommitBoxMakerFormAction(ByVal packageRow As Long, _
                         " component units and adds " & FormatBoxMakerQuantityText(madeTotal) & _
                         " shippable units after processor sync."
     End If
+    batchProcessed = RunShippingRuntimeQueueRefresh(ActiveWorkbook, ResolveCurrentShippingWarehouseId(), runtimeReport)
+    If Not batchProcessed Then batchProcessed = BoxMakerRuntimeReportShowsProcessed(runtimeReport)
+    syncCompletedOut = batchProcessed
+    If batchProcessed Then
+        AppendNote errNotes, "Sync complete."
+    Else
+        AppendNote errNotes, "Sync pending."
+    End If
+    If runtimeReport <> "" Then AppendNote errNotes, runtimeReport
     If eventIdOut <> "" Then AppendNote errNotes, "Inbox EventID: " & eventIdOut
     If errNotes <> "" Then resultMessage = resultMessage & vbCrLf & vbCrLf & errNotes
     ShowShippingStatus resultMessage
@@ -5271,6 +5422,74 @@ ErrHandler:
     resultMessage = "BOX_MAKER_FORM_COMMIT failed: " & Err.Description
 End Function
 
+Private Function ResolveBoxMakerUnboxAvailableQty(ByVal packageRow As Long, _
+                                                  ByVal boxName As String, _
+                                                  ByRef foundCurrentQty As Boolean) As Double
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim invLo As ListObject
+    Dim invIdx As Long
+    Dim totalInv As Variant
+
+    foundCurrentQty = False
+    Set wb = ActiveWorkbook
+    If wb Is Nothing Then Exit Function
+
+    Set invLo = GetInvSysTableFromWorkbook(wb)
+    If invLo Is Nothing Then GoTo TryShippingReadModel
+    If packageRow > 0 Then invIdx = FindInvRowIndexByRow(invLo, packageRow)
+    If invIdx <= 0 And Trim$(boxName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, boxName)
+    If invIdx <= 0 Then GoTo TryShippingReadModel
+
+    totalInv = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
+    If Not IsNumeric(totalInv) Then GoTo TryShippingReadModel
+    foundCurrentQty = True
+    ResolveBoxMakerUnboxAvailableQty = CDbl(totalInv)
+    Exit Function
+
+TryShippingReadModel:
+    Set ws = WorkbookSheetExistsShipping(wb, SHEET_SHIPMENTS)
+    If ws Is Nothing Then Exit Function
+
+    totalInv = ResolveCurrentInventoryFromTable(GetListObject(ws, "invSysData_Shipping"), packageRow, boxName, foundCurrentQty)
+    If foundCurrentQty And IsNumeric(totalInv) Then
+        ResolveBoxMakerUnboxAvailableQty = CDbl(totalInv)
+        Exit Function
+    End If
+
+    totalInv = ResolveCurrentInventoryFromTable(GetListObject(ws, TABLE_CHECK_INV), packageRow, boxName, foundCurrentQty)
+    If foundCurrentQty And IsNumeric(totalInv) Then ResolveBoxMakerUnboxAvailableQty = CDbl(totalInv)
+End Function
+
+Public Function CommitBoxMakerFormActionReportForTest(ByVal packageRow As Long, _
+                                                      ByVal boxName As String, _
+                                                      ByVal boxUom As String, _
+                                                      ByVal boxLocation As String, _
+                                                      ByVal boxDescription As String, _
+                                                      ByVal versionLabel As String, _
+                                                      ByVal boxQty As Double, _
+                                                      ByVal componentRows As Variant, _
+                                                      ByVal actionText As String, _
+                                                      Optional ByVal displayedAvailableQty As Variant) As String
+    Dim resultMessage As String
+    Dim posted As Boolean
+    Dim syncCompleted As Boolean
+
+    posted = CommitBoxMakerFormAction(packageRow, _
+                                      boxName, _
+                                      boxUom, _
+                                      boxLocation, _
+                                      boxDescription, _
+                                      versionLabel, _
+                                      boxQty, _
+                                      componentRows, _
+                                      resultMessage, _
+                                      actionText, _
+                                      syncCompleted, _
+                                      displayedAvailableQty)
+    CommitBoxMakerFormActionReportForTest = "Posted=" & IIf(posted, "1", "0") & "; Report=" & resultMessage
+End Function
+
 Public Function ShipmentsFormLoadShippables() As Variant
     Dim savedBoxes As Variant
 
@@ -5279,12 +5498,58 @@ Public Function ShipmentsFormLoadShippables() As Variant
     ShipmentsFormLoadShippables = BoxMakerFormLoadShippableVersionInventory(savedBoxes)
 End Function
 
+Public Function ShipmentsProjectedDisplayQty(ByVal nasQty As Double, _
+                                             ByVal lockedQty As Double, _
+                                             ByVal unreservedLocalQty As Double, _
+                                             Optional ByVal reservedLocalQty As Double = 0, _
+                                             Optional ByVal pendingOverlayQty As Variant) As Double
+    Dim baseQty As Double
+    Dim projectedQty As Double
+    Dim lockedToSubtract As Double
+    Dim overlayQty As Double
+    Dim overlayApplied As Boolean
+
+    baseQty = nasQty
+    lockedToSubtract = lockedQty
+    If Not IsMissing(pendingOverlayQty) Then
+        If IsNumeric(pendingOverlayQty) Then
+            overlayQty = CDbl(pendingOverlayQty)
+            If overlayQty < nasQty Then
+                baseQty = overlayQty
+                overlayApplied = True
+            End If
+        End If
+    End If
+
+    If overlayApplied And reservedLocalQty > 0 Then
+        lockedToSubtract = lockedQty - reservedLocalQty
+        If lockedToSubtract < 0 Then lockedToSubtract = 0
+    End If
+
+    projectedQty = baseQty - lockedToSubtract - unreservedLocalQty
+    If projectedQty < 0 Then projectedQty = 0
+    ShipmentsProjectedDisplayQty = projectedQty
+End Function
+
+Public Function ShipmentsProjectedDisplayQtyForTest(ByVal nasQty As Double, _
+                                                    ByVal lockedQty As Double, _
+                                                    ByVal unreservedLocalQty As Double, _
+                                                    Optional ByVal reservedLocalQty As Double = 0, _
+                                                    Optional ByVal pendingOverlayQty As Variant) As Double
+    If IsMissing(pendingOverlayQty) Then
+        ShipmentsProjectedDisplayQtyForTest = ShipmentsProjectedDisplayQty(nasQty, lockedQty, unreservedLocalQty, reservedLocalQty)
+    Else
+        ShipmentsProjectedDisplayQtyForTest = ShipmentsProjectedDisplayQty(nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty)
+    End If
+End Function
+
 Public Function ShipmentsFormRefreshRuntimeInventory(ByRef report As String) As Boolean
     On Error GoTo FailSoft
 
     Dim wb As Workbook
     Dim runtimeReport As String
     Dim bomReport As String
+    Dim warehouseId As String
 
     Set wb = ActiveWorkbook
     If wb Is Nothing Then
@@ -5292,7 +5557,8 @@ Public Function ShipmentsFormRefreshRuntimeInventory(ByRef report As String) As 
         Exit Function
     End If
 
-    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(wb, "", "LOCAL", runtimeReport) Then
+    warehouseId = ResolveCurrentShippingWarehouseId()
+    If Not RunShippingRuntimeQueueRefresh(wb, warehouseId, runtimeReport, False) Then
         report = runtimeReport
         Exit Function
     End If
@@ -5308,6 +5574,295 @@ Public Function ShipmentsFormRefreshRuntimeInventory(ByRef report As String) As 
 
 FailSoft:
     report = "Shipments refresh failed: " & Err.Description
+End Function
+
+Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
+                                                ByVal warehouseId As String, _
+                                                ByRef report As String, _
+                                                Optional ByVal requireQueuedWork As Boolean = True) As Boolean
+    On Error GoTo FailSoft
+
+    Dim resolvedWarehouseId As String
+    Dim stationId As String
+    Dim stagingReport As String
+    Dim batchReport As String
+    Dim publishReport As String
+    Dim processedCount As Long
+    Dim totalTimer As Single
+    Dim batchTimer As Single
+    Dim batchMs As Long
+
+    If wb Is Nothing Then
+        report = "Operator workbook not resolved."
+        Exit Function
+    End If
+
+    resolvedWarehouseId = Trim$(warehouseId)
+    If resolvedWarehouseId = "" Then resolvedWarehouseId = ResolveCurrentShippingWarehouseId()
+    stationId = ResolveCurrentShippingStationId(resolvedWarehouseId)
+    totalTimer = Timer
+    batchTimer = Timer
+
+    If Not modRoleEventWriter.SyncLocalStagedInboxRows(stagingReport, resolvedWarehouseId, stationId) Then
+        batchMs = ElapsedMillisecondsShipping(batchTimer)
+        report = "Local staged shipping rows could not be merged before runtime processing. " & _
+                 "StagingReport=" & stagingReport & " BatchReport=Skipped; " & _
+                 FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
+        Exit Function
+    End If
+
+    processedCount = modProcessor.RunBatch(resolvedWarehouseId, 0, batchReport)
+    batchMs = ElapsedMillisecondsShipping(batchTimer)
+    If Left$(batchReport, 15) = "RunBatch failed" Then
+        report = "RunBatch failed after local shipping post/write. StagingReport=" & stagingReport & " " & _
+                 batchReport & " RefreshReport=Skipped; " & _
+                 FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
+        Exit Function
+    End If
+
+    If Not ShippingRuntimeReportShowsProcessed(processedCount, batchReport) _
+       And (requireQueuedWork Or ShippingRuntimeReportMetric(stagingReport, "LocalStagingMerged") > 0) Then
+        report = "RunBatch did not handle the queued shipping event after local post/write. " & _
+                 "StagingReport=" & stagingReport & " BatchReport=" & batchReport & " RefreshReport=Skipped; " & _
+                 FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
+        Exit Function
+    End If
+
+    If processedCount > 0 Then
+        If Not modInventoryDomainBridge.PublishInventorySnapshotBridge(resolvedWarehouseId, Nothing, publishReport) Then
+            If publishReport = "" Then publishReport = "Snapshot publish failed."
+        End If
+    End If
+
+    report = "Processed=" & CStr(processedCount) & "; StagingReport=" & stagingReport & "; BatchReport=" & batchReport
+    If publishReport <> "" Then report = report & "; PublishWarning=" & publishReport
+    report = report & "; " & FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
+    RunShippingRuntimeQueueRefresh = True
+    Exit Function
+
+FailSoft:
+    report = "RunShippingRuntimeQueueRefresh failed: " & Err.Description
+End Function
+
+Private Function ResolveCurrentShippingStationId(ByVal warehouseId As String) As String
+    On Error Resume Next
+
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        If Trim$(warehouseId) = "" Or StrComp(Trim$(target.WarehouseId), Trim$(warehouseId), vbTextCompare) = 0 Then
+            ResolveCurrentShippingStationId = Trim$(target.StationId)
+        End If
+    End If
+    If ResolveCurrentShippingStationId = "" Then ResolveCurrentShippingStationId = Trim$(modConfig.GetStationId())
+End Function
+
+Private Function ShippingRuntimeReportShowsProcessed(ByVal processedCount As Long, ByVal batchReport As String) As Boolean
+    If processedCount > 0 Then
+        ShippingRuntimeReportShowsProcessed = True
+        Exit Function
+    End If
+
+    If ShippingRuntimeReportMetric(batchReport, "Applied") > 0 Then
+        ShippingRuntimeReportShowsProcessed = True
+        Exit Function
+    End If
+
+    If ShippingRuntimeReportMetric(batchReport, "SkipDup") > 0 Then
+        ShippingRuntimeReportShowsProcessed = True
+    End If
+End Function
+
+Private Function ShippingRuntimeReportMetric(ByVal runtimeReport As String, ByVal metricName As String) As Long
+    Dim marker As String
+    Dim pos As Long
+    Dim valueStart As Long
+    Dim valueEnd As Long
+    Dim ch As String
+
+    marker = metricName & "="
+    pos = InStr(1, runtimeReport, marker, vbTextCompare)
+    If pos <= 0 Then Exit Function
+
+    valueStart = pos + Len(marker)
+    valueEnd = valueStart
+    Do While valueEnd <= Len(runtimeReport)
+        ch = Mid$(runtimeReport, valueEnd, 1)
+        If ch < "0" Or ch > "9" Then Exit Do
+        valueEnd = valueEnd + 1
+    Loop
+    If valueEnd <= valueStart Then Exit Function
+    ShippingRuntimeReportMetric = CLng(Mid$(runtimeReport, valueStart, valueEnd - valueStart))
+End Function
+
+Private Function FormatShippingRuntimeTiming(ByVal totalMs As Long, _
+                                             ByVal batchMs As Long, _
+                                             ByVal refreshMs As Long) As String
+    FormatShippingRuntimeTiming = "TimingMs=Total:" & CStr(totalMs) & _
+                                  ";Batch:" & CStr(batchMs) & _
+                                  ";Refresh:" & CStr(refreshMs)
+End Function
+
+Private Function ElapsedMillisecondsShipping(ByVal startedAt As Single) As Long
+    Dim deltaSeconds As Single
+
+    deltaSeconds = Timer - startedAt
+    If deltaSeconds < 0 Then deltaSeconds = deltaSeconds + 86400!
+    ElapsedMillisecondsShipping = CLng(deltaSeconds * 1000)
+End Function
+
+Private Function ResolveCurrentShippingWarehouseId() As String
+    On Error Resume Next
+
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then ResolveCurrentShippingWarehouseId = Trim$(target.WarehouseId)
+    If ResolveCurrentShippingWarehouseId = "" Then ResolveCurrentShippingWarehouseId = Trim$(modConfig.GetWarehouseId())
+    If ResolveCurrentShippingWarehouseId = "" Then ResolveCurrentShippingWarehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
+End Function
+
+Public Function ShipmentsFormRecentHistoryText(Optional ByVal limitCount As Long = 20) As String
+    On Error GoTo FailSoft
+
+    Dim warehouseId As String
+    Dim stationId As String
+    Dim inventoryWb As Workbook
+    Dim logText As String
+    Dim pipelineText As String
+    Dim target As WarehouseTarget
+
+    If limitCount <= 0 Then limitCount = 20
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        warehouseId = Trim$(target.WarehouseId)
+        stationId = Trim$(target.StationId)
+    End If
+    If warehouseId = "" Then warehouseId = Trim$(modConfig.GetWarehouseId())
+    If stationId = "" Then stationId = Trim$(modConfig.GetStationId())
+    If warehouseId = "" Then warehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
+    If stationId = "" Then stationId = Trim$(modConfig.GetString("StationId", ""))
+
+    Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+    logText = RecentShipmentInventoryLogTextShipping(inventoryWb, limitCount)
+    pipelineText = ShipmentPipelineStatusTextShipping(warehouseId, stationId)
+
+    ShipmentsFormRecentHistoryText = logText
+    If pipelineText <> "" Then ShipmentsFormRecentHistoryText = ShipmentsFormRecentHistoryText & vbCrLf & vbCrLf & pipelineText
+    Exit Function
+
+FailSoft:
+    ShipmentsFormRecentHistoryText = "Shipments history failed: " & Err.Description
+End Function
+
+Private Function RecentShipmentInventoryLogTextShipping(ByVal inventoryWb As Workbook, ByVal limitCount As Long) As String
+    On Error GoTo FailSoft
+
+    Dim loLog As ListObject
+    Dim cEventId As Long
+    Dim cEventType As Long
+    Dim cTime As Long
+    Dim cSku As Long
+    Dim cQtyDelta As Long
+    Dim cLocation As Long
+    Dim cNote As Long
+    Dim rowIndex As Long
+    Dim shown As Long
+    Dim eventType As String
+    Dim lineText As String
+
+    If inventoryWb Is Nothing Then
+        RecentShipmentInventoryLogTextShipping = "Processed server log: inventory workbook not open."
+        Exit Function
+    End If
+    Set loLog = FindListObjectByNameShipping(inventoryWb, "tblInventoryLog")
+    If loLog Is Nothing Or loLog.DataBodyRange Is Nothing Then
+        RecentShipmentInventoryLogTextShipping = "Processed server log: no tblInventoryLog rows found."
+        Exit Function
+    End If
+
+    cEventId = ColumnIndex(loLog, "EventID")
+    cEventType = ColumnIndex(loLog, "EventType")
+    cTime = ColumnIndex(loLog, "OccurredAtUTC")
+    cSku = ColumnIndex(loLog, "SKU")
+    cQtyDelta = ColumnIndex(loLog, "QtyDelta")
+    cLocation = ColumnIndex(loLog, "Location")
+    cNote = ColumnIndex(loLog, "Note")
+    If cEventType = 0 Then
+        RecentShipmentInventoryLogTextShipping = "Processed server log: EventType column missing."
+        Exit Function
+    End If
+
+    RecentShipmentInventoryLogTextShipping = "Processed server shipment history:"
+    For rowIndex = loLog.ListRows.Count To 1 Step -1
+        eventType = UCase$(Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cEventType).Value)))
+        If eventType = EVENT_TYPE_SHIP Or eventType = EVENT_TYPE_SHIP_RESERVE _
+           Or eventType = EVENT_TYPE_SHIP_RELEASE Or eventType = EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE Then
+            shown = shown + 1
+            lineText = CStr(shown) & ". "
+            If cEventId > 0 Then lineText = lineText & NzStr(loLog.DataBodyRange.Cells(rowIndex, cEventId).Value) & " | "
+            lineText = lineText & eventType
+            If cTime > 0 Then lineText = lineText & " | " & FormatHistoryValueShipping(loLog.DataBodyRange.Cells(rowIndex, cTime).Value)
+            If cSku > 0 Then lineText = lineText & " | " & NzStr(loLog.DataBodyRange.Cells(rowIndex, cSku).Value)
+            If cQtyDelta > 0 Then lineText = lineText & " | Delta " & FormatBoxMakerQuantityText(NzDbl(loLog.DataBodyRange.Cells(rowIndex, cQtyDelta).Value))
+            If cLocation > 0 And Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cLocation).Value)) <> "" Then lineText = lineText & " | " & NzStr(loLog.DataBodyRange.Cells(rowIndex, cLocation).Value)
+            If cNote > 0 And Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cNote).Value)) <> "" Then lineText = lineText & " | " & Left$(Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cNote).Value)), 90)
+            RecentShipmentInventoryLogTextShipping = RecentShipmentInventoryLogTextShipping & vbCrLf & lineText
+            If shown >= limitCount Then Exit For
+        End If
+    Next rowIndex
+    If shown = 0 Then RecentShipmentInventoryLogTextShipping = RecentShipmentInventoryLogTextShipping & vbCrLf & "None found."
+    Exit Function
+
+FailSoft:
+    RecentShipmentInventoryLogTextShipping = "Processed server log failed: " & Err.Description
+End Function
+
+Private Function ShipmentPipelineStatusTextShipping(ByVal warehouseId As String, ByVal stationId As String) As String
+    Dim pendingCount As Long
+    Dim matchingPending As Long
+    Dim stagedRows As Long
+    Dim matchingStaged As Long
+    Dim inboxReport As String
+    Dim inboxError As String
+    Dim stagedReport As String
+    Dim stagedError As String
+
+    inboxReport = modRoleEventWriter.DescribeInboxPendingRows(EVENT_TYPE_SHIP, warehouseId, stationId, "", pendingCount, matchingPending, inboxError)
+    stagedReport = modRoleEventWriter.DescribeLocalStagedInboxRows(EVENT_TYPE_SHIP & "," & EVENT_TYPE_SHIP_RESERVE & "," & EVENT_TYPE_SHIP_RELEASE, _
+                                                                    warehouseId, _
+                                                                    stationId, _
+                                                                    stagedRows, _
+                                                                    matchingStaged, _
+                                                                    stagedError)
+
+    ShipmentPipelineStatusTextShipping = "Shipment pipeline status:" & vbCrLf & _
+        "NAS shipping inbox pending rows: " & CStr(pendingCount)
+    If pendingCount > 0 Then
+        ShipmentPipelineStatusTextShipping = ShipmentPipelineStatusTextShipping & vbCrLf & _
+            "Processor has not applied these rows yet; tblInventoryLog will update after processor catch-up."
+    End If
+    If inboxReport <> "" Then
+        ShipmentPipelineStatusTextShipping = ShipmentPipelineStatusTextShipping & vbCrLf & inboxReport
+    ElseIf inboxError <> "" Then
+        ShipmentPipelineStatusTextShipping = ShipmentPipelineStatusTextShipping & vbCrLf & inboxError
+    End If
+    ShipmentPipelineStatusTextShipping = ShipmentPipelineStatusTextShipping & vbCrLf & _
+        "Local staged shipment rows: " & CStr(matchingStaged)
+    If stagedReport <> "" Then
+        ShipmentPipelineStatusTextShipping = ShipmentPipelineStatusTextShipping & vbCrLf & stagedReport
+    ElseIf stagedError <> "" Then
+        ShipmentPipelineStatusTextShipping = ShipmentPipelineStatusTextShipping & vbCrLf & stagedError
+    End If
+End Function
+
+Private Function FormatHistoryValueShipping(ByVal valueIn As Variant) As String
+    If IsDate(valueIn) Then
+        FormatHistoryValueShipping = Format$(CDate(valueIn), "yyyy-mm-dd hh:nn:ss")
+    Else
+        FormatHistoryValueShipping = NzStr(valueIn)
+    End If
 End Function
 
 Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = False) As Variant
@@ -6974,7 +7529,7 @@ Private Sub ApplyStageVersionInventoryOverlayFromRows(ByVal invLo As ListObject,
         If rowVal <= 0 Or qtyVal <= 0 Or versionLabel = "" Then GoTo NextRow
 
         currentQty = StageVersionInventoryCurrentQty(invLo, rowVal, itemName, versionLabel)
-        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, currentQty
+        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, currentQty, currentQty + qtyVal
 NextRow:
     Next i
 End Sub
@@ -7040,7 +7595,7 @@ Private Sub SyncSingleVersionInventoryOverlayFromInvSysRows(ByVal invLo As ListO
         If rowVal <= 0 Or versionLabel = "" Then GoTo NextRow
         If CountActiveVersionsForPackageShipping(rowVal) <> 1 Then GoTo NextRow
         invIdx = FindInvRowIndexByRow(invLo, rowVal)
-        If invIdx > 0 Then RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value)
+        If invIdx > 0 Then RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value), NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value)
 NextRow:
     Next i
 End Sub
@@ -7089,7 +7644,7 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
         projectedQty = backendQty - qtyVal
         If projectedQty < 0 Then projectedQty = 0
         If existingProjectedQty < backendQty Then projectedQty = existingProjectedQty
-        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, projectedQty
+        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, projectedQty, backendQty
 NextRow:
     Next i
 End Sub
@@ -7331,7 +7886,8 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     If sentSummary <> "" Then report = report & vbCrLf & sentSummary
     If Trim$(carrierValue) <> "" Then report = report & vbCrLf & "Carrier: " & Trim$(carrierValue)
     If queuedEventId <> "" Then report = report & vbCrLf & "Inbox EventID: " & queuedEventId
-    If queuedEventId = "" Then report = report & vbCrLf & "Server inventory was already reserved at To Shipments."
+    If queuedEventId = "" Then report = report & vbCrLf & _
+        "Server inventory was reserved at To Shipments; Shipments Sent completed the reservation and is waiting for processor/log catch-up."
     If errNotes <> "" Then report = report & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
     ShipmentsFormRunShipmentsSentRows = True
 
@@ -7725,7 +8281,7 @@ Public Function ShipmentsFormRunShipmentsSent(ByRef report As String) As Boolean
     InvalidateAggregates True
     ClearInstructionStaging ws
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
-    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(ws.Parent, "", "LOCAL", runtimeReport) Then
+    If Not RunShippingRuntimeQueueRefresh(ws.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport) Then
         If runtimeReport = "" Then runtimeReport = "Local shipment post succeeded, but runtime processing or read-model refresh did not complete cleanly."
         AppendNote errNotes, runtimeReport
     ElseIf runtimeReport <> "" Then
@@ -7810,7 +8366,7 @@ Public Function ShipmentsFormRunDirectShipmentsSent(ByRef report As String, Opti
     InvalidateAggregates True
     ClearInstructionStaging ws
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
-    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(ws.Parent, "", "LOCAL", runtimeReport) Then
+    If Not RunShippingRuntimeQueueRefresh(ws.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport) Then
         If runtimeReport = "" Then runtimeReport = "Local shipment post succeeded, but runtime processing or read-model refresh did not complete cleanly."
         AppendNote errNotes, runtimeReport
     ElseIf runtimeReport <> "" Then
@@ -8266,6 +8822,46 @@ Public Sub BoxBuilderFormDeleteBox(ByVal packageRow As Long)
 ErrHandler:
     MsgBox "BOX_BUILDER_DELETE_BOX failed: " & Err.Description, vbCritical
 End Sub
+
+Public Function BoxBuilderFormArchiveBox(ByVal packageRow As Long, Optional ByRef report As String = "") As Boolean
+    On Error GoTo ErrHandler
+
+    Dim ws As Worksheet
+    Dim archiveReport As String
+    Dim refreshReport As String
+
+    If Not modRoleUiAccess.RequireCurrentUserCapability("ADMIN_MAINT") Then
+        report = "ADMIN_MAINT is required to archive box designs."
+        Exit Function
+    End If
+    If packageRow <= 0 Then
+        report = "Select a saved box before archiving."
+        Exit Function
+    End If
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then
+        report = "ShipmentsTally sheet was not found."
+        Exit Function
+    End If
+    If Not ArchiveShippingBomPackageInRuntime(ws.Parent, packageRow, archiveReport) Then
+        If archiveReport = "" Then archiveReport = "Could not archive selected Shipping BOM box."
+        report = archiveReport
+        Exit Function
+    End If
+
+    RefreshShippingBomViewForWorkbook ws.Parent, refreshReport
+    RefreshBoxBomVersionList ws, packageRow
+    InvalidateAggregates True
+    report = archiveReport
+    If report = "" Then report = "Archived Shipping BOM ROW " & CStr(packageRow) & "."
+    If Trim$(refreshReport) <> "" Then AppendNote report, refreshReport
+    BoxBuilderFormArchiveBox = True
+    Exit Function
+
+ErrHandler:
+    report = "BOX_BUILDER_ARCHIVE_BOX failed: " & Err.Description
+End Function
 
 Private Function BoxBuilderFormBomText(ByVal rowsData As Variant, _
                                        ByVal rowIndex As Long, _
@@ -10560,7 +11156,7 @@ Private Function ApplyBoxCreatedFromBuilder(ByVal loBuilder As ListObject, _
     If Not QueueBoxBuildEventFromBuilder(loBuilder, loBom, invLo, usedTotal, madeTotal, eventIdOut, errNotes) Then Exit Function
     eventQueuedOut = True
 
-    batchProcessedOut = modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(loBuilder.Parent.Parent, "", "LOCAL", runtimeReport)
+    batchProcessedOut = RunShippingRuntimeQueueRefresh(loBuilder.Parent.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport)
     If Not batchProcessedOut Then batchProcessedOut = BoxMakerRuntimeReportShowsProcessed(runtimeReport)
     runtimeReportOut = runtimeReport
     If Not batchProcessedOut Then
@@ -10602,7 +11198,7 @@ Private Function ApplyBoxUnboxedFromBuilder(ByVal loBuilder As ListObject, _
     If Not QueueBoxUnboxEventFromBuilder(loBuilder, loBom, invLo, componentsReturned, packageReturned, eventIdOut, errNotes) Then Exit Function
     eventQueuedOut = True
 
-    batchProcessedOut = modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(loBuilder.Parent.Parent, "", "LOCAL", runtimeReport)
+    batchProcessedOut = RunShippingRuntimeQueueRefresh(loBuilder.Parent.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport)
     If Not batchProcessedOut Then batchProcessedOut = BoxMakerRuntimeReportShowsProcessed(runtimeReport)
     runtimeReportOut = runtimeReport
     If Not batchProcessedOut Then
@@ -11556,9 +12152,22 @@ End Function
 Private Function GetShippingBomViewTable(ByVal wb As Workbook) As ListObject
     Dim ws As Worksheet
 
+    Set GetShippingBomViewTable = FindListObjectByNameShipping(wb, TABLE_SHIPPING_BOM_VIEW)
+    If Not GetShippingBomViewTable Is Nothing Then Exit Function
+
     Set ws = WorkbookSheetExistsShipping(wb, SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Function
     Set GetShippingBomViewTable = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
+End Function
+
+Public Function ShippingBomViewTableExistsForWorkbookForTest(ByVal workbookName As String) As Boolean
+    Dim wb As Workbook
+
+    On Error Resume Next
+    Set wb = Application.Workbooks(workbookName)
+    On Error GoTo 0
+    If wb Is Nothing Then Exit Function
+    ShippingBomViewTableExistsForWorkbookForTest = Not GetShippingBomViewTable(wb) Is Nothing
 End Function
 
 Private Function OpenShippingBomWorkbook(ByVal warehouseId As String, _
@@ -11845,7 +12454,8 @@ Public Function ValidateShippingReservationTotalsFromTableWithLocalLinesForTest(
                                                                                                                         warehouseId, _
                                                                                                                         report, _
                                                                                                                         localSourceWorkbook, _
-                                                                                                                        activeLineIds)
+                                                                                                                        activeLineIds, _
+                                                                                                                        "S31")
 End Function
 
 Private Function LoadActiveShippingReservationTotals(ByRef report As String) As Object
@@ -11869,7 +12479,12 @@ Private Function LoadActiveShippingReservationTotals(ByRef report As String) As 
     warehouseId = CurrentShippingWarehouseIdForLocalState()
     localSourceWorkbook = CurrentShippingOperatorWorkbookFullName()
     Set activeLineIds = ActiveShipmentLineIdsForCurrentOperatorWorkbook()
-    Set totals = BuildActiveShippingReservationTotalsFromTable(lo, warehouseId, report, localSourceWorkbook, activeLineIds)
+    Set totals = BuildActiveShippingReservationTotalsFromTable(lo, _
+                                                               warehouseId, _
+                                                               report, _
+                                                               localSourceWorkbook, _
+                                                               activeLineIds, _
+                                                               CurrentShippingStationIdForLocalState())
     If Not totals Is Nothing Then Set LoadActiveShippingReservationTotals = totals
 
 CleanExit:
@@ -11885,7 +12500,8 @@ Private Function BuildActiveShippingReservationTotalsFromTable(ByVal lo As ListO
                                                               ByVal warehouseId As String, _
                                                               ByRef report As String, _
                                                               Optional ByVal localSourceWorkbook As String = "", _
-                                                              Optional ByVal activeLineIds As Object = Nothing) As Object
+                                                              Optional ByVal activeLineIds As Object = Nothing, _
+                                                              Optional ByVal localStationId As String = "") As Object
     On Error GoTo FailSoft
 
     Dim totals As Object
@@ -11896,10 +12512,13 @@ Private Function BuildActiveShippingReservationTotalsFromTable(ByVal lo As ListO
     Dim cQty As Long
     Dim cLineId As Long
     Dim cSourceWorkbook As Long
+    Dim cStationId As Long
     Dim key As String
     Dim qtyVal As Double
     Dim lineId As String
     Dim sourceWorkbook As String
+    Dim reservationStationId As String
+    Dim localReservation As Boolean
 
     Set totals = CreateObject("Scripting.Dictionary")
     totals.CompareMode = vbTextCompare
@@ -11912,6 +12531,7 @@ Private Function BuildActiveShippingReservationTotalsFromTable(ByVal lo As ListO
     cQty = ColumnIndex(lo, "Qty")
     cLineId = ColumnIndex(lo, "LineID")
     cSourceWorkbook = ColumnIndex(lo, "SourceWorkbook")
+    cStationId = ColumnIndex(lo, "StationId")
     If cStatus = 0 Or cPackageRow = 0 Or cVersion = 0 Or cQty = 0 Then GoTo CleanExit
 
     For r = 1 To lo.ListRows.Count
@@ -11920,11 +12540,16 @@ Private Function BuildActiveShippingReservationTotalsFromTable(ByVal lo As ListO
                 lineId = Trim$(NzStr(lo.DataBodyRange.Cells(r, cLineId).Value))
                 If PersistentSentShipmentLineIdExistsForWarehouse(lineId, warehouseId) Then GoTo NextReservation
                 If Not activeLineIds Is Nothing Then
-                    If lineId <> "" And cSourceWorkbook > 0 Then
-                        sourceWorkbook = NormalizeFolderPathShipping(Trim$(NzStr(lo.DataBodyRange.Cells(r, cSourceWorkbook).Value)))
-                        If sourceWorkbook <> "" _
-                           And StrComp(sourceWorkbook, NormalizeFolderPathShipping(localSourceWorkbook), vbTextCompare) = 0 _
-                           And Not activeLineIds.Exists(lineId) Then GoTo NextReservation
+                    sourceWorkbook = ""
+                    If cSourceWorkbook > 0 Then sourceWorkbook = NormalizeFolderPathShipping(Trim$(NzStr(lo.DataBodyRange.Cells(r, cSourceWorkbook).Value)))
+                    reservationStationId = ""
+                    If cStationId > 0 Then reservationStationId = Trim$(NzStr(lo.DataBodyRange.Cells(r, cStationId).Value))
+                    localReservation = (sourceWorkbook = "" _
+                                        Or StrComp(sourceWorkbook, NormalizeFolderPathShipping(localSourceWorkbook), vbTextCompare) = 0 _
+                                        Or reservationStationId = "" _
+                                        Or (Trim$(localStationId) <> "" And StrComp(reservationStationId, Trim$(localStationId), vbTextCompare) = 0))
+                    If localReservation Then
+                        If lineId = "" Or Not activeLineIds.Exists(lineId) Then GoTo NextReservation
                     End If
                 End If
             End If
@@ -11963,6 +12588,20 @@ Private Function CurrentShippingOperatorWorkbookFullName() As String
     On Error Resume Next
     If Not ActiveWorkbook Is Nothing Then CurrentShippingOperatorWorkbookFullName = ActiveWorkbook.FullName
     On Error GoTo 0
+End Function
+
+Private Function CurrentShippingStationIdForLocalState() As String
+    Dim target As WarehouseTarget
+    Dim warehouseId As String
+
+    warehouseId = CurrentShippingWarehouseIdForLocalState()
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        If warehouseId = "" Or StrComp(Trim$(target.WarehouseId), warehouseId, vbTextCompare) = 0 Then
+            CurrentShippingStationIdForLocalState = Trim$(target.StationId)
+        End If
+    End If
+    If CurrentShippingStationIdForLocalState = "" Then CurrentShippingStationIdForLocalState = Trim$(modConfig.GetStationId())
 End Function
 
 Private Function ActiveShipmentLineIdsForCurrentOperatorWorkbook() As Object
@@ -12358,6 +12997,67 @@ FailSoft:
     Resume CleanExit
 End Function
 
+Private Function ArchiveShippingBomPackageInRuntime(ByVal operatorWb As Workbook, _
+                                                    ByVal packageRow As Long, _
+                                                    ByRef report As String) As Boolean
+    On Error GoTo FailSoft
+
+    Dim target As Object
+    Dim warehouseId As String
+    Dim rootPath As String
+    Dim wbBom As Workbook
+    Dim loBom As ListObject
+    Dim openedTransient As Boolean
+    Dim retiredAt As Date
+    Dim retiredBy As String
+    Dim activeRows As Long
+
+    report = ""
+    If packageRow <= 0 Then Exit Function
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        report = "A connected warehouse target is required before archiving Shipping BOM designs."
+        Exit Function
+    End If
+
+    warehouseId = Trim$(target.WarehouseId)
+    rootPath = NormalizeFolderPathShipping(target.RuntimeRoot)
+    If warehouseId = "" Or rootPath = "" Then
+        report = "Selected warehouse target is missing WarehouseId or RuntimeRoot."
+        Exit Function
+    End If
+
+    Set wbBom = OpenShippingBomWorkbook(warehouseId, rootPath, False, openedTransient, report)
+    If wbBom Is Nothing Then Exit Function
+    Set loBom = EnsureShippingBomSchema(wbBom, report)
+    If loBom Is Nothing Then GoTo CleanExit
+
+    activeRows = CountActiveShippingBomPackageRows(loBom, packageRow)
+    If activeRows <= 0 Then
+        report = "No active Shipping BOM designs were found for ROW " & CStr(packageRow) & "."
+        ArchiveShippingBomPackageInRuntime = True
+        GoTo CleanExit
+    End If
+
+    retiredAt = Now
+    retiredBy = modRoleEventWriter.ResolveCurrentUserId()
+    RetireActiveShippingBomPackageRows loBom, packageRow, retiredAt, retiredBy
+
+    wbBom.Save
+    report = "Archived Shipping BOM ROW " & CStr(packageRow) & ": " & CStr(activeRows) & _
+             " active design row(s) retired. Existing inventory remains available."
+    ArchiveShippingBomPackageInRuntime = True
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping wbBom
+    Exit Function
+
+FailSoft:
+    report = "ArchiveShippingBomPackageInRuntime failed: " & Err.Description
+    Resume CleanExit
+End Function
+
 Private Function DeleteShippingBomPackageVersionRows(ByVal lo As ListObject, _
                                                      ByVal packageRow As Long, _
                                                      ByVal bomVersion As Long) As Long
@@ -12392,6 +13092,24 @@ Private Function CountShippingBomPackageRows(ByVal lo As ListObject, ByVal packa
     If cPackageRow = 0 Then Exit Function
     For i = 1 To lo.ListRows.Count
         If NzLng(lo.DataBodyRange.Cells(i, cPackageRow).Value) = packageRow Then CountShippingBomPackageRows = CountShippingBomPackageRows + 1
+    Next i
+End Function
+
+Private Function CountActiveShippingBomPackageRows(ByVal lo As ListObject, ByVal packageRow As Long) As Long
+    Dim cPackageRow As Long
+    Dim cActive As Long
+    Dim i As Long
+
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
+    cPackageRow = ColumnIndex(lo, "PackageRow")
+    cActive = ColumnIndex(lo, "IsActive")
+    If cPackageRow = 0 Then Exit Function
+    For i = 1 To lo.ListRows.Count
+        If NzLng(lo.DataBodyRange.Cells(i, cPackageRow).Value) = packageRow Then
+            If cActive = 0 Or ShippingBomActiveValue(lo.DataBodyRange.Cells(i, cActive).Value) Then
+                CountActiveShippingBomPackageRows = CountActiveShippingBomPackageRows + 1
+            End If
+        End If
     Next i
 End Function
 

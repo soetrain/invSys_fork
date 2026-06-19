@@ -18,6 +18,8 @@ Option Explicit
 Private WithEvents mCboBoxes As MSForms.ComboBox
 Private WithEvents mCboVersions As MSForms.ComboBox
 Private WithEvents mCboStatus As MSForms.ComboBox
+Private WithEvents mChkShowActive As MSForms.CheckBox
+Private WithEvents mChkShowArchived As MSForms.CheckBox
 Private WithEvents mTxtBoxName As MSForms.TextBox
 Private WithEvents mTxtUom As MSForms.TextBox
 Private WithEvents mTxtLocation As MSForms.TextBox
@@ -33,6 +35,7 @@ Private WithEvents mBtnRemove As MSForms.CommandButton
 Private WithEvents mBtnUpdateVersion As MSForms.CommandButton
 Private WithEvents mBtnNewVersion As MSForms.CommandButton
 Private WithEvents mBtnDeleteVersion As MSForms.CommandButton
+Private WithEvents mBtnArchiveBox As MSForms.CommandButton
 Private WithEvents mBtnDeleteBox As MSForms.CommandButton
 Private WithEvents mBtnCancel As MSForms.CommandButton
 
@@ -90,7 +93,11 @@ Public Sub InitializeFromShipping()
 End Sub
 
 Private Sub BuildLayout()
+    Dim previousLoading As Boolean
+
     If mBuilt Then Exit Sub
+    previousLoading = mLoading
+    mLoading = True
     mBuilt = True
 
     Me.Caption = "Shipping Box Builder"
@@ -98,6 +105,9 @@ Private Sub BuildLayout()
     Me.Height = 610
 
     AddLabel "lblTitle", "Box Builder", 12, 10, 180, 20, True
+    Set mChkShowActive = AddCheckBox("chkShowActive", "Show Active", 220, 8, 92, 22)
+    mChkShowActive.Value = True
+    Set mChkShowArchived = AddCheckBox("chkShowArchived", "Show Archived", 320, 8, 110, 22)
     AddLabel "lblBoxSelect", "Saved Box", 12, 40, 76, 18, False
     AddLabel "lblVersionSelect", "Version", 472, 40, 70, 18, False
     AddLabel "lblStatusSelect", "Status", 606, 40, 54, 18, False
@@ -121,7 +131,7 @@ Private Sub BuildLayout()
     With mCboStatus
         .Style = 2
         .AddItem "Active"
-        .AddItem "Retired"
+        .AddItem "Retired/Archived"
         .ListIndex = 0
     End With
     Set mBtnRefresh = AddButton("btnRefresh", "Refresh", 758, 34, 78, 26)
@@ -160,14 +170,16 @@ Private Sub BuildLayout()
     Set mBtnRemove = AddButton("btnRemove", "Remove", 450, 498, 76, 28)
     Set mBtnUpdateVersion = AddButton("btnUpdateVersion", "Update Version", 538, 498, 102, 28)
     Set mBtnNewVersion = AddButton("btnNewVersion", "Save New Version", 650, 498, 118, 28)
+    Set mBtnArchiveBox = AddButton("btnArchiveBox", "Archive Box", 450, 534, 76, 28)
     Set mBtnDeleteVersion = AddButton("btnDeleteVersion", "Delete Version", 538, 534, 102, 28)
     Set mBtnDeleteBox = AddButton("btnDeleteBox", "Delete Box", 650, 534, 86, 28)
     Set mBtnCancel = AddButton("btnCancel", "Close", 760, 534, 76, 28)
-    Set mLblStatus = AddLabel("lblStatus", "", 12, 536, 500, 36, False)
+    Set mLblStatus = AddLabel("lblStatus", "", 12, 536, 420, 36, False)
 
     mTxtUom.Value = "ea"
     mTxtQty.Value = "1"
     InitializeBoxBuilderAnchors
+    mLoading = previousLoading
 End Sub
 
 Private Sub LoadSavedBoxes()
@@ -176,12 +188,18 @@ Private Sub LoadSavedBoxes()
     Dim r As Long
     Dim idx As Long
 
-    mSavedBoxes = modTS_Shipments.BoxBuilderFormLoadSavedBoxes()
+    mSavedBoxes = modTS_Shipments.BoxBuilderFormLoadSavedBoxes(CBool(mChkShowActive.Value), CBool(mChkShowArchived.Value))
     mCboBoxes.Clear
     mSelectedPackageRow = 0
     If IsEmpty(mSavedBoxes) Then
         ResetForNewBox
-        ShowStatus "No saved boxes found. Create a box, add components, then Save New Version."
+        If Not CBool(mChkShowActive.Value) And Not CBool(mChkShowArchived.Value) Then
+            ShowStatus "No boxes shown. Enable Show Active or Show Archived."
+        ElseIf CBool(mChkShowArchived.Value) Then
+            ShowStatus "No boxes match the current active/archive filters."
+        Else
+            ShowStatus "No active saved boxes found. Use Show Archived to view retired designs."
+        End If
         Exit Sub
     End If
 
@@ -193,11 +211,34 @@ Private Sub LoadSavedBoxes()
         mCboBoxes.List(idx, 3) = NzText(mSavedBoxes(r, 4))
         mCboBoxes.List(idx, 4) = NzText(mSavedBoxes(r, 5))
     Next r
-    ShowStatus "Loaded " & CStr(mCboBoxes.ListCount) & " saved box design(s)."
+    ShowStatus "Loaded " & CStr(mCboBoxes.ListCount) & " box design(s)."
     Exit Sub
 
 FailSoft:
     ShowStatus "Could not load saved boxes: " & Err.Description
+End Sub
+
+Private Sub mChkShowActive_Click()
+    If mLoading Then Exit Sub
+    If mCboBoxes Is Nothing Then Exit Sub
+    ReloadSavedBoxesAfterFilterChange
+End Sub
+
+Private Sub mChkShowArchived_Click()
+    If mLoading Then Exit Sub
+    If mCboBoxes Is Nothing Then Exit Sub
+    ReloadSavedBoxesAfterFilterChange
+End Sub
+
+Private Sub ReloadSavedBoxesAfterFilterChange()
+    If mCboBoxes Is Nothing Then Exit Sub
+    LoadSavedBoxes
+    If mCboBoxes.ListCount > 0 Then
+        mCboBoxes.ListIndex = 0
+        LoadSelectedBox
+    Else
+        ResetForNewBox
+    End If
 End Sub
 
 Private Sub LoadCurrentBoxState()
@@ -452,6 +493,27 @@ Private Sub mBtnDeleteVersion_Click()
     InitializeFromShipping
 End Sub
 
+Private Sub mBtnArchiveBox_Click()
+    Dim report As String
+
+    If mSelectedPackageRow <= 0 Then
+        ShowStatus "Select a saved box before archiving."
+        Exit Sub
+    End If
+    If MsgBox("Archive active designs for Shipping BOM ROW " & CStr(mSelectedPackageRow) & "?" & vbCrLf & _
+              "Existing inventory remains available. New box making will use only active designs.", _
+              vbQuestion + vbYesNo, "Archive Box Design") <> vbYes Then Exit Sub
+
+    If modTS_Shipments.BoxBuilderFormArchiveBox(mSelectedPackageRow, report) Then
+        InitializeFromShipping
+        ShowStatus report
+    Else
+        If report = "" Then report = "Could not archive selected box design."
+        ShowStatus report
+        MsgBox report, vbExclamation
+    End If
+End Sub
+
 Private Sub mBtnDeleteBox_Click()
     If mSelectedPackageRow <= 0 Then
         ShowStatus "Select a saved box before deleting."
@@ -600,6 +662,8 @@ Private Sub InitializeBoxBuilderAnchors()
     mAnchors.Initialize Me
 
     mAnchors.Add mCboBoxes, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mChkShowActive, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mChkShowArchived, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mBtnRefresh, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mTxtDescription, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mLblInventoryStatus, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
@@ -612,6 +676,7 @@ Private Sub InitializeBoxBuilderAnchors()
     mAnchors.Add mBtnRemove, ANCHOR_LEFT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnUpdateVersion, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnNewVersion, ANCHOR_RIGHT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnArchiveBox, ANCHOR_LEFT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnDeleteVersion, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnDeleteBox, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnCancel, ANCHOR_RIGHT Or ANCHOR_BOTTOM
@@ -634,6 +699,22 @@ Private Function AddLabel(ByVal controlName As String, _
         .Height = heightVal
         .WordWrap = True
         .Font.Bold = boldText
+    End With
+End Function
+
+Private Function AddCheckBox(ByVal controlName As String, _
+                             ByVal captionText As String, _
+                             ByVal leftPos As Single, _
+                             ByVal topPos As Single, _
+                             ByVal widthVal As Single, _
+                             ByVal heightVal As Single) As MSForms.CheckBox
+    Set AddCheckBox = Me.Controls.Add("Forms.CheckBox.1", controlName, True)
+    With AddCheckBox
+        .Caption = captionText
+        .Left = leftPos
+        .Top = topPos
+        .Width = widthVal
+        .Height = heightVal
     End With
 End Function
 

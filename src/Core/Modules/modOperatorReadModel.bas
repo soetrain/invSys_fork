@@ -420,7 +420,8 @@ End Sub
 Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
                                                    Optional ByVal warehouseId As String = "", _
                                                    Optional ByVal sourceType As String = "LOCAL", _
-                                                   Optional ByRef report As String = "") As Boolean
+                                                   Optional ByRef report As String = "", _
+                                                   Optional ByVal requireQueuedWork As Boolean = True) As Boolean
     On Error GoTo FailRefresh
 
     Dim wb As Workbook
@@ -437,6 +438,8 @@ Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Wo
     Dim surfaceMs As Long
     Dim refreshMs As Long
     Dim publishReport As String
+    Dim stagingReport As String
+    Dim stagingStationId As String
 
     Set wb = ResolveOperatorWorkbook(targetWb)
     If wb Is Nothing Then
@@ -450,48 +453,63 @@ Public Function RunBatchAndRefreshOperatorWorkbook(Optional ByVal targetWb As Wo
     screenSuppressed = True
     totalTimer = Timer
     segmentTimer = Timer
+    stagingStationId = ResolveCurrentStationIdReadModel(resolvedWarehouseId)
+    If Not modRoleEventWriter.SyncLocalStagedInboxRows(stagingReport, resolvedWarehouseId, stagingStationId) Then
+        batchMs = ElapsedMillisecondsReadModel(segmentTimer)
+        report = "Local staged inbox rows could not be merged before runtime processing. " & _
+                 "StagingReport=" & stagingReport & " BatchReport=Skipped; " & _
+                 FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, 0, 0)
+        GoTo CleanExit
+    End If
+    If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "LocalStagingSync"
+
+    segmentTimer = Timer
     processedCount = modProcessor.RunBatch(resolvedWarehouseId, 0, batchReport)
     batchMs = ElapsedMillisecondsReadModel(segmentTimer)
     If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "ProcessorRunBatch"
 
     If Left$(batchReport, 15) = "RunBatch failed" Then
-        report = "RunBatch failed after local post/write. " & batchReport & " RefreshReport=Skipped (batch did not process); " & _
+        report = "RunBatch failed after local post/write. StagingReport=" & stagingReport & " " & batchReport & " RefreshReport=Skipped (batch did not process); " & _
                  FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, 0, 0)
         GoTo CleanExit
     End If
-    If Not BatchReportHandledQueuedRowsReadModel(processedCount, batchReport) Then
+    If Not BatchReportHandledQueuedRowsReadModel(processedCount, batchReport) _
+       And (requireQueuedWork Or ExtractBatchMetricReadModel(stagingReport, "LocalStagingMerged") > 0) Then
         report = "RunBatch did not handle the queued event after local post/write. " & _
-                 "BatchReport=" & batchReport & " RefreshReport=Skipped (batch did not process); " & _
+                 "StagingReport=" & stagingReport & " BatchReport=" & batchReport & " RefreshReport=Skipped (batch did not process); " & _
                  FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, 0, 0)
         GoTo CleanExit
     End If
     If processedCount > 0 Then
         If Not modInventoryDomainBridge.PublishInventorySnapshotBridge(resolvedWarehouseId, Nothing, publishReport) Then
-            report = "RunBatch processed queued event, but snapshot publish failed. " & _
-                     "BatchReport=" & batchReport & " PublishReport=" & publishReport & " RefreshReport=Skipped; " & _
-                     FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, 0, 0)
-            GoTo CleanExit
+            If publishReport = "" Then publishReport = "Snapshot publish failed."
         End If
     End If
 
     segmentTimer = Timer
-    Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
+    If FindListObjectReadModel(wb, TABLE_INVSYS) Is Nothing _
+       And FindListObjectReadModel(wb, "invSysData_Shipping") Is Nothing _
+       And FindListObjectReadModel(wb, "ShippingBOMView") Is Nothing Then
+        Call modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, surfaceReport)
+    End If
     surfaceMs = ElapsedMillisecondsReadModel(segmentTimer)
     If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "SurfaceEnsure"
     segmentTimer = Timer
     If Not RefreshInventoryReadModelForWorkbook(wb, resolvedWarehouseId, sourceType, refreshReport) Then
         refreshMs = ElapsedMillisecondsReadModel(segmentTimer)
         report = "RunBatch processed queued event, but read-model refresh failed. " & _
-                 "BatchReport=" & batchReport & " RefreshReport=" & refreshReport & "; " & _
+                 "StagingReport=" & stagingReport & " BatchReport=" & batchReport & " RefreshReport=" & refreshReport & "; " & _
                  FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, surfaceMs, refreshMs)
         GoTo CleanExit
     End If
     refreshMs = ElapsedMillisecondsReadModel(segmentTimer)
     If PerfIsTransactionActiveSafeReadModel() Then MarkSegmentSafeReadModel "LocalReadModelRefresh"
 
-    report = "Processed=" & CStr(processedCount) & "; BatchReport=" & batchReport & "; RefreshReport=" & refreshReport & "; " & _
+    report = "Processed=" & CStr(processedCount) & "; StagingReport=" & stagingReport & "; BatchReport=" & batchReport
+    If publishReport <> "" Then report = report & "; PublishWarning=" & publishReport
+    report = report & "; RefreshReport=" & refreshReport & "; " & _
              FormatRuntimeTimingReadModel(ElapsedMillisecondsReadModel(totalTimer), batchMs, surfaceMs, refreshMs)
-    LogDiagnosticSafeReadModel "RUNTIME", "RunBatchAndRefresh|Workbook=" & wb.Name & "|WarehouseId=" & resolvedWarehouseId & "|Processed=" & CStr(processedCount) & "|BatchReport=" & batchReport & "|RefreshReport=" & refreshReport & "|TotalMs=" & CStr(ElapsedMillisecondsReadModel(totalTimer)) & "|BatchMs=" & CStr(batchMs) & "|SurfaceMs=" & CStr(surfaceMs) & "|RefreshMs=" & CStr(refreshMs)
+    LogDiagnosticSafeReadModel "RUNTIME", "RunBatchAndRefresh|Workbook=" & wb.Name & "|WarehouseId=" & resolvedWarehouseId & "|Processed=" & CStr(processedCount) & "|StagingReport=" & stagingReport & "|BatchReport=" & batchReport & "|RefreshReport=" & refreshReport & "|TotalMs=" & CStr(ElapsedMillisecondsReadModel(totalTimer)) & "|BatchMs=" & CStr(batchMs) & "|SurfaceMs=" & CStr(surfaceMs) & "|RefreshMs=" & CStr(refreshMs)
     RunBatchAndRefreshOperatorWorkbook = True
 CleanExit:
     If screenSuppressed Then Application.ScreenUpdating = prevScreenUpdating
@@ -503,6 +521,20 @@ FailRefresh:
     On Error GoTo 0
     report = "RunBatchAndRefreshOperatorWorkbook failed: " & Err.Description
     LogDiagnosticSafeReadModel "RUNTIME", "RunBatchAndRefreshError|Workbook=" & ResolveWorkbookNameReadModel(wb) & "|WarehouseId=" & resolvedWarehouseId & "|Error=" & Err.Description
+End Function
+
+Private Function ResolveCurrentStationIdReadModel(ByVal warehouseId As String) As String
+    On Error Resume Next
+
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        If Trim$(warehouseId) = "" Or StrComp(Trim$(target.WarehouseId), Trim$(warehouseId), vbTextCompare) = 0 Then
+            ResolveCurrentStationIdReadModel = Trim$(target.StationId)
+        End If
+    End If
+    If ResolveCurrentStationIdReadModel = "" Then ResolveCurrentStationIdReadModel = Trim$(modConfig.GetStationId())
 End Function
 
 Private Function BatchReportHandledQueuedRowsReadModel(ByVal processedCount As Long, ByVal batchReport As String) As Boolean

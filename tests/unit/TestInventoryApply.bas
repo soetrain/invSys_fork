@@ -272,6 +272,42 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestApplyBoxUnbox_RejectsNegativePackageInventory() As Long
+    Dim wbInv As Workbook
+    Dim evtSeed As Object
+    Dim evtUnbox As Object
+    Dim payloadJson As String
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+    Dim loLog As ListObject
+
+    Set wbInv = TestPhase2Helpers.BuildPhase2InventoryWorkbook("WH1", Array("SKU-T24", "SKU-T24-COMP"))
+    Set evtSeed = TestPhase2Helpers.CreateReceiveEvent("EVT-T24-SEED", "WH1", "S1", "user1", "SKU-T24", 26, "CLEARVIEW", "seed T24")
+    payloadJson = TestPhase2Helpers.BuildPayloadJson( _
+        TestPhase2Helpers.CreatePayloadItem(101, "SKU-T24-COMP", 58, "CLEARVIEW", "return components", "RETURNED"), _
+        TestPhase2Helpers.CreatePayloadItem(86, "SKU-T24", 58, "CLEARVIEW", "unmake T24", "UNMADE"))
+    Set evtUnbox = TestPhase2Helpers.CreatePayloadEvent("EVT-T24-UNBOX-TOO-MANY", EVENT_TYPE_BOX_UNBOX, "WH1", "S1", "user1", payloadJson)
+
+    On Error GoTo CleanFail
+    If Not modInventoryApply.ApplyEvent(evtSeed, wbInv, "RUN-SEED", statusOut, errorCode, errorMessage) Then GoTo CleanExit
+    If modInventoryApply.ApplyEvent(evtUnbox, wbInv, "RUN-UNBOX", statusOut, errorCode, errorMessage) Then GoTo CleanExit
+    If StrComp(errorCode, "INSUFFICIENT_INVENTORY", vbTextCompare) <> 0 Then GoTo CleanExit
+    If InStr(1, errorMessage, "negative", vbTextCompare) = 0 Then GoTo CleanExit
+
+    Set loLog = wbInv.Worksheets("InventoryLog").ListObjects("tblInventoryLog")
+    If loLog.ListRows.Count <> 1 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 1, "QtyDelta")) <> 26 Then GoTo CleanExit
+
+    TestApplyBoxUnbox_RejectsNegativePackageInventory = 1
+
+CleanExit:
+    TestPhase2Helpers.CloseNoSave wbInv
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestApplyProdConsume_MultiLineEvent() As Long
     Dim wbInv As Workbook
     Dim evt As Object

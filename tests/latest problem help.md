@@ -1,241 +1,138 @@
-Now I have everything I need. Here is the complete analysis and test specification.
+Now I have full context. The file is very large — I have enough to give a complete, precise analysis. Here's the diagnosis:
 
 ***
 
-## What's Actually In the Repo Right Now
+## Why the Tests Don't Catch the Problems
 
-The `frmShipmentsTally.frm` on main is a **stub** — it has `btnSend_Click → ProcessShipmentsBatch` and `PopulateShipmentsForm`, but none of the local-cache, tombstone, or `LINE_ID` machinery described in the problem report exists in the committed code yet.  The `modTS_Shipments.bas` contains only the worksheet-surface flow (`BtnToShipments`, `BtnShipmentsSent`, `AggregatePackages`, etc.) and has zero references to `LINE_ID`, `shipping_active_*.tsv`, `PersistentSentShipmentRowExists`, or `ReconcileShipmentStagingFromShipmentLines`. 
-
-That means the dirty-transaction machinery described in the problem report is either in uncommitted local code or was described as the intended design that needs to be built. Either way, the tests need to be written **against the intended behavior**, so they catch violations before or as the code is added.
+There are two distinct problems in the report, and both share the same fundamental testing gap: **the tests call module-level helpers directly and bypass the actual form-backed code paths** that produce the observed behavior.
 
 ***
 
-## The Core Failure Modes to Guard Against
+### Problem 1: The Hanging Tests (`ShipmentsFormCommitLine` / `ShipmentsFormRefreshRuntimeInventory`)
 
-From the problem report, there are four distinct failure classes:
+The hang is **not a test logic error** — it's an architectural barrier. The tests call public procedures in `invSys.Shipping.xlam` via `Application.Run` while the validation harness workbook is the active workbook. This triggers at least one of three deadlock scenarios:
 
-| # | Class | What goes wrong |
-|---|---|---|
-| **A** | **Row resurrection** | A sent row reappears in active Shipments after close/reopen |
-| **B** | **SHIPMENTS staging drift** | `invSys.SHIPMENTS` is 0, but the form row claims `Area=Shipments`, so `Shipments Sent` fails |
-| **C** | **Double-deduction** | Stale active row is reloaded → reconcile rebuilds SHIPMENTS from it → second send succeeds |
-| **D** | **Illogical workflow sequence** | Buttons pressed out of order (e.g. `Shipments Sent` before `To Shipments`, `Boxes Made` before `Confirm Inventory`) produce wrong inventory math |
+**Why it hangs instead of failing:**
+
+| Scenario | What Happens |
+|---|---|
+| `ActiveWorkbook` called inside the Shipping add-in | Returns the *harness* workbook, not the operator workbook. The procedure tries to find `invSys`/`ShipmentsTally` in the harness, can't, and either loops or blocks on a MsgBox |
+| A silent VBE compile dialog fires | The deployed XLAM has a missing reference or compile error that only manifests when invoked cross-process. The dialog blocks forever, PowerShell never gets a return |
+| Re-entrancy via `Application.OnTime` or a modal form | If the Shipping add-in internally schedules work or opens a form, the `Application.Run` call never returns — Excel's message pump is waiting on user input |
+
+The evidence: `Get-Process EXCEL` showing `MainWindowTitle = "Microsoft Visual Basic"` means a **VBE compile/error dialog is open and waiting for a click** that PowerShell can never deliver.
+
+**The tests cannot work as written because `Application.Run` is synchronous and blocks if the called procedure blocks.** There is no timeout in the harness.
 
 ***
 
-## Test Specifications
+### Problem 2: The Dirty-Transaction Tests (Inventory Increasing After `Shipments Sent`)
 
-### Test Group 1 — Workflow Sequence Guard (Class D)
+The existing passing tests **do not reproduce this bug** for these specific reasons:
 
-These are the "illogical workflow" tests the problem report asks for. Each test calls the validation-only surface (`ValidateQueueShipmentsSentEventFromCurrentWorkbook`) or the delta builders in isolation, with a controlled invSys state, and asserts the correct error or early-exit.
+**What the passing tests actually cover:**
 
-**Test 1.1 — `Shipments Sent` with zero SHIPMENTS staged must fail cleanly**
+Looking at [TestPhase6CoreSurfaces.bas](https://github.com/justinwj/invSys_fork/blob/codex/fix-tester-station-nas-setup/tests/unit/TestPhase6CoreSurfaces.bas), the shipping tests (`TestSavedShippingWorkbook_*`) call:
+1. `modRoleEventWriter.QueuePayloadEvent` → `modProcessor.RunBatch` → `modOperatorReadModel.RefreshInventoryReadModelForWorkbook`
 
-```text
-Setup:
-  invSys ROW 87 has:  TOTAL INV=10, MADE=0, SHIPMENTS=0
-  AggregatePackages has ROW=87, QUANTITY=2
+That path exercises the **processor-level deduction** and the **read-model refresh from snapshot**. What it does NOT exercise:
 
-Action:
-  Call ValidateQueueShipmentsSentEventFromCurrentWorkbook()
-
-Expected:
-  Returns error string containing "No staged shipments found in invSys.SHIPMENTS"
-  Does NOT return "OK"
-  invSys.SHIPMENTS unchanged (still 0)
+```
+TestSavedShippingWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs
+→ manually seeds invSys at qty 1, ships qty 6, asserts TOTAL INV = 4 (10−6)
+→ verifies RefreshInventoryReadModelForWorkbook gives the right number
 ```
 
-**Test 1.2 — `To Shipments` with TOTAL INV < requested quantity must fail cleanly**
+**The gap:** None of the tests run the code path that `Shipments Sent` actually uses in the form: `ShipmentsFormRunShipmentsSentRows` → `ApplyShipmentsSentRowsInventory` → the subsequent `frmShipmentsTally.RefreshProjectedShippableInventory` reload. The form reload path reads from a version-log or version-inventory table — **not** from the snapshot path tested in `RefreshInventoryReadModelForWorkbook`. That secondary reload is what overwrites `Projected Inv` with the stale NAS value.
 
-```text
-Setup:
-  invSys ROW 87 has:  TOTAL INV=1, SHIPMENTS=0
-  AggregatePackages has ROW=87, QUANTITY=2
+Specifically: the existing tests assert `TOTAL INV` from the `invSys` table after `RefreshInventoryReadModelForWorkbook`. The user-visible bug is in `PendingBoxVersionInventoryOverlayText` and `BoxMakerFormLoadShippableVersionInventory` — a completely different code path that runs **after** `Shipments Sent` reloads the shippables list.
 
-Action:
-  Call BtnToShipments (or BuildShipmentDeltaPacket directly)
+***
 
-Expected:
-  Returns/shows error "ROW 87 requires 2 but only 1 in TOTAL INV"
-  invSys.SHIPMENTS unchanged (still 0)
-```
+## What the Tests Need to Do Instead
 
-**Test 1.3 — `Boxes Made` with insufficient component inventory must fail cleanly**
+### For Problem 1 (Hanging Tests) — Three viable approaches:
 
-```text
-Setup:
-  invSys ROW 10 (kraft paper) has: TOTAL INV=3, USED=0
-  AggregateBoxBOM requires ROW=10, QUANTITY=5
+**Option A: Extract pure module functions (the right fix long-term)**
 
-Action:
-  Call ValidateComponentInventory (or BtnBoxesMade path)
-
-Expected:
-  Returns/shows "ROW 10 requires 5 but only 3 available"
-  invSys.USED unchanged (still 0)
-```
-
-**Test 1.4 — `Confirm Inventory` with Use Existing Inventory checked must warn and exit**
-
-```text
-Setup:
-  CHK_USE_EXISTING checkbox is checked (Value=1)
-
-Action:
-  Call BtnConfirmInventory
-
-Expected:
-  Shows "Use existing inventory is enabled. Skip Confirm inventory..."
-  No staging changes applied
-```
-
-**Test 1.5 — Math: `Boxes Made` component deduction must equal BOM qty × package qty**
+Refactor the Shipping add-in so `ShipmentsFormCommitLine` and `ShipmentsFormRefreshRuntimeInventory` are thin wrappers that call explicit, testable module functions:
 
 ```vba
-' This is the critical math guard.
-' Box T25 BOM: kraft paper ROW=10 qty=2, tape ROW=11 qty=1
-' ShipmentsTally: T25 qty=3
-' Expected AggregateBoxBOM: ROW=10 qty=6, ROW=11 qty=3
-'
-' Assert:
-'   AggregateBoxBOM.ROW(10).QUANTITY = 6   (2 per box × 3 boxes)
-'   AggregateBoxBOM.ROW(11).QUANTITY = 3   (1 per box × 3 boxes)
-'
-' If these are wrong, BOM expansion (BuildBomSummary) is broken.
+' In modShipmentsTallyActions.bas (new pure module, no ActiveWorkbook)
+Public Function CommitShipmentLine(ByVal wbOperator As Workbook, _
+                                   ByVal wbInbox As Workbook, _
+                                   ByVal userId As String, _
+                                   ... ) As Boolean
 ```
 
-This test can be run as a worksheet validation: hydrate `ShipmentsTally` with one T25 row qty=3, run `RebuildShippingAggregates`, read `AggregateBoxBOM`, assert.
+Tests then call `modShipmentsTallyActions.CommitShipmentLine(wbOps, wbInbox, ...)` directly — **no `Application.Run`, no add-in boundary crossing, no ActiveWorkbook dependency**. This is the same pattern every other passing test in Phase 6 uses.
+
+**Option B: Add a harness timeout + cleanup guard (immediate mitigation)**
+
+Before the hung-test can be removed from the harness entirely, add a PowerShell watchdog around `Application.Run` calls into Shipping:
+
+```powershell
+$job = Start-Job { Application.Run "invSys.Shipping.xlam!ShipmentsFormCommitLine" }
+if (-not ($job | Wait-Job -Timeout 15)) {
+    $job | Stop-Job
+    Get-Process EXCEL | Stop-Process -Force
+    Write-Error "TIMEOUT: ShipmentsFormCommitLine hung"
+}
+```
+
+This at least prevents the XLAM file-lock cascade. But it does not make the test pass — it just fails cleanly.
+
+**Option C: Replace `Application.Run` with direct module calls in a test-mode XLAM build**
+
+Add a compile flag (`#Const TESTMODE = True`) to the Shipping add-in that disables form-show calls and MsgBoxes. Tests invoke the XLAM with the test flag set. This is the standard VBA integration-test pattern when pure extraction isn't feasible yet.
 
 ***
 
-### Test Group 2 — Transaction State Guards (Classes A, B, C)
+### For Problem 2 (Dirty Transaction) — Exact test structure needed:
 
-These require the `LINE_ID` and local state ledger that the problem report recommends building. Write these as the spec before or alongside the implementation.
+The new tests must call the **same reload path the form uses**, not `RefreshInventoryReadModelForWorkbook`. Based on the suspected code areas in the report:
 
-**Test 2.1 — `TestShippingForm_SentRowsDoNotResurrectAcrossUnsavedWorkbookReopen`** *(exact name from problem report)*
+```vba
+Public Function TestShipmentsSent_NeverIncreasesVisibleProjectedInventory() As Long
+    ' 1. Create operator workbook with ShippingBOMView, ShipmentsTally, invSys
+    '    Seed multi-row state:
+    '      T26 v1: NAS=8, Projected=7, Locked=1
+    '      T27 v1: NAS=10, Projected=9, Locked=1
+    '      T27 v2: NAS=20, Projected=19, Locked=1
 
-```text
-Steps:
-  1. Open fresh unsaved workbook
-  2. Open Shipping form
-  3. Add order: Ref=TXN-001, Box=T25, Version=v1, Qty=2
-  4. Move To Shipments → verify active list row has Area=Shipments
-  5. Click Shipments Sent → capture EventID
-  6. Assert active list does NOT contain TXN-001
-  7. Assert LINE_ID of TXN-001 is in sent tombstone file
-  8. Close form and workbook without saving
-  9. Fully close Excel
- 10. Reopen Excel, open Shipping form
- 11. Assert TXN-001 is NOT in active Shipments listbox
- 12. Assert TXN-001 is NOT in Not Shipped listbox
- 13. Assert T25 v1 TOTAL INV or SHIPMENTS column is deducted by 2
+    ' 2. Snapshot the BEFORE state from the visible shippables list:
+    '    Call BoxMakerFormLoadShippableVersionInventory(wbOps)
+    '    or BuildActiveShippingReservationTotalsFromTable(...)
+    '    Capture: NasInvBefore, ProjectedInvBefore per (Box, Version)
 
-Guards against:
-  - Row resurrection (Class A)
-  - Tombstone-by-value false negative (Class A)
-  - Missing LINE_ID allowing match bypass (Class A)
+    ' 3. Run the same path as the form's Shipments Sent button:
+    '    modShipmentsForm.RunShipmentsSentRows wbOps, wbInbox, ...
+    '    (not Application.Run — this is the pure module call)
+
+    ' 4. Reload the visible shippables list using the EXACT form reload path:
+    '    Call ShipmentsFormLoadNasReservationTotals(wbOps)
+    '    or frmShipmentsTally.RefreshProjectedShippableInventory equivalent
+
+    ' 5. Assert monotonic non-increase for every visible row:
+    For Each row In visibleShippables
+        If row.NasInvAfter > row.NasInvBefore Then FAIL "NAS increased for " & row.BoxVersion
+        If row.ProjectedInvAfter > row.ProjectedInvBefore Then FAIL "Projected increased for " & row.BoxVersion
+    Next row
+
+    TestShipmentsSent_NeverIncreasesVisibleProjectedInventory = 1
+End Function
 ```
 
-**Test 2.2 — Reconcile must not reactivate a tombstoned row**
+The critical detail: **step 4 must call `ShipmentsFormLoadNasReservationTotals` / `ApplyShipmentsSentVersionInventoryOverlay` or whatever the form's actual reload function is** — not `RefreshInventoryReadModelForWorkbook`. The existing tests use the wrong reload path, so they pass even when the real form reload produces the dirty result.
 
-```text
-Setup:
-  Local active cache contains one row with LINE_ID=abc123, Area=Shipments
-  Tombstone file contains LINE_ID=abc123
-
-Action:
-  Call LoadPersistentActiveShipmentRowsLocal (or ShipmentsFormLoadLines)
-
-Expected:
-  Zero rows loaded into active list
-  LINE_ID abc123 was filtered by tombstone check
-
-Guards against: Class A and Class C
-```
-
-**Test 2.3 — Double-send of same order must be impossible**
-
-```text
-Setup:
-  Order TXN-002, LINE_ID=def456 is sent successfully
-  Tombstone file has def456
-  invSys.SHIPMENTS for ROW=87 was decremented to 0
-
-Action:
-  Force-load active cache back with same LINE_ID=def456
-  Attempt to call Shipments Sent
-
-Expected:
-  Either:
-    (a) Row is filtered before send attempt → "No staged shipments found"
-    OR
-    (b) Validation fails → "ROW 87 only has 0 staged but needs 2"
-  Either outcome is acceptable. Both prevent double-deduction.
-  invSys.SHIPMENTS must not go negative.
-
-Guards against: Class C
-```
-
-**Test 2.4 — SHIPMENTS staging and active cache must agree**
-
-```text
-Setup:
-  Active cache has ROW=87, Area=Shipments, Qty=2
-  invSys.SHIPMENTS for ROW=87 = 0 (drift / stale)
-
-Action:
-  Call ReconcileShipmentStagingFromShipmentLines (if it exists)
-  OR call BuildQueueableShipmentsSentDeltas
-
-Expected (strict contract):
-  If the row has no tombstone (i.e., it is a legitimate pending order):
-    invSys.SHIPMENTS for ROW=87 must be rebuilt to 2 before send proceeds
-  If the row IS tombstoned:
-    Row must be excluded from reconciliation
-    invSys.SHIPMENTS must remain 0
-
-Guards against: Class B and Class C (the dangerous reconcile path)
-```
+The stale-snapshot overwrite test follows the same pattern but seeds a stale `NAS Inv` that is higher than the projected deduction, then asserts that after `Shipments Sent` + form reload, `Projected Inv` does not move back up to the stale NAS value.
 
 ***
 
-### Test Group 3 — Column/Schema Guards
+## Summary
 
-These can run as part of the existing Phase 6 validation.
+The tests don't catch the bugs because:
 
-**Test 3.1 — `BtnShipmentsSent` must fail if invSys lacks SHIPMENTS column**
+1. **Hanging tests** cross the `Application.Run` / add-in boundary into form-backed procedures that depend on `ActiveWorkbook` and can open modal dialogs — behaviors that block the harness forever. The fix is to extract pure module functions that accept explicit workbook arguments, matching the pattern every passing test already uses.
 
-```text
-Setup: invSys has no SHIPMENTS column
-
-Expected: Returns "invSys table missing SHIPMENTS/ROW columns."
-```
-
-**Test 3.2 — `BtnBoxesMade` must fail if AggregateBoxBOM has no ROW column**
-
-```text
-Expected: "AggregateBoxBOM missing QUANTITY/ROW columns." or similar early exit
-```
-
-**Test 3.3 — `BuildShipmentDeltaPacket` returns Nothing if AggPack is empty**
-
-```text
-Setup: AggregatePackages has no DataBodyRange
-
-Expected: Returns Nothing, errNotes = ""  (the "no shipments required" path)
-```
-
-***
-
-## Implementation Order
-
-Given that `LINE_ID` doesn't exist in the repo yet, the suggested build-then-test order is:
-
-1. **Add `LINE_ID` column to the active cache TSV schema** — generate it on row creation, persist on every write.
-2. **Write Test 2.1 as a manual checklist** (automated later) — run it against current code to confirm resurrection.
-3. **Implement tombstone by `LINE_ID`** — filter in `LoadPersistentActiveShipmentRowsLocal`.
-4. **Re-run Test 2.1** — should now pass.
-5. **Add Tests 1.1–1.5 as automated Phase 6 entries** — these test the already-committed `modTS_Shipments.bas` math and validation guards and can be added to `run_phase6_excel_validation.ps1` immediately. 
-6. **Add Tests 2.2–2.4** once the state ledger is implemented.
-
-The Phase 6 tests that already pass (PASSED=21) don't cover any of the seven failure scenarios listed in the problem report, so all six of the above groups would be net-new coverage. 
+2. **Dirty transaction tests** call `RefreshInventoryReadModelForWorkbook` for their reload assertion, but the real bug lives in the form's shippables-list reload path (`ShipmentsFormLoadNasReservationTotals`, `ApplyShipmentsSentVersionInventoryOverlay`, `PendingBoxVersionInventoryOverlayText`). Tests that skip those functions will always pass even when the user-visible form shows inventory increasing.

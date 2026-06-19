@@ -12,6 +12,7 @@ Private Const ROLE_EVENT_TYPE_RECEIVE As String = "RECEIVE"
 Private Const ROLE_EVENT_TYPE_SHIP As String = "SHIP"
 Private Const ROLE_EVENT_TYPE_SHIP_RESERVE As String = "SHIP_RESERVE"
 Private Const ROLE_EVENT_TYPE_SHIP_RELEASE As String = "SHIP_RELEASE"
+Private Const ROLE_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE As String = "ADMIN_SHIPMENT_RECONCILE"
 Private Const ROLE_EVENT_TYPE_BOX_BUILD As String = "BOX_BUILD"
 Private Const ROLE_EVENT_TYPE_BOX_UNBOX As String = "BOX_UNBOX"
 Private Const ROLE_EVENT_TYPE_PROD_CONSUME As String = "PROD_CONSUME"
@@ -399,7 +400,7 @@ Public Function DescribeInboxPendingRows(ByVal eventType As String, _
                 errorMessage = report
                 GoTo CleanExit
             End If
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 GoTo CleanExit
@@ -718,7 +719,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
                 GoTo CleanExit
             End If
             Set lo = FindListObjectByNameRole(wbInbox, TABLE_INBOX_RECEIVE)
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, report) Then
                 errorMessage = report
                 GoTo CleanExit
@@ -817,6 +818,78 @@ CleanExit:
 FailSync:
     report = "Local staging sync failed: " & Err.Description
     Resume CleanExit
+End Function
+
+Public Function DescribeLocalStagedInboxRows(Optional ByVal eventTypesCsv As String = "", _
+                                             Optional ByVal warehouseId As String = "", _
+                                             Optional ByVal stationId As String = "", _
+                                             Optional ByRef stagedRowCount As Long = 0, _
+                                             Optional ByRef matchingRowCount As Long = 0, _
+                                             Optional ByRef errorMessage As String = "") As String
+    On Error GoTo FailDescribe
+
+    Dim files As Collection
+    Dim filePath As Variant
+    Dim rows As Collection
+    Dim rowValues As Variant
+    Dim rowDict As Object
+    Dim eventType As String
+    Dim fileCount As Long
+    Dim sampleIds As String
+    Dim oldestCreated As String
+    Dim newestCreated As String
+    Dim createdVal As Variant
+    Dim rowReport As String
+    Dim searchRoot As String
+
+    stagedRowCount = 0
+    matchingRowCount = 0
+    searchRoot = LocalStagingSearchRootRole(warehouseId, stationId)
+
+    Set files = New Collection
+    CollectLocalStagingFilesRole searchRoot, files
+    For Each filePath In files
+        fileCount = fileCount + 1
+        rowReport = vbNullString
+        Set rows = ReadStagedInboxRowsRole(CStr(filePath), rowReport)
+        If rows Is Nothing Then
+            If errorMessage <> "" Then errorMessage = errorMessage & "; "
+            errorMessage = errorMessage & rowReport
+            GoTo NextFile
+        End If
+        For Each rowValues In rows
+            Set rowDict = rowValues
+            stagedRowCount = stagedRowCount + 1
+            eventType = UCase$(Trim$(CStr(rowDict("EventType"))))
+            If EventTypeListedRole(eventType, eventTypesCsv) Then
+                matchingRowCount = matchingRowCount + 1
+                createdVal = vbNullString
+                If rowDict.Exists("CreatedAtUTC") Then createdVal = rowDict("CreatedAtUTC")
+                If IsDate(createdVal) Then
+                    If oldestCreated = "" Then oldestCreated = Format$(CDate(createdVal), "yyyy-mm-dd hh:nn:ss")
+                    newestCreated = Format$(CDate(createdVal), "yyyy-mm-dd hh:nn:ss")
+                End If
+                If sampleIds = "" Then
+                    sampleIds = CStr(rowDict("EventID"))
+                ElseIf matchingRowCount <= 3 Then
+                    sampleIds = sampleIds & "," & CStr(rowDict("EventID"))
+                End If
+            End If
+        Next rowValues
+NextFile:
+    Next filePath
+
+    DescribeLocalStagedInboxRows = "Path=" & searchRoot & _
+        "; Files=" & CStr(fileCount) & _
+        "; StagedRows=" & CStr(stagedRowCount) & _
+        "; MatchingRows=" & CStr(matchingRowCount) & _
+        "; OldestCreatedAt=" & oldestCreated & _
+        "; NewestCreatedAt=" & newestCreated & _
+        "; SampleEventIds=" & sampleIds
+    Exit Function
+
+FailDescribe:
+    errorMessage = "Local staging describe failed: " & Err.Description
 End Function
 
 Public Function GetLocalStagedBoxInventoryDeltas(Optional ByVal warehouseId As String = "", _
@@ -953,7 +1026,7 @@ End Function
 
 Private Function ShouldStageEventLocallyRole(ByVal eventType As String) As Boolean
     Select Case UCase$(Trim$(eventType))
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             ShouldStageEventLocallyRole = True
     End Select
 End Function
@@ -1095,7 +1168,7 @@ Private Function MergeRowsIntoNasInboxRole(ByVal rows As Collection, _
                 report = schemaReport
                 GoTo CleanExit
             End If
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             If Not modProcessor.EnsureShipInboxSchema(wbInbox, schemaReport) Then
                 report = schemaReport
                 GoTo CleanExit
@@ -1913,6 +1986,24 @@ End Function
 
 Private Function ResolveInboxDirectoryRole(ByVal warehouseId As String, ByVal stationId As String) As String
     Dim rawPath As String
+    Dim overrideRoot As String
+    Dim target As WarehouseTarget
+
+    overrideRoot = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    If overrideRoot <> "" Then
+        ResolveInboxDirectoryRole = modConfig.NormalizeFolderPathForRuntime(overrideRoot, False)
+        Exit Function
+    End If
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        If StrComp(Trim$(target.WarehouseId), Trim$(warehouseId), vbTextCompare) = 0 _
+           And (Trim$(stationId) = "" Or Trim$(target.StationId) = "" Or StrComp(Trim$(target.StationId), Trim$(stationId), vbTextCompare) = 0) _
+           And Trim$(target.RuntimeRoot) <> "" Then
+            ResolveInboxDirectoryRole = modConfig.NormalizeFolderPathForRuntime(Trim$(target.RuntimeRoot), False)
+            Exit Function
+        End If
+    End If
 
     rawPath = Trim$(modConfig.GetString("PathInboxRoot", ""))
     rawPath = ExpandConfigPathRole(rawPath, warehouseId, stationId)
@@ -1942,7 +2033,7 @@ Private Function InboxWorkbookNameRole(ByVal eventType As String, ByVal stationI
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             InboxWorkbookNameRole = "invSys.Inbox.Receiving." & stationId & ".xlsb"
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             InboxWorkbookNameRole = "invSys.Inbox.Shipping." & stationId & ".xlsb"
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             InboxWorkbookNameRole = "invSys.Inbox.Production." & stationId & ".xlsb"
@@ -1953,7 +2044,7 @@ Private Function InboxTableNameRole(ByVal eventType As String) As String
     Select Case UCase$(Trim$(eventType))
         Case ROLE_EVENT_TYPE_RECEIVE
             InboxTableNameRole = TABLE_INBOX_RECEIVE
-        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
+        Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             InboxTableNameRole = TABLE_INBOX_SHIP
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE, ROLE_EVENT_TYPE_MIGRATION_SEED
             InboxTableNameRole = TABLE_INBOX_PROD
@@ -1966,6 +2057,8 @@ Private Function CapabilityForEventTypeRole(ByVal eventType As String) As String
             CapabilityForEventTypeRole = "RECEIVE_POST"
         Case ROLE_EVENT_TYPE_SHIP, ROLE_EVENT_TYPE_SHIP_RESERVE, ROLE_EVENT_TYPE_SHIP_RELEASE, ROLE_EVENT_TYPE_BOX_BUILD, ROLE_EVENT_TYPE_BOX_UNBOX
             CapabilityForEventTypeRole = "SHIP_POST"
+        Case ROLE_EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE
+            CapabilityForEventTypeRole = "ADMIN_MAINT"
         Case ROLE_EVENT_TYPE_PROD_CONSUME, ROLE_EVENT_TYPE_PROD_COMPLETE
             CapabilityForEventTypeRole = "PROD_POST"
         Case ROLE_EVENT_TYPE_MIGRATION_SEED
@@ -2231,6 +2324,21 @@ Private Function EventIdListedRole(ByVal eventId As String, ByVal eventIdsCsv As
 
     normalizedIds = "," & eventIdsCsv & ","
     EventIdListedRole = (InStr(1, normalizedIds, "," & eventId & ",", vbTextCompare) > 0)
+End Function
+
+Private Function EventTypeListedRole(ByVal eventType As String, ByVal eventTypesCsv As String) As Boolean
+    Dim normalizedTypes As String
+
+    eventType = UCase$(Trim$(eventType))
+    eventTypesCsv = UCase$(Replace$(Trim$(eventTypesCsv), " ", ""))
+    If eventType = "" Then Exit Function
+    If eventTypesCsv = "" Then
+        EventTypeListedRole = True
+        Exit Function
+    End If
+
+    normalizedTypes = "," & eventTypesCsv & ","
+    EventTypeListedRole = (InStr(1, normalizedTypes, "," & eventType & ",", vbTextCompare) > 0)
 End Function
 
 Private Function DictionaryToJson(ByVal d As Object) As String
