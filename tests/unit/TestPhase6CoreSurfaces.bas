@@ -4503,6 +4503,70 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingAdd_UsesDisplayedProjectedInventoryWhenTotalInvIsStaleZero() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim resultText As String
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 89, "SKU-T28-STALE", "T28", "EA", "CLEARVIEW", 0
+    AddShippingBomViewRow loBomView, 89, "T28", 900, "T28 component", 7, "EA"
+    AddShippingBomViewRow loBomView, 89, "T28", 900, "T28 component", 7, "EA"
+    SetOptionalTableCell loBomView, 2, "BomVersionLabel", "v2"
+    AddShippingTallyRow loShip, "31", "T28", 1, 89, "ea", "CLEARVIEW", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+
+    wbOps.Activate
+    resultText = RunShippingProjectedAvailabilityOverrideForTest(1, 89, "v1", 20)
+    If StrComp(resultText, "OK", vbTextCompare) <> 0 Then
+        failureReason = "Shipping Add rejected visible Projected Inv when invSys TOTAL INV was stale zero. Report: " & resultText
+        GoTo CleanExit
+    End If
+    If InStr(1, resultText, "only 0", vbTextCompare) > 0 _
+       Or InStr(1, resultText, "TOTAL INV", vbTextCompare) > 0 Then
+        failureReason = "Shipping Add still reported the stale TOTAL INV shortage. Report: " & resultText
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(GetTableValue(loShip, 1, "ITEMS"))) <> "T28" _
+       Or CDbl(GetTableValue(loShip, 1, "QUANTITY")) <> 1 Then
+        failureReason = "Shipping Add did not keep the visible T28 order row. Result: " & resultText
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 19 Then
+        failureReason = "Local projected TOTAL INV was not repaired from displayed availability before locking; expected 19 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 1 Then
+        failureReason = "Local SHIPMENTS lock did not increase to 1."
+        GoTo CleanExit
+    End If
+
+    TestShippingAdd_UsesDisplayedProjectedInventoryWhenTotalInvIsStaleZero = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7151, "TestShippingAdd_UsesDisplayedProjectedInventoryWhenTotalInvIsStaleZero", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingRemove_LockedRowReleasesInventory() As Long
     Dim report As String
     Dim failureReason As String
@@ -7846,6 +7910,20 @@ Private Function RunShippingCommitLineForTest(ByVal targetName As String, _
                                                              report, _
                                                              displayedAvailableQty))
     End If
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingProjectedAvailabilityOverrideForTest(ByVal tableRowIndex As Long, _
+                                                                 ByVal rowValue As Long, _
+                                                                 ByVal versionLabel As String, _
+                                                                 ByVal displayedAvailableQty As Variant) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ValidateShippingAddProjectedAvailabilityOverrideForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingProjectedAvailabilityOverrideForTest = CStr(Application.Run(macroName, tableRowIndex, rowValue, versionLabel, displayedAvailableQty))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

@@ -6205,6 +6205,54 @@ Public Function ValidateShipmentCommitInputsReportForTest(ByVal targetName As St
     End If
 End Function
 
+Public Function ValidateShippingAddProjectedAvailabilityOverrideForTest(ByVal tableRowIndex As Long, _
+                                                                        ByVal rowValue As Long, _
+                                                                        ByVal versionLabel As String, _
+                                                                        ByVal displayedAvailableQty As Variant) As String
+    On Error GoTo FailSoft
+
+    Dim ws As Worksheet
+    Dim loShip As ListObject
+    Dim invLo As ListObject
+    Dim rowIndexes As Variant
+    Dim overrides As Object
+    Dim deltas As Collection
+    Dim errNotes As String
+    Dim lockedTotal As Double
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then
+        ValidateShippingAddProjectedAvailabilityOverrideForTest = "ShipmentsTally sheet not found."
+        Exit Function
+    End If
+    Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
+    Set invLo = GetWritableShippingInvSysTable(ws, errNotes)
+    If loShip Is Nothing Or invLo Is Nothing Then
+        If errNotes = "" Then errNotes = "Shipping tables not found."
+        ValidateShippingAddProjectedAvailabilityOverrideForTest = errNotes
+        Exit Function
+    End If
+
+    rowIndexes = Array(tableRowIndex)
+    Set overrides = ShippingVersionAvailabilityOverride(rowValue, versionLabel, displayedAvailableQty)
+    Set deltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, rowIndexes, "Warehouse", errNotes, overrides)
+    If deltas Is Nothing Then
+        ValidateShippingAddProjectedAvailabilityOverrideForTest = errNotes
+        Exit Function
+    End If
+    lockedTotal = ApplyShipmentDeltasLocal(invLo, deltas, errNotes)
+    If lockedTotal < 0 Then
+        ValidateShippingAddProjectedAvailabilityOverrideForTest = errNotes
+        Exit Function
+    End If
+
+    ValidateShippingAddProjectedAvailabilityOverrideForTest = "OK"
+    Exit Function
+
+FailSoft:
+    ValidateShippingAddProjectedAvailabilityOverrideForTest = Err.Description
+End Function
+
 Private Function ValidateShipmentCommitInputs(ByVal actionName As String, _
                                               ByVal isHold As Boolean, _
                                               ByVal itemName As String, _
@@ -6513,6 +6561,7 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     Dim requireAreaMatch As Boolean
     Dim useShipmentStaging As Boolean
     Dim allowMissingShipmentStaging As Boolean
+    Dim projectedOverrideQty As Double
 
     errNotes = ""
     If invLo Is Nothing Then
@@ -6626,12 +6675,15 @@ NextSelectedRow:
     For Each key In requirements.Keys
         Dim rowKeyValue As Long: rowKeyValue = ShipmentRequirementRowValue(CStr(key))
         Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowKeyValue)
+        projectedOverrideQty = 0#
         If invRow Is Nothing Then
             AppendNote errNotes, "Package ROW " & CStr(rowKeyValue) & " not found in invSys."
             Exit Function
         End If
         If colTotalInv > 0 Then
             Dim availableQty As Double: availableQty = NzDbl(invRow.Range.Cells(1, colTotalInv).Value)
+            projectedOverrideQty = ShipmentRowProjectedAvailabilityOverrideQty(rowKeyValue, versionAvailabilityOverrides)
+            If projectedOverrideQty > availableQty Then availableQty = projectedOverrideQty
             If NzDbl(requirements(key)) > availableQty + 0.0000001 Then
                 AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " requires " & Format$(NzDbl(requirements(key)), "0.###") & " but only " & Format$(availableQty, "0.###") & " in TOTAL INV."
                 Exit Function
@@ -6647,6 +6699,7 @@ NextSelectedRow:
         Dim delta As Object: Set delta = CreateObject("Scripting.Dictionary")
         delta("ROW") = rowKeyValue
         delta("QTY") = NzDbl(requirements(key))
+        If projectedOverrideQty > 0.0000001 Then delta("AVAILABLE_OVERRIDE") = projectedOverrideQty
         versionLabel = ShipmentRequirementVersionLabel(CStr(key))
         If versionLabel <> "" Then delta("VERSION") = versionLabel
         If colItemCode > 0 Then delta("ITEM_CODE") = NzStr(invRow.Range.Cells(1, colItemCode).Value)
@@ -6659,6 +6712,23 @@ NextSelectedRow:
     Next key
 
     Set BuildSelectedShipmentRowsDeltas = result
+End Function
+
+Private Function ShipmentRowProjectedAvailabilityOverrideQty(ByVal rowVal As Long, _
+                                                             Optional ByVal versionAvailabilityOverrides As Object) As Double
+    Dim key As Variant
+    Dim parts As Variant
+
+    If rowVal <= 0 Then Exit Function
+    If versionAvailabilityOverrides Is Nothing Then Exit Function
+    For Each key In versionAvailabilityOverrides.Keys
+        parts = Split(CStr(key), "|")
+        If UBound(parts) >= 0 Then
+            If CLng(Val(CStr(parts(0)))) = rowVal Then
+                ShipmentRowProjectedAvailabilityOverrideQty = ShipmentRowProjectedAvailabilityOverrideQty + NzDbl(versionAvailabilityOverrides(key))
+            End If
+        End If
+    Next key
 End Function
 
 Private Function ShipmentRequirementRowValue(ByVal requirementKey As String) As Long
@@ -16213,6 +16283,9 @@ Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collect
 
         Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
         Dim currentTotal As Double: currentTotal = NzDbl(totalCell.Value)
+        If delta.Exists("AVAILABLE_OVERRIDE") Then
+            If NzDbl(delta("AVAILABLE_OVERRIDE")) > currentTotal Then currentTotal = NzDbl(delta("AVAILABLE_OVERRIDE"))
+        End If
         If qtyVal > currentTotal + 0.0000001 Then
             AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(currentTotal, "0.###") & " in TOTAL INV but needs " & Format$(qtyVal, "0.###") & "."
             ApplyShipmentDeltasLocal = -1
@@ -16230,7 +16303,11 @@ NextValidate:
         If invRow Is Nothing Then GoTo NextApply
         Set totalCell = invRow.Range.Cells(1, colTotal)
         Dim shipCell As Range: Set shipCell = invRow.Range.Cells(1, colShip)
-        totalCell.Value = NzDbl(totalCell.Value) - qtyVal
+        currentTotal = NzDbl(totalCell.Value)
+        If delta.Exists("AVAILABLE_OVERRIDE") Then
+            If NzDbl(delta("AVAILABLE_OVERRIDE")) > currentTotal Then currentTotal = NzDbl(delta("AVAILABLE_OVERRIDE"))
+        End If
+        totalCell.Value = currentTotal - qtyVal
         shipCell.Value = NzDbl(shipCell.Value) + qtyVal
         If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
         If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
