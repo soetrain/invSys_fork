@@ -571,6 +571,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv",
         "TestPhase6CoreSurfaces.TestShippingSentRows_ReservedRowClearsLockedReservationTotal",
         "TestPhase6CoreSurfaces.TestShippingSentRows_DoesNotIncreaseProjectedInventoryOverlay",
+        "TestPhase6CoreSurfaces.TestShippingSentRows_ReservedCompletionKeepsProjectedDeductionWhenNasStale",
         "TestPhase6CoreSurfaces.TestShippingSentRows_FullRunNeverIncreasesProjectedInventory",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatchesUp",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_LocalCatchupDoesNotClearBeforeNas",

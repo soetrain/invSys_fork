@@ -4961,6 +4961,35 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingSentRows_ReservedCompletionKeepsProjectedDeductionWhenNasStale() As Long
+    Dim failureReason As String
+    Dim projectedQty As Double
+
+    On Error GoTo CleanFail
+    projectedQty = RunShippingSentProjectedOverlayQtyForTest(19, 19, 1, True)
+    If projectedQty <> 19 Then
+        failureReason = "Reserved Shipments Sent double-subtracted an already-projected shipment; expected 19 but found " & CStr(projectedQty) & "."
+        GoTo CleanExit
+    End If
+    projectedQty = RunShippingSentProjectedOverlayQtyForTest(19, 19, 1, False)
+    If projectedQty <> 18 Then
+        failureReason = "Unprojected Shipments Sent did not deduct once; expected 18 but found " & CStr(projectedQty) & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingSentRows_ReservedCompletionKeepsProjectedDeductionWhenNasStale = 1
+
+CleanExit:
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7152, "TestShippingSentRows_ReservedCompletionKeepsProjectedDeductionWhenNasStale", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() As Long
     Dim rootPath As String
     Dim currentUser As String
@@ -7924,6 +7953,20 @@ Private Function RunShippingProjectedAvailabilityOverrideForTest(ByVal tableRowI
     macroName = ShippingMacroNameForTest("ValidateShippingAddProjectedAvailabilityOverrideForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingProjectedAvailabilityOverrideForTest = CStr(Application.Run(macroName, tableRowIndex, rowValue, versionLabel, displayedAvailableQty))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingSentProjectedOverlayQtyForTest(ByVal backendQty As Double, _
+                                                           ByVal existingProjectedQty As Double, _
+                                                           ByVal shippedQty As Double, _
+                                                           Optional ByVal hasExistingOverlay As Boolean = False) As Double
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsSentProjectedOverlayQtyForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingSentProjectedOverlayQtyForTest = CDbl(Application.Run(macroName, backendQty, existingProjectedQty, shippedQty, hasExistingOverlay))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

@@ -4660,8 +4660,8 @@ Public Function PendingBoxVersionInventoryOverlayText(ByVal packageRow As Long, 
 End Function
 
 Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long, _
-                                                       ByVal versionLabel As String, _
-                                                       ByVal backendValue As Variant) As Variant
+                                                        ByVal versionLabel As String, _
+                                                        ByVal backendValue As Variant) As Variant
     Dim key As String
     Dim pendingQty As Double
     Dim backendQty As Double
@@ -4692,6 +4692,17 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
         End If
     End If
     PendingBoxVersionInventoryOverlayValue = pendingQty
+End Function
+
+Private Function PendingBoxVersionInventoryOverlayExists(ByVal packageRow As Long, _
+                                                         ByVal versionLabel As String) As Boolean
+    Dim key As String
+
+    EnsurePendingBoxVersionInventoryOverlayLoaded
+    If mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Function
+    key = PendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If key = "" Then Exit Function
+    PendingBoxVersionInventoryOverlayExists = mPendingBoxVersionInventoryOverlay.Exists(key)
 End Function
 
 Private Sub EnsurePendingBoxVersionInventoryOverlayLoaded()
@@ -5541,6 +5552,25 @@ Public Function ShipmentsProjectedDisplayQtyForTest(ByVal nasQty As Double, _
     Else
         ShipmentsProjectedDisplayQtyForTest = ShipmentsProjectedDisplayQty(nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty)
     End If
+End Function
+
+Public Function ShipmentsSentProjectedOverlayQtyForTest(ByVal backendQty As Double, _
+                                                        ByVal existingProjectedQty As Double, _
+                                                        ByVal shippedQty As Double, _
+                                                        Optional ByVal hasExistingOverlay As Boolean = False) As Double
+    ShipmentsSentProjectedOverlayQtyForTest = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, shippedQty, hasExistingOverlay)
+End Function
+
+Private Function ShipmentsSentProjectedOverlayQty(ByVal backendQty As Double, _
+                                                  ByVal existingProjectedQty As Double, _
+                                                  ByVal shippedQty As Double, _
+                                                  Optional ByVal hasExistingOverlay As Boolean = False) As Double
+    Dim projectedQty As Double
+
+    projectedQty = backendQty - shippedQty
+    If projectedQty < 0 Then projectedQty = 0
+    If hasExistingOverlay And existingProjectedQty <= backendQty Then projectedQty = existingProjectedQty
+    ShipmentsSentProjectedOverlayQty = projectedQty
 End Function
 
 Public Function ShipmentsFormRefreshRuntimeInventory(ByRef report As String) As Boolean
@@ -7754,6 +7784,7 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
     Dim backendQty As Double
     Dim existingProjectedQty As Double
     Dim projectedQty As Double
+    Dim hasExistingOverlay As Boolean
 
     If loShip Is Nothing Then Exit Sub
     If loShip.DataBodyRange Is Nothing Then Exit Sub
@@ -7774,12 +7805,11 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
         If rowVal <= 0 Or qtyVal <= 0 Or versionLabel = "" Then GoTo NextRow
 
         backendText = ShipmentVersionInventoryBackendText(invLo, rowVal, itemName, versionLabel)
+        hasExistingOverlay = PendingBoxVersionInventoryOverlayExists(rowVal, versionLabel)
         projectedText = PendingBoxVersionInventoryOverlayText(rowVal, versionLabel, backendText)
         backendQty = NzDbl(backendText)
         existingProjectedQty = NzDbl(projectedText)
-        projectedQty = backendQty - qtyVal
-        If projectedQty < 0 Then projectedQty = 0
-        If existingProjectedQty < backendQty Then projectedQty = existingProjectedQty
+        projectedQty = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, qtyVal, hasExistingOverlay)
         RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, projectedQty, backendQty
 NextRow:
     Next i
@@ -7793,12 +7823,6 @@ Private Function ShipmentVersionInventoryBackendText(ByVal invLo As ListObject, 
     Dim invIdx As Long
     Dim totalVal As Variant
 
-    qtyVal = PickerVersionAvailableQty(rowVal, itemName, versionLabel)
-    If qtyVal > 0.0000001 Then
-        ShipmentVersionInventoryBackendText = CStr(qtyVal)
-        Exit Function
-    End If
-
     If CountActiveVersionsForPackageShipping(rowVal) <= 1 Then
         If Not invLo Is Nothing Then
             invIdx = FindInvRowIndexByRow(invLo, rowVal)
@@ -7811,6 +7835,12 @@ Private Function ShipmentVersionInventoryBackendText(ByVal invLo As ListObject, 
                 End If
             End If
         End If
+    End If
+
+    qtyVal = PickerVersionAvailableQty(rowVal, itemName, versionLabel)
+    If qtyVal > 0.0000001 Then
+        ShipmentVersionInventoryBackendText = CStr(qtyVal)
+        Exit Function
     End If
 
     qtyVal = SingleVersionFallbackAvailableQty(invLo, rowVal, itemName, versionLabel)
