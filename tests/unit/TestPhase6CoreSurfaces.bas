@@ -4443,6 +4443,66 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingAdd_UsesDisplayedProjectedInventoryWhenVersionLedgerIsEmpty() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 89, "SKU-T28", "T28", "EA", "CLEARVIEW", 20
+    AddShippingBomViewRow loBomView, 89, "T28", 900, "T28 component", 7, "EA"
+    AddShippingBomViewRow loBomView, 89, "T28", 900, "T28 component", 7, "EA"
+    SetOptionalTableCell loBomView, 2, "BomVersionLabel", "v2"
+
+    wbOps.Activate
+    ok = RunShippingCommitLineForTest("SHIP", _
+                                      "ADD", _
+                                      0, _
+                                      "30", _
+                                      "T28", _
+                                      2, _
+                                      89, _
+                                      "ea", _
+                                      "CLEARVIEW", _
+                                      "v1", _
+                                      "UPS", _
+                                      report)
+    If InStr(1, report, "requires 2", vbTextCompare) > 0 _
+       Or InStr(1, report, "only 0", vbTextCompare) > 0 Then
+        failureReason = "Shipping Add ignored displayed Projected Inv and reported a false version shortage. Result: " & CStr(ok) & "; " & report
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(GetTableValue(loShip, 1, "ITEMS"))) <> "T28" _
+       Or CDbl(GetTableValue(loShip, 1, "QUANTITY")) <> 2 Then
+        failureReason = "Shipping Add did not keep the visible T28 order row after using displayed Projected Inv. Result: " & CStr(ok) & "; " & report
+        GoTo CleanExit
+    End If
+
+    TestShippingAdd_UsesDisplayedProjectedInventoryWhenVersionLedgerIsEmpty = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7150, "TestShippingAdd_UsesDisplayedProjectedInventoryWhenVersionLedgerIsEmpty", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingRemove_LockedRowReleasesInventory() As Long
     Dim report As String
     Dim failureReason As String
@@ -7748,26 +7808,44 @@ Private Function RunShippingCommitLineForTest(ByVal targetName As String, _
                                               ByVal locationValue As String, _
                                               ByVal descriptionValue As String, _
                                               ByVal carrierValue As String, _
-                                              ByRef report As String) As Boolean
+                                              ByRef report As String, _
+                                              Optional ByVal displayedAvailableQty As Variant) As Boolean
     Dim targetWb As Workbook
     Dim macroName As String
 
     Set targetWb = ActiveWorkbook
     macroName = ShippingMacroNameForTest("ShipmentsFormCommitLine")
     If Not targetWb Is Nothing Then targetWb.Activate
-    RunShippingCommitLineForTest = CBool(Application.Run(macroName, _
-                                                         targetName, _
-                                                         actionName, _
-                                                         tableRowIndex, _
-                                                         refNumber, _
-                                                         itemName, _
-                                                         qtyValue, _
-                                                         rowValue, _
-                                                         uomValue, _
-                                                         locationValue, _
-                                                         descriptionValue, _
-                                                         carrierValue, _
-                                                         report))
+    If IsMissing(displayedAvailableQty) Then
+        RunShippingCommitLineForTest = CBool(Application.Run(macroName, _
+                                                             targetName, _
+                                                             actionName, _
+                                                             tableRowIndex, _
+                                                             refNumber, _
+                                                             itemName, _
+                                                             qtyValue, _
+                                                             rowValue, _
+                                                             uomValue, _
+                                                             locationValue, _
+                                                             descriptionValue, _
+                                                             carrierValue, _
+                                                             report))
+    Else
+        RunShippingCommitLineForTest = CBool(Application.Run(macroName, _
+                                                             targetName, _
+                                                             actionName, _
+                                                             tableRowIndex, _
+                                                             refNumber, _
+                                                             itemName, _
+                                                             qtyValue, _
+                                                             rowValue, _
+                                                             uomValue, _
+                                                             locationValue, _
+                                                             descriptionValue, _
+                                                             carrierValue, _
+                                                             report, _
+                                                             displayedAvailableQty))
+    End If
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

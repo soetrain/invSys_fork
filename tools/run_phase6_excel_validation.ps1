@@ -561,6 +561,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingBoard_TwoAddsSameRefBoxVersionCarrierShowOneRow",
         "TestPhase6CoreSurfaces.TestShippingAdd_DefaultsOrderToWarehouseArea",
         "TestPhase6CoreSurfaces.TestShippingAdd_BlankCarrierRequiresCarrier",
+        "TestPhase6CoreSurfaces.TestShippingAdd_UsesDisplayedProjectedInventoryWhenVersionLedgerIsEmpty",
         "TestPhase6CoreSurfaces.TestShippingRemove_LockedRowReleasesInventory",
         "TestPhase6CoreSurfaces.TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory",
         "TestPhase6CoreSurfaces.TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion",

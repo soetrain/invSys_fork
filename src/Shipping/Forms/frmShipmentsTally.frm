@@ -444,8 +444,10 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     Dim report As String
     Dim rowIndex As Long
     Dim ok As Boolean
+    Dim displayedAvailableQty As String
 
     rowIndex = SelectedShipmentTableRow()
+    displayedAvailableQty = SelectedShippableProjectedInventoryText()
     ok = modTS_Shipments.ShipmentsFormCommitLine("SHIP", _
                                                  actionName, _
                                                  rowIndex, _
@@ -457,13 +459,45 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
                                                  NzText(mTxtLocation.Value), _
                                                  NzText(mTxtVersion.Value), _
                                                  NzText(mTxtCarrier.Value), _
-                                                 report)
+                                                 report, _
+                                                 displayedAvailableQty)
     RefreshAfterAction report, ok
     Exit Sub
 
 FailSoft:
     ShowStatus "Shipment row action failed: " & Err.Description
 End Sub
+
+Private Function SelectedShippableProjectedInventoryText() As String
+    Dim r As Long
+    Dim rowValue As Long
+    Dim boxName As String
+    Dim versionLabel As String
+
+    rowValue = CLng(Val(NzText(mTxtRow.Value)))
+    boxName = Trim$(NzText(mTxtBox.Value))
+    versionLabel = Trim$(NzText(mTxtVersion.Value))
+
+    If mLstShippables Is Nothing Then Exit Function
+    If mLstShippables.ListIndex >= 0 Then
+        If CLng(Val(NzText(mLstShippables.List(mLstShippables.ListIndex, 7)))) = rowValue _
+           And StrComp(Trim$(NzText(mLstShippables.List(mLstShippables.ListIndex, 0))), boxName, vbTextCompare) = 0 _
+           And StrComp(Trim$(NzText(mLstShippables.List(mLstShippables.ListIndex, 1))), versionLabel, vbTextCompare) = 0 Then
+            SelectedShippableProjectedInventoryText = NzText(mLstShippables.List(mLstShippables.ListIndex, 3))
+            Exit Function
+        End If
+    End If
+
+    If IsEmpty(mShippables) Then Exit Function
+    For r = 1 To UBound(mShippables, 1)
+        If CLng(Val(NzText(mShippables(r, 1)))) = rowValue _
+           And StrComp(Trim$(NzText(mShippables(r, 2))), boxName, vbTextCompare) = 0 _
+           And StrComp(Trim$(NzText(mShippables(r, 3))), versionLabel, vbTextCompare) = 0 Then
+            SelectedShippableProjectedInventoryText = NzText(mShippables(r, 8))
+            Exit Function
+        End If
+    Next r
+End Function
 
 Private Function SelectedShipmentTableRow() As Long
     If mLstShipments Is Nothing Then Exit Function

@@ -5953,7 +5953,8 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                                         ByVal locationValue As String, _
                                         ByVal descriptionValue As String, _
                                         ByVal carrierValue As String, _
-                                        ByRef report As String) As Boolean
+                                        ByRef report As String, _
+                                        Optional ByVal displayedAvailableQty As Variant) As Boolean
     On Error GoTo Fail
 
     Dim ws As Worksheet
@@ -5976,6 +5977,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     Dim releasedTotal As Double
     Dim reservedTotal As Double
     Dim hadExistingReserve As Boolean
+    Dim versionAvailabilityOverrides As Object
 
     actionName = UCase$(Trim$(actionName))
     isHold = (UCase$(Trim$(targetName)) = "HOLD")
@@ -6126,12 +6128,13 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
 
     If Not isHold Then
         singleRow = Array(lr.Index)
+        Set versionAvailabilityOverrides = ShippingVersionAvailabilityOverride(rowValue, descriptionValue, displayedAvailableQty)
         If invLo Is Nothing Then Set invLo = GetWritableShippingInvSysTable(ws, report)
         If invLo Is Nothing Then
             If report = "" Then report = "InventoryManagement!invSys table not found."
             GoTo CleanExit
         End If
-        Set reserveDeltas = BuildSelectedShipmentRowsDeltas(invLo, lo, singleRow, "Warehouse", errNotes)
+        Set reserveDeltas = BuildSelectedShipmentRowsDeltas(invLo, lo, singleRow, "Warehouse", errNotes, versionAvailabilityOverrides)
         If reserveDeltas Is Nothing Then
             If errNotes = "" Then errNotes = "Unable to build shipment reserve event."
             report = errNotes
@@ -6460,11 +6463,31 @@ Private Sub DeleteShipmentRows(ByVal loShip As ListObject, ByVal rowIndexes As V
     Next i
 End Sub
 
+Private Function ShippingVersionAvailabilityOverride(ByVal rowVal As Long, _
+                                                     ByVal versionLabel As String, _
+                                                     Optional ByVal displayedAvailableQty As Variant) As Object
+    Dim qtyText As String
+    Dim result As Object
+
+    If rowVal <= 0 Then Exit Function
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If versionLabel = "" Then Exit Function
+    If IsMissing(displayedAvailableQty) Then Exit Function
+    qtyText = Replace$(Trim$(NzStr(displayedAvailableQty)), ",", "")
+    If qtyText = "" Or Not IsNumeric(qtyText) Then Exit Function
+
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    result(CStr(rowVal) & "|" & versionLabel) = CDbl(qtyText)
+    Set ShippingVersionAvailabilityOverride = result
+End Function
+
 Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
                                                  ByVal loShip As ListObject, _
                                                  ByVal rowIndexes As Variant, _
                                                  ByVal requiredArea As String, _
-                                                 ByRef errNotes As String) As Collection
+                                                 ByRef errNotes As String, _
+                                                 Optional ByVal versionAvailabilityOverrides As Object) As Collection
     Dim cQtyShip As Long
     Dim cRowShip As Long
     Dim cItemShip As Long
@@ -6582,7 +6605,7 @@ NextSelectedRow:
         Exit Function
     End If
     If StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 Then
-        If Not SelectedVersionInventoryAvailable(invLo, versionRequirements, versionNames, errNotes) Then Exit Function
+        If Not SelectedVersionInventoryAvailable(invLo, versionRequirements, versionNames, errNotes, versionAvailabilityOverrides) Then Exit Function
     End If
 
     colItemCode = ColumnIndex(invLo, "ITEM_CODE")
@@ -6655,7 +6678,8 @@ End Function
 Private Function SelectedVersionInventoryAvailable(ByVal invLo As ListObject, _
                                                    ByVal versionRequirements As Object, _
                                                    ByVal versionNames As Object, _
-                                                   ByRef errNotes As String) As Boolean
+                                                   ByRef errNotes As String, _
+                                                   Optional ByVal versionAvailabilityOverrides As Object) As Boolean
     Dim key As Variant
     Dim parts As Variant
     Dim rowVal As Long
@@ -6667,6 +6691,8 @@ Private Function SelectedVersionInventoryAvailable(ByVal invLo As ListObject, _
     Dim hasVersionQty As Boolean
     Dim localStagedQty As Double
     Dim nasReservedQty As Double
+    Dim availabilityIsProjected As Boolean
+    Dim versionLedgerHasQty As Boolean
 
     SelectedVersionInventoryAvailable = True
     If versionRequirements Is Nothing Then Exit Function
@@ -6685,7 +6711,16 @@ Private Function SelectedVersionInventoryAvailable(ByVal invLo As ListObject, _
         Set versionInv = BoxMakerFormLoadBoxVersionInventory(rowVal, itemName)
         availableQty = 0#
         hasVersionQty = False
-        If Not versionInv Is Nothing Then
+        availabilityIsProjected = False
+        versionLedgerHasQty = VersionInventoryHasAnyPositiveQty(versionInv)
+        If Not versionAvailabilityOverrides Is Nothing Then
+            If versionAvailabilityOverrides.Exists(CStr(key)) Then
+                availableQty = NzDbl(versionAvailabilityOverrides(CStr(key)))
+                hasVersionQty = True
+                availabilityIsProjected = True
+            End If
+        End If
+        If Not hasVersionQty And Not versionInv Is Nothing Then
             If versionInv.Exists(versionLabel) Then
                 availableQty = NzDbl(versionInv(versionLabel))
                 hasVersionQty = True
@@ -6697,12 +6732,17 @@ Private Function SelectedVersionInventoryAvailable(ByVal invLo As ListObject, _
         If availableQty <= 0.0000001 Then
             availableQty = PickerVersionAvailableQty(rowVal, itemName, versionLabel)
         End If
-        localStagedQty = StagedShipmentVersionQty(rowVal, versionLabel)
-        nasReservedQty = ActiveNasShippingReservationQty(rowVal, versionLabel)
-        If nasReservedQty > localStagedQty Then
-            availableQty = availableQty - nasReservedQty
-        Else
-            availableQty = availableQty - localStagedQty
+        If availableQty <= 0.0000001 And Not versionLedgerHasQty Then
+            availableQty = CurrentRowInventoryAvailableQty(invLo, rowVal, itemName)
+        End If
+        If Not availabilityIsProjected Then
+            localStagedQty = StagedShipmentVersionQty(rowVal, versionLabel)
+            nasReservedQty = ActiveNasShippingReservationQty(rowVal, versionLabel)
+            If nasReservedQty > localStagedQty Then
+                availableQty = availableQty - nasReservedQty
+            Else
+                availableQty = availableQty - localStagedQty
+            End If
         End If
         If availableQty < 0 Then availableQty = 0
         requiredQty = NzDbl(versionRequirements(CStr(key)))
@@ -6714,6 +6754,32 @@ Private Function SelectedVersionInventoryAvailable(ByVal invLo As ListObject, _
         End If
 NextKey:
     Next key
+End Function
+
+Private Function VersionInventoryHasAnyPositiveQty(ByVal versionInv As Object) As Boolean
+    Dim key As Variant
+
+    If versionInv Is Nothing Then Exit Function
+    For Each key In versionInv.Keys
+        If NzDbl(versionInv(key)) > 0.0000001 Then
+            VersionInventoryHasAnyPositiveQty = True
+            Exit Function
+        End If
+    Next key
+End Function
+
+Private Function CurrentRowInventoryAvailableQty(ByVal invLo As ListObject, _
+                                                 ByVal rowVal As Long, _
+                                                 ByVal itemName As String) As Double
+    Dim invIdx As Long
+    Dim totalVal As Variant
+
+    If invLo Is Nothing Then Exit Function
+    If rowVal > 0 Then invIdx = FindInvRowIndexByRow(invLo, rowVal)
+    If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+    If invIdx <= 0 Then Exit Function
+    totalVal = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
+    If Not IsBlankInventoryValue(totalVal) Then CurrentRowInventoryAvailableQty = NzDbl(totalVal)
 End Function
 
 Private Function SingleVersionFallbackAvailableQty(ByVal invLo As ListObject, _
