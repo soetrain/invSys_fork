@@ -4761,6 +4761,15 @@ Private Sub RemovePendingBoxVersionInventoryOverlayKey(ByVal key As String)
     PersistPendingBoxVersionInventoryOverlay
 End Sub
 
+Public Sub ClearActiveOverlayForRowVersion(ByVal packageRow As Long, ByVal versionLabel As String)
+    Dim key As String
+
+    EnsurePendingBoxVersionInventoryOverlayLoaded
+    key = PendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If key = "" Then Exit Sub
+    RemovePendingBoxVersionInventoryOverlayKey key
+End Sub
+
 Private Function PendingBoxVersionInventoryOverlayExists(ByVal packageRow As Long, _
                                                          ByVal versionLabel As String) As Boolean
     Dim key As String

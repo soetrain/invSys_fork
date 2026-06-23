@@ -295,12 +295,14 @@ End Function
 Private Sub LoadShipmentState()
     RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False)
     RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True)
+    EvictOrphanedActiveOverlays
     UpdateSyncStateLabel
 End Sub
 
 Private Sub LoadShipmentLineState()
     RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False)
     RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True)
+    EvictOrphanedActiveOverlays
     UpdateSyncStateLabel
 End Sub
 
@@ -725,18 +727,21 @@ Private Sub RefreshProjectedShippableInventory()
     Dim backendText As String
     Dim projectedText As String
     Dim projectedQty As Double
+    Dim packageRow As Long
 
     If IsEmpty(mShippables) Then Exit Sub
+    EvictOrphanedActiveOverlays
     Set mNasReservationTotals = modTS_Shipments.ShipmentsFormLoadNasReservationTotals()
     For r = 1 To UBound(mShippables, 1)
+        packageRow = CLng(Val(NzText(mShippables(r, 1))))
         backendText = NzText(mShippables(r, 4))
-        activeQty = ActiveShipmentQtyForShippable(NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
-        lockedQty = LockedShipmentQtyForShippable(CLng(Val(NzText(mShippables(r, 1)))), NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
-        unreservedQty = UnreservedShipmentQtyForShippable(NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
+        activeQty = ActiveShipmentQtyForShippable(packageRow, NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
+        lockedQty = LockedShipmentQtyForShippable(packageRow, NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
+        unreservedQty = UnreservedShipmentQtyForShippable(packageRow, NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
         reservedQty = activeQty - unreservedQty
         If reservedQty < 0 Then reservedQty = 0
         If lockedQty > 0 Or unreservedQty > 0 Then
-            projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(CLng(Val(NzText(mShippables(r, 1)))), _
+            projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, _
                                                                                   NzText(mShippables(r, 3)), _
                                                                                   backendText)
             projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQty(ParseNumber(backendText), _
@@ -746,7 +751,7 @@ Private Sub RefreshProjectedShippableInventory()
                                                                         ParseNumber(projectedText))
             mShippables(r, 8) = FormatQuantity(projectedQty)
         ElseIf activeQty <= 0 Then
-            projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(CLng(Val(NzText(mShippables(r, 1)))), _
+            projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, _
                                                                                   NzText(mShippables(r, 3)), _
                                                                                   backendText)
             If Trim$(projectedText) <> "" And StrComp(projectedText, backendText, vbBinaryCompare) <> 0 Then
@@ -766,35 +771,80 @@ CleanExit:
     UpdateSyncStateLabel
 End Sub
 
-Private Function ActiveShipmentQtyForShippable(ByVal boxName As String, ByVal versionLabel As String) As Double
+Private Sub EvictOrphanedActiveOverlays()
+    Dim r As Long
+    Dim packageRow As Long
+    Dim versionLabel As String
+
+    If IsEmpty(mShippables) Then Exit Sub
+    If mLstShipments Is Nothing Then Exit Sub
+    For r = 1 To UBound(mShippables, 1)
+        packageRow = CLng(Val(NzText(mShippables(r, 1))))
+        versionLabel = NzText(mShippables(r, 3))
+        If packageRow > 0 And Trim$(versionLabel) <> "" Then
+            If Not HasActiveShipmentLineForRow(packageRow, versionLabel) Then
+                modTS_Shipments.ClearActiveOverlayForRowVersion packageRow, versionLabel
+            End If
+        End If
+    Next r
+End Sub
+
+Private Function HasActiveShipmentLineForRow(ByVal packageRow As Long, ByVal versionLabel As String) As Boolean
     Dim i As Long
+    Dim rowVersion As String
+
+    If mLstShipments Is Nothing Then Exit Function
+    versionLabel = LCase$(Trim$(versionLabel))
+    For i = 0 To mLstShipments.ListCount - 1
+        If CLng(Val(NzText(mLstShipments.List(i, 6)))) = packageRow Then
+            rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
+            If rowVersion = versionLabel Then
+                HasActiveShipmentLineForRow = True
+                Exit Function
+            End If
+        End If
+    Next i
+End Function
+
+Private Function ShipmentListRowMatchesShippable(ByVal listIndex As Long, _
+                                                 ByVal packageRow As Long, _
+                                                 ByVal boxName As String, _
+                                                 ByVal versionLabel As String) As Boolean
     Dim rowBox As String
     Dim rowVersion As String
+    Dim rowPackage As Long
+
+    rowBox = LCase$(Trim$(NzText(mLstShipments.List(listIndex, 1))))
+    rowVersion = LCase$(Trim$(NzText(mLstShipments.List(listIndex, 7))))
+    rowPackage = CLng(Val(NzText(mLstShipments.List(listIndex, 6))))
+    If packageRow > 0 Then
+        ShipmentListRowMatchesShippable = (rowPackage = packageRow And rowVersion = versionLabel)
+    Else
+        ShipmentListRowMatchesShippable = (rowBox = boxName And rowVersion = versionLabel)
+    End If
+End Function
+
+Private Function ActiveShipmentQtyForShippable(ByVal packageRow As Long, ByVal boxName As String, ByVal versionLabel As String) As Double
+    Dim i As Long
 
     If mLstShipments Is Nothing Then Exit Function
     boxName = LCase$(Trim$(boxName))
     versionLabel = LCase$(Trim$(versionLabel))
     For i = 0 To mLstShipments.ListCount - 1
-        rowBox = LCase$(Trim$(NzText(mLstShipments.List(i, 1))))
-        rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
-        If rowBox = boxName And rowVersion = versionLabel Then
+        If ShipmentListRowMatchesShippable(i, packageRow, boxName, versionLabel) Then
             ActiveShipmentQtyForShippable = ActiveShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
         End If
     Next i
 End Function
 
-Private Function UnreservedShipmentQtyForShippable(ByVal boxName As String, ByVal versionLabel As String) As Double
+Private Function UnreservedShipmentQtyForShippable(ByVal packageRow As Long, ByVal boxName As String, ByVal versionLabel As String) As Double
     Dim i As Long
-    Dim rowBox As String
-    Dim rowVersion As String
 
     If mLstShipments Is Nothing Then Exit Function
     boxName = LCase$(Trim$(boxName))
     versionLabel = LCase$(Trim$(versionLabel))
     For i = 0 To mLstShipments.ListCount - 1
-        rowBox = LCase$(Trim$(NzText(mLstShipments.List(i, 1))))
-        rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
-        If rowBox = boxName And rowVersion = versionLabel Then
+        If ShipmentListRowMatchesShippable(i, packageRow, boxName, versionLabel) Then
             If Trim$(NzText(mLstShipments.List(i, 11))) = "" Then
                 UnreservedShipmentQtyForShippable = UnreservedShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
             End If
@@ -804,24 +854,21 @@ End Function
 
 Private Function LockedShipmentQtyForShippable(ByVal packageRow As Long, ByVal boxName As String, ByVal versionLabel As String) As Double
     Dim i As Long
-    Dim rowBox As String
-    Dim rowVersion As String
     Dim key As String
 
     key = modTS_Shipments.ShipmentsFormReservationKey(packageRow, versionLabel)
     If Not mNasReservationTotals Is Nothing Then
         If mNasReservationTotals.Exists(key) Then
             LockedShipmentQtyForShippable = ParseNumber(NzText(mNasReservationTotals(key)))
-            Exit Function
+            If LockedShipmentQtyForShippable <= 0 Or HasActiveShipmentLineForRow(packageRow, versionLabel) Then Exit Function
+            LockedShipmentQtyForShippable = 0
         End If
     End If
     If mLstShipments Is Nothing Then Exit Function
     boxName = LCase$(Trim$(boxName))
     versionLabel = LCase$(Trim$(versionLabel))
     For i = 0 To mLstShipments.ListCount - 1
-        rowBox = LCase$(Trim$(NzText(mLstShipments.List(i, 1))))
-        rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
-        If rowBox = boxName And rowVersion = versionLabel Then
+        If ShipmentListRowMatchesShippable(i, packageRow, boxName, versionLabel) Then
             If Trim$(NzText(mLstShipments.List(i, 11))) <> "" Then
                 LockedShipmentQtyForShippable = LockedShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
             End If
