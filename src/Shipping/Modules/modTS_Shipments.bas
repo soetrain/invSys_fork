@@ -4772,6 +4772,28 @@ Public Sub ClearActiveOverlayForRowVersion(ByVal packageRow As Long, ByVal versi
     RemovePendingBoxVersionInventoryOverlayKey key
 End Sub
 
+Public Sub ClearOrphanedSentOverlayForRowVersion(ByVal packageRow As Long, ByVal versionLabel As String)
+    Dim sentKey As String
+    Dim stagedDeltas As Object
+    Dim stagedVersion As String
+
+    EnsurePendingBoxVersionInventoryOverlayLoaded
+    sentKey = SentPendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If sentKey = "" Then Exit Sub
+    If mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Sub
+    If Not mPendingBoxVersionInventoryOverlay.Exists(sentKey) Then Exit Sub
+
+    stagedVersion = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    Set stagedDeltas = modRoleEventWriter.GetLocalStagedBoxVersionInventoryDeltas(packageRow)
+    If Not stagedDeltas Is Nothing Then
+        If stagedDeltas.Exists(stagedVersion) Then
+            If Abs(CDbl(stagedDeltas(stagedVersion))) > 0.0000001 Then Exit Sub
+        End If
+    End If
+
+    RemovePendingBoxVersionInventoryOverlayKey sentKey
+End Sub
+
 Private Function PendingBoxVersionInventoryOverlayExists(ByVal packageRow As Long, _
                                                          ByVal versionLabel As String) As Boolean
     Dim key As String
