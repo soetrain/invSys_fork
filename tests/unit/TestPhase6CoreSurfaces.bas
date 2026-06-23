@@ -4791,6 +4791,95 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingHold_PreservesReservationAndLocalDeduction() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loHold As ListObject
+    Dim loBomView As ListObject
+    Dim selectedRows(1 To 1) As Long
+    Dim ok As Boolean
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loHold = FindTableByName(wbOps, "NotShipped")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loHold Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 974, "SKU-HOLD-LOCKED", "Hold Locked Item", "EA", "A1", 12
+    AddShippingBomViewRow loBomView, 974, "Hold Locked Item", 974, "Hold Locked Item", 1, "EA"
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-HOLD-LOCKED", "Hold Locked Item", 1, 974, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-HOLD-LOCKED-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-HOLD-LOCKED-001"
+
+    wbOps.Activate
+    selectedRows(1) = 1
+    ok = RunShippingMoveHoldRowsForTest(selectedRows, True, report)
+    If Not ok Then
+        failureReason = "Send Hold failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 12 Then
+        failureReason = "Send Hold restored TOTAL INV; hold should preserve the local deduction."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 1 Then
+        failureReason = "Send Hold cleared SHIPMENTS staging; hold should remain reserved."
+        GoTo CleanExit
+    End If
+    If loHold.ListRows.Count <> 1 Then
+        failureReason = "Send Hold did not move exactly one row into NotShipped."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loHold, 1, "SERVER_RESERVE_EVENT_ID")), "RESERVE-HOLD-LOCKED-001", vbTextCompare) <> 0 Then
+        failureReason = "Send Hold did not preserve SERVER_RESERVE_EVENT_ID."
+        GoTo CleanExit
+    End If
+
+    ok = RunShippingMoveHoldRowsForTest(selectedRows, False, report)
+    If Not ok Then
+        failureReason = "Return from Hold failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 12 Then
+        failureReason = "Return from Hold changed TOTAL INV; reservation should already be active."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 1 Then
+        failureReason = "Return from Hold changed SHIPMENTS staging; reservation should already be active."
+        GoTo CleanExit
+    End If
+    If loShip.ListRows.Count <> 1 Then
+        failureReason = "Return from Hold did not move exactly one row back to Shipments."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loShip, 1, "SERVER_RESERVE_EVENT_ID")), "RESERVE-HOLD-LOCKED-001", vbTextCompare) <> 0 Then
+        failureReason = "Return from Hold did not preserve SERVER_RESERVE_EVENT_ID."
+        GoTo CleanExit
+    End If
+
+    TestShippingHold_PreservesReservationAndLocalDeduction = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7156, "TestShippingHold_PreservesReservationAndLocalDeduction", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv() As Long
     Dim rootPath As String
     Dim currentUser As String
@@ -8188,6 +8277,17 @@ Private Function RunShippingSentRowsReportForTest(ByVal rowIndexes As Variant, B
     macroName = ShippingMacroNameForTest("ShipmentsFormRunShipmentsSentRowsReportForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingSentRowsReportForTest = CStr(Application.Run(macroName, rowIndexes, carrierValue))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingMoveHoldRowsForTest(ByVal rowIndexes As Variant, ByVal moveToHold As Boolean, ByRef report As String) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsFormMoveHoldRows")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingMoveHoldRowsForTest = CBool(Application.Run(macroName, rowIndexes, moveToHold, report))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

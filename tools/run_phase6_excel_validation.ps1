@@ -566,6 +566,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingAdd_UsesDisplayedProjectedInventoryWhenTotalInvIsStaleZero",
         "TestPhase6CoreSurfaces.TestShippingRemove_LockedRowReleasesInventory",
         "TestPhase6CoreSurfaces.TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory",
+        "TestPhase6CoreSurfaces.TestShippingHold_PreservesReservationAndLocalDeduction",
         "TestPhase6CoreSurfaces.TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion",
         "TestPhase6CoreSurfaces.TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows",
         "TestPhase6CoreSurfaces.TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv",

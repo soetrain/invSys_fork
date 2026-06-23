@@ -7179,12 +7179,6 @@ Public Function ShipmentsFormMoveHoldRows(ByVal rowIndexes As Variant, _
     Dim movedRows As Long
     Dim i As Long
     Dim rowIndex As Long
-    Dim invLo As ListObject
-    Dim releaseRows As Variant
-    Dim releaseDeltas As Collection
-    Dim errNotes As String
-    Dim releaseEventId As String
-    Dim releasedTotal As Double
 
     Set ws = SheetExists(SHEET_SHIPMENTS)
     If ws Is Nothing Then
@@ -7205,36 +7199,6 @@ Public Function ShipmentsFormMoveHoldRows(ByVal rowIndexes As Variant, _
     If IsEmpty(rowIndexes) Then
         report = "Select shipment row(s) first."
         Exit Function
-    End If
-    If moveToHold Then
-        releaseRows = ShipmentRowsByReserveState(sourceTable, rowIndexes, True)
-        If Not IsEmpty(releaseRows) Then
-            Set invLo = GetWritableShippingInvSysTable(ws, report)
-            If invLo Is Nothing Then
-                If report = "" Then report = "InventoryManagement!invSys table not found."
-                Exit Function
-            End If
-            Set releaseDeltas = BuildSelectedShipmentRowsDeltas(invLo, sourceTable, releaseRows, "Shipments", errNotes)
-            If releaseDeltas Is Nothing Then
-                If errNotes = "" Then errNotes = "Unable to build shipment release event."
-                report = errNotes
-                Exit Function
-            End If
-            If Not QueueShipmentsReleaseEvent(releaseDeltas, errNotes, releaseEventId) Then
-                If errNotes = "" Then errNotes = "Unable to queue shipment release event."
-                report = errNotes
-                Exit Function
-            End If
-            releasedTotal = ApplyShipmentReleaseDeltasLocal(invLo, releaseDeltas, errNotes)
-            If releasedTotal < 0 Then
-                If errNotes = "" Then errNotes = "Unable to release local shipment inventory."
-                report = errNotes
-                Exit Function
-            End If
-            SyncSingleVersionInventoryOverlayFromInvSysRows invLo, sourceTable, releaseRows
-            If Not MarkShippingReservationRows(sourceTable, releaseRows, SHIP_RESERVATION_RELEASED, releaseEventId, report) Then Exit Function
-            SetShipmentRowsReserveEventId sourceTable, releaseRows, vbNullString
-        End If
     End If
 
     BeginShippingTableMutation sourceTable, previousVisibility, visibilityChanged, previousEvents, previousHandling
@@ -7260,8 +7224,6 @@ Public Function ShipmentsFormMoveHoldRows(ByVal rowIndexes As Variant, _
         report = "No selected shipment rows were moved."
     ElseIf moveToHold Then
         report = "Moved " & CStr(movedRows) & " row(s) to Not Shipped."
-        If releasedTotal > 0 Then report = report & vbCrLf & "Released " & Format$(releasedTotal, "0.###") & " package(s) back to warehouse."
-        If releaseEventId <> "" Then report = report & vbCrLf & "Release EventID: " & releaseEventId
     Else
         report = "Returned " & CStr(movedRows) & " row(s) to Shipments."
     End If

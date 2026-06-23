@@ -794,48 +794,82 @@ Private Function HasActiveShipmentLineForRow(ByVal packageRow As Long, ByVal ver
     Dim i As Long
     Dim rowVersion As String
 
-    If mLstShipments Is Nothing Then Exit Function
     versionLabel = LCase$(Trim$(versionLabel))
-    For i = 0 To mLstShipments.ListCount - 1
-        If CLng(Val(NzText(mLstShipments.List(i, 6)))) = packageRow Then
-            rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
-            If rowVersion = versionLabel Then
-                HasActiveShipmentLineForRow = True
-                Exit Function
+    If Not mLstShipments Is Nothing Then
+        For i = 0 To mLstShipments.ListCount - 1
+            If CLng(Val(NzText(mLstShipments.List(i, 6)))) = packageRow Then
+                rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
+                If rowVersion = versionLabel Then
+                    HasActiveShipmentLineForRow = True
+                    Exit Function
+                End If
             End If
-        End If
-    Next i
+        Next i
+    End If
+
+    If Not mLstHold Is Nothing Then
+        For i = 0 To mLstHold.ListCount - 1
+            If CLng(Val(NzText(mLstHold.List(i, 6)))) = packageRow Then
+                rowVersion = LCase$(Trim$(NzText(mLstHold.List(i, 7))))
+                If rowVersion = versionLabel Then
+                    If Trim$(NzText(mLstHold.List(i, 11))) <> "" Then
+                        HasActiveShipmentLineForRow = True
+                        Exit Function
+                    End If
+                End If
+            End If
+        Next i
+    End If
 End Function
 
 Private Function ShipmentListRowMatchesShippable(ByVal listIndex As Long, _
                                                  ByVal packageRow As Long, _
                                                  ByVal boxName As String, _
                                                  ByVal versionLabel As String) As Boolean
+    ShipmentListRowMatchesShippable = ShipmentListBoxRowMatchesShippable(mLstShipments, listIndex, packageRow, boxName, versionLabel)
+End Function
+
+Private Function ShipmentListBoxRowMatchesShippable(ByVal lineList As MSForms.ListBox, _
+                                                    ByVal listIndex As Long, _
+                                                    ByVal packageRow As Long, _
+                                                    ByVal boxName As String, _
+                                                    ByVal versionLabel As String) As Boolean
     Dim rowBox As String
     Dim rowVersion As String
     Dim rowPackage As Long
 
-    rowBox = LCase$(Trim$(NzText(mLstShipments.List(listIndex, 1))))
-    rowVersion = LCase$(Trim$(NzText(mLstShipments.List(listIndex, 7))))
-    rowPackage = CLng(Val(NzText(mLstShipments.List(listIndex, 6))))
+    If lineList Is Nothing Then Exit Function
+    rowBox = LCase$(Trim$(NzText(lineList.List(listIndex, 1))))
+    rowVersion = LCase$(Trim$(NzText(lineList.List(listIndex, 7))))
+    rowPackage = CLng(Val(NzText(lineList.List(listIndex, 6))))
     If packageRow > 0 Then
-        ShipmentListRowMatchesShippable = (rowPackage = packageRow And rowVersion = versionLabel)
+        ShipmentListBoxRowMatchesShippable = (rowPackage = packageRow And rowVersion = versionLabel)
     Else
-        ShipmentListRowMatchesShippable = (rowBox = boxName And rowVersion = versionLabel)
+        ShipmentListBoxRowMatchesShippable = (rowBox = boxName And rowVersion = versionLabel)
     End If
 End Function
 
 Private Function ActiveShipmentQtyForShippable(ByVal packageRow As Long, ByVal boxName As String, ByVal versionLabel As String) As Double
     Dim i As Long
 
-    If mLstShipments Is Nothing Then Exit Function
     boxName = LCase$(Trim$(boxName))
     versionLabel = LCase$(Trim$(versionLabel))
-    For i = 0 To mLstShipments.ListCount - 1
-        If ShipmentListRowMatchesShippable(i, packageRow, boxName, versionLabel) Then
-            ActiveShipmentQtyForShippable = ActiveShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
-        End If
-    Next i
+    If Not mLstShipments Is Nothing Then
+        For i = 0 To mLstShipments.ListCount - 1
+            If ShipmentListRowMatchesShippable(i, packageRow, boxName, versionLabel) Then
+                ActiveShipmentQtyForShippable = ActiveShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
+            End If
+        Next i
+    End If
+    If Not mLstHold Is Nothing Then
+        For i = 0 To mLstHold.ListCount - 1
+            If ShipmentListBoxRowMatchesShippable(mLstHold, i, packageRow, boxName, versionLabel) Then
+                If Trim$(NzText(mLstHold.List(i, 11))) <> "" Then
+                    ActiveShipmentQtyForShippable = ActiveShipmentQtyForShippable + ParseNumber(NzText(mLstHold.List(i, 2)))
+                End If
+            End If
+        Next i
+    End If
 End Function
 
 Private Function UnreservedShipmentQtyForShippable(ByVal packageRow As Long, ByVal boxName As String, ByVal versionLabel As String) As Double
@@ -865,16 +899,26 @@ Private Function LockedShipmentQtyForShippable(ByVal packageRow As Long, ByVal b
             LockedShipmentQtyForShippable = 0
         End If
     End If
-    If mLstShipments Is Nothing Then Exit Function
     boxName = LCase$(Trim$(boxName))
     versionLabel = LCase$(Trim$(versionLabel))
-    For i = 0 To mLstShipments.ListCount - 1
-        If ShipmentListRowMatchesShippable(i, packageRow, boxName, versionLabel) Then
-            If Trim$(NzText(mLstShipments.List(i, 11))) <> "" Then
-                LockedShipmentQtyForShippable = LockedShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
+    If Not mLstShipments Is Nothing Then
+        For i = 0 To mLstShipments.ListCount - 1
+            If ShipmentListRowMatchesShippable(i, packageRow, boxName, versionLabel) Then
+                If Trim$(NzText(mLstShipments.List(i, 11))) <> "" Then
+                    LockedShipmentQtyForShippable = LockedShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
+                End If
             End If
-        End If
-    Next i
+        Next i
+    End If
+    If Not mLstHold Is Nothing Then
+        For i = 0 To mLstHold.ListCount - 1
+            If ShipmentListBoxRowMatchesShippable(mLstHold, i, packageRow, boxName, versionLabel) Then
+                If Trim$(NzText(mLstHold.List(i, 11))) <> "" Then
+                    LockedShipmentQtyForShippable = LockedShipmentQtyForShippable + ParseNumber(NzText(mLstHold.List(i, 2)))
+                End If
+            End If
+        Next i
+    End If
 End Function
 
 Private Sub mBtnClose_Click()
