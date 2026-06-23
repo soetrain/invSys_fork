@@ -6057,6 +6057,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                     report = errNotes
                     GoTo CleanExit
                 End If
+                SyncSingleVersionInventoryOverlayFromInvSysRows invLo, lo, singleRow
                 If Not QueueShipmentsReleaseEvent(releaseDeltas, errNotes, releaseEventId) Then
                     If errNotes <> "" Then AppendNote report, errNotes
                     errNotes = ""
@@ -6138,6 +6139,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             report = errNotes
             GoTo CleanExit
         End If
+        SyncSingleVersionInventoryOverlayFromInvSysRows invLo, lo, singleRow
         If Not MarkShippingReservationRows(lo, singleRow, SHIP_RESERVATION_RELEASED, releaseEventId, report) Then GoTo CleanExit
         WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, vbNullString
         WriteValue lr, "AREA", "Warehouse"
@@ -7086,6 +7088,7 @@ Public Function ShipmentsFormMoveHoldRows(ByVal rowIndexes As Variant, _
                 report = errNotes
                 Exit Function
             End If
+            SyncSingleVersionInventoryOverlayFromInvSysRows invLo, sourceTable, releaseRows
             If Not MarkShippingReservationRows(sourceTable, releaseRows, SHIP_RESERVATION_RELEASED, releaseEventId, report) Then Exit Function
             SetShipmentRowsReserveEventId sourceTable, releaseRows, vbNullString
         End If

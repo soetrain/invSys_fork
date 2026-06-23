@@ -4645,16 +4645,21 @@ Public Function TestShippingRemove_LockedRowReleasesInventory() As Long
     Dim wbOps As Workbook
     Dim loInv As ListObject
     Dim loShip As ListObject
+    Dim loBomView As ListObject
     Dim ok As Boolean
+    Dim overlayPath As String
+    Dim projectedText As String
 
     On Error GoTo CleanFail
     Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
     If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
     Set loInv = FindTableByName(wbOps, "invSys")
     Set loShip = FindTableByName(wbOps, "ShipmentsTally")
-    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
 
     AddInvSysSeedRow loInv, 987, "SKU-REMOVE-LOCKED", "Remove Locked Item", "EA", "A1", 4
+    AddShippingBomViewRow loBomView, 987, "Remove Locked Item", 987, "Remove Locked Item", 1, "EA"
     SetTableCell loInv, 1, "SHIPMENTS", 1
     AddShippingTallyRow loShip, "REF-REMOVE-LOCKED", "Remove Locked Item", 1, 987, "EA", "A1", "v1"
     SetTableCell loShip, 1, "AREA", "Warehouse"
@@ -4663,6 +4668,10 @@ Public Function TestShippingRemove_LockedRowReleasesInventory() As Long
     SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-REMOVE-LOCKED-001"
 
     wbOps.Activate
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingRegisterProjectedOverlayForTest 987, "v1", 4, 5
     ok = RunShippingCommitLineForTest("SHIP", "DELETE", 1, "", "", 0, 0, "", "", "", "", report)
     If Not ok Then
         failureReason = "Remove locked row failed: " & report
@@ -4684,10 +4693,17 @@ Public Function TestShippingRemove_LockedRowReleasesInventory() As Long
             End If
         End If
     End If
+    projectedText = RunShippingProjectedOverlayTextForTest(987, "v1", "5")
+    If CDbl(NzDblForTest(projectedText)) <> 5 Then
+        failureReason = "Remove released inventory but left Projected Inv overlay deducted; expected 5 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
 
     TestShippingRemove_LockedRowReleasesInventory = 1
 
 CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
     CloseWorkbookIfOpen wbOps
     If failureReason <> "" Then
         On Error GoTo 0
@@ -4705,16 +4721,21 @@ Public Function TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory
     Dim wbOps As Workbook
     Dim loInv As ListObject
     Dim loShip As ListObject
+    Dim loBomView As ListObject
     Dim ok As Boolean
+    Dim overlayPath As String
+    Dim projectedText As String
 
     On Error GoTo CleanFail
     Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
     If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
     Set loInv = FindTableByName(wbOps, "invSys")
     Set loShip = FindTableByName(wbOps, "ShipmentsTally")
-    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
 
     AddInvSysSeedRow loInv, 986, "SKU-REMOVE-STALE-LOCK", "Stale Locked Item", "EA", "A1", 5
+    AddShippingBomViewRow loBomView, 986, "Stale Locked Item", 986, "Stale Locked Item", 1, "EA"
     SetTableCell loInv, 1, "SHIPMENTS", 0
     AddShippingTallyRow loShip, "REF-REMOVE-STALE-LOCK", "Stale Locked Item", 1, 986, "EA", "A1", "v1"
     SetTableCell loShip, 1, "AREA", "Warehouse"
@@ -4723,6 +4744,10 @@ Public Function TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory
     SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-REMOVE-STALE-LOCK-001"
 
     wbOps.Activate
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingRegisterProjectedOverlayForTest 986, "v1", 4, 5
     ok = RunShippingCommitLineForTest("SHIP", "DELETE", 1, "", "", 0, 0, "", "", "", "", report)
     If Not ok Then
         failureReason = "Remove stale locked row failed: " & report
@@ -4744,10 +4769,17 @@ Public Function TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory
             End If
         End If
     End If
+    projectedText = RunShippingProjectedOverlayTextForTest(986, "v1", "5")
+    If CDbl(NzDblForTest(projectedText)) <> 5 Then
+        failureReason = "Remove stale locked row left a deducted Projected Inv overlay; expected 5 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
 
     TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory = 1
 
 CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
     CloseWorkbookIfOpen wbOps
     If failureReason <> "" Then
         On Error GoTo 0
