@@ -7826,7 +7826,7 @@ Private Sub ApplyStageVersionInventoryOverlayFromRows(ByVal invLo As ListObject,
     Dim qtyVal As Double
     Dim itemName As String
     Dim versionLabel As String
-    Dim currentQty As Double
+    Dim nasBaseline As Double
 
     If loShip Is Nothing Then Exit Sub
     If loShip.DataBodyRange Is Nothing Then Exit Sub
@@ -7846,8 +7846,8 @@ Private Sub ApplyStageVersionInventoryOverlayFromRows(ByVal invLo As ListObject,
         versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(rowIndex, cDesc).Value))
         If rowVal <= 0 Or qtyVal <= 0 Or versionLabel = "" Then GoTo NextRow
 
-        currentQty = StageVersionInventoryCurrentQty(invLo, rowVal, itemName, versionLabel)
-        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, currentQty, currentQty + qtyVal
+        nasBaseline = StageVersionInventoryCurrentQty(invLo, rowVal, itemName, versionLabel)
+        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, nasBaseline - qtyVal, nasBaseline
 NextRow:
     Next i
 End Sub
