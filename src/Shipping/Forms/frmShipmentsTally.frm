@@ -695,6 +695,7 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     End If
     Me.MousePointer = previousPointer
     LoadShipmentState
+    If ok And Not stageOnly Then mTxtRef.Value = vbNullString
     If ok Then RefreshProjectedShippableInventory
     report = AppendTiming(report, elapsedMs)
     ShowStatus report

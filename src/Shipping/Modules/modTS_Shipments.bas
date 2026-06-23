@@ -6173,6 +6173,12 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     Dim reservedTotal As Double
     Dim hadExistingReserve As Boolean
     Dim versionAvailabilityOverrides As Object
+    Dim preserveExistingReservation As Boolean
+    Dim existingReserveEventId As String
+    Dim existingArea As String
+    Dim existingRowValue As Long
+    Dim existingQtyValue As Double
+    Dim existingVersionLabel As String
 
     actionName = UCase$(Trim$(actionName))
     isHold = (UCase$(Trim$(targetName)) = "HOLD")
@@ -6263,7 +6269,16 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             GoTo CleanExit
         End If
         Set lr = lo.ListRows(tableRowIndex)
-        hadExistingReserve = (Not isHold And Trim$(ShipmentRowText(lo, tableRowIndex, COL_SHIPMENT_RESERVE_EVENT_ID)) <> "")
+        existingReserveEventId = Trim$(ShipmentRowText(lo, tableRowIndex, COL_SHIPMENT_RESERVE_EVENT_ID))
+        existingArea = ShipmentRowText(lo, tableRowIndex, "AREA")
+        existingRowValue = CLng(Val(ShipmentRowText(lo, tableRowIndex, "ROW")))
+        existingQtyValue = NzDbl(ShipmentRowText(lo, tableRowIndex, "QUANTITY"))
+        existingVersionLabel = NormalizeBoxBomVersionLabelShipping(ShipmentRowText(lo, tableRowIndex, "DESCRIPTION"))
+        hadExistingReserve = (Not isHold And existingReserveEventId <> "")
+        preserveExistingReservation = hadExistingReserve _
+                                      And existingRowValue = rowValue _
+                                      And Abs(existingQtyValue - qtyValue) <= 0.0000001 _
+                                      And StrComp(existingVersionLabel, NormalizeBoxBomVersionLabelShipping(descriptionValue), vbTextCompare) = 0
     Else
         Set lr = FindShipmentLineByRefItemVersion(lo, Trim$(refNumber), itemName, Trim$(descriptionValue), Trim$(carrierValue))
         If Not lr Is Nothing Then
@@ -6277,7 +6292,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     End If
     If finalQty <= 0 Then finalQty = qtyValue
 
-    If hadExistingReserve Then
+    If hadExistingReserve And Not preserveExistingReservation Then
         singleRow = Array(lr.Index)
         Set invLo = GetShipmentReleaseInvSysTable(ws, report)
         If invLo Is Nothing Then
@@ -6309,7 +6324,11 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
 
     WriteValue lr, "REF_NUMBER", Trim$(refNumber)
     WriteValue lr, COL_SHIPMENT_LINE_ID, EnsureShipmentLineId(lo, lr.Index)
-    If Trim$(ShipmentRowText(lo, lr.Index, COL_SHIPMENT_RESERVE_EVENT_ID)) = "" Or Not mergedExisting Then WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, vbNullString
+    If preserveExistingReservation Then
+        WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, existingReserveEventId
+    ElseIf Trim$(ShipmentRowText(lo, lr.Index, COL_SHIPMENT_RESERVE_EVENT_ID)) = "" Or Not mergedExisting Then
+        WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, vbNullString
+    End If
     WriteValue lr, "ITEMS", itemName
     WriteValue lr, "QUANTITY", finalQty
     WriteValue lr, "ROW", rowValue
@@ -6318,12 +6337,14 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     WriteValue lr, "DESCRIPTION", Trim$(descriptionValue)
     If isHold Then
         If Trim$(ShipmentRowText(lo, lr.Index, "AREA")) = "" Then WriteValue lr, "AREA", "Warehouse"
+    ElseIf preserveExistingReservation Then
+        If Trim$(existingArea) <> "" Then WriteValue lr, "AREA", existingArea
     Else
         WriteValue lr, "AREA", "Warehouse"
     End If
     If Trim$(carrierValue) <> "" Or Not mergedExisting Then WriteValue lr, "CARRIER", Trim$(carrierValue)
 
-    If Not isHold Then
+    If Not isHold And Not preserveExistingReservation Then
         singleRow = Array(lr.Index)
         Set versionAvailabilityOverrides = ShippingVersionAvailabilityOverride(rowValue, descriptionValue, displayedAvailableQty)
         If invLo Is Nothing Then Set invLo = GetWritableShippingInvSysTable(ws, report)
@@ -12408,12 +12429,19 @@ Private Function RefreshShippingBomViewForWorkbook(ByVal operatorWb As Workbook,
     Dim loBom As ListObject
     Dim loView As ListObject
     Dim openedTransient As Boolean
+    Dim surfaceReport As String
 
     If operatorWb Is Nothing Then Exit Function
     Set loView = GetShippingBomViewTable(operatorWb)
     If loView Is Nothing Then
-        report = "ShippingBOMView table was not found in the operator workbook."
-        Exit Function
+        If modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(operatorWb, surfaceReport) Then
+            Set loView = GetShippingBomViewTable(operatorWb)
+        End If
+        If loView Is Nothing Then
+            report = "ShippingBOMView table was not found in the operator workbook."
+            If Trim$(surfaceReport) <> "" Then AppendNote report, surfaceReport
+            Exit Function
+        End If
     End If
 
     Set target = modNasConnection.GetCurrentTarget()

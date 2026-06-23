@@ -4880,6 +4880,83 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingUpdate_PreservesExistingReservationWithoutDoubleDeducting() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+    Dim overlayPath As String
+    Dim projectedText As String
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 973, "SKU-UPDATE-LOCKED", "Update Locked Item", "EA", "A1", 19
+    AddShippingBomViewRow loBomView, 973, "Update Locked Item", 973, "Update Locked Item", 1, "EA"
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-UPDATE-LOCKED", "Update Locked Item", 1, 973, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-UPDATE-LOCKED-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-UPDATE-LOCKED-001"
+
+    wbOps.Activate
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingRegisterProjectedOverlayForTest 973, "v1", 19, 20
+
+    ok = RunShippingCommitLineForTest("SHIP", "UPDATE", 1, "REF-UPDATE-LOCKED", "Update Locked Item", 1, 973, "EA", "A1", "v1", "DHL", report, 19)
+    If Not ok Then
+        failureReason = "Update reserved row failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 19 Then
+        failureReason = "Update reserved row changed TOTAL INV; expected 19 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 1 Then
+        failureReason = "Update reserved row changed SHIPMENTS staging; expected 1 but found " & CStr(GetTableValue(loInv, 1, "SHIPMENTS")) & "."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loShip, 1, "SERVER_RESERVE_EVENT_ID")), "RESERVE-UPDATE-LOCKED-001", vbTextCompare) <> 0 Then
+        failureReason = "Update reserved row did not preserve SERVER_RESERVE_EVENT_ID."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loShip, 1, "AREA")), "Shipments", vbTextCompare) <> 0 Then
+        failureReason = "Update reserved row did not preserve Shipments area."
+        GoTo CleanExit
+    End If
+    projectedText = RunShippingProjectedOverlayTextForTest(973, "v1", "20")
+    If CDbl(NzDblForTest(projectedText)) <> 19 Then
+        failureReason = "Update reserved row double-deducted Projected Inv; expected 19 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingUpdate_PreservesExistingReservationWithoutDoubleDeducting = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7158, "TestShippingUpdate_PreservesExistingReservationWithoutDoubleDeducting", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv() As Long
     Dim rootPath As String
     Dim currentUser As String
