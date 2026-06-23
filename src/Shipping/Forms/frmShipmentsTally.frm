@@ -97,7 +97,7 @@ Public Sub InitializeFromShipping()
     mChkUseExisting.Value = modTS_Shipments.ShipmentsFormUseExistingInventory()
     LoadShippables
     LoadShipmentState
-    EvictOrphanedActiveOverlays True
+    EvictOrphanedActiveOverlays
     RefreshProjectedShippableInventory
     UpdateSyncStateLabel
     mLoading = False
@@ -772,7 +772,7 @@ CleanExit:
     UpdateSyncStateLabel
 End Sub
 
-Private Sub EvictOrphanedActiveOverlays(Optional ByVal includeSentOverlays As Boolean = False)
+Private Sub EvictOrphanedActiveOverlays()
     Dim r As Long
     Dim packageRow As Long
     Dim versionLabel As String
@@ -785,7 +785,6 @@ Private Sub EvictOrphanedActiveOverlays(Optional ByVal includeSentOverlays As Bo
         If packageRow > 0 And Trim$(versionLabel) <> "" Then
             If Not HasActiveShipmentLineForRow(packageRow, versionLabel) Then
                 modTS_Shipments.ClearActiveOverlayForRowVersion packageRow, versionLabel
-                If includeSentOverlays Then modTS_Shipments.ClearOrphanedSentOverlayForRowVersion packageRow, versionLabel
             End If
         End If
     Next r

@@ -5111,6 +5111,7 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
     Dim selectedRows(1 To 1) As Long
     Dim runResult As String
     Dim projectedAfter As Double
+    Dim projectedAfterPeerSent As Double
     Dim projectedAfterCatchup As Double
     Dim projectedAfterEviction As Double
     Dim overlayPath As String
@@ -5162,6 +5163,25 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
     projectedAfter = NzDblForTest(RunShippingProjectedOverlayTextForTest(985, "v1", "10"))
     If projectedAfter <> 9 Then
         failureReason = "Full Shipments Sent did not preserve the user-side projected deduction against stale NAS inventory; expected 9 but found " & CStr(projectedAfter) & "."
+        GoTo CleanExit
+    End If
+    AddInvSysSeedRow loInv, 984, "SKU-SENT-FULL-PEER", "Full Sent Peer Item", "EA", "A1", 10
+    SetTableCell loInv, 2, "TOTAL INV", 8
+    SetTableCell loInv, 2, "SHIPMENTS", 2
+    AddShippingTallyRow loShip, "REF-SENT-FULL-PEER", "Full Sent Peer Item", 2, 984, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "USPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-SENT-FULL-PEER-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-SENT-FULL-PEER-001"
+    selectedRows(1) = 1
+    runResult = RunShippingSentRowsReportForTest(selectedRows, "USPS")
+    If Left$(runResult, 3) <> "OK|" Then
+        failureReason = "Peer Shipments Sent run failed: " & Mid$(runResult, 6)
+        GoTo CleanExit
+    End If
+    projectedAfterPeerSent = NzDblForTest(RunShippingProjectedOverlayTextForTest(985, "v1", "10"))
+    If projectedAfterPeerSent <> 9 Then
+        failureReason = "Completing peer shipment cleared the prior SENT overlay; expected T28 projected 9 but found " & CStr(projectedAfterPeerSent) & "."
         GoTo CleanExit
     End If
     projectedAfterCatchup = NzDblForTest(RunShippingProjectedOverlayTextForTest(985, "v1", "9"))
