@@ -4653,6 +4653,44 @@ Public Function PendingBoxVersionInventoryOverlayPathForTest() As String
     PendingBoxVersionInventoryOverlayPathForTest = PersistentPendingBoxVersionInventoryOverlayPath()
 End Function
 
+Public Sub EvictCompletedShipmentInventoryOverlaysForShippables(ByVal shippables As Variant)
+    On Error GoTo CleanExit
+
+    Dim r As Long
+    Dim packageRow As Long
+    Dim versionLabel As String
+    Dim backendQty As Double
+    Dim overlayQty As Double
+    Dim sentKey As String
+    Dim changed As Boolean
+
+    EnsurePendingBoxVersionInventoryOverlayLoaded
+    If mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Sub
+    If IsEmpty(shippables) Then Exit Sub
+    If Not IsArray(shippables) Then Exit Sub
+
+    For r = 1 To UBound(shippables, 1)
+        packageRow = NzLng(shippables(r, 1))
+        versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(shippables(r, 3)))
+        sentKey = SentPendingBoxVersionInventoryKey(packageRow, versionLabel)
+        If sentKey = "" Then GoTo NextRow
+        If Not mPendingBoxVersionInventoryOverlay.Exists(sentKey) Then GoTo NextRow
+        backendQty = NzDbl(shippables(r, 4))
+        overlayQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
+        If backendQty <= overlayQty + 0.0000001 Then
+            mPendingBoxVersionInventoryOverlay.Remove sentKey
+            If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
+                If mPendingBoxVersionInventoryOverlayBaseline.Exists(sentKey) Then mPendingBoxVersionInventoryOverlayBaseline.Remove sentKey
+            End If
+            changed = True
+        End If
+NextRow:
+    Next r
+    If changed Then PersistPendingBoxVersionInventoryOverlay
+
+CleanExit:
+End Sub
+
 Public Function PendingBoxVersionInventoryOverlayText(ByVal packageRow As Long, _
                                                       ByVal versionLabel As String, _
                                                       ByVal backendText As String) As String
@@ -4666,6 +4704,7 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
                                                         ByVal versionLabel As String, _
                                                         ByVal backendValue As Variant) As Variant
     Dim key As String
+    Dim sentKey As String
     Dim pendingQty As Double
     Dim backendQty As Double
     Dim baselineQty As Double
@@ -4673,6 +4712,22 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
     EnsurePendingBoxVersionInventoryOverlayLoaded
     PendingBoxVersionInventoryOverlayValue = backendValue
     If mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Function
+
+    sentKey = SentPendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If sentKey <> "" Then
+        If mPendingBoxVersionInventoryOverlay.Exists(sentKey) Then
+            pendingQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
+            If IsNumeric(backendValue) Then
+                backendQty = CDbl(backendValue)
+                If backendQty <= pendingQty + 0.0000001 Then
+                    RemovePendingBoxVersionInventoryOverlayKey sentKey
+                    Exit Function
+                End If
+            End If
+            PendingBoxVersionInventoryOverlayValue = pendingQty
+            Exit Function
+        End If
+    End If
 
     key = PendingBoxVersionInventoryKey(packageRow, versionLabel)
     If key = "" Then Exit Function
@@ -4697,6 +4752,15 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
     PendingBoxVersionInventoryOverlayValue = pendingQty
 End Function
 
+Private Sub RemovePendingBoxVersionInventoryOverlayKey(ByVal key As String)
+    If mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Sub
+    If mPendingBoxVersionInventoryOverlay.Exists(key) Then mPendingBoxVersionInventoryOverlay.Remove key
+    If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
+        If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then mPendingBoxVersionInventoryOverlayBaseline.Remove key
+    End If
+    PersistPendingBoxVersionInventoryOverlay
+End Sub
+
 Private Function PendingBoxVersionInventoryOverlayExists(ByVal packageRow As Long, _
                                                          ByVal versionLabel As String) As Boolean
     Dim key As String
@@ -4707,6 +4771,37 @@ Private Function PendingBoxVersionInventoryOverlayExists(ByVal packageRow As Lon
     If key = "" Then Exit Function
     PendingBoxVersionInventoryOverlayExists = mPendingBoxVersionInventoryOverlay.Exists(key)
 End Function
+
+Private Sub RegisterSentBoxVersionInventoryOverlay(ByVal packageRow As Long, _
+                                                   ByVal versionLabel As String, _
+                                                   ByVal projectedQty As Double, _
+                                                   ByVal baselineQty As Double)
+    Dim sentKey As String
+    Dim activeKey As String
+
+    EnsurePendingBoxVersionInventoryOverlayLoaded
+    sentKey = SentPendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If sentKey = "" Then Exit Sub
+    If mPendingBoxVersionInventoryOverlay Is Nothing Then
+        Set mPendingBoxVersionInventoryOverlay = CreateObject("Scripting.Dictionary")
+        mPendingBoxVersionInventoryOverlay.CompareMode = vbTextCompare
+    End If
+    If mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
+        Set mPendingBoxVersionInventoryOverlayBaseline = CreateObject("Scripting.Dictionary")
+        mPendingBoxVersionInventoryOverlayBaseline.CompareMode = vbTextCompare
+    End If
+    If projectedQty < 0 Then projectedQty = 0
+    If baselineQty < projectedQty Then baselineQty = projectedQty
+
+    activeKey = PendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If activeKey <> "" Then
+        If mPendingBoxVersionInventoryOverlay.Exists(activeKey) Then mPendingBoxVersionInventoryOverlay.Remove activeKey
+        If mPendingBoxVersionInventoryOverlayBaseline.Exists(activeKey) Then mPendingBoxVersionInventoryOverlayBaseline.Remove activeKey
+    End If
+    mPendingBoxVersionInventoryOverlay(sentKey) = projectedQty
+    mPendingBoxVersionInventoryOverlayBaseline(sentKey) = baselineQty
+    PersistPendingBoxVersionInventoryOverlay
+End Sub
 
 Private Sub EnsurePendingBoxVersionInventoryOverlayLoaded()
     On Error GoTo CleanExit
@@ -4803,6 +4898,12 @@ Private Function PendingBoxVersionInventoryKey(ByVal packageRow As Long, ByVal v
     versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
     If packageRow <= 0 Or versionLabel = "" Then Exit Function
     PendingBoxVersionInventoryKey = CStr(packageRow) & "|" & versionLabel
+End Function
+
+Private Function SentPendingBoxVersionInventoryKey(ByVal packageRow As Long, ByVal versionLabel As String) As String
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If packageRow <= 0 Or versionLabel = "" Then Exit Function
+    SentPendingBoxVersionInventoryKey = "SENT|" & CStr(packageRow) & "|" & versionLabel
 End Function
 
 Public Function BoxMakerFormLoadBoxVersionInventory(ByVal packageRow As Long, ByVal boxName As String) As Object
@@ -7819,7 +7920,7 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
         backendQty = NzDbl(backendText)
         existingProjectedQty = NzDbl(projectedText)
         projectedQty = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, qtyVal, hasExistingOverlay)
-        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, projectedQty, backendQty
+        RegisterSentBoxVersionInventoryOverlay rowVal, versionLabel, projectedQty, backendQty
 NextRow:
     Next i
 End Sub

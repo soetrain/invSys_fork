@@ -5106,6 +5106,8 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
     Dim selectedRows(1 To 1) As Long
     Dim runResult As String
     Dim projectedAfter As Double
+    Dim projectedAfterCatchup As Double
+    Dim projectedAfterEviction As Double
     Dim overlayPath As String
 
     rootPath = BuildRuntimeTestRoot("phase6_ship_sent_full_never_adds_projected")
@@ -5154,6 +5156,16 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
     projectedAfter = NzDblForTest(RunShippingProjectedOverlayTextForTest(985, "v1", "10"))
     If projectedAfter <> 9 Then
         failureReason = "Full Shipments Sent did not preserve the user-side projected deduction against stale NAS inventory; expected 9 but found " & CStr(projectedAfter) & "."
+        GoTo CleanExit
+    End If
+    projectedAfterCatchup = NzDblForTest(RunShippingProjectedOverlayTextForTest(985, "v1", "9"))
+    If projectedAfterCatchup <> 9 Then
+        failureReason = "Full Shipments Sent did not return NAS catch-up value after backend deducted to 9; found " & CStr(projectedAfterCatchup) & "."
+        GoTo CleanExit
+    End If
+    projectedAfterEviction = NzDblForTest(RunShippingProjectedOverlayTextForTest(985, "v1", "10"))
+    If projectedAfterEviction <> 10 Then
+        failureReason = "Full Shipments Sent left an active-lock overlay after SENT overlay catch-up eviction; expected backend 10 but found " & CStr(projectedAfterEviction) & "."
         GoTo CleanExit
     End If
 

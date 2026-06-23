@@ -240,6 +240,7 @@ Private Sub LoadShippables()
     Set previousInv = CurrentShippableInventoryCache()
     mShippables = modTS_Shipments.ShipmentsFormLoadShippables()
     PreserveMissingShippableInventory previousInv
+    modTS_Shipments.EvictCompletedShipmentInventoryOverlaysForShippables mShippables
     RenderShippables
     Exit Sub
 
@@ -748,7 +749,11 @@ Private Sub RefreshProjectedShippableInventory()
             projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(CLng(Val(NzText(mShippables(r, 1)))), _
                                                                                   NzText(mShippables(r, 3)), _
                                                                                   backendText)
-            mShippables(r, 8) = projectedText
+            If Trim$(projectedText) <> "" And StrComp(projectedText, backendText, vbBinaryCompare) <> 0 Then
+                mShippables(r, 8) = projectedText
+            Else
+                mShippables(r, 8) = backendText
+            End If
         Else
             projectedQty = ParseNumber(backendText) - activeQty
             If projectedQty < 0 Then projectedQty = 0
