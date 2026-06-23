@@ -4717,9 +4717,11 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
     If sentKey <> "" Then
         If mPendingBoxVersionInventoryOverlay.Exists(sentKey) Then
             pendingQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
+            baselineQty = PendingOverlayBaselineForKey(sentKey)
             If IsNumeric(backendValue) Then
                 backendQty = CDbl(backendValue)
-                If backendQty <= pendingQty + 0.0000001 Then
+                If backendQty <= pendingQty + 0.0000001 _
+                   Or (baselineQty > 0 And backendQty < baselineQty - 0.0000001 And backendQty > pendingQty + 0.0000001) Then
                     RemovePendingBoxVersionInventoryOverlayKey sentKey
                     Exit Function
                 End If
@@ -5670,15 +5672,24 @@ End Function
 Public Function ShipmentsSentProjectedOverlayQtyForTest(ByVal backendQty As Double, _
                                                         ByVal existingProjectedQty As Double, _
                                                         ByVal shippedQty As Double, _
-                                                        Optional ByVal hasExistingOverlay As Boolean = False) As Double
-    ShipmentsSentProjectedOverlayQtyForTest = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, shippedQty, hasExistingOverlay)
+                                                        Optional ByVal hasExistingOverlay As Boolean = False, _
+                                                        Optional ByVal isReservedRow As Boolean = False) As Double
+    ShipmentsSentProjectedOverlayQtyForTest = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, shippedQty, hasExistingOverlay, isReservedRow)
 End Function
 
 Private Function ShipmentsSentProjectedOverlayQty(ByVal backendQty As Double, _
                                                   ByVal existingProjectedQty As Double, _
                                                   ByVal shippedQty As Double, _
-                                                  Optional ByVal hasExistingOverlay As Boolean = False) As Double
+                                                  Optional ByVal hasExistingOverlay As Boolean = False, _
+                                                  Optional ByVal isReservedRow As Boolean = False) As Double
     Dim projectedQty As Double
+
+    If isReservedRow Then
+        projectedQty = backendQty
+        If hasExistingOverlay And existingProjectedQty <= backendQty Then projectedQty = existingProjectedQty
+        ShipmentsSentProjectedOverlayQty = projectedQty
+        Exit Function
+    End If
 
     projectedQty = backendQty - shippedQty
     If projectedQty < 0 Then projectedQty = 0
@@ -7904,6 +7915,8 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
     Dim existingProjectedQty As Double
     Dim projectedQty As Double
     Dim hasExistingOverlay As Boolean
+    Dim isReservedRow As Boolean
+    Dim cReserve As Long
 
     If loShip Is Nothing Then Exit Sub
     If loShip.DataBodyRange Is Nothing Then Exit Sub
@@ -7912,6 +7925,7 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
     cItem = ColumnIndex(loShip, "ITEMS")
     cQty = ColumnIndex(loShip, "QUANTITY")
     cDesc = ColumnIndex(loShip, "DESCRIPTION")
+    cReserve = ColumnIndex(loShip, COL_SHIPMENT_RESERVE_EVENT_ID)
     If cRow = 0 Or cQty = 0 Or cDesc = 0 Then Exit Sub
 
     For i = LBound(rowIndexes) To UBound(rowIndexes)
@@ -7928,7 +7942,8 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
         projectedText = PendingBoxVersionInventoryOverlayText(rowVal, versionLabel, backendText)
         backendQty = NzDbl(backendText)
         existingProjectedQty = NzDbl(projectedText)
-        projectedQty = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, qtyVal, hasExistingOverlay)
+        isReservedRow = (cReserve > 0 And Trim$(NzStr(loShip.DataBodyRange.Cells(rowIndex, cReserve).Value)) <> "")
+        projectedQty = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, qtyVal, hasExistingOverlay, isReservedRow)
         RegisterSentBoxVersionInventoryOverlay rowVal, versionLabel, projectedQty, backendQty
 NextRow:
     Next i
