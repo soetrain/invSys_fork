@@ -3947,6 +3947,78 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingState_SentRowTombstoneFiltersLegacyActiveCache() As Long
+    Dim activePath As String
+    Dim sentPath As String
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim selectedRows(1 To 1) As Long
+    Dim runResult As String
+    Dim rows As Variant
+
+    On Error GoTo CleanFail
+    If Not modConfig.LoadConfig("WH92", "S21") Then GoTo CleanExit
+    activePath = LocalShippingStatePathForTest("active", "WH92")
+    sentPath = LocalShippingStatePathForTest("sent", "WH92")
+    DeleteFileIfExistsForTest activePath
+    DeleteFileIfExistsForTest sentPath
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureShippingWorkbookSurface failed: " & report
+        GoTo CleanExit
+    End If
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then
+        failureReason = "Shipping workbook surface was incomplete."
+        GoTo CleanExit
+    End If
+
+    AddInvSysSeedRow loInv, 976, "SKU-LEGACY-TOMB", "Legacy Tombstone Package", "EA", "A1", 20
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-LEGACY-TOMB-001", "Legacy Tombstone Package", 1, 976, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-LEGACY-TOMB-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-LEGACY-TOMB-001"
+
+    wbOps.Activate
+    selectedRows(1) = 1
+    runResult = RunShippingSentRowsReportForTest(selectedRows, "UPS")
+    If Left$(runResult, 3) <> "OK|" Then
+        failureReason = "Shipments Sent did not complete for legacy tombstone setup: " & runResult
+        GoTo CleanExit
+    End If
+
+    EnsureFolderForTest ParentFolderPathForTest(activePath)
+    WriteTextFileForTest activePath, "REF-LEGACY-TOMB-001" & vbTab & "Legacy Tombstone Package" & vbTab & "1" & vbTab & "976" & vbTab & "EA" & vbTab & "A1" & vbTab & "v1" & vbTab & "Shipments" & vbTab & "UPS"
+
+    rows = RunShippingMacro1ForTest("ShipmentsFormLoadLines", False)
+    If Not IsEmpty(rows) Then
+        failureReason = "Legacy active cache row without LINE_ID was loaded after the matching row was sent."
+        GoTo CleanExit
+    End If
+
+    TestShippingState_SentRowTombstoneFiltersLegacyActiveCache = 1
+
+CleanExit:
+    DeleteFileIfExistsForTest activePath
+    DeleteFileIfExistsForTest sentPath
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7153, "TestShippingState_SentRowTombstoneFiltersLegacyActiveCache", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingWorkflowGuard_ShipmentsSentWithZeroStagedFails() As Long
     Dim wbOps As Workbook
     Dim report As String
@@ -5072,6 +5144,40 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7130, "TestShippingSentRows_FullRunNeverIncreasesProjectedInventory", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingProjectedOverlay_PreservesNasBaselineAcrossSentReregister() As Long
+    Dim failureReason As String
+    Dim overlayPath As String
+    Dim projectedText As String
+
+    On Error GoTo CleanFail
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    RunShippingRegisterProjectedOverlayForTest 976, "v1", 19, 20
+    RunShippingRegisterProjectedOverlayForTest 976, "v1", 19, 19
+    RunShippingClearProjectedOverlayForTest
+    projectedText = RunShippingProjectedOverlayTextForTest(976, "v1", "20")
+    If CDbl(NzDblForTest(projectedText)) <> 19 Then
+        failureReason = "Shipments Sent re-registered the overlay with the local 19 baseline and let stale NAS 20 inflate Projected Inv; found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedOverlay_PreservesNasBaselineAcrossSentReregister = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7154, "TestShippingProjectedOverlay_PreservesNasBaselineAcrossSentReregister", failureReason
     End If
     Exit Function
 CleanFail:

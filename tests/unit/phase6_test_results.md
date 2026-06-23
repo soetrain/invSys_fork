@@ -1,8 +1,9 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-05-25 20:49:34
-- Passed: 101
-- Failed: 9
+- Date: 2026-06-22 17:05:19
+- Passed: 93
+- Failed: 18
+- Range: 1-170 of 170
 - Status: PARTIAL
 
 | Test | Result |
@@ -13,6 +14,7 @@
 | TestPhase6CoreSurfaces.TestNasSelectWarehouseTarget_AllowsRoamingBlankStationWithoutInboxRequirement | PASS |
 | TestPhase6CoreSurfaces.TestNasSelectWarehouseTarget_TwoStationsHaveIndependentInboxRoots | PASS |
 | TestPhase6CoreSurfaces.TestNasScanRoot_ReturnsPathStringsWithoutWarehouseInference | PASS |
+| TestPhase6CoreSurfaces.TestNasScanRoot_RejectsMismatchedConfigAuthPair | PASS |
 | TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_UnreachableFailsClosed | PASS |
 | TestPhase6CoreSurfaces.TestNasResolveRememberedTarget_ReachableRecomputesCachedHints | PASS |
 | TestPhase6CoreSurfaces.TestNasFallbackPolicy_RoleRejectsFallbackAdminAccepts | PASS |
@@ -20,6 +22,7 @@
 | TestPhase6CoreSurfaces.TestAuthValidateUserCredentialForTarget_AcceptsResetPinForUserId | PASS |
 | TestPhase6CoreSurfaces.TestAuthValidateUserCredentialForTarget_RejectsDisplayNameAsUserId | PASS |
 | TestPhase6CoreSurfaces.TestAuthValidateUserCredentialForTarget_RejectsMismatchedTargetWarehouse | PASS |
+| TestPhase6CoreSurfaces.TestAuthCapabilityScope_AllowsSelectedRuntimeFolderAlias | PASS |
 | TestPhase6CoreSurfaces.TestAuthFailedCredential_DoesNotReplaceSignedInUser | PASS |
 | TestPhase6CoreSurfaces.TestAuthCorrectCredentialWithoutCapability_ReturnsNoCapabilities | PASS |
 | TestPhase6CoreSurfaces.TestRuntimeStatusUserLabel_UnsignedShowsNotSignedIn | PASS |
@@ -27,7 +30,7 @@
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsUnsignedUser | PASS |
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsMissingCapability | PASS |
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsFallbackTarget | PASS |
-| TestPhase6CoreSurfaces.TestRoleWriteCurrent_AllowsSignedInReceivePost | PASS |
+| TestPhase6CoreSurfaces.TestRoleWriteCurrent_AllowsSignedInReceivePost | FAIL |
 | TestPhase6CoreSurfaces.TestAuthSignOut_ClearsUserButKeepsWarehouseTarget | PASS |
 | TestPhase6CoreSurfaces.TestAuthCanPerform_SignedOutFailsClosedWithLoadedAuth | PASS |
 | TestPhase6CoreSurfaces.TestAuthTtlExpiry_FailsClosedForIsSignedInAndCanPerform | PASS |
@@ -44,11 +47,11 @@
 | TestWarehouseBootstrap.TestWarehouseIdExists_SharePointArtifactExists | PASS |
 | TestWarehouseBootstrap.TestWarehouseIdExists_NeitherLocalNorSharePointExists | PASS |
 | TestWarehouseBootstrap.TestWarehouseIdExists_SharePointUnavailableReturnsFalseAndLogsSkip | PASS |
-| TestWarehouseBootstrap.TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime | PASS |
+| TestWarehouseBootstrap.TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime | FAIL |
 | TestWarehouseBootstrap.TestBootstrapWarehouseLocal_FailureRollsBackPartialFolders | PASS |
-| TestWarehouseBootstrap.TestPublishInitialArtifacts_PublishSuccess | PASS |
-| TestWarehouseBootstrap.TestPublishInitialArtifacts_SharePointUnavailableReturnsFalse | PASS |
-| TestWarehouseBootstrap.TestPublishInitialArtifacts_RepeatedPublishIsIdempotent | PASS |
+| TestWarehouseBootstrap.TestPublishInitialArtifacts_PublishSuccess | FAIL |
+| TestWarehouseBootstrap.TestPublishInitialArtifacts_SharePointUnavailableReturnsFalse | FAIL |
+| TestWarehouseBootstrap.TestPublishInitialArtifacts_RepeatedPublishIsIdempotent | FAIL |
 | test_RetireMigrateSpec.TestValidateRetireMigrateSpec_TrimsAndAcceptsArchiveOnly | PASS |
 | test_RetireMigrateSpec.TestValidateRetireMigrateSpec_RejectsEmptySourceWarehouseId | PASS |
 | test_RetireMigrateSpec.TestValidateRetireMigrateSpec_RejectsMissingTargetForMigrate | PASS |
@@ -59,19 +62,19 @@
 | TestWarehouseRetireReAuth.TestReAuthGate_WrongPassword_ShowsInlineErrorAndDoesNotAuthenticate | PASS |
 | TestWarehouseRetireReAuth.TestReAuthGate_ThreeFailures_LocksOutAndLogs | PASS |
 | TestWarehouseRetireReAuth.TestReAuthGate_Cancel_LeavesUnauthenticatedWithoutLog | PASS |
-| TestWarehouseRetireArchive.TestWriteArchivePackage_SuccessCreatesAtomicArchive | PASS |
-| TestWarehouseRetireArchive.TestWriteArchivePackage_PartialFailureRollsBackTempArchive | PASS |
-| TestWarehouseRetireArchive.TestWriteArchivePackage_AuthExportMasksPinHash | PASS |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource | FAIL |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingArchiveManifest | PASS |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse | FAIL |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities | FAIL |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | FAIL |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker | FAIL |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson | FAIL |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement | FAIL |
-| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutTombstone | PASS |
-| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutConfirmation | FAIL |
+| TestWarehouseRetireArchive.TestWriteArchivePackage_SuccessCreatesAtomicArchive | FAIL |
+| TestWarehouseRetireArchive.TestWriteArchivePackage_PartialFailureRollsBackTempArchive | FAIL |
+| TestWarehouseRetireArchive.TestWriteArchivePackage_AuthExportMasksPinHash | FAIL |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource | FAIL - SuccessAppendsInventoryAndTracesSource: SetupMigrationRuntimeRetire failed for WHRETMIG1A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG1A-INVENTORY-20260622170410-300454 |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingArchiveManifest | FAIL - RejectsMissingArchiveManifest: SetupMigrationRuntimeRetire failed for WHRETMIG2B: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG2B-INVENTORY-20260622170412-658708 |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse | FAIL - RejectsMissingTargetWarehouse: SetupMigrationRuntimeRetire failed for WHRETMIG3A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG3A-INVENTORY-20260622170414-696938 |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities | FAIL - DoesNotCopyAuthIdentities: SetupMigrationRuntimeRetire failed for WHRETMIG4A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG4A-INVENTORY-20260622170417-010866 |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | FAIL - PreservesTargetConfigIdentity: SetupMigrationRuntimeRetire failed for WHRETMIG5A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG5A-INVENTORY-20260622170419-538884 |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker | FAIL - WritesRetirementMarker: No retire lifecycle report was available. |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson | FAIL - WritesValidTombstoneJson: No retire lifecycle report was available. |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement | FAIL - SharePointUnavailableDoesNotBlockRetirement: No retire lifecycle report was available. |
+| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutTombstone | FAIL - RejectsWithoutTombstone: No retire lifecycle report was available. |
+| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutConfirmation | FAIL - RejectsWithoutConfirmation: No retire lifecycle report was available. |
 | TestReceivingReadiness.TestCheckReceivingReadiness_AllReady_ReturnsReady | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_AllReady_WhenCapabilityStationWildcard | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_SnapshotOk_WhenAuthMissingCapability | PASS |
@@ -84,6 +87,7 @@
 | TestReceivingReadiness.TestCheckReceivingReadiness_AuthInactive_ReturnsInactive | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_RuntimeOk_WhenSnapshotMissingAndNoUser | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_RuntimeMissingTables_ReturnsMissingTables | PASS |
+| TestReceivingReadiness.TestEnsureReceivingSurface_BlankWorkbookWithConfigLoaded_DoesNotApplyReadiness | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_RuntimePathUnresolved_ReturnsPathUnresolved | PASS |
 | TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_CreatesCanonicalWorkbook | PASS |
 | TestPhase6CoreSurfaces.TestLoadConfig_AutoBootstrapsCanonicalWorkbook | PASS |
@@ -91,7 +95,7 @@
 | TestPhase6CoreSurfaces.TestEnsureStationBootstrap_CreatesLocalConfigAndInbox | PASS |
 | TestPhase6CoreSurfaces.TestLoadConfig_QuarantinesContaminatedConfigSheet | PASS |
 | TestPhase6CoreSurfaces.TestLoadAuth_AutoBootstrapsCanonicalWorkbook | PASS |
-| TestPhase6CoreSurfaces.TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities | FAIL |
+| TestPhase6CoreSurfaces.TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities | PASS |
 | TestPhase6CoreSurfaces.TestResolveInventoryWorkbookBridge_PrefersCanonicalWorkbookOverOperatorSurface | PASS |
 | TestPhase6CoreSurfaces.TestEnsureInventoryManagementSurface_RemovesDomainArtifacts | PASS |
 | TestPhase6CoreSurfaces.TestOpenOrCreateConfigWorkbookRuntime_PrunesUnexpectedSheets | PASS |
@@ -115,5 +119,3 @@
 | TestPhase6CoreSurfaces.TestProcessor_DiscoversClosedConfiguredStationInboxWorkbook | PASS |
 | TestPhase6CoreSurfaces.TestSavedShippingWorkbook_RefreshPreservesStagingAndLogs | PASS |
 | TestPhase6CoreSurfaces.TestSavedShippingWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs | PASS |
-| TestPhase6CoreSurfaces.TestSavedProductionWorkbook_RefreshPreservesStagingAndLogs | PASS |
-| TestPhase6CoreSurfaces.TestSavedProductionWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs | PASS |

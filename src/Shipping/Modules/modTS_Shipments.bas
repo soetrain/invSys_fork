@@ -4635,6 +4635,9 @@ Public Sub RegisterPendingBoxVersionInventoryOverlay(ByVal packageRow As Long, _
         resolvedBaseline = CDbl(baselineQty)
         If resolvedBaseline < projectedQty Then resolvedBaseline = projectedQty
     End If
+    If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then
+        If CDbl(mPendingBoxVersionInventoryOverlayBaseline(key)) > resolvedBaseline Then resolvedBaseline = CDbl(mPendingBoxVersionInventoryOverlayBaseline(key))
+    End If
     mPendingBoxVersionInventoryOverlay(key) = projectedQty
     mPendingBoxVersionInventoryOverlayBaseline(key) = resolvedBaseline
     PersistPendingBoxVersionInventoryOverlay
@@ -7270,6 +7273,7 @@ Private Sub AppendSentShipmentRowsLocal(ByVal loShip As ListObject, ByVal rowInd
     Dim i As Long
     Dim rowIndex As Long
     Dim keyText As String
+    Dim legacyKeyText As String
 
     If loShip Is Nothing Then Exit Sub
     If loShip.DataBodyRange Is Nothing Then Exit Sub
@@ -7287,6 +7291,8 @@ Private Sub AppendSentShipmentRowsLocal(ByVal loShip As ListObject, ByVal rowInd
         If rowIndex >= 1 And rowIndex <= loShip.ListRows.Count Then
             keyText = SentShipmentPersistTokenFromTableRow(loShip, rowIndex)
             If keyText <> "" Then Print #fileNum, EscapeHoldField(keyText)
+            legacyKeyText = ShipmentPersistKeyFromTableRow(loShip, rowIndex)
+            If legacyKeyText <> "" And StrComp(legacyKeyText, keyText, vbTextCompare) <> 0 Then Print #fileNum, EscapeHoldField(legacyKeyText)
         End If
     Next i
     Close #fileNum
