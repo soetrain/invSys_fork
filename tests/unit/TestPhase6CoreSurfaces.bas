@@ -5174,6 +5174,11 @@ Public Function TestShippingSentRows_ReservedCompletionKeepsProjectedDeductionWh
         failureReason = "Reserved Shipments Sent double-subtracted when the active overlay was missing; expected 19 but found " & CStr(projectedQty) & "."
         GoTo CleanExit
     End If
+    projectedQty = RunShippingSentProjectedOverlayQtyForTest(0, 19, 1, True, True)
+    If projectedQty <> 19 Then
+        failureReason = "Reserved Shipments Sent rewrote an existing positive projection to zero when backend lookup was stale/blank; expected 19 but found " & CStr(projectedQty) & "."
+        GoTo CleanExit
+    End If
 
     TestShippingSentRows_ReservedCompletionKeepsProjectedDeductionWhenNasStale = 1
 
@@ -5337,6 +5342,39 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7154, "TestShippingProjectedOverlay_PreservesNasBaselineAcrossSentReregister", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingProjectedOverlay_EvictsStaleZeroWhenBackendPositive() As Long
+    Dim failureReason As String
+    Dim overlayPath As String
+    Dim projectedText As String
+
+    On Error GoTo CleanFail
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    RunShippingRegisterProjectedOverlayForTest 975, "v1", 0, 0
+    RunShippingClearProjectedOverlayForTest
+    projectedText = RunShippingProjectedOverlayTextForTest(975, "v1", "20")
+    If CDbl(NzDblForTest(projectedText)) <> 20 Then
+        failureReason = "Stale zero projected overlay overrode positive backend inventory; expected 20 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedOverlay_EvictsStaleZeroWhenBackendPositive = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7157, "TestShippingProjectedOverlay_EvictsStaleZeroWhenBackendPositive", failureReason
     End If
     Exit Function
 CleanFail:

@@ -4720,6 +4720,10 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
             baselineQty = PendingOverlayBaselineForKey(sentKey)
             If IsNumeric(backendValue) Then
                 backendQty = CDbl(backendValue)
+                If backendQty > 0.0000001 And pendingQty <= 0.0000001 And baselineQty <= 0.0000001 Then
+                    RemovePendingBoxVersionInventoryOverlayKey sentKey
+                    Exit Function
+                End If
                 If backendQty <= pendingQty + 0.0000001 _
                    Or (baselineQty > 0 And backendQty < baselineQty - 0.0000001 And backendQty > pendingQty + 0.0000001) Then
                     RemovePendingBoxVersionInventoryOverlayKey sentKey
@@ -4741,6 +4745,14 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
         baselineQty = pendingQty
         If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
             If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then baselineQty = CDbl(mPendingBoxVersionInventoryOverlayBaseline(key))
+        End If
+        If backendQty > 0.0000001 And pendingQty <= 0.0000001 And baselineQty <= 0.0000001 Then
+            mPendingBoxVersionInventoryOverlay.Remove key
+            If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
+                If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then mPendingBoxVersionInventoryOverlayBaseline.Remove key
+            End If
+            PersistPendingBoxVersionInventoryOverlay
+            Exit Function
         End If
         If backendQty > baselineQty + 0.0000001 Then
             mPendingBoxVersionInventoryOverlay.Remove key
@@ -4801,8 +4813,14 @@ Private Function PendingBoxVersionInventoryOverlayExists(ByVal packageRow As Lon
     EnsurePendingBoxVersionInventoryOverlayLoaded
     If mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Function
     key = PendingBoxVersionInventoryKey(packageRow, versionLabel)
-    If key = "" Then Exit Function
-    PendingBoxVersionInventoryOverlayExists = mPendingBoxVersionInventoryOverlay.Exists(key)
+    If key <> "" Then
+        If mPendingBoxVersionInventoryOverlay.Exists(key) Then
+            PendingBoxVersionInventoryOverlayExists = True
+            Exit Function
+        End If
+    End If
+    key = SentPendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If key <> "" Then PendingBoxVersionInventoryOverlayExists = mPendingBoxVersionInventoryOverlay.Exists(key)
 End Function
 
 Private Sub RegisterSentBoxVersionInventoryOverlay(ByVal packageRow As Long, _
@@ -5708,6 +5726,7 @@ Private Function ShipmentsSentProjectedOverlayQty(ByVal backendQty As Double, _
 
     If isReservedRow Then
         projectedQty = backendQty
+        If hasExistingOverlay And backendQty <= 0.0000001 And existingProjectedQty > 0.0000001 Then projectedQty = existingProjectedQty
         If hasExistingOverlay And existingProjectedQty <= backendQty Then projectedQty = existingProjectedQty
         ShipmentsSentProjectedOverlayQty = projectedQty
         Exit Function
