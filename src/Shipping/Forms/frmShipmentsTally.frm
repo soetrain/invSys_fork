@@ -199,7 +199,7 @@ Private Sub BuildLayout()
     End With
     Set mBtnReturn = AddButton("btnReturn", "Return", 744, 444, 88, 24)
 
-    Set mTxtStatus = AddTextBox("txtStatus", 12, 568, 590, 42)
+    Set mTxtStatus = AddTextBox("txtStatus", 12, 552, 708, 68)
     With mTxtStatus
         .MultiLine = True
         .WordWrap = True
@@ -207,7 +207,7 @@ Private Sub BuildLayout()
         .Locked = True
         .BackColor = &H8000000F
     End With
-    Set mBtnClose = AddButton("btnClose", "Close", 776, 568, 56, 30)
+    Set mBtnClose = AddButton("btnClose", "Close", 776, 590, 56, 30)
 
     InitializeAnchors
     LoadCarrierChoices

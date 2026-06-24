@@ -1,10 +1,10 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-06-17 19:07:06
+- Date: 2026-06-24 00:43:47
 - Passed: 1
 - Failed: 0
-- Range: 131-131 of 150
+- Range: 131-131 of 183
 
 | Test | Result |
 |---|---|
-| TestPhase6CoreSurfaces.TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatchesUp | PASS |
+| TestPhase6CoreSurfaces.TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjection | PASS |

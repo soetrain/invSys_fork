@@ -6429,6 +6429,14 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         WriteValue lr, "AREA", "Warehouse"
     End If
 
+    If Not isHold And deltaReserveOnly Then
+        If invLo Is Nothing Then Set invLo = GetWritableShippingInvSysTable(ws, report)
+        If invLo Is Nothing Then
+            If report = "" Then report = "InventoryManagement!invSys table not found."
+            GoTo CleanExit
+        End If
+    End If
+
     WriteValue lr, "REF_NUMBER", Trim$(refNumber)
     WriteValue lr, COL_SHIPMENT_LINE_ID, EnsureShipmentLineId(lo, lr.Index)
     If preserveExistingReservation Or deltaReserveOnly Then
@@ -6453,11 +6461,6 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
 
     If Not isHold And deltaReserveOnly Then
         singleRow = Array(lr.Index)
-        If invLo Is Nothing Then Set invLo = GetWritableShippingInvSysTable(ws, report)
-        If invLo Is Nothing Then
-            If report = "" Then report = "InventoryManagement!invSys table not found."
-            GoTo CleanExit
-        End If
 
         If qtyDelta > 0 Then
             reservedTotal = ApplyShipmentQtyDeltaLocal(invLo, rowValue, qtyDelta, errNotes, existingQtyValue)
@@ -7435,6 +7438,7 @@ Private Sub PersistShipmentRowsLocal(ByVal lo As ListObject, ByVal filePath As S
     Dim fileNum As Integer
     Dim r As Long
     Dim lineText As String
+    Dim tempPath As String
 
     If lo Is Nothing Then Exit Sub
     If filePath = "" Then Exit Sub
@@ -7443,8 +7447,13 @@ Private Sub PersistShipmentRowsLocal(ByVal lo As ListObject, ByVal filePath As S
     EnsureColumnExists lo, COL_SHIPMENT_RESERVE_EVENT_ID
     EnsureShipmentLineIds lo
 
+    tempPath = filePath & ".tmp"
+    On Error Resume Next
+    Kill tempPath
+    On Error GoTo CleanExit
+
     fileNum = FreeFile
-    Open filePath For Output As #fileNum
+    Open tempPath For Output As #fileNum
     If Not lo.DataBodyRange Is Nothing Then
         For r = 1 To lo.ListRows.Count
             lineText = HoldRowField(lo, r, "REF_NUMBER") & vbTab & _
@@ -7462,10 +7471,17 @@ Private Sub PersistShipmentRowsLocal(ByVal lo As ListObject, ByVal filePath As S
         Next r
     End If
     Close #fileNum
+    fileNum = 0
+
+    On Error Resume Next
+    Kill filePath
+    On Error GoTo CleanExit
+    Name tempPath As filePath
 
 CleanExit:
     On Error Resume Next
     If fileNum <> 0 Then Close #fileNum
+    If tempPath <> "" Then Kill tempPath
     On Error GoTo 0
 End Sub
 
@@ -14866,12 +14882,15 @@ Private Sub ReconcileShipmentStagingFromShipmentLines(ByVal invLo As ListObject,
     Dim cShipRow As Long
     Dim cShipQty As Long
     Dim cShipArea As Long
+    Dim cShipReserve As Long
     Dim stagedByRow As Object
     Dim r As Long
     Dim rowVal As Long
     Dim qtyVal As Double
     Dim invIdx As Long
     Dim key As Variant
+    Dim rowArea As String
+    Dim hasReserve As Boolean
 
     If invLo Is Nothing Then Exit Sub
     If invLo.DataBodyRange Is Nothing Then Exit Sub
@@ -14889,14 +14908,15 @@ Private Sub ReconcileShipmentStagingFromShipmentLines(ByVal invLo As ListObject,
     cShipRow = ColumnIndex(loShip, "ROW")
     cShipQty = ColumnIndex(loShip, "QUANTITY")
     cShipArea = ColumnIndex(loShip, "AREA")
+    cShipReserve = ColumnIndex(loShip, COL_SHIPMENT_RESERVE_EVENT_ID)
     If cShipRow = 0 Or cShipQty = 0 Then Exit Sub
 
     Set stagedByRow = CreateObject("Scripting.Dictionary")
     stagedByRow.CompareMode = vbTextCompare
     For r = 1 To loShip.ListRows.Count
-        If cShipArea > 0 Then
-            If StrComp(NormalizeShipmentArea(NzStr(loShip.DataBodyRange.Cells(r, cShipArea).Value), False), "Shipments", vbTextCompare) <> 0 Then GoTo NextLine
-        End If
+        If cShipArea > 0 Then rowArea = NormalizeShipmentArea(NzStr(loShip.DataBodyRange.Cells(r, cShipArea).Value), False) Else rowArea = ""
+        If cShipReserve > 0 Then hasReserve = (Trim$(NzStr(loShip.DataBodyRange.Cells(r, cShipReserve).Value)) <> "") Else hasReserve = False
+        If Not hasReserve And StrComp(rowArea, "Shipments", vbTextCompare) <> 0 Then GoTo NextLine
         rowVal = NzLng(loShip.DataBodyRange.Cells(r, cShipRow).Value)
         qtyVal = NzDbl(loShip.DataBodyRange.Cells(r, cShipQty).Value)
         If rowVal <= 0 Or qtyVal <= 0 Then GoTo NextLine

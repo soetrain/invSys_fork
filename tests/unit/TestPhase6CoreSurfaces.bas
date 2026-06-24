@@ -4880,6 +4880,136 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjection() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim selectedRows(1 To 2) As Long
+    Dim ok As Boolean
+    Dim rows As Variant
+    Dim activePath As String
+    Dim sentPath As String
+    Dim overlayPath As String
+    Dim displayQty As Double
+
+    On Error GoTo CleanFail
+    If Not modConfig.LoadConfig("WH113", "S33") Then GoTo CleanExit
+    activePath = LocalShippingStatePathForTest("active", "WH113")
+    sentPath = LocalShippingStatePathForTest("sent", "WH113")
+    DeleteFileIfExistsForTest activePath
+    DeleteFileIfExistsForTest sentPath
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 961, "SKU-STAGE-LOCK", "Stage Locked Item", "EA", "A1", 18
+    AddShippingBomViewRow loBomView, 961, "Stage Locked Item", 961, "Stage Locked Item", 1, "EA"
+    SetTableCell loInv, 1, "SHIPMENTS", 2
+
+    AddShippingTallyRow loShip, "REF-STAGE-LOCKED", "Stage Locked Item", 1, 961, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-STAGE-LOCKED-A"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-STAGE-LOCKED-A"
+    loShip.ListRows.Add
+    SetTableCell loShip, 2, "REF_NUMBER", "REF-STAGE-LOCKED"
+    SetTableCell loShip, 2, "ITEMS", "Stage Locked Item"
+    SetTableCell loShip, 2, "QUANTITY", 1
+    SetTableCell loShip, 2, "ROW", 961
+    SetTableCell loShip, 2, "UOM", "EA"
+    SetTableCell loShip, 2, "LOCATION", "A1"
+    SetTableCell loShip, 2, "DESCRIPTION", "v1"
+    SetTableCell loShip, 2, "AREA", "Warehouse"
+    SetTableCell loShip, 2, "CARRIER", "UPS"
+    SetTableCell loShip, 2, "LINE_ID", "SHIPLINE-STAGE-LOCKED-B"
+    SetTableCell loShip, 2, "SERVER_RESERVE_EVENT_ID", "RESERVE-STAGE-LOCKED-B"
+
+    wbOps.Activate
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingRegisterProjectedOverlayForTest 961, "v1", 18, 20
+
+    selectedRows(1) = 1
+    selectedRows(2) = 2
+    ok = RunShippingToShipmentsRowsForTest(selectedRows, "FedEx", report)
+    If Not ok Then
+        failureReason = "To Shipments failed for reserved multi-select rows: " & report
+        GoTo CleanExit
+    End If
+    If loShip.ListRows.Count <> 2 Then
+        failureReason = "Reserved multi-select To Shipments did not keep both active rows."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loShip, 1, "AREA")), "Shipments", vbTextCompare) <> 0 _
+       Or StrComp(CStr(GetTableValue(loShip, 2, "AREA")), "Shipments", vbTextCompare) <> 0 Then
+        failureReason = "Reserved multi-select To Shipments did not move both rows to Shipments area."
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(GetTableValue(loShip, 1, "SERVER_RESERVE_EVENT_ID"))) = "" _
+       Or Trim$(CStr(GetTableValue(loShip, 2, "SERVER_RESERVE_EVENT_ID"))) = "" Then
+        failureReason = "Reserved multi-select To Shipments cleared reservation ids."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 18 Then
+        failureReason = "Reserved multi-select To Shipments changed projected TOTAL INV."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 2 Then
+        failureReason = "Reserved multi-select To Shipments cleared SHIPMENTS locks."
+        GoTo CleanExit
+    End If
+
+    rows = RunShippingMacro1ForTest("ShipmentsFormLoadLines", False)
+    If IsEmpty(rows) Then
+        failureReason = "Reserved multi-select To Shipments persisted an empty active shipment cache."
+        GoTo CleanExit
+    End If
+    If UBound(rows, 1) <> 2 Then
+        failureReason = "Reserved multi-select To Shipments reload returned " & CStr(UBound(rows, 1)) & " rows; expected 2."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(rows(1, 9)), "Shipments", vbTextCompare) <> 0 _
+       Or StrComp(CStr(rows(2, 9)), "Shipments", vbTextCompare) <> 0 Then
+        failureReason = "Reloaded active rows did not preserve Shipments area."
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(rows(1, 11))) = "" Or Trim$(CStr(rows(2, 11))) = "" Then
+        failureReason = "Reloaded active rows did not preserve reservation ids."
+        GoTo CleanExit
+    End If
+
+    displayQty = RunShippingProjectedDisplayQtyForTest(20, 2, 0, 2, 20)
+    If displayQty <> 18 Then
+        failureReason = "Reserved multi-select To Shipments display model did not keep Projected Inv deducted; expected 18 but found " & CStr(displayQty) & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjection = 1
+
+CleanExit:
+    DeleteFileIfExistsForTest activePath
+    DeleteFileIfExistsForTest sentPath
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7168, "TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjection", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingUpdate_PreservesExistingReservationWithoutDoubleDeducting() As Long
     Dim report As String
     Dim failureReason As String
@@ -8945,6 +9075,17 @@ Private Function RunShippingSentRowsForTest(ByVal rowIndexes As Variant, ByVal c
     macroName = ShippingMacroNameForTest("ShipmentsFormRunShipmentsSentRows")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingSentRowsForTest = CBool(Application.Run(macroName, rowIndexes, carrierValue, report))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingToShipmentsRowsForTest(ByVal rowIndexes As Variant, ByVal carrierValue As String, ByRef report As String) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsFormRunToShipmentsRows")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingToShipmentsRowsForTest = CBool(Application.Run(macroName, rowIndexes, carrierValue, report))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
