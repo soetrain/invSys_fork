@@ -743,6 +743,12 @@ Private Sub RefreshProjectedShippableInventory()
         unreservedQty = UnreservedShipmentQtyForShippable(packageRow, NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
         reservedQty = activeQty - unreservedQty
         If reservedQty < 0 Then reservedQty = 0
+        modTS_Shipments.EvictIdleSentOverlayForRowVersion packageRow, _
+                                                          NzText(mShippables(r, 3)), _
+                                                          ParseNumber(backendText), _
+                                                          activeQty, _
+                                                          lockedQty, _
+                                                          unreservedQty
         If lockedQty > 0 Or unreservedQty > 0 Then
             projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, _
                                                                                   NzText(mShippables(r, 3)), _

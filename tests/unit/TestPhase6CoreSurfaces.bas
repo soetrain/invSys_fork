@@ -5662,6 +5662,88 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingProjectedOverlay_EvictsIdleSentOverlayAtBaseline() As Long
+    Dim failureReason As String
+    Dim overlayPath As String
+    Dim projectedText As String
+    Dim evicted As Boolean
+
+    On Error GoTo CleanFail
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    RunShippingRegisterSentProjectedOverlayForTest 974, "v1", 7, 8
+    If Not RunShippingHasSentOverlayForTest(974, "v1") Then
+        failureReason = "SENT overlay setup failed."
+        GoTo CleanExit
+    End If
+    evicted = RunShippingEvictIdleSentOverlayForTest(974, "v1", 8, 0, 0, 0)
+    If Not evicted Then
+        failureReason = "Idle SENT overlay was not evicted when backend was at the overlay baseline."
+        GoTo CleanExit
+    End If
+    If RunShippingHasSentOverlayForTest(974, "v1") Then
+        failureReason = "Idle SENT overlay still exists after stale eviction."
+        GoTo CleanExit
+    End If
+    projectedText = RunShippingProjectedOverlayTextForTest(974, "v1", "8")
+    If CDbl(NzDblForTest(projectedText)) <> 8 Then
+        failureReason = "Idle SENT overlay continued to depress Projected Inv; expected backend 8 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedOverlay_EvictsIdleSentOverlayAtBaseline = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7161, "TestShippingProjectedOverlay_EvictsIdleSentOverlayAtBaseline", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingProjectedOverlay_KeepsSentOverlayWithActiveLock() As Long
+    Dim failureReason As String
+    Dim overlayPath As String
+    Dim evicted As Boolean
+
+    On Error GoTo CleanFail
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    RunShippingRegisterSentProjectedOverlayForTest 973, "v1", 7, 8
+    evicted = RunShippingEvictIdleSentOverlayForTest(973, "v1", 8, 1, 1, 0)
+    If evicted Then
+        failureReason = "SENT overlay was evicted while an active lock still existed."
+        GoTo CleanExit
+    End If
+    If Not RunShippingHasSentOverlayForTest(973, "v1") Then
+        failureReason = "SENT overlay did not survive active-lock display refresh."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedOverlay_KeepsSentOverlayWithActiveLock = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7162, "TestShippingProjectedOverlay_KeepsSentOverlayWithActiveLock", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatchesUp() As Long
     Dim failureReason As String
     Dim overlayPath As String
@@ -8795,6 +8877,22 @@ Private Sub RunShippingApplyStageOverlayForTest(ByVal invLo As ListObject, _
     Application.Run macroName, invLo, loShip, rowIndexes
     If Not targetWb Is Nothing Then targetWb.Activate
 End Sub
+
+Private Function RunShippingEvictIdleSentOverlayForTest(ByVal packageRow As Long, _
+                                                        ByVal versionLabel As String, _
+                                                        ByVal backendQty As Double, _
+                                                        ByVal activeQty As Double, _
+                                                        ByVal lockedQty As Double, _
+                                                        ByVal unreservedQty As Double) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("EvictIdleSentOverlayForRowVersion")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingEvictIdleSentOverlayForTest = CBool(Application.Run(macroName, packageRow, versionLabel, backendQty, activeQty, lockedQty, unreservedQty))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
 
 Private Sub RunShippingClearProjectedOverlayForTest()
     Dim targetWb As Workbook

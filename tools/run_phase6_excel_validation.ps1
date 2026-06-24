@@ -580,6 +580,8 @@ try {
         "TestPhase6CoreSurfaces.TestShippingSentRows_FullRunNeverIncreasesProjectedInventory",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_PreservesNasBaselineAcrossSentReregister",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_EvictsStaleZeroWhenBackendPositive",
+        "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_EvictsIdleSentOverlayAtBaseline",
+        "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_KeepsSentOverlayWithActiveLock",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatchesUp",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_LocalCatchupDoesNotClearBeforeNas",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_ClearsWhenBackendRisesAboveBaseline",
