@@ -28,6 +28,13 @@ End Function
 
 Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workbook = Nothing, _
                                               Optional ByRef report As String = "") As Boolean
+    Static inProgress As Boolean
+
+    If inProgress Then
+        EnsureShippingWorkbookSurface = True
+        Exit Function
+    End If
+    inProgress = True
     On Error GoTo FailEnsure
 
     Dim wb As Workbook
@@ -56,6 +63,9 @@ Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workboo
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "AggregateBoxBOM_Log", Array("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP"), False
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "AggregatePackages_Log", Array("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP"), False
     ArrangeShippingBackendTablesSurface wb
+    On Error Resume Next
+    Application.CutCopyMode = False
+    On Error GoTo FailEnsure
     EnsureInventoryManagementSurface wb
     DeleteWorksheetSurface wb, "ShippingBOM"
     DeleteWorksheetSurface wb, "AggregateBoxBOM_Log"
@@ -64,10 +74,15 @@ Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workboo
     FormatWorkbookSurface wb
 
     EnsureShippingWorkbookSurface = True
+    inProgress = False
     Exit Function
 
 FailEnsure:
     report = "EnsureShippingWorkbookSurface failed: " & Err.Description
+    On Error Resume Next
+    Application.CutCopyMode = False
+    inProgress = False
+    On Error GoTo 0
 End Function
 
 Public Function EnsureProductionWorkbookSurface(Optional ByVal targetWb As Workbook = Nothing, _
@@ -363,6 +378,7 @@ Private Sub MoveTableTopLeftSurface(ByVal ws As Worksheet, ByVal tableName As St
 
     On Error Resume Next
     lo.Range.Cut Destination:=targetCell
+    Application.CutCopyMode = False
     On Error GoTo 0
 End Sub
 
@@ -384,6 +400,7 @@ Private Sub MoveTableToSheetSurface(ByVal wb As Workbook, ByVal tableName As Str
 
     On Error Resume Next
     lo.Range.Cut Destination:=targetCell
+    Application.CutCopyMode = False
     On Error GoTo 0
 End Sub
 
@@ -403,6 +420,9 @@ Private Sub ArrangeShippingBackendTablesSurface(ByVal wb As Workbook)
     MoveTableTopLeftSurface ws, "ShippingBOMView", "BT1"
     MoveTableTopLeftSurface ws, "AggregateBoxBOM_Log", "CO1"
     MoveTableTopLeftSurface ws, "AggregatePackages_Log", "CY1"
+    On Error Resume Next
+    Application.CutCopyMode = False
+    On Error GoTo 0
 End Sub
 
 Private Sub HideWorksheetSurface(ByVal wb As Workbook, ByVal sheetName As String)

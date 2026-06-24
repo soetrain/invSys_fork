@@ -691,14 +691,14 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
         ok = modTS_Shipments.ShipmentsFormRunShipmentsSentRows(selectedRows, NzText(mTxtCarrier.Value), report)
     End If
     elapsedMs = ElapsedMilliseconds(startedAt)
-    If quietStarted Then
-        modUiQuiet.EndQuietUi
-        quietStarted = False
-    End If
     Me.MousePointer = previousPointer
     LoadShipmentState
     If ok And Not stageOnly Then mTxtRef.Value = vbNullString
     If ok Then RefreshProjectedShippableInventory
+    If quietStarted Then
+        modUiQuiet.EndQuietUi
+        quietStarted = False
+    End If
     report = AppendTiming(report, elapsedMs)
     ShowStatus report
     If report <> "" And ShouldShowShippingActionPopup(report, ok) Then MsgBox report, IIf(ok, vbInformation, vbExclamation)
