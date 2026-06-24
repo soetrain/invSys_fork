@@ -111,6 +111,7 @@ Public Sub InitializeFromShipping()
 
 CleanExit:
     On Error Resume Next
+    modTS_Shipments.EnforceShippingSupportSheetsHidden ActiveWorkbook
     If quietStarted Then modUiQuiet.EndQuietUi
     Me.MousePointer = previousPointer
     On Error GoTo 0
@@ -552,6 +553,7 @@ Private Sub RefreshAfterAction(ByVal report As String, ByVal ok As Boolean)
     LoadShipmentLineState
     RefreshProjectedShippableInventory
     mLoading = False
+    modTS_Shipments.EnforceShippingSupportSheetsHidden ActiveWorkbook
     Me.MousePointer = previousPointer
     ShowStatus report
     If Not ok And report <> "" Then MsgBox report, vbExclamation

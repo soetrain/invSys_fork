@@ -6379,6 +6379,93 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingRefresh_SkipsBomNetworkWhenViewPopulated() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+
+    On Error GoTo CleanFail
+    modNasConnection.ClearWarehouseTarget
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loBomView Is Nothing Then
+        failureReason = "ShippingBOMView table was not available after ensuring shipping surface."
+        GoTo CleanExit
+    End If
+    AddShippingBomViewRow loBomView, 968, "Fast BOM Item", 968, "Fast BOM Item", 1, "EA"
+
+    ok = RunShippingRefreshBomViewForTest(wbOps, report, False)
+    If Not ok Then
+        failureReason = "Populated ShippingBOMView should skip network refresh without requiring a warehouse target: " & report
+        GoTo CleanExit
+    End If
+    If loBomView.DataBodyRange Is Nothing Or loBomView.DataBodyRange.Rows.Count <> 1 Then
+        failureReason = "BOM fast path should preserve the existing ShippingBOMView rows."
+        GoTo CleanExit
+    End If
+
+    TestShippingRefresh_SkipsBomNetworkWhenViewPopulated = 1
+
+CleanExit:
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7166, "TestShippingRefresh_SkipsBomNetworkWhenViewPopulated", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingRefresh_HidesSupportSheetsAfterSurfaceRepair() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim wsShip As Worksheet
+    Dim wsInv As Worksheet
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    wbOps.Worksheets(1).Name = "OperatorVisible"
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set wsShip = wbOps.Worksheets("ShipmentsTally")
+    Set wsInv = wbOps.Worksheets("InventoryManagement")
+    wsShip.Visible = xlSheetVisible
+    wsInv.Visible = xlSheetVisible
+
+    RunShippingEnforceSupportSheetsHiddenForTest wbOps
+    If wsShip.Visible <> xlSheetVeryHidden Then
+        failureReason = "ShipmentsTally support sheet was not very hidden after refresh enforcement."
+        GoTo CleanExit
+    End If
+    If wsInv.Visible <> xlSheetVeryHidden Then
+        failureReason = "InventoryManagement support sheet was not very hidden after refresh enforcement."
+        GoTo CleanExit
+    End If
+    If wbOps.Worksheets("OperatorVisible").Visible <> xlSheetVisible Then
+        failureReason = "Support-sheet enforcement hid the operator-visible sheet."
+        GoTo CleanExit
+    End If
+
+    TestShippingRefresh_HidesSupportSheetsAfterSurfaceRepair = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7167, "TestShippingRefresh_HidesSupportSheetsAfterSurfaceRepair", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestBoxMakerUnbox_QtyGreaterThanInventoryFailsBeforeQueue() As Long
     Dim report As String
     Dim failureReason As String
@@ -9081,6 +9168,30 @@ Private Function RunShippingEvictIdleSentOverlayForTest(ByVal packageRow As Long
     RunShippingEvictIdleSentOverlayForTest = CBool(Application.Run(macroName, packageRow, versionLabel, backendQty, activeQty, lockedQty, unreservedQty))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
+
+Private Function RunShippingRefreshBomViewForTest(ByVal operatorWb As Workbook, _
+                                                  ByRef report As String, _
+                                                  Optional ByVal forceRebuild As Boolean = False) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("RefreshShippingBomViewForWorkbookForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingRefreshBomViewForTest = CBool(Application.Run(macroName, operatorWb, report, forceRebuild))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Sub RunShippingEnforceSupportSheetsHiddenForTest(ByVal wb As Workbook)
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("EnforceShippingSupportSheetsHidden")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Application.Run macroName, wb
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Sub
 
 Private Sub RunShippingClearProjectedOverlayForTest()
     Dim targetWb As Workbook

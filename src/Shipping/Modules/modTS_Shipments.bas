@@ -5811,7 +5811,7 @@ Public Function ShipmentsFormRefreshRuntimeInventory(ByRef report As String) As 
         report = runtimeReport
         Exit Function
     End If
-    If Not RefreshShippingBomViewForWorkbook(wb, bomReport) Then
+    If Not RefreshShippingBomViewForWorkbook(wb, bomReport, False) Then
         report = bomReport
         Exit Function
     End If
@@ -5823,6 +5823,39 @@ Public Function ShipmentsFormRefreshRuntimeInventory(ByRef report As String) As 
 
 FailSoft:
     report = "Shipments refresh failed: " & Err.Description
+End Function
+
+Public Sub EnforceShippingSupportSheetsHidden(ByVal wb As Workbook)
+    On Error GoTo CleanExit
+
+    Dim supportNames As Variant
+    Dim i As Long
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Sub
+    supportNames = Array(SHEET_SHIPMENTS, "InventoryManagement", "ShippingBOM")
+    For i = LBound(supportNames) To UBound(supportNames)
+        Set ws = Nothing
+        On Error Resume Next
+        Set ws = wb.Worksheets(CStr(supportNames(i)))
+        On Error GoTo CleanExit
+        If Not ws Is Nothing Then
+            If CanHideWorksheetShipping(wb, ws) Then ws.Visible = xlSheetVeryHidden
+        End If
+    Next i
+
+CleanExit:
+End Sub
+
+Private Function CanHideWorksheetShipping(ByVal wb As Workbook, ByVal wsToHide As Worksheet) As Boolean
+    Dim ws As Worksheet
+    Dim visibleCount As Long
+
+    If wb Is Nothing Or wsToHide Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        If ws.Visible = xlSheetVisible Then visibleCount = visibleCount + 1
+    Next ws
+    CanHideWorksheetShipping = (wsToHide.Visible <> xlSheetVisible Or visibleCount > 1)
 End Function
 
 Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
@@ -12581,7 +12614,9 @@ FailSoft:
     Resume CleanExit
 End Function
 
-Private Function RefreshShippingBomViewForWorkbook(ByVal operatorWb As Workbook, ByRef report As String) As Boolean
+Private Function RefreshShippingBomViewForWorkbook(ByVal operatorWb As Workbook, _
+                                                   ByRef report As String, _
+                                                   Optional ByVal forceRebuild As Boolean = False) As Boolean
     On Error GoTo FailSoft
 
     Dim target As Object
@@ -12595,6 +12630,15 @@ Private Function RefreshShippingBomViewForWorkbook(ByVal operatorWb As Workbook,
 
     If operatorWb Is Nothing Then Exit Function
     Set loView = GetShippingBomViewTable(operatorWb)
+    If Not loView Is Nothing And Not forceRebuild Then
+        If Not loView.DataBodyRange Is Nothing Then
+            If loView.DataBodyRange.Rows.Count > 0 Then
+                report = "Shipping BOM view already populated; skipped network refresh."
+                RefreshShippingBomViewForWorkbook = True
+                Exit Function
+            End If
+        End If
+    End If
     If loView Is Nothing Then
         If modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(operatorWb, surfaceReport) Then
             Set loView = GetShippingBomViewTable(operatorWb)
@@ -12640,6 +12684,12 @@ CleanExit:
 FailSoft:
     report = "RefreshShippingBomViewForWorkbook failed: " & Err.Description
     Resume CleanExit
+End Function
+
+Public Function RefreshShippingBomViewForWorkbookForTest(ByVal operatorWb As Workbook, _
+                                                         ByRef report As String, _
+                                                         Optional ByVal forceRebuild As Boolean = False) As Boolean
+    RefreshShippingBomViewForWorkbookForTest = RefreshShippingBomViewForWorkbook(operatorWb, report, forceRebuild)
 End Function
 
 Private Function GetShippingBomViewTable(ByVal wb As Workbook) As ListObject
