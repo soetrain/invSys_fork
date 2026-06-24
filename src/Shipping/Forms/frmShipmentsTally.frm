@@ -730,6 +730,7 @@ Private Sub RefreshProjectedShippableInventory()
     Dim projectedText As String
     Dim projectedQty As Double
     Dim packageRow As Long
+    Dim overlaySent As Boolean
 
     If IsEmpty(mShippables) Then Exit Sub
     EvictOrphanedActiveOverlays
@@ -746,11 +747,13 @@ Private Sub RefreshProjectedShippableInventory()
             projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, _
                                                                                   NzText(mShippables(r, 3)), _
                                                                                   backendText)
+            overlaySent = modTS_Shipments.HasSentOverlayForRowVersion(packageRow, NzText(mShippables(r, 3)))
             projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQty(ParseNumber(backendText), _
                                                                         lockedQty, _
                                                                         unreservedQty, _
                                                                         reservedQty, _
-                                                                        ParseNumber(projectedText))
+                                                                        ParseNumber(projectedText), _
+                                                                        Not overlaySent)
             mShippables(r, 8) = FormatQuantity(projectedQty)
         ElseIf activeQty <= 0 Then
             projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, _

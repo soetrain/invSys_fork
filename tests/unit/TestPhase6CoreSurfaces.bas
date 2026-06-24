@@ -5061,6 +5061,105 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+    Dim overlayPath As String
+    Dim projectedText As String
+    Dim displayQty As Double
+    Dim selectedRows(1 To 1) As Long
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_add_sent_active")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH110", "S32", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 971, "SKU-SENT-ACTIVE", "Sent Active Item", "EA", "A1", 7
+    AddShippingBomViewRow loBomView, 971, "Sent Active Item", 971, "Sent Active Item", 1, "EA"
+
+    wbOps.Activate
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingRegisterSentProjectedOverlayForTest 971, "v1", 7, 9
+
+    AddShippingTallyRow loShip, "REF-SENT-ACTIVE", "Sent Active Item", 1, 971, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "USPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-SENT-ACTIVE-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-SENT-ACTIVE-001"
+    SetTableCell loInv, 1, "TOTAL INV", 6
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    selectedRows(1) = 1
+    RunShippingApplyStageOverlayForTest loInv, loShip, selectedRows
+
+    If Not RunShippingHasSentOverlayForTest(971, "v1") Then
+        failureReason = "Add after pending sent overlay cleared the SENT overlay before NAS catch-up."
+        GoTo CleanExit
+    End If
+
+    projectedText = RunShippingProjectedOverlayTextForTest(971, "v1", "9")
+    If CDbl(NzDblForTest(projectedText)) <> 7 Then
+        failureReason = "Pending SENT overlay was not retained as the display base; expected 7 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+    displayQty = RunShippingProjectedDisplayQtyForTest(9, 1, 0, 1, CDbl(NzDblForTest(projectedText)), False)
+    If displayQty <> 6 Then
+        failureReason = "SENT + ACTIVE projection did not subtract the new active lock from the sent base; expected 6 but found " & CStr(displayQty) & "."
+        GoTo CleanExit
+    End If
+
+    projectedText = RunShippingProjectedOverlayTextForTest(971, "v1", "7")
+    If RunShippingHasSentOverlayForTest(971, "v1") Then
+        failureReason = "SENT overlay was not cleared after NAS caught up to the sent quantity."
+        GoTo CleanExit
+    End If
+    displayQty = RunShippingProjectedDisplayQtyForTest(7, 1, 0, 1, CDbl(NzDblForTest(projectedText)), True)
+    If displayQty <> 6 Then
+        failureReason = "NAS catch-up did not preserve the active lock after clearing the SENT overlay; expected 6 but found " & CStr(displayQty) & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH110"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH110.invSys.Data.ShippingReservations.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH110.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH110.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7160, "TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv() As Long
     Dim rootPath As String
     Dim currentUser As String
@@ -6227,6 +6326,10 @@ Public Function TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows() 
     End If
     If CDbl(RunShippingProjectedDisplayQtyForTest(20, 1, 0, 0, 18)) <> 17 Then
         failureReason = "Projected Inv increased after Shipments Sent released the completed row lock while NAS was still stale."
+        GoTo CleanExit
+    End If
+    If CDbl(RunShippingProjectedDisplayQtyForTest(9, 1, 0, 1, 7, False)) <> 6 Then
+        failureReason = "Projected Inv failed to compose a pending SENT overlay with a new active lock."
         GoTo CleanExit
     End If
 
@@ -8655,6 +8758,44 @@ Private Sub RunShippingRegisterProjectedOverlayForTest(ByVal packageRow As Long,
     If Not targetWb Is Nothing Then targetWb.Activate
 End Sub
 
+Private Sub RunShippingRegisterSentProjectedOverlayForTest(ByVal packageRow As Long, _
+                                                           ByVal versionLabel As String, _
+                                                           ByVal projectedQty As Double, _
+                                                           ByVal baselineQty As Double)
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("RegisterSentBoxVersionInventoryOverlayForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Application.Run macroName, packageRow, versionLabel, projectedQty, baselineQty
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Sub
+
+Private Function RunShippingHasSentOverlayForTest(ByVal packageRow As Long, ByVal versionLabel As String) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("HasSentOverlayForRowVersion")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingHasSentOverlayForTest = CBool(Application.Run(macroName, packageRow, versionLabel))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Sub RunShippingApplyStageOverlayForTest(ByVal invLo As ListObject, _
+                                                ByVal loShip As ListObject, _
+                                                ByVal rowIndexes As Variant)
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ApplyStageVersionInventoryOverlayFromRowsForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Application.Run macroName, invLo, loShip, rowIndexes
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Sub
+
 Private Sub RunShippingClearProjectedOverlayForTest()
     Dim targetWb As Workbook
     Dim macroName As String
@@ -8692,14 +8833,15 @@ Private Function RunShippingProjectedDisplayQtyForTest(ByVal nasQty As Double, _
                                                        ByVal lockedQty As Double, _
                                                        ByVal unreservedLocalQty As Double, _
                                                        ByVal reservedLocalQty As Double, _
-                                                       ByVal pendingOverlayQty As Double) As Double
+                                                       ByVal pendingOverlayQty As Double, _
+                                                       Optional ByVal overlayIncludesReservation As Boolean = True) As Double
     Dim targetWb As Workbook
     Dim macroName As String
 
     Set targetWb = ActiveWorkbook
     macroName = ShippingMacroNameForTest("ShipmentsProjectedDisplayQtyForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
-    RunShippingProjectedDisplayQtyForTest = CDbl(Application.Run(macroName, nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty))
+    RunShippingProjectedDisplayQtyForTest = CDbl(Application.Run(macroName, nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty, overlayIncludesReservation))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

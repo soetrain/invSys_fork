@@ -4700,6 +4700,15 @@ Public Function PendingBoxVersionInventoryOverlayText(ByVal packageRow As Long, 
     PendingBoxVersionInventoryOverlayText = Trim$(NzStr(overlayValue))
 End Function
 
+Public Function HasSentOverlayForRowVersion(ByVal packageRow As Long, ByVal versionLabel As String) As Boolean
+    Dim sentKey As String
+
+    EnsurePendingBoxVersionInventoryOverlayLoaded
+    If mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Function
+    sentKey = SentPendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If sentKey <> "" Then HasSentOverlayForRowVersion = mPendingBoxVersionInventoryOverlay.Exists(sentKey)
+End Function
+
 Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long, _
                                                         ByVal versionLabel As String, _
                                                         ByVal backendValue As Variant) As Variant
@@ -5668,7 +5677,8 @@ Public Function ShipmentsProjectedDisplayQty(ByVal nasQty As Double, _
                                              ByVal lockedQty As Double, _
                                              ByVal unreservedLocalQty As Double, _
                                              Optional ByVal reservedLocalQty As Double = 0, _
-                                             Optional ByVal pendingOverlayQty As Variant) As Double
+                                             Optional ByVal pendingOverlayQty As Variant, _
+                                             Optional ByVal overlayIncludesReservation As Boolean = True) As Double
     Dim baseQty As Double
     Dim projectedQty As Double
     Dim lockedToSubtract As Double
@@ -5687,7 +5697,7 @@ Public Function ShipmentsProjectedDisplayQty(ByVal nasQty As Double, _
         End If
     End If
 
-    If overlayApplied And reservedLocalQty > 0 Then
+    If overlayApplied And reservedLocalQty > 0 And overlayIncludesReservation Then
         lockedToSubtract = lockedQty - reservedLocalQty
         If lockedToSubtract < 0 Then lockedToSubtract = 0
     End If
@@ -5701,11 +5711,12 @@ Public Function ShipmentsProjectedDisplayQtyForTest(ByVal nasQty As Double, _
                                                     ByVal lockedQty As Double, _
                                                     ByVal unreservedLocalQty As Double, _
                                                     Optional ByVal reservedLocalQty As Double = 0, _
-                                                    Optional ByVal pendingOverlayQty As Variant) As Double
+                                                    Optional ByVal pendingOverlayQty As Variant, _
+                                                    Optional ByVal overlayIncludesReservation As Boolean = True) As Double
     If IsMissing(pendingOverlayQty) Then
         ShipmentsProjectedDisplayQtyForTest = ShipmentsProjectedDisplayQty(nasQty, lockedQty, unreservedLocalQty, reservedLocalQty)
     Else
-        ShipmentsProjectedDisplayQtyForTest = ShipmentsProjectedDisplayQty(nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty)
+        ShipmentsProjectedDisplayQtyForTest = ShipmentsProjectedDisplayQty(nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty, overlayIncludesReservation)
     End If
 End Function
 
@@ -5716,6 +5727,13 @@ Public Function ShipmentsSentProjectedOverlayQtyForTest(ByVal backendQty As Doub
                                                         Optional ByVal isReservedRow As Boolean = False) As Double
     ShipmentsSentProjectedOverlayQtyForTest = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, shippedQty, hasExistingOverlay, isReservedRow)
 End Function
+
+Public Sub RegisterSentBoxVersionInventoryOverlayForTest(ByVal packageRow As Long, _
+                                                         ByVal versionLabel As String, _
+                                                         ByVal projectedQty As Double, _
+                                                         ByVal baselineQty As Double)
+    RegisterSentBoxVersionInventoryOverlay packageRow, versionLabel, projectedQty, baselineQty
+End Sub
 
 Private Function ShipmentsSentProjectedOverlayQty(ByVal backendQty As Double, _
                                                   ByVal existingProjectedQty As Double, _
@@ -7875,6 +7893,10 @@ Private Sub ApplyStageVersionInventoryOverlayFromRows(ByVal invLo As ListObject,
     Dim itemName As String
     Dim versionLabel As String
     Dim nasBaseline As Double
+    Dim sentProjectedText As String
+    Dim sentProjectedQty As Double
+    Dim sentBaseline As Double
+    Dim sentKey As String
 
     If loShip Is Nothing Then Exit Sub
     If loShip.DataBodyRange Is Nothing Then Exit Sub
@@ -7894,10 +7916,28 @@ Private Sub ApplyStageVersionInventoryOverlayFromRows(ByVal invLo As ListObject,
         versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(rowIndex, cDesc).Value))
         If rowVal <= 0 Or qtyVal <= 0 Or versionLabel = "" Then GoTo NextRow
 
-        nasBaseline = StageVersionInventoryCurrentQty(invLo, rowVal, itemName, versionLabel)
-        RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, nasBaseline - qtyVal, nasBaseline
+        sentProjectedQty = 0
+        sentBaseline = 0
+        sentKey = ""
+        If HasSentOverlayForRowVersion(rowVal, versionLabel) Then
+            sentProjectedText = PendingBoxVersionInventoryOverlayText(rowVal, versionLabel, vbNullString)
+            If IsNumeric(sentProjectedText) Then sentProjectedQty = CDbl(sentProjectedText) Else sentProjectedQty = 0
+            sentKey = SentPendingBoxVersionInventoryKey(rowVal, versionLabel)
+            sentBaseline = PendingOverlayBaselineForKey(sentKey)
+            If sentBaseline <= 0 Then sentBaseline = StageVersionInventoryCurrentQty(invLo, rowVal, itemName, versionLabel)
+            RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, sentProjectedQty - qtyVal, sentBaseline
+        Else
+            nasBaseline = StageVersionInventoryCurrentQty(invLo, rowVal, itemName, versionLabel)
+            RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, nasBaseline - qtyVal, nasBaseline
+        End If
 NextRow:
     Next i
+End Sub
+
+Public Sub ApplyStageVersionInventoryOverlayFromRowsForTest(ByVal invLo As ListObject, _
+                                                            ByVal loShip As ListObject, _
+                                                            ByVal rowIndexes As Variant)
+    ApplyStageVersionInventoryOverlayFromRows invLo, loShip, rowIndexes
 End Sub
 
 Private Sub RegisterDeltaVersionInventoryOverlay(ByVal rowVal As Long, _
@@ -7988,6 +8028,7 @@ Private Sub SyncSingleVersionInventoryOverlayFromInvSysRows(ByVal invLo As ListO
         rowVal = NzLng(loShip.DataBodyRange.Cells(rowIndex, cRow).Value)
         versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(rowIndex, cDesc).Value))
         If rowVal <= 0 Or versionLabel = "" Then GoTo NextRow
+        If HasSentOverlayForRowVersion(rowVal, versionLabel) Then GoTo NextRow
         If CountActiveVersionsForPackageShipping(rowVal) <> 1 Then GoTo NextRow
         invIdx = FindInvRowIndexByRow(invLo, rowVal)
         If invIdx > 0 Then RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value), NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value)
