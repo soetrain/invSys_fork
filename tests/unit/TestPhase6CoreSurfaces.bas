@@ -5061,6 +5061,95 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingAdd_MergingExistingReservedRowAppliesOnlyDelta() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+    Dim overlayPath As String
+    Dim projectedText As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_add_merge_delta")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH111", "S33", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 970, "SKU-ADD-MERGE-DELTA", "Add Merge Delta Item", "EA", "A1", 5
+    AddShippingBomViewRow loBomView, 970, "Add Merge Delta Item", 970, "Add Merge Delta Item", 1, "EA"
+    SetTableCell loInv, 1, "SHIPMENTS", 2
+    AddShippingTallyRow loShip, "REF-ADD-MERGE-DELTA", "Add Merge Delta Item", 2, 970, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "USPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-ADD-MERGE-DELTA-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-ADD-MERGE-DELTA-001"
+
+    wbOps.Activate
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingRegisterProjectedOverlayForTest 970, "v1", 5, 8
+
+    ok = RunShippingCommitLineForTest("SHIP", "ADD", 0, "REF-ADD-MERGE-DELTA", "Add Merge Delta Item", 1, 970, "EA", "A1", "v1", "USPS", report, 5)
+    If Not ok Then
+        failureReason = "Add merge into reserved row failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loShip, 1, "QUANTITY")) <> 3 Then
+        failureReason = "Add merge did not update visible row qty to 3; found " & CStr(GetTableValue(loShip, 1, "QUANTITY")) & "."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 4 Then
+        failureReason = "Add merge applied more than the +1 delta to TOTAL INV; expected 4 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 3 Then
+        failureReason = "Add merge did not increase SHIPMENTS by exactly 1; expected 3 but found " & CStr(GetTableValue(loInv, 1, "SHIPMENTS")) & "."
+        GoTo CleanExit
+    End If
+    projectedText = RunShippingProjectedOverlayTextForTest(970, "v1", "8")
+    If CDbl(NzDblForTest(projectedText)) <> 4 Then
+        failureReason = "Add merge over-deducted Projected Inv; expected 4 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingAdd_MergingExistingReservedRowAppliesOnlyDelta = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH111"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH111.invSys.Data.ShippingReservations.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH111.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH111.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7163, "TestShippingAdd_MergingExistingReservedRowAppliesOnlyDelta", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay() As Long
     Dim rootPath As String
     Dim currentUser As String

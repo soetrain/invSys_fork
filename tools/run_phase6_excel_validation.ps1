@@ -569,6 +569,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingHold_PreservesReservationAndLocalDeduction",
         "TestPhase6CoreSurfaces.TestShippingUpdate_PreservesExistingReservationWithoutDoubleDeducting",
         "TestPhase6CoreSurfaces.TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay",
+        "TestPhase6CoreSurfaces.TestShippingAdd_MergingExistingReservedRowAppliesOnlyDelta",
         "TestPhase6CoreSurfaces.TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay",
         "TestPhase6CoreSurfaces.TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion",
         "TestPhase6CoreSurfaces.TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows",

@@ -6346,9 +6346,19 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     Else
         Set lr = FindShipmentLineByRefItemVersion(lo, Trim$(refNumber), itemName, Trim$(descriptionValue), Trim$(carrierValue))
         If Not lr Is Nothing Then
-            finalQty = ExistingShipmentLineQuantity(lo, lr) + qtyValue
+            existingQtyValue = ExistingShipmentLineQuantity(lo, lr)
+            finalQty = existingQtyValue + qtyValue
             mergedExisting = True
-            hadExistingReserve = (Not isHold And Trim$(ShipmentRowText(lo, lr.Index, COL_SHIPMENT_RESERVE_EVENT_ID)) <> "")
+            existingReserveEventId = Trim$(ShipmentRowText(lo, lr.Index, COL_SHIPMENT_RESERVE_EVENT_ID))
+            existingArea = ShipmentRowText(lo, lr.Index, "AREA")
+            existingRowValue = CLng(Val(ShipmentRowText(lo, lr.Index, "ROW")))
+            existingVersionLabel = NormalizeBoxBomVersionLabelShipping(ShipmentRowText(lo, lr.Index, "DESCRIPTION"))
+            hadExistingReserve = (Not isHold And existingReserveEventId <> "")
+            qtyDelta = qtyValue
+            deltaReserveOnly = hadExistingReserve _
+                               And existingRowValue = rowValue _
+                               And qtyDelta > 0.0000001 _
+                               And StrComp(existingVersionLabel, NormalizeBoxBomVersionLabelShipping(descriptionValue), vbTextCompare) = 0
         Else
             Set lr = FirstBlankListRowShipping(lo)
             If lr Is Nothing Then Set lr = lo.ListRows.Add
