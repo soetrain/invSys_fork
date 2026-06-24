@@ -652,12 +652,9 @@ Private Sub PostBoxMakerAction(ByVal actionText As String)
     Me.MousePointer = previousPointer
 
     If postedOk Then
-        If syncCompleted Then
-            RefreshShippableInventoryCache True
-        Else
-            RecordPendingComponentInventory actionText, qtyMade
-            RecordPendingVersionInventory actionText, qtyMade
-        End If
+        RecordPendingComponentInventory actionText, qtyMade
+        RecordPendingVersionInventory actionText, qtyMade
+        RefreshShippableInventoryCache True
         mTxtQty.Value = ""
         resultMessage = AppendCompletionTiming(resultMessage, elapsedMs)
         MsgBox resultMessage, vbInformation
@@ -939,6 +936,7 @@ Private Sub RecordPendingVersionInventory(ByVal actionText As String, ByVal qtyM
     Dim versionLabel As String
     Dim currentText As String
     Dim projectedQty As Double
+    Dim baselineQty As Double
 
     If qtyMade <= 0 Then Exit Sub
     versionLabel = SelectedVersionLabel()
@@ -951,6 +949,7 @@ Private Sub RecordPendingVersionInventory(ByVal actionText As String, ByVal qtyM
     Else
         projectedQty = CDbl(Replace$(currentText, ",", ""))
     End If
+    baselineQty = projectedQty
 
     Select Case UCase$(Trim$(actionText))
         Case "UNMAKE", "UNBOX"
@@ -961,7 +960,7 @@ Private Sub RecordPendingVersionInventory(ByVal actionText As String, ByVal qtyM
     End Select
 
     mPendingVersionInv(VersionPendingKey(mSelectedPackageRow, versionLabel)) = projectedQty
-    modTS_Shipments.RegisterPendingBoxVersionInventoryOverlay mSelectedPackageRow, versionLabel, projectedQty
+    modTS_Shipments.RegisterPendingBoxVersionInventoryOverlay mSelectedPackageRow, versionLabel, projectedQty, baselineQty
 
 CleanExit:
 End Sub
