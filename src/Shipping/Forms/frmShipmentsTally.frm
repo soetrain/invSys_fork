@@ -95,8 +95,7 @@ Public Sub InitializeFromShipping()
     Dim operatorWb As Workbook
 
     If Not mBuilt Then BuildLayout
-    If mOperatorWorkbook Is Nothing Then Set mOperatorWorkbook = ActiveWorkbook
-    If mOperatorWorkbook Is Nothing Or Not IsShipmentsOperatorWorkbook(mOperatorWorkbook) Then Set mOperatorWorkbook = ActiveWorkbook
+    If mOperatorWorkbook Is Nothing And IsUsableOperatorWorkbook(ActiveWorkbook) Then Set mOperatorWorkbook = ActiveWorkbook
     Set operatorWb = ResolveOperatorWorkbook()
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
@@ -136,15 +135,21 @@ FailInit:
     Resume CleanExit
 End Sub
 
+Public Sub SetOperatorWorkbook(ByVal wb As Workbook)
+    If IsUsableOperatorWorkbook(wb) Then Set mOperatorWorkbook = wb
+End Sub
+
 Private Function ResolveOperatorWorkbook() As Workbook
     On Error Resume Next
 
     Dim nameCheck As String
     Dim wb As Workbook
+    Dim candidateWb As Workbook
+    Dim candidateCount As Long
 
     If Not mOperatorWorkbook Is Nothing Then
         nameCheck = mOperatorWorkbook.Name
-        If Err.Number = 0 And Trim$(nameCheck) <> "" And IsShipmentsOperatorWorkbook(mOperatorWorkbook) Then
+        If Err.Number = 0 And Trim$(nameCheck) <> "" And IsUsableOperatorWorkbook(mOperatorWorkbook) Then
             Set ResolveOperatorWorkbook = mOperatorWorkbook
             Exit Function
         End If
@@ -152,7 +157,7 @@ Private Function ResolveOperatorWorkbook() As Workbook
         Set mOperatorWorkbook = Nothing
     End If
 
-    If Not ActiveWorkbook Is Nothing And IsShipmentsOperatorWorkbook(ActiveWorkbook) Then
+    If IsShipmentsOperatorWorkbook(ActiveWorkbook) Then
         Set mOperatorWorkbook = ActiveWorkbook
         Set ResolveOperatorWorkbook = mOperatorWorkbook
         Exit Function
@@ -165,16 +170,32 @@ Private Function ResolveOperatorWorkbook() As Workbook
                 Set ResolveOperatorWorkbook = wb
                 Exit Function
             End If
+            candidateCount = candidateCount + 1
+            Set candidateWb = wb
         End If
     Next wb
+    If candidateCount = 1 Then
+        Set mOperatorWorkbook = candidateWb
+        Set ResolveOperatorWorkbook = candidateWb
+    End If
     On Error GoTo 0
+End Function
+
+Private Function IsUsableOperatorWorkbook(ByVal wb As Workbook) As Boolean
+    On Error GoTo CleanExit
+
+    If wb Is Nothing Then Exit Function
+    If wb.IsAddin Then Exit Function
+    If Trim$(wb.Name) = "" Then Exit Function
+    IsUsableOperatorWorkbook = True
+
+CleanExit:
 End Function
 
 Private Function IsShipmentsOperatorWorkbook(ByVal wb As Workbook) As Boolean
     On Error GoTo CleanExit
 
-    If wb Is Nothing Then Exit Function
-    If wb.IsAddin Then Exit Function
+    If Not IsUsableOperatorWorkbook(wb) Then Exit Function
     If WorkbookHasTable(wb, "invSys") Then
         IsShipmentsOperatorWorkbook = True
         Exit Function
