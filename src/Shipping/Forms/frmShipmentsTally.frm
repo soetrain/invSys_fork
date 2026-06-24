@@ -140,7 +140,7 @@ Private Function ResolveOperatorWorkbook() As Workbook
 
     If Not mOperatorWorkbook Is Nothing Then
         nameCheck = mOperatorWorkbook.Name
-        If Err.Number = 0 And Trim$(nameCheck) <> "" Then
+        If Err.Number = 0 And Trim$(nameCheck) <> "" And IsShipmentsOperatorWorkbook(mOperatorWorkbook) Then
             Set ResolveOperatorWorkbook = mOperatorWorkbook
             Exit Function
         End If
@@ -148,11 +148,54 @@ Private Function ResolveOperatorWorkbook() As Workbook
         Set mOperatorWorkbook = Nothing
     End If
 
-    If Not ActiveWorkbook Is Nothing Then
+    If Not ActiveWorkbook Is Nothing And IsShipmentsOperatorWorkbook(ActiveWorkbook) Then
         Set mOperatorWorkbook = ActiveWorkbook
         Set ResolveOperatorWorkbook = mOperatorWorkbook
     End If
     On Error GoTo 0
+End Function
+
+Private Function IsShipmentsOperatorWorkbook(ByVal wb As Workbook) As Boolean
+    On Error GoTo CleanExit
+
+    If wb Is Nothing Then Exit Function
+    If wb.IsAddin Then Exit Function
+    If WorkbookHasTable(wb, "invSys") Then
+        IsShipmentsOperatorWorkbook = True
+        Exit Function
+    End If
+    If Not WorkbookSheetExists(wb, "ShipmentsTally") Is Nothing Then
+        IsShipmentsOperatorWorkbook = True
+    End If
+
+CleanExit:
+End Function
+
+Private Function WorkbookSheetExists(ByVal wb As Workbook, ByVal sheetName As String) As Worksheet
+    On Error Resume Next
+    If Not wb Is Nothing Then Set WorkbookSheetExists = wb.Worksheets(sheetName)
+    On Error GoTo 0
+End Function
+
+Private Function WorkbookHasTable(ByVal wb As Workbook, ByVal tableName As String) As Boolean
+    On Error GoTo CleanExit
+
+    Dim ws As Worksheet
+    Dim lo As ListObject
+
+    If wb Is Nothing Then Exit Function
+    For Each ws In wb.Worksheets
+        Set lo = Nothing
+        On Error Resume Next
+        Set lo = ws.ListObjects(tableName)
+        On Error GoTo CleanExit
+        If Not lo Is Nothing Then
+            WorkbookHasTable = True
+            Exit Function
+        End If
+    Next ws
+
+CleanExit:
 End Function
 
 Public Sub ScheduleAutoSync()
@@ -194,7 +237,7 @@ Public Sub AutoSyncIfPending()
     Set operatorWb = ResolveOperatorWorkbook()
     If operatorWb Is Nothing Then GoTo CleanExit
 
-    If modOperatorReadModel.RefreshInventoryReadModelForWorkbook(operatorWb, "", "LOCAL", report) Then
+    If modTS_Shipments.ShipmentsFormRefreshReadModelForWorkbook(operatorWb, report) Then
         mLoading = True
         changedLoading = True
         LoadShippables

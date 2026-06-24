@@ -5829,6 +5829,53 @@ Public Function ShipmentsFormRefreshRuntimeInventoryForWorkbook(ByVal operatorWb
     ShipmentsFormRefreshRuntimeInventoryForWorkbook = ShipmentsFormRefreshRuntimeInventoryCore(operatorWb, warehouseIdOverride, report)
 End Function
 
+Public Function ShipmentsFormRefreshReadModelForWorkbook(ByVal operatorWb As Workbook, _
+                                                         ByRef report As String, _
+                                                         Optional ByVal warehouseIdOverride As String = "") As Boolean
+    On Error GoTo FailSoft
+
+    Dim warehouseId As String
+    Dim surfaceReport As String
+    Dim refreshReport As String
+
+    If operatorWb Is Nothing Then
+        report = "No operator workbook to refresh."
+        Exit Function
+    End If
+
+    If GetInvSysTableFromWorkbook(operatorWb) Is Nothing Then
+        If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(operatorWb, surfaceReport) Then
+            report = surfaceReport
+            If Trim$(report) = "" Then report = "invSys table not found."
+            Exit Function
+        End If
+    End If
+
+    warehouseId = Trim$(warehouseIdOverride)
+    If warehouseId = "" Then warehouseId = ResolveCurrentShippingWarehouseId()
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(operatorWb, warehouseId, "LOCAL", refreshReport) Then
+        If InStr(1, refreshReport, "invSys table not found", vbTextCompare) > 0 Then
+            If modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(operatorWb, surfaceReport) Then
+                refreshReport = vbNullString
+                If modOperatorReadModel.RefreshInventoryReadModelForWorkbook(operatorWb, warehouseId, "LOCAL", refreshReport) Then
+                    report = refreshReport
+                    ShipmentsFormRefreshReadModelForWorkbook = True
+                    Exit Function
+                End If
+            End If
+        End If
+        report = refreshReport
+        Exit Function
+    End If
+
+    report = refreshReport
+    ShipmentsFormRefreshReadModelForWorkbook = True
+    Exit Function
+
+FailSoft:
+    report = "Shipments read-model refresh failed: " & Err.Description
+End Function
+
 Private Function ShipmentsFormRefreshRuntimeInventoryCore(ByVal operatorWb As Workbook, _
                                                          ByVal warehouseIdOverride As String, _
                                                          ByRef report As String) As Boolean
@@ -5852,7 +5899,7 @@ Private Function ShipmentsFormRefreshRuntimeInventoryCore(ByVal operatorWb As Wo
         report = runtimeReport
         Exit Function
     End If
-    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, warehouseId, "LOCAL", inventoryReport) Then
+    If Not ShipmentsFormRefreshReadModelForWorkbook(wb, inventoryReport, warehouseId) Then
         report = inventoryReport
         Exit Function
     End If
