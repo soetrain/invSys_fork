@@ -5916,6 +5916,45 @@ FailSoft:
     report = "Shipments read-model refresh failed: " & Err.Description
 End Function
 
+Public Function ShipmentsFormAutoSyncRefresh(ByVal operatorWb As Workbook, _
+                                             ByRef report As String, _
+                                             Optional ByVal warehouseIdOverride As String = "") As Boolean
+    On Error GoTo FailSoft
+
+    Dim warehouseId As String
+    Dim runtimeReport As String
+    Dim inventoryReport As String
+
+    If operatorWb Is Nothing Then
+        report = "No operator workbook for auto-sync."
+        Exit Function
+    End If
+
+    warehouseId = Trim$(warehouseIdOverride)
+    If warehouseId = "" Then warehouseId = ResolveCurrentShippingWarehouseId()
+
+    If Not RunShippingRuntimeQueueRefresh(operatorWb, warehouseId, runtimeReport, False) Then
+        report = "AutoSync runtime: " & runtimeReport
+        Exit Function
+    End If
+
+    If Not ShipmentsFormRefreshReadModelForWorkbook(operatorWb, inventoryReport, warehouseId) Then
+        report = "AutoSync read-model: " & inventoryReport
+        Exit Function
+    End If
+
+    report = "OK"
+    If Trim$(runtimeReport) <> "" Then report = report & "; " & runtimeReport
+    If Trim$(inventoryReport) <> "" And StrComp(Trim$(inventoryReport), "OK", vbTextCompare) <> 0 Then
+        report = report & "; " & inventoryReport
+    End If
+    ShipmentsFormAutoSyncRefresh = True
+    Exit Function
+
+FailSoft:
+    report = "AutoSync refresh failed: " & Err.Description
+End Function
+
 Private Function ShipmentsFormRefreshRuntimeInventoryCore(ByVal operatorWb As Workbook, _
                                                          ByVal warehouseIdOverride As String, _
                                                          ByRef report As String) As Boolean

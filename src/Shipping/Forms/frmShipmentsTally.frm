@@ -284,7 +284,7 @@ Public Sub AutoSyncIfPending()
         GoTo CleanExit
     End If
 
-    If modTS_Shipments.ShipmentsFormRefreshReadModelForWorkbook(operatorWb, report) Then
+    If modTS_Shipments.ShipmentsFormAutoSyncRefresh(operatorWb, report) Then
         mLoading = True
         changedLoading = True
         LoadShippables
@@ -297,7 +297,7 @@ Public Sub AutoSyncIfPending()
         ShowStatus "AutoSync: NAS was " & IIf(nasBeforeRefresh = "", "unknown", nasBeforeRefresh) & _
                    ", now " & IIf(nasAfterRefresh = "", "unknown", nasAfterRefresh) & ". " & report
     Else
-        ShowStatus "AutoSync: read-model refresh failed. " & report
+        ShowStatus "AutoSync: refresh failed. " & report
         UpdateSyncStateLabel
     End If
 
