@@ -4729,7 +4729,7 @@ Public Function EvictIdleSentOverlayForRowVersion(ByVal packageRow As Long, _
                                                   ByVal lockedQty As Double, _
                                                   ByVal unreservedQty As Double) As Boolean
     Dim sentKey As String
-    Dim sentBase As Double
+    Dim sentProjectedQty As Double
 
     If activeQty > 0.0000001 Or lockedQty > 0.0000001 Or unreservedQty > 0.0000001 Then Exit Function
     EnsurePendingBoxVersionInventoryOverlayLoaded
@@ -4738,8 +4738,8 @@ Public Function EvictIdleSentOverlayForRowVersion(ByVal packageRow As Long, _
     If sentKey = "" Then Exit Function
     If Not mPendingBoxVersionInventoryOverlay.Exists(sentKey) Then Exit Function
 
-    sentBase = PendingOverlayBaselineForKey(sentKey)
-    If sentBase > 0.0000001 And backendQty >= sentBase - 0.0000001 Then
+    sentProjectedQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
+    If backendQty <= sentProjectedQty + 0.0000001 Then
         RemovePendingBoxVersionInventoryOverlayKey sentKey
         EvictIdleSentOverlayForRowVersion = True
     End If

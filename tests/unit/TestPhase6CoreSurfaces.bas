@@ -5808,7 +5808,7 @@ CleanFail:
     Resume CleanExit
 End Function
 
-Public Function TestShippingProjectedOverlay_EvictsIdleSentOverlayAtBaseline() As Long
+Public Function TestShippingProjectedOverlay_KeepsFreshSentOverlayAtBaseline() As Long
     Dim failureReason As String
     Dim overlayPath As String
     Dim projectedText As String
@@ -5825,28 +5825,70 @@ Public Function TestShippingProjectedOverlay_EvictsIdleSentOverlayAtBaseline() A
         GoTo CleanExit
     End If
     evicted = RunShippingEvictIdleSentOverlayForTest(974, "v1", 8, 0, 0, 0)
-    If Not evicted Then
-        failureReason = "Idle SENT overlay was not evicted when backend was at the overlay baseline."
+    If evicted Then
+        failureReason = "Fresh SENT overlay was evicted while backend was still at the pre-shipment baseline."
         GoTo CleanExit
     End If
-    If RunShippingHasSentOverlayForTest(974, "v1") Then
-        failureReason = "Idle SENT overlay still exists after stale eviction."
+    If Not RunShippingHasSentOverlayForTest(974, "v1") Then
+        failureReason = "Fresh SENT overlay did not survive baseline/stale NAS refresh."
         GoTo CleanExit
     End If
     projectedText = RunShippingProjectedOverlayTextForTest(974, "v1", "8")
-    If CDbl(NzDblForTest(projectedText)) <> 8 Then
-        failureReason = "Idle SENT overlay continued to depress Projected Inv; expected backend 8 but found " & projectedText & "."
+    If CDbl(NzDblForTest(projectedText)) <> 7 Then
+        failureReason = "Fresh SENT overlay did not preserve shipped Projected Inv; expected 7 but found " & projectedText & "."
         GoTo CleanExit
     End If
 
-    TestShippingProjectedOverlay_EvictsIdleSentOverlayAtBaseline = 1
+    TestShippingProjectedOverlay_KeepsFreshSentOverlayAtBaseline = 1
 
 CleanExit:
     If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
     RunShippingClearProjectedOverlayForTest
     If failureReason <> "" Then
         On Error GoTo 0
-        Err.Raise vbObjectError + 7161, "TestShippingProjectedOverlay_EvictsIdleSentOverlayAtBaseline", failureReason
+        Err.Raise vbObjectError + 7161, "TestShippingProjectedOverlay_KeepsFreshSentOverlayAtBaseline", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingProjectedOverlay_EvictsSentOverlayWhenNasCatchesUp() As Long
+    Dim failureReason As String
+    Dim overlayPath As String
+    Dim projectedText As String
+    Dim evicted As Boolean
+
+    On Error GoTo CleanFail
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    RunShippingRegisterSentProjectedOverlayForTest 972, "v1", 7, 8
+    evicted = RunShippingEvictIdleSentOverlayForTest(972, "v1", 7, 0, 0, 0)
+    If Not evicted Then
+        failureReason = "SENT overlay was not evicted once backend caught up to the sent projected qty."
+        GoTo CleanExit
+    End If
+    If RunShippingHasSentOverlayForTest(972, "v1") Then
+        failureReason = "SENT overlay still exists after backend catch-up eviction."
+        GoTo CleanExit
+    End If
+    projectedText = RunShippingProjectedOverlayTextForTest(972, "v1", "7")
+    If CDbl(NzDblForTest(projectedText)) <> 7 Then
+        failureReason = "SENT overlay catch-up did not return backend Projected Inv; expected 7 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedOverlay_EvictsSentOverlayWhenNasCatchesUp = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7165, "TestShippingProjectedOverlay_EvictsSentOverlayWhenNasCatchesUp", failureReason
     End If
     Exit Function
 CleanFail:
