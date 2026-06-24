@@ -6179,6 +6179,11 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     Dim existingRowValue As Long
     Dim existingQtyValue As Double
     Dim existingVersionLabel As String
+    Dim qtyDelta As Double
+    Dim deltaReserveOnly As Boolean
+    Dim previousRowQty As Variant
+    Dim previousRowArea As Variant
+    Dim absQtyDelta As Double
 
     actionName = UCase$(Trim$(actionName))
     isHold = (UCase$(Trim$(targetName)) = "HOLD")
@@ -6275,10 +6280,15 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         existingQtyValue = NzDbl(ShipmentRowText(lo, tableRowIndex, "QUANTITY"))
         existingVersionLabel = NormalizeBoxBomVersionLabelShipping(ShipmentRowText(lo, tableRowIndex, "DESCRIPTION"))
         hadExistingReserve = (Not isHold And existingReserveEventId <> "")
+        qtyDelta = qtyValue - existingQtyValue
         preserveExistingReservation = hadExistingReserve _
                                       And existingRowValue = rowValue _
                                       And Abs(existingQtyValue - qtyValue) <= 0.0000001 _
                                       And StrComp(existingVersionLabel, NormalizeBoxBomVersionLabelShipping(descriptionValue), vbTextCompare) = 0
+        deltaReserveOnly = hadExistingReserve _
+                           And existingRowValue = rowValue _
+                           And Abs(qtyDelta) > 0.0000001 _
+                           And StrComp(existingVersionLabel, NormalizeBoxBomVersionLabelShipping(descriptionValue), vbTextCompare) = 0
     Else
         Set lr = FindShipmentLineByRefItemVersion(lo, Trim$(refNumber), itemName, Trim$(descriptionValue), Trim$(carrierValue))
         If Not lr Is Nothing Then
@@ -6292,7 +6302,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     End If
     If finalQty <= 0 Then finalQty = qtyValue
 
-    If hadExistingReserve And Not preserveExistingReservation Then
+    If hadExistingReserve And Not preserveExistingReservation And Not deltaReserveOnly Then
         singleRow = Array(lr.Index)
         Set invLo = GetShipmentReleaseInvSysTable(ws, report)
         If invLo Is Nothing Then
@@ -6324,7 +6334,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
 
     WriteValue lr, "REF_NUMBER", Trim$(refNumber)
     WriteValue lr, COL_SHIPMENT_LINE_ID, EnsureShipmentLineId(lo, lr.Index)
-    If preserveExistingReservation Then
+    If preserveExistingReservation Or deltaReserveOnly Then
         WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, existingReserveEventId
     ElseIf Trim$(ShipmentRowText(lo, lr.Index, COL_SHIPMENT_RESERVE_EVENT_ID)) = "" Or Not mergedExisting Then
         WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, vbNullString
@@ -6337,14 +6347,43 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     WriteValue lr, "DESCRIPTION", Trim$(descriptionValue)
     If isHold Then
         If Trim$(ShipmentRowText(lo, lr.Index, "AREA")) = "" Then WriteValue lr, "AREA", "Warehouse"
-    ElseIf preserveExistingReservation Then
+    ElseIf preserveExistingReservation Or deltaReserveOnly Then
         If Trim$(existingArea) <> "" Then WriteValue lr, "AREA", existingArea
     Else
         WriteValue lr, "AREA", "Warehouse"
     End If
     If Trim$(carrierValue) <> "" Or Not mergedExisting Then WriteValue lr, "CARRIER", Trim$(carrierValue)
 
-    If Not isHold And Not preserveExistingReservation Then
+    If Not isHold And deltaReserveOnly Then
+        singleRow = Array(lr.Index)
+        If invLo Is Nothing Then Set invLo = GetWritableShippingInvSysTable(ws, report)
+        If invLo Is Nothing Then
+            If report = "" Then report = "InventoryManagement!invSys table not found."
+            GoTo CleanExit
+        End If
+
+        If qtyDelta > 0 Then
+            reservedTotal = ApplyShipmentQtyDeltaLocal(invLo, rowValue, qtyDelta, errNotes, existingQtyValue)
+            If reservedTotal < 0 Then
+                If errNotes = "" Then errNotes = "Unable to apply delta reserve locally."
+                report = errNotes
+                GoTo CleanExit
+            End If
+        ElseIf qtyDelta < 0 Then
+            absQtyDelta = Abs(qtyDelta)
+            releasedTotal = ApplyShipmentQtyDeltaLocal(invLo, rowValue, -absQtyDelta, errNotes, existingQtyValue)
+            If releasedTotal < 0 Then
+                If errNotes = "" Then errNotes = "Unable to apply delta release locally."
+                report = errNotes
+                GoTo CleanExit
+            End If
+        End If
+        RegisterDeltaVersionInventoryOverlay rowValue, descriptionValue, qtyDelta, displayedAvailableQty, existingQtyValue
+        WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, existingReserveEventId
+        If Not UpsertShippingReservationForRow(lo, lr.Index, existingReserveEventId, report) Then
+            If report = "" Then report = "Warning: local quantity delta was applied, but the shipping reservation ledger was not refreshed."
+        End If
+    ElseIf Not isHold And Not preserveExistingReservation Then
         singleRow = Array(lr.Index)
         Set versionAvailabilityOverrides = ShippingVersionAvailabilityOverride(rowValue, descriptionValue, displayedAvailableQty)
         If invLo Is Nothing Then Set invLo = GetWritableShippingInvSysTable(ws, report)
@@ -6392,6 +6431,13 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     ShipmentsFormCommitLine = True
 
 CleanExit:
+    If Not ShipmentsFormCommitLine And report = "" Then
+        report = "Shipment row update exited without completing. Action=" & actionName & _
+                 "; HadReserve=" & CStr(hadExistingReserve) & _
+                 "; Preserve=" & CStr(preserveExistingReservation) & _
+                 "; DeltaOnly=" & CStr(deltaReserveOnly) & _
+                 "; QtyDelta=" & Format$(qtyDelta, "0.###")
+    End If
     EndShippingTableMutation lo, previousVisibility, visibilityChanged, previousEvents, previousHandling
     Exit Function
 
@@ -7852,6 +7898,35 @@ Private Sub ApplyStageVersionInventoryOverlayFromRows(ByVal invLo As ListObject,
         RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, nasBaseline - qtyVal, nasBaseline
 NextRow:
     Next i
+End Sub
+
+Private Sub RegisterDeltaVersionInventoryOverlay(ByVal rowVal As Long, _
+                                                 ByVal versionLabel As String, _
+                                                 ByVal qtyDelta As Double, _
+                                                 ByVal displayedAvailableQty As Variant, _
+                                                 ByVal existingQtyValue As Double)
+    Dim normalizedVersion As String
+    Dim currentOverlayQty As Double
+    Dim baselineQty As Double
+    Dim projectedText As String
+    Dim newOverlayQty As Double
+
+    normalizedVersion = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If rowVal <= 0 Or normalizedVersion = "" Then Exit Sub
+    If Abs(qtyDelta) <= 0.0000001 Then Exit Sub
+
+    If IsNumeric(displayedAvailableQty) Then
+        currentOverlayQty = CDbl(displayedAvailableQty)
+    Else
+        projectedText = PendingBoxVersionInventoryOverlayText(rowVal, normalizedVersion, vbNullString)
+        If IsNumeric(projectedText) Then currentOverlayQty = CDbl(projectedText)
+    End If
+    baselineQty = PendingOverlayBaselineForKey(PendingBoxVersionInventoryKey(rowVal, normalizedVersion))
+    If baselineQty <= 0 Then baselineQty = currentOverlayQty + existingQtyValue
+
+    newOverlayQty = currentOverlayQty - qtyDelta
+    If newOverlayQty < 0 Then newOverlayQty = 0
+    RegisterPendingBoxVersionInventoryOverlay rowVal, normalizedVersion, newOverlayQty, baselineQty
 End Sub
 
 Private Function StageVersionInventoryCurrentQty(ByVal invLo As ListObject, _
@@ -16439,6 +16514,69 @@ NextValidate:
         ApplyDirectShipmentsSentDeltas = ApplyDirectShipmentsSentDeltas + qtyVal
 NextApply:
     Next delta
+End Function
+
+Private Function ApplyShipmentQtyDeltaLocal(ByVal invLo As ListObject, _
+                                            ByVal rowVal As Long, _
+                                            ByVal qtyDelta As Double, _
+                                            ByRef errNotes As String, _
+                                            Optional ByVal existingReservedQty As Double = 0) As Double
+    ApplyShipmentQtyDeltaLocal = 0
+    errNotes = ""
+    If invLo Is Nothing Then
+        errNotes = "invSys table not found."
+        ApplyShipmentQtyDeltaLocal = -1
+        Exit Function
+    End If
+    If rowVal <= 0 Or Abs(qtyDelta) <= 0.0000001 Then Exit Function
+
+    Dim colTotal As Long: colTotal = ColumnIndex(invLo, "TOTAL INV")
+    Dim colShip As Long: colShip = ColumnIndex(invLo, "SHIPMENTS")
+    Dim colLastEdited As Long: colLastEdited = ColumnIndex(invLo, "LAST EDITED")
+    Dim colTotalLastEdit As Long: colTotalLastEdit = ColumnIndex(invLo, "TOTAL INV LAST EDIT")
+    If colTotal = 0 Or colShip = 0 Then
+        errNotes = "invSys table missing TOTAL INV/SHIPMENTS columns."
+        ApplyShipmentQtyDeltaLocal = -1
+        Exit Function
+    End If
+
+    Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+    If invRow Is Nothing Then
+        errNotes = "invSys ROW " & CStr(rowVal) & " not found."
+        ApplyShipmentQtyDeltaLocal = -1
+        Exit Function
+    End If
+
+    Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
+    Dim shipCell As Range: Set shipCell = invRow.Range.Cells(1, colShip)
+    Dim currentTotal As Double: currentTotal = NzDbl(totalCell.Value)
+    Dim currentShip As Double: currentShip = NzDbl(shipCell.Value)
+    If existingReservedQty > currentShip + 0.0000001 Then currentShip = existingReservedQty
+
+    If qtyDelta > 0 Then
+        If qtyDelta > currentTotal + 0.0000001 Then
+            errNotes = "ROW " & CStr(rowVal) & " only has " & Format$(currentTotal, "0.###") & " in TOTAL INV but needs " & Format$(qtyDelta, "0.###") & "."
+            ApplyShipmentQtyDeltaLocal = -1
+            Exit Function
+        End If
+        totalCell.Value = currentTotal - qtyDelta
+        shipCell.Value = currentShip + qtyDelta
+        ApplyShipmentQtyDeltaLocal = qtyDelta
+    Else
+        qtyDelta = Abs(qtyDelta)
+        If qtyDelta > currentShip + 0.0000001 Then
+            errNotes = "ROW " & CStr(rowVal) & " only has " & Format$(currentShip, "0.###") & " staged but needs " & Format$(qtyDelta, "0.###") & "."
+            ApplyShipmentQtyDeltaLocal = -1
+            Exit Function
+        End If
+        totalCell.Value = currentTotal + qtyDelta
+        shipCell.Value = currentShip - qtyDelta
+        If NzDbl(shipCell.Value) < 0 Then shipCell.Value = 0
+        ApplyShipmentQtyDeltaLocal = qtyDelta
+    End If
+
+    If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
+    If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
 End Function
 
 Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collection, ByRef errNotes As String) As Double

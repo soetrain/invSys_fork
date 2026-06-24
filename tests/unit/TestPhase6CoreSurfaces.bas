@@ -4957,6 +4957,110 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+    Dim overlayPath As String
+    Dim projectedText As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_update_reserved_delta")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH109", "S31", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 972, "SKU-UPDATE-DELTA", "Update Delta Item", "EA", "A1", 9
+    AddShippingBomViewRow loBomView, 972, "Update Delta Item", 972, "Update Delta Item", 1, "EA"
+    SetTableCell loInv, 1, "SHIPMENTS", 2
+    AddShippingTallyRow loShip, "REF-UPDATE-DELTA", "Update Delta Item", 2, 972, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "USPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-UPDATE-DELTA-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-UPDATE-DELTA-001"
+
+    wbOps.Activate
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingRegisterProjectedOverlayForTest 972, "v1", 9, 11
+
+    ok = RunShippingCommitLineForTest("SHIP", "UPDATE", 1, "REF-UPDATE-DELTA", "Update Delta Item", 3, 972, "EA", "A1", "v1", "USPS", report, 9)
+    If Not ok Then
+        failureReason = "Increasing reserved qty failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 8 Then
+        failureReason = "Increasing reserved qty did not apply a +1 delta to TOTAL INV; expected 8 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 3 Then
+        failureReason = "Increasing reserved qty did not apply a +1 delta to SHIPMENTS; expected 3 but found " & CStr(GetTableValue(loInv, 1, "SHIPMENTS")) & "."
+        GoTo CleanExit
+    End If
+    projectedText = RunShippingProjectedOverlayTextForTest(972, "v1", "11")
+    If CDbl(NzDblForTest(projectedText)) <> 8 Then
+        failureReason = "Increasing reserved qty over-deducted Projected Inv; expected 8 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    ok = RunShippingCommitLineForTest("SHIP", "UPDATE", 1, "REF-UPDATE-DELTA", "Update Delta Item", 1, 972, "EA", "A1", "v1", "USPS", report, 8)
+    If Not ok Then
+        failureReason = "Decreasing reserved qty failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 10 Then
+        failureReason = "Decreasing reserved qty did not apply a -2 delta to TOTAL INV; expected 10 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 1 Then
+        failureReason = "Decreasing reserved qty did not apply a -2 delta to SHIPMENTS; expected 1 but found " & CStr(GetTableValue(loInv, 1, "SHIPMENTS")) & "."
+        GoTo CleanExit
+    End If
+    projectedText = RunShippingProjectedOverlayTextForTest(972, "v1", "11")
+    If CDbl(NzDblForTest(projectedText)) <> 10 Then
+        failureReason = "Decreasing reserved qty did not release Projected Inv by the delta; expected 10 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH109"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH109.invSys.Data.ShippingReservations.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH109.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH109.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7159, "TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv() As Long
     Dim rootPath As String
     Dim currentUser As String

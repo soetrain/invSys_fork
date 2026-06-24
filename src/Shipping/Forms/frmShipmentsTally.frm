@@ -896,7 +896,7 @@ Private Function LockedShipmentQtyForShippable(ByVal packageRow As Long, ByVal b
     If Not mNasReservationTotals Is Nothing Then
         If mNasReservationTotals.Exists(key) Then
             LockedShipmentQtyForShippable = ParseNumber(NzText(mNasReservationTotals(key)))
-            If LockedShipmentQtyForShippable <= 0 Or HasActiveShipmentLineForRow(packageRow, versionLabel) Then Exit Function
+            If LockedShipmentQtyForShippable > 0 And Not HasActiveShipmentLineForRow(packageRow, versionLabel) Then Exit Function
             LockedShipmentQtyForShippable = 0
         End If
     End If
