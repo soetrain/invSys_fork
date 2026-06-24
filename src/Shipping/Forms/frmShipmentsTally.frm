@@ -50,17 +50,22 @@ Private mLoading As Boolean
 Private mBuilt As Boolean
 Private mAnchors As Object
 Private mResizeInitialized As Boolean
+Private mOperatorWorkbook As Workbook
+Private mNextPollTime As Date
 
 Private Const ANCHOR_LEFT As Long = 1
 Private Const ANCHOR_TOP As Long = 2
 Private Const ANCHOR_RIGHT As Long = 4
 Private Const ANCHOR_BOTTOM As Long = 8
+Private Const POLL_INTERVAL_SECONDS As Long = 15
 
 Private Sub UserForm_Initialize()
     BuildLayout
 End Sub
 
 Private Sub UserForm_Activate()
+    modTS_Shipments.RegisterShipmentsFormAutoSync Me
+    ScheduleAutoSync
     If Not mResizeInitialized Then
         modUserFormResizeWin.EnableResizableUserForm Me
         mResizeInitialized = True
@@ -74,7 +79,10 @@ Private Sub UserForm_Layout()
 End Sub
 
 Private Sub UserForm_Terminate()
+    CancelAutoSync
+    modTS_Shipments.UnregisterShipmentsFormAutoSync Me
     Set mAnchors = Nothing
+    Set mOperatorWorkbook = Nothing
 End Sub
 
 Public Sub InitializeFromShipping()
@@ -84,11 +92,13 @@ Public Sub InitializeFromShipping()
     Dim quietStarted As Boolean
     Dim startedAt As Single
     Dim elapsedMs As Long
+    Dim operatorWb As Workbook
 
     If Not mBuilt Then BuildLayout
+    Set operatorWb = ResolveOperatorWorkbook()
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
-    modUiQuiet.BeginQuietUi ActiveWorkbook
+    modUiQuiet.BeginQuietUi operatorWb
     quietStarted = True
     startedAt = Timer
 
@@ -108,10 +118,11 @@ Public Sub InitializeFromShipping()
     End If
     elapsedMs = ElapsedMilliseconds(startedAt)
     ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms."
+    ScheduleAutoSync
 
 CleanExit:
     On Error Resume Next
-    modTS_Shipments.EnforceShippingSupportSheetsHidden ActiveWorkbook
+    modTS_Shipments.EnforceShippingSupportSheetsHidden operatorWb
     If quietStarted Then modUiQuiet.EndQuietUi
     Me.MousePointer = previousPointer
     On Error GoTo 0
@@ -120,6 +131,85 @@ CleanExit:
 FailInit:
     ShowStatus "Shipments form load failed: " & Err.Description
     Resume CleanExit
+End Sub
+
+Private Function ResolveOperatorWorkbook() As Workbook
+    On Error Resume Next
+
+    Dim nameCheck As String
+
+    If Not mOperatorWorkbook Is Nothing Then
+        nameCheck = mOperatorWorkbook.Name
+        If Err.Number = 0 And Trim$(nameCheck) <> "" Then
+            Set ResolveOperatorWorkbook = mOperatorWorkbook
+            Exit Function
+        End If
+        Err.Clear
+        Set mOperatorWorkbook = Nothing
+    End If
+
+    If Not ActiveWorkbook Is Nothing Then
+        Set mOperatorWorkbook = ActiveWorkbook
+        Set ResolveOperatorWorkbook = mOperatorWorkbook
+    End If
+    On Error GoTo 0
+End Function
+
+Public Sub ScheduleAutoSync()
+    On Error Resume Next
+
+    CancelAutoSync
+    mNextPollTime = Now + TimeSerial(0, 0, POLL_INTERVAL_SECONDS)
+    Application.OnTime EarliestTime:=mNextPollTime, _
+                       Procedure:=modTS_Shipments.ShipmentsFormAutoSyncProcedureName(), _
+                       Schedule:=True
+    On Error GoTo 0
+End Sub
+
+Public Sub CancelAutoSync()
+    On Error Resume Next
+
+    If mNextPollTime > 0 Then
+        Application.OnTime EarliestTime:=mNextPollTime, _
+                           Procedure:=modTS_Shipments.ShipmentsFormAutoSyncProcedureName(), _
+                           Schedule:=False
+        mNextPollTime = 0
+    End If
+    On Error GoTo 0
+End Sub
+
+Public Sub AutoSyncIfPending()
+    On Error GoTo CleanExit
+
+    Dim operatorWb As Workbook
+    Dim report As String
+    Dim changedLoading As Boolean
+
+    If mLoading Then GoTo CleanExit
+    If PendingShipmentSyncCount() <= 0 Then
+        UpdateSyncStateLabel
+        GoTo CleanExit
+    End If
+
+    Set operatorWb = ResolveOperatorWorkbook()
+    If operatorWb Is Nothing Then GoTo CleanExit
+
+    If modOperatorReadModel.RefreshInventoryReadModelForWorkbook(operatorWb, "", "LOCAL", report) Then
+        mLoading = True
+        changedLoading = True
+        LoadShippables
+        LoadShipmentState
+        RefreshProjectedShippableInventory
+        mLoading = False
+        changedLoading = False
+        UpdateSyncStateLabel
+    Else
+        UpdateSyncStateLabel
+    End If
+
+CleanExit:
+    If changedLoading Then mLoading = False
+    ScheduleAutoSync
 End Sub
 
 Private Sub BuildLayout()
@@ -546,14 +636,16 @@ End Function
 
 Private Sub RefreshAfterAction(ByVal report As String, ByVal ok As Boolean)
     Dim previousPointer As Long
+    Dim operatorWb As Workbook
 
+    Set operatorWb = ResolveOperatorWorkbook()
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
     mLoading = True
     LoadShipmentLineState
     RefreshProjectedShippableInventory
     mLoading = False
-    modTS_Shipments.EnforceShippingSupportSheetsHidden ActiveWorkbook
+    modTS_Shipments.EnforceShippingSupportSheetsHidden operatorWb
     Me.MousePointer = previousPointer
     ShowStatus report
     If Not ok And report <> "" Then MsgBox report, vbExclamation
@@ -589,8 +681,10 @@ End Sub
 Private Sub mBtnRefresh_Click()
     Dim report As String
     Dim ok As Boolean
+    Dim operatorWb As Workbook
 
-    ok = modTS_Shipments.ShipmentsFormRefreshRuntimeInventory(report)
+    Set operatorWb = ResolveOperatorWorkbook()
+    ok = modTS_Shipments.ShipmentsFormRefreshRuntimeInventoryForWorkbook(operatorWb, report)
     InitializeFromShipping
     If Trim$(report) <> "" Then
         ShowStatus "Shipments form refreshed. " & report
@@ -682,7 +776,7 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     End If
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
-    modUiQuiet.BeginQuietUi ActiveWorkbook
+    modUiQuiet.BeginQuietUi ResolveOperatorWorkbook()
     quietStarted = True
     startedAt = Timer
     If stageOnly Then

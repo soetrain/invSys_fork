@@ -99,6 +99,7 @@ Private mLastComponentPickerStatus As String
 Private mPendingBoxVersionInventoryOverlay As Object
 Private mPendingBoxVersionInventoryOverlayBaseline As Object
 Private mPendingBoxVersionInventoryOverlayPath As String
+Private mShipmentsAutoSyncForm As Object
 
 Private Const BOX_VERSION_SAVE_CANCEL As Long = 0
 Private Const BOX_VERSION_SAVE_UPDATE As Long = 1
@@ -654,6 +655,32 @@ Public Sub BtnOpenShipmentsForm()
 
 ErrHandler:
     MsgBox "SHIPMENTS failed: " & Err.Description, vbCritical
+End Sub
+
+Public Sub RegisterShipmentsFormAutoSync(ByVal formInstance As Object)
+    Set mShipmentsAutoSyncForm = formInstance
+End Sub
+
+Public Sub UnregisterShipmentsFormAutoSync(ByVal formInstance As Object)
+    On Error Resume Next
+
+    If Not mShipmentsAutoSyncForm Is Nothing Then
+        If formInstance Is Nothing Or mShipmentsAutoSyncForm Is formInstance Then Set mShipmentsAutoSyncForm = Nothing
+    End If
+    On Error GoTo 0
+End Sub
+
+Public Function ShipmentsFormAutoSyncProcedureName() As String
+    ShipmentsFormAutoSyncProcedureName = "'" & ThisWorkbook.Name & "'!modTS_Shipments.TriggerShipmentsFormAutoSync"
+End Function
+
+Public Sub TriggerShipmentsFormAutoSync()
+    On Error GoTo CleanExit
+
+    If mShipmentsAutoSyncForm Is Nothing Then Exit Sub
+    If CBool(mShipmentsAutoSyncForm.Visible) Then mShipmentsAutoSyncForm.AutoSyncIfPending
+
+CleanExit:
 End Sub
 
 Public Sub BtnSaveBox()
@@ -5793,22 +5820,40 @@ Private Function ShipmentsSentProjectedOverlayQty(ByVal backendQty As Double, _
 End Function
 
 Public Function ShipmentsFormRefreshRuntimeInventory(ByRef report As String) As Boolean
+    ShipmentsFormRefreshRuntimeInventory = ShipmentsFormRefreshRuntimeInventoryCore(ActiveWorkbook, vbNullString, report)
+End Function
+
+Public Function ShipmentsFormRefreshRuntimeInventoryForWorkbook(ByVal operatorWb As Workbook, _
+                                                               ByRef report As String, _
+                                                               Optional ByVal warehouseIdOverride As String = "") As Boolean
+    ShipmentsFormRefreshRuntimeInventoryForWorkbook = ShipmentsFormRefreshRuntimeInventoryCore(operatorWb, warehouseIdOverride, report)
+End Function
+
+Private Function ShipmentsFormRefreshRuntimeInventoryCore(ByVal operatorWb As Workbook, _
+                                                         ByVal warehouseIdOverride As String, _
+                                                         ByRef report As String) As Boolean
     On Error GoTo FailSoft
 
     Dim wb As Workbook
     Dim runtimeReport As String
     Dim bomReport As String
+    Dim inventoryReport As String
     Dim warehouseId As String
 
-    Set wb = ActiveWorkbook
+    Set wb = operatorWb
     If wb Is Nothing Then
         report = "No active operator workbook to refresh."
         Exit Function
     End If
 
-    warehouseId = ResolveCurrentShippingWarehouseId()
+    warehouseId = Trim$(warehouseIdOverride)
+    If warehouseId = "" Then warehouseId = ResolveCurrentShippingWarehouseId()
     If Not RunShippingRuntimeQueueRefresh(wb, warehouseId, runtimeReport, False) Then
         report = runtimeReport
+        Exit Function
+    End If
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, warehouseId, "LOCAL", inventoryReport) Then
+        report = inventoryReport
         Exit Function
     End If
     If Not RefreshShippingBomViewForWorkbook(wb, bomReport, False) Then
@@ -5817,8 +5862,9 @@ Public Function ShipmentsFormRefreshRuntimeInventory(ByRef report As String) As 
     End If
 
     report = runtimeReport
+    If Trim$(inventoryReport) <> "" And StrComp(Trim$(inventoryReport), "OK", vbTextCompare) <> 0 Then AppendNote report, inventoryReport
     If Trim$(bomReport) <> "" Then AppendNote report, bomReport
-    ShipmentsFormRefreshRuntimeInventory = True
+    ShipmentsFormRefreshRuntimeInventoryCore = True
     Exit Function
 
 FailSoft:

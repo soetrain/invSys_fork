@@ -376,10 +376,7 @@ Private Sub MoveTableTopLeftSurface(ByVal ws As Worksheet, ByVal tableName As St
     If lo Is Nothing Or targetCell Is Nothing Then Exit Sub
     If lo.Range.Cells(1, 1).Address(False, False) = targetCell.Address(False, False) Then Exit Sub
 
-    On Error Resume Next
-    lo.Range.Cut Destination:=targetCell
-    Application.CutCopyMode = False
-    On Error GoTo 0
+    RebuildTableAtSurface lo, targetCell
 End Sub
 
 Private Sub MoveTableToSheetSurface(ByVal wb As Workbook, ByVal tableName As String, ByVal targetSheetName As String)
@@ -398,8 +395,46 @@ Private Sub MoveTableToSheetSurface(ByVal wb As Workbook, ByVal tableName As Str
     targetWs.Visible = xlSheetVisible
     Set targetCell = GetNextTableStartCellSurface(targetWs)
 
+    RebuildTableAtSurface lo, targetCell
+End Sub
+
+Private Sub RebuildTableAtSurface(ByVal lo As ListObject, ByVal targetCell As Range)
+    On Error GoTo CleanExit
+
+    Dim sourceRange As Range
+    Dim targetRange As Range
+    Dim data As Variant
+    Dim tableName As String
+    Dim tableStyle As String
+    Dim showTotals As Boolean
+    Dim rowCount As Long
+    Dim colCount As Long
+    Dim newLo As ListObject
+
+    If lo Is Nothing Or targetCell Is Nothing Then Exit Sub
+    Set sourceRange = lo.Range
+    If sourceRange Is Nothing Then Exit Sub
+    rowCount = sourceRange.Rows.Count
+    colCount = sourceRange.Columns.Count
+    If rowCount <= 0 Or colCount <= 0 Then Exit Sub
+
+    data = sourceRange.Value
+    tableName = lo.Name
+    tableStyle = lo.TableStyle
+    showTotals = lo.ShowTotals
+
+    lo.Unlist
+    sourceRange.Clear
+    Set targetRange = targetCell.Resize(rowCount, colCount)
+    targetRange.Clear
+    targetRange.Value = data
+    Set newLo = targetCell.Worksheet.ListObjects.Add(xlSrcRange, targetRange, , xlYes)
+    newLo.Name = tableName
+    If Trim$(tableStyle) <> "" Then newLo.TableStyle = tableStyle
+    newLo.ShowTotals = showTotals
+
+CleanExit:
     On Error Resume Next
-    lo.Range.Cut Destination:=targetCell
     Application.CutCopyMode = False
     On Error GoTo 0
 End Sub

@@ -6258,8 +6258,9 @@ Public Function TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected() 
     AddInvSysSeedRow loInv, 986, "SKU-SHIP-RESERVE-CATCHUP", "T27", "EA", "A1", 10
     AddShippingBomViewRow loBomView, 986, "T27", 986, "T27", 1, "EA"
 
-    If Not modOperatorReadModel.RunBatchAndRefreshOperatorWorkbook(wbOps, "WH102", "LOCAL", report) Then
-        failureReason = "RunBatchAndRefreshOperatorWorkbook failed after shipping reserve: " & report
+    wbOps.Activate
+    If Not RunShippingRefreshRuntimeInventoryForTest(wbOps, "WH102", report) Then
+        failureReason = "ShipmentsFormRefreshRuntimeInventory failed after shipping reserve: " & report
         GoTo CleanExit
     End If
     Set loInv = FindTableByName(wbOps, "invSys")
@@ -6269,7 +6270,7 @@ Public Function TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected() 
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loInv, invRow, "TOTAL INV")) <> 9 Then
-        failureReason = "Reserve processor refresh left NAS inventory stale; expected 9 but found " & CStr(GetTableValue(loInv, invRow, "TOTAL INV")) & "."
+        failureReason = "Reserve processor refresh left NAS inventory stale; expected 9 but found " & CStr(GetTableValue(loInv, invRow, "TOTAL INV")) & ". Report=" & report
         GoTo CleanExit
     End If
 
@@ -9321,6 +9322,17 @@ Private Function RunShippingRefreshBomViewForTest(ByVal operatorWb As Workbook, 
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingRefreshBomViewForTest = CBool(Application.Run(macroName, operatorWb, report, forceRebuild))
     If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingRefreshRuntimeInventoryForTest(ByVal operatorWb As Workbook, _
+                                                           ByVal warehouseId As String, _
+                                                           ByRef report As String) As Boolean
+    Dim macroName As String
+
+    macroName = ShippingMacroNameForTest("ShipmentsFormRefreshRuntimeInventoryForWorkbook")
+    If Not operatorWb Is Nothing Then operatorWb.Activate
+    RunShippingRefreshRuntimeInventoryForTest = CBool(Application.Run(macroName, operatorWb, report, warehouseId))
+    If Not operatorWb Is Nothing Then operatorWb.Activate
 End Function
 
 Private Sub RunShippingEnforceSupportSheetsHiddenForTest(ByVal wb As Workbook)
