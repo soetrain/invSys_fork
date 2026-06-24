@@ -683,6 +683,10 @@ Public Sub TriggerShipmentsFormAutoSync()
 CleanExit:
 End Sub
 
+Public Sub TestAutoSyncTrigger()
+    TriggerShipmentsFormAutoSync
+End Sub
+
 Public Sub BtnSaveBox()
     On Error GoTo ErrHandler
     Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
@@ -4893,6 +4897,12 @@ Private Function PendingBoxVersionInventoryOverlayExists(ByVal packageRow As Lon
     End If
     key = SentPendingBoxVersionInventoryKey(packageRow, versionLabel)
     If key <> "" Then PendingBoxVersionInventoryOverlayExists = mPendingBoxVersionInventoryOverlay.Exists(key)
+End Function
+
+Public Function HasAnyPendingBoxVersionInventoryOverlay() As Boolean
+    EnsurePendingBoxVersionInventoryOverlayLoaded
+    If mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Function
+    HasAnyPendingBoxVersionInventoryOverlay = (mPendingBoxVersionInventoryOverlay.Count > 0)
 End Function
 
 Private Sub RegisterSentBoxVersionInventoryOverlay(ByVal packageRow As Long, _

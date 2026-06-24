@@ -95,6 +95,8 @@ Public Sub InitializeFromShipping()
     Dim operatorWb As Workbook
 
     If Not mBuilt Then BuildLayout
+    If mOperatorWorkbook Is Nothing Then Set mOperatorWorkbook = ActiveWorkbook
+    If mOperatorWorkbook Is Nothing Or Not IsShipmentsOperatorWorkbook(mOperatorWorkbook) Then Set mOperatorWorkbook = ActiveWorkbook
     Set operatorWb = ResolveOperatorWorkbook()
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
@@ -122,6 +124,7 @@ Public Sub InitializeFromShipping()
 
 CleanExit:
     On Error Resume Next
+    mLoading = False
     modTS_Shipments.EnforceShippingSupportSheetsHidden operatorWb
     If quietStarted Then modUiQuiet.EndQuietUi
     Me.MousePointer = previousPointer
@@ -137,6 +140,7 @@ Private Function ResolveOperatorWorkbook() As Workbook
     On Error Resume Next
 
     Dim nameCheck As String
+    Dim wb As Workbook
 
     If Not mOperatorWorkbook Is Nothing Then
         nameCheck = mOperatorWorkbook.Name
@@ -151,7 +155,18 @@ Private Function ResolveOperatorWorkbook() As Workbook
     If Not ActiveWorkbook Is Nothing And IsShipmentsOperatorWorkbook(ActiveWorkbook) Then
         Set mOperatorWorkbook = ActiveWorkbook
         Set ResolveOperatorWorkbook = mOperatorWorkbook
+        Exit Function
     End If
+
+    For Each wb In Application.Workbooks
+        If Not wb.IsAddin Then
+            If IsShipmentsOperatorWorkbook(wb) Then
+                Set mOperatorWorkbook = wb
+                Set ResolveOperatorWorkbook = wb
+                Exit Function
+            End If
+        End If
+    Next wb
     On Error GoTo 0
 End Function
 
@@ -227,26 +242,41 @@ Public Sub AutoSyncIfPending()
     Dim operatorWb As Workbook
     Dim report As String
     Dim changedLoading As Boolean
+    Dim syncCount As Long
+    Dim nasBeforeRefresh As String
+    Dim nasAfterRefresh As String
 
-    If mLoading Then GoTo CleanExit
-    If PendingShipmentSyncCount() <= 0 Then
+    If mLoading Then
+        ShowStatus "AutoSync: skipped (loading)."
+        GoTo CleanExit
+    End If
+    syncCount = PendingShipmentSyncCount()
+    If syncCount <= 0 And Not modTS_Shipments.HasAnyPendingBoxVersionInventoryOverlay() Then
         UpdateSyncStateLabel
         GoTo CleanExit
     End If
+    nasBeforeRefresh = FirstShippableNasText()
 
     Set operatorWb = ResolveOperatorWorkbook()
-    If operatorWb Is Nothing Then GoTo CleanExit
+    If operatorWb Is Nothing Then
+        ShowStatus "AutoSync: operator workbook not resolved."
+        GoTo CleanExit
+    End If
 
     If modTS_Shipments.ShipmentsFormRefreshReadModelForWorkbook(operatorWb, report) Then
         mLoading = True
         changedLoading = True
         LoadShippables
+        nasAfterRefresh = FirstShippableNasText()
         LoadShipmentState
         RefreshProjectedShippableInventory
         mLoading = False
         changedLoading = False
         UpdateSyncStateLabel
+        ShowStatus "AutoSync: NAS was " & IIf(nasBeforeRefresh = "", "unknown", nasBeforeRefresh) & _
+                   ", now " & IIf(nasAfterRefresh = "", "unknown", nasAfterRefresh) & ". " & report
     Else
+        ShowStatus "AutoSync: read-model refresh failed. " & report
         UpdateSyncStateLabel
     End If
 
@@ -254,6 +284,16 @@ CleanExit:
     If changedLoading Then mLoading = False
     ScheduleAutoSync
 End Sub
+
+Private Function FirstShippableNasText() As String
+    On Error GoTo CleanExit
+
+    If IsEmpty(mShippables) Then Exit Function
+    If UBound(mShippables, 1) < 1 Then Exit Function
+    FirstShippableNasText = NzText(mShippables(1, 4))
+
+CleanExit:
+End Function
 
 Private Sub BuildLayout()
     If mBuilt Then Exit Sub
