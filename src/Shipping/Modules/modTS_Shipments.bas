@@ -5787,30 +5787,9 @@ Public Function ShipmentsProjectedDisplayQty(ByVal nasQty As Double, _
                                              Optional ByVal reservedLocalQty As Double = 0, _
                                              Optional ByVal pendingOverlayQty As Variant, _
                                              Optional ByVal overlayIncludesReservation As Boolean = True) As Double
-    Dim baseQty As Double
     Dim projectedQty As Double
-    Dim lockedToSubtract As Double
-    Dim overlayQty As Double
-    Dim overlayApplied As Boolean
 
-    baseQty = nasQty
-    lockedToSubtract = lockedQty
-    If Not IsMissing(pendingOverlayQty) Then
-        If IsNumeric(pendingOverlayQty) Then
-            overlayQty = CDbl(pendingOverlayQty)
-            If overlayQty < nasQty Then
-                baseQty = overlayQty
-                overlayApplied = True
-            End If
-        End If
-    End If
-
-    If overlayApplied And reservedLocalQty > 0 And overlayIncludesReservation Then
-        lockedToSubtract = lockedQty - reservedLocalQty
-        If lockedToSubtract < 0 Then lockedToSubtract = 0
-    End If
-
-    projectedQty = baseQty - lockedToSubtract - unreservedLocalQty
+    projectedQty = nasQty - lockedQty
     If projectedQty < 0 Then projectedQty = 0
     ShipmentsProjectedDisplayQty = projectedQty
 End Function
@@ -5826,6 +5805,36 @@ Public Function ShipmentsProjectedDisplayQtyForTest(ByVal nasQty As Double, _
     Else
         ShipmentsProjectedDisplayQtyForTest = ShipmentsProjectedDisplayQty(nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty, overlayIncludesReservation)
     End If
+End Function
+
+Public Function ShipmentsFormProjectedInventoryForTest(ByVal shippablesArray As Variant, _
+                                                       ByVal shipmentsListData As Variant, _
+                                                       Optional ByVal holdListData As Variant) As Variant
+    ShipmentsFormProjectedInventoryForTest = frmShipmentsTally.TestRefreshProjectedInventory(shippablesArray, shipmentsListData, holdListData)
+End Function
+
+Public Function ShipmentReserveWouldBreachFloorForTest(ByVal invLo As ListObject, _
+                                                       ByVal rowVal As Long, _
+                                                       ByVal requestedQty As Double) As Boolean
+    Dim invRow As ListRow
+    Dim colTotal As Long
+    Dim colShip As Long
+    Dim availableQty As Double
+    Dim orderableQty As Double
+
+    If invLo Is Nothing Then Exit Function
+    Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+    If invRow Is Nothing Then Exit Function
+    colTotal = ColumnIndex(invLo, "TOTAL INV")
+    colShip = ColumnIndex(invLo, "SHIPMENTS")
+    If colTotal = 0 Then Exit Function
+
+    availableQty = NzDbl(invRow.Range.Cells(1, colTotal).Value)
+    If colShip > 0 Then availableQty = availableQty - NzDbl(invRow.Range.Cells(1, colShip).Value)
+    If availableQty < 0 Then availableQty = 0
+    orderableQty = availableQty - ShipmentInventoryFloorQty(invLo, invRow)
+    If orderableQty < 0 Then orderableQty = 0
+    ShipmentReserveWouldBreachFloorForTest = (requestedQty > orderableQty + 0.0000001)
 End Function
 
 Public Function ShipmentsSentProjectedOverlayQtyForTest(ByVal backendQty As Double, _
@@ -7356,6 +7365,7 @@ NextSelectedRow:
             errNotes = "invSys table missing TOTAL INV column."
             Exit Function
         End If
+        colShipments = ColumnIndex(invLo, "SHIPMENTS")
     ElseIf useShipmentStaging Then
         colShipments = ColumnIndex(invLo, "SHIPMENTS")
         If colShipments = 0 Then
@@ -7373,10 +7383,21 @@ NextSelectedRow:
         End If
         If colTotalInv > 0 Then
             Dim availableQty As Double: availableQty = NzDbl(invRow.Range.Cells(1, colTotalInv).Value)
+            If colShipments > 0 Then
+                availableQty = availableQty - NzDbl(invRow.Range.Cells(1, colShipments).Value)
+                If availableQty < 0 Then availableQty = 0
+            End If
             projectedOverrideQty = ShipmentRowProjectedAvailabilityOverrideQty(rowKeyValue, versionAvailabilityOverrides)
             If projectedOverrideQty > availableQty Then availableQty = projectedOverrideQty
+            Dim floorQty As Double: floorQty = ShipmentInventoryFloorQty(invLo, invRow)
+            Dim orderableQty As Double: orderableQty = availableQty - floorQty
+            If orderableQty < 0 Then orderableQty = 0
             If NzDbl(requirements(key)) > availableQty + 0.0000001 Then
                 AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " requires " & Format$(NzDbl(requirements(key)), "0.###") & " but only " & Format$(availableQty, "0.###") & " in TOTAL INV."
+                Exit Function
+            End If
+            If NzDbl(requirements(key)) > orderableQty + 0.0000001 Then
+                AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " requires " & Format$(NzDbl(requirements(key)), "0.###") & " but only " & Format$(orderableQty, "0.###") & " available above floor " & Format$(floorQty, "0.###") & "."
                 Exit Function
             End If
         ElseIf colShipments > 0 Then
@@ -15652,6 +15673,35 @@ Private Function ColumnIndex(lo As ListObject, colName As String) As Long
     ColumnIndex = 0
 End Function
 
+Private Function FirstExistingColumnIndex(ByVal lo As ListObject, ByVal names As Variant) As Long
+    Dim i As Long
+
+    If lo Is Nothing Then Exit Function
+    For i = LBound(names) To UBound(names)
+        FirstExistingColumnIndex = ColumnIndex(lo, CStr(names(i)))
+        If FirstExistingColumnIndex > 0 Then Exit Function
+    Next i
+End Function
+
+Private Function ShipmentInventoryFloorQty(ByVal invLo As ListObject, ByVal invRow As ListRow) As Double
+    Dim floorCol As Long
+
+    If invLo Is Nothing Then Exit Function
+    If invRow Is Nothing Then Exit Function
+    floorCol = FirstExistingColumnIndex(invLo, Array("INV FLOOR", _
+                                                     "INVENTORY FLOOR", _
+                                                     "SHIPMENT FLOOR", _
+                                                     "SHIPMENTS FLOOR", _
+                                                     "FLOOR", _
+                                                     "MIN INV", _
+                                                     "MINIMUM INV", _
+                                                     "MINIMUM INVENTORY", _
+                                                     "SAFETY STOCK"))
+    If floorCol = 0 Then Exit Function
+    ShipmentInventoryFloorQty = NzDbl(invRow.Range.Cells(1, floorCol).Value)
+    If ShipmentInventoryFloorQty < 0 Then ShipmentInventoryFloorQty = 0
+End Function
+
 Private Function FindInvListRowByRowValue(invLo As ListObject, ByVal rowValue As Long) As ListRow
     If invLo Is Nothing Or rowValue <= 0 Then Exit Function
     If invLo.DataBodyRange Is Nothing Then Exit Function
@@ -16794,9 +16844,17 @@ NextAgg:
         Dim neededQty As Double: neededQty = requiredQty - alreadyStaged
         If neededQty <= 0 Then GoTo NextReq
 
-        Dim available As Double: available = NzDbl(totalCell.Value)
+        Dim available As Double: available = NzDbl(totalCell.Value) - alreadyStaged
+        If available < 0 Then available = 0
+        Dim floorQty As Double: floorQty = ShipmentInventoryFloorQty(invLo, invRow)
+        Dim orderableQty As Double: orderableQty = available - floorQty
+        If orderableQty < 0 Then orderableQty = 0
         If neededQty > available + 0.0000001 Then
             AppendNote errNotes, "ROW " & shipKey & " requires " & Format$(neededQty, "0.###") & " but only " & Format$(available, "0.###") & " in TOTAL INV."
+            Exit Function
+        End If
+        If neededQty > orderableQty + 0.0000001 Then
+            AppendNote errNotes, "ROW " & shipKey & " requires " & Format$(neededQty, "0.###") & " but only " & Format$(orderableQty, "0.###") & " available above floor " & Format$(floorQty, "0.###") & "."
             Exit Function
         End If
 
@@ -17342,7 +17400,6 @@ Private Function ApplyShipmentQtyDeltaLocal(ByVal invLo As ListObject, _
     Dim colTotal As Long: colTotal = ColumnIndex(invLo, "TOTAL INV")
     Dim colShip As Long: colShip = ColumnIndex(invLo, "SHIPMENTS")
     Dim colLastEdited As Long: colLastEdited = ColumnIndex(invLo, "LAST EDITED")
-    Dim colTotalLastEdit As Long: colTotalLastEdit = ColumnIndex(invLo, "TOTAL INV LAST EDIT")
     If colTotal = 0 Or colShip = 0 Then
         errNotes = "invSys table missing TOTAL INV/SHIPMENTS columns."
         ApplyShipmentQtyDeltaLocal = -1
@@ -17356,19 +17413,28 @@ Private Function ApplyShipmentQtyDeltaLocal(ByVal invLo As ListObject, _
         Exit Function
     End If
 
-    Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
     Dim shipCell As Range: Set shipCell = invRow.Range.Cells(1, colShip)
+    Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
     Dim currentTotal As Double: currentTotal = NzDbl(totalCell.Value)
     Dim currentShip As Double: currentShip = NzDbl(shipCell.Value)
     If existingReservedQty > currentShip + 0.0000001 Then currentShip = existingReservedQty
 
     If qtyDelta > 0 Then
-        If qtyDelta > currentTotal + 0.0000001 Then
-            errNotes = "ROW " & CStr(rowVal) & " only has " & Format$(currentTotal, "0.###") & " in TOTAL INV but needs " & Format$(qtyDelta, "0.###") & "."
+        Dim availableQty As Double: availableQty = currentTotal - currentShip
+        If availableQty < 0 Then availableQty = 0
+        Dim floorQty As Double: floorQty = ShipmentInventoryFloorQty(invLo, invRow)
+        Dim orderableQty As Double: orderableQty = availableQty - floorQty
+        If orderableQty < 0 Then orderableQty = 0
+        If qtyDelta > availableQty + 0.0000001 Then
+            errNotes = "ROW " & CStr(rowVal) & " only has " & Format$(availableQty, "0.###") & " available after existing locks but needs " & Format$(qtyDelta, "0.###") & "."
             ApplyShipmentQtyDeltaLocal = -1
             Exit Function
         End If
-        totalCell.Value = currentTotal - qtyDelta
+        If qtyDelta > orderableQty + 0.0000001 Then
+            errNotes = "ROW " & CStr(rowVal) & " only has " & Format$(orderableQty, "0.###") & " available above floor " & Format$(floorQty, "0.###") & " but needs " & Format$(qtyDelta, "0.###") & "."
+            ApplyShipmentQtyDeltaLocal = -1
+            Exit Function
+        End If
         shipCell.Value = currentShip + qtyDelta
         ApplyShipmentQtyDeltaLocal = qtyDelta
     Else
@@ -17378,14 +17444,12 @@ Private Function ApplyShipmentQtyDeltaLocal(ByVal invLo As ListObject, _
             ApplyShipmentQtyDeltaLocal = -1
             Exit Function
         End If
-        totalCell.Value = currentTotal + qtyDelta
         shipCell.Value = currentShip - qtyDelta
         If NzDbl(shipCell.Value) < 0 Then shipCell.Value = 0
         ApplyShipmentQtyDeltaLocal = qtyDelta
     End If
 
     If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
-    If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
 End Function
 
 Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collection, ByRef errNotes As String) As Double
@@ -17403,7 +17467,6 @@ Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collect
     Dim colShip As Long: colShip = ColumnIndex(invLo, "SHIPMENTS")
     Dim colRow As Long: colRow = ColumnIndex(invLo, "ROW")
     Dim colLastEdited As Long: colLastEdited = ColumnIndex(invLo, "LAST EDITED")
-    Dim colTotalLastEdit As Long: colTotalLastEdit = ColumnIndex(invLo, "TOTAL INV LAST EDIT")
     If colTotal = 0 Or colShip = 0 Or colRow = 0 Then
         errNotes = "invSys table missing TOTAL INV/SHIPMENTS/ROW columns."
         ApplyShipmentDeltasLocal = -1
@@ -17424,12 +17487,24 @@ Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collect
         End If
 
         Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
+        Dim shipCell As Range: Set shipCell = invRow.Range.Cells(1, colShip)
         Dim currentTotal As Double: currentTotal = NzDbl(totalCell.Value)
+        Dim currentShip As Double: currentShip = NzDbl(shipCell.Value)
+        Dim availableQty As Double: availableQty = currentTotal - currentShip
+        If availableQty < 0 Then availableQty = 0
         If delta.Exists("AVAILABLE_OVERRIDE") Then
-            If NzDbl(delta("AVAILABLE_OVERRIDE")) > currentTotal Then currentTotal = NzDbl(delta("AVAILABLE_OVERRIDE"))
+            If NzDbl(delta("AVAILABLE_OVERRIDE")) > availableQty Then availableQty = NzDbl(delta("AVAILABLE_OVERRIDE"))
         End If
-        If qtyVal > currentTotal + 0.0000001 Then
-            AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(currentTotal, "0.###") & " in TOTAL INV but needs " & Format$(qtyVal, "0.###") & "."
+        Dim floorQty As Double: floorQty = ShipmentInventoryFloorQty(invLo, invRow)
+        Dim orderableQty As Double: orderableQty = availableQty - floorQty
+        If orderableQty < 0 Then orderableQty = 0
+        If qtyVal > availableQty + 0.0000001 Then
+            AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(availableQty, "0.###") & " available after existing locks but needs " & Format$(qtyVal, "0.###") & "."
+            ApplyShipmentDeltasLocal = -1
+            Exit Function
+        End If
+        If qtyVal > orderableQty + 0.0000001 Then
+            AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(orderableQty, "0.###") & " available above floor " & Format$(floorQty, "0.###") & " but needs " & Format$(qtyVal, "0.###") & "."
             ApplyShipmentDeltasLocal = -1
             Exit Function
         End If
@@ -17443,16 +17518,9 @@ NextValidate:
 
         Set invRow = FindInvListRowByRowValue(invLo, rowVal)
         If invRow Is Nothing Then GoTo NextApply
-        Set totalCell = invRow.Range.Cells(1, colTotal)
-        Dim shipCell As Range: Set shipCell = invRow.Range.Cells(1, colShip)
-        currentTotal = NzDbl(totalCell.Value)
-        If delta.Exists("AVAILABLE_OVERRIDE") Then
-            If NzDbl(delta("AVAILABLE_OVERRIDE")) > currentTotal Then currentTotal = NzDbl(delta("AVAILABLE_OVERRIDE"))
-        End If
-        totalCell.Value = currentTotal - qtyVal
+        Set shipCell = invRow.Range.Cells(1, colShip)
         shipCell.Value = NzDbl(shipCell.Value) + qtyVal
         If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
-        If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
         ApplyShipmentDeltasLocal = ApplyShipmentDeltasLocal + qtyVal
 NextApply:
     Next delta
@@ -17469,13 +17537,11 @@ Private Function ApplyShipmentReleaseDeltasLocal(invLo As ListObject, deltas As 
     If deltas Is Nothing Then Exit Function
     If deltas.Count = 0 Then Exit Function
 
-    Dim colTotal As Long: colTotal = ColumnIndex(invLo, "TOTAL INV")
     Dim colShip As Long: colShip = ColumnIndex(invLo, "SHIPMENTS")
     Dim colRow As Long: colRow = ColumnIndex(invLo, "ROW")
     Dim colLastEdited As Long: colLastEdited = ColumnIndex(invLo, "LAST EDITED")
-    Dim colTotalLastEdit As Long: colTotalLastEdit = ColumnIndex(invLo, "TOTAL INV LAST EDIT")
-    If colTotal = 0 Or colShip = 0 Or colRow = 0 Then
-        errNotes = "invSys table missing TOTAL INV/SHIPMENTS/ROW columns."
+    If colShip = 0 Or colRow = 0 Then
+        errNotes = "invSys table missing SHIPMENTS/ROW columns."
         ApplyShipmentReleaseDeltasLocal = -1
         Exit Function
     End If
@@ -17512,17 +17578,14 @@ NextValidate:
 
         Set invRow = FindInvListRowByRowValue(invLo, rowVal)
         If invRow Is Nothing Then GoTo NextApply
-        Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
         Set shipCell = invRow.Range.Cells(1, colShip)
         currentShip = NzDbl(shipCell.Value)
         Dim localReleaseQty As Double: localReleaseQty = qtyVal
         If allowMissingLocalStage And localReleaseQty > currentShip Then localReleaseQty = currentShip
         If localReleaseQty <= 0 Then GoTo NextApply
-        totalCell.Value = NzDbl(totalCell.Value) + localReleaseQty
         shipCell.Value = currentShip - localReleaseQty
         If NzDbl(shipCell.Value) < 0 Then shipCell.Value = 0
         If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
-        If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
         ApplyShipmentReleaseDeltasLocal = ApplyShipmentReleaseDeltasLocal + localReleaseQty
 NextApply:
     Next delta

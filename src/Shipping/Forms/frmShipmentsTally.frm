@@ -54,12 +54,13 @@ Private mOperatorWorkbook As Workbook
 Private mNextPollTime As Date
 Private mAutoSyncArmed As Boolean
 Private mLastShippablesLoadReport As String
+Private mUseInjectedReservationTotalsForTest As Boolean
 
 Private Const ANCHOR_LEFT As Long = 1
 Private Const ANCHOR_TOP As Long = 2
 Private Const ANCHOR_RIGHT As Long = 4
 Private Const ANCHOR_BOTTOM As Long = 8
-Private Const POLL_INTERVAL_SECONDS As Long = 15
+Private Const POLL_INTERVAL_SECONDS As Long = 45
 
 Private Sub UserForm_Initialize()
     BuildLayout
@@ -1008,64 +1009,58 @@ Private Sub RefreshProjectedShippableInventory()
 
     Dim r As Long
     Dim activeQty As Double
-    Dim lockedQty As Double
-    Dim unreservedQty As Double
-    Dim reservedQty As Double
     Dim backendText As String
-    Dim projectedText As String
     Dim projectedQty As Double
     Dim packageRow As Long
-    Dim overlaySent As Boolean
 
     If IsEmpty(mShippables) Then Exit Sub
-    EvictOrphanedActiveOverlays
-    Set mNasReservationTotals = modTS_Shipments.ShipmentsFormLoadNasReservationTotals()
+    If Not mUseInjectedReservationTotalsForTest Then Set mNasReservationTotals = modTS_Shipments.ShipmentsFormLoadNasReservationTotals()
     For r = 1 To UBound(mShippables, 1)
         packageRow = CLng(Val(NzText(mShippables(r, 1))))
         backendText = NzText(mShippables(r, 4))
         activeQty = ActiveShipmentQtyForShippable(packageRow, NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
-        lockedQty = LockedShipmentQtyForShippable(packageRow, NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
-        unreservedQty = UnreservedShipmentQtyForShippable(packageRow, NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
-        reservedQty = activeQty - unreservedQty
-        If reservedQty < 0 Then reservedQty = 0
-        modTS_Shipments.EvictIdleSentOverlayForRowVersion packageRow, _
-                                                          NzText(mShippables(r, 3)), _
-                                                          ParseNumber(backendText), _
-                                                          activeQty, _
-                                                          lockedQty, _
-                                                          unreservedQty
-        If lockedQty > 0 Or unreservedQty > 0 Then
-            projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, _
-                                                                                  NzText(mShippables(r, 3)), _
-                                                                                  backendText)
-            overlaySent = modTS_Shipments.HasSentOverlayForRowVersion(packageRow, NzText(mShippables(r, 3)))
-            projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQty(ParseNumber(backendText), _
-                                                                        lockedQty, _
-                                                                        unreservedQty, _
-                                                                        reservedQty, _
-                                                                        ParseNumber(projectedText), _
-                                                                        Not overlaySent)
-            mShippables(r, 8) = FormatQuantity(projectedQty)
-        ElseIf activeQty <= 0 Then
-            projectedText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, _
-                                                                                  NzText(mShippables(r, 3)), _
-                                                                                  backendText)
-            If Trim$(projectedText) <> "" And StrComp(projectedText, backendText, vbBinaryCompare) <> 0 Then
-                mShippables(r, 8) = projectedText
-            Else
-                mShippables(r, 8) = backendText
-            End If
-        Else
-            projectedQty = ParseNumber(backendText) - activeQty
-            If projectedQty < 0 Then projectedQty = 0
-            mShippables(r, 8) = FormatQuantity(projectedQty)
-        End If
+        projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQty(ParseNumber(backendText), activeQty)
+        mShippables(r, 8) = FormatQuantity(projectedQty)
     Next r
     RenderShippables
 
 CleanExit:
     UpdateSyncStateLabel
 End Sub
+
+Public Function TestRefreshProjectedInventory(ByVal shippablesArray As Variant, _
+                                              ByVal shipmentsListData As Variant, _
+                                              Optional ByVal holdListData As Variant, _
+                                              Optional ByVal reservationTotals As Object) As Variant
+    On Error GoTo CleanFail
+
+    If Not mBuilt Then BuildLayout
+
+    mShippables = shippablesArray
+    If reservationTotals Is Nothing Then
+        Set mNasReservationTotals = CreateObject("Scripting.Dictionary")
+        mNasReservationTotals.CompareMode = vbTextCompare
+    Else
+        Set mNasReservationTotals = reservationTotals
+    End If
+    RenderLineList mLstShipments, shipmentsListData
+    RenderLineList mLstHold, holdListData
+    mUseInjectedReservationTotalsForTest = True
+    RefreshProjectedShippableInventory
+    mUseInjectedReservationTotalsForTest = False
+    TestRefreshProjectedInventory = mShippables
+    Exit Function
+
+CleanFail:
+    mUseInjectedReservationTotalsForTest = False
+    Err.Raise Err.Number, Err.Source, Err.Description, Err.HelpFile, Err.HelpContext
+End Function
+
+Public Function TestReadProjectedText(ByVal rowIndex As Long) As String
+    If IsEmpty(mShippables) Then Exit Function
+    If rowIndex < 1 Or rowIndex > UBound(mShippables, 1) Then Exit Function
+    TestReadProjectedText = NzText(mShippables(rowIndex, 8))
+End Function
 
 Private Sub EvictOrphanedActiveOverlays()
     Dim r As Long

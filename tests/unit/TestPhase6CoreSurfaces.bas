@@ -4587,6 +4587,57 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingAdd_BlocksWhenFloorWouldBeBreached() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim floorCol As ListColumn
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    If loInv Is Nothing Then GoTo CleanExit
+
+    Set floorCol = loInv.ListColumns.Add
+    floorCol.Name = "INV FLOOR"
+    AddInvSysSeedRow loInv, 985, "SKU-FLOOR-LOCK", "Floor Locked Item", "EA", "A1", 5
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    SetTableCell loInv, 1, "INV FLOOR", 2
+
+    wbOps.Activate
+    If Not RunShippingReserveWouldBreachFloorForTest(loInv, 985, 3) Then
+        failureReason = "Floor guard did not block a request that would leave only 1 above a floor of 2."
+        GoTo CleanExit
+    End If
+    If RunShippingReserveWouldBreachFloorForTest(loInv, 985, 2) Then
+        failureReason = "Floor guard blocked a request that leaves inventory exactly at the floor."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 5 Then
+        failureReason = "Floor guard changed NAS-owned TOTAL INV."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 1 Then
+        failureReason = "Floor guard changed existing SHIPMENTS lock quantity."
+        GoTo CleanExit
+    End If
+
+    TestShippingAdd_BlocksWhenFloorWouldBeBreached = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7164, "TestShippingAdd_BlocksWhenFloorWouldBeBreached", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingAdd_UsesDisplayedProjectedInventoryWhenVersionLedgerIsEmpty() As Long
     Dim report As String
     Dim failureReason As String
@@ -4688,8 +4739,8 @@ Public Function TestShippingAdd_UsesDisplayedProjectedInventoryWhenTotalInvIsSta
         failureReason = "Shipping Add did not keep the visible T28 order row. Result: " & resultText
         GoTo CleanExit
     End If
-    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 19 Then
-        failureReason = "Local projected TOTAL INV was not repaired from displayed availability before locking; expected 19 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 0 Then
+        failureReason = "Shipping Add mutated NAS-owned TOTAL INV while validating against displayed availability; expected 0 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 1 Then
@@ -4730,7 +4781,7 @@ Public Function TestShippingRemove_LockedRowReleasesInventory() As Long
     Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
     If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
 
-    AddInvSysSeedRow loInv, 987, "SKU-REMOVE-LOCKED", "Remove Locked Item", "EA", "A1", 4
+    AddInvSysSeedRow loInv, 987, "SKU-REMOVE-LOCKED", "Remove Locked Item", "EA", "A1", 5
     AddShippingBomViewRow loBomView, 987, "Remove Locked Item", 987, "Remove Locked Item", 1, "EA"
     SetTableCell loInv, 1, "SHIPMENTS", 1
     AddShippingTallyRow loShip, "REF-REMOVE-LOCKED", "Remove Locked Item", 1, 987, "EA", "A1", "v1"
@@ -4750,7 +4801,7 @@ Public Function TestShippingRemove_LockedRowReleasesInventory() As Long
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 5 Then
-        failureReason = "Remove did not release locked inventory back to TOTAL INV."
+        failureReason = "Remove changed NAS-owned TOTAL INV while releasing a lock."
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 0 Then
@@ -5031,7 +5082,7 @@ Public Function TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjectio
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 18 Then
-        failureReason = "Reserved multi-select To Shipments changed projected TOTAL INV."
+        failureReason = "Reserved multi-select To Shipments changed NAS-owned TOTAL INV."
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 2 Then
@@ -5205,8 +5256,8 @@ Public Function TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay() As
         failureReason = "Increasing reserved qty failed: " & report
         GoTo CleanExit
     End If
-    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 8 Then
-        failureReason = "Increasing reserved qty did not apply a +1 delta to TOTAL INV; expected 8 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 9 Then
+        failureReason = "Increasing reserved qty changed NAS-owned TOTAL INV; expected 9 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 3 Then
@@ -5224,8 +5275,8 @@ Public Function TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay() As
         failureReason = "Decreasing reserved qty failed: " & report
         GoTo CleanExit
     End If
-    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 10 Then
-        failureReason = "Decreasing reserved qty did not apply a -2 delta to TOTAL INV; expected 10 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 9 Then
+        failureReason = "Decreasing reserved qty changed NAS-owned TOTAL INV; expected 9 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 1 Then
@@ -5370,8 +5421,8 @@ Public Function TestShippingAdd_MergingExistingReservedRowAppliesOnlyDelta() As 
         failureReason = "Add merge did not update visible row qty to 3; found " & CStr(GetTableValue(loShip, 1, "QUANTITY")) & "."
         GoTo CleanExit
     End If
-    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 4 Then
-        failureReason = "Add merge applied more than the +1 delta to TOTAL INV; expected 4 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 5 Then
+        failureReason = "Add merge changed NAS-owned TOTAL INV; expected 5 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 3 Then
@@ -5468,8 +5519,8 @@ Public Function TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay(
         GoTo CleanExit
     End If
     displayQty = RunShippingProjectedDisplayQtyForTest(9, 1, 0, 1, CDbl(NzDblForTest(projectedText)), False)
-    If displayQty <> 6 Then
-        failureReason = "SENT + ACTIVE projection did not subtract the new active lock from the sent base; expected 6 but found " & CStr(displayQty) & "."
+    If displayQty <> 8 Then
+        failureReason = "Projected display used the pending SENT overlay instead of NAS minus active Shipments qty; expected 8 but found " & CStr(displayQty) & "."
         GoTo CleanExit
     End If
 
@@ -6958,36 +7009,28 @@ Public Function TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows() 
 
     On Error GoTo CleanFail
 
-    If CDbl(RunShippingProjectedDisplayQtyForTest(10, 1, 0, 0, 10)) <> 9 Then
-        failureReason = "Stale server lock was not deducted from Projected Inv."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 2, 0, 0, 20)) <> 18 Then
+        failureReason = "Projected Inv did not subtract active Shipments list quantity from NAS Inv."
         GoTo CleanExit
     End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 0, 2, 0, 20)) <> 18 Then
-        failureReason = "New local unreserved shipment row was not deducted from Projected Inv."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 0, 2, 0, 20)) <> 20 Then
+        failureReason = "Projected Inv still used the legacy unreserved-local quantity instead of the active list quantity only."
         GoTo CleanExit
     End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 3, 0, 0, 20)) <> 17 Then
-        failureReason = "Locked reservation total was not fully deducted from Projected Inv."
-        GoTo CleanExit
-    End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 3, 2, 0, 20)) <> 15 Then
-        failureReason = "Projected Inv did not combine stale/server locks with new local unreserved rows."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 2, 99, 99, 5, False)) <> 18 Then
+        failureReason = "Projected Inv still used pending overlay/reservation inputs; those must not affect display."
         GoTo CleanExit
     End If
     If CDbl(RunShippingProjectedDisplayQtyForTest(1, 3, 2, 0, 1)) <> 0 Then
         failureReason = "Projected Inv went negative instead of clamping to zero."
         GoTo CleanExit
     End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 3, 0, 2, 18)) <> 17 Then
-        failureReason = "Projected Inv double-counted or ignored stale locks when active local reservations were already represented by the overlay."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 5, 0, 0, 999)) <> 15 Then
+        failureReason = "Projected Inv did not subtract combined active Shipments list quantity from NAS Inv."
         GoTo CleanExit
     End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 1, 0, 0, 18)) <> 17 Then
-        failureReason = "Projected Inv increased after Shipments Sent released the completed row lock while NAS was still stale."
-        GoTo CleanExit
-    End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(9, 1, 0, 1, 7, False)) <> 6 Then
-        failureReason = "Projected Inv failed to compose a pending SENT overlay with a new active lock."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 0, 99, 99, 1)) <> 20 Then
+        failureReason = "Projected Inv did not recalculate back to NAS when the Shipments list was empty."
         GoTo CleanExit
     End If
 
@@ -9651,6 +9694,19 @@ Private Function RunShippingProjectedDisplayQtyForTest(ByVal nasQty As Double, _
     macroName = ShippingMacroNameForTest("ShipmentsProjectedDisplayQtyForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingProjectedDisplayQtyForTest = CDbl(Application.Run(macroName, nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty, overlayIncludesReservation))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingReserveWouldBreachFloorForTest(ByVal invLo As ListObject, _
+                                                           ByVal rowVal As Long, _
+                                                           ByVal requestedQty As Double) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentReserveWouldBreachFloorForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingReserveWouldBreachFloorForTest = CBool(Application.Run(macroName, invLo, rowVal, requestedQty))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
