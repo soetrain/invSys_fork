@@ -678,10 +678,14 @@ Public Sub BtnOpenShipmentsForm()
     Dim wb As Workbook
     Dim ws As Worksheet
     Dim repairReport As String
+    Dim quietStarted As Boolean
+    Dim messageText As String
 
     If Not modRoleUiAccess.RequireCurrentUserCapability("SHIP_POST") Then Exit Sub
 
     Set wb = ResolveShippingWorkbook(Application.ActiveWorkbook)
+    modUiQuiet.BeginQuietUi wb
+    quietStarted = True
     EnforceShippingSupportSheetsHidden wb
     Set ws = ShipmentsWorksheetForWorkbook(wb)
     If ws Is Nothing _
@@ -689,26 +693,35 @@ Public Sub BtnOpenShipmentsForm()
        Or GetListObject(ws, TABLE_NOTSHIPPED) Is Nothing Then
         If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wb, repairReport) Then
             If Trim$(repairReport) = "" Then repairReport = "Shipping support table repair failed without detail."
-            MsgBox repairReport, vbExclamation, "invSys Shipments"
-            Exit Sub
+            messageText = repairReport
+            GoTo CleanExit
         End If
         EnforceShippingSupportSheetsHidden wb
         Set ws = ShipmentsWorksheetForWorkbook(wb)
         If ws Is Nothing _
            Or GetListObject(ws, TABLE_SHIPMENTS) Is Nothing _
            Or GetListObject(ws, TABLE_NOTSHIPPED) Is Nothing Then
-            MsgBox "Shipping support tables could not be repaired. " & repairReport, vbExclamation, "invSys Shipments"
-            Exit Sub
+            messageText = "Shipping support tables could not be repaired. " & repairReport
+            GoTo CleanExit
         End If
     End If
 
     frmShipmentsTally.SetOperatorWorkbook wb
     frmShipmentsTally.InitializeFromShipping
+    If quietStarted Then
+        modUiQuiet.EndQuietUi
+        quietStarted = False
+    End If
     frmShipmentsTally.Show
-    Exit Sub
+    GoTo CleanExit
 
 ErrHandler:
-    MsgBox "SHIPMENTS failed: " & Err.Description, vbCritical
+    messageText = "SHIPMENTS failed: " & Err.Description
+CleanExit:
+    On Error Resume Next
+    If quietStarted Then modUiQuiet.EndQuietUi
+    On Error GoTo 0
+    If Trim$(messageText) <> "" Then MsgBox messageText, vbExclamation, "invSys Shipments"
 End Sub
 
 Public Sub RegisterShipmentsFormAutoSync(ByVal formInstance As Object)
@@ -6453,7 +6466,9 @@ Public Sub EnforceShippingSupportSheetsHidden(ByVal wb As Workbook)
         Set ws = wb.Worksheets(CStr(supportNames(i)))
         On Error GoTo CleanExit
         If Not ws Is Nothing Then
-            If CanHideWorksheetShipping(wb, ws) Then ws.Visible = xlSheetVeryHidden
+            If ws.Visible <> xlSheetVeryHidden Then
+                If CanHideWorksheetShipping(wb, ws) Then ws.Visible = xlSheetVeryHidden
+            End If
         End If
     Next i
 
