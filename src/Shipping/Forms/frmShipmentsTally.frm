@@ -93,6 +93,7 @@ Public Sub InitializeFromShipping()
     Dim startedAt As Single
     Dim elapsedMs As Long
     Dim operatorWb As Workbook
+    Dim bomReport As String
 
     If Not mBuilt Then BuildLayout
     If mOperatorWorkbook Is Nothing And IsUsableOperatorWorkbook(ActiveWorkbook) Then Set mOperatorWorkbook = ActiveWorkbook
@@ -106,6 +107,7 @@ Public Sub InitializeFromShipping()
     mLoading = True
     LoadCarrierChoices
     mChkUseExisting.Value = modTS_Shipments.ShipmentsFormUseExistingInventory()
+    modTS_Shipments.EnsureShippingBomViewPopulated operatorWb, bomReport
     LoadShippables
     LoadShipmentState
     EvictOrphanedActiveOverlays
@@ -449,7 +451,7 @@ Private Sub LoadShippables()
     Dim previousInv As Object
 
     Set previousInv = CurrentShippableInventoryCache()
-    mShippables = modTS_Shipments.ShipmentsFormLoadShippables()
+    mShippables = modTS_Shipments.ShipmentsFormLoadShippables(ResolveOperatorWorkbook())
     PreserveMissingShippableInventory previousInv
     modTS_Shipments.EvictCompletedShipmentInventoryOverlaysForShippables mShippables
     RenderShippables
@@ -504,15 +506,15 @@ Private Function ShippableInventoryKey(ByVal boxName As String, ByVal versionLab
 End Function
 
 Private Sub LoadShipmentState()
-    RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False)
-    RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True)
+    RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False, ResolveOperatorWorkbook())
+    RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True, ResolveOperatorWorkbook())
     EvictOrphanedActiveOverlays
     UpdateSyncStateLabel
 End Sub
 
 Private Sub LoadShipmentLineState()
-    RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False)
-    RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True)
+    RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False, ResolveOperatorWorkbook())
+    RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True, ResolveOperatorWorkbook())
     EvictOrphanedActiveOverlays
     UpdateSyncStateLabel
 End Sub
@@ -660,11 +662,13 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     Dim ok As Boolean
     Dim displayedAvailableQty As String
     Dim ws As Worksheet
+    Dim operatorWb As Workbook
 
     rowIndex = SelectedShipmentTableRow()
     displayedAvailableQty = SelectedShippableProjectedInventoryText()
+    Set operatorWb = ResolveOperatorWorkbook()
     If UCase$(Trim$(actionName)) = "ADD" Or UCase$(Trim$(actionName)) = "UPDATE" Then
-        Set ws = modTS_Shipments.GetShipmentsTallyWorksheet()
+        Set ws = modTS_Shipments.GetShipmentsTallyWorksheet(operatorWb)
         If Not ws Is Nothing Then modTS_Shipments.ShipmentsFormHydrateInvSysFromShippables ws, mShippables
     End If
     ok = modTS_Shipments.ShipmentsFormCommitLine("SHIP", _
@@ -680,7 +684,8 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
                                                  NzText(mTxtCarrier.Value), _
                                                  report, _
                                                  displayedAvailableQty, _
-                                                 mShippables)
+                                                 mShippables, _
+                                                 operatorWb)
     RefreshAfterAction report, ok
     Exit Sub
 

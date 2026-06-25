@@ -110,8 +110,12 @@ Public Sub InitializeShipmentsUI()
     InitializeShipmentsUiForWorkbook Application.ActiveWorkbook
 End Sub
 
-Public Function GetShipmentsTallyWorksheet() As Worksheet
-    Set GetShipmentsTallyWorksheet = SheetExists(SHEET_SHIPMENTS)
+Public Function GetShipmentsTallyWorksheet(Optional ByVal operatorWb As Workbook = Nothing) As Worksheet
+    If operatorWb Is Nothing Then
+        Set GetShipmentsTallyWorksheet = SheetExists(SHEET_SHIPMENTS)
+    Else
+        Set GetShipmentsTallyWorksheet = ShipmentsWorksheetForWorkbook(operatorWb)
+    End If
 End Function
 
 Public Sub InitializeShipmentsUiForWorkbook(Optional ByVal targetWb As Workbook = Nothing)
@@ -1507,7 +1511,7 @@ Public Function QueueShipmentsSentEventFromCurrentWorkbook(ByRef eventIdOut As S
         Exit Function
     End If
 
-    Set invLo = GetInvSysTable()
+    Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
     If invLo Is Nothing Then
         errNotes = "InventoryManagement!invSys table not found."
         Exit Function
@@ -4490,7 +4494,7 @@ FailSoft:
     BoxBuilderFormLoadVersionComponents = Empty
 End Function
 
-Public Function BoxMakerFormLoadSavedBoxes() As Variant
+Public Function BoxMakerFormLoadSavedBoxes(Optional ByVal operatorWb As Workbook = Nothing) As Variant
     On Error GoTo FailSoft
 
     Dim ws As Worksheet
@@ -4499,7 +4503,7 @@ Public Function BoxMakerFormLoadSavedBoxes() As Variant
     Dim openedTransient As Boolean
     Dim report As String
 
-    Set ws = SheetExists(SHEET_SHIPMENTS)
+    Set ws = ShipmentsWorksheetForWorkbook(operatorWb)
     If ws Is Nothing Then Exit Function
 
     Set loSource = BoxMakerShippingBomSourceTable(ws, wbRuntime, openedTransient, report)
@@ -4576,7 +4580,8 @@ FailSoft:
     BoxMakerFormLoadShippableInventory = Empty
 End Function
 
-Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Variant) As Variant
+Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Variant, _
+                                                          Optional ByVal operatorWb As Workbook = Nothing) As Variant
     On Error GoTo FailSoft
 
     Dim ws As Worksheet
@@ -4601,12 +4606,12 @@ Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Va
     Dim currentInv As Variant
 
     If IsEmpty(savedBoxes) Then Exit Function
-    Set ws = SheetExists(SHEET_SHIPMENTS)
+    Set ws = ShipmentsWorksheetForWorkbook(operatorWb)
     If ws Is Nothing Then Exit Function
 
     Set loSource = BoxMakerShippingBomSourceTable(ws, wbRuntime, openedTransient, report)
     If loSource Is Nothing Then GoTo CleanExit
-    Set invLo = GetInvSysTable()
+    Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
 
     Set rows = New Collection
     For r = 1 To UBound(savedBoxes, 1)
@@ -5772,12 +5777,12 @@ Public Function CommitBoxMakerFormActionReportForTest(ByVal packageRow As Long, 
     CommitBoxMakerFormActionReportForTest = "Posted=" & IIf(posted, "1", "0") & "; Report=" & resultMessage
 End Function
 
-Public Function ShipmentsFormLoadShippables() As Variant
+Public Function ShipmentsFormLoadShippables(Optional ByVal operatorWb As Workbook = Nothing) As Variant
     Dim savedBoxes As Variant
 
-    savedBoxes = BoxMakerFormLoadSavedBoxes()
+    savedBoxes = BoxMakerFormLoadSavedBoxes(operatorWb)
     If IsEmpty(savedBoxes) Then Exit Function
-    ShipmentsFormLoadShippables = BoxMakerFormLoadShippableVersionInventory(savedBoxes)
+    ShipmentsFormLoadShippables = BoxMakerFormLoadShippableVersionInventory(savedBoxes, operatorWb)
 End Function
 
 Public Function ShipmentsProjectedDisplayQty(ByVal nasQty As Double, _
@@ -5928,6 +5933,7 @@ Public Function ShipmentsFormAutoSyncRefresh(ByVal operatorWb As Workbook, _
     Dim warehouseId As String
     Dim runtimeReport As String
     Dim inventoryReport As String
+    Dim bomReport As String
 
     If operatorWb Is Nothing Then
         report = "No operator workbook for auto-sync."
@@ -5947,10 +5953,17 @@ Public Function ShipmentsFormAutoSyncRefresh(ByVal operatorWb As Workbook, _
         Exit Function
     End If
 
+    If ShippingRuntimeProcessedCount(runtimeReport) > 0 Then
+        RefreshShippingBomViewForWorkbook operatorWb, bomReport, False
+    End If
+
     report = "OK"
     If Trim$(runtimeReport) <> "" Then report = report & "; " & runtimeReport
     If Trim$(inventoryReport) <> "" And StrComp(Trim$(inventoryReport), "OK", vbTextCompare) <> 0 Then
         report = report & "; " & inventoryReport
+    End If
+    If Trim$(bomReport) <> "" And StrComp(Trim$(bomReport), "Shipping BOM view already populated; skipped network refresh.", vbTextCompare) <> 0 Then
+        report = report & "; " & bomReport
     End If
     ShipmentsFormAutoSyncRefresh = True
     Exit Function
@@ -6154,6 +6167,11 @@ Private Function ShippingRuntimeReportMetric(ByVal runtimeReport As String, ByVa
     ShippingRuntimeReportMetric = CLng(Mid$(runtimeReport, valueStart, valueEnd - valueStart))
 End Function
 
+Public Function ShippingRuntimeProcessedCount(ByVal runtimeReport As String) As Long
+    ShippingRuntimeProcessedCount = ShippingRuntimeReportMetric(runtimeReport, "Processed") + _
+                                    ShippingRuntimeReportMetric(runtimeReport, "Applied")
+End Function
+
 Private Function FormatShippingRuntimeTiming(ByVal totalMs As Long, _
                                              ByVal batchMs As Long, _
                                              ByVal refreshMs As Long) As String
@@ -6323,7 +6341,8 @@ Private Function FormatHistoryValueShipping(ByVal valueIn As Variant) As String
     End If
 End Function
 
-Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = False) As Variant
+Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = False, _
+                                       Optional ByVal operatorWb As Workbook = Nothing) As Variant
     On Error GoTo FailSoft
 
     Dim ws As Worksheet
@@ -6345,7 +6364,7 @@ Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = Fals
     Dim outRow As Long
     Dim countRows As Long
 
-    Set ws = SheetExists(SHEET_SHIPMENTS)
+    Set ws = ShipmentsWorksheetForWorkbook(operatorWb)
     If ws Is Nothing Then Exit Function
     If holdRows Then tableName = TABLE_NOTSHIPPED Else tableName = TABLE_SHIPMENTS
     Set lo = GetListObject(ws, tableName)
@@ -6413,7 +6432,8 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                                         ByVal carrierValue As String, _
                                         ByRef report As String, _
                                         Optional ByVal displayedAvailableQty As Variant, _
-                                        Optional ByVal visibleShippables As Variant) As Boolean
+                                        Optional ByVal visibleShippables As Variant, _
+                                        Optional ByVal operatorWb As Workbook = Nothing) As Boolean
     On Error GoTo Fail
 
     Dim ws As Worksheet
@@ -6453,7 +6473,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     isHold = (UCase$(Trim$(targetName)) = "HOLD")
     If Not ValidateShipmentCommitInputs(actionName, isHold, itemName, qtyValue, rowValue, carrierValue, report) Then Exit Function
 
-    Set ws = SheetExists(SHEET_SHIPMENTS)
+    Set ws = ShipmentsWorksheetForWorkbook(operatorWb)
     If ws Is Nothing Then
         report = "ShipmentsTally sheet not found."
         Exit Function
@@ -12969,6 +12989,29 @@ Public Function RefreshShippingBomViewForWorkbookForTest(ByVal operatorWb As Wor
     RefreshShippingBomViewForWorkbookForTest = RefreshShippingBomViewForWorkbook(operatorWb, report, forceRebuild)
 End Function
 
+Public Sub EnsureShippingBomViewPopulated(ByVal wb As Workbook, ByRef report As String)
+    On Error GoTo FailSoft
+
+    Dim loView As ListObject
+
+    If wb Is Nothing Then Exit Sub
+    Set loView = GetShippingBomViewTable(wb)
+    If Not loView Is Nothing Then
+        If Not loView.DataBodyRange Is Nothing Then
+            If loView.DataBodyRange.Rows.Count > 0 Then
+                report = "BOMView already populated."
+                Exit Sub
+            End If
+        End If
+    End If
+
+    RefreshShippingBomViewForWorkbook wb, report, False
+    Exit Sub
+
+FailSoft:
+    report = "EnsureShippingBomViewPopulated failed: " & Err.Description
+End Sub
+
 Private Function GetShippingBomViewTable(ByVal wb As Workbook) As ListObject
     Dim ws As Worksheet
 
@@ -14875,6 +14918,14 @@ Private Function SheetExists(nameOrCode As String) As Worksheet
             Exit Function
         End If
     Next ws
+End Function
+
+Private Function ShipmentsWorksheetForWorkbook(Optional ByVal operatorWb As Workbook = Nothing) As Worksheet
+    Dim wb As Workbook
+
+    Set wb = ResolveShippingWorkbook(operatorWb, SHEET_SHIPMENTS)
+    If wb Is Nothing Then Set wb = ThisWorkbook
+    Set ShipmentsWorksheetForWorkbook = WorkbookSheetExistsShipping(wb, SHEET_SHIPMENTS)
 End Function
 
 Private Function GetListObject(ws As Worksheet, tableName As String) As ListObject
