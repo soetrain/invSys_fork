@@ -55,6 +55,9 @@ Private mNextPollTime As Date
 Private mAutoSyncArmed As Boolean
 Private mLastShippablesLoadReport As String
 Private mUseInjectedReservationTotalsForTest As Boolean
+Private mTimerLog() As String
+Private mTimerCount As Long
+Private mTimerStart As Single
 
 Private Const ANCHOR_LEFT As Long = 1
 Private Const ANCHOR_TOP As Long = 2
@@ -97,11 +100,15 @@ Public Sub InitializeFromShipping()
     Dim operatorWb As Workbook
     Dim loadStep As String
 
+    TimingStart
+    TLap "InitializeFromShipping start"
     loadStep = "build layout"
     If Not mBuilt Then BuildLayout
+    TLap "build layout"
     loadStep = "resolve operator workbook"
     If mOperatorWorkbook Is Nothing And IsUsableOperatorWorkbook(ActiveWorkbook) Then Set mOperatorWorkbook = ActiveWorkbook
     Set operatorWb = ResolveOperatorWorkbook()
+    TLap "resolve operator workbook"
     loadStep = "begin quiet UI"
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
@@ -111,21 +118,29 @@ Public Sub InitializeFromShipping()
 
     loadStep = "hide support sheets"
     modTS_Shipments.EnforceShippingSupportSheetsHidden operatorWb
+    TLap "hide support sheets"
     mLoading = True
     loadStep = "load carriers"
     LoadCarrierChoices
+    TLap "load carriers"
     loadStep = "load existing-inventory preference"
     mChkUseExisting.Value = modTS_Shipments.ShipmentsFormUseExistingInventory()
+    TLap "load existing-inventory preference"
     loadStep = "load shippables"
     LoadShippables operatorWb
+    TLap "load shippables"
     loadStep = "load shipment state"
     LoadShipmentState operatorWb
+    TLap "load shipment state"
     loadStep = "evict orphaned active overlays"
     EvictOrphanedActiveOverlays
+    TLap "evict orphaned active overlays"
     loadStep = "refresh projected inventory"
     RefreshProjectedShippableInventory
+    TLap "refresh projected inventory"
     loadStep = "update sync label"
     UpdateSyncStateLabel
+    TLap "update sync label"
     mLoading = False
 
     If mLstShippables.ListCount > 0 Then
@@ -134,9 +149,9 @@ Public Sub InitializeFromShipping()
     End If
     elapsedMs = ElapsedMilliseconds(startedAt)
     If mLstShippables.ListCount = 0 Then
-        ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms, but no shippable inventory rows loaded. " & mLastShippablesLoadReport
+        ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms, but no shippable inventory rows loaded. " & mLastShippablesLoadReport & vbCrLf & TimingSummary()
     Else
-        ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms."
+        ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms." & vbCrLf & TimingSummary()
     End If
     mAutoSyncArmed = (PendingShipmentSyncCount() > 0)
     If mAutoSyncArmed Then ScheduleAutoSync
@@ -154,6 +169,34 @@ FailInit:
     ShowStatus "Shipments form load failed at " & loadStep & ": " & Err.Description
     Resume CleanExit
 End Sub
+
+Private Sub TimingStart()
+    mTimerCount = 0
+    Erase mTimerLog
+    mTimerStart = Timer
+End Sub
+
+Private Sub TLap(ByVal label As String)
+    Dim elapsedMs As Long
+
+    If mTimerStart <= 0 Then mTimerStart = Timer
+    elapsedMs = ElapsedMilliseconds(mTimerStart)
+    mTimerCount = mTimerCount + 1
+    ReDim Preserve mTimerLog(1 To mTimerCount)
+    mTimerLog(mTimerCount) = Format$(elapsedMs, "00000") & " ms  " & label
+End Sub
+
+Private Function TimingSummary() As String
+    Dim i As Long
+    Dim lines As String
+
+    If mTimerCount <= 0 Then Exit Function
+    For i = 1 To mTimerCount
+        If lines <> "" Then lines = lines & vbCrLf
+        lines = lines & mTimerLog(i)
+    Next i
+    TimingSummary = lines
+End Function
 
 Public Sub SetOperatorWorkbook(ByVal wb As Workbook)
     If IsUsableOperatorWorkbook(wb) Then Set mOperatorWorkbook = wb
@@ -467,29 +510,23 @@ Private Sub LoadShippables(Optional ByVal operatorWb As Workbook = Nothing)
 
     Dim previousInv As Object
     Dim wb As Workbook
-    Dim bomReport As String
 
     Set wb = operatorWb
     If wb Is Nothing Then Set wb = ResolveOperatorWorkbook()
+    TLap "LoadShippables start"
     Set previousInv = CurrentShippableInventoryCache()
     mLastShippablesLoadReport = vbNullString
     mShippables = modTS_Shipments.ShipmentsFormLoadShippables(wb)
     If Not ShippableRowsLoaded(mShippables) Then
-        mLastShippablesLoadReport = "Initial local shippable load returned 0 rows."
-        If modTS_Shipments.EnsureShippingBomViewPopulated(wb, bomReport, True) Then
-            mShippables = modTS_Shipments.ShipmentsFormLoadShippables(wb)
-            If ShippableRowsLoaded(mShippables) Then
-                mLastShippablesLoadReport = "Recovered after forced ShippingBOMView refresh. " & bomReport
-            Else
-                mLastShippablesLoadReport = mLastShippablesLoadReport & " Forced ShippingBOMView refresh completed but still returned 0 rows. " & bomReport
-            End If
-        Else
-            mLastShippablesLoadReport = mLastShippablesLoadReport & " Forced ShippingBOMView refresh failed. " & bomReport
-        End If
+        mLastShippablesLoadReport = "Local ShippingBOMView returned 0 rows. Use Refresh to rebuild from NAS; form load does not open backend workbooks."
     End If
+    TLap "LoadShippables read local shippables"
     PreserveMissingShippableInventory previousInv
+    TLap "LoadShippables preserve previous NAS text"
     modTS_Shipments.EvictCompletedShipmentInventoryOverlaysForShippables mShippables
+    TLap "LoadShippables evict completed overlays"
     RenderShippables
+    TLap "LoadShippables render"
     Exit Sub
 
 FailSoft:
@@ -713,16 +750,17 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     Dim rowIndex As Long
     Dim ok As Boolean
     Dim displayedAvailableQty As String
-    Dim ws As Worksheet
     Dim operatorWb As Workbook
+    Dim startedAt As Single
+    Dim elapsedMs As Long
 
+    TimingStart
+    TLap "CommitCurrentLine " & UCase$(Trim$(actionName)) & " start"
+    startedAt = Timer
     rowIndex = SelectedShipmentTableRow()
     displayedAvailableQty = SelectedShippableProjectedInventoryText()
     Set operatorWb = ResolveOperatorWorkbook()
-    If UCase$(Trim$(actionName)) = "ADD" Or UCase$(Trim$(actionName)) = "UPDATE" Then
-        Set ws = modTS_Shipments.GetShipmentsTallyWorksheet(operatorWb)
-        If Not ws Is Nothing Then modTS_Shipments.ShipmentsFormHydrateInvSysFromShippables ws, mShippables
-    End If
+    TLap "CommitCurrentLine resolved selected row/operator"
     ok = modTS_Shipments.ShipmentsFormCommitLine("SHIP", _
                                                  actionName, _
                                                  rowIndex, _
@@ -738,6 +776,10 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
                                                  displayedAvailableQty, _
                                                  mShippables, _
                                                  operatorWb)
+    TLap "CommitCurrentLine backend call"
+    elapsedMs = ElapsedMilliseconds(startedAt)
+    report = AppendTiming(report, elapsedMs)
+    If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
     RefreshAfterAction report, ok
     Exit Sub
 
@@ -825,9 +867,12 @@ Private Sub RefreshAfterAction(ByVal report As String, ByVal ok As Boolean)
     Me.MousePointer = fmMousePointerHourGlass
     mLoading = True
     LoadShipmentLineState
+    TLap "RefreshAfterAction load shipment lines"
     RefreshProjectedShippableInventory
+    TLap "RefreshAfterAction refresh projected"
     mLoading = False
     modTS_Shipments.EnforceShippingSupportSheetsHidden operatorWb
+    TLap "RefreshAfterAction hide support sheets"
     Me.MousePointer = previousPointer
     ShowStatus report
     If Not ok And report <> "" Then MsgBox report, vbExclamation
@@ -855,9 +900,14 @@ End Sub
 
 Private Sub mChkUseExisting_Click()
     If mLoading Then Exit Sub
+    TimingStart
+    TLap "UseExisting click start"
     modTS_Shipments.ShipmentsFormSetUseExistingInventory CBool(mChkUseExisting.Value)
     LoadShipmentState
+    TLap "UseExisting load shipment state"
     RefreshProjectedShippableInventory
+    TLap "UseExisting refresh projected"
+    ShowStatus "Use existing changed." & vbCrLf & TimingSummary()
 End Sub
 
 Private Sub mBtnRefresh_Click()
@@ -865,13 +915,17 @@ Private Sub mBtnRefresh_Click()
     Dim ok As Boolean
     Dim operatorWb As Workbook
 
+    TimingStart
+    TLap "Refresh click start"
     Set operatorWb = ResolveOperatorWorkbook()
     ok = modTS_Shipments.ShipmentsFormRefreshRuntimeInventoryForWorkbook(operatorWb, report)
+    TLap "Refresh backend refresh"
     InitializeFromShipping
+    TLap "Refresh reinitialize form"
     If Trim$(report) <> "" Then
-        ShowStatus "Shipments form refreshed. " & report
+        ShowStatus "Shipments form refreshed. " & report & vbCrLf & TimingSummary()
     Else
-        ShowStatus "Shipments form refreshed."
+        ShowStatus "Shipments form refreshed." & vbCrLf & TimingSummary()
     End If
     If Not ok And Trim$(report) <> "" Then MsgBox report, vbExclamation
 End Sub
@@ -913,6 +967,8 @@ Private Sub MoveSelectedShipmentHold(ByVal moveToHold As Boolean)
     Dim ok As Boolean
     Dim selectedRows As Variant
 
+    TimingStart
+    TLap "Hold/Return click start"
     If moveToHold Then
         Set lst = mLstShipments
     Else
@@ -925,6 +981,8 @@ Private Sub MoveSelectedShipmentHold(ByVal moveToHold As Boolean)
     End If
 
     ok = modTS_Shipments.ShipmentsFormMoveHoldRows(selectedRows, moveToHold, report)
+    TLap "Hold/Return backend move"
+    If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
     RefreshAfterAction report, ok
     Exit Sub
 
@@ -951,6 +1009,8 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     Dim ok As Boolean
     Dim selectedRows As Variant
 
+    TimingStart
+    TLap IIf(stageOnly, "To Shipments", "Shipments Sent") & " click start"
     selectedRows = SelectedListTableRows(mLstShipments)
     If IsEmpty(selectedRows) Then
         ShowStatus "Select shipment row(s) first."
@@ -966,17 +1026,21 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     Else
         ok = modTS_Shipments.ShipmentsFormRunShipmentsSentRows(selectedRows, NzText(mTxtCarrier.Value), report)
     End If
+    TLap IIf(stageOnly, "To Shipments", "Shipments Sent") & " backend call"
     elapsedMs = ElapsedMilliseconds(startedAt)
     Me.MousePointer = previousPointer
     LoadShipmentState
+    TLap IIf(stageOnly, "To Shipments", "Shipments Sent") & " load shipment state"
     If ok And Not stageOnly Then mTxtRef.Value = vbNullString
     If ok Then RefreshProjectedShippableInventory
+    If ok Then TLap IIf(stageOnly, "To Shipments", "Shipments Sent") & " refresh projected"
     If ok And Not stageOnly Then ArmAutoSync
     If quietStarted Then
         modUiQuiet.EndQuietUi
         quietStarted = False
     End If
     report = AppendTiming(report, elapsedMs)
+    If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
     ShowStatus report
     If report <> "" And ShouldShowShippingActionPopup(report, ok) Then MsgBox report, IIf(ok, vbInformation, vbExclamation)
     Exit Sub

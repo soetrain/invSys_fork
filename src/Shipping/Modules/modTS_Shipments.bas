@@ -4510,7 +4510,8 @@ FailSoft:
     BoxBuilderFormLoadVersionComponents = Empty
 End Function
 
-Public Function BoxMakerFormLoadSavedBoxes(Optional ByVal operatorWb As Workbook = Nothing) As Variant
+Public Function BoxMakerFormLoadSavedBoxes(Optional ByVal operatorWb As Workbook = Nothing, _
+                                           Optional ByVal allowExternalRefresh As Boolean = True) As Variant
     On Error GoTo FailSoft
 
     Dim ws As Worksheet
@@ -4522,7 +4523,7 @@ Public Function BoxMakerFormLoadSavedBoxes(Optional ByVal operatorWb As Workbook
     Set ws = ShipmentsWorksheetForWorkbook(operatorWb)
     If ws Is Nothing Then Exit Function
 
-    Set loSource = BoxMakerShippingBomSourceTable(ws, wbRuntime, openedTransient, report)
+    Set loSource = BoxMakerShippingBomSourceTable(ws, wbRuntime, openedTransient, report, allowExternalRefresh)
     If loSource Is Nothing Then GoTo CleanExit
     BoxMakerFormLoadSavedBoxes = BuildPackagePickerItemsFromShippingBom(loSource)
 
@@ -4597,7 +4598,8 @@ FailSoft:
 End Function
 
 Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Variant, _
-                                                          Optional ByVal operatorWb As Workbook = Nothing) As Variant
+                                                          Optional ByVal operatorWb As Workbook = Nothing, _
+                                                          Optional ByVal allowExternalRefresh As Boolean = True) As Variant
     On Error GoTo FailSoft
 
     Dim ws As Worksheet
@@ -4628,7 +4630,7 @@ Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Va
     Set ws = ShipmentsWorksheetForWorkbook(operatorWb)
     If ws Is Nothing Then Exit Function
 
-    Set loSource = BoxMakerShippingBomSourceTable(ws, wbRuntime, openedTransient, report)
+    Set loSource = BoxMakerShippingBomSourceTable(ws, wbRuntime, openedTransient, report, allowExternalRefresh)
     If loSource Is Nothing Then GoTo CleanExit
     Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
     Set versionRowsByPackage = BuildBoxBomVersionsByPackageCache(loSource)
@@ -5572,7 +5574,8 @@ End Function
 Private Function BoxMakerShippingBomSourceTable(ByVal ws As Worksheet, _
                                                 ByRef wbRuntime As Workbook, _
                                                 ByRef openedTransient As Boolean, _
-                                                ByRef report As String) As ListObject
+                                                ByRef report As String, _
+                                                Optional ByVal allowExternalRefresh As Boolean = True) As ListObject
     On Error GoTo FailSoft
 
     Dim loView As ListObject
@@ -5588,6 +5591,11 @@ Private Function BoxMakerShippingBomSourceTable(ByVal ws As Worksheet, _
             Set BoxMakerShippingBomSourceTable = loView
             Exit Function
         End If
+    End If
+
+    If Not allowExternalRefresh Then
+        report = "Local ShippingBOMView is empty; skipped backend refresh during form load."
+        Exit Function
     End If
 
     RefreshShippingBomViewForWorkbook ws.Parent, report
@@ -6055,9 +6063,9 @@ End Function
 Public Function ShipmentsFormLoadShippables(Optional ByVal operatorWb As Workbook = Nothing) As Variant
     Dim savedBoxes As Variant
 
-    savedBoxes = BoxMakerFormLoadSavedBoxes(operatorWb)
+    savedBoxes = BoxMakerFormLoadSavedBoxes(operatorWb, False)
     If IsEmpty(savedBoxes) Then Exit Function
-    ShipmentsFormLoadShippables = BoxMakerFormLoadShippableVersionInventory(savedBoxes, operatorWb)
+    ShipmentsFormLoadShippables = BoxMakerFormLoadShippableVersionInventory(savedBoxes, operatorWb, False)
 End Function
 
 Public Function ShipmentsProjectedDisplayQty(ByVal nasQty As Double, _
@@ -15648,7 +15656,6 @@ Private Function GetWritableShippingInvSysTable(ByVal wsShip As Worksheet, ByRef
     If ShippingInventoryPickerTableHasRows(invLo) Then
         EnsureMissingInvSysRowsFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
         ReconcileShipmentStagingFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
-        ReconcileShippableTotalsFromVersionInventory invLo
         Set GetWritableShippingInvSysTable = invLo
         Exit Function
     End If
@@ -15658,7 +15665,6 @@ Private Function GetWritableShippingInvSysTable(ByVal wsShip As Worksheet, ByRef
     If Not ShippingInventoryPickerTableHasRows(sourceLo) Then
         HydrateInvSysFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
         ReconcileShipmentStagingFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
-        ReconcileShippableTotalsFromVersionInventory invLo
         If ShippingInventoryPickerTableHasRows(invLo) Then
             Set GetWritableShippingInvSysTable = invLo
         Else
@@ -15670,7 +15676,6 @@ Private Function GetWritableShippingInvSysTable(ByVal wsShip As Worksheet, ByRef
     HydrateInvSysFromShippingReadModel invLo, sourceLo
     EnsureMissingInvSysRowsFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
     ReconcileShipmentStagingFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
-    ReconcileShippableTotalsFromVersionInventory invLo
     If ShippingInventoryPickerTableHasRows(invLo) Then
         Set GetWritableShippingInvSysTable = invLo
     Else
