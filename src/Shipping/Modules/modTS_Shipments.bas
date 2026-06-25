@@ -6793,6 +6793,9 @@ Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = Fals
     If ws Is Nothing Then Exit Function
     If holdRows Then tableName = TABLE_NOTSHIPPED Else tableName = TABLE_SHIPMENTS
     Set lo = GetListObject(ws, tableName)
+    If Not holdRows Then
+        If PersistentShipmentRowsFileIsEmpty(PersistentActiveShipmentRowsPath()) Then Exit Function
+    End If
     If holdRows Then
         LoadPersistentHoldRowsLocal lo
     Else
@@ -8200,6 +8203,16 @@ Private Sub LoadPersistentActiveShipmentRowsLocal(ByVal loShip As ListObject, _
     LoadPersistentShipmentRowsLocal loShip, PersistentActiveShipmentRowsPath(), "Warehouse", allowClosedReservationPrune
 End Sub
 
+Private Function PersistentShipmentRowsFileIsEmpty(ByVal filePath As String) As Boolean
+    On Error GoTo CleanExit
+
+    If filePath = "" Then Exit Function
+    If Len(Dir$(filePath, vbNormal)) = 0 Then Exit Function
+    PersistentShipmentRowsFileIsEmpty = (FileLen(filePath) <= 0)
+
+CleanExit:
+End Function
+
 Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, _
                                             ByVal filePath As String, _
                                             ByVal defaultArea As String, _
@@ -8220,6 +8233,7 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, _
     If lo Is Nothing Then Exit Sub
     If filePath = "" Then Exit Sub
     If Len(Dir$(filePath, vbNormal)) = 0 Then Exit Sub
+    If FileLen(filePath) <= 0 Then Exit Sub
 
     loading = True
     EnsureShippingWorksheetEditable lo.Parent
