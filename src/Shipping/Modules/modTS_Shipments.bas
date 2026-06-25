@@ -7680,6 +7680,9 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, ByVal filePa
     Dim lineText As String
     Dim parts As Variant
     Dim lr As ListRow
+    Dim closedLineIds As Object
+    Dim closedEventIds As Object
+    Dim prunedRows As Boolean
 
     If loading Then Exit Sub
     If lo Is Nothing Then Exit Sub
@@ -7691,6 +7694,9 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, ByVal filePa
     EnsureColumnExists lo, COL_SHIPMENT_LINE_ID
     EnsureColumnExists lo, COL_SHIPMENT_RESERVE_EVENT_ID
     ClearListObjectData lo
+    If StrComp(defaultArea, "Warehouse", vbTextCompare) = 0 Then
+        LoadClosedShippingReservationTokens closedLineIds, closedEventIds
+    End If
 
     fileNum = FreeFile
     Open filePath For Input As #fileNum
@@ -7699,7 +7705,14 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, ByVal filePa
         If Trim$(lineText) <> "" Then
             parts = Split(lineText, vbTab)
             If StrComp(defaultArea, "Warehouse", vbTextCompare) = 0 Then
-                If PersistentSentShipmentRowExists(parts) Then GoTo NextPersistedLine
+                If PersistentSentShipmentRowExists(parts) Then
+                    prunedRows = True
+                    GoTo NextPersistedLine
+                End If
+                If PersistentShipmentRowClosedByReservation(parts, closedLineIds, closedEventIds) Then
+                    prunedRows = True
+                    GoTo NextPersistedLine
+                End If
             End If
             Set lr = FirstBlankListRowShipping(lo)
             If lr Is Nothing Then Set lr = lo.ListRows.Add
@@ -7722,6 +7735,8 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, ByVal filePa
 NextPersistedLine:
     Loop
     Close #fileNum
+    fileNum = 0
+    If prunedRows And StrComp(defaultArea, "Warehouse", vbTextCompare) = 0 Then PersistShipmentRowsLocal lo, filePath
 
 CleanExit:
     On Error Resume Next
@@ -7858,6 +7873,73 @@ CleanExit:
     On Error Resume Next
     If fileNum <> 0 Then Close #fileNum
     On Error GoTo 0
+End Function
+
+Private Sub LoadClosedShippingReservationTokens(ByRef closedLineIds As Object, ByRef closedEventIds As Object)
+    On Error GoTo CleanExit
+
+    Dim wb As Workbook
+    Dim lo As ListObject
+    Dim openedTransient As Boolean
+    Dim report As String
+    Dim cStatus As Long
+    Dim cLine As Long
+    Dim cEvent As Long
+    Dim r As Long
+    Dim statusText As String
+    Dim tokenText As String
+
+    Set closedLineIds = CreateObject("Scripting.Dictionary")
+    closedLineIds.CompareMode = vbTextCompare
+    Set closedEventIds = CreateObject("Scripting.Dictionary")
+    closedEventIds.CompareMode = vbTextCompare
+
+    If Not OpenCurrentShippingReservationsWorkbook(False, wb, lo, openedTransient, report) Then GoTo CleanExit
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then GoTo CleanExit
+    cStatus = ColumnIndex(lo, "Status")
+    cLine = ColumnIndex(lo, "LineID")
+    cEvent = ColumnIndex(lo, "EventID")
+    If cStatus = 0 Then GoTo CleanExit
+
+    For r = 1 To lo.ListRows.Count
+        statusText = UCase$(Trim$(NzStr(lo.DataBodyRange.Cells(r, cStatus).Value)))
+        If statusText = SHIP_RESERVATION_COMPLETED Or statusText = SHIP_RESERVATION_RELEASED Then
+            If cLine > 0 Then
+                tokenText = Trim$(NzStr(lo.DataBodyRange.Cells(r, cLine).Value))
+                If tokenText <> "" Then closedLineIds(tokenText) = True
+            End If
+            If cEvent > 0 Then
+                tokenText = Trim$(NzStr(lo.DataBodyRange.Cells(r, cEvent).Value))
+                If tokenText <> "" Then closedEventIds(tokenText) = True
+            End If
+        End If
+    Next r
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping wb
+End Sub
+
+Private Function PersistentShipmentRowClosedByReservation(ByVal parts As Variant, _
+                                                          ByVal closedLineIds As Object, _
+                                                          ByVal closedEventIds As Object) As Boolean
+    Dim lineId As String
+    Dim eventId As String
+
+    lineId = ShipmentLineIdFromParts(parts)
+    eventId = Trim$(HoldPart(parts, 10))
+    If Not closedLineIds Is Nothing Then
+        If lineId <> "" Then
+            If closedLineIds.Exists(lineId) Then
+                PersistentShipmentRowClosedByReservation = True
+                Exit Function
+            End If
+        End If
+    End If
+    If Not closedEventIds Is Nothing Then
+        If eventId <> "" Then
+            If closedEventIds.Exists(eventId) Then PersistentShipmentRowClosedByReservation = True
+        End If
+    End If
 End Function
 
 Private Function SentShipmentPersistTokenFromTableRow(ByVal lo As ListObject, ByVal rowIndex As Long) As String
