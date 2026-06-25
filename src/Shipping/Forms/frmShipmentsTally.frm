@@ -94,10 +94,14 @@ Public Sub InitializeFromShipping()
     Dim elapsedMs As Long
     Dim operatorWb As Workbook
     Dim bomReport As String
+    Dim loadStep As String
 
+    loadStep = "build layout"
     If Not mBuilt Then BuildLayout
+    loadStep = "resolve operator workbook"
     If mOperatorWorkbook Is Nothing And IsUsableOperatorWorkbook(ActiveWorkbook) Then Set mOperatorWorkbook = ActiveWorkbook
     Set operatorWb = ResolveOperatorWorkbook()
+    loadStep = "begin quiet UI"
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
     modUiQuiet.BeginQuietUi operatorWb
@@ -105,13 +109,27 @@ Public Sub InitializeFromShipping()
     startedAt = Timer
 
     mLoading = True
+    loadStep = "load carriers"
     LoadCarrierChoices
+    loadStep = "load existing-inventory preference"
     mChkUseExisting.Value = modTS_Shipments.ShipmentsFormUseExistingInventory()
-    modTS_Shipments.EnsureShippingBomViewPopulated operatorWb, bomReport
-    LoadShippables
-    LoadShipmentState
+    loadStep = "ensure ShippingBOMView"
+    On Error Resume Next
+    Call modTS_Shipments.EnsureShippingBomViewPopulated(operatorWb, bomReport)
+    If Err.Number <> 0 Then
+        bomReport = "ShippingBOMView preflight failed: " & Err.Description
+        Err.Clear
+    End If
+    On Error GoTo FailInit
+    loadStep = "load shippables"
+    LoadShippables operatorWb
+    loadStep = "load shipment state"
+    LoadShipmentState operatorWb
+    loadStep = "evict orphaned active overlays"
     EvictOrphanedActiveOverlays
+    loadStep = "refresh projected inventory"
     RefreshProjectedShippableInventory
+    loadStep = "update sync label"
     UpdateSyncStateLabel
     mLoading = False
 
@@ -134,7 +152,7 @@ CleanExit:
     Exit Sub
 
 FailInit:
-    ShowStatus "Shipments form load failed: " & Err.Description
+    ShowStatus "Shipments form load failed at " & loadStep & ": " & Err.Description
     Resume CleanExit
 End Sub
 
@@ -445,13 +463,16 @@ Private Sub LoadCarrierChoices()
 CleanExit:
 End Sub
 
-Private Sub LoadShippables()
+Private Sub LoadShippables(Optional ByVal operatorWb As Workbook = Nothing)
     On Error GoTo FailSoft
 
     Dim previousInv As Object
+    Dim wb As Workbook
 
+    Set wb = operatorWb
+    If wb Is Nothing Then Set wb = ResolveOperatorWorkbook()
     Set previousInv = CurrentShippableInventoryCache()
-    mShippables = modTS_Shipments.ShipmentsFormLoadShippables(ResolveOperatorWorkbook())
+    mShippables = modTS_Shipments.ShipmentsFormLoadShippables(wb)
     PreserveMissingShippableInventory previousInv
     modTS_Shipments.EvictCompletedShipmentInventoryOverlaysForShippables mShippables
     RenderShippables
@@ -505,16 +526,24 @@ Private Function ShippableInventoryKey(ByVal boxName As String, ByVal versionLab
     ShippableInventoryKey = LCase$(boxName) & "|" & LCase$(versionLabel)
 End Function
 
-Private Sub LoadShipmentState()
-    RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False, ResolveOperatorWorkbook())
-    RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True, ResolveOperatorWorkbook())
+Private Sub LoadShipmentState(Optional ByVal operatorWb As Workbook = Nothing)
+    Dim wb As Workbook
+
+    Set wb = operatorWb
+    If wb Is Nothing Then Set wb = ResolveOperatorWorkbook()
+    RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False, wb)
+    RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True, wb)
     EvictOrphanedActiveOverlays
     UpdateSyncStateLabel
 End Sub
 
-Private Sub LoadShipmentLineState()
-    RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False, ResolveOperatorWorkbook())
-    RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True, ResolveOperatorWorkbook())
+Private Sub LoadShipmentLineState(Optional ByVal operatorWb As Workbook = Nothing)
+    Dim wb As Workbook
+
+    Set wb = operatorWb
+    If wb Is Nothing Then Set wb = ResolveOperatorWorkbook()
+    RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False, wb)
+    RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True, wb)
     EvictOrphanedActiveOverlays
     UpdateSyncStateLabel
 End Sub

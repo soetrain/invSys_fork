@@ -2058,7 +2058,7 @@ Private Function BuildQueueableShipmentsSentDeltas(ByVal invLo As ListObject, By
             cRowAgg = ColumnIndex(aggPack, "ROW")
             If cRowAgg > 0 Then
                 Set rowFilter = CreateObject("Scripting.Dictionary")
-                arrAgg = aggPack.DataBodyRange.Value
+                arrAgg = To2DArrayShipping(aggPack.DataBodyRange.Value)
                 For r = 1 To UBound(arrAgg, 1)
                     If NzLng(arrAgg(r, cRowAgg)) > 0 Then rowFilter(CStr(NzLng(arrAgg(r, cRowAgg)))) = True
                 Next r
@@ -3869,7 +3869,7 @@ Private Function BuildPackagePickerItemsFromShippingBom(ByVal loBom As ListObjec
     cActive = ColumnIndex(loBom, "IsActive")
     If cPackageRow = 0 Or cPackageItem = 0 Then Exit Function
 
-    src = loBom.DataBodyRange.Value
+    src = To2DArrayShipping(loBom.DataBodyRange.Value)
     Set dict = CreateObject("Scripting.Dictionary")
     ReDim result(1 To UBound(src, 1), 1 To 7)
 
@@ -4083,7 +4083,7 @@ Private Function BuildCanonicalRuntimeInventoryPickerItems(ByVal wbInv As Workbo
     cDesc = ColumnIndex(loCatalog, "DESCRIPTION")
     If cItem = 0 Then Exit Function
 
-    src = loCatalog.DataBodyRange.Value
+    src = To2DArrayShipping(loCatalog.DataBodyRange.Value)
     ReDim result(1 To UBound(src, 1), 1 To 7)
     For r = 1 To UBound(src, 1)
         If Trim$(NzStr(src(r, cItem))) = "" Then GoTo NextRow
@@ -4143,7 +4143,7 @@ Private Function BuildSkuBalanceDictionaryShipping(ByVal loBalance As ListObject
     cQty = ColumnIndex(loBalance, "QtyOnHand")
     If cSku = 0 Or cQty = 0 Then Exit Function
 
-    src = loBalance.DataBodyRange.Value
+    src = To2DArrayShipping(loBalance.DataBodyRange.Value)
     For r = 1 To UBound(src, 1)
         sku = UCase$(Trim$(NzStr(src(r, cSku))))
         If sku <> "" Then dict(sku) = NzDbl(src(r, cQty))
@@ -4217,7 +4217,7 @@ Public Function BoxBuilderFormCurrentComponents() As Variant
     cDesc = ColumnIndex(loBom, "DESCRIPTION")
     If cItem = 0 Or cRow = 0 Or cQty = 0 Then Exit Function
 
-    src = loBom.DataBodyRange.Value
+    src = To2DArrayShipping(loBom.DataBodyRange.Value)
     ReDim result(1 To UBound(src, 1), 1 To 8)
     For r = 1 To UBound(src, 1)
         If Trim$(NzStr(src(r, cItem))) <> "" Or NzLng(src(r, cRow)) > 0 Or NzDbl(src(r, cQty)) > 0 Then
@@ -4291,7 +4291,7 @@ Public Function BoxBuilderFormLoadSavedBoxes(Optional ByVal includeActive As Boo
 
     Set dict = CreateObject("Scripting.Dictionary")
     Set activePackages = CreateObject("Scripting.Dictionary")
-    src = loView.DataBodyRange.Value
+    src = To2DArrayShipping(loView.DataBodyRange.Value)
     For r = 1 To UBound(src, 1)
         packageRow = NzLng(src(r, cPackageRow))
         If packageRow <= 0 Then GoTo NextRow
@@ -4457,7 +4457,7 @@ Public Function BoxBuilderFormLoadVersionComponents(ByVal packageRow As Long, By
     cComponentDescription = ColumnIndex(loView, "ComponentDescription")
     If cPackageRow = 0 Or cComponentRow = 0 Or cComponentQty = 0 Then Exit Function
 
-    src = loView.DataBodyRange.Value
+    src = To2DArrayShipping(loView.DataBodyRange.Value)
     ReDim result(1 To UBound(src, 1), 1 To 8)
     For r = 1 To UBound(src, 1)
         If NzLng(src(r, cPackageRow)) <> packageRow Then GoTo NextRow
@@ -5134,7 +5134,7 @@ Public Function BoxMakerFormLoadBoxVersionInventory(ByVal packageRow As Long, By
                 cQtyDelta = ColumnIndex(loLog, "QtyDelta")
                 cNote = ColumnIndex(loLog, "Note")
                 If cEventType > 0 And cSku > 0 And cQtyDelta > 0 And cNote > 0 Then
-                    src = loLog.DataBodyRange.Value
+                    src = To2DArrayShipping(loLog.DataBodyRange.Value)
                     For r = 1 To UBound(src, 1)
                         eventType = UCase$(Trim$(NzStr(src(r, cEventType))))
                         If eventType <> EVENT_TYPE_SHIP _
@@ -5389,7 +5389,7 @@ Private Function BoxMakerVersionComponentsFromTable(ByVal loSource As ListObject
     cComponentDescription = ColumnIndex(loSource, "ComponentDescription")
     If cPackageRow = 0 Or cComponentRow = 0 Or cComponentQty = 0 Then Exit Function
 
-    src = loSource.DataBodyRange.Value
+    src = To2DArrayShipping(loSource.DataBodyRange.Value)
     ReDim result(1 To UBound(src, 1), 1 To 8)
     For r = 1 To UBound(src, 1)
         If NzLng(src(r, cPackageRow)) <> packageRow Then GoTo NextRow
@@ -6387,7 +6387,7 @@ Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = Fals
     cReserve = ColumnIndex(lo, COL_SHIPMENT_RESERVE_EVENT_ID)
     If cItem = 0 Or cQty = 0 Then Exit Function
 
-    src = lo.DataBodyRange.Value
+    src = To2DArrayShipping(lo.DataBodyRange.Value)
     For r = 1 To UBound(src, 1)
         If Trim$(NzStr(src(r, cItem))) <> "" Or NzDbl(src(r, cQty)) <> 0 Then countRows = countRows + 1
     Next r
@@ -9238,7 +9238,7 @@ Private Function CountReadableAggregateRows(ByVal lo As ListObject) As Long
     cQty = ColumnIndex(lo, "QUANTITY")
     cRow = ColumnIndex(lo, "ROW")
     If cQty = 0 Or cRow = 0 Then Exit Function
-    arr = lo.DataBodyRange.Value
+    arr = To2DArrayShipping(lo.DataBodyRange.Value)
     For r = 1 To UBound(arr, 1)
         If NzLng(arr(r, cRow)) > 0 And NzDbl(arr(r, cQty)) > 0 Then CountReadableAggregateRows = CountReadableAggregateRows + 1
     Next r
@@ -9274,7 +9274,7 @@ Private Sub AppendReadinessRows(ByRef rows As Variant, _
     cLoc = ColumnIndex(lo, "LOCATION")
     If cQty = 0 Or cRow = 0 Then Exit Sub
 
-    arr = lo.DataBodyRange.Value
+    arr = To2DArrayShipping(lo.DataBodyRange.Value)
     For r = 1 To UBound(arr, 1)
         rowValue = NzLng(arr(r, cRow))
         requiredQty = NzDbl(arr(r, cQty))
@@ -9747,7 +9747,7 @@ Private Function BuildShippingInventoryPickerItems(ByVal lo As ListObject) As Va
     cTotalInv = ColumnIndex(lo, "TOTAL INV")
     If cRow = 0 Or cItem = 0 Then Exit Function
 
-    src = lo.DataBodyRange.Value
+    src = To2DArrayShipping(lo.DataBodyRange.Value)
     ReDim result(1 To UBound(src, 1), 1 To 7)
     For r = 1 To UBound(src, 1)
         itemName = Trim$(NzStr(src(r, cItem)))
@@ -10058,7 +10058,7 @@ Private Function LoadBoxMakerBomForPackage(ByVal ws As Worksheet, _
             report = "ShippingBOMView is missing required PackageRow/Component columns."
             Exit Function
         End If
-        arr = loView.DataBodyRange.Value
+        arr = To2DArrayShipping(loView.DataBodyRange.Value)
     End If
 
     scaleQty = packageQty
@@ -11314,7 +11314,7 @@ Private Function LoadBoxBomForPackageVersion(ByVal ws As Worksheet, _
         GoTo CleanExit
     End If
 
-    arr = loRuntime.DataBodyRange.Value
+    arr = To2DArrayShipping(loRuntime.DataBodyRange.Value)
 
     For r = 1 To UBound(arr, 1)
         If NzLng(arr(r, cPackageRow)) = packageRow _
@@ -11504,7 +11504,7 @@ Private Function BuildBoxBomVersionRows(ByVal loView As ListObject, _
     cComponentQty = ColumnIndex(loView, "ComponentQty")
     If cPackageRow = 0 Then Exit Function
 
-    src = loView.DataBodyRange.Value
+    src = To2DArrayShipping(loView.DataBodyRange.Value)
     Set dict = CreateObject("Scripting.Dictionary")
     For r = 1 To UBound(src, 1)
         If NzLng(src(r, cPackageRow)) <> packageRow Then GoTo NextRow
@@ -11662,7 +11662,7 @@ Private Function TryLoadRuntimeShippingBomRows(ByRef arr As Variant, _
         GoTo CleanExit
     End If
 
-    arr = loBom.DataBodyRange.Value
+    arr = To2DArrayShipping(loBom.DataBodyRange.Value)
     TryLoadRuntimeShippingBomRows = True
     report = ""
 
@@ -12227,7 +12227,7 @@ Private Function CollectBomComponents(loBom As ListObject, invLo As ListObject, 
         invDescCol = ColumnIndex(invLo, "DESCRIPTION")
     End If
 
-    Dim arr As Variant: arr = loBom.DataBodyRange.Value
+    Dim arr As Variant: arr = To2DArrayShipping(loBom.DataBodyRange.Value)
     Dim r As Long
     Dim seenVersions As Object
     Set seenVersions = CreateObject("Scripting.Dictionary")
@@ -12989,7 +12989,7 @@ Public Function RefreshShippingBomViewForWorkbookForTest(ByVal operatorWb As Wor
     RefreshShippingBomViewForWorkbookForTest = RefreshShippingBomViewForWorkbook(operatorWb, report, forceRebuild)
 End Function
 
-Public Sub EnsureShippingBomViewPopulated(ByVal wb As Workbook, ByRef report As String)
+Public Function EnsureShippingBomViewPopulated(ByVal wb As Workbook, ByRef report As String) As Boolean
     On Error GoTo FailSoft
 
     Dim loView As ListObject
@@ -13000,17 +13000,18 @@ Public Sub EnsureShippingBomViewPopulated(ByVal wb As Workbook, ByRef report As 
         If Not loView.DataBodyRange Is Nothing Then
             If loView.DataBodyRange.Rows.Count > 0 Then
                 report = "BOMView already populated."
-                Exit Sub
+                EnsureShippingBomViewPopulated = True
+                Exit Function
             End If
         End If
     End If
 
-    RefreshShippingBomViewForWorkbook wb, report, False
-    Exit Sub
+    EnsureShippingBomViewPopulated = RefreshShippingBomViewForWorkbook(wb, report, False)
+    Exit Function
 
 FailSoft:
     report = "EnsureShippingBomViewPopulated failed: " & Err.Description
-End Sub
+End Function
 
 Private Function GetShippingBomViewTable(ByVal wb As Workbook) As ListObject
     Dim ws As Worksheet
@@ -14955,6 +14956,47 @@ Private Function ShippingBridgeTableName(ByVal tableName As String) As Boolean
     End Select
 End Function
 
+Private Function To2DArrayShipping(ByVal src As Variant) As Variant
+    Dim result() As Variant
+    Dim lower1 As Long
+    Dim upper1 As Long
+    Dim lower2 As Long
+    Dim upper2 As Long
+    Dim i As Long
+
+    If IsEmpty(src) Then
+        To2DArrayShipping = src
+        Exit Function
+    End If
+
+    If Not IsArray(src) Then
+        ReDim result(1 To 1, 1 To 1)
+        result(1, 1) = src
+        To2DArrayShipping = result
+        Exit Function
+    End If
+
+    On Error GoTo OneDimensional
+    lower1 = LBound(src, 1)
+    upper1 = UBound(src, 1)
+    lower2 = LBound(src, 2)
+    upper2 = UBound(src, 2)
+    On Error GoTo 0
+
+    To2DArrayShipping = src
+    Exit Function
+
+OneDimensional:
+    On Error GoTo 0
+    lower1 = LBound(src)
+    upper1 = UBound(src)
+    ReDim result(1 To 1, 1 To upper1 - lower1 + 1)
+    For i = lower1 To upper1
+        result(1, i - lower1 + 1) = src(i)
+    Next i
+    To2DArrayShipping = result
+End Function
+
 Private Function GetInvSysTable() As ListObject
     Dim wsInv As Worksheet: Set wsInv = GetInventoryWorksheetShipping()
     If wsInv Is Nothing Then Exit Function
@@ -15436,7 +15478,7 @@ Private Function ValidateComponentInventory(invLo As ListObject, aggBom As ListO
     End If
 
     Dim arr As Variant
-    arr = aggBom.DataBodyRange.Value
+    arr = To2DArrayShipping(aggBom.DataBodyRange.Value)
     Dim r As Long
     For r = 1 To UBound(arr, 1)
         Dim rowVal As Long: rowVal = NzLng(arr(r, cRowAgg))
@@ -15857,7 +15899,7 @@ Private Function BuildPackageSummary(loShip As ListObject, rowCache As Object, n
     End If
 
     Dim data As Variant
-    data = loShip.DataBodyRange.Value
+    data = To2DArrayShipping(loShip.DataBodyRange.Value)
     Dim r As Long
     For r = 1 To UBound(data, 1)
         Dim itemName As String: itemName = NzStr(data(r, cItem))
@@ -15944,7 +15986,7 @@ Private Function BuildBomSummary(pkgDict As Object, rowCache As Object) As Objec
         Dim cUom As Long: cUom = ColumnIndex(bomLo, "UOM")
         If cRow = 0 Or cQty = 0 Then GoTo NextPkg
         Dim arr As Variant
-        arr = bomLo.DataBodyRange.Value
+        arr = To2DArrayShipping(bomLo.DataBodyRange.Value)
         Dim r As Long
         For r = 1 To UBound(arr, 1)
             Dim compRow As Long: compRow = NzLng(arr(r, cRow))
@@ -16012,7 +16054,7 @@ Private Function BuildBomSummaryFromBomRows(pkgDict As Object, rowCache As Objec
     End If
 
     Dim arr As Variant
-    arr = loBomRows.DataBodyRange.Value
+    arr = To2DArrayShipping(loBomRows.DataBodyRange.Value)
 
     Dim r As Long
     For r = 1 To UBound(arr, 1)
@@ -16164,7 +16206,7 @@ Private Function BuildUsedDeltaPacket(invLo As ListObject, aggBom As ListObject,
     End If
 
     Dim result As New Collection
-    Dim arr As Variant: arr = invLo.DataBodyRange.Value
+    Dim arr As Variant: arr = To2DArrayShipping(invLo.DataBodyRange.Value)
     Dim r As Long
     For r = 1 To UBound(arr, 1)
         Dim usedVal As Double: usedVal = NzDbl(arr(r, colUsed))
@@ -16207,7 +16249,7 @@ Private Function BuildComponentDeltaPacketFromAggregate(invLo As ListObject, agg
     Dim colItemCode As Long: colItemCode = ColumnIndex(invLo, "ITEM_CODE")
     Dim colItemName As Long: colItemName = ColumnIndex(invLo, "ITEM")
     Dim requirements As Object: Set requirements = CreateObject("Scripting.Dictionary")
-    Dim arr As Variant: arr = aggBom.DataBodyRange.Value
+    Dim arr As Variant: arr = To2DArrayShipping(aggBom.DataBodyRange.Value)
     Dim r As Long
     For r = 1 To UBound(arr, 1)
         Dim rowVal As Long: rowVal = NzLng(arr(r, cRowAgg))
@@ -16383,7 +16425,7 @@ Private Function BuildMadeDeltaPacket(invLo As ListObject, aggPack As ListObject
     Dim colItemName As Long: colItemName = ColumnIndex(invLo, "ITEM")
 
     Dim result As New Collection
-    Dim arr As Variant: arr = aggPack.DataBodyRange.Value
+    Dim arr As Variant: arr = To2DArrayShipping(aggPack.DataBodyRange.Value)
     Dim r As Long
     For r = 1 To UBound(arr, 1)
         Dim rowVal As Long: rowVal = NzLng(arr(r, cRowAgg))
@@ -16425,7 +16467,7 @@ Private Function BuildTotalInventoryDeltaPacket(invLo As ListObject, ByRef errNo
     End If
 
     Dim result As New Collection
-    Dim arr As Variant: arr = invLo.DataBodyRange.Value
+    Dim arr As Variant: arr = To2DArrayShipping(invLo.DataBodyRange.Value)
     Dim r As Long
     For r = 1 To UBound(arr, 1)
         Dim rowVal As Long: rowVal = NzLng(arr(r, cRow))
@@ -16458,7 +16500,7 @@ Private Function BuildShipmentsSentDeltaPacket(invLo As ListObject, ByRef errNot
     End If
 
     Dim result As New Collection
-    Dim arr As Variant: arr = invLo.DataBodyRange.Value
+    Dim arr As Variant: arr = To2DArrayShipping(invLo.DataBodyRange.Value)
     Dim r As Long
     For r = 1 To UBound(arr, 1)
         Dim rowVal As Long: rowVal = NzLng(arr(r, cRow))
@@ -16505,7 +16547,7 @@ Private Function BuildShipmentDeltaPacket(invLo As ListObject, aggPack As ListOb
     End If
 
     Dim requirements As Object: Set requirements = CreateObject("Scripting.Dictionary")
-    Dim arrAgg As Variant: arrAgg = aggPack.DataBodyRange.Value
+    Dim arrAgg As Variant: arrAgg = To2DArrayShipping(aggPack.DataBodyRange.Value)
     Dim r As Long
     For r = 1 To UBound(arrAgg, 1)
         Dim rowVal As Long: rowVal = NzLng(arrAgg(r, cRowAgg))
@@ -16580,7 +16622,7 @@ Private Function BuildShipmentLineDeltas(ByVal invLo As ListObject, ByVal loShip
     End If
 
     Dim requirements As Object: Set requirements = CreateObject("Scripting.Dictionary")
-    Dim arr As Variant: arr = loShip.DataBodyRange.Value
+    Dim arr As Variant: arr = To2DArrayShipping(loShip.DataBodyRange.Value)
     Dim r As Long
     For r = 1 To UBound(arr, 1)
         Dim rowVal As Long: rowVal = NzLng(arr(r, cRowShip))
@@ -17550,7 +17592,7 @@ Private Function StageComponentsToUsed(invLo As ListObject, aggBom As ListObject
     If logEntries Is Nothing Then Set logEntries = New Collection
 
     Dim arr As Variant
-    arr = aggBom.DataBodyRange.Value
+    arr = To2DArrayShipping(aggBom.DataBodyRange.Value)
     Dim requirements As Object: Set requirements = CreateObject("Scripting.Dictionary")
     Dim r As Long
     For r = 1 To UBound(arr, 1)
