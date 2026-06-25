@@ -8223,10 +8223,10 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, _
     Dim fileNum As Integer
     Dim lineText As String
     Dim parts As Variant
-    Dim lr As ListRow
     Dim closedLineIds As Object
     Dim closedEventIds As Object
     Dim sentTokens As Object
+    Dim keptRows As Collection
     Dim prunedRows As Boolean
 
     If loading Then Exit Sub
@@ -8239,7 +8239,7 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, _
     EnsureShippingWorksheetEditable lo.Parent
     EnsureColumnExists lo, COL_SHIPMENT_LINE_ID
     EnsureColumnExists lo, COL_SHIPMENT_RESERVE_EVENT_ID
-    ClearListObjectData lo
+    Set keptRows = New Collection
     If StrComp(defaultArea, "Warehouse", vbTextCompare) = 0 Then
         Set sentTokens = LoadPersistentSentShipmentTokens()
         If allowClosedReservationPrune Then LoadClosedShippingReservationTokens closedLineIds, closedEventIds
@@ -8263,28 +8263,13 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, _
                     End If
                 End If
             End If
-            Set lr = FirstBlankListRowShipping(lo)
-            If lr Is Nothing Then Set lr = lo.ListRows.Add
-            WriteValue lr, "REF_NUMBER", HoldPart(parts, 0)
-            WriteValue lr, "ITEMS", HoldPart(parts, 1)
-            WriteValue lr, "QUANTITY", HoldPart(parts, 2)
-            WriteValue lr, "ROW", HoldPart(parts, 3)
-            WriteValue lr, "UOM", HoldPart(parts, 4)
-            WriteValue lr, "LOCATION", HoldPart(parts, 5)
-            WriteValue lr, "DESCRIPTION", HoldPart(parts, 6)
-            WriteValue lr, "AREA", IIf(HoldPart(parts, 7) = "", defaultArea, HoldPart(parts, 7))
-            WriteValue lr, "CARRIER", HoldPart(parts, 8)
-            If Trim$(HoldPart(parts, 9)) <> "" Then
-                WriteValue lr, COL_SHIPMENT_LINE_ID, HoldPart(parts, 9)
-            Else
-                WriteValue lr, COL_SHIPMENT_LINE_ID, NewShipmentLineId()
-            End If
-            WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, HoldPart(parts, 10)
+            keptRows.Add parts
         End If
 NextPersistedLine:
     Loop
     Close #fileNum
     fileNum = 0
+    WritePersistentShipmentPartsToTable lo, keptRows, defaultArea
     If prunedRows And StrComp(defaultArea, "Warehouse", vbTextCompare) = 0 Then PersistShipmentRowsLocal lo, filePath
 
 CleanExit:
@@ -8351,6 +8336,74 @@ CleanExit:
     On Error Resume Next
     If fileNum <> 0 Then Close #fileNum
     On Error GoTo 0
+End Sub
+
+Private Sub WritePersistentShipmentPartsToTable(ByVal lo As ListObject, _
+                                                ByVal keptRows As Collection, _
+                                                ByVal defaultArea As String)
+    On Error GoTo CleanExit
+
+    Dim data As Variant
+    Dim parts As Variant
+    Dim rowCount As Long
+    Dim colCount As Long
+    Dim i As Long
+    Dim cRef As Long
+    Dim cItem As Long
+    Dim cQty As Long
+    Dim cRow As Long
+    Dim cUom As Long
+    Dim cLoc As Long
+    Dim cDesc As Long
+    Dim cArea As Long
+    Dim cCarrier As Long
+    Dim cLine As Long
+    Dim cReserve As Long
+    Dim areaText As String
+    Dim lineId As String
+
+    If lo Is Nothing Then Exit Sub
+    If keptRows Is Nothing Then Exit Sub
+    rowCount = keptRows.Count
+    ResizeListObjectRowsFast lo, rowCount
+    If rowCount <= 0 Or lo.DataBodyRange Is Nothing Then Exit Sub
+
+    colCount = lo.ListColumns.Count
+    ReDim data(1 To rowCount, 1 To colCount)
+    cRef = ColumnIndex(lo, "REF_NUMBER")
+    cItem = ColumnIndex(lo, "ITEMS")
+    cQty = ColumnIndex(lo, "QUANTITY")
+    cRow = ColumnIndex(lo, "ROW")
+    cUom = ColumnIndex(lo, "UOM")
+    cLoc = ColumnIndex(lo, "LOCATION")
+    cDesc = ColumnIndex(lo, "DESCRIPTION")
+    cArea = ColumnIndex(lo, "AREA")
+    cCarrier = ColumnIndex(lo, "CARRIER")
+    cLine = ColumnIndex(lo, COL_SHIPMENT_LINE_ID)
+    cReserve = ColumnIndex(lo, COL_SHIPMENT_RESERVE_EVENT_ID)
+
+    For i = 1 To rowCount
+        parts = keptRows(i)
+        If cRef > 0 Then data(i, cRef) = HoldPart(parts, 0)
+        If cItem > 0 Then data(i, cItem) = HoldPart(parts, 1)
+        If cQty > 0 Then data(i, cQty) = HoldPart(parts, 2)
+        If cRow > 0 Then data(i, cRow) = HoldPart(parts, 3)
+        If cUom > 0 Then data(i, cUom) = HoldPart(parts, 4)
+        If cLoc > 0 Then data(i, cLoc) = HoldPart(parts, 5)
+        If cDesc > 0 Then data(i, cDesc) = HoldPart(parts, 6)
+        areaText = HoldPart(parts, 7)
+        If areaText = "" Then areaText = defaultArea
+        If cArea > 0 Then data(i, cArea) = areaText
+        If cCarrier > 0 Then data(i, cCarrier) = HoldPart(parts, 8)
+        lineId = Trim$(HoldPart(parts, 9))
+        If lineId = "" Then lineId = NewShipmentLineId()
+        If cLine > 0 Then data(i, cLine) = lineId
+        If cReserve > 0 Then data(i, cReserve) = HoldPart(parts, 10)
+    Next i
+
+    lo.DataBodyRange.Value = data
+
+CleanExit:
 End Sub
 
 Private Function LoadPersistentSentShipmentTokens() As Object
@@ -18467,6 +18520,23 @@ Private Sub ResizeListObjectRowsForWrite(ByVal lo As ListObject, ByVal rowsNeede
             lo.ListRows(diff).Delete
         Next diff
     End If
+End Sub
+
+Private Sub ResizeListObjectRowsFast(ByVal lo As ListObject, ByVal rowsNeeded As Long)
+    On Error GoTo Fallback
+
+    Dim targetRows As Long
+
+    If lo Is Nothing Then Exit Sub
+    If rowsNeeded < 0 Then Exit Sub
+    targetRows = rowsNeeded + 1
+    If targetRows < 1 Then targetRows = 1
+    lo.Resize lo.Range.Cells(1, 1).Resize(targetRows, lo.Range.Columns.Count)
+    Exit Sub
+
+Fallback:
+    Err.Clear
+    ResizeListObjectRowsForWrite lo, rowsNeeded
 End Sub
 
 Private Sub WriteTableCellByName(ByVal lo As ListObject, _
