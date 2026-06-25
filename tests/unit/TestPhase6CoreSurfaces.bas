@@ -5795,6 +5795,10 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
         failureReason = "Test setup expected no projected overlay before Shipments Sent."
         GoTo CleanExit
     End If
+    If Not RunShippingPrepareRolePostSessionForTest(rootPath, "WH101", "S31", currentUser, "123456", report) Then
+        failureReason = "Shipping add-in role-post session setup failed before first Shipments Sent: " & report
+        GoTo CleanExit
+    End If
     selectedRows(1) = 1
     runResult = RunShippingSentRowsReportForTest(selectedRows, "USPS")
     If Left$(runResult, 3) <> "OK|" Then
@@ -5805,8 +5809,12 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
         failureReason = "Full Shipments Sent returned the old confusing already-reserved popup text: " & runResult
         GoTo CleanExit
     End If
-    If InStr(1, runResult, "completed the reservation", vbTextCompare) = 0 Then
-        failureReason = "Full Shipments Sent did not explain that reserved rows complete an existing server reservation: " & runResult
+    If InStr(1, runResult, "Inbox EventID:", vbTextCompare) = 0 Then
+        failureReason = "Full Shipments Sent did not queue a server SHIP event for the reserved row: " & runResult
+        GoTo CleanExit
+    End If
+    If InStr(1, runResult, "SHIP event queued", vbTextCompare) = 0 Then
+        failureReason = "Full Shipments Sent did not report processor catch-up for the queued SHIP event: " & runResult
         GoTo CleanExit
     End If
 
@@ -5823,6 +5831,10 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
     SetTableCell loShip, 1, "CARRIER", "USPS"
     SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-SENT-FULL-PEER-001"
     SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-SENT-FULL-PEER-001"
+    If Not RunShippingPrepareRolePostSessionForTest(rootPath, "WH101", "S31", currentUser, "123456", report) Then
+        failureReason = "Shipping add-in role-post session setup failed before peer Shipments Sent: " & report
+        GoTo CleanExit
+    End If
     selectedRows(1) = 1
     runResult = RunShippingSentRowsReportForTest(selectedRows, "USPS")
     If Left$(runResult, 3) <> "OK|" Then
@@ -5931,6 +5943,74 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7157, "TestShippingProjectedOverlay_EvictsStaleZeroWhenBackendPositive", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNewZero() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim shippables(1 To 2, 1 To 8) As Variant
+    Dim rowIndex As Long
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    If loInv Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 89, "SKU-T28-ZERO", "T28", "ea", "CLEARVIEW", 0
+
+    shippables(1, 1) = 89
+    shippables(1, 2) = "T28"
+    shippables(1, 3) = "v1"
+    shippables(1, 4) = 18
+    shippables(1, 5) = "ea"
+    shippables(1, 6) = "CLEARVIEW"
+    shippables(1, 8) = 18
+
+    shippables(2, 1) = 90
+    shippables(2, 2) = "T29"
+    shippables(2, 3) = "v1"
+    shippables(2, 4) = 0
+    shippables(2, 5) = "EA"
+    shippables(2, 6) = "CLEARVIEW"
+    shippables(2, 8) = 0
+
+    RunShippingHydrateInvSysFromShippablesForTest loInv, shippables
+
+    rowIndex = FindRowByColumnValueInTable(loInv, "ROW", "89")
+    If rowIndex <= 0 Then
+        failureReason = "Existing T28 row was not found after shippables hydration."
+        GoTo CleanExit
+    End If
+    If NzDblForTest(GetTableValue(loInv, rowIndex, "TOTAL INV")) <> 18 Then
+        failureReason = "Existing stale zero TOTAL INV was not repaired from visible shippables; expected 18 but found " & CStr(GetTableValue(loInv, rowIndex, "TOTAL INV")) & "."
+        GoTo CleanExit
+    End If
+
+    rowIndex = FindRowByColumnValueInTable(loInv, "ROW", "90")
+    If rowIndex <= 0 Then
+        failureReason = "New T29 row was not inserted by shippables hydration."
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(GetTableValue(loInv, rowIndex, "TOTAL INV"))) <> "" Then
+        failureReason = "New shippable with unloaded NAS inventory wrote TOTAL INV='" & CStr(GetTableValue(loInv, rowIndex, "TOTAL INV")) & "'; expected blank, not zero."
+        GoTo CleanExit
+    End If
+
+    TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNewZero = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7169, "TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNewZero", failureReason
     End If
     Exit Function
 CleanFail:
@@ -6247,6 +6327,10 @@ Public Function TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected() 
     Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
     If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then
         failureReason = "EnsureShippingWorkbookSurface failed: " & report
+        GoTo CleanExit
+    End If
+    If Not RunShippingPrepareRuntimeRefreshSessionForTest(rootPath, "WH102", "S31", report) Then
+        failureReason = "Shipping add-in runtime refresh session setup failed before refresh: " & report
         GoTo CleanExit
     End If
     Set loInv = FindTableByName(wbOps, "invSys")
@@ -9043,6 +9127,47 @@ Private Function RunShippingSentProjectedOverlayQtyForTest(ByVal backendQty As D
     macroName = ShippingMacroNameForTest("ShipmentsSentProjectedOverlayQtyForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingSentProjectedOverlayQtyForTest = CDbl(Application.Run(macroName, backendQty, existingProjectedQty, shippedQty, hasExistingOverlay, isReservedRow))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Sub RunShippingHydrateInvSysFromShippablesForTest(ByVal invLo As ListObject, ByVal shippables As Variant)
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsFormHydrateInvSysTableFromShippables")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Application.Run macroName, invLo, shippables
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Sub
+
+Private Function RunShippingPrepareRolePostSessionForTest(ByVal runtimeRoot As String, _
+                                                          ByVal warehouseId As String, _
+                                                          ByVal stationId As String, _
+                                                          ByVal userId As String, _
+                                                          ByVal secretText As String, _
+                                                          ByRef report As String) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("PrepareShippingRolePostSessionForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingPrepareRolePostSessionForTest = CBool(Application.Run(macroName, runtimeRoot, warehouseId, stationId, userId, secretText, report))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingPrepareRuntimeRefreshSessionForTest(ByVal runtimeRoot As String, _
+                                                                ByVal warehouseId As String, _
+                                                                ByVal stationId As String, _
+                                                                ByRef report As String) As Boolean
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("PrepareShippingRuntimeRefreshSessionForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingPrepareRuntimeRefreshSessionForTest = CBool(Application.Run(macroName, runtimeRoot, warehouseId, stationId, report))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

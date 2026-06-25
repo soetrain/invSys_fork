@@ -5840,6 +5840,117 @@ Public Function ShipmentsSentProjectedOverlayQtyForTest(ByVal backendQty As Doub
     ShipmentsSentProjectedOverlayQtyForTest = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, shippedQty, hasExistingOverlay, isReservedRow)
 End Function
 
+Public Function PrepareShippingRolePostSessionForTest(ByVal runtimeRoot As String, _
+                                                      ByVal warehouseId As String, _
+                                                      ByVal stationId As String, _
+                                                      ByVal userId As String, _
+                                                      ByVal secretText As String, _
+                                                      ByRef report As String) As Boolean
+    On Error GoTo FailPrepare
+
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+    Dim authStatus As AuthStatusCode
+
+    runtimeRoot = Trim$(runtimeRoot)
+    warehouseId = Trim$(warehouseId)
+    stationId = Trim$(stationId)
+    userId = Trim$(userId)
+
+    modAuth.SignOut
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.SetCoreDataRootOverride runtimeRoot
+    If Not modConfig.LoadConfig(warehouseId, stationId) Then
+        report = "Config load failed: " & modConfig.Validate()
+        Exit Function
+    End If
+    If Not modConfig.Reload() Then
+        report = "Config reload failed: " & modConfig.Validate()
+        Exit Function
+    End If
+
+    statusCode = modNasConnection.SelectWarehouseTarget(runtimeRoot, runtimeRoot, target, stationId, True)
+    If statusCode <> NAS_OK Or target Is Nothing Then
+        report = "SelectWarehouseTarget failed: " & CStr(statusCode)
+        Exit Function
+    End If
+
+    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\" & warehouseId) Then
+        report = "Could not mark test warehouse target as NAS-backed."
+        Exit Function
+    End If
+    If Not modNasConnection.SetCurrentTargetSourceTypeForTest(WH_SOURCE_NAS) Then
+        report = "Could not mark test warehouse target source type."
+        Exit Function
+    End If
+    modRuntimeWorkbooks.SetCoreDataRootOverride runtimeRoot
+
+    authStatus = modAuth.ValidateUserCredentialForTarget(userId, secretText, target, "SHIP_POST")
+    If authStatus <> AUTH_OK Then
+        report = "ValidateUserCredentialForTarget failed: " & CStr(authStatus)
+        Exit Function
+    End If
+
+    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\" & warehouseId) Then
+        report = "Could not restore NAS-backed test warehouse target after sign-in."
+        Exit Function
+    End If
+    If Not modNasConnection.SetCurrentTargetSourceTypeForTest(WH_SOURCE_NAS) Then
+        report = "Could not restore NAS-backed test warehouse source type after sign-in."
+        Exit Function
+    End If
+    modRuntimeWorkbooks.SetCoreDataRootOverride runtimeRoot
+    If Not modNasConnection.IsCurrentTargetAllowed(True) Then
+        report = "Prepared shipping role-post target is not NAS-allowed. " & modNasConnection.GetConnectionStatus()
+        Exit Function
+    End If
+
+    PrepareShippingRolePostSessionForTest = True
+    Exit Function
+
+FailPrepare:
+    report = "PrepareShippingRolePostSessionForTest failed: " & Err.Description
+End Function
+
+Public Function PrepareShippingRuntimeRefreshSessionForTest(ByVal runtimeRoot As String, _
+                                                            ByVal warehouseId As String, _
+                                                            ByVal stationId As String, _
+                                                            ByRef report As String) As Boolean
+    On Error GoTo FailPrepare
+
+    Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
+
+    runtimeRoot = Trim$(runtimeRoot)
+    warehouseId = Trim$(warehouseId)
+    stationId = Trim$(stationId)
+
+    modAuth.SignOut
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.SetCoreDataRootOverride runtimeRoot
+    If Not modConfig.LoadConfig(warehouseId, stationId) Then
+        report = "Config load failed: " & modConfig.Validate()
+        Exit Function
+    End If
+    If Not modConfig.Reload() Then
+        report = "Config reload failed: " & modConfig.Validate()
+        Exit Function
+    End If
+
+    statusCode = modNasConnection.SelectWarehouseTarget(runtimeRoot, runtimeRoot, target, stationId, True)
+    If statusCode <> NAS_OK Or target Is Nothing Then
+        report = "SelectWarehouseTarget failed: " & CStr(statusCode)
+        Exit Function
+    End If
+    modRuntimeWorkbooks.SetCoreDataRootOverride runtimeRoot
+
+    PrepareShippingRuntimeRefreshSessionForTest = True
+    Exit Function
+
+FailPrepare:
+    report = "PrepareShippingRuntimeRefreshSessionForTest failed: " & Err.Description
+End Function
+
 Public Sub RegisterSentBoxVersionInventoryOverlayForTest(ByVal packageRow As Long, _
                                                          ByVal versionLabel As String, _
                                                          ByVal projectedQty As Double, _
@@ -5876,6 +5987,9 @@ Public Function ShipmentsFormRefreshRuntimeInventoryForWorkbook(ByVal operatorWb
                                                                ByRef report As String, _
                                                                Optional ByVal warehouseIdOverride As String = "") As Boolean
     ShipmentsFormRefreshRuntimeInventoryForWorkbook = ShipmentsFormRefreshRuntimeInventoryCore(operatorWb, warehouseIdOverride, report)
+    If Not ShipmentsFormRefreshRuntimeInventoryForWorkbook Then
+        If Trim$(report) = "" Then report = "Shipments refresh failed without detail. Workbook=" & WorkbookNameForReportShipping(operatorWb) & "; Warehouse=" & Trim$(warehouseIdOverride)
+    End If
 End Function
 
 Public Function ShipmentsFormRefreshReadModelForWorkbook(ByVal operatorWb As Workbook, _
@@ -5993,14 +6107,17 @@ Private Function ShipmentsFormRefreshRuntimeInventoryCore(ByVal operatorWb As Wo
     If warehouseId = "" Then warehouseId = ResolveCurrentShippingWarehouseId()
     If Not RunShippingRuntimeQueueRefresh(wb, warehouseId, runtimeReport, False) Then
         report = runtimeReport
+        If Trim$(report) = "" Then report = "Runtime queue refresh returned False without detail. Workbook=" & WorkbookNameForReportShipping(wb) & "; Warehouse=" & warehouseId
         Exit Function
     End If
     If Not ShipmentsFormRefreshReadModelForWorkbook(wb, inventoryReport, warehouseId) Then
         report = inventoryReport
+        If Trim$(report) = "" Then report = "Read-model refresh returned False without detail. Workbook=" & WorkbookNameForReportShipping(wb) & "; Warehouse=" & warehouseId
         Exit Function
     End If
     If Not RefreshShippingBomViewForWorkbook(wb, bomReport, False) Then
         report = bomReport
+        If Trim$(report) = "" Then report = "Shipping BOM refresh returned False without detail. Workbook=" & WorkbookNameForReportShipping(wb) & "; Warehouse=" & warehouseId
         Exit Function
     End If
 
@@ -6012,6 +6129,16 @@ Private Function ShipmentsFormRefreshRuntimeInventoryCore(ByVal operatorWb As Wo
 
 FailSoft:
     report = "Shipments refresh failed: " & Err.Description
+End Function
+
+Private Function WorkbookNameForReportShipping(ByVal wb As Workbook) As String
+    On Error Resume Next
+
+    If wb Is Nothing Then
+        WorkbookNameForReportShipping = "(none)"
+    Else
+        WorkbookNameForReportShipping = wb.Name
+    End If
 End Function
 
 Public Sub EnforceShippingSupportSheetsHidden(ByVal wb As Workbook)
@@ -8627,8 +8754,7 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     Dim previousHandling As Boolean
     Dim mutationStarted As Boolean
     Dim sentSummary As String
-    Dim unreservedRows As Variant
-    Dim unreservedDeltas As Collection
+    Dim allSentDeltas As Collection
 
     If Not skipAuthForTest Then
         If Not modRoleUiAccess.CanCurrentUserPerformCapability("SHIP_POST", "", "", "", errNotes) Then
@@ -8665,19 +8791,16 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
         Exit Function
     End If
     sentSummary = ShipmentRowsActionSummary(loShip, rowIndexes, "Sent")
-    unreservedRows = ShipmentRowsByReserveState(loShip, rowIndexes, False)
-    If Not IsEmpty(unreservedRows) Then
-        Set unreservedDeltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, unreservedRows, "Shipments", errNotes)
-        If unreservedDeltas Is Nothing Then
-            If errNotes = "" Then errNotes = "Unable to build unreserved shipment event."
-            report = errNotes
-            Exit Function
-        End If
-        If Not QueueShipmentsSentEvent(unreservedDeltas, errNotes, queuedEventId) Then
-            If errNotes = "" Then errNotes = "Unable to queue shipment event."
-            report = errNotes
-            Exit Function
-        End If
+    Set allSentDeltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, rowIndexes, "Shipments", errNotes)
+    If allSentDeltas Is Nothing Then
+        If errNotes = "" Then errNotes = "Unable to build shipment sent event."
+        report = errNotes
+        Exit Function
+    End If
+    If Not QueueShipmentsSentEvent(allSentDeltas, errNotes, queuedEventId) Then
+        If errNotes = "" Then errNotes = "Unable to queue shipment sent event."
+        report = errNotes
+        Exit Function
     End If
 
     BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
@@ -8701,7 +8824,10 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     report = "Shipments sent: " & Format$(shippedTotal, "0.###") & " package(s)."
     If sentSummary <> "" Then report = report & vbCrLf & sentSummary
     If Trim$(carrierValue) <> "" Then report = report & vbCrLf & "Carrier: " & Trim$(carrierValue)
-    If queuedEventId <> "" Then report = report & vbCrLf & "Inbox EventID: " & queuedEventId
+    If queuedEventId <> "" Then
+        report = report & vbCrLf & "Inbox EventID: " & queuedEventId
+        report = report & vbCrLf & "Server inventory SHIP event queued; waiting for processor/log catch-up."
+    End If
     If queuedEventId = "" Then report = report & vbCrLf & _
         "Server inventory was reserved at To Shipments; Shipments Sent completed the reservation and is waiting for processor/log catch-up."
     If errNotes <> "" Then report = report & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
@@ -12969,7 +13095,10 @@ Private Function RefreshShippingBomViewForWorkbook(ByVal operatorWb As Workbook,
     End If
 
     Set loBom = EnsureShippingBomSchema(wbBom, report)
-    If loBom Is Nothing Then GoTo CleanExit
+    If loBom Is Nothing Then
+        If Trim$(report) = "" Then report = "Shipping BOM table was not found in " & wbBom.FullName & "."
+        GoTo CleanExit
+    End If
     CopyShippingBomTable loBom, loView
     RefreshShippingBomViewForWorkbook = True
     report = "Shipping BOM view refreshed from " & wbBom.FullName
@@ -15129,6 +15258,9 @@ Public Sub ShipmentsFormHydrateInvSysTableFromShippables(ByVal invLo As ListObje
     Dim versionInv As Object
     Dim key As Variant
     Dim lr As ListRow
+    Dim existingIdx As Long
+    Dim existingTotal As Variant
+    Dim colTotalInv As Long
 
     If invLo Is Nothing Then Exit Sub
     If IsEmpty(shippables) Then Exit Sub
@@ -15142,7 +15274,6 @@ Public Sub ShipmentsFormHydrateInvSysTableFromShippables(ByVal invLo As ListObje
         uomVal = Trim$(NzStr(shippables(r, 5)))
         locVal = Trim$(NzStr(shippables(r, 6)))
         If rowVal <= 0 Or itemName = "" Then GoTo NextShippable
-        If FindInvRowIndexByRow(invLo, rowVal) > 0 Then GoTo NextShippable
 
         totalInvQty = 0#
         visibleQtyText = Trim$(NzStr(shippables(r, 8)))
@@ -15161,6 +15292,17 @@ Public Sub ShipmentsFormHydrateInvSysTableFromShippables(ByVal invLo As ListObje
             End If
         End If
 
+        existingIdx = FindInvRowIndexByRow(invLo, rowVal)
+        If existingIdx > 0 Then
+            existingTotal = GetInvSysValueByIndex(invLo, existingIdx, "TOTAL INV")
+            If totalInvQty > 0.0000001 _
+               And (IsBlankInventoryValue(existingTotal) Or NzDbl(existingTotal) <= 0.0000001) Then
+                colTotalInv = ColumnIndex(invLo, "TOTAL INV")
+                If colTotalInv > 0 Then invLo.ListRows(existingIdx).Range.Cells(1, colTotalInv).Value = totalInvQty
+            End If
+            GoTo NextShippable
+        End If
+
         Set lr = FirstBlankListRowShipping(invLo)
         If lr Is Nothing Then Set lr = invLo.ListRows.Add
         WriteValue lr, "ROW", rowVal
@@ -15169,7 +15311,11 @@ Public Sub ShipmentsFormHydrateInvSysTableFromShippables(ByVal invLo As ListObje
         WriteValue lr, "UOM", uomVal
         WriteValue lr, "LOCATION", locVal
         WriteValue lr, "DESCRIPTION", versionLabel
-        WriteValue lr, "TOTAL INV", totalInvQty
+        If totalInvQty > 0.0000001 Then
+            WriteValue lr, "TOTAL INV", totalInvQty
+        Else
+            WriteValue lr, "TOTAL INV", vbNullString
+        End If
         WriteValue lr, "SHIPMENTS", 0
 NextShippable:
     Next r

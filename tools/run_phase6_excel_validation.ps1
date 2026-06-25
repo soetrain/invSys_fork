@@ -583,6 +583,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingSentRows_FullRunNeverIncreasesProjectedInventory",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_PreservesNasBaselineAcrossSentReregister",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_EvictsStaleZeroWhenBackendPositive",
+        "TestPhase6CoreSurfaces.TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNewZero",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_KeepsFreshSentOverlayAtBaseline",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_EvictsSentOverlayWhenNasCatchesUp",
         "TestPhase6CoreSurfaces.TestShippingProjectedOverlay_KeepsSentOverlayWithActiveLock",
