@@ -12994,7 +12994,7 @@ Public Function EnsureShippingBomViewPopulated(ByVal wb As Workbook, ByRef repor
 
     Dim loView As ListObject
 
-    If wb Is Nothing Then Exit Sub
+    If wb Is Nothing Then Exit Function
     Set loView = GetShippingBomViewTable(wb)
     If Not loView Is Nothing Then
         If Not loView.DataBodyRange Is Nothing Then
