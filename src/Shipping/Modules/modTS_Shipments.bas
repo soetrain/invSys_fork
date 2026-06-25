@@ -69,6 +69,8 @@ Private Const SHIPPING_BOM_COLS As Long = 3 ' ROW, QUANTITY, UOM
 Private Const SHIPMENTS_SENT_DEDUCTS_TOTALINV As Boolean = False
 Private Const SHIP_LAYOUT_BUILDER_ADDR As String = "A3"
 Private Const SHIP_LAYOUT_BOM_ADDR As String = "A7"
+
+Private mLastShipmentsSentOverlayDebug As String
 Private Const SHIP_LAYOUT_SHIPMENTS_ADDR As String = "H3"
 Private Const SHIP_LAYOUT_NOTSHIPPED_ADDR As String = "P3"
 Private Const SHIP_LAYOUT_AGG_BOM_ADDR As String = "X3"
@@ -4832,15 +4834,9 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
     If sentKey <> "" Then
         If mPendingBoxVersionInventoryOverlay.Exists(sentKey) Then
             pendingQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
-            baselineQty = PendingOverlayBaselineForKey(sentKey)
             If IsNumeric(backendValue) Then
                 backendQty = CDbl(backendValue)
-                If backendQty > 0.0000001 And pendingQty <= 0.0000001 And baselineQty <= 0.0000001 Then
-                    RemovePendingBoxVersionInventoryOverlayKey sentKey
-                    Exit Function
-                End If
-                If backendQty <= pendingQty + 0.0000001 _
-                   Or (baselineQty > 0 And backendQty < baselineQty - 0.0000001 And backendQty > pendingQty + 0.0000001) Then
+                If backendQty <= pendingQty + 0.0000001 Then
                     RemovePendingBoxVersionInventoryOverlayKey sentKey
                     Exit Function
                 End If
@@ -5840,6 +5836,10 @@ Public Function ShipmentsSentProjectedOverlayQtyForTest(ByVal backendQty As Doub
     ShipmentsSentProjectedOverlayQtyForTest = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, shippedQty, hasExistingOverlay, isReservedRow)
 End Function
 
+Public Function LastShipmentsSentOverlayDebugForTest() As String
+    LastShipmentsSentOverlayDebugForTest = mLastShipmentsSentOverlayDebug
+End Function
+
 Public Function PrepareShippingRolePostSessionForTest(ByVal runtimeRoot As String, _
                                                       ByVal warehouseId As String, _
                                                       ByVal stationId As String, _
@@ -5966,7 +5966,8 @@ Private Function ShipmentsSentProjectedOverlayQty(ByVal backendQty As Double, _
     Dim projectedQty As Double
 
     If isReservedRow Then
-        projectedQty = backendQty
+        projectedQty = backendQty - shippedQty
+        If projectedQty < 0 Then projectedQty = 0
         If hasExistingOverlay And backendQty <= 0.0000001 And existingProjectedQty > 0.0000001 Then projectedQty = existingProjectedQty
         If hasExistingOverlay And existingProjectedQty <= backendQty Then projectedQty = existingProjectedQty
         ShipmentsSentProjectedOverlayQty = projectedQty
@@ -8560,7 +8561,14 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
     Dim hasExistingOverlay As Boolean
     Dim isReservedRow As Boolean
     Dim cReserve As Long
+    Dim backendFromLocal As Boolean
+    Dim localReservedQty As Double
+    Dim localTotalQty As Double
+    Dim reserveCellText As String
+    Dim hasSentOverlay As Boolean
+    Dim hadOverlayBeforeReservedOverride As Boolean
 
+    mLastShipmentsSentOverlayDebug = vbNullString
     If loShip Is Nothing Then Exit Sub
     If loShip.DataBodyRange Is Nothing Then Exit Sub
     If IsEmpty(rowIndexes) Then Exit Sub
@@ -8580,13 +8588,45 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
         versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(rowIndex, cDesc).Value))
         If rowVal <= 0 Or qtyVal <= 0 Or versionLabel = "" Then GoTo NextRow
 
-        backendText = ShipmentVersionInventoryBackendText(invLo, rowVal, itemName, versionLabel)
+        backendText = ShipmentVersionInventoryBackendText(invLo, rowVal, itemName, versionLabel, backendFromLocal)
+        hasSentOverlay = HasSentOverlayForRowVersion(rowVal, versionLabel)
         hasExistingOverlay = PendingBoxVersionInventoryOverlayExists(rowVal, versionLabel)
+        hadOverlayBeforeReservedOverride = hasExistingOverlay
         projectedText = PendingBoxVersionInventoryOverlayText(rowVal, versionLabel, backendText)
         backendQty = NzDbl(backendText)
         existingProjectedQty = NzDbl(projectedText)
-        isReservedRow = (cReserve > 0 And Trim$(NzStr(loShip.DataBodyRange.Cells(rowIndex, cReserve).Value)) <> "")
+        localReservedQty = ShipmentLocalInventoryColumnQty(invLo, rowVal, itemName, "SHIPMENTS")
+        localTotalQty = ShipmentLocalInventoryColumnQty(invLo, rowVal, itemName, "TOTAL INV")
+        If cReserve > 0 Then reserveCellText = Trim$(NzStr(loShip.DataBodyRange.Cells(rowIndex, cReserve).Value)) Else reserveCellText = ""
+        isReservedRow = (reserveCellText <> "") _
+                        Or localReservedQty >= qtyVal - 0.0000001
+        If isReservedRow And Not hasExistingOverlay Then
+            If backendFromLocal Or Abs(localTotalQty - backendQty) <= 0.0000001 Then
+                hasExistingOverlay = True
+                existingProjectedQty = backendQty
+            End If
+        End If
+        If isReservedRow And hasSentOverlay And backendFromLocal And localTotalQty > existingProjectedQty + 0.0000001 Then
+            hasExistingOverlay = True
+            existingProjectedQty = backendQty
+        End If
         projectedQty = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, qtyVal, hasExistingOverlay, isReservedRow)
+        mLastShipmentsSentOverlayDebug = "row=" & CStr(rowVal) _
+            & "; version=" & versionLabel _
+            & "; qty=" & CStr(qtyVal) _
+            & "; cReserve=" & CStr(cReserve) _
+            & "; reserve='" & reserveCellText & "'" _
+            & "; localReserved=" & CStr(localReservedQty) _
+            & "; localTotal=" & CStr(localTotalQty) _
+            & "; backendText='" & backendText & "'" _
+            & "; backendQty=" & CStr(backendQty) _
+            & "; backendFromLocal=" & CStr(backendFromLocal) _
+            & "; hasSentOverlay=" & CStr(hasSentOverlay) _
+            & "; hadOverlay=" & CStr(hadOverlayBeforeReservedOverride) _
+            & "; projectedText='" & projectedText & "'" _
+            & "; existingProjected=" & CStr(existingProjectedQty) _
+            & "; isReserved=" & CStr(isReservedRow) _
+            & "; finalProjected=" & CStr(projectedQty)
         RegisterSentBoxVersionInventoryOverlay rowVal, versionLabel, projectedQty, backendQty
 NextRow:
     Next i
@@ -8595,10 +8635,18 @@ End Sub
 Private Function ShipmentVersionInventoryBackendText(ByVal invLo As ListObject, _
                                                      ByVal rowVal As Long, _
                                                      ByVal itemName As String, _
-                                                     ByVal versionLabel As String) As String
+                                                     ByVal versionLabel As String, _
+                                                     ByRef backendFromLocal As Boolean) As String
     Dim qtyVal As Double
     Dim invIdx As Long
     Dim totalVal As Variant
+
+    backendFromLocal = False
+    qtyVal = PickerVersionAvailableQty(rowVal, itemName, versionLabel)
+    If qtyVal > 0.0000001 Then
+        ShipmentVersionInventoryBackendText = CStr(qtyVal)
+        Exit Function
+    End If
 
     If CountActiveVersionsForPackageShipping(rowVal) <= 1 Then
         If Not invLo Is Nothing Then
@@ -8607,21 +8655,35 @@ Private Function ShipmentVersionInventoryBackendText(ByVal invLo As ListObject, 
             If invIdx > 0 Then
                 totalVal = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
                 If Not IsBlankInventoryValue(totalVal) Then
-                    ShipmentVersionInventoryBackendText = CStr(NzDbl(totalVal))
-                    Exit Function
+                    If IsNumeric(totalVal) Then
+                        If CDbl(totalVal) > 0.0000001 Then
+                            ShipmentVersionInventoryBackendText = CStr(NzDbl(totalVal))
+                            backendFromLocal = True
+                            Exit Function
+                        End If
+                    End If
                 End If
             End If
         End If
     End If
 
-    qtyVal = PickerVersionAvailableQty(rowVal, itemName, versionLabel)
-    If qtyVal > 0.0000001 Then
-        ShipmentVersionInventoryBackendText = CStr(qtyVal)
-        Exit Function
-    End If
-
     qtyVal = SingleVersionFallbackAvailableQty(invLo, rowVal, itemName, versionLabel)
     ShipmentVersionInventoryBackendText = CStr(qtyVal)
+End Function
+
+Private Function ShipmentLocalInventoryColumnQty(ByVal invLo As ListObject, _
+                                                 ByVal rowVal As Long, _
+                                                 ByVal itemName As String, _
+                                                 ByVal columnName As String) As Double
+    Dim invIdx As Long
+    Dim rawValue As Variant
+
+    If invLo Is Nothing Then Exit Function
+    invIdx = FindInvRowIndexByRow(invLo, rowVal)
+    If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+    If invIdx <= 0 Then Exit Function
+    rawValue = GetInvSysValueByIndex(invLo, invIdx, columnName)
+    If IsNumeric(rawValue) Then ShipmentLocalInventoryColumnQty = CDbl(rawValue)
 End Function
 
 Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
@@ -8806,13 +8868,13 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
     mutationStarted = True
     If Trim$(carrierValue) <> "" Then SetShipmentRowsCarrier loShip, rowIndexes, carrierValue
+    ApplyShipmentsSentVersionInventoryOverlay invLo, loShip, rowIndexes
     shippedTotal = ApplyShipmentsSentRowsInventory(invLo, loShip, rowIndexes, shipLogs, errNotes)
     If shippedTotal < 0 Then
         If errNotes = "" Then errNotes = "Unable to finalize selected shipment rows."
         report = errNotes
         GoTo CleanExit
     End If
-    ApplyShipmentsSentVersionInventoryOverlay invLo, loShip, rowIndexes
     AppendSentShipmentRowsLocal loShip, rowIndexes
     If Not MarkShippingReservationRows(loShip, rowIndexes, SHIP_RESERVATION_COMPLETED, vbNullString, report) Then GoTo CleanExit
     DeleteShipmentRows loShip, rowIndexes
@@ -8919,13 +8981,13 @@ Public Function ValidateCompleteShipmentsSentRowsFromCurrentWorkbook(ByVal rowIn
 
     BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
     mutationStarted = True
+    ApplyShipmentsSentVersionInventoryOverlay invLo, loShip, rowIndexes
     shippedTotal = ApplyShipmentsSentRowsInventory(invLo, loShip, rowIndexes, shipLogs, errNotes)
     If shippedTotal < 0 Then
         If errNotes = "" Then errNotes = "Unable to finalize shipment rows."
         report = errNotes
         GoTo CleanExit
     End If
-    ApplyShipmentsSentVersionInventoryOverlay invLo, loShip, rowIndexes
     If Not MarkShippingReservationRows(loShip, rowIndexes, SHIP_RESERVATION_COMPLETED, vbNullString, report) Then GoTo CleanExit
     DeleteShipmentRows loShip, rowIndexes
     InvalidateAggregates True
@@ -15387,7 +15449,7 @@ Private Sub HydrateInvSysFromShipmentLines(ByVal invLo As ListObject, ByVal loSh
         If cUom > 0 Then WriteValue lr, "UOM", NzStr(loShip.DataBodyRange.Cells(r, cUom).Value)
         If cLoc > 0 Then WriteValue lr, "LOCATION", NzStr(loShip.DataBodyRange.Cells(r, cLoc).Value)
         If cDesc > 0 Then WriteValue lr, "DESCRIPTION", NzStr(loShip.DataBodyRange.Cells(r, cDesc).Value)
-        WriteValue lr, "TOTAL INV", 0
+        WriteValue lr, "TOTAL INV", vbNullString
         WriteValue lr, "SHIPMENTS", 0
 NextLine:
     Next r

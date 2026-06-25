@@ -1,10 +1,10 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-06-01 18:31:23
-- Passed: 1
-- Failed: 0
-- Range: 23-23 of 127
+- Date: 2026-06-24 22:54:02
+- Passed: 0
+- Failed: 1
+- Range: 23-23 of 185
 
 | Test | Result |
 |---|---|
-| TestPhase6CoreSurfaces.TestAuthSignOut_ClearsUserButKeepsWarehouseTarget | PASS |
+| TestPhase6CoreSurfaces.TestRoleWriteCurrent_AllowsSignedInReceivePost | FAIL |

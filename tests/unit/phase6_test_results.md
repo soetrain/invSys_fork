@@ -1,9 +1,9 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-06-22 17:05:19
-- Passed: 93
+- Date: 2026-06-24 22:31:31
+- Passed: 147
 - Failed: 18
-- Range: 1-170 of 170
+- Range: 1-185 of 185
 - Status: PARTIAL
 
 | Test | Result |
@@ -65,11 +65,11 @@
 | TestWarehouseRetireArchive.TestWriteArchivePackage_SuccessCreatesAtomicArchive | FAIL |
 | TestWarehouseRetireArchive.TestWriteArchivePackage_PartialFailureRollsBackTempArchive | FAIL |
 | TestWarehouseRetireArchive.TestWriteArchivePackage_AuthExportMasksPinHash | FAIL |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource | FAIL - SuccessAppendsInventoryAndTracesSource: SetupMigrationRuntimeRetire failed for WHRETMIG1A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG1A-INVENTORY-20260622170410-300454 |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingArchiveManifest | FAIL - RejectsMissingArchiveManifest: SetupMigrationRuntimeRetire failed for WHRETMIG2B: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG2B-INVENTORY-20260622170412-658708 |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse | FAIL - RejectsMissingTargetWarehouse: SetupMigrationRuntimeRetire failed for WHRETMIG3A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG3A-INVENTORY-20260622170414-696938 |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities | FAIL - DoesNotCopyAuthIdentities: SetupMigrationRuntimeRetire failed for WHRETMIG4A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG4A-INVENTORY-20260622170417-010866 |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | FAIL - PreservesTargetConfigIdentity: SetupMigrationRuntimeRetire failed for WHRETMIG5A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG5A-INVENTORY-20260622170419-538884 |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource | FAIL - SuccessAppendsInventoryAndTracesSource: SetupMigrationRuntimeRetire failed for WHRETMIG1A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG1A-INVENTORY-20260624222953-420983 |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingArchiveManifest | FAIL - RejectsMissingArchiveManifest: SetupMigrationRuntimeRetire failed for WHRETMIG2B: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG2B-INVENTORY-20260624222955-918916 |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse | FAIL - RejectsMissingTargetWarehouse: SetupMigrationRuntimeRetire failed for WHRETMIG3A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG3A-INVENTORY-20260624222957-374123 |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities | FAIL - DoesNotCopyAuthIdentities: SetupMigrationRuntimeRetire failed for WHRETMIG4A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG4A-INVENTORY-20260624223000-576083 |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | FAIL - PreservesTargetConfigIdentity: SetupMigrationRuntimeRetire failed for WHRETMIG5A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG5A-INVENTORY-20260624223002-335790 |
 | TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker | FAIL - WritesRetirementMarker: No retire lifecycle report was available. |
 | TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson | FAIL - WritesValidTombstoneJson: No retire lifecycle report was available. |
 | TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement | FAIL - SharePointUnavailableDoesNotBlockRetirement: No retire lifecycle report was available. |
@@ -105,6 +105,7 @@
 | TestPhase6CoreSurfaces.TestRefreshInventoryReadModelFromCache_PreservesLocalStagingAndLogs | PASS |
 | TestPhase6CoreSurfaces.TestRefreshInventoryReadModelFromSnapshot_AddsRowsWhenInvSysStartsEmpty | PASS |
 | TestPhase6CoreSurfaces.TestRefreshInventoryReadModelFromSnapshot_AppliesCatalogMetadataForZeroQtyRows | PASS |
+| TestPhase6CoreSurfaces.TestRefreshInventoryReadModelFromSnapshot_MatchesLocalRowWhenSkuAliasDiffers | PASS |
 | TestPhase6CoreSurfaces.TestRefreshInventoryReadModelFromSnapshot_NormalizesLegacyLocationSummary | PASS |
 | TestPhase6CoreSurfaces.TestRefreshInventoryReadModel_MissingSnapshotMarksStaleWithoutMutatingReceivingTally | PASS |
 | TestPhase6CoreSurfaces.TestRefreshInventoryReadModel_MissingSharePointSnapshotMarksCachedWithoutMutatingLocalTables | PASS |
@@ -119,3 +120,56 @@
 | TestPhase6CoreSurfaces.TestProcessor_DiscoversClosedConfiguredStationInboxWorkbook | PASS |
 | TestPhase6CoreSurfaces.TestSavedShippingWorkbook_RefreshPreservesStagingAndLogs | PASS |
 | TestPhase6CoreSurfaces.TestSavedShippingWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs | PASS |
+| TestPhase6CoreSurfaces.TestShippingEventCreator_QueuesSignedInCurrentTargetEvent | PASS |
+| TestPhase6CoreSurfaces.TestShippingState_TombstoneFiltersSentLineIdFromActiveCache | PASS |
+| TestPhase6CoreSurfaces.TestShippingState_SentRowTombstoneFiltersLegacyActiveCache | PASS |
+| TestPhase6CoreSurfaces.TestShippingWorkflowGuard_ShipmentsSentWithZeroStagedFails | PASS |
+| TestPhase6CoreSurfaces.TestShippingWorkflowGuard_ToShipmentsInsufficientInventoryFails | PASS |
+| TestPhase6CoreSurfaces.TestShippingWorkflowGuard_BoxesMadeInsufficientComponentFails | PASS |
+| TestPhase6CoreSurfaces.TestShippingWorkflowGuard_ConfirmInventoryUseExistingWarns | PASS |
+| TestPhase6CoreSurfaces.TestShippingAggregateBomMath_MultipliesComponentQtyByPackageQty | PASS |
+| TestPhase6CoreSurfaces.TestBoxBuilderArchive_HidesArchivedBoxesUnlessRequested | PASS |
+| TestPhase6CoreSurfaces.TestBoxBuilderForm_InitializesWithActiveArchiveFilters | PASS |
+| TestPhase6CoreSurfaces.TestShippingCommitLine_MergesPostedSameRefBoxVersionCarrier | PASS |
+| TestPhase6CoreSurfaces.TestShippingBoard_TwoAddsSameRefBoxVersionCarrierShowOneRow | PASS |
+| TestPhase6CoreSurfaces.TestShippingAdd_DefaultsOrderToWarehouseArea | PASS |
+| TestPhase6CoreSurfaces.TestShippingAdd_BlankCarrierRequiresCarrier | PASS |
+| TestPhase6CoreSurfaces.TestShippingAdd_UsesDisplayedProjectedInventoryWhenVersionLedgerIsEmpty | PASS |
+| TestPhase6CoreSurfaces.TestShippingAdd_UsesDisplayedProjectedInventoryWhenTotalInvIsStaleZero | PASS |
+| TestPhase6CoreSurfaces.TestShippingRemove_LockedRowReleasesInventory | PASS |
+| TestPhase6CoreSurfaces.TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory | PASS |
+| TestPhase6CoreSurfaces.TestShippingHold_PreservesReservationAndLocalDeduction | PASS |
+| TestPhase6CoreSurfaces.TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjection | PASS |
+| TestPhase6CoreSurfaces.TestShippingUpdate_PreservesExistingReservationWithoutDoubleDeducting | PASS |
+| TestPhase6CoreSurfaces.TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay | PASS |
+| TestPhase6CoreSurfaces.TestShippingAdd_NewReservedRowAppliesSingleProjectedDeduction | PASS |
+| TestPhase6CoreSurfaces.TestShippingAdd_MergingExistingReservedRowAppliesOnlyDelta | PASS |
+| TestPhase6CoreSurfaces.TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay | PASS |
+| TestPhase6CoreSurfaces.TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion | PASS |
+| TestPhase6CoreSurfaces.TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentRows_ReservedRowClearsLockedReservationTotal | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentRows_DoesNotIncreaseProjectedInventoryOverlay | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentRows_ReservedCompletionKeepsProjectedDeductionWhenNasStale | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentRows_FullRunNeverIncreasesProjectedInventory | PASS |
+| TestPhase6CoreSurfaces.TestShippingProjectedOverlay_PreservesNasBaselineAcrossSentReregister | PASS |
+| TestPhase6CoreSurfaces.TestShippingProjectedOverlay_EvictsStaleZeroWhenBackendPositive | PASS |
+| TestPhase6CoreSurfaces.TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNewZero | PASS |
+| TestPhase6CoreSurfaces.TestShippingProjectedOverlay_KeepsFreshSentOverlayAtBaseline | PASS |
+| TestPhase6CoreSurfaces.TestShippingProjectedOverlay_EvictsSentOverlayWhenNasCatchesUp | PASS |
+| TestPhase6CoreSurfaces.TestShippingProjectedOverlay_KeepsSentOverlayWithActiveLock | PASS |
+| TestPhase6CoreSurfaces.TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatchesUp | PASS |
+| TestPhase6CoreSurfaces.TestShippingProjectedOverlay_LocalCatchupDoesNotClearBeforeNas | PASS |
+| TestPhase6CoreSurfaces.TestShippingProjectedOverlay_ClearsWhenBackendRisesAboveBaseline | PASS |
+| TestPhase6CoreSurfaces.TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected | PASS |
+| TestPhase6CoreSurfaces.TestShippingRefresh_MergesLocalBoxBuildStagingAndClearsStaleOverlay | PASS |
+| TestPhase6CoreSurfaces.TestShippingRefresh_FindsBackendShippingBomViewWithoutInvSysSurface | PASS |
+| TestPhase6CoreSurfaces.TestShippingRefresh_SkipsBomNetworkWhenViewPopulated | PASS |
+| TestPhase6CoreSurfaces.TestShippingRefresh_HidesSupportSheetsAfterSurfaceRepair | PASS |
+| TestPhase6CoreSurfaces.TestBoxMakerUnbox_QtyGreaterThanInventoryFailsBeforeQueue | PASS |
+| TestPhase6CoreSurfaces.TestBoxMakerUnbox_UsesShippingReadModelInventoryWhenInvSysMissing | PASS |
+| TestPhase6CoreSurfaces.TestShippingReservationTotals_IgnoreSameWorkbookStaleActiveReservationWithoutLocalLine | PASS |
+| TestPhase6CoreSurfaces.TestShippingReservationTotals_IgnoreLocallySentActiveLedgerRows | PASS |
+| TestPhase6CoreSurfaces.TestSavedProductionWorkbook_RefreshPreservesStagingAndLogs | PASS |
+| TestPhase6CoreSurfaces.TestSavedProductionWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs | PASS |

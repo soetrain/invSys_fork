@@ -1026,11 +1026,14 @@ End Function
 
 Private Function ShouldStageEventLocallyRole(ByVal eventType As String) As Boolean
     Select Case UCase$(Trim$(eventType))
-        Case ROLE_EVENT_TYPE_SHIP, _
+        Case ROLE_EVENT_TYPE_RECEIVE, _
+             ROLE_EVENT_TYPE_SHIP, _
              ROLE_EVENT_TYPE_SHIP_RESERVE, _
              ROLE_EVENT_TYPE_SHIP_RELEASE, _
              ROLE_EVENT_TYPE_BOX_BUILD, _
-             ROLE_EVENT_TYPE_BOX_UNBOX
+             ROLE_EVENT_TYPE_BOX_UNBOX, _
+             ROLE_EVENT_TYPE_PROD_CONSUME, _
+             ROLE_EVENT_TYPE_PROD_COMPLETE
             ShouldStageEventLocallyRole = True
     End Select
 End Function

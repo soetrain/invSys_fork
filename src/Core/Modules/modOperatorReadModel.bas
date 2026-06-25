@@ -899,6 +899,7 @@ Private Function BuildSnapshotDictionary(ByVal loSnap As ListObject) As Object
     Dim appliedIdx As Long
     Dim i As Long
     Dim sku As String
+    Dim rowKey As String
     Dim payload As Object
 
     Set dict = CreateObject("Scripting.Dictionary")
@@ -956,6 +957,10 @@ Private Function BuildSnapshotDictionary(ByVal loSnap As ListObject) As Object
         AddSnapshotTextPayloadReadModel payload, "VENDOR_CODE", ResolveSnapshotTextReadModel(loSnap, i, vendorCodeIdx)
         AddSnapshotTextPayloadReadModel payload, "CATEGORY", ResolveSnapshotTextReadModel(loSnap, i, categoryIdx)
         dict.Add sku, payload
+        rowKey = SnapshotRowKeyReadModel(ResolveSnapshotTextPayloadReadModel(payload, "ROW"))
+        If rowKey <> "" Then
+            If Not dict.Exists(rowKey) Then dict.Add rowKey, payload
+        End If
 ContinueLoop:
     Next i
 
@@ -970,6 +975,7 @@ Private Sub ApplySnapshotToInvSys(ByVal loInv As ListObject, _
                                   ByVal isStale As Boolean)
     Dim rowIndex As Long
     Dim sku As String
+    Dim rowKey As String
     Dim payload As Object
     Dim qtyOnHand As Double
     Dim qtyAvailable As Double
@@ -984,9 +990,10 @@ Private Sub ApplySnapshotToInvSys(ByVal loInv As ListObject, _
     For rowIndex = 1 To loInv.ListRows.Count
         sku = ResolveInvSysSku(loInv, rowIndex)
         SyncDisplayAliases loInv, rowIndex
+        rowKey = SnapshotRowKeyReadModel(CStr(GetReadModelValue(loInv, rowIndex, "ROW")))
+        Set payload = ResolveSnapshotPayloadForInvSysReadModel(snapshotRows, sku, rowKey)
 
-        If sku <> "" And Not snapshotRows Is Nothing And snapshotRows.Exists(sku) Then
-            Set payload = snapshotRows(sku)
+        If Not payload Is Nothing Then
             qtyOnHand = ResolveSnapshotNumberPayloadReadModel(payload, "QtyOnHand")
             qtyAvailable = ResolveSnapshotNumberPayloadReadModel(payload, "QtyAvailable")
             locationSummary = ResolveSnapshotTextPayloadReadModel(payload, "LocationSummary")
@@ -1013,7 +1020,7 @@ Private Sub EnsureInvSysRowsForSnapshot(ByVal loInv As ListObject, ByVal snapsho
     If snapshotRows Is Nothing Then Exit Sub
 
     For Each key In snapshotRows.Keys
-        If Trim$(CStr(key)) <> "" Then
+        If Trim$(CStr(key)) <> "" And Not IsSnapshotRowIndexKeyReadModel(CStr(key)) Then
             rowIndex = FindInvSysRowBySku(loInv, CStr(key))
             If rowIndex = 0 Then
                 rowIndex = AppendInvSysRow(loInv)
@@ -1028,6 +1035,37 @@ Private Sub EnsureInvSysRowsForSnapshot(ByVal loInv As ListObject, ByVal snapsho
         End If
     Next key
 End Sub
+
+Private Function ResolveSnapshotPayloadForInvSysReadModel(ByVal snapshotRows As Object, _
+                                                          ByVal sku As String, _
+                                                          ByVal rowKey As String) As Object
+    If snapshotRows Is Nothing Then Exit Function
+
+    sku = Trim$(sku)
+    If sku <> "" Then
+        If snapshotRows.Exists(sku) Then
+            Set ResolveSnapshotPayloadForInvSysReadModel = snapshotRows(sku)
+            Exit Function
+        End If
+    End If
+
+    rowKey = Trim$(rowKey)
+    If rowKey <> "" Then
+        If snapshotRows.Exists(rowKey) Then Set ResolveSnapshotPayloadForInvSysReadModel = snapshotRows(rowKey)
+    End If
+End Function
+
+Private Function SnapshotRowKeyReadModel(ByVal rowValue As String) As String
+    rowValue = Trim$(rowValue)
+    If rowValue = "" Then Exit Function
+    If Not IsNumeric(rowValue) Then Exit Function
+    If CLng(Val(rowValue)) <= 0 Then Exit Function
+    SnapshotRowKeyReadModel = "__ROW__" & CStr(CLng(Val(rowValue)))
+End Function
+
+Private Function IsSnapshotRowIndexKeyReadModel(ByVal keyValue As String) As Boolean
+    IsSnapshotRowIndexKeyReadModel = (Left$(Trim$(keyValue), 7) = "__ROW__")
+End Function
 
 Private Function FindInvSysRowBySku(ByVal loInv As ListObject, ByVal sku As String) As Long
     Dim rowIndex As Long

@@ -1973,6 +1973,49 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestRefreshInventoryReadModelFromSnapshot_MatchesLocalRowWhenSkuAliasDiffers() As Long
+    Dim rootPath As String
+    Dim wbOps As Workbook
+    Dim wbSnap As Workbook
+    Dim report As String
+    Dim loInv As ListObject
+
+    rootPath = BuildRuntimeTestRoot("phase6_read_model_row_alias")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH68R", "S8") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH68R.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = wbOps.Worksheets("InventoryManagement").ListObjects("invSys")
+    AddInvSysSeedRow loInv, 89, "T28", "T28", "ea", "CLEARVIEW", 0
+
+    Set wbSnap = CreateSnapshotWorkbook(rootPath, "WH68R", "T27", 18, CDate("2026-06-24 20:45:00"), _
+                                        18, "CLEARVIEW=18", "T28", "ea", "CLEARVIEW", "", "", "", "", "89")
+    If wbSnap Is Nothing Then GoTo CleanExit
+
+    If Not modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wbOps, "WH68R", "LOCAL", report) Then GoTo CleanExit
+
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) = 18 _
+       And CDbl(GetTableValue(loInv, 1, "QtyAvailable")) = 18 _
+       And StrComp(CStr(GetTableValue(loInv, 1, "ITEM")), "T28", vbTextCompare) = 0 _
+       And StrComp(CStr(GetTableValue(loInv, 1, "ROW")), "89", vbTextCompare) = 0 Then
+        TestRefreshInventoryReadModelFromSnapshot_MatchesLocalRowWhenSkuAliasDiffers = 1
+    End If
+
+CleanExit:
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbSnap
+    CloseWorkbookIfOpen wbOps
+    DeleteRuntimeRoot rootPath
+    Exit Function
+CleanFail:
+    Resume CleanExit
+End Function
+
 Public Function TestRefreshInventoryReadModelFromSnapshot_AppliesCatalogMetadataForZeroQtyRows() As Long
     Dim rootPath As String
     Dim wbOps As Workbook
@@ -3724,11 +3767,13 @@ Public Function TestShippingEventCreator_QueuesSignedInCurrentTargetEvent() As L
     Dim statusOut As String
     Dim errorCode As String
     Dim errorMessage As String
+    Dim stagingReport As String
 
     rootPath = BuildRuntimeTestRoot("phase6_shipping_event_creator")
     currentUser = "calvin"
 
     On Error GoTo CleanFail
+    DeleteLocalInboxStagingForTest "WH96", "S31"
     mLastTestFailure = vbNullString
     modAuth.SignOut
     modNasConnection.ClearWarehouseTarget
@@ -3812,8 +3857,15 @@ Public Function TestShippingEventCreator_QueuesSignedInCurrentTargetEvent() As L
     Set loInbox = FindTableByName(wbInbox, "tblInboxShip")
     inboxRow = FindRowByColumnValueInTable(loInbox, "EventID", eventIdOut)
     If inboxRow = 0 Then
-        failureReason = "Shipping event creator did not write the shipment event directly to the NAS shipping inbox before processor catch-up."
-        GoTo CleanExit
+        If Not modRoleEventWriter.SyncLocalStagedInboxRows(stagingReport, "WH96", "S31") Then
+            failureReason = "Shipping event creator wrote local staging, but local staging sync failed before processor catch-up: " & stagingReport
+            GoTo CleanExit
+        End If
+        inboxRow = FindRowByColumnValueInTable(loInbox, "EventID", eventIdOut)
+        If inboxRow = 0 Then
+            failureReason = "Shipping event creator did not merge the shipment event into the NAS shipping inbox before processor catch-up. StagingReport=" & stagingReport
+            GoTo CleanExit
+        End If
     End If
     If StrComp(CStr(GetTableValue(loInbox, inboxRow, "EventType")), CORE_EVENT_TYPE_SHIP, vbTextCompare) <> 0 Then
         failureReason = "Shipping inbox recorded unexpected event type before processor catch-up."
@@ -3856,6 +3908,7 @@ Public Function TestShippingEventCreator_QueuesSignedInCurrentTargetEvent() As L
     TestShippingEventCreator_QueuesSignedInCurrentTargetEvent = 1
 
 CleanExit:
+    DeleteLocalInboxStagingForTest "WH96", "S31"
     modAuth.SignOut
     modNasConnection.ForgetTarget "WH96"
     modNasConnection.ForgetRoot rootPath
@@ -3950,6 +4003,8 @@ End Function
 Public Function TestShippingState_SentRowTombstoneFiltersLegacyActiveCache() As Long
     Dim activePath As String
     Dim sentPath As String
+    Dim rootPath As String
+    Dim currentUser As String
     Dim wbOps As Workbook
     Dim report As String
     Dim failureReason As String
@@ -3959,8 +4014,12 @@ Public Function TestShippingState_SentRowTombstoneFiltersLegacyActiveCache() As 
     Dim runResult As String
     Dim rows As Variant
 
+    rootPath = BuildRuntimeTestRoot("phase6_shipping_legacy_tombstone")
+    currentUser = "calvin"
+
     On Error GoTo CleanFail
-    If Not modConfig.LoadConfig("WH92", "S21") Then GoTo CleanExit
+    DeleteLocalInboxStagingForTest "WH92", "S21"
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH92", "S21", currentUser, failureReason) Then GoTo CleanExit
     activePath = LocalShippingStatePathForTest("active", "WH92")
     sentPath = LocalShippingStatePathForTest("sent", "WH92")
     DeleteFileIfExistsForTest activePath
@@ -3987,6 +4046,10 @@ Public Function TestShippingState_SentRowTombstoneFiltersLegacyActiveCache() As 
     SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-LEGACY-TOMB-001"
 
     wbOps.Activate
+    If Not RunShippingPrepareRolePostSessionForTest(rootPath, "WH92", "S21", currentUser, "123456", report) Then
+        failureReason = "Shipping add-in role-post session setup failed before legacy tombstone Shipments Sent: " & report
+        GoTo CleanExit
+    End If
     selectedRows(1) = 1
     runResult = RunShippingSentRowsReportForTest(selectedRows, "UPS")
     If Left$(runResult, 3) <> "OK|" Then
@@ -4008,7 +4071,16 @@ Public Function TestShippingState_SentRowTombstoneFiltersLegacyActiveCache() As 
 CleanExit:
     DeleteFileIfExistsForTest activePath
     DeleteFileIfExistsForTest sentPath
+    DeleteLocalInboxStagingForTest "WH92", "S21"
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH92"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
     CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH92.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH92.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7153, "TestShippingState_SentRowTombstoneFiltersLegacyActiveCache", failureReason
@@ -5351,6 +5423,7 @@ Public Function TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay(
     Dim projectedText As String
     Dim displayQty As Double
     Dim selectedRows(1 To 1) As Long
+    Dim shippables(1 To 1, 1 To 4) As Variant
 
     rootPath = BuildRuntimeTestRoot("phase6_ship_add_sent_active")
     currentUser = "calvin"
@@ -5400,6 +5473,10 @@ Public Function TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay(
         GoTo CleanExit
     End If
 
+    shippables(1, 1) = 971
+    shippables(1, 3) = "v1"
+    shippables(1, 4) = 7
+    RunShippingEvictCompletedOverlaysForTest shippables
     projectedText = RunShippingProjectedOverlayTextForTest(971, "v1", "7")
     If RunShippingHasSentOverlayForTest(971, "v1") Then
         failureReason = "SENT overlay was not cleared after NAS caught up to the sent quantity."
@@ -5725,9 +5802,9 @@ Public Function TestShippingSentRows_ReservedCompletionKeepsProjectedDeductionWh
         failureReason = "Unprojected Shipments Sent did not deduct once; expected 18 but found " & CStr(projectedQty) & "."
         GoTo CleanExit
     End If
-    projectedQty = RunShippingSentProjectedOverlayQtyForTest(19, 19, 1, False, True)
+    projectedQty = RunShippingSentProjectedOverlayQtyForTest(20, 20, 1, False, True)
     If projectedQty <> 19 Then
-        failureReason = "Reserved Shipments Sent double-subtracted when the active overlay was missing; expected 19 but found " & CStr(projectedQty) & "."
+        failureReason = "Reserved Shipments Sent did not deduct once from the NAS baseline when the active overlay was missing; expected 19 but found " & CStr(projectedQty) & "."
         GoTo CleanExit
     End If
     projectedQty = RunShippingSentProjectedOverlayQtyForTest(0, 19, 1, True, True)
@@ -5765,6 +5842,7 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
     Dim projectedAfterCatchup As Double
     Dim projectedAfterEviction As Double
     Dim overlayPath As String
+    Dim debugState As String
 
     rootPath = BuildRuntimeTestRoot("phase6_ship_sent_full_never_adds_projected")
     currentUser = "calvin"
@@ -5799,6 +5877,9 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
         failureReason = "Shipping add-in role-post session setup failed before first Shipments Sent: " & report
         GoTo CleanExit
     End If
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
     selectedRows(1) = 1
     runResult = RunShippingSentRowsReportForTest(selectedRows, "USPS")
     If Left$(runResult, 3) <> "OK|" Then
@@ -5820,7 +5901,12 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
 
     projectedAfter = NzDblForTest(RunShippingProjectedOverlayTextForTest(985, "v1", "10"))
     If projectedAfter <> 9 Then
-        failureReason = "Full Shipments Sent did not preserve the user-side projected deduction against stale NAS inventory; expected 9 but found " & CStr(projectedAfter) & "."
+        debugState = " TOTAL INV=" & CStr(GetTableValue(loInv, 1, "TOTAL INV")) _
+                   & "; SHIPMENTS=" & CStr(GetTableValue(loInv, 1, "SHIPMENTS")) _
+                   & "; rowCount=" & CStr(loShip.ListRows.Count) _
+                   & "; sentOverlay=" & CStr(RunShippingHasSentOverlayForTest(985, "v1")) _
+                   & "; overlayDebug=" & RunShippingLastSentOverlayDebugForTest()
+        failureReason = "Full Shipments Sent did not preserve the user-side projected deduction against stale NAS inventory; expected 9 but found " & CStr(projectedAfter) & "." & debugState
         GoTo CleanExit
     End If
     AddInvSysSeedRow loInv, 984, "SKU-SENT-FULL-PEER", "Full Sent Peer Item", "EA", "A1", 10
@@ -7318,13 +7404,17 @@ Public Function TestProductionEventCreator_QueuesSignedInCurrentTargetEvent() As
     Dim wbInbox As Workbook
     Dim loInv As ListObject
     Dim loProd As ListObject
+    Dim loInbox As ListObject
     Dim loInventoryLog As ListObject
+    Dim inboxRow As Long
     Dim logRow As Long
+    Dim stagingReport As String
 
     rootPath = BuildRuntimeTestRoot("phase6_production_event_creator")
     currentUser = "calvin"
 
     On Error GoTo CleanFail
+    DeleteLocalInboxStagingForTest "WH97", "S32"
     mLastTestFailure = vbNullString
     modAuth.SignOut
     modNasConnection.ClearWarehouseTarget
@@ -7355,7 +7445,6 @@ Public Function TestProductionEventCreator_QueuesSignedInCurrentTargetEvent() As
         failureReason = "SelectWarehouseTarget failed: " & CStr(statusCode)
         GoTo CleanExit
     End If
-    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\WH97") Then GoTo CleanExit
     authStatus = modAuth.ValidateUserCredentialForTarget(currentUser, "123456", target, "PROD_POST")
     If authStatus <> AUTH_OK Then
         failureReason = "ValidateUserCredentialForTarget failed: " & CStr(authStatus)
@@ -7383,6 +7472,7 @@ Public Function TestProductionEventCreator_QueuesSignedInCurrentTargetEvent() As
     AddInvSysSeedRow loInv, 963, "SKU-PROD-CREATOR", "Production Creator Item", "EA", "FG", 0
     AddProductionOutputRow loProd, "Blend", "Production Creator Item", "EA", 5, "BATCH-CREATOR-001", "RECALL-CREATOR-001", 963
 
+    If Not modNasConnection.SetCurrentTargetPathsForTest("\\test-nas\invSysWH1", "\\test-nas\invSysWH1\WH97") Then GoTo CleanExit
     If Not modProductionEventCreator.QueueProductionCompleteEventFromWorkbook(wbOps, eventIdOut, report) Then
         failureReason = "QueueProductionCompleteEventFromWorkbook failed: " & report
         GoTo CleanExit
@@ -7394,6 +7484,27 @@ Public Function TestProductionEventCreator_QueuesSignedInCurrentTargetEvent() As
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
     If Trim$(eventIdOut) = "" Then
         failureReason = "Production event creator did not return an EventID."
+        GoTo CleanExit
+    End If
+    Set loInbox = FindTableByName(wbInbox, "tblInboxProd")
+    inboxRow = FindRowByColumnValueInTable(loInbox, "EventID", eventIdOut)
+    If inboxRow = 0 Then
+        If Not modRoleEventWriter.SyncLocalStagedInboxRows(stagingReport, "WH97", "S32") Then
+            failureReason = "Production event creator wrote local staging, but local staging sync failed before processor catch-up: " & stagingReport
+            GoTo CleanExit
+        End If
+        inboxRow = FindRowByColumnValueInTable(loInbox, "EventID", eventIdOut)
+        If inboxRow = 0 Then
+            failureReason = "Production event creator did not merge the production event into the NAS production inbox before processor catch-up. StagingReport=" & stagingReport
+            GoTo CleanExit
+        End If
+    End If
+    If StrComp(CStr(GetTableValue(loInbox, inboxRow, "EventType")), CORE_EVENT_TYPE_PROD_COMPLETE, vbTextCompare) <> 0 Then
+        failureReason = "Production inbox recorded unexpected event type before processor catch-up."
+        GoTo CleanExit
+    End If
+    If Not AssertInboxRowStatusForTest(wbInbox, eventIdOut, "NEW") Then
+        failureReason = "Production inbox row was not NEW before processor catch-up."
         GoTo CleanExit
     End If
 
@@ -7429,6 +7540,7 @@ Public Function TestProductionEventCreator_QueuesSignedInCurrentTargetEvent() As
     TestProductionEventCreator_QueuesSignedInCurrentTargetEvent = 1
 
 CleanExit:
+    DeleteLocalInboxStagingForTest "WH97", "S32"
     modAuth.SignOut
     modNasConnection.ForgetTarget "WH97"
     modNasConnection.ForgetRoot rootPath
@@ -9130,6 +9242,17 @@ Private Function RunShippingSentProjectedOverlayQtyForTest(ByVal backendQty As D
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
+Private Function RunShippingLastSentOverlayDebugForTest() As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("LastShipmentsSentOverlayDebugForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingLastSentOverlayDebugForTest = CStr(Application.Run(macroName))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
 Private Sub RunShippingHydrateInvSysFromShippablesForTest(ByVal invLo As ListObject, ByVal shippables As Variant)
     Dim targetWb As Workbook
     Dim macroName As String
@@ -9435,6 +9558,17 @@ Private Function RunShippingEvictIdleSentOverlayForTest(ByVal packageRow As Long
     RunShippingEvictIdleSentOverlayForTest = CBool(Application.Run(macroName, packageRow, versionLabel, backendQty, activeQty, lockedQty, unreservedQty))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
+
+Private Sub RunShippingEvictCompletedOverlaysForTest(ByVal shippables As Variant)
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("EvictCompletedShipmentInventoryOverlaysForShippables")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Application.Run macroName, shippables
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Sub
 
 Private Function RunShippingRefreshBomViewForTest(ByVal operatorWb As Workbook, _
                                                   ByRef report As String, _
@@ -10090,6 +10224,26 @@ End Sub
 Private Sub DeleteFileIfExistsForTest(ByVal filePath As String)
     On Error Resume Next
     If Len(Dir$(filePath, vbNormal)) > 0 Then Kill filePath
+    On Error GoTo 0
+End Sub
+
+Private Sub DeleteLocalInboxStagingForTest(ByVal warehouseId As String, ByVal stationId As String)
+    On Error Resume Next
+
+    Dim rootPath As String
+    Dim folderPath As String
+    Dim fso As Object
+
+    rootPath = Trim$(Environ$("LOCALAPPDATA"))
+    If rootPath = "" Then rootPath = Trim$(Environ$("TEMP"))
+    If rootPath = "" Then Exit Sub
+
+    folderPath = NormalizeTestPath(rootPath) & "\invSys\staging\" & SafeFileTokenForTest(warehouseId) & "\" & SafeFileTokenForTest(stationId)
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then
+        If fso.FolderExists(folderPath) Then fso.DeleteFolder folderPath, True
+    End If
+
     On Error GoTo 0
 End Sub
 
