@@ -6412,7 +6412,8 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                                         ByVal descriptionValue As String, _
                                         ByVal carrierValue As String, _
                                         ByRef report As String, _
-                                        Optional ByVal displayedAvailableQty As Variant) As Boolean
+                                        Optional ByVal displayedAvailableQty As Variant, _
+                                        Optional ByVal visibleShippables As Variant) As Boolean
     On Error GoTo Fail
 
     Dim ws As Worksheet
@@ -6611,6 +6612,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             If report = "" Then report = "InventoryManagement!invSys table not found."
             GoTo CleanExit
         End If
+        ShipmentsFormHydrateInvSysTableFromShippables invLo, visibleShippables
     End If
 
     WriteValue lr, "REF_NUMBER", Trim$(refNumber)
@@ -6667,6 +6669,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             If report = "" Then report = "InventoryManagement!invSys table not found."
             GoTo CleanExit
         End If
+        ShipmentsFormHydrateInvSysTableFromShippables invLo, visibleShippables
         Set reserveDeltas = BuildSelectedShipmentRowsDeltas(invLo, lo, singleRow, "Warehouse", errNotes, versionAvailabilityOverrides)
         If reserveDeltas Is Nothing Then
             If errNotes = "" Then errNotes = "Unable to build shipment reserve event."
@@ -14915,6 +14918,25 @@ Public Sub ShipmentsFormHydrateInvSysFromShippables(ByVal wsShip As Worksheet, _
     On Error GoTo FailSoft
 
     Dim invLo As ListObject
+
+    If wsShip Is Nothing Then Exit Sub
+
+    Set invLo = GetInvSysTableFromWorkbook(wsShip.Parent)
+    If invLo Is Nothing Then
+        modRoleWorkbookSurfaces.EnsureInventoryManagementSurface wsShip.Parent
+        Set invLo = GetInvSysTableFromWorkbook(wsShip.Parent)
+    End If
+    If invLo Is Nothing Then Exit Sub
+    ShipmentsFormHydrateInvSysTableFromShippables invLo, shippables
+    Exit Sub
+
+FailSoft:
+End Sub
+
+Public Sub ShipmentsFormHydrateInvSysTableFromShippables(ByVal invLo As ListObject, _
+                                                         ByVal shippables As Variant)
+    On Error GoTo FailSoft
+
     Dim r As Long
     Dim rowVal As Long
     Dim itemName As String
@@ -14927,16 +14949,9 @@ Public Sub ShipmentsFormHydrateInvSysFromShippables(ByVal wsShip As Worksheet, _
     Dim key As Variant
     Dim lr As ListRow
 
-    If wsShip Is Nothing Then Exit Sub
+    If invLo Is Nothing Then Exit Sub
     If IsEmpty(shippables) Then Exit Sub
     If Not IsArray(shippables) Then Exit Sub
-
-    Set invLo = GetInvSysTableFromWorkbook(wsShip.Parent)
-    If invLo Is Nothing Then
-        modRoleWorkbookSurfaces.EnsureInventoryManagementSurface wsShip.Parent
-        Set invLo = GetInvSysTableFromWorkbook(wsShip.Parent)
-    End If
-    If invLo Is Nothing Then Exit Sub
     EnsureShippingWorksheetEditable invLo.Parent
 
     For r = 1 To UBound(shippables, 1)

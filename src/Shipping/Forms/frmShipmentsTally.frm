@@ -52,6 +52,7 @@ Private mAnchors As Object
 Private mResizeInitialized As Boolean
 Private mOperatorWorkbook As Workbook
 Private mNextPollTime As Date
+Private mAutoSyncArmed As Boolean
 
 Private Const ANCHOR_LEFT As Long = 1
 Private Const ANCHOR_TOP As Long = 2
@@ -65,7 +66,6 @@ End Sub
 
 Private Sub UserForm_Activate()
     modTS_Shipments.RegisterShipmentsFormAutoSync Me
-    ScheduleAutoSync
     If Not mResizeInitialized Then
         modUserFormResizeWin.EnableResizableUserForm Me
         mResizeInitialized = True
@@ -119,7 +119,8 @@ Public Sub InitializeFromShipping()
     End If
     elapsedMs = ElapsedMilliseconds(startedAt)
     ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms."
-    ScheduleAutoSync
+    mAutoSyncArmed = (PendingShipmentSyncCount() > 0)
+    If mAutoSyncArmed Then ScheduleAutoSync
 
 CleanExit:
     On Error Resume Next
@@ -257,6 +258,11 @@ Public Sub CancelAutoSync()
     On Error GoTo 0
 End Sub
 
+Public Sub ArmAutoSync()
+    mAutoSyncArmed = True
+    ScheduleAutoSync
+End Sub
+
 Public Sub AutoSyncIfPending()
     On Error GoTo CleanExit
 
@@ -267,6 +273,7 @@ Public Sub AutoSyncIfPending()
     Dim nasBeforeRefresh As String
     Dim nasAfterRefresh As String
 
+    If Not mAutoSyncArmed Then Exit Sub
     If mLoading Then
         ShowStatus "AutoSync: skipped (loading)."
         GoTo CleanExit
@@ -278,8 +285,9 @@ Public Sub AutoSyncIfPending()
         RefreshProjectedShippableInventory
         syncCount = PendingShipmentSyncCount()
         If syncCount <= 0 And Not modTS_Shipments.HasAnyPendingBoxVersionInventoryOverlay() Then
+            mAutoSyncArmed = False
             UpdateSyncStateLabel
-            GoTo CleanExit
+            Exit Sub
         End If
     End If
     nasBeforeRefresh = FirstShippableNasText()
@@ -300,6 +308,7 @@ Public Sub AutoSyncIfPending()
         mLoading = False
         changedLoading = False
         UpdateSyncStateLabel
+        If PendingShipmentSyncCount() <= 0 Then mAutoSyncArmed = False
         ShowStatus "AutoSync: NAS was " & IIf(nasBeforeRefresh = "", "unknown", nasBeforeRefresh) & _
                    ", now " & IIf(nasAfterRefresh = "", "unknown", nasAfterRefresh) & ". " & report
     Else
@@ -309,7 +318,7 @@ Public Sub AutoSyncIfPending()
 
 CleanExit:
     If changedLoading Then mLoading = False
-    ScheduleAutoSync
+    If mAutoSyncArmed Then ScheduleAutoSync
 End Sub
 
 Private Function FirstShippableNasText() As String
@@ -670,7 +679,8 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
                                                  NzText(mTxtVersion.Value), _
                                                  NzText(mTxtCarrier.Value), _
                                                  report, _
-                                                 displayedAvailableQty)
+                                                 displayedAvailableQty, _
+                                                 mShippables)
     RefreshAfterAction report, ok
     Exit Sub
 
@@ -904,6 +914,7 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     LoadShipmentState
     If ok And Not stageOnly Then mTxtRef.Value = vbNullString
     If ok Then RefreshProjectedShippableInventory
+    If ok And Not stageOnly Then ArmAutoSync
     If quietStarted Then
         modUiQuiet.EndQuietUi
         quietStarted = False
