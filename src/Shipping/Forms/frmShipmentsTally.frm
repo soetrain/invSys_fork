@@ -53,6 +53,7 @@ Private mResizeInitialized As Boolean
 Private mOperatorWorkbook As Workbook
 Private mNextPollTime As Date
 Private mAutoSyncArmed As Boolean
+Private mLastShippablesLoadReport As String
 
 Private Const ANCHOR_LEFT As Long = 1
 Private Const ANCHOR_TOP As Long = 2
@@ -138,7 +139,11 @@ Public Sub InitializeFromShipping()
         LoadSelectedShippable
     End If
     elapsedMs = ElapsedMilliseconds(startedAt)
-    ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms."
+    If mLstShippables.ListCount = 0 Then
+        ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms, but no shippable inventory rows loaded. " & mLastShippablesLoadReport
+    Else
+        ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms."
+    End If
     mAutoSyncArmed = (PendingShipmentSyncCount() > 0)
     If mAutoSyncArmed Then ScheduleAutoSync
 
@@ -468,11 +473,26 @@ Private Sub LoadShippables(Optional ByVal operatorWb As Workbook = Nothing)
 
     Dim previousInv As Object
     Dim wb As Workbook
+    Dim bomReport As String
 
     Set wb = operatorWb
     If wb Is Nothing Then Set wb = ResolveOperatorWorkbook()
     Set previousInv = CurrentShippableInventoryCache()
+    mLastShippablesLoadReport = vbNullString
     mShippables = modTS_Shipments.ShipmentsFormLoadShippables(wb)
+    If Not ShippableRowsLoaded(mShippables) Then
+        mLastShippablesLoadReport = "Initial local shippable load returned 0 rows."
+        If modTS_Shipments.EnsureShippingBomViewPopulated(wb, bomReport, True) Then
+            mShippables = modTS_Shipments.ShipmentsFormLoadShippables(wb)
+            If ShippableRowsLoaded(mShippables) Then
+                mLastShippablesLoadReport = "Recovered after forced ShippingBOMView refresh. " & bomReport
+            Else
+                mLastShippablesLoadReport = mLastShippablesLoadReport & " Forced ShippingBOMView refresh completed but still returned 0 rows. " & bomReport
+            End If
+        Else
+            mLastShippablesLoadReport = mLastShippablesLoadReport & " Forced ShippingBOMView refresh failed. " & bomReport
+        End If
+    End If
     PreserveMissingShippableInventory previousInv
     modTS_Shipments.EvictCompletedShipmentInventoryOverlaysForShippables mShippables
     RenderShippables
@@ -481,6 +501,15 @@ Private Sub LoadShippables(Optional ByVal operatorWb As Workbook = Nothing)
 FailSoft:
     ShowStatus "Could not load shippables: " & Err.Description
 End Sub
+
+Private Function ShippableRowsLoaded(ByVal rows As Variant) As Boolean
+    On Error GoTo CleanExit
+
+    If IsEmpty(rows) Then Exit Function
+    ShippableRowsLoaded = (UBound(rows, 1) >= LBound(rows, 1))
+
+CleanExit:
+End Function
 
 Private Function CurrentShippableInventoryCache() As Object
     Dim result As Object

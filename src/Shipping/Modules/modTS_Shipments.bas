@@ -12989,12 +12989,18 @@ Public Function RefreshShippingBomViewForWorkbookForTest(ByVal operatorWb As Wor
     RefreshShippingBomViewForWorkbookForTest = RefreshShippingBomViewForWorkbook(operatorWb, report, forceRebuild)
 End Function
 
-Public Function EnsureShippingBomViewPopulated(ByVal wb As Workbook, ByRef report As String) As Boolean
+Public Function EnsureShippingBomViewPopulated(ByVal wb As Workbook, _
+                                               ByRef report As String, _
+                                               Optional ByVal forceRefresh As Boolean = False) As Boolean
     On Error GoTo FailSoft
 
     Dim loView As ListObject
 
     If wb Is Nothing Then Exit Function
+    If forceRefresh Then
+        EnsureShippingBomViewPopulated = RefreshShippingBomViewForWorkbook(wb, report, True)
+        Exit Function
+    End If
     Set loView = GetShippingBomViewTable(wb)
     If Not loView Is Nothing Then
         If Not loView.DataBodyRange Is Nothing Then
