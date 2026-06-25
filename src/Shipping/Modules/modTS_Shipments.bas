@@ -110,6 +110,10 @@ Public Sub InitializeShipmentsUI()
     InitializeShipmentsUiForWorkbook Application.ActiveWorkbook
 End Sub
 
+Public Function GetShipmentsTallyWorksheet() As Worksheet
+    Set GetShipmentsTallyWorksheet = SheetExists(SHEET_SHIPMENTS)
+End Function
+
 Public Sub InitializeShipmentsUiForWorkbook(Optional ByVal targetWb As Workbook = Nothing)
     On Error GoTo CleanExit
 
@@ -14905,6 +14909,78 @@ Private Function GetShipmentReleaseInvSysTable(ByVal wsShip As Worksheet, ByRef 
     End If
     Set GetShipmentReleaseInvSysTable = invLo
 End Function
+
+Public Sub ShipmentsFormHydrateInvSysFromShippables(ByVal wsShip As Worksheet, _
+                                                    ByVal shippables As Variant)
+    On Error GoTo FailSoft
+
+    Dim invLo As ListObject
+    Dim r As Long
+    Dim rowVal As Long
+    Dim itemName As String
+    Dim versionLabel As String
+    Dim uomVal As String
+    Dim locVal As String
+    Dim totalInvQty As Double
+    Dim visibleQtyText As String
+    Dim versionInv As Object
+    Dim key As Variant
+    Dim lr As ListRow
+
+    If wsShip Is Nothing Then Exit Sub
+    If IsEmpty(shippables) Then Exit Sub
+    If Not IsArray(shippables) Then Exit Sub
+
+    Set invLo = GetInvSysTableFromWorkbook(wsShip.Parent)
+    If invLo Is Nothing Then
+        modRoleWorkbookSurfaces.EnsureInventoryManagementSurface wsShip.Parent
+        Set invLo = GetInvSysTableFromWorkbook(wsShip.Parent)
+    End If
+    If invLo Is Nothing Then Exit Sub
+    EnsureShippingWorksheetEditable invLo.Parent
+
+    For r = 1 To UBound(shippables, 1)
+        rowVal = NzLng(shippables(r, 1))
+        itemName = Trim$(NzStr(shippables(r, 2)))
+        versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(shippables(r, 3)))
+        uomVal = Trim$(NzStr(shippables(r, 5)))
+        locVal = Trim$(NzStr(shippables(r, 6)))
+        If rowVal <= 0 Or itemName = "" Then GoTo NextShippable
+        If FindInvRowIndexByRow(invLo, rowVal) > 0 Then GoTo NextShippable
+
+        totalInvQty = 0#
+        visibleQtyText = Trim$(NzStr(shippables(r, 8)))
+        If visibleQtyText = "" Then visibleQtyText = Trim$(NzStr(shippables(r, 4)))
+        If visibleQtyText <> "" And LCase$(visibleQtyText) <> "unknown" Then totalInvQty = NzDbl(visibleQtyText)
+        If totalInvQty <= 0.0000001 Then
+            Set versionInv = BoxMakerFormLoadBoxVersionInventory(rowVal, itemName)
+            If Not versionInv Is Nothing Then
+                If versionLabel <> "" And versionInv.Exists(versionLabel) Then
+                    totalInvQty = NzDbl(versionInv(versionLabel))
+                Else
+                    For Each key In versionInv.Keys
+                        totalInvQty = totalInvQty + NzDbl(versionInv(key))
+                    Next key
+                End If
+            End If
+        End If
+
+        Set lr = FirstBlankListRowShipping(invLo)
+        If lr Is Nothing Then Set lr = invLo.ListRows.Add
+        WriteValue lr, "ROW", rowVal
+        WriteValue lr, "ITEM_CODE", itemName
+        WriteValue lr, "ITEM", itemName
+        WriteValue lr, "UOM", uomVal
+        WriteValue lr, "LOCATION", locVal
+        WriteValue lr, "DESCRIPTION", versionLabel
+        WriteValue lr, "TOTAL INV", totalInvQty
+        WriteValue lr, "SHIPMENTS", 0
+NextShippable:
+    Next r
+    Exit Sub
+
+FailSoft:
+End Sub
 
 Private Sub HydrateInvSysFromShippingReadModel(ByVal invLo As ListObject, ByVal sourceLo As ListObject)
     Dim rowCount As Long

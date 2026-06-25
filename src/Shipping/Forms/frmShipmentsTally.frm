@@ -272,9 +272,15 @@ Public Sub AutoSyncIfPending()
         GoTo CleanExit
     End If
     syncCount = PendingShipmentSyncCount()
-    If syncCount <= 0 And Not modTS_Shipments.HasAnyPendingBoxVersionInventoryOverlay() Then
-        UpdateSyncStateLabel
-        GoTo CleanExit
+    If syncCount <= 0 Then
+        EvictOrphanedActiveOverlays
+        modTS_Shipments.EvictCompletedShipmentInventoryOverlaysForShippables mShippables
+        RefreshProjectedShippableInventory
+        syncCount = PendingShipmentSyncCount()
+        If syncCount <= 0 And Not modTS_Shipments.HasAnyPendingBoxVersionInventoryOverlay() Then
+            UpdateSyncStateLabel
+            GoTo CleanExit
+        End If
     End If
     nasBeforeRefresh = FirstShippableNasText()
 
@@ -644,9 +650,14 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     Dim rowIndex As Long
     Dim ok As Boolean
     Dim displayedAvailableQty As String
+    Dim ws As Worksheet
 
     rowIndex = SelectedShipmentTableRow()
     displayedAvailableQty = SelectedShippableProjectedInventoryText()
+    If UCase$(Trim$(actionName)) = "ADD" Or UCase$(Trim$(actionName)) = "UPDATE" Then
+        Set ws = modTS_Shipments.GetShipmentsTallyWorksheet()
+        If Not ws Is Nothing Then modTS_Shipments.ShipmentsFormHydrateInvSysFromShippables ws, mShippables
+    End If
     ok = modTS_Shipments.ShipmentsFormCommitLine("SHIP", _
                                                  actionName, _
                                                  rowIndex, _
