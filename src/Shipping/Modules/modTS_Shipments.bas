@@ -5783,7 +5783,7 @@ End Function
 
 Public Function ShipmentsProjectedDisplayQty(ByVal nasQty As Double, _
                                              ByVal lockedQty As Double, _
-                                             ByVal unreservedLocalQty As Double, _
+                                             Optional ByVal unreservedLocalQty As Double = 0, _
                                              Optional ByVal reservedLocalQty As Double = 0, _
                                              Optional ByVal pendingOverlayQty As Variant, _
                                              Optional ByVal overlayIncludesReservation As Boolean = True) As Double
