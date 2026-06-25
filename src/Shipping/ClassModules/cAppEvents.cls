@@ -16,33 +16,39 @@ Public Sub Init()
 End Sub
 
 Private Sub App_WorkbookOpen(ByVal Wb As Workbook)
+    If modUiQuiet.QuietUiIsActive() Then Exit Sub
     Application.EnableEvents = True
     If Wb Is Nothing Then Exit Sub
     modShippingInit.EnsureShippingSurfaceForWorkbook Wb
 End Sub
 
 Private Sub App_NewWorkbook(ByVal Wb As Workbook)
+    If modUiQuiet.QuietUiIsActive() Then Exit Sub
     Application.EnableEvents = True
     If Wb Is Nothing Then Exit Sub
     modShippingInit.EnsureShippingSurfaceForWorkbook Wb
 End Sub
 
 Private Sub App_WorkbookActivate(ByVal Wb As Workbook)
+    If modUiQuiet.QuietUiIsActive() Then Exit Sub
     Application.EnableEvents = True
     If Wb Is Nothing Then Exit Sub
     modShippingInit.EnsureShippingSurfaceForWorkbook Wb
 End Sub
 
 Private Sub App_WorkbookBeforeClose(ByVal Wb As Workbook, Cancel As Boolean)
+    If modUiQuiet.QuietUiIsActive() Then Exit Sub
     Application.EnableEvents = True
     modOperatorReadModel.UnregisterAutoSnapshotWorkbook Wb
 End Sub
 
 Private Sub App_SheetActivate(ByVal Sh As Object)
+    If modUiQuiet.QuietUiIsActive() Then Exit Sub
     Application.EnableEvents = True
 End Sub
 
 Private Sub App_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)
+    If modUiQuiet.QuietUiIsActive() Then Exit Sub
     Application.EnableEvents = True
     On Error Resume Next
     modTS_Shipments.HandleShippingSelectionChange Target
@@ -50,6 +56,7 @@ Private Sub App_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)
 End Sub
 
 Private Sub App_SheetChange(ByVal Sh As Object, ByVal Target As Range)
+    If modUiQuiet.QuietUiIsActive() Then Exit Sub
     Application.EnableEvents = True
     On Error Resume Next
     modTS_Shipments.HandleShippingSheetChange Target
