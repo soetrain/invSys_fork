@@ -66,12 +66,13 @@ Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workboo
     On Error Resume Next
     Application.CutCopyMode = False
     On Error GoTo FailEnsure
-    EnsureInventoryManagementSurface wb
+    EnsureInventoryManagementSurface wb, report, False
     DeleteWorksheetSurface wb, "ShippingBOM"
     DeleteWorksheetSurface wb, "AggregateBoxBOM_Log"
     DeleteWorksheetSurface wb, "AggregatePackages_Log"
+    HideWorksheetSurface wb, "ShipmentsTally"
+    HideWorksheetSurface wb, "InventoryManagement"
     HideWorksheetSurface wb, SHIPPING_BACKEND_SHEET
-    FormatWorkbookSurface wb
 
     EnsureShippingWorkbookSurface = True
     inProgress = False
@@ -136,7 +137,8 @@ FailEnsure:
 End Function
 
 Public Function EnsureInventoryManagementSurface(Optional ByVal targetWb As Workbook = Nothing, _
-                                                 Optional ByRef report As String = "") As Boolean
+                                                 Optional ByRef report As String = "", _
+                                                 Optional ByVal applyPresentation As Boolean = True) As Boolean
     On Error GoTo FailEnsure
 
     Dim wb As Workbook
@@ -144,7 +146,7 @@ Public Function EnsureInventoryManagementSurface(Optional ByVal targetWb As Work
 
     EnsureTableSurface wb, "InventoryManagement", "invSys", InventoryManagementHeadersSurface(), False
     RemoveInventoryDomainSupportSurface wb
-    ApplyInventoryManagementPresentationSurface wb
+    If applyPresentation Then ApplyInventoryManagementPresentationSurface wb
 
     EnsureInventoryManagementSurface = True
     Exit Function

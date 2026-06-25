@@ -25,15 +25,10 @@ Public Sub Auto_Open()
 End Sub
 
 Public Sub EnsureShippingSurfaceForWorkbook(ByVal wb As Workbook)
-    Dim prevEvents As Boolean
-
     If wb Is Nothing Then Exit Sub
     If Not modRoleWorkbookSurfaces.ShouldBootstrapRoleWorkbookSurface(wb) Then Exit Sub
     If Not IsLikelyShippingWorkbook(wb) Then Exit Sub
-    prevEvents = Application.EnableEvents
-    Application.EnableEvents = False
-    modTS_Shipments.InitializeShipmentsUiForWorkbook wb
-    Application.EnableEvents = prevEvents
+    modTS_Shipments.EnforceShippingSupportSheetsHidden wb
 End Sub
 
 Private Function IsLikelyShippingWorkbook(ByVal wb As Workbook) As Boolean

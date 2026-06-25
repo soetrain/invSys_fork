@@ -681,11 +681,13 @@ Public Sub BtnOpenShipmentsForm()
     If Not modRoleUiAccess.RequireCurrentUserCapability("SHIP_POST") Then Exit Sub
 
     Set wb = ResolveShippingWorkbook(Application.ActiveWorkbook)
-    Set ws = WorkbookSheetExistsShipping(wb, SHEET_SHIPMENTS)
+    EnforceShippingSupportSheetsHidden wb
+    Set ws = ShipmentsWorksheetForWorkbook(wb)
     If ws Is Nothing _
        Or GetListObject(ws, TABLE_SHIPMENTS) Is Nothing _
        Or GetListObject(ws, TABLE_NOTSHIPPED) Is Nothing Then
-        InitializeShipmentsUiForWorkbook wb
+        MsgBox "Shipping support tables are missing. Run an explicit Shipping refresh/setup before opening Shipments.", vbExclamation, "invSys Shipments"
+        Exit Sub
     End If
 
     frmShipmentsTally.SetOperatorWorkbook wb
@@ -6424,7 +6426,7 @@ Public Sub EnforceShippingSupportSheetsHidden(ByVal wb As Workbook)
     Dim ws As Worksheet
 
     If wb Is Nothing Then Exit Sub
-    supportNames = Array(SHEET_SHIPMENTS, "InventoryManagement", "ShippingBOM")
+    supportNames = Array(SHEET_SHIPMENTS, "InventoryManagement", "ShippingBackend", "ShippingBOM")
     For i = LBound(supportNames) To UBound(supportNames)
         Set ws = Nothing
         On Error Resume Next
@@ -15522,6 +15524,7 @@ Private Function ShipmentsWorksheetForWorkbook(Optional ByVal operatorWb As Work
     Set wb = ResolveShippingWorkbook(operatorWb, SHEET_SHIPMENTS)
     If wb Is Nothing Then Set wb = ThisWorkbook
     Set ShipmentsWorksheetForWorkbook = WorkbookSheetExistsShipping(wb, SHEET_SHIPMENTS)
+    If ShipmentsWorksheetForWorkbook Is Nothing Then Set ShipmentsWorksheetForWorkbook = WorkbookSheetExistsShipping(wb, "ShippingBackend")
 End Function
 
 Private Function GetListObject(ws As Worksheet, tableName As String) As ListObject

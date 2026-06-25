@@ -95,7 +95,6 @@ Public Sub InitializeFromShipping()
     Dim startedAt As Single
     Dim elapsedMs As Long
     Dim operatorWb As Workbook
-    Dim bomReport As String
     Dim loadStep As String
 
     loadStep = "build layout"
@@ -110,19 +109,13 @@ Public Sub InitializeFromShipping()
     quietStarted = True
     startedAt = Timer
 
+    loadStep = "hide support sheets"
+    modTS_Shipments.EnforceShippingSupportSheetsHidden operatorWb
     mLoading = True
     loadStep = "load carriers"
     LoadCarrierChoices
     loadStep = "load existing-inventory preference"
     mChkUseExisting.Value = modTS_Shipments.ShipmentsFormUseExistingInventory()
-    loadStep = "ensure ShippingBOMView"
-    On Error Resume Next
-    Call modTS_Shipments.EnsureShippingBomViewPopulated(operatorWb, bomReport)
-    If Err.Number <> 0 Then
-        bomReport = "ShippingBOMView preflight failed: " & Err.Description
-        Err.Clear
-    End If
-    On Error GoTo FailInit
     loadStep = "load shippables"
     LoadShippables operatorWb
     loadStep = "load shipment state"
