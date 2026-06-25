@@ -615,10 +615,15 @@ Private Sub LoadShipmentState(Optional ByVal operatorWb As Workbook = Nothing)
 
     Set wb = operatorWb
     If wb Is Nothing Then Set wb = ResolveOperatorWorkbook()
+    TLap "LoadShipmentState start"
     RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False, wb)
+    TLap "LoadShipmentState active lines"
     RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True, wb)
+    TLap "LoadShipmentState hold lines"
     EvictOrphanedActiveOverlays
+    TLap "LoadShipmentState evict orphaned overlays"
     UpdateSyncStateLabel
+    TLap "LoadShipmentState update sync label"
 End Sub
 
 Private Sub LoadShipmentLineState(Optional ByVal operatorWb As Workbook = Nothing)
@@ -626,10 +631,15 @@ Private Sub LoadShipmentLineState(Optional ByVal operatorWb As Workbook = Nothin
 
     Set wb = operatorWb
     If wb Is Nothing Then Set wb = ResolveOperatorWorkbook()
+    TLap "LoadShipmentLineState start"
     RenderLineList mLstShipments, modTS_Shipments.ShipmentsFormLoadLines(False, wb)
+    TLap "LoadShipmentLineState active lines"
     RenderLineList mLstHold, modTS_Shipments.ShipmentsFormLoadLines(True, wb)
+    TLap "LoadShipmentLineState hold lines"
     EvictOrphanedActiveOverlays
+    TLap "LoadShipmentLineState evict orphaned overlays"
     UpdateSyncStateLabel
+    TLap "LoadShipmentLineState update sync label"
 End Sub
 
 Private Sub RenderShippables()

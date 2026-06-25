@@ -6766,7 +6766,8 @@ Private Function FormatHistoryValueShipping(ByVal valueIn As Variant) As String
 End Function
 
 Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = False, _
-                                       Optional ByVal operatorWb As Workbook = Nothing) As Variant
+                                       Optional ByVal operatorWb As Workbook = Nothing, _
+                                       Optional ByVal allowClosedReservationPrune As Boolean = False) As Variant
     On Error GoTo FailSoft
 
     Dim ws As Worksheet
@@ -6795,7 +6796,7 @@ Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = Fals
     If holdRows Then
         LoadPersistentHoldRowsLocal lo
     Else
-        LoadPersistentActiveShipmentRowsLocal lo
+        LoadPersistentActiveShipmentRowsLocal lo, allowClosedReservationPrune
     End If
     If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
 
@@ -8194,11 +8195,15 @@ Private Sub LoadPersistentHoldRowsLocal(ByVal loHold As ListObject)
     LoadPersistentShipmentRowsLocal loHold, PersistentHoldRowsPath(), "Hold"
 End Sub
 
-Private Sub LoadPersistentActiveShipmentRowsLocal(ByVal loShip As ListObject)
-    LoadPersistentShipmentRowsLocal loShip, PersistentActiveShipmentRowsPath(), "Warehouse"
+Private Sub LoadPersistentActiveShipmentRowsLocal(ByVal loShip As ListObject, _
+                                                  Optional ByVal allowClosedReservationPrune As Boolean = False)
+    LoadPersistentShipmentRowsLocal loShip, PersistentActiveShipmentRowsPath(), "Warehouse", allowClosedReservationPrune
 End Sub
 
-Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, ByVal filePath As String, ByVal defaultArea As String)
+Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, _
+                                            ByVal filePath As String, _
+                                            ByVal defaultArea As String, _
+                                            Optional ByVal allowClosedReservationPrune As Boolean = False)
     On Error GoTo CleanExit
 
     Static loading As Boolean
@@ -8208,6 +8213,7 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, ByVal filePa
     Dim lr As ListRow
     Dim closedLineIds As Object
     Dim closedEventIds As Object
+    Dim sentTokens As Object
     Dim prunedRows As Boolean
 
     If loading Then Exit Sub
@@ -8221,7 +8227,8 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, ByVal filePa
     EnsureColumnExists lo, COL_SHIPMENT_RESERVE_EVENT_ID
     ClearListObjectData lo
     If StrComp(defaultArea, "Warehouse", vbTextCompare) = 0 Then
-        LoadClosedShippingReservationTokens closedLineIds, closedEventIds
+        Set sentTokens = LoadPersistentSentShipmentTokens()
+        If allowClosedReservationPrune Then LoadClosedShippingReservationTokens closedLineIds, closedEventIds
     End If
 
     fileNum = FreeFile
@@ -8231,13 +8238,15 @@ Private Sub LoadPersistentShipmentRowsLocal(ByVal lo As ListObject, ByVal filePa
         If Trim$(lineText) <> "" Then
             parts = Split(lineText, vbTab)
             If StrComp(defaultArea, "Warehouse", vbTextCompare) = 0 Then
-                If PersistentSentShipmentRowExists(parts) Then
+                If PersistentShipmentRowSent(parts, sentTokens) Then
                     prunedRows = True
                     GoTo NextPersistedLine
                 End If
-                If PersistentShipmentRowClosedByReservation(parts, closedLineIds, closedEventIds) Then
-                    prunedRows = True
-                    GoTo NextPersistedLine
+                If allowClosedReservationPrune Then
+                    If PersistentShipmentRowClosedByReservation(parts, closedLineIds, closedEventIds) Then
+                        prunedRows = True
+                        GoTo NextPersistedLine
+                    End If
                 End If
             End If
             Set lr = FirstBlankListRowShipping(lo)
@@ -8329,6 +8338,54 @@ CleanExit:
     If fileNum <> 0 Then Close #fileNum
     On Error GoTo 0
 End Sub
+
+Private Function LoadPersistentSentShipmentTokens() As Object
+    On Error GoTo CleanExit
+
+    Dim tokens As Object
+    Dim filePath As String
+    Dim fileNum As Integer
+    Dim lineText As String
+
+    Set tokens = CreateObject("Scripting.Dictionary")
+    tokens.CompareMode = vbTextCompare
+    Set LoadPersistentSentShipmentTokens = tokens
+
+    filePath = PersistentSentShipmentRowsPath()
+    If filePath = "" Then Exit Function
+    If Len(Dir$(filePath, vbNormal)) = 0 Then Exit Function
+
+    fileNum = FreeFile
+    Open filePath For Input As #fileNum
+    Do While Not EOF(fileNum)
+        Line Input #fileNum, lineText
+        lineText = Trim$(UnescapeHoldField(lineText))
+        If lineText <> "" Then tokens(lineText) = True
+    Loop
+    Close #fileNum
+
+CleanExit:
+    On Error Resume Next
+    If fileNum <> 0 Then Close #fileNum
+    On Error GoTo 0
+End Function
+
+Private Function PersistentShipmentRowSent(ByVal parts As Variant, ByVal sentTokens As Object) As Boolean
+    Dim wantedLineId As String
+    Dim wantedKey As String
+
+    If sentTokens Is Nothing Then Exit Function
+    If sentTokens.Count = 0 Then Exit Function
+    wantedLineId = ShipmentLineIdFromParts(parts)
+    wantedKey = ShipmentPersistKeyFromParts(parts)
+    If wantedLineId <> "" Then
+        If sentTokens.Exists(wantedLineId) Then
+            PersistentShipmentRowSent = True
+            Exit Function
+        End If
+    End If
+    If wantedKey <> "" Then PersistentShipmentRowSent = sentTokens.Exists(wantedKey)
+End Function
 
 Private Function PersistentSentShipmentRowExists(ByVal parts As Variant) As Boolean
     On Error GoTo CleanExit
