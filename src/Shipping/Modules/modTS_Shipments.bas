@@ -677,6 +677,7 @@ Public Sub BtnOpenShipmentsForm()
 
     Dim wb As Workbook
     Dim ws As Worksheet
+    Dim repairReport As String
 
     If Not modRoleUiAccess.RequireCurrentUserCapability("SHIP_POST") Then Exit Sub
 
@@ -686,8 +687,19 @@ Public Sub BtnOpenShipmentsForm()
     If ws Is Nothing _
        Or GetListObject(ws, TABLE_SHIPMENTS) Is Nothing _
        Or GetListObject(ws, TABLE_NOTSHIPPED) Is Nothing Then
-        MsgBox "Shipping support tables are missing. Run an explicit Shipping refresh/setup before opening Shipments.", vbExclamation, "invSys Shipments"
-        Exit Sub
+        If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wb, repairReport) Then
+            If Trim$(repairReport) = "" Then repairReport = "Shipping support table repair failed without detail."
+            MsgBox repairReport, vbExclamation, "invSys Shipments"
+            Exit Sub
+        End If
+        EnforceShippingSupportSheetsHidden wb
+        Set ws = ShipmentsWorksheetForWorkbook(wb)
+        If ws Is Nothing _
+           Or GetListObject(ws, TABLE_SHIPMENTS) Is Nothing _
+           Or GetListObject(ws, TABLE_NOTSHIPPED) Is Nothing Then
+            MsgBox "Shipping support tables could not be repaired. " & repairReport, vbExclamation, "invSys Shipments"
+            Exit Sub
+        End If
     End If
 
     frmShipmentsTally.SetOperatorWorkbook wb
