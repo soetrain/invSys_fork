@@ -4606,6 +4606,9 @@ Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Va
     Dim versionLabel As String
     Dim foundCurrent As Boolean
     Dim currentInv As Variant
+    Dim versionRowsByPackage As Object
+    Dim versionInventoryByPackage As Object
+    Dim cacheKey As String
 
     If IsEmpty(savedBoxes) Then Exit Function
     Set ws = ShipmentsWorksheetForWorkbook(operatorWb)
@@ -4614,15 +4617,21 @@ Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Va
     Set loSource = BoxMakerShippingBomSourceTable(ws, wbRuntime, openedTransient, report)
     If loSource Is Nothing Then GoTo CleanExit
     Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
+    Set versionRowsByPackage = BuildBoxBomVersionsByPackageCache(loSource)
+    Set versionInventoryByPackage = BuildBoxVersionInventoryCache(savedBoxes, ws.Parent)
 
     Set rows = New Collection
     For r = 1 To UBound(savedBoxes, 1)
         boxRow = NzLng(savedBoxes(r, 1))
         If boxRow <= 0 Then GoTo NextBox
 
-        versions = BuildBoxBomVersionRows(loSource, boxRow, c)
+        versions = CachedBoxBomVersionRows(versionRowsByPackage, boxRow)
         If IsEmpty(versions) Then GoTo NextBox
-        Set versionInv = BoxMakerFormLoadBoxVersionInventory(boxRow, NzStr(savedBoxes(r, 2)))
+        Set versionInv = Nothing
+        cacheKey = BoxVersionInventoryCacheKey(boxRow, NzStr(savedBoxes(r, 2)))
+        If Not versionInventoryByPackage Is Nothing Then
+            If versionInventoryByPackage.Exists(cacheKey) Then Set versionInv = versionInventoryByPackage(cacheKey)
+        End If
         activeCount = CountActiveBoxBomVersionsShipping(versions)
 
         For v = 1 To UBound(versions, 1)
@@ -4669,6 +4678,262 @@ CleanExit:
 FailSoft:
     If openedTransient Then CloseWorkbookNoSaveShipping wbRuntime
     BoxMakerFormLoadShippableVersionInventory = Empty
+End Function
+
+Private Function BoxVersionInventoryCacheKey(ByVal packageRow As Long, ByVal boxName As String) As String
+    BoxVersionInventoryCacheKey = CStr(packageRow) & "|" & LCase$(Trim$(boxName))
+End Function
+
+Private Function CachedBoxBomVersionRows(ByVal cache As Object, ByVal packageRow As Long) As Variant
+    If cache Is Nothing Then Exit Function
+    If packageRow <= 0 Then Exit Function
+    If cache.Exists(CStr(packageRow)) Then CachedBoxBomVersionRows = cache(CStr(packageRow))
+End Function
+
+Private Function BuildBoxBomVersionsByPackageCache(ByVal loView As ListObject) As Object
+    Dim cPackageRow As Long
+    Dim cPackageItem As Long
+    Dim cVersion As Long
+    Dim cLabel As Long
+    Dim cActive As Long
+    Dim cEffectiveFrom As Long
+    Dim cEffectiveTo As Long
+    Dim cRetiredAt As Long
+    Dim cUpdatedAt As Long
+    Dim cUpdatedBy As Long
+    Dim cComponentRow As Long
+    Dim cComponentItem As Long
+    Dim cComponentQty As Long
+    Dim src As Variant
+    Dim packageDicts As Object
+    Dim versionDict As Object
+    Dim result As Object
+    Dim rowData As Variant
+    Dim keys As Variant
+    Dim packageKey As Variant
+    Dim versionKey As String
+    Dim packageRow As Long
+    Dim r As Long
+    Dim c As Long
+    Dim outRows() As Variant
+
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    Set BuildBoxBomVersionsByPackageCache = result
+    If loView Is Nothing Then Exit Function
+    If loView.DataBodyRange Is Nothing Then Exit Function
+
+    cPackageRow = ColumnIndex(loView, "PackageRow")
+    cPackageItem = ColumnIndex(loView, "PackageItem")
+    cVersion = ColumnIndex(loView, "BomVersion")
+    cLabel = ColumnIndex(loView, "BomVersionLabel")
+    cActive = ColumnIndex(loView, "IsActive")
+    cEffectiveFrom = ColumnIndex(loView, "EffectiveFromUTC")
+    cEffectiveTo = ColumnIndex(loView, "EffectiveToUTC")
+    cRetiredAt = ColumnIndex(loView, "RetiredAtUTC")
+    cUpdatedAt = ColumnIndex(loView, "UpdatedAtUTC")
+    cUpdatedBy = ColumnIndex(loView, "UpdatedBy")
+    cComponentRow = ColumnIndex(loView, "ComponentRow")
+    cComponentItem = ColumnIndex(loView, "ComponentItem")
+    cComponentQty = ColumnIndex(loView, "ComponentQty")
+    If cPackageRow = 0 Then Exit Function
+
+    Set packageDicts = CreateObject("Scripting.Dictionary")
+    packageDicts.CompareMode = vbTextCompare
+    src = To2DArrayShipping(loView.DataBodyRange.Value)
+    For r = 1 To UBound(src, 1)
+        packageRow = NzLng(src(r, cPackageRow))
+        If packageRow <= 0 Then GoTo NextRow
+        If Not ShippingBomSourceRowHasComponent(src, r, cComponentRow, cComponentItem, cComponentQty) Then GoTo NextRow
+
+        packageKey = CStr(packageRow)
+        If packageDicts.Exists(packageKey) Then
+            Set versionDict = packageDicts(packageKey)
+        Else
+            Set versionDict = CreateObject("Scripting.Dictionary")
+            versionDict.CompareMode = vbTextCompare
+            packageDicts.Add packageKey, versionDict
+        End If
+
+        versionKey = VersionKeyShipping(src, r, cVersion)
+        If versionDict.Exists(versionKey) Then GoTo NextRow
+
+        ReDim rowData(1 To 8)
+        rowData(1) = VersionLabelShipping(src, r, cVersion, cLabel)
+        If cActive > 0 And Not ShippingBomActiveValue(src(r, cActive)) Then
+            rowData(2) = "Retired"
+        Else
+            rowData(2) = "Active"
+        End If
+        If cEffectiveFrom > 0 Then rowData(3) = src(r, cEffectiveFrom)
+        If cEffectiveTo > 0 Then rowData(4) = src(r, cEffectiveTo)
+        If cRetiredAt > 0 Then rowData(5) = src(r, cRetiredAt)
+        If cUpdatedAt > 0 Then rowData(6) = src(r, cUpdatedAt)
+        If cUpdatedBy > 0 Then rowData(7) = src(r, cUpdatedBy)
+        If cPackageItem > 0 Then rowData(8) = src(r, cPackageItem)
+        versionDict.Add versionKey, rowData
+NextRow:
+    Next r
+
+    For Each packageKey In packageDicts.Keys
+        Set versionDict = packageDicts(packageKey)
+        If versionDict.Count <= 0 Then GoTo NextPackage
+        keys = versionDict.Keys
+        ReDim outRows(1 To versionDict.Count, 1 To 8)
+        For r = 0 To UBound(keys)
+            rowData = versionDict(keys(r))
+            For c = 1 To 8
+                outRows(r + 1, c) = rowData(c)
+            Next c
+        Next r
+        result.Add CStr(packageKey), outRows
+NextPackage:
+    Next packageKey
+End Function
+
+Private Function BuildBoxVersionInventoryCache(ByVal savedBoxes As Variant, ByVal operatorWb As Workbook) As Object
+    On Error GoTo FailSoft
+
+    Dim result As Object
+    Dim candidateToKeys As Object
+    Dim invLo As ListObject
+    Dim wb As Workbook
+    Dim loLog As ListObject
+    Dim src As Variant
+    Dim stagedDeltas As Object
+    Dim packageRow As Long
+    Dim boxName As String
+    Dim packageSku As String
+    Dim packageItem As String
+    Dim candidate As Variant
+    Dim candidates As Object
+    Dim keyList As Collection
+    Dim cacheKey As String
+    Dim invIdx As Long
+    Dim r As Long
+    Dim cEventType As Long
+    Dim cSku As Long
+    Dim cQtyDelta As Long
+    Dim cNote As Long
+    Dim eventType As String
+    Dim skuValue As String
+    Dim versionLabel As String
+    Dim qtyDelta As Double
+    Dim versionTotals As Object
+    Dim stagedKey As Variant
+
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    Set BuildBoxVersionInventoryCache = result
+    If IsEmpty(savedBoxes) Then Exit Function
+
+    Set wb = operatorWb
+    If wb Is Nothing Then Set wb = ResolveShippingWorkbook(, SHEET_SHIPMENTS)
+    If Not wb Is Nothing Then Set invLo = GetInvSysTableFromWorkbook(wb)
+
+    Set candidateToKeys = CreateObject("Scripting.Dictionary")
+    candidateToKeys.CompareMode = vbTextCompare
+    For r = 1 To UBound(savedBoxes, 1)
+        packageRow = NzLng(savedBoxes(r, 1))
+        boxName = Trim$(NzStr(savedBoxes(r, 2)))
+        If packageRow <= 0 And boxName = "" Then GoTo NextPackage
+
+        cacheKey = BoxVersionInventoryCacheKey(packageRow, boxName)
+        If Not result.Exists(cacheKey) Then
+            Set versionTotals = CreateObject("Scripting.Dictionary")
+            versionTotals.CompareMode = vbTextCompare
+            result.Add cacheKey, versionTotals
+        Else
+            Set versionTotals = result(cacheKey)
+        End If
+
+        packageSku = vbNullString
+        packageItem = vbNullString
+        If Not invLo Is Nothing Then
+            invIdx = 0
+            If packageRow > 0 Then invIdx = FindInvRowIndexByRow(invLo, packageRow)
+            If invIdx <= 0 And boxName <> "" Then invIdx = FindInvRowIndexByItem(invLo, boxName)
+            If invIdx > 0 Then packageSku = NzStr(GetInvSysValueByIndex(invLo, invIdx, "ITEM_CODE"))
+            If invIdx > 0 Then packageItem = NzStr(GetInvSysValueByIndex(invLo, invIdx, "ITEM"))
+        End If
+        If packageSku = "" Then packageSku = packageItem
+
+        Set candidates = CreateObject("Scripting.Dictionary")
+        candidates.CompareMode = vbTextCompare
+        If packageSku <> "" Then candidates(packageSku) = True
+        If packageItem <> "" Then candidates(packageItem) = True
+        If boxName <> "" Then candidates(boxName) = True
+        For Each candidate In candidates.Keys
+            If candidateToKeys.Exists(CStr(candidate)) Then
+                Set keyList = candidateToKeys(CStr(candidate))
+            Else
+                Set keyList = New Collection
+                candidateToKeys.Add CStr(candidate), keyList
+            End If
+            keyList.Add cacheKey
+        Next candidate
+
+        If packageRow > 0 Then
+            Set stagedDeltas = modRoleEventWriter.GetLocalStagedBoxVersionInventoryDeltas(packageRow)
+            If Not stagedDeltas Is Nothing Then
+                For Each stagedKey In stagedDeltas.Keys
+                    AddVersionInventoryDeltaShipping versionTotals, CStr(stagedKey), CDbl(stagedDeltas(stagedKey))
+                Next stagedKey
+            End If
+        End If
+NextPackage:
+    Next r
+
+    If Not wb Is Nothing And candidateToKeys.Count > 0 Then
+        Set loLog = FindListObjectByNameShipping(wb, "tblInventoryLog")
+        If loLog Is Nothing Then Set loLog = FindListObjectByNameShipping(wb, "InventoryLog")
+        If Not loLog Is Nothing Then
+            If Not loLog.DataBodyRange Is Nothing Then
+                cEventType = ColumnIndex(loLog, "EventType")
+                cSku = ColumnIndex(loLog, "SKU")
+                cQtyDelta = ColumnIndex(loLog, "QtyDelta")
+                cNote = ColumnIndex(loLog, "Note")
+                If cEventType > 0 And cSku > 0 And cQtyDelta > 0 And cNote > 0 Then
+                    src = To2DArrayShipping(loLog.DataBodyRange.Value)
+                    For r = 1 To UBound(src, 1)
+                        eventType = UCase$(Trim$(NzStr(src(r, cEventType))))
+                        If eventType <> EVENT_TYPE_SHIP _
+                           And eventType <> EVENT_TYPE_SHIP_RESERVE _
+                           And eventType <> EVENT_TYPE_SHIP_RELEASE _
+                           And eventType <> EVENT_TYPE_BOX_BUILD _
+                           And eventType <> EVENT_TYPE_BOX_UNBOX Then GoTo NextLogRow
+
+                        skuValue = Trim$(NzStr(src(r, cSku)))
+                        If Not candidateToKeys.Exists(skuValue) Then GoTo NextLogRow
+
+                        versionLabel = ExtractBoxVersionLabelFromNoteShipping(NzStr(src(r, cNote)))
+                        If versionLabel = "" Then GoTo NextLogRow
+                        qtyDelta = NzDbl(src(r, cQtyDelta))
+                        Set keyList = candidateToKeys(skuValue)
+                        For Each candidate In keyList
+                            If result.Exists(CStr(candidate)) Then AddVersionInventoryDeltaShipping result(CStr(candidate)), versionLabel, qtyDelta
+                        Next candidate
+NextLogRow:
+                    Next r
+                End If
+            End If
+        End If
+    End If
+
+    For Each candidate In result.Keys
+        Set versionTotals = result(CStr(candidate))
+        For Each stagedKey In versionTotals.Keys
+            If Abs(CDbl(versionTotals(stagedKey))) < 0.0000001 Then versionTotals(stagedKey) = 0#
+            If CDbl(versionTotals(stagedKey)) < 0 Then versionTotals(stagedKey) = 0#
+        Next stagedKey
+    Next candidate
+    Exit Function
+
+FailSoft:
+    If BuildBoxVersionInventoryCache Is Nothing Then
+        Set BuildBoxVersionInventoryCache = CreateObject("Scripting.Dictionary")
+        BuildBoxVersionInventoryCache.CompareMode = vbTextCompare
+    End If
 End Function
 
 Private Function CountActiveBoxBomVersionsShipping(ByVal versions As Variant) As Long
