@@ -480,8 +480,32 @@ Private Sub BuildLayout()
     End With
     Set mBtnClose = AddButton("btnClose", "Close", 776, 590, 56, 30)
 
+    MoveStatusToTop
     InitializeAnchors
     LoadCarrierChoices
+End Sub
+
+Private Sub MoveStatusToTop()
+    Const STATUS_TOP As Single = 38
+    Const STATUS_HEIGHT As Single = 76
+    Const CONTENT_SHIFT As Single = 86
+
+    Dim ctl As MSForms.Control
+
+    If mTxtStatus Is Nothing Then Exit Sub
+    For Each ctl In Me.Controls
+        If Not ctl Is mTxtStatus Then
+            If ctl.Top >= STATUS_TOP Then ctl.Top = ctl.Top + CONTENT_SHIFT
+        End If
+    Next ctl
+    With mTxtStatus
+        .Left = 12
+        .Top = STATUS_TOP
+        .Width = 820
+        .Height = STATUS_HEIGHT
+        .ZOrder 0
+    End With
+    Me.ScrollHeight = Me.ScrollHeight + CONTENT_SHIFT
 End Sub
 
 Private Sub LoadCarrierChoices()
