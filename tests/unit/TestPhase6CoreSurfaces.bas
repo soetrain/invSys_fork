@@ -5133,6 +5133,88 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingToShipments_LocalLockStaysVisible() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim selectedRows(1 To 1) As Long
+    Dim ok As Boolean
+    Dim rows As Variant
+    Dim activePath As String
+    Dim sentPath As String
+
+    On Error GoTo CleanFail
+    If Not modConfig.LoadConfig("WH114", "S34") Then GoTo CleanExit
+    activePath = LocalShippingStatePathForTest("active", "WH114")
+    sentPath = LocalShippingStatePathForTest("sent", "WH114")
+    DeleteFileIfExistsForTest activePath
+    DeleteFileIfExistsForTest sentPath
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 968, "SKU-LOCAL-LOCK", "Local Lock Item", "EA", "A1", 5
+    AddShippingBomViewRow loBomView, 968, "Local Lock Item", 968, "Local Lock Item", 1, "EA"
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-LOCAL-LOCK", "Local Lock Item", 1, 968, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-LOCAL-LOCK"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", vbNullString
+
+    selectedRows(1) = 1
+    wbOps.Activate
+    ok = RunShippingToShipmentsRowsForTest(selectedRows, "UPS", report)
+    If Not ok Then
+        failureReason = "To Shipments rejected an already locally locked row with a stale reserve id: " & report
+        GoTo CleanExit
+    End If
+    If loShip.ListRows.Count <> 1 Then
+        failureReason = "To Shipments removed the locally locked row."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(GetTableValue(loShip, 1, "AREA")), "Shipments", vbTextCompare) <> 0 Then
+        failureReason = "To Shipments did not move the locally locked row to Shipments area."
+        GoTo CleanExit
+    End If
+    rows = RunShippingMacro1ForTest("ShipmentsFormLoadLines", False)
+    If IsEmpty(rows) Then
+        failureReason = "Reload after To Shipments lost the locally locked row."
+        GoTo CleanExit
+    End If
+
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 5 Then
+        failureReason = "To Shipments changed NAS-owned TOTAL INV for a locally locked row."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 1 Then
+        failureReason = "To Shipments changed the local SHIPMENTS lock."
+        GoTo CleanExit
+    End If
+
+    TestShippingToShipments_LocalLockStaysVisible = 1
+
+CleanExit:
+    DeleteFileIfExistsForTest activePath
+    DeleteFileIfExistsForTest sentPath
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7169, "TestShippingToShipments_LocalLockStaysVisible", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingUpdate_PreservesExistingReservationWithoutDoubleDeducting() As Long
     Dim report As String
     Dim failureReason As String

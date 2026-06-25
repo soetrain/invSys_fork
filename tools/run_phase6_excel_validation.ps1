@@ -570,6 +570,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory",
         "TestPhase6CoreSurfaces.TestShippingHold_PreservesReservationAndLocalDeduction",
         "TestPhase6CoreSurfaces.TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjection",
+        "TestPhase6CoreSurfaces.TestShippingToShipments_LocalLockStaysVisible",
         "TestPhase6CoreSurfaces.TestShippingUpdate_PreservesExistingReservationWithoutDoubleDeducting",
         "TestPhase6CoreSurfaces.TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay",
         "TestPhase6CoreSurfaces.TestShippingAdd_NewReservedRowAppliesSingleProjectedDeduction",

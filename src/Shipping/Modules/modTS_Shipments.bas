@@ -7179,6 +7179,76 @@ NextRow:
     ShipmentRowsByReserveState = result
 End Function
 
+Private Function ShipmentRowsByExistingLocalShipmentLock(ByVal invLo As ListObject, _
+                                                         ByVal loShip As ListObject, _
+                                                         ByVal rowIndexes As Variant, _
+                                                         ByVal requireLocalLock As Boolean, _
+                                                         Optional ByVal requireLineId As Boolean = False) As Variant
+    Dim selectedQtyByRow As Object
+    Dim selected As Collection
+    Dim cRow As Long
+    Dim cQty As Long
+    Dim cItem As Long
+    Dim cLine As Long
+    Dim i As Long
+    Dim rowIndex As Long
+    Dim rowVal As Long
+    Dim itemName As String
+    Dim hasLocalLock As Boolean
+    Dim result() As Long
+    Dim key As String
+
+    If invLo Is Nothing Then Exit Function
+    If loShip Is Nothing Then Exit Function
+    If loShip.DataBodyRange Is Nothing Then Exit Function
+    If IsEmpty(rowIndexes) Then Exit Function
+
+    cRow = ColumnIndex(loShip, "ROW")
+    cQty = ColumnIndex(loShip, "QUANTITY")
+    cItem = ColumnIndex(loShip, "ITEMS")
+    cLine = ColumnIndex(loShip, "LINE_ID")
+    If cRow = 0 Or cQty = 0 Then Exit Function
+
+    Set selectedQtyByRow = CreateObject("Scripting.Dictionary")
+    selectedQtyByRow.CompareMode = vbTextCompare
+    For i = LBound(rowIndexes) To UBound(rowIndexes)
+        rowIndex = CLng(rowIndexes(i))
+        If rowIndex < 1 Or rowIndex > loShip.ListRows.Count Then GoTo NextAggregate
+        rowVal = NzLng(loShip.DataBodyRange.Cells(rowIndex, cRow).Value)
+        If rowVal <= 0 Then GoTo NextAggregate
+        key = CStr(rowVal)
+        If selectedQtyByRow.Exists(key) Then
+            selectedQtyByRow(key) = NzDbl(selectedQtyByRow(key)) + NzDbl(loShip.DataBodyRange.Cells(rowIndex, cQty).Value)
+        Else
+            selectedQtyByRow.Add key, NzDbl(loShip.DataBodyRange.Cells(rowIndex, cQty).Value)
+        End If
+NextAggregate:
+    Next i
+
+    Set selected = New Collection
+    For i = LBound(rowIndexes) To UBound(rowIndexes)
+        rowIndex = CLng(rowIndexes(i))
+        If rowIndex < 1 Or rowIndex > loShip.ListRows.Count Then GoTo NextSelect
+        rowVal = NzLng(loShip.DataBodyRange.Cells(rowIndex, cRow).Value)
+        If rowVal <= 0 Then GoTo NextSelect
+        itemName = ""
+        If cItem > 0 Then itemName = NzStr(loShip.DataBodyRange.Cells(rowIndex, cItem).Value)
+        hasLocalLock = (ShipmentLocalInventoryColumnQty(invLo, rowVal, itemName, "SHIPMENTS") + 0.0000001 >= NzDbl(selectedQtyByRow(CStr(rowVal))))
+        If hasLocalLock And requireLineId Then
+            hasLocalLock = (cLine > 0 And Trim$(NzStr(loShip.DataBodyRange.Cells(rowIndex, cLine).Value)) <> "")
+        End If
+        If hasLocalLock = requireLocalLock Then selected.Add rowIndex
+NextSelect:
+    Next i
+
+    If selected.Count = 0 Then Exit Function
+    ReDim result(0 To selected.Count - 1)
+    For i = 1 To selected.Count
+        result(i - 1) = CLng(selected(i))
+    Next i
+    ShipmentRowsByExistingLocalShipmentLock = result
+End Function
+
 Private Sub SetShipmentRowsCarrier(ByVal loShip As ListObject, ByVal rowIndexes As Variant, ByVal carrierValue As String)
     Dim cCarrier As Long
     Dim i As Long
@@ -8726,8 +8796,11 @@ Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
     Dim previousHandling As Boolean
     Dim mutationStarted As Boolean
     Dim unreservedRows As Variant
+    Dim locallyLockedRows As Variant
+    Dim rowsNeedingReserve As Variant
     Dim reservedRows As Variant
     Dim alreadyReservedCount As Long
+    Dim locallyLockedCount As Long
 
     Set ws = SheetExists(SHEET_SHIPMENTS)
     If ws Is Nothing Then
@@ -8745,17 +8818,33 @@ Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
         Exit Function
     End If
 
+    locallyLockedRows = ShipmentRowsByExistingLocalShipmentLock(invLo, loShip, rowIndexes, True, True)
+    locallyLockedCount = ShipmentRowIndexCount(locallyLockedRows)
+    If locallyLockedCount > 0 And locallyLockedCount = ShipmentRowIndexCount(rowIndexes) Then
+        BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
+        mutationStarted = True
+        SetShipmentRowsArea loShip, rowIndexes, "Shipments", carrierValue
+        PersistActiveShipmentRowsLocal loShip
+        report = CStr(locallyLockedCount) & " selected row(s) were already locked for shipment."
+        If Trim$(carrierValue) <> "" Then report = report & vbCrLf & "Carrier: " & Trim$(carrierValue)
+        ShipmentsFormRunToShipmentsRows = True
+        GoTo CleanExit
+    End If
+
     unreservedRows = ShipmentRowsByReserveState(loShip, rowIndexes, False)
     reservedRows = ShipmentRowsByReserveState(loShip, rowIndexes, True)
+    locallyLockedRows = ShipmentRowsByExistingLocalShipmentLock(invLo, loShip, unreservedRows, True, True)
+    rowsNeedingReserve = ShipmentRowsByExistingLocalShipmentLock(invLo, loShip, unreservedRows, False, True)
     alreadyReservedCount = ShipmentRowIndexCount(reservedRows)
+    locallyLockedCount = ShipmentRowIndexCount(locallyLockedRows)
 
-    If IsEmpty(unreservedRows) Then
-        If alreadyReservedCount > 0 Then
+    If IsEmpty(rowsNeedingReserve) Then
+        If alreadyReservedCount > 0 Or locallyLockedCount > 0 Then
             BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
             mutationStarted = True
             SetShipmentRowsArea loShip, rowIndexes, "Shipments", carrierValue
             PersistActiveShipmentRowsLocal loShip
-            report = CStr(alreadyReservedCount) & " selected row(s) were already locked for shipment."
+            report = CStr(alreadyReservedCount + locallyLockedCount) & " selected row(s) were already locked for shipment."
             If Trim$(carrierValue) <> "" Then report = report & vbCrLf & "Carrier: " & Trim$(carrierValue)
             ShipmentsFormRunToShipmentsRows = True
             GoTo CleanExit
@@ -8764,7 +8853,7 @@ Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
         Exit Function
     End If
 
-    Set deltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, unreservedRows, "Warehouse", errNotes)
+    Set deltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, rowsNeedingReserve, "Warehouse", errNotes)
     If deltas Is Nothing Then
         If errNotes = "" Then errNotes = "No selected Warehouse rows are ready for To Shipments."
         report = errNotes
@@ -8791,19 +8880,20 @@ Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
         report = errNotes
         GoTo CleanExit
     End If
-    SetShipmentRowsArea loShip, unreservedRows, "Shipments", carrierValue
+    SetShipmentRowsArea loShip, rowsNeedingReserve, "Shipments", carrierValue
     If alreadyReservedCount > 0 Then SetShipmentRowsArea loShip, reservedRows, "Shipments", carrierValue
+    If locallyLockedCount > 0 Then SetShipmentRowsArea loShip, locallyLockedRows, "Shipments", carrierValue
     If reserveEventId <> "" Then
-        SetShipmentRowsReserveEventId loShip, unreservedRows, reserveEventId
-        If Not ForEachShipmentReservationUpsert(loShip, unreservedRows, reserveEventId, report) Then GoTo CleanExit
+        SetShipmentRowsReserveEventId loShip, rowsNeedingReserve, reserveEventId
+        If Not ForEachShipmentReservationUpsert(loShip, rowsNeedingReserve, reserveEventId, report) Then GoTo CleanExit
     End If
-    ApplyStageVersionInventoryOverlayFromRows invLo, loShip, unreservedRows
+    ApplyStageVersionInventoryOverlayFromRows invLo, loShip, rowsNeedingReserve
     InvalidateAggregates True
     PersistActiveShipmentRowsLocal loShip
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
 
     report = "Moved " & Format$(stagedTotal, "0.###") & " package(s) to Shipments."
-    If alreadyReservedCount > 0 Then report = report & vbCrLf & CStr(alreadyReservedCount) & " selected row(s) were already locked."
+    If alreadyReservedCount + locallyLockedCount > 0 Then report = report & vbCrLf & CStr(alreadyReservedCount + locallyLockedCount) & " selected row(s) were already locked."
     If Trim$(carrierValue) <> "" Then report = report & vbCrLf & "Carrier: " & Trim$(carrierValue)
     If reserveEventId <> "" Then report = report & vbCrLf & "Reserve EventID: " & reserveEventId
     ShipmentsFormRunToShipmentsRows = True
@@ -9033,7 +9123,10 @@ Private Function ApplyShipmentsSentRowsInventory(ByVal invLo As ListObject, _
                                                  ByRef errNotes As String) As Double
     Dim reservedRows As Variant
     Dim unreservedRows As Variant
+    Dim locallyLockedRows As Variant
+    Dim dirtyUnreservedRows As Variant
     Dim reservedDeltas As Collection
+    Dim locallyLockedDeltas As Collection
     Dim unreservedDeltas As Collection
     Dim appliedTotal As Double
 
@@ -9054,6 +9147,8 @@ Private Function ApplyShipmentsSentRowsInventory(ByVal invLo As ListObject, _
 
     reservedRows = ShipmentRowsByReserveState(loShip, rowIndexes, True)
     unreservedRows = ShipmentRowsByReserveState(loShip, rowIndexes, False)
+    locallyLockedRows = ShipmentRowsByExistingLocalShipmentLock(invLo, loShip, unreservedRows, True, True)
+    dirtyUnreservedRows = ShipmentRowsByExistingLocalShipmentLock(invLo, loShip, unreservedRows, False, True)
 
     If Not IsEmpty(reservedRows) Then
         Set reservedDeltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, reservedRows, "Shipments", errNotes)
@@ -9062,14 +9157,21 @@ Private Function ApplyShipmentsSentRowsInventory(ByVal invLo As ListObject, _
             Exit Function
         End If
     End If
-    If Not IsEmpty(unreservedRows) Then
-        Set unreservedDeltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, unreservedRows, "Shipments", errNotes)
+    If Not IsEmpty(locallyLockedRows) Then
+        Set locallyLockedDeltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, locallyLockedRows, "Shipments", errNotes)
+        If locallyLockedDeltas Is Nothing Then
+            If errNotes = "" Then errNotes = "Unable to build locally locked shipment finalization."
+            Exit Function
+        End If
+    End If
+    If Not IsEmpty(dirtyUnreservedRows) Then
+        Set unreservedDeltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, dirtyUnreservedRows, "Shipments", errNotes)
         If unreservedDeltas Is Nothing Then
             If errNotes = "" Then errNotes = "Unable to build unreserved shipment finalization."
             Exit Function
         End If
     End If
-    If reservedDeltas Is Nothing And unreservedDeltas Is Nothing Then
+    If reservedDeltas Is Nothing And locallyLockedDeltas Is Nothing And unreservedDeltas Is Nothing Then
         errNotes = "No selected Shipments rows were found."
         Exit Function
     End If
@@ -9080,6 +9182,16 @@ Private Function ApplyShipmentsSentRowsInventory(ByVal invLo As ListObject, _
         appliedTotal = ApplyShipmentsSentDeltas(invLo, reservedDeltas, errNotes, False)
         If appliedTotal < 0 Then
             If errNotes = "" Then errNotes = "Unable to finalize reserved shipment rows."
+            ApplyShipmentsSentRowsInventory = -1
+            Exit Function
+        End If
+        ApplyShipmentsSentRowsInventory = ApplyShipmentsSentRowsInventory + appliedTotal
+    End If
+    If Not locallyLockedDeltas Is Nothing Then
+        PrepareShipmentsSentLogEntries invLo, locallyLockedDeltas, shipLogs, False
+        appliedTotal = ApplyShipmentsSentDeltas(invLo, locallyLockedDeltas, errNotes, False)
+        If appliedTotal < 0 Then
+            If errNotes = "" Then errNotes = "Unable to finalize locally locked shipment rows."
             ApplyShipmentsSentRowsInventory = -1
             Exit Function
         End If
@@ -15557,6 +15669,8 @@ Private Sub ReconcileShipmentStagingFromShipmentLines(ByVal invLo As ListObject,
     Dim cShipArea As Long
     Dim cShipReserve As Long
     Dim stagedByRow As Object
+    Dim activeByRow As Object
+    Dim existingShipByRow As Object
     Dim r As Long
     Dim rowVal As Long
     Dim qtyVal As Double
@@ -15564,6 +15678,9 @@ Private Sub ReconcileShipmentStagingFromShipmentLines(ByVal invLo As ListObject,
     Dim key As Variant
     Dim rowArea As String
     Dim hasReserve As Boolean
+    Dim targetQty As Double
+    Dim existingQty As Double
+    Dim activeQty As Double
 
     If invLo Is Nothing Then Exit Sub
     If invLo.DataBodyRange Is Nothing Then Exit Sub
@@ -15572,8 +15689,11 @@ Private Sub ReconcileShipmentStagingFromShipmentLines(ByVal invLo As ListObject,
     If cInvShip = 0 Or cInvRow = 0 Then Exit Sub
 
     EnsureShippingWorksheetEditable invLo.Parent
+    Set existingShipByRow = CreateObject("Scripting.Dictionary")
+    existingShipByRow.CompareMode = vbTextCompare
     For r = 1 To invLo.ListRows.Count
-        invLo.DataBodyRange.Cells(r, cInvShip).Value = 0
+        rowVal = NzLng(invLo.DataBodyRange.Cells(r, cInvRow).Value)
+        If rowVal > 0 Then existingShipByRow(CStr(rowVal)) = NzDbl(invLo.DataBodyRange.Cells(r, cInvShip).Value)
     Next r
 
     If loShip Is Nothing Then Exit Sub
@@ -15586,13 +15706,20 @@ Private Sub ReconcileShipmentStagingFromShipmentLines(ByVal invLo As ListObject,
 
     Set stagedByRow = CreateObject("Scripting.Dictionary")
     stagedByRow.CompareMode = vbTextCompare
+    Set activeByRow = CreateObject("Scripting.Dictionary")
+    activeByRow.CompareMode = vbTextCompare
     For r = 1 To loShip.ListRows.Count
         If cShipArea > 0 Then rowArea = NormalizeShipmentArea(NzStr(loShip.DataBodyRange.Cells(r, cShipArea).Value), False) Else rowArea = ""
         If cShipReserve > 0 Then hasReserve = (Trim$(NzStr(loShip.DataBodyRange.Cells(r, cShipReserve).Value)) <> "") Else hasReserve = False
-        If Not hasReserve And StrComp(rowArea, "Shipments", vbTextCompare) <> 0 Then GoTo NextLine
         rowVal = NzLng(loShip.DataBodyRange.Cells(r, cShipRow).Value)
         qtyVal = NzDbl(loShip.DataBodyRange.Cells(r, cShipQty).Value)
         If rowVal <= 0 Or qtyVal <= 0 Then GoTo NextLine
+        If activeByRow.Exists(CStr(rowVal)) Then
+            activeByRow(CStr(rowVal)) = NzDbl(activeByRow(CStr(rowVal))) + qtyVal
+        Else
+            activeByRow.Add CStr(rowVal), qtyVal
+        End If
+        If Not hasReserve And StrComp(rowArea, "Shipments", vbTextCompare) <> 0 Then GoTo NextLine
         If stagedByRow.Exists(CStr(rowVal)) Then
             stagedByRow(CStr(rowVal)) = NzDbl(stagedByRow(CStr(rowVal))) + qtyVal
         Else
@@ -15601,10 +15728,22 @@ Private Sub ReconcileShipmentStagingFromShipmentLines(ByVal invLo As ListObject,
 NextLine:
     Next r
 
-    For Each key In stagedByRow.Keys
-        invIdx = FindInvRowIndexByRow(invLo, CLng(key))
-        If invIdx > 0 Then invLo.DataBodyRange.Cells(invIdx, cInvShip).Value = NzDbl(stagedByRow(CStr(key)))
-    Next key
+    For r = 1 To invLo.ListRows.Count
+        rowVal = NzLng(invLo.DataBodyRange.Cells(r, cInvRow).Value)
+        If rowVal <= 0 Then GoTo NextInvRow
+        key = CStr(rowVal)
+        targetQty = 0#
+        If stagedByRow.Exists(key) Then targetQty = NzDbl(stagedByRow(key))
+        existingQty = 0#
+        If existingShipByRow.Exists(key) Then existingQty = NzDbl(existingShipByRow(key))
+        If existingQty > targetQty + 0.0000001 And activeByRow.Exists(key) Then
+            activeQty = NzDbl(activeByRow(key))
+            If activeQty > existingQty Then activeQty = existingQty
+            If activeQty > targetQty Then targetQty = activeQty
+        End If
+        invLo.DataBodyRange.Cells(r, cInvShip).Value = targetQty
+NextInvRow:
+    Next r
 
 FailSoft:
 End Sub
