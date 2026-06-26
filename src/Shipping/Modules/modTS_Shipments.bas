@@ -6878,7 +6878,8 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                                         ByRef report As String, _
                                         Optional ByVal displayedAvailableQty As Variant, _
                                         Optional ByVal visibleShippables As Variant, _
-                                        Optional ByVal operatorWb As Workbook = Nothing) As Boolean
+                                        Optional ByVal operatorWb As Workbook = Nothing, _
+                                        Optional ByVal displayedNasQty As Variant) As Boolean
     On Error GoTo Fail
 
     Dim ws As Worksheet
@@ -7078,6 +7079,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             GoTo CleanExit
         End If
         ShipmentsFormHydrateInvSysTableFromShippables invLo, visibleShippables
+        EnsureShipmentInvSysRowFromSelectedNas invLo, rowValue, itemName, uomValue, locationValue, descriptionValue, displayedNasQty
     End If
 
     WriteValue lr, "REF_NUMBER", Trim$(refNumber)
@@ -7135,6 +7137,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             GoTo CleanExit
         End If
         ShipmentsFormHydrateInvSysTableFromShippables invLo, visibleShippables
+        EnsureShipmentInvSysRowFromSelectedNas invLo, rowValue, itemName, uomValue, locationValue, descriptionValue, displayedNasQty
         Set reserveDeltas = BuildSelectedShipmentRowsDeltas(invLo, lo, singleRow, "Warehouse", errNotes, versionAvailabilityOverrides)
         If reserveDeltas Is Nothing Then
             If errNotes = "" Then errNotes = "Unable to build shipment reserve event."
@@ -15943,6 +15946,47 @@ NextShippable:
     Exit Sub
 
 FailSoft:
+End Sub
+
+Private Sub EnsureShipmentInvSysRowFromSelectedNas(ByVal invLo As ListObject, _
+                                                   ByVal rowVal As Long, _
+                                                   ByVal itemName As String, _
+                                                   ByVal uomVal As String, _
+                                                   ByVal locationVal As String, _
+                                                   ByVal versionLabel As String, _
+                                                   ByVal displayedNasQty As Variant)
+    On Error GoTo CleanExit
+
+    Dim nasText As String
+    Dim nasQty As Double
+    Dim rowIndex As Long
+    Dim lr As ListRow
+    Dim colTotalInv As Long
+
+    If invLo Is Nothing Then Exit Sub
+    If rowVal <= 0 Or Trim$(itemName) = "" Then Exit Sub
+    nasText = Trim$(NzStr(displayedNasQty))
+    If nasText = "" Or LCase$(nasText) = "unknown" Then Exit Sub
+    nasQty = NzDbl(nasText)
+    If nasQty <= 0.0000001 Then Exit Sub
+
+    rowIndex = FindInvRowIndexByRow(invLo, rowVal)
+    If rowIndex <= 0 Then
+        If EnsureInvSysItemByRow(rowVal, itemName, uomVal, locationVal, versionLabel, invLo) <= 0 Then Exit Sub
+        rowIndex = FindInvRowIndexByRow(invLo, rowVal)
+    End If
+    If rowIndex <= 0 Then Exit Sub
+
+    Set lr = invLo.ListRows(rowIndex)
+    colTotalInv = ColumnIndex(invLo, "TOTAL INV")
+    If colTotalInv > 0 Then lr.Range.Cells(1, colTotalInv).Value = nasQty
+    WriteValue lr, "ITEM", itemName
+    If Trim$(NzStr(GetInvSysValueByIndex(invLo, rowIndex, "ITEM_CODE"))) = "" Then WriteValue lr, "ITEM_CODE", itemName
+    WriteValue lr, "UOM", uomVal
+    WriteValue lr, "LOCATION", locationVal
+    WriteValue lr, "DESCRIPTION", versionLabel
+
+CleanExit:
 End Sub
 
 Private Sub HydrateInvSysFromShippingReadModel(ByVal invLo As ListObject, ByVal sourceLo As ListObject)

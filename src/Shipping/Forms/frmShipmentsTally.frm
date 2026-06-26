@@ -784,6 +784,7 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     Dim rowIndex As Long
     Dim ok As Boolean
     Dim displayedAvailableQty As String
+    Dim displayedNasQty As String
     Dim operatorWb As Workbook
     Dim startedAt As Single
     Dim elapsedMs As Long
@@ -793,6 +794,7 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     startedAt = Timer
     rowIndex = SelectedShipmentTableRow()
     displayedAvailableQty = SelectedShippableProjectedInventoryText()
+    displayedNasQty = SelectedShippableNasInventoryText()
     Set operatorWb = ResolveOperatorWorkbook()
     TLap "CommitCurrentLine resolved selected row/operator"
     ok = modTS_Shipments.ShipmentsFormCommitLine("SHIP", _
@@ -809,7 +811,8 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
                                                  report, _
                                                  displayedAvailableQty, _
                                                  mShippables, _
-                                                 operatorWb)
+                                                 operatorWb, _
+                                                 displayedNasQty)
     TLap "CommitCurrentLine backend call"
     elapsedMs = ElapsedMilliseconds(startedAt)
     report = AppendTiming(report, elapsedMs)
@@ -820,6 +823,37 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
 FailSoft:
     ShowStatus "Shipment row action failed: " & Err.Description
 End Sub
+
+Private Function SelectedShippableNasInventoryText() As String
+    Dim r As Long
+    Dim rowValue As Long
+    Dim boxName As String
+    Dim versionLabel As String
+
+    rowValue = CLng(Val(NzText(mTxtRow.Value)))
+    boxName = Trim$(NzText(mTxtBox.Value))
+    versionLabel = Trim$(NzText(mTxtVersion.Value))
+
+    If mLstShippables Is Nothing Then Exit Function
+    If mLstShippables.ListIndex >= 0 Then
+        If CLng(Val(NzText(mLstShippables.List(mLstShippables.ListIndex, 7)))) = rowValue _
+           And StrComp(Trim$(NzText(mLstShippables.List(mLstShippables.ListIndex, 0))), boxName, vbTextCompare) = 0 _
+           And StrComp(Trim$(NzText(mLstShippables.List(mLstShippables.ListIndex, 1))), versionLabel, vbTextCompare) = 0 Then
+            SelectedShippableNasInventoryText = NzText(mLstShippables.List(mLstShippables.ListIndex, 2))
+            Exit Function
+        End If
+    End If
+
+    If IsEmpty(mShippables) Then Exit Function
+    For r = 1 To UBound(mShippables, 1)
+        If CLng(Val(NzText(mShippables(r, 1)))) = rowValue _
+           And StrComp(Trim$(NzText(mShippables(r, 2))), boxName, vbTextCompare) = 0 _
+           And StrComp(Trim$(NzText(mShippables(r, 3))), versionLabel, vbTextCompare) = 0 Then
+            SelectedShippableNasInventoryText = NzText(mShippables(r, 4))
+            Exit Function
+        End If
+    Next r
+End Function
 
 Private Function SelectedShippableProjectedInventoryText() As String
     Dim r As Long
