@@ -7132,7 +7132,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         singleRow = Array(lr.Index)
         Set versionAvailabilityOverrides = ShippingVersionAvailabilityOverride(rowValue, descriptionValue, displayedAvailableQty)
         Dim nasInventoryOverrides As Object
-        Set nasInventoryOverrides = ShippingVersionAvailabilityOverride(rowValue, descriptionValue, displayedNasQty)
+        Set nasInventoryOverrides = ShippingNasInventoryOverride(rowValue, descriptionValue, displayedNasQty, displayedAvailableQty)
         If invLo Is Nothing Then Set invLo = GetWritableShippingInvSysTable(ws, report)
         If invLo Is Nothing Then
             If report = "" Then report = "InventoryManagement!invSys table not found."
@@ -7780,7 +7780,7 @@ NextSelectedRow:
             End If
         End If
         If invRow Is Nothing Then
-            AppendNote errNotes, "Package ROW " & CStr(rowKeyValue) & " not found in invSys."
+            AppendNote errNotes, "Package ROW " & CStr(rowKeyValue) & " not found in invSys. " & ShipmentInvSysRowRepairDebug(invLo, rowKeyValue, CStr(key), names, nasInventoryOverrides)
             Exit Function
         End If
         If colTotalInv > 0 Then
@@ -7831,6 +7831,15 @@ NextSelectedRow:
     Set BuildSelectedShipmentRowsDeltas = result
 End Function
 
+Private Function ShippingNasInventoryOverride(ByVal rowVal As Long, _
+                                              ByVal versionLabel As String, _
+                                              ByVal displayedNasQty As Variant, _
+                                              ByVal displayedAvailableQty As Variant) As Object
+    Set ShippingNasInventoryOverride = ShippingVersionAvailabilityOverride(rowVal, versionLabel, displayedNasQty)
+    If Not ShippingNasInventoryOverride Is Nothing Then Exit Function
+    Set ShippingNasInventoryOverride = ShippingVersionAvailabilityOverride(rowVal, versionLabel, displayedAvailableQty)
+End Function
+
 Private Sub RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As ListObject, _
                                                           ByVal rowVal As Long, _
                                                           ByVal requirementKey As String, _
@@ -7875,6 +7884,49 @@ Private Sub RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As ListObj
 
 CleanExit:
 End Sub
+
+Private Function ShipmentInvSysRowRepairDebug(ByVal invLo As ListObject, _
+                                              ByVal rowVal As Long, _
+                                              ByVal requirementKey As String, _
+                                              ByVal names As Object, _
+                                              Optional ByVal nasInventoryOverrides As Object) As String
+    On Error GoTo CleanExit
+
+    Dim tableName As String
+    Dim sheetName As String
+    Dim wbName As String
+    Dim rowCount As Long
+    Dim cRow As Long
+    Dim cTotalInv As Long
+    Dim overrideQty As Double
+    Dim itemName As String
+
+    If Not invLo Is Nothing Then
+        tableName = invLo.Name
+        sheetName = invLo.Parent.Name
+        wbName = invLo.Parent.Parent.Name
+        If Not invLo.DataBodyRange Is Nothing Then rowCount = invLo.ListRows.Count
+        cRow = ColumnIndex(invLo, "ROW")
+        cTotalInv = ColumnIndex(invLo, "TOTAL INV")
+    End If
+    overrideQty = ShipmentRowProjectedAvailabilityOverrideQty(rowVal, nasInventoryOverrides)
+    If Not names Is Nothing Then
+        If names.Exists(requirementKey) Then itemName = NzStr(names(requirementKey))
+    End If
+
+    ShipmentInvSysRowRepairDebug = "RepairDebug: wb=" & wbName & _
+                                   "; sheet=" & sheetName & _
+                                   "; table=" & tableName & _
+                                   "; rows=" & CStr(rowCount) & _
+                                   "; rowCol=" & CStr(cRow) & _
+                                   "; totalInvCol=" & CStr(cTotalInv) & _
+                                   "; overrideQty=" & Format$(overrideQty, "0.###") & _
+                                   "; item=" & itemName & "."
+    Exit Function
+
+CleanExit:
+    ShipmentInvSysRowRepairDebug = "RepairDebug unavailable: " & Err.Description
+End Function
 
 Private Sub ApplyShipmentNasOverrideToInvRow(ByVal invLo As ListObject, _
                                              ByVal invRow As ListRow, _
