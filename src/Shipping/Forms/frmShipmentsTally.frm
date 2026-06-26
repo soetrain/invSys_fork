@@ -952,7 +952,7 @@ Private Sub mBtnRefresh_Click()
     TimingStart
     TLap "Refresh click start"
     Set operatorWb = ResolveOperatorWorkbook()
-    ok = modTS_Shipments.ShipmentsFormRefreshRuntimeInventoryForWorkbook(operatorWb, report)
+    ok = modTS_Shipments.ShipmentsFormRefreshRuntimeInventoryForWorkbook(operatorWb, report, vbNullString, True)
     TLap "Refresh backend refresh"
     InitializeFromShipping
     TLap "Refresh reinitialize form"

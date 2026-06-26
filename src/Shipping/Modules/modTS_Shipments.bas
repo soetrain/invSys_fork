@@ -6295,8 +6295,9 @@ End Function
 
 Public Function ShipmentsFormRefreshRuntimeInventoryForWorkbook(ByVal operatorWb As Workbook, _
                                                                ByRef report As String, _
-                                                               Optional ByVal warehouseIdOverride As String = "") As Boolean
-    ShipmentsFormRefreshRuntimeInventoryForWorkbook = ShipmentsFormRefreshRuntimeInventoryCore(operatorWb, warehouseIdOverride, report)
+                                                               Optional ByVal warehouseIdOverride As String = "", _
+                                                               Optional ByVal forceBomRebuild As Boolean = False) As Boolean
+    ShipmentsFormRefreshRuntimeInventoryForWorkbook = ShipmentsFormRefreshRuntimeInventoryCore(operatorWb, warehouseIdOverride, report, forceBomRebuild)
     If Not ShipmentsFormRefreshRuntimeInventoryForWorkbook Then
         If Trim$(report) = "" Then report = "Shipments refresh failed without detail. Workbook=" & WorkbookNameForReportShipping(operatorWb) & "; Warehouse=" & Trim$(warehouseIdOverride)
     End If
@@ -6398,7 +6399,8 @@ End Function
 
 Private Function ShipmentsFormRefreshRuntimeInventoryCore(ByVal operatorWb As Workbook, _
                                                          ByVal warehouseIdOverride As String, _
-                                                         ByRef report As String) As Boolean
+                                                         ByRef report As String, _
+                                                         Optional ByVal forceBomRebuild As Boolean = False) As Boolean
     On Error GoTo FailSoft
 
     Dim wb As Workbook
@@ -6425,7 +6427,7 @@ Private Function ShipmentsFormRefreshRuntimeInventoryCore(ByVal operatorWb As Wo
         If Trim$(report) = "" Then report = "Read-model refresh returned False without detail. Workbook=" & WorkbookNameForReportShipping(wb) & "; Warehouse=" & warehouseId
         Exit Function
     End If
-    If Not RefreshShippingBomViewForWorkbook(wb, bomReport, False) Then
+    If Not RefreshShippingBomViewForWorkbook(wb, bomReport, forceBomRebuild) Then
         report = bomReport
         If Trim$(report) = "" Then report = "Shipping BOM refresh returned False without detail. Workbook=" & WorkbookNameForReportShipping(wb) & "; Warehouse=" & warehouseId
         Exit Function
@@ -13694,7 +13696,6 @@ Private Function RefreshShippingBomViewForWorkbook(ByVal operatorWb As Workbook,
 
     Set target = modNasConnection.GetCurrentTarget()
     If target Is Nothing Then
-        ClearListObjectData loView
         report = "Shipping BOM view not refreshed: no connected warehouse target."
         Exit Function
     End If
@@ -13702,14 +13703,12 @@ Private Function RefreshShippingBomViewForWorkbook(ByVal operatorWb As Workbook,
     warehouseId = Trim$(target.WarehouseId)
     rootPath = NormalizeFolderPathShipping(target.RuntimeRoot)
     If warehouseId = "" Or rootPath = "" Then
-        ClearListObjectData loView
         report = "Shipping BOM view not refreshed: selected warehouse target is incomplete."
         Exit Function
     End If
 
     Set wbBom = OpenShippingBomWorkbook(warehouseId, rootPath, False, openedTransient, report)
     If wbBom Is Nothing Then
-        ClearListObjectData loView
         Exit Function
     End If
 
