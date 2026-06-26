@@ -7814,6 +7814,9 @@ NextSelectedRow:
             If StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 Then
                 Set invRow = RepairMissingShipmentInvSysRowFromNasOverride(invLo, rowKeyValue, CStr(key), names, uoms, locations, nasInventoryOverrides, errNotes)
                 If invRow Is Nothing Then Set invRow = FindInvListRowByRowValue(invLo, rowKeyValue)
+            ElseIf useShipmentStaging Then
+                EnsureShipmentInvSysRowFromShipmentRows invLo, loShip, rowKeyValue
+                Set invRow = FindInvListRowByRowValue(invLo, rowKeyValue)
             End If
         ElseIf StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 Then
             If ShipmentRowProjectedAvailabilityOverrideQty(rowKeyValue, nasInventoryOverrides) > 0.0000001 Then
@@ -9577,6 +9580,8 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
         Exit Function
     End If
 
+    EnsureMissingInvSysRowsFromShipmentLines invLo, loShip
+    ReconcileShipmentStagingFromShipmentLines invLo, loShip
     Set deltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, rowIndexes, "Shipments", errNotes)
     If deltas Is Nothing Then
         If errNotes = "" Then errNotes = "Select row(s) in Shipments area. Use To Shipments first for Warehouse rows."
@@ -9589,6 +9594,8 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
         Exit Function
     End If
     sentSummary = ShipmentRowsActionSummary(loShip, rowIndexes, "Sent")
+    EnsureMissingInvSysRowsFromShipmentLines invLo, loShip
+    ReconcileShipmentStagingFromShipmentLines invLo, loShip
     Set allSentDeltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, rowIndexes, "Shipments", errNotes)
     If allSentDeltas Is Nothing Then
         If errNotes = "" Then errNotes = "Unable to build shipment sent event."
@@ -9770,6 +9777,8 @@ Private Function ApplyShipmentsSentRowsInventory(ByVal invLo As ListObject, _
         Exit Function
     End If
 
+    EnsureMissingInvSysRowsFromShipmentLines invLo, loShip
+    ReconcileShipmentStagingFromShipmentLines invLo, loShip
     reservedRows = ShipmentRowsByReserveState(loShip, rowIndexes, True)
     unreservedRows = ShipmentRowsByReserveState(loShip, rowIndexes, False)
     locallyLockedRows = ShipmentRowsByExistingLocalShipmentLock(invLo, loShip, unreservedRows, True, True)
@@ -16251,7 +16260,7 @@ Private Sub HydrateInvSysFromShipmentLines(ByVal invLo As ListObject, ByVal loSh
         If cLoc > 0 Then WriteValue lr, "LOCATION", NzStr(loShip.DataBodyRange.Cells(r, cLoc).Value)
         If cDesc > 0 Then WriteValue lr, "DESCRIPTION", NzStr(loShip.DataBodyRange.Cells(r, cDesc).Value)
         WriteValue lr, "TOTAL INV", vbNullString
-        WriteValue lr, "SHIPMENTS", 0
+        WriteValue lr, "SHIPMENTS", ShipmentLineActiveQtyForRow(loShip, rowVal)
 NextLine:
     Next r
 End Sub
@@ -16287,6 +16296,33 @@ NextLine:
     Next r
 End Sub
 
+Private Sub EnsureShipmentInvSysRowFromShipmentRows(ByVal invLo As ListObject, ByVal loShip As ListObject, ByVal rowVal As Long)
+    Dim cRow As Long
+    Dim cItem As Long
+    Dim cUom As Long
+    Dim cLoc As Long
+    Dim cDesc As Long
+    Dim r As Long
+
+    If invLo Is Nothing Or loShip Is Nothing Then Exit Sub
+    If rowVal <= 0 Then Exit Sub
+    If FindInvRowIndexByRow(invLo, rowVal) > 0 Then Exit Sub
+    If loShip.DataBodyRange Is Nothing Then Exit Sub
+    cRow = ColumnIndex(loShip, "ROW")
+    cItem = ColumnIndex(loShip, "ITEMS")
+    cUom = ColumnIndex(loShip, "UOM")
+    cLoc = ColumnIndex(loShip, "LOCATION")
+    cDesc = ColumnIndex(loShip, "DESCRIPTION")
+    If cRow = 0 Or cItem = 0 Then Exit Sub
+
+    For r = 1 To loShip.ListRows.Count
+        If NzLng(loShip.DataBodyRange.Cells(r, cRow).Value) = rowVal Then
+            AddInvSysRowFromShipmentLine invLo, loShip, r, cRow, cItem, cUom, cLoc, cDesc
+            Exit Sub
+        End If
+    Next r
+End Sub
+
 Private Sub AddInvSysRowFromShipmentLine(ByVal invLo As ListObject, _
                                          ByVal loShip As ListObject, _
                                          ByVal sourceRow As Long, _
@@ -16301,6 +16337,7 @@ Private Sub AddInvSysRowFromShipmentLine(ByVal invLo As ListObject, _
     Dim versionInv As Object
     Dim key As Variant
     Dim totalQty As Double
+    Dim shipmentQty As Double
 
     If invLo Is Nothing Or loShip Is Nothing Then Exit Sub
     If loShip.DataBodyRange Is Nothing Then Exit Sub
@@ -16324,8 +16361,38 @@ Private Sub AddInvSysRowFromShipmentLine(ByVal invLo As ListObject, _
         Next key
     End If
     WriteValue lr, "TOTAL INV", totalQty
-    WriteValue lr, "SHIPMENTS", 0
+    shipmentQty = ShipmentLineActiveQtyForRow(loShip, rowVal)
+    WriteValue lr, "SHIPMENTS", shipmentQty
 End Sub
+
+Private Function ShipmentLineActiveQtyForRow(ByVal loShip As ListObject, ByVal rowVal As Long) As Double
+    Dim cRow As Long
+    Dim cQty As Long
+    Dim cArea As Long
+    Dim cReserve As Long
+    Dim r As Long
+    Dim rowArea As String
+    Dim hasReserve As Boolean
+
+    If loShip Is Nothing Then Exit Function
+    If loShip.DataBodyRange Is Nothing Then Exit Function
+    If rowVal <= 0 Then Exit Function
+    cRow = ColumnIndex(loShip, "ROW")
+    cQty = ColumnIndex(loShip, "QUANTITY")
+    cArea = ColumnIndex(loShip, "AREA")
+    cReserve = ColumnIndex(loShip, COL_SHIPMENT_RESERVE_EVENT_ID)
+    If cRow = 0 Or cQty = 0 Then Exit Function
+
+    For r = 1 To loShip.ListRows.Count
+        If NzLng(loShip.DataBodyRange.Cells(r, cRow).Value) <> rowVal Then GoTo NextLine
+        If cArea > 0 Then rowArea = NormalizeShipmentArea(NzStr(loShip.DataBodyRange.Cells(r, cArea).Value), False) Else rowArea = ""
+        If cReserve > 0 Then hasReserve = (Trim$(NzStr(loShip.DataBodyRange.Cells(r, cReserve).Value)) <> "") Else hasReserve = False
+        If hasReserve Or StrComp(rowArea, "Shipments", vbTextCompare) = 0 Then
+            ShipmentLineActiveQtyForRow = ShipmentLineActiveQtyForRow + NzDbl(loShip.DataBodyRange.Cells(r, cQty).Value)
+        End If
+NextLine:
+    Next r
+End Function
 
 Private Sub ReconcileShipmentStagingFromShipmentLines(ByVal invLo As ListObject, ByVal loShip As ListObject)
     On Error GoTo FailSoft

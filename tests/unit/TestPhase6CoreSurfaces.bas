@@ -5959,6 +5959,79 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingSentRows_RepairsMissingInvSysRowFromShipmentLine() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim wbInbox As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim selectedRows(1 To 1) As Long
+    Dim runResult As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_sent_repairs_missing_invsys")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH111", "S31", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    Do While loInv.ListRows.Count > 0
+        loInv.ListRows(1).Delete
+    Loop
+    AddShippingTallyRow loShip, "REF-SENT-MISSING", "T29", 1, 90, "EA", "CLEARVIEW", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-SENT-MISSING-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-SENT-MISSING-001"
+
+    wbOps.Activate
+    If Not RunShippingPrepareRolePostSessionForTest(rootPath, "WH111", "S31", currentUser, "123456", report) Then
+        failureReason = "Shipping add-in role-post session setup failed before missing-row Shipments Sent: " & report
+        GoTo CleanExit
+    End If
+    selectedRows(1) = 1
+    runResult = RunShippingSentRowsReportForTest(selectedRows, "UPS")
+    If Left$(runResult, 3) <> "OK|" Then
+        failureReason = "Shipments Sent did not repair missing invSys ROW 90: " & Mid$(runResult, 6)
+        GoTo CleanExit
+    End If
+    If loShip.ListRows.Count <> 0 Then
+        failureReason = "Shipments Sent repaired the local row but did not clear the completed shipment line."
+        GoTo CleanExit
+    End If
+
+    TestShippingSentRows_RepairsMissingInvSysRowFromShipmentLine = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH111"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH111.invSys.Data.ShippingReservations.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH111.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH111.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7180, "TestShippingSentRows_RepairsMissingInvSysRowFromShipmentLine", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() As Long
     Dim rootPath As String
     Dim currentUser As String
