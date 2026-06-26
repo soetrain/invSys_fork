@@ -430,6 +430,7 @@ Private Sub MoveListObjectToRowColShipping(ByVal lo As ListObject, ByVal targetR
     Application.DisplayAlerts = False
     lo.Range.Cut Destination:=dest
     ClearExcelClipboardStateShipping
+    ClearSystemClipboardShipping
     Application.DisplayAlerts = previousAlerts
     Err.Clear
     On Error GoTo 0
@@ -2473,6 +2474,18 @@ End Sub
 
 Private Sub ClearExcelClipboardStateShipping()
     On Error Resume Next
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
+    On Error GoTo 0
+End Sub
+
+Private Sub ClearSystemClipboardShipping()
+    On Error Resume Next
+    Dim dataObj As Object
+    Set dataObj = CreateObject("Forms.DataObject.1")
+    If Not dataObj Is Nothing Then
+        dataObj.SetText vbNullString
+        dataObj.PutInClipboard
+    End If
     If Application.CutCopyMode <> False Then Application.CutCopyMode = False
     On Error GoTo 0
 End Sub
@@ -7857,7 +7870,6 @@ Private Function RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As Li
     Dim uomVal As String
     Dim locationVal As String
     Dim versionLabel As String
-    Dim rowIndex As Long
     Dim lr As ListRow
 
     If invLo Is Nothing Then Exit Function
@@ -7878,13 +7890,16 @@ Private Function RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As Li
     versionLabel = ShipmentRequirementVersionLabel(requirementKey)
 
     EnsureShippingWorksheetEditable invLo.Parent
-    If EnsureInvSysItemByRow(rowVal, itemName, uomVal, locationVal, versionLabel, invLo) <= 0 Then Exit Function
-    rowIndex = FindInvRowIndexByRow(invLo, rowVal)
-    If rowIndex <= 0 Then Exit Function
-
-    Set lr = invLo.ListRows(rowIndex)
+    Set lr = FirstBlankListRowShipping(invLo)
+    If lr Is Nothing Then Set lr = invLo.ListRows.Add
+    WriteValue lr, "ROW", rowVal
+    WriteValue lr, "ITEM", itemName
+    WriteValue lr, "ITEM_CODE", itemName
+    WriteValue lr, "UOM", uomVal
+    WriteValue lr, "LOCATION", locationVal
+    WriteValue lr, "DESCRIPTION", versionLabel
     WriteValue lr, "TOTAL INV", nasQty
-    If Trim$(NzStr(GetInvSysValueByIndex(invLo, rowIndex, "SHIPMENTS"))) = "" Then WriteValue lr, "SHIPMENTS", 0
+    WriteValue lr, "SHIPMENTS", 0
     Set RepairMissingShipmentInvSysRowFromNasOverride = lr
     Exit Function
 
