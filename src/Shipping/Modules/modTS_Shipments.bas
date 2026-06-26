@@ -7831,6 +7831,7 @@ NextSelectedRow:
         Dim delta As Object: Set delta = CreateObject("Scripting.Dictionary")
         delta("ROW") = rowKeyValue
         delta("QTY") = NzDbl(requirements(key))
+        Set delta("LIST_ROW") = invRow
         If projectedOverrideQty > 0.0000001 Then delta("AVAILABLE_OVERRIDE") = projectedOverrideQty
         versionLabel = ShipmentRequirementVersionLabel(CStr(key))
         If versionLabel <> "" Then delta("VERSION") = versionLabel
@@ -9463,14 +9464,14 @@ Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
         Exit Function
     End If
 
+    BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
+    mutationStarted = True
     If Not QueueShipmentsReserveEvent(deltas, errNotes, reserveEventId) Then
         If errNotes = "" Then errNotes = "Unable to queue shipment reserve event."
         report = errNotes
-        Exit Function
+        GoTo CleanExit
     End If
 
-    BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
-    mutationStarted = True
     PrepareShipmentStageLogEntries invLo, deltas, shipLogs
     stagedTotal = ApplyShipmentDeltasLocal(invLo, deltas, errNotes)
     If stagedTotal < 0 Then
@@ -9568,14 +9569,14 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
         report = errNotes
         Exit Function
     End If
+    BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
+    mutationStarted = True
     If Not QueueShipmentsSentEvent(allSentDeltas, errNotes, queuedEventId) Then
         If errNotes = "" Then errNotes = "Unable to queue shipment sent event."
         report = errNotes
-        Exit Function
+        GoTo CleanExit
     End If
 
-    BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
-    mutationStarted = True
     If Trim$(carrierValue) <> "" Then SetShipmentRowsCarrier loShip, rowIndexes, carrierValue
     ApplyShipmentsSentVersionInventoryOverlay invLo, loShip, rowIndexes
     shippedTotal = ApplyShipmentsSentRowsInventory(invLo, loShip, rowIndexes, shipLogs, errNotes)
@@ -18254,7 +18255,7 @@ Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collect
         Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
         If qtyVal <= 0 Then GoTo NextValidate
 
-        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        Dim invRow As ListRow: Set invRow = ShipmentDeltaInventoryRow(invLo, delta, rowVal)
         If invRow Is Nothing Then
             AppendNote errNotes, "invSys ROW " & rowVal & " not found."
             ApplyShipmentDeltasLocal = -1
@@ -18291,7 +18292,7 @@ NextValidate:
         qtyVal = NzDbl(delta("QTY"))
         If qtyVal <= 0 Then GoTo NextApply
 
-        Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        Set invRow = ShipmentDeltaInventoryRow(invLo, delta, rowVal)
         If invRow Is Nothing Then GoTo NextApply
         Set shipCell = invRow.Range.Cells(1, colShip)
         shipCell.Value = NzDbl(shipCell.Value) + qtyVal
@@ -18299,6 +18300,31 @@ NextValidate:
         ApplyShipmentDeltasLocal = ApplyShipmentDeltasLocal + qtyVal
 NextApply:
     Next delta
+End Function
+
+Private Function ShipmentDeltaInventoryRow(ByVal invLo As ListObject, ByVal delta As Object, ByVal rowVal As Long) As ListRow
+    On Error GoTo Fallback
+
+    Dim candidate As ListRow
+    Dim cRow As Long
+
+    If Not delta Is Nothing Then
+        If delta.Exists("LIST_ROW") Then
+            Set candidate = delta("LIST_ROW")
+            If Not candidate Is Nothing Then
+                cRow = ColumnIndex(candidate.Parent, "ROW")
+                If cRow > 0 Then
+                    If NzLng(candidate.Range.Cells(1, cRow).Value) = rowVal Then
+                        Set ShipmentDeltaInventoryRow = candidate
+                        Exit Function
+                    End If
+                End If
+            End If
+        End If
+    End If
+
+Fallback:
+    Set ShipmentDeltaInventoryRow = FindInvListRowByRowValue(invLo, rowVal)
 End Function
 
 Private Function ApplyShipmentReleaseDeltasLocal(invLo As ListObject, deltas As Collection, ByRef errNotes As String, Optional ByVal allowMissingLocalStage As Boolean = False) As Double
