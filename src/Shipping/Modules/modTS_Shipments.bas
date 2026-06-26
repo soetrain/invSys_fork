@@ -7825,8 +7825,10 @@ NextSelectedRow:
             End If
         End If
         If invRow Is Nothing Then
-            AppendNote errNotes, "Package ROW " & CStr(rowKeyValue) & " not found in invSys. " & ShipmentInvSysRowRepairDebug(invLo, rowKeyValue, CStr(key), names, nasInventoryOverrides)
-            Exit Function
+            If Not useShipmentStaging Then
+                AppendNote errNotes, "Package ROW " & CStr(rowKeyValue) & " not found in invSys. " & ShipmentInvSysRowRepairDebug(invLo, rowKeyValue, CStr(key), names, nasInventoryOverrides)
+                Exit Function
+            End If
         End If
         If colTotalInv > 0 Then
             Dim availableQty As Double: availableQty = NzDbl(invRow.Range.Cells(1, colTotalInv).Value)
@@ -7848,7 +7850,12 @@ NextSelectedRow:
                 Exit Function
             End If
         ElseIf colShipments > 0 Then
-            Dim stagedQty As Double: stagedQty = NzDbl(invRow.Range.Cells(1, colShipments).Value)
+            Dim stagedQty As Double
+            If invRow Is Nothing Then
+                stagedQty = NzDbl(requirements(key))
+            Else
+                stagedQty = NzDbl(invRow.Range.Cells(1, colShipments).Value)
+            End If
             If Not allowMissingShipmentStaging And NzDbl(requirements(key)) > stagedQty + 0.0000001 Then
                 AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " only has " & Format$(stagedQty, "0.###") & " staged but needs " & Format$(NzDbl(requirements(key)), "0.###") & "."
                 Exit Function
@@ -7858,18 +7865,19 @@ NextSelectedRow:
         Dim delta As Object: Set delta = CreateObject("Scripting.Dictionary")
         delta("ROW") = rowKeyValue
         delta("QTY") = NzDbl(requirements(key))
-        delta.Add "LIST_ROW", invRow
+        If Not invRow Is Nothing Then delta.Add "LIST_ROW", invRow
         If projectedOverrideQty > 0.0000001 Then delta("AVAILABLE_OVERRIDE") = projectedOverrideQty
         versionLabel = ShipmentRequirementVersionLabel(CStr(key))
         If versionLabel <> "" Then delta("VERSION") = versionLabel
         If uoms.Exists(CStr(key)) Then delta("UOM") = NzStr(uoms(CStr(key)))
         If locations.Exists(CStr(key)) Then delta("LOCATION") = NzStr(locations(CStr(key)))
-        If colItemCode > 0 Then delta("ITEM_CODE") = NzStr(invRow.Range.Cells(1, colItemCode).Value)
-        If colItemName > 0 Then
+        If colItemCode > 0 And Not invRow Is Nothing Then delta("ITEM_CODE") = NzStr(invRow.Range.Cells(1, colItemCode).Value)
+        If colItemName > 0 And Not invRow Is Nothing Then
             delta("ITEM_NAME") = NzStr(invRow.Range.Cells(1, colItemName).Value)
         ElseIf names.Exists(CStr(key)) Then
             delta("ITEM_NAME") = NzStr(names(CStr(key)))
         End If
+        If Not delta.Exists("ITEM_CODE") And names.Exists(CStr(key)) Then delta("ITEM_CODE") = NzStr(names(CStr(key)))
         result.Add delta
     Next key
 
@@ -18014,6 +18022,66 @@ NextSent:
     Next delta
 End Sub
 
+Private Function FindShipmentSentDeltaInventoryRowForApply(ByVal invLo As ListObject, _
+                                                           ByVal deltas As Collection, _
+                                                           ByVal rowVal As Long, _
+                                                           ByRef errNotes As String, _
+                                                           Optional ByVal seedTotalForDeduct As Boolean = False) As ListRow
+    On Error GoTo Fail
+
+    Dim delta As Variant
+    Dim lr As ListRow
+    Dim itemName As String
+    Dim itemCode As String
+    Dim uomVal As String
+    Dim locationVal As String
+    Dim versionLabel As String
+    Dim qtyVal As Double
+
+    Set lr = FindInvListRowByRowValue(invLo, rowVal)
+    If Not lr Is Nothing Then
+        Set FindShipmentSentDeltaInventoryRowForApply = lr
+        Exit Function
+    End If
+    If invLo Is Nothing Or deltas Is Nothing Or rowVal <= 0 Then Exit Function
+
+    For Each delta In deltas
+        If CLng(delta("ROW")) <> rowVal Then GoTo NextDelta
+        qtyVal = qtyVal + NzDbl(delta("QTY"))
+        If itemName = "" And delta.Exists("ITEM_NAME") Then itemName = Trim$(NzStr(delta("ITEM_NAME")))
+        If itemCode = "" And delta.Exists("ITEM_CODE") Then itemCode = Trim$(NzStr(delta("ITEM_CODE")))
+        If uomVal = "" And delta.Exists("UOM") Then uomVal = Trim$(NzStr(delta("UOM")))
+        If locationVal = "" And delta.Exists("LOCATION") Then locationVal = Trim$(NzStr(delta("LOCATION")))
+        If versionLabel = "" And delta.Exists("VERSION") Then versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(delta("VERSION")))
+NextDelta:
+    Next delta
+
+    If itemName = "" Then itemName = itemCode
+    If itemCode = "" Then itemCode = itemName
+    If itemName = "" Or qtyVal <= 0 Then Exit Function
+
+    EnsureShippingWorksheetEditable invLo.Parent
+    Set lr = FirstBlankListRowShipping(invLo)
+    If lr Is Nothing Then Set lr = invLo.ListRows.Add
+    WriteValue lr, "ROW", rowVal
+    WriteValue lr, "ITEM", itemName
+    WriteValue lr, "ITEM_CODE", itemCode
+    WriteValue lr, "UOM", uomVal
+    WriteValue lr, "LOCATION", locationVal
+    WriteValue lr, "DESCRIPTION", versionLabel
+    If seedTotalForDeduct Then
+        WriteValue lr, "TOTAL INV", qtyVal
+    Else
+        WriteValue lr, "TOTAL INV", vbNullString
+    End If
+    WriteValue lr, "SHIPMENTS", qtyVal
+    Set FindShipmentSentDeltaInventoryRowForApply = lr
+    Exit Function
+
+Fail:
+    AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & " during Shipments Sent cleanup: " & Err.Description
+End Function
+
 Private Sub PrepareComponentLogEntries(invLo As ListObject, deltas As Collection, logEntries As Collection)
     If invLo Is Nothing Then Exit Sub
     If deltas Is Nothing Then Exit Sub
@@ -18153,7 +18221,7 @@ NextValidate:
     For Each key In validationByRow.Keys
         rowVal = CLng(key)
         qtyVal = NzDbl(validationByRow(CStr(key)))
-        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        Dim invRow As ListRow: Set invRow = FindShipmentSentDeltaInventoryRowForApply(invLo, deltas, rowVal, errNotes, deductTotalInv)
         If invRow Is Nothing Then
             AppendNote errNotes, "invSys ROW " & rowVal & " not found."
             ApplyShipmentsSentDeltas = -1
@@ -18181,7 +18249,7 @@ NextValidate:
         rowVal = CLng(delta("ROW"))
         qtyVal = NzDbl(delta("QTY"))
         If qtyVal <= 0 Then GoTo NextApply
-        Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        Set invRow = FindShipmentSentDeltaInventoryRowForApply(invLo, deltas, rowVal, errNotes, deductTotalInv)
         If invRow Is Nothing Then GoTo NextApply
         Set shipCell = invRow.Range.Cells(1, colShip)
         Dim newShip As Double: newShip = NzDbl(shipCell.Value) - qtyVal
