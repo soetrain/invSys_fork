@@ -1,6 +1,16 @@
 Attribute VB_Name = "modTS_Shipments"
 Option Explicit
 
+#If VBA7 Then
+Private Declare PtrSafe Function OpenClipboard Lib "user32" (ByVal hwnd As LongPtr) As Long
+Private Declare PtrSafe Function EmptyClipboard Lib "user32" () As Long
+Private Declare PtrSafe Function CloseClipboard Lib "user32" () As Long
+#Else
+Private Declare Function OpenClipboard Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare Function EmptyClipboard Lib "user32" () As Long
+Private Declare Function CloseClipboard Lib "user32" () As Long
+#End If
+
 ' =============================================================
 ' Module: modTS_Shipments
 ' Purpose: All logic for the ShippingTally system (box builder,
@@ -709,6 +719,7 @@ Public Sub BtnOpenShipmentsForm()
 
     frmShipmentsTally.SetOperatorWorkbook wb
     frmShipmentsTally.InitializeFromShipping
+    ClearSystemClipboardShipping
     If quietStarted Then
         modUiQuiet.EndQuietUi
         quietStarted = False
@@ -720,6 +731,7 @@ ErrHandler:
     messageText = "SHIPMENTS failed: " & Err.Description
 CleanExit:
     On Error Resume Next
+    ClearSystemClipboardShipping
     If quietStarted Then modUiQuiet.EndQuietUi
     On Error GoTo 0
     If Trim$(messageText) <> "" Then MsgBox messageText, vbExclamation, "invSys Shipments"
@@ -2480,11 +2492,18 @@ End Sub
 
 Private Sub ClearSystemClipboardShipping()
     On Error Resume Next
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
+
     Dim dataObj As Object
     Set dataObj = CreateObject("Forms.DataObject.1")
     If Not dataObj Is Nothing Then
         dataObj.SetText vbNullString
         dataObj.PutInClipboard
+    End If
+    Err.Clear
+    If OpenClipboard(0) <> 0 Then
+        EmptyClipboard
+        CloseClipboard
     End If
     If Application.CutCopyMode <> False Then Application.CutCopyMode = False
     On Error GoTo 0
@@ -3611,6 +3630,7 @@ Private Function CreateBoxBomTable(ByVal ws As Worksheet, ByVal loBuilder As Lis
 
     Set dataRange = ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers)))
     Set lo = ws.ListObjects.Add(xlSrcRange, dataRange, , xlYes)
+    ClearSystemClipboardShipping
     lo.Name = TABLE_BOX_BOM
     Set CreateBoxBomTable = lo
 End Function
@@ -3648,6 +3668,7 @@ Private Function EnsureBoxBomVersionsTable(ByVal ws As Worksheet, ByVal loBom As
 
     Set dataRange = ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers)))
     Set lo = ws.ListObjects.Add(xlSrcRange, dataRange, , xlYes)
+    ClearSystemClipboardShipping
     lo.Name = TABLE_BOX_BOM_VERSIONS
     If Not lo.DataBodyRange Is Nothing Then lo.ListRows(1).Delete
     ApplyBoxBomVersionStatusValidation lo
@@ -7159,18 +7180,21 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             report = errNotes
             GoTo CleanExit
         End If
-        If Not QueueShipmentsReserveEvent(reserveDeltas, errNotes, reserveEventId) Then
-            If errNotes = "" Then errNotes = "Unable to queue shipment reserve event."
-            report = errNotes
-            GoTo CleanExit
-        End If
-        If Not UpsertShippingReservationForRow(lo, lr.Index, reserveEventId, report) Then GoTo CleanExit
         reservedTotal = ApplyShipmentDeltasLocal(invLo, reserveDeltas, errNotes)
         If reservedTotal < 0 Then
             If errNotes = "" Then errNotes = "Unable to lock selected shipment inventory locally."
             report = errNotes
             GoTo CleanExit
         End If
+        If Not QueueShipmentsReserveEvent(reserveDeltas, errNotes, reserveEventId) Then
+            Dim rollbackNotes As String
+            releasedTotal = ApplyShipmentReleaseDeltasLocal(invLo, reserveDeltas, rollbackNotes, True)
+            If errNotes = "" Then errNotes = "Unable to queue shipment reserve event."
+            report = errNotes
+            If Trim$(rollbackNotes) <> "" Then report = report & vbCrLf & "Local rollback warning: " & rollbackNotes
+            GoTo CleanExit
+        End If
+        If Not UpsertShippingReservationForRow(lo, lr.Index, reserveEventId, report) Then GoTo CleanExit
         ApplyStageVersionInventoryOverlayFromRows invLo, lo, singleRow
         WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, reserveEventId
         WriteValue lr, "AREA", "Warehouse"
@@ -7835,6 +7859,8 @@ NextSelectedRow:
         If projectedOverrideQty > 0.0000001 Then delta("AVAILABLE_OVERRIDE") = projectedOverrideQty
         versionLabel = ShipmentRequirementVersionLabel(CStr(key))
         If versionLabel <> "" Then delta("VERSION") = versionLabel
+        If uoms.Exists(CStr(key)) Then delta("UOM") = NzStr(uoms(CStr(key)))
+        If locations.Exists(CStr(key)) Then delta("LOCATION") = NzStr(locations(CStr(key)))
         If colItemCode > 0 Then delta("ITEM_CODE") = NzStr(invRow.Range.Cells(1, colItemCode).Value)
         If colItemName > 0 Then
             delta("ITEM_NAME") = NzStr(invRow.Range.Cells(1, colItemName).Value)
@@ -14157,6 +14183,7 @@ Private Function EnsureShippingBomSchema(ByVal wb As Workbook, ByRef report As S
         Next i
         Set dataRange = ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers)))
         Set lo = ws.ListObjects.Add(xlSrcRange, dataRange, , xlYes)
+        ClearSystemClipboardShipping
         lo.Name = TABLE_CANONICAL_SHIPPING_BOM
         If Not lo.DataBodyRange Is Nothing Then lo.ListRows(1).Delete
     End If
@@ -14200,6 +14227,7 @@ Private Function EnsureShippingReservationsSchema(ByVal wb As Workbook, ByRef re
         Next i
         Set dataRange = ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers)))
         Set lo = ws.ListObjects.Add(xlSrcRange, dataRange, , xlYes)
+        ClearSystemClipboardShipping
         lo.Name = TABLE_SHIPPING_RESERVATIONS
         If Not lo.DataBodyRange Is Nothing Then lo.ListRows(1).Delete
     End If
@@ -15366,6 +15394,7 @@ Private Function EnsureShippingBomPackageTable(ByVal ws As Worksheet, _
         Next i
         Set dataRange = ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers)))
         Set lo = ws.ListObjects.Add(xlSrcRange, dataRange, , xlYes)
+        ClearSystemClipboardShipping
         lo.Name = tableName
         If Not lo.DataBodyRange Is Nothing Then lo.ListRows(1).Delete
     Else
@@ -15516,6 +15545,7 @@ Private Function EnsureBomTable(ws As Worksheet, ByVal boxName As String, ByVal 
     blockRange.Rows(1).Cells(1, 2).Value = "QUANTITY"
     blockRange.Rows(1).Cells(1, 3).Value = "UOM"
     Set lo = ws.ListObjects.Add(xlSrcRange, blockRange, , xlYes)
+    ClearSystemClipboardShipping
     lo.Name = targetName
     Set EnsureBomTable = lo
 End Function
@@ -18255,7 +18285,7 @@ Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collect
         Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
         If qtyVal <= 0 Then GoTo NextValidate
 
-        Dim invRow As ListRow: Set invRow = ShipmentDeltaInventoryRow(invLo, delta, rowVal)
+        Dim invRow As ListRow: Set invRow = EnsureShipmentDeltaInventoryRowForApply(invLo, delta, rowVal, errNotes)
         If invRow Is Nothing Then
             AppendNote errNotes, "invSys ROW " & rowVal & " not found."
             ApplyShipmentDeltasLocal = -1
@@ -18292,7 +18322,7 @@ NextValidate:
         qtyVal = NzDbl(delta("QTY"))
         If qtyVal <= 0 Then GoTo NextApply
 
-        Set invRow = ShipmentDeltaInventoryRow(invLo, delta, rowVal)
+        Set invRow = EnsureShipmentDeltaInventoryRowForApply(invLo, delta, rowVal, errNotes)
         If invRow Is Nothing Then GoTo NextApply
         Set shipCell = invRow.Range.Cells(1, colShip)
         shipCell.Value = NzDbl(shipCell.Value) + qtyVal
@@ -18325,6 +18355,59 @@ Private Function ShipmentDeltaInventoryRow(ByVal invLo As ListObject, ByVal delt
 
 Fallback:
     Set ShipmentDeltaInventoryRow = FindInvListRowByRowValue(invLo, rowVal)
+End Function
+
+Private Function EnsureShipmentDeltaInventoryRowForApply(ByVal invLo As ListObject, _
+                                                         ByVal delta As Object, _
+                                                         ByVal rowVal As Long, _
+                                                         ByRef errNotes As String) As ListRow
+    On Error GoTo Fail
+
+    Dim lr As ListRow
+    Dim itemName As String
+    Dim itemCode As String
+    Dim uomVal As String
+    Dim locationVal As String
+    Dim versionLabel As String
+    Dim totalQty As Double
+
+    Set lr = ShipmentDeltaInventoryRow(invLo, delta, rowVal)
+    If Not lr Is Nothing Then
+        Set EnsureShipmentDeltaInventoryRowForApply = lr
+        Exit Function
+    End If
+
+    If invLo Is Nothing Or delta Is Nothing Or rowVal <= 0 Then Exit Function
+    If delta.Exists("ITEM_NAME") Then itemName = Trim$(NzStr(delta("ITEM_NAME")))
+    If delta.Exists("ITEM_CODE") Then itemCode = Trim$(NzStr(delta("ITEM_CODE")))
+    If itemName = "" Then itemName = itemCode
+    If itemCode = "" Then itemCode = itemName
+    If itemName = "" Then Exit Function
+    If delta.Exists("UOM") Then uomVal = Trim$(NzStr(delta("UOM")))
+    If delta.Exists("LOCATION") Then locationVal = Trim$(NzStr(delta("LOCATION")))
+    If delta.Exists("VERSION") Then versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(delta("VERSION")))
+    If delta.Exists("AVAILABLE_OVERRIDE") Then totalQty = NzDbl(delta("AVAILABLE_OVERRIDE"))
+    If totalQty <= 0.0000001 Then totalQty = NzDbl(delta("QTY"))
+    If totalQty <= 0.0000001 Then Exit Function
+
+    EnsureShippingWorksheetEditable invLo.Parent
+    Set lr = FirstBlankListRowShipping(invLo)
+    If lr Is Nothing Then Set lr = invLo.ListRows.Add
+    WriteValue lr, "ROW", rowVal
+    WriteValue lr, "ITEM", itemName
+    WriteValue lr, "ITEM_CODE", itemCode
+    WriteValue lr, "UOM", uomVal
+    WriteValue lr, "LOCATION", locationVal
+    WriteValue lr, "DESCRIPTION", versionLabel
+    WriteValue lr, "TOTAL INV", totalQty
+    WriteValue lr, "SHIPMENTS", 0
+    If delta.Exists("LIST_ROW") Then delta.Remove "LIST_ROW"
+    delta.Add "LIST_ROW", lr
+    Set EnsureShipmentDeltaInventoryRowForApply = lr
+    Exit Function
+
+Fail:
+    AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & " during local lock apply: " & Err.Description
 End Function
 
 Private Function ApplyShipmentReleaseDeltasLocal(invLo As ListObject, deltas As Collection, ByRef errNotes As String, Optional ByVal allowMissingLocalStage As Boolean = False) As Double

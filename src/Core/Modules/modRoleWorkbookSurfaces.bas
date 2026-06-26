@@ -1,6 +1,16 @@
 Attribute VB_Name = "modRoleWorkbookSurfaces"
 Option Explicit
 
+#If VBA7 Then
+Private Declare PtrSafe Function OpenClipboard Lib "user32" (ByVal hwnd As LongPtr) As Long
+Private Declare PtrSafe Function EmptyClipboard Lib "user32" () As Long
+Private Declare PtrSafe Function CloseClipboard Lib "user32" () As Long
+#Else
+Private Declare Function OpenClipboard Lib "user32" (ByVal hwnd As Long) As Long
+Private Declare Function EmptyClipboard Lib "user32" () As Long
+Private Declare Function CloseClipboard Lib "user32" () As Long
+#End If
+
 Private Const SHIPPING_BACKEND_SHEET As String = "ShippingBackend"
 
 Public Function EnsureReceivingWorkbookSurface(Optional ByVal targetWb As Workbook = Nothing, _
@@ -671,7 +681,7 @@ End Sub
 
 Private Sub ClearClipboardSurface()
     On Error Resume Next
-    Application.CutCopyMode = False
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
 
     Dim dataObj As Object
     Set dataObj = CreateObject("Forms.DataObject.1")
@@ -679,7 +689,12 @@ Private Sub ClearClipboardSurface()
         dataObj.SetText vbNullString
         dataObj.PutInClipboard
     End If
-    Application.CutCopyMode = False
+    Err.Clear
+    If OpenClipboard(0) <> 0 Then
+        EmptyClipboard
+        CloseClipboard
+    End If
+    If Application.CutCopyMode <> False Then Application.CutCopyMode = False
     On Error GoTo 0
 End Sub
 
