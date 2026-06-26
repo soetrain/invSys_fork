@@ -6758,7 +6758,7 @@ Private Function RecentShipmentInventoryLogTextShipping(ByVal inventoryWb As Wor
             If cSku > 0 Then lineText = lineText & " | " & NzStr(loLog.DataBodyRange.Cells(rowIndex, cSku).Value)
             If cQtyDelta > 0 Then lineText = lineText & " | Delta " & FormatBoxMakerQuantityText(NzDbl(loLog.DataBodyRange.Cells(rowIndex, cQtyDelta).Value))
             If cLocation > 0 And Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cLocation).Value)) <> "" Then lineText = lineText & " | " & NzStr(loLog.DataBodyRange.Cells(rowIndex, cLocation).Value)
-            If cNote > 0 And Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cNote).Value)) <> "" Then lineText = lineText & " | " & Left$(Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cNote).Value)), 90)
+            If cNote > 0 And Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cNote).Value)) <> "" Then lineText = lineText & " | " & Left$(Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cNote).Value)), 180)
             RecentShipmentInventoryLogTextShipping = RecentShipmentInventoryLogTextShipping & vbCrLf & lineText
             If shown >= limitCount Then Exit For
         End If
@@ -7664,6 +7664,8 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     Dim cDesc As Long
     Dim cUomShip As Long
     Dim cLocationShip As Long
+    Dim cRefShip As Long
+    Dim cCarrierShip As Long
     Dim colItemCode As Long
     Dim colItemName As Long
     Dim colTotalInv As Long
@@ -7674,6 +7676,8 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     Dim names As Object
     Dim uoms As Object
     Dim locations As Object
+    Dim refs As Object
+    Dim carriers As Object
     Dim versionLabel As String
     Dim i As Long
     Dim rowIndex As Long
@@ -7717,6 +7721,8 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     cDesc = ColumnIndex(loShip, "DESCRIPTION")
     cUomShip = ColumnIndex(loShip, "UOM")
     cLocationShip = ColumnIndex(loShip, "LOCATION")
+    cRefShip = ColumnIndex(loShip, "REF_NUMBER")
+    cCarrierShip = ColumnIndex(loShip, "CARRIER")
     If cQtyShip = 0 Or cRowShip = 0 Then
         errNotes = "Shipments table missing QUANTITY/ROW columns."
         Exit Function
@@ -7730,6 +7736,10 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     uoms.CompareMode = vbTextCompare
     Set locations = CreateObject("Scripting.Dictionary")
     locations.CompareMode = vbTextCompare
+    Set refs = CreateObject("Scripting.Dictionary")
+    refs.CompareMode = vbTextCompare
+    Set carriers = CreateObject("Scripting.Dictionary")
+    carriers.CompareMode = vbTextCompare
     Set versionRequirements = CreateObject("Scripting.Dictionary")
     versionRequirements.CompareMode = vbTextCompare
     Set versionNames = CreateObject("Scripting.Dictionary")
@@ -7767,6 +7777,8 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
             If cItemShip > 0 Then names.Add reqKey, NzStr(loShip.DataBodyRange.Cells(rowIndex, cItemShip).Value)
             If cUomShip > 0 Then uoms.Add reqKey, NzStr(loShip.DataBodyRange.Cells(rowIndex, cUomShip).Value)
             If cLocationShip > 0 Then locations.Add reqKey, NzStr(loShip.DataBodyRange.Cells(rowIndex, cLocationShip).Value)
+            If cRefShip > 0 Then refs.Add reqKey, NzStr(loShip.DataBodyRange.Cells(rowIndex, cRefShip).Value)
+            If cCarrierShip > 0 Then carriers.Add reqKey, NzStr(loShip.DataBodyRange.Cells(rowIndex, cCarrierShip).Value)
         End If
         If StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 And cDesc > 0 Then
             If versionLabel <> "" Then
@@ -7871,6 +7883,8 @@ NextSelectedRow:
         If versionLabel <> "" Then delta("VERSION") = versionLabel
         If uoms.Exists(CStr(key)) Then delta("UOM") = NzStr(uoms(CStr(key)))
         If locations.Exists(CStr(key)) Then delta("LOCATION") = NzStr(locations(CStr(key)))
+        If refs.Exists(CStr(key)) Then delta("REF_NUMBER") = NzStr(refs(CStr(key)))
+        If carriers.Exists(CStr(key)) Then delta("CARRIER") = NzStr(carriers(CStr(key)))
         If colItemCode > 0 And Not invRow Is Nothing Then delta("ITEM_CODE") = NzStr(invRow.Range.Cells(1, colItemCode).Value)
         If colItemName > 0 And Not invRow Is Nothing Then
             delta("ITEM_NAME") = NzStr(invRow.Range.Cells(1, colItemName).Value)
@@ -17941,13 +17955,43 @@ Private Function BuildPayloadJsonFromDeltas(ByVal deltas As Collection, Optional
                 Dim payloadVersion As String: payloadVersion = NormalizeBoxBomVersionLabelShipping(NzStr(delta("VERSION")))
                 payloadItem("Version") = payloadVersion
                 payloadItem("BomVersionLabel") = payloadVersion
-                payloadItem("Note") = Trim$(NzStr(delta("ITEM_NAME")) & " VERSION=" & payloadVersion)
             End If
         End If
+        payloadItem("Note") = ShipmentPayloadNote(delta)
         payloadItems.Add payloadItem
     Next delta
 
     BuildPayloadJsonFromDeltas = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
+End Function
+
+Private Function ShipmentPayloadNote(ByVal delta As Object) As String
+    Dim noteText As String
+    Dim versionLabel As String
+    Dim refText As String
+    Dim carrierText As String
+
+    If delta Is Nothing Then Exit Function
+    If delta.Exists("ITEM_NAME") Then noteText = Trim$(NzStr(delta("ITEM_NAME")))
+    If delta.Exists("VERSION") Then versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(delta("VERSION")))
+    If versionLabel <> "" Then noteText = AppendHistoryTokenShipping(noteText, "VERSION=" & versionLabel)
+    If delta.Exists("REF_NUMBER") Then refText = Trim$(NzStr(delta("REF_NUMBER")))
+    If refText <> "" Then noteText = AppendHistoryTokenShipping(noteText, "REF=" & refText)
+    If delta.Exists("CARRIER") Then carrierText = Trim$(NzStr(delta("CARRIER")))
+    If carrierText <> "" Then noteText = AppendHistoryTokenShipping(noteText, "CARRIER=" & carrierText)
+    If delta.Exists("ROW") Then noteText = AppendHistoryTokenShipping(noteText, "ROW=" & CStr(NzLng(delta("ROW"))))
+    ShipmentPayloadNote = noteText
+End Function
+
+Private Function AppendHistoryTokenShipping(ByVal baseText As String, ByVal tokenText As String) As String
+    baseText = Trim$(baseText)
+    tokenText = Trim$(tokenText)
+    If tokenText = "" Then
+        AppendHistoryTokenShipping = baseText
+    ElseIf baseText = "" Then
+        AppendHistoryTokenShipping = tokenText
+    Else
+        AppendHistoryTokenShipping = baseText & "; " & tokenText
+    End If
 End Function
 
 Private Sub PrepareTotalInventoryLogEntries(invLo As ListObject, deltas As Collection, logEntries As Collection)

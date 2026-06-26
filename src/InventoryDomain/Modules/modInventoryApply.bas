@@ -710,10 +710,10 @@ Private Function ResolvePayloadQtyDelta(ByVal eventType As String, _
                                         ByRef errorCode As String, _
                                         ByRef errorMessage As String) As Double
     Select Case eventType
-        Case EVENT_TYPE_SHIP, EVENT_TYPE_SHIP_RESERVE
+        Case EVENT_TYPE_SHIP
             ResolvePayloadQtyDelta = -qty
-        Case EVENT_TYPE_SHIP_RELEASE
-            ResolvePayloadQtyDelta = qty
+        Case EVENT_TYPE_SHIP_RESERVE, EVENT_TYPE_SHIP_RELEASE
+            ResolvePayloadQtyDelta = 0
         Case EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE
             If ioType <> "" And ioType <> "ADJUST" And ioType <> "RECONCILE" Then
                 errorCode = "INVALID_PAYLOAD"

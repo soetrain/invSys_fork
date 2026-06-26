@@ -50,7 +50,7 @@ Public Sub OpenShipmentReconcileTool()
 
     Set recentRows = BuildRecentShipmentSentRows(inventoryWb, 20)
     If recentRows Is Nothing Or recentRows.Count = 0 Then
-        MsgBox "No server shipment deduction log entries (SHIP or SHIP_RESERVE) were found in tblInventoryLog." & vbCrLf & vbCrLf & _
+        MsgBox "No server shipment deduction log entries (SHIP) were found in tblInventoryLog." & vbCrLf & vbCrLf & _
                ShipmentLogDiagnosticsText(inventoryWb), vbInformation, "invSys Admin - Shipment Reconcile"
         Exit Sub
     End If
@@ -257,7 +257,7 @@ Public Function DetectNasIncreaseAfterLastShip(ByVal inventoryWb As Workbook, _
     End If
 
     If latestRow = 0 Then
-        report = "No SHIP or SHIP_RESERVE event was found for " & sku & "."
+        report = "No SHIP event was found for " & sku & "."
         Exit Function
     End If
 
@@ -465,7 +465,7 @@ End Function
 
 Private Function IsShipmentDeductionEventType(ByVal eventType As String) As Boolean
     eventType = UCase$(Trim$(eventType))
-    IsShipmentDeductionEventType = (eventType = SERVER_SHIP_EVENT_TYPE Or eventType = SERVER_SHIP_RESERVE_EVENT_TYPE)
+    IsShipmentDeductionEventType = (eventType = SERVER_SHIP_EVENT_TYPE)
 End Function
 
 Private Function FormatLogDateReconcile(ByVal valueIn As Variant) As String

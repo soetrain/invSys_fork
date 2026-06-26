@@ -260,8 +260,8 @@ Public Function TestApplyShipReserveAndReleaseEvents() As Long
     If loLog.ListRows.Count <> 2 Then GoTo CleanExit
     If CStr(TestPhase2Helpers.GetRowValue(loLog, 1, "EventType")) <> EVENT_TYPE_SHIP_RESERVE Then GoTo CleanExit
     If CStr(TestPhase2Helpers.GetRowValue(loLog, 2, "EventType")) <> EVENT_TYPE_SHIP_RELEASE Then GoTo CleanExit
-    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 1, "QtyDelta")) <> -3 Then GoTo CleanExit
-    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> 3 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 1, "QtyDelta")) <> 0 Then GoTo CleanExit
+    If CDbl(TestPhase2Helpers.GetRowValue(loLog, 2, "QtyDelta")) <> 0 Then GoTo CleanExit
 
     TestApplyShipReserveAndReleaseEvents = 1
 

@@ -6645,8 +6645,8 @@ Public Function TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected() 
         failureReason = "Operator invSys row was missing after reserve refresh."
         GoTo CleanExit
     End If
-    If CDbl(GetTableValue(loInv, invRow, "TOTAL INV")) <> 9 Then
-        failureReason = "Reserve processor refresh left NAS inventory stale; expected 9 but found " & CStr(GetTableValue(loInv, invRow, "TOTAL INV")) & ". Report=" & report
+    If CDbl(GetTableValue(loInv, invRow, "TOTAL INV")) <> 10 Then
+        failureReason = "Reserve processor refresh mutated NAS inventory; expected 10 but found " & CStr(GetTableValue(loInv, invRow, "TOTAL INV")) & ". Report=" & report
         GoTo CleanExit
     End If
 
@@ -6664,8 +6664,8 @@ Public Function TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected() 
         failureReason = "Shippable version inventory returned no rows after reserve refresh."
         GoTo CleanExit
     End If
-    If CDbl(NzDblForTest(shippables(1, 4))) <> 9 Then
-        failureReason = "Shipping form NAS Inv did not catch up to projected reserve; expected 9 but found " & CStr(shippables(1, 4)) & "."
+    If CDbl(NzDblForTest(shippables(1, 4))) <> 10 Then
+        failureReason = "Shipping form NAS Inv was changed by reserve refresh; expected 10 but found " & CStr(shippables(1, 4)) & "."
         GoTo CleanExit
     End If
 
@@ -8368,21 +8368,21 @@ Public Function TestAdminShipmentReconcile_RecentLogIncludesShipReserveEvidence(
     End If
 
     recentText = modAdminShipmentReconcile.BuildRecentShipmentSentLogText(wbInv, 20)
-    If InStr(1, recentText, "EVT-RESERVE-ADMIN-RECON-001", vbTextCompare) = 0 Then
-        failureReason = "Recent shipment evidence list did not include SHIP_RESERVE EventID: " & recentText
+    If InStr(1, recentText, "EVT-RESERVE-ADMIN-RECON-001", vbTextCompare) > 0 Then
+        failureReason = "Recent shipment deduction evidence incorrectly included SHIP_RESERVE EventID: " & recentText
         GoTo CleanExit
     End If
-    If InStr(1, recentText, "SHIP_RESERVE", vbTextCompare) = 0 Then
-        failureReason = "Recent shipment evidence list did not label reserve event type: " & recentText
+    If InStr(1, recentText, "SHIP_RESERVE", vbTextCompare) > 0 Then
+        failureReason = "Recent shipment deduction evidence incorrectly labeled reserve event type: " & recentText
         GoTo CleanExit
     End If
 
-    If Not modAdminShipmentReconcile.DetectNasIncreaseAfterShipEvent(wbInv, "EVT-RESERVE-ADMIN-RECON-001", "SKU-ADMIN-RESERVE-DETECT", currentNasQty, qtyAfterShip, report) Then
-        failureReason = "Selected SHIP_RESERVE EventID did not drive stale NAS detection: " & report
+    If modAdminShipmentReconcile.DetectNasIncreaseAfterShipEvent(wbInv, "EVT-RESERVE-ADMIN-RECON-001", "SKU-ADMIN-RESERVE-DETECT", currentNasQty, qtyAfterShip, report) Then
+        failureReason = "Selected SHIP_RESERVE EventID incorrectly drove stale NAS detection."
         GoTo CleanExit
     End If
-    If currentNasQty <> 10 Or qtyAfterShip <> 9 Then
-        failureReason = "SHIP_RESERVE detector compared wrong quantities. Current=" & CStr(currentNasQty) & "; AfterReserve=" & CStr(qtyAfterShip)
+    If InStr(1, report, "not found", vbTextCompare) = 0 Then
+        failureReason = "SHIP_RESERVE rejection report did not explain that it is not deduction evidence: " & report
         GoTo CleanExit
     End If
 
