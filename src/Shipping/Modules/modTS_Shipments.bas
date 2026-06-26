@@ -7831,7 +7831,7 @@ NextSelectedRow:
         Dim delta As Object: Set delta = CreateObject("Scripting.Dictionary")
         delta("ROW") = rowKeyValue
         delta("QTY") = NzDbl(requirements(key))
-        Set delta("LIST_ROW") = invRow
+        delta.Add "LIST_ROW", invRow
         If projectedOverrideQty > 0.0000001 Then delta("AVAILABLE_OVERRIDE") = projectedOverrideQty
         versionLabel = ShipmentRequirementVersionLabel(CStr(key))
         If versionLabel <> "" Then delta("VERSION") = versionLabel
