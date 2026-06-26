@@ -7775,7 +7775,12 @@ NextSelectedRow:
         projectedOverrideQty = 0#
         If invRow Is Nothing Then
             If StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 Then
-                RepairMissingShipmentInvSysRowFromNasOverride invLo, rowKeyValue, CStr(key), names, uoms, locations, nasInventoryOverrides
+                Set invRow = RepairMissingShipmentInvSysRowFromNasOverride(invLo, rowKeyValue, CStr(key), names, uoms, locations, nasInventoryOverrides, errNotes)
+                If invRow Is Nothing Then Set invRow = FindInvListRowByRowValue(invLo, rowKeyValue)
+            End If
+        ElseIf StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 Then
+            If ShipmentRowProjectedAvailabilityOverrideQty(rowKeyValue, nasInventoryOverrides) > 0.0000001 Then
+                ApplyShipmentNasOverrideToInvRow invLo, invRow, rowKeyValue, nasInventoryOverrides
                 Set invRow = FindInvListRowByRowValue(invLo, rowKeyValue)
             End If
         End If
@@ -7784,9 +7789,6 @@ NextSelectedRow:
             Exit Function
         End If
         If colTotalInv > 0 Then
-            If StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 Then
-                ApplyShipmentNasOverrideToInvRow invLo, invRow, rowKeyValue, nasInventoryOverrides
-            End If
             Dim availableQty As Double: availableQty = NzDbl(invRow.Range.Cells(1, colTotalInv).Value)
             If colShipments > 0 Then
                 availableQty = availableQty - NzDbl(invRow.Range.Cells(1, colShipments).Value)
@@ -7840,14 +7842,15 @@ Private Function ShippingNasInventoryOverride(ByVal rowVal As Long, _
     Set ShippingNasInventoryOverride = ShippingVersionAvailabilityOverride(rowVal, versionLabel, displayedAvailableQty)
 End Function
 
-Private Sub RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As ListObject, _
-                                                          ByVal rowVal As Long, _
-                                                          ByVal requirementKey As String, _
-                                                          ByVal names As Object, _
-                                                          ByVal uoms As Object, _
-                                                          ByVal locations As Object, _
-                                                          Optional ByVal nasInventoryOverrides As Object)
-    On Error GoTo CleanExit
+Private Function RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As ListObject, _
+                                                               ByVal rowVal As Long, _
+                                                               ByVal requirementKey As String, _
+                                                               ByVal names As Object, _
+                                                               ByVal uoms As Object, _
+                                                               ByVal locations As Object, _
+                                                               ByVal nasInventoryOverrides As Object, _
+                                                               ByRef errNotes As String) As ListRow
+    On Error GoTo Fail
 
     Dim nasQty As Double
     Dim itemName As String
@@ -7857,15 +7860,15 @@ Private Sub RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As ListObj
     Dim rowIndex As Long
     Dim lr As ListRow
 
-    If invLo Is Nothing Then Exit Sub
-    If rowVal <= 0 Then Exit Sub
+    If invLo Is Nothing Then Exit Function
+    If rowVal <= 0 Then Exit Function
     nasQty = ShipmentRowProjectedAvailabilityOverrideQty(rowVal, nasInventoryOverrides)
-    If nasQty <= 0.0000001 Then Exit Sub
+    If nasQty <= 0.0000001 Then Exit Function
 
     If Not names Is Nothing Then
         If names.Exists(requirementKey) Then itemName = Trim$(NzStr(names(requirementKey)))
     End If
-    If itemName = "" Then Exit Sub
+    If itemName = "" Then Exit Function
     If Not uoms Is Nothing Then
         If uoms.Exists(requirementKey) Then uomVal = Trim$(NzStr(uoms(requirementKey)))
     End If
@@ -7874,16 +7877,20 @@ Private Sub RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As ListObj
     End If
     versionLabel = ShipmentRequirementVersionLabel(requirementKey)
 
-    If EnsureInvSysItemByRow(rowVal, itemName, uomVal, locationVal, versionLabel, invLo) <= 0 Then Exit Sub
+    EnsureShippingWorksheetEditable invLo.Parent
+    If EnsureInvSysItemByRow(rowVal, itemName, uomVal, locationVal, versionLabel, invLo) <= 0 Then Exit Function
     rowIndex = FindInvRowIndexByRow(invLo, rowVal)
-    If rowIndex <= 0 Then Exit Sub
+    If rowIndex <= 0 Then Exit Function
 
     Set lr = invLo.ListRows(rowIndex)
     WriteValue lr, "TOTAL INV", nasQty
     If Trim$(NzStr(GetInvSysValueByIndex(invLo, rowIndex, "SHIPMENTS"))) = "" Then WriteValue lr, "SHIPMENTS", 0
+    Set RepairMissingShipmentInvSysRowFromNasOverride = lr
+    Exit Function
 
-CleanExit:
-End Sub
+Fail:
+    AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & ": " & Err.Description
+End Function
 
 Private Function ShipmentInvSysRowRepairDebug(ByVal invLo As ListObject, _
                                               ByVal rowVal As Long, _
@@ -16458,16 +16465,15 @@ End Function
 
 Private Function FindInvListRowByRowValue(invLo As ListObject, ByVal rowValue As Long) As ListRow
     If invLo Is Nothing Or rowValue <= 0 Then Exit Function
-    If invLo.DataBodyRange Is Nothing Then Exit Function
     Dim cRow As Long: cRow = ColumnIndex(invLo, "ROW")
     If cRow = 0 Then Exit Function
-    Dim cel As Range
-    For Each cel In invLo.ListColumns(cRow).DataBodyRange.Cells
-        If NzLng(cel.Value) = rowValue Then
-            Set FindInvListRowByRowValue = invLo.ListRows(cel.Row - invLo.DataBodyRange.Row + 1)
+    Dim r As Long
+    For r = 1 To invLo.ListRows.Count
+        If NzLng(invLo.ListRows(r).Range.Cells(1, cRow).Value) = rowValue Then
+            Set FindInvListRowByRowValue = invLo.ListRows(r)
             Exit Function
         End If
-    Next cel
+    Next r
 End Function
 
 Private Function ValidateComponentInventory(invLo As ListObject, aggBom As ListObject, ByRef shortageMsg As String) As Boolean
