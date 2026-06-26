@@ -1361,6 +1361,9 @@ Private Function OpenOrCreateCanonicalInventoryWorkbook(ByVal warehouseId As Str
     End If
 
     If modInventorySchema.EnsureInventorySchema(wb) Then
+        If Not wb.ReadOnly Then
+            If Not wb.Saved Then wb.Save
+        End If
         Set OpenOrCreateCanonicalInventoryWorkbook = wb
     End If
     Exit Function

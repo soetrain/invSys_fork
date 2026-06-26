@@ -1574,6 +1574,33 @@ Public Function ValidateQueueShipmentsSentEventFromCurrentWorkbook() As String
     End If
 End Function
 
+Public Function ShipmentsPayloadJsonForRowsForTest(ByVal rowIndexes As Variant, ByVal requiredArea As String) As String
+    Dim ws As Worksheet
+    Dim invLo As ListObject
+    Dim loShip As ListObject
+    Dim deltas As Collection
+    Dim errNotes As String
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then
+        ShipmentsPayloadJsonForRowsForTest = "ERR|ShipmentsTally sheet not found."
+        Exit Function
+    End If
+    Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
+    Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
+    If invLo Is Nothing Or loShip Is Nothing Then
+        ShipmentsPayloadJsonForRowsForTest = "ERR|Shipping tables not found."
+        Exit Function
+    End If
+
+    Set deltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, rowIndexes, requiredArea, errNotes)
+    If deltas Is Nothing Then
+        ShipmentsPayloadJsonForRowsForTest = "ERR|" & errNotes
+        Exit Function
+    End If
+    ShipmentsPayloadJsonForRowsForTest = BuildPayloadJsonFromDeltas(deltas, "")
+End Function
+
 Public Function ValidateShipmentsSentStagingFromCurrentWorkbook() As String
     Dim ws As Worksheet
     Dim invLo As ListObject
@@ -6683,6 +6710,8 @@ Public Function ShipmentsFormRecentHistoryText(Optional ByVal limitCount As Long
     Dim logText As String
     Dim pipelineText As String
     Dim target As WarehouseTarget
+    Dim inventoryPath As String
+    Dim openedTransient As Boolean
 
     If limitCount <= 0 Then limitCount = 20
     Set target = modNasConnection.GetCurrentTarget()
@@ -6695,16 +6724,40 @@ Public Function ShipmentsFormRecentHistoryText(Optional ByVal limitCount As Long
     If warehouseId = "" Then warehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
     If stationId = "" Then stationId = Trim$(modConfig.GetString("StationId", ""))
 
+    inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
+    openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
     Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
     logText = RecentShipmentInventoryLogTextShipping(inventoryWb, limitCount)
     pipelineText = ShipmentPipelineStatusTextShipping(warehouseId, stationId)
 
     ShipmentsFormRecentHistoryText = logText
     If pipelineText <> "" Then ShipmentsFormRecentHistoryText = ShipmentsFormRecentHistoryText & vbCrLf & vbCrLf & pipelineText
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
     Exit Function
 
 FailSoft:
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
     ShipmentsFormRecentHistoryText = "Shipments history failed: " & Err.Description
+End Function
+
+Private Function CurrentShippingInventoryWorkbookPath(ByVal warehouseId As String) As String
+    Dim target As WarehouseTarget
+    Dim rootPath As String
+
+    warehouseId = Trim$(warehouseId)
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        If warehouseId = "" Or StrComp(Trim$(target.WarehouseId), warehouseId, vbTextCompare) = 0 Then
+            If warehouseId = "" Then warehouseId = Trim$(target.WarehouseId)
+            rootPath = Trim$(target.RuntimeRoot)
+        End If
+    End If
+    If warehouseId = "" Then warehouseId = Trim$(modConfig.GetWarehouseId())
+    If warehouseId = "" Then warehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
+    If rootPath = "" Then rootPath = Trim$(modConfig.GetString("PathDataRoot", ""))
+    rootPath = NormalizeFolderPathShipping(rootPath)
+    If warehouseId = "" Or rootPath = "" Then Exit Function
+    CurrentShippingInventoryWorkbookPath = rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
 End Function
 
 Private Function RecentShipmentInventoryLogTextShipping(ByVal inventoryWb As Workbook, ByVal limitCount As Long) As String
@@ -7885,7 +7938,12 @@ NextSelectedRow:
         If locations.Exists(CStr(key)) Then delta("LOCATION") = NzStr(locations(CStr(key)))
         If refs.Exists(CStr(key)) Then delta("REF_NUMBER") = NzStr(refs(CStr(key)))
         If carriers.Exists(CStr(key)) Then delta("CARRIER") = NzStr(carriers(CStr(key)))
-        If colItemCode > 0 And Not invRow Is Nothing Then delta("ITEM_CODE") = NzStr(invRow.Range.Cells(1, colItemCode).Value)
+        If names.Exists(CStr(key)) Then
+            If Trim$(NzStr(names(CStr(key)))) <> "" Then delta("ITEM_CODE") = Trim$(NzStr(names(CStr(key))))
+        End If
+        If Not delta.Exists("ITEM_CODE") Then
+            If colItemCode > 0 And Not invRow Is Nothing Then delta("ITEM_CODE") = NzStr(invRow.Range.Cells(1, colItemCode).Value)
+        End If
         If colItemName > 0 And Not invRow Is Nothing Then
             delta("ITEM_NAME") = NzStr(invRow.Range.Cells(1, colItemName).Value)
         ElseIf names.Exists(CStr(key)) Then

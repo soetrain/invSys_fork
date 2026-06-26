@@ -5042,7 +5042,7 @@ Public Function TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjectio
     SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-STAGE-LOCKED-A"
     SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-STAGE-LOCKED-A"
     loShip.ListRows.Add
-    SetTableCell loShip, 2, "REF_NUMBER", "REF-STAGE-LOCKED"
+    SetTableCell loShip, 2, "REF_NUMBER", "REF-STAGE-LOCKED-B"
     SetTableCell loShip, 2, "ITEMS", "Stage Locked Item"
     SetTableCell loShip, 2, "QUANTITY", 1
     SetTableCell loShip, 2, "ROW", 961
@@ -5097,6 +5097,11 @@ Public Function TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjectio
     End If
     If UBound(rows, 1) <> 2 Then
         failureReason = "Reserved multi-select To Shipments reload returned " & CStr(UBound(rows, 1)) & " rows; expected 2."
+        GoTo CleanExit
+    End If
+    If StrComp(CStr(rows(1, 1)), "REF-STAGE-LOCKED", vbTextCompare) <> 0 _
+       Or StrComp(CStr(rows(2, 1)), "REF-STAGE-LOCKED-B", vbTextCompare) <> 0 Then
+        failureReason = "Reloaded active rows did not preserve distinct Ref values."
         GoTo CleanExit
     End If
     If StrComp(CStr(rows(1, 9)), "Shipments", vbTextCompare) <> 0 _
@@ -6025,6 +6030,65 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7180, "TestShippingSentRows_RepairsMissingInvSysRowFromShipmentLine", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingSentPayload_UsesVisibleShipmentItemWhenInvSysCodeStale() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim selectedRows(1 To 1) As Long
+    Dim payloadJson As String
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 89, "T27", "T28", "ea", "CLEARVIEW", 8
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "77", "T28", 1, 89, "ea", "CLEARVIEW", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "FedEx"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-STALE-CODE-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-STALE-CODE-001"
+
+    selectedRows(1) = 1
+    wbOps.Activate
+    payloadJson = RunShippingPayloadJsonForRowsForTest(selectedRows, "Shipments")
+    If Left$(payloadJson, 4) = "ERR|" Then
+        failureReason = "Payload preview failed: " & payloadJson
+        GoTo CleanExit
+    End If
+    If InStr(1, payloadJson, """SKU"":""T28""", vbTextCompare) = 0 Then
+        failureReason = "Shipments Sent payload did not use visible T28 item: " & payloadJson
+        GoTo CleanExit
+    End If
+    If InStr(1, payloadJson, """SKU"":""T27""", vbTextCompare) > 0 Then
+        failureReason = "Shipments Sent payload used stale invSys ITEM_CODE T27: " & payloadJson
+        GoTo CleanExit
+    End If
+    If InStr(1, payloadJson, "REF=77", vbTextCompare) = 0 _
+       Or InStr(1, payloadJson, "CARRIER=FedEx", vbTextCompare) = 0 Then
+        failureReason = "Shipments Sent payload note did not preserve Ref/Carrier: " & payloadJson
+        GoTo CleanExit
+    End If
+
+    TestShippingSentPayload_UsesVisibleShipmentItemWhenInvSysCodeStale = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7181, "TestShippingSentPayload_UsesVisibleShipmentItemWhenInvSysCodeStale", failureReason
     End If
     Exit Function
 CleanFail:
@@ -9588,6 +9652,17 @@ Private Function RunShippingSentRowsReportForTest(ByVal rowIndexes As Variant, B
     macroName = ShippingMacroNameForTest("ShipmentsFormRunShipmentsSentRowsReportForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingSentRowsReportForTest = CStr(Application.Run(macroName, rowIndexes, carrierValue))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingPayloadJsonForRowsForTest(ByVal rowIndexes As Variant, ByVal requiredArea As String) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsPayloadJsonForRowsForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingPayloadJsonForRowsForTest = CStr(Application.Run(macroName, rowIndexes, requiredArea))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

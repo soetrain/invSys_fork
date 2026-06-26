@@ -575,7 +575,9 @@ Private Function OpenOrCreateCanonicalInventoryWorkbookLocal(ByVal warehouseId A
     End If
 
     If Not EnsureInventorySchemaLocal(wb, report) Then Exit Function
-    If wasCreated Then wb.Save
+    If Not wb.ReadOnly Then
+        If wasCreated Or Not wb.Saved Then wb.Save
+    End If
     Set OpenOrCreateCanonicalInventoryWorkbookLocal = wb
     Exit Function
 
