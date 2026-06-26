@@ -552,6 +552,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingEventCreator_QueuesSignedInCurrentTargetEvent",
         "TestPhase6CoreSurfaces.TestShippingState_TombstoneFiltersSentLineIdFromActiveCache",
         "TestPhase6CoreSurfaces.TestShippingState_SentRowTombstoneFiltersLegacyActiveCache",
+        "TestPhase6CoreSurfaces.TestShippingFormOpen_ClearsPreviousSessionActiveRows",
         "TestPhase6CoreSurfaces.TestShippingWorkflowGuard_ShipmentsSentWithZeroStagedFails",
         "TestPhase6CoreSurfaces.TestShippingWorkflowGuard_ToShipmentsInsufficientInventoryFails",
         "TestPhase6CoreSurfaces.TestShippingWorkflowGuard_BoxesMadeInsufficientComponentFails",

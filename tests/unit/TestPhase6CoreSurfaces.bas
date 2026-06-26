@@ -4091,6 +4091,83 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingFormOpen_ClearsPreviousSessionActiveRows() As Long
+    Dim rootPath As String
+    Dim wbOps As Workbook
+    Dim report As String
+    Dim failureReason As String
+    Dim activePath As String
+    Dim rows As Variant
+    Dim ignored As Variant
+    Dim loShip As ListObject
+
+    rootPath = BuildRuntimeTestRoot("phase6_shipping_form_open_clear")
+
+    On Error GoTo CleanFail
+    modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    If Not modConfig.LoadConfig("WH93", "S21") Then GoTo CleanExit
+    SetConfigWarehouseValue "WH93.invSys.Config.xlsb", "PathDataRoot", rootPath & "\"
+    If Not modConfig.Reload() Then GoTo CleanExit
+
+    activePath = LocalShippingStatePathForTest("active", "WH93")
+    DeleteFileIfExistsForTest activePath
+    EnsureFolderForTest ParentFolderPathForTest(activePath)
+    WriteTextFileForTest activePath, "REF-OLD-SESSION" & vbTab & "Old Session Package" & vbTab & "1" & vbTab & "978" & vbTab & "EA" & vbTab & "A1" & vbTab & "v1" & vbTab & "Shipments" & vbTab & "UPS"
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureShippingWorkbookSurface failed: " & report
+        GoTo CleanExit
+    End If
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    If loShip Is Nothing Then
+        failureReason = "ShipmentsTally table was not created."
+        GoTo CleanExit
+    End If
+    AddShippingTallyRow loShip, "REF-VISIBLE-OLD", "Visible Old Session Package", 1, 978, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+
+    wbOps.Activate
+    ignored = RunShippingMacro1ForTest("ShipmentsFormClearActiveLines", wbOps)
+
+    If Len(Dir$(activePath, vbNormal)) > 0 Then
+        failureReason = "Initial Shipments form open did not delete the previous-session active cache file."
+        GoTo CleanExit
+    End If
+    If Not loShip.DataBodyRange Is Nothing Then
+        If loShip.ListRows.Count > 0 Then
+            If Trim$(CStr(GetTableValue(loShip, 1, "REF_NUMBER"))) <> "" _
+               Or Trim$(CStr(GetTableValue(loShip, 1, "ITEMS"))) <> "" Then
+                failureReason = "Initial Shipments form open did not clear the visible previous-session Shipments row."
+                GoTo CleanExit
+            End If
+        End If
+    End If
+
+    rows = RunShippingMacro1ForTest("ShipmentsFormLoadLines", False)
+    If Not IsEmpty(rows) Then
+        failureReason = "Previous-session active rows still loaded after initial Shipments form clear."
+        GoTo CleanExit
+    End If
+
+    TestShippingFormOpen_ClearsPreviousSessionActiveRows = 1
+
+CleanExit:
+    DeleteFileIfExistsForTest activePath
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7182, "TestShippingFormOpen_ClearsPreviousSessionActiveRows", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingWorkflowGuard_ShipmentsSentWithZeroStagedFails() As Long
     Dim wbOps As Workbook
     Dim report As String

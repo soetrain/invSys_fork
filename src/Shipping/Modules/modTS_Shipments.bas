@@ -6740,6 +6740,75 @@ FailSoft:
     ShipmentsFormRecentHistoryText = "Shipments history failed: " & Err.Description
 End Function
 
+Public Function ShipmentsFormExportHistoryToSheet(Optional ByVal limitCount As Long = 100, _
+                                                  Optional ByVal targetWb As Workbook = Nothing) As String
+    On Error GoTo FailSoft
+
+    Dim warehouseId As String
+    Dim inventoryWb As Workbook
+    Dim inventoryPath As String
+    Dim openedTransient As Boolean
+    Dim rows As Collection
+    Dim ws As Worksheet
+    Dim outData() As Variant
+    Dim record As Variant
+    Dim i As Long
+    Dim exportedCount As Long
+
+    If limitCount <= 0 Then limitCount = 100
+    If targetWb Is Nothing Then Set targetWb = ActiveWorkbook
+    If targetWb Is Nothing Then
+        ShipmentsFormExportHistoryToSheet = "Shipments history export failed: no target workbook."
+        Exit Function
+    End If
+
+    warehouseId = Trim$(modConfig.GetWarehouseId())
+    If warehouseId = "" Then warehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
+    inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
+    openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
+    Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+    Set rows = RecentShipmentHistoryRowsShipping(inventoryWb, limitCount)
+
+    Set ws = EnsureShipmentHistoryWorksheetShipping(targetWb)
+    ws.Cells.Clear
+    ws.Range("A1:N1").Value = Array("#", "Event", "OccurredAtUTC", "Ref", "Carrier", "Item", "Version", _
+                                    "QtyDelta", "Qty", "ROW", "ServerSKU", "Location", "EventID", "RawNote")
+    ws.Rows(1).Font.Bold = True
+
+    If Not rows Is Nothing And rows.Count > 0 Then
+        exportedCount = rows.Count
+        ReDim outData(1 To rows.Count, 1 To 14)
+        For i = 1 To rows.Count
+            record = rows(i)
+            outData(i, 1) = i
+            outData(i, 2) = record(2)
+            outData(i, 3) = record(3)
+            outData(i, 4) = record(4)
+            outData(i, 5) = record(5)
+            outData(i, 6) = record(6)
+            outData(i, 7) = record(7)
+            outData(i, 8) = record(8)
+            outData(i, 9) = record(9)
+            outData(i, 10) = record(10)
+            outData(i, 11) = record(11)
+            outData(i, 12) = record(12)
+            outData(i, 13) = record(1)
+            outData(i, 14) = record(14)
+        Next i
+        ws.Range("A2").Resize(rows.Count, 14).Value = outData
+    End If
+    ws.Columns("A:N").AutoFit
+    ws.Activate
+
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+    ShipmentsFormExportHistoryToSheet = "Exported " & CStr(exportedCount) & " shipment history row(s) to ShipmentsHistory."
+    Exit Function
+
+FailSoft:
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+    ShipmentsFormExportHistoryToSheet = "Shipments history export failed: " & Err.Description
+End Function
+
 Private Function CurrentShippingInventoryWorkbookPath(ByVal warehouseId As String) As String
     Dim target As WarehouseTarget
     Dim rootPath As String
@@ -6763,6 +6832,57 @@ End Function
 Private Function RecentShipmentInventoryLogTextShipping(ByVal inventoryWb As Workbook, ByVal limitCount As Long) As String
     On Error GoTo FailSoft
 
+    Dim rows As Collection
+    Dim record As Variant
+    Dim i As Long
+    Dim lineText As String
+
+    If inventoryWb Is Nothing Then
+        RecentShipmentInventoryLogTextShipping = "Processed server log: inventory workbook not open."
+        Exit Function
+    End If
+    If FindListObjectByNameShipping(inventoryWb, "tblInventoryLog") Is Nothing Then
+        RecentShipmentInventoryLogTextShipping = "Processed server log: no tblInventoryLog rows found."
+        Exit Function
+    End If
+
+    Set rows = RecentShipmentHistoryRowsShipping(inventoryWb, limitCount)
+    RecentShipmentInventoryLogTextShipping = "Processed server shipment history (latest " & CStr(limitCount) & "):"
+    If rows Is Nothing Or rows.Count = 0 Then
+        RecentShipmentInventoryLogTextShipping = RecentShipmentInventoryLogTextShipping & vbCrLf & "None found."
+        Exit Function
+    End If
+
+    For i = 1 To rows.Count
+        record = rows(i)
+        lineText = CStr(i) & ". " & CStr(record(2))
+        If Trim$(CStr(record(3))) <> "" Then lineText = lineText & " " & CStr(record(3))
+        If Trim$(CStr(record(4))) <> "" Then lineText = lineText & " | Ref " & CStr(record(4))
+        If Trim$(CStr(record(5))) <> "" Then lineText = lineText & " | " & CStr(record(5))
+        If Trim$(CStr(record(6))) <> "" Then
+            lineText = lineText & " | " & CStr(record(6))
+            If Trim$(CStr(record(7))) <> "" Then lineText = lineText & " " & CStr(record(7))
+        ElseIf Trim$(CStr(record(11))) <> "" Then
+            lineText = lineText & " | " & CStr(record(11))
+        End If
+        If NzDbl(record(8)) <> 0 Then lineText = lineText & " | Qty " & FormatBoxMakerQuantityText(Abs(NzDbl(record(8))))
+        If Trim$(CStr(record(10))) <> "" Then lineText = lineText & " | Row " & CStr(record(10))
+        If Trim$(CStr(record(11))) <> "" And StrComp(Trim$(CStr(record(11))), Trim$(CStr(record(6))), vbTextCompare) <> 0 Then
+            lineText = lineText & " | ServerSKU " & CStr(record(11))
+        End If
+        If Trim$(CStr(record(1))) <> "" Then lineText = lineText & " | Event " & CStr(record(1))
+        RecentShipmentInventoryLogTextShipping = RecentShipmentInventoryLogTextShipping & vbCrLf & lineText
+    Next i
+    Exit Function
+
+FailSoft:
+    RecentShipmentInventoryLogTextShipping = "Processed server log failed: " & Err.Description
+End Function
+
+Private Function RecentShipmentHistoryRowsShipping(ByVal inventoryWb As Workbook, ByVal limitCount As Long) As Collection
+    On Error GoTo FailSoft
+
+    Dim rows As New Collection
     Dim loLog As ListObject
     Dim cEventId As Long
     Dim cEventType As Long
@@ -6772,17 +6892,17 @@ Private Function RecentShipmentInventoryLogTextShipping(ByVal inventoryWb As Wor
     Dim cLocation As Long
     Dim cNote As Long
     Dim rowIndex As Long
-    Dim shown As Long
     Dim eventType As String
-    Dim lineText As String
+    Dim record As Variant
 
+    If limitCount <= 0 Then limitCount = 20
     If inventoryWb Is Nothing Then
-        RecentShipmentInventoryLogTextShipping = "Processed server log: inventory workbook not open."
+        Set RecentShipmentHistoryRowsShipping = rows
         Exit Function
     End If
     Set loLog = FindListObjectByNameShipping(inventoryWb, "tblInventoryLog")
     If loLog Is Nothing Or loLog.DataBodyRange Is Nothing Then
-        RecentShipmentInventoryLogTextShipping = "Processed server log: no tblInventoryLog rows found."
+        Set RecentShipmentHistoryRowsShipping = rows
         Exit Function
     End If
 
@@ -6794,33 +6914,121 @@ Private Function RecentShipmentInventoryLogTextShipping(ByVal inventoryWb As Wor
     cLocation = ColumnIndex(loLog, "Location")
     cNote = ColumnIndex(loLog, "Note")
     If cEventType = 0 Then
-        RecentShipmentInventoryLogTextShipping = "Processed server log: EventType column missing."
+        Set RecentShipmentHistoryRowsShipping = rows
         Exit Function
     End If
 
-    RecentShipmentInventoryLogTextShipping = "Processed server shipment history:"
     For rowIndex = loLog.ListRows.Count To 1 Step -1
         eventType = UCase$(Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cEventType).Value)))
         If eventType = EVENT_TYPE_SHIP Or eventType = EVENT_TYPE_SHIP_RESERVE _
            Or eventType = EVENT_TYPE_SHIP_RELEASE Or eventType = EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE Then
-            shown = shown + 1
-            lineText = CStr(shown) & ". "
-            If cEventId > 0 Then lineText = lineText & NzStr(loLog.DataBodyRange.Cells(rowIndex, cEventId).Value) & " | "
-            lineText = lineText & eventType
-            If cTime > 0 Then lineText = lineText & " | " & FormatHistoryValueShipping(loLog.DataBodyRange.Cells(rowIndex, cTime).Value)
-            If cSku > 0 Then lineText = lineText & " | " & NzStr(loLog.DataBodyRange.Cells(rowIndex, cSku).Value)
-            If cQtyDelta > 0 Then lineText = lineText & " | Delta " & FormatBoxMakerQuantityText(NzDbl(loLog.DataBodyRange.Cells(rowIndex, cQtyDelta).Value))
-            If cLocation > 0 And Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cLocation).Value)) <> "" Then lineText = lineText & " | " & NzStr(loLog.DataBodyRange.Cells(rowIndex, cLocation).Value)
-            If cNote > 0 And Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cNote).Value)) <> "" Then lineText = lineText & " | " & Left$(Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cNote).Value)), 180)
-            RecentShipmentInventoryLogTextShipping = RecentShipmentInventoryLogTextShipping & vbCrLf & lineText
-            If shown >= limitCount Then Exit For
+            record = ShipmentHistoryRecordShipping(loLog, rowIndex, cEventId, cEventType, cTime, cSku, cQtyDelta, cLocation, cNote)
+            rows.Add record
+            If rows.Count >= limitCount Then Exit For
         End If
     Next rowIndex
-    If shown = 0 Then RecentShipmentInventoryLogTextShipping = RecentShipmentInventoryLogTextShipping & vbCrLf & "None found."
+
+    Set RecentShipmentHistoryRowsShipping = rows
     Exit Function
 
 FailSoft:
-    RecentShipmentInventoryLogTextShipping = "Processed server log failed: " & Err.Description
+    Set RecentShipmentHistoryRowsShipping = New Collection
+End Function
+
+Private Function ShipmentHistoryRecordShipping(ByVal loLog As ListObject, _
+                                               ByVal rowIndex As Long, _
+                                               ByVal cEventId As Long, _
+                                               ByVal cEventType As Long, _
+                                               ByVal cTime As Long, _
+                                               ByVal cSku As Long, _
+                                               ByVal cQtyDelta As Long, _
+                                               ByVal cLocation As Long, _
+                                               ByVal cNote As Long) As Variant
+    Dim record(1 To 14) As Variant
+    Dim rawEventType As String
+    Dim noteText As String
+    Dim displayItem As String
+    Dim serverSku As String
+
+    If cEventId > 0 Then record(1) = NzStr(loLog.DataBodyRange.Cells(rowIndex, cEventId).Value)
+    rawEventType = UCase$(Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cEventType).Value)))
+    record(2) = FriendlyShipmentHistoryEventShipping(rawEventType)
+    If cTime > 0 Then record(3) = FormatHistoryValueShipping(loLog.DataBodyRange.Cells(rowIndex, cTime).Value)
+    If cSku > 0 Then serverSku = Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cSku).Value))
+    If cQtyDelta > 0 Then record(8) = NzDbl(loLog.DataBodyRange.Cells(rowIndex, cQtyDelta).Value)
+    If cLocation > 0 Then record(12) = Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cLocation).Value))
+    If cNote > 0 Then noteText = Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cNote).Value))
+
+    displayItem = ShipmentHistoryNoteItemShipping(noteText)
+    If displayItem = "" Then displayItem = serverSku
+    record(4) = ShipmentHistoryNoteTokenShipping(noteText, "REF")
+    record(5) = ShipmentHistoryNoteTokenShipping(noteText, "CARRIER")
+    record(6) = displayItem
+    record(7) = ShipmentHistoryNoteTokenShipping(noteText, "VERSION")
+    If NzDbl(record(8)) <> 0 Then record(9) = Abs(NzDbl(record(8)))
+    record(10) = ShipmentHistoryNoteTokenShipping(noteText, "ROW")
+    record(11) = serverSku
+    record(13) = rawEventType
+    record(14) = noteText
+    ShipmentHistoryRecordShipping = record
+End Function
+
+Private Function FriendlyShipmentHistoryEventShipping(ByVal eventType As String) As String
+    Select Case UCase$(Trim$(eventType))
+        Case EVENT_TYPE_SHIP
+            FriendlyShipmentHistoryEventShipping = "SHIP"
+        Case EVENT_TYPE_SHIP_RESERVE
+            FriendlyShipmentHistoryEventShipping = "RESERVE"
+        Case EVENT_TYPE_SHIP_RELEASE
+            FriendlyShipmentHistoryEventShipping = "RELEASE"
+        Case EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE
+            FriendlyShipmentHistoryEventShipping = "RECONCILE"
+        Case Else
+            FriendlyShipmentHistoryEventShipping = UCase$(Trim$(eventType))
+    End Select
+End Function
+
+Private Function ShipmentHistoryNoteTokenShipping(ByVal noteText As String, ByVal tokenName As String) As String
+    Dim parts As Variant
+    Dim i As Long
+    Dim partText As String
+    Dim pos As Long
+    Dim keyText As String
+
+    tokenName = UCase$(Trim$(tokenName))
+    If tokenName = "" Then Exit Function
+    parts = Split(noteText, ";")
+    For i = LBound(parts) To UBound(parts)
+        partText = Trim$(CStr(parts(i)))
+        pos = InStr(1, partText, "=", vbTextCompare)
+        If pos > 0 Then
+            keyText = UCase$(Trim$(Left$(partText, pos - 1)))
+            If keyText = tokenName Then
+                ShipmentHistoryNoteTokenShipping = Trim$(Mid$(partText, pos + 1))
+                Exit Function
+            End If
+        End If
+    Next i
+End Function
+
+Private Function ShipmentHistoryNoteItemShipping(ByVal noteText As String) As String
+    Dim parts As Variant
+    Dim firstPart As String
+
+    If Trim$(noteText) = "" Then Exit Function
+    parts = Split(noteText, ";")
+    firstPart = Trim$(CStr(parts(LBound(parts))))
+    If InStr(1, firstPart, "=", vbTextCompare) = 0 Then ShipmentHistoryNoteItemShipping = firstPart
+End Function
+
+Private Function EnsureShipmentHistoryWorksheetShipping(ByVal wb As Workbook) As Worksheet
+    On Error Resume Next
+    Set EnsureShipmentHistoryWorksheetShipping = wb.Worksheets("ShipmentsHistory")
+    On Error GoTo 0
+    If EnsureShipmentHistoryWorksheetShipping Is Nothing Then
+        Set EnsureShipmentHistoryWorksheetShipping = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+        EnsureShipmentHistoryWorksheetShipping.Name = "ShipmentsHistory"
+    End If
 End Function
 
 Private Function ShipmentPipelineStatusTextShipping(ByVal warehouseId As String, ByVal stationId As String) As String
@@ -6897,13 +7105,8 @@ Public Function ShipmentsFormLoadLines(Optional ByVal holdRows As Boolean = Fals
     If ws Is Nothing Then Exit Function
     If holdRows Then tableName = TABLE_NOTSHIPPED Else tableName = TABLE_SHIPMENTS
     Set lo = GetListObject(ws, tableName)
-    If Not holdRows Then
-        If PersistentShipmentRowsFileIsEmpty(PersistentActiveShipmentRowsPath()) Then Exit Function
-    End If
     If holdRows Then
         LoadPersistentHoldRowsLocal lo
-    Else
-        LoadPersistentActiveShipmentRowsLocal lo, allowClosedReservationPrune
     End If
     If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
 
@@ -6950,6 +7153,22 @@ NextRow:
 
 FailSoft:
 End Function
+
+Public Sub ShipmentsFormClearActiveLines(Optional ByVal operatorWb As Workbook = Nothing)
+    On Error GoTo CleanExit
+
+    Dim ws As Worksheet
+    Dim lo As ListObject
+
+    Set ws = ShipmentsWorksheetForWorkbook(operatorWb)
+    If ws Is Nothing Then Exit Sub
+    Set lo = GetListObject(ws, TABLE_SHIPMENTS)
+    If Not lo Is Nothing Then ClearListObjectData lo
+    DeleteFileIfExistsShipping PersistentActiveShipmentRowsPath()
+    DeleteActiveShipmentCacheFilesShipping
+
+CleanExit:
+End Sub
 
 Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                                         ByVal actionName As String, _
@@ -9045,7 +9264,7 @@ Private Function PersistentHoldRowsPath() As String
     If Trim$(rootPath) = "" Then rootPath = Environ$("TEMP")
     If Trim$(rootPath) = "" Then Exit Function
 
-    warehouseId = Trim$(modConfig.GetWarehouseId())
+    warehouseId = CurrentShippingWarehouseIdForLocalState()
     If warehouseId = "" Then warehouseId = "default"
     PersistentHoldRowsPath = NormalizeFolderPathShipping(rootPath) & "\invSys\shipping_hold_" & SafeFileTokenShipping(warehouseId) & ".tsv"
 End Function
@@ -9058,13 +9277,13 @@ Private Function PersistentActiveShipmentRowsPath() As String
     If Trim$(rootPath) = "" Then rootPath = Environ$("TEMP")
     If Trim$(rootPath) = "" Then Exit Function
 
-    warehouseId = Trim$(modConfig.GetWarehouseId())
+    warehouseId = CurrentShippingWarehouseIdForLocalState()
     If warehouseId = "" Then warehouseId = "default"
     PersistentActiveShipmentRowsPath = NormalizeFolderPathShipping(rootPath) & "\invSys\shipping_active_" & SafeFileTokenShipping(warehouseId) & ".tsv"
 End Function
 
 Private Function PersistentSentShipmentRowsPath() As String
-    PersistentSentShipmentRowsPath = PersistentSentShipmentRowsPathForWarehouse(Trim$(modConfig.GetWarehouseId()))
+    PersistentSentShipmentRowsPath = PersistentSentShipmentRowsPathForWarehouse(CurrentShippingWarehouseIdForLocalState())
 End Function
 
 Private Function PersistentSentShipmentRowsPathForWarehouse(ByVal warehouseId As String) As String
@@ -9108,6 +9327,33 @@ Private Sub EnsureLocalFolderExistsShipping(ByVal folderPath As String)
     If Not fso Is Nothing Then
         If Not fso.FolderExists(folderPath) Then fso.CreateFolder folderPath
     End If
+    On Error GoTo 0
+End Sub
+
+Private Sub DeleteFileIfExistsShipping(ByVal filePath As String)
+    On Error Resume Next
+
+    If Trim$(filePath) <> "" Then
+        If Len(Dir$(filePath, vbNormal)) > 0 Then Kill filePath
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Sub DeleteActiveShipmentCacheFilesShipping()
+    On Error Resume Next
+
+    Dim folderPath As String
+    Dim fileName As String
+
+    folderPath = Environ$("LOCALAPPDATA")
+    If Trim$(folderPath) = "" Then folderPath = Environ$("TEMP")
+    If Trim$(folderPath) = "" Then Exit Sub
+    folderPath = NormalizeFolderPathShipping(folderPath) & "\invSys"
+    fileName = Dir$(folderPath & "\shipping_active_*.tsv", vbNormal)
+    Do While fileName <> ""
+        Kill folderPath & "\" & fileName
+        fileName = Dir$()
+    Loop
     On Error GoTo 0
 End Sub
 

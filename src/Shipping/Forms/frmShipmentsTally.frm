@@ -24,6 +24,7 @@ Private WithEvents mLstShippables As MSForms.ListBox
 Private WithEvents mLstShipments As MSForms.ListBox
 Private WithEvents mLstHold As MSForms.ListBox
 Private WithEvents mBtnHistory As MSForms.CommandButton
+Private WithEvents mBtnHistorySheet As MSForms.CommandButton
 Private WithEvents mBtnRefresh As MSForms.CommandButton
 Private WithEvents mBtnAdd As MSForms.CommandButton
 Private WithEvents mBtnUpdate As MSForms.CommandButton
@@ -90,7 +91,7 @@ Private Sub UserForm_Terminate()
     Set mOperatorWorkbook = Nothing
 End Sub
 
-Public Sub InitializeFromShipping()
+Public Sub InitializeFromShipping(Optional ByVal preserveActiveRows As Boolean = False)
     On Error GoTo FailInit
 
     Dim previousPointer As Long
@@ -130,6 +131,7 @@ Public Sub InitializeFromShipping()
     LoadShippables operatorWb
     TLap "load shippables"
     loadStep = "load shipment state"
+    If Not preserveActiveRows Then modTS_Shipments.ShipmentsFormClearActiveLines operatorWb
     LoadShipmentState operatorWb
     TLap "load shipment state"
     loadStep = "evict orphaned active overlays"
@@ -332,8 +334,9 @@ Public Sub AutoSyncIfPending()
     Dim report As String
     Dim changedLoading As Boolean
     Dim syncCount As Long
-    Dim nasBeforeRefresh As String
-    Dim nasAfterRefresh As String
+    Dim nasBeforeRefresh As Object
+    Dim nasAfterRefresh As Object
+    Dim nasStatus As String
 
     If Not mAutoSyncArmed Then Exit Sub
     If mLoading Then
@@ -352,7 +355,7 @@ Public Sub AutoSyncIfPending()
             Exit Sub
         End If
     End If
-    nasBeforeRefresh = FirstShippableNasText()
+    Set nasBeforeRefresh = ShippableNasSnapshot()
 
     Set operatorWb = ResolveOperatorWorkbook()
     If operatorWb Is Nothing Then
@@ -364,15 +367,15 @@ Public Sub AutoSyncIfPending()
         mLoading = True
         changedLoading = True
         LoadShippables
-        nasAfterRefresh = FirstShippableNasText()
+        Set nasAfterRefresh = ShippableNasSnapshot()
         LoadShipmentState
         RefreshProjectedShippableInventory
         mLoading = False
         changedLoading = False
         UpdateSyncStateLabel
         If PendingShipmentSyncCount() <= 0 Then mAutoSyncArmed = False
-        ShowStatus "AutoSync: NAS was " & IIf(nasBeforeRefresh = "", "unknown", nasBeforeRefresh) & _
-                   ", now " & IIf(nasAfterRefresh = "", "unknown", nasAfterRefresh) & ". " & report
+        nasStatus = ShippableNasChangeSummary(nasBeforeRefresh, nasAfterRefresh)
+        ShowStatus nasStatus & vbCrLf & "AutoSync: " & report
     Else
         ShowStatus "AutoSync: refresh failed. " & report
         UpdateSyncStateLabel
@@ -383,14 +386,78 @@ CleanExit:
     If mAutoSyncArmed Then ScheduleAutoSync
 End Sub
 
-Private Function FirstShippableNasText() As String
+Private Function ShippableNasSnapshot() As Object
     On Error GoTo CleanExit
 
-    If IsEmpty(mShippables) Then Exit Function
-    If UBound(mShippables, 1) < 1 Then Exit Function
-    FirstShippableNasText = NzText(mShippables(1, 4))
+    Dim result As Object
+    Dim r As Long
+    Dim boxText As String
+    Dim versionText As String
+    Dim nasText As String
+    Dim key As String
+
+    Set result = CreateObject("Scripting.Dictionary")
+    If IsEmpty(mShippables) Then
+        Set ShippableNasSnapshot = result
+        Exit Function
+    End If
+
+    For r = 1 To UBound(mShippables, 1)
+        boxText = Trim$(NzText(mShippables(r, 1)))
+        versionText = Trim$(NzText(mShippables(r, 2)))
+        nasText = Trim$(NzText(mShippables(r, 4)))
+        If boxText <> "" Or versionText <> "" Then
+            key = LCase$(boxText) & "|" & LCase$(versionText)
+            result(key) = boxText & vbTab & versionText & vbTab & nasText
+        End If
+    Next r
+
+    Set ShippableNasSnapshot = result
+    Exit Function
 
 CleanExit:
+    Set ShippableNasSnapshot = CreateObject("Scripting.Dictionary")
+End Function
+
+Private Function ShippableNasChangeSummary(ByVal beforeMap As Object, ByVal afterMap As Object) As String
+    On Error GoTo CleanExit
+
+    Dim key As Variant
+    Dim beforeParts As Variant
+    Dim afterParts As Variant
+    Dim changes As String
+    Dim labelText As String
+
+    If afterMap Is Nothing Or afterMap.Count = 0 Then
+        ShippableNasChangeSummary = "NAS Inv checked: no visible shippable rows loaded."
+        Exit Function
+    End If
+
+    For Each key In afterMap.Keys
+        afterParts = Split(CStr(afterMap(key)), vbTab)
+        If beforeMap Is Nothing Or Not beforeMap.Exists(CStr(key)) Then GoTo NextKey
+        beforeParts = Split(CStr(beforeMap(key)), vbTab)
+        If UBound(beforeParts) < 2 Or UBound(afterParts) < 2 Then GoTo NextKey
+        If Trim$(CStr(beforeParts(2))) <> Trim$(CStr(afterParts(2))) Then
+            labelText = Trim$(CStr(afterParts(0)) & " " & CStr(afterParts(1)))
+            If labelText = "" Then labelText = CStr(key)
+            If changes <> "" Then changes = changes & "; "
+            changes = changes & labelText & " " & _
+                      IIf(Trim$(CStr(beforeParts(2))) = "", "blank", Trim$(CStr(beforeParts(2)))) & _
+                      " -> " & IIf(Trim$(CStr(afterParts(2))) = "", "blank", Trim$(CStr(afterParts(2))))
+        End If
+NextKey:
+    Next key
+
+    If changes = "" Then
+        ShippableNasChangeSummary = "NAS Inv checked: no visible changes."
+    Else
+        ShippableNasChangeSummary = "NAS Inv updated: " & changes & "."
+    End If
+    Exit Function
+
+CleanExit:
+    ShippableNasChangeSummary = "NAS Inv checked."
 End Function
 
 Private Sub BuildLayout()
@@ -405,7 +472,8 @@ Private Sub BuildLayout()
     Me.ScrollHeight = 650
 
     AddLabel "lblTitle", "Shipments", 12, 10, 140, 20, True
-    Set mBtnHistory = AddButton("btnHistory", "History", 708, 10, 58, 24)
+    Set mBtnHistory = AddButton("btnHistory", "History", 648, 10, 58, 24)
+    Set mBtnHistorySheet = AddButton("btnHistorySheet", "Export", 712, 10, 58, 24)
     Set mBtnRefresh = AddButton("btnRefresh", "Refresh", 774, 10, 58, 24)
 
     AddLabel "lblPicker", "Search Boxes", 12, 42, 78, 18, False
@@ -992,18 +1060,24 @@ Private Sub mBtnRefresh_Click()
     Dim report As String
     Dim ok As Boolean
     Dim operatorWb As Workbook
+    Dim nasBeforeRefresh As Object
+    Dim nasAfterRefresh As Object
+    Dim nasStatus As String
 
     TimingStart
     TLap "Refresh click start"
+    Set nasBeforeRefresh = ShippableNasSnapshot()
     Set operatorWb = ResolveOperatorWorkbook()
     ok = modTS_Shipments.ShipmentsFormRefreshRuntimeInventoryForWorkbook(operatorWb, report, vbNullString, True)
     TLap "Refresh backend refresh"
-    InitializeFromShipping
+    InitializeFromShipping True
+    Set nasAfterRefresh = ShippableNasSnapshot()
+    nasStatus = ShippableNasChangeSummary(nasBeforeRefresh, nasAfterRefresh)
     TLap "Refresh reinitialize form"
     If Trim$(report) <> "" Then
-        ShowStatus "Shipments form refreshed. " & report & vbCrLf & TimingSummary()
+        ShowStatus nasStatus & vbCrLf & "Shipments form refreshed. " & report & vbCrLf & TimingSummary()
     Else
-        ShowStatus "Shipments form refreshed." & vbCrLf & TimingSummary()
+        ShowStatus nasStatus & vbCrLf & "Shipments form refreshed." & vbCrLf & TimingSummary()
     End If
     If Not ok And Trim$(report) <> "" Then MsgBox report, vbExclamation
 End Sub
@@ -1015,6 +1089,15 @@ Private Sub mBtnHistory_Click()
     If Trim$(historyText) = "" Then historyText = "No shipment history was found."
     ShowStatus historyText
     MsgBox historyText, vbInformation, "Shipments History"
+End Sub
+
+Private Sub mBtnHistorySheet_Click()
+    Dim report As String
+
+    report = modTS_Shipments.ShipmentsFormExportHistoryToSheet(100, ResolveOperatorWorkbook())
+    If Trim$(report) = "" Then report = "No shipment history was exported."
+    ShowStatus report
+    If InStr(1, report, "failed", vbTextCompare) > 0 Then MsgBox report, vbExclamation, "Shipments History"
 End Sub
 
 Private Sub mBtnAdd_Click()
@@ -1370,6 +1453,7 @@ Private Sub InitializeAnchors()
     mAnchors.Initialize Me
 
     mAnchors.Add mBtnHistory, ANCHOR_TOP Or ANCHOR_RIGHT
+    mAnchors.Add mBtnHistorySheet, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mBtnRefresh, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mLblSyncState, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mTxtPicker, ANCHOR_LEFT Or ANCHOR_TOP
