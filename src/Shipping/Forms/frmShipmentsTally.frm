@@ -842,6 +842,10 @@ Private Function SelectedShippableNasInventoryText() As String
             SelectedShippableNasInventoryText = NzText(mLstShippables.List(mLstShippables.ListIndex, 2))
             Exit Function
         End If
+        If CLng(Val(NzText(mLstShippables.List(mLstShippables.ListIndex, 7)))) = rowValue Then
+            SelectedShippableNasInventoryText = NzText(mLstShippables.List(mLstShippables.ListIndex, 2))
+            Exit Function
+        End If
     End If
 
     If IsEmpty(mShippables) Then Exit Function
@@ -849,6 +853,12 @@ Private Function SelectedShippableNasInventoryText() As String
         If CLng(Val(NzText(mShippables(r, 1)))) = rowValue _
            And StrComp(Trim$(NzText(mShippables(r, 2))), boxName, vbTextCompare) = 0 _
            And StrComp(Trim$(NzText(mShippables(r, 3))), versionLabel, vbTextCompare) = 0 Then
+            SelectedShippableNasInventoryText = NzText(mShippables(r, 4))
+            Exit Function
+        End If
+    Next r
+    For r = 1 To UBound(mShippables, 1)
+        If CLng(Val(NzText(mShippables(r, 1)))) = rowValue Then
             SelectedShippableNasInventoryText = NzText(mShippables(r, 4))
             Exit Function
         End If

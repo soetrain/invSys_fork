@@ -7131,6 +7131,8 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     ElseIf Not isHold And Not preserveExistingReservation Then
         singleRow = Array(lr.Index)
         Set versionAvailabilityOverrides = ShippingVersionAvailabilityOverride(rowValue, descriptionValue, displayedAvailableQty)
+        Dim nasInventoryOverrides As Object
+        Set nasInventoryOverrides = ShippingVersionAvailabilityOverride(rowValue, descriptionValue, displayedNasQty)
         If invLo Is Nothing Then Set invLo = GetWritableShippingInvSysTable(ws, report)
         If invLo Is Nothing Then
             If report = "" Then report = "InventoryManagement!invSys table not found."
@@ -7138,7 +7140,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         End If
         ShipmentsFormHydrateInvSysTableFromShippables invLo, visibleShippables
         EnsureShipmentInvSysRowFromSelectedNas invLo, rowValue, itemName, uomValue, locationValue, descriptionValue, displayedNasQty
-        Set reserveDeltas = BuildSelectedShipmentRowsDeltas(invLo, lo, singleRow, "Warehouse", errNotes, versionAvailabilityOverrides)
+        Set reserveDeltas = BuildSelectedShipmentRowsDeltas(invLo, lo, singleRow, "Warehouse", errNotes, versionAvailabilityOverrides, nasInventoryOverrides)
         If reserveDeltas Is Nothing Then
             If errNotes = "" Then errNotes = "Unable to build shipment reserve event."
             report = errNotes
@@ -7616,12 +7618,15 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
                                                  ByVal rowIndexes As Variant, _
                                                  ByVal requiredArea As String, _
                                                  ByRef errNotes As String, _
-                                                 Optional ByVal versionAvailabilityOverrides As Object) As Collection
+                                                 Optional ByVal versionAvailabilityOverrides As Object, _
+                                                 Optional ByVal nasInventoryOverrides As Object) As Collection
     Dim cQtyShip As Long
     Dim cRowShip As Long
     Dim cItemShip As Long
     Dim cArea As Long
     Dim cDesc As Long
+    Dim cUomShip As Long
+    Dim cLocationShip As Long
     Dim colItemCode As Long
     Dim colItemName As Long
     Dim colTotalInv As Long
@@ -7630,6 +7635,8 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     Dim versionRequirements As Object
     Dim versionNames As Object
     Dim names As Object
+    Dim uoms As Object
+    Dim locations As Object
     Dim versionLabel As String
     Dim i As Long
     Dim rowIndex As Long
@@ -7671,6 +7678,8 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     cItemShip = ColumnIndex(loShip, "ITEMS")
     cArea = ColumnIndex(loShip, "AREA")
     cDesc = ColumnIndex(loShip, "DESCRIPTION")
+    cUomShip = ColumnIndex(loShip, "UOM")
+    cLocationShip = ColumnIndex(loShip, "LOCATION")
     If cQtyShip = 0 Or cRowShip = 0 Then
         errNotes = "Shipments table missing QUANTITY/ROW columns."
         Exit Function
@@ -7680,6 +7689,10 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     requirements.CompareMode = vbTextCompare
     Set names = CreateObject("Scripting.Dictionary")
     names.CompareMode = vbTextCompare
+    Set uoms = CreateObject("Scripting.Dictionary")
+    uoms.CompareMode = vbTextCompare
+    Set locations = CreateObject("Scripting.Dictionary")
+    locations.CompareMode = vbTextCompare
     Set versionRequirements = CreateObject("Scripting.Dictionary")
     versionRequirements.CompareMode = vbTextCompare
     Set versionNames = CreateObject("Scripting.Dictionary")
@@ -7715,6 +7728,8 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
         Else
             requirements.Add reqKey, qtyVal
             If cItemShip > 0 Then names.Add reqKey, NzStr(loShip.DataBodyRange.Cells(rowIndex, cItemShip).Value)
+            If cUomShip > 0 Then uoms.Add reqKey, NzStr(loShip.DataBodyRange.Cells(rowIndex, cUomShip).Value)
+            If cLocationShip > 0 Then locations.Add reqKey, NzStr(loShip.DataBodyRange.Cells(rowIndex, cLocationShip).Value)
         End If
         If StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 And cDesc > 0 Then
             If versionLabel <> "" Then
@@ -7759,10 +7774,19 @@ NextSelectedRow:
         Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowKeyValue)
         projectedOverrideQty = 0#
         If invRow Is Nothing Then
+            If StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 Then
+                RepairMissingShipmentInvSysRowFromNasOverride invLo, rowKeyValue, CStr(key), names, uoms, locations, nasInventoryOverrides
+                Set invRow = FindInvListRowByRowValue(invLo, rowKeyValue)
+            End If
+        End If
+        If invRow Is Nothing Then
             AppendNote errNotes, "Package ROW " & CStr(rowKeyValue) & " not found in invSys."
             Exit Function
         End If
         If colTotalInv > 0 Then
+            If StrComp(requiredArea, "Warehouse", vbTextCompare) = 0 Then
+                ApplyShipmentNasOverrideToInvRow invLo, invRow, rowKeyValue, nasInventoryOverrides
+            End If
             Dim availableQty As Double: availableQty = NzDbl(invRow.Range.Cells(1, colTotalInv).Value)
             If colShipments > 0 Then
                 availableQty = availableQty - NzDbl(invRow.Range.Cells(1, colShipments).Value)
@@ -7806,6 +7830,75 @@ NextSelectedRow:
 
     Set BuildSelectedShipmentRowsDeltas = result
 End Function
+
+Private Sub RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As ListObject, _
+                                                          ByVal rowVal As Long, _
+                                                          ByVal requirementKey As String, _
+                                                          ByVal names As Object, _
+                                                          ByVal uoms As Object, _
+                                                          ByVal locations As Object, _
+                                                          Optional ByVal nasInventoryOverrides As Object)
+    On Error GoTo CleanExit
+
+    Dim nasQty As Double
+    Dim itemName As String
+    Dim uomVal As String
+    Dim locationVal As String
+    Dim versionLabel As String
+    Dim rowIndex As Long
+    Dim lr As ListRow
+
+    If invLo Is Nothing Then Exit Sub
+    If rowVal <= 0 Then Exit Sub
+    nasQty = ShipmentRowProjectedAvailabilityOverrideQty(rowVal, nasInventoryOverrides)
+    If nasQty <= 0.0000001 Then Exit Sub
+
+    If Not names Is Nothing Then
+        If names.Exists(requirementKey) Then itemName = Trim$(NzStr(names(requirementKey)))
+    End If
+    If itemName = "" Then Exit Sub
+    If Not uoms Is Nothing Then
+        If uoms.Exists(requirementKey) Then uomVal = Trim$(NzStr(uoms(requirementKey)))
+    End If
+    If Not locations Is Nothing Then
+        If locations.Exists(requirementKey) Then locationVal = Trim$(NzStr(locations(requirementKey)))
+    End If
+    versionLabel = ShipmentRequirementVersionLabel(requirementKey)
+
+    If EnsureInvSysItemByRow(rowVal, itemName, uomVal, locationVal, versionLabel, invLo) <= 0 Then Exit Sub
+    rowIndex = FindInvRowIndexByRow(invLo, rowVal)
+    If rowIndex <= 0 Then Exit Sub
+
+    Set lr = invLo.ListRows(rowIndex)
+    WriteValue lr, "TOTAL INV", nasQty
+    If Trim$(NzStr(GetInvSysValueByIndex(invLo, rowIndex, "SHIPMENTS"))) = "" Then WriteValue lr, "SHIPMENTS", 0
+
+CleanExit:
+End Sub
+
+Private Sub ApplyShipmentNasOverrideToInvRow(ByVal invLo As ListObject, _
+                                             ByVal invRow As ListRow, _
+                                             ByVal rowVal As Long, _
+                                             Optional ByVal nasInventoryOverrides As Object)
+    On Error GoTo CleanExit
+
+    Dim nasQty As Double
+    Dim colTotalInv As Long
+    Dim colShipments As Long
+
+    If invLo Is Nothing Then Exit Sub
+    If invRow Is Nothing Then Exit Sub
+    If rowVal <= 0 Then Exit Sub
+    nasQty = ShipmentRowProjectedAvailabilityOverrideQty(rowVal, nasInventoryOverrides)
+    If nasQty <= 0.0000001 Then Exit Sub
+
+    colTotalInv = ColumnIndex(invLo, "TOTAL INV")
+    If colTotalInv > 0 Then invRow.Range.Cells(1, colTotalInv).Value = nasQty
+    colShipments = ColumnIndex(invLo, "SHIPMENTS")
+    If colShipments > 0 And Trim$(NzStr(invRow.Range.Cells(1, colShipments).Value)) = "" Then invRow.Range.Cells(1, colShipments).Value = 0
+
+CleanExit:
+End Sub
 
 Private Function ShipmentRowProjectedAvailabilityOverrideQty(ByVal rowVal As Long, _
                                                              Optional ByVal versionAvailabilityOverrides As Object) As Double
