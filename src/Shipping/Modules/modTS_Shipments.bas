@@ -7220,6 +7220,10 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     Dim previousRowQty As Variant
     Dim previousRowArea As Variant
     Dim absQtyDelta As Double
+    Dim rowSnapshot As Variant
+    Dim rowWasNew As Boolean
+    Dim rowWasBlank As Boolean
+    Dim reservationWarning As String
 
     actionName = UCase$(Trim$(actionName))
     isHold = (UCase$(Trim$(targetName)) = "HOLD")
@@ -7254,6 +7258,8 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                     If report = "" Then report = "InventoryManagement!invSys table not found."
                     GoTo CleanExit
                 End If
+                ShipmentsFormHydrateInvSysTableFromShippables invLo, visibleShippables
+                EnsureShipmentInvSysRowFromShipmentRows invLo, lo, CLng(Val(ShipmentRowText(lo, tableRowIndex, "ROW")))
                 Set releaseDeltas = BuildSelectedShipmentRowsDeltas(invLo, lo, singleRow, "Locked", errNotes)
                 If releaseDeltas Is Nothing Then
                     If errNotes = "" Then errNotes = "Unable to build shipment release event."
@@ -7328,6 +7334,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     Else
         Set lr = FindShipmentLineByRefItemVersion(lo, Trim$(refNumber), itemName, Trim$(descriptionValue), Trim$(carrierValue))
         If Not lr Is Nothing Then
+            rowSnapshot = ShipmentRowSnapshot(lo, lr.Index)
             existingQtyValue = ExistingShipmentLineQuantity(lo, lr)
             finalQty = existingQtyValue + qtyValue
             mergedExisting = True
@@ -7343,10 +7350,17 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                                And StrComp(existingVersionLabel, NormalizeBoxBomVersionLabelShipping(descriptionValue), vbTextCompare) = 0
         Else
             Set lr = FirstBlankListRowShipping(lo)
-            If lr Is Nothing Then Set lr = lo.ListRows.Add
+            If lr Is Nothing Then
+                Set lr = lo.ListRows.Add
+                rowWasNew = True
+            Else
+                rowWasBlank = ShipmentRowIsBlankForRollback(lo, lr.Index)
+                rowSnapshot = ShipmentRowSnapshot(lo, lr.Index)
+            End If
         End If
     End If
     If finalQty <= 0 Then finalQty = qtyValue
+    If actionName = "UPDATE" And Not lr Is Nothing Then rowSnapshot = ShipmentRowSnapshot(lo, lr.Index)
 
     If hadExistingReserve And Not preserveExistingReservation And Not deltaReserveOnly Then
         singleRow = Array(lr.Index)
@@ -7355,6 +7369,8 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             If report = "" Then report = "InventoryManagement!invSys table not found."
             GoTo CleanExit
         End If
+        ShipmentsFormHydrateInvSysTableFromShippables invLo, visibleShippables
+        EnsureShipmentInvSysRowFromShipmentRows invLo, lo, CLng(Val(ShipmentRowText(lo, lr.Index, "ROW")))
         Set releaseDeltas = BuildSelectedShipmentRowsDeltas(invLo, lo, singleRow, "Locked", errNotes)
         If releaseDeltas Is Nothing Then
             If errNotes = "" Then errNotes = "Unable to build release event for the existing reservation."
@@ -7385,7 +7401,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             GoTo CleanExit
         End If
         ShipmentsFormHydrateInvSysTableFromShippables invLo, visibleShippables
-        EnsureShipmentInvSysRowFromSelectedNas invLo, rowValue, itemName, uomValue, locationValue, descriptionValue, displayedNasQty
+        EnsureShipmentInvSysRowFromSelectedNas invLo, rowValue, itemName, uomValue, locationValue, descriptionValue, displayedNasQty, displayedAvailableQty
     End If
 
     WriteValue lr, "REF_NUMBER", Trim$(refNumber)
@@ -7445,7 +7461,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             GoTo CleanExit
         End If
         ShipmentsFormHydrateInvSysTableFromShippables invLo, visibleShippables
-        EnsureShipmentInvSysRowFromSelectedNas invLo, rowValue, itemName, uomValue, locationValue, descriptionValue, displayedNasQty
+        EnsureShipmentInvSysRowFromSelectedNas invLo, rowValue, itemName, uomValue, locationValue, descriptionValue, displayedNasQty, displayedAvailableQty
         Set reserveDeltas = BuildSelectedShipmentRowsDeltas(invLo, lo, singleRow, "Warehouse", errNotes, versionAvailabilityOverrides, nasInventoryOverrides)
         If reserveDeltas Is Nothing Then
             If errNotes = "" Then errNotes = "Unable to build shipment reserve event."
@@ -7466,7 +7482,11 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             If Trim$(rollbackNotes) <> "" Then report = report & vbCrLf & "Local rollback warning: " & rollbackNotes
             GoTo CleanExit
         End If
-        If Not UpsertShippingReservationForRow(lo, lr.Index, reserveEventId, report) Then GoTo CleanExit
+        If Not UpsertShippingReservationForRow(lo, lr.Index, reserveEventId, report) Then
+            reservationWarning = Trim$(report)
+            If reservationWarning = "" Then reservationWarning = "Reservation event queued and local lock applied, but the reservation ledger was not refreshed."
+            report = ""
+        End If
         ApplyStageVersionInventoryOverlayFromRows invLo, lo, singleRow
         WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, reserveEventId
         WriteValue lr, "AREA", "Warehouse"
@@ -7486,6 +7506,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         report = "Added shipment row."
     End If
     If reserveEventId <> "" Then report = report & vbCrLf & "Locked " & Format$(reservedTotal, "0.###") & " package(s) for shipment." & vbCrLf & "Reserve EventID: " & reserveEventId
+    If reservationWarning <> "" Then AppendNote report, "Warning: " & reservationWarning
     ShipmentsFormCommitLine = True
 
 CleanExit:
@@ -7496,14 +7517,53 @@ CleanExit:
                  "; DeltaOnly=" & CStr(deltaReserveOnly) & _
                  "; QtyDelta=" & Format$(qtyDelta, "0.###")
     End If
+    If Not ShipmentsFormCommitLine Then RollbackShipmentCommitRow lo, lr, rowSnapshot, rowWasNew, rowWasBlank
     EndShippingTableMutation lo, previousVisibility, visibilityChanged, previousEvents, previousHandling
     Exit Function
 
 Fail:
     report = "Shipment row update failed: " & Err.Description
     On Error Resume Next
+    If Not ShipmentsFormCommitLine Then RollbackShipmentCommitRow lo, lr, rowSnapshot, rowWasNew, rowWasBlank
     EndShippingTableMutation lo, previousVisibility, visibilityChanged, previousEvents, previousHandling
     On Error GoTo 0
+End Function
+
+Public Function ShipmentsFormCommitLineTraceForTest(ByVal targetName As String, _
+                                                    ByVal actionName As String, _
+                                                    ByVal tableRowIndex As Long, _
+                                                    ByVal refNumber As String, _
+                                                    ByVal itemName As String, _
+                                                    ByVal qtyValue As Double, _
+                                                    ByVal rowValue As Long, _
+                                                    ByVal uomValue As String, _
+                                                    ByVal locationValue As String, _
+                                                    ByVal descriptionValue As String, _
+                                                    ByVal carrierValue As String, _
+                                                    Optional ByVal displayedAvailableQty As Variant, _
+                                                    Optional ByVal visibleShippables As Variant, _
+                                                    Optional ByVal operatorWb As Workbook = Nothing, _
+                                                    Optional ByVal displayedNasQty As Variant) As String
+    Dim report As String
+    Dim ok As Boolean
+
+    ok = ShipmentsFormCommitLine(targetName, _
+                                 actionName, _
+                                 tableRowIndex, _
+                                 refNumber, _
+                                 itemName, _
+                                 qtyValue, _
+                                 rowValue, _
+                                 uomValue, _
+                                 locationValue, _
+                                 descriptionValue, _
+                                 carrierValue, _
+                                 report, _
+                                 displayedAvailableQty, _
+                                 visibleShippables, _
+                                 operatorWb, _
+                                 displayedNasQty)
+    ShipmentsFormCommitLineTraceForTest = CStr(ok) & vbTab & report
 End Function
 
 Public Function ValidateShipmentCommitInputsReportForTest(ByVal targetName As String, _
@@ -7669,6 +7729,50 @@ Private Function ShipmentRowText(ByVal lo As ListObject, ByVal tableRowIndex As 
     If colIdx = 0 Then Exit Function
     ShipmentRowText = NzStr(lo.DataBodyRange.Cells(tableRowIndex, colIdx).Value)
 End Function
+
+Private Function ShipmentRowSnapshot(ByVal lo As ListObject, ByVal tableRowIndex As Long) As Variant
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If tableRowIndex <= 0 Or tableRowIndex > lo.ListRows.Count Then Exit Function
+    ShipmentRowSnapshot = lo.ListRows(tableRowIndex).Range.Value
+End Function
+
+Private Function ShipmentRowIsBlankForRollback(ByVal lo As ListObject, ByVal tableRowIndex As Long) As Boolean
+    On Error GoTo CleanExit
+
+    Dim cell As Range
+
+    ShipmentRowIsBlankForRollback = True
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If tableRowIndex <= 0 Or tableRowIndex > lo.ListRows.Count Then Exit Function
+    For Each cell In lo.ListRows(tableRowIndex).Range.Cells
+        If Trim$(NzStr(cell.Value)) <> "" Then
+            ShipmentRowIsBlankForRollback = False
+            Exit Function
+        End If
+    Next cell
+
+CleanExit:
+End Function
+
+Private Sub RollbackShipmentCommitRow(ByVal lo As ListObject, _
+                                      ByVal lr As ListRow, _
+                                      ByVal rowSnapshot As Variant, _
+                                      ByVal rowWasNew As Boolean, _
+                                      ByVal rowWasBlank As Boolean)
+    On Error Resume Next
+
+    If lo Is Nothing Or lr Is Nothing Then Exit Sub
+    If rowWasNew Then
+        lr.Delete
+    ElseIf rowWasBlank Then
+        lr.Range.ClearContents
+    ElseIf Not IsEmpty(rowSnapshot) Then
+        lr.Range.Value = rowSnapshot
+    End If
+    On Error GoTo 0
+End Sub
 
 Private Function NormalizeShipmentArea(ByVal areaValue As String, Optional ByVal holdRows As Boolean = False) As String
     areaValue = Trim$(areaValue)
@@ -16487,32 +16591,46 @@ Private Sub EnsureShipmentInvSysRowFromSelectedNas(ByVal invLo As ListObject, _
                                                    ByVal uomVal As String, _
                                                    ByVal locationVal As String, _
                                                    ByVal versionLabel As String, _
-                                                   ByVal displayedNasQty As Variant)
+                                                   ByVal displayedNasQty As Variant, _
+                                                   Optional ByVal displayedAvailableQty As Variant)
     On Error GoTo CleanExit
 
     Dim nasText As String
     Dim nasQty As Double
+    Dim availableText As String
+    Dim availableQty As Double
+    Dim seedQty As Double
     Dim rowIndex As Long
     Dim lr As ListRow
     Dim colTotalInv As Long
+    Dim createdRow As Boolean
 
     If invLo Is Nothing Then Exit Sub
     If rowVal <= 0 Or Trim$(itemName) = "" Then Exit Sub
     nasText = Trim$(NzStr(displayedNasQty))
-    If nasText = "" Or LCase$(nasText) = "unknown" Then Exit Sub
-    nasQty = NzDbl(nasText)
-    If nasQty <= 0.0000001 Then Exit Sub
+    If nasText <> "" And LCase$(nasText) <> "unknown" Then nasQty = NzDbl(nasText)
+    availableText = Trim$(NzStr(displayedAvailableQty))
+    If availableText <> "" And LCase$(availableText) <> "unknown" Then availableQty = NzDbl(availableText)
+    seedQty = nasQty
+    If seedQty <= 0.0000001 Then seedQty = availableQty
 
     rowIndex = FindInvRowIndexByRow(invLo, rowVal)
     If rowIndex <= 0 Then
         If EnsureInvSysItemByRow(rowVal, itemName, uomVal, locationVal, versionLabel, invLo) <= 0 Then Exit Sub
         rowIndex = FindInvRowIndexByRow(invLo, rowVal)
+        createdRow = (rowIndex > 0)
     End If
     If rowIndex <= 0 Then Exit Sub
 
     Set lr = invLo.ListRows(rowIndex)
     colTotalInv = ColumnIndex(invLo, "TOTAL INV")
-    If colTotalInv > 0 Then lr.Range.Cells(1, colTotalInv).Value = nasQty
+    If colTotalInv > 0 Then
+        If nasQty > 0.0000001 Then
+            lr.Range.Cells(1, colTotalInv).Value = nasQty
+        ElseIf createdRow And seedQty > 0.0000001 Then
+            lr.Range.Cells(1, colTotalInv).Value = seedQty
+        End If
+    End If
     WriteValue lr, "ITEM", itemName
     If Trim$(NzStr(GetInvSysValueByIndex(invLo, rowIndex, "ITEM_CODE"))) = "" Then WriteValue lr, "ITEM_CODE", itemName
     WriteValue lr, "UOM", uomVal

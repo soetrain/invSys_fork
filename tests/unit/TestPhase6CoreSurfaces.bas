@@ -4485,6 +4485,8 @@ CleanFail:
 End Function
 
 Public Function TestShippingCommitLine_MergesPostedSameRefBoxVersionCarrier() As Long
+    Dim rootPath As String
+    Dim currentUser As String
     Dim wbOps As Workbook
     Dim report As String
     Dim failureReason As String
@@ -4494,7 +4496,12 @@ Public Function TestShippingCommitLine_MergesPostedSameRefBoxVersionCarrier() As
     Dim matchCount As Long
     Dim rowIndex As Long
 
+    rootPath = BuildRuntimeTestRoot("phase6_ship_add_merge_posted")
+    currentUser = "calvin"
+
     On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH112", "S34", currentUser, failureReason) Then GoTo CleanExit
+
     Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
     If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
     Set loInv = FindTableByName(wbOps, "invSys")
@@ -4507,7 +4514,7 @@ Public Function TestShippingCommitLine_MergesPostedSameRefBoxVersionCarrier() As
     SetTableCell loShip, 1, "CARRIER", "UPS"
 
     wbOps.Activate
-    ok = RunShippingCommitLineForTest("SHIP", "ADD", 0, "12", "T25", 1, 87, "ea", "CLEARVIEW", "v2", "UPS", report)
+    ok = RunShippingCommitLineForTest("SHIP", "ADD", 0, "12", "T25", 1, 87, "ea", "CLEARVIEW", "v2", "UPS", report, 5, 5)
     matchCount = CountShipmentRowsForTest(loShip, "12", "T25", "v2", "UPS")
     If matchCount <> 1 Then
         failureReason = "Expected same Ref/Box/Version/Carrier to merge into one row; found " & CStr(matchCount) & ". Commit result: " & CStr(ok) & "; " & report
@@ -4520,7 +4527,7 @@ Public Function TestShippingCommitLine_MergesPostedSameRefBoxVersionCarrier() As
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loShip, rowIndex, "QUANTITY")) <> 2 Then
-        failureReason = "Merged shipment quantity was not 2."
+        failureReason = "Merged shipment quantity was not 2. Commit result: " & CStr(ok) & "; " & report
         GoTo CleanExit
     End If
 
@@ -4539,6 +4546,8 @@ CleanFail:
 End Function
 
 Public Function TestShippingBoard_TwoAddsSameRefBoxVersionCarrierShowOneRow() As Long
+    Dim rootPath As String
+    Dim currentUser As String
     Dim wbOps As Workbook
     Dim report As String
     Dim failureReason As String
@@ -4548,7 +4557,12 @@ Public Function TestShippingBoard_TwoAddsSameRefBoxVersionCarrierShowOneRow() As
     Dim matchCount As Long
     Dim rowIndex As Long
 
+    rootPath = BuildRuntimeTestRoot("phase6_ship_board_merge")
+    currentUser = "calvin"
+
     On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH113", "S35", currentUser, failureReason) Then GoTo CleanExit
+
     Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
     If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
     Set loInv = FindTableByName(wbOps, "invSys")
@@ -4561,7 +4575,7 @@ Public Function TestShippingBoard_TwoAddsSameRefBoxVersionCarrierShowOneRow() As
     SetTableCell loShip, 1, "CARRIER", "UPS"
 
     wbOps.Activate
-    ok = RunShippingCommitLineForTest("SHIP", "ADD", 0, "REF-BOARD-MERGE-001", "T25", 1, 989, "ea", "CLEARVIEW", "v2", "UPS", report)
+    ok = RunShippingCommitLineForTest("SHIP", "ADD", 0, "REF-BOARD-MERGE-001", "T25", 1, 989, "ea", "CLEARVIEW", "v2", "UPS", report, 5, 5)
 
     matchCount = CountShipmentRowsForTest(loShip, "REF-BOARD-MERGE-001", "T25", "v2", "UPS")
     If matchCount <> 1 Then
@@ -4839,6 +4853,67 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingAdd_RepairsMissingInvSysRowFromVisibleNas() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+    Dim invRow As Long
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_add_repair_missing_invsys")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH114", "S36", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+    If Not loInv.DataBodyRange Is Nothing Then loInv.DataBodyRange.ClearContents
+    AddShippingBomViewRow loBomView, 89, "T28", 89, "T28", 1, "ea"
+
+    wbOps.Activate
+    ok = RunShippingCommitLineForTest("SHIP", "ADD", 0, "REF-MISSING-ADD", "T28", 1, 89, "ea", "CLEARVIEW", "v1", "UPS", report, 9, 9)
+    If Not ok Then
+        failureReason = "Shipping Add should repair a missing invSys row from visible NAS shippables. Report: " & report
+        GoTo CleanExit
+    End If
+    invRow = FindRowByColumnValueInTable(loInv, "ROW", 89)
+    If invRow = 0 Then
+        failureReason = "Shipping Add succeeded but did not recreate invSys ROW 89."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "TOTAL INV")) <> 9 Then
+        failureReason = "Shipping Add did not seed repaired ROW 89 from visible NAS Inv."
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(GetTableValue(loShip, 1, "ITEMS"))) <> "T28" Then
+        failureReason = "Shipping Add did not leave the visible shipment row after repairing invSys."
+        GoTo CleanExit
+    End If
+
+    TestShippingAdd_RepairsMissingInvSysRowFromVisibleNas = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7171, "TestShippingAdd_RepairsMissingInvSysRowFromVisibleNas", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingRemove_LockedRowReleasesInventory() As Long
     Dim report As String
     Dim failureReason As String
@@ -4984,6 +5059,76 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7129, "TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingRemove_RepairsMissingInvSysRowBeforeRelease() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+    Dim invRow As Long
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_remove_repair_missing_invsys")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH115", "S37", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+    If Not loInv.DataBodyRange Is Nothing Then loInv.DataBodyRange.ClearContents
+    AddShippingBomViewRow loBomView, 89, "T28", 89, "T28", 1, "ea"
+    AddShippingTallyRow loShip, "REF-MISSING-REMOVE", "T28", 1, 89, "ea", "CLEARVIEW", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-MISSING-REMOVE-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-MISSING-REMOVE-001"
+
+    wbOps.Activate
+    ok = RunShippingCommitLineForTest("SHIP", "DELETE", 1, "", "", 0, 0, "", "", "", "", report)
+    If Not ok Then
+        failureReason = "Remove should repair a missing invSys row before releasing a locked row. Report: " & report
+        GoTo CleanExit
+    End If
+    invRow = FindRowByColumnValueInTable(loInv, "ROW", 89)
+    If invRow = 0 Then
+        failureReason = "Remove did not recreate invSys ROW 89 before release."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "SHIPMENTS")) <> 0 Then
+        failureReason = "Remove repaired ROW 89 but did not clear local SHIPMENTS lock."
+        GoTo CleanExit
+    End If
+    If Not loShip.DataBodyRange Is Nothing Then
+        If loShip.ListRows.Count > 0 Then
+            If Trim$(CStr(GetTableValue(loShip, 1, "ITEMS"))) <> "" Then
+                failureReason = "Remove repaired invSys but left the shipment row visible."
+                GoTo CleanExit
+            End If
+        End If
+    End If
+
+    TestShippingRemove_RepairsMissingInvSysRowBeforeRelease = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7183, "TestShippingRemove_RepairsMissingInvSysRowBeforeRelease", failureReason
     End If
     Exit Function
 CleanFail:
@@ -5471,6 +5616,76 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7159, "TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingUpdate_RepairsMissingInvSysRowBeforeDelta() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+    Dim invRow As Long
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_update_repair_missing_invsys")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH116", "S38", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+    If Not loInv.DataBodyRange Is Nothing Then loInv.DataBodyRange.ClearContents
+    AddShippingBomViewRow loBomView, 89, "T28", 89, "T28", 1, "ea"
+    AddShippingTallyRow loShip, "REF-MISSING-UPDATE", "T28", 1, 89, "ea", "CLEARVIEW", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "FedEx"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-MISSING-UPDATE-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-MISSING-UPDATE-001"
+
+    wbOps.Activate
+    ok = RunShippingCommitLineForTest("SHIP", "UPDATE", 1, "REF-MISSING-UPDATE", "T28", 2, 89, "ea", "CLEARVIEW", "v1", "FedEx", report, 9, 9)
+    If Not ok Then
+        failureReason = "Update should repair a missing invSys row before applying the quantity delta. Report: " & report
+        GoTo CleanExit
+    End If
+    invRow = FindRowByColumnValueInTable(loInv, "ROW", 89)
+    If invRow = 0 Then
+        failureReason = "Update did not recreate invSys ROW 89 before delta reserve."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "TOTAL INV")) <> 9 Then
+        failureReason = "Update did not seed repaired ROW 89 from visible NAS Inv."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "SHIPMENTS")) <> 2 Then
+        failureReason = "Update repaired ROW 89 but did not apply local SHIPMENTS delta to 2."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loShip, 1, "QUANTITY")) <> 2 Then
+        failureReason = "Update did not update the visible shipment row quantity."
+        GoTo CleanExit
+    End If
+
+    TestShippingUpdate_RepairsMissingInvSysRowBeforeDelta = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7184, "TestShippingUpdate_RepairsMissingInvSysRowBeforeDelta", failureReason
     End If
     Exit Function
 CleanFail:
@@ -9556,42 +9771,71 @@ Private Function RunShippingCommitLineForTest(ByVal targetName As String, _
                                               ByVal descriptionValue As String, _
                                               ByVal carrierValue As String, _
                                               ByRef report As String, _
-                                              Optional ByVal displayedAvailableQty As Variant) As Boolean
+                                              Optional ByVal displayedAvailableQty As Variant, _
+                                              Optional ByVal displayedNasQty As Variant) As Boolean
     Dim targetWb As Workbook
     Dim macroName As String
+    Dim noShippables As Variant
+    Dim resultText As String
+    Dim tabPos As Long
 
     Set targetWb = ActiveWorkbook
-    macroName = ShippingMacroNameForTest("ShipmentsFormCommitLine")
+    macroName = ShippingMacroNameForTest("ShipmentsFormCommitLineTraceForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     If IsMissing(displayedAvailableQty) Then
-        RunShippingCommitLineForTest = CBool(Application.Run(macroName, _
-                                                             targetName, _
-                                                             actionName, _
-                                                             tableRowIndex, _
-                                                             refNumber, _
-                                                             itemName, _
-                                                             qtyValue, _
-                                                             rowValue, _
-                                                             uomValue, _
-                                                             locationValue, _
-                                                             descriptionValue, _
-                                                             carrierValue, _
-                                                             report))
+        resultText = CStr(Application.Run(macroName, _
+                                          targetName, _
+                                          actionName, _
+                                          tableRowIndex, _
+                                          refNumber, _
+                                          itemName, _
+                                          qtyValue, _
+                                          rowValue, _
+                                          uomValue, _
+                                          locationValue, _
+                                          descriptionValue, _
+                                          carrierValue))
+    ElseIf IsMissing(displayedNasQty) Then
+        resultText = CStr(Application.Run(macroName, _
+                                          targetName, _
+                                          actionName, _
+                                          tableRowIndex, _
+                                          refNumber, _
+                                          itemName, _
+                                          qtyValue, _
+                                          rowValue, _
+                                          uomValue, _
+                                          locationValue, _
+                                          descriptionValue, _
+                                          carrierValue, _
+                                          displayedAvailableQty, _
+                                          noShippables, _
+                                          targetWb))
     Else
-        RunShippingCommitLineForTest = CBool(Application.Run(macroName, _
-                                                             targetName, _
-                                                             actionName, _
-                                                             tableRowIndex, _
-                                                             refNumber, _
-                                                             itemName, _
-                                                             qtyValue, _
-                                                             rowValue, _
-                                                             uomValue, _
-                                                             locationValue, _
-                                                             descriptionValue, _
-                                                             carrierValue, _
-                                                             report, _
-                                                             displayedAvailableQty))
+        resultText = CStr(Application.Run(macroName, _
+                                          targetName, _
+                                          actionName, _
+                                          tableRowIndex, _
+                                          refNumber, _
+                                          itemName, _
+                                          qtyValue, _
+                                          rowValue, _
+                                          uomValue, _
+                                          locationValue, _
+                                          descriptionValue, _
+                                          carrierValue, _
+                                          displayedAvailableQty, _
+                                          noShippables, _
+                                          targetWb, _
+                                          displayedNasQty))
+    End If
+    tabPos = InStr(1, resultText, vbTab, vbBinaryCompare)
+    If tabPos > 0 Then
+        RunShippingCommitLineForTest = (StrComp(Left$(resultText, tabPos - 1), "True", vbTextCompare) = 0)
+        report = Mid$(resultText, tabPos + 1)
+    Else
+        RunShippingCommitLineForTest = (StrComp(resultText, "True", vbTextCompare) = 0)
+        report = resultText
     End If
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
@@ -10177,6 +10421,11 @@ Private Function PrepareShippingPostSessionForTest(ByVal rootPath As String, _
     authStatus = modAuth.ValidateUserCredentialForTarget(userId, "123456", target, "SHIP_POST")
     If authStatus <> AUTH_OK Then
         failureReason = "ValidateUserCredentialForTarget failed: " & CStr(authStatus)
+        Exit Function
+    End If
+    report = ""
+    If Not RunShippingPrepareRolePostSessionForTest(rootPath, warehouseId, stationId, userId, "123456", report) Then
+        failureReason = "Shipping add-in role post session failed: " & report
         Exit Function
     End If
 
