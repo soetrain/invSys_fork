@@ -6856,6 +6856,50 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingRefresh_BlankBomViewDoesNotSkipBackendRefresh() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+
+    On Error GoTo CleanFail
+    modNasConnection.ClearWarehouseTarget
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loBomView Is Nothing Then
+        failureReason = "ShippingBOMView table was not available after ensuring shipping surface."
+        GoTo CleanExit
+    End If
+    If loBomView.DataBodyRange Is Nothing Then loBomView.ListRows.Add
+    loBomView.DataBodyRange.ClearContents
+
+    ok = RunShippingRefreshBomViewForTest(wbOps, report, False)
+    If ok Then
+        failureReason = "Blank ShippingBOMView row should not skip backend refresh."
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "already populated", vbTextCompare) > 0 Then
+        failureReason = "Blank ShippingBOMView row incorrectly took populated fast path: " & report
+        GoTo CleanExit
+    End If
+
+    TestShippingRefresh_BlankBomViewDoesNotSkipBackendRefresh = 1
+
+CleanExit:
+    modNasConnection.ClearWarehouseTarget
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7170, "TestShippingRefresh_BlankBomViewDoesNotSkipBackendRefresh", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingRefresh_HidesSupportSheetsAfterSurfaceRepair() As Long
     Dim report As String
     Dim failureReason As String

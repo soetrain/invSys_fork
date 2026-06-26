@@ -5600,7 +5600,7 @@ Private Function BoxMakerShippingBomSourceTable(ByVal ws As Worksheet, _
 
     Set loView = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
     If Not loView Is Nothing Then
-        If Not loView.DataBodyRange Is Nothing Then
+        If ShippingBomViewHasPackageRows(loView) Then
             Set BoxMakerShippingBomSourceTable = loView
             Exit Function
         End If
@@ -5614,7 +5614,7 @@ Private Function BoxMakerShippingBomSourceTable(ByVal ws As Worksheet, _
     RefreshShippingBomViewForWorkbook ws.Parent, report
     Set loView = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
     If Not loView Is Nothing Then
-        If Not loView.DataBodyRange Is Nothing Then
+        If ShippingBomViewHasPackageRows(loView) Then
             Set BoxMakerShippingBomSourceTable = loView
             Exit Function
         End If
@@ -13675,12 +13675,10 @@ Private Function RefreshShippingBomViewForWorkbook(ByVal operatorWb As Workbook,
     If operatorWb Is Nothing Then Exit Function
     Set loView = GetShippingBomViewTable(operatorWb)
     If Not loView Is Nothing And Not forceRebuild Then
-        If Not loView.DataBodyRange Is Nothing Then
-            If loView.DataBodyRange.Rows.Count > 0 Then
-                report = "Shipping BOM view already populated; skipped network refresh."
-                RefreshShippingBomViewForWorkbook = True
-                Exit Function
-            End If
+        If ShippingBomViewHasPackageRows(loView) Then
+            report = "Shipping BOM view already populated; skipped network refresh."
+            RefreshShippingBomViewForWorkbook = True
+            Exit Function
         End If
     End If
     If loView Is Nothing Then
@@ -13753,12 +13751,10 @@ Public Function EnsureShippingBomViewPopulated(ByVal wb As Workbook, _
     End If
     Set loView = GetShippingBomViewTable(wb)
     If Not loView Is Nothing Then
-        If Not loView.DataBodyRange Is Nothing Then
-            If loView.DataBodyRange.Rows.Count > 0 Then
-                report = "BOMView already populated."
-                EnsureShippingBomViewPopulated = True
-                Exit Function
-            End If
+        If ShippingBomViewHasPackageRows(loView) Then
+            report = "BOMView already populated."
+            EnsureShippingBomViewPopulated = True
+            Exit Function
         End If
     End If
 
@@ -13778,6 +13774,32 @@ Private Function GetShippingBomViewTable(ByVal wb As Workbook) As ListObject
     Set ws = WorkbookSheetExistsShipping(wb, SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Function
     Set GetShippingBomViewTable = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
+End Function
+
+Private Function ShippingBomViewHasPackageRows(ByVal loView As ListObject) As Boolean
+    On Error GoTo CleanExit
+
+    Dim cPackageRow As Long
+    Dim cPackageItem As Long
+    Dim src As Variant
+    Dim r As Long
+
+    If loView Is Nothing Then Exit Function
+    If loView.DataBodyRange Is Nothing Then Exit Function
+    cPackageRow = ColumnIndex(loView, "PackageRow")
+    cPackageItem = ColumnIndex(loView, "PackageItem")
+    If cPackageRow = 0 Or cPackageItem = 0 Then Exit Function
+
+    src = To2DArrayShipping(loView.DataBodyRange.Value)
+    For r = 1 To UBound(src, 1)
+        If NzLng(src(r, cPackageRow)) > 0 _
+           And Trim$(NzStr(src(r, cPackageItem))) <> "" Then
+            ShippingBomViewHasPackageRows = True
+            Exit Function
+        End If
+    Next r
+
+CleanExit:
 End Function
 
 Public Function ShippingBomViewTableExistsForWorkbookForTest(ByVal workbookName As String) As Boolean

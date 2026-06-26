@@ -597,6 +597,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingRefresh_MergesLocalBoxBuildStagingAndClearsStaleOverlay",
         "TestPhase6CoreSurfaces.TestShippingRefresh_FindsBackendShippingBomViewWithoutInvSysSurface",
         "TestPhase6CoreSurfaces.TestShippingRefresh_SkipsBomNetworkWhenViewPopulated",
+        "TestPhase6CoreSurfaces.TestShippingRefresh_BlankBomViewDoesNotSkipBackendRefresh",
         "TestPhase6CoreSurfaces.TestShippingRefresh_HidesSupportSheetsAfterSurfaceRepair",
         "TestPhase6CoreSurfaces.TestBoxMakerUnbox_QtyGreaterThanInventoryFailsBeforeQueue",
         "TestPhase6CoreSurfaces.TestBoxMakerUnbox_UsesShippingReadModelInventoryWhenInvSysMissing",
