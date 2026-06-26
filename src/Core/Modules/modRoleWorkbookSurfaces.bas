@@ -63,9 +63,7 @@ Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workboo
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "AggregateBoxBOM_Log", Array("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP"), False
     EnsureTableSurface wb, SHIPPING_BACKEND_SHEET, "AggregatePackages_Log", Array("GUID", "USER", "ACTION", "ROW", "ITEM_CODE", "ITEM", "QTY_DELTA", "NEW_VALUE", "TIMESTAMP"), False
     ArrangeShippingBackendTablesSurface wb
-    On Error Resume Next
-    Application.CutCopyMode = False
-    On Error GoTo FailEnsure
+    ClearClipboardSurface
     EnsureInventoryManagementSurface wb, report, False
     DeleteWorksheetSurface wb, "ShippingBOM"
     DeleteWorksheetSurface wb, "AggregateBoxBOM_Log"
@@ -81,7 +79,7 @@ Public Function EnsureShippingWorkbookSurface(Optional ByVal targetWb As Workboo
 FailEnsure:
     report = "EnsureShippingWorkbookSurface failed: " & Err.Description
     On Error Resume Next
-    Application.CutCopyMode = False
+    ClearClipboardSurface
     inProgress = False
     On Error GoTo 0
 End Function
@@ -337,6 +335,7 @@ Private Sub EnsureTableSurface(ByVal wb As Workbook, _
         Set dataRange = ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers)))
         Set lo = ws.ListObjects.Add(xlSrcRange, dataRange, , xlYes)
         lo.Name = tableName
+        ClearClipboardSurface
     End If
 
     For i = LBound(headers) To UBound(headers)
@@ -434,10 +433,11 @@ Private Sub RebuildTableAtSurface(ByVal lo As ListObject, ByVal targetCell As Ra
     newLo.Name = tableName
     If Trim$(tableStyle) <> "" Then newLo.TableStyle = tableStyle
     newLo.ShowTotals = showTotals
+    ClearClipboardSurface
 
 CleanExit:
     On Error Resume Next
-    Application.CutCopyMode = False
+    ClearClipboardSurface
     On Error GoTo 0
 End Sub
 
@@ -457,9 +457,7 @@ Private Sub ArrangeShippingBackendTablesSurface(ByVal wb As Workbook)
     MoveTableTopLeftSurface ws, "ShippingBOMView", "BT1"
     MoveTableTopLeftSurface ws, "AggregateBoxBOM_Log", "CO1"
     MoveTableTopLeftSurface ws, "AggregatePackages_Log", "CY1"
-    On Error Resume Next
-    Application.CutCopyMode = False
-    On Error GoTo 0
+    ClearClipboardSurface
 End Sub
 
 Private Sub HideWorksheetSurface(ByVal wb As Workbook, ByVal sheetName As String)
@@ -669,6 +667,20 @@ Private Sub EnsureWorksheetEditableSurface(ByVal ws As Worksheet)
         Err.Raise vbObjectError + 2751, "modRoleWorkbookSurfaces.EnsureWorksheetEditableSurface", _
                   "Worksheet '" & ws.Name & "' is protected and could not be unprotected before updating workbook surfaces."
     End If
+End Sub
+
+Private Sub ClearClipboardSurface()
+    On Error Resume Next
+    Application.CutCopyMode = False
+
+    Dim dataObj As Object
+    Set dataObj = CreateObject("Forms.DataObject.1")
+    If Not dataObj Is Nothing Then
+        dataObj.SetText vbNullString
+        dataObj.PutInClipboard
+    End If
+    Application.CutCopyMode = False
+    On Error GoTo 0
 End Sub
 
 Private Sub DeleteWorksheetSurface(ByVal wb As Workbook, ByVal sheetName As String)
