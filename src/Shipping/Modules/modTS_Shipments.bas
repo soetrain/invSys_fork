@@ -15894,9 +15894,7 @@ Public Sub ShipmentsFormHydrateInvSysTableFromShippables(ByVal invLo As ListObje
     Dim uomVal As String
     Dim locVal As String
     Dim totalInvQty As Double
-    Dim visibleQtyText As String
-    Dim versionInv As Object
-    Dim key As Variant
+    Dim nasQtyText As String
     Dim lr As ListRow
     Dim existingIdx As Long
     Dim existingTotal As Variant
@@ -15916,21 +15914,8 @@ Public Sub ShipmentsFormHydrateInvSysTableFromShippables(ByVal invLo As ListObje
         If rowVal <= 0 Or itemName = "" Then GoTo NextShippable
 
         totalInvQty = 0#
-        visibleQtyText = Trim$(NzStr(shippables(r, 8)))
-        If visibleQtyText = "" Then visibleQtyText = Trim$(NzStr(shippables(r, 4)))
-        If visibleQtyText <> "" And LCase$(visibleQtyText) <> "unknown" Then totalInvQty = NzDbl(visibleQtyText)
-        If totalInvQty <= 0.0000001 Then
-            Set versionInv = BoxMakerFormLoadBoxVersionInventory(rowVal, itemName)
-            If Not versionInv Is Nothing Then
-                If versionLabel <> "" And versionInv.Exists(versionLabel) Then
-                    totalInvQty = NzDbl(versionInv(versionLabel))
-                Else
-                    For Each key In versionInv.Keys
-                        totalInvQty = totalInvQty + NzDbl(versionInv(key))
-                    Next key
-                End If
-            End If
-        End If
+        nasQtyText = Trim$(NzStr(shippables(r, 4)))
+        If nasQtyText <> "" And LCase$(nasQtyText) <> "unknown" Then totalInvQty = NzDbl(nasQtyText)
 
         existingIdx = FindInvRowIndexByRow(invLo, rowVal)
         If existingIdx > 0 Then
@@ -15943,14 +15928,10 @@ Public Sub ShipmentsFormHydrateInvSysTableFromShippables(ByVal invLo As ListObje
             GoTo NextShippable
         End If
 
-        Set lr = FirstBlankListRowShipping(invLo)
-        If lr Is Nothing Then Set lr = invLo.ListRows.Add
-        WriteValue lr, "ROW", rowVal
-        WriteValue lr, "ITEM_CODE", itemName
-        WriteValue lr, "ITEM", itemName
-        WriteValue lr, "UOM", uomVal
-        WriteValue lr, "LOCATION", locVal
-        WriteValue lr, "DESCRIPTION", versionLabel
+        If EnsureInvSysItemByRow(rowVal, itemName, uomVal, locVal, versionLabel, invLo) <= 0 Then GoTo NextShippable
+        existingIdx = FindInvRowIndexByRow(invLo, rowVal)
+        If existingIdx <= 0 Then GoTo NextShippable
+        Set lr = invLo.ListRows(existingIdx)
         If totalInvQty > 0.0000001 Then
             WriteValue lr, "TOTAL INV", totalInvQty
         Else
