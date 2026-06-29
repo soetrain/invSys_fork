@@ -2009,18 +2009,18 @@ Private Function ResolveInboxDirectoryRole(ByVal warehouseId As String, ByVal st
         Exit Function
     End If
 
-    Set target = modNasConnection.GetCurrentTarget()
-    If Not target Is Nothing Then
-        If StrComp(Trim$(target.WarehouseId), Trim$(warehouseId), vbTextCompare) = 0 _
-           And (Trim$(stationId) = "" Or Trim$(target.StationId) = "" Or StrComp(Trim$(target.StationId), Trim$(stationId), vbTextCompare) = 0) _
-           And Trim$(target.RuntimeRoot) <> "" Then
-            ResolveInboxDirectoryRole = modConfig.NormalizeFolderPathForRuntime(Trim$(target.RuntimeRoot), False)
-            Exit Function
-        End If
-    End If
-
     rawPath = Trim$(modConfig.GetString("PathInboxRoot", ""))
     rawPath = ExpandConfigPathRole(rawPath, warehouseId, stationId)
+    If rawPath = "" Then
+        Set target = modNasConnection.GetCurrentTarget()
+        If Not target Is Nothing Then
+            If StrComp(Trim$(target.WarehouseId), Trim$(warehouseId), vbTextCompare) = 0 _
+               And (Trim$(stationId) = "" Or Trim$(target.StationId) = "" Or StrComp(Trim$(target.StationId), Trim$(stationId), vbTextCompare) = 0) _
+               And Trim$(target.RuntimeRoot) <> "" Then
+                rawPath = modConfig.NormalizeFolderPathForRuntime(Trim$(target.RuntimeRoot), False)
+            End If
+        End If
+    End If
     If rawPath = "" Then
         rawPath = Trim$(modConfig.GetString("PathDataRoot", ""))
         rawPath = ExpandConfigPathRole(rawPath, warehouseId, stationId)

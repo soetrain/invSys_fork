@@ -3394,6 +3394,7 @@ Public Function TestProcessor_DiscoversClosedConfiguredStationInboxWorkbook() As
     Dim failureReason As String
     Dim wbInv As Workbook
     Dim wbInbox As Workbook
+    Dim wbFallbackInbox As Workbook
     Dim wbInboxCheck As Workbook
     Dim loInbox As ListObject
     Dim loSku As ListObject
@@ -3422,6 +3423,15 @@ Public Function TestProcessor_DiscoversClosedConfiguredStationInboxWorkbook() As
         failureReason = "Canonical inventory workbook could not be created."
         GoTo CleanExit
     End If
+
+    Set wbFallbackInbox = CreateCanonicalReceiveInboxWorkbookForTest(rootPath, "S22")
+    If wbFallbackInbox Is Nothing Then
+        failureReason = "Fallback runtime-root inbox workbook could not be created."
+        GoTo CleanExit
+    End If
+    wbFallbackInbox.Save
+    wbFallbackInbox.Close SaveChanges:=False
+    Set wbFallbackInbox = Nothing
 
     Set wbInbox = CreateCanonicalReceiveInboxWorkbookForTest(stationRoot, "S22")
     If wbInbox Is Nothing Then
@@ -3467,6 +3477,7 @@ CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
     CloseWorkbookIfOpen wbInboxCheck
     CloseWorkbookIfOpen wbInbox
+    CloseWorkbookIfOpen wbFallbackInbox
     CloseWorkbookIfOpen wbInv
     CloseWorkbookByNameIfOpen "WH81.invSys.Config.xlsb"
     CloseWorkbookByNameIfOpen "WH81.invSys.Auth.xlsb"

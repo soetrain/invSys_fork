@@ -518,6 +518,9 @@ Private Function ResolveInboxTargets(Optional ByVal warehouseId As String = "") 
     Set seen = CreateObject("Scripting.Dictionary")
     seen.CompareMode = vbTextCompare
 
+    AddConfiguredInboxTargets ResolveInboxTargets, seen, warehouseId
+    AddCurrentTargetInboxTargets ResolveInboxTargets, seen, warehouseId
+
     For Each wb In Application.Workbooks
         AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_RECEIVE, SHEET_INBOX_RECEIVE, PROC_EVENT_TYPE_RECEIVE, _
                        IsReceiveInboxWorkbookName(wb.Name) Or WorkbookHasListObjectProcessor(wb, TABLE_INBOX_RECEIVE)
@@ -526,9 +529,6 @@ Private Function ResolveInboxTargets(Optional ByVal warehouseId As String = "") 
         AddInboxTarget ResolveInboxTargets, seen, wb, TABLE_INBOX_PROD, SHEET_INBOX_PROD, PROC_EVENT_TYPE_PROD_CONSUME, _
                        IsProductionInboxWorkbookName(wb.Name) Or WorkbookHasListObjectProcessor(wb, TABLE_INBOX_PROD)
     Next wb
-
-    AddCurrentTargetInboxTargets ResolveInboxTargets, seen, warehouseId
-    AddConfiguredInboxTargets ResolveInboxTargets, seen, warehouseId
 End Function
 
 Private Sub AddInboxTarget(ByVal targets As Collection, _
