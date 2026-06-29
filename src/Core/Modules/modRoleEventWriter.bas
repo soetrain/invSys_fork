@@ -1033,7 +1033,8 @@ Private Function ShouldStageEventLocallyRole(ByVal eventType As String) As Boole
              ROLE_EVENT_TYPE_BOX_BUILD, _
              ROLE_EVENT_TYPE_BOX_UNBOX, _
              ROLE_EVENT_TYPE_PROD_CONSUME, _
-             ROLE_EVENT_TYPE_PROD_COMPLETE
+             ROLE_EVENT_TYPE_PROD_COMPLETE, _
+             ROLE_EVENT_TYPE_MIGRATION_SEED
             ShouldStageEventLocallyRole = True
     End Select
 End Function
@@ -1998,7 +1999,13 @@ Private Function ResolveInboxDirectoryRole(ByVal warehouseId As String, ByVal st
 
     overrideRoot = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
     If overrideRoot <> "" Then
-        ResolveInboxDirectoryRole = modConfig.NormalizeFolderPathForRuntime(overrideRoot, False)
+        rawPath = Trim$(modConfig.GetString("PathInboxRoot", ""))
+        rawPath = ExpandConfigPathRole(rawPath, warehouseId, stationId)
+        If rawPath <> "" Then
+            ResolveInboxDirectoryRole = rawPath
+        Else
+            ResolveInboxDirectoryRole = modConfig.NormalizeFolderPathForRuntime(overrideRoot, False)
+        End If
         Exit Function
     End If
 

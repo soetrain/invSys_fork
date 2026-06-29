@@ -1527,19 +1527,24 @@ End Function
 Private Function FindExistingConfigWorkbookPathAdmin() As String
     Dim wb As Workbook
     Dim rootPath As String
+    Dim openConfigPath As String
     Dim candidate As String
     Dim fso As Object
     Dim rootFolder As Object
     Dim subFolder As Object
 
+    rootPath = GetAdminRuntimeScanRoot()
+
     For Each wb In Application.Workbooks
         If IsConfigWorkbookNameAdmin(wb.Name) Then
-            FindExistingConfigWorkbookPathAdmin = Trim$(wb.FullName)
-            Exit Function
+            openConfigPath = NormalizePathAdmin(Trim$(wb.FullName))
+            If rootPath = "" Or PathIsUnderRootAdmin(openConfigPath, rootPath) Then
+                FindExistingConfigWorkbookPathAdmin = openConfigPath
+                Exit Function
+            End If
         End If
     Next wb
 
-    rootPath = GetAdminRuntimeScanRoot()
     If rootPath = "" Then Exit Function
 
     On Error Resume Next
@@ -1557,6 +1562,19 @@ Private Function FindExistingConfigWorkbookPathAdmin() As String
             Exit Function
         End If
     Next subFolder
+End Function
+
+Private Function PathIsUnderRootAdmin(ByVal pathText As String, ByVal rootPath As String) As Boolean
+    pathText = NormalizePathAdmin(pathText)
+    rootPath = NormalizePathAdmin(rootPath)
+    If pathText = "" Or rootPath = "" Then Exit Function
+
+    If StrComp(pathText, rootPath, vbTextCompare) = 0 Then
+        PathIsUnderRootAdmin = True
+    ElseIf Len(pathText) > Len(rootPath) _
+           And StrComp(Left$(pathText, Len(rootPath) + 1), rootPath & "\", vbTextCompare) = 0 Then
+        PathIsUnderRootAdmin = True
+    End If
 End Function
 
 Private Function GetAdminRuntimeScanRoot() As String

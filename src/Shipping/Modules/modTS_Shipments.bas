@@ -77,6 +77,9 @@ Private Const SHIPPING_BOM_BLOCK_ROWS As Long = 52
 Private Const SHIPPING_BOM_DATA_ROWS As Long = 50
 Private Const SHIPPING_BOM_COLS As Long = 3 ' ROW, QUANTITY, UOM
 Private Const SHIPMENTS_SENT_DEDUCTS_TOTALINV As Boolean = False
+Private Const SHIP_TOTALINV_CONTEXT_MANUFACTURING As String = "MANUFACTURING"
+Private Const SHIP_TOTALINV_CONTEXT_READ_MODEL As String = "READ_MODEL"
+Private Const SHIP_TOTALINV_CONTEXT_VISIBLE_NAS As String = "VISIBLE_NAS"
 Private Const SHIP_LAYOUT_BUILDER_ADDR As String = "A3"
 Private Const SHIP_LAYOUT_BOM_ADDR As String = "A7"
 
@@ -1304,10 +1307,12 @@ Public Sub BtnToShipments()
     Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Sub
 
-    Dim invLo As ListObject: Set invLo = GetInvSysTable()
+    Dim errNotes As String
+    Dim invLo As ListObject: Set invLo = GetMutableLocalShipmentStagingTable(ws, errNotes)
     Dim aggPack As ListObject: Set aggPack = GetListObject(ws, TABLE_AGG_PACK)
     If invLo Is Nothing Then
-        MsgBox "InventoryManagement!invSys table not found.", vbCritical
+        If errNotes = "" Then errNotes = "InventoryManagement!invSys table not found."
+        MsgBox errNotes, vbCritical
         Exit Sub
     End If
     If aggPack Is Nothing Then
@@ -1319,7 +1324,6 @@ Public Sub BtnToShipments()
         Exit Sub
     End If
 
-    Dim errNotes As String
     Dim deltas As Collection
     Set deltas = BuildShipmentDeltaPacket(invLo, aggPack, errNotes)
     If deltas Is Nothing Then
@@ -1376,14 +1380,15 @@ Public Sub BtnShipmentsSent()
     Dim ws As Worksheet: Set ws = SheetExists(SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Sub
 
-    Dim invLo As ListObject: Set invLo = GetInvSysTable()
+    Dim errNotes As String
+    Dim invLo As ListObject: Set invLo = GetShipmentReleaseStagingTable(ws, errNotes)
     If invLo Is Nothing Then
-        MsgBox "InventoryManagement!invSys table not found.", vbCritical
+        If errNotes = "" Then errNotes = "InventoryManagement!invSys table not found."
+        MsgBox errNotes, vbCritical
         Exit Sub
     End If
 
     Dim queuedEventId As String
-    Dim errNotes As String
     Dim deltas As Collection
     Dim runtimeReport As String
     If Not BuildQueueableShipmentsSentDeltas(invLo, ws, deltas, errNotes) Then
@@ -1553,7 +1558,7 @@ Public Function QueueShipmentsSentEventFromCurrentWorkbook(ByRef eventIdOut As S
         Exit Function
     End If
 
-    Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
+    Set invLo = GetShipmentReleaseStagingTable(ws, errNotes)
     If invLo Is Nothing Then
         errNotes = "InventoryManagement!invSys table not found."
         Exit Function
@@ -1586,7 +1591,7 @@ Public Function ShipmentsPayloadJsonForRowsForTest(ByVal rowIndexes As Variant, 
         ShipmentsPayloadJsonForRowsForTest = "ERR|ShipmentsTally sheet not found."
         Exit Function
     End If
-    Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
+    Set invLo = GetMutableLocalShipmentStagingTable(ws, errNotes)
     Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
     If invLo Is Nothing Or loShip Is Nothing Then
         ShipmentsPayloadJsonForRowsForTest = "ERR|Shipping tables not found."
@@ -1613,7 +1618,7 @@ Public Function ValidateShipmentsSentStagingFromCurrentWorkbook() As String
         Exit Function
     End If
 
-    Set invLo = GetInvSysTable()
+    Set invLo = GetShipmentReleaseStagingTable(ws, errNotes)
     If invLo Is Nothing Then
         ValidateShipmentsSentStagingFromCurrentWorkbook = "InventoryManagement!invSys table not found."
         Exit Function
@@ -1640,7 +1645,7 @@ Public Function ValidateToShipmentsFromCurrentWorkbook() As String
         Exit Function
     End If
 
-    Set invLo = GetInvSysTable()
+    Set invLo = GetMutableLocalShipmentStagingTable(ws, errNotes)
     Set aggPack = GetListObject(ws, TABLE_AGG_PACK)
     If invLo Is Nothing Then
         ValidateToShipmentsFromCurrentWorkbook = "InventoryManagement!invSys table not found."
@@ -7253,7 +7258,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         If Not isHold Then
             singleRow = Array(tableRowIndex)
             If Trim$(ShipmentRowText(lo, tableRowIndex, COL_SHIPMENT_RESERVE_EVENT_ID)) <> "" Then
-                Set invLo = GetShipmentReleaseInvSysTable(ws, report)
+                Set invLo = GetShipmentReleaseStagingTable(ws, report)
                 If invLo Is Nothing Then
                     If report = "" Then report = "InventoryManagement!invSys table not found."
                     GoTo CleanExit
@@ -7364,7 +7369,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
 
     If hadExistingReserve And Not preserveExistingReservation And Not deltaReserveOnly Then
         singleRow = Array(lr.Index)
-        Set invLo = GetShipmentReleaseInvSysTable(ws, report)
+        Set invLo = GetShipmentReleaseStagingTable(ws, report)
         If invLo Is Nothing Then
             If report = "" Then report = "InventoryManagement!invSys table not found."
             GoTo CleanExit
@@ -7395,7 +7400,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
     End If
 
     If Not isHold And deltaReserveOnly Then
-        If invLo Is Nothing Then Set invLo = GetWritableShippingInvSysTable(ws, report)
+        If invLo Is Nothing Then Set invLo = GetMutableLocalShipmentStagingTable(ws, report)
         If invLo Is Nothing Then
             If report = "" Then report = "InventoryManagement!invSys table not found."
             GoTo CleanExit
@@ -7455,7 +7460,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         Set versionAvailabilityOverrides = ShippingVersionAvailabilityOverride(rowValue, descriptionValue, displayedAvailableQty)
         Dim nasInventoryOverrides As Object
         Set nasInventoryOverrides = ShippingNasInventoryOverride(rowValue, descriptionValue, displayedNasQty, displayedAvailableQty)
-        If invLo Is Nothing Then Set invLo = GetWritableShippingInvSysTable(ws, report)
+        If invLo Is Nothing Then Set invLo = GetMutableLocalShipmentStagingTable(ws, report)
         If invLo Is Nothing Then
             If report = "" Then report = "InventoryManagement!invSys table not found."
             GoTo CleanExit
@@ -7608,7 +7613,7 @@ Public Function ValidateShippingAddProjectedAvailabilityOverrideForTest(ByVal ta
         Exit Function
     End If
     Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
-    Set invLo = GetWritableShippingInvSysTable(ws, errNotes)
+    Set invLo = GetMutableLocalShipmentStagingTable(ws, errNotes)
     If loShip Is Nothing Or invLo Is Nothing Then
         If errNotes = "" Then errNotes = "Shipping tables not found."
         ValidateShippingAddProjectedAvailabilityOverrideForTest = errNotes
@@ -8331,7 +8336,7 @@ Private Function RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As Li
     WriteValue lr, "UOM", uomVal
     WriteValue lr, "LOCATION", locationVal
     WriteValue lr, "DESCRIPTION", versionLabel
-    WriteValue lr, "TOTAL INV", nasQty
+    If Not WriteShippingTotalInvValue(lr, nasQty, SHIP_TOTALINV_CONTEXT_VISIBLE_NAS, errNotes) Then Exit Function
     WriteValue lr, "SHIPMENTS", 0
     Set RepairMissingShipmentInvSysRowFromNasOverride = lr
     Exit Function
@@ -8390,8 +8395,8 @@ Private Sub ApplyShipmentNasOverrideToInvRow(ByVal invLo As ListObject, _
     On Error GoTo CleanExit
 
     Dim nasQty As Double
-    Dim colTotalInv As Long
     Dim colShipments As Long
+    Dim report As String
 
     If invLo Is Nothing Then Exit Sub
     If invRow Is Nothing Then Exit Sub
@@ -8399,8 +8404,7 @@ Private Sub ApplyShipmentNasOverrideToInvRow(ByVal invLo As ListObject, _
     nasQty = ShipmentRowProjectedAvailabilityOverrideQty(rowVal, nasInventoryOverrides)
     If nasQty <= 0.0000001 Then Exit Sub
 
-    colTotalInv = ColumnIndex(invLo, "TOTAL INV")
-    If colTotalInv > 0 Then invRow.Range.Cells(1, colTotalInv).Value = nasQty
+    WriteShippingTotalInvValue invRow, nasQty, SHIP_TOTALINV_CONTEXT_VISIBLE_NAS, report
     colShipments = ColumnIndex(invLo, "SHIPMENTS")
     If colShipments > 0 And Trim$(NzStr(invRow.Range.Cells(1, colShipments).Value)) = "" Then invRow.Range.Cells(1, colShipments).Value = 0
 
@@ -9755,10 +9759,6 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
                 existingProjectedQty = backendQty
             End If
         End If
-        If isReservedRow And hasSentOverlay And backendFromLocal And localTotalQty > existingProjectedQty + 0.0000001 Then
-            hasExistingOverlay = True
-            existingProjectedQty = backendQty
-        End If
         projectedQty = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, qtyVal, hasExistingOverlay, isReservedRow)
         mLastShipmentsSentOverlayDebug = "row=" & CStr(rowVal) _
             & "; version=" & versionLabel _
@@ -9865,7 +9865,7 @@ Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
         report = "ShipmentsTally sheet not found."
         Exit Function
     End If
-    Set invLo = GetWritableShippingInvSysTable(ws, report)
+    Set invLo = GetMutableLocalShipmentStagingTable(ws, report)
     Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
     If invLo Is Nothing Then
         If report = "" Then report = "InventoryManagement!invSys table not found."
@@ -9999,7 +9999,7 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
         report = "ShipmentsTally sheet not found."
         Exit Function
     End If
-    Set invLo = GetWritableShippingInvSysTable(ws, report)
+    Set invLo = GetMutableLocalShipmentStagingTable(ws, report)
     Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
     If invLo Is Nothing Then
         If report = "" Then report = "InventoryManagement!invSys table not found."
@@ -10101,7 +10101,7 @@ Public Function ValidateApplyShipmentsSentRowsInventoryFromCurrentWorkbook(ByVal
         report = "ShipmentsTally sheet not found."
         Exit Function
     End If
-    Set invLo = GetInvSysTable()
+    Set invLo = GetShipmentReleaseStagingTable(ws, report)
     Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
     If invLo Is Nothing Then
         report = "InventoryManagement!invSys table not found."
@@ -10141,7 +10141,7 @@ Public Function ValidateCompleteShipmentsSentRowsFromCurrentWorkbook(ByVal rowIn
         report = "ShipmentsTally sheet not found."
         Exit Function
     End If
-    Set invLo = GetInvSysTable()
+    Set invLo = GetShipmentReleaseStagingTable(ws, report)
     Set loShip = GetListObject(ws, TABLE_SHIPMENTS)
     If invLo Is Nothing Then
         report = "InventoryManagement!invSys table not found."
@@ -10191,6 +10191,13 @@ Private Function ApplyShipmentsSentRowsInventory(ByVal invLo As ListObject, _
     Dim locallyLockedDeltas As Collection
     Dim unreservedDeltas As Collection
     Dim appliedTotal As Double
+    Dim previousVisibility As XlSheetVisibility
+    Dim visibilityChanged As Boolean
+    Dim previousEvents As Boolean
+    Dim previousHandling As Boolean
+    Dim mutationStarted As Boolean
+
+    On Error GoTo Fail
 
     ApplyShipmentsSentRowsInventory = -1
     errNotes = ""
@@ -10207,6 +10214,9 @@ Private Function ApplyShipmentsSentRowsInventory(ByVal invLo As ListObject, _
         Exit Function
     End If
 
+    BeginShippingTableMutation invLo, previousVisibility, visibilityChanged, previousEvents, previousHandling
+    mutationStarted = True
+
     EnsureMissingInvSysRowsFromShipmentLines invLo, loShip
     ReconcileShipmentStagingFromShipmentLines invLo, loShip
     reservedRows = ShipmentRowsByReserveState(loShip, rowIndexes, True)
@@ -10218,26 +10228,26 @@ Private Function ApplyShipmentsSentRowsInventory(ByVal invLo As ListObject, _
         Set reservedDeltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, reservedRows, "Shipments", errNotes)
         If reservedDeltas Is Nothing Then
             If errNotes = "" Then errNotes = "Unable to build reserved shipment finalization."
-            Exit Function
+            GoTo CleanExit
         End If
     End If
     If Not IsEmpty(locallyLockedRows) Then
         Set locallyLockedDeltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, locallyLockedRows, "Shipments", errNotes)
         If locallyLockedDeltas Is Nothing Then
             If errNotes = "" Then errNotes = "Unable to build locally locked shipment finalization."
-            Exit Function
+            GoTo CleanExit
         End If
     End If
     If Not IsEmpty(dirtyUnreservedRows) Then
         Set unreservedDeltas = BuildSelectedShipmentRowsDeltas(invLo, loShip, dirtyUnreservedRows, "Shipments", errNotes)
         If unreservedDeltas Is Nothing Then
             If errNotes = "" Then errNotes = "Unable to build unreserved shipment finalization."
-            Exit Function
+            GoTo CleanExit
         End If
     End If
     If reservedDeltas Is Nothing And locallyLockedDeltas Is Nothing And unreservedDeltas Is Nothing Then
         errNotes = "No selected Shipments rows were found."
-        Exit Function
+        GoTo CleanExit
     End If
 
     ApplyShipmentsSentRowsInventory = 0
@@ -10247,7 +10257,7 @@ Private Function ApplyShipmentsSentRowsInventory(ByVal invLo As ListObject, _
         If appliedTotal < 0 Then
             If errNotes = "" Then errNotes = "Unable to finalize reserved shipment rows."
             ApplyShipmentsSentRowsInventory = -1
-            Exit Function
+            GoTo CleanExit
         End If
         ApplyShipmentsSentRowsInventory = ApplyShipmentsSentRowsInventory + appliedTotal
     End If
@@ -10257,20 +10267,29 @@ Private Function ApplyShipmentsSentRowsInventory(ByVal invLo As ListObject, _
         If appliedTotal < 0 Then
             If errNotes = "" Then errNotes = "Unable to finalize locally locked shipment rows."
             ApplyShipmentsSentRowsInventory = -1
-            Exit Function
+            GoTo CleanExit
         End If
         ApplyShipmentsSentRowsInventory = ApplyShipmentsSentRowsInventory + appliedTotal
     End If
     If Not unreservedDeltas Is Nothing Then
-        PrepareShipmentsSentLogEntries invLo, unreservedDeltas, shipLogs, True
-        appliedTotal = ApplyShipmentsSentDeltas(invLo, unreservedDeltas, errNotes, True)
+        PrepareShipmentsSentLogEntries invLo, unreservedDeltas, shipLogs, False
+        appliedTotal = ApplyShipmentsSentDeltas(invLo, unreservedDeltas, errNotes, False)
         If appliedTotal < 0 Then
             If errNotes = "" Then errNotes = "Unable to finalize unreserved shipment rows."
             ApplyShipmentsSentRowsInventory = -1
-            Exit Function
+            GoTo CleanExit
         End If
         ApplyShipmentsSentRowsInventory = ApplyShipmentsSentRowsInventory + appliedTotal
     End If
+
+CleanExit:
+    If mutationStarted Then EndShippingTableMutation invLo, previousVisibility, visibilityChanged, previousEvents, previousHandling
+    Exit Function
+
+Fail:
+    If errNotes = "" Then errNotes = "Unable to apply Shipments Sent rows: " & Err.Description
+    ApplyShipmentsSentRowsInventory = -1
+    Resume CleanExit
 End Function
 
 Private Sub BeginShippingTableMutation(ByVal lo As ListObject, _
@@ -10344,12 +10363,13 @@ Public Function ShipmentsFormLoadReadiness() As Variant
     Dim countRows As Long
     Dim rows As Variant
     Dim outRow As Long
+    Dim report As String
 
     Set ws = SheetExists(SHEET_SHIPMENTS)
     If ws Is Nothing Then Exit Function
     RebuildShippingAggregates
 
-    Set invLo = GetInvSysTable()
+    Set invLo = GetShippingInvSysReadModelForDisplay(ws, report)
     Set loPack = GetListObject(ws, TABLE_AGG_PACK)
     Set loBom = GetListObject(ws, TABLE_AGG_BOM)
 
@@ -10384,7 +10404,7 @@ Public Function ShipmentsFormRunToShipments(ByRef report As String) As Boolean
         Exit Function
     End If
     RebuildShippingAggregates
-    Set invLo = GetInvSysTable()
+    Set invLo = GetMutableLocalShipmentStagingTable(ws, report)
     Set aggPack = GetListObject(ws, TABLE_AGG_PACK)
     If invLo Is Nothing Then
         report = "InventoryManagement!invSys table not found."
@@ -10453,7 +10473,7 @@ Public Function ShipmentsFormRunShipmentsSent(ByRef report As String) As Boolean
         report = "ShipmentsTally sheet not found."
         Exit Function
     End If
-    Set invLo = GetInvSysTable()
+    Set invLo = GetShipmentReleaseStagingTable(ws, report)
     If invLo Is Nothing Then
         report = "InventoryManagement!invSys table not found."
         Exit Function
@@ -10523,7 +10543,7 @@ Public Function ShipmentsFormRunDirectShipmentsSent(ByRef report As String, Opti
         report = "ShipmentsTally sheet not found."
         Exit Function
     End If
-    Set invLo = GetInvSysTable()
+    Set invLo = GetShipmentReleaseStagingTable(ws, report)
     If invLo Is Nothing Then
         report = "InventoryManagement!invSys table not found."
         Exit Function
@@ -10555,8 +10575,8 @@ Public Function ShipmentsFormRunDirectShipmentsSent(ByRef report As String, Opti
         Exit Function
     End If
 
-    PrepareShipmentsSentLogEntries invLo, deltas, shipLogs, True
-    shippedTotal = ApplyDirectShipmentsSentDeltas(invLo, deltas, errNotes)
+    PrepareShipmentsSentLogEntries invLo, deltas, shipLogs, False
+    shippedTotal = ApplyShipmentsSentDeltas(invLo, deltas, errNotes, False)
     If shippedTotal < 0 Then
         If errNotes = "" Then errNotes = "Unable to finalize shipments."
         report = errNotes
@@ -16435,9 +16455,27 @@ Private Function GetInvSysTableFromWorkbook(ByVal wb As Workbook) As ListObject
     Set GetInvSysTableFromWorkbook = GetListObject(wsInv, "invSys")
 End Function
 
-Private Function GetWritableShippingInvSysTable(ByVal wsShip As Worksheet, ByRef report As String) As ListObject
+Private Function GetShippingInvSysReadModelForDisplay(ByVal wsShip As Worksheet, ByRef report As String) As ListObject
+    Dim invLo As ListObject
+
+    If wsShip Is Nothing Then
+        report = "ShipmentsTally sheet not found."
+        Exit Function
+    End If
+
+    Set GetShippingInvSysReadModelForDisplay = GetListObject(wsShip, "invSysData_Shipping")
+    If ShippingInventoryPickerTableHasRows(GetShippingInvSysReadModelForDisplay) Then Exit Function
+    Set GetShippingInvSysReadModelForDisplay = GetListObject(wsShip, TABLE_CHECK_INV)
+    If ShippingInventoryPickerTableHasRows(GetShippingInvSysReadModelForDisplay) Then Exit Function
+
+    Set invLo = GetInvSysTableFromWorkbook(wsShip.Parent)
+    If ShippingInventoryPickerTableHasRows(invLo) Then Set GetShippingInvSysReadModelForDisplay = invLo
+End Function
+
+Private Function GetMutableLocalShipmentStagingTable(ByVal wsShip As Worksheet, ByRef report As String) As ListObject
     Dim invLo As ListObject
     Dim sourceLo As ListObject
+    Dim loShip As ListObject
 
     If wsShip Is Nothing Then
         report = "ShipmentsTally sheet not found."
@@ -16453,20 +16491,22 @@ Private Function GetWritableShippingInvSysTable(ByVal wsShip As Worksheet, ByRef
         report = "InventoryManagement!invSys table not found."
         Exit Function
     End If
+
+    Set loShip = GetListObject(wsShip, TABLE_SHIPMENTS)
     If ShippingInventoryPickerTableHasRows(invLo) Then
-        EnsureMissingInvSysRowsFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
-        ReconcileShipmentStagingFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
-        Set GetWritableShippingInvSysTable = invLo
+        EnsureMissingInvSysRowsFromShipmentLines invLo, loShip
+        ReconcileShipmentStagingFromShipmentLines invLo, loShip
+        Set GetMutableLocalShipmentStagingTable = invLo
         Exit Function
     End If
 
-    Set sourceLo = GetListObject(wsShip, "invSysData_Shipping")
+    Set sourceLo = GetShippingInvSysReadModelForDisplay(wsShip, report)
     If Not ShippingInventoryPickerTableHasRows(sourceLo) Then Set sourceLo = GetListObject(wsShip, TABLE_CHECK_INV)
     If Not ShippingInventoryPickerTableHasRows(sourceLo) Then
-        HydrateInvSysFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
-        ReconcileShipmentStagingFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
+        HydrateInvSysFromShipmentLines invLo, loShip
+        ReconcileShipmentStagingFromShipmentLines invLo, loShip
         If ShippingInventoryPickerTableHasRows(invLo) Then
-            Set GetWritableShippingInvSysTable = invLo
+            Set GetMutableLocalShipmentStagingTable = invLo
         Else
             report = "Inventory read model has no rows to initialize invSys."
         End If
@@ -16474,16 +16514,16 @@ Private Function GetWritableShippingInvSysTable(ByVal wsShip As Worksheet, ByRef
     End If
 
     HydrateInvSysFromShippingReadModel invLo, sourceLo
-    EnsureMissingInvSysRowsFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
-    ReconcileShipmentStagingFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
+    EnsureMissingInvSysRowsFromShipmentLines invLo, loShip
+    ReconcileShipmentStagingFromShipmentLines invLo, loShip
     If ShippingInventoryPickerTableHasRows(invLo) Then
-        Set GetWritableShippingInvSysTable = invLo
+        Set GetMutableLocalShipmentStagingTable = invLo
     Else
         report = "InventoryManagement!invSys could not be initialized from the shipping read model."
     End If
 End Function
 
-Private Function GetShipmentReleaseInvSysTable(ByVal wsShip As Worksheet, ByRef report As String) As ListObject
+Private Function GetShipmentReleaseStagingTable(ByVal wsShip As Worksheet, ByRef report As String) As ListObject
     Dim invLo As ListObject
 
     If wsShip Is Nothing Then
@@ -16500,7 +16540,46 @@ Private Function GetShipmentReleaseInvSysTable(ByVal wsShip As Worksheet, ByRef 
         report = "InventoryManagement!invSys table not found."
         Exit Function
     End If
-    Set GetShipmentReleaseInvSysTable = invLo
+    EnsureMissingInvSysRowsFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
+    ReconcileShipmentStagingFromShipmentLines invLo, GetListObject(wsShip, TABLE_SHIPMENTS)
+    Set GetShipmentReleaseStagingTable = invLo
+End Function
+
+Private Function GetWritableShippingInvSysTable(ByVal wsShip As Worksheet, ByRef report As String) As ListObject
+    Set GetWritableShippingInvSysTable = GetMutableLocalShipmentStagingTable(wsShip, report)
+End Function
+
+Private Function GetShipmentReleaseInvSysTable(ByVal wsShip As Worksheet, ByRef report As String) As ListObject
+    Set GetShipmentReleaseInvSysTable = GetShipmentReleaseStagingTable(wsShip, report)
+End Function
+
+Private Function AssertShippingTotalInvWriteAllowed(ByVal callerContext As String, ByRef report As String) As Boolean
+    Select Case UCase$(Trim$(callerContext))
+        Case SHIP_TOTALINV_CONTEXT_MANUFACTURING, _
+             SHIP_TOTALINV_CONTEXT_READ_MODEL, _
+             SHIP_TOTALINV_CONTEXT_VISIBLE_NAS
+            AssertShippingTotalInvWriteAllowed = True
+        Case Else
+            report = "Blocked Shipments-context TOTAL INV write"
+            If Trim$(callerContext) <> "" Then report = report & " from " & callerContext
+    End Select
+End Function
+
+Private Function WriteShippingTotalInvValue(ByVal lr As ListRow, _
+                                            ByVal newValue As Variant, _
+                                            ByVal callerContext As String, _
+                                            ByRef report As String) As Boolean
+    Dim colTotalInv As Long
+
+    If lr Is Nothing Then Exit Function
+    If Not AssertShippingTotalInvWriteAllowed(callerContext, report) Then Exit Function
+    colTotalInv = ColumnIndex(lr.Parent, "TOTAL INV")
+    If colTotalInv <= 0 Then
+        report = "invSys table missing TOTAL INV column."
+        Exit Function
+    End If
+    lr.Range.Cells(1, colTotalInv).Value = newValue
+    WriteShippingTotalInvValue = True
 End Function
 
 Public Sub ShipmentsFormHydrateInvSysFromShippables(ByVal wsShip As Worksheet, _
@@ -16533,12 +16612,6 @@ Public Sub ShipmentsFormHydrateInvSysTableFromShippables(ByVal invLo As ListObje
     Dim versionLabel As String
     Dim uomVal As String
     Dim locVal As String
-    Dim totalInvQty As Double
-    Dim nasQtyText As String
-    Dim lr As ListRow
-    Dim existingIdx As Long
-    Dim existingTotal As Variant
-    Dim colTotalInv As Long
 
     If invLo Is Nothing Then Exit Sub
     If IsEmpty(shippables) Then Exit Sub
@@ -16553,31 +16626,7 @@ Public Sub ShipmentsFormHydrateInvSysTableFromShippables(ByVal invLo As ListObje
         locVal = Trim$(NzStr(shippables(r, 6)))
         If rowVal <= 0 Or itemName = "" Then GoTo NextShippable
 
-        totalInvQty = 0#
-        nasQtyText = Trim$(NzStr(shippables(r, 4)))
-        If nasQtyText <> "" And LCase$(nasQtyText) <> "unknown" Then totalInvQty = NzDbl(nasQtyText)
-
-        existingIdx = FindInvRowIndexByRow(invLo, rowVal)
-        If existingIdx > 0 Then
-            existingTotal = GetInvSysValueByIndex(invLo, existingIdx, "TOTAL INV")
-            If totalInvQty > 0.0000001 _
-               And (IsBlankInventoryValue(existingTotal) Or NzDbl(existingTotal) <= 0.0000001) Then
-                colTotalInv = ColumnIndex(invLo, "TOTAL INV")
-                If colTotalInv > 0 Then invLo.ListRows(existingIdx).Range.Cells(1, colTotalInv).Value = totalInvQty
-            End If
-            GoTo NextShippable
-        End If
-
         If EnsureInvSysItemByRow(rowVal, itemName, uomVal, locVal, versionLabel, invLo) <= 0 Then GoTo NextShippable
-        existingIdx = FindInvRowIndexByRow(invLo, rowVal)
-        If existingIdx <= 0 Then GoTo NextShippable
-        Set lr = invLo.ListRows(existingIdx)
-        If totalInvQty > 0.0000001 Then
-            WriteValue lr, "TOTAL INV", totalInvQty
-        Else
-            WriteValue lr, "TOTAL INV", vbNullString
-        End If
-        WriteValue lr, "SHIPMENTS", 0
 NextShippable:
     Next r
     Exit Sub
@@ -16597,22 +16646,15 @@ Private Sub EnsureShipmentInvSysRowFromSelectedNas(ByVal invLo As ListObject, _
 
     Dim nasText As String
     Dim nasQty As Double
-    Dim availableText As String
-    Dim availableQty As Double
-    Dim seedQty As Double
     Dim rowIndex As Long
     Dim lr As ListRow
-    Dim colTotalInv As Long
     Dim createdRow As Boolean
+    Dim report As String
 
     If invLo Is Nothing Then Exit Sub
     If rowVal <= 0 Or Trim$(itemName) = "" Then Exit Sub
     nasText = Trim$(NzStr(displayedNasQty))
     If nasText <> "" And LCase$(nasText) <> "unknown" Then nasQty = NzDbl(nasText)
-    availableText = Trim$(NzStr(displayedAvailableQty))
-    If availableText <> "" And LCase$(availableText) <> "unknown" Then availableQty = NzDbl(availableText)
-    seedQty = nasQty
-    If seedQty <= 0.0000001 Then seedQty = availableQty
 
     rowIndex = FindInvRowIndexByRow(invLo, rowVal)
     If rowIndex <= 0 Then
@@ -16623,13 +16665,10 @@ Private Sub EnsureShipmentInvSysRowFromSelectedNas(ByVal invLo As ListObject, _
     If rowIndex <= 0 Then Exit Sub
 
     Set lr = invLo.ListRows(rowIndex)
-    colTotalInv = ColumnIndex(invLo, "TOTAL INV")
-    If colTotalInv > 0 Then
-        If nasQty > 0.0000001 Then
-            lr.Range.Cells(1, colTotalInv).Value = nasQty
-        ElseIf createdRow And seedQty > 0.0000001 Then
-            lr.Range.Cells(1, colTotalInv).Value = seedQty
-        End If
+    If nasQty > 0.0000001 Then
+        WriteShippingTotalInvValue lr, nasQty, SHIP_TOTALINV_CONTEXT_VISIBLE_NAS, report
+    ElseIf createdRow Then
+        WriteShippingTotalInvValue lr, vbNullString, SHIP_TOTALINV_CONTEXT_VISIBLE_NAS, report
     End If
     WriteValue lr, "ITEM", itemName
     If Trim$(NzStr(GetInvSysValueByIndex(invLo, rowIndex, "ITEM_CODE"))) = "" Then WriteValue lr, "ITEM_CODE", itemName
@@ -16658,7 +16697,12 @@ Private Sub HydrateInvSysFromShippingReadModel(ByVal invLo As ListObject, ByVal 
         For Each lc In invLo.ListColumns
             sourceCol = ColumnIndex(sourceLo, CStr(lc.Name))
             If sourceCol > 0 Then
-                invLo.DataBodyRange.Cells(r, lc.Index).Value = sourceLo.DataBodyRange.Cells(r, sourceCol).Value
+                If StrComp(CStr(lc.Name), "TOTAL INV", vbTextCompare) = 0 Then
+                    Dim hydrateReport As String
+                    WriteShippingTotalInvValue invLo.ListRows(r), sourceLo.DataBodyRange.Cells(r, sourceCol).Value, SHIP_TOTALINV_CONTEXT_READ_MODEL, hydrateReport
+                Else
+                    invLo.DataBodyRange.Cells(r, lc.Index).Value = sourceLo.DataBodyRange.Cells(r, sourceCol).Value
+                End If
             End If
         Next lc
     Next r
@@ -16703,7 +16747,8 @@ Private Sub HydrateInvSysFromShipmentLines(ByVal invLo As ListObject, ByVal loSh
         If cUom > 0 Then WriteValue lr, "UOM", NzStr(loShip.DataBodyRange.Cells(r, cUom).Value)
         If cLoc > 0 Then WriteValue lr, "LOCATION", NzStr(loShip.DataBodyRange.Cells(r, cLoc).Value)
         If cDesc > 0 Then WriteValue lr, "DESCRIPTION", NzStr(loShip.DataBodyRange.Cells(r, cDesc).Value)
-        WriteValue lr, "TOTAL INV", vbNullString
+        Dim hydrateShipmentReport As String
+        WriteShippingTotalInvValue lr, vbNullString, SHIP_TOTALINV_CONTEXT_VISIBLE_NAS, hydrateShipmentReport
         WriteValue lr, "SHIPMENTS", ShipmentLineActiveQtyForRow(loShip, rowVal)
 NextLine:
     Next r
@@ -16778,9 +16823,6 @@ Private Sub AddInvSysRowFromShipmentLine(ByVal invLo As ListObject, _
     Dim lr As ListRow
     Dim rowVal As Long
     Dim itemName As String
-    Dim versionInv As Object
-    Dim key As Variant
-    Dim totalQty As Double
     Dim shipmentQty As Double
 
     If invLo Is Nothing Or loShip Is Nothing Then Exit Sub
@@ -16798,13 +16840,8 @@ Private Sub AddInvSysRowFromShipmentLine(ByVal invLo As ListObject, _
     If cLoc > 0 Then WriteValue lr, "LOCATION", NzStr(loShip.DataBodyRange.Cells(sourceRow, cLoc).Value)
     If cDesc > 0 Then WriteValue lr, "DESCRIPTION", NzStr(loShip.DataBodyRange.Cells(sourceRow, cDesc).Value)
 
-    Set versionInv = BoxMakerFormLoadBoxVersionInventory(rowVal, itemName)
-    If Not versionInv Is Nothing Then
-        For Each key In versionInv.Keys
-            totalQty = totalQty + NzDbl(versionInv(key))
-        Next key
-    End If
-    WriteValue lr, "TOTAL INV", totalQty
+    Dim repairReport As String
+    WriteShippingTotalInvValue lr, vbNullString, SHIP_TOTALINV_CONTEXT_VISIBLE_NAS, repairReport
     shipmentQty = ShipmentLineActiveQtyForRow(loShip, rowVal)
     WriteValue lr, "SHIPMENTS", shipmentQty
 End Sub
@@ -16927,7 +16964,8 @@ NextInvRow:
 FailSoft:
 End Sub
 
-Private Sub ReconcileShippableTotalsFromVersionInventory(ByVal invLo As ListObject)
+Private Sub ReconcileShippableTotalsFromVersionInventory(ByVal invLo As ListObject, _
+                                                         Optional ByVal callerContext As String = "")
     On Error GoTo FailSoft
 
     Dim savedBoxes As Variant
@@ -16939,8 +16977,11 @@ Private Sub ReconcileShippableTotalsFromVersionInventory(ByVal invLo As ListObje
     Dim key As Variant
     Dim cTotal As Long
     Dim cShip As Long
+    Dim report As String
 
     If invLo Is Nothing Then Exit Sub
+    If Not AssertShippingTotalInvWriteAllowed(callerContext, report) Then Exit Sub
+    If StrComp(UCase$(Trim$(callerContext)), SHIP_TOTALINV_CONTEXT_MANUFACTURING, vbTextCompare) <> 0 Then Exit Sub
     If invLo.DataBodyRange Is Nothing Then Exit Sub
     cTotal = ColumnIndex(invLo, "TOTAL INV")
     If cTotal = 0 Then Exit Sub
@@ -16965,7 +17006,7 @@ Private Sub ReconcileShippableTotalsFromVersionInventory(ByVal invLo As ListObje
         If cShip > 0 Then availableVersionQty = availableVersionQty - NzDbl(invLo.DataBodyRange.Cells(invIdx, cShip).Value)
         If availableVersionQty < 0 Then availableVersionQty = 0
         If availableVersionQty > NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value) + 0.0000001 Then
-            invLo.DataBodyRange.Cells(invIdx, cTotal).Value = availableVersionQty
+            WriteShippingTotalInvValue invLo.ListRows(invIdx), availableVersionQty, callerContext, report
         End If
 NextBox:
     Next r
@@ -17936,7 +17977,10 @@ Private Function BuildComponentDeltaPacketFromBoxBom(invLo As ListObject, loBom 
                 If invIdx <= 0 And itemName <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
                 If invIdx > 0 And colTotalInv > 0 Then
                     currentInv = ResolveCurrentInventoryValue(loBom.Parent, invLo, rowVal, itemName, foundCurrent, snapshotCache)
-                    If foundCurrent Then invLo.DataBodyRange.Cells(invIdx, colTotalInv).Value = currentInv
+                    If foundCurrent Then
+                        Dim repairReport As String
+                        WriteShippingTotalInvValue invLo.ListRows(invIdx), currentInv, SHIP_TOTALINV_CONTEXT_READ_MODEL, repairReport
+                    End If
                 End If
             End If
         End If
@@ -18535,11 +18579,7 @@ NextDelta:
     WriteValue lr, "UOM", uomVal
     WriteValue lr, "LOCATION", locationVal
     WriteValue lr, "DESCRIPTION", versionLabel
-    If seedTotalForDeduct Then
-        WriteValue lr, "TOTAL INV", qtyVal
-    Else
-        WriteValue lr, "TOTAL INV", vbNullString
-    End If
+    WriteShippingTotalInvValue lr, vbNullString, SHIP_TOTALINV_CONTEXT_VISIBLE_NAS, errNotes
     WriteValue lr, "SHIPMENTS", qtyVal
     Set FindShipmentSentDeltaInventoryRowForApply = lr
     Exit Function
@@ -18659,9 +18699,7 @@ Private Function ApplyShipmentsSentDeltas(invLo As ListObject, deltas As Collect
         Exit Function
     End If
     If deductTotalInv Then
-        colTotal = ColumnIndex(invLo, "TOTAL INV")
-        If colTotal = 0 Then
-            errNotes = "invSys table missing TOTAL INV column."
+        If Not AssertShippingTotalInvWriteAllowed("SHIPMENTS_SENT", errNotes) Then
             ApplyShipmentsSentDeltas = -1
             Exit Function
         End If
@@ -18723,7 +18761,7 @@ NextValidate:
         shipCell.Value = newShip
         If deductTotalInv Then
             Set totalCell = invRow.Range.Cells(1, colTotal)
-            totalCell.Value = NzDbl(totalCell.Value) - qtyVal
+            WriteShippingTotalInvValue invRow, NzDbl(totalCell.Value) - qtyVal, "SHIPMENTS_SENT", errNotes
             If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
         End If
         If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
@@ -18733,61 +18771,7 @@ NextApply:
 End Function
 
 Private Function ApplyDirectShipmentsSentDeltas(ByVal invLo As ListObject, ByVal deltas As Collection, ByRef errNotes As String) As Double
-    ApplyDirectShipmentsSentDeltas = 0
-    errNotes = ""
-    If invLo Is Nothing Then
-        errNotes = "invSys table not found."
-        ApplyDirectShipmentsSentDeltas = -1
-        Exit Function
-    End If
-    If deltas Is Nothing Then Exit Function
-    If deltas.Count = 0 Then Exit Function
-
-    Dim colTotal As Long: colTotal = ColumnIndex(invLo, "TOTAL INV")
-    Dim colLastEdited As Long: colLastEdited = ColumnIndex(invLo, "LAST EDITED")
-    Dim colTotalLastEdit As Long: colTotalLastEdit = ColumnIndex(invLo, "TOTAL INV LAST EDIT")
-    If colTotal = 0 Then
-        errNotes = "invSys table missing TOTAL INV column."
-        ApplyDirectShipmentsSentDeltas = -1
-        Exit Function
-    End If
-
-    Dim delta As Variant
-    For Each delta In deltas
-        Dim rowVal As Long: rowVal = CLng(delta("ROW"))
-        Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
-        If qtyVal <= 0 Then GoTo NextValidate
-
-        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
-        If invRow Is Nothing Then
-            AppendNote errNotes, "invSys ROW " & rowVal & " not found."
-            ApplyDirectShipmentsSentDeltas = -1
-            Exit Function
-        End If
-
-        Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
-        Dim currentTotal As Double: currentTotal = NzDbl(totalCell.Value)
-        If qtyVal > currentTotal + 0.0000001 Then
-            AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(currentTotal, "0.###") & " in TOTAL INV but needs " & Format$(qtyVal, "0.###") & "."
-            ApplyDirectShipmentsSentDeltas = -1
-            Exit Function
-        End If
-NextValidate:
-    Next delta
-
-    For Each delta In deltas
-        rowVal = CLng(delta("ROW"))
-        qtyVal = NzDbl(delta("QTY"))
-        If qtyVal <= 0 Then GoTo NextApply
-        Set invRow = FindInvListRowByRowValue(invLo, rowVal)
-        If invRow Is Nothing Then GoTo NextApply
-        Set totalCell = invRow.Range.Cells(1, colTotal)
-        totalCell.Value = NzDbl(totalCell.Value) - qtyVal
-        If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
-        If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
-        ApplyDirectShipmentsSentDeltas = ApplyDirectShipmentsSentDeltas + qtyVal
-NextApply:
-    Next delta
+    ApplyDirectShipmentsSentDeltas = ApplyShipmentsSentDeltas(invLo, deltas, errNotes, False)
 End Function
 
 Private Function ApplyShipmentQtyDeltaLocal(ByVal invLo As ListObject, _
@@ -18988,8 +18972,6 @@ Private Function EnsureShipmentDeltaInventoryRowForApply(ByVal invLo As ListObje
     If delta.Exists("LOCATION") Then locationVal = Trim$(NzStr(delta("LOCATION")))
     If delta.Exists("VERSION") Then versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(delta("VERSION")))
     If delta.Exists("AVAILABLE_OVERRIDE") Then totalQty = NzDbl(delta("AVAILABLE_OVERRIDE"))
-    If totalQty <= 0.0000001 Then totalQty = NzDbl(delta("QTY"))
-    If totalQty <= 0.0000001 Then Exit Function
 
     EnsureShippingWorksheetEditable invLo.Parent
     Set lr = FirstBlankListRowShipping(invLo)
@@ -19000,7 +18982,11 @@ Private Function EnsureShipmentDeltaInventoryRowForApply(ByVal invLo As ListObje
     WriteValue lr, "UOM", uomVal
     WriteValue lr, "LOCATION", locationVal
     WriteValue lr, "DESCRIPTION", versionLabel
-    WriteValue lr, "TOTAL INV", totalQty
+    If totalQty > 0.0000001 Then
+        WriteShippingTotalInvValue lr, totalQty, SHIP_TOTALINV_CONTEXT_VISIBLE_NAS, errNotes
+    Else
+        WriteShippingTotalInvValue lr, vbNullString, SHIP_TOTALINV_CONTEXT_VISIBLE_NAS, errNotes
+    End If
     WriteValue lr, "SHIPMENTS", 0
     If delta.Exists("LIST_ROW") Then delta.Remove "LIST_ROW"
     delta.Add "LIST_ROW", lr
@@ -19173,7 +19159,7 @@ NextValidate:
         If invRow Is Nothing Then GoTo NextApply
         Set totalCell = invRow.Range.Cells(1, colTotal)
         Dim usedCell As Range: Set usedCell = invRow.Range.Cells(1, colUsed)
-        totalCell.Value = NzDbl(totalCell.Value) - qtyVal
+        WriteShippingTotalInvValue invRow, NzDbl(totalCell.Value) - qtyVal, SHIP_TOTALINV_CONTEXT_MANUFACTURING, errNotes
         usedCell.Value = Application.WorksheetFunction.Max(0, NzDbl(usedCell.Value) - qtyVal)
         If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
         If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
@@ -19278,7 +19264,7 @@ NextValidate:
         Set madeCell = invRow.Range.Cells(1, colMade)
         Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
         madeCell.Value = NzDbl(madeCell.Value) - qtyVal
-        totalCell.Value = NzDbl(totalCell.Value) + qtyVal
+        WriteShippingTotalInvValue invRow, NzDbl(totalCell.Value) + qtyVal, SHIP_TOTALINV_CONTEXT_MANUFACTURING, errNotes
         If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
         If colTotalLastEdit > 0 Then invRow.Range.Cells(1, colTotalLastEdit).Value = Now
         ApplyMadeToInventoryDeltasLocal = ApplyMadeToInventoryDeltasLocal + qtyVal

@@ -1,10 +1,9 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-06-24 22:31:31
-- Passed: 147
-- Failed: 18
-- Range: 1-185 of 185
-- Status: PARTIAL
+- Date: 2026-06-29 16:02:12
+- Passed: 194
+- Failed: 0
+- Range: 1-194 of 194
 
 | Test | Result |
 |---|---|
@@ -30,7 +29,7 @@
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsUnsignedUser | PASS |
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsMissingCapability | PASS |
 | TestPhase6CoreSurfaces.TestRoleWriteCurrent_RejectsFallbackTarget | PASS |
-| TestPhase6CoreSurfaces.TestRoleWriteCurrent_AllowsSignedInReceivePost | FAIL |
+| TestPhase6CoreSurfaces.TestRoleWriteCurrent_AllowsSignedInReceivePost | PASS |
 | TestPhase6CoreSurfaces.TestAuthSignOut_ClearsUserButKeepsWarehouseTarget | PASS |
 | TestPhase6CoreSurfaces.TestAuthCanPerform_SignedOutFailsClosedWithLoadedAuth | PASS |
 | TestPhase6CoreSurfaces.TestAuthTtlExpiry_FailsClosedForIsSignedInAndCanPerform | PASS |
@@ -47,11 +46,11 @@
 | TestWarehouseBootstrap.TestWarehouseIdExists_SharePointArtifactExists | PASS |
 | TestWarehouseBootstrap.TestWarehouseIdExists_NeitherLocalNorSharePointExists | PASS |
 | TestWarehouseBootstrap.TestWarehouseIdExists_SharePointUnavailableReturnsFalseAndLogsSkip | PASS |
-| TestWarehouseBootstrap.TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime | FAIL |
+| TestWarehouseBootstrap.TestBootstrapWarehouseLocal_CreatesBootableLocalRuntime | PASS |
 | TestWarehouseBootstrap.TestBootstrapWarehouseLocal_FailureRollsBackPartialFolders | PASS |
-| TestWarehouseBootstrap.TestPublishInitialArtifacts_PublishSuccess | FAIL |
-| TestWarehouseBootstrap.TestPublishInitialArtifacts_SharePointUnavailableReturnsFalse | FAIL |
-| TestWarehouseBootstrap.TestPublishInitialArtifacts_RepeatedPublishIsIdempotent | FAIL |
+| TestWarehouseBootstrap.TestPublishInitialArtifacts_PublishSuccess | PASS |
+| TestWarehouseBootstrap.TestPublishInitialArtifacts_SharePointUnavailableReturnsFalse | PASS |
+| TestWarehouseBootstrap.TestPublishInitialArtifacts_RepeatedPublishIsIdempotent | PASS |
 | test_RetireMigrateSpec.TestValidateRetireMigrateSpec_TrimsAndAcceptsArchiveOnly | PASS |
 | test_RetireMigrateSpec.TestValidateRetireMigrateSpec_RejectsEmptySourceWarehouseId | PASS |
 | test_RetireMigrateSpec.TestValidateRetireMigrateSpec_RejectsMissingTargetForMigrate | PASS |
@@ -62,19 +61,19 @@
 | TestWarehouseRetireReAuth.TestReAuthGate_WrongPassword_ShowsInlineErrorAndDoesNotAuthenticate | PASS |
 | TestWarehouseRetireReAuth.TestReAuthGate_ThreeFailures_LocksOutAndLogs | PASS |
 | TestWarehouseRetireReAuth.TestReAuthGate_Cancel_LeavesUnauthenticatedWithoutLog | PASS |
-| TestWarehouseRetireArchive.TestWriteArchivePackage_SuccessCreatesAtomicArchive | FAIL |
-| TestWarehouseRetireArchive.TestWriteArchivePackage_PartialFailureRollsBackTempArchive | FAIL |
-| TestWarehouseRetireArchive.TestWriteArchivePackage_AuthExportMasksPinHash | FAIL |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource | FAIL - SuccessAppendsInventoryAndTracesSource: SetupMigrationRuntimeRetire failed for WHRETMIG1A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG1A-INVENTORY-20260624222953-420983 |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingArchiveManifest | FAIL - RejectsMissingArchiveManifest: SetupMigrationRuntimeRetire failed for WHRETMIG2B: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG2B-INVENTORY-20260624222955-918916 |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse | FAIL - RejectsMissingTargetWarehouse: SetupMigrationRuntimeRetire failed for WHRETMIG3A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG3A-INVENTORY-20260624222957-374123 |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities | FAIL - DoesNotCopyAuthIdentities: SetupMigrationRuntimeRetire failed for WHRETMIG4A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG4A-INVENTORY-20260624223000-576083 |
-| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | FAIL - PreservesTargetConfigIdentity: SetupMigrationRuntimeRetire failed for WHRETMIG5A: Processor did not apply demo inventory seed. Applied=0; SkipDup=0; Poison=0; RunId=RUN-WHRETMIG5A-INVENTORY-20260624223002-335790 |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker | FAIL - WritesRetirementMarker: No retire lifecycle report was available. |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson | FAIL - WritesValidTombstoneJson: No retire lifecycle report was available. |
-| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement | FAIL - SharePointUnavailableDoesNotBlockRetirement: No retire lifecycle report was available. |
-| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutTombstone | FAIL - RejectsWithoutTombstone: No retire lifecycle report was available. |
-| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutConfirmation | FAIL - RejectsWithoutConfirmation: No retire lifecycle report was available. |
+| TestWarehouseRetireArchive.TestWriteArchivePackage_SuccessCreatesAtomicArchive | PASS |
+| TestWarehouseRetireArchive.TestWriteArchivePackage_PartialFailureRollsBackTempArchive | PASS |
+| TestWarehouseRetireArchive.TestWriteArchivePackage_AuthExportMasksPinHash | PASS |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_SuccessAppendsInventoryAndTracesSource | PASS |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingArchiveManifest | PASS |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_RejectsMissingTargetWarehouse | PASS |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_DoesNotCopyAuthIdentities | PASS |
+| TestWarehouseRetireMigration.TestMigrateInventoryToTarget_PreservesTargetConfigIdentity | PASS |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesRetirementMarker | PASS |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_WritesValidTombstoneJson | PASS |
+| TestWarehouseRetireLifecycle.TestRetireSourceWarehouse_SharePointUnavailableDoesNotBlockRetirement | PASS |
+| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutTombstone | PASS |
+| TestWarehouseRetireLifecycle.TestDeleteLocalRuntime_RejectsWithoutConfirmation | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_AllReady_ReturnsReady | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_AllReady_WhenCapabilityStationWildcard | PASS |
 | TestReceivingReadiness.TestCheckReceivingReadiness_SnapshotOk_WhenAuthMissingCapability | PASS |
@@ -123,6 +122,7 @@
 | TestPhase6CoreSurfaces.TestShippingEventCreator_QueuesSignedInCurrentTargetEvent | PASS |
 | TestPhase6CoreSurfaces.TestShippingState_TombstoneFiltersSentLineIdFromActiveCache | PASS |
 | TestPhase6CoreSurfaces.TestShippingState_SentRowTombstoneFiltersLegacyActiveCache | PASS |
+| TestPhase6CoreSurfaces.TestShippingFormOpen_ClearsPreviousSessionActiveRows | PASS |
 | TestPhase6CoreSurfaces.TestShippingWorkflowGuard_ShipmentsSentWithZeroStagedFails | PASS |
 | TestPhase6CoreSurfaces.TestShippingWorkflowGuard_ToShipmentsInsufficientInventoryFails | PASS |
 | TestPhase6CoreSurfaces.TestShippingWorkflowGuard_BoxesMadeInsufficientComponentFails | PASS |
@@ -134,28 +134,35 @@
 | TestPhase6CoreSurfaces.TestShippingBoard_TwoAddsSameRefBoxVersionCarrierShowOneRow | PASS |
 | TestPhase6CoreSurfaces.TestShippingAdd_DefaultsOrderToWarehouseArea | PASS |
 | TestPhase6CoreSurfaces.TestShippingAdd_BlankCarrierRequiresCarrier | PASS |
+| TestPhase6CoreSurfaces.TestShippingAdd_BlocksWhenFloorWouldBeBreached | PASS |
 | TestPhase6CoreSurfaces.TestShippingAdd_UsesDisplayedProjectedInventoryWhenVersionLedgerIsEmpty | PASS |
 | TestPhase6CoreSurfaces.TestShippingAdd_UsesDisplayedProjectedInventoryWhenTotalInvIsStaleZero | PASS |
+| TestPhase6CoreSurfaces.TestShippingAdd_RepairsMissingInvSysRowFromVisibleNas | PASS |
 | TestPhase6CoreSurfaces.TestShippingRemove_LockedRowReleasesInventory | PASS |
 | TestPhase6CoreSurfaces.TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory | PASS |
+| TestPhase6CoreSurfaces.TestShippingRemove_RepairsMissingInvSysRowBeforeRelease | PASS |
 | TestPhase6CoreSurfaces.TestShippingHold_PreservesReservationAndLocalDeduction | PASS |
 | TestPhase6CoreSurfaces.TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjection | PASS |
+| TestPhase6CoreSurfaces.TestShippingToShipments_LocalLockStaysVisible | PASS |
 | TestPhase6CoreSurfaces.TestShippingUpdate_PreservesExistingReservationWithoutDoubleDeducting | PASS |
 | TestPhase6CoreSurfaces.TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay | PASS |
+| TestPhase6CoreSurfaces.TestShippingUpdate_RepairsMissingInvSysRowBeforeDelta | PASS |
 | TestPhase6CoreSurfaces.TestShippingAdd_NewReservedRowAppliesSingleProjectedDeduction | PASS |
 | TestPhase6CoreSurfaces.TestShippingAdd_MergingExistingReservedRowAppliesOnlyDelta | PASS |
 | TestPhase6CoreSurfaces.TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay | PASS |
 | TestPhase6CoreSurfaces.TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion | PASS |
 | TestPhase6CoreSurfaces.TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows | PASS |
 | TestPhase6CoreSurfaces.TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv | PASS |
-| TestPhase6CoreSurfaces.TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentRows_UnreservedDirtyRowDoesNotDeductTotalInv | PASS |
 | TestPhase6CoreSurfaces.TestShippingSentRows_ReservedRowClearsLockedReservationTotal | PASS |
 | TestPhase6CoreSurfaces.TestShippingSentRows_DoesNotIncreaseProjectedInventoryOverlay | PASS |
 | TestPhase6CoreSurfaces.TestShippingSentRows_ReservedCompletionKeepsProjectedDeductionWhenNasStale | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentRows_RepairsMissingInvSysRowFromShipmentLine | PASS |
+| TestPhase6CoreSurfaces.TestShippingSentPayload_UsesVisibleShipmentItemWhenInvSysCodeStale | PASS |
 | TestPhase6CoreSurfaces.TestShippingSentRows_FullRunNeverIncreasesProjectedInventory | PASS |
 | TestPhase6CoreSurfaces.TestShippingProjectedOverlay_PreservesNasBaselineAcrossSentReregister | PASS |
 | TestPhase6CoreSurfaces.TestShippingProjectedOverlay_EvictsStaleZeroWhenBackendPositive | PASS |
-| TestPhase6CoreSurfaces.TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNewZero | PASS |
+| TestPhase6CoreSurfaces.TestShippingHydrateShippables_DoesNotWriteTotalInv | PASS |
 | TestPhase6CoreSurfaces.TestShippingProjectedOverlay_KeepsFreshSentOverlayAtBaseline | PASS |
 | TestPhase6CoreSurfaces.TestShippingProjectedOverlay_EvictsSentOverlayWhenNasCatchesUp | PASS |
 | TestPhase6CoreSurfaces.TestShippingProjectedOverlay_KeepsSentOverlayWithActiveLock | PASS |
@@ -166,6 +173,7 @@
 | TestPhase6CoreSurfaces.TestShippingRefresh_MergesLocalBoxBuildStagingAndClearsStaleOverlay | PASS |
 | TestPhase6CoreSurfaces.TestShippingRefresh_FindsBackendShippingBomViewWithoutInvSysSurface | PASS |
 | TestPhase6CoreSurfaces.TestShippingRefresh_SkipsBomNetworkWhenViewPopulated | PASS |
+| TestPhase6CoreSurfaces.TestShippingRefresh_BlankBomViewDoesNotSkipBackendRefresh | PASS |
 | TestPhase6CoreSurfaces.TestShippingRefresh_HidesSupportSheetsAfterSurfaceRepair | PASS |
 | TestPhase6CoreSurfaces.TestBoxMakerUnbox_QtyGreaterThanInventoryFailsBeforeQueue | PASS |
 | TestPhase6CoreSurfaces.TestBoxMakerUnbox_UsesShippingReadModelInventoryWhenInvSysMissing | PASS |
@@ -173,3 +181,23 @@
 | TestPhase6CoreSurfaces.TestShippingReservationTotals_IgnoreLocallySentActiveLedgerRows | PASS |
 | TestPhase6CoreSurfaces.TestSavedProductionWorkbook_RefreshPreservesStagingAndLogs | PASS |
 | TestPhase6CoreSurfaces.TestSavedProductionWorkbook_ReopenQueueProcessRefreshPreservesStagingAndLogs | PASS |
+| TestPhase6CoreSurfaces.TestProductionEventCreator_QueuesSignedInCurrentTargetEvent | PASS |
+| TestPhase6CoreSurfaces.TestSavedAdminWorkbook_ReopenRefreshReissuePreservesAudit | PASS |
+| TestPhase6CoreSurfaces.TestAdminShipmentReconcile_AppliesSignedDeltaWithCorrectedShipEvidence | PASS |
+| TestPhase6CoreSurfaces.TestAdminShipmentReconcile_RejectsOrphanAndMissingNarrative | PASS |
+| TestPhase6CoreSurfaces.TestAdminShipmentReconcile_DetectsNasIncreaseAfterLatestShip | PASS |
+| TestPhase6CoreSurfaces.TestAdminShipmentReconcile_RecentShipmentsSentLogShowsLast20 | PASS |
+| TestPhase6CoreSurfaces.TestAdminShipmentReconcile_RecentLogIncludesShipReserveEvidence | PASS |
+| TestPhase6CoreSurfaces.TestApplyReceive_RebuildsDeletedProjectionTablesInCanonicalWorkbook | PASS |
+| TestPhase6RoleSurfaces.TestEnsureInventoryManagementSurface_RemovesDuplicateAliasColumns | PASS |
+| TestPhase6RoleSurfaces.TestEnsureReceivingWorkbookSurface_CreatesExpectedTables | PASS |
+| TestPhase6RoleSurfaces.TestEnsureReceivingWorkbookSurface_RecreatesDeletedArtifacts | PASS |
+| TestPhase6RoleSurfaces.TestEnsureShippingWorkbookSurface_CreatesExpectedTables | PASS |
+| TestPhase6RoleSurfaces.TestEnsureShippingWorkbookSurface_RecreatesDeletedArtifacts | PASS |
+| TestPhase6RoleSurfaces.TestEnsureProductionWorkbookSurface_CreatesExpectedTables | PASS |
+| TestPhase6RoleSurfaces.TestEnsureProductionWorkbookSurface_RecreatesDeletedArtifacts | PASS |
+| TestPhase6RoleSurfaces.TestEnsureAdminWorkbookSurface_CreatesExpectedTables | PASS |
+| TestPhase6RoleSurfaces.TestResolveAdminTargetWorkbook_PrefersActiveVisibleWorkbook | PASS |
+| TestPhase6RoleSurfaces.TestResolveAdminTargetWorkbook_ExplicitWorkbookWinsOverActiveWorkbook | PASS |
+| TestPhase6RoleSurfaces.TestOpenUserManagement_WithoutWorkbookArgTargetsActiveWorkbook | PASS |
+| TestPhase6RoleSurfaces.TestOpenAdminConsole_WithoutRuntime_DoesNotCreateDefaultWarehouse | PASS |

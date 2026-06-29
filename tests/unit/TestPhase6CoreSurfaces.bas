@@ -6011,7 +6011,7 @@ CleanFail:
     Resume CleanExit
 End Function
 
-Public Function TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv() As Long
+Public Function TestShippingSentRows_UnreservedDirtyRowDoesNotDeductTotalInv() As Long
     Dim rootPath As String
     Dim currentUser As String
     Dim report As String
@@ -6023,7 +6023,7 @@ Public Function TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv() As Long
     Dim selectedRows(1 To 1) As Long
     Dim ok As Boolean
 
-    rootPath = BuildRuntimeTestRoot("phase6_ship_sent_unreserved_deduct")
+    rootPath = BuildRuntimeTestRoot("phase6_ship_sent_unreserved_no_deduct")
     currentUser = "calvin"
 
     On Error GoTo CleanFail
@@ -6046,8 +6046,8 @@ Public Function TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv() As Long
         failureReason = "Shipments Sent unreserved-row macro failed: " & report
         GoTo CleanExit
     End If
-    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 4 Then
-        failureReason = "Unreserved Shipments Sent did not deduct TOTAL INV; expected 4."
+    If CDbl(GetTableValue(loInv, 1, "TOTAL INV")) <> 5 Then
+        failureReason = "Unreserved Shipments Sent changed NAS-owned TOTAL INV; expected it to stay 5 but found " & CStr(GetTableValue(loInv, 1, "TOTAL INV")) & "."
         GoTo CleanExit
     End If
     If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 0 Then
@@ -6055,7 +6055,7 @@ Public Function TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv() As Long
         GoTo CleanExit
     End If
 
-    TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv = 1
+    TestShippingSentRows_UnreservedDirtyRowDoesNotDeductTotalInv = 1
 
 CleanExit:
     modAuth.SignOut
@@ -6070,7 +6070,7 @@ CleanExit:
     DeleteRuntimeRoot rootPath
     If failureReason <> "" Then
         On Error GoTo 0
-        Err.Raise vbObjectError + 7122, "TestShippingSentRows_UnreservedDirtyRowDeductsTotalInv", failureReason
+        Err.Raise vbObjectError + 7122, "TestShippingSentRows_UnreservedDirtyRowDoesNotDeductTotalInv", failureReason
     End If
     Exit Function
 CleanFail:
@@ -6181,6 +6181,7 @@ Public Function TestShippingSentRows_DoesNotIncreaseProjectedInventoryOverlay() 
     Set loShip = FindTableByName(wbOps, "ShipmentsTally")
     If loInv Is Nothing Or loShip Is Nothing Then GoTo CleanExit
 
+    RunShippingClearProjectedOverlayForTest
     AddInvSysSeedRow loInv, 988, "SKU-PROJECTED-SENT", "Projected Sent Item", "EA", "A1", 4
     SetTableCell loInv, 1, "SHIPMENTS", 1
     AddShippingTallyRow loShip, "REF-PROJECTED-SENT", "Projected Sent Item", 1, 988, "EA", "A1", "v1"
@@ -6199,7 +6200,7 @@ Public Function TestShippingSentRows_DoesNotIncreaseProjectedInventoryOverlay() 
 
     projectedText = RunShippingProjectedOverlayTextForTest(988, "v1", "4")
     If CDbl(NzDblForTest(projectedText)) > 3.0000001 Then
-        failureReason = "Shipments Sent increased projected inventory overlay; expected 3 or less but found " & projectedText & "."
+        failureReason = "Shipments Sent increased projected inventory overlay; expected 3 or less but found " & projectedText & ". Debug: " & RunShippingLastSentOverlayDebugForTest()
         GoTo CleanExit
     End If
 
@@ -6377,6 +6378,7 @@ Public Function TestShippingSentPayload_UsesVisibleShipmentItemWhenInvSysCodeSta
     TestShippingSentPayload_UsesVisibleShipmentItemWhenInvSysCodeStale = 1
 
 CleanExit:
+    RunShippingClearProjectedOverlayForTest
     CloseWorkbookIfOpen wbOps
     If failureReason <> "" Then
         On Error GoTo 0
@@ -6598,7 +6600,7 @@ CleanFail:
     Resume CleanExit
 End Function
 
-Public Function TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNewZero() As Long
+Public Function TestShippingHydrateShippables_DoesNotWriteTotalInv() As Long
     Dim report As String
     Dim failureReason As String
     Dim wbOps As Workbook
@@ -6637,8 +6639,8 @@ Public Function TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNew
         failureReason = "Existing T28 row was not found after shippables hydration."
         GoTo CleanExit
     End If
-    If NzDblForTest(GetTableValue(loInv, rowIndex, "TOTAL INV")) <> 18 Then
-        failureReason = "Existing stale zero TOTAL INV was not repaired from visible shippables; expected 18 but found " & CStr(GetTableValue(loInv, rowIndex, "TOTAL INV")) & "."
+    If NzDblForTest(GetTableValue(loInv, rowIndex, "TOTAL INV")) <> 0 Then
+        failureReason = "Shippables hydration changed existing NAS-owned TOTAL INV; expected 0 but found " & CStr(GetTableValue(loInv, rowIndex, "TOTAL INV")) & "."
         GoTo CleanExit
     End If
 
@@ -6652,13 +6654,13 @@ Public Function TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNew
         GoTo CleanExit
     End If
 
-    TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNewZero = 1
+    TestShippingHydrateShippables_DoesNotWriteTotalInv = 1
 
 CleanExit:
     CloseWorkbookIfOpen wbOps
     If failureReason <> "" Then
         On Error GoTo 0
-        Err.Raise vbObjectError + 7169, "TestShippingHydrateShippables_RepairsStaleZeroAndDoesNotWriteNewZero", failureReason
+        Err.Raise vbObjectError + 7169, "TestShippingHydrateShippables_DoesNotWriteTotalInv", failureReason
     End If
     Exit Function
 CleanFail:
@@ -8393,6 +8395,7 @@ Public Function TestAdminShipmentReconcile_AppliesSignedDeltaWithCorrectedShipEv
     Dim logRow As Long
     Dim skuRow As Long
     Dim failureReason As String
+    Dim foundQtyText As String
 
     rootPath = BuildRuntimeTestRoot("phase6_admin_ship_reconcile_apply")
 
@@ -8417,9 +8420,9 @@ Public Function TestAdminShipmentReconcile_AppliesSignedDeltaWithCorrectedShipEv
         GoTo CleanExit
     End If
 
-    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RECON", 1, "A1", "dirty add-back", "RELEASED")
+    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RECON", 1, "A1", "dirty NAS add-back", "IMPORT")
     payloadJson = modRoleEventWriter.BuildPayloadJson(item)
-    Set evt = CreatePayloadEventForTest("EVT-DIRTY-ADMIN-RECON-001", CORE_EVENT_TYPE_SHIP_RELEASE, "WH103", "S31", "shipper1", payloadJson, "dirty add-back")
+    Set evt = CreatePayloadEventForTest("EVT-DIRTY-ADMIN-RECON-001", "MIGRATION_SEED", "WH103", "S31", "shipper1", payloadJson, "dirty NAS add-back")
     If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-DIRTY-ADMIN-RECON", statusOut, errorCode, errorMessage) Then
         failureReason = "Dirty add-back setup failed: " & errorCode & " " & errorMessage
         GoTo CleanExit
@@ -8457,7 +8460,12 @@ Public Function TestAdminShipmentReconcile_AppliesSignedDeltaWithCorrectedShipEv
         GoTo CleanExit
     End If
     If skuRow = 0 Or CDbl(GetTableValue(loSku, skuRow, "QtyOnHand")) <> 9 Then
-        failureReason = "Admin reconcile did not update derived NAS quantity back to 9."
+        If skuRow = 0 Then
+            foundQtyText = "missing"
+        Else
+            foundQtyText = CStr(GetTableValue(loSku, skuRow, "QtyOnHand"))
+        End If
+        failureReason = "Admin reconcile did not update derived NAS quantity back to 9; found " & foundQtyText & "."
         GoTo CleanExit
     End If
 
@@ -8553,9 +8561,9 @@ Public Function TestAdminShipmentReconcile_DetectsNasIncreaseAfterLatestShip() A
         GoTo CleanExit
     End If
 
-    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RECON-DETECT", 1, "A1", "dirty add-back", "RELEASED")
+    Set item = modRoleEventWriter.CreatePayloadItem(101, "SKU-ADMIN-RECON-DETECT", 1, "A1", "dirty NAS add-back", "IMPORT")
     payloadJson = modRoleEventWriter.BuildPayloadJson(item)
-    Set evt = CreatePayloadEventForTest("EVT-DIRTY-ADMIN-RECON-DETECT", CORE_EVENT_TYPE_SHIP_RELEASE, "WH105", "S31", "shipper1", payloadJson, "dirty add-back")
+    Set evt = CreatePayloadEventForTest("EVT-DIRTY-ADMIN-RECON-DETECT", "MIGRATION_SEED", "WH105", "S31", "shipper1", payloadJson, "dirty NAS add-back")
     If Not modInventoryApply.ApplyEvent(evt, wbInv, "RUN-DIRTY-ADMIN-RECON-DETECT", statusOut, errorCode, errorMessage) Then
         failureReason = "Dirty add-back setup failed: " & errorCode & " " & errorMessage
         GoTo CleanExit
