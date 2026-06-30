@@ -7863,6 +7863,120 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestBoxMakerShippables_MultiVersionUsesCanonicalInventoryLogFallback() As Long
+    Dim rootPath As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbInv As Workbook
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loBomView As ListObject
+    Dim savedBoxes(1 To 1, 1 To 7) As Variant
+    Dim shippables As Variant
+    Dim r As Long
+    Dim v1Row As Long
+    Dim v2Row As Long
+    Dim overlayPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_box_maker_version_log_fallback")
+    On Error GoTo CleanFail
+
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH118", "S31", "calvin", failureReason) Then GoTo CleanExit
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH118", Array("SKU-T31"))
+    If wbInv Is Nothing Then
+        failureReason = "Canonical inventory workbook could not be created."
+        GoTo CleanExit
+    End If
+    AddInventoryLogRowForTest wbInv, "BOX_BUILD", "SKU-T31", 10, "ROW=92; VERSION=v1; IO=MADE"
+    wbInv.Save
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureShippingWorkbookSurface failed: " & report
+        GoTo CleanExit
+    End If
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loBomView Is Nothing Then
+        failureReason = "Shipping operator surface tables were missing."
+        GoTo CleanExit
+    End If
+
+    AddInvSysSeedRow loInv, 92, "SKU-T31", "T31", "EA", "CLEARVIEW", 10
+    AddShippingBomViewRow loBomView, 92, "T31", 4, "10x8x6 S-16709", 1, "EA"
+    AddShippingBomViewRow loBomView, 92, "T31", 4, "10x8x6 S-16709", 1, "EA"
+    SetOptionalTableCell loBomView, 2, "BomVersion", 2
+    SetOptionalTableCell loBomView, 2, "BomVersionLabel", "v2"
+
+    savedBoxes(1, 1) = 92
+    savedBoxes(1, 2) = "T31"
+    savedBoxes(1, 3) = "T31"
+    savedBoxes(1, 4) = "EA"
+    savedBoxes(1, 5) = "CLEARVIEW"
+    savedBoxes(1, 6) = ""
+    savedBoxes(1, 7) = ""
+
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    wbOps.Activate
+    shippables = RunShippingMacro1ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes)
+    If IsEmpty(shippables) Then
+        failureReason = "Shippable version inventory returned no rows."
+        GoTo CleanExit
+    End If
+
+    For r = 1 To UBound(shippables, 1)
+        If CLng(NzDblForTest(shippables(r, 1))) = 92 Then
+            Select Case LCase$(Trim$(CStr(shippables(r, 3))))
+                Case "v1"
+                    v1Row = r
+                Case "v2"
+                    v2Row = r
+            End Select
+        End If
+    Next r
+    If v1Row = 0 Or v2Row = 0 Then
+        failureReason = "Expected both active T31 versions in shippable inventory."
+        GoTo CleanExit
+    End If
+    If CDbl(NzDblForTest(shippables(v1Row, 4))) <> 10 Then
+        failureReason = "T31 v1 did not read canonical version inventory; expected 10 but found '" & CStr(shippables(v1Row, 4)) & "'."
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(shippables(v1Row, 8))) <> "10" Then
+        failureReason = "T31 v1 projected inventory did not mirror canonical NAS quantity; expected 10 but found '" & CStr(shippables(v1Row, 8)) & "'."
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(shippables(v2Row, 4))) <> "" Then
+        failureReason = "T31 v2 was inflated by v1 build evidence; expected blank NAS quantity but found '" & CStr(shippables(v2Row, 4)) & "'."
+        GoTo CleanExit
+    End If
+
+    TestBoxMakerShippables_MultiVersionUsesCanonicalInventoryLogFallback = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH118"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbInv
+    CloseWorkbookIfOpen FindWorkbookByName("WH118.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH118.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7150, "TestBoxMakerShippables_MultiVersionUsesCanonicalInventoryLogFallback", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows() As Long
     Dim failureReason As String
 
@@ -9762,6 +9876,7 @@ Private Sub AddInventoryLogRowForTest(ByVal wb As Workbook, _
     Dim lr As ListRow
     Dim headers As Variant
     Dim i As Long
+    Dim wasProtected As Boolean
 
     If wb Is Nothing Then Exit Sub
     On Error Resume Next
@@ -9773,6 +9888,8 @@ Private Sub AddInventoryLogRowForTest(ByVal wb As Workbook, _
     End If
 
     Set lo = FindTableByName(wb, "tblInventoryLog")
+    wasProtected = ws.ProtectContents
+    If wasProtected Then ws.Unprotect
     If lo Is Nothing Then
         headers = Array("EventID", "EventType", "SKU", "QtyDelta", "Note")
         For i = LBound(headers) To UBound(headers)
@@ -9789,6 +9906,7 @@ Private Sub AddInventoryLogRowForTest(ByVal wb As Workbook, _
     SetTableCell lo, lr.Index, "SKU", sku
     SetTableCell lo, lr.Index, "QtyDelta", qtyDelta
     SetTableCell lo, lr.Index, "Note", noteText
+    If wasProtected Then ws.Protect UserInterfaceOnly:=True, AllowFiltering:=True, AllowSorting:=True
 End Sub
 
 Private Sub AddAggregatePackagesLogRow(ByVal lo As ListObject, _

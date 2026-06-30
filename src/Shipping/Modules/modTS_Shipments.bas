@@ -4762,7 +4762,7 @@ Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Va
     If loSource Is Nothing Then GoTo CleanExit
     Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
     Set versionRowsByPackage = BuildBoxBomVersionsByPackageCache(loSource)
-    Set versionInventoryByPackage = BuildBoxVersionInventoryCache(savedBoxes, ws.Parent)
+    Set versionInventoryByPackage = BuildBoxVersionInventoryCache(savedBoxes, ws.Parent, allowExternalRefresh)
 
     Set rows = New Collection
     For r = 1 To UBound(savedBoxes, 1)
@@ -4935,7 +4935,9 @@ NextPackage:
     Next packageKey
 End Function
 
-Private Function BuildBoxVersionInventoryCache(ByVal savedBoxes As Variant, ByVal operatorWb As Workbook) As Object
+Private Function BuildBoxVersionInventoryCache(ByVal savedBoxes As Variant, _
+                                               ByVal operatorWb As Workbook, _
+                                               Optional ByVal allowExternalInventoryLogRead As Boolean = True) As Object
     On Error GoTo FailSoft
 
     Dim result As Object
@@ -4943,7 +4945,6 @@ Private Function BuildBoxVersionInventoryCache(ByVal savedBoxes As Variant, ByVa
     Dim invLo As ListObject
     Dim wb As Workbook
     Dim loLog As ListObject
-    Dim src As Variant
     Dim stagedDeltas As Object
     Dim packageRow As Long
     Dim boxName As String
@@ -4955,16 +4956,13 @@ Private Function BuildBoxVersionInventoryCache(ByVal savedBoxes As Variant, ByVa
     Dim cacheKey As String
     Dim invIdx As Long
     Dim r As Long
-    Dim cEventType As Long
-    Dim cSku As Long
-    Dim cQtyDelta As Long
-    Dim cNote As Long
-    Dim eventType As String
-    Dim skuValue As String
-    Dim versionLabel As String
-    Dim qtyDelta As Double
     Dim versionTotals As Object
     Dim stagedKey As Variant
+    Dim seenLogEvents As Object
+    Dim inventoryWb As Workbook
+    Dim inventoryPath As String
+    Dim openedTransient As Boolean
+    Dim warehouseId As String
 
     Set result = CreateObject("Scripting.Dictionary")
     result.CompareMode = vbTextCompare
@@ -5028,40 +5026,28 @@ Private Function BuildBoxVersionInventoryCache(ByVal savedBoxes As Variant, ByVa
 NextPackage:
     Next r
 
+    Set seenLogEvents = CreateObject("Scripting.Dictionary")
+    seenLogEvents.CompareMode = vbTextCompare
+
     If Not wb Is Nothing And candidateToKeys.Count > 0 Then
         Set loLog = FindListObjectByNameShipping(wb, "tblInventoryLog")
         If loLog Is Nothing Then Set loLog = FindListObjectByNameShipping(wb, "InventoryLog")
-        If Not loLog Is Nothing Then
-            If Not loLog.DataBodyRange Is Nothing Then
-                cEventType = ColumnIndex(loLog, "EventType")
-                cSku = ColumnIndex(loLog, "SKU")
-                cQtyDelta = ColumnIndex(loLog, "QtyDelta")
-                cNote = ColumnIndex(loLog, "Note")
-                If cEventType > 0 And cSku > 0 And cQtyDelta > 0 And cNote > 0 Then
-                    src = To2DArrayShipping(loLog.DataBodyRange.Value)
-                    For r = 1 To UBound(src, 1)
-                        eventType = UCase$(Trim$(NzStr(src(r, cEventType))))
-                        If eventType <> EVENT_TYPE_SHIP _
-                           And eventType <> EVENT_TYPE_SHIP_RESERVE _
-                           And eventType <> EVENT_TYPE_SHIP_RELEASE _
-                           And eventType <> EVENT_TYPE_BOX_BUILD _
-                           And eventType <> EVENT_TYPE_BOX_UNBOX Then GoTo NextLogRow
+        AddBoxVersionInventoryFromLog loLog, candidateToKeys, result, seenLogEvents, WorkbookLogSourceKeyShipping(wb)
+    End If
 
-                        skuValue = Trim$(NzStr(src(r, cSku)))
-                        If Not candidateToKeys.Exists(skuValue) Then GoTo NextLogRow
-
-                        versionLabel = ExtractBoxVersionLabelFromNoteShipping(NzStr(src(r, cNote)))
-                        If versionLabel = "" Then GoTo NextLogRow
-                        qtyDelta = NzDbl(src(r, cQtyDelta))
-                        Set keyList = candidateToKeys(skuValue)
-                        For Each candidate In keyList
-                            If result.Exists(CStr(candidate)) Then AddVersionInventoryDeltaShipping result(CStr(candidate)), versionLabel, qtyDelta
-                        Next candidate
-NextLogRow:
-                    Next r
-                End If
+    If allowExternalInventoryLogRead And candidateToKeys.Count > 0 Then
+        warehouseId = ResolveCurrentShippingWarehouseId()
+        inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
+        openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
+        Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+        If Not inventoryWb Is Nothing Then
+            If wb Is Nothing Or Not inventoryWb Is wb Then
+                Set loLog = FindListObjectByNameShipping(inventoryWb, "tblInventoryLog")
+                If loLog Is Nothing Then Set loLog = FindListObjectByNameShipping(inventoryWb, "InventoryLog")
+                AddBoxVersionInventoryFromLog loLog, candidateToKeys, result, seenLogEvents, WorkbookLogSourceKeyShipping(inventoryWb)
             End If
         End If
+        If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
     End If
 
     For Each candidate In result.Keys
@@ -5074,10 +5060,154 @@ NextLogRow:
     Exit Function
 
 FailSoft:
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
     If BuildBoxVersionInventoryCache Is Nothing Then
         Set BuildBoxVersionInventoryCache = CreateObject("Scripting.Dictionary")
         BuildBoxVersionInventoryCache.CompareMode = vbTextCompare
     End If
+End Function
+
+Private Function AddBoxVersionInventoryFromLog(ByVal loLog As ListObject, _
+                                               ByVal candidateToKeys As Object, _
+                                               ByVal result As Object, _
+                                               ByVal seenLogEvents As Object, _
+                                               ByVal sourceKey As String) As Long
+    On Error GoTo CleanExit
+
+    Dim src As Variant
+    Dim cEventId As Long
+    Dim cEventType As Long
+    Dim cSku As Long
+    Dim cQtyDelta As Long
+    Dim cNote As Long
+    Dim r As Long
+    Dim eventType As String
+    Dim skuValue As String
+    Dim versionLabel As String
+    Dim qtyDelta As Double
+    Dim keyList As Collection
+    Dim candidate As Variant
+    Dim eventKey As String
+
+    If loLog Is Nothing Then Exit Function
+    If loLog.DataBodyRange Is Nothing Then Exit Function
+    If candidateToKeys Is Nothing Or result Is Nothing Then Exit Function
+
+    cEventId = ColumnIndex(loLog, "EventID")
+    cEventType = ColumnIndex(loLog, "EventType")
+    cSku = ColumnIndex(loLog, "SKU")
+    cQtyDelta = ColumnIndex(loLog, "QtyDelta")
+    cNote = ColumnIndex(loLog, "Note")
+    If cEventType <= 0 Or cSku <= 0 Or cQtyDelta <= 0 Or cNote <= 0 Then Exit Function
+
+    src = To2DArrayShipping(loLog.DataBodyRange.Value)
+    For r = 1 To UBound(src, 1)
+        eventType = UCase$(Trim$(NzStr(src(r, cEventType))))
+        If eventType <> EVENT_TYPE_SHIP _
+           And eventType <> EVENT_TYPE_SHIP_RESERVE _
+           And eventType <> EVENT_TYPE_SHIP_RELEASE _
+           And eventType <> EVENT_TYPE_BOX_BUILD _
+           And eventType <> EVENT_TYPE_BOX_UNBOX Then GoTo NextLogRow
+
+        skuValue = Trim$(NzStr(src(r, cSku)))
+        If Not candidateToKeys.Exists(skuValue) Then GoTo NextLogRow
+
+        versionLabel = ExtractBoxVersionLabelFromNoteShipping(NzStr(src(r, cNote)))
+        If versionLabel = "" Then GoTo NextLogRow
+
+        eventKey = BoxVersionLogEventKeyShipping(src, r, cEventId, cEventType, cSku, cQtyDelta, cNote, sourceKey)
+        If Not seenLogEvents Is Nothing Then
+            If seenLogEvents.Exists(eventKey) Then GoTo NextLogRow
+            seenLogEvents(eventKey) = True
+        End If
+
+        qtyDelta = NzDbl(src(r, cQtyDelta))
+        Set keyList = candidateToKeys(skuValue)
+        For Each candidate In keyList
+            If result.Exists(CStr(candidate)) Then AddVersionInventoryDeltaShipping result(CStr(candidate)), versionLabel, qtyDelta
+        Next candidate
+        AddBoxVersionInventoryFromLog = AddBoxVersionInventoryFromLog + 1
+NextLogRow:
+    Next r
+
+CleanExit:
+End Function
+
+Private Function ListObjectRowCountShipping(ByVal lo As ListObject) As Long
+    On Error GoTo CleanExit
+
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    ListObjectRowCountShipping = lo.ListRows.Count
+
+CleanExit:
+End Function
+
+Private Function CountBoxVersionLogMatchesShipping(ByVal loLog As ListObject, _
+                                                   ByVal packageRow As Long, _
+                                                   ByVal versionLabel As String) As Long
+    On Error GoTo CleanExit
+
+    Dim src As Variant
+    Dim cEventType As Long
+    Dim cNote As Long
+    Dim r As Long
+    Dim eventType As String
+    Dim noteText As String
+
+    If loLog Is Nothing Then Exit Function
+    If loLog.DataBodyRange Is Nothing Then Exit Function
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If packageRow <= 0 Or versionLabel = "" Then Exit Function
+
+    cEventType = ColumnIndex(loLog, "EventType")
+    cNote = ColumnIndex(loLog, "Note")
+    If cEventType <= 0 Or cNote <= 0 Then Exit Function
+
+    src = To2DArrayShipping(loLog.DataBodyRange.Value)
+    For r = 1 To UBound(src, 1)
+        eventType = UCase$(Trim$(NzStr(src(r, cEventType))))
+        If eventType <> EVENT_TYPE_BOX_BUILD And eventType <> EVENT_TYPE_BOX_UNBOX Then GoTo NextRow
+        noteText = NzStr(src(r, cNote))
+        If InStr(1, noteText, "ROW=" & CStr(packageRow), vbTextCompare) = 0 Then GoTo NextRow
+        If StrComp(ExtractBoxVersionLabelFromNoteShipping(noteText), versionLabel, vbTextCompare) <> 0 Then GoTo NextRow
+        CountBoxVersionLogMatchesShipping = CountBoxVersionLogMatchesShipping + 1
+NextRow:
+    Next r
+
+CleanExit:
+End Function
+
+Private Function BoxVersionLogEventKeyShipping(ByVal src As Variant, _
+                                               ByVal rowIndex As Long, _
+                                               ByVal eventIdColumn As Long, _
+                                               ByVal eventTypeColumn As Long, _
+                                               ByVal skuColumn As Long, _
+                                               ByVal qtyDeltaColumn As Long, _
+                                               ByVal noteColumn As Long, _
+                                               ByVal sourceKey As String) As String
+    Dim eventId As String
+
+    If eventIdColumn > 0 Then eventId = Trim$(NzStr(src(rowIndex, eventIdColumn)))
+    If eventId <> "" Then
+        BoxVersionLogEventKeyShipping = "ID|" & eventId
+    Else
+        BoxVersionLogEventKeyShipping = "ROW|" & sourceKey & "|" & CStr(rowIndex) & "|" & _
+                                        Trim$(NzStr(src(rowIndex, eventTypeColumn))) & "|" & _
+                                        Trim$(NzStr(src(rowIndex, skuColumn))) & "|" & _
+                                        Trim$(NzStr(src(rowIndex, qtyDeltaColumn))) & "|" & _
+                                        Trim$(NzStr(src(rowIndex, noteColumn)))
+    End If
+End Function
+
+Private Function WorkbookLogSourceKeyShipping(ByVal wb As Workbook) As String
+    On Error GoTo CleanExit
+
+    If wb Is Nothing Then Exit Function
+    WorkbookLogSourceKeyShipping = Trim$(wb.FullName)
+    If WorkbookLogSourceKeyShipping = "" Then WorkbookLogSourceKeyShipping = Trim$(wb.Name)
+
+CleanExit:
 End Function
 
 Private Function CountActiveBoxBomVersionsShipping(ByVal versions As Variant) As Long
@@ -5114,7 +5244,6 @@ Public Sub RegisterPendingBoxVersionInventoryOverlay(ByVal packageRow As Long, _
         resolvedBaseline = projectedQty
     Else
         resolvedBaseline = CDbl(baselineQty)
-        If resolvedBaseline < projectedQty Then resolvedBaseline = projectedQty
     End If
     If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then
         If CDbl(mPendingBoxVersionInventoryOverlayBaseline(key)) > resolvedBaseline Then resolvedBaseline = CDbl(mPendingBoxVersionInventoryOverlayBaseline(key))
@@ -5854,6 +5983,58 @@ Public Function BoxMakerFormCurrentInventory(ByVal rowValue As Long, ByVal itemN
 
 FailSoft:
     BoxMakerFormCurrentInventory = ""
+End Function
+
+Public Function BoxMakerFormCurrentInventoryDebugReport(ByVal packageRow As Long, ByVal versionLabel As String) As String
+    On Error GoTo FailSoft
+
+    Dim warehouseId As String
+    Dim inventoryPath As String
+    Dim operatorWb As Workbook
+    Dim inventoryWb As Workbook
+    Dim openedTransient As Boolean
+    Dim operatorLog As ListObject
+    Dim inventoryLog As ListObject
+    Dim report As String
+
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    warehouseId = ResolveCurrentShippingWarehouseId()
+    inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
+    Set operatorWb = ResolveShippingWorkbook(, SHEET_SHIPMENTS)
+    If inventoryPath <> "" Then openedTransient = (FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
+    Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+
+    report = "WarehouseId=" & warehouseId & _
+             "; PackageRow=" & CStr(packageRow) & _
+             "; Version=" & versionLabel & _
+             "; InventoryPath=" & inventoryPath
+
+    If operatorWb Is Nothing Then
+        report = report & "; OperatorWb=NOT RESOLVED"
+    Else
+        Set operatorLog = FindListObjectByNameShipping(operatorWb, "tblInventoryLog")
+        report = report & "; OperatorWb=" & operatorWb.Name & _
+                 "; OperatorLogRows=" & CStr(ListObjectRowCountShipping(operatorLog)) & _
+                 "; OperatorMatches=" & CStr(CountBoxVersionLogMatchesShipping(operatorLog, packageRow, versionLabel))
+    End If
+
+    If inventoryWb Is Nothing Then
+        report = report & "; InventoryWb=NOT RESOLVED"
+    Else
+        Set inventoryLog = FindListObjectByNameShipping(inventoryWb, "tblInventoryLog")
+        report = report & "; InventoryWb=" & inventoryWb.Name & _
+                 "; InventoryReadOnly=" & CStr(inventoryWb.ReadOnly) & _
+                 "; InventoryLogRows=" & CStr(ListObjectRowCountShipping(inventoryLog)) & _
+                 "; InventoryMatches=" & CStr(CountBoxVersionLogMatchesShipping(inventoryLog, packageRow, versionLabel))
+    End If
+
+    BoxMakerFormCurrentInventoryDebugReport = report
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+    Exit Function
+
+FailSoft:
+    BoxMakerFormCurrentInventoryDebugReport = "BoxMaker debug report failed: " & Err.Description
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
 End Function
 
 Private Function QueueBoxMakerFormPayload(ByVal isMakeAction As Boolean, _
