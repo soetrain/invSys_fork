@@ -7435,7 +7435,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         singleRow = Array(lr.Index)
 
         If qtyDelta > 0 Then
-            reservedTotal = ApplyShipmentQtyDeltaLocal(invLo, rowValue, qtyDelta, errNotes, existingQtyValue)
+            reservedTotal = ApplyShipmentQtyDeltaLocal(invLo, rowValue, qtyDelta, errNotes, existingQtyValue, itemName, itemName, uomValue, locationValue, descriptionValue, displayedNasQty, displayedAvailableQty)
             If reservedTotal < 0 Then
                 If errNotes = "" Then errNotes = "Unable to apply delta reserve locally."
                 report = errNotes
@@ -7443,7 +7443,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             End If
         ElseIf qtyDelta < 0 Then
             absQtyDelta = Abs(qtyDelta)
-            releasedTotal = ApplyShipmentQtyDeltaLocal(invLo, rowValue, -absQtyDelta, errNotes, existingQtyValue)
+            releasedTotal = ApplyShipmentQtyDeltaLocal(invLo, rowValue, -absQtyDelta, errNotes, existingQtyValue, itemName, itemName, uomValue, locationValue, descriptionValue, displayedNasQty, displayedAvailableQty)
             If releasedTotal < 0 Then
                 If errNotes = "" Then errNotes = "Unable to apply delta release locally."
                 report = errNotes
@@ -7638,6 +7638,47 @@ Public Function ValidateShippingAddProjectedAvailabilityOverrideForTest(ByVal ta
 
 FailSoft:
     ValidateShippingAddProjectedAvailabilityOverrideForTest = Err.Description
+End Function
+
+Public Function ValidateShippingQtyDeltaRepairForTest(ByVal rowValue As Long, _
+                                                      ByVal qtyDelta As Double, _
+                                                      ByVal existingReservedQty As Double, _
+                                                      ByVal itemName As String, _
+                                                      ByVal uomValue As String, _
+                                                      ByVal locationValue As String, _
+                                                      ByVal versionLabel As String, _
+                                                      ByVal displayedNasQty As Variant, _
+                                                      ByVal displayedAvailableQty As Variant) As String
+    On Error GoTo FailSoft
+
+    Dim ws As Worksheet
+    Dim invLo As ListObject
+    Dim errNotes As String
+    Dim appliedQty As Double
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then
+        ValidateShippingQtyDeltaRepairForTest = "ShipmentsTally sheet not found."
+        Exit Function
+    End If
+    Set invLo = GetMutableLocalShipmentStagingTable(ws, errNotes)
+    If invLo Is Nothing Then
+        If errNotes = "" Then errNotes = "InventoryManagement!invSys table not found."
+        ValidateShippingQtyDeltaRepairForTest = errNotes
+        Exit Function
+    End If
+
+    EnsureShipmentInvSysRowFromSelectedNas invLo, rowValue, itemName, uomValue, locationValue, versionLabel, displayedNasQty, displayedAvailableQty
+    appliedQty = ApplyShipmentQtyDeltaLocal(invLo, rowValue, qtyDelta, errNotes, existingReservedQty, itemName, itemName, uomValue, locationValue, versionLabel, displayedNasQty, displayedAvailableQty)
+    If appliedQty < 0 Then
+        ValidateShippingQtyDeltaRepairForTest = errNotes
+    Else
+        ValidateShippingQtyDeltaRepairForTest = "OK|" & Format$(appliedQty, "0.###")
+    End If
+    Exit Function
+
+FailSoft:
+    ValidateShippingQtyDeltaRepairForTest = Err.Description
 End Function
 
 Private Function ValidateShipmentCommitInputs(ByVal actionName As String, _
@@ -18778,7 +18819,14 @@ Private Function ApplyShipmentQtyDeltaLocal(ByVal invLo As ListObject, _
                                             ByVal rowVal As Long, _
                                             ByVal qtyDelta As Double, _
                                             ByRef errNotes As String, _
-                                            Optional ByVal existingReservedQty As Double = 0) As Double
+                                            Optional ByVal existingReservedQty As Double = 0, _
+                                            Optional ByVal itemName As String = "", _
+                                            Optional ByVal itemCode As String = "", _
+                                            Optional ByVal uomVal As String = "", _
+                                            Optional ByVal locationVal As String = "", _
+                                            Optional ByVal versionLabel As String = "", _
+                                            Optional ByVal displayedNasQty As Variant, _
+                                            Optional ByVal displayedAvailableQty As Variant) As Double
     ApplyShipmentQtyDeltaLocal = 0
     errNotes = ""
     If invLo Is Nothing Then
@@ -18798,6 +18846,9 @@ Private Function ApplyShipmentQtyDeltaLocal(ByVal invLo As ListObject, _
     End If
 
     Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+    If invRow Is Nothing Then
+        Set invRow = RepairShipmentQtyDeltaInventoryRow(invLo, rowVal, itemName, itemCode, uomVal, locationVal, versionLabel, displayedNasQty, displayedAvailableQty, errNotes)
+    End If
     If invRow Is Nothing Then
         errNotes = "invSys ROW " & CStr(rowVal) & " not found."
         ApplyShipmentQtyDeltaLocal = -1
@@ -18841,6 +18892,56 @@ Private Function ApplyShipmentQtyDeltaLocal(ByVal invLo As ListObject, _
     End If
 
     If colLastEdited > 0 Then invRow.Range.Cells(1, colLastEdited).Value = Now
+End Function
+
+Private Function RepairShipmentQtyDeltaInventoryRow(ByVal invLo As ListObject, _
+                                                    ByVal rowVal As Long, _
+                                                    ByVal itemName As String, _
+                                                    ByVal itemCode As String, _
+                                                    ByVal uomVal As String, _
+                                                    ByVal locationVal As String, _
+                                                    ByVal versionLabel As String, _
+                                                    ByVal displayedNasQty As Variant, _
+                                                    ByVal displayedAvailableQty As Variant, _
+                                                    ByRef errNotes As String) As ListRow
+    On Error GoTo Fail
+
+    Dim delta As Object
+    Dim nasQty As Double
+
+    itemName = Trim$(itemName)
+    itemCode = Trim$(itemCode)
+    If itemName = "" Then itemName = itemCode
+    If itemCode = "" Then itemCode = itemName
+    If invLo Is Nothing Or rowVal <= 0 Or itemName = "" Then Exit Function
+
+    Set delta = CreateObject("Scripting.Dictionary")
+    delta.CompareMode = vbTextCompare
+    delta("ROW") = rowVal
+    delta("QTY") = 0
+    delta("ITEM_NAME") = itemName
+    delta("ITEM_CODE") = itemCode
+    delta("UOM") = Trim$(uomVal)
+    delta("LOCATION") = Trim$(locationVal)
+    delta("VERSION") = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    nasQty = DisplayedShipmentQtyForRepair(displayedNasQty)
+    If nasQty <= 0.0000001 Then nasQty = DisplayedShipmentQtyForRepair(displayedAvailableQty)
+    If nasQty > 0.0000001 Then delta("AVAILABLE_OVERRIDE") = nasQty
+
+    Set RepairShipmentQtyDeltaInventoryRow = EnsureShipmentDeltaInventoryRowForApply(invLo, delta, rowVal, errNotes)
+    Exit Function
+
+Fail:
+    AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & " during quantity delta apply: " & Err.Description
+End Function
+
+Private Function DisplayedShipmentQtyForRepair(Optional ByVal qtyValue As Variant) As Double
+    Dim qtyText As String
+
+    If IsMissing(qtyValue) Then Exit Function
+    qtyText = Replace$(Trim$(NzStr(qtyValue)), ",", "")
+    If qtyText = "" Or LCase$(qtyText) = "unknown" Then Exit Function
+    If IsNumeric(qtyText) Then DisplayedShipmentQtyForRepair = CDbl(qtyText)
 End Function
 
 Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collection, ByRef errNotes As String) As Double

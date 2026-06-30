@@ -1,9 +1,9 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-06-29 16:48:14
-- Passed: 194
+- Date: 2026-06-29 17:28:16
+- Passed: 195
 - Failed: 0
-- Range: 1-194 of 194
+- Range: 1-195 of 195
 
 | Test | Result |
 |---|---|
@@ -147,6 +147,7 @@
 | TestPhase6CoreSurfaces.TestShippingUpdate_PreservesExistingReservationWithoutDoubleDeducting | PASS |
 | TestPhase6CoreSurfaces.TestShippingUpdate_ReservedQtyChangeAppliesOnlyDeltaOverlay | PASS |
 | TestPhase6CoreSurfaces.TestShippingUpdate_RepairsMissingInvSysRowBeforeDelta | PASS |
+| TestPhase6CoreSurfaces.TestShippingQtyDelta_RepairsMissingInvSysRowFromSelectedDisplay | PASS |
 | TestPhase6CoreSurfaces.TestShippingAdd_NewReservedRowAppliesSingleProjectedDeduction | PASS |
 | TestPhase6CoreSurfaces.TestShippingAdd_MergingExistingReservedRowAppliesOnlyDelta | PASS |
 | TestPhase6CoreSurfaces.TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay | PASS |

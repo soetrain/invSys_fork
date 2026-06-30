@@ -5704,6 +5704,65 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingQtyDelta_RepairsMissingInvSysRowFromSelectedDisplay() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim resultText As String
+    Dim invRow As Long
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+    If Not loInv.DataBodyRange Is Nothing Then loInv.DataBodyRange.ClearContents
+    AddShippingBomViewRow loBomView, 90, "T29", 90, "T29", 1, "EA"
+    AddShippingTallyRow loShip, "88", "T29", 3, 90, "EA", "CLEARVIEW", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-QTY-DELTA-REPAIR-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-QTY-DELTA-REPAIR-001"
+
+    wbOps.Activate
+    resultText = RunShippingQtyDeltaRepairForTest(90, 1, 3, "T29", "EA", "CLEARVIEW", "v1", 18, 15)
+    If Left$(resultText, 3) <> "OK|" Then
+        failureReason = "Quantity delta repair should not report invSys ROW 90 not found. Report: " & resultText
+        GoTo CleanExit
+    End If
+    invRow = FindRowByColumnValueInTable(loInv, "ROW", 90)
+    If invRow = 0 Then
+        failureReason = "Quantity delta repair did not recreate invSys ROW 90."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "TOTAL INV")) <> 18 Then
+        failureReason = "Quantity delta repair did not seed ROW 90 from visible NAS Inv."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "SHIPMENTS")) <> 4 Then
+        failureReason = "Quantity delta repair did not preserve existing lock plus delta; expected 4 but found " & CStr(GetTableValue(loInv, invRow, "SHIPMENTS")) & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingQtyDelta_RepairsMissingInvSysRowFromSelectedDisplay = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7185, "TestShippingQtyDelta_RepairsMissingInvSysRowFromSelectedDisplay", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingAdd_NewReservedRowAppliesSingleProjectedDeduction() As Long
     Dim report As String
     Dim failureReason As String
@@ -9870,6 +9929,25 @@ Private Function RunShippingProjectedAvailabilityOverrideForTest(ByVal tableRowI
     macroName = ShippingMacroNameForTest("ValidateShippingAddProjectedAvailabilityOverrideForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingProjectedAvailabilityOverrideForTest = CStr(Application.Run(macroName, tableRowIndex, rowValue, versionLabel, displayedAvailableQty))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingQtyDeltaRepairForTest(ByVal rowValue As Long, _
+                                                  ByVal qtyDelta As Double, _
+                                                  ByVal existingReservedQty As Double, _
+                                                  ByVal itemName As String, _
+                                                  ByVal uomValue As String, _
+                                                  ByVal locationValue As String, _
+                                                  ByVal versionLabel As String, _
+                                                  ByVal displayedNasQty As Variant, _
+                                                  ByVal displayedAvailableQty As Variant) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ValidateShippingQtyDeltaRepairForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingQtyDeltaRepairForTest = CStr(Application.Run(macroName, rowValue, qtyDelta, existingReservedQty, itemName, uomValue, locationValue, versionLabel, displayedNasQty, displayedAvailableQty))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
