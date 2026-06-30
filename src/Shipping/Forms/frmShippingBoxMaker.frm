@@ -46,17 +46,22 @@ Private mLoading As Boolean
 Private mBuilt As Boolean
 Private mAnchors As Object
 Private mResizeInitialized As Boolean
+Private mOperatorWorkbook As Workbook
+Private mNextPollTime As Date
+Private mAutoSyncArmed As Boolean
 
 Private Const ANCHOR_LEFT As Long = 1
 Private Const ANCHOR_TOP As Long = 2
 Private Const ANCHOR_RIGHT As Long = 4
 Private Const ANCHOR_BOTTOM As Long = 8
+Private Const POLL_INTERVAL_SECONDS As Long = 45
 
 Private Sub UserForm_Initialize()
     BuildLayout
 End Sub
 
 Private Sub UserForm_Activate()
+    modTS_Shipments.RegisterBoxMakerFormAutoSync Me
     If Not mResizeInitialized Then
         modUserFormResizeWin.EnableResizableUserForm Me
         mResizeInitialized = True
@@ -70,7 +75,10 @@ Private Sub UserForm_Layout()
 End Sub
 
 Private Sub UserForm_Terminate()
+    CancelAutoSync
+    modTS_Shipments.UnregisterBoxMakerFormAutoSync Me
     Set mAnchors = Nothing
+    Set mOperatorWorkbook = Nothing
 End Sub
 
 Public Sub InitializeFromShipping()
@@ -85,6 +93,7 @@ Public Sub InitializeFromShipping()
     quietStarted = True
 
     If Not mBuilt Then BuildLayout
+    If mOperatorWorkbook Is Nothing And IsBoxMakerOperatorWorkbook(ActiveWorkbook) Then Set mOperatorWorkbook = ActiveWorkbook
 
     mLoading = True
     LoadSavedBoxes
@@ -524,7 +533,10 @@ Private Sub mBtnRefresh_Click()
     RefreshShippableInventoryCache True
     RenderShippableInventoryFromCache
     If mSelectedPackageRow > 0 And Not mCboVersions Is Nothing Then
-        If mCboVersions.ListIndex >= 0 Then LoadSelectedVersionComponents
+        If mCboVersions.ListIndex >= 0 Then
+            Set mVersionComponentCache = Nothing
+            LoadSelectedVersionComponents
+        End If
     End If
     RenderPackageInventory
 
@@ -542,6 +554,127 @@ FailSoft:
     UpdateSyncStateLabel
     Resume CleanExit
 End Sub
+
+Public Sub ScheduleAutoSync()
+    On Error Resume Next
+
+    CancelAutoSync
+    mNextPollTime = Now + TimeSerial(0, 0, POLL_INTERVAL_SECONDS)
+    Application.OnTime EarliestTime:=mNextPollTime, _
+                       Procedure:=modTS_Shipments.BoxMakerFormAutoSyncProcedureName(), _
+                       Schedule:=True
+    On Error GoTo 0
+End Sub
+
+Public Sub CancelAutoSync()
+    On Error Resume Next
+
+    If mNextPollTime > 0 Then
+        Application.OnTime EarliestTime:=mNextPollTime, _
+                           Procedure:=modTS_Shipments.BoxMakerFormAutoSyncProcedureName(), _
+                           Schedule:=False
+        mNextPollTime = 0
+    End If
+    On Error GoTo 0
+End Sub
+
+Public Sub ArmAutoSync()
+    mAutoSyncArmed = True
+    UpdateSyncStateLabel
+    ScheduleAutoSync
+End Sub
+
+Public Sub AutoSyncIfPending()
+    On Error GoTo CleanExit
+
+    Dim operatorWb As Workbook
+    Dim report As String
+    Dim changedLoading As Boolean
+
+    If Not mAutoSyncArmed Then Exit Sub
+    If mLoading Then
+        ShowStatus "AutoSync: skipped (loading)."
+        GoTo CleanExit
+    End If
+    If PendingShippableInventoryCount() <= 0 Then
+        mAutoSyncArmed = False
+        UpdateSyncStateLabel
+        Exit Sub
+    End If
+
+    Set operatorWb = ResolveOperatorWorkbook()
+    If operatorWb Is Nothing Then
+        ShowStatus "AutoSync: operator workbook not resolved."
+        GoTo CleanExit
+    End If
+
+    If modTS_Shipments.ShipmentsFormAutoSyncRefresh(operatorWb, report) Then
+        mLoading = True
+        changedLoading = True
+        RefreshShippableInventoryCache True
+        Set mVersionComponentCache = Nothing
+        If mSelectedPackageRow > 0 And Not mCboVersions Is Nothing Then
+            If mCboVersions.ListIndex >= 0 Then LoadSelectedVersionComponents
+        End If
+        RenderPackageInventoryFromCache
+        RenderShippableInventoryFromCache
+        mLoading = False
+        changedLoading = False
+        If PendingShippableInventoryCount() <= 0 Then mAutoSyncArmed = False
+        UpdateSyncStateLabel
+        ShowStatus "AutoSync: " & report
+    Else
+        ShowStatus "AutoSync: refresh failed. " & report
+        UpdateSyncStateLabel
+    End If
+
+CleanExit:
+    If changedLoading Then mLoading = False
+    If mAutoSyncArmed Then ScheduleAutoSync
+End Sub
+
+Private Function ResolveOperatorWorkbook() As Workbook
+    On Error GoTo CleanExit
+
+    Dim wb As Workbook
+
+    If Not mOperatorWorkbook Is Nothing Then
+        If IsBoxMakerOperatorWorkbook(mOperatorWorkbook) Then
+            Set ResolveOperatorWorkbook = mOperatorWorkbook
+            Exit Function
+        End If
+    End If
+
+    If IsBoxMakerOperatorWorkbook(ActiveWorkbook) Then
+        Set mOperatorWorkbook = ActiveWorkbook
+        Set ResolveOperatorWorkbook = mOperatorWorkbook
+        Exit Function
+    End If
+
+    For Each wb In Application.Workbooks
+        If IsBoxMakerOperatorWorkbook(wb) Then
+            Set mOperatorWorkbook = wb
+            Set ResolveOperatorWorkbook = mOperatorWorkbook
+            Exit Function
+        End If
+    Next wb
+
+CleanExit:
+End Function
+
+Private Function IsBoxMakerOperatorWorkbook(ByVal wb As Workbook) As Boolean
+    On Error GoTo CleanExit
+
+    Dim ws As Worksheet
+
+    If wb Is Nothing Then Exit Function
+    If wb.IsAddin Then Exit Function
+    Set ws = Nothing
+    Set ws = wb.Worksheets("Shipments")
+    IsBoxMakerOperatorWorkbook = Not ws Is Nothing
+
+CleanExit:
+End Function
 
 Private Sub mBtnMake_Click()
     PostBoxMakerAction "MAKE"
@@ -658,13 +791,22 @@ Private Sub PostBoxMakerAction(ByVal actionText As String)
         RecordPendingVersionInventory actionText, qtyMade
         RefreshShippableInventoryCache True
         mTxtQty.Value = ""
+        Set mVersionComponentCache = Nothing
         resultMessage = AppendCompletionTiming(resultMessage, elapsedMs)
         MsgBox resultMessage, vbInformation
         ShowStatus "Completed in " & Format$(elapsedMs, "#,##0") & " ms."
-        RenderComponents
+        If mSelectedPackageRow > 0 And Not mCboVersions Is Nothing And mCboVersions.ListIndex >= 0 Then
+            LoadSelectedVersionComponents
+        Else
+            RenderComponents
+        End If
         RenderPackageInventoryFromCache
         RenderShippableInventoryFromCache
-        UpdateSyncStateLabel
+        If PendingShippableInventoryCount() > 0 Then
+            ArmAutoSync
+        Else
+            UpdateSyncStateLabel
+        End If
     Else
         If resultMessage = "" Then resultMessage = "BoxMaker action did not complete."
         resultMessage = AppendCompletionTiming(resultMessage, elapsedMs)

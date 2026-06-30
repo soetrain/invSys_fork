@@ -115,6 +115,7 @@ Private mPendingBoxVersionInventoryOverlay As Object
 Private mPendingBoxVersionInventoryOverlayBaseline As Object
 Private mPendingBoxVersionInventoryOverlayPath As String
 Private mShipmentsAutoSyncForm As Object
+Private mBoxMakerAutoSyncForm As Object
 
 Private Const BOX_VERSION_SAVE_CANCEL As Long = 0
 Private Const BOX_VERSION_SAVE_UPDATE As Long = 1
@@ -762,6 +763,32 @@ Public Sub TriggerShipmentsFormAutoSync()
 
     If mShipmentsAutoSyncForm Is Nothing Then Exit Sub
     If CBool(mShipmentsAutoSyncForm.Visible) Then mShipmentsAutoSyncForm.AutoSyncIfPending
+
+CleanExit:
+End Sub
+
+Public Sub RegisterBoxMakerFormAutoSync(ByVal formInstance As Object)
+    Set mBoxMakerAutoSyncForm = formInstance
+End Sub
+
+Public Sub UnregisterBoxMakerFormAutoSync(ByVal formInstance As Object)
+    On Error Resume Next
+
+    If Not mBoxMakerAutoSyncForm Is Nothing Then
+        If formInstance Is Nothing Or mBoxMakerAutoSyncForm Is formInstance Then Set mBoxMakerAutoSyncForm = Nothing
+    End If
+    On Error GoTo 0
+End Sub
+
+Public Function BoxMakerFormAutoSyncProcedureName() As String
+    BoxMakerFormAutoSyncProcedureName = "'" & ThisWorkbook.Name & "'!modTS_Shipments.TriggerBoxMakerFormAutoSync"
+End Function
+
+Public Sub TriggerBoxMakerFormAutoSync()
+    On Error GoTo CleanExit
+
+    If mBoxMakerAutoSyncForm Is Nothing Then Exit Sub
+    If CBool(mBoxMakerAutoSyncForm.Visible) Then mBoxMakerAutoSyncForm.AutoSyncIfPending
 
 CleanExit:
 End Sub
