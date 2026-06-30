@@ -6479,6 +6479,7 @@ Public Function ShipmentsFormAutoSyncRefresh(ByVal operatorWb As Workbook, _
     Dim runtimeReport As String
     Dim inventoryReport As String
     Dim bomReport As String
+    Dim logReport As String
 
     If operatorWb Is Nothing Then
         report = "No operator workbook for auto-sync."
@@ -6501,6 +6502,7 @@ Public Function ShipmentsFormAutoSyncRefresh(ByVal operatorWb As Workbook, _
     If ShippingRuntimeProcessedCount(runtimeReport) > 0 Then
         RefreshShippingBomViewForWorkbook operatorWb, bomReport, False
     End If
+    RefreshOperatorInventoryLogForWorkbook operatorWb, warehouseId, logReport
 
     report = "OK"
     If Trim$(runtimeReport) <> "" Then report = report & "; " & runtimeReport
@@ -6510,12 +6512,104 @@ Public Function ShipmentsFormAutoSyncRefresh(ByVal operatorWb As Workbook, _
     If Trim$(bomReport) <> "" And StrComp(Trim$(bomReport), "Shipping BOM view already populated; skipped network refresh.", vbTextCompare) <> 0 Then
         report = report & "; " & bomReport
     End If
+    If Trim$(logReport) <> "" And StrComp(Trim$(logReport), "OK", vbTextCompare) <> 0 Then
+        report = report & "; " & logReport
+    End If
     ShipmentsFormAutoSyncRefresh = True
     Exit Function
 
 FailSoft:
     report = "AutoSync refresh failed: " & Err.Description
 End Function
+
+Private Function RefreshOperatorInventoryLogForWorkbook(ByVal operatorWb As Workbook, _
+                                                        ByVal warehouseId As String, _
+                                                        ByRef report As String) As Boolean
+    On Error GoTo FailSoft
+
+    Dim inventoryWb As Workbook
+    Dim inventoryPath As String
+    Dim openedTransient As Boolean
+    Dim sourceLog As ListObject
+    Dim targetLog As ListObject
+
+    If operatorWb Is Nothing Then
+        report = "InventoryLog refresh skipped: operator workbook not resolved."
+        Exit Function
+    End If
+
+    inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
+    openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
+    Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+    If inventoryWb Is Nothing Then
+        report = "InventoryLog refresh skipped: inventory workbook not resolved."
+        GoTo CleanExit
+    End If
+
+    Set sourceLog = FindListObjectByNameShipping(inventoryWb, "tblInventoryLog")
+    If sourceLog Is Nothing Then
+        report = "InventoryLog refresh skipped: server tblInventoryLog not found."
+        GoTo CleanExit
+    End If
+
+    Set targetLog = FindListObjectByNameShipping(operatorWb, "tblInventoryLog")
+    If targetLog Is Nothing Then
+        If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(operatorWb, report) Then GoTo CleanExit
+        Set targetLog = FindListObjectByNameShipping(operatorWb, "tblInventoryLog")
+    End If
+    If targetLog Is Nothing Then
+        report = "InventoryLog refresh skipped: operator tblInventoryLog not found."
+        GoTo CleanExit
+    End If
+
+    CopyInventoryLogTableForShipping sourceLog, targetLog
+    report = "OK"
+    RefreshOperatorInventoryLogForWorkbook = True
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+    Exit Function
+
+FailSoft:
+    report = "InventoryLog refresh failed: " & Err.Description
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+End Function
+
+Private Sub CopyInventoryLogTableForShipping(ByVal sourceLog As ListObject, ByVal targetLog As ListObject)
+    On Error GoTo CleanExit
+
+    Dim sourceRows As Long
+    Dim r As Long
+    Dim c As Long
+    Dim targetColumn As Long
+    Dim wasProtected As Boolean
+
+    If sourceLog Is Nothing Or targetLog Is Nothing Then Exit Sub
+    wasProtected = targetLog.Parent.ProtectContents
+    If wasProtected Then targetLog.Parent.Unprotect
+
+    ClearListObjectData targetLog
+    If sourceLog.DataBodyRange Is Nothing Then GoTo CleanExit
+
+    sourceRows = sourceLog.ListRows.Count
+    Do While targetLog.ListRows.Count < sourceRows
+        targetLog.ListRows.Add
+    Loop
+
+    For r = 1 To sourceRows
+        For c = 1 To sourceLog.ListColumns.Count
+            targetColumn = ColumnIndex(targetLog, CStr(sourceLog.ListColumns(c).Name))
+            If targetColumn > 0 Then
+                targetLog.DataBodyRange.Cells(r, targetColumn).Value = sourceLog.DataBodyRange.Cells(r, c).Value
+            End If
+        Next c
+    Next r
+
+CleanExit:
+    On Error Resume Next
+    If wasProtected Then targetLog.Parent.Protect UserInterfaceOnly:=True, AllowFiltering:=True, AllowSorting:=True
+    On Error GoTo 0
+End Sub
 
 Private Function ShipmentsFormRefreshRuntimeInventoryCore(ByVal operatorWb As Workbook, _
                                                          ByVal warehouseIdOverride As String, _
