@@ -845,12 +845,13 @@ Public Sub BtnSaveBox()
     If boxRowValue = 0 Then Exit Sub
 
     Dim bomReport As String
+    Dim refreshReport As String
     If Not SaveShippingBomToRuntime(ws.Parent, boxRowValue, boxName, boxUOM, boxLoc, boxDesc, components, bomReport, replaceVersion, forceNewVersion) Then
         If bomReport = "" Then bomReport = "Unable to save Shipping BOM to the selected warehouse runtime."
         MsgBox bomReport, vbCritical
         Exit Sub
     End If
-    RefreshShippingBomViewForWorkbook ws.Parent, bomReport
+    RefreshShippingBomViewForWorkbook ws.Parent, refreshReport, True
 
     Dim finalMsg As String
     If InStr(1, bomReport, "Shipping BOM unchanged:", vbTextCompare) > 0 Then
@@ -863,6 +864,9 @@ Public Sub BtnSaveBox()
     End If
     If Len(bomReport) > 0 And InStr(1, finalMsg, bomReport, vbTextCompare) = 0 Then
         finalMsg = finalMsg & vbCrLf & bomReport
+    End If
+    If Len(refreshReport) > 0 Then
+        finalMsg = finalMsg & vbCrLf & refreshReport
     End If
     MsgBox finalMsg, vbInformation
 
@@ -11028,10 +11032,12 @@ Private Sub SaveBoxBuilderFormTablesExplicit(ByVal saveAction As String, ByVal v
     Dim replaceVersion As Long
     Dim forceNewVersion As Boolean
     Dim bomReport As String
+    Dim refreshReport As String
     Dim statusReport As String
     Dim finalMsg As String
     Dim savedBomVersion As Long
     Dim desiredActive As Boolean
+    Dim failIfExistingDifferentBom As Boolean
 
     saveAction = UCase$(Trim$(saveAction))
     versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
@@ -11074,6 +11080,9 @@ Private Sub SaveBoxBuilderFormTablesExplicit(ByVal saveAction As String, ByVal v
         replaceVersion = BomVersionNumberFromLabel(versionLabel)
     ElseIf saveAction = "NEW" Then
         forceNewVersion = True
+    ElseIf saveAction = "BOX" Then
+        failIfExistingDifferentBom = True
+        versionLabel = "v1"
     Else
         MsgBox "Unknown BoxBuilder save action: " & saveAction, vbCritical
         Exit Sub
@@ -11094,7 +11103,7 @@ Private Sub SaveBoxBuilderFormTablesExplicit(ByVal saveAction As String, ByVal v
     boxRowValue = EnsureInvSysItem(boxName, boxUOM, boxLoc, boxDesc, invLo, boxRowValue)
     If boxRowValue = 0 Then Exit Sub
 
-    If Not SaveShippingBomToRuntime(ws.Parent, boxRowValue, boxName, boxUOM, boxLoc, boxDesc, components, bomReport, replaceVersion, forceNewVersion) Then
+    If Not SaveShippingBomToRuntime(ws.Parent, boxRowValue, boxName, boxUOM, boxLoc, boxDesc, components, bomReport, replaceVersion, forceNewVersion, failIfExistingDifferentBom) Then
         If bomReport = "" Then bomReport = "Unable to save Shipping BOM to the selected warehouse runtime."
         MsgBox bomReport, vbCritical
         Exit Sub
@@ -11115,13 +11124,14 @@ Private Sub SaveBoxBuilderFormTablesExplicit(ByVal saveAction As String, ByVal v
         Exit Sub
     End If
 
-    RefreshShippingBomViewForWorkbook ws.Parent, bomReport
+    RefreshShippingBomViewForWorkbook ws.Parent, refreshReport, True
     RefreshBoxBomVersionList ws, boxRowValue
     RebuildBoxBomVersionListFromDisplayedBom ws, boxRowValue
     InvalidateAggregates True
 
     finalMsg = bomReport
     If Len(statusReport) > 0 Then finalMsg = finalMsg & vbCrLf & statusReport
+    If Len(refreshReport) > 0 Then finalMsg = finalMsg & vbCrLf & refreshReport
     If Len(syncNotes) > 0 Then finalMsg = finalMsg & vbCrLf & syncNotes
     MsgBox finalMsg, vbInformation
     Exit Sub
@@ -14239,7 +14249,8 @@ Private Function SaveShippingBomToRuntime(ByVal operatorWb As Workbook, _
                                           ByVal components As Collection, _
                                           ByRef report As String, _
                                           Optional ByVal replaceBomVersion As Long = 0, _
-                                          Optional ByVal forceNewVersion As Boolean = False) As Boolean
+                                          Optional ByVal forceNewVersion As Boolean = False, _
+                                          Optional ByVal failIfExistingDifferentBom As Boolean = False) As Boolean
     On Error GoTo FailSoft
 
     Dim target As Object
@@ -14303,6 +14314,13 @@ Private Function SaveShippingBomToRuntime(ByVal operatorWb As Workbook, _
             mLastSavedShippingBomVersion = existingVersion
             SaveShippingBomToRuntime = True
             report = "Shipping BOM not duplicated: current BoxBOM already matches " & packageItem & " v" & CStr(existingVersion) & "."
+            GoTo CleanExit
+        End If
+    End If
+
+    If failIfExistingDifferentBom And replaceBomVersion <= 0 And Not forceNewVersion Then
+        If ShippingBomPackageHasRows(loBom, packageRow) Then
+            report = "Box '" & packageItem & "' is already saved with a different BOM. Use Update Version to edit it or Save New Version to create another version."
             GoTo CleanExit
         End If
     End If
@@ -15625,6 +15643,24 @@ Private Function NextShippingBomVersion(ByVal lo As ListObject, ByVal packageRow
 
     NextShippingBomVersion = maxVersion + 1
     If NextShippingBomVersion <= 1 Then NextShippingBomVersion = 1
+End Function
+
+Private Function ShippingBomPackageHasRows(ByVal lo As ListObject, ByVal packageRow As Long) As Boolean
+    Dim cPackageRow As Long
+    Dim i As Long
+
+    If lo Is Nothing Then Exit Function
+    If packageRow <= 0 Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    cPackageRow = ColumnIndex(lo, "PackageRow")
+    If cPackageRow = 0 Then Exit Function
+
+    For i = 1 To lo.ListRows.Count
+        If NzLng(lo.DataBodyRange.Cells(i, cPackageRow).Value) = packageRow Then
+            ShippingBomPackageHasRows = True
+            Exit Function
+        End If
+    Next i
 End Function
 
 Private Function MatchingShippingBomVersion(ByVal lo As ListObject, _

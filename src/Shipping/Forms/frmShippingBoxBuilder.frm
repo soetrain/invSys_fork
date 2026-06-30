@@ -32,6 +32,7 @@ Private WithEvents mBtnRefresh As MSForms.CommandButton
 Private WithEvents mBtnNewBox As MSForms.CommandButton
 Private WithEvents mBtnAdd As MSForms.CommandButton
 Private WithEvents mBtnRemove As MSForms.CommandButton
+Private WithEvents mBtnSaveBox As MSForms.CommandButton
 Private WithEvents mBtnUpdateVersion As MSForms.CommandButton
 Private WithEvents mBtnNewVersion As MSForms.CommandButton
 Private WithEvents mBtnDeleteVersion As MSForms.CommandButton
@@ -168,8 +169,9 @@ Private Sub BuildLayout()
 
     Set mBtnAdd = AddButton("btnAdd", "Add", 250, 498, 76, 28)
     Set mBtnRemove = AddButton("btnRemove", "Remove", 450, 498, 76, 28)
-    Set mBtnUpdateVersion = AddButton("btnUpdateVersion", "Update Version", 538, 498, 102, 28)
-    Set mBtnNewVersion = AddButton("btnNewVersion", "Save New Version", 650, 498, 118, 28)
+    Set mBtnSaveBox = AddButton("btnSaveBox", "Save Box", 538, 498, 86, 28)
+    Set mBtnUpdateVersion = AddButton("btnUpdateVersion", "Update Version", 636, 498, 102, 28)
+    Set mBtnNewVersion = AddButton("btnNewVersion", "Save New Version", 748, 498, 118, 28)
     Set mBtnArchiveBox = AddButton("btnArchiveBox", "Archive Box", 450, 534, 76, 28)
     Set mBtnDeleteVersion = AddButton("btnDeleteVersion", "Delete Version", 538, 534, 102, 28)
     Set mBtnDeleteBox = AddButton("btnDeleteBox", "Delete Box", 650, 534, 86, 28)
@@ -439,7 +441,7 @@ End Sub
 
 Private Sub mBtnNewBox_Click()
     ResetForNewBox
-    ShowStatus "New box design ready. Enter metadata, add inventory components, then Save New Version."
+    ShowStatus "New box design ready. Enter metadata, add inventory components, then Save Box."
 End Sub
 
 Private Sub mBtnAdd_Click()
@@ -478,6 +480,10 @@ Private Sub mBtnUpdateVersion_Click()
         Exit Sub
     End If
     SaveWithAction "UPDATE"
+End Sub
+
+Private Sub mBtnSaveBox_Click()
+    SaveWithAction "BOX"
 End Sub
 
 Private Sub mBtnNewVersion_Click()
@@ -577,6 +583,7 @@ Private Sub SaveWithAction(ByVal saveAction As String)
 
     Dim bomRows As Variant
     Dim i As Long
+    Dim saveVersionLabel As String
 
     If Trim$(CStr(mTxtBoxName.Value)) = "" Then
         ShowStatus "Enter a Box Name."
@@ -591,9 +598,16 @@ Private Sub SaveWithAction(ByVal saveAction As String)
         Exit Sub
     End If
 
+    saveAction = UCase$(Trim$(saveAction))
+    If saveAction = "BOX" Then
+        saveVersionLabel = "v1"
+    Else
+        saveVersionLabel = SelectedVersionLabel()
+    End If
+
     ReDim bomRows(1 To mLstBom.ListCount, 1 To 8)
     For i = 0 To mLstBom.ListCount - 1
-        bomRows(i + 1, 1) = SelectedVersionLabel()
+        bomRows(i + 1, 1) = saveVersionLabel
         bomRows(i + 1, 2) = CStr(mLstBom.List(i, 1))
         bomRows(i + 1, 3) = CStr(mLstBom.List(i, 2))
         bomRows(i + 1, 4) = CStr(mLstBom.List(i, 3))
@@ -609,7 +623,7 @@ Private Sub SaveWithAction(ByVal saveAction As String)
                                              CStr(mTxtDescription.Value), _
                                              bomRows, _
                                              saveAction, _
-                                             SelectedVersionLabel(), _
+                                             saveVersionLabel, _
                                              CStr(mCboStatus.Value)
     InitializeFromShipping
     Exit Sub
@@ -674,6 +688,7 @@ Private Sub InitializeBoxBuilderAnchors()
 
     mAnchors.Add mBtnAdd, ANCHOR_LEFT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnRemove, ANCHOR_LEFT Or ANCHOR_BOTTOM
+    mAnchors.Add mBtnSaveBox, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnUpdateVersion, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnNewVersion, ANCHOR_RIGHT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnArchiveBox, ANCHOR_LEFT Or ANCHOR_BOTTOM
