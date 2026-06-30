@@ -7873,9 +7873,12 @@ Public Function TestBoxMakerShippables_MultiVersionUsesCanonicalInventoryLogFall
     Dim loBomView As ListObject
     Dim savedBoxes(1 To 1, 1 To 7) As Variant
     Dim shippables As Variant
+    Dim shipmentShippables As Variant
     Dim r As Long
     Dim v1Row As Long
     Dim v2Row As Long
+    Dim shipmentV1Row As Long
+    Dim shipmentV2Row As Long
     Dim overlayPath As String
 
     rootPath = BuildRuntimeTestRoot("phase6_box_maker_version_log_fallback")
@@ -7951,6 +7954,36 @@ Public Function TestBoxMakerShippables_MultiVersionUsesCanonicalInventoryLogFall
     End If
     If Trim$(CStr(shippables(v2Row, 4))) <> "" Then
         failureReason = "T31 v2 was inflated by v1 build evidence; expected blank NAS quantity but found '" & CStr(shippables(v2Row, 4)) & "'."
+        GoTo CleanExit
+    End If
+
+    wbOps.Activate
+    shipmentShippables = RunShippingMacro1ForTest("ShipmentsFormLoadShippables", wbOps)
+    If IsEmpty(shipmentShippables) Then
+        failureReason = "Shipments form shippables returned no rows from local ShippingBOMView."
+        GoTo CleanExit
+    End If
+    For r = 1 To UBound(shipmentShippables, 1)
+        If CLng(NzDblForTest(shipmentShippables(r, 1))) = 92 Then
+            Select Case LCase$(Trim$(CStr(shipmentShippables(r, 3))))
+                Case "v1"
+                    shipmentV1Row = r
+                Case "v2"
+                    shipmentV2Row = r
+            End Select
+        End If
+    Next r
+    If shipmentV1Row = 0 Or shipmentV2Row = 0 Then
+        failureReason = "Shipments form did not expose both active T31 versions."
+        GoTo CleanExit
+    End If
+    If CDbl(NzDblForTest(shipmentShippables(shipmentV1Row, 4))) <> 10 Then
+        failureReason = "Shipments form did not read canonical T31 v1 version inventory; expected 10 but found '" & CStr(shipmentShippables(shipmentV1Row, 4)) & _
+                        "'. Debug=" & BoxMakerShippablesDebugTextForTest(shipmentShippables)
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(shipmentShippables(shipmentV2Row, 4))) <> "" Then
+        failureReason = "Shipments form inflated T31 v2 from v1 build evidence; expected blank NAS quantity but found '" & CStr(shipmentShippables(shipmentV2Row, 4)) & "'."
         GoTo CleanExit
     End If
 
@@ -10779,6 +10812,25 @@ Private Function RunShippingProjectedOverlayTextForTest(ByVal packageRow As Long
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingProjectedOverlayTextForTest = CStr(Application.Run(macroName, packageRow, versionLabel, backendText))
     If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function BoxMakerShippablesDebugTextForTest(ByVal rowsData As Variant) As String
+    Dim r As Long
+    Dim textOut As String
+
+    If IsEmpty(rowsData) Then
+        BoxMakerShippablesDebugTextForTest = "EMPTY"
+        Exit Function
+    End If
+    For r = 1 To UBound(rowsData, 1)
+        textOut = textOut & "|r" & CStr(r) & _
+                  ":row=" & CStr(rowsData(r, 1)) & _
+                  ",box=" & CStr(rowsData(r, 2)) & _
+                  ",ver=" & CStr(rowsData(r, 3)) & _
+                  ",nas=" & CStr(rowsData(r, 4)) & _
+                  ",proj=" & CStr(rowsData(r, 8))
+    Next r
+    BoxMakerShippablesDebugTextForTest = textOut
 End Function
 
 Private Function RunShippingProjectedDisplayQtyForTest(ByVal nasQty As Double, _

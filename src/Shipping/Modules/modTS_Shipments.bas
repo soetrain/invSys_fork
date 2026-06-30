@@ -4728,6 +4728,16 @@ End Function
 Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Variant, _
                                                           Optional ByVal operatorWb As Workbook = Nothing, _
                                                           Optional ByVal allowExternalRefresh As Boolean = True) As Variant
+    BoxMakerFormLoadShippableVersionInventory = LoadShippableVersionInventoryCore(savedBoxes, _
+                                                                                  operatorWb, _
+                                                                                  allowExternalRefresh, _
+                                                                                  allowExternalRefresh)
+End Function
+
+Private Function LoadShippableVersionInventoryCore(ByVal savedBoxes As Variant, _
+                                                   ByVal operatorWb As Workbook, _
+                                                   ByVal allowExternalRefresh As Boolean, _
+                                                   ByVal allowExternalInventoryLogRead As Boolean) As Variant
     On Error GoTo FailSoft
 
     Dim ws As Worksheet
@@ -4762,7 +4772,7 @@ Public Function BoxMakerFormLoadShippableVersionInventory(ByVal savedBoxes As Va
     If loSource Is Nothing Then GoTo CleanExit
     Set invLo = GetInvSysTableFromWorkbook(ws.Parent)
     Set versionRowsByPackage = BuildBoxBomVersionsByPackageCache(loSource)
-    Set versionInventoryByPackage = BuildBoxVersionInventoryCache(savedBoxes, ws.Parent, allowExternalRefresh)
+    Set versionInventoryByPackage = BuildBoxVersionInventoryCache(savedBoxes, ws.Parent, allowExternalInventoryLogRead)
 
     Set rows = New Collection
     For r = 1 To UBound(savedBoxes, 1)
@@ -4813,7 +4823,7 @@ NextBox:
             result(r, c) = rowData(c)
         Next c
     Next r
-    BoxMakerFormLoadShippableVersionInventory = result
+    LoadShippableVersionInventoryCore = result
 
 CleanExit:
     If openedTransient Then CloseWorkbookNoSaveShipping wbRuntime
@@ -4821,7 +4831,7 @@ CleanExit:
 
 FailSoft:
     If openedTransient Then CloseWorkbookNoSaveShipping wbRuntime
-    BoxMakerFormLoadShippableVersionInventory = Empty
+    LoadShippableVersionInventoryCore = Empty
 End Function
 
 Private Function BoxVersionInventoryCacheKey(ByVal packageRow As Long, ByVal boxName As String) As String
@@ -6370,11 +6380,14 @@ Public Function CommitBoxMakerFormActionReportForTest(ByVal packageRow As Long, 
 End Function
 
 Public Function ShipmentsFormLoadShippables(Optional ByVal operatorWb As Workbook = Nothing) As Variant
+    Dim wb As Workbook
     Dim savedBoxes As Variant
 
-    savedBoxes = BoxMakerFormLoadSavedBoxes(operatorWb, False)
+    Set wb = ResolveShippingWorkbook(operatorWb, SHEET_SHIPMENTS)
+    If wb Is Nothing Then Exit Function
+    savedBoxes = BoxMakerFormLoadSavedBoxes(wb, False)
     If IsEmpty(savedBoxes) Then Exit Function
-    ShipmentsFormLoadShippables = BoxMakerFormLoadShippableVersionInventory(savedBoxes, operatorWb, False)
+    ShipmentsFormLoadShippables = LoadShippableVersionInventoryCore(savedBoxes, wb, False, True)
 End Function
 
 Public Function ShipmentsProjectedDisplayQty(ByVal nasQty As Double, _
