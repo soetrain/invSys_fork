@@ -7681,6 +7681,56 @@ FailSoft:
     ValidateShippingQtyDeltaRepairForTest = Err.Description
 End Function
 
+Public Function ValidateShippingReleaseDeltaRepairForTest(ByVal rowValue As Long, _
+                                                          ByVal releaseQty As Double, _
+                                                          ByVal itemName As String, _
+                                                          ByVal uomValue As String, _
+                                                          ByVal locationValue As String, _
+                                                          ByVal versionLabel As String) As String
+    On Error GoTo FailSoft
+
+    Dim ws As Worksheet
+    Dim invLo As ListObject
+    Dim deltas As New Collection
+    Dim delta As Object
+    Dim errNotes As String
+    Dim releasedQty As Double
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    If ws Is Nothing Then
+        ValidateShippingReleaseDeltaRepairForTest = "ShipmentsTally sheet not found."
+        Exit Function
+    End If
+    Set invLo = GetShipmentReleaseStagingTable(ws, errNotes)
+    If invLo Is Nothing Then
+        If errNotes = "" Then errNotes = "InventoryManagement!invSys table not found."
+        ValidateShippingReleaseDeltaRepairForTest = errNotes
+        Exit Function
+    End If
+
+    Set delta = CreateObject("Scripting.Dictionary")
+    delta.CompareMode = vbTextCompare
+    delta("ROW") = rowValue
+    delta("QTY") = releaseQty
+    delta("ITEM_CODE") = Trim$(itemName)
+    delta("ITEM_NAME") = Trim$(itemName)
+    delta("UOM") = Trim$(uomValue)
+    delta("LOCATION") = Trim$(locationValue)
+    delta("VERSION") = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    deltas.Add delta
+
+    releasedQty = ApplyShipmentReleaseDeltasLocal(invLo, deltas, errNotes, True)
+    If releasedQty < 0 Then
+        ValidateShippingReleaseDeltaRepairForTest = errNotes
+    Else
+        ValidateShippingReleaseDeltaRepairForTest = "OK|" & Format$(releasedQty, "0.###")
+    End If
+    Exit Function
+
+FailSoft:
+    ValidateShippingReleaseDeltaRepairForTest = Err.Description
+End Function
+
 Private Function ValidateShipmentCommitInputs(ByVal actionName As String, _
                                               ByVal isHold As Boolean, _
                                               ByVal itemName As String, _
@@ -19124,7 +19174,12 @@ Private Function ApplyShipmentReleaseDeltasLocal(invLo As ListObject, deltas As 
         Dim qtyVal As Double: qtyVal = NzDbl(delta("QTY"))
         If qtyVal <= 0 Then GoTo NextValidate
 
-        Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        Dim invRow As ListRow
+        If allowMissingLocalStage Then
+            Set invRow = EnsureShipmentDeltaInventoryRowForApply(invLo, delta, rowVal, errNotes)
+        Else
+            Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        End If
         If invRow Is Nothing Then
             AppendNote errNotes, "invSys ROW " & rowVal & " not found."
             ApplyShipmentReleaseDeltasLocal = -1
@@ -19148,7 +19203,11 @@ NextValidate:
         qtyVal = NzDbl(delta("QTY"))
         If qtyVal <= 0 Then GoTo NextApply
 
-        Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        If allowMissingLocalStage Then
+            Set invRow = EnsureShipmentDeltaInventoryRowForApply(invLo, delta, rowVal, errNotes)
+        Else
+            Set invRow = FindInvListRowByRowValue(invLo, rowVal)
+        End If
         If invRow Is Nothing Then GoTo NextApply
         Set shipCell = invRow.Range.Cells(1, colShip)
         currentShip = NzDbl(shipCell.Value)

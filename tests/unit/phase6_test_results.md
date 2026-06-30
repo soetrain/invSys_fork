@@ -1,9 +1,9 @@
 # Phase 6 VBA Test Results
 
-- Date: 2026-06-29 17:28:16
-- Passed: 195
+- Date: 2026-06-29 17:51:01
+- Passed: 196
 - Failed: 0
-- Range: 1-195 of 195
+- Range: 1-196 of 196
 
 | Test | Result |
 |---|---|
@@ -141,6 +141,7 @@
 | TestPhase6CoreSurfaces.TestShippingRemove_LockedRowReleasesInventory | PASS |
 | TestPhase6CoreSurfaces.TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory | PASS |
 | TestPhase6CoreSurfaces.TestShippingRemove_RepairsMissingInvSysRowBeforeRelease | PASS |
+| TestPhase6CoreSurfaces.TestShippingRemove_ReleaseDeltaRepairsMissingLocalStage | PASS |
 | TestPhase6CoreSurfaces.TestShippingHold_PreservesReservationAndLocalDeduction | PASS |
 | TestPhase6CoreSurfaces.TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjection | PASS |
 | TestPhase6CoreSurfaces.TestShippingToShipments_LocalLockStaysVisible | PASS |

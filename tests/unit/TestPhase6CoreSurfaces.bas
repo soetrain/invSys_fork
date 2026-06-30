@@ -5147,6 +5147,51 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingRemove_ReleaseDeltaRepairsMissingLocalStage() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim resultText As String
+    Dim invRow As Long
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    If loInv Is Nothing Then GoTo CleanExit
+    If Not loInv.DataBodyRange Is Nothing Then loInv.DataBodyRange.ClearContents
+
+    wbOps.Activate
+    resultText = RunShippingReleaseDeltaRepairForTest(90, 1, "T29", "EA", "CLEARVIEW", "v1")
+    If Left$(resultText, 3) <> "OK|" Then
+        failureReason = "Release delta repair should not report invSys ROW 90 not found. Report: " & resultText
+        GoTo CleanExit
+    End If
+    invRow = FindRowByColumnValueInTable(loInv, "ROW", 90)
+    If invRow = 0 Then
+        failureReason = "Release delta repair did not recreate invSys ROW 90."
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, invRow, "SHIPMENTS")) <> 0 Then
+        failureReason = "Release delta repair should leave missing local SHIPMENTS lock at zero."
+        GoTo CleanExit
+    End If
+
+    TestShippingRemove_ReleaseDeltaRepairsMissingLocalStage = 1
+
+CleanExit:
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7186, "TestShippingRemove_ReleaseDeltaRepairsMissingLocalStage", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingHold_PreservesReservationAndLocalDeduction() As Long
     Dim report As String
     Dim failureReason As String
@@ -9948,6 +9993,22 @@ Private Function RunShippingQtyDeltaRepairForTest(ByVal rowValue As Long, _
     macroName = ShippingMacroNameForTest("ValidateShippingQtyDeltaRepairForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingQtyDeltaRepairForTest = CStr(Application.Run(macroName, rowValue, qtyDelta, existingReservedQty, itemName, uomValue, locationValue, versionLabel, displayedNasQty, displayedAvailableQty))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingReleaseDeltaRepairForTest(ByVal rowValue As Long, _
+                                                      ByVal releaseQty As Double, _
+                                                      ByVal itemName As String, _
+                                                      ByVal uomValue As String, _
+                                                      ByVal locationValue As String, _
+                                                      ByVal versionLabel As String) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ValidateShippingReleaseDeltaRepairForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingReleaseDeltaRepairForTest = CStr(Application.Run(macroName, rowValue, releaseQty, itemName, uomValue, locationValue, versionLabel))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

@@ -571,6 +571,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingRemove_LockedRowReleasesInventory",
         "TestPhase6CoreSurfaces.TestShippingRemove_StaleLockedRowClearsWithoutInflatingInventory",
         "TestPhase6CoreSurfaces.TestShippingRemove_RepairsMissingInvSysRowBeforeRelease",
+        "TestPhase6CoreSurfaces.TestShippingRemove_ReleaseDeltaRepairsMissingLocalStage",
         "TestPhase6CoreSurfaces.TestShippingHold_PreservesReservationAndLocalDeduction",
         "TestPhase6CoreSurfaces.TestShippingToShipments_ReservedMultiSelectKeepsRowsAndProjection",
         "TestPhase6CoreSurfaces.TestShippingToShipments_LocalLockStaysVisible",
