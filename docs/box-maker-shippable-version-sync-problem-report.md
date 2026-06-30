@@ -110,6 +110,30 @@ Important procedures:
 
 The failure appears between steps 9 and 11 for the finished-good version quantity only.
 
+## Latest popup evidence
+
+The latest live test produced this Excel status message after clicking `Make Boxes` for T31 v1 Qty 10:
+
+```text
+Box build event queued for 10 T31 v1. Uses 120 component units and adds 10 shippable units after processor sync.
+
+Sync complete.
+Processed=1; StagingReport=LocalStagingMerged=1; LocalStagingFailed=0; BatchReport=Applied=1; SkipDup=0; Poison=0; RunId=RUN-invsys_Zenbook_WH-INVENTORY-20260630144232-701883; SnapshotError=Snapshot workbook not resolved.; PublishWarning=Snapshot workbook not resolved.; TimingMs=Total:9043;Batch:8285;Refresh:0
+Inbox EventID: 0FA5A076-07BE-46DD-AC62-77B230CB0650
+
+Completed in 9,676 ms.
+```
+
+This is important because it narrows the defect:
+
+- The event was not stuck in staging: `LocalStagingMerged=1`.
+- The batch processor applied it: `Processed=1`, `Applied=1`, `Poison=0`.
+- The UI-visible problem persists after an applied event.
+- The status reports `SnapshotError=Snapshot workbook not resolved.` and `PublishWarning=Snapshot workbook not resolved.`
+- `Refresh=0`, so no separate refresh time is visible in this status payload.
+
+The snapshot failure may be central. It can explain why Box Maker keeps displaying unknown NAS quantity for the finished box/version even though the processor applied the event. The expert should verify whether the component rows are updating from a different surface than the Box Picker version row, or whether the Box Picker version row specifically requires the snapshot/read-model workbook that failed to resolve.
+
 ## Why this likely differs from Shipments
 
 Shipments shippable inventory is row-oriented. Its pending state compares visible NAS inventory against visible projected inventory for each shippable row.
@@ -132,6 +156,7 @@ Things to inspect:
 - Does operator `tblInventoryLog` contain the T31 row 92 BOX_BUILD after autosync?
 - Does the server/NAS inventory workbook `tblInventoryLog` contain it?
 - Does `RefreshOperatorInventoryLogForWorkbook` report `OK`, or does it silently skip because the inventory workbook or target table is not resolved?
+- How does `SnapshotError=Snapshot workbook not resolved.` relate to `RefreshOperatorInventoryLogForWorkbook` and to the version inventory cache?
 
 ### 2. SKU identity mismatch prevents log rows from matching T31
 
