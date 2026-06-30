@@ -4494,6 +4494,16 @@ Public Function BoxMakerProjectedComponentInventoryForTest(ByVal rowValue As Lon
                                                                                                         requiredQty)
 End Function
 
+Public Function BoxMakerRenderedComponentInventoryAfterPendingActionForTest(ByVal backendText As String, _
+                                                                            ByVal perBoxQty As Double, _
+                                                                            ByVal qtyMade As Double, _
+                                                                            ByVal actionText As String) As String
+    BoxMakerRenderedComponentInventoryAfterPendingActionForTest = frmShippingBoxMaker.TestRenderedComponentInventoryAfterPendingAction(backendText, _
+                                                                                                                                      perBoxQty, _
+                                                                                                                                      qtyMade, _
+                                                                                                                                      actionText)
+End Function
+
 Public Function BoxBuilderFormLoadVersions(ByVal packageRow As Long) As Variant
     On Error GoTo FailSoft
 

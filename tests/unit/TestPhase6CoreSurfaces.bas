@@ -4497,6 +4497,7 @@ End Function
 
 Public Function TestBoxMakerProjectedComponentInventory_SubtractsRequirementFromNas() As Long
     Dim projectedText As String
+    Dim renderedText As String
     Dim failureReason As String
 
     On Error GoTo CleanFail
@@ -4510,6 +4511,18 @@ Public Function TestBoxMakerProjectedComponentInventory_SubtractsRequirementFrom
     projectedText = RunBoxMakerProjectedComponentInventoryForTest(991, "5", 7)
     If projectedText <> "0" Then
         failureReason = "BoxMaker projected component inventory should floor shortages at 0; expected 0 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    renderedText = RunBoxMakerRenderedComponentInventoryAfterPendingActionForTest("10", 2, 3, "MAKE")
+    If renderedText <> "NAS=4;PROJECTED=4" Then
+        failureReason = "BoxMaker component NAS Inv did not auto-update from pending Make action; expected NAS=4;PROJECTED=4 but found " & renderedText & "."
+        GoTo CleanExit
+    End If
+
+    renderedText = RunBoxMakerRenderedComponentInventoryAfterPendingActionForTest("4", 2, 3, "UNMAKE")
+    If renderedText <> "NAS=10;PROJECTED=10" Then
+        failureReason = "BoxMaker component NAS Inv did not auto-update from pending Unmake action; expected NAS=10;PROJECTED=10 but found " & renderedText & "."
         GoTo CleanExit
     End If
 
@@ -10377,6 +10390,20 @@ Private Function RunBoxMakerProjectedComponentInventoryForTest(ByVal rowValue As
     macroName = ShippingMacroNameForTest("BoxMakerProjectedComponentInventoryForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunBoxMakerProjectedComponentInventoryForTest = CStr(Application.Run(macroName, rowValue, backendText, requiredQty))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunBoxMakerRenderedComponentInventoryAfterPendingActionForTest(ByVal backendText As String, _
+                                                                                ByVal perBoxQty As Double, _
+                                                                                ByVal qtyMade As Double, _
+                                                                                ByVal actionText As String) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("BoxMakerRenderedComponentInventoryAfterPendingActionForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunBoxMakerRenderedComponentInventoryAfterPendingActionForTest = CStr(Application.Run(macroName, backendText, perBoxQty, qtyMade, actionText))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

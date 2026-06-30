@@ -349,6 +349,7 @@ Private Sub RenderComponents()
     Dim qtyMade As Double
     Dim perBoxQty As Double
     Dim requiredQty As Double
+    Dim backendNasInv As String
     Dim nasInv As String
     Dim projectedInv As String
     Dim rowValue As Long
@@ -366,8 +367,9 @@ Private Sub RenderComponents()
         perBoxQty = ParseNumber(NzText(mComponents(r, 5)))
         requiredQty = perBoxQty * qtyMade
         rowValue = CLng(Val(NzText(mComponents(r, 4))))
-        nasInv = NzText(mComponents(r, 9))
-        projectedInv = ProjectedComponentInventoryText(rowValue, nasInv, requiredQty)
+        backendNasInv = NzText(mComponents(r, 9))
+        nasInv = DisplayComponentInventoryText(rowValue, backendNasInv)
+        projectedInv = ProjectedComponentInventoryText(rowValue, backendNasInv, requiredQty)
 
         mLstComponents.AddItem NzText(mComponents(r, 2))
         idx = mLstComponents.ListCount - 1
@@ -887,6 +889,38 @@ Public Function TestProjectedComponentInventoryText(ByVal rowValue As Long, _
                                                     ByVal requiredQty As Double) As String
     If Not mBuilt Then BuildLayout
     TestProjectedComponentInventoryText = ProjectedComponentInventoryText(rowValue, backendText, requiredQty)
+End Function
+
+Public Function TestRenderedComponentInventoryAfterPendingAction(ByVal backendText As String, _
+                                                                 ByVal perBoxQty As Double, _
+                                                                 ByVal qtyMade As Double, _
+                                                                 ByVal actionText As String) As String
+    On Error GoTo FailSoft
+
+    If Not mBuilt Then BuildLayout
+
+    Set mPendingComponentInv = Nothing
+    ReDim mComponents(1 To 1, 1 To 9)
+    mComponents(1, 2) = "TEST-COMPONENT"
+    mComponents(1, 3) = "TEST-CODE"
+    mComponents(1, 4) = "991"
+    mComponents(1, 5) = FormatQuantityText(perBoxQty)
+    mComponents(1, 6) = "EA"
+    mComponents(1, 7) = "CLEARVIEW"
+    mComponents(1, 8) = "Test component"
+    mComponents(1, 9) = backendText
+
+    mTxtQty.Value = ""
+    RecordPendingComponentInventory actionText, qtyMade
+    RenderComponents
+    If mLstComponents.ListCount <= 0 Then Exit Function
+
+    TestRenderedComponentInventoryAfterPendingAction = "NAS=" & NzText(mLstComponents.List(0, 4)) & _
+                                                      ";PROJECTED=" & NzText(mLstComponents.List(0, 5))
+    Exit Function
+
+FailSoft:
+    TestRenderedComponentInventoryAfterPendingAction = "ERROR=" & Err.Description
 End Function
 
 Private Sub RecordPendingComponentInventory(ByVal actionText As String, ByVal qtyMade As Double)
