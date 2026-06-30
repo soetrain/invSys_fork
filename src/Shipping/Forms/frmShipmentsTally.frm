@@ -324,6 +324,7 @@ End Sub
 
 Public Sub ArmAutoSync()
     mAutoSyncArmed = True
+    UpdateSyncStateLabel
     ScheduleAutoSync
 End Sub
 
@@ -372,8 +373,8 @@ Public Sub AutoSyncIfPending()
         RefreshProjectedShippableInventory
         mLoading = False
         changedLoading = False
-        UpdateSyncStateLabel
         If PendingShipmentSyncCount() <= 0 Then mAutoSyncArmed = False
+        UpdateSyncStateLabel
         nasStatus = ShippableNasChangeSummary(nasBeforeRefresh, nasAfterRefresh)
         ShowStatus nasStatus & vbCrLf & "AutoSync: " & report
     Else
@@ -850,6 +851,7 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
 
     Dim report As String
     Dim rowIndex As Long
+    Dim selectedShipmentCount As Long
     Dim ok As Boolean
     Dim displayedAvailableQty As String
     Dim displayedNasQty As String
@@ -860,6 +862,16 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     TimingStart
     TLap "CommitCurrentLine " & UCase$(Trim$(actionName)) & " start"
     startedAt = Timer
+    actionName = UCase$(Trim$(actionName))
+    selectedShipmentCount = SelectedListTableRowCount(mLstShipments)
+    If actionName = "ADD" And selectedShipmentCount > 1 Then
+        ShowStatus "Select at most one shipment row before using Add."
+        Exit Sub
+    End If
+    If actionName = "UPDATE" And selectedShipmentCount <> 1 Then
+        ShowStatus "Select exactly one shipment row before using Update Row."
+        Exit Sub
+    End If
     rowIndex = SelectedShipmentTableRow()
     displayedAvailableQty = SelectedShippableProjectedInventoryText()
     displayedNasQty = SelectedShippableNasInventoryText()
@@ -965,15 +977,38 @@ Private Function SelectedShippableProjectedInventoryText() As String
 End Function
 
 Private Function SelectedShipmentTableRow() As Long
-    If mLstShipments Is Nothing Then Exit Function
-    If mLstShipments.ListIndex < 0 Then Exit Function
-    SelectedShipmentTableRow = CLng(Val(NzText(mLstShipments.List(mLstShipments.ListIndex, 10))))
+    SelectedShipmentTableRow = SingleSelectedListTableRow(mLstShipments)
 End Function
 
 Private Function SelectedHoldTableRow() As Long
-    If mLstHold Is Nothing Then Exit Function
-    If mLstHold.ListIndex < 0 Then Exit Function
-    SelectedHoldTableRow = CLng(Val(NzText(mLstHold.List(mLstHold.ListIndex, 10))))
+    SelectedHoldTableRow = SingleSelectedListTableRow(mLstHold)
+End Function
+
+Private Function SingleSelectedListTableRow(ByVal lst As MSForms.ListBox) As Long
+    Dim i As Long
+    Dim tableRow As Long
+
+    If lst Is Nothing Then Exit Function
+    For i = 0 To lst.ListCount - 1
+        If lst.Selected(i) Then
+            tableRow = CLng(Val(NzText(lst.List(i, 10))))
+            If tableRow > 0 Then
+                If SingleSelectedListTableRow <> 0 Then
+                    SingleSelectedListTableRow = 0
+                    Exit Function
+                End If
+                SingleSelectedListTableRow = tableRow
+            End If
+        End If
+    Next i
+End Function
+
+Private Function SelectedListTableRowCount(ByVal lst As MSForms.ListBox) As Long
+    Dim rows As Variant
+
+    rows = SelectedListTableRows(lst)
+    If IsEmpty(rows) Then Exit Function
+    SelectedListTableRowCount = UBound(rows) - LBound(rows) + 1
 End Function
 
 Private Function SelectedListTableRows(ByVal lst As MSForms.ListBox) As Variant
@@ -993,14 +1028,6 @@ Private Function SelectedListTableRows(ByVal lst As MSForms.ListBox) As Variant
             End If
         End If
     Next i
-    If countRows = 0 And lst.ListIndex >= 0 Then
-        tableRow = CLng(Val(NzText(lst.List(lst.ListIndex, 10))))
-        If tableRow > 0 Then
-            ReDim rowIndexes(1 To 1)
-            rowIndexes(1) = tableRow
-            countRows = 1
-        End If
-    End If
     If countRows > 0 Then SelectedListTableRows = rowIndexes
 End Function
 
@@ -1109,7 +1136,7 @@ Private Sub mBtnUpdate_Click()
 End Sub
 
 Private Sub mBtnRemove_Click()
-    CommitCurrentLine "DELETE"
+    RemoveSelectedShipmentRows
 End Sub
 
 Private Sub mBtnHold_Click()
@@ -1137,7 +1164,11 @@ Private Sub MoveSelectedShipmentHold(ByVal moveToHold As Boolean)
     End If
     selectedRows = SelectedListTableRows(lst)
     If IsEmpty(selectedRows) Then
-        ShowStatus "Select a shipment row first."
+        If moveToHold Then
+            ShowStatus "Select one or more shipment row(s) to send to Hold."
+        Else
+            ShowStatus "Select one or more Hold row(s) to return."
+        End If
         Exit Sub
     End If
 
@@ -1149,6 +1180,70 @@ Private Sub MoveSelectedShipmentHold(ByVal moveToHold As Boolean)
 
 FailSoft:
     ShowStatus "Hold action failed: " & Err.Description
+End Sub
+
+Private Sub RemoveSelectedShipmentRows()
+    On Error GoTo FailSoft
+
+    Dim report As String
+    Dim rowReport As String
+    Dim selectedRows As Variant
+    Dim ok As Boolean
+    Dim allOk As Boolean
+    Dim i As Long
+    Dim rowIndex As Long
+    Dim removedCount As Long
+    Dim operatorWb As Workbook
+    Dim startedAt As Single
+    Dim elapsedMs As Long
+
+    TimingStart
+    TLap "Remove selected click start"
+    selectedRows = SelectedListTableRows(mLstShipments)
+    If IsEmpty(selectedRows) Then
+        ShowStatus "Select one or more shipment row(s) to remove."
+        Exit Sub
+    End If
+
+    startedAt = Timer
+    Set operatorWb = ResolveOperatorWorkbook()
+    allOk = True
+    For i = UBound(selectedRows) To LBound(selectedRows) Step -1
+        rowIndex = CLng(selectedRows(i))
+        rowReport = vbNullString
+        ok = modTS_Shipments.ShipmentsFormCommitLine("SHIP", _
+                                                     "DELETE", _
+                                                     rowIndex, _
+                                                     "", _
+                                                     "", _
+                                                     0, _
+                                                     0, _
+                                                     "", _
+                                                     "", _
+                                                     "", _
+                                                     "", _
+                                                     rowReport, _
+                                                     operatorWb:=operatorWb)
+        If ok Then
+            removedCount = removedCount + 1
+        Else
+            allOk = False
+            If Trim$(rowReport) = "" Then rowReport = "Unable to remove shipment row " & CStr(rowIndex) & "."
+            AppendLocalStatus report, rowReport
+            Exit For
+        End If
+    Next i
+
+    TLap "Remove selected backend call"
+    elapsedMs = ElapsedMilliseconds(startedAt)
+    If allOk Then report = "Removed " & CStr(removedCount) & " shipment row(s)."
+    report = AppendTiming(report, elapsedMs)
+    If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
+    RefreshAfterAction report, allOk
+    Exit Sub
+
+FailSoft:
+    ShowStatus "Remove action failed: " & Err.Description
 End Sub
 
 Private Sub mBtnStage_Click()
@@ -1172,8 +1267,8 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
 
     TimingStart
     TLap IIf(stageOnly, "To Shipments", "Shipments Sent") & " click start"
-    selectedRows = SelectedListTableRows(mLstShipments)
-    If IsEmpty(selectedRows) Then
+    If stageOnly Then selectedRows = SelectedListTableRows(mLstShipments)
+    If stageOnly And IsEmpty(selectedRows) Then
         ShowStatus "Select shipment row(s) first."
         Exit Sub
     End If
@@ -1278,6 +1373,14 @@ Public Function TestReadProjectedText(ByVal rowIndex As Long) As String
     If IsEmpty(mShippables) Then Exit Function
     If rowIndex < 1 Or rowIndex > UBound(mShippables, 1) Then Exit Function
     TestReadProjectedText = NzText(mShippables(rowIndex, 8))
+End Function
+
+Public Function TestPendingSyncCount(ByVal shippablesArray As Variant, _
+                                     ByVal shipmentsListData As Variant) As Long
+    If Not mBuilt Then BuildLayout
+    mShippables = shippablesArray
+    RenderLineList mLstShipments, shipmentsListData
+    TestPendingSyncCount = PendingShipmentSyncCount()
 End Function
 
 Private Sub EvictOrphanedActiveOverlays()
@@ -1506,10 +1609,18 @@ Private Function PendingShipmentSyncCount() As Long
             End If
         Next r
     End If
-    If Not mLstShipments Is Nothing Then PendingShipmentSyncCount = PendingShipmentSyncCount + mLstShipments.ListCount
-
 CleanExit:
 End Function
+
+Private Sub AppendLocalStatus(ByRef target As String, ByVal valueText As String)
+    valueText = Trim$(valueText)
+    If valueText = "" Then Exit Sub
+    If Trim$(target) = "" Then
+        target = valueText
+    Else
+        target = target & vbCrLf & valueText
+    End If
+End Sub
 
 Private Sub AddShippableHeaders(ByVal leftPos As Single, ByVal topPos As Single)
     AddHeaderLabel "hdrShipBox", "Box", leftPos, topPos, 138

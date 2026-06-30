@@ -6648,6 +6648,97 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingSentRows_EmptySelectionSendsAllShipmentAreaRows() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loHold As ListObject
+    Dim runResult As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_sent_empty_select_all")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH117", "S39", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loHold = FindTableByName(wbOps, "NotShipped")
+    If loInv Is Nothing Or loShip Is Nothing Or loHold Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 991, "SKU-SENT-ALL-001", "Sent All Item 1", "EA", "A1", 8
+    AddInvSysSeedRow loInv, 992, "SKU-SENT-ALL-002", "Sent All Item 2", "EA", "A1", 7
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    SetTableCell loInv, 2, "SHIPMENTS", 2
+    AddShippingTallyRow loShip, "REF-SENT-ALL-001", "Sent All Item 1", 1, 991, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Shipments"
+    SetTableCell loShip, 1, "CARRIER", "UPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-SENT-ALL-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-SENT-ALL-001"
+    AddShippingTallyRow loShip, "REF-SENT-ALL-002", "Sent All Item 2", 2, 992, "EA", "A1", "v1"
+    SetTableCell loShip, 2, "AREA", "Shipments"
+    SetTableCell loShip, 2, "CARRIER", "UPS"
+    SetTableCell loShip, 2, "LINE_ID", "SHIPLINE-SENT-ALL-002"
+    SetTableCell loShip, 2, "SERVER_RESERVE_EVENT_ID", "RESERVE-SENT-ALL-002"
+    AddShippingTallyRow loHold, "REF-HOLD-ALL-003", "Held Item", 1, 993, "EA", "A1", "v1"
+    SetTableCell loHold, 1, "AREA", "Hold"
+
+    wbOps.Activate
+    If Not RunShippingPrepareRolePostSessionForTest(rootPath, "WH117", "S39", currentUser, "123456", report) Then
+        failureReason = "Shipping add-in role-post session setup failed before all-row Shipments Sent: " & report
+        GoTo CleanExit
+    End If
+    runResult = RunShippingAllSentRowsReportForTest("UPS")
+    If Left$(runResult, 3) <> "OK|" Then
+        failureReason = "Shipments Sent empty selection should send all Shipments-area rows. Report: " & Mid$(runResult, 6)
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loInv, 1, "SHIPMENTS")) <> 0 Or CDbl(GetTableValue(loInv, 2, "SHIPMENTS")) <> 0 Then
+        failureReason = "Shipments Sent empty selection did not clear all selected-area local locks."
+        GoTo CleanExit
+    End If
+    If Not loShip.DataBodyRange Is Nothing Then
+        If loShip.ListRows.Count > 0 Then
+            If Trim$(CStr(GetTableValue(loShip, 1, "ITEMS"))) <> "" Then
+                failureReason = "Shipments Sent empty selection left active shipment rows behind."
+                GoTo CleanExit
+            End If
+        End If
+    End If
+    If loHold.DataBodyRange Is Nothing Or Trim$(CStr(GetTableValue(loHold, 1, "ITEMS"))) <> "Held Item" Then
+        failureReason = "Shipments Sent empty selection should not ship Hold rows."
+        GoTo CleanExit
+    End If
+
+    TestShippingSentRows_EmptySelectionSendsAllShipmentAreaRows = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH117"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH117.invSys.Data.ShippingReservations.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH117.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH117.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7187, "TestShippingSentRows_EmptySelectionSendsAllShipmentAreaRows", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingProjectedOverlay_PreservesNasBaselineAcrossSentReregister() As Long
     Dim failureReason As String
     Dim overlayPath As String
@@ -6708,6 +6799,58 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7157, "TestShippingProjectedOverlay_EvictsStaleZeroWhenBackendPositive", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingSyncLabel_CountsOnlyQuantityDriftNotVisibleRows() As Long
+    Dim failureReason As String
+    Dim shippables(1 To 1, 1 To 8) As Variant
+    Dim shipmentRows(1 To 1, 1 To 11) As Variant
+    Dim syncCount As Long
+
+    On Error GoTo CleanFail
+
+    shippables(1, 1) = 994
+    shippables(1, 2) = "Sync Label Item"
+    shippables(1, 3) = "v1"
+    shippables(1, 4) = 5
+    shippables(1, 8) = 5
+
+    shipmentRows(1, 1) = "REF-SYNC-LABEL"
+    shipmentRows(1, 2) = "Sync Label Item"
+    shipmentRows(1, 3) = 1
+    shipmentRows(1, 4) = "EA"
+    shipmentRows(1, 5) = "A1"
+    shipmentRows(1, 6) = 994
+    shipmentRows(1, 7) = "v1"
+    shipmentRows(1, 8) = 1
+    shipmentRows(1, 9) = "Shipments"
+    shipmentRows(1, 10) = "UPS"
+    shipmentRows(1, 11) = "RESERVE-SYNC-LABEL-001"
+
+    syncCount = RunShippingPendingSyncCountForTest(shippables, shipmentRows)
+    If syncCount <> 0 Then
+        failureReason = "Sync label count should ignore visible shipment rows when NAS Inv and Projected Inv agree; found " & CStr(syncCount) & "."
+        GoTo CleanExit
+    End If
+
+    shippables(1, 8) = 4
+    syncCount = RunShippingPendingSyncCountForTest(shippables, shipmentRows)
+    If syncCount <> 1 Then
+        failureReason = "Sync label count should report quantity drift; expected 1 but found " & CStr(syncCount) & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingSyncLabel_CountsOnlyQuantityDriftNotVisibleRows = 1
+
+CleanExit:
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7188, "TestShippingSyncLabel_CountsOnlyQuantityDriftNotVisibleRows", failureReason
     End If
     Exit Function
 CleanFail:
@@ -9444,8 +9587,12 @@ Private Sub AddShippingTallyRow(ByVal lo As ListObject, _
     If lo Is Nothing Then Exit Sub
     If lo.DataBodyRange Is Nothing Or lo.ListRows.Count = 0 Then
         Set lr = lo.ListRows.Add
-    Else
+    ElseIf Trim$(CStr(GetTableValue(lo, 1, "REF_NUMBER"))) = "" _
+        And Trim$(CStr(GetTableValue(lo, 1, "ITEMS"))) = "" _
+        And NzDblForTest(GetTableValue(lo, 1, "QUANTITY")) = 0 Then
         Set lr = lo.ListRows(1)
+    Else
+        Set lr = lo.ListRows.Add
     End If
     SetTableCell lo, lr.Index, "REF_NUMBER", refNumber
     SetTableCell lo, lr.Index, "ITEMS", itemName
@@ -10134,6 +10281,17 @@ Private Function RunShippingSentRowsReportForTest(ByVal rowIndexes As Variant, B
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
+Private Function RunShippingAllSentRowsReportForTest(ByVal carrierValue As String) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsFormRunAllShipmentsSentRowsReportForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingAllSentRowsReportForTest = CStr(Application.Run(macroName, carrierValue))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
 Private Function RunShippingPayloadJsonForRowsForTest(ByVal rowIndexes As Variant, ByVal requiredArea As String) As String
     Dim targetWb As Workbook
     Dim macroName As String
@@ -10447,6 +10605,18 @@ Private Function RunShippingProjectedDisplayQtyForTest(ByVal nasQty As Double, _
     macroName = ShippingMacroNameForTest("ShipmentsProjectedDisplayQtyForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingProjectedDisplayQtyForTest = CDbl(Application.Run(macroName, nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty, overlayIncludesReservation))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingPendingSyncCountForTest(ByVal shippablesArray As Variant, _
+                                                    ByVal shipmentsListData As Variant) As Long
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsFormPendingSyncCountForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingPendingSyncCountForTest = CLng(Application.Run(macroName, shippablesArray, shipmentsListData))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

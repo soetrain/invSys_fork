@@ -6179,6 +6179,11 @@ Public Function ShipmentsFormProjectedInventoryForTest(ByVal shippablesArray As 
     ShipmentsFormProjectedInventoryForTest = frmShipmentsTally.TestRefreshProjectedInventory(shippablesArray, shipmentsListData, holdListData)
 End Function
 
+Public Function ShipmentsFormPendingSyncCountForTest(ByVal shippablesArray As Variant, _
+                                                     ByVal shipmentsListData As Variant) As Long
+    ShipmentsFormPendingSyncCountForTest = frmShipmentsTally.TestPendingSyncCount(shippablesArray, shipmentsListData)
+End Function
+
 Public Function ShipmentReserveWouldBreachFloorForTest(ByVal invLo As ListObject, _
                                                        ByVal rowVal As Long, _
                                                        ByVal requestedQty As Double) As Boolean
@@ -7999,6 +8004,45 @@ NextRow:
         result(i - 1) = CLng(selected(i))
     Next i
     ShipmentRowsByReserveState = result
+End Function
+
+Private Function ShipmentRowsByArea(ByVal loShip As ListObject, ByVal areaText As String) As Variant
+    Dim selected As Collection
+    Dim cArea As Long
+    Dim cItem As Long
+    Dim cQty As Long
+    Dim rowIndex As Long
+    Dim result() As Long
+    Dim normalizedArea As String
+    Dim i As Long
+
+    If loShip Is Nothing Then Exit Function
+    If loShip.DataBodyRange Is Nothing Then Exit Function
+    Set selected = New Collection
+    cArea = ColumnIndex(loShip, "AREA")
+    cItem = ColumnIndex(loShip, "ITEMS")
+    cQty = ColumnIndex(loShip, "QUANTITY")
+    If cItem = 0 Or cQty = 0 Then Exit Function
+    normalizedArea = NormalizeShipmentArea(areaText)
+
+    For rowIndex = 1 To loShip.ListRows.Count
+        If Trim$(NzStr(loShip.DataBodyRange.Cells(rowIndex, cItem).Value)) = "" _
+           And NzDbl(loShip.DataBodyRange.Cells(rowIndex, cQty).Value) = 0 Then GoTo NextRow
+        If cArea > 0 Then
+            If StrComp(NormalizeShipmentArea(NzStr(loShip.DataBodyRange.Cells(rowIndex, cArea).Value)), normalizedArea, vbTextCompare) <> 0 Then GoTo NextRow
+        ElseIf StrComp(normalizedArea, "Warehouse", vbTextCompare) <> 0 Then
+            GoTo NextRow
+        End If
+        selected.Add rowIndex
+NextRow:
+    Next rowIndex
+
+    If selected.Count = 0 Then Exit Function
+    ReDim result(0 To selected.Count - 1)
+    For i = 1 To selected.Count
+        result(i - 1) = CLng(selected(i))
+    Next i
+    ShipmentRowsByArea = result
 End Function
 
 Private Function ShipmentRowsByExistingLocalShipmentLock(ByVal invLo As ListObject, _
@@ -10100,6 +10144,11 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
         report = "Shipment table not found."
         Exit Function
     End If
+    If IsEmpty(rowIndexes) Then rowIndexes = ShipmentRowsByArea(loShip, "Shipments")
+    If IsEmpty(rowIndexes) Then
+        report = "No rows are ready for Shipments Sent. Use To Shipments first; rows in Hold are excluded."
+        Exit Function
+    End If
 
     EnsureMissingInvSysRowsFromShipmentLines invLo, loShip
     ReconcileShipmentStagingFromShipmentLines invLo, loShip
@@ -10176,6 +10225,17 @@ Public Function ShipmentsFormRunShipmentsSentRowsReportForTest(ByVal rowIndexes 
         ShipmentsFormRunShipmentsSentRowsReportForTest = "OK|" & report
     Else
         ShipmentsFormRunShipmentsSentRowsReportForTest = "FAIL|" & report
+    End If
+End Function
+
+Public Function ShipmentsFormRunAllShipmentsSentRowsReportForTest(ByVal carrierValue As String) As String
+    Dim report As String
+    Dim rowIndexes As Variant
+
+    If ShipmentsFormRunShipmentsSentRows(rowIndexes, carrierValue, report, True) Then
+        ShipmentsFormRunAllShipmentsSentRowsReportForTest = "OK|" & report
+    Else
+        ShipmentsFormRunAllShipmentsSentRowsReportForTest = "FAIL|" & report
     End If
 End Function
 
