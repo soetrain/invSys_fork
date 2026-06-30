@@ -367,7 +367,7 @@ Private Sub RenderComponents()
         requiredQty = perBoxQty * qtyMade
         rowValue = CLng(Val(NzText(mComponents(r, 4))))
         nasInv = NzText(mComponents(r, 9))
-        projectedInv = DisplayComponentInventoryText(rowValue, nasInv)
+        projectedInv = ProjectedComponentInventoryText(rowValue, nasInv, requiredQty)
 
         mLstComponents.AddItem NzText(mComponents(r, 2))
         idx = mLstComponents.ListCount - 1
@@ -858,6 +858,35 @@ Private Function DisplayShippableInventoryText(ByVal rowValue As Long, ByVal bac
     DisplayShippableInventoryText = FormatQuantityText(pendingQty)
 
 CleanExit:
+End Function
+
+Private Function ProjectedComponentInventoryText(ByVal rowValue As Long, _
+                                                ByVal backendText As String, _
+                                                ByVal requiredQty As Double) As String
+    On Error GoTo CleanExit
+
+    Dim currentText As String
+    Dim projectedQty As Double
+
+    currentText = DisplayComponentInventoryText(rowValue, backendText)
+    ProjectedComponentInventoryText = currentText
+    If requiredQty <= 0 Then Exit Function
+    currentText = Trim$(currentText)
+    If currentText = "" Then Exit Function
+    If Not IsNumeric(Replace$(currentText, ",", "")) Then Exit Function
+
+    projectedQty = CDbl(Replace$(currentText, ",", "")) - requiredQty
+    If projectedQty < 0 Then projectedQty = 0
+    ProjectedComponentInventoryText = FormatQuantityText(projectedQty)
+
+CleanExit:
+End Function
+
+Public Function TestProjectedComponentInventoryText(ByVal rowValue As Long, _
+                                                    ByVal backendText As String, _
+                                                    ByVal requiredQty As Double) As String
+    If Not mBuilt Then BuildLayout
+    TestProjectedComponentInventoryText = ProjectedComponentInventoryText(rowValue, backendText, requiredQty)
 End Function
 
 Private Sub RecordPendingComponentInventory(ByVal actionText As String, ByVal qtyMade As Double)

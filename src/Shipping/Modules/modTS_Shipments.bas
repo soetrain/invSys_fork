@@ -4486,6 +4486,14 @@ FailSoft:
     report = Err.Description
 End Function
 
+Public Function BoxMakerProjectedComponentInventoryForTest(ByVal rowValue As Long, _
+                                                           ByVal backendText As String, _
+                                                           ByVal requiredQty As Double) As String
+    BoxMakerProjectedComponentInventoryForTest = frmShippingBoxMaker.TestProjectedComponentInventoryText(rowValue, _
+                                                                                                        backendText, _
+                                                                                                        requiredQty)
+End Function
+
 Public Function BoxBuilderFormLoadVersions(ByVal packageRow As Long) As Variant
     On Error GoTo FailSoft
 

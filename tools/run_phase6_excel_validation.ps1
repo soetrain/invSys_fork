@@ -560,6 +560,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingAggregateBomMath_MultipliesComponentQtyByPackageQty",
         "TestPhase6CoreSurfaces.TestBoxBuilderArchive_HidesArchivedBoxesUnlessRequested",
         "TestPhase6CoreSurfaces.TestBoxBuilderForm_InitializesWithActiveArchiveFilters",
+        "TestPhase6CoreSurfaces.TestBoxMakerProjectedComponentInventory_SubtractsRequirementFromNas",
         "TestPhase6CoreSurfaces.TestShippingCommitLine_MergesPostedSameRefBoxVersionCarrier",
         "TestPhase6CoreSurfaces.TestShippingBoard_TwoAddsSameRefBoxVersionCarrierShowOneRow",
         "TestPhase6CoreSurfaces.TestShippingAdd_DefaultsOrderToWarehouseArea",

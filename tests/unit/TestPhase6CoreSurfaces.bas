@@ -4495,6 +4495,37 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestBoxMakerProjectedComponentInventory_SubtractsRequirementFromNas() As Long
+    Dim projectedText As String
+    Dim failureReason As String
+
+    On Error GoTo CleanFail
+
+    projectedText = RunBoxMakerProjectedComponentInventoryForTest(991, "10", 6)
+    If projectedText <> "4" Then
+        failureReason = "BoxMaker projected component inventory should equal NAS Inv minus Requirement; expected 4 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    projectedText = RunBoxMakerProjectedComponentInventoryForTest(991, "5", 7)
+    If projectedText <> "0" Then
+        failureReason = "BoxMaker projected component inventory should floor shortages at 0; expected 0 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestBoxMakerProjectedComponentInventory_SubtractsRequirementFromNas = 1
+
+CleanExit:
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7160, "TestBoxMakerProjectedComponentInventory_SubtractsRequirementFromNas", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingCommitLine_MergesPostedSameRefBoxVersionCarrier() As Long
     Dim rootPath As String
     Dim currentUser As String
@@ -10333,6 +10364,19 @@ Private Function RunBoxBuilderInitializeSmokeForTest(ByRef report As String) As 
     macroName = ShippingMacroNameForTest("BoxBuilderFormInitializeSmokeForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunBoxBuilderInitializeSmokeForTest = CBool(Application.Run(macroName, report))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunBoxMakerProjectedComponentInventoryForTest(ByVal rowValue As Long, _
+                                                               ByVal backendText As String, _
+                                                               ByVal requiredQty As Double) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("BoxMakerProjectedComponentInventoryForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunBoxMakerProjectedComponentInventoryForTest = CStr(Application.Run(macroName, rowValue, backendText, requiredQty))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
