@@ -246,7 +246,7 @@ Private Sub LoadSelectedBox()
     LoadVersionsForPackage mSelectedPackageRow
     mLoading = previousLoading
     LoadSelectedVersionComponents
-    RenderPackageInventory
+    RenderPackageInventoryFromCache
     SelectShippableInventoryRow
     Exit Sub
 
@@ -432,6 +432,7 @@ Private Sub SelectBoxMakerVersion(ByVal versionLabel As String)
             If mCboVersions.ListIndex <> r Then mCboVersions.ListIndex = r
             mLoading = previousLoading
             LoadSelectedVersionComponents
+            RenderPackageInventoryFromCache
             SelectShippableInventoryRow
             Exit For
         End If
@@ -459,7 +460,8 @@ FailSoft:
 End Sub
 
 Private Sub RenderPackageInventoryFromCache()
-    SetPackageInventoryCaption CachedShippableInventoryText(mSelectedPackageRow)
+    SetPackageInventoryCaption CachedShippableInventoryText(mSelectedPackageRow), _
+                               CachedShippableProjectedInventoryText(mSelectedPackageRow)
 End Sub
 
 Private Function CachedShippableInventoryText(ByVal packageRow As Long) As String
@@ -482,7 +484,28 @@ Private Function CachedShippableInventoryText(ByVal packageRow As Long) As Strin
 CleanExit:
 End Function
 
-Private Sub SetPackageInventoryCaption(ByVal backendInventoryText As String)
+Private Function CachedShippableProjectedInventoryText(ByVal packageRow As Long) As String
+    On Error GoTo CleanExit
+
+    Dim r As Long
+    Dim versionLabel As String
+
+    If packageRow <= 0 Then Exit Function
+    If IsEmpty(mShippableRows) Then Exit Function
+    versionLabel = SelectedVersionLabel()
+    For r = 1 To UBound(mShippableRows, 1)
+        If CLng(Val(NzText(mShippableRows(r, 1)))) = packageRow _
+           And StrComp(NormalizeVersionText(NzText(mShippableRows(r, 3))), versionLabel, vbTextCompare) = 0 Then
+            CachedShippableProjectedInventoryText = NzText(mShippableRows(r, 8))
+            Exit Function
+        End If
+    Next r
+
+CleanExit:
+End Function
+
+Private Sub SetPackageInventoryCaption(ByVal backendInventoryText As String, _
+                                       Optional ByVal projectedInventoryText As String = "")
     Dim nasInv As String
     Dim projectedInv As String
 
@@ -493,7 +516,8 @@ Private Sub SetPackageInventoryCaption(ByVal backendInventoryText As String)
     End If
     nasInv = Trim$(backendInventoryText)
     If nasInv = "" Then nasInv = "unknown"
-    projectedInv = DisplayBoxVersionInventoryText(mSelectedPackageRow, SelectedVersionLabel(), backendInventoryText)
+    projectedInv = Trim$(projectedInventoryText)
+    If projectedInv = "" Then projectedInv = DisplayBoxVersionInventoryText(mSelectedPackageRow, SelectedVersionLabel(), backendInventoryText)
     If projectedInv = "" Then projectedInv = "unknown"
     mLblPackageInv.Caption = "NAS Inv: " & nasInv & "    Projected Inv: " & projectedInv
 End Sub
@@ -523,6 +547,8 @@ Private Sub mBtnRefresh_Click()
 
     Dim previousPointer As Long
     Dim previousScreenUpdating As Boolean
+    Dim report As String
+    Dim operatorWb As Workbook
 
     previousPointer = Me.MousePointer
     previousScreenUpdating = Application.ScreenUpdating
@@ -530,6 +556,10 @@ Private Sub mBtnRefresh_Click()
     Application.ScreenUpdating = False
     ShowStatus "Refreshing BoxMaker inventory..."
 
+    Set operatorWb = ResolveOperatorWorkbook()
+    If Not operatorWb Is Nothing Then
+        Call modTS_Shipments.ShipmentsFormAutoSyncRefresh(operatorWb, report)
+    End If
     RefreshShippableInventoryCache True
     RenderShippableInventoryFromCache
     If mSelectedPackageRow > 0 And Not mCboVersions Is Nothing Then
@@ -546,6 +576,7 @@ CleanExit:
     Me.MousePointer = previousPointer
     On Error GoTo 0
     If Err.Number = 0 Then ShowStatus "BoxMaker inventory refreshed."
+    If report <> "" And StrComp(report, "OK", vbTextCompare) <> 0 Then ShowStatus "BoxMaker inventory refreshed." & vbCrLf & report
     UpdateSyncStateLabel
     Exit Sub
 
@@ -906,7 +937,12 @@ Private Sub RenderShippableInventoryFromCache()
         rowValue = CLng(Val(NzText(mShippableRows(r, 1))))
         nasInv = NzText(mShippableRows(r, 4))
         If nasInv = "" Then nasInv = "unknown"
-        projectedInv = DisplayBoxVersionInventoryText(rowValue, NzText(mShippableRows(r, 3)), NzText(mShippableRows(r, 4)))
+        projectedInv = NzText(mShippableRows(r, 8))
+        If projectedInv = "" Then
+            projectedInv = DisplayBoxVersionInventoryText(rowValue, NzText(mShippableRows(r, 3)), NzText(mShippableRows(r, 4)))
+        Else
+            Call DisplayBoxVersionInventoryText(rowValue, NzText(mShippableRows(r, 3)), NzText(mShippableRows(r, 4)))
+        End If
         If projectedInv = "" Then projectedInv = "unknown"
 
         displayRows(idx, 0) = NzText(mShippableRows(r, 2))
