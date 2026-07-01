@@ -5114,8 +5114,6 @@ Private Function AddBoxVersionInventoryFromLog(ByVal loLog As ListObject, _
     For r = 1 To UBound(src, 1)
         eventType = UCase$(Trim$(NzStr(src(r, cEventType))))
         If eventType <> EVENT_TYPE_SHIP _
-           And eventType <> EVENT_TYPE_SHIP_RESERVE _
-           And eventType <> EVENT_TYPE_SHIP_RELEASE _
            And eventType <> EVENT_TYPE_BOX_BUILD _
            And eventType <> EVENT_TYPE_BOX_UNBOX Then GoTo NextLogRow
 
@@ -5295,7 +5293,9 @@ Public Sub EvictCompletedShipmentInventoryOverlaysForShippables(ByVal shippables
         sentKey = SentPendingBoxVersionInventoryKey(packageRow, versionLabel)
         If sentKey = "" Then GoTo NextRow
         If Not mPendingBoxVersionInventoryOverlay.Exists(sentKey) Then GoTo NextRow
-        backendQty = NzDbl(shippables(r, 4))
+        If Not IsNumeric(shippables(r, 4)) Then GoTo NextRow
+        backendQty = CDbl(shippables(r, 4))
+        If backendQty <= 0.0000001 Then GoTo NextRow
         overlayQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
         If backendQty <= overlayQty + 0.0000001 Then
             mPendingBoxVersionInventoryOverlay.Remove sentKey
@@ -5358,6 +5358,7 @@ Public Function EvictIdleSentOverlayForRowVersion(ByVal packageRow As Long, _
     If sentKey = "" Then Exit Function
     If Not mPendingBoxVersionInventoryOverlay.Exists(sentKey) Then Exit Function
 
+    If backendQty <= 0.0000001 Then Exit Function
     sentProjectedQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
     If backendQty <= sentProjectedQty + 0.0000001 Then
         RemovePendingBoxVersionInventoryOverlayKey sentKey
@@ -6706,8 +6707,8 @@ Public Function ShipmentsFormAutoSyncRefresh(ByVal operatorWb As Workbook, _
     If Trim$(bomReport) <> "" And StrComp(Trim$(bomReport), "Shipping BOM view already populated; skipped network refresh.", vbTextCompare) <> 0 Then
         report = report & "; " & bomReport
     End If
-    If Trim$(logReport) <> "" And StrComp(Trim$(logReport), "OK", vbTextCompare) <> 0 Then
-        report = report & "; " & logReport
+    If Trim$(logReport) <> "" Then
+        report = report & "; InventoryLog: " & logReport
     End If
     ShipmentsFormAutoSyncRefresh = True
     Exit Function

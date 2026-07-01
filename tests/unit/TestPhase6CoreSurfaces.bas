@@ -7218,6 +7218,56 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingProjectedOverlay_DoesNotEvictSentOverlayOnBlankOrZeroBackend() As Long
+    Dim failureReason As String
+    Dim overlayPath As String
+    Dim shippables(1 To 1, 1 To 8) As Variant
+
+    On Error GoTo CleanFail
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    RunShippingRegisterSentProjectedOverlayForTest 981, "v1", 9, 10
+    shippables(1, 1) = 981
+    shippables(1, 2) = "Sent Overlay Item"
+    shippables(1, 3) = "v1"
+    shippables(1, 4) = vbNullString
+    RunShippingEvictCompletedOverlaysForTest shippables
+    If Not RunShippingHasSentOverlayForTest(981, "v1") Then
+        failureReason = "Blank backend evicted a SENT overlay before canonical catch-up."
+        GoTo CleanExit
+    End If
+
+    shippables(1, 4) = 0
+    RunShippingEvictCompletedOverlaysForTest shippables
+    If Not RunShippingHasSentOverlayForTest(981, "v1") Then
+        failureReason = "Zero backend evicted a SENT overlay before canonical catch-up."
+        GoTo CleanExit
+    End If
+
+    shippables(1, 4) = 9
+    RunShippingEvictCompletedOverlaysForTest shippables
+    If RunShippingHasSentOverlayForTest(981, "v1") Then
+        failureReason = "Numeric backend catch-up did not evict the SENT overlay."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedOverlay_DoesNotEvictSentOverlayOnBlankOrZeroBackend = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7182, "TestShippingProjectedOverlay_DoesNotEvictSentOverlayOnBlankOrZeroBackend", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected() As Long
     Dim rootPath As String
     Dim currentUser As String
@@ -8003,6 +8053,124 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7150, "TestBoxMakerShippables_MultiVersionUsesCanonicalInventoryLogFallback", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestBoxMakerShippables_VersionNasIgnoresReserveReleaseLogRows() As Long
+    Dim rootPath As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbInv As Workbook
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loBomView As ListObject
+    Dim savedBoxes(1 To 1, 1 To 7) As Variant
+    Dim shippables As Variant
+    Dim r As Long
+    Dim v1Row As Long
+    Dim v2Row As Long
+    Dim overlayPath As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_box_maker_version_ship_log_signs")
+    On Error GoTo CleanFail
+
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH119", "S31", "calvin", failureReason) Then GoTo CleanExit
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH119", Array("SKU-T32"))
+    If wbInv Is Nothing Then
+        failureReason = "Canonical inventory workbook could not be created."
+        GoTo CleanExit
+    End If
+    AddInventoryLogRowForTest wbInv, "BOX_BUILD", "SKU-T32", 10, "ROW=93; VERSION=v1; IO=MADE"
+    AddInventoryLogRowForTest wbInv, "SHIP_RESERVE", "SKU-T32", -1, "ROW=93; VERSION=v1; IO=RESERVED"
+    AddInventoryLogRowForTest wbInv, "SHIP_RELEASE", "SKU-T32", 1, "ROW=93; VERSION=v1; IO=RELEASED"
+    AddInventoryLogRowForTest wbInv, "SHIP", "SKU-T32", -1, "ROW=93; VERSION=v1; IO=SHIPPED"
+    AddInventoryLogRowForTest wbInv, "BOX_BUILD", "SKU-T32", 10, "ROW=93; VERSION=v2; IO=MADE"
+    AddInventoryLogRowForTest wbInv, "SHIP_RESERVE", "SKU-T32", -1, "ROW=93; VERSION=v2; IO=RESERVED"
+    wbInv.Save
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then
+        failureReason = "EnsureShippingWorkbookSurface failed: " & report
+        GoTo CleanExit
+    End If
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loBomView Is Nothing Then
+        failureReason = "Shipping operator surface tables were missing."
+        GoTo CleanExit
+    End If
+
+    AddInvSysSeedRow loInv, 93, "SKU-T32", "T32", "EA", "CLEARVIEW", 20
+    AddShippingBomViewRow loBomView, 93, "T32", 4, "10x8x6 S-16709", 1, "EA"
+    AddShippingBomViewRow loBomView, 93, "T32", 4, "10x8x6 S-16709", 1, "EA"
+    SetOptionalTableCell loBomView, 2, "BomVersion", 2
+    SetOptionalTableCell loBomView, 2, "BomVersionLabel", "v2"
+
+    savedBoxes(1, 1) = 93
+    savedBoxes(1, 2) = "T32"
+    savedBoxes(1, 3) = "T32"
+    savedBoxes(1, 4) = "EA"
+    savedBoxes(1, 5) = "CLEARVIEW"
+    savedBoxes(1, 6) = ""
+    savedBoxes(1, 7) = ""
+
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    wbOps.Activate
+    shippables = RunShippingMacro1ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes)
+    If IsEmpty(shippables) Then
+        failureReason = "Shippable version inventory returned no rows."
+        GoTo CleanExit
+    End If
+    For r = 1 To UBound(shippables, 1)
+        If CLng(NzDblForTest(shippables(r, 1))) = 93 Then
+            Select Case LCase$(Trim$(CStr(shippables(r, 3))))
+                Case "v1"
+                    v1Row = r
+                Case "v2"
+                    v2Row = r
+            End Select
+        End If
+    Next r
+    If v1Row = 0 Or v2Row = 0 Then
+        failureReason = "Expected both active T32 versions in shippable inventory."
+        GoTo CleanExit
+    End If
+    If CDbl(NzDblForTest(shippables(v1Row, 4))) <> 9 Then
+        failureReason = "Version NAS did not apply final SHIP only; expected T32 v1=9 but found '" & CStr(shippables(v1Row, 4)) & "'. Debug=" & BoxMakerShippablesDebugTextForTest(shippables)
+        GoTo CleanExit
+    End If
+    If CDbl(NzDblForTest(shippables(v2Row, 4))) <> 10 Then
+        failureReason = "Version NAS counted SHIP_RESERVE as final inventory movement; expected T32 v2=10 but found '" & CStr(shippables(v2Row, 4)) & "'. Debug=" & BoxMakerShippablesDebugTextForTest(shippables)
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(shippables(v1Row, 8))) <> "9" Or Trim$(CStr(shippables(v2Row, 8))) <> "10" Then
+        failureReason = "Projected inventory did not mirror settled version NAS with no active locks. Debug=" & BoxMakerShippablesDebugTextForTest(shippables)
+        GoTo CleanExit
+    End If
+
+    TestBoxMakerShippables_VersionNasIgnoresReserveReleaseLogRows = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH119"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbInv
+    CloseWorkbookIfOpen FindWorkbookByName("WH119.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH119.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7183, "TestBoxMakerShippables_VersionNasIgnoresReserveReleaseLogRows", failureReason
     End If
     Exit Function
 CleanFail:
