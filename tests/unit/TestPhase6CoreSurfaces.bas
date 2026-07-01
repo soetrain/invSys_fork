@@ -8259,6 +8259,71 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestBoxMakerHistoryExport_ReportsEmptySourceDiagnostics() As Long
+    Dim rootPath As String
+    Dim failureReason As String
+    Dim wbInv As Workbook
+    Dim wbOps As Workbook
+    Dim report As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_box_maker_history_empty_diagnostics")
+    On Error GoTo CleanFail
+
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH121", "S31", "calvin", failureReason) Then GoTo CleanExit
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH121", Array("SKU-T34"))
+    If wbInv Is Nothing Then
+        failureReason = "Canonical inventory workbook could not be created."
+        GoTo CleanExit
+    End If
+    wbInv.Save
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    wbOps.Activate
+    report = RunShippingBoxMakerExportHistoryForTest(100, wbOps)
+    If InStr(1, report, "Exported 0 Box Maker history row(s)", vbTextCompare) = 0 Then
+        failureReason = "Unexpected empty Box Maker history export report: " & report
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "WarehouseId=WH121", vbTextCompare) = 0 Then
+        failureReason = "Empty Box Maker history export did not report the resolved warehouse: " & report
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "ServerLogStatus=OK", vbTextCompare) = 0 Then
+        failureReason = "Empty Box Maker history export did not report server log status: " & report
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "ServerLogRows=0", vbTextCompare) = 0 Then
+        failureReason = "Empty Box Maker history export did not report server log row count: " & report
+        GoTo CleanExit
+    End If
+    If InStr(1, report, "LocalStagedMatchingRows=0", vbTextCompare) = 0 Then
+        failureReason = "Empty Box Maker history export did not report local staged count: " & report
+        GoTo CleanExit
+    End If
+
+    TestBoxMakerHistoryExport_ReportsEmptySourceDiagnostics = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH121"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbInv
+    CloseWorkbookIfOpen FindWorkbookByName("WH121.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH121.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7185, "TestBoxMakerHistoryExport_ReportsEmptySourceDiagnostics", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows() As Long
     Dim failureReason As String
 

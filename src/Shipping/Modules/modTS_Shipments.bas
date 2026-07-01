@@ -7102,6 +7102,7 @@ Public Function ShipmentsFormExportHistoryToSheet(Optional ByVal limitCount As L
     Dim record As Variant
     Dim i As Long
     Dim exportedCount As Long
+    Dim sourceSummary As String
 
     If limitCount <= 0 Then limitCount = 100
     If targetWb Is Nothing Then Set targetWb = ActiveWorkbook
@@ -7110,8 +7111,7 @@ Public Function ShipmentsFormExportHistoryToSheet(Optional ByVal limitCount As L
         Exit Function
     End If
 
-    warehouseId = Trim$(modConfig.GetWarehouseId())
-    If warehouseId = "" Then warehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
+    warehouseId = ResolveCurrentShippingWarehouseId()
     inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
     openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
     Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
@@ -7148,8 +7148,11 @@ Public Function ShipmentsFormExportHistoryToSheet(Optional ByVal limitCount As L
     ws.Columns("A:N").AutoFit
     ws.Activate
 
+    sourceSummary = HistoryExportSourceSummaryShipping(inventoryWb, warehouseId, ResolveCurrentShippingStationId(warehouseId), _
+                                                       EVENT_TYPE_SHIP & "," & EVENT_TYPE_SHIP_RESERVE & "," & EVENT_TYPE_SHIP_RELEASE & "," & EVENT_TYPE_ADMIN_SHIPMENT_RECONCILE)
     If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
-    ShipmentsFormExportHistoryToSheet = "Exported " & CStr(exportedCount) & " shipment history row(s) to ShipmentsHistory."
+    ShipmentsFormExportHistoryToSheet = "Exported " & CStr(exportedCount) & " shipment history row(s) to ShipmentsHistory. " & _
+                                        sourceSummary
     Exit Function
 
 FailSoft:
@@ -7171,6 +7174,7 @@ Public Function BoxMakerFormExportHistoryToSheet(Optional ByVal limitCount As Lo
     Dim record As Variant
     Dim i As Long
     Dim exportedCount As Long
+    Dim sourceSummary As String
 
     If limitCount <= 0 Then limitCount = 100
     If targetWb Is Nothing Then Set targetWb = ActiveWorkbook
@@ -7179,8 +7183,7 @@ Public Function BoxMakerFormExportHistoryToSheet(Optional ByVal limitCount As Lo
         Exit Function
     End If
 
-    warehouseId = Trim$(modConfig.GetWarehouseId())
-    If warehouseId = "" Then warehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
+    warehouseId = ResolveCurrentShippingWarehouseId()
     inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
     openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
     Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
@@ -7217,8 +7220,11 @@ Public Function BoxMakerFormExportHistoryToSheet(Optional ByVal limitCount As Lo
     ws.Columns("A:N").AutoFit
     ws.Activate
 
+    sourceSummary = HistoryExportSourceSummaryShipping(inventoryWb, warehouseId, ResolveCurrentShippingStationId(warehouseId), _
+                                                       EVENT_TYPE_BOX_BUILD & "," & EVENT_TYPE_BOX_UNBOX)
     If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
-    BoxMakerFormExportHistoryToSheet = "Exported " & CStr(exportedCount) & " Box Maker history row(s) to BoxMakerHistory."
+    BoxMakerFormExportHistoryToSheet = "Exported " & CStr(exportedCount) & " Box Maker history row(s) to BoxMakerHistory. " & _
+                                       sourceSummary
     Exit Function
 
 FailSoft:
@@ -7244,6 +7250,126 @@ Private Function CurrentShippingInventoryWorkbookPath(ByVal warehouseId As Strin
     rootPath = NormalizeFolderPathShipping(rootPath)
     If warehouseId = "" Or rootPath = "" Then Exit Function
     CurrentShippingInventoryWorkbookPath = rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
+End Function
+
+Private Function HistoryExportSourceSummaryShipping(ByVal inventoryWb As Workbook, _
+                                                    ByVal warehouseId As String, _
+                                                    ByVal stationId As String, _
+                                                    ByVal eventTypesCsv As String) As String
+    On Error GoTo FailSoft
+
+    Dim serverLogRows As Long
+    Dim matchingLogRows As Long
+    Dim logStatus As String
+    Dim pendingCount As Long
+    Dim matchingPending As Long
+    Dim stagedRows As Long
+    Dim matchingStaged As Long
+    Dim inboxReport As String
+    Dim inboxError As String
+    Dim stagedReport As String
+    Dim stagedError As String
+    Dim probeEventType As String
+    Dim workbookText As String
+
+    CountHistoryInventoryLogRowsShipping inventoryWb, eventTypesCsv, serverLogRows, matchingLogRows, logStatus
+    If inventoryWb Is Nothing Then
+        workbookText = "not resolved"
+    Else
+        workbookText = inventoryWb.Name
+    End If
+
+    probeEventType = FirstHistoryEventTypeShipping(eventTypesCsv)
+    If probeEventType <> "" Then
+        inboxReport = modRoleEventWriter.DescribeInboxPendingRows(probeEventType, warehouseId, stationId, "", pendingCount, matchingPending, inboxError)
+    End If
+    stagedReport = modRoleEventWriter.DescribeLocalStagedInboxRows(eventTypesCsv, warehouseId, stationId, stagedRows, matchingStaged, stagedError)
+
+    HistoryExportSourceSummaryShipping = "Source: WarehouseId=" & warehouseId & _
+        "; StationId=" & stationId & _
+        "; InventoryWorkbook=" & workbookText & _
+        "; ServerLogStatus=" & logStatus & _
+        "; ServerLogRows=" & CStr(serverLogRows) & _
+        "; MatchingServerLogRows=" & CStr(matchingLogRows) & _
+        "; NASShippingInboxPendingRows=" & CStr(pendingCount) & _
+        "; LocalStagedMatchingRows=" & CStr(matchingStaged)
+    If inboxReport <> "" Then HistoryExportSourceSummaryShipping = HistoryExportSourceSummaryShipping & "; Inbox=" & inboxReport
+    If inboxError <> "" Then HistoryExportSourceSummaryShipping = HistoryExportSourceSummaryShipping & "; InboxError=" & inboxError
+    If stagedReport <> "" Then HistoryExportSourceSummaryShipping = HistoryExportSourceSummaryShipping & "; LocalStaging=" & stagedReport
+    If stagedError <> "" Then HistoryExportSourceSummaryShipping = HistoryExportSourceSummaryShipping & "; LocalStagingError=" & stagedError
+    Exit Function
+
+FailSoft:
+    HistoryExportSourceSummaryShipping = "Source diagnostics failed: " & Err.Description
+End Function
+
+Private Sub CountHistoryInventoryLogRowsShipping(ByVal inventoryWb As Workbook, _
+                                                 ByVal eventTypesCsv As String, _
+                                                 ByRef serverLogRows As Long, _
+                                                 ByRef matchingLogRows As Long, _
+                                                 ByRef statusText As String)
+    On Error GoTo FailSoft
+
+    Dim loLog As ListObject
+    Dim cEventType As Long
+    Dim rowIndex As Long
+    Dim eventType As String
+
+    serverLogRows = 0
+    matchingLogRows = 0
+    statusText = "OK"
+    If inventoryWb Is Nothing Then
+        statusText = "InventoryWorkbookNotResolved"
+        Exit Sub
+    End If
+
+    Set loLog = FindListObjectByNameShipping(inventoryWb, "tblInventoryLog")
+    If loLog Is Nothing Then
+        statusText = "tblInventoryLogNotFound"
+        Exit Sub
+    End If
+    serverLogRows = loLog.ListRows.Count
+    If loLog.DataBodyRange Is Nothing Then Exit Sub
+
+    cEventType = ColumnIndex(loLog, "EventType")
+    If cEventType <= 0 Then
+        statusText = "EventTypeColumnMissing"
+        Exit Sub
+    End If
+
+    For rowIndex = 1 To loLog.ListRows.Count
+        eventType = UCase$(Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cEventType).Value)))
+        If HistoryEventTypeListedShipping(eventType, eventTypesCsv) Then matchingLogRows = matchingLogRows + 1
+    Next rowIndex
+    Exit Sub
+
+FailSoft:
+    statusText = "InventoryLogCountFailed:" & Err.Description
+End Sub
+
+Private Function FirstHistoryEventTypeShipping(ByVal eventTypesCsv As String) As String
+    Dim parts As Variant
+    Dim i As Long
+
+    parts = Split(eventTypesCsv, ",")
+    For i = LBound(parts) To UBound(parts)
+        FirstHistoryEventTypeShipping = UCase$(Trim$(CStr(parts(i))))
+        If FirstHistoryEventTypeShipping <> "" Then Exit Function
+    Next i
+End Function
+
+Private Function HistoryEventTypeListedShipping(ByVal eventType As String, ByVal eventTypesCsv As String) As Boolean
+    Dim normalizedTypes As String
+
+    eventType = UCase$(Trim$(eventType))
+    eventTypesCsv = UCase$(Replace$(Trim$(eventTypesCsv), " ", ""))
+    If eventType = "" Then Exit Function
+    If eventTypesCsv = "" Then
+        HistoryEventTypeListedShipping = True
+        Exit Function
+    End If
+    normalizedTypes = "," & eventTypesCsv & ","
+    HistoryEventTypeListedShipping = (InStr(1, normalizedTypes, "," & eventType & ",", vbTextCompare) > 0)
 End Function
 
 Private Function RecentShipmentInventoryLogTextShipping(ByVal inventoryWb As Workbook, ByVal limitCount As Long) As String
