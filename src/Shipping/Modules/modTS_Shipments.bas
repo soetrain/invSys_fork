@@ -5261,14 +5261,26 @@ Public Sub RegisterPendingBoxVersionInventoryOverlay(ByVal packageRow As Long, _
     PersistPendingBoxVersionInventoryOverlay
 End Sub
 
-Public Sub ClearPendingBoxVersionInventoryOverlayForTest()
+Public Sub ClearPendingBoxVersionInventoryOverlay()
+    Dim overlayPath As String
+
+    overlayPath = PersistentPendingBoxVersionInventoryOverlayPath()
     Set mPendingBoxVersionInventoryOverlay = Nothing
     Set mPendingBoxVersionInventoryOverlayBaseline = Nothing
     mPendingBoxVersionInventoryOverlayPath = ""
+    DeleteFileIfExistsShipping overlayPath
+End Sub
+
+Public Sub ClearPendingBoxVersionInventoryOverlayForTest()
+    ClearPendingBoxVersionInventoryOverlay
+End Sub
+
+Public Function PendingBoxVersionInventoryOverlayPath() As String
+    PendingBoxVersionInventoryOverlayPath = PersistentPendingBoxVersionInventoryOverlayPath()
 End Sub
 
 Public Function PendingBoxVersionInventoryOverlayPathForTest() As String
-    PendingBoxVersionInventoryOverlayPathForTest = PersistentPendingBoxVersionInventoryOverlayPath()
+    PendingBoxVersionInventoryOverlayPathForTest = PendingBoxVersionInventoryOverlayPath()
 End Function
 
 Public Sub EvictCompletedShipmentInventoryOverlaysForShippables(ByVal shippables As Variant)
@@ -6675,6 +6687,7 @@ Public Function ShipmentsFormAutoSyncRefresh(ByVal operatorWb As Workbook, _
     Dim inventoryReport As String
     Dim bomReport As String
     Dim logReport As String
+    Dim processedCount As Long
 
     If operatorWb Is Nothing Then
         report = "No operator workbook for auto-sync."
@@ -6694,10 +6707,19 @@ Public Function ShipmentsFormAutoSyncRefresh(ByVal operatorWb As Workbook, _
         Exit Function
     End If
 
-    If ShippingRuntimeProcessedCount(runtimeReport) > 0 Then
+    processedCount = ShippingRuntimeProcessedCount(runtimeReport)
+    If processedCount > 0 Then
+        If Not RefreshOperatorInventoryLogForWorkbook(operatorWb, warehouseId, logReport) Then
+            report = "AutoSync inventory-log: " & logReport & "; RuntimeReport=" & runtimeReport & "; OverlayEviction=Skipped(InventoryLogRefreshFailed)"
+            Exit Function
+        End If
+    Else
+        RefreshOperatorInventoryLogForWorkbook operatorWb, warehouseId, logReport
+    End If
+
+    If processedCount > 0 Then
         RefreshShippingBomViewForWorkbook operatorWb, bomReport, False
     End If
-    RefreshOperatorInventoryLogForWorkbook operatorWb, warehouseId, logReport
 
     report = "OK"
     If Trim$(runtimeReport) <> "" Then report = report & "; " & runtimeReport

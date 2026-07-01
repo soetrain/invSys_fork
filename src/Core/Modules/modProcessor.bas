@@ -353,6 +353,10 @@ Public Function RunBatchReportForAutomation(Optional ByVal warehouseId As String
     RunBatchReportForAutomation = "Processed=" & CStr(processedCount) & "; Report=" & report
 End Function
 
+Public Function ResolveInventoryWorkbookPathForAutomation(Optional ByVal warehouseId As String = "") As String
+    ResolveInventoryWorkbookPathForAutomation = ResolveInventoryWorkbookPathProcessor(warehouseId)
+End Function
+
 Public Function DescribeInboxTargetsForAutomation(Optional ByVal warehouseId As String = "") As String
     On Error GoTo FailDescribe
 
