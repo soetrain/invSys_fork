@@ -4805,7 +4805,7 @@ Private Function LoadShippableVersionInventoryCore(ByVal savedBoxes As Variant, 
             If Not versionInv Is Nothing Then
                 If versionInv.Exists(versionLabel) And Trim$(NzStr(rowData(4))) = "" Then rowData(4) = versionInv(versionLabel)
             End If
-            rowData(8) = PendingBoxVersionInventoryOverlayValue(boxRow, versionLabel, rowData(4))
+            rowData(8) = rowData(4)
             rowData(5) = NzStr(savedBoxes(r, 4))
             rowData(6) = NzStr(savedBoxes(r, 5))
             rowData(7) = NzStr(savedBoxes(r, 6))
@@ -5295,6 +5295,7 @@ Public Function ShippingSystemOverlayDiagnostic() As String
     resultText = "OverlayPath=" & overlayPath
     resultText = resultText & "; FileExists=" & CStr(fileExists)
     resultText = resultText & "; OverlayCount=" & CStr(overlayCount)
+    resultText = resultText & "; DisplayUsesOverlay=False"
     ShippingSystemOverlayDiagnostic = resultText
     Exit Function
 
