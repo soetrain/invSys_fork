@@ -693,8 +693,12 @@ Private Function CurrentTargetWarehouseIdLocal() As String
     On Error GoTo CleanExit
 
     Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
 
     Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        Call modNasConnection.ResolveWarehouseTarget(target, statusCode)
+    End If
     If target Is Nothing Then Exit Function
     CurrentTargetWarehouseIdLocal = SafeTrim(target.WarehouseId)
 
@@ -705,8 +709,12 @@ Private Function CurrentTargetRuntimeRootLocal() As String
     On Error GoTo CleanExit
 
     Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
 
     Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        Call modNasConnection.ResolveWarehouseTarget(target, statusCode)
+    End If
     If target Is Nothing Then Exit Function
     CurrentTargetRuntimeRootLocal = SafeTrim(target.RuntimeRoot)
 

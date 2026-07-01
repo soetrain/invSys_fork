@@ -472,8 +472,12 @@ Public Function CurrentWarehouseTargetDiagnosticForAutomation() As String
 
     Dim target As WarehouseTarget
     Dim resultText As String
+    Dim statusCode As NasStatusCode
 
     Set target = GetCurrentTarget()
+    If target Is Nothing Then
+        Call ResolveWarehouseTarget(target, statusCode)
+    End If
     If target Is Nothing Then
         resultText = "Resolved=False"
     Else
@@ -716,13 +720,14 @@ Private Function ReadConfigIdentityNas(ByVal configPath As String, _
     If warehouseName = "" Then warehouseName = warehouseId
 
     stationId = Trim$(requestedStation)
-    If stationId <> "" And Not loSt Is Nothing Then
+    If Not loSt Is Nothing Then
         If Not loSt.DataBodyRange Is Nothing Then
-            rowIndex = FindStationRowNas(loSt, warehouseId, stationId)
+            If stationId <> "" Then rowIndex = FindStationRowNas(loSt, warehouseId, stationId)
             If rowIndex = 0 Then rowIndex = 1
-            stationId = TableValueNas(loSt, rowIndex, "StationId")
+            If rowIndex > 0 Then stationId = TableValueNas(loSt, rowIndex, "StationId")
         End If
     End If
+    If stationId = "" Then stationId = Trim$(requestedStation)
 
     ReadConfigIdentityNas = NAS_OK
     GoTo CleanExit

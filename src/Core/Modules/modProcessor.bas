@@ -273,8 +273,12 @@ Private Function ResolveCurrentTargetWarehouseIdProcessor() As String
     On Error GoTo CleanExit
 
     Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
 
     Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        Call modNasConnection.ResolveWarehouseTarget(target, statusCode)
+    End If
     If target Is Nothing Then Exit Function
     ResolveCurrentTargetWarehouseIdProcessor = Trim$(target.WarehouseId)
 
@@ -285,8 +289,12 @@ Private Function ResolveCurrentTargetRuntimeRootProcessor() As String
     On Error GoTo CleanExit
 
     Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
 
     Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        Call modNasConnection.ResolveWarehouseTarget(target, statusCode)
+    End If
     If target Is Nothing Then Exit Function
     ResolveCurrentTargetRuntimeRootProcessor = Trim$(target.RuntimeRoot)
 
