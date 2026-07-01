@@ -7,6 +7,7 @@ Public Sub InitShippingAddin()
     Dim report As String
     Dim prevEvents As Boolean
 
+    ApplyRememberedRuntimeTargetShipping
     prevEvents = Application.EnableEvents
     Application.EnableEvents = False
     If gAppEvents Is Nothing Then
@@ -18,6 +19,12 @@ Public Sub InitShippingAddin()
     Application.EnableEvents = prevEvents
     SetupAllHandlers
     SyncLocalStagedInboxRowsForStartup
+End Sub
+
+Private Sub ApplyRememberedRuntimeTargetShipping()
+    On Error Resume Next
+    Call modRibbonRuntimeStatus.TryApplyRememberedWarehouseTarget
+    On Error GoTo 0
 End Sub
 
 Public Sub Auto_Open()

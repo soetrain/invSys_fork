@@ -467,6 +467,36 @@ Public Function GetCurrentTarget() As WarehouseTarget
     Set GetCurrentTarget = CloneTargetNas(m_CurrentTarget)
 End Function
 
+Public Function CurrentWarehouseTargetDiagnosticForAutomation() As String
+    On Error GoTo FailDiagnostic
+
+    Dim target As WarehouseTarget
+    Dim resultText As String
+
+    Set target = GetCurrentTarget()
+    If target Is Nothing Then
+        resultText = "Resolved=False"
+    Else
+        resultText = "Resolved=True"
+        resultText = resultText & "; WarehouseId=" & Trim$(target.WarehouseId)
+        resultText = resultText & "; WarehouseName=" & Trim$(target.WarehouseName)
+        resultText = resultText & "; StationId=" & Trim$(target.StationId)
+        resultText = resultText & "; HubRoot=" & Trim$(target.HubRoot)
+        resultText = resultText & "; RuntimeRoot=" & Trim$(target.RuntimeRoot)
+        resultText = resultText & "; InboxRoot=" & Trim$(target.InboxRoot)
+        resultText = resultText & "; ConfigPath=" & Trim$(target.ConfigPath)
+    End If
+
+    resultText = resultText & "; CoreDataRootOverride=" & Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    resultText = resultText & "; PathDataRoot=" & Trim$(modConfig.GetString("PathDataRoot", ""))
+    resultText = resultText & "; ConnectionStatus=" & GetConnectionStatus()
+    CurrentWarehouseTargetDiagnosticForAutomation = resultText
+    Exit Function
+
+FailDiagnostic:
+    CurrentWarehouseTargetDiagnosticForAutomation = "CurrentWarehouseTargetDiagnosticForAutomation failed: " & Err.Description
+End Function
+
 Public Function GetKnownWarehouseTargetRoots() As Collection
     Dim result As Collection
     Dim roots As Collection

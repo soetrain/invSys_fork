@@ -7,6 +7,7 @@ Public Sub InitProductionAddin()
     Dim prevEvents As Boolean
     Dim prevScreenUpdating As Boolean
 
+    ApplyRememberedRuntimeTargetProduction
     prevEvents = Application.EnableEvents
     prevScreenUpdating = Application.ScreenUpdating
     Application.EnableEvents = False
@@ -19,6 +20,12 @@ Public Sub InitProductionAddin()
     EnsureProductionSurfaceForWorkbook Application.ActiveWorkbook
     Application.ScreenUpdating = prevScreenUpdating
     Application.EnableEvents = prevEvents
+End Sub
+
+Private Sub ApplyRememberedRuntimeTargetProduction()
+    On Error Resume Next
+    Call modRibbonRuntimeStatus.TryApplyRememberedWarehouseTarget
+    On Error GoTo 0
 End Sub
 
 Public Sub Auto_Open()

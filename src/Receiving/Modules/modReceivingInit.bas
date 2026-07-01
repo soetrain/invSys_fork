@@ -49,6 +49,7 @@ Public Sub InitReceivingAddin()
     Dim prevScreenUpdating As Boolean
     Dim activeWb As Workbook
 
+    ApplyRememberedRuntimeTargetReceiving
     prevEvents = Application.EnableEvents
     prevScreenUpdating = Application.ScreenUpdating
     Application.EnableEvents = False
@@ -61,6 +62,12 @@ Public Sub InitReceivingAddin()
     EnsureReceivingSurfaceForWorkbook activeWb
     Application.ScreenUpdating = prevScreenUpdating
     Application.EnableEvents = prevEvents
+End Sub
+
+Private Sub ApplyRememberedRuntimeTargetReceiving()
+    On Error Resume Next
+    Call modRibbonRuntimeStatus.TryApplyRememberedWarehouseTarget
+    On Error GoTo 0
 End Sub
 
 Public Sub Auto_Open()

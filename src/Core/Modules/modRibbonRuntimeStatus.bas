@@ -204,6 +204,20 @@ Public Function TryApplyRememberedWarehouseTarget() As Boolean
     TryApplyRememberedWarehouseTarget = ApplyRememberedWarehouseTargetStatus()
 End Function
 
+Public Function ApplyRememberedWarehouseTargetForAutomation() As String
+    On Error GoTo FailApply
+
+    If ApplyRememberedWarehouseTargetStatus() Then
+        ApplyRememberedWarehouseTargetForAutomation = "OK; " & modNasConnection.CurrentWarehouseTargetDiagnosticForAutomation()
+    Else
+        ApplyRememberedWarehouseTargetForAutomation = "FAIL; " & modNasConnection.CurrentWarehouseTargetDiagnosticForAutomation()
+    End If
+    Exit Function
+
+FailApply:
+    ApplyRememberedWarehouseTargetForAutomation = "ERROR; " & Err.Description
+End Function
+
 Public Sub RefreshRuntimeContext()
     Dim report As String
     Dim configLoaded As Boolean
