@@ -586,6 +586,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActiveVersion",
         "TestPhase6CoreSurfaces.TestBoxMakerShippables_MultiVersionUsesCanonicalInventoryLogFallback",
         "TestPhase6CoreSurfaces.TestBoxMakerShippables_VersionNasIgnoresReserveReleaseLogRows",
+        "TestPhase6CoreSurfaces.TestBoxMakerHistoryExport_WritesBuildAndUnboxRowsOnly",
         "TestPhase6CoreSurfaces.TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows",
         "TestPhase6CoreSurfaces.TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv",
         "TestPhase6CoreSurfaces.TestShippingSentRows_UnreservedDirtyRowDoesNotDeductTotalInv",

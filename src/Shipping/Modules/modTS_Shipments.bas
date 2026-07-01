@@ -7157,6 +7157,75 @@ FailSoft:
     ShipmentsFormExportHistoryToSheet = "Shipments history export failed: " & Err.Description
 End Function
 
+Public Function BoxMakerFormExportHistoryToSheet(Optional ByVal limitCount As Long = 100, _
+                                                 Optional ByVal targetWb As Workbook = Nothing) As String
+    On Error GoTo FailSoft
+
+    Dim warehouseId As String
+    Dim inventoryWb As Workbook
+    Dim inventoryPath As String
+    Dim openedTransient As Boolean
+    Dim rows As Collection
+    Dim ws As Worksheet
+    Dim outData() As Variant
+    Dim record As Variant
+    Dim i As Long
+    Dim exportedCount As Long
+
+    If limitCount <= 0 Then limitCount = 100
+    If targetWb Is Nothing Then Set targetWb = ActiveWorkbook
+    If targetWb Is Nothing Then
+        BoxMakerFormExportHistoryToSheet = "Box Maker history export failed: no target workbook."
+        Exit Function
+    End If
+
+    warehouseId = Trim$(modConfig.GetWarehouseId())
+    If warehouseId = "" Then warehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
+    inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
+    openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
+    Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+    Set rows = RecentBoxMakerHistoryRowsShipping(inventoryWb, limitCount)
+
+    Set ws = EnsureBoxMakerHistoryWorksheetShipping(targetWb)
+    ws.Cells.Clear
+    ws.Range("A1:N1").Value = Array("#", "Event", "OccurredAtUTC", "Ref", "Carrier", "Item", "Version", _
+                                    "QtyDelta", "Qty", "ROW", "ServerSKU", "Location", "EventID", "RawNote")
+    ws.Rows(1).Font.Bold = True
+
+    If Not rows Is Nothing And rows.Count > 0 Then
+        exportedCount = rows.Count
+        ReDim outData(1 To rows.Count, 1 To 14)
+        For i = 1 To rows.Count
+            record = rows(i)
+            outData(i, 1) = i
+            outData(i, 2) = record(2)
+            outData(i, 3) = record(3)
+            outData(i, 4) = record(4)
+            outData(i, 5) = record(5)
+            outData(i, 6) = record(6)
+            outData(i, 7) = record(7)
+            outData(i, 8) = record(8)
+            outData(i, 9) = record(9)
+            outData(i, 10) = record(10)
+            outData(i, 11) = record(11)
+            outData(i, 12) = record(12)
+            outData(i, 13) = record(1)
+            outData(i, 14) = record(14)
+        Next i
+        ws.Range("A2").Resize(rows.Count, 14).Value = outData
+    End If
+    ws.Columns("A:N").AutoFit
+    ws.Activate
+
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+    BoxMakerFormExportHistoryToSheet = "Exported " & CStr(exportedCount) & " Box Maker history row(s) to BoxMakerHistory."
+    Exit Function
+
+FailSoft:
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+    BoxMakerFormExportHistoryToSheet = "Box Maker history export failed: " & Err.Description
+End Function
+
 Private Function CurrentShippingInventoryWorkbookPath(ByVal warehouseId As String) As String
     Dim target As WarehouseTarget
     Dim rootPath As String
@@ -7283,6 +7352,61 @@ FailSoft:
     Set RecentShipmentHistoryRowsShipping = New Collection
 End Function
 
+Private Function RecentBoxMakerHistoryRowsShipping(ByVal inventoryWb As Workbook, ByVal limitCount As Long) As Collection
+    On Error GoTo FailSoft
+
+    Dim rows As New Collection
+    Dim loLog As ListObject
+    Dim cEventId As Long
+    Dim cEventType As Long
+    Dim cTime As Long
+    Dim cSku As Long
+    Dim cQtyDelta As Long
+    Dim cLocation As Long
+    Dim cNote As Long
+    Dim rowIndex As Long
+    Dim eventType As String
+    Dim record As Variant
+
+    If limitCount <= 0 Then limitCount = 20
+    If inventoryWb Is Nothing Then
+        Set RecentBoxMakerHistoryRowsShipping = rows
+        Exit Function
+    End If
+    Set loLog = FindListObjectByNameShipping(inventoryWb, "tblInventoryLog")
+    If loLog Is Nothing Or loLog.DataBodyRange Is Nothing Then
+        Set RecentBoxMakerHistoryRowsShipping = rows
+        Exit Function
+    End If
+
+    cEventId = ColumnIndex(loLog, "EventID")
+    cEventType = ColumnIndex(loLog, "EventType")
+    cTime = ColumnIndex(loLog, "OccurredAtUTC")
+    cSku = ColumnIndex(loLog, "SKU")
+    cQtyDelta = ColumnIndex(loLog, "QtyDelta")
+    cLocation = ColumnIndex(loLog, "Location")
+    cNote = ColumnIndex(loLog, "Note")
+    If cEventType = 0 Then
+        Set RecentBoxMakerHistoryRowsShipping = rows
+        Exit Function
+    End If
+
+    For rowIndex = loLog.ListRows.Count To 1 Step -1
+        eventType = UCase$(Trim$(NzStr(loLog.DataBodyRange.Cells(rowIndex, cEventType).Value)))
+        If eventType = EVENT_TYPE_BOX_BUILD Or eventType = EVENT_TYPE_BOX_UNBOX Then
+            record = BoxMakerHistoryRecordShipping(loLog, rowIndex, cEventId, cEventType, cTime, cSku, cQtyDelta, cLocation, cNote)
+            rows.Add record
+            If rows.Count >= limitCount Then Exit For
+        End If
+    Next rowIndex
+
+    Set RecentBoxMakerHistoryRowsShipping = rows
+    Exit Function
+
+FailSoft:
+    Set RecentBoxMakerHistoryRowsShipping = New Collection
+End Function
+
 Private Function ShipmentHistoryRecordShipping(ByVal loLog As ListObject, _
                                                ByVal rowIndex As Long, _
                                                ByVal cEventId As Long, _
@@ -7319,6 +7443,29 @@ Private Function ShipmentHistoryRecordShipping(ByVal loLog As ListObject, _
     record(13) = rawEventType
     record(14) = noteText
     ShipmentHistoryRecordShipping = record
+End Function
+
+Private Function BoxMakerHistoryRecordShipping(ByVal loLog As ListObject, _
+                                               ByVal rowIndex As Long, _
+                                               ByVal cEventId As Long, _
+                                               ByVal cEventType As Long, _
+                                               ByVal cTime As Long, _
+                                               ByVal cSku As Long, _
+                                               ByVal cQtyDelta As Long, _
+                                               ByVal cLocation As Long, _
+                                               ByVal cNote As Long) As Variant
+    Dim record As Variant
+    Dim rawEventType As String
+
+    record = ShipmentHistoryRecordShipping(loLog, rowIndex, cEventId, cEventType, cTime, cSku, cQtyDelta, cLocation, cNote)
+    rawEventType = UCase$(Trim$(CStr(record(13))))
+    Select Case rawEventType
+        Case EVENT_TYPE_BOX_BUILD
+            record(2) = "MAKE"
+        Case EVENT_TYPE_BOX_UNBOX
+            record(2) = "UNMAKE"
+    End Select
+    BoxMakerHistoryRecordShipping = record
 End Function
 
 Private Function FriendlyShipmentHistoryEventShipping(ByVal eventType As String) As String
@@ -7376,6 +7523,16 @@ Private Function EnsureShipmentHistoryWorksheetShipping(ByVal wb As Workbook) As
     If EnsureShipmentHistoryWorksheetShipping Is Nothing Then
         Set EnsureShipmentHistoryWorksheetShipping = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
         EnsureShipmentHistoryWorksheetShipping.Name = "ShipmentsHistory"
+    End If
+End Function
+
+Private Function EnsureBoxMakerHistoryWorksheetShipping(ByVal wb As Workbook) As Worksheet
+    On Error Resume Next
+    Set EnsureBoxMakerHistoryWorksheetShipping = wb.Worksheets("BoxMakerHistory")
+    On Error GoTo 0
+    If EnsureBoxMakerHistoryWorksheetShipping Is Nothing Then
+        Set EnsureBoxMakerHistoryWorksheetShipping = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+        EnsureBoxMakerHistoryWorksheetShipping.Name = "BoxMakerHistory"
     End If
 End Function
 

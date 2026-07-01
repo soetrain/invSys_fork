@@ -19,6 +19,7 @@ Private WithEvents mCboBoxes As MSForms.ComboBox
 Private WithEvents mCboVersions As MSForms.ComboBox
 Private WithEvents mTxtQty As MSForms.TextBox
 Private WithEvents mBtnRefresh As MSForms.CommandButton
+Private WithEvents mBtnHistorySheet As MSForms.CommandButton
 Private WithEvents mBtnMake As MSForms.CommandButton
 Private WithEvents mBtnUnmake As MSForms.CommandButton
 Private WithEvents mBtnClose As MSForms.CommandButton
@@ -150,6 +151,7 @@ Private Sub BuildLayout()
     End With
     Set mTxtQty = AddTextBox("txtQty", 636, 38, 60, 22)
     mTxtQty.Value = "1"
+    Set mBtnHistorySheet = AddButton("btnHistorySheet", "Export", 646, 10, 58, 24)
     Set mBtnRefresh = AddButton("btnRefresh", "Refresh", 706, 36, 58, 26)
 
     AddLabel "lblBoxName", "Box Name", 12, 76, 72, 18, False
@@ -584,6 +586,16 @@ FailSoft:
     ShowStatus "BoxMaker refresh failed: " & Err.Description
     UpdateSyncStateLabel
     Resume CleanExit
+End Sub
+
+Private Sub mBtnHistorySheet_Click()
+    Dim report As String
+    Dim operatorWb As Workbook
+
+    Set operatorWb = ResolveOperatorWorkbook()
+    report = modTS_Shipments.BoxMakerFormExportHistoryToSheet(100, operatorWb)
+    ShowStatus report
+    If InStr(1, report, "failed", vbTextCompare) > 0 Then MsgBox report, vbExclamation, "Box Maker History"
 End Sub
 
 Public Sub ScheduleAutoSync()
@@ -1382,6 +1394,7 @@ Private Sub InitializeBoxMakerAnchors()
     mAnchors.Initialize Me
 
     mAnchors.Add mCboBoxes, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mBtnHistorySheet, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mBtnRefresh, ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mTxtDescription, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add mLblPackageInv, ANCHOR_LEFT Or ANCHOR_TOP

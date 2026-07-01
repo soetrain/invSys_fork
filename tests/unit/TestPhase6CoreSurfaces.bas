@@ -8178,6 +8178,87 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestBoxMakerHistoryExport_WritesBuildAndUnboxRowsOnly() As Long
+    Dim rootPath As String
+    Dim failureReason As String
+    Dim wbInv As Workbook
+    Dim wbOps As Workbook
+    Dim wsHistory As Worksheet
+    Dim report As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_box_maker_history_export")
+    On Error GoTo CleanFail
+
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH120", "S31", "calvin", failureReason) Then GoTo CleanExit
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH120", Array("SKU-T33"))
+    If wbInv Is Nothing Then
+        failureReason = "Canonical inventory workbook could not be created."
+        GoTo CleanExit
+    End If
+    AddInventoryLogRowForTest wbInv, "BOX_BUILD", "SKU-T33", 10, "T33; ROW=94; VERSION=v1; IO=MADE"
+    AddInventoryLogRowForTest wbInv, "SHIP", "SKU-T33", -1, "T33; ROW=94; VERSION=v1; IO=SHIPPED"
+    AddInventoryLogRowForTest wbInv, "BOX_UNBOX", "SKU-T33", -2, "T33; ROW=94; VERSION=v1; IO=UNMADE"
+    wbInv.Save
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    wbOps.Activate
+    report = RunShippingBoxMakerExportHistoryForTest(100, wbOps)
+    If InStr(1, report, "Exported 2 Box Maker history row(s)", vbTextCompare) = 0 Then
+        failureReason = "Unexpected Box Maker history export report: " & report
+        GoTo CleanExit
+    End If
+
+    On Error Resume Next
+    Set wsHistory = wbOps.Worksheets("BoxMakerHistory")
+    On Error GoTo CleanFail
+    If wsHistory Is Nothing Then
+        failureReason = "BoxMakerHistory worksheet was not created."
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(wsHistory.Cells(1, 2).Value)) <> "Event" Then
+        failureReason = "BoxMakerHistory headers were not written."
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(wsHistory.Cells(2, 2).Value)) <> "UNMAKE" Then
+        failureReason = "Latest BOX_UNBOX row was not exported as UNMAKE."
+        GoTo CleanExit
+    End If
+    If CDbl(NzDblForTest(wsHistory.Cells(2, 9).Value)) <> 2 Then
+        failureReason = "UNMAKE exported quantity should be absolute qty 2."
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(wsHistory.Cells(3, 2).Value)) <> "MAKE" Then
+        failureReason = "BOX_BUILD row was not exported as MAKE."
+        GoTo CleanExit
+    End If
+    If Trim$(CStr(wsHistory.Cells(4, 2).Value)) <> "" Then
+        failureReason = "Shipment rows leaked into BoxMakerHistory export."
+        GoTo CleanExit
+    End If
+
+    TestBoxMakerHistoryExport_WritesBuildAndUnboxRowsOnly = 1
+
+CleanExit:
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH120"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbInv
+    CloseWorkbookIfOpen FindWorkbookByName("WH120.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH120.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7184, "TestBoxMakerHistoryExport_WritesBuildAndUnboxRowsOnly", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows() As Long
     Dim failureReason As String
 
@@ -10913,6 +10994,17 @@ Private Sub RunShippingEvictCompletedOverlaysForTest(ByVal shippables As Variant
     Application.Run macroName, shippables
     If Not targetWb Is Nothing Then targetWb.Activate
 End Sub
+
+Private Function RunShippingBoxMakerExportHistoryForTest(ByVal limitCount As Long, ByVal targetWorkbook As Workbook) As String
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("BoxMakerFormExportHistoryToSheet")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingBoxMakerExportHistoryForTest = CStr(Application.Run(macroName, limitCount, targetWorkbook))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
 
 Private Function RunShippingRefreshBomViewForTest(ByVal operatorWb As Workbook, _
                                                   ByRef report As String, _
