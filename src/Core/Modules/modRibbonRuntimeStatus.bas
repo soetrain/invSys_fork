@@ -38,12 +38,12 @@ Public Function GetStatusLabel(ByVal controlId As String) As String
 
     Select Case Trim$(controlId)
         Case "btnRuntimeWarehouse"
-            GetStatusLabel = "Warehouse: " & ValueOrPlaceholderStatus(modConfig.GetWarehouseId()) & _
-                             " | Station: " & ValueOrPlaceholderStatus(modConfig.GetStationId())
+            GetStatusLabel = "Warehouse: " & ValueOrPlaceholderStatus(RuntimeWarehouseIdStatus()) & _
+                             " | Station: " & ValueOrPlaceholderStatus(RuntimeStationIdStatus())
         Case "btnRuntimeDataRoot"
-            GetStatusLabel = "Data root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathDataRoot", ""))
+            GetStatusLabel = "Data root: " & ValueOrPlaceholderStatus(RuntimeDataRootStatus())
         Case "btnRuntimeInboxRoot"
-            GetStatusLabel = "Inbox root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathInboxRoot", ""))
+            GetStatusLabel = "Inbox root: " & ValueOrPlaceholderStatus(RuntimeInboxRootStatus())
         Case "btnRuntimeUser"
             GetStatusLabel = "User ID: " & ValueOrPlaceholderStatus(ResolveRuntimeUserStatus())
         Case "btnRuntimeProcessor"
@@ -118,19 +118,24 @@ Public Function GetSelectedWarehouseTargetIndex() As Long
     Dim i As Long
     Dim currentWh As String
     Dim currentSt As String
+    Dim currentRoot As String
     Dim targetWh As String
     Dim targetSt As String
+    Dim targetRoot As String
 
     EnsureRuntimeStatusConfigLoaded
-    currentWh = Trim$(modConfig.GetWarehouseId())
-    currentSt = Trim$(modConfig.GetStationId())
+    currentWh = RuntimeWarehouseIdStatus()
+    currentSt = RuntimeStationIdStatus()
+    currentRoot = NormalizeFolderForStatus(RuntimeDataRootStatus())
     Set targets = GetWarehouseTargetsCachedStatus()
 
     For i = 1 To targets.Count
         targetWh = TargetPartStatus(CStr(targets(i)), 0)
         targetSt = TargetPartStatus(CStr(targets(i)), 1)
+        targetRoot = NormalizeFolderForStatus(TargetPartStatus(CStr(targets(i)), 2))
         If StrComp(targetWh, currentWh, vbTextCompare) = 0 _
-           And (currentSt = "" Or StrComp(targetSt, currentSt, vbTextCompare) = 0) Then
+           And (currentSt = "" Or StrComp(targetSt, currentSt, vbTextCompare) = 0) _
+           And (currentRoot = "" Or StrComp(targetRoot, currentRoot, vbTextCompare) = 0) Then
             GetSelectedWarehouseTargetIndex = i - 1
             Exit Function
         End If
@@ -146,6 +151,7 @@ Public Sub SelectWarehouseTarget(ByVal selectedIndex As Long)
     Dim targetSt As String
     Dim targetRoot As String
     Dim nasTarget As WarehouseTarget
+    Dim statusCode As Long
 
     Set targets = GetWarehouseTargetsCachedStatus()
     If targets.Count = 0 Then
@@ -159,15 +165,28 @@ Public Sub SelectWarehouseTarget(ByVal selectedIndex As Long)
     targetSt = TargetPartStatus(targetText, 1)
     targetRoot = TargetPartStatus(targetText, 2)
 
-    If targetRoot <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride targetRoot
-    If modConfig.LoadConfig(targetWh, targetSt) Then
-        If targetRoot <> "" Then
-            Call modNasConnection.SelectWarehouseTarget(targetRoot, targetRoot, nasTarget, targetSt, False)
+    If targetRoot <> "" Then
+        statusCode = modNasConnection.SelectWarehouseTarget(targetRoot, targetRoot, nasTarget, targetSt, False)
+        If statusCode <> NAS_OK Or (nasTarget Is Nothing) Then
+            MsgBox "Warehouse target could not be selected:" & vbCrLf & _
+                   TargetLabelStatus(targetText) & vbCrLf & vbCrLf & _
+                   modNasConnection.GetConnectionStatus(), vbExclamation, "invSys Warehouse Target"
+            Exit Sub
         End If
+        targetWh = nasTarget.WarehouseId
+        targetSt = nasTarget.StationId
+        targetRoot = nasTarget.RuntimeRoot
+        targetText = TargetTextStatus(targetWh, targetSt, targetRoot)
+        modRuntimeWorkbooks.SetCoreDataRootOverride targetRoot
+    End If
+
+    If modConfig.LoadConfig(targetWh, targetSt) Then
+        If targetRoot <> "" Then modRuntimeWorkbooks.SetCoreDataRootOverride targetRoot
         RememberSelectedWarehouseTargetStatus targetText
+        InvalidateWarehouseTargetRibbonsStatus
         MsgBox "Warehouse target selected:" & vbCrLf & vbCrLf & _
                TargetLabelStatus(targetText) & vbCrLf & _
-               "Inbox root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathInboxRoot", "")), _
+               "Inbox root: " & ValueOrPlaceholderStatus(RuntimeInboxRootStatus()), _
                vbInformation, "invSys Warehouse Target"
     Else
         MsgBox "Warehouse target could not be loaded:" & vbCrLf & _
@@ -194,10 +213,10 @@ Public Sub RefreshRuntimeContext()
     If Not configLoaded Then configLoaded = modConfig.LoadConfig("", "")
 
     If configLoaded Then
-        report = "Warehouse: " & ValueOrPlaceholderStatus(modConfig.GetWarehouseId()) & vbCrLf & _
-                 "Station: " & ValueOrPlaceholderStatus(modConfig.GetStationId()) & vbCrLf & _
-                "Data root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathDataRoot", "")) & vbCrLf & _
-                "Inbox root: " & ValueOrPlaceholderStatus(modConfig.GetString("PathInboxRoot", "")) & vbCrLf & _
+        report = "Warehouse: " & ValueOrPlaceholderStatus(RuntimeWarehouseIdStatus()) & vbCrLf & _
+                 "Station: " & ValueOrPlaceholderStatus(RuntimeStationIdStatus()) & vbCrLf & _
+                "Data root: " & ValueOrPlaceholderStatus(RuntimeDataRootStatus()) & vbCrLf & _
+                "Inbox root: " & ValueOrPlaceholderStatus(RuntimeInboxRootStatus()) & vbCrLf & _
                  "User ID: " & ValueOrPlaceholderStatus(ResolveRuntimeUserStatus()) & vbCrLf & _
                  "Processor: " & ValueOrPlaceholderStatus(modConfig.GetString("ProcessorServiceUserId", "svc_processor")) & vbCrLf & _
                  "HQ aggregator: " & ResolveHqAggregatorLabelStatus()
@@ -237,6 +256,11 @@ Private Sub InvalidateWarehouseTargetRibbonsStatus()
         ribbon.InvalidateControl "lblShippingAccessStatus"
         ribbon.InvalidateControl "lblProductionAccessStatus"
         ribbon.InvalidateControl "lblAdminAccessStatus"
+        ribbon.InvalidateControl "btnRuntimeWarehouse"
+        ribbon.InvalidateControl "btnRuntimeDataRoot"
+        ribbon.InvalidateControl "btnRuntimeInboxRoot"
+        ribbon.InvalidateControl "btnRuntimeProcessor"
+        ribbon.InvalidateControl "btnRuntimeHqAggregator"
     Next ribbon
     On Error GoTo 0
 End Sub
@@ -266,6 +290,7 @@ Private Function ApplyRememberedWarehouseTargetStatus() As Boolean
     Dim targetSt As String
     Dim targetRoot As String
     Dim nasTarget As WarehouseTarget
+    Dim statusCode As Long
 
     On Error Resume Next
     targetText = GetSetting(SETTINGS_APP, SETTINGS_SECTION_RUNTIME, SETTINGS_SELECTED_WAREHOUSE_TARGET, "")
@@ -282,10 +307,17 @@ Private Function ApplyRememberedWarehouseTargetStatus() As Boolean
         If modNasConnection.TryRevalidateRememberedRoot(targetRoot) <> NAS_OK Then Exit Function
     End If
 
+    statusCode = modNasConnection.SelectWarehouseTarget(targetRoot, targetRoot, nasTarget, targetSt, False)
+    If statusCode <> NAS_OK Or (nasTarget Is Nothing) Then Exit Function
+
+    targetWh = nasTarget.WarehouseId
+    targetSt = nasTarget.StationId
+    targetRoot = nasTarget.RuntimeRoot
     modRuntimeWorkbooks.SetCoreDataRootOverride targetRoot
     If Not modConfig.LoadConfig(targetWh, targetSt) Then Exit Function
-    Call modNasConnection.SelectWarehouseTarget(targetRoot, targetRoot, nasTarget, targetSt, False)
-    ApplyRememberedWarehouseTargetStatus = Not nasTarget Is Nothing
+    modRuntimeWorkbooks.SetCoreDataRootOverride targetRoot
+    RememberSelectedWarehouseTargetStatus TargetTextStatus(targetWh, targetSt, targetRoot)
+    ApplyRememberedWarehouseTargetStatus = True
 End Function
 
 Private Function BuildWarehouseTargetsStatus() As Collection
@@ -524,6 +556,43 @@ End Function
 Private Function TargetLabelStatus(ByVal targetText As String) As String
     TargetLabelStatus = TargetPartStatus(targetText, 0) & " | " & TargetPartStatus(targetText, 1)
     If TargetPartStatus(targetText, 2) <> "" Then TargetLabelStatus = TargetLabelStatus & " | " & TargetPartStatus(targetText, 2)
+End Function
+
+Private Function TargetTextStatus(ByVal warehouseId As String, ByVal stationId As String, ByVal rootPath As String) As String
+    TargetTextStatus = Trim$(warehouseId) & TARGET_DELIM & Trim$(stationId) & TARGET_DELIM & NormalizeFolderForStatus(rootPath)
+End Function
+
+Private Function RuntimeWarehouseIdStatus() As String
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then RuntimeWarehouseIdStatus = Trim$(target.WarehouseId)
+    If RuntimeWarehouseIdStatus = "" Then RuntimeWarehouseIdStatus = Trim$(modConfig.GetWarehouseId())
+End Function
+
+Private Function RuntimeStationIdStatus() As String
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then RuntimeStationIdStatus = Trim$(target.StationId)
+    If RuntimeStationIdStatus = "" Then RuntimeStationIdStatus = Trim$(modConfig.GetStationId())
+End Function
+
+Private Function RuntimeDataRootStatus() As String
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then RuntimeDataRootStatus = NormalizeFolderForStatus(target.RuntimeRoot)
+    If RuntimeDataRootStatus = "" Then RuntimeDataRootStatus = NormalizeFolderForStatus(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    If RuntimeDataRootStatus = "" Then RuntimeDataRootStatus = NormalizeFolderForStatus(modConfig.GetString("PathDataRoot", ""))
+End Function
+
+Private Function RuntimeInboxRootStatus() As String
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then RuntimeInboxRootStatus = NormalizeFolderForStatus(target.InboxRoot)
+    If RuntimeInboxRootStatus = "" Then RuntimeInboxRootStatus = NormalizeFolderForStatus(modConfig.GetString("PathInboxRoot", ""))
 End Function
 
 Private Function TargetPartStatus(ByVal targetText As String, ByVal partIndex As Long) As String

@@ -56,16 +56,24 @@ Public Function ResolveInventoryWorkbookBridgeDiagnostic(Optional ByVal warehous
     Dim parentPath As String
     Dim resolvedWh As String
     Dim resultText As String
+    Dim target As WarehouseTarget
 
     resolvedWh = SafeTrim(warehouseId)
+    If resolvedWh = "" Then resolvedWh = CurrentTargetWarehouseIdLocal()
     If resolvedWh = "" Then resolvedWh = SafeTrim(modConfig.GetString("WarehouseId", ""))
     If resolvedWh = "" Then resolvedWh = "WH1"
 
     targetPath = BuildCanonicalInventoryPathLocal(resolvedWh)
     parentPath = GetParentFolderLocal(targetPath)
     Set wb = ResolveInventoryWorkbookBridge(resolvedWh)
+    Set target = modNasConnection.GetCurrentTarget()
 
     resultText = "WarehouseId=" & resolvedWh
+    If Not target Is Nothing Then
+        resultText = resultText & "; CurrentTargetWarehouseId=" & SafeTrim(target.WarehouseId)
+        resultText = resultText & "; CurrentTargetStationId=" & SafeTrim(target.StationId)
+        resultText = resultText & "; CurrentTargetRuntimeRoot=" & SafeTrim(target.RuntimeRoot)
+    End If
     resultText = resultText & "; CoreDataRootOverride=" & SafeTrim(GetCoreDataRootOverride())
     resultText = resultText & "; PathDataRoot=" & SafeTrim(modConfig.GetString("PathDataRoot", ""))
     resultText = resultText & "; TargetPath=" & targetPath
@@ -669,14 +677,40 @@ Private Function BuildCanonicalInventoryPathLocal(ByVal warehouseId As String) A
     Dim rootPath As String
 
     resolvedWh = Trim$(warehouseId)
+    If resolvedWh = "" Then resolvedWh = CurrentTargetWarehouseIdLocal()
     If resolvedWh = "" Then resolvedWh = SafeTrim(modConfig.GetString("WarehouseId", "WH1"))
     If resolvedWh = "" Then resolvedWh = "WH1"
 
-    rootPath = SafeTrim(GetCoreDataRootOverride())
+    rootPath = CurrentTargetRuntimeRootLocal()
+    If rootPath = "" Then rootPath = SafeTrim(GetCoreDataRootOverride())
     If rootPath = "" Then rootPath = SafeTrim(modConfig.GetString("PathDataRoot", ""))
     If rootPath = "" Then rootPath = DefaultInventoryRootLocal(resolvedWh)
 
     BuildCanonicalInventoryPathLocal = NormalizeFolderPathLocal(rootPath) & resolvedWh & ".invSys.Data.Inventory.xlsb"
+End Function
+
+Private Function CurrentTargetWarehouseIdLocal() As String
+    On Error GoTo CleanExit
+
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then Exit Function
+    CurrentTargetWarehouseIdLocal = SafeTrim(target.WarehouseId)
+
+CleanExit:
+End Function
+
+Private Function CurrentTargetRuntimeRootLocal() As String
+    On Error GoTo CleanExit
+
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then Exit Function
+    CurrentTargetRuntimeRootLocal = SafeTrim(target.RuntimeRoot)
+
+CleanExit:
 End Function
 
 Private Function DefaultInventoryRootLocal(ByVal warehouseId As String) As String

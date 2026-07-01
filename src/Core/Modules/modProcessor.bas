@@ -256,15 +256,41 @@ Private Function ResolveInventoryWorkbookPathProcessor(ByVal warehouseId As Stri
     Dim rootPath As String
 
     resolvedWh = Trim$(warehouseId)
+    If resolvedWh = "" Then resolvedWh = ResolveCurrentTargetWarehouseIdProcessor()
     If resolvedWh = "" Then resolvedWh = modConfig.GetString("WarehouseId", "")
     If resolvedWh = "" Then resolvedWh = "WH1"
 
-    rootPath = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    rootPath = ResolveCurrentTargetRuntimeRootProcessor()
+    If rootPath = "" Then rootPath = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
     If rootPath = "" Then rootPath = Trim$(modConfig.GetString("PathDataRoot", ""))
     If rootPath = "" Then rootPath = modDeploymentPaths.DefaultWarehouseRuntimeRootPath(resolvedWh, True)
     If Right$(rootPath, 1) <> "\" Then rootPath = rootPath & "\"
 
     ResolveInventoryWorkbookPathProcessor = rootPath & resolvedWh & ".invSys.Data.Inventory.xlsb"
+End Function
+
+Private Function ResolveCurrentTargetWarehouseIdProcessor() As String
+    On Error GoTo CleanExit
+
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then Exit Function
+    ResolveCurrentTargetWarehouseIdProcessor = Trim$(target.WarehouseId)
+
+CleanExit:
+End Function
+
+Private Function ResolveCurrentTargetRuntimeRootProcessor() As String
+    On Error GoTo CleanExit
+
+    Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then Exit Function
+    ResolveCurrentTargetRuntimeRootProcessor = Trim$(target.RuntimeRoot)
+
+CleanExit:
 End Function
 
 Private Sub CloseHiddenReadOnlyInventoryWorkbookProcessor(ByVal warehouseId As String)
