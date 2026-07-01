@@ -7104,8 +7104,12 @@ Private Function ResolveCurrentShippingWarehouseId() As String
     On Error Resume Next
 
     Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
 
     Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        Call modNasConnection.ResolveWarehouseTarget(target, statusCode)
+    End If
     If Not target Is Nothing Then ResolveCurrentShippingWarehouseId = Trim$(target.WarehouseId)
     If ResolveCurrentShippingWarehouseId = "" Then ResolveCurrentShippingWarehouseId = Trim$(modConfig.GetWarehouseId())
     If ResolveCurrentShippingWarehouseId = "" Then ResolveCurrentShippingWarehouseId = Trim$(modConfig.GetString("WarehouseId", ""))
@@ -7297,9 +7301,13 @@ End Function
 Private Function CurrentShippingInventoryWorkbookPath(ByVal warehouseId As String) As String
     Dim target As WarehouseTarget
     Dim rootPath As String
+    Dim statusCode As NasStatusCode
 
     warehouseId = Trim$(warehouseId)
     Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        Call modNasConnection.ResolveWarehouseTarget(target, statusCode)
+    End If
     If Not target Is Nothing Then
         If warehouseId = "" Or StrComp(Trim$(target.WarehouseId), warehouseId, vbTextCompare) = 0 Then
             If warehouseId = "" Then warehouseId = Trim$(target.WarehouseId)
@@ -15723,11 +15731,17 @@ End Function
 
 Private Function CurrentShippingWarehouseIdForLocalState() As String
     Dim target As WarehouseTarget
+    Dim statusCode As NasStatusCode
 
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        Call modNasConnection.ResolveWarehouseTarget(target, statusCode)
+    End If
+    If Not target Is Nothing Then CurrentShippingWarehouseIdForLocalState = Trim$(target.WarehouseId)
+    If CurrentShippingWarehouseIdForLocalState <> "" Then Exit Function
     CurrentShippingWarehouseIdForLocalState = Trim$(modConfig.GetWarehouseId())
     If CurrentShippingWarehouseIdForLocalState <> "" Then Exit Function
-    Set target = modNasConnection.GetCurrentTarget()
-    If Not target Is Nothing Then CurrentShippingWarehouseIdForLocalState = Trim$(target.WarehouseId)
+    CurrentShippingWarehouseIdForLocalState = Trim$(modConfig.GetString("WarehouseId", ""))
     If CurrentShippingWarehouseIdForLocalState = "" Then CurrentShippingWarehouseIdForLocalState = "default"
 End Function
 
