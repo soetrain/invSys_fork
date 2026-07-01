@@ -38,6 +38,53 @@ FailResolve:
     Set ResolveInventoryWorkbookBridge = Nothing
 End Function
 
+Public Function ResolveInventoryWorkbookBridgeIsResolved(Optional ByVal warehouseId As String = "") As Boolean
+    Dim wb As Workbook
+
+    On Error GoTo CleanExit
+    Set wb = ResolveInventoryWorkbookBridge(warehouseId)
+    ResolveInventoryWorkbookBridgeIsResolved = Not (wb Is Nothing)
+
+CleanExit:
+End Function
+
+Public Function ResolveInventoryWorkbookBridgeDiagnostic(Optional ByVal warehouseId As String = "") As String
+    On Error GoTo FailDiagnostic
+
+    Dim wb As Workbook
+    Dim targetPath As String
+    Dim parentPath As String
+    Dim resolvedWh As String
+
+    resolvedWh = SafeTrim(warehouseId)
+    If resolvedWh = "" Then resolvedWh = SafeTrim(modConfig.GetString("WarehouseId", ""))
+    If resolvedWh = "" Then resolvedWh = "WH1"
+
+    targetPath = BuildCanonicalInventoryPathLocal(resolvedWh)
+    parentPath = GetParentFolderLocal(targetPath)
+    Set wb = ResolveInventoryWorkbookBridge(resolvedWh)
+
+    ResolveInventoryWorkbookBridgeDiagnostic = _
+        "WarehouseId=" & resolvedWh & _
+        "; CoreDataRootOverride=" & SafeTrim(GetCoreDataRootOverride()) & _
+        "; PathDataRoot=" & SafeTrim(modConfig.GetString("PathDataRoot", "")) & _
+        "; TargetPath=" & targetPath & _
+        "; ParentExists=" & CStr(FolderExistsLocal(parentPath)) & _
+        "; FileExists=" & CStr(FileExistsLocal(targetPath)) & _
+        "; Resolved=" & CStr(Not (wb Is Nothing))
+
+    If Not wb Is Nothing Then
+        ResolveInventoryWorkbookBridgeDiagnostic = ResolveInventoryWorkbookBridgeDiagnostic & _
+            "; Workbook=" & wb.Name & _
+            "; FullName=" & wb.FullName & _
+            "; ReadOnly=" & CStr(wb.ReadOnly)
+    End If
+    Exit Function
+
+FailDiagnostic:
+    ResolveInventoryWorkbookBridgeDiagnostic = "ResolveInventoryWorkbookBridgeDiagnostic failed: " & Err.Description
+End Function
+
 Public Function EnsureInventorySchemaBridge(Optional ByVal targetWb As Workbook = Nothing, _
                                            Optional ByRef report As String = "") As Boolean
     On Error GoTo FailEnsure
