@@ -55,6 +55,7 @@ Public Function ResolveInventoryWorkbookBridgeDiagnostic(Optional ByVal warehous
     Dim targetPath As String
     Dim parentPath As String
     Dim resolvedWh As String
+    Dim resultText As String
 
     resolvedWh = SafeTrim(warehouseId)
     If resolvedWh = "" Then resolvedWh = SafeTrim(modConfig.GetString("WarehouseId", ""))
@@ -64,21 +65,20 @@ Public Function ResolveInventoryWorkbookBridgeDiagnostic(Optional ByVal warehous
     parentPath = GetParentFolderLocal(targetPath)
     Set wb = ResolveInventoryWorkbookBridge(resolvedWh)
 
-    ResolveInventoryWorkbookBridgeDiagnostic = _
-        "WarehouseId=" & resolvedWh & _
-        "; CoreDataRootOverride=" & SafeTrim(GetCoreDataRootOverride()) & _
-        "; PathDataRoot=" & SafeTrim(modConfig.GetString("PathDataRoot", "")) & _
-        "; TargetPath=" & targetPath & _
-        "; ParentExists=" & CStr(FolderExistsLocal(parentPath)) & _
-        "; FileExists=" & CStr(FileExistsLocal(targetPath)) & _
-        "; Resolved=" & CStr(Not (wb Is Nothing))
+    resultText = "WarehouseId=" & resolvedWh
+    resultText = resultText & "; CoreDataRootOverride=" & SafeTrim(GetCoreDataRootOverride())
+    resultText = resultText & "; PathDataRoot=" & SafeTrim(modConfig.GetString("PathDataRoot", ""))
+    resultText = resultText & "; TargetPath=" & targetPath
+    resultText = resultText & "; ParentExists=" & CStr(FolderExistsLocal(parentPath))
+    resultText = resultText & "; FileExists=" & CStr(FileExistsLocal(targetPath))
+    resultText = resultText & "; Resolved=" & CStr(Not (wb Is Nothing))
 
-    If Not wb Is Nothing Then
-        ResolveInventoryWorkbookBridgeDiagnostic = ResolveInventoryWorkbookBridgeDiagnostic & _
-            "; Workbook=" & wb.Name & _
-            "; FullName=" & wb.FullName & _
-            "; ReadOnly=" & CStr(wb.ReadOnly)
+    If Not (wb Is Nothing) Then
+        resultText = resultText & "; Workbook=" & wb.Name
+        resultText = resultText & "; FullName=" & wb.FullName
+        resultText = resultText & "; ReadOnly=" & CStr(wb.ReadOnly)
     End If
+    ResolveInventoryWorkbookBridgeDiagnostic = resultText
     Exit Function
 
 FailDiagnostic:

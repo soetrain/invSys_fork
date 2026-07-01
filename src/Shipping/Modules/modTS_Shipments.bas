@@ -5277,7 +5277,7 @@ End Sub
 
 Public Function PendingBoxVersionInventoryOverlayPath() As String
     PendingBoxVersionInventoryOverlayPath = PersistentPendingBoxVersionInventoryOverlayPath()
-End Sub
+End Function
 
 Public Function ShippingSystemOverlayDiagnostic() As String
     On Error GoTo FailDiagnostic
@@ -5285,16 +5285,17 @@ Public Function ShippingSystemOverlayDiagnostic() As String
     Dim overlayPath As String
     Dim fileExists As Boolean
     Dim overlayCount As Long
+    Dim resultText As String
 
     overlayPath = PendingBoxVersionInventoryOverlayPath()
     If Trim$(overlayPath) <> "" Then fileExists = (Len(Dir$(overlayPath, vbNormal)) > 0)
     EnsurePendingBoxVersionInventoryOverlayLoaded
-    If Not mPendingBoxVersionInventoryOverlay Is Nothing Then overlayCount = mPendingBoxVersionInventoryOverlay.Count
+    If Not (mPendingBoxVersionInventoryOverlay Is Nothing) Then overlayCount = mPendingBoxVersionInventoryOverlay.Count
 
-    ShippingSystemOverlayDiagnostic = _
-        "OverlayPath=" & overlayPath & _
-        "; FileExists=" & CStr(fileExists) & _
-        "; OverlayCount=" & CStr(overlayCount)
+    resultText = "OverlayPath=" & overlayPath
+    resultText = resultText & "; FileExists=" & CStr(fileExists)
+    resultText = resultText & "; OverlayCount=" & CStr(overlayCount)
+    ShippingSystemOverlayDiagnostic = resultText
     Exit Function
 
 FailDiagnostic:
@@ -5305,10 +5306,12 @@ Public Function ClearShippingSystemOverlayForImmediate() As String
     On Error GoTo FailClear
 
     Dim overlayPath As String
+    Dim resultText As String
 
     overlayPath = PendingBoxVersionInventoryOverlayPath()
     ClearPendingBoxVersionInventoryOverlay
-    ClearShippingSystemOverlayForImmediate = "OK; ClearedOverlayPath=" & overlayPath
+    resultText = "OK; ClearedOverlayPath=" & overlayPath
+    ClearShippingSystemOverlayForImmediate = resultText
     Exit Function
 
 FailClear:
