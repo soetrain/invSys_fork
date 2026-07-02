@@ -6827,7 +6827,7 @@ Public Function TestShippingProjectedOverlay_PreservesNasBaselineAcrossSentRereg
 
     RunShippingRegisterProjectedOverlayForTest 976, "v1", 19, 20
     RunShippingRegisterProjectedOverlayForTest 976, "v1", 19, 19
-    RunShippingClearProjectedOverlayForTest
+    RunShippingResetProjectedOverlayCacheForTest
     projectedText = RunShippingProjectedOverlayTextForTest(976, "v1", "20")
     If CDbl(NzDblForTest(projectedText)) <> 19 Then
         failureReason = "Shipments Sent re-registered the overlay with the local 19 baseline and let stale NAS 20 inflate Projected Inv; found " & projectedText & "."
@@ -6860,7 +6860,7 @@ Public Function TestShippingProjectedOverlay_EvictsStaleZeroWhenBackendPositive(
     If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
 
     RunShippingRegisterProjectedOverlayForTest 975, "v1", 0, 0
-    RunShippingClearProjectedOverlayForTest
+    RunShippingResetProjectedOverlayCacheForTest
     projectedText = RunShippingProjectedOverlayTextForTest(975, "v1", "20")
     If CDbl(NzDblForTest(projectedText)) <> 20 Then
         failureReason = "Stale zero projected overlay overrode positive backend inventory; expected 20 but found " & projectedText & "."
@@ -7137,7 +7137,7 @@ Public Function TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatche
     If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
 
     RunShippingRegisterProjectedOverlayForTest 979, "v1", 9, 10
-    RunShippingClearProjectedOverlayForTest
+    RunShippingResetProjectedOverlayCacheForTest
     projectedText = RunShippingProjectedOverlayTextForTest(979, "v1", "10")
     If CDbl(NzDblForTest(projectedText)) <> 9 Then
         failureReason = "Projected overlay did not persist across restart; expected 9 with stale NAS 10 but found " & projectedText & "."
@@ -7149,7 +7149,7 @@ Public Function TestShippingProjectedOverlay_PersistsAcrossRestartUntilNasCatche
         failureReason = "Projected overlay did not return NAS value after backend caught up."
         GoTo CleanExit
     End If
-    RunShippingClearProjectedOverlayForTest
+    RunShippingResetProjectedOverlayCacheForTest
     projectedText = RunShippingProjectedOverlayTextForTest(979, "v1", "10")
     If CDbl(NzDblForTest(projectedText)) <> 9 Then
         failureReason = "Projected overlay was cleared by a local backend catch-up and allowed stale NAS 10 to inflate projected inventory; found " & projectedText & "."
@@ -7188,7 +7188,7 @@ Public Function TestShippingProjectedOverlay_LocalCatchupDoesNotClearBeforeNas()
         GoTo CleanExit
     End If
 
-    RunShippingClearProjectedOverlayForTest
+    RunShippingResetProjectedOverlayCacheForTest
     projectedText = RunShippingProjectedOverlayTextForTest(978, "v1", "10")
     If CDbl(NzDblForTest(projectedText)) <> 9 Then
         failureReason = "Projected overlay was cleared by local catch-up and allowed stale NAS 10 to inflate projected inventory; found " & projectedText & "."
@@ -7221,14 +7221,14 @@ Public Function TestShippingProjectedOverlay_ClearsWhenBackendRisesAboveBaseline
     If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
 
     RunShippingRegisterProjectedOverlayForTest 977, "v1", 4, 4
-    RunShippingClearProjectedOverlayForTest
+    RunShippingResetProjectedOverlayCacheForTest
     projectedText = RunShippingProjectedOverlayTextForTest(977, "v1", "24")
     If CDbl(NzDblForTest(projectedText)) <> 24 Then
         failureReason = "Stale shipment projected overlay masked a backend inventory increase; expected 24 but found " & projectedText & "."
         GoTo CleanExit
     End If
 
-    RunShippingClearProjectedOverlayForTest
+    RunShippingResetProjectedOverlayCacheForTest
     projectedText = RunShippingProjectedOverlayTextForTest(977, "v1", "24")
     If CDbl(NzDblForTest(projectedText)) <> 24 Then
         failureReason = "Cleared stale overlay did not persist after reload."
@@ -8358,11 +8358,15 @@ End Function
 
 Public Function TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows() As Long
     Dim failureReason As String
+    Dim overlayPath As String
+    Dim refreshedRows As Variant
+    Dim shippables(1 To 1, 1 To 8) As Variant
+    Dim emptyShipmentRows As Variant
 
     On Error GoTo CleanFail
 
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 2, 0, 0, 20)) <> 18 Then
-        failureReason = "Projected Inv did not subtract active Shipments list quantity from NAS Inv."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 2, 0, 0, 20)) <> 20 Then
+        failureReason = "Projected Inv did not keep a pending overlay authoritative while NAS was stale."
         GoTo CleanExit
     End If
     If CDbl(RunShippingProjectedDisplayQtyForTest(20, 0, 2, 0, 20)) <> 20 Then
@@ -8370,25 +8374,42 @@ Public Function TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows() 
         GoTo CleanExit
     End If
     If CDbl(RunShippingProjectedDisplayQtyForTest(20, 2, 99, 99, 5, False)) <> 18 Then
-        failureReason = "Projected Inv still used pending overlay/reservation inputs; those must not affect display."
+        failureReason = "Projected Inv did not fall back to NAS minus active Shipments qty when the overlay is only a base value."
         GoTo CleanExit
     End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(1, 3, 2, 0, 1)) <> 0 Then
-        failureReason = "Projected Inv went negative instead of clamping to zero."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(1, 3, 2, 0, -1)) <> 0 Then
+        failureReason = "Projected Inv went negative instead of clamping a negative overlay to zero."
         GoTo CleanExit
     End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 5, 0, 0, 999)) <> 15 Then
-        failureReason = "Projected Inv did not subtract combined active Shipments list quantity from NAS Inv."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 5, 0, 0, 999)) <> 999 Then
+        failureReason = "Projected Inv did not use an overlay value higher than stale NAS Inv."
         GoTo CleanExit
     End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 0, 99, 99, 1)) <> 20 Then
-        failureReason = "Projected Inv did not recalculate back to NAS when the Shipments list was empty."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 0, 99, 99, 1, False)) <> 20 Then
+        failureReason = "Projected Inv did not recalculate back to NAS when no authoritative overlay was available."
+        GoTo CleanExit
+    End If
+
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingRegisterProjectedOverlayForTest 976, "v1", 9, 10
+    shippables(1, 1) = 976
+    shippables(1, 2) = "Projected Overlay Item"
+    shippables(1, 3) = "v1"
+    shippables(1, 4) = 10
+    shippables(1, 8) = 10
+    refreshedRows = RunShippingFormProjectedInventoryForTest(shippables, emptyShipmentRows)
+    If CDbl(NzDblForTest(refreshedRows(1, 8))) <> 9 Then
+        failureReason = "Shipments form refresh let stale NAS Inv override a pending Projected Inv overlay; expected 9 but found " & CStr(refreshedRows(1, 8)) & "."
         GoTo CleanExit
     End If
 
     TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows = 1
 
 CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7143, "TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows", failureReason
@@ -11149,6 +11170,17 @@ Private Sub RunShippingClearProjectedOverlayForTest()
     If Not targetWb Is Nothing Then targetWb.Activate
 End Sub
 
+Private Sub RunShippingResetProjectedOverlayCacheForTest()
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ResetPendingBoxVersionInventoryOverlayCacheForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    Application.Run macroName
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Sub
+
 Private Function RunShippingProjectedOverlayPathForTest() As String
     Dim targetWb As Workbook
     Dim macroName As String
@@ -11203,6 +11235,18 @@ Private Function RunShippingProjectedDisplayQtyForTest(ByVal nasQty As Double, _
     macroName = ShippingMacroNameForTest("ShipmentsProjectedDisplayQtyForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
     RunShippingProjectedDisplayQtyForTest = CDbl(Application.Run(macroName, nasQty, lockedQty, unreservedLocalQty, reservedLocalQty, pendingOverlayQty, overlayIncludesReservation))
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
+Private Function RunShippingFormProjectedInventoryForTest(ByVal shippablesArray As Variant, _
+                                                          ByVal shipmentsListData As Variant) As Variant
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest("ShipmentsFormProjectedInventoryForTest")
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingFormProjectedInventoryForTest = Application.Run(macroName, shippablesArray, shipmentsListData)
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 

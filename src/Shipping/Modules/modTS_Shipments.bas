@@ -5312,6 +5312,12 @@ Public Sub ClearPendingBoxVersionInventoryOverlayForTest()
     ClearPendingBoxVersionInventoryOverlay
 End Sub
 
+Public Sub ResetPendingBoxVersionInventoryOverlayCacheForTest()
+    Set mPendingBoxVersionInventoryOverlay = Nothing
+    Set mPendingBoxVersionInventoryOverlayBaseline = Nothing
+    mPendingBoxVersionInventoryOverlayPath = ""
+End Sub
+
 Public Function PendingBoxVersionInventoryOverlayPath() As String
     PendingBoxVersionInventoryOverlayPath = PersistentPendingBoxVersionInventoryOverlayPath()
 End Function
@@ -5332,7 +5338,7 @@ Public Function ShippingSystemOverlayDiagnostic() As String
     resultText = "OverlayPath=" & overlayPath
     resultText = resultText & "; FileExists=" & CStr(fileExists)
     resultText = resultText & "; OverlayCount=" & CStr(overlayCount)
-    resultText = resultText & "; DisplayUsesOverlay=False"
+    resultText = resultText & "; DisplayUsesOverlay=True"
     ShippingSystemOverlayDiagnostic = resultText
     Exit Function
 
@@ -6723,6 +6729,17 @@ Public Function ShipmentsProjectedDisplayQty(ByVal nasQty As Double, _
                                              Optional ByVal pendingOverlayQty As Variant, _
                                              Optional ByVal overlayIncludesReservation As Boolean = True) As Double
     Dim projectedQty As Double
+
+    If Not IsMissing(pendingOverlayQty) Then
+        If IsNumeric(pendingOverlayQty) Then
+            If overlayIncludesReservation Then
+                projectedQty = CDbl(pendingOverlayQty)
+                If projectedQty < 0 Then projectedQty = 0
+                ShipmentsProjectedDisplayQty = projectedQty
+                Exit Function
+            End If
+        End If
+    End If
 
     projectedQty = nasQty - lockedQty
     If projectedQty < 0 Then projectedQty = 0
