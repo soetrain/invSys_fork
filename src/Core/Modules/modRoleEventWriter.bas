@@ -505,6 +505,21 @@ Public Function QueuePayloadEvent(ByVal eventType As String, _
     QueuePayloadEvent = QueueEventCore(eventType, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, "", parentEventId, undoOfEventId, createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId)
 End Function
 
+Public Function QueuePayloadEventServer(ByVal eventType As String, _
+                                        Optional ByVal warehouseId As String = "", _
+                                        Optional ByVal stationId As String = "", _
+                                        Optional ByVal userId As String = "", _
+                                        Optional ByVal payloadJson As String = "", _
+                                        Optional ByVal noteVal As String = "", _
+                                        Optional ByVal parentEventId As String = "", _
+                                        Optional ByVal undoOfEventId As String = "", _
+                                        Optional ByVal createdAtUtc As Date = 0, _
+                                        Optional ByRef eventIdOut As String = "", _
+                                        Optional ByRef errorMessage As String = "", _
+                                        Optional ByVal perfRunId As String = "") As Boolean
+    QueuePayloadEventServer = QueueEventCore(eventType, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, "", parentEventId, undoOfEventId, createdAtUtc, Nothing, eventIdOut, errorMessage, perfRunId, False, True)
+End Function
+
 Public Function QueueMigrationSeedEvent(Optional ByVal warehouseId As String = "", _
                                         Optional ByVal stationId As String = "", _
                                         Optional ByVal userId As String = "", _
@@ -622,7 +637,8 @@ Private Function QueueEventCore(ByVal eventType As String, _
                                 ByRef eventIdOut As String, _
                                 ByRef errorMessage As String, _
                                 Optional ByVal perfRunId As String = "", _
-                                Optional ByVal currentAuthAlreadyChecked As Boolean = False) As Boolean
+                                Optional ByVal currentAuthAlreadyChecked As Boolean = False, _
+                                Optional ByVal forceServerInbox As Boolean = False) As Boolean
     On Error GoTo FailQueue
 
     Dim resolvedWh As String
@@ -661,7 +677,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
         Exit Function
     End If
 
-    localStageOnly = (targetInboxWb Is Nothing And ShouldStageEventLocallyRole(eventType))
+    localStageOnly = (targetInboxWb Is Nothing And ShouldStageEventLocallyRole(eventType) And Not forceServerInbox)
     If Not (localStageOnly And currentAuthAlreadyChecked) Then
         If Not modAuth.LoadAuth(resolvedWh) Then
             errorMessage = "Auth load failed: " & modAuth.ValidateAuth()
@@ -1909,8 +1925,7 @@ Private Function ResolveInboxWorkbookForEventType(ByVal eventType As String, _
     If fullPath = "" Then Exit Function
 
     For Each wb In Application.Workbooks
-        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 _
-           Or StrComp(wb.Name, expectedName, vbTextCompare) = 0 Then
+        If StrComp(wb.FullName, fullPath, vbTextCompare) = 0 Then
             If wb.ReadOnly Then
                 errorMessage = "Inbox workbook is read-only or locked by another Excel session."
                 Exit Function
@@ -1996,6 +2011,16 @@ Private Function ResolveInboxDirectoryRole(ByVal warehouseId As String, ByVal st
     Dim rawPath As String
     Dim overrideRoot As String
     Dim target As WarehouseTarget
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        If StrComp(Trim$(target.WarehouseId), Trim$(warehouseId), vbTextCompare) = 0 _
+           And (Trim$(stationId) = "" Or Trim$(target.StationId) = "" Or StrComp(Trim$(target.StationId), Trim$(stationId), vbTextCompare) = 0) _
+           And Trim$(target.InboxRoot) <> "" Then
+            ResolveInboxDirectoryRole = modConfig.NormalizeFolderPathForRuntime(Trim$(target.InboxRoot), False)
+            If ResolveInboxDirectoryRole <> "" Then Exit Function
+        End If
+    End If
 
     overrideRoot = Trim$(modRuntimeWorkbooks.GetCoreDataRootOverride())
     If overrideRoot <> "" Then

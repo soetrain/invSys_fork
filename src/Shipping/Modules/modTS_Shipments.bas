@@ -1754,13 +1754,11 @@ Private Function QueueShipmentsSentEvent(ByVal deltas As Collection, ByRef errNo
         Exit Function
     End If
 
-    QueueShipmentsSentEvent = modRoleEventWriter.QueuePayloadEventCurrent( _
-        EVENT_TYPE_SHIP, _
-        "", _
-        payloadJson, _
-        "BTN_SHIPMENTS_SENT", _
-        eventIdOut, _
-        errNotes)
+    QueueShipmentsSentEvent = QueueShippingPayloadEventServerFirst(EVENT_TYPE_SHIP, _
+                                                                   payloadJson, _
+                                                                   "BTN_SHIPMENTS_SENT", _
+                                                                   eventIdOut, _
+                                                                   errNotes)
 End Function
 
 Private Function QueueShipmentsReserveEvent(ByVal deltas As Collection, ByRef errNotes As String, ByRef eventIdOut As String) As Boolean
@@ -1772,13 +1770,11 @@ Private Function QueueShipmentsReserveEvent(ByVal deltas As Collection, ByRef er
         Exit Function
     End If
 
-    QueueShipmentsReserveEvent = modRoleEventWriter.QueuePayloadEventCurrent( _
-        EVENT_TYPE_SHIP_RESERVE, _
-        "", _
-        payloadJson, _
-        "BTN_TO_SHIPMENTS_RESERVE", _
-        eventIdOut, _
-        errNotes)
+    QueueShipmentsReserveEvent = QueueShippingPayloadEventServerFirst(EVENT_TYPE_SHIP_RESERVE, _
+                                                                      payloadJson, _
+                                                                      "BTN_TO_SHIPMENTS_RESERVE", _
+                                                                      eventIdOut, _
+                                                                      errNotes)
 End Function
 
 Private Function QueueShipmentsReleaseEvent(ByVal deltas As Collection, ByRef errNotes As String, ByRef eventIdOut As String) As Boolean
@@ -1790,13 +1786,60 @@ Private Function QueueShipmentsReleaseEvent(ByVal deltas As Collection, ByRef er
         Exit Function
     End If
 
-    QueueShipmentsReleaseEvent = modRoleEventWriter.QueuePayloadEventCurrent( _
-        EVENT_TYPE_SHIP_RELEASE, _
-        "", _
-        payloadJson, _
-        "BTN_NOT_SHIPPED_RELEASE", _
-        eventIdOut, _
-        errNotes)
+    QueueShipmentsReleaseEvent = QueueShippingPayloadEventServerFirst(EVENT_TYPE_SHIP_RELEASE, _
+                                                                      payloadJson, _
+                                                                      "BTN_NOT_SHIPPED_RELEASE", _
+                                                                      eventIdOut, _
+                                                                      errNotes)
+End Function
+
+Private Function QueueShippingPayloadEventServerFirst(ByVal eventType As String, _
+                                                      ByVal payloadJson As String, _
+                                                      ByVal noteText As String, _
+                                                      ByRef eventIdOut As String, _
+                                                      ByRef errNotes As String) As Boolean
+    On Error GoTo Fallback
+
+    Dim target As WarehouseTarget
+    Dim warehouseId As String
+    Dim stationId As String
+    Dim queueError As String
+
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        warehouseId = Trim$(target.WarehouseId)
+        stationId = Trim$(target.StationId)
+    End If
+    If warehouseId = "" Then warehouseId = ResolveCurrentShippingWarehouseId()
+    If stationId = "" Then stationId = ResolveCurrentShippingStationId(warehouseId)
+
+    If warehouseId <> "" And stationId <> "" Then
+        QueueShippingPayloadEventServerFirst = modRoleEventWriter.QueuePayloadEventServer(eventType, _
+                                                                                         warehouseId, _
+                                                                                         stationId, _
+                                                                                         "", _
+                                                                                         payloadJson, _
+                                                                                         noteText, _
+                                                                                         "", _
+                                                                                         "", _
+                                                                                         0, _
+                                                                                         eventIdOut, _
+                                                                                         queueError)
+        If QueueShippingPayloadEventServerFirst Then Exit Function
+        If queueError <> "" Then AppendNote errNotes, "Server inbox write failed; falling back to local staging. " & queueError
+    End If
+
+Fallback:
+    If Err.Number <> 0 Then
+        AppendNote errNotes, "Server inbox write failed; falling back to local staging. " & Err.Description
+        Err.Clear
+    End If
+    QueueShippingPayloadEventServerFirst = modRoleEventWriter.QueuePayloadEventCurrent(eventType, _
+                                                                                      "", _
+                                                                                      payloadJson, _
+                                                                                      noteText, _
+                                                                                      eventIdOut, _
+                                                                                      errNotes)
 End Function
 
 Private Function QueueBoxBuildEventFromBuilder(ByVal loBuilder As ListObject, _
@@ -1865,13 +1908,11 @@ Private Function QueueBoxBuildEventFromBuilder(ByVal loBuilder As ListObject, _
         Exit Function
     End If
 
-    QueueBoxBuildEventFromBuilder = modRoleEventWriter.QueuePayloadEventCurrent( _
-        EVENT_TYPE_BOX_BUILD, _
-        "", _
-        payloadJson, _
-        "BTN_BOX_CREATED", _
-        eventIdOut, _
-        errNotes)
+    QueueBoxBuildEventFromBuilder = QueueShippingPayloadEventServerFirst(EVENT_TYPE_BOX_BUILD, _
+                                                                         payloadJson, _
+                                                                         "BTN_BOX_CREATED", _
+                                                                         eventIdOut, _
+                                                                         errNotes)
 End Function
 
 Private Function QueueBoxUnboxEventFromBuilder(ByVal loBuilder As ListObject, _
@@ -1952,13 +1993,11 @@ Private Function QueueBoxUnboxEventFromBuilder(ByVal loBuilder As ListObject, _
         Exit Function
     End If
 
-    QueueBoxUnboxEventFromBuilder = modRoleEventWriter.QueuePayloadEventCurrent( _
-        EVENT_TYPE_BOX_UNBOX, _
-        "", _
-        payloadJson, _
-        "BTN_BOX_UNBOXED", _
-        eventIdOut, _
-        errNotes)
+    QueueBoxUnboxEventFromBuilder = QueueShippingPayloadEventServerFirst(EVENT_TYPE_BOX_UNBOX, _
+                                                                         payloadJson, _
+                                                                         "BTN_BOX_UNBOXED", _
+                                                                         eventIdOut, _
+                                                                         errNotes)
 End Function
 
 Private Function AddBoxBuildComponentPayloadItems(ByVal loBom As ListObject, _
@@ -6452,13 +6491,11 @@ NextComponent:
         Exit Function
     End If
 
-    QueueBoxMakerFormPayload = modRoleEventWriter.QueuePayloadEventCurrent( _
-        eventType, _
-        "", _
-        payloadJson, _
-        sourceName, _
-        eventIdOut, _
-        errNotes)
+    QueueBoxMakerFormPayload = QueueShippingPayloadEventServerFirst(eventType, _
+                                                                    payloadJson, _
+                                                                    sourceName, _
+                                                                    eventIdOut, _
+                                                                    errNotes)
     Exit Function
 
 FailSoft:
@@ -7210,6 +7247,7 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
     Dim totalTimer As Single
     Dim batchTimer As Single
     Dim batchMs As Long
+    Dim stagingOk As Boolean
 
     If wb Is Nothing Then
         report = "Operator workbook not resolved."
@@ -7222,13 +7260,7 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
     totalTimer = Timer
     batchTimer = Timer
 
-    If Not modRoleEventWriter.SyncLocalStagedInboxRows(stagingReport, resolvedWarehouseId, stationId) Then
-        batchMs = ElapsedMillisecondsShipping(batchTimer)
-        report = "Local staged shipping rows could not be merged before runtime processing. " & _
-                 "StagingReport=" & stagingReport & " BatchReport=Skipped; " & _
-                 FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
-        Exit Function
-    End If
+    stagingOk = modRoleEventWriter.SyncLocalStagedInboxRows(stagingReport, resolvedWarehouseId, stationId)
 
     processedCount = modProcessor.RunBatch(resolvedWarehouseId, 0, batchReport)
     batchMs = ElapsedMillisecondsShipping(batchTimer)
@@ -7242,7 +7274,9 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
     If Not ShippingRuntimeReportShowsProcessed(processedCount, batchReport) _
        And (requireQueuedWork Or ShippingRuntimeReportMetric(stagingReport, "LocalStagingMerged") > 0) Then
         report = "RunBatch did not handle the queued shipping event after local post/write. " & _
-                 "StagingReport=" & stagingReport & " BatchReport=" & batchReport & " RefreshReport=Skipped; " & _
+                 "StagingReport=" & stagingReport & " BatchReport=" & batchReport & _
+                 " InboxDiagnostic=" & ShippingRuntimeInboxDiagnostic(resolvedWarehouseId, stationId) & _
+                 " RefreshReport=Skipped; " & _
                  FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
         Exit Function
     End If
@@ -7254,6 +7288,7 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
     End If
 
     report = "Processed=" & CStr(processedCount) & "; StagingReport=" & stagingReport & "; BatchReport=" & batchReport
+    If Not stagingOk Then report = report & "; StagingWarning=Local staged shipping rows could not be merged before runtime processing."
     If publishReport <> "" Then report = report & "; PublishWarning=" & publishReport
     report = report & "; " & FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
     RunShippingRuntimeQueueRefresh = True
@@ -7261,6 +7296,42 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
 
 FailSoft:
     report = "RunShippingRuntimeQueueRefresh failed: " & Err.Description
+End Function
+
+Private Function ShippingRuntimeInboxDiagnostic(ByVal warehouseId As String, ByVal stationId As String) As String
+    On Error GoTo FailSoft
+
+    Dim pendingCount As Long
+    Dim matchingCount As Long
+    Dim stagedCount As Long
+    Dim stagedMatchingCount As Long
+    Dim inboxError As String
+    Dim stagingError As String
+    Dim inboxReport As String
+    Dim stagingReport As String
+
+    inboxReport = modRoleEventWriter.DescribeInboxPendingRows(EVENT_TYPE_SHIP, _
+                                                              warehouseId, _
+                                                              stationId, _
+                                                              "", _
+                                                              pendingCount, _
+                                                              matchingCount, _
+                                                              inboxError)
+    stagingReport = modRoleEventWriter.DescribeLocalStagedInboxRows(EVENT_TYPE_SHIP & "," & EVENT_TYPE_SHIP_RESERVE & "," & EVENT_TYPE_SHIP_RELEASE & "," & EVENT_TYPE_BOX_BUILD & "," & EVENT_TYPE_BOX_UNBOX, _
+                                                                    warehouseId, _
+                                                                    stationId, _
+                                                                    stagedCount, _
+                                                                    stagedMatchingCount, _
+                                                                    stagingError)
+    ShippingRuntimeInboxDiagnostic = "Inbox={" & inboxReport
+    If inboxError <> "" Then ShippingRuntimeInboxDiagnostic = ShippingRuntimeInboxDiagnostic & "; Error=" & inboxError
+    ShippingRuntimeInboxDiagnostic = ShippingRuntimeInboxDiagnostic & "} Staging={" & stagingReport
+    If stagingError <> "" Then ShippingRuntimeInboxDiagnostic = ShippingRuntimeInboxDiagnostic & "; Error=" & stagingError
+    ShippingRuntimeInboxDiagnostic = ShippingRuntimeInboxDiagnostic & "}"
+    Exit Function
+
+FailSoft:
+    ShippingRuntimeInboxDiagnostic = "failed: " & Err.Description
 End Function
 
 Private Function ResolveCurrentShippingStationId(ByVal warehouseId As String) As String
@@ -11048,6 +11119,8 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     Dim mutationStarted As Boolean
     Dim sentSummary As String
     Dim allSentDeltas As Collection
+    Dim runtimeReport As String
+    Dim runtimeProcessed As Boolean
 
     If Not skipAuthForTest Then
         If Not modRoleUiAccess.CanCurrentUserPerformCapability("SHIP_POST", "", "", "", errNotes) Then
@@ -11122,13 +11195,22 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     PersistActiveShipmentRowsLocal loShip
     ClearInstructionStaging ws
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
+    runtimeProcessed = RunShippingRuntimeQueueRefresh(ws.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport)
+    If Not runtimeProcessed Then
+        If runtimeReport = "" Then runtimeReport = "Local shipment post succeeded, but runtime processing or read-model refresh did not complete cleanly."
+        AppendNote errNotes, runtimeReport
+    End If
 
     report = "Shipments sent: " & Format$(shippedTotal, "0.###") & " package(s)."
     If sentSummary <> "" Then report = report & vbCrLf & sentSummary
     If Trim$(carrierValue) <> "" Then report = report & vbCrLf & "Carrier: " & Trim$(carrierValue)
     If queuedEventId <> "" Then
         report = report & vbCrLf & "Inbox EventID: " & queuedEventId
-        report = report & vbCrLf & "Server inventory SHIP event queued; waiting for processor/log catch-up."
+        If runtimeProcessed Then
+            report = report & vbCrLf & "Server inventory processed SHIP event: " & runtimeReport
+        Else
+            report = report & vbCrLf & "Server inventory SHIP event queued; processor/log catch-up warning: " & runtimeReport
+        End If
     End If
     If queuedEventId = "" Then report = report & vbCrLf & _
         "Server inventory was reserved at To Shipments; Shipments Sent completed the reservation and is waiting for processor/log catch-up."

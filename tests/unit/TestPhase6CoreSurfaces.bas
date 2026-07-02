@@ -6556,8 +6556,11 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
     Dim failureReason As String
     Dim wbOps As Workbook
     Dim wbInbox As Workbook
+    Dim wbInv As Workbook
     Dim loInv As ListObject
     Dim loShip As ListObject
+    Dim loInventoryLog As ListObject
+    Dim loSku As ListObject
     Dim selectedRows(1 To 1) As Long
     Dim runResult As String
     Dim projectedAfter As Double
@@ -6566,12 +6569,39 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
     Dim projectedAfterEviction As Double
     Dim overlayPath As String
     Dim debugState As String
+    Dim evt As Object
+    Dim statusOut As String
+    Dim errorCode As String
+    Dim errorMessage As String
+    Dim logRow As Long
+    Dim skuRow As Long
+    Dim i As Long
+    Dim inventoryPath As String
+    Dim workbookShape As String
 
     rootPath = BuildRuntimeTestRoot("phase6_ship_sent_full_never_adds_projected")
     currentUser = "calvin"
 
     On Error GoTo CleanFail
     If Not PrepareShippingPostSessionForTest(rootPath, "WH101", "S31", currentUser, failureReason) Then GoTo CleanExit
+    Set wbInv = CreateCanonicalInventoryWorkbookForTest(rootPath, "WH101", Array("SKU-SENT-FULL-PROJECTED", "SKU-SENT-FULL-PEER"))
+    If wbInv Is Nothing Then
+        failureReason = "Canonical inventory workbook could not be created for full Shipments Sent server apply test."
+        GoTo CleanExit
+    End If
+    Set evt = CreateReceiveEventForTest("EVT-SENT-FULL-PROJECTED-SEED", "WH101", "S31", currentUser, "SKU-SENT-FULL-PROJECTED", 10, "A1", "full shipment sent seed")
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-SENT-FULL-PROJECTED-SEED", statusOut, errorCode, errorMessage) Then
+        failureReason = "Canonical projected seed event failed: " & errorCode & "; " & errorMessage
+        GoTo CleanExit
+    End If
+    Set evt = CreateReceiveEventForTest("EVT-SENT-FULL-PEER-SEED", "WH101", "S31", currentUser, "SKU-SENT-FULL-PEER", 10, "A1", "peer shipment sent seed")
+    If Not modInventoryApply.ApplyReceiveEvent(evt, wbInv, "RUN-SENT-FULL-PEER-SEED", statusOut, errorCode, errorMessage) Then
+        failureReason = "Canonical peer seed event failed: " & errorCode & "; " & errorMessage
+        GoTo CleanExit
+    End If
+    wbInv.Save
+    CloseWorkbookIfOpen wbInv
+    Set wbInv = Nothing
 
     Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
     If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
@@ -6617,8 +6647,8 @@ Public Function TestShippingSentRows_FullRunNeverIncreasesProjectedInventory() A
         failureReason = "Full Shipments Sent did not queue a server SHIP event for the reserved row: " & runResult
         GoTo CleanExit
     End If
-    If InStr(1, runResult, "SHIP event queued", vbTextCompare) = 0 Then
-        failureReason = "Full Shipments Sent did not report processor catch-up for the queued SHIP event: " & runResult
+    If InStr(1, runResult, "Server inventory", vbTextCompare) = 0 Then
+        failureReason = "Full Shipments Sent did not report server inventory queue/catch-up state: " & runResult
         GoTo CleanExit
     End If
 
@@ -6678,7 +6708,9 @@ CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
     CloseWorkbookIfOpen wbInbox
     CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen wbInv
     CloseWorkbookIfOpen FindWorkbookByName("WH101.invSys.Data.ShippingReservations.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH101.invSys.Data.Inventory.xlsb")
     CloseWorkbookIfOpen FindWorkbookByName("WH101.invSys.Auth.xlsb")
     CloseWorkbookIfOpen FindWorkbookByName("WH101.invSys.Config.xlsb")
     DeleteRuntimeRoot rootPath
@@ -11344,6 +11376,35 @@ Private Function TableNameForTest(ByVal lo As ListObject) As String
     Else
         TableNameForTest = lo.Name
     End If
+End Function
+
+Private Function WorkbookNameForTest(ByVal wb As Workbook) As String
+    If wb Is Nothing Then
+        WorkbookNameForTest = "<nothing>"
+    Else
+        WorkbookNameForTest = wb.Name
+    End If
+End Function
+
+Private Function WorkbookShapeForTest(ByVal wb As Workbook) As String
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    Dim part As String
+
+    If wb Is Nothing Then
+        WorkbookShapeForTest = "<nothing>"
+        Exit Function
+    End If
+    For Each ws In wb.Worksheets
+        part = ws.Name & "["
+        For Each lo In ws.ListObjects
+            If Right$(part, 1) <> "[" Then part = part & ","
+            part = part & lo.Name
+        Next lo
+        part = part & "]"
+        If WorkbookShapeForTest <> "" Then WorkbookShapeForTest = WorkbookShapeForTest & "; "
+        WorkbookShapeForTest = WorkbookShapeForTest & part
+    Next ws
 End Function
 
 Private Sub SetConfigWarehouseValue(ByVal workbookName As String, ByVal columnName As String, ByVal valueIn As Variant)

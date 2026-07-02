@@ -601,7 +601,7 @@ Private Sub AddCurrentTargetInboxTargets(ByVal targets As Collection, ByVal seen
 
     Set target = modNasConnection.GetCurrentTarget()
     If target Is Nothing Then Exit Sub
-    If Trim$(target.RuntimeRoot) = "" Then Exit Sub
+    If Trim$(target.RuntimeRoot) = "" And Trim$(target.InboxRoot) = "" Then Exit Sub
     If Trim$(target.WarehouseId) = "" Then Exit Sub
     If warehouseId <> "" Then
         If StrComp(Trim$(target.WarehouseId), Trim$(warehouseId), vbTextCompare) <> 0 Then Exit Sub
@@ -611,9 +611,15 @@ Private Sub AddCurrentTargetInboxTargets(ByVal targets As Collection, ByVal seen
     If stationId = "" Then stationId = modConfig.GetString("StationId", "")
     If stationId = "" Then Exit Sub
 
+    rootPath = modConfig.NormalizeFolderPathForRuntime(Trim$(target.InboxRoot), False)
+    If rootPath <> "" Then
+        AddInboxTargetByPath targets, seen, CombinePathProcessor(rootPath, InboxWorkbookNameProcessor(PROC_EVENT_TYPE_RECEIVE, stationId)), TABLE_INBOX_RECEIVE, SHEET_INBOX_RECEIVE, PROC_EVENT_TYPE_RECEIVE
+        AddInboxTargetByPath targets, seen, CombinePathProcessor(rootPath, InboxWorkbookNameProcessor(PROC_EVENT_TYPE_SHIP, stationId)), TABLE_INBOX_SHIP, SHEET_INBOX_SHIP, PROC_EVENT_TYPE_SHIP
+        AddInboxTargetByPath targets, seen, CombinePathProcessor(rootPath, InboxWorkbookNameProcessor(PROC_EVENT_TYPE_PROD_CONSUME, stationId)), TABLE_INBOX_PROD, SHEET_INBOX_PROD, PROC_EVENT_TYPE_PROD_CONSUME
+    End If
+
     rootPath = modConfig.NormalizeFolderPathForRuntime(Trim$(target.RuntimeRoot), False)
     If rootPath = "" Then Exit Sub
-
     AddInboxTargetByPath targets, seen, CombinePathProcessor(rootPath, InboxWorkbookNameProcessor(PROC_EVENT_TYPE_RECEIVE, stationId)), TABLE_INBOX_RECEIVE, SHEET_INBOX_RECEIVE, PROC_EVENT_TYPE_RECEIVE
     AddInboxTargetByPath targets, seen, CombinePathProcessor(rootPath, InboxWorkbookNameProcessor(PROC_EVENT_TYPE_SHIP, stationId)), TABLE_INBOX_SHIP, SHEET_INBOX_SHIP, PROC_EVENT_TYPE_SHIP
     AddInboxTargetByPath targets, seen, CombinePathProcessor(rootPath, InboxWorkbookNameProcessor(PROC_EVENT_TYPE_PROD_CONSUME, stationId)), TABLE_INBOX_PROD, SHEET_INBOX_PROD, PROC_EVENT_TYPE_PROD_CONSUME
