@@ -3099,19 +3099,6 @@ Private Function ResolveCurrentInventoryValue(ByVal ws As Worksheet, _
     Dim cacheKey As String
 
     found = False
-    If Not invLo Is Nothing Then
-        If rowVal > 0 Then invIdx = FindInvRowIndexByRow(invLo, rowVal)
-        If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
-        If invIdx > 0 Then
-            totalVal = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
-            If Not IsBlankInventoryValue(totalVal) Then
-                found = True
-                ResolveCurrentInventoryValue = totalVal
-                Exit Function
-            End If
-        End If
-    End If
-
     If snapshotCache Is Nothing Then Set snapshotCache = BuildRuntimeSnapshotInventoryCache()
     If Not snapshotCache Is Nothing Then
         If rowVal > 0 Then
@@ -3127,6 +3114,19 @@ Private Function ResolveCurrentInventoryValue(ByVal ws As Worksheet, _
             If snapshotCache.Exists(cacheKey) Then
                 found = True
                 ResolveCurrentInventoryValue = snapshotCache(cacheKey)
+                Exit Function
+            End If
+        End If
+    End If
+
+    If Not invLo Is Nothing Then
+        If rowVal > 0 Then invIdx = FindInvRowIndexByRow(invLo, rowVal)
+        If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+        If invIdx > 0 Then
+            totalVal = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
+            If Not IsBlankInventoryValue(totalVal) Then
+                found = True
+                ResolveCurrentInventoryValue = totalVal
                 Exit Function
             End If
         End If
@@ -3325,11 +3325,15 @@ Private Function BuildRuntimeSnapshotInventoryCache() As Object
     Dim itemName As String
     Dim sku As String
     Dim qtyVal As Variant
+    Dim statusCode As NasStatusCode
 
     Set result = CreateObject("Scripting.Dictionary")
     Set BuildRuntimeSnapshotInventoryCache = result
 
     Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then
+        Call modNasConnection.ResolveWarehouseTarget(target, statusCode)
+    End If
     If target Is Nothing Then Exit Function
 
     warehouseId = Trim$(target.WarehouseId)
@@ -5039,12 +5043,6 @@ NextPackage:
     Set seenLogEvents = CreateObject("Scripting.Dictionary")
     seenLogEvents.CompareMode = vbTextCompare
 
-    If Not wb Is Nothing And candidateToKeys.Count > 0 Then
-        Set loLog = FindListObjectByNameShipping(wb, "tblInventoryLog")
-        If loLog Is Nothing Then Set loLog = FindListObjectByNameShipping(wb, "InventoryLog")
-        AddBoxVersionInventoryFromLog loLog, candidateToKeys, result, seenLogEvents, WorkbookLogSourceKeyShipping(wb)
-    End If
-
     If allowExternalInventoryLogRead And candidateToKeys.Count > 0 Then
         warehouseId = ResolveCurrentShippingWarehouseId()
         inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
@@ -5679,6 +5677,9 @@ Public Function BoxMakerFormLoadBoxVersionInventory(ByVal packageRow As Long, By
     On Error GoTo FailSoft
 
     Dim result As Object
+    Dim runtimeCache As Object
+    Dim runtimeTotals As Object
+    Dim savedBoxes(1 To 1, 1 To 8) As Variant
     Dim invLo As ListObject
     Dim invIdx As Long
     Dim packageSku As String
@@ -5703,6 +5704,22 @@ Public Function BoxMakerFormLoadBoxVersionInventory(ByVal packageRow As Long, By
     result.CompareMode = vbTextCompare
     Set BoxMakerFormLoadBoxVersionInventory = result
     If packageRow <= 0 And Trim$(boxName) = "" Then Exit Function
+
+    savedBoxes(1, 1) = packageRow
+    savedBoxes(1, 2) = Trim$(boxName)
+    Set wb = ResolveShippingWorkbook(, SHEET_SHIPMENTS)
+    Set runtimeCache = BuildBoxVersionInventoryCache(savedBoxes, wb, True)
+    If Not runtimeCache Is Nothing Then
+        If runtimeCache.Exists(BoxVersionInventoryCacheKey(packageRow, boxName)) Then
+            Set runtimeTotals = runtimeCache(BoxVersionInventoryCacheKey(packageRow, boxName))
+            If Not runtimeTotals Is Nothing Then
+                For Each key In runtimeTotals.Keys
+                    result(CStr(key)) = CDbl(runtimeTotals(key))
+                Next key
+                If result.Count > 0 Then Exit Function
+            End If
+        End If
+    End If
 
     Set invLo = GetInvSysTable()
     If Not invLo Is Nothing Then
@@ -6098,6 +6115,225 @@ Public Function BoxMakerFormCurrentInventoryDebugReport(ByVal packageRow As Long
 FailSoft:
     BoxMakerFormCurrentInventoryDebugReport = "BoxMaker debug report failed: " & Err.Description
     If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+End Function
+
+Public Function ShippingSystemInventorySourceDiagnostic(Optional ByVal packageRow As Long = 0, _
+                                                        Optional ByVal versionLabel As String = "", _
+                                                        Optional ByVal boxName As String = "") As String
+    On Error GoTo FailSoft
+
+    Dim warehouseId As String
+    Dim inventoryPath As String
+    Dim operatorWb As Workbook
+    Dim inventoryWb As Workbook
+    Dim openedTransient As Boolean
+    Dim ws As Worksheet
+    Dim invLo As ListObject
+    Dim operatorLog As ListObject
+    Dim inventoryLog As ListObject
+    Dim snapshotCache As Object
+    Dim savedBoxes As Variant
+    Dim singleBox(1 To 1, 1 To 8) As Variant
+    Dim runtimeVersionCache As Object
+    Dim runtimeVersionTotals As Object
+    Dim boxMakerVersions As Object
+    Dim stagedDeltas As Object
+    Dim foundLocal As Boolean
+    Dim foundResolved As Boolean
+    Dim localInv As Variant
+    Dim resolvedInv As Variant
+    Dim runtimeInv As Variant
+    Dim report As String
+    Dim cacheKey As String
+    Dim normalizedVersion As String
+    Dim inferredBoxName As String
+    Dim shippables As Variant
+    Dim shipmentsShippables As Variant
+
+    normalizedVersion = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    warehouseId = ResolveCurrentShippingWarehouseId()
+    inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
+    Set operatorWb = ResolveShippingWorkbook(, SHEET_SHIPMENTS)
+    If inventoryPath <> "" Then openedTransient = (FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
+    Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+
+    If Not operatorWb Is Nothing Then savedBoxes = BoxMakerFormLoadSavedBoxes(operatorWb, True)
+    inferredBoxName = Trim$(boxName)
+    If inferredBoxName = "" Then inferredBoxName = ShippingDiagnosticSavedBoxName(savedBoxes, packageRow)
+
+    Set ws = SheetExists(SHEET_SHIPMENTS)
+    Set invLo = GetInvSysTable()
+    If Not invLo Is Nothing Then localInv = ResolveCurrentInventoryFromTable(invLo, packageRow, inferredBoxName, foundLocal)
+
+    Set snapshotCache = BuildRuntimeSnapshotInventoryCache()
+    runtimeInv = ShippingDiagnosticSnapshotValue(snapshotCache, packageRow, inferredBoxName)
+    resolvedInv = ResolveCurrentInventoryValue(ws, invLo, packageRow, inferredBoxName, foundResolved, snapshotCache)
+
+    singleBox(1, 1) = packageRow
+    singleBox(1, 2) = inferredBoxName
+    Set runtimeVersionCache = BuildBoxVersionInventoryCache(singleBox, operatorWb, True)
+    cacheKey = BoxVersionInventoryCacheKey(packageRow, inferredBoxName)
+    If Not runtimeVersionCache Is Nothing Then
+        If runtimeVersionCache.Exists(cacheKey) Then Set runtimeVersionTotals = runtimeVersionCache(cacheKey)
+    End If
+    Set boxMakerVersions = BoxMakerFormLoadBoxVersionInventory(packageRow, inferredBoxName)
+    If packageRow > 0 Then Set stagedDeltas = modRoleEventWriter.GetLocalStagedBoxVersionInventoryDeltas(packageRow)
+
+    If Not operatorWb Is Nothing Then
+        Set operatorLog = FindListObjectByNameShipping(operatorWb, "tblInventoryLog")
+        If operatorLog Is Nothing Then Set operatorLog = FindListObjectByNameShipping(operatorWb, "InventoryLog")
+    End If
+    If Not inventoryWb Is Nothing Then
+        Set inventoryLog = FindListObjectByNameShipping(inventoryWb, "tblInventoryLog")
+        If inventoryLog Is Nothing Then Set inventoryLog = FindListObjectByNameShipping(inventoryWb, "InventoryLog")
+    End If
+
+    If Not IsEmpty(savedBoxes) Then shippables = BoxMakerFormLoadShippableVersionInventory(savedBoxes, operatorWb, True)
+    shipmentsShippables = ShipmentsFormLoadShippables(operatorWb)
+
+    report = "WarehouseId=" & warehouseId & _
+             "; PackageRow=" & CStr(packageRow) & _
+             "; BoxName=" & inferredBoxName & _
+             "; Version=" & normalizedVersion & _
+             "; InventoryPath=" & inventoryPath & _
+             "; InventoryFileExists=" & CStr(ShippingDiagnosticFileExists(inventoryPath))
+    report = report & _
+             "; RuntimeInv=" & ShippingDiagnosticValueText(runtimeInv, Not IsEmpty(runtimeInv)) & _
+             "; OperatorInv=" & ShippingDiagnosticValueText(localInv, foundLocal) & _
+             "; ResolvedInvUsedByForms=" & ShippingDiagnosticValueText(resolvedInv, foundResolved)
+    report = report & _
+             "; LocalStagedVersionDelta=" & ShippingDiagnosticVersionValueText(stagedDeltas, normalizedVersion) & _
+             "; RuntimeLogPlusLocalStagedVersionQty=" & ShippingDiagnosticVersionValueText(runtimeVersionTotals, normalizedVersion) & _
+             "; BoxMakerLoadBoxVersionQty=" & ShippingDiagnosticVersionValueText(boxMakerVersions, normalizedVersion)
+    report = report & _
+             "; BoxMakerShippableValue=" & ShippingDiagnosticShippableArrayValue(shippables, packageRow, normalizedVersion) & _
+             "; ShipmentsShippableNasValue=" & ShippingDiagnosticShippableArrayValue(shipmentsShippables, packageRow, normalizedVersion)
+    report = report & _
+             "; OperatorWb=" & ShippingDiagnosticWorkbookText(operatorWb) & _
+             "; OperatorLogRows=" & CStr(ListObjectRowCountShipping(operatorLog)) & _
+             "; OperatorLogMatches=" & CStr(CountBoxVersionLogMatchesShipping(operatorLog, packageRow, normalizedVersion)) & _
+             "; InventoryWb=" & ShippingDiagnosticWorkbookText(inventoryWb) & _
+             "; InventoryReadOnly=" & ShippingDiagnosticWorkbookReadOnlyText(inventoryWb) & _
+             "; InventoryLogRows=" & CStr(ListObjectRowCountShipping(inventoryLog)) & _
+             "; InventoryLogMatches=" & CStr(CountBoxVersionLogMatchesShipping(inventoryLog, packageRow, normalizedVersion))
+
+    ShippingSystemInventorySourceDiagnostic = report
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+    Exit Function
+
+FailSoft:
+    ShippingSystemInventorySourceDiagnostic = "Shipping system inventory source diagnostic failed: " & Err.Description
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+End Function
+
+Private Function ShippingDiagnosticSnapshotValue(ByVal snapshotCache As Object, _
+                                                 ByVal packageRow As Long, _
+                                                 ByVal boxName As String) As Variant
+    Dim cacheKey As String
+
+    If snapshotCache Is Nothing Then Exit Function
+    If packageRow > 0 Then
+        cacheKey = "ROW:" & CStr(packageRow)
+        If snapshotCache.Exists(cacheKey) Then
+            ShippingDiagnosticSnapshotValue = snapshotCache(cacheKey)
+            Exit Function
+        End If
+    End If
+    boxName = Trim$(boxName)
+    If boxName <> "" Then
+        cacheKey = "ITEM:" & LCase$(boxName)
+        If snapshotCache.Exists(cacheKey) Then ShippingDiagnosticSnapshotValue = snapshotCache(cacheKey)
+    End If
+End Function
+
+Private Function ShippingDiagnosticSavedBoxName(ByVal savedBoxes As Variant, ByVal packageRow As Long) As String
+    On Error GoTo CleanExit
+
+    Dim r As Long
+
+    If IsEmpty(savedBoxes) Then Exit Function
+    For r = 1 To UBound(savedBoxes, 1)
+        If NzLng(savedBoxes(r, 1)) = packageRow Then
+            ShippingDiagnosticSavedBoxName = Trim$(NzStr(savedBoxes(r, 2)))
+            Exit Function
+        End If
+    Next r
+
+CleanExit:
+End Function
+
+Private Function ShippingDiagnosticValueText(ByVal value As Variant, ByVal found As Boolean) As String
+    If Not found Then
+        ShippingDiagnosticValueText = "NOT FOUND"
+    ElseIf IsEmpty(value) Then
+        ShippingDiagnosticValueText = "<blank>"
+    Else
+        ShippingDiagnosticValueText = NzStr(value)
+    End If
+End Function
+
+Private Function ShippingDiagnosticVersionValueText(ByVal versionTotals As Object, ByVal versionLabel As String) As String
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If versionTotals Is Nothing Then
+        ShippingDiagnosticVersionValueText = "NOT FOUND"
+    ElseIf versionLabel = "" Then
+        ShippingDiagnosticVersionValueText = "VERSION NOT SPECIFIED"
+    ElseIf versionTotals.Exists(versionLabel) Then
+        ShippingDiagnosticVersionValueText = NzStr(versionTotals(versionLabel))
+    Else
+        ShippingDiagnosticVersionValueText = "NOT FOUND"
+    End If
+End Function
+
+Private Function ShippingDiagnosticShippableArrayValue(ByVal shippables As Variant, _
+                                                       ByVal packageRow As Long, _
+                                                       ByVal versionLabel As String) As String
+    On Error GoTo CleanExit
+
+    Dim r As Long
+
+    versionLabel = NormalizeBoxBomVersionLabelShipping(versionLabel)
+    If IsEmpty(shippables) Then
+        ShippingDiagnosticShippableArrayValue = "NOT LOADED"
+        Exit Function
+    End If
+    For r = 1 To UBound(shippables, 1)
+        If NzLng(shippables(r, 1)) = packageRow Then
+            If versionLabel = "" Or StrComp(NormalizeBoxBomVersionLabelShipping(NzStr(shippables(r, 3))), versionLabel, vbTextCompare) = 0 Then
+                ShippingDiagnosticShippableArrayValue = NzStr(shippables(r, 4))
+                If ShippingDiagnosticShippableArrayValue = "" Then ShippingDiagnosticShippableArrayValue = "<blank>"
+                Exit Function
+            End If
+        End If
+    Next r
+
+CleanExit:
+    If ShippingDiagnosticShippableArrayValue = "" Then ShippingDiagnosticShippableArrayValue = "NOT FOUND"
+End Function
+
+Private Function ShippingDiagnosticWorkbookText(ByVal wb As Workbook) As String
+    If wb Is Nothing Then
+        ShippingDiagnosticWorkbookText = "NOT RESOLVED"
+    Else
+        ShippingDiagnosticWorkbookText = wb.Name
+    End If
+End Function
+
+Private Function ShippingDiagnosticWorkbookReadOnlyText(ByVal wb As Workbook) As String
+    If wb Is Nothing Then
+        ShippingDiagnosticWorkbookReadOnlyText = "N/A"
+    Else
+        ShippingDiagnosticWorkbookReadOnlyText = CStr(wb.ReadOnly)
+    End If
+End Function
+
+Private Function ShippingDiagnosticFileExists(ByVal filePath As String) As Boolean
+    On Error GoTo CleanExit
+
+    If Trim$(filePath) = "" Then Exit Function
+    ShippingDiagnosticFileExists = (Len(Dir$(filePath, vbNormal)) > 0)
+
+CleanExit:
 End Function
 
 Private Function QueueBoxMakerFormPayload(ByVal isMakeAction As Boolean, _
