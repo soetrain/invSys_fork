@@ -589,6 +589,7 @@ try {
         "TestPhase6CoreSurfaces.TestBoxMakerHistoryExport_WritesBuildAndUnboxRowsOnly",
         "TestPhase6CoreSurfaces.TestBoxMakerHistoryExport_ReportsEmptySourceDiagnostics",
         "TestPhase6CoreSurfaces.TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows",
+        "TestPhase6CoreSurfaces.TestShippingProjectedDisplay_UsesOverlayReceiptReservationFlag",
         "TestPhase6CoreSurfaces.TestShippingSentRows_ReservedRowDoesNotAddBackTotalInv",
         "TestPhase6CoreSurfaces.TestShippingSentRows_UnreservedDirtyRowDoesNotDeductTotalInv",
         "TestPhase6CoreSurfaces.TestShippingSentRows_ReservedRowClearsLockedReservationTotal",

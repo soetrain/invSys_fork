@@ -1328,6 +1328,7 @@ Private Sub RefreshProjectedShippableInventory()
     Dim packageRow As Long
     Dim versionLabel As String
     Dim hasSentOverlay As Boolean
+    Dim overlayIncludesReservation As Boolean
 
     If IsEmpty(mShippables) Then Exit Sub
     If Not mUseInjectedReservationTotalsForTest Then Set mNasReservationTotals = modTS_Shipments.ShipmentsFormLoadNasReservationTotals()
@@ -1338,8 +1339,10 @@ Private Sub RefreshProjectedShippableInventory()
         activeQty = ActiveShipmentQtyForShippable(packageRow, NzText(mShippables(r, 2)), versionLabel)
         overlayText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, versionLabel, backendText)
         hasSentOverlay = modTS_Shipments.HasSentOverlayForRowVersion(packageRow, versionLabel)
+        If hasSentOverlay And activeQty > 0.0000001 Then overlayText = vbNullString
         If Trim$(overlayText) <> "" And IsNumeric(overlayText) Then
-            projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQty(ParseNumber(backendText), activeQty, 0, 0, CDbl(overlayText), Not (hasSentOverlay And activeQty > 0.0000001))
+            overlayIncludesReservation = hasSentOverlay Or modTS_Shipments.PendingBoxVersionInventoryOverlayIncludesReservation(packageRow, versionLabel)
+            projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQtyWithOverlay(ParseNumber(backendText), activeQty, CDbl(overlayText), overlayIncludesReservation)
         Else
             projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQty(ParseNumber(backendText), activeQty)
         End If

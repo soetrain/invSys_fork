@@ -113,6 +113,7 @@ Private mSuppressGeneratedIdentityEditGuard As Boolean
 Private mLastComponentPickerStatus As String
 Private mPendingBoxVersionInventoryOverlay As Object
 Private mPendingBoxVersionInventoryOverlayBaseline As Object
+Private mPendingBoxVersionInventoryOverlayIncludesReservation As Object
 Private mPendingBoxVersionInventoryOverlayPath As String
 Private mShipmentsAutoSyncForm As Object
 Private mBoxMakerAutoSyncForm As Object
@@ -965,7 +966,7 @@ Public Sub BtnDeleteBoxVersion()
     DeleteLocalBoxBomVersionSummaryRow loVersions, versionLabel
     DeleteLocalShippingBomViewRowsForVersion ws, packageRow, versionLabel
     ClearSelectedBoxBomVersionIfMatches ws, packageRow, versionLabel
-    RefreshShippingBomViewForWorkbook ws.Parent, report
+    RefreshShippingBomViewForWorkbook ws.Parent, report, True
     DeleteLocalShippingBomViewRowsForVersion ws, packageRow, versionLabel
     RefreshBoxBomVersionList ws, packageRow
     MsgBox deleteReport, vbInformation
@@ -1045,7 +1046,7 @@ Public Sub BtnDeleteBox()
     End If
 
     deleteReport = report
-    RefreshShippingBomViewForWorkbook ws.Parent, report
+    RefreshShippingBomViewForWorkbook ws.Parent, report, True
     Set loVersions = GetListObject(ws, TABLE_BOX_BOM_VERSIONS)
     If Not loVersions Is Nothing Then ClearListObjectData loVersions
     MsgBox deleteReport, vbInformation
@@ -4829,6 +4830,10 @@ Private Function LoadShippableVersionInventoryCore(ByVal savedBoxes As Variant, 
         If Not versionInventoryByPackage Is Nothing Then
             If versionInventoryByPackage.Exists(cacheKey) Then Set versionInv = versionInventoryByPackage(cacheKey)
         End If
+        If versionInv Is Nothing Then Set versionInv = BuildOpenBoxVersionInventoryForPackage(boxRow, NzStr(savedBoxes(r, 2)))
+        If Not versionInv Is Nothing Then
+            If versionInv.Count = 0 Then Set versionInv = BuildOpenBoxVersionInventoryForPackage(boxRow, NzStr(savedBoxes(r, 2)))
+        End If
         activeCount = CountActiveBoxBomVersionsShipping(versions)
 
         For v = 1 To UBound(versions, 1)
@@ -4848,7 +4853,7 @@ Private Function LoadShippableVersionInventoryCore(ByVal savedBoxes As Variant, 
             If Not versionInv Is Nothing Then
                 If versionInv.Exists(versionLabel) And Trim$(NzStr(rowData(4))) = "" Then rowData(4) = versionInv(versionLabel)
             End If
-            rowData(8) = rowData(4)
+            rowData(8) = PendingBoxVersionInventoryOverlayText(boxRow, versionLabel, NzStr(rowData(4)))
             rowData(5) = NzStr(savedBoxes(r, 4))
             rowData(6) = NzStr(savedBoxes(r, 5))
             rowData(7) = NzStr(savedBoxes(r, 6))
@@ -4866,6 +4871,7 @@ NextBox:
             result(r, c) = rowData(c)
         Next c
     Next r
+    EvictCompletedShipmentInventoryOverlaysForShippables result
     LoadShippableVersionInventoryCore = result
 
 CleanExit:
@@ -5013,9 +5019,11 @@ Private Function BuildBoxVersionInventoryCache(ByVal savedBoxes As Variant, _
     Dim stagedKey As Variant
     Dim seenLogEvents As Object
     Dim inventoryWb As Workbook
+    Dim fallbackInventoryWb As Workbook
     Dim inventoryPath As String
     Dim openedTransient As Boolean
     Dim warehouseId As String
+    Dim logRowsAdded As Long
 
     Set result = CreateObject("Scripting.Dictionary")
     result.CompareMode = vbTextCompare
@@ -5067,6 +5075,15 @@ Private Function BuildBoxVersionInventoryCache(ByVal savedBoxes As Variant, _
             End If
             keyList.Add cacheKey
         Next candidate
+        If packageRow > 0 Then
+            If candidateToKeys.Exists("ROW|" & CStr(packageRow)) Then
+                Set keyList = candidateToKeys("ROW|" & CStr(packageRow))
+            Else
+                Set keyList = New Collection
+                candidateToKeys.Add "ROW|" & CStr(packageRow), keyList
+            End If
+            keyList.Add cacheKey
+        End If
 
         If packageRow > 0 Then
             Set stagedDeltas = modRoleEventWriter.GetLocalStagedBoxVersionInventoryDeltas(packageRow)
@@ -5086,13 +5103,29 @@ NextPackage:
         warehouseId = ResolveCurrentShippingWarehouseId()
         inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
         openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
-        Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+        Set inventoryWb = ResolveInventoryWorkbookBridgeSoftShipping(warehouseId)
+        If inventoryWb Is Nothing Then Set inventoryWb = ResolveShippingInventoryWorkbookForLogRead(warehouseId, inventoryPath, openedTransient)
         If Not inventoryWb Is Nothing Then
             If wb Is Nothing Or Not inventoryWb Is wb Then
                 Set loLog = FindListObjectByNameShipping(inventoryWb, "tblInventoryLog")
                 If loLog Is Nothing Then Set loLog = FindListObjectByNameShipping(inventoryWb, "InventoryLog")
-                AddBoxVersionInventoryFromLog loLog, candidateToKeys, result, seenLogEvents, WorkbookLogSourceKeyShipping(inventoryWb)
+                logRowsAdded = AddBoxVersionInventoryFromLog(loLog, candidateToKeys, result, seenLogEvents, WorkbookLogSourceKeyShipping(inventoryWb))
             End If
+        End If
+        If logRowsAdded = 0 Then
+            Set fallbackInventoryWb = ResolveShippingInventoryWorkbookForLogRead(warehouseId, inventoryPath, openedTransient)
+            If Not fallbackInventoryWb Is Nothing Then
+                If inventoryWb Is Nothing Or Not fallbackInventoryWb Is inventoryWb Then
+                    If wb Is Nothing Or Not fallbackInventoryWb Is wb Then
+                        Set loLog = FindListObjectByNameShipping(fallbackInventoryWb, "tblInventoryLog")
+                        If loLog Is Nothing Then Set loLog = FindListObjectByNameShipping(fallbackInventoryWb, "InventoryLog")
+                        logRowsAdded = AddBoxVersionInventoryFromLog(loLog, candidateToKeys, result, seenLogEvents, WorkbookLogSourceKeyShipping(fallbackInventoryWb))
+                    End If
+                End If
+            End If
+        End If
+        If logRowsAdded = 0 Then
+            logRowsAdded = AddBoxVersionInventoryFromOpenInventoryLogs(candidateToKeys, result, seenLogEvents, wb, warehouseId)
         End If
         If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
     End If
@@ -5111,6 +5144,174 @@ FailSoft:
     If BuildBoxVersionInventoryCache Is Nothing Then
         Set BuildBoxVersionInventoryCache = CreateObject("Scripting.Dictionary")
         BuildBoxVersionInventoryCache.CompareMode = vbTextCompare
+    End If
+End Function
+
+Private Function ResolveShippingInventoryWorkbookForLogRead(ByVal warehouseId As String, _
+                                                            ByVal inventoryPath As String, _
+                                                            ByRef openedTransient As Boolean) As Workbook
+    Dim wb As Workbook
+    Dim workbookName As String
+
+    If Trim$(inventoryPath) <> "" Then
+        Set wb = FindOpenWorkbookByFullNameShipping(inventoryPath)
+        If wb Is Nothing Then
+            If Len(Dir$(inventoryPath, vbNormal)) > 0 Then
+                Set wb = Application.Workbooks.Open(Filename:=inventoryPath, ReadOnly:=False)
+                openedTransient = True
+            End If
+        Else
+            openedTransient = False
+        End If
+        If Not wb Is Nothing Then
+            Set ResolveShippingInventoryWorkbookForLogRead = wb
+            Exit Function
+        End If
+    End If
+
+    warehouseId = Trim$(warehouseId)
+    If warehouseId = "" Then Exit Function
+    workbookName = warehouseId & ".invSys.Data.Inventory.xlsb"
+    For Each wb In Application.Workbooks
+        If StrComp(wb.Name, workbookName, vbTextCompare) = 0 Then
+            openedTransient = False
+            Set ResolveShippingInventoryWorkbookForLogRead = wb
+            Exit Function
+        End If
+    Next wb
+End Function
+
+Private Function ResolveInventoryWorkbookBridgeSoftShipping(ByVal warehouseId As String) As Workbook
+    On Error GoTo FailSoft
+
+    Set ResolveInventoryWorkbookBridgeSoftShipping = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+    Exit Function
+
+FailSoft:
+    Set ResolveInventoryWorkbookBridgeSoftShipping = Nothing
+End Function
+
+Private Function FirstOpenShippingInventoryWorkbookWithLog() As Workbook
+    Dim wb As Workbook
+    Dim loLog As ListObject
+
+    For Each wb In Application.Workbooks
+        If wb.IsAddin Then GoTo NextWorkbook
+        If InStr(1, wb.Name, ".invSys.Data.Inventory.", vbTextCompare) = 0 Then GoTo NextWorkbook
+        Set loLog = FindListObjectByNameShipping(wb, "tblInventoryLog")
+        If loLog Is Nothing Then Set loLog = FindListObjectByNameShipping(wb, "InventoryLog")
+        If Not loLog Is Nothing Then
+            Set FirstOpenShippingInventoryWorkbookWithLog = wb
+            Exit Function
+        End If
+NextWorkbook:
+    Next wb
+End Function
+
+Private Function AddBoxVersionInventoryFromOpenInventoryLogs(ByVal candidateToKeys As Object, _
+                                                            ByVal result As Object, _
+                                                            ByVal seenLogEvents As Object, _
+                                                            ByVal operatorWb As Workbook, _
+                                                            ByVal warehouseId As String) As Long
+    On Error GoTo CleanExit
+
+    Dim wb As Workbook
+    Dim loLog As ListObject
+
+    warehouseId = Trim$(warehouseId)
+    For Each wb In Application.Workbooks
+        If Not operatorWb Is Nothing Then
+            If wb Is operatorWb Then GoTo NextWorkbook
+        End If
+        If InStr(1, wb.Name, ".invSys.Data.Inventory.", vbTextCompare) = 0 Then
+            GoTo NextWorkbook
+        End If
+
+        Set loLog = FindListObjectByNameShipping(wb, "tblInventoryLog")
+        If loLog Is Nothing Then Set loLog = FindListObjectByNameShipping(wb, "InventoryLog")
+        AddBoxVersionInventoryFromOpenInventoryLogs = AddBoxVersionInventoryFromOpenInventoryLogs + _
+                                                     AddBoxVersionInventoryFromLog(loLog, candidateToKeys, result, seenLogEvents, WorkbookLogSourceKeyShipping(wb))
+NextWorkbook:
+    Next wb
+
+CleanExit:
+End Function
+
+Private Function BuildOpenBoxVersionInventoryForPackage(ByVal packageRow As Long, ByVal boxName As String) As Object
+    On Error GoTo FailSoft
+
+    Dim result As Object
+    Dim wb As Workbook
+    Dim loLog As ListObject
+    Dim src As Variant
+    Dim cEventType As Long
+    Dim cSku As Long
+    Dim cQtyDelta As Long
+    Dim cNote As Long
+    Dim r As Long
+    Dim eventType As String
+    Dim skuValue As String
+    Dim noteText As String
+    Dim versionLabel As String
+    Dim noteRow As Long
+    Dim key As Variant
+
+    Set result = CreateObject("Scripting.Dictionary")
+    result.CompareMode = vbTextCompare
+    Set BuildOpenBoxVersionInventoryForPackage = result
+    boxName = Trim$(boxName)
+    If packageRow <= 0 And boxName = "" Then Exit Function
+
+    For Each wb In Application.Workbooks
+        If wb.IsAddin Then GoTo NextWorkbook
+        Set loLog = FindListObjectByNameShipping(wb, "tblInventoryLog")
+        If loLog Is Nothing Then Set loLog = FindListObjectByNameShipping(wb, "InventoryLog")
+        If loLog Is Nothing Then GoTo NextWorkbook
+        If loLog.DataBodyRange Is Nothing Then GoTo NextWorkbook
+
+        cEventType = ColumnIndex(loLog, "EventType")
+        cSku = ColumnIndex(loLog, "SKU")
+        cQtyDelta = ColumnIndex(loLog, "QtyDelta")
+        cNote = ColumnIndex(loLog, "Note")
+        If cEventType <= 0 Or cSku <= 0 Or cQtyDelta <= 0 Or cNote <= 0 Then GoTo NextWorkbook
+
+        src = To2DArrayShipping(loLog.DataBodyRange.Value)
+        For r = 1 To UBound(src, 1)
+            eventType = UCase$(Trim$(NzStr(src(r, cEventType))))
+            If eventType <> EVENT_TYPE_SHIP _
+               And eventType <> EVENT_TYPE_BOX_BUILD _
+               And eventType <> EVENT_TYPE_BOX_UNBOX Then GoTo NextLogRow
+
+            noteText = NzStr(src(r, cNote))
+            versionLabel = ExtractBoxVersionLabelFromNoteShipping(noteText)
+            If versionLabel = "" Then GoTo NextLogRow
+
+            noteRow = ExtractBoxPackageRowFromNoteShipping(noteText)
+            skuValue = Trim$(NzStr(src(r, cSku)))
+            If packageRow > 0 Then
+                If noteRow <> packageRow Then
+                    If boxName = "" Or StrComp(skuValue, boxName, vbTextCompare) <> 0 Then GoTo NextLogRow
+                End If
+            ElseIf boxName <> "" Then
+                If StrComp(skuValue, boxName, vbTextCompare) <> 0 Then GoTo NextLogRow
+            End If
+
+            AddVersionInventoryDeltaShipping result, versionLabel, NzDbl(src(r, cQtyDelta))
+NextLogRow:
+        Next r
+NextWorkbook:
+    Next wb
+
+    For Each key In result.Keys
+        If Abs(CDbl(result(key))) < 0.0000001 Then result(key) = 0#
+        If CDbl(result(key)) < 0 Then result(key) = 0#
+    Next key
+    Exit Function
+
+FailSoft:
+    If BuildOpenBoxVersionInventoryForPackage Is Nothing Then
+        Set BuildOpenBoxVersionInventoryForPackage = CreateObject("Scripting.Dictionary")
+        BuildOpenBoxVersionInventoryForPackage.CompareMode = vbTextCompare
     End If
 End Function
 
@@ -5135,6 +5336,8 @@ Private Function AddBoxVersionInventoryFromLog(ByVal loLog As ListObject, _
     Dim keyList As Collection
     Dim candidate As Variant
     Dim eventKey As String
+    Dim noteText As String
+    Dim noteRow As Long
 
     If loLog Is Nothing Then Exit Function
     If loLog.DataBodyRange Is Nothing Then Exit Function
@@ -5155,10 +5358,17 @@ Private Function AddBoxVersionInventoryFromLog(ByVal loLog As ListObject, _
            And eventType <> EVENT_TYPE_BOX_UNBOX Then GoTo NextLogRow
 
         skuValue = Trim$(NzStr(src(r, cSku)))
-        If Not candidateToKeys.Exists(skuValue) Then GoTo NextLogRow
-
-        versionLabel = ExtractBoxVersionLabelFromNoteShipping(NzStr(src(r, cNote)))
+        noteText = NzStr(src(r, cNote))
+        versionLabel = ExtractBoxVersionLabelFromNoteShipping(noteText)
         If versionLabel = "" Then GoTo NextLogRow
+        If candidateToKeys.Exists(skuValue) Then
+            Set keyList = candidateToKeys(skuValue)
+        Else
+            noteRow = ExtractBoxPackageRowFromNoteShipping(noteText)
+            If noteRow <= 0 Then GoTo NextLogRow
+            If Not candidateToKeys.Exists("ROW|" & CStr(noteRow)) Then GoTo NextLogRow
+            Set keyList = candidateToKeys("ROW|" & CStr(noteRow))
+        End If
 
         eventKey = BoxVersionLogEventKeyShipping(src, r, cEventId, cEventType, cSku, cQtyDelta, cNote, sourceKey)
         If Not seenLogEvents Is Nothing Then
@@ -5167,7 +5377,6 @@ Private Function AddBoxVersionInventoryFromLog(ByVal loLog As ListObject, _
         End If
 
         qtyDelta = NzDbl(src(r, cQtyDelta))
-        Set keyList = candidateToKeys(skuValue)
         For Each candidate In keyList
             If result.Exists(CStr(candidate)) Then AddVersionInventoryDeltaShipping result(CStr(candidate)), versionLabel, qtyDelta
         Next candidate
@@ -5269,9 +5478,11 @@ End Function
 Public Sub RegisterPendingBoxVersionInventoryOverlay(ByVal packageRow As Long, _
                                                      ByVal versionLabel As String, _
                                                      ByVal projectedQty As Double, _
-                                                     Optional ByVal baselineQty As Variant)
+                                                     Optional ByVal baselineQty As Variant, _
+                                                     Optional ByVal includesReservation As Variant)
     Dim key As String
     Dim resolvedBaseline As Double
+    Dim resolvedIncludesReservation As Boolean
 
     EnsurePendingBoxVersionInventoryOverlayLoaded
     key = PendingBoxVersionInventoryKey(packageRow, versionLabel)
@@ -5284,17 +5495,26 @@ Public Sub RegisterPendingBoxVersionInventoryOverlay(ByVal packageRow As Long, _
         Set mPendingBoxVersionInventoryOverlayBaseline = CreateObject("Scripting.Dictionary")
         mPendingBoxVersionInventoryOverlayBaseline.CompareMode = vbTextCompare
     End If
+    If mPendingBoxVersionInventoryOverlayIncludesReservation Is Nothing Then
+        Set mPendingBoxVersionInventoryOverlayIncludesReservation = CreateObject("Scripting.Dictionary")
+        mPendingBoxVersionInventoryOverlayIncludesReservation.CompareMode = vbTextCompare
+    End If
     If projectedQty < 0 Then projectedQty = 0
     If IsMissing(baselineQty) Or Not IsNumeric(baselineQty) Then
         resolvedBaseline = projectedQty
     Else
         resolvedBaseline = CDbl(baselineQty)
     End If
+    If Not IsMissing(includesReservation) Then resolvedIncludesReservation = CBool(includesReservation)
     If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then
-        If CDbl(mPendingBoxVersionInventoryOverlayBaseline(key)) > resolvedBaseline Then resolvedBaseline = CDbl(mPendingBoxVersionInventoryOverlayBaseline(key))
+        resolvedBaseline = CDbl(mPendingBoxVersionInventoryOverlayBaseline(key))
+    End If
+    If mPendingBoxVersionInventoryOverlayIncludesReservation.Exists(key) Then
+        resolvedIncludesReservation = resolvedIncludesReservation Or CBool(mPendingBoxVersionInventoryOverlayIncludesReservation(key))
     End If
     mPendingBoxVersionInventoryOverlay(key) = projectedQty
     mPendingBoxVersionInventoryOverlayBaseline(key) = resolvedBaseline
+    mPendingBoxVersionInventoryOverlayIncludesReservation(key) = resolvedIncludesReservation
     PersistPendingBoxVersionInventoryOverlay
 End Sub
 
@@ -5304,6 +5524,7 @@ Public Sub ClearPendingBoxVersionInventoryOverlay()
     overlayPath = PersistentPendingBoxVersionInventoryOverlayPath()
     Set mPendingBoxVersionInventoryOverlay = Nothing
     Set mPendingBoxVersionInventoryOverlayBaseline = Nothing
+    Set mPendingBoxVersionInventoryOverlayIncludesReservation = Nothing
     mPendingBoxVersionInventoryOverlayPath = ""
     DeleteFileIfExistsShipping overlayPath
 End Sub
@@ -5315,6 +5536,7 @@ End Sub
 Public Sub ResetPendingBoxVersionInventoryOverlayCacheForTest()
     Set mPendingBoxVersionInventoryOverlay = Nothing
     Set mPendingBoxVersionInventoryOverlayBaseline = Nothing
+    Set mPendingBoxVersionInventoryOverlayIncludesReservation = Nothing
     mPendingBoxVersionInventoryOverlayPath = ""
 End Sub
 
@@ -5338,7 +5560,7 @@ Public Function ShippingSystemOverlayDiagnostic() As String
     resultText = "OverlayPath=" & overlayPath
     resultText = resultText & "; FileExists=" & CStr(fileExists)
     resultText = resultText & "; OverlayCount=" & CStr(overlayCount)
-    resultText = resultText & "; DisplayUsesOverlay=True"
+    resultText = resultText & "; DisplayUsesOverlay=False"
     ShippingSystemOverlayDiagnostic = resultText
     Exit Function
 
@@ -5375,6 +5597,7 @@ Public Sub EvictCompletedShipmentInventoryOverlaysForShippables(ByVal shippables
     Dim backendQty As Double
     Dim overlayQty As Double
     Dim sentKey As String
+    Dim pendingKey As String
     Dim changed As Boolean
 
     EnsurePendingBoxVersionInventoryOverlayLoaded
@@ -5385,18 +5608,30 @@ Public Sub EvictCompletedShipmentInventoryOverlaysForShippables(ByVal shippables
     For r = 1 To UBound(shippables, 1)
         packageRow = NzLng(shippables(r, 1))
         versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(shippables(r, 3)))
-        sentKey = SentPendingBoxVersionInventoryKey(packageRow, versionLabel)
-        If sentKey = "" Then GoTo NextRow
-        If Not mPendingBoxVersionInventoryOverlay.Exists(sentKey) Then GoTo NextRow
         If Not IsNumeric(shippables(r, 4)) Then GoTo NextRow
         backendQty = CDbl(shippables(r, 4))
         If backendQty <= 0.0000001 Then GoTo NextRow
-        overlayQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
-        If backendQty <= overlayQty + 0.0000001 Then
-            mPendingBoxVersionInventoryOverlay.Remove sentKey
-            If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
-                If mPendingBoxVersionInventoryOverlayBaseline.Exists(sentKey) Then mPendingBoxVersionInventoryOverlayBaseline.Remove sentKey
+
+        sentKey = SentPendingBoxVersionInventoryKey(packageRow, versionLabel)
+        If sentKey <> "" Then
+            If mPendingBoxVersionInventoryOverlay.Exists(sentKey) Then
+                overlayQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
+                If PendingOverlayBackendCaughtUp(sentKey, backendQty, overlayQty) Then
+                    RemovePendingBoxVersionInventoryOverlayKey sentKey
+                    pendingKey = PendingBoxVersionInventoryKey(packageRow, versionLabel)
+                    If pendingKey <> "" Then RemovePendingBoxVersionInventoryOverlayKey pendingKey
+                    changed = True
+                End If
+                GoTo NextRow
             End If
+        End If
+
+        pendingKey = PendingBoxVersionInventoryKey(packageRow, versionLabel)
+        If pendingKey = "" Then GoTo NextRow
+        If Not mPendingBoxVersionInventoryOverlay.Exists(pendingKey) Then GoTo NextRow
+        overlayQty = CDbl(mPendingBoxVersionInventoryOverlay(pendingKey))
+        If PendingOverlayBackendCaughtUp(pendingKey, backendQty, overlayQty) Then
+            RemovePendingBoxVersionInventoryOverlayKey pendingKey
             changed = True
         End If
 NextRow:
@@ -5455,8 +5690,9 @@ Public Function EvictIdleSentOverlayForRowVersion(ByVal packageRow As Long, _
 
     If backendQty <= 0.0000001 Then Exit Function
     sentProjectedQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
-    If backendQty <= sentProjectedQty + 0.0000001 Then
+    If PendingOverlayBackendCaughtUp(sentKey, backendQty, sentProjectedQty) Then
         RemovePendingBoxVersionInventoryOverlayKey sentKey
+        RemovePendingBoxVersionInventoryOverlayKey PendingBoxVersionInventoryKey(packageRow, versionLabel)
         EvictIdleSentOverlayForRowVersion = True
     End If
 End Function
@@ -5480,8 +5716,10 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
             pendingQty = CDbl(mPendingBoxVersionInventoryOverlay(sentKey))
             If IsNumeric(backendValue) Then
                 backendQty = CDbl(backendValue)
-                If backendQty <= pendingQty + 0.0000001 Then
+                If PendingOverlayBackendCaughtUp(sentKey, backendQty, pendingQty) Then
                     RemovePendingBoxVersionInventoryOverlayKey sentKey
+                    key = PendingBoxVersionInventoryKey(packageRow, versionLabel)
+                    If key <> "" Then RemovePendingBoxVersionInventoryOverlayKey key
                     Exit Function
                 End If
             End If
@@ -5506,13 +5744,19 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
             If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
                 If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then mPendingBoxVersionInventoryOverlayBaseline.Remove key
             End If
+            If Not mPendingBoxVersionInventoryOverlayIncludesReservation Is Nothing Then
+                If mPendingBoxVersionInventoryOverlayIncludesReservation.Exists(key) Then mPendingBoxVersionInventoryOverlayIncludesReservation.Remove key
+            End If
             PersistPendingBoxVersionInventoryOverlay
             Exit Function
         End If
-        If backendQty > baselineQty + 0.0000001 Then
+        If Abs(backendQty - pendingQty) > 0.0000001 And Abs(baselineQty - pendingQty) <= 0.0000001 Then
             mPendingBoxVersionInventoryOverlay.Remove key
             If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
                 If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then mPendingBoxVersionInventoryOverlayBaseline.Remove key
+            End If
+            If Not mPendingBoxVersionInventoryOverlayIncludesReservation Is Nothing Then
+                If mPendingBoxVersionInventoryOverlayIncludesReservation.Exists(key) Then mPendingBoxVersionInventoryOverlayIncludesReservation.Remove key
             End If
             PersistPendingBoxVersionInventoryOverlay
             Exit Function
@@ -5521,11 +5765,29 @@ Private Function PendingBoxVersionInventoryOverlayValue(ByVal packageRow As Long
     PendingBoxVersionInventoryOverlayValue = pendingQty
 End Function
 
+Private Function PendingOverlayBackendCaughtUp(ByVal key As String, _
+                                               ByVal backendQty As Double, _
+                                               ByVal pendingQty As Double) As Boolean
+    Dim baselineQty As Double
+
+    baselineQty = PendingOverlayBaselineForKey(key)
+    If baselineQty < pendingQty - 0.0000001 Then
+        PendingOverlayBackendCaughtUp = (backendQty >= pendingQty - 0.0000001)
+    ElseIf baselineQty > pendingQty + 0.0000001 Then
+        PendingOverlayBackendCaughtUp = (backendQty <= pendingQty + 0.0000001)
+    Else
+        PendingOverlayBackendCaughtUp = True
+    End If
+End Function
+
 Private Sub RemovePendingBoxVersionInventoryOverlayKey(ByVal key As String)
     If mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Sub
     If mPendingBoxVersionInventoryOverlay.Exists(key) Then mPendingBoxVersionInventoryOverlay.Remove key
     If Not mPendingBoxVersionInventoryOverlayBaseline Is Nothing Then
         If mPendingBoxVersionInventoryOverlayBaseline.Exists(key) Then mPendingBoxVersionInventoryOverlayBaseline.Remove key
+    End If
+    If Not mPendingBoxVersionInventoryOverlayIncludesReservation Is Nothing Then
+        If mPendingBoxVersionInventoryOverlayIncludesReservation.Exists(key) Then mPendingBoxVersionInventoryOverlayIncludesReservation.Remove key
     End If
     PersistPendingBoxVersionInventoryOverlay
 End Sub
@@ -5602,16 +5864,21 @@ Private Sub RegisterSentBoxVersionInventoryOverlay(ByVal packageRow As Long, _
         Set mPendingBoxVersionInventoryOverlayBaseline = CreateObject("Scripting.Dictionary")
         mPendingBoxVersionInventoryOverlayBaseline.CompareMode = vbTextCompare
     End If
+    If mPendingBoxVersionInventoryOverlayIncludesReservation Is Nothing Then
+        Set mPendingBoxVersionInventoryOverlayIncludesReservation = CreateObject("Scripting.Dictionary")
+        mPendingBoxVersionInventoryOverlayIncludesReservation.CompareMode = vbTextCompare
+    End If
     If projectedQty < 0 Then projectedQty = 0
-    If baselineQty < projectedQty Then baselineQty = projectedQty
 
     activeKey = PendingBoxVersionInventoryKey(packageRow, versionLabel)
     If activeKey <> "" Then
         If mPendingBoxVersionInventoryOverlay.Exists(activeKey) Then mPendingBoxVersionInventoryOverlay.Remove activeKey
         If mPendingBoxVersionInventoryOverlayBaseline.Exists(activeKey) Then mPendingBoxVersionInventoryOverlayBaseline.Remove activeKey
+        If mPendingBoxVersionInventoryOverlayIncludesReservation.Exists(activeKey) Then mPendingBoxVersionInventoryOverlayIncludesReservation.Remove activeKey
     End If
     mPendingBoxVersionInventoryOverlay(sentKey) = projectedQty
     mPendingBoxVersionInventoryOverlayBaseline(sentKey) = baselineQty
+    mPendingBoxVersionInventoryOverlayIncludesReservation(sentKey) = True
     PersistPendingBoxVersionInventoryOverlay
 End Sub
 
@@ -5625,6 +5892,7 @@ Private Sub EnsurePendingBoxVersionInventoryOverlayLoaded()
     Dim key As String
     Dim qtyText As String
     Dim baselineText As String
+    Dim includesText As String
 
     filePath = PersistentPendingBoxVersionInventoryOverlayPath()
     If mPendingBoxVersionInventoryOverlayPath = filePath And Not mPendingBoxVersionInventoryOverlay Is Nothing Then Exit Sub
@@ -5633,6 +5901,8 @@ Private Sub EnsurePendingBoxVersionInventoryOverlayLoaded()
     mPendingBoxVersionInventoryOverlay.CompareMode = vbTextCompare
     Set mPendingBoxVersionInventoryOverlayBaseline = CreateObject("Scripting.Dictionary")
     mPendingBoxVersionInventoryOverlayBaseline.CompareMode = vbTextCompare
+    Set mPendingBoxVersionInventoryOverlayIncludesReservation = CreateObject("Scripting.Dictionary")
+    mPendingBoxVersionInventoryOverlayIncludesReservation.CompareMode = vbTextCompare
     mPendingBoxVersionInventoryOverlayPath = filePath
     If filePath = "" Then Exit Sub
     If Len(Dir$(filePath, vbNormal)) = 0 Then Exit Sub
@@ -5647,6 +5917,8 @@ Private Sub EnsurePendingBoxVersionInventoryOverlayLoaded()
             qtyText = Trim$(UnescapeHoldField(CStr(parts(1))))
             baselineText = qtyText
             If UBound(parts) >= 2 Then baselineText = Trim$(UnescapeHoldField(CStr(parts(2))))
+            includesText = ""
+            If UBound(parts) >= 3 Then includesText = Trim$(UnescapeHoldField(CStr(parts(3))))
             If key <> "" And IsNumeric(Replace$(qtyText, ",", "")) Then
                 mPendingBoxVersionInventoryOverlay(key) = CDbl(Replace$(qtyText, ",", ""))
                 If IsNumeric(Replace$(baselineText, ",", "")) Then
@@ -5654,6 +5926,7 @@ Private Sub EnsurePendingBoxVersionInventoryOverlayLoaded()
                 Else
                     mPendingBoxVersionInventoryOverlayBaseline(key) = CDbl(Replace$(qtyText, ",", ""))
                 End If
+                mPendingBoxVersionInventoryOverlayIncludesReservation(key) = OverlayIncludesReservationTextIsTrue(includesText)
             End If
         End If
     Loop
@@ -5683,7 +5956,8 @@ Private Sub PersistPendingBoxVersionInventoryOverlay()
         For Each key In mPendingBoxVersionInventoryOverlay.Keys
             Print #fileNum, EscapeHoldField(CStr(key)) & vbTab & _
                             EscapeHoldField(CStr(mPendingBoxVersionInventoryOverlay(key))) & vbTab & _
-                            EscapeHoldField(CStr(PendingOverlayBaselineForKey(CStr(key))))
+                            EscapeHoldField(CStr(PendingOverlayBaselineForKey(CStr(key)))) & vbTab & _
+                            EscapeHoldField(IIf(PendingOverlayIncludesReservationForKey(CStr(key)), "1", "0"))
         Next key
     End If
     Close #fileNum
@@ -5704,6 +5978,28 @@ Public Function PendingOverlayBaselineForKey(ByVal key As String) As Double
     If Not mPendingBoxVersionInventoryOverlay Is Nothing Then
         If mPendingBoxVersionInventoryOverlay.Exists(key) Then PendingOverlayBaselineForKey = CDbl(mPendingBoxVersionInventoryOverlay(key))
     End If
+End Function
+
+Private Function PendingOverlayIncludesReservationForKey(ByVal key As String) As Boolean
+    If Not mPendingBoxVersionInventoryOverlayIncludesReservation Is Nothing Then
+        If mPendingBoxVersionInventoryOverlayIncludesReservation.Exists(key) Then
+            PendingOverlayIncludesReservationForKey = CBool(mPendingBoxVersionInventoryOverlayIncludesReservation(key))
+        End If
+    End If
+End Function
+
+Public Function PendingBoxVersionInventoryOverlayIncludesReservation(ByVal packageRow As Long, _
+                                                                    ByVal versionLabel As String) As Boolean
+    Dim key As String
+
+    EnsurePendingBoxVersionInventoryOverlayLoaded
+    key = PendingBoxVersionInventoryKey(packageRow, versionLabel)
+    If key <> "" Then PendingBoxVersionInventoryOverlayIncludesReservation = PendingOverlayIncludesReservationForKey(key)
+End Function
+
+Private Function OverlayIncludesReservationTextIsTrue(ByVal valueText As String) As Boolean
+    valueText = UCase$(Trim$(valueText))
+    OverlayIncludesReservationTextIsTrue = (valueText = "1" Or valueText = "TRUE" Or valueText = "YES")
 End Function
 
 Private Function PendingBoxVersionInventoryKey(ByVal packageRow As Long, ByVal versionLabel As String) As String
@@ -5874,6 +6170,25 @@ Private Function ExtractBoxVersionLabelFromNoteShipping(ByVal noteText As String
     ExtractBoxVersionLabelFromNoteShipping = NormalizeBoxBomVersionLabelShipping(token)
 End Function
 
+Private Function ExtractBoxPackageRowFromNoteShipping(ByVal noteText As String) As Long
+    Dim pos As Long
+    Dim valueStart As Long
+    Dim valueEnd As Long
+    Dim ch As String
+
+    pos = InStr(1, noteText, "ROW=", vbTextCompare)
+    If pos <= 0 Then Exit Function
+    valueStart = pos + Len("ROW=")
+    valueEnd = valueStart
+    Do While valueEnd <= Len(noteText)
+        ch = Mid$(noteText, valueEnd, 1)
+        If ch < "0" Or ch > "9" Then Exit Do
+        valueEnd = valueEnd + 1
+    Loop
+    If valueEnd <= valueStart Then Exit Function
+    ExtractBoxPackageRowFromNoteShipping = CLng(Mid$(noteText, valueStart, valueEnd - valueStart))
+End Function
+
 Public Function BoxMakerFormLoadVersions(ByVal packageRow As Long) As Variant
     On Error GoTo FailSoft
 
@@ -5980,7 +6295,7 @@ Private Function BoxMakerShippingBomSourceTable(ByVal ws As Worksheet, _
         Exit Function
     End If
 
-    RefreshShippingBomViewForWorkbook ws.Parent, report
+    RefreshShippingBomViewForWorkbook ws.Parent, report, True
     Set loView = GetListObject(ws, TABLE_SHIPPING_BOM_VIEW)
     If Not loView Is Nothing Then
         If ShippingBomViewHasPackageRows(loView) Then
@@ -6730,20 +7045,28 @@ Public Function ShipmentsProjectedDisplayQty(ByVal nasQty As Double, _
                                              Optional ByVal overlayIncludesReservation As Boolean = True) As Double
     Dim projectedQty As Double
 
-    If Not IsMissing(pendingOverlayQty) Then
-        If IsNumeric(pendingOverlayQty) Then
-            If overlayIncludesReservation Then
-                projectedQty = CDbl(pendingOverlayQty)
-                If projectedQty < 0 Then projectedQty = 0
-                ShipmentsProjectedDisplayQty = projectedQty
-                Exit Function
-            End If
-        End If
-    End If
-
     projectedQty = nasQty - lockedQty
     If projectedQty < 0 Then projectedQty = 0
     ShipmentsProjectedDisplayQty = projectedQty
+End Function
+
+Public Function ShipmentsProjectedDisplayQtyWithOverlay(ByVal nasQty As Double, _
+                                                        ByVal activeQty As Double, _
+                                                        ByVal pendingOverlayQty As Variant, _
+                                                        Optional ByVal overlayIncludesReservation As Boolean = False) As Double
+    Dim projectedQty As Double
+
+    If Not IsMissing(pendingOverlayQty) Then
+        If IsNumeric(pendingOverlayQty) Then
+            projectedQty = CDbl(pendingOverlayQty)
+            If activeQty > 0.0000001 And Not overlayIncludesReservation Then projectedQty = projectedQty - activeQty
+            If projectedQty < 0 Then projectedQty = 0
+            ShipmentsProjectedDisplayQtyWithOverlay = projectedQty
+            Exit Function
+        End If
+    End If
+
+    ShipmentsProjectedDisplayQtyWithOverlay = ShipmentsProjectedDisplayQty(nasQty, activeQty)
 End Function
 
 Public Function ShipmentsProjectedDisplayQtyForTest(ByVal nasQty As Double, _
@@ -6798,8 +7121,16 @@ Public Function ShipmentsSentProjectedOverlayQtyForTest(ByVal backendQty As Doub
                                                         ByVal existingProjectedQty As Double, _
                                                         ByVal shippedQty As Double, _
                                                         Optional ByVal hasExistingOverlay As Boolean = False, _
-                                                        Optional ByVal isReservedRow As Boolean = False) As Double
-    ShipmentsSentProjectedOverlayQtyForTest = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, shippedQty, hasExistingOverlay, isReservedRow)
+                                                        Optional ByVal isReservedRow As Boolean = False, _
+                                                        Optional ByVal existingOverlayIncludesReservation As Boolean = False) As Double
+    ShipmentsSentProjectedOverlayQtyForTest = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, shippedQty, hasExistingOverlay, isReservedRow, existingOverlayIncludesReservation)
+End Function
+
+Public Function ShipmentsProjectedDisplayQtyWithOverlayForTest(ByVal nasQty As Double, _
+                                                               ByVal activeQty As Double, _
+                                                               ByVal pendingOverlayQty As Double, _
+                                                               Optional ByVal overlayIncludesReservation As Boolean = False) As Double
+    ShipmentsProjectedDisplayQtyWithOverlayForTest = ShipmentsProjectedDisplayQtyWithOverlay(nasQty, activeQty, pendingOverlayQty, overlayIncludesReservation)
 End Function
 
 Public Function LastShipmentsSentOverlayDebugForTest() As String
@@ -6928,21 +7259,33 @@ Private Function ShipmentsSentProjectedOverlayQty(ByVal backendQty As Double, _
                                                   ByVal existingProjectedQty As Double, _
                                                   ByVal shippedQty As Double, _
                                                   Optional ByVal hasExistingOverlay As Boolean = False, _
-                                                  Optional ByVal isReservedRow As Boolean = False) As Double
+                                                  Optional ByVal isReservedRow As Boolean = False, _
+                                                  Optional ByVal existingOverlayIncludesReservation As Boolean = False) As Double
     Dim projectedQty As Double
 
     If isReservedRow Then
+        If hasExistingOverlay Then
+            projectedQty = existingProjectedQty
+            If projectedQty < 0 Then projectedQty = 0
+            ShipmentsSentProjectedOverlayQty = projectedQty
+            Exit Function
+        End If
         projectedQty = backendQty - shippedQty
         If projectedQty < 0 Then projectedQty = 0
-        If hasExistingOverlay And backendQty <= 0.0000001 And existingProjectedQty > 0.0000001 Then projectedQty = existingProjectedQty
-        If hasExistingOverlay And existingProjectedQty <= backendQty Then projectedQty = existingProjectedQty
         ShipmentsSentProjectedOverlayQty = projectedQty
         Exit Function
     End If
 
-    projectedQty = backendQty - shippedQty
+    If hasExistingOverlay Then
+        If existingOverlayIncludesReservation Then
+            projectedQty = existingProjectedQty
+        Else
+            projectedQty = existingProjectedQty - shippedQty
+        End If
+    Else
+        projectedQty = backendQty - shippedQty
+    End If
     If projectedQty < 0 Then projectedQty = 0
-    If hasExistingOverlay And existingProjectedQty <= backendQty Then projectedQty = existingProjectedQty
     ShipmentsSentProjectedOverlayQty = projectedQty
 End Function
 
@@ -7464,7 +7807,12 @@ Public Function ShipmentsFormRecentHistoryText(Optional ByVal limitCount As Long
 
     inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
     openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
-    Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+    Set inventoryWb = ResolveInventoryWorkbookBridgeSoftShipping(warehouseId)
+    If inventoryWb Is Nothing Then Set inventoryWb = ResolveShippingInventoryWorkbookForLogRead(warehouseId, inventoryPath, openedTransient)
+    If inventoryWb Is Nothing Then
+        Set inventoryWb = FirstOpenShippingInventoryWorkbookWithLog()
+        If Not inventoryWb Is Nothing Then openedTransient = False
+    End If
     logText = RecentShipmentInventoryLogTextShipping(inventoryWb, limitCount)
     pipelineText = ShipmentPipelineStatusTextShipping(warehouseId, stationId)
 
@@ -7504,7 +7852,12 @@ Public Function ShipmentsFormExportHistoryToSheet(Optional ByVal limitCount As L
     warehouseId = ResolveCurrentShippingWarehouseId()
     inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
     openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
-    Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+    Set inventoryWb = ResolveInventoryWorkbookBridgeSoftShipping(warehouseId)
+    If inventoryWb Is Nothing Then Set inventoryWb = ResolveShippingInventoryWorkbookForLogRead(warehouseId, inventoryPath, openedTransient)
+    If inventoryWb Is Nothing Then
+        Set inventoryWb = FirstOpenShippingInventoryWorkbookWithLog()
+        If Not inventoryWb Is Nothing Then openedTransient = False
+    End If
     Set rows = RecentShipmentHistoryRowsShipping(inventoryWb, limitCount)
 
     Set ws = EnsureShipmentHistoryWorksheetShipping(targetWb)
@@ -7565,7 +7918,9 @@ Public Function BoxMakerFormExportHistoryToSheet(Optional ByVal limitCount As Lo
     Dim i As Long
     Dim exportedCount As Long
     Dim sourceSummary As String
+    Dim stepName As String
 
+    stepName = "validate target"
     If limitCount <= 0 Then limitCount = 100
     If targetWb Is Nothing Then Set targetWb = ActiveWorkbook
     If targetWb Is Nothing Then
@@ -7573,12 +7928,22 @@ Public Function BoxMakerFormExportHistoryToSheet(Optional ByVal limitCount As Lo
         Exit Function
     End If
 
+    stepName = "resolve inventory"
     warehouseId = ResolveCurrentShippingWarehouseId()
-    inventoryPath = CurrentShippingInventoryWorkbookPath(warehouseId)
-    openedTransient = (inventoryPath <> "" And FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
-    Set inventoryWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(warehouseId)
+    If inventoryWb Is Nothing Then
+        Set inventoryWb = FirstOpenShippingInventoryWorkbookWithLog()
+        If Not inventoryWb Is Nothing Then openedTransient = False
+    End If
+    If inventoryWb Is Nothing Then Set inventoryWb = ResolveInventoryWorkbookBridgeSoftShipping(warehouseId)
+    If inventoryWb Is Nothing Then
+        inventoryPath = CurrentShippingInventoryWorkbookPathSoft(warehouseId)
+        If inventoryPath <> "" Then openedTransient = (FindOpenWorkbookByFullNameShipping(inventoryPath) Is Nothing)
+        Set inventoryWb = ResolveShippingInventoryWorkbookForLogRead(warehouseId, inventoryPath, openedTransient)
+    End If
+    stepName = "load rows"
     Set rows = RecentBoxMakerHistoryRowsShipping(inventoryWb, limitCount)
 
+    stepName = "write sheet"
     Set ws = EnsureBoxMakerHistoryWorksheetShipping(targetWb)
     ws.Cells.Clear
     ws.Range("A1:N1").Value = Array("#", "Event", "OccurredAtUTC", "Ref", "Carrier", "Item", "Version", _
@@ -7610,8 +7975,10 @@ Public Function BoxMakerFormExportHistoryToSheet(Optional ByVal limitCount As Lo
     ws.Columns("A:N").AutoFit
     ws.Activate
 
+    stepName = "source summary"
     sourceSummary = HistoryExportSourceSummaryShipping(inventoryWb, warehouseId, ResolveCurrentShippingStationId(warehouseId), _
                                                        EVENT_TYPE_BOX_BUILD & "," & EVENT_TYPE_BOX_UNBOX)
+    stepName = "close transient"
     If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
     BoxMakerFormExportHistoryToSheet = "Exported " & CStr(exportedCount) & " Box Maker history row(s) to BoxMakerHistory. " & _
                                        sourceSummary
@@ -7619,7 +7986,7 @@ Public Function BoxMakerFormExportHistoryToSheet(Optional ByVal limitCount As Lo
 
 FailSoft:
     If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
-    BoxMakerFormExportHistoryToSheet = "Box Maker history export failed: " & Err.Description
+    BoxMakerFormExportHistoryToSheet = "Box Maker history export failed at " & stepName & ": " & Err.Description
 End Function
 
 Private Function CurrentShippingInventoryWorkbookPath(ByVal warehouseId As String) As String
@@ -7644,6 +8011,16 @@ Private Function CurrentShippingInventoryWorkbookPath(ByVal warehouseId As Strin
     rootPath = NormalizeFolderPathShipping(rootPath)
     If warehouseId = "" Or rootPath = "" Then Exit Function
     CurrentShippingInventoryWorkbookPath = rootPath & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
+End Function
+
+Private Function CurrentShippingInventoryWorkbookPathSoft(ByVal warehouseId As String) As String
+    On Error GoTo FailSoft
+
+    CurrentShippingInventoryWorkbookPathSoft = CurrentShippingInventoryWorkbookPath(warehouseId)
+    Exit Function
+
+FailSoft:
+    CurrentShippingInventoryWorkbookPathSoft = vbNullString
 End Function
 
 Private Function HistoryExportSourceSummaryShipping(ByVal inventoryWb As Workbook, _
@@ -10732,10 +11109,10 @@ Private Sub ApplyStageVersionInventoryOverlayFromRows(ByVal invLo As ListObject,
             sentKey = SentPendingBoxVersionInventoryKey(rowVal, versionLabel)
             sentBaseline = PendingOverlayBaselineForKey(sentKey)
             If sentBaseline <= 0 Then sentBaseline = StageVersionInventoryCurrentQty(invLo, rowVal, itemName, versionLabel)
-            RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, sentProjectedQty - qtyVal, sentBaseline
+            RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, sentProjectedQty - qtyVal, sentBaseline, True
         Else
             nasBaseline = StageVersionInventoryCurrentQty(invLo, rowVal, itemName, versionLabel)
-            RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, nasBaseline, nasBaseline + qtyVal
+            RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, nasBaseline, nasBaseline + qtyVal, True
         End If
 NextRow:
     Next i
@@ -10773,7 +11150,7 @@ Private Sub RegisterDeltaVersionInventoryOverlay(ByVal rowVal As Long, _
 
     newOverlayQty = currentOverlayQty - qtyDelta
     If newOverlayQty < 0 Then newOverlayQty = 0
-    RegisterPendingBoxVersionInventoryOverlay rowVal, normalizedVersion, newOverlayQty, baselineQty
+    RegisterPendingBoxVersionInventoryOverlay rowVal, normalizedVersion, newOverlayQty, baselineQty, True
 End Sub
 
 Private Function StageVersionInventoryCurrentQty(ByVal invLo As ListObject, _
@@ -10836,9 +11213,10 @@ Private Sub SyncSingleVersionInventoryOverlayFromInvSysRows(ByVal invLo As ListO
         versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(loShip.DataBodyRange.Cells(rowIndex, cDesc).Value))
         If rowVal <= 0 Or versionLabel = "" Then GoTo NextRow
         If HasSentOverlayForRowVersion(rowVal, versionLabel) Then GoTo NextRow
+        If PendingBoxVersionInventoryOverlayExists(rowVal, versionLabel) Then GoTo NextRow
         If CountActiveVersionsForPackageShipping(rowVal) <> 1 Then GoTo NextRow
         invIdx = FindInvRowIndexByRow(invLo, rowVal)
-        If invIdx > 0 Then RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value), NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value)
+        If invIdx > 0 Then RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value), NzDbl(invLo.DataBodyRange.Cells(invIdx, cTotal).Value), False
 NextRow:
     Next i
 End Sub
@@ -10870,6 +11248,7 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
     Dim reserveCellText As String
     Dim hasSentOverlay As Boolean
     Dim hadOverlayBeforeReservedOverride As Boolean
+    Dim existingOverlayIncludesReservation As Boolean
 
     mLastShipmentsSentOverlayDebug = vbNullString
     If loShip Is Nothing Then Exit Sub
@@ -10894,6 +11273,7 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
         backendText = ShipmentVersionInventoryBackendText(invLo, rowVal, itemName, versionLabel, backendFromLocal)
         hasSentOverlay = HasSentOverlayForRowVersion(rowVal, versionLabel)
         hasExistingOverlay = PendingBoxVersionInventoryOverlayExists(rowVal, versionLabel)
+        existingOverlayIncludesReservation = PendingBoxVersionInventoryOverlayIncludesReservation(rowVal, versionLabel)
         hadOverlayBeforeReservedOverride = hasExistingOverlay
         projectedText = PendingBoxVersionInventoryOverlayText(rowVal, versionLabel, backendText)
         backendQty = NzDbl(backendText)
@@ -10909,7 +11289,7 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
                 existingProjectedQty = backendQty
             End If
         End If
-        projectedQty = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, qtyVal, hasExistingOverlay, isReservedRow)
+        projectedQty = ShipmentsSentProjectedOverlayQty(backendQty, existingProjectedQty, qtyVal, hasExistingOverlay, isReservedRow, existingOverlayIncludesReservation)
         mLastShipmentsSentOverlayDebug = "row=" & CStr(rowVal) _
             & "; version=" & versionLabel _
             & "; qty=" & CStr(qtyVal) _
@@ -10922,6 +11302,7 @@ Private Sub ApplyShipmentsSentVersionInventoryOverlay(ByVal invLo As ListObject,
             & "; backendFromLocal=" & CStr(backendFromLocal) _
             & "; hasSentOverlay=" & CStr(hasSentOverlay) _
             & "; hadOverlay=" & CStr(hadOverlayBeforeReservedOverride) _
+            & "; overlayIncludesReservation=" & CStr(existingOverlayIncludesReservation) _
             & "; projectedText='" & projectedText & "'" _
             & "; existingProjected=" & CStr(existingProjectedQty) _
             & "; isReserved=" & CStr(isReservedRow) _
@@ -10939,8 +11320,23 @@ Private Function ShipmentVersionInventoryBackendText(ByVal invLo As ListObject, 
     Dim qtyVal As Double
     Dim invIdx As Long
     Dim totalVal As Variant
+    Dim itemCode As String
+    Dim serverQty As Double
+    Dim foundServerQty As Boolean
 
     backendFromLocal = False
+    If Not invLo Is Nothing Then
+        invIdx = FindInvRowIndexByRow(invLo, rowVal)
+        If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+        If invIdx > 0 Then itemCode = Trim$(NzStr(GetInvSysValueByIndex(invLo, invIdx, "ITEM_CODE")))
+    End If
+
+    serverQty = ShipmentServerInventoryBackendQty(rowVal, itemName, itemCode, foundServerQty)
+    If foundServerQty Then
+        ShipmentVersionInventoryBackendText = CStr(serverQty)
+        Exit Function
+    End If
+
     qtyVal = PickerVersionAvailableQty(rowVal, itemName, versionLabel)
     If qtyVal > 0.0000001 Then
         ShipmentVersionInventoryBackendText = CStr(qtyVal)
@@ -10968,6 +11364,160 @@ Private Function ShipmentVersionInventoryBackendText(ByVal invLo As ListObject, 
 
     qtyVal = SingleVersionFallbackAvailableQty(invLo, rowVal, itemName, versionLabel)
     ShipmentVersionInventoryBackendText = CStr(qtyVal)
+End Function
+
+Private Function ShipmentServerInventoryBackendQty(ByVal rowVal As Long, _
+                                                   ByVal itemName As String, _
+                                                   ByVal itemCode As String, _
+                                                   ByRef foundServerQty As Boolean) As Double
+    On Error GoTo CleanExit
+
+    Dim warehouseId As String
+    Dim rootOverride As String
+    Dim configRoot As String
+    Dim inventoryPath As String
+    Dim openedTransient As Boolean
+    Dim inventoryWb As Workbook
+    Dim invLo As ListObject
+    Dim invIdx As Long
+    Dim totalVal As Variant
+
+    foundServerQty = False
+    warehouseId = CurrentShippingWarehouseIdForLocalState()
+    rootOverride = NormalizeFolderPathShipping(modRuntimeWorkbooks.GetCoreDataRootOverride())
+    configRoot = NormalizeFolderPathShipping(modConfig.GetString("PathDataRoot", ""))
+    If Trim$(configRoot) <> "" Then
+        inventoryPath = configRoot & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
+    End If
+    If (Trim$(inventoryPath) = "" Or Len(Dir$(inventoryPath, vbNormal)) = 0) And Trim$(rootOverride) <> "" Then
+        inventoryPath = rootOverride & "\" & warehouseId & ".invSys.Data.Inventory.xlsb"
+    End If
+    If Trim$(inventoryPath) = "" Or Len(Dir$(inventoryPath, vbNormal)) = 0 Then
+        inventoryPath = CurrentShippingInventoryWorkbookPathSoft(warehouseId)
+    End If
+    If Trim$(inventoryPath) <> "" Then
+        Set inventoryWb = ResolveShippingInventoryWorkbookForLogRead(warehouseId, inventoryPath, openedTransient)
+    End If
+    If inventoryWb Is Nothing Then Set inventoryWb = ResolveInventoryWorkbookBridgeSoftShipping(warehouseId)
+    If inventoryWb Is Nothing Then Set inventoryWb = FirstOpenShippingInventoryWorkbookWithLog()
+    If inventoryWb Is Nothing Then GoTo CleanExit
+
+    Set invLo = GetInvSysTableFromWorkbook(inventoryWb)
+    If invLo Is Nothing Then
+        ShipmentServerInventoryBackendQty = ShipmentCanonicalInventoryBackendQty(inventoryWb, rowVal, itemName, itemCode, foundServerQty)
+        GoTo CleanExit
+    End If
+    If invLo.DataBodyRange Is Nothing Then
+        ShipmentServerInventoryBackendQty = ShipmentCanonicalInventoryBackendQty(inventoryWb, rowVal, itemName, itemCode, foundServerQty)
+        GoTo CleanExit
+    End If
+
+    invIdx = FindInvRowIndexByRow(invLo, rowVal)
+    If invIdx <= 0 And Trim$(itemName) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemName)
+    If invIdx <= 0 And Trim$(itemCode) <> "" Then invIdx = FindInvRowIndexByItem(invLo, itemCode)
+    If invIdx <= 0 Then GoTo CleanExit
+
+    totalVal = GetInvSysValueByIndex(invLo, invIdx, "TOTAL INV")
+    If IsBlankInventoryValue(totalVal) Then GoTo CleanExit
+    If Not IsNumeric(totalVal) Then GoTo CleanExit
+
+    ShipmentServerInventoryBackendQty = CDbl(totalVal)
+    foundServerQty = True
+
+CleanExit:
+    If openedTransient Then CloseWorkbookNoSaveShipping inventoryWb
+End Function
+
+Private Function ShipmentCanonicalInventoryBackendQty(ByVal inventoryWb As Workbook, _
+                                                      ByVal rowVal As Long, _
+                                                      ByVal itemName As String, _
+                                                      ByVal itemCode As String, _
+                                                      ByRef foundServerQty As Boolean) As Double
+    On Error GoTo CleanExit
+
+    Dim loBalance As ListObject
+    Dim skuValue As String
+    Dim cSku As Long
+    Dim cQty As Long
+    Dim r As Long
+
+    foundServerQty = False
+    If inventoryWb Is Nothing Then Exit Function
+
+    skuValue = ShipmentCanonicalInventorySku(inventoryWb, rowVal, itemName, itemCode)
+    If skuValue = "" Then skuValue = Trim$(itemCode)
+    If skuValue = "" Then skuValue = Trim$(itemName)
+    If skuValue = "" Then Exit Function
+
+    Set loBalance = FindListObjectByNameShipping(inventoryWb, "tblSkuBalance")
+    If loBalance Is Nothing Then Exit Function
+    If loBalance.DataBodyRange Is Nothing Then Exit Function
+    cSku = ColumnIndex(loBalance, "SKU")
+    cQty = ColumnIndex(loBalance, "QtyOnHand")
+    If cSku = 0 Or cQty = 0 Then Exit Function
+
+    For r = 1 To loBalance.DataBodyRange.Rows.Count
+        If StrComp(Trim$(NzStr(loBalance.DataBodyRange.Cells(r, cSku).Value)), skuValue, vbTextCompare) = 0 Then
+            If IsNumeric(loBalance.DataBodyRange.Cells(r, cQty).Value) Then
+                ShipmentCanonicalInventoryBackendQty = CDbl(loBalance.DataBodyRange.Cells(r, cQty).Value)
+                foundServerQty = True
+            End If
+            Exit Function
+        End If
+    Next r
+
+CleanExit:
+End Function
+
+Private Function ShipmentCanonicalInventorySku(ByVal inventoryWb As Workbook, _
+                                               ByVal rowVal As Long, _
+                                               ByVal itemName As String, _
+                                               ByVal itemCode As String) As String
+    On Error GoTo CleanExit
+
+    Dim loCatalog As ListObject
+    Dim cSku As Long
+    Dim cRow As Long
+    Dim cItemCode As Long
+    Dim cItem As Long
+    Dim r As Long
+    Dim candidate As String
+
+    If inventoryWb Is Nothing Then Exit Function
+    Set loCatalog = FindListObjectByNameShipping(inventoryWb, "tblSkuCatalog")
+    If loCatalog Is Nothing Then Exit Function
+    If loCatalog.DataBodyRange Is Nothing Then Exit Function
+
+    cSku = ColumnIndex(loCatalog, "SKU")
+    cRow = ColumnIndex(loCatalog, "ROW")
+    cItemCode = ColumnIndex(loCatalog, "ITEM_CODE")
+    cItem = ColumnIndex(loCatalog, "ITEM")
+    If cSku = 0 Then Exit Function
+
+    For r = 1 To loCatalog.DataBodyRange.Rows.Count
+        If cRow > 0 And rowVal > 0 Then
+            If NzLng(loCatalog.DataBodyRange.Cells(r, cRow).Value) = rowVal Then
+                ShipmentCanonicalInventorySku = Trim$(NzStr(loCatalog.DataBodyRange.Cells(r, cSku).Value))
+                Exit Function
+            End If
+        End If
+        If cItemCode > 0 And Trim$(itemCode) <> "" Then
+            candidate = Trim$(NzStr(loCatalog.DataBodyRange.Cells(r, cItemCode).Value))
+            If StrComp(candidate, Trim$(itemCode), vbTextCompare) = 0 Then
+                ShipmentCanonicalInventorySku = Trim$(NzStr(loCatalog.DataBodyRange.Cells(r, cSku).Value))
+                Exit Function
+            End If
+        End If
+        If cItem > 0 And Trim$(itemName) <> "" Then
+            candidate = Trim$(NzStr(loCatalog.DataBodyRange.Cells(r, cItem).Value))
+            If StrComp(candidate, Trim$(itemName), vbTextCompare) = 0 Then
+                ShipmentCanonicalInventorySku = Trim$(NzStr(loCatalog.DataBodyRange.Cells(r, cSku).Value))
+                Exit Function
+            End If
+        End If
+    Next r
+
+CleanExit:
 End Function
 
 Private Function ShipmentLocalInventoryColumnQty(ByVal invLo As ListObject, _
@@ -12188,7 +12738,7 @@ Public Sub BoxBuilderFormDeleteVersion(ByVal packageRow As Long, ByVal versionLa
         Exit Sub
     End If
 
-    RefreshShippingBomViewForWorkbook ws.Parent, report
+    RefreshShippingBomViewForWorkbook ws.Parent, report, True
     DeleteLocalShippingBomViewRowsForVersion ws, packageRow, versionLabel
     RefreshBoxBomVersionList ws, packageRow
     MsgBox report, vbInformation
@@ -12254,7 +12804,7 @@ Public Function BoxBuilderFormArchiveBox(ByVal packageRow As Long, Optional ByRe
         Exit Function
     End If
 
-    RefreshShippingBomViewForWorkbook ws.Parent, refreshReport
+    RefreshShippingBomViewForWorkbook ws.Parent, refreshReport, True
     RefreshBoxBomVersionList ws, packageRow
     InvalidateAggregates True
     report = archiveReport

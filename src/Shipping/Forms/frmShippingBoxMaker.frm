@@ -498,9 +498,12 @@ Private Function CachedShippableProjectedInventoryText(ByVal packageRow As Long)
     For r = 1 To UBound(mShippableRows, 1)
         If CLng(Val(NzText(mShippableRows(r, 1)))) = packageRow _
            And StrComp(NormalizeVersionText(NzText(mShippableRows(r, 3))), versionLabel, vbTextCompare) = 0 Then
-            CachedShippableProjectedInventoryText = DisplayBoxVersionInventoryText(packageRow, _
-                                                                                  NzText(mShippableRows(r, 3)), _
-                                                                                  NzText(mShippableRows(r, 4)))
+            CachedShippableProjectedInventoryText = NzText(mShippableRows(r, 8))
+            If CachedShippableProjectedInventoryText = "" Then
+                CachedShippableProjectedInventoryText = DisplayBoxVersionInventoryText(packageRow, _
+                                                                                      NzText(mShippableRows(r, 3)), _
+                                                                                      NzText(mShippableRows(r, 4)))
+            End If
             Exit Function
         End If
     Next r
@@ -951,7 +954,8 @@ Private Sub RenderShippableInventoryFromCache()
         rowValue = CLng(Val(NzText(mShippableRows(r, 1))))
         nasInv = NzText(mShippableRows(r, 4))
         If nasInv = "" Then nasInv = "unknown"
-        projectedInv = DisplayBoxVersionInventoryText(rowValue, NzText(mShippableRows(r, 3)), NzText(mShippableRows(r, 4)))
+        projectedInv = NzText(mShippableRows(r, 8))
+        If projectedInv = "" Then projectedInv = DisplayBoxVersionInventoryText(rowValue, NzText(mShippableRows(r, 3)), NzText(mShippableRows(r, 4)))
         If projectedInv = "" Then projectedInv = "unknown"
 
         displayRows(idx, 0) = NzText(mShippableRows(r, 2))
@@ -1210,7 +1214,7 @@ Private Sub RecordPendingVersionInventory(ByVal actionText As String, ByVal qtyM
     End Select
 
     mPendingVersionInv(VersionPendingKey(mSelectedPackageRow, versionLabel)) = projectedQty
-    modTS_Shipments.RegisterPendingBoxVersionInventoryOverlay mSelectedPackageRow, versionLabel, projectedQty, baselineQty
+    modTS_Shipments.RegisterPendingBoxVersionInventoryOverlay mSelectedPackageRow, versionLabel, projectedQty, baselineQty, False
 
 CleanExit:
 End Sub
@@ -1249,8 +1253,14 @@ Private Function DisplayBoxVersionInventoryText(ByVal packageRow As Long, _
     key = VersionPendingKey(packageRow, versionLabel)
     If key = "" Then Exit Function
     If versionLabel = "" Then Exit Function
-    If mPendingVersionInv Is Nothing Then Exit Function
-    If Not mPendingVersionInv.Exists(key) Then Exit Function
+    If mPendingVersionInv Is Nothing Then
+        DisplayBoxVersionInventoryText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, versionLabel, backendText)
+        Exit Function
+    End If
+    If Not mPendingVersionInv.Exists(key) Then
+        DisplayBoxVersionInventoryText = modTS_Shipments.PendingBoxVersionInventoryOverlayText(packageRow, versionLabel, backendText)
+        Exit Function
+    End If
 
     pendingQty = CDbl(mPendingVersionInv(key))
     If Trim$(backendText) <> "" And IsNumeric(Replace$(backendText, ",", "")) Then

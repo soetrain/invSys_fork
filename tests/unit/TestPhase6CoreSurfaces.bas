@@ -6382,7 +6382,7 @@ Public Function TestShippingSentRows_ReservedCompletionKeepsProjectedDeductionWh
     Dim projectedQty As Double
 
     On Error GoTo CleanFail
-    projectedQty = RunShippingSentProjectedOverlayQtyForTest(19, 19, 1, True)
+    projectedQty = RunShippingSentProjectedOverlayQtyForTest(19, 19, 1, True, False, True)
     If projectedQty <> 19 Then
         failureReason = "Reserved Shipments Sent double-subtracted an already-projected shipment; expected 19 but found " & CStr(projectedQty) & "."
         GoTo CleanExit
@@ -7401,7 +7401,7 @@ Public Function TestShippingReserve_RunBatchRefreshUpdatesNasInvFromProjected() 
     savedBoxes(1, 7) = ""
 
     wbOps.Activate
-    shippables = RunShippingMacro1ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes)
+    shippables = RunShippingMacro2ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes, wbOps)
     If IsEmpty(shippables) Then
         failureReason = "Shippable version inventory returned no rows after reserve refresh."
         GoTo CleanExit
@@ -7921,7 +7921,7 @@ Public Function TestShippingShippables_NasInvPrefersCurrentInvSysForSingleActive
     savedBoxes(1, 7) = ""
 
     wbOps.Activate
-    shippables = RunShippingMacro1ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes)
+    shippables = RunShippingMacro2ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes, wbOps)
     If IsEmpty(shippables) Then
         failureReason = "Shippable version inventory returned no rows."
         GoTo CleanExit
@@ -8006,7 +8006,7 @@ Public Function TestBoxMakerShippables_MultiVersionUsesCanonicalInventoryLogFall
     If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
 
     wbOps.Activate
-    shippables = RunShippingMacro1ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes)
+    shippables = RunShippingMacro2ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes, wbOps)
     If IsEmpty(shippables) Then
         failureReason = "Shippable version inventory returned no rows."
         GoTo CleanExit
@@ -8155,7 +8155,7 @@ Public Function TestBoxMakerShippables_VersionNasIgnoresReserveReleaseLogRows() 
     If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
 
     wbOps.Activate
-    shippables = RunShippingMacro1ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes)
+    shippables = RunShippingMacro2ForTest("BoxMakerFormLoadShippableVersionInventory", savedBoxes, wbOps)
     If IsEmpty(shippables) Then
         failureReason = "Shippable version inventory returned no rows."
         GoTo CleanExit
@@ -8358,15 +8358,11 @@ End Function
 
 Public Function TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows() As Long
     Dim failureReason As String
-    Dim overlayPath As String
-    Dim refreshedRows As Variant
-    Dim shippables(1 To 1, 1 To 8) As Variant
-    Dim emptyShipmentRows As Variant
 
     On Error GoTo CleanFail
 
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 2, 0, 0, 20)) <> 20 Then
-        failureReason = "Projected Inv did not keep a pending overlay authoritative while NAS was stale."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 2, 0, 0, 20)) <> 18 Then
+        failureReason = "Projected Inv did not subtract active Shipments list quantity from NAS Inv."
         GoTo CleanExit
     End If
     If CDbl(RunShippingProjectedDisplayQtyForTest(20, 0, 2, 0, 20)) <> 20 Then
@@ -8374,45 +8370,59 @@ Public Function TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows() 
         GoTo CleanExit
     End If
     If CDbl(RunShippingProjectedDisplayQtyForTest(20, 2, 99, 99, 5, False)) <> 18 Then
-        failureReason = "Projected Inv did not fall back to NAS minus active Shipments qty when the overlay is only a base value."
+        failureReason = "Projected Inv still used pending overlay/reservation inputs; those must not affect display."
         GoTo CleanExit
     End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(1, 3, 2, 0, -1)) <> 0 Then
-        failureReason = "Projected Inv went negative instead of clamping a negative overlay to zero."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(1, 3, 2, 0, 1)) <> 0 Then
+        failureReason = "Projected Inv went negative instead of clamping to zero."
         GoTo CleanExit
     End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 5, 0, 0, 999)) <> 999 Then
-        failureReason = "Projected Inv did not use an overlay value higher than stale NAS Inv."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 5, 0, 0, 999)) <> 15 Then
+        failureReason = "Projected Inv did not subtract combined active Shipments list quantity from NAS Inv."
         GoTo CleanExit
     End If
-    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 0, 99, 99, 1, False)) <> 20 Then
-        failureReason = "Projected Inv did not recalculate back to NAS when no authoritative overlay was available."
-        GoTo CleanExit
-    End If
-
-    RunShippingClearProjectedOverlayForTest
-    overlayPath = RunShippingProjectedOverlayPathForTest()
-    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
-    RunShippingRegisterProjectedOverlayForTest 976, "v1", 9, 10
-    shippables(1, 1) = 976
-    shippables(1, 2) = "Projected Overlay Item"
-    shippables(1, 3) = "v1"
-    shippables(1, 4) = 10
-    shippables(1, 8) = 10
-    refreshedRows = RunShippingFormProjectedInventoryForTest(shippables, emptyShipmentRows)
-    If CDbl(NzDblForTest(refreshedRows(1, 8))) <> 9 Then
-        failureReason = "Shipments form refresh let stale NAS Inv override a pending Projected Inv overlay; expected 9 but found " & CStr(refreshedRows(1, 8)) & "."
+    If CDbl(RunShippingProjectedDisplayQtyForTest(20, 0, 99, 99, 1)) <> 20 Then
+        failureReason = "Projected Inv did not recalculate back to NAS when the Shipments list was empty."
         GoTo CleanExit
     End If
 
     TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows = 1
 
 CleanExit:
-    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
-    RunShippingClearProjectedOverlayForTest
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7143, "TestShippingProjectedDisplay_SubtractsLockedAndUnreservedRows", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingProjectedDisplay_UsesOverlayReceiptReservationFlag() As Long
+    Dim failureReason As String
+
+    On Error GoTo CleanFail
+
+    If CDbl(RunShippingProjectedDisplayQtyWithOverlayForTest(10, 1, 40, False)) <> 39 Then
+        failureReason = "Projected Inv did not subtract the active order from a Box Maker receipt overlay that did not already include the reservation."
+        GoTo CleanExit
+    End If
+    If CDbl(RunShippingProjectedDisplayQtyWithOverlayForTest(10, 1, 39, True)) <> 39 Then
+        failureReason = "Projected Inv double-subtracted an active order from a Shipments receipt overlay that already included the reservation."
+        GoTo CleanExit
+    End If
+    If CDbl(RunShippingProjectedDisplayQtyWithOverlayForTest(10, 99, 2, False)) <> 0 Then
+        failureReason = "Projected Inv overlay display went negative instead of clamping to zero."
+        GoTo CleanExit
+    End If
+
+    TestShippingProjectedDisplay_UsesOverlayReceiptReservationFlag = 1
+
+CleanExit:
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7190, "TestShippingProjectedDisplay_UsesOverlayReceiptReservationFlag", failureReason
     End If
     Exit Function
 CleanFail:
@@ -10591,6 +10601,17 @@ Private Function RunShippingMacro1ForTest(ByVal procedureName As String, ByVal a
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
+Private Function RunShippingMacro2ForTest(ByVal procedureName As String, ByVal arg1 As Variant, ByVal arg2 As Variant) As Variant
+    Dim targetWb As Workbook
+    Dim macroName As String
+
+    Set targetWb = ActiveWorkbook
+    macroName = ShippingMacroNameForTest(procedureName)
+    If Not targetWb Is Nothing Then targetWb.Activate
+    RunShippingMacro2ForTest = Application.Run(macroName, arg1, arg2)
+    If Not targetWb Is Nothing Then targetWb.Activate
+End Function
+
 Private Function RunShippingCommitLineForTest(ByVal targetName As String, _
                                               ByVal actionName As String, _
                                               ByVal tableRowIndex As Long, _
@@ -10725,14 +10746,15 @@ Private Function RunShippingSentProjectedOverlayQtyForTest(ByVal backendQty As D
                                                            ByVal existingProjectedQty As Double, _
                                                            ByVal shippedQty As Double, _
                                                            Optional ByVal hasExistingOverlay As Boolean = False, _
-                                                           Optional ByVal isReservedRow As Boolean = False) As Double
+                                                           Optional ByVal isReservedRow As Boolean = False, _
+                                                           Optional ByVal existingOverlayIncludesReservation As Boolean = False) As Double
     Dim targetWb As Workbook
     Dim macroName As String
 
     Set targetWb = ActiveWorkbook
     macroName = ShippingMacroNameForTest("ShipmentsSentProjectedOverlayQtyForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
-    RunShippingSentProjectedOverlayQtyForTest = CDbl(Application.Run(macroName, backendQty, existingProjectedQty, shippedQty, hasExistingOverlay, isReservedRow))
+    RunShippingSentProjectedOverlayQtyForTest = CDbl(Application.Run(macroName, backendQty, existingProjectedQty, shippedQty, hasExistingOverlay, isReservedRow, existingOverlayIncludesReservation))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
@@ -11238,15 +11260,17 @@ Private Function RunShippingProjectedDisplayQtyForTest(ByVal nasQty As Double, _
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
-Private Function RunShippingFormProjectedInventoryForTest(ByVal shippablesArray As Variant, _
-                                                          ByVal shipmentsListData As Variant) As Variant
+Private Function RunShippingProjectedDisplayQtyWithOverlayForTest(ByVal nasQty As Double, _
+                                                                  ByVal activeQty As Double, _
+                                                                  ByVal pendingOverlayQty As Double, _
+                                                                  Optional ByVal overlayIncludesReservation As Boolean = False) As Double
     Dim targetWb As Workbook
     Dim macroName As String
 
     Set targetWb = ActiveWorkbook
-    macroName = ShippingMacroNameForTest("ShipmentsFormProjectedInventoryForTest")
+    macroName = ShippingMacroNameForTest("ShipmentsProjectedDisplayQtyWithOverlayForTest")
     If Not targetWb Is Nothing Then targetWb.Activate
-    RunShippingFormProjectedInventoryForTest = Application.Run(macroName, shippablesArray, shipmentsListData)
+    RunShippingProjectedDisplayQtyWithOverlayForTest = CDbl(Application.Run(macroName, nasQty, activeQty, pendingOverlayQty, overlayIncludesReservation))
     If Not targetWb Is Nothing Then targetWb.Activate
 End Function
 
