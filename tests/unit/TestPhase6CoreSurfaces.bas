@@ -5998,6 +5998,86 @@ CleanFail:
     Resume CleanExit
 End Function
 
+Public Function TestShippingAdd_MergingExistingReservedRowRepairsStaleProjectedDisplay() As Long
+    Dim rootPath As String
+    Dim currentUser As String
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim ok As Boolean
+    Dim overlayPath As String
+    Dim projectedText As String
+
+    rootPath = BuildRuntimeTestRoot("phase6_ship_add_merge_stale_projected")
+    currentUser = "calvin"
+
+    On Error GoTo CleanFail
+    If Not PrepareShippingPostSessionForTest(rootPath, "WH122", "S34", currentUser, failureReason) Then GoTo CleanExit
+
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 968, "SKU-ADD-MERGE-STALE", "Add Merge Stale Item", "EA", "A1", 30
+    AddShippingBomViewRow loBomView, 968, "Add Merge Stale Item", 968, "Add Merge Stale Item", 1, "EA"
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-ADD-MERGE-STALE", "Add Merge Stale Item", 1, 968, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "USPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-ADD-MERGE-STALE-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-ADD-MERGE-STALE-001"
+
+    wbOps.Activate
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+
+    ok = RunShippingCommitLineForTest("SHIP", "ADD", 0, "REF-ADD-MERGE-STALE", "Add Merge Stale Item", 1, 968, "EA", "A1", "v1", "USPS", report, 30, 30)
+    If Not ok Then
+        failureReason = "Add merge into reserved row with stale projected display failed: " & report
+        GoTo CleanExit
+    End If
+    If CDbl(GetTableValue(loShip, 1, "QUANTITY")) <> 2 Then
+        failureReason = "Add merge did not update visible row qty to 2; found " & CStr(GetTableValue(loShip, 1, "QUANTITY")) & "."
+        GoTo CleanExit
+    End If
+    projectedText = RunShippingProjectedOverlayTextForTest(968, "v1", "30")
+    If CDbl(NzDblForTest(projectedText)) <> 28 Then
+        failureReason = "Add merge used stale NAS as projected inventory; expected 28 after two locked units but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingAdd_MergingExistingReservedRowRepairsStaleProjectedDisplay = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    modAuth.SignOut
+    modNasConnection.ForgetTarget "WH122"
+    modNasConnection.ForgetRoot rootPath
+    modNasConnection.ClearWarehouseTarget
+    modRuntimeWorkbooks.ClearCoreDataRootOverride
+    CloseWorkbookIfOpen wbOps
+    CloseWorkbookIfOpen FindWorkbookByName("WH122.invSys.Data.ShippingReservations.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH122.invSys.Auth.xlsb")
+    CloseWorkbookIfOpen FindWorkbookByName("WH122.invSys.Config.xlsb")
+    DeleteRuntimeRoot rootPath
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7186, "TestShippingAdd_MergingExistingReservedRowRepairsStaleProjectedDisplay", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
 Public Function TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay() As Long
     Dim rootPath As String
     Dim currentUser As String

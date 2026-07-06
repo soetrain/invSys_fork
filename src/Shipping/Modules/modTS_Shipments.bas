@@ -8847,7 +8847,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                 GoTo CleanExit
             End If
         End If
-        RegisterDeltaVersionInventoryOverlay rowValue, descriptionValue, qtyDelta, displayedAvailableQty, existingQtyValue
+        RegisterDeltaVersionInventoryOverlay rowValue, descriptionValue, qtyDelta, displayedAvailableQty, existingQtyValue, displayedNasQty
         WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, existingReserveEventId
         If Not UpsertShippingReservationForRow(lo, lr.Index, existingReserveEventId, report) Then
             If report = "" Then report = "Warning: local quantity delta was applied, but the shipping reservation ledger was not refreshed."
@@ -11128,12 +11128,15 @@ Private Sub RegisterDeltaVersionInventoryOverlay(ByVal rowVal As Long, _
                                                  ByVal versionLabel As String, _
                                                  ByVal qtyDelta As Double, _
                                                  ByVal displayedAvailableQty As Variant, _
-                                                 ByVal existingQtyValue As Double)
+                                                 ByVal existingQtyValue As Double, _
+                                                 Optional ByVal displayedNasQty As Variant)
     Dim normalizedVersion As String
     Dim currentOverlayQty As Double
     Dim baselineQty As Double
     Dim projectedText As String
     Dim newOverlayQty As Double
+    Dim nasQty As Double
+    Dim preDeltaProjectedQty As Double
 
     normalizedVersion = NormalizeBoxBomVersionLabelShipping(versionLabel)
     If rowVal <= 0 Or normalizedVersion = "" Then Exit Sub
@@ -11141,6 +11144,15 @@ Private Sub RegisterDeltaVersionInventoryOverlay(ByVal rowVal As Long, _
 
     If IsNumeric(displayedAvailableQty) Then
         currentOverlayQty = CDbl(displayedAvailableQty)
+        If IsNumeric(displayedNasQty) And existingQtyValue > 0.0000001 Then
+            nasQty = CDbl(displayedNasQty)
+            preDeltaProjectedQty = nasQty - existingQtyValue
+            If preDeltaProjectedQty < 0 Then preDeltaProjectedQty = 0
+            If Abs(currentOverlayQty - nasQty) <= 0.0000001 _
+               And preDeltaProjectedQty < currentOverlayQty Then
+                currentOverlayQty = preDeltaProjectedQty
+            End If
+        End If
     Else
         projectedText = PendingBoxVersionInventoryOverlayText(rowVal, normalizedVersion, vbNullString)
         If IsNumeric(projectedText) Then currentOverlayQty = CDbl(projectedText)
