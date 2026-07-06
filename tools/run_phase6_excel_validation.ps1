@@ -581,6 +581,7 @@ try {
         "TestPhase6CoreSurfaces.TestShippingUpdate_RepairsMissingInvSysRowBeforeDelta",
         "TestPhase6CoreSurfaces.TestShippingQtyDelta_RepairsMissingInvSysRowFromSelectedDisplay",
         "TestPhase6CoreSurfaces.TestShippingAdd_NewReservedRowAppliesSingleProjectedDeduction",
+        "TestPhase6CoreSurfaces.TestShippingAdd_NewReservedRowProjectsAfterPreviousCatchup",
         "TestPhase6CoreSurfaces.TestShippingAdd_MergingExistingReservedRowAppliesOnlyDelta",
         "TestPhase6CoreSurfaces.TestShippingAdd_MergingExistingReservedRowRepairsStaleProjectedDisplay",
         "TestPhase6CoreSurfaces.TestShippingAdd_ComposesActiveReservationWithPendingSentOverlay",

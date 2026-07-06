@@ -5887,9 +5887,9 @@ Public Function TestShippingAdd_NewReservedRowAppliesSingleProjectedDeduction() 
 
     selectedRows(1) = 1
     RunShippingApplyStageOverlayForTest loInv, loShip, selectedRows
-    projectedText = RunShippingProjectedOverlayTextForTest(969, "v1", "6")
-    If CDbl(NzDblForTest(projectedText)) <> 5 Then
-        failureReason = "Fresh Add overlay staging double-deducted Projected Inv; expected 5 but found " & projectedText & "."
+    projectedText = RunShippingProjectedOverlayTextForTest(969, "v1", "5")
+    If CDbl(NzDblForTest(projectedText)) <> 4 Then
+        failureReason = "Fresh Add overlay staging did not deduct Projected Inv; expected 4 but found " & projectedText & "."
         GoTo CleanExit
     End If
 
@@ -5902,6 +5902,69 @@ CleanExit:
     If failureReason <> "" Then
         On Error GoTo 0
         Err.Raise vbObjectError + 7164, "TestShippingAdd_NewReservedRowAppliesSingleProjectedDeduction", failureReason
+    End If
+    Exit Function
+CleanFail:
+    If failureReason = "" Then failureReason = Err.Description
+    Resume CleanExit
+End Function
+
+Public Function TestShippingAdd_NewReservedRowProjectsAfterPreviousCatchup() As Long
+    Dim report As String
+    Dim failureReason As String
+    Dim wbOps As Workbook
+    Dim loInv As ListObject
+    Dim loShip As ListObject
+    Dim loBomView As ListObject
+    Dim overlayPath As String
+    Dim projectedText As String
+    Dim selectedRows(1 To 1) As Long
+
+    On Error GoTo CleanFail
+    Set wbOps = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modRoleWorkbookSurfaces.EnsureShippingWorkbookSurface(wbOps, report) Then GoTo CleanExit
+    Set loInv = FindTableByName(wbOps, "invSys")
+    Set loShip = FindTableByName(wbOps, "ShipmentsTally")
+    Set loBomView = FindTableByName(wbOps, "ShippingBOMView")
+    If loInv Is Nothing Or loShip Is Nothing Or loBomView Is Nothing Then GoTo CleanExit
+
+    AddInvSysSeedRow loInv, 967, "SKU-ADD-AFTER-CATCHUP", "Add After Catchup Item", "EA", "A1", 27
+    AddShippingBomViewRow loBomView, 967, "Add After Catchup Item", 967, "Add After Catchup Item", 1, "EA"
+    SetTableCell loInv, 1, "SHIPMENTS", 1
+    AddShippingTallyRow loShip, "REF-ADD-AFTER-CATCHUP", "Add After Catchup Item", 1, 967, "EA", "A1", "v1"
+    SetTableCell loShip, 1, "AREA", "Warehouse"
+    SetTableCell loShip, 1, "CARRIER", "USPS"
+    SetTableCell loShip, 1, "LINE_ID", "SHIPLINE-ADD-AFTER-CATCHUP-001"
+    SetTableCell loShip, 1, "SERVER_RESERVE_EVENT_ID", "RESERVE-ADD-AFTER-CATCHUP-001"
+
+    wbOps.Activate
+    RunShippingClearProjectedOverlayForTest
+    overlayPath = RunShippingProjectedOverlayPathForTest()
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingRegisterSentProjectedOverlayForTest 967, "v1", 27, 30
+    projectedText = RunShippingProjectedOverlayTextForTest(967, "v1", "27")
+    If CDbl(NzDblForTest(projectedText)) <> 27 Then
+        failureReason = "Test setup did not evict the prior SENT overlay at NAS catch-up; found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    selectedRows(1) = 1
+    RunShippingApplyStageOverlayForTest loInv, loShip, selectedRows
+    projectedText = RunShippingProjectedOverlayTextForTest(967, "v1", "27")
+    If CDbl(NzDblForTest(projectedText)) <> 26 Then
+        failureReason = "Fresh order after NAS catch-up did not project the new lock; expected 26 but found " & projectedText & "."
+        GoTo CleanExit
+    End If
+
+    TestShippingAdd_NewReservedRowProjectsAfterPreviousCatchup = 1
+
+CleanExit:
+    If Trim$(overlayPath) <> "" Then DeleteFileIfExistsForTest overlayPath
+    RunShippingClearProjectedOverlayForTest
+    CloseWorkbookIfOpen wbOps
+    If failureReason <> "" Then
+        On Error GoTo 0
+        Err.Raise vbObjectError + 7187, "TestShippingAdd_NewReservedRowProjectsAfterPreviousCatchup", failureReason
     End If
     Exit Function
 CleanFail:

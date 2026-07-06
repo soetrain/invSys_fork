@@ -11112,7 +11112,7 @@ Private Sub ApplyStageVersionInventoryOverlayFromRows(ByVal invLo As ListObject,
             RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, sentProjectedQty - qtyVal, sentBaseline, True
         Else
             nasBaseline = StageVersionInventoryCurrentQty(invLo, rowVal, itemName, versionLabel)
-            RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, nasBaseline, nasBaseline + qtyVal, True
+            RegisterPendingBoxVersionInventoryOverlay rowVal, versionLabel, nasBaseline - qtyVal, nasBaseline, True
         End If
 NextRow:
     Next i
