@@ -1,7 +1,7 @@
 # invSys Static Implementation Manifest
 
 - Schema: 1.0.0
-- Generated: 2026-09-04T22:29:17Z
+- Generated: 2026-09-04T22:55:10Z
 - Packages: 6
 - Components: 157
 - Procedures: 5399

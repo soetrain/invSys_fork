@@ -29,6 +29,7 @@ function Check([string]$name, [bool]$passed, [string]$contract) {
 
 $revalidate = [regex]::Match($nas, '(?ms)^Public Function TryRevalidateRememberedRoot.*?^End Function').Value
 $folderExists = [regex]::Match($nas, '(?ms)^Private Function FolderExistsNas.*?^End Function').Value
+$normalizer = [regex]::Match($nas, '(?ms)^Private Function NormalizeFolderNas.*?^End Function').Value
 
 Check "ExplorerRevalidation.DirectValidationBeforeReconnect" (
     $revalidate.IndexOf('FolderExistsNas(rootPath)') -ge 0 -and
@@ -45,6 +46,11 @@ Check "ExplorerRevalidation.FailureRemainsFailClosed" (
     $revalidate.Contains('TryReconnectRememberedShareNas(rootPath, shareRoot)') -and
     $nas.Contains('Remembered NAS root is unreachable. Windows error')
 ) "An unavailable root must retain the existing reconnect and fail-closed status path."
+
+Check "ExplorerRevalidation.CanonicalizesExtraLeadingSeparators" (
+    $normalizer.Contains('Do While Left$(NormalizeFolderNas, 3)') -and
+    $normalizer.Contains('Mid$(NormalizeFolderNas, 4)')
+) "A user-entered UNC root with extra leading separators must normalize to exactly two before validation."
 
 Check "ExplorerRevalidation.ContractDocumented" (
     $spec.Contains('**Explorer-compatible NAS revalidation:**') -and

@@ -1,7 +1,7 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-04T22:29:17Z
+- Baseline: 2026-09-04T22:55:10Z
 - Scanner candidates: 1078
 - Reviewed candidates: 1080
 - Approved deletions: 0
@@ -39,7 +39,7 @@
 | src/Core/ClassModules/cDynItemSearch.cls | Core | 1999 |
 | src/Core/Modules/modAuth.bas | Core | 1804 |
 | src/Core/Modules/modConfig.bas | Core | 1683 |
-| src/Core/Modules/modNasConnection.bas | Core | 1508 |
+| src/Core/Modules/modNasConnection.bas | Core | 1511 |
 | src/Core/Modules/modOperatorReadModel.bas | Core | 1919 |
 | src/Core/Modules/modProcessor.bas | Core | 1479 |
 | src/Core/Modules/modRoleEventWriter.bas | Core | 3104 |
@@ -344,7 +344,7 @@
 | duplicate:891f1da4990f603a:CloseTransientProcessorWorkbook+CloseWorkbookIfOpenBootstrap | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:89f3050458713fac:FileExistsConfig+FileExistsReadModel+FileExistsSync | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:90100dbd81315f5a:UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate | CORE | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
-| duplicate:90a902a5b3d1a93c:NormalizeFolderForStatus+NormalizeFolderNas+NormalizeFolderRole | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
+| duplicate:90a902a5b3d1a93c:NormalizeFolderForStatus+NormalizeFolderRole | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:9309dc1c315fa6af:LogDiagnosticSafeBootstrap+LogDiagnosticSafeProcessor+LogDiagnosticSafeReadModel+LogDiagnosticSafeSync | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:96fa371f4acbdb3e:ClearDesignTableRows+DeleteAllRowsHq | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:9ad6d053e5cb74e3:lst_KeyDown+txtSearch_KeyDown | CORE | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |

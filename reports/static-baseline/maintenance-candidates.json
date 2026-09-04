@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-04T22:29:17Z",
+    "generatedAtUtc":  "2026-09-04T22:55:10Z",
     "baseline":  {
                      "componentCount":  157,
                      "procedureCount":  5399,
-                     "lineCount":  121749,
+                     "lineCount":  121752,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192
@@ -4067,17 +4067,15 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "duplicate:90a902a5b3d1a93c:NormalizeFolderForStatus+NormalizeFolderNas+NormalizeFolderRole",
+                           "id":  "duplicate:90a902a5b3d1a93c:NormalizeFolderForStatus+NormalizeFolderRole",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
-                           "componentName":  "modNasConnection",
+                           "componentName":  "modRibbonRuntimeStatus",
                            "procedureNames":  [
                                                   "NormalizeFolderForStatus",
-                                                  "NormalizeFolderNas",
                                                   "NormalizeFolderRole"
                                               ],
                            "sourcePaths":  [
-                                               "src/Core/Modules/modNasConnection.bas",
                                                "src/Core/Modules/modRibbonRuntimeStatus.bas",
                                                "src/Core/Modules/modRoleEventWriter.bas"
                                            ],

@@ -1435,6 +1435,9 @@ End Function
 
 Private Function NormalizeFolderNas(ByVal folderPath As String) As String
     NormalizeFolderNas = Trim$(Replace$(folderPath, "/", "\"))
+    Do While Left$(NormalizeFolderNas, 3) = "\\\"
+        NormalizeFolderNas = "\\" & Mid$(NormalizeFolderNas, 4)
+    Loop
     Do While Len(NormalizeFolderNas) > 3 And Right$(NormalizeFolderNas, 1) = "\"
         NormalizeFolderNas = Left$(NormalizeFolderNas, Len(NormalizeFolderNas) - 1)
     Loop

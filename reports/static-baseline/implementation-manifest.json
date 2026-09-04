@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-04T22:29:17Z",
+    "generatedAtUtc":  "2026-09-04T22:55:10Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -2459,7 +2459,7 @@
                            "name":  "modNasConnection",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modNasConnection.bas",
-                           "lineCount":  1508,
+                           "lineCount":  1511,
                            "procedureNames":  [
                                                   "AddPathIfMissingNas",
                                                   "AddPathToListNas",
@@ -44015,8 +44015,8 @@
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
                            "startLine":  1436,
-                           "endLine":  1441,
-                           "lineCount":  6,
+                           "endLine":  1444,
+                           "lineCount":  9,
                            "directCalls":  [
 
                                            ],
@@ -44035,8 +44035,8 @@
                            "name":  "SamePathNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1443,
-                           "endLine":  1445,
+                           "startLine":  1446,
+                           "endLine":  1448,
                            "lineCount":  3,
                            "directCalls":  [
                                                "NormalizeFolderNas"
@@ -44056,8 +44056,8 @@
                            "name":  "DateFromSerialNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1447,
-                           "endLine":  1449,
+                           "startLine":  1450,
+                           "endLine":  1452,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -44077,8 +44077,8 @@
                            "name":  "TargetDisplayNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1451,
-                           "endLine":  1458,
+                           "startLine":  1454,
+                           "endLine":  1461,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -44098,8 +44098,8 @@
                            "name":  "IsCurrentComputerStationNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1460,
-                           "endLine":  1466,
+                           "startLine":  1463,
+                           "endLine":  1469,
                            "lineCount":  7,
                            "directCalls":  [
                                                "CurrentComputerStationId"
@@ -44119,8 +44119,8 @@
                            "name":  "WarehouseTargetIdentityChangedNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1468,
-                           "endLine":  1480,
+                           "startLine":  1471,
+                           "endLine":  1483,
                            "lineCount":  13,
                            "directCalls":  [
                                                "NormalizeFolderNas"
@@ -44140,8 +44140,8 @@
                            "name":  "SetStatusNas",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1482,
-                           "endLine":  1485,
+                           "startLine":  1485,
+                           "endLine":  1488,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -44161,8 +44161,8 @@
                            "name":  "PromptTextNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1487,
-                           "endLine":  1490,
+                           "startLine":  1490,
+                           "endLine":  1493,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -44182,8 +44182,8 @@
                            "name":  "ResolvePromptDefaultRootNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1492,
-                           "endLine":  1495,
+                           "startLine":  1495,
+                           "endLine":  1498,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -44203,8 +44203,8 @@
                            "name":  "SaveRememberedNasUserNas",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1497,
-                           "endLine":  1502,
+                           "startLine":  1500,
+                           "endLine":  1505,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -44224,8 +44224,8 @@
                            "name":  "ResolveRememberedNasUserNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1504,
-                           "endLine":  1508,
+                           "startLine":  1507,
+                           "endLine":  1511,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -137353,6 +137353,12 @@
                                "entryPoint":  "NormalizedOutputYieldPercent",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4arProductionClarity.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "NormalizeFolderNas",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
                                              ]
                            },
                            {

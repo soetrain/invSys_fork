@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-04T22:29:17Z",
+    "generatedAtUtc":  "2026-09-04T22:55:10Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "90bad4df18291e31af63b4874dc10e9504824fc8b032b12e7138386b0889ef33",
-                          "maintenanceCandidatesSha256":  "59971ab6a5504f130ed7cddec5a1c5d218230722cf1004b07e68061914d6a8ea"
+                          "implementationManifestSha256":  "1594de6c24cba54deff6589aff92677b9ea349f3b6c8aaaa1081a198813e20df",
+                          "maintenanceCandidatesSha256":  "258ed5da662fcd2264a36ad4ae8433b6bca67c4ec867ab4eca4047b69e88d87c"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -140,7 +140,7 @@
                                                   "sourcePath":  "src/Core/Modules/modNasConnection.bas",
                                                   "componentName":  "modNasConnection",
                                                   "packageKey":  "Core",
-                                                  "baselineLineCount":  1508,
+                                                  "baselineLineCount":  1511,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -7539,7 +7539,7 @@
                            "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
-                           "id":  "duplicate:90a902a5b3d1a93c:NormalizeFolderForStatus+NormalizeFolderNas+NormalizeFolderRole",
+                           "id":  "duplicate:90a902a5b3d1a93c:NormalizeFolderForStatus+NormalizeFolderRole",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "REPLACE_DUPLICATE",
                            "disposition":  "REPLACE_DUPLICATE",
@@ -7547,14 +7547,12 @@
                            "reviewedConfidence":  "MEDIUM",
                            "reviewStatus":  "REQUIRES_PROTECTING_TEST",
                            "workstream":  "CORE",
-                           "componentName":  "modNasConnection",
+                           "componentName":  "modRibbonRuntimeStatus",
                            "procedureNames":  [
                                                   "NormalizeFolderForStatus",
-                                                  "NormalizeFolderNas",
                                                   "NormalizeFolderRole"
                                               ],
                            "sourcePaths":  [
-                                               "src/Core/Modules/modNasConnection.bas",
                                                "src/Core/Modules/modRibbonRuntimeStatus.bas",
                                                "src/Core/Modules/modRoleEventWriter.bas"
                                            ],

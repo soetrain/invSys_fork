@@ -1,7 +1,7 @@
 # invSys VBA Maintenance Candidates
 
 - Schema: 1.0.0
-- Generated: 2026-09-04T22:29:17Z
+- Generated: 2026-09-04T22:55:10Z
 - Total candidates: 1078
 - Duplicate-body groups: 192
 - Unresolved dynamic calls: 45
@@ -227,7 +227,7 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_DUPLICATE | LOW | frmShipmentsTally | mBtnBoxMakerMake_Click, mBtnBoxMakerUnmake_Click | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | mProduction | DeleteShapeIfExists, DeleteShapeIfExists | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | LOW | frmAdminDesignLifecycle | UserForm_Activate, UserForm_Activate, UserForm_Activate, UserForm_Activate, UserForm_Activate, UserForm_Activate | Normalized procedure bodies are identical; review before consolidation. |
-| REPLACE_DUPLICATE | HIGH | modNasConnection | NormalizeFolderForStatus, NormalizeFolderNas, NormalizeFolderRole | Normalized procedure bodies are identical; review before consolidation. |
+| REPLACE_DUPLICATE | HIGH | modRibbonRuntimeStatus | NormalizeFolderForStatus, NormalizeFolderRole | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modOperatorReadModel | LogDiagnosticSafeBootstrap, LogDiagnosticSafeProcessor, LogDiagnosticSafeReadModel, LogDiagnosticSafeSync | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modTesterSetup | RestoreCoreRootOverrideBootstrap, RestoreCoreRootOverrideRetire, RestoreCoreRootOverrideTesterSetup, RestoreRuntimeRootOverrideReadiness | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modHqAggregator | ClearDesignTableRows, DeleteAllRowsHq | Normalized procedure bodies are identical; review before consolidation. |
