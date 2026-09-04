@@ -730,7 +730,7 @@ Public Function ConnectKnownWarehouseServer(ByRef connectedRoot As String, _
     Next rootPath
 
     If roots.Count = 0 Then
-        statusText = "No remembered NAS root is available. Use Admin > Add Warehouse Root or setup to save the server path."
+        statusText = "No remembered NAS root is available. Use Server Sign In to enter an authorized NAS warehouse root."
         SetStatusNas WH_NO_TARGET, statusText
         Exit Function
     End If
@@ -748,7 +748,7 @@ Public Function ConnectKnownWarehouseServer(ByRef connectedRoot As String, _
         End If
     Next rootPath
 
-    If requireUncRoot And Not triedUncRoot Then SetStatusNas WH_NO_TARGET, "No remembered NAS root is available. Use Admin/setup to save the server path."
+    If requireUncRoot And Not triedUncRoot Then SetStatusNas WH_NO_TARGET, "No remembered NAS root is available. Use Server Sign In to enter an authorized NAS warehouse root."
     statusText = m_LastStatusText
 End Function
 

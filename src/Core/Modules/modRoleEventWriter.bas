@@ -185,7 +185,14 @@ Public Sub ConnectWarehouseStorageForCapability(Optional ByVal requiredCapabilit
         EndServerConnectionProgressRole previousCursor, previousStatusBar
         progressStarted = False
     End If
-    If ShouldPromptForServerCredentialsRole(statusText) Then
+    If ShouldPromptForFirstUseServerConnectionRole(statusText) Then
+        If modNasConnection.ShowWarehouseConnectionPromptForTarget(FirstUseServerConnectionPromptRole(), requireStationInbox) Then
+            Set target = modNasConnection.GetCurrentTarget()
+            modRibbonRuntimeStatus.InvalidateWarehouseTargets
+            modRibbonRuntimeStatus.InvalidateCurrentUserRibbons
+            If RoleWarehouseTargetAllowed(target, requireNasTarget, requireStationInbox) Then GoTo CleanExit
+        End If
+    ElseIf ShouldPromptForServerCredentialsRole(statusText) Then
         If modNasConnection.ShowWarehouseConnectionPromptForTarget(ServerCredentialPromptRole(statusText), requireStationInbox) Then
             Set target = modNasConnection.GetCurrentTarget()
             modRibbonRuntimeStatus.InvalidateWarehouseTargets
@@ -200,7 +207,7 @@ ConnectionFailed:
     MsgBox "Could not connect to the warehouse server." & vbCrLf & vbCrLf & _
            "Saved root: " & ValueOrPlaceholderRole(modNasConnection.GetPromptDefaultRoot()) & vbCrLf & _
            "Status: " & ValueOrPlaceholderRole(statusText) & vbCrLf & vbCrLf & _
-           "Use Admin/setup to add or repair the warehouse server root, then try Connect Server again.", _
+           "Use Server Sign In to enter an authorized NAS warehouse root, scan it, and select a warehouse target. Then use invSys Sign In.", _
            vbExclamation, "invSys Warehouse Storage"
 CleanExit:
     If progressStarted Then EndServerConnectionProgressRole previousCursor, previousStatusBar
@@ -238,6 +245,17 @@ Private Function ShouldPromptForServerCredentialsRole(ByVal statusText As String
         (InStr(1, statusText, "credential rejected", vbTextCompare) > 0) Or _
         (InStr(1, statusText, "credential", vbTextCompare) > 0 And InStr(1, statusText, "expired", vbTextCompare) > 0) Or _
         (InStr(1, statusText, "conflicting nas session", vbTextCompare) > 0)
+End Function
+
+Private Function ShouldPromptForFirstUseServerConnectionRole(ByVal statusText As String) As Boolean
+    ShouldPromptForFirstUseServerConnectionRole = _
+        (InStr(1, LCase$(Trim$(statusText)), "no remembered nas root", vbTextCompare) > 0)
+End Function
+
+Private Function FirstUseServerConnectionPromptRole() As String
+    FirstUseServerConnectionPromptRole = _
+        "No NAS warehouse root is saved for this Windows profile." & vbCrLf & vbCrLf & _
+        "Enter an authorized NAS root. If Windows is already connected to the server, click Scan; otherwise enter the server account, click Connect, scan, select the warehouse, then use invSys Sign In."
 End Function
 
 Private Function ServerCredentialPromptRole(ByVal statusText As String) As String

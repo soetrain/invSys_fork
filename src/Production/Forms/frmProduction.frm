@@ -1037,10 +1037,10 @@ Private Sub BuildProcessDesignerPage(ByVal pg As MSForms.Page)
         12, 26, "70 pt;35 pt;95 pt;0 pt;55 pt;0 pt"
     Set mLstProcesses = AddList(pg, "lstProcesses", 12, 44, 260, 92, 6, _
         "70 pt;35 pt;95 pt;0 pt;55 pt;0 pt")
-    Set mBtnProcessRefresh = AddButton(pg, "btnProcessRefresh", "Refresh", 12, 140, 60, 22)
-    Set mBtnProcessNew = AddButton(pg, "btnProcessNew", "New Process", 76, 140, 82, 22)
-    Set mBtnProcessLoad = AddButton(pg, "btnProcessLoad", "View Process", 162, 140, 76, 22)
-    Set mBtnProcessReuse = AddButton(pg, "btnProcessReuse", "Edit as New Version", 242, 140, 116, 22)
+    Set mBtnProcessRefresh = AddButton(pg, "btnProcessRefresh", "Refresh", 12, 144, 60, 22)
+    Set mBtnProcessNew = AddButton(pg, "btnProcessNew", "New Process", 76, 144, 82, 22)
+    Set mBtnProcessLoad = AddButton(pg, "btnProcessLoad", "View Process", 162, 144, 76, 22)
+    Set mBtnProcessReuse = AddButton(pg, "btnProcessReuse", "Edit as New Version", 242, 144, 116, 22)
 
     AddLabel pg, "Process Name", 290, 8, 85, 16
     Set mTxtProcessName = AddText(pg, "txtProcessName", 290, 26, 205, 22)
