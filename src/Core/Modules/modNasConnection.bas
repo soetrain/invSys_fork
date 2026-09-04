@@ -1294,15 +1294,29 @@ Private Function CloneTargetNas(ByVal source As WarehouseTarget) As WarehouseTar
 End Function
 
 Private Function FolderExistsNas(ByVal folderPath As String) As Boolean
-    On Error GoTo CleanFail
-    Err.Clear
+    Dim attributes As Long
+    Dim fso As Object
+
     folderPath = NormalizeFolderNas(folderPath)
     If folderPath = "" Then Exit Function
-    FolderExistsNas = ((GetAttr(folderPath) And vbDirectory) = vbDirectory)
-    Exit Function
 
-CleanFail:
-    FolderExistsNas = False
+    On Error Resume Next
+    Err.Clear
+    attributes = GetAttr(folderPath)
+    If Err.Number = 0 Then
+        FolderExistsNas = ((attributes And vbDirectory) = vbDirectory)
+        If FolderExistsNas Then
+            On Error GoTo 0
+            Exit Function
+        End If
+    End If
+
+    ' Explorer can hold a valid SMB session that GetAttr does not observe.
+    ' Ask the Windows filesystem provider before trying a WNet reconnect.
+    Err.Clear
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso Is Nothing Then FolderExistsNas = fso.FolderExists(folderPath)
+    On Error GoTo 0
 End Function
 
 Private Function FileExistsNas(ByVal filePath As String) As Boolean

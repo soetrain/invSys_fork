@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-04T21:24:31Z",
+    "generatedAtUtc":  "2026-09-04T22:29:17Z",
     "baseline":  {
                      "componentCount":  157,
                      "procedureCount":  5399,
-                     "lineCount":  121735,
+                     "lineCount":  121749,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192
@@ -6737,7 +6737,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Test-Plan022Slice4bkUserOnboardingPacket.ps1"
                                                ],
                            "reviewRequired":  true
                        },

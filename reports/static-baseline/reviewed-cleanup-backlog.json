@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-04T21:24:31Z",
+    "generatedAtUtc":  "2026-09-04T22:29:17Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "24256ca4fa09fa63c73f2567438795526f1f37423a8afca677c761e3889c63c7",
-                          "maintenanceCandidatesSha256":  "df9ac751eba1d91b5e83e13396fb952e80bb5744fe64056120f7a9b9ea9ebc86"
+                          "implementationManifestSha256":  "90bad4df18291e31af63b4874dc10e9504824fc8b032b12e7138386b0889ef33",
+                          "maintenanceCandidatesSha256":  "59971ab6a5504f130ed7cddec5a1c5d218230722cf1004b07e68061914d6a8ea"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -140,7 +140,7 @@
                                                   "sourcePath":  "src/Core/Modules/modNasConnection.bas",
                                                   "componentName":  "modNasConnection",
                                                   "packageKey":  "Core",
-                                                  "baselineLineCount":  1494,
+                                                  "baselineLineCount":  1508,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -3850,7 +3850,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Test-Plan022Slice4bkUserOnboardingPacket.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
