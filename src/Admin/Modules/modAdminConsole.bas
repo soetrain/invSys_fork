@@ -951,6 +951,273 @@ FailAggregate:
     On Error GoTo 0
 End Function
 
+' Discovers published inventory snapshots below one already authenticated NAS
+' root.  Discovery is read-only and does not call Send To or select a warehouse.
+' Each returned record is tab-delimited: WarehouseId, server root, snapshot path,
+' freshness, and a non-secret source fingerprint.
+Public Function DiscoverAggregationSourcesForAdmin(ByVal serverRoot As String, _
+                                                   ByRef sourceRecords As Collection, _
+                                                   Optional ByRef report As String = "") As Boolean
+    Dim fso As Object
+    Dim configFiles As Collection
+    Dim configPath As Variant
+    Dim sourcePath As String
+    Dim warehouseId As String
+    Dim configWarehouseId As String
+    Dim publishedRoot As String
+    Dim seenWarehouse As Object
+    Dim freshness As String
+    Dim fingerprint As String
+    Dim rejected As Long
+
+    On Error GoTo FailDiscover
+
+    serverRoot = SafeTrimAdmin(serverRoot)
+    Set sourceRecords = New Collection
+    If serverRoot = "" Then
+        report = "A connected NAS root is required."
+        Exit Function
+    End If
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FolderExists(serverRoot) Then
+        report = "NAS root is not readable: " & serverRoot
+        Exit Function
+    End If
+
+    Set configFiles = New Collection
+    CollectWarehouseConfigFilesAdmin fso.GetFolder(serverRoot), configFiles, 0
+    Set seenWarehouse = CreateObject("Scripting.Dictionary")
+    seenWarehouse.CompareMode = vbTextCompare
+    For Each configPath In configFiles
+        If Not ReadAggregationConfigSourceAdmin(CStr(configPath), configWarehouseId, publishedRoot) Then
+            rejected = rejected + 1
+        Else
+            sourcePath = ResolvePublishedSnapshotPathAdmin(publishedRoot, configWarehouseId)
+            warehouseId = ReadSnapshotWarehouseIdAdmin(sourcePath)
+            If warehouseId = "" Then
+                rejected = rejected + 1
+            ElseIf StrComp(warehouseId, configWarehouseId, vbTextCompare) <> 0 Then
+                rejected = rejected + 1
+            ElseIf seenWarehouse.Exists(warehouseId) Then
+                rejected = rejected + 1
+            Else
+                seenWarehouse.Add warehouseId, sourcePath
+                freshness = Format$(fso.GetFile(sourcePath).DateLastModified, "yyyy-mm-dd hh:nn:ss")
+                fingerprint = SnapshotFingerprintAdmin(fso.GetFile(sourcePath))
+                sourceRecords.Add warehouseId & vbTab & serverRoot & vbTab & sourcePath & vbTab & freshness & vbTab & fingerprint
+            End If
+        End If
+    Next configPath
+
+    report = "Discovered " & CStr(sourceRecords.Count) & " readable configured warehouse snapshot(s)"
+    If configFiles.Count = 0 Then report = report & "; no runtime configuration workbooks were found under this NAS root"
+    If rejected > 0 Then report = report & "; rejected/skipped " & CStr(rejected) & " duplicate or unnamed source(s)"
+    DiscoverAggregationSourcesForAdmin = True
+    Exit Function
+
+FailDiscover:
+    report = "Aggregation source discovery failed: " & Err.Description
+End Function
+
+' Establishes only the requested Windows NAS session.  It intentionally leaves
+' the current invSys warehouse target unchanged.
+Public Function ConnectAggregationServerForAdmin(ByVal serverRoot As String, _
+                                                 ByVal userName As String, _
+                                                 ByVal windowsPassword As String, _
+                                                 Optional ByRef report As String = "") As Boolean
+    Dim statusCode As NasStatusCode
+
+    statusCode = modNasConnection.ConnectNasRootWithCredentials(serverRoot, userName, windowsPassword)
+    If statusCode = NAS_OK Then
+        report = "Connected. Select Discover to read published snapshots from this NAS root."
+        ConnectAggregationServerForAdmin = True
+    Else
+        report = "NAS connection was not established: " & modNasConnection.GetConnectionStatus()
+    End If
+End Function
+
+' Publishes the existing advisory global snapshot from the caller's explicit,
+' session-only source list.  The source list is never saved to configuration,
+' audit detail, or any warehouse authority workbook.
+Public Function RunHQAggregationFromSourceSet(ByVal sourceFiles As Collection, _
+                                              Optional ByVal adminUserId As String = "", _
+                                              Optional ByVal warehouseId As String = "", _
+                                              Optional ByVal adminWb As Workbook = Nothing, _
+                                              Optional ByRef report As String = "") As Boolean
+    Dim resolvedUser As String
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+    Dim sharePointRoot As String
+    Dim outputPath As String
+    Dim aggregateReport As String
+    Dim refreshReport As String
+    Dim auditWb As Workbook
+    Dim validatedFiles As Collection
+    Dim validationReport As String
+
+    On Error GoTo FailAggregate
+
+    Set auditWb = ResolveAdminWorkbook(adminWb)
+    If auditWb Is Nothing Then
+        report = "Admin workbook not resolved."
+        Exit Function
+    End If
+    If Not EnsureAdminContext(adminUserId, warehouseId, resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
+    If Not RequireAdminMaintenance(resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
+    If Not ValidateAggregationSourceFilesAdmin(sourceFiles, validatedFiles, validationReport) Then
+        report = validationReport
+        Exit Function
+    End If
+
+    sharePointRoot = SafeTrimAdmin(modConfig.GetString("PathSharePointRoot", ""))
+    If sharePointRoot = "" Then
+        report = "Aggregator setup is incomplete: PathSharePointRoot is blank for warehouse " & resolvedWh & "."
+        Exit Function
+    End If
+    outputPath = sharePointRoot & "\\Global\\invSys.Global.InventorySnapshot.xlsb"
+
+    If modHqAggregator.GenerateGlobalSnapshotFromFiles(SerializeAggregationSourceFilesAdmin(validatedFiles), outputPath, aggregateReport) Then
+        report = "Selected sources read: " & CStr(validatedFiles.Count) & ". Advisory global snapshot: " & outputPath & ". " & aggregateReport
+        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
+                         "ADVISORY_GLOBAL_SNAPSHOT", outputPath, "Explicit source set count=" & CStr(validatedFiles.Count), "Aggregation completed", "OK"
+        Call RefreshAdminConsole(auditWb, refreshReport)
+        RunHQAggregationFromSourceSet = True
+    Else
+        report = "Aggregator failed. " & aggregateReport
+        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
+                         "ADVISORY_GLOBAL_SNAPSHOT", outputPath, "Explicit source set count=" & CStr(validatedFiles.Count), "Aggregation failed", "FAIL"
+    End If
+    Exit Function
+
+FailAggregate:
+    report = "RunHQAggregationFromSourceSet failed: " & Err.Description
+End Function
+
+Private Function ValidateAggregationSourceFilesAdmin(ByVal sourceFiles As Collection, _
+                                                     ByRef validatedFiles As Collection, _
+                                                     ByRef report As String) As Boolean
+    Dim fso As Object
+    Dim sourcePath As Variant
+    Dim warehouseId As String
+    Dim seenWarehouse As Object
+
+    Set validatedFiles = New Collection
+    If sourceFiles Is Nothing Then
+        report = "Select one or more published snapshot sources."
+        Exit Function
+    End If
+    If sourceFiles.Count = 0 Then
+        report = "Select one or more published snapshot sources."
+        Exit Function
+    End If
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set seenWarehouse = CreateObject("Scripting.Dictionary")
+    seenWarehouse.CompareMode = vbTextCompare
+    For Each sourcePath In sourceFiles
+        If Not fso.FileExists(CStr(sourcePath)) Then
+            report = "Selected source is no longer readable. Refresh discovery before aggregating."
+            Exit Function
+        End If
+        warehouseId = ReadSnapshotWarehouseIdAdmin(CStr(sourcePath))
+        If warehouseId = "" Then
+            report = "Selected source does not identify a warehouse. Refresh discovery before aggregating."
+            Exit Function
+        End If
+        If seenWarehouse.Exists(warehouseId) Then
+            report = "Rejected: WarehouseId " & warehouseId & " was selected from more than one source identity."
+            Exit Function
+        End If
+        seenWarehouse.Add warehouseId, True
+        validatedFiles.Add CStr(sourcePath)
+    Next sourcePath
+    ValidateAggregationSourceFilesAdmin = True
+End Function
+
+Private Sub CollectWarehouseConfigFilesAdmin(ByVal folder As Object, ByRef files As Collection, ByVal depth As Long)
+    Dim fileItem As Object
+    Dim child As Object
+
+    If folder Is Nothing Then Exit Sub
+    For Each fileItem In folder.Files
+        If LCase$(CStr(fileItem.Name)) Like "*.invsys.config.xls*" Then files.Add CStr(fileItem.Path)
+    Next fileItem
+    If depth >= 4 Then Exit Sub
+    For Each child In folder.SubFolders
+        CollectWarehouseConfigFilesAdmin child, files, depth + 1
+    Next child
+End Sub
+
+Private Function ReadAggregationConfigSourceAdmin(ByVal configPath As String, _
+                                                  ByRef warehouseId As String, _
+                                                  ByRef publishedRoot As String) As Boolean
+    Dim wbCfg As Workbook
+    Dim openedTransient As Boolean
+    Dim loWh As ListObject
+
+    Set wbCfg = OpenWorkbookIfExistsAdmin(configPath, openedTransient)
+    If wbCfg Is Nothing Then Exit Function
+    On Error GoTo CleanExit
+    Set loWh = FindListObjectByNameAdmin(wbCfg, "tblWarehouseConfig")
+    If loWh Is Nothing Then GoTo CleanExit
+    If loWh.DataBodyRange Is Nothing Then GoTo CleanExit
+    warehouseId = SafeTrimAdmin(GetCellByColumnAdmin(loWh, 1, "WarehouseId"))
+    publishedRoot = NormalizePathAdmin(SafeTrimAdmin(GetCellByColumnAdmin(loWh, 1, "PathSharePointRoot")))
+    ReadAggregationConfigSourceAdmin = (warehouseId <> "" And publishedRoot <> "")
+CleanExit:
+    CloseWorkbookIfTransientAdmin wbCfg, openedTransient
+End Function
+
+Private Function ResolvePublishedSnapshotPathAdmin(ByVal publishedRoot As String, ByVal warehouseId As String) As String
+    Dim fso As Object
+    Dim snapshotFolder As String
+    Dim fileItem As Object
+
+    publishedRoot = NormalizePathAdmin(publishedRoot)
+    warehouseId = SafeTrimAdmin(warehouseId)
+    If publishedRoot = "" Or warehouseId = "" Then Exit Function
+    snapshotFolder = publishedRoot & "\Snapshots"
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If fso Is Nothing Then Exit Function
+    If Not fso.FolderExists(snapshotFolder) Then Exit Function
+    For Each fileItem In fso.GetFolder(snapshotFolder).Files
+        If LCase$(CStr(fileItem.Name)) Like LCase$(warehouseId & ".invsys.snapshot.inventory.xls*") Then
+            ResolvePublishedSnapshotPathAdmin = CStr(fileItem.Path)
+            Exit Function
+        End If
+    Next fileItem
+End Function
+
+Private Function ReadSnapshotWarehouseIdAdmin(ByVal sourcePath As String) As String
+    Dim wbSnap As Workbook
+    Dim openedTransient As Boolean
+    Dim lo As ListObject
+
+    Set wbSnap = OpenWorkbookIfExistsAdmin(sourcePath, openedTransient)
+    If wbSnap Is Nothing Then Exit Function
+    On Error GoTo CleanExit
+    Set lo = FindListObjectByNameAdmin(wbSnap, "tblInventorySnapshot")
+    If lo Is Nothing Then GoTo CleanExit
+    If lo.DataBodyRange Is Nothing Then GoTo CleanExit
+    ReadSnapshotWarehouseIdAdmin = SafeTrimAdmin(GetCellByColumnAdmin(lo, 1, "WarehouseId"))
+CleanExit:
+    CloseWorkbookIfTransientAdmin wbSnap, openedTransient
+End Function
+
+Private Function SnapshotFingerprintAdmin(ByVal fileItem As Object) As String
+    SnapshotFingerprintAdmin = "Size=" & CStr(CDbl(fileItem.Size)) & ";Modified=" & Format$(fileItem.DateLastModified, "yyyy-mm-dd hh:nn:ss")
+End Function
+
+Private Function SerializeAggregationSourceFilesAdmin(ByVal sourceFiles As Collection) As String
+    Dim sourcePath As Variant
+
+    If sourceFiles Is Nothing Then Exit Function
+    For Each sourcePath In sourceFiles
+        If SerializeAggregationSourceFilesAdmin <> "" Then SerializeAggregationSourceFilesAdmin = SerializeAggregationSourceFilesAdmin & vbLf
+        SerializeAggregationSourceFilesAdmin = SerializeAggregationSourceFilesAdmin & Replace$(Replace$(CStr(sourcePath), vbCr, ""), vbLf, "")
+    Next sourcePath
+End Function
+
 Private Function CountPublishedInventorySnapshotsAdmin(ByVal sharePointRoot As String) As Long
     Dim snapshotFolder As String
     Dim fileName As String
@@ -1861,6 +2128,7 @@ End Function
 
 Private Function OpenWorkbookIfExistsAdmin(ByVal workbookPath As String, ByRef openedTransient As Boolean) As Workbook
     Dim wb As Workbook
+    Dim priorAutomationSecurity As Long
 
     workbookPath = Trim$(workbookPath)
     If workbookPath = "" Then Exit Function
@@ -1875,8 +2143,15 @@ Private Function OpenWorkbookIfExistsAdmin(ByVal workbookPath As String, ByRef o
     If Not FileExistsAdmin(workbookPath) Then Exit Function
 
     On Error Resume Next
+    priorAutomationSecurity = Application.AutomationSecurity
+    Application.AutomationSecurity = 3
     Set OpenWorkbookIfExistsAdmin = Application.Workbooks.Open(Filename:=workbookPath, UpdateLinks:=0, ReadOnly:=True, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
+    Application.AutomationSecurity = priorAutomationSecurity
     openedTransient = Not OpenWorkbookIfExistsAdmin Is Nothing
+    If Err.Number <> 0 Then
+        Err.Clear
+        Application.AutomationSecurity = priorAutomationSecurity
+    End If
     On Error GoTo 0
 End Function
 

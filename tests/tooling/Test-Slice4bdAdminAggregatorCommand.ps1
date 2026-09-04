@@ -8,10 +8,12 @@ $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 $buildPath = Join-Path $repo "tools\build-xlam.ps1"
 $adminPath = Join-Path $repo "src\Admin\Modules\modAdmin.bas"
 $consolePath = Join-Path $repo "src\Admin\Modules\modAdminConsole.bas"
+$formPath = Join-Path $repo "src\Admin\Forms\frmAggregationSources.frm"
 
 $buildText = Get-Content -Raw -LiteralPath $buildPath
 $adminText = Get-Content -Raw -LiteralPath $adminPath
 $consoleText = Get-Content -Raw -LiteralPath $consolePath
+$formText = Get-Content -Raw -LiteralPath $formPath
 
 $checks = @(
     [pscustomobject]@{
@@ -21,14 +23,15 @@ $checks = @(
     },
     [pscustomobject]@{
         Check = "Slice4bd.PublicAdminHandler"
-        Passed = $adminText -match '(?s)Public\s+Sub\s+Admin_AggregateGlobalSnapshot_Click\s*\(\s*\).*?modAdminConsole\.RunHQAggregationFromAdmin'
-        Detail = "The public Ribbon callback must route through the Admin aggregation action."
+        Passed = $adminText -match '(?s)Public\s+Sub\s+Admin_AggregateGlobalSnapshot_Click\s*\(\s*\).*?frmAggregationSources\.Show'
+        Detail = "The public Ribbon callback must open the explicit source-set action."
     },
     [pscustomobject]@{
         Check = "Slice4bd.AdminAuthorityAndAdvisoryBoundary"
-        Passed = ($consoleText -match '(?s)Public\s+Function\s+RunHQAggregationFromAdmin.*?EnsureAdminContext.*?RequireAdminMaintenance.*?modHqAggregator\.RunHQAggregation.*?AppendAuditEntry') -and
+        Passed = ($consoleText -match '(?s)Public\s+Function\s+RunHQAggregationFromSourceSet.*?EnsureAdminContext.*?RequireAdminMaintenance.*?GenerateGlobalSnapshotFromFiles.*?AppendAuditEntry') -and
+                  ($formText -match 'RunHQAggregationFromSourceSet') -and
                   ($consoleText -match 'ADVISORY')
-        Detail = "The action must enforce Admin context, invoke the existing Aggregator, audit the attempt, and retain advisory wording."
+        Detail = "The source-set action must enforce Admin context, aggregate only explicit sources, audit the attempt, and retain advisory wording."
     }
 )
 

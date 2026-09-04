@@ -76,6 +76,73 @@ FailGenerate:
     DeleteTempFolderHq tempFolder
 End Function
 
+' Aggregates only the explicitly supplied published snapshot files.  The caller
+' owns source selection; this routine deliberately performs no folder scan.
+Public Function GenerateGlobalSnapshotFromFiles(ByVal sourceFilesText As String, _
+                                                ByVal outputPath As String, _
+                                                Optional ByRef report As String = "") As Boolean
+    Dim sourceFiles As Collection
+    Dim sourcePath As Variant
+    Dim tempFolder As String
+    Dim globalRows As Object
+    Dim snapshotFileCount As Long
+    Dim skippedSnapshotFileCount As Long
+    Dim skipDetails As String
+
+    On Error GoTo FailGenerate
+
+    Set sourceFiles = SplitSnapshotPathListHq(sourceFilesText)
+    If sourceFiles.Count = 0 Then
+        report = "At least one explicitly selected snapshot is required."
+        Exit Function
+    End If
+    If Trim$(outputPath) = "" Then
+        report = "Global snapshot output path is required."
+        Exit Function
+    End If
+
+    Set globalRows = CreateObject("Scripting.Dictionary")
+    globalRows.CompareMode = vbTextCompare
+    tempFolder = CreateUniqueTempFolderHq()
+    If tempFolder = "" Then
+        report = "HQ temp folder could not be created."
+        Exit Function
+    End If
+
+    For Each sourcePath In sourceFiles
+        snapshotFileCount = snapshotFileCount + 1
+        If Not TryMergeSnapshotPathHq(CStr(sourcePath), tempFolder, globalRows, skipDetails) Then
+            skippedSnapshotFileCount = skippedSnapshotFileCount + 1
+        End If
+    Next sourcePath
+
+    WriteGlobalSnapshotWorkbook outputPath, globalRows, "Explicit selected sources", snapshotFileCount, skippedSnapshotFileCount
+    report = "Rows=" & CStr(globalRows.Count) & "; SnapshotFiles=" & CStr(snapshotFileCount) & _
+             "; SkippedSnapshotFiles=" & CStr(skippedSnapshotFileCount)
+    If skipDetails <> "" Then report = report & "; Skips=" & skipDetails
+    GenerateGlobalSnapshotFromFiles = True
+    DeleteTempFolderHq tempFolder
+    Exit Function
+
+FailGenerate:
+    report = "GenerateGlobalSnapshotFromFiles failed: " & Err.Description
+    DeleteTempFolderHq tempFolder
+End Function
+
+Private Function SplitSnapshotPathListHq(ByVal sourceFilesText As String) As Collection
+    Dim result As Collection
+    Dim items() As String
+    Dim item As Variant
+
+    Set result = New Collection
+    sourceFilesText = Replace$(sourceFilesText, vbCrLf, vbLf)
+    items = Split(sourceFilesText, vbLf)
+    For Each item In items
+        If Trim$(CStr(item)) <> "" Then result.Add Trim$(CStr(item))
+    Next item
+    Set SplitSnapshotPathListHq = result
+End Function
+
 Private Sub MergeSnapshotRow(ByVal globalRows As Object, _
                              ByVal key As String, _
                              ByVal lo As ListObject, _
@@ -194,6 +261,14 @@ Private Function TryMergeSnapshotFileHq(ByVal snapshotsFolder As String, _
                                         ByVal globalRows As Object, _
                                         ByRef skipDetails As String) As Boolean
     Dim sourcePath As String
+    sourcePath = NormalizeFolderPathHq(snapshotsFolder) & fileName
+    TryMergeSnapshotFileHq = TryMergeSnapshotPathHq(sourcePath, tempFolder, globalRows, skipDetails)
+End Function
+
+Private Function TryMergeSnapshotPathHq(ByVal sourcePath As String, _
+                                        ByVal tempFolder As String, _
+                                        ByVal globalRows As Object, _
+                                        ByRef skipDetails As String) As Boolean
     Dim tempFile As String
     Dim wbSnap As Workbook
     Dim lo As ListObject
@@ -201,35 +276,39 @@ Private Function TryMergeSnapshotFileHq(ByVal snapshotsFolder As String, _
     Dim key As String
     Dim systemKey As String
     Dim failureReason As String
+    Dim sourceLabel As String
 
     On Error GoTo FailOpen
 
-    sourcePath = NormalizeFolderPathHq(snapshotsFolder) & fileName
+    sourcePath = Trim$(sourcePath)
+    sourceLabel = sourcePath
     If Not CopySnapshotToTempForAggregation(sourcePath, tempFolder, tempFile, failureReason) Then GoTo FailOpen
 
     If Not OpenWorkbookReadOnlySafeHq(tempFile, wbSnap, failureReason) Then GoTo FailOpen
     Set lo = FindListObjectByNameHq(wbSnap, TABLE_WAREHOUSE_SNAPSHOT)
-    If Not lo Is Nothing Then
-        For i = 1 To lo.ListRows.Count
-            If SafeTrimHq(GetCellByColumnHq(lo, i, "SKU")) <> "" Then
-                systemKey = SafeTrimHq(GetCellByColumnHq(lo, i, "System_Key"))
-                If systemKey <> "" Then
-                    key = SafeTrimHq(GetCellByColumnHq(lo, i, "WarehouseId")) & "|" & systemKey
-                    MergeSnapshotRow globalRows, key, lo, i, fileName
-                End If
-            End If
-        Next i
+    If lo Is Nothing Then
+        failureReason = "tblInventorySnapshot was not found."
+        GoTo FailOpen
     End If
+    For i = 1 To lo.ListRows.Count
+        If SafeTrimHq(GetCellByColumnHq(lo, i, "SKU")) <> "" Then
+            systemKey = SafeTrimHq(GetCellByColumnHq(lo, i, "System_Key"))
+            If systemKey <> "" Then
+                key = SafeTrimHq(GetCellByColumnHq(lo, i, "WarehouseId")) & "|" & systemKey
+                MergeSnapshotRow globalRows, key, lo, i, sourceLabel
+            End If
+        End If
+    Next i
 
     wbSnap.Close SaveChanges:=False
     Set wbSnap = Nothing
     DeleteFileIfExistsHq tempFile
-    TryMergeSnapshotFileHq = True
+    TryMergeSnapshotPathHq = True
     Exit Function
 
 FailOpen:
     If Trim$(failureReason) = "" Then failureReason = Replace$(Err.Description, ";", ",")
-    failureReason = fileName & "=" & failureReason
+    failureReason = sourcePath & "=" & failureReason
     AppendSkipDetailHq skipDetails, failureReason
     On Error Resume Next
     If Not wbSnap Is Nothing Then wbSnap.Close SaveChanges:=False

@@ -2479,21 +2479,14 @@ Public Sub Admin_AggregateGlobalSnapshot_Click()
 
     Set targetWb = ResolveInteractiveAdminWorkbook()
     Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
-
-    If modAdminConsole.RunHQAggregationFromAdmin("", "", targetWb, report) Then
-        MsgBox "Advisory Global Inventory Snapshot updated." & vbCrLf & vbCrLf & _
-               report & vbCrLf & vbCrLf & _
-               "This snapshot is read-only cross-warehouse visibility. " & _
-               "Each warehouse's local inventory remains authoritative.", _
-               vbInformation, "invSys Aggregator"
-    Else
-        If Len(Trim$(report)) = 0 Then report = "Global snapshot aggregation could not be completed."
-        MsgBox report & vbCrLf & vbCrLf & _
-               "Setup: configure PathSharePointRoot in Admin Settings, then publish a snapshot " & _
-               "from each warehouse before aggregating.", _
-               vbExclamation, "invSys Aggregator"
-    End If
+    frmAggregationSources.Show
 End Sub
+
+' D13 packaged form initialization smoke. This is not a Ribbon command and does
+' not select a source, connect to a server, or alter warehouse state.
+Public Function Admin_AggregationSourcesFormSmokeForAutomation() As String
+    Admin_AggregationSourcesFormSmokeForAutomation = frmAggregationSources.AggregationSourcesSmokeForAutomation
+End Function
 
 Private Sub PublishSchedulerResult(ByVal resultText As String)
     Debug.Print resultText
