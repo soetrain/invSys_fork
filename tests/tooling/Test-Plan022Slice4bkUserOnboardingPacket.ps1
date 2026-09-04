@@ -62,7 +62,7 @@ Check "OnboardingPacket.NoNasCredentialExposure" (
 
 Check "OnboardingPacket.ContractDocumented" (
     $spec.Contains('**Admin user-onboarding packet:**') -and
-    $plan.Contains('**Slice 4bk -- generated user onboarding packet: approved; implementation in progress.**')
+    $plan.Contains('**Slice 4bk -- generated user onboarding packet: implemented; visible message review pending.**')
 ) "Architecture and Plan 022 must define the generated onboarding-packet contract before its implementation."
 
 Write-Host "RESULT passed=$($passes.Count) failed=$($failures.Count)"
