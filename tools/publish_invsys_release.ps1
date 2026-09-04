@@ -20,6 +20,59 @@ if (-not (Test-Path -LiteralPath $releasesPath)) { New-Item -ItemType Directory 
 $finalPath = Join-Path $releasesPath $ReleaseId
 if (Test-Path -LiteralPath $finalPath) { throw "Release already exists and is immutable: $finalPath" }
 
+function Publish-StationSetup {
+    param(
+        [string]$ToolRoot,
+        [string]$FeedRoot,
+        [string]$SetupReleaseId
+    )
+
+    $setupNames = @(
+        "install_invsys_station_from_nas.ps1",
+        "invsys_release_common.ps1",
+        "register_current_addins.ps1",
+        "register_invsys_update_task.ps1",
+        "update_invsys_station.ps1"
+    )
+    foreach ($name in $setupNames) {
+        if (-not (Test-Path -LiteralPath (Join-Path $toolRoot $name) -PathType Leaf)) {
+            throw "StationSetup source was not found: $name"
+        }
+    }
+    $bootstrapSource = Join-Path $toolRoot "start_invsys_nas_station_setup.ps1"
+    if (-not (Test-Path -LiteralPath $bootstrapSource -PathType Leaf)) {
+        throw "StationSetup bootstrap source was not found: start_invsys_nas_station_setup.ps1"
+    }
+
+    $setupRoot = Join-Path $FeedRoot "StationSetup"
+    if (-not (Test-Path -LiteralPath $setupRoot)) { New-Item -ItemType Directory -Path $setupRoot -Force | Out-Null }
+    $finalSetupPath = Join-Path $setupRoot $SetupReleaseId
+    if (Test-Path -LiteralPath $finalSetupPath) { throw "StationSetup release already exists and is immutable: $finalSetupPath" }
+    $stagingSetupPath = Join-Path $setupRoot ("." + $SetupReleaseId + ".staging-" + [guid]::NewGuid().ToString("N"))
+    try {
+        New-Item -ItemType Directory -Path $stagingSetupPath -Force | Out-Null
+        $files = foreach ($name in $setupNames) {
+            $source = Join-Path $toolRoot $name
+            $destination = Join-Path $stagingSetupPath $name
+            Copy-Item -LiteralPath $source -Destination $destination -Force
+            [ordered]@{
+                name = $name
+                sha256 = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+        }
+        Write-InvSysJsonAtomic -Path (Join-Path $stagingSetupPath "station-setup-manifest.json") -Value ([ordered]@{
+            releaseId = $SetupReleaseId
+            files = $files
+        })
+        Move-Item -LiteralPath $stagingSetupPath -Destination $finalSetupPath
+    }
+    finally {
+        if (Test-Path -LiteralPath $stagingSetupPath) { Remove-Item -LiteralPath $stagingSetupPath -Recurse -Force }
+    }
+
+    Copy-Item -LiteralPath $bootstrapSource -Destination (Join-Path $FeedRoot "Install-invSys-Station.ps1") -Force
+}
+
 $packageNames = @(
     "invSys.Core.xlam",
     "invSys.Inventory.Domain.xlam",
@@ -63,9 +116,11 @@ try {
     Write-InvSysJsonAtomic -Path (Join-Path $stagingPath "release-manifest.json") -Value $manifest
     [void](Assert-InvSysReleaseManifest -ReleaseDirectory $stagingPath -ExpectedReleaseId $ReleaseId)
     Move-Item -LiteralPath $stagingPath -Destination $finalPath
+    Publish-StationSetup -ToolRoot $PSScriptRoot -FeedRoot $rootPath -SetupReleaseId $ReleaseId
     $pointer = [ordered]@{
         releaseId = $ReleaseId
         manifest = ("Releases/{0}/release-manifest.json" -f $ReleaseId)
+        stationSetup = ("StationSetup/{0}/install_invsys_station_from_nas.ps1" -f $ReleaseId)
         publishedAtUtc = $manifest.publishedAtUtc
     }
     Write-InvSysJsonAtomic -Path (Join-Path $rootPath "current-release.json") -Value $pointer
