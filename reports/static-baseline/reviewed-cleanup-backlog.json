@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-04T03:14:31Z",
+    "generatedAtUtc":  "2026-09-04T21:24:31Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "f9319814cd986f08b74cde225811db218256ee313da397854e4941669770e2d0",
-                          "maintenanceCandidatesSha256":  "cbd979d66b7092bbad305d6486639721a59af676f1e1f476b2d87f79b7aa41c0"
+                          "implementationManifestSha256":  "24256ca4fa09fa63c73f2567438795526f1f37423a8afca677c761e3889c63c7",
+                          "maintenanceCandidatesSha256":  "df9ac751eba1d91b5e83e13396fb952e80bb5744fe64056120f7a9b9ea9ebc86"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1067,
-                    "reviewedCandidateCount":  1069,
+                    "scannerCandidateCount":  1078,
+                    "reviewedCandidateCount":  1080,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -42,7 +42,7 @@
                         },
                         {
                             "name":  "CORE",
-                            "candidateCount":  286,
+                            "candidateCount":  287,
                             "reason":  "Headless shared runtime and developer-support source in Core."
                         },
                         {
@@ -52,7 +52,7 @@
                         },
                         {
                             "name":  "ADMIN",
-                            "candidateCount":  225,
+                            "candidateCount":  235,
                             "reason":  "Administrative setup, lifecycle, and developer-support source."
                         },
                         {
@@ -84,7 +84,7 @@
                                                   "sourcePath":  "src/Admin/Forms/frmCreateDeleteUser.frm",
                                                   "componentName":  "frmCreateDeleteUser",
                                                   "packageKey":  "Admin",
-                                                  "baselineLineCount":  1388,
+                                                  "baselineLineCount":  1395,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -98,14 +98,14 @@
                                                   "sourcePath":  "src/Admin/Modules/modAdmin.bas",
                                                   "componentName":  "modAdmin",
                                                   "packageKey":  "Admin",
-                                                  "baselineLineCount":  2514,
+                                                  "baselineLineCount":  2507,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
                                                   "sourcePath":  "src/Admin/Modules/modAdminConsole.bas",
                                                   "componentName":  "modAdminConsole",
                                                   "packageKey":  "Admin",
-                                                  "baselineLineCount":  2091,
+                                                  "baselineLineCount":  2366,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -161,7 +161,7 @@
                                                   "sourcePath":  "src/Core/Modules/modRoleEventWriter.bas",
                                                   "componentName":  "modRoleEventWriter",
                                                   "packageKey":  "Core",
-                                                  "baselineLineCount":  3086,
+                                                  "baselineLineCount":  3104,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -322,6 +322,30 @@
                                                "src/Admin/Forms/frmSetupTesterStation.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
+                       },
+                       {
+                           "id":  "duplicate:0de99d70ac7ea419:AddListBox+AddTextBox",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "REPLACE_DUPLICATE",
+                           "disposition":  "REPLACE_DUPLICATE",
+                           "scannerConfidence":  "HIGH",
+                           "reviewedConfidence":  "MEDIUM",
+                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
+                           "workstream":  "ADMIN",
+                           "componentName":  "frmAggregationSources",
+                           "procedureNames":  [
+                                                  "AddListBox",
+                                                  "AddTextBox"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAggregationSources.frm"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
                            "protectingTests":  [
 
                                                ],
@@ -1303,6 +1327,7 @@
                                                   "AddInventoryQuantityForWarehouse",
                                                   "AddPictureReferencesToPayloadAdmin",
                                                   "Admin_AggregateGlobalSnapshot_Click",
+                                                  "Admin_AggregationSourcesFormSmokeForAutomation",
                                                   "Admin_Click",
                                                   "Admin_RetireMigrateWarehouse_Click",
                                                   "Admin_SetupTesterStation_Click",
@@ -1422,12 +1447,15 @@
                                                   "ClearAdminConsoleActionButtons",
                                                   "CloseWorkbookByFullNameAdmin",
                                                   "CloseWorkbookIfTransientAdmin",
+                                                  "CollectWarehouseConfigFilesAdmin",
+                                                  "ConnectAggregationServerForAdmin",
                                                   "CountInboxStatuses",
                                                   "CountPublishedInventorySnapshotsAdmin",
                                                   "CountStatusesInTable",
                                                   "CreateFolderRecursiveAdmin",
                                                   "DeleteAllAdminTableRows",
                                                   "DeleteLocalRuntimeAdmin",
+                                                  "DiscoverAggregationSourcesForAdmin",
                                                   "EnsureAdminContext",
                                                   "EnsureAdminSchema",
                                                   "EnsureAdminTableWithHeaders",
@@ -1476,6 +1504,8 @@
                                                   "PathIsUnderRootAdmin",
                                                   "PublishInitialArtifactsAdmin",
                                                   "PublishWarehouseArtifacts",
+                                                  "ReadAggregationConfigSourceAdmin",
+                                                  "ReadSnapshotWarehouseIdAdmin",
                                                   "RefreshAdminConsole",
                                                   "RefreshPoisonQueue",
                                                   "RefreshWarehouseDirectory",
@@ -1485,9 +1515,11 @@
                                                   "RequireAdminMaintenance",
                                                   "ResolveAdminWorkbook",
                                                   "ResolveOpenWorkbookByNameAdmin",
+                                                  "ResolvePublishedSnapshotPathAdmin",
                                                   "ResolveSnapshotPathAdmin",
                                                   "RetireSourceWarehouseAdmin",
                                                   "RunHQAggregationFromAdmin",
+                                                  "RunHQAggregationFromSourceSet",
                                                   "RunProcessorFromConsole",
                                                   "RunScheduledHQAggregationForAutomation",
                                                   "RunScheduledWarehouseBatchForAutomation",
@@ -1495,9 +1527,12 @@
                                                   "SafeTrimAdmin",
                                                   "SanitizeAutomationTextAdmin",
                                                   "SeedDemoInventoryForAutomation",
+                                                  "SerializeAggregationSourceFilesAdmin",
                                                   "SetTableRowValueAdmin",
+                                                  "SnapshotFingerprintAdmin",
                                                   "TargetHasUncPathAdmin",
                                                   "TryResolveExistingAdminRuntimeContext",
+                                                  "ValidateAggregationSourceFilesAdmin",
                                                   "ValidateRetireMigrateSpecAdmin",
                                                   "ValidateWarehouseSpecAdmin",
                                                   "ValueOrPlaceholderAdmin",
@@ -2181,6 +2216,29 @@
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Write a focused test for the nearest public entry point, prove compile and regression GREEN, then request reviewed deletion."
+                       },
+                       {
+                           "id":  "reachability:src_Admin_Modules_modAdminConsole.bas:modAdminConsole.RunHQAggregationFromAdmin",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "UNRESOLVED",
+                           "disposition":  "UNRESOLVED",
+                           "scannerConfidence":  "MEDIUM",
+                           "reviewedConfidence":  "MEDIUM",
+                           "reviewStatus":  "MANUAL_INVESTIGATION",
+                           "workstream":  "ADMIN",
+                           "componentName":  "modAdminConsole",
+                           "procedureNames":  [
+                                                  "RunHQAggregationFromAdmin"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Modules/modAdminConsole.bas"
+                                           ],
+                           "reason":  "No direct, dynamic-root, or test reference was found, but public visibility requires review.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Investigate callers, callbacks, package ownership, and protecting tests before selecting a source change."
                        },
                        {
                            "id":  "reachability:src_Admin_Modules_modAdminDesignLifecycle.bas:modAdminDesignLifecycle.DesignLifecycleFormLayoutSmokeForAutomation",
@@ -3534,6 +3592,191 @@
                                               ],
                            "sourcePaths":  [
                                                "src/Admin/Forms/frmAdminSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
+                                                   "tests/tooling/Test-Slice0ToolContracts.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnAddServer_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "frmAggregationSources",
+                           "procedureNames":  [
+                                                  "mBtnAddServer_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAggregationSources.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnAggregate_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "frmAggregationSources",
+                           "procedureNames":  [
+                                                  "mBtnAggregate_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAggregationSources.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnClose_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "frmAggregationSources",
+                           "procedureNames":  [
+                                                  "mBtnClose_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAggregationSources.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnConnect_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "frmAggregationSources",
+                           "procedureNames":  [
+                                                  "mBtnConnect_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAggregationSources.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnDiscover_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "frmAggregationSources",
+                           "procedureNames":  [
+                                                  "mBtnDiscover_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAggregationSources.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mLstSources_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "frmAggregationSources",
+                           "procedureNames":  [
+                                                  "mLstSources_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAggregationSources.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.UserForm_Activate",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "frmAggregationSources",
+                           "procedureNames":  [
+                                                  "UserForm_Activate"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAggregationSources.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.UserForm_Initialize",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "frmAggregationSources",
+                           "procedureNames":  [
+                                                  "UserForm_Initialize"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAggregationSources.frm"
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
@@ -5776,7 +6019,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1"
+                                                   "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1",
+                                                   "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -6835,6 +7079,30 @@
                            "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
+                           "id":  "duplicate:52f73c649f3742b3:FirstUseServerConnectionPromptRole+ManualServerCredentialPromptRole",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "REPLACE_DUPLICATE",
+                           "disposition":  "REPLACE_DUPLICATE",
+                           "scannerConfidence":  "HIGH",
+                           "reviewedConfidence":  "MEDIUM",
+                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
+                           "workstream":  "CORE",
+                           "componentName":  "modRoleEventWriter",
+                           "procedureNames":  [
+                                                  "FirstUseServerConnectionPromptRole",
+                                                  "ManualServerCredentialPromptRole"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Core/Modules/modRoleEventWriter.bas"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
+                       },
+                       {
                            "id":  "duplicate:56b296f725082acc:ResolveCurrentAdminUserRetire+ResolveCurrentUserForm+ResolveCurrentUserIdAuth+ResolveDefaultAdminUserReAuth+ResolveDefaultUserIdSetupForm",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "REPLACE_DUPLICATE",
@@ -7238,7 +7506,7 @@
                            "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
-                           "id":  "duplicate:90100dbd81315f5a:UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate",
+                           "id":  "duplicate:90100dbd81315f5a:UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "REPLACE_DUPLICATE",
                            "disposition":  "REPLACE_DUPLICATE",
@@ -7252,11 +7520,13 @@
                                                   "UserForm_Activate",
                                                   "UserForm_Activate",
                                                   "UserForm_Activate",
+                                                  "UserForm_Activate",
                                                   "UserForm_Activate"
                                               ],
                            "sourcePaths":  [
                                                "src/Admin/Forms/frmAdminDesignLifecycle.frm",
                                                "src/Admin/Forms/frmAdminSettings.frm",
+                                               "src/Admin/Forms/frmAggregationSources.frm",
                                                "src/Admin/Forms/frmSeedInventory.frm",
                                                "src/Core/Forms/frmSignIn.frm",
                                                "src/Core/Forms/frmWarehouseConnection.frm"
@@ -9956,6 +10226,7 @@
                                                   "ExpandConfigPathRole",
                                                   "FileExistsRole",
                                                   "FindListObjectByNameRole",
+                                                  "FirstUseServerConnectionPromptRole",
                                                   "FolderExistsRole",
                                                   "GetColumnIndexRole",
                                                   "GetCurrentUserOverride",
@@ -10029,6 +10300,7 @@
                                                   "SetCurrentUserId",
                                                   "SetTableRowValueFromDictionaryRole",
                                                   "SetTableRowValueRole",
+                                                  "ShouldPromptForFirstUseServerConnectionRole",
                                                   "ShouldPromptForServerCredentialsRole",
                                                   "ShouldStageEventLocallyRole",
                                                   "ShowCurrentUser",
@@ -24520,7 +24792,7 @@
                            "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
-                           "id":  "duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click",
+                           "id":  "duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "REPLACE_DUPLICATE",
                            "disposition":  "REPLACE_DUPLICATE",
@@ -24537,10 +24809,12 @@
                                                   "mBtnClose_Click",
                                                   "mBtnClose_Click",
                                                   "mBtnClose_Click",
+                                                  "mBtnClose_Click",
                                                   "mBtnClose_Click"
                                               ],
                            "sourcePaths":  [
                                                "src/Admin/Forms/frmAdminDesignLifecycle.frm",
+                                               "src/Admin/Forms/frmAggregationSources.frm",
                                                "src/Admin/Forms/frmCreateDeleteUser.frm",
                                                "src/Admin/Forms/frmCreateWarehouse.frm",
                                                "src/Admin/Forms/frmRetireMigrateWarehouse.frm",

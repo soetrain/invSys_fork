@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-04T03:14:31Z
-- Scanner candidates: 1067
-- Reviewed candidates: 1069
+- Baseline: 2026-09-04T21:24:31Z
+- Scanner candidates: 1078
+- Reviewed candidates: 1080
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -15,9 +15,9 @@
 | PRODUCTION | 222 | Production-owned forms, services, and role package source. |
 | SHIPPING | 156 | Shipping and Boxing forms, services, and role package source. |
 | SHARED_OPERATIONS | 64 | Cross-role or future invSys.Operations packaging work. |
-| CORE | 286 | Headless shared runtime and developer-support source in Core. |
+| CORE | 287 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
-| ADMIN | 225 | Administrative setup, lifecycle, and developer-support source. |
+| ADMIN | 235 | Administrative setup, lifecycle, and developer-support source. |
 | DEVELOPER_TOOLING | 14 | Build, scan, report, and other developer-only tooling. |
 | TESTING | 0 | Test harness and fixture source that must remain outside runtime packages. |
 
@@ -31,10 +31,10 @@
 | Source | Package | Baseline lines |
 |---|---|---:|
 | src/Admin/Forms/frmAddInventoryItem.frm | Admin | 1573 |
-| src/Admin/Forms/frmCreateDeleteUser.frm | Admin | 1388 |
+| src/Admin/Forms/frmCreateDeleteUser.frm | Admin | 1395 |
 | src/Admin/Forms/frmRetireMigrateWarehouse.frm | Admin | 1644 |
-| src/Admin/Modules/modAdmin.bas | Admin | 2514 |
-| src/Admin/Modules/modAdminConsole.bas | Admin | 2091 |
+| src/Admin/Modules/modAdmin.bas | Admin | 2507 |
+| src/Admin/Modules/modAdminConsole.bas | Admin | 2366 |
 | src/Admin/Modules/modTesterSetup.bas | Admin | 1655 |
 | src/Core/ClassModules/cDynItemSearch.cls | Core | 1999 |
 | src/Core/Modules/modAuth.bas | Core | 1804 |
@@ -42,7 +42,7 @@
 | src/Core/Modules/modNasConnection.bas | Core | 1494 |
 | src/Core/Modules/modOperatorReadModel.bas | Core | 1919 |
 | src/Core/Modules/modProcessor.bas | Core | 1479 |
-| src/Core/Modules/modRoleEventWriter.bas | Core | 3086 |
+| src/Core/Modules/modRoleEventWriter.bas | Core | 3104 |
 | src/Core/Modules/modWarehouseBootstrap.bas | Core | 1278 |
 | src/Core/Modules/modWarehouseRetire.bas | Core | 1658 |
 | src/Core/Modules/modWarehouseSync.bas | Core | 1753 |
@@ -65,6 +65,7 @@
 |---|---|---|---|---|
 | duplicate:00a1f3554ee6a565:GetRequiredAddinNames+GetRequiredAddinNamesPackageDiagnostic+GetRequiredAddinsTester+RequiredInvSysAddinNamesLocal+RequiredTesterAddinNamesTesterSetup | ADMIN | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:0750ed4daf2a1490:txtAdminUser_Change+txtAdminUser_Change | ADMIN | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
+| duplicate:0de99d70ac7ea419:AddListBox+AddTextBox | ADMIN | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:1553b6a78b17ae63:AddLabel+AddLabel | ADMIN | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:1e1e5e314df30082:AddTextBox+AddTextBox | ADMIN | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:2585fcdf92cef382:Accepted+Accepted | ADMIN | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
@@ -121,6 +122,7 @@
 | reachability:src_Admin_Modules_modAdminConsole.bas:modAdminConsole.GetLeafFolderNameAdmin | ADMIN | REMOVE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | reachability:src_Admin_Modules_modAdminConsole.bas:modAdminConsole.ReissuePoisonReceiveEventReportForAutomation | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Admin_Modules_modAdminConsole.bas:modAdminConsole.ResolveSnapshotPathAdmin | ADMIN | REMOVE | MEDIUM | REQUIRES_PROTECTING_TEST |
+| reachability:src_Admin_Modules_modAdminConsole.bas:modAdminConsole.RunHQAggregationFromAdmin | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Admin_Modules_modAdminDesignLifecycle.bas:modAdminDesignLifecycle.DesignLifecycleFormLayoutSmokeForAutomation | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Admin_Modules_modAdminDesignLifecycle.bas:modAdminDesignLifecycle.ObsoleteDesignVersion | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Admin_Modules_modAdminDesignLifecycle.bas:modAdminDesignLifecycle.ReleaseDesignVersion | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
@@ -180,6 +182,14 @@
 | root:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.mLstUoms_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_Activate | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_Initialize | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnAddServer_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnAggregate_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnClose_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnConnect_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnDiscover_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mLstSources_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.UserForm_Activate | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.UserForm_Initialize | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmCreateDeleteUser.frm:frmCreateDeleteUser.mBtnClear_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmCreateDeleteUser.frm:frmCreateDeleteUser.mBtnClose_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmCreateDeleteUser.frm:frmCreateDeleteUser.mBtnCopyPin_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
@@ -318,6 +328,7 @@
 | duplicate:495a365192112be9:ValueOrBlankRoleUi+ValueOrPlaceholderStatus | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:50a294490c9c2f52:PerfEndSafeProcessor+PerfEndSafeRole | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:51518d823c818be9:NormalizeFolderPathRole+NormalizeFolderPathTesterSetup | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
+| duplicate:52f73c649f3742b3:FirstUseServerConnectionPromptRole+ManualServerCredentialPromptRole | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:56b296f725082acc:ResolveCurrentAdminUserRetire+ResolveCurrentUserForm+ResolveCurrentUserIdAuth+ResolveDefaultAdminUserReAuth+ResolveDefaultUserIdSetupForm | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:595ccff130244e97:CombinePathConfig+CombinePathProcessor+CombinePathRole | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:5a8c39f14d6059fa:FormatAuthSurface+FormatConfigSurface | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
@@ -332,7 +343,7 @@
 | duplicate:864bbead8f0e7b19:NormalizeFolderPathAddins+NormalizeFolderPathRetire+NormalizeFolderPathTester | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:891f1da4990f603a:CloseTransientProcessorWorkbook+CloseWorkbookIfOpenBootstrap | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:89f3050458713fac:FileExistsConfig+FileExistsReadModel+FileExistsSync | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
-| duplicate:90100dbd81315f5a:UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate | CORE | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
+| duplicate:90100dbd81315f5a:UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate+UserForm_Activate | CORE | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:90a902a5b3d1a93c:NormalizeFolderForStatus+NormalizeFolderNas+NormalizeFolderRole | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:9309dc1c315fa6af:LogDiagnosticSafeBootstrap+LogDiagnosticSafeProcessor+LogDiagnosticSafeReadModel+LogDiagnosticSafeSync | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:96fa371f4acbdb3e:ClearDesignTableRows+DeleteAllRowsHq | CORE | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
@@ -963,7 +974,7 @@
 | duplicate:b6128e74972d9bee:FindDesignsApplyTable+FindDesignsTableQuery+FindInventoryQueryTable+FindListObjectByNameAdminLocal+FindListObjectByNamePublisher+FindListObjectByNameStatus+FindListObjectInWorkbook+FindListObjectNas+FindListObjectReadModel+FindProductionListObjectByName+FindTable+FindTableByName+FindTableByNameBootstrap+FindTableByNameReadiness+FindTableByNameShip+FindTableByNameSurface+ViewerFindTable | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:c01c2d3bdf55ca03:AddTextBox+AddTextBox | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:c30f7d79756508ef:NzStr+NzStr+NzStrInv | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
-| duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
+| duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:c92c185be4fadc97:AddLabel+AddLabel | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:cb1b5883fe27dc31:EnsureFolderRecursiveProduction+EnsureFolderRecursiveShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:d01218541cebf3d1:ClearClipboardSurface+ClearSystemClipboardShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |

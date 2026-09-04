@@ -69,6 +69,7 @@ Private Const CONNECT_UPDATE_PROFILE As Long = 1
 Private Const MAX_WAREHOUSE_SCAN_DEPTH As Long = 4
 Private Const SETTINGS_APP As String = "invSys"
 Private Const SETTINGS_SECTION_NAS As String = "NAS"
+Private Const NAS_STATION_SETUP_COMMAND_FORM As String = "\\100.84.136.19\invSys-deploy\Addins\Install-invSys-Station.cmd"
 
 #If VBA7 Then
 Private Type NETRESOURCE
@@ -188,7 +189,7 @@ Private Sub BuildUsersRolesLayout()
     Set mTxtPin = AddTextBoxForm("txtPin", 420, topPos + 60, 116, 22)
     mTxtPin.ControlTipText = "This value is visible on purpose. Record it before saving; only the hash is stored."
     Set mBtnGeneratePin = AddButtonForm("btnGeneratePin", "Generate PIN", 544, topPos + 59, 86, 24)
-    Set mBtnCopyPin = AddButtonForm("btnCopyPin", "Copy", 638, topPos + 59, 52, 24)
+    Set mBtnCopyPin = AddButtonForm("btnCopyPin", "Copy Account & Setup", 630, topPos + 59, 100, 24)
     AddLabelForm "lblWhScope", "Warehouse scope", 316, topPos + 96, 90, 18, False
     Set mTxtWarehouseId = AddTextBoxForm("txtWarehouseId", 420, topPos + 92, 116, 22)
     AddLabelForm "lblStationScope", "Station", 544, topPos + 96, 48, 18, False
@@ -1354,7 +1355,13 @@ Private Function BuildAccountClipboardTextForm() As String
               "- Receiving view: " & YesNoTextForm(CBool(mChkReceiveView.Value)) & vbCrLf & _
               "- Shipping post: " & YesNoTextForm(CBool(mChkShipPost.Value)) & vbCrLf & _
               "- Production post: " & YesNoTextForm(CBool(mChkProdPost.Value)) & vbCrLf & _
-              "- Inbox processor: " & YesNoTextForm(CBool(mChkInboxProcess.Value))
+              "- Inbox processor: " & YesNoTextForm(CBool(mChkInboxProcess.Value)) & vbCrLf & vbCrLf & _
+              "Station setup (close Excel first): " & NAS_STATION_SETUP_COMMAND_FORM & vbCrLf & _
+              "Before setup: use a Windows session with authorized NAS/Tailscale access to this deployment share." & vbCrLf & _
+              "1. In File Explorer, open the Station setup path and double-click Install-invSys-Station.cmd." & vbCrLf & _
+              "2. Open Excel, click Server Sign In, and select the warehouse target " & warehouseId & "." & vbCrLf & _
+              "3. Click invSys Sign In and enter the User ID and PIN/password above." & vbCrLf & _
+              "Station setup does not grant an invSys role; the assigned capabilities above remain the authority."
 
     BuildAccountClipboardTextForm = textOut
 End Function
