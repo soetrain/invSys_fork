@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-04T22:55:10Z",
+    "generatedAtUtc":  "2026-09-04T23:10:24Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "1594de6c24cba54deff6589aff92677b9ea349f3b6c8aaaa1081a198813e20df",
-                          "maintenanceCandidatesSha256":  "258ed5da662fcd2264a36ad4ae8433b6bca67c4ec867ab4eca4047b69e88d87c"
+                          "implementationManifestSha256":  "93fe56016b2454da7a82f32231eb3edc14427c01f877f8bf08bf6f6c2d731e06",
+                          "maintenanceCandidatesSha256":  "85636491846deca9cb3085f9fa84722fa80ac3962b81ca90c634bee95e7883f8"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1078,
-                    "reviewedCandidateCount":  1080,
+                    "scannerCandidateCount":  1079,
+                    "reviewedCandidateCount":  1081,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -42,7 +42,7 @@
                         },
                         {
                             "name":  "CORE",
-                            "candidateCount":  287,
+                            "candidateCount":  288,
                             "reason":  "Headless shared runtime and developer-support source in Core."
                         },
                         {
@@ -140,7 +140,7 @@
                                                   "sourcePath":  "src/Core/Modules/modNasConnection.bas",
                                                   "componentName":  "modNasConnection",
                                                   "packageKey":  "Core",
-                                                  "baselineLineCount":  1511,
+                                                  "baselineLineCount":  1603,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -3688,6 +3688,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -9866,6 +9867,9 @@
                                                   "DateFromSerialNas",
                                                   "DisconnectCurrentNasSession",
                                                   "DisconnectNasRoot",
+                                                  "DiscoverVisibleNasRoots",
+                                                  "DiscoverVisibleNasServers",
+                                                  "DiscoverVisibleNasShares",
                                                   "EnsureSessionRootsNas",
                                                   "EnsureWarehouseTargetInteractive",
                                                   "FileExistsNas",
@@ -9902,10 +9906,12 @@
                                                   "IsWarehouseTargetAllowed",
                                                   "ListRuntimeStationsForConnection",
                                                   "LoadRememberedTargetNas",
+                                                  "NasServerNameFromRoot",
                                                   "NormalizeFolderNas",
                                                   "OpenWorkbookReadOnlyNoPromptNas",
                                                   "PromptTextNas",
                                                   "ReadConfigIdentityNas",
+                                                  "ReadNasDiscoveryCommand",
                                                   "RememberRoot",
                                                   "RememberTarget",
                                                   "RemovePathFromListNas",
@@ -13638,6 +13644,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -13686,6 +13693,29 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
 
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.mLstRoots_Change",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "CORE",
+                           "componentName":  "frmWarehouseConnection",
+                           "procedureNames":  [
+                                                  "mLstRoots_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Core/Forms/frmWarehouseConnection.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."

@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-04T22:55:10Z",
+    "generatedAtUtc":  "2026-09-04T23:10:24Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -1842,7 +1842,7 @@
                            "name":  "frmWarehouseConnection",
                            "kind":  "FORM",
                            "sourcePath":  "src/Core/Forms/frmWarehouseConnection.frm",
-                           "lineCount":  338,
+                           "lineCount":  363,
                            "procedureNames":  [
                                                   "AddButton",
                                                   "AddCheckBox",
@@ -1856,9 +1856,11 @@
                                                   "mBtnConnect_Click",
                                                   "mBtnOK_Click",
                                                   "mBtnScan_Click",
+                                                  "mLstRoots_Change",
                                                   "mLstTargets_Change",
                                                   "RefreshStationsForSelectedTarget",
-                                                  "ScanRoot",
+                                                  "ScanConnectedRoot",
+                                                  "ScanRootCandidates",
                                                   "SelectedStationValue",
                                                   "ShowStatus",
                                                   "UpdateStationHelp",
@@ -2459,7 +2461,7 @@
                            "name":  "modNasConnection",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modNasConnection.bas",
-                           "lineCount":  1511,
+                           "lineCount":  1603,
                            "procedureNames":  [
                                                   "AddPathIfMissingNas",
                                                   "AddPathToListNas",
@@ -2474,6 +2476,9 @@
                                                   "DateFromSerialNas",
                                                   "DisconnectCurrentNasSession",
                                                   "DisconnectNasRoot",
+                                                  "DiscoverVisibleNasRoots",
+                                                  "DiscoverVisibleNasServers",
+                                                  "DiscoverVisibleNasShares",
                                                   "EnsureSessionRootsNas",
                                                   "EnsureWarehouseTargetInteractive",
                                                   "FileExistsNas",
@@ -2510,10 +2515,12 @@
                                                   "IsWarehouseTargetAllowed",
                                                   "ListRuntimeStationsForConnection",
                                                   "LoadRememberedTargetNas",
+                                                  "NasServerNameFromRoot",
                                                   "NormalizeFolderNas",
                                                   "OpenWorkbookReadOnlyNoPromptNas",
                                                   "PromptTextNas",
                                                   "ReadConfigIdentityNas",
+                                                  "ReadNasDiscoveryCommand",
                                                   "RememberRoot",
                                                   "RememberTarget",
                                                   "RemovePathFromListNas",
@@ -21586,7 +21593,6 @@
                                                "GetWarehouseDirectoryScanRoots",
                                                "JoinIssuesAdmin",
                                                "ResolveAdminWorkbook",
-                                               "ScanRoot",
                                                "SetTableRowValueAdmin"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -32690,8 +32696,8 @@
                            "name":  "UserForm_Initialize",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  40,
-                           "endLine":  52,
+                           "startLine":  41,
+                           "endLine":  53,
                            "lineCount":  13,
                            "directCalls":  [
                                                "BuildConnectionLayout",
@@ -32730,8 +32736,8 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  54,
-                           "endLine":  60,
+                           "startLine":  55,
+                           "endLine":  61,
                            "lineCount":  7,
                            "directCalls":  [
                                                "EnableResizableUserForm"
@@ -32768,8 +32774,8 @@
                            "name":  "InitializeConnectionPrompt",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  62,
-                           "endLine":  74,
+                           "startLine":  63,
+                           "endLine":  75,
                            "lineCount":  13,
                            "directCalls":  [
                                                "ShowStatus",
@@ -32790,8 +32796,8 @@
                            "name":  "WasAccepted",
                            "visibility":  "PUBLIC",
                            "kind":  "PROPERTY_GET",
-                           "startLine":  76,
-                           "endLine":  78,
+                           "startLine":  77,
+                           "endLine":  79,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -32811,9 +32817,9 @@
                            "name":  "BuildConnectionLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  80,
-                           "endLine":  108,
-                           "lineCount":  29,
+                           "startLine":  81,
+                           "endLine":  112,
+                           "lineCount":  32,
                            "directCalls":  [
                                                "AddButton",
                                                "AddLabel",
@@ -32837,8 +32843,8 @@
                            "name":  "AddLabel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  110,
-                           "endLine":  127,
+                           "startLine":  114,
+                           "endLine":  131,
                            "lineCount":  18,
                            "directCalls":  [
                                                "Add"
@@ -32858,8 +32864,8 @@
                            "name":  "AddComboBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  129,
-                           "endLine":  142,
+                           "startLine":  133,
+                           "endLine":  146,
                            "lineCount":  14,
                            "directCalls":  [
                                                "Add"
@@ -32879,8 +32885,8 @@
                            "name":  "AddTextBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  144,
-                           "endLine":  156,
+                           "startLine":  148,
+                           "endLine":  160,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -32900,8 +32906,8 @@
                            "name":  "AddButton",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  158,
-                           "endLine":  172,
+                           "startLine":  162,
+                           "endLine":  176,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -32921,8 +32927,8 @@
                            "name":  "AddListBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  174,
-                           "endLine":  186,
+                           "startLine":  178,
+                           "endLine":  190,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -32942,8 +32948,8 @@
                            "name":  "AddCheckBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  188,
-                           "endLine":  202,
+                           "startLine":  192,
+                           "endLine":  206,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -32963,13 +32969,13 @@
                            "name":  "mBtnConnect_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  204,
-                           "endLine":  239,
+                           "startLine":  208,
+                           "endLine":  243,
                            "lineCount":  36,
                            "directCalls":  [
                                                "ConnectNasRootWithCredentials",
                                                "GetConnectionStatus",
-                                               "ScanRoot",
+                                               "ScanConnectedRoot",
                                                "ShowStatus"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -32988,11 +32994,11 @@
                            "name":  "mBtnScan_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  241,
-                           "endLine":  243,
+                           "startLine":  245,
+                           "endLine":  247,
                            "lineCount":  3,
                            "directCalls":  [
-                                               "ScanRoot"
+                                               "ScanRootCandidates"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -33009,8 +33015,8 @@
                            "name":  "mBtnOK_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  245,
-                           "endLine":  273,
+                           "startLine":  249,
+                           "endLine":  277,
                            "lineCount":  29,
                            "directCalls":  [
                                                "SelectedStationValue",
@@ -33034,8 +33040,8 @@
                            "name":  "mBtnCancel_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  275,
-                           "endLine":  278,
+                           "startLine":  279,
+                           "endLine":  282,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -33058,8 +33064,8 @@
                            "name":  "mLstTargets_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  280,
-                           "endLine":  282,
+                           "startLine":  284,
+                           "endLine":  286,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshStationsForSelectedTarget"
@@ -33076,18 +33082,59 @@
                        },
                        {
                            "componentName":  "frmWarehouseConnection",
-                           "name":  "ScanRoot",
+                           "name":  "mLstRoots_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  284,
-                           "endLine":  318,
-                           "lineCount":  35,
+                           "startLine":  288,
+                           "endLine":  292,
+                           "lineCount":  5,
                            "directCalls":  [
-                                               "GetConnectionStatus",
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.mLstRoots_Change"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmWarehouseConnection",
+                           "name":  "ScanRootCandidates",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  294,
+                           "endLine":  314,
+                           "lineCount":  21,
+                           "directCalls":  [
+                                               "DiscoverVisibleNasRoots",
+                                               "ShowStatus"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmWarehouseConnection",
+                           "name":  "ScanConnectedRoot",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  316,
+                           "endLine":  343,
+                           "lineCount":  28,
+                           "directCalls":  [
                                                "RefreshStationsForSelectedTarget",
                                                "ScanNasRoot",
-                                               "ShowStatus",
-                                               "TryRevalidateRememberedRoot"
+                                               "ShowStatus"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -33104,8 +33151,8 @@
                            "name":  "RefreshStationsForSelectedTarget",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  320,
-                           "endLine":  323,
+                           "startLine":  345,
+                           "endLine":  348,
                            "lineCount":  4,
                            "directCalls":  [
                                                "CurrentComputerStationId"
@@ -33125,8 +33172,8 @@
                            "name":  "SelectedStationValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  325,
-                           "endLine":  327,
+                           "startLine":  350,
+                           "endLine":  352,
                            "lineCount":  3,
                            "directCalls":  [
                                                "CurrentComputerStationId"
@@ -33146,8 +33193,8 @@
                            "name":  "UpdateStationHelp",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  329,
-                           "endLine":  332,
+                           "startLine":  354,
+                           "endLine":  357,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -33167,8 +33214,8 @@
                            "name":  "ShowStatus",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  334,
-                           "endLine":  338,
+                           "startLine":  359,
+                           "endLine":  363,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -42587,11 +42634,34 @@
                        },
                        {
                            "componentName":  "modNasConnection",
-                           "name":  "SelectWarehouseTarget",
+                           "name":  "DiscoverVisibleNasRoots",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  333,
-                           "endLine":  456,
+                           "endLine":  349,
+                           "lineCount":  17,
+                           "directCalls":  [
+                                               "AddPathIfMissingNas",
+                                               "DiscoverVisibleNasServers",
+                                               "DiscoverVisibleNasShares"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modNasConnection",
+                           "name":  "SelectWarehouseTarget",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  351,
+                           "endLine":  474,
                            "lineCount":  124,
                            "directCalls":  [
                                                "CloneTargetNas",
@@ -42631,8 +42701,8 @@
                            "name":  "SelectWarehouseTargetForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  458,
-                           "endLine":  477,
+                           "startLine":  476,
+                           "endLine":  495,
                            "lineCount":  20,
                            "directCalls":  [
                                                "GetConnectionStatus",
@@ -42653,8 +42723,8 @@
                            "name":  "ResolveWarehouseTarget",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  479,
-                           "endLine":  587,
+                           "startLine":  497,
+                           "endLine":  605,
                            "lineCount":  109,
                            "directCalls":  [
                                                "CloneTargetNas",
@@ -42689,8 +42759,8 @@
                            "name":  "EnsureWarehouseTargetInteractive",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  589,
-                           "endLine":  605,
+                           "startLine":  607,
+                           "endLine":  623,
                            "lineCount":  17,
                            "directCalls":  [
                                                "ResolveWarehouseTarget",
@@ -42711,8 +42781,8 @@
                            "name":  "ClearWarehouseTarget",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  607,
-                           "endLine":  612,
+                           "startLine":  625,
+                           "endLine":  630,
                            "lineCount":  6,
                            "directCalls":  [
                                                "ClearCoreDataRootOverride",
@@ -42734,8 +42804,8 @@
                            "name":  "IsTargetResolved",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  614,
-                           "endLine":  616,
+                           "startLine":  632,
+                           "endLine":  634,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -42755,8 +42825,8 @@
                            "name":  "GetCurrentTarget",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  618,
-                           "endLine":  632,
+                           "startLine":  636,
+                           "endLine":  650,
                            "lineCount":  15,
                            "directCalls":  [
                                                "CloneTargetNas",
@@ -42779,8 +42849,8 @@
                            "name":  "GetCurrentTargetWarehouseId",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  634,
-                           "endLine":  639,
+                           "startLine":  652,
+                           "endLine":  657,
                            "lineCount":  6,
                            "directCalls":  [
                                                "GetCurrentTarget"
@@ -42800,8 +42870,8 @@
                            "name":  "GetCurrentTargetStationId",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  641,
-                           "endLine":  646,
+                           "startLine":  659,
+                           "endLine":  664,
                            "lineCount":  6,
                            "directCalls":  [
                                                "GetCurrentTarget"
@@ -42821,8 +42891,8 @@
                            "name":  "GetCurrentTargetRuntimeRoot",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  648,
-                           "endLine":  653,
+                           "startLine":  666,
+                           "endLine":  671,
                            "lineCount":  6,
                            "directCalls":  [
                                                "GetCurrentTarget"
@@ -42842,8 +42912,8 @@
                            "name":  "CurrentWarehouseTargetDiagnosticForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  655,
-                           "endLine":  687,
+                           "startLine":  673,
+                           "endLine":  705,
                            "lineCount":  33,
                            "directCalls":  [
                                                "GetConnectionStatus",
@@ -42867,8 +42937,8 @@
                            "name":  "GetKnownWarehouseTargetRoots",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  689,
-                           "endLine":  713,
+                           "startLine":  707,
+                           "endLine":  731,
                            "lineCount":  25,
                            "directCalls":  [
                                                "AddPathIfMissingNas",
@@ -42890,8 +42960,8 @@
                            "name":  "ConnectKnownWarehouseServer",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  715,
-                           "endLine":  753,
+                           "startLine":  733,
+                           "endLine":  771,
                            "lineCount":  39,
                            "directCalls":  [
                                                "AddPathIfMissingNas",
@@ -42917,8 +42987,8 @@
                            "name":  "IsWarehouseTargetAllowed",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  755,
-                           "endLine":  763,
+                           "startLine":  773,
+                           "endLine":  781,
                            "lineCount":  9,
                            "directCalls":  [
                                                "IsUncPathNas"
@@ -42938,8 +43008,8 @@
                            "name":  "IsCurrentTargetAllowed",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  765,
-                           "endLine":  767,
+                           "startLine":  783,
+                           "endLine":  785,
                            "lineCount":  3,
                            "directCalls":  [
                                                "IsWarehouseTargetAllowed"
@@ -42959,8 +43029,8 @@
                            "name":  "SetCurrentTargetSourceTypeForTest",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  769,
-                           "endLine":  773,
+                           "startLine":  787,
+                           "endLine":  791,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -42980,8 +43050,8 @@
                            "name":  "SetCurrentTargetPathsForTest",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  775,
-                           "endLine":  781,
+                           "startLine":  793,
+                           "endLine":  799,
                            "lineCount":  7,
                            "directCalls":  [
                                                "SetCoreDataRootOverride"
@@ -43001,8 +43071,8 @@
                            "name":  "RememberTarget",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  783,
-                           "endLine":  789,
+                           "startLine":  801,
+                           "endLine":  807,
                            "lineCount":  7,
                            "directCalls":  [
                                                "RememberRoot",
@@ -43023,8 +43093,8 @@
                            "name":  "ForgetTarget",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  791,
-                           "endLine":  805,
+                           "startLine":  809,
+                           "endLine":  823,
                            "lineCount":  15,
                            "directCalls":  [
                                                "ClearWarehouseTarget",
@@ -43046,8 +43116,8 @@
                            "name":  "IsConnected",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  807,
-                           "endLine":  810,
+                           "startLine":  825,
+                           "endLine":  828,
                            "lineCount":  4,
                            "directCalls":  [
                                                "EnsureSessionRootsNas"
@@ -43067,8 +43137,8 @@
                            "name":  "HasConnectedUncRoot",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  812,
-                           "endLine":  822,
+                           "startLine":  830,
+                           "endLine":  840,
                            "lineCount":  11,
                            "directCalls":  [
                                                "EnsureSessionRootsNas",
@@ -43089,8 +43159,8 @@
                            "name":  "GetConnectionStatus",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  824,
-                           "endLine":  838,
+                           "startLine":  842,
+                           "endLine":  856,
                            "lineCount":  15,
                            "directCalls":  [
                                                "TargetDisplayNas"
@@ -43110,8 +43180,8 @@
                            "name":  "GetPromptDefaultRoot",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  840,
-                           "endLine":  842,
+                           "startLine":  858,
+                           "endLine":  860,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ResolvePromptDefaultRootNas"
@@ -43131,8 +43201,8 @@
                            "name":  "GetRememberedNasUser",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  844,
-                           "endLine":  846,
+                           "startLine":  862,
+                           "endLine":  864,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ResolveRememberedNasUserNas"
@@ -43152,8 +43222,8 @@
                            "name":  "TryResolveOpenOrConfiguredTargetNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  848,
-                           "endLine":  862,
+                           "startLine":  866,
+                           "endLine":  880,
                            "lineCount":  15,
                            "directCalls":  [
                                                "CloneTargetNas",
@@ -43180,8 +43250,8 @@
                            "name":  "TryResolveFallbackTargetNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  864,
-                           "endLine":  880,
+                           "startLine":  882,
+                           "endLine":  898,
                            "lineCount":  17,
                            "directCalls":  [
                                                "CloneTargetNas",
@@ -43211,8 +43281,8 @@
                            "name":  "ReadConfigIdentityNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  882,
-                           "endLine":  936,
+                           "startLine":  900,
+                           "endLine":  954,
                            "lineCount":  55,
                            "directCalls":  [
                                                "FindListObjectNas",
@@ -43236,8 +43306,8 @@
                            "name":  "WorkbookReadableNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  938,
-                           "endLine":  962,
+                           "startLine":  956,
+                           "endLine":  980,
                            "lineCount":  25,
                            "directCalls":  [
                                                "FindOpenWorkbookNas",
@@ -43259,8 +43329,8 @@
                            "name":  "OpenWorkbookReadOnlyNoPromptNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  964,
-                           "endLine":  988,
+                           "startLine":  982,
+                           "endLine":  1006,
                            "lineCount":  25,
                            "directCalls":  [
 
@@ -43280,8 +43350,8 @@
                            "name":  "RuntimeLooksCompleteNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  990,
-                           "endLine":  992,
+                           "startLine":  1008,
+                           "endLine":  1010,
                            "lineCount":  3,
                            "directCalls":  [
                                                "FindCompleteRuntimeConfigNas"
@@ -43301,8 +43371,8 @@
                            "name":  "FindCompleteRuntimeConfigNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  994,
-                           "endLine":  1023,
+                           "startLine":  1012,
+                           "endLine":  1041,
                            "lineCount":  30,
                            "directCalls":  [
                                                "FindWarehouseWorkbookNas",
@@ -43325,8 +43395,8 @@
                            "name":  "IsReservedWarehouseIdNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1025,
-                           "endLine":  1028,
+                           "startLine":  1043,
+                           "endLine":  1046,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -43346,8 +43416,8 @@
                            "name":  "FindWarehouseWorkbookNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1030,
-                           "endLine":  1055,
+                           "startLine":  1048,
+                           "endLine":  1073,
                            "lineCount":  26,
                            "directCalls":  [
                                                "FileExistsNas",
@@ -43368,8 +43438,8 @@
                            "name":  "RuntimeWorkbookWarehouseIdFromNameNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1057,
-                           "endLine":  1068,
+                           "startLine":  1075,
+                           "endLine":  1086,
                            "lineCount":  12,
                            "directCalls":  [
 
@@ -43389,8 +43459,8 @@
                            "name":  "FindFirstWorkbookNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1070,
-                           "endLine":  1082,
+                           "startLine":  1088,
+                           "endLine":  1100,
                            "lineCount":  13,
                            "directCalls":  [
                                                "NormalizeFolderNas"
@@ -43410,8 +43480,8 @@
                            "name":  "ResolveInboxRootNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1084,
-                           "endLine":  1098,
+                           "startLine":  1102,
+                           "endLine":  1116,
                            "lineCount":  15,
                            "directCalls":  [
                                                "GetParentFolderManaged",
@@ -43432,9 +43502,98 @@
                            "name":  "ConnectShareNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1100,
-                           "endLine":  1109,
+                           "startLine":  1118,
+                           "endLine":  1127,
                            "lineCount":  10,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modNasConnection",
+                           "name":  "DiscoverVisibleNasServers",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  1129,
+                           "endLine":  1147,
+                           "lineCount":  19,
+                           "directCalls":  [
+                                               "AddPathIfMissingNas",
+                                               "NasServerNameFromRoot",
+                                               "NormalizeFolderNas",
+                                               "ReadNasDiscoveryCommand"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modNasConnection",
+                           "name":  "DiscoverVisibleNasShares",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  1149,
+                           "endLine":  1180,
+                           "lineCount":  32,
+                           "directCalls":  [
+                                               "AddPathIfMissingNas",
+                                               "ReadNasDiscoveryCommand"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modNasConnection",
+                           "name":  "NasServerNameFromRoot",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  1182,
+                           "endLine":  1189,
+                           "lineCount":  8,
+                           "directCalls":  [
+                                               "IsUncPathNas",
+                                               "NormalizeFolderNas"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modNasConnection",
+                           "name":  "ReadNasDiscoveryCommand",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  1191,
+                           "endLine":  1201,
+                           "lineCount":  11,
                            "directCalls":  [
 
                                            ],
@@ -43453,8 +43612,8 @@
                            "name":  "ConnectShareNasCurrentUser",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1111,
-                           "endLine":  1117,
+                           "startLine":  1203,
+                           "endLine":  1209,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -43474,8 +43633,8 @@
                            "name":  "TryReconnectRememberedShareNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1119,
-                           "endLine":  1145,
+                           "startLine":  1211,
+                           "endLine":  1237,
                            "lineCount":  27,
                            "directCalls":  [
                                                "ConnectShareNasCurrentUser",
@@ -43498,8 +43657,8 @@
                            "name":  "RememberRoot",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1147,
-                           "endLine":  1157,
+                           "startLine":  1239,
+                           "endLine":  1249,
                            "lineCount":  11,
                            "directCalls":  [
                                                "AddPathToListNas",
@@ -43523,8 +43682,8 @@
                            "name":  "IsRootInSessionNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1159,
-                           "endLine":  1166,
+                           "startLine":  1251,
+                           "endLine":  1258,
                            "lineCount":  8,
                            "directCalls":  [
                                                "EnsureSessionRootsNas",
@@ -43546,8 +43705,8 @@
                            "name":  "GetRememberedRootsNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1168,
-                           "endLine":  1183,
+                           "startLine":  1260,
+                           "endLine":  1275,
                            "lineCount":  16,
                            "directCalls":  [
                                                "AddPathIfMissingNas",
@@ -43568,8 +43727,8 @@
                            "name":  "GetRootsTextNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1185,
-                           "endLine":  1189,
+                           "startLine":  1277,
+                           "endLine":  1281,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -43589,8 +43748,8 @@
                            "name":  "SaveRootsTextNas",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1191,
-                           "endLine":  1195,
+                           "startLine":  1283,
+                           "endLine":  1287,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -43610,8 +43769,8 @@
                            "name":  "AddPathToListNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1197,
-                           "endLine":  1215,
+                           "startLine":  1289,
+                           "endLine":  1307,
                            "lineCount":  19,
                            "directCalls":  [
                                                "AddPathIfMissingNas"
@@ -43631,8 +43790,8 @@
                            "name":  "RemovePathFromListNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1217,
-                           "endLine":  1231,
+                           "startLine":  1309,
+                           "endLine":  1323,
                            "lineCount":  15,
                            "directCalls":  [
                                                "NormalizeFolderNas",
@@ -43653,8 +43812,8 @@
                            "name":  "LoadRememberedTargetNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1233,
-                           "endLine":  1257,
+                           "startLine":  1325,
+                           "endLine":  1349,
                            "lineCount":  25,
                            "directCalls":  [
                                                "DateFromSerialNas",
@@ -43675,8 +43834,8 @@
                            "name":  "SerializeTargetNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1259,
-                           "endLine":  1269,
+                           "startLine":  1351,
+                           "endLine":  1361,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -43696,8 +43855,8 @@
                            "name":  "ForgetPersistedTargetNas",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1271,
-                           "endLine":  1276,
+                           "startLine":  1363,
+                           "endLine":  1368,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -43717,8 +43876,8 @@
                            "name":  "CloneTargetNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1278,
-                           "endLine":  1294,
+                           "startLine":  1370,
+                           "endLine":  1386,
                            "lineCount":  17,
                            "directCalls":  [
 
@@ -43738,8 +43897,8 @@
                            "name":  "FolderExistsNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1296,
-                           "endLine":  1320,
+                           "startLine":  1388,
+                           "endLine":  1412,
                            "lineCount":  25,
                            "directCalls":  [
                                                "NormalizeFolderNas"
@@ -43759,8 +43918,8 @@
                            "name":  "FileExistsNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1322,
-                           "endLine":  1332,
+                           "startLine":  1414,
+                           "endLine":  1424,
                            "lineCount":  11,
                            "directCalls":  [
                                                "NormalizeFolderNas"
@@ -43780,8 +43939,8 @@
                            "name":  "FindOpenWorkbookNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1334,
-                           "endLine":  1343,
+                           "startLine":  1426,
+                           "endLine":  1435,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -43801,8 +43960,8 @@
                            "name":  "FindListObjectNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1345,
-                           "endLine":  1355,
+                           "startLine":  1437,
+                           "endLine":  1447,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -43822,8 +43981,8 @@
                            "name":  "FindStationRowNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1357,
-                           "endLine":  1368,
+                           "startLine":  1449,
+                           "endLine":  1460,
                            "lineCount":  12,
                            "directCalls":  [
                                                "TableValueNas"
@@ -43843,8 +44002,8 @@
                            "name":  "FirstConnectedUncRootNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1370,
-                           "endLine":  1380,
+                           "startLine":  1462,
+                           "endLine":  1472,
                            "lineCount":  11,
                            "directCalls":  [
                                                "EnsureSessionRootsNas",
@@ -43865,8 +44024,8 @@
                            "name":  "GetLastConnectionAttemptStatus",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  1382,
-                           "endLine":  1384,
+                           "startLine":  1474,
+                           "endLine":  1476,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -43886,8 +44045,8 @@
                            "name":  "TableValueNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1386,
-                           "endLine":  1390,
+                           "startLine":  1478,
+                           "endLine":  1482,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -43907,8 +44066,8 @@
                            "name":  "AddPathIfMissingNas",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1392,
-                           "endLine":  1401,
+                           "startLine":  1484,
+                           "endLine":  1493,
                            "lineCount":  10,
                            "directCalls":  [
                                                "Add",
@@ -43930,8 +44089,8 @@
                            "name":  "AddTextIfMissingNas",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1403,
-                           "endLine":  1412,
+                           "startLine":  1495,
+                           "endLine":  1504,
                            "lineCount":  10,
                            "directCalls":  [
                                                "Add"
@@ -43951,8 +44110,8 @@
                            "name":  "EnsureSessionRootsNas",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1414,
-                           "endLine":  1419,
+                           "startLine":  1506,
+                           "endLine":  1511,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -43972,8 +44131,8 @@
                            "name":  "ResolveShareRootNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1421,
-                           "endLine":  1430,
+                           "startLine":  1513,
+                           "endLine":  1522,
                            "lineCount":  10,
                            "directCalls":  [
                                                "NormalizeFolderNas"
@@ -43993,8 +44152,8 @@
                            "name":  "IsUncPathNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1432,
-                           "endLine":  1434,
+                           "startLine":  1524,
+                           "endLine":  1526,
                            "lineCount":  3,
                            "directCalls":  [
                                                "NormalizeFolderNas"
@@ -44014,8 +44173,8 @@
                            "name":  "NormalizeFolderNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1436,
-                           "endLine":  1444,
+                           "startLine":  1528,
+                           "endLine":  1536,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -44035,8 +44194,8 @@
                            "name":  "SamePathNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1446,
-                           "endLine":  1448,
+                           "startLine":  1538,
+                           "endLine":  1540,
                            "lineCount":  3,
                            "directCalls":  [
                                                "NormalizeFolderNas"
@@ -44056,8 +44215,8 @@
                            "name":  "DateFromSerialNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1450,
-                           "endLine":  1452,
+                           "startLine":  1542,
+                           "endLine":  1544,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -44077,8 +44236,8 @@
                            "name":  "TargetDisplayNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1454,
-                           "endLine":  1461,
+                           "startLine":  1546,
+                           "endLine":  1553,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -44098,8 +44257,8 @@
                            "name":  "IsCurrentComputerStationNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1463,
-                           "endLine":  1469,
+                           "startLine":  1555,
+                           "endLine":  1561,
                            "lineCount":  7,
                            "directCalls":  [
                                                "CurrentComputerStationId"
@@ -44119,8 +44278,8 @@
                            "name":  "WarehouseTargetIdentityChangedNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1471,
-                           "endLine":  1483,
+                           "startLine":  1563,
+                           "endLine":  1575,
                            "lineCount":  13,
                            "directCalls":  [
                                                "NormalizeFolderNas"
@@ -44140,8 +44299,8 @@
                            "name":  "SetStatusNas",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1485,
-                           "endLine":  1488,
+                           "startLine":  1577,
+                           "endLine":  1580,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -44161,8 +44320,8 @@
                            "name":  "PromptTextNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1490,
-                           "endLine":  1493,
+                           "startLine":  1582,
+                           "endLine":  1585,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -44182,8 +44341,8 @@
                            "name":  "ResolvePromptDefaultRootNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1495,
-                           "endLine":  1498,
+                           "startLine":  1587,
+                           "endLine":  1590,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -44203,8 +44362,8 @@
                            "name":  "SaveRememberedNasUserNas",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1500,
-                           "endLine":  1505,
+                           "startLine":  1592,
+                           "endLine":  1597,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -44224,8 +44383,8 @@
                            "name":  "ResolveRememberedNasUserNas",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1507,
-                           "endLine":  1511,
+                           "startLine":  1599,
+                           "endLine":  1603,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -55402,8 +55561,7 @@
                                                "NormalizeFolderPath",
                                                "ResolveConfiguredRuntimeRoot",
                                                "ResolveWarehouseIdRuntime",
-                                               "RuntimeArtifactsExistRuntime",
-                                               "ScanRoot"
+                                               "RuntimeArtifactsExistRuntime"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -59819,8 +59977,7 @@
                                                "GetString",
                                                "NormalizeFolderPathRetire",
                                                "ResolveRuntimeRootRetire",
-                                               "RuntimeArtifactsExistRetire",
-                                               "ScanRoot"
+                                               "RuntimeArtifactsExistRetire"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -134322,7 +134479,8 @@
                            {
                                "entryPoint":  "AddListBox",
                                "testPaths":  [
-                                                 "tests/tooling/Test-Plan022Slice4auReceivingListbox.ps1"
+                                                 "tests/tooling/Test-Plan022Slice4auReceivingListbox.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
                                              ]
                            },
                            {
@@ -135306,6 +135464,7 @@
                            {
                                "entryPoint":  "ConnectNasRootWithCredentials",
                                "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                  "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1"
                                              ]
                            },
@@ -135548,6 +135707,12 @@
                                "entryPoint":  "DiscoverConnectedRoots",
                                "testPaths":  [
                                                  "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "DiscoverVisibleNasRoots",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
                                              ]
                            },
                            {
@@ -137045,6 +137210,7 @@
                            {
                                "entryPoint":  "mBtnConnect_Click",
                                "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                              ]
                            },
@@ -137256,6 +137422,12 @@
                                "entryPoint":  "mLstRecipeConnectionDisplay_Click",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4apNamedRecipeGraph.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mLstRoots_Change",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
                                              ]
                            },
                            {
@@ -138088,6 +138260,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "RememberRoot",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "RememberTarget",
                                "testPaths":  [
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
@@ -138606,9 +138784,21 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ScanConnectedRoot",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ScanNasRoot",
                                "testPaths":  [
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ScanRootCandidates",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
                                              ]
                            },
                            {
@@ -142054,6 +142244,13 @@
                          {
                              "id":  "convention.userform-event:src_Production_Forms_frmProduction.frm:frmProduction.mLstRecipeConnections_Click",
                              "procedure":  "mLstRecipeConnections_Click",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.mLstRoots_Change",
+                             "procedure":  "mLstRoots_Change",
                              "rootKind":  "USERFORM_EVENT",
                              "reason":  "UserForm and control events are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"

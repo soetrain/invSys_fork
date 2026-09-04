@@ -330,6 +330,24 @@ CleanExit:
     Set ScanNasRoot = results
 End Function
 
+Public Function DiscoverVisibleNasRoots() As Collection
+    Dim results As Collection
+    Dim servers As Collection
+    Dim shares As Collection
+    Dim serverName As Variant
+    Dim shareRoot As Variant
+
+    Set results = New Collection
+    Set servers = DiscoverVisibleNasServers()
+    For Each serverName In servers
+        Set shares = DiscoverVisibleNasShares(CStr(serverName))
+        For Each shareRoot In shares
+            AddPathIfMissingNas results, CStr(shareRoot)
+        Next shareRoot
+    Next serverName
+    Set DiscoverVisibleNasRoots = results
+End Function
+
 Public Function SelectWarehouseTarget(ByVal hubRoot As String, _
                                       ByVal runtimeRoot As String, _
                                       ByRef outTarget As WarehouseTarget, _
@@ -1106,6 +1124,80 @@ Private Function ConnectShareNas(ByVal shareRoot As String, _
     resource.dwType = RESOURCETYPE_DISK
     resource.lpRemoteName = shareRoot
     ConnectShareNas = WNetAddConnection2(resource, windowsPassword, userName, IIf(updateProfile, CONNECT_UPDATE_PROFILE, 0))
+End Function
+
+Private Function DiscoverVisibleNasServers() As Collection
+    Dim servers As Collection
+    Dim matches As Object
+    Dim matchItem As Object
+    Dim shareRoot As String
+    Dim serverName As String
+
+    Set servers = New Collection
+    Set matches = CreateObject("VBScript.RegExp")
+    matches.Global = True
+    matches.IgnoreCase = True
+    matches.Pattern = "\\\\[^\\\s]+\\[^\\\s]+"
+    For Each matchItem In matches.Execute(ReadNasDiscoveryCommand("net use"))
+        shareRoot = NormalizeFolderNas(CStr(matchItem.Value))
+        serverName = NasServerNameFromRoot(shareRoot)
+        If serverName <> "" Then AddPathIfMissingNas servers, serverName
+    Next matchItem
+    Set DiscoverVisibleNasServers = servers
+End Function
+
+Private Function DiscoverVisibleNasShares(ByVal serverName As String) As Collection
+    Dim shares As Collection
+    Dim outputText As String
+    Dim lines() As String
+    Dim lineText As Variant
+    Dim parts() As String
+    Dim shareName As String
+    Dim normalizedLine As String
+
+    Set shares = New Collection
+    serverName = Trim$(serverName)
+    If serverName = "" Then
+        Set DiscoverVisibleNasShares = shares
+        Exit Function
+    End If
+    outputText = ReadNasDiscoveryCommand("net view \\" & serverName)
+    lines = Split(outputText, vbCrLf)
+    For Each lineText In lines
+        normalizedLine = Trim$(CStr(lineText))
+        Do While InStr(normalizedLine, "  ") > 0
+            normalizedLine = Replace$(normalizedLine, "  ", " ")
+        Loop
+        parts = Split(normalizedLine, " ")
+        If UBound(parts) >= 1 Then
+            shareName = Trim$(CStr(parts(0)))
+            If shareName <> "" And LCase$(CStr(parts(1))) = "disk" Then
+                AddPathIfMissingNas shares, "\\" & serverName & "\" & shareName
+            End If
+        End If
+    Next lineText
+    Set DiscoverVisibleNasShares = shares
+End Function
+
+Private Function NasServerNameFromRoot(ByVal rootPath As String) As String
+    Dim parts() As String
+
+    rootPath = NormalizeFolderNas(rootPath)
+    If Not IsUncPathNas(rootPath) Then Exit Function
+    parts = Split(Mid$(rootPath, 3), "\")
+    If UBound(parts) >= 1 Then NasServerNameFromRoot = Trim$(CStr(parts(0)))
+End Function
+
+Private Function ReadNasDiscoveryCommand(ByVal commandText As String) As String
+    Dim shellObj As Object
+    Dim execObj As Object
+
+    On Error GoTo CleanExit
+    Set shellObj = CreateObject("WScript.Shell")
+    Set execObj = shellObj.Exec(Environ$("ComSpec") & " /d /c " & commandText)
+    ReadNasDiscoveryCommand = CStr(execObj.StdOut.ReadAll)
+
+CleanExit:
 End Function
 
 Private Function ConnectShareNasCurrentUser(ByVal shareRoot As String) As Long

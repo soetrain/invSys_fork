@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-04T22:55:10Z
-- Scanner candidates: 1078
-- Reviewed candidates: 1080
+- Baseline: 2026-09-04T23:10:24Z
+- Scanner candidates: 1079
+- Reviewed candidates: 1081
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -15,7 +15,7 @@
 | PRODUCTION | 222 | Production-owned forms, services, and role package source. |
 | SHIPPING | 156 | Shipping and Boxing forms, services, and role package source. |
 | SHARED_OPERATIONS | 64 | Cross-role or future invSys.Operations packaging work. |
-| CORE | 287 | Headless shared runtime and developer-support source in Core. |
+| CORE | 288 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
 | ADMIN | 235 | Administrative setup, lifecycle, and developer-support source. |
 | DEVELOPER_TOOLING | 14 | Build, scan, report, and other developer-only tooling. |
@@ -39,7 +39,7 @@
 | src/Core/ClassModules/cDynItemSearch.cls | Core | 1999 |
 | src/Core/Modules/modAuth.bas | Core | 1804 |
 | src/Core/Modules/modConfig.bas | Core | 1683 |
-| src/Core/Modules/modNasConnection.bas | Core | 1511 |
+| src/Core/Modules/modNasConnection.bas | Core | 1603 |
 | src/Core/Modules/modOperatorReadModel.bas | Core | 1919 |
 | src/Core/Modules/modProcessor.bas | Core | 1479 |
 | src/Core/Modules/modRoleEventWriter.bas | Core | 3104 |
@@ -566,6 +566,7 @@
 | root:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.mBtnConnect_Click | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.mBtnOK_Click | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.mBtnScan_Click | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.mLstRoots_Change | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.mLstTargets_Change | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |

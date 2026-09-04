@@ -23,6 +23,7 @@ Private WithEvents mBtnConnect As MSForms.CommandButton
 Private WithEvents mBtnScan As MSForms.CommandButton
 Private WithEvents mBtnOK As MSForms.CommandButton
 Private WithEvents mBtnCancel As MSForms.CommandButton
+Private WithEvents mLstRoots As MSForms.ListBox
 Private WithEvents mLstTargets As MSForms.ListBox
 
 Private mLblStatus As MSForms.Label
@@ -40,7 +41,7 @@ Private Const COLOR_ERROR As Long = 255
 Private Sub UserForm_Initialize()
     Me.Caption = "Connect Warehouse Storage"
     Me.Width = 560
-    Me.Height = 390
+    Me.Height = 430
     BuildConnectionLayout
     mTxtRoot.Value = modNasConnection.GetPromptDefaultRoot()
     mTxtUser.Value = modNasConnection.GetRememberedNasUser()
@@ -81,9 +82,9 @@ Private Sub BuildConnectionLayout()
     AddLabel "lblTitle", "Connect Warehouse Storage", 18, 14, 260, 18, True
     Set mLblStatus = AddLabel("lblStatus", "", 18, 40, 500, 34, False)
 
-    AddLabel "lblRoot", "Root", 18, 88, 84, 18, False
+    AddLabel "lblRoot", "Selected root", 18, 88, 84, 18, False
     Set mTxtRoot = AddTextBox("txtRoot", 104, 84, 322, 22)
-    Set mBtnScan = AddButton("btnScan", "Scan", 436, 83, 70, 24)
+    Set mBtnScan = AddButton("btnScan", "Scan Roots", 436, 83, 70, 24)
 
     AddLabel "lblUser", "Server user", 18, 122, 84, 18, False
     Set mTxtUser = AddTextBox("txtUser", 104, 118, 160, 22)
@@ -92,19 +93,22 @@ Private Sub BuildConnectionLayout()
     mTxtPassword.PasswordChar = "*"
     Set mBtnConnect = AddButton("btnConnect", "Connect", 436, 117, 70, 24)
 
-    AddLabel "lblStation", "Station", 18, 156, 84, 18, False
-    Set mTxtStation = AddTextBox("txtStation", 104, 152, 160, 22)
+    AddLabel "lblRoots", "Discovered NAS roots", 18, 156, 180, 18, False
+    Set mLstRoots = AddListBox("lstRoots", 18, 178, 488, 54)
+
+    AddLabel "lblStation", "Station", 18, 240, 84, 18, False
+    Set mTxtStation = AddTextBox("txtStation", 104, 236, 160, 22)
     mTxtStation.Value = modStationIdentity.CurrentComputerStationId()
     mTxtStation.Locked = True
     mTxtStation.BackColor = &HEFEFEF
-    Set mLblStationHelp = AddLabel("lblStationHelp", "", 276, 153, 230, 32, False)
+    Set mLblStationHelp = AddLabel("lblStationHelp", "", 276, 237, 230, 32, False)
     UpdateStationHelp
 
-    AddLabel "lblTargets", "Warehouse runtimes", 18, 194, 130, 18, False
-    Set mLstTargets = AddListBox("lstTargets", 18, 216, 488, 92)
+    AddLabel "lblTargets", "Warehouse runtimes", 18, 276, 130, 18, False
+    Set mLstTargets = AddListBox("lstTargets", 18, 298, 488, 72)
 
-    Set mBtnOK = AddButton("btnOK", "OK", 350, 324, 74, 26)
-    Set mBtnCancel = AddButton("btnCancel", "Cancel", 432, 324, 74, 26)
+    Set mBtnOK = AddButton("btnOK", "OK", 350, 380, 74, 26)
+    Set mBtnCancel = AddButton("btnCancel", "Cancel", 432, 380, 74, 26)
 End Sub
 
 Private Function AddLabel(ByVal controlName As String, _
@@ -226,8 +230,8 @@ Private Sub mBtnConnect_Click()
     Application.Cursor = previousCursor
     mTxtPassword.Value = vbNullString
     If statusCode = NAS_OK Then
-        ShowStatus "Storage connected. Scan the root, select a warehouse, then continue to invSys sign-in.", COLOR_SUCCESS
-        ScanRoot
+        ShowStatus "Storage connected. Scanning the selected root for warehouse runtimes...", COLOR_SUCCESS
+        ScanConnectedRoot
     Else
         ShowStatus modNasConnection.GetConnectionStatus(), COLOR_ERROR
     End If
@@ -239,7 +243,7 @@ ConnectFailed:
 End Sub
 
 Private Sub mBtnScan_Click()
-    ScanRoot
+    ScanRootCandidates
 End Sub
 
 Private Sub mBtnOK_Click()
@@ -281,27 +285,48 @@ Private Sub mLstTargets_Change()
     RefreshStationsForSelectedTarget
 End Sub
 
-Private Sub ScanRoot()
+Private Sub mLstRoots_Change()
+    If mLstRoots.ListIndex < 0 Then Exit Sub
+    mTxtRoot.Value = CStr(mLstRoots.Value)
+    mLstTargets.Clear
+End Sub
+
+Private Sub ScanRootCandidates()
+    Dim roots As Collection
+    Dim item As Variant
+
+    ShowStatus "Discovering visible NAS roots. Select one, enter server credentials, then connect.", COLOR_INFO
+    Me.Repaint
+    DoEvents
+    Set roots = modNasConnection.DiscoverVisibleNasRoots()
+    mLstRoots.Clear
+    mLstTargets.Clear
+    For Each item In roots
+        mLstRoots.AddItem CStr(item)
+    Next item
+
+    If mLstRoots.ListCount > 0 Then
+        mLstRoots.ListIndex = 0
+        ShowStatus "Found " & CStr(mLstRoots.ListCount) & " NAS root(s). Select one, enter server credentials, then connect.", COLOR_SUCCESS
+    Else
+        ShowStatus "No visible NAS roots were found. Enter an authorized root as a fallback, then enter server credentials and connect.", COLOR_WARNING
+    End If
+End Sub
+
+Private Sub ScanConnectedRoot()
     Dim targets As Collection
     Dim item As Variant
     Dim rootPath As String
-    Dim statusCode As NasStatusCode
 
     rootPath = Trim$(CStr(mTxtRoot.Value))
     If rootPath = "" Then
-        ShowStatus "Enter a warehouse root first.", COLOR_WARNING
+        ShowStatus "Select a discovered root or enter an authorized root first.", COLOR_WARNING
         Exit Sub
     End If
 
-    ShowStatus "Scanning the connected warehouse root...", COLOR_INFO
+    ShowStatus "Scanning the connected root for warehouse runtimes...", COLOR_INFO
     Me.Repaint
     DoEvents
-    statusCode = modNasConnection.TryRevalidateRememberedRoot(rootPath)
-    If statusCode <> NAS_OK Then
-        ShowStatus modNasConnection.GetConnectionStatus(), COLOR_WARNING
-        Exit Sub
-    End If
-
     Set targets = modNasConnection.ScanNasRoot(rootPath)
     mLstTargets.Clear
     For Each item In targets

@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-04T22:55:10Z",
+    "generatedAtUtc":  "2026-09-04T23:10:24Z",
     "baseline":  {
                      "componentCount":  157,
-                     "procedureCount":  5399,
-                     "lineCount":  121752,
+                     "procedureCount":  5406,
+                     "lineCount":  121869,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192
@@ -6615,6 +6615,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -9126,6 +9127,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -9162,6 +9164,23 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
 
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.mLstRoots_Change",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmWarehouseConnection",
+                           "procedureNames":  [
+                                                  "mLstRoots_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Core/Forms/frmWarehouseConnection.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -14178,6 +14197,9 @@
                                                   "DateFromSerialNas",
                                                   "DisconnectCurrentNasSession",
                                                   "DisconnectNasRoot",
+                                                  "DiscoverVisibleNasRoots",
+                                                  "DiscoverVisibleNasServers",
+                                                  "DiscoverVisibleNasShares",
                                                   "EnsureSessionRootsNas",
                                                   "EnsureWarehouseTargetInteractive",
                                                   "FileExistsNas",
@@ -14214,10 +14236,12 @@
                                                   "IsWarehouseTargetAllowed",
                                                   "ListRuntimeStationsForConnection",
                                                   "LoadRememberedTargetNas",
+                                                  "NasServerNameFromRoot",
                                                   "NormalizeFolderNas",
                                                   "OpenWorkbookReadOnlyNoPromptNas",
                                                   "PromptTextNas",
                                                   "ReadConfigIdentityNas",
+                                                  "ReadNasDiscoveryCommand",
                                                   "RememberRoot",
                                                   "RememberTarget",
                                                   "RemovePathFromListNas",
