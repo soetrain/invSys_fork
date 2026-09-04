@@ -24,6 +24,7 @@ Private WithEvents mLstSources As MSForms.ListBox
 Private WithEvents mLstRejected As MSForms.ListBox
 Private WithEvents mBtnDiscover As MSForms.CommandButton
 Private WithEvents mBtnConnect As MSForms.CommandButton
+Private WithEvents mBtnAddServer As MSForms.CommandButton
 Private WithEvents mBtnAggregate As MSForms.CommandButton
 Private WithEvents mBtnClose As MSForms.CommandButton
 Private mLblSelected As MSForms.Label
@@ -33,7 +34,7 @@ Private mResizeInitialized As Boolean
 
 Private Sub UserForm_Initialize()
     BuildLayout
-    LoadKnownRoots
+    DiscoverConnectedRoots
 End Sub
 
 Private Sub UserForm_Activate()
@@ -55,12 +56,13 @@ Private Sub BuildLayout()
     AddLabel "Select the published warehouse snapshots to include for this run. This never changes Send To or local warehouse authority.", 12, 30, 785, 28, False
     AddLabel "NAS root", 12, 66, 65, 18, True
     Set mTxtRoot = AddTextBox("txtRoot", 80, 62, 410, 22)
-    Set mBtnDiscover = AddButton("btnDiscover", "Discover", 500, 60, 80, 26)
+    Set mBtnDiscover = AddButton("btnDiscover", "Refresh Connected", 500, 60, 105, 26)
     AddLabel "Windows user", 590, 66, 80, 18, False
     Set mTxtUser = AddTextBox("txtUser", 670, 62, 125, 22)
     AddLabel "Password", 12, 94, 62, 18, False
     Set mTxtPassword = AddTextBox("txtPassword", 80, 90, 190, 22)
     mTxtPassword.PasswordChar = "*"
+    Set mBtnAddServer = AddButton("btnAddServer", "Add Server", 610, 60, 85, 26)
     Set mBtnConnect = AddButton("btnConnect", "Connect + Discover", 280, 88, 125, 26)
     AddLabel "Credentials are used only for this Windows connection and are cleared from this form after use.", 414, 94, 380, 18, False
 
@@ -91,17 +93,10 @@ Private Sub BuildLayout()
     mBuilt = True
 End Sub
 
-Private Sub LoadKnownRoots()
+Private Sub DiscoverConnectedRoots()
     Dim roots As Collection
     Dim rootPath As Variant
     Dim configRoot As String
-
-    On Error Resume Next
-    configRoot = Trim$(modConfig.GetString("PathSharePointRoot", ""))
-    On Error GoTo 0
-    If configRoot <> "" Then
-        mTxtRoot.Value = configRoot
-    End If
 
     Set roots = modNasConnection.GetKnownWarehouseTargetRoots()
     For Each rootPath In roots
@@ -109,12 +104,19 @@ Private Sub LoadKnownRoots()
             If mTxtRoot.Value = "" Then
                 mTxtRoot.Value = CStr(rootPath)
             End If
+            DiscoverRoot CStr(rootPath)
         End If
     Next rootPath
+    If mLstSources.ListCount = 0 Then ShowStatus "No connected warehouse sources were found. Use Add Server only for another server."
 End Sub
 
 Private Sub mBtnDiscover_Click()
-    DiscoverRoot Trim$(mTxtRoot.Value)
+    DiscoverConnectedRoots
+End Sub
+
+Private Sub mBtnAddServer_Click()
+    mTxtRoot.SetFocus
+    ShowStatus "Enter another NAS server root and Windows credentials, then choose Connect + Discover."
 End Sub
 
 Private Sub mBtnConnect_Click()

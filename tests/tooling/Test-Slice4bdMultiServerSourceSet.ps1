@@ -21,6 +21,7 @@ $checks = @(
     [pscustomobject]@{ Check = "Slice4bd.SourceSet.ExplicitAggregation"; Passed = ($consoleText -match 'Public\s+Function\s+RunHQAggregationFromSourceSet') -and ($aggregatorText -match 'Public\s+Function\s+GenerateGlobalSnapshotFromFiles'); Detail = "Selected published snapshots must be aggregated explicitly, not by scanning one current root." },
     [pscustomobject]@{ Check = "Slice4bd.SourceSet.NoSendToMutation"; Passed = ($formText -match 'ConnectNasRootWithCredentials|GetKnownWarehouseTargetRoots') -and ($formText -notmatch 'SelectWarehouseTarget'); Detail = "The form may connect/discover, but must never change Send To." },
     [pscustomobject]@{ Check = "Slice4bd.SourceSet.VisibleSourceState"; Passed = ($formText -match 'Selected Sources') -and ($formText -match 'Rejected|Skipped'); Detail = "The operator must see selected and rejected/skipped source state." }
+    [pscustomobject]@{ Check = "Slice4bd.SourceSet.ConnectedFirstWorkflow"; Passed = ($formText -match 'DiscoverConnectedRoots') -and ($formText -match 'Add Server') -and ($formText -match 'mBtnAddServer'); Detail = "Already connected NAS roots must discover automatically; credentials are an explicit Add Server path." }
 )
 
 $checks | Format-Table -AutoSize
