@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$ReleaseRoot,
     [string]$CacheRoot = (Join-Path $env:LOCALAPPDATA "invSys\\Addins"),
-    [string]$RegisterScriptPath = (Join-Path $PSScriptRoot "register_current_addins.ps1"),
+    [string]$RegisterScriptPath = "",
     [string]$ExcelProcessName = "EXCEL",
     [string]$ExcelOptionsKey = "HKCU:\\Software\\Microsoft\\Office\\16.0\\Excel\\Options",
     [string]$AddinManagerKey = "HKCU:\\Software\\Microsoft\\Office\\16.0\\Excel\\Add-in Manager"
@@ -10,7 +10,9 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
-. (Join-Path $PSScriptRoot "invsys_release_common.ps1")
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ([string]::IsNullOrWhiteSpace($RegisterScriptPath)) { $RegisterScriptPath = Join-Path $scriptRoot "register_current_addins.ps1" }
+. (Join-Path $scriptRoot "invsys_release_common.ps1")
 
 $rootPath = (Resolve-Path -LiteralPath $ReleaseRoot).Path
 if (-not (Test-Path -LiteralPath $RegisterScriptPath -PathType Leaf)) { throw "Registration script was not found: $RegisterScriptPath" }

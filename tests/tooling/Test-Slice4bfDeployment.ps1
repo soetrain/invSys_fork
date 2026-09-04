@@ -51,6 +51,9 @@ Add-Check "Slice4bf.Tooling.LocalAdminRollback" `
 Add-Check "Slice4bf.Tooling.ScheduledCadence" `
     ($allToolText -match "AtLogOn" -and $allToolText -match "Minutes 15") `
     "The updater task must be registered at logon and every fifteen minutes."
+Add-Check "Slice4bf.Tooling.TaskActionUsesLocalAgent" `
+    ((Get-Content -LiteralPath (Join-Path $repo "tools/register_invsys_update_task.ps1") -Raw) -match 'New-ScheduledTaskAction[\s\S]*?-f \$agentUpdater') `
+    "The registered scheduled-task action must target the local agent, not the repository updater."
 
 if (@($results | Where-Object { -not $_.Passed }).Count -eq 0) {
     $scratch = Join-Path ([IO.Path]::GetTempPath()) ("invSys-Slice4bf-" + [guid]::NewGuid().ToString("N"))
@@ -76,7 +79,8 @@ if (@($results | Where-Object { -not $_.Passed }).Count -eq 0) {
         $deferred = (Get-Content -LiteralPath (Join-Path $cache "update-status.json") -Raw | ConvertFrom-Json).status -eq "DEFERRED_EXCEL_OPEN"
         Add-Check "Slice4bf.Update.DefersWithoutRegistration" $deferred "Updater defers while the supplied Excel process probe is present."
 
-        & (Join-Path $repo "tools/update_invsys_station.ps1") -ReleaseRoot $feed -CacheRoot $cache -ExcelOptionsKey $registryPath -AddinManagerKey ($registryPath + "\\Manager") | Out-Null
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo "tools/update_invsys_station.ps1") -ReleaseRoot $feed -CacheRoot $cache -ExcelOptionsKey $registryPath -AddinManagerKey ($registryPath + "\\Manager") | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Direct PowerShell station updater invocation failed." }
         $registered = Get-ItemProperty -Path $registryPath
         $openValues = @($registered.PSObject.Properties | Where-Object { $_.Name -match '^OPEN\d*$' } | ForEach-Object { [string]$_.Value })
         $stationApplied = ((Get-Content -LiteralPath (Join-Path $cache "current-release.json") -Raw | ConvertFrom-Json).releaseId -eq "test-r1")
@@ -97,6 +101,10 @@ if (@($results | Where-Object { -not $_.Passed }).Count -eq 0) {
         catch { $rejected = $true }
         $stillTestR1 = ((Get-Content -LiteralPath (Join-Path $cache "current-release.json") -Raw | ConvertFrom-Json).releaseId -eq "test-r1")
         Add-Check "Slice4bf.Update.RejectsTamperedReleaseAndKeepsKnownGood" ($rejected -and $stillTestR1) "A bad remote hash cannot replace the registered known-good release."
+
+        $taskPreview = & (Join-Path $repo "tools/register_invsys_update_task.ps1") -ReleaseRoot $feed -CacheRoot $cache
+        $taskUsesLocalAgent = (($taskPreview -join "`n") -match [regex]::Escape((Join-Path (Split-Path -Parent $cache) "Deployment\\Agents"))) -and (($taskPreview -join "`n") -notmatch [regex]::Escape($repo))
+        Add-Check "Slice4bf.Task.LocalAgentNoGitDependency" $taskUsesLocalAgent "Task preview must target a local hash-verified station agent, never a repository checkout."
 
         & (Join-Path $repo "tools/publish_invsys_release.ps1") -SourceRoot $source -ReleaseRoot $feed -ReleaseId "test-r3" -GitCommit "test-commit" | Out-Null
         $failedRegistration = $false

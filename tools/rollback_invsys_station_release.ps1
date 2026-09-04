@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$ReleaseId,
     [string]$CacheRoot = (Join-Path $env:LOCALAPPDATA "invSys\\Addins"),
-    [string]$RegisterScriptPath = (Join-Path $PSScriptRoot "register_current_addins.ps1"),
+    [string]$RegisterScriptPath = "",
     [string]$ExcelProcessName = "EXCEL",
     [string]$ExcelOptionsKey = "HKCU:\\Software\\Microsoft\\Office\\16.0\\Excel\\Options",
     [string]$AddinManagerKey = "HKCU:\\Software\\Microsoft\\Office\\16.0\\Excel\\Add-in Manager",
@@ -12,7 +12,9 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
-. (Join-Path $PSScriptRoot "invsys_release_common.ps1")
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ([string]::IsNullOrWhiteSpace($RegisterScriptPath)) { $RegisterScriptPath = Join-Path $scriptRoot "register_current_addins.ps1" }
+. (Join-Path $scriptRoot "invsys_release_common.ps1")
 if (-not $ConfirmRollback) { throw "Rollback is deliberate. Re-run with -ConfirmRollback after choosing the target release." }
 $principal = [Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw "Rollback requires a local Windows administrator." }
