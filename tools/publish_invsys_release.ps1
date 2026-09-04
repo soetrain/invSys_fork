@@ -43,6 +43,10 @@ function Publish-StationSetup {
     if (-not (Test-Path -LiteralPath $bootstrapSource -PathType Leaf)) {
         throw "StationSetup bootstrap source was not found: start_invsys_nas_station_setup.ps1"
     }
+    $cmdLauncherSource = Join-Path $toolRoot "Install-invSys-Station.cmd"
+    if (-not (Test-Path -LiteralPath $cmdLauncherSource -PathType Leaf)) {
+        throw "StationSetup command launcher source was not found: Install-invSys-Station.cmd"
+    }
 
     $setupRoot = Join-Path $FeedRoot "StationSetup"
     if (-not (Test-Path -LiteralPath $setupRoot)) { New-Item -ItemType Directory -Path $setupRoot -Force | Out-Null }
@@ -71,6 +75,7 @@ function Publish-StationSetup {
     }
 
     Copy-Item -LiteralPath $bootstrapSource -Destination (Join-Path $FeedRoot "Install-invSys-Station.ps1") -Force
+    Copy-Item -LiteralPath $cmdLauncherSource -Destination (Join-Path $FeedRoot "Install-invSys-Station.cmd") -Force
 }
 
 $packageNames = @(

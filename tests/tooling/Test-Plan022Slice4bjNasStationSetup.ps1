@@ -14,6 +14,7 @@ function Read-Source([string]$path) {
 $publisher = Read-Source (Join-Path $repo "tools\publish_invsys_release.ps1")
 $installerPath = Join-Path $repo "tools\install_invsys_station_from_nas.ps1"
 $bootstrapPath = Join-Path $repo "tools\start_invsys_nas_station_setup.ps1"
+$cmdLauncherPath = Join-Path $repo "tools\Install-invSys-Station.cmd"
 $register = Read-Source (Join-Path $repo "tools\register_invsys_update_task.ps1")
 $spec = Read-Source (Join-Path $docs "0 plan docs\xlam_invSys\invSys-Design-v4.11.md")
 $failures = [System.Collections.Generic.List[string]]::new()
@@ -31,6 +32,7 @@ function Check([string]$name, [bool]$passed, [string]$contract) {
 
 $installer = if (Test-Path -LiteralPath $installerPath) { Read-Source $installerPath } else { "" }
 $bootstrap = if (Test-Path -LiteralPath $bootstrapPath) { Read-Source $bootstrapPath } else { "" }
+$cmdLauncher = if (Test-Path -LiteralPath $cmdLauncherPath) { Read-Source $cmdLauncherPath } else { "" }
 
 Check "StationSetup.PublisherStagesVersionedEntryPoint" (
     $publisher.Contains('StationSetup') -and
@@ -43,6 +45,12 @@ Check "StationSetup.BootstrapResolvesCurrentRelease" (
     $bootstrap.Contains('stationSetup') -and
     $bootstrap.Contains('install_invsys_station_from_nas.ps1')
 ) "The user-runnable NAS bootstrap must resolve only the current feed-declared setup script."
+
+Check "StationSetup.CmdLauncherHandlesNasExecutionPolicy" (
+    $publisher.Contains('Install-invSys-Station.cmd') -and
+    $cmdLauncher.Contains('ExecutionPolicy Bypass') -and
+    $cmdLauncher.Contains('Install-invSys-Station.ps1')
+) "The feed root must provide an ordinary-user command launcher for the NAS PowerShell bootstrap."
 
 Check "StationSetup.InstallsFivePackageRelease" (
     $installer.Contains('update_invsys_station.ps1') -and
