@@ -4,14 +4,31 @@ param(
     [string]$RepoRoot = ".",
 
     [Parameter(Mandatory = $false)]
-    [string]$DeployRoot = "deploy/current"
+    [string]$DeployRoot = "deploy/current",
+
+    [Parameter(Mandatory = $false)]
+    [string]$AddinsRoot = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExcelOptionsKey = "HKCU:\Software\Microsoft\Office\16.0\Excel\Options",
+
+    [Parameter(Mandatory = $false)]
+    [string]$AddinManagerKey = "HKCU:\Software\Microsoft\Office\16.0\Excel\Add-in Manager",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExcelProcessName = "EXCEL"
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repoPath = (Resolve-Path $RepoRoot).Path
-$deployPath = Join-Path $repoPath $DeployRoot
+$deployPath = if ([string]::IsNullOrWhiteSpace($AddinsRoot)) {
+    Join-Path $repoPath $DeployRoot
+}
+else {
+    (Resolve-Path -LiteralPath $AddinsRoot).Path
+}
 
 $installOrder = @(
     "invSys.Core.xlam",
@@ -33,9 +50,6 @@ foreach ($fileName in $installOrder) {
         throw "Expected add-in not found: $path"
     }
 }
-
-$excelOptionsKey = "HKCU:\Software\Microsoft\Office\16.0\Excel\Options"
-$addinManagerKey = "HKCU:\Software\Microsoft\Office\16.0\Excel\Add-in Manager"
 
 function Remove-InvSysAddinManagerEntries {
     param(
@@ -66,15 +80,22 @@ function Set-ExcelOpenOrder {
     $props = Get-ItemProperty -Path $RegistryPath
     foreach ($prop in $props.PSObject.Properties) {
         if ($prop.Name -notmatch '^OPEN\d*$') { continue }
+        if ([string]$prop.Value -notmatch '(?i)invsys\.') { continue }
         Write-Output ("- remove " + $prop.Name + "=" + [string]$prop.Value)
         Remove-ItemProperty -Path $RegistryPath -Name $prop.Name -ErrorAction SilentlyContinue
     }
 
+    $props = Get-ItemProperty -Path $RegistryPath
     for ($i = 0; $i -lt $OrderedPaths.Count; $i++) {
-        $name = if ($i -eq 0) { "OPEN" } else { "OPEN$i" }
+        $slot = 0
+        do {
+            $name = if ($slot -eq 0) { "OPEN" } else { "OPEN$slot" }
+            $slot++
+        } while ($null -ne $props.PSObject.Properties[$name])
         $value = '"' + $OrderedPaths[$i] + '"'
         Write-Output ("- set " + $name + "=" + $value)
         Set-ItemProperty -Path $RegistryPath -Name $name -Value $value -Type String
+        $props = Get-ItemProperty -Path $RegistryPath
     }
 }
 
@@ -83,7 +104,7 @@ foreach ($fileName in $startupOrder) {
     $orderedPaths += (Join-Path $deployPath $fileName)
 }
 
-if (Get-Process EXCEL -ErrorAction SilentlyContinue) {
+if (Get-Process -Name $ExcelProcessName -ErrorAction SilentlyContinue) {
     throw "Close all Excel windows before registering invSys add-ins."
 }
 
