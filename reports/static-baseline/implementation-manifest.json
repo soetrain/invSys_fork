@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-01T20:50:38Z",
+    "generatedAtUtc":  "2026-09-04T03:14:31Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -854,13 +854,14 @@
                            "name":  "modAdmin",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Admin/Modules/modAdmin.bas",
-                           "lineCount":  2482,
+                           "lineCount":  2514,
                            "procedureNames":  [
                                                   "Add_InventoryItem",
                                                   "Add_WarehouseDirectoryRoot",
                                                   "AddInventoryItemForWarehouse",
                                                   "AddInventoryQuantityForWarehouse",
                                                   "AddPictureReferencesToPayloadAdmin",
+                                                  "Admin_AggregateGlobalSnapshot_Click",
                                                   "Admin_Click",
                                                   "Admin_RetireMigrateWarehouse_Click",
                                                   "Admin_SetupTesterStation_Click",
@@ -951,7 +952,7 @@
                            "name":  "modAdminConsole",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Admin/Modules/modAdminConsole.bas",
-                           "lineCount":  2008,
+                           "lineCount":  2091,
                            "procedureNames":  [
                                                   "AddConfigPathToWarehouseDirectory",
                                                   "AddConfigWorkbookToWarehouseDirectory",
@@ -970,6 +971,7 @@
                                                   "CloseWorkbookByFullNameAdmin",
                                                   "CloseWorkbookIfTransientAdmin",
                                                   "CountInboxStatuses",
+                                                  "CountPublishedInventorySnapshotsAdmin",
                                                   "CountStatusesInTable",
                                                   "CreateFolderRecursiveAdmin",
                                                   "DeleteAllAdminTableRows",
@@ -1033,6 +1035,7 @@
                                                   "ResolveOpenWorkbookByNameAdmin",
                                                   "ResolveSnapshotPathAdmin",
                                                   "RetireSourceWarehouseAdmin",
+                                                  "RunHQAggregationFromAdmin",
                                                   "RunProcessorFromConsole",
                                                   "RunScheduledHQAggregationForAutomation",
                                                   "RunScheduledWarehouseBatchForAutomation",
@@ -17826,9 +17829,10 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  113,
-                           "endLine":  137,
-                           "lineCount":  25,
+                           "endLine":  145,
+                           "lineCount":  33,
                            "directCalls":  [
+                                               "GetConfigEditorRows",
                                                "TestInitializeConfigEditor"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -17846,8 +17850,8 @@
                            "name":  "Add_WarehouseDirectoryRoot",
                            "visibility":  "DEFAULT",
                            "kind":  "SUB",
-                           "startLine":  139,
-                           "endLine":  159,
+                           "startLine":  147,
+                           "endLine":  167,
                            "lineCount":  21,
                            "directCalls":  [
                                                "EnsureAdminLegacyWorkbookSurface",
@@ -17870,8 +17874,8 @@
                            "name":  "Seed_DemoInventory",
                            "visibility":  "DEFAULT",
                            "kind":  "SUB",
-                           "startLine":  161,
-                           "endLine":  278,
+                           "startLine":  169,
+                           "endLine":  286,
                            "lineCount":  118,
                            "directCalls":  [
                                                "DeleteDemoInventoryDataSet",
@@ -17899,8 +17903,8 @@
                            "name":  "SetSeedInventorySelectionForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  280,
-                           "endLine":  290,
+                           "startLine":  288,
+                           "endLine":  298,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -17920,8 +17924,8 @@
                            "name":  "SetDemoInventorySelectionForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  292,
-                           "endLine":  305,
+                           "startLine":  300,
+                           "endLine":  313,
                            "lineCount":  14,
                            "directCalls":  [
 
@@ -17941,8 +17945,8 @@
                            "name":  "GetLastDemoInventoryCallbackResultForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  307,
-                           "endLine":  309,
+                           "startLine":  315,
+                           "endLine":  317,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -17962,8 +17966,8 @@
                            "name":  "RunDemoInventoryActionCallbackForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  311,
-                           "endLine":  321,
+                           "startLine":  319,
+                           "endLine":  329,
                            "lineCount":  11,
                            "directCalls":  [
                                                "Seed_DemoInventory",
@@ -17984,8 +17988,8 @@
                            "name":  "DemoInventoryFormContractForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  323,
-                           "endLine":  326,
+                           "startLine":  331,
+                           "endLine":  334,
                            "lineCount":  4,
                            "directCalls":  [
                                                "TestDemoInventoryActionContract"
@@ -18005,8 +18009,8 @@
                            "name":  "InventoryEditSelectionContractForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  328,
-                           "endLine":  342,
+                           "startLine":  336,
+                           "endLine":  350,
                            "lineCount":  15,
                            "directCalls":  [
                                                "TestEditItemComboSelectionContract"
@@ -18026,8 +18030,8 @@
                            "name":  "InventoryAddVisibilityDropdownContractForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  344,
-                           "endLine":  370,
+                           "startLine":  352,
+                           "endLine":  378,
                            "lineCount":  27,
                            "directCalls":  [
                                                "CreateInventoryEntityPayloadItem",
@@ -18050,8 +18054,8 @@
                            "name":  "InventoryDeleteContractForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  372,
-                           "endLine":  405,
+                           "startLine":  380,
+                           "endLine":  413,
                            "lineCount":  34,
                            "directCalls":  [
                                                "BuildInventoryRetirementPayloadItemAdmin",
@@ -18072,8 +18076,8 @@
                            "name":  "InventoryWorksheetContractForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  407,
-                           "endLine":  422,
+                           "startLine":  415,
+                           "endLine":  430,
                            "lineCount":  16,
                            "directCalls":  [
                                                "EndInventoryWorksheetAutomation",
@@ -18094,8 +18098,8 @@
                            "name":  "NextInventoryRowForWorksheet",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  424,
-                           "endLine":  426,
+                           "startLine":  432,
+                           "endLine":  434,
                            "lineCount":  3,
                            "directCalls":  [
                                                "NextInventoryRowSuggestionAdmin"
@@ -18115,8 +18119,8 @@
                            "name":  "GenerateInventoryItemCodeForWorksheet",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  428,
-                           "endLine":  431,
+                           "startLine":  436,
+                           "endLine":  439,
                            "lineCount":  4,
                            "directCalls":  [
                                                "GenerateInventorySkuAdmin"
@@ -18136,8 +18140,8 @@
                            "name":  "InventoryItemCatalogContainsForWorksheet",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  433,
-                           "endLine":  449,
+                           "startLine":  441,
+                           "endLine":  457,
                            "lineCount":  17,
                            "directCalls":  [
                                                "CatalogItemTextAdmin",
@@ -18159,8 +18163,8 @@
                            "name":  "ApplyInventoryWorksheetRecordForWarehouse",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  451,
-                           "endLine":  523,
+                           "startLine":  459,
+                           "endLine":  531,
                            "lineCount":  73,
                            "directCalls":  [
                                                "AddInventoryItemForWarehouse",
@@ -18191,8 +18195,8 @@
                            "name":  "Add_InventoryItem",
                            "visibility":  "DEFAULT",
                            "kind":  "SUB",
-                           "startLine":  525,
-                           "endLine":  673,
+                           "startLine":  533,
+                           "endLine":  681,
                            "lineCount":  149,
                            "directCalls":  [
                                                "Accepted",
@@ -18245,8 +18249,8 @@
                            "name":  "AddInventoryItemForWarehouse",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  675,
-                           "endLine":  796,
+                           "startLine":  683,
+                           "endLine":  804,
                            "lineCount":  122,
                            "directCalls":  [
                                                "Add",
@@ -18287,8 +18291,8 @@
                            "name":  "RetireInventoryItemForWarehouse",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  798,
-                           "endLine":  919,
+                           "startLine":  806,
+                           "endLine":  927,
                            "lineCount":  122,
                            "directCalls":  [
                                                "Add",
@@ -18325,8 +18329,8 @@
                            "name":  "BuildInventoryRetirementPayloadItemAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  921,
-                           "endLine":  944,
+                           "startLine":  929,
+                           "endLine":  952,
                            "lineCount":  24,
                            "directCalls":  [
                                                "AttributesJson",
@@ -18350,8 +18354,8 @@
                            "name":  "MarkInventoryCatalogRetiredAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  946,
-                           "endLine":  979,
+                           "startLine":  954,
+                           "endLine":  987,
                            "lineCount":  34,
                            "directCalls":  [
                                                "AppendCatalogEditHistoryAdmin",
@@ -18376,8 +18380,8 @@
                            "name":  "AddInventoryQuantityForWarehouse",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  981,
-                           "endLine":  1062,
+                           "startLine":  989,
+                           "endLine":  1070,
                            "lineCount":  82,
                            "directCalls":  [
                                                "Add",
@@ -18407,8 +18411,8 @@
                            "name":  "SetInventoryQuantityForWarehouse",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1064,
-                           "endLine":  1177,
+                           "startLine":  1072,
+                           "endLine":  1185,
                            "lineCount":  114,
                            "directCalls":  [
                                                "Add",
@@ -18441,8 +18445,8 @@
                            "name":  "CreateFirstInventoryEntityForCatalogItemAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1179,
-                           "endLine":  1254,
+                           "startLine":  1187,
+                           "endLine":  1262,
                            "lineCount":  76,
                            "directCalls":  [
                                                "Add",
@@ -18473,8 +18477,8 @@
                            "name":  "UpdateInventoryItemCatalogForWarehouse",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  1256,
-                           "endLine":  1358,
+                           "startLine":  1264,
+                           "endLine":  1366,
                            "lineCount":  103,
                            "directCalls":  [
                                                "AppendCatalogEditHistoryAdmin",
@@ -18510,8 +18514,8 @@
                            "name":  "AppendCatalogEditHistoryAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1360,
-                           "endLine":  1372,
+                           "startLine":  1368,
+                           "endLine":  1380,
                            "lineCount":  13,
                            "directCalls":  [
                                                "CatalogCellAdmin",
@@ -18532,8 +18536,8 @@
                            "name":  "GenerateInventorySkuAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1374,
-                           "endLine":  1389,
+                           "startLine":  1382,
+                           "endLine":  1397,
                            "lineCount":  16,
                            "directCalls":  [
                                                "Base36Admin"
@@ -18553,8 +18557,8 @@
                            "name":  "LoadInventoryCatalogItemsAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1391,
-                           "endLine":  1452,
+                           "startLine":  1399,
+                           "endLine":  1460,
                            "lineCount":  62,
                            "directCalls":  [
                                                "Add",
@@ -18580,8 +18584,8 @@
                            "name":  "LoadCatalogItemsIntoAddInventoryForm",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1454,
-                           "endLine":  1475,
+                           "startLine":  1462,
+                           "endLine":  1483,
                            "lineCount":  22,
                            "directCalls":  [
                                                "AddCatalogItem",
@@ -18602,8 +18606,8 @@
                            "name":  "IsNonCountedCustomFieldsAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1477,
-                           "endLine":  1490,
+                           "startLine":  1485,
+                           "endLine":  1498,
                            "lineCount":  14,
                            "directCalls":  [
                                                "CustomFields"
@@ -18623,8 +18627,8 @@
                            "name":  "NonCountedItemKindAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1492,
-                           "endLine":  1505,
+                           "startLine":  1500,
+                           "endLine":  1513,
                            "lineCount":  14,
                            "directCalls":  [
                                                "CustomFields"
@@ -18644,8 +18648,8 @@
                            "name":  "CatalogItemTextAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1507,
-                           "endLine":  1511,
+                           "startLine":  1515,
+                           "endLine":  1519,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -18665,8 +18669,8 @@
                            "name":  "ResolveInventoryQtyOnHandAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1513,
-                           "endLine":  1539,
+                           "startLine":  1521,
+                           "endLine":  1547,
                            "lineCount":  27,
                            "directCalls":  [
                                                "FindListObjectByNameAdminLocal",
@@ -18690,8 +18694,8 @@
                            "name":  "InventorySkuHasManagedEntityAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1541,
-                           "endLine":  1582,
+                           "startLine":  1549,
+                           "endLine":  1590,
                            "lineCount":  42,
                            "directCalls":  [
                                                "ColumnIndexAdminLocal",
@@ -18715,8 +18719,8 @@
                            "name":  "ResolveQtyOnHandFromEntitiesAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1584,
-                           "endLine":  1606,
+                           "startLine":  1592,
+                           "endLine":  1614,
                            "lineCount":  23,
                            "directCalls":  [
                                                "ColumnIndexAdminLocal",
@@ -18737,8 +18741,8 @@
                            "name":  "ResolveQtyOnHandFromBalanceAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1608,
-                           "endLine":  1626,
+                           "startLine":  1616,
+                           "endLine":  1634,
                            "lineCount":  19,
                            "directCalls":  [
                                                "ColumnIndexAdminLocal",
@@ -18759,8 +18763,8 @@
                            "name":  "Base36Admin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1628,
-                           "endLine":  1643,
+                           "startLine":  1636,
+                           "endLine":  1651,
                            "lineCount":  16,
                            "directCalls":  [
 
@@ -18780,8 +18784,8 @@
                            "name":  "ResolveSeedInventoryContext",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1645,
-                           "endLine":  1743,
+                           "startLine":  1653,
+                           "endLine":  1751,
                            "lineCount":  99,
                            "directCalls":  [
                                                "Accepted",
@@ -18817,8 +18821,8 @@
                            "name":  "PromptDemoInventoryCsvPath",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1745,
-                           "endLine":  1753,
+                           "startLine":  1753,
+                           "endLine":  1761,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -18838,8 +18842,8 @@
                            "name":  "SanitizeSeedCallbackErrorText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1755,
-                           "endLine":  1767,
+                           "startLine":  1763,
+                           "endLine":  1775,
                            "lineCount":  13,
                            "directCalls":  [
 
@@ -18859,8 +18863,8 @@
                            "name":  "ResolveAdminCurrentTargetContext",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1769,
-                           "endLine":  1806,
+                           "startLine":  1777,
+                           "endLine":  1814,
                            "lineCount":  38,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -18885,8 +18889,8 @@
                            "name":  "NextInventoryRowSuggestionAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1808,
-                           "endLine":  1860,
+                           "startLine":  1816,
+                           "endLine":  1868,
                            "lineCount":  53,
                            "directCalls":  [
                                                "ColumnIndexAdminLocal",
@@ -18909,8 +18913,8 @@
                            "name":  "FindOpenWorkbookByFullNameAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1862,
-                           "endLine":  1873,
+                           "startLine":  1870,
+                           "endLine":  1881,
                            "lineCount":  12,
                            "directCalls":  [
 
@@ -18930,8 +18934,8 @@
                            "name":  "FindListObjectByNameAdminLocal",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1875,
-                           "endLine":  1885,
+                           "startLine":  1883,
+                           "endLine":  1893,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -18951,8 +18955,8 @@
                            "name":  "ColumnIndexAdminLocal",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1887,
-                           "endLine":  1897,
+                           "startLine":  1895,
+                           "endLine":  1905,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -18972,8 +18976,8 @@
                            "name":  "FindCatalogRowBySkuAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1899,
-                           "endLine":  1918,
+                           "startLine":  1907,
+                           "endLine":  1926,
                            "lineCount":  20,
                            "directCalls":  [
                                                "ColumnIndexAdminLocal",
@@ -18994,8 +18998,8 @@
                            "name":  "CatalogCellAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1920,
-                           "endLine":  1928,
+                           "startLine":  1928,
+                           "endLine":  1936,
                            "lineCount":  9,
                            "directCalls":  [
                                                "ColumnIndexAdminLocal"
@@ -19015,8 +19019,8 @@
                            "name":  "SetCatalogValueAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1930,
-                           "endLine":  1940,
+                           "startLine":  1938,
+                           "endLine":  1948,
                            "lineCount":  11,
                            "directCalls":  [
                                                "EnsureCatalogColumnAdmin",
@@ -19037,8 +19041,8 @@
                            "name":  "EnsureCatalogColumnAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1942,
-                           "endLine":  1950,
+                           "startLine":  1950,
+                           "endLine":  1958,
                            "lineCount":  9,
                            "directCalls":  [
                                                "Add",
@@ -19060,8 +19064,8 @@
                            "name":  "NormalizeCatalogColumnNameAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1952,
-                           "endLine":  1964,
+                           "startLine":  1960,
+                           "endLine":  1972,
                            "lineCount":  13,
                            "directCalls":  [
 
@@ -19081,8 +19085,8 @@
                            "name":  "SetSheetProtectionAdminLocal",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1966,
-                           "endLine":  1975,
+                           "startLine":  1974,
+                           "endLine":  1983,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -19102,8 +19106,8 @@
                            "name":  "AddPictureReferencesToPayloadAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1977,
-                           "endLine":  1991,
+                           "startLine":  1985,
+                           "endLine":  1999,
                            "lineCount":  15,
                            "directCalls":  [
                                                "ImagePath",
@@ -19124,8 +19128,8 @@
                            "name":  "SetPictureReferencesInCatalogAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1993,
-                           "endLine":  2012,
+                           "startLine":  2001,
+                           "endLine":  2020,
                            "lineCount":  20,
                            "directCalls":  [
                                                "ColumnIndexAdminLocal",
@@ -19148,8 +19152,8 @@
                            "name":  "CombinedPictureReferencesAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2014,
-                           "endLine":  2032,
+                           "startLine":  2022,
+                           "endLine":  2040,
                            "lineCount":  19,
                            "directCalls":  [
                                                "Add",
@@ -19170,8 +19174,8 @@
                            "name":  "ParsePictureReferencesAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2034,
-                           "endLine":  2050,
+                           "startLine":  2042,
+                           "endLine":  2058,
                            "lineCount":  17,
                            "directCalls":  [
                                                "Add",
@@ -19192,8 +19196,8 @@
                            "name":  "SeedDemoInventoryForWarehouse",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2052,
-                           "endLine":  2102,
+                           "startLine":  2060,
+                           "endLine":  2110,
                            "lineCount":  51,
                            "directCalls":  [
                                                "BuildAdminDemoInventoryPayload",
@@ -19217,8 +19221,8 @@
                            "name":  "EnsureDemoStationInboxes",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2104,
-                           "endLine":  2131,
+                           "startLine":  2112,
+                           "endLine":  2139,
                            "lineCount":  28,
                            "directCalls":  [
                                                "EnsureStationInbox"
@@ -19238,8 +19242,8 @@
                            "name":  "BuildAdminDemoInventoryPayload",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2133,
-                           "endLine":  2149,
+                           "startLine":  2141,
+                           "endLine":  2157,
                            "lineCount":  17,
                            "directCalls":  [
                                                "BuildAdminDemoInventoryFallbackPayload",
@@ -19261,8 +19265,8 @@
                            "name":  "BuildAdminDemoInventoryFallbackPayload",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2151,
-                           "endLine":  2197,
+                           "startLine":  2159,
+                           "endLine":  2205,
                            "lineCount":  47,
                            "directCalls":  [
                                                "Add",
@@ -19284,8 +19288,8 @@
                            "name":  "BuildAdminDemoInventoryPayloadFromCsv",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2199,
-                           "endLine":  2273,
+                           "startLine":  2207,
+                           "endLine":  2281,
                            "lineCount":  75,
                            "directCalls":  [
                                                "Add",
@@ -19317,8 +19321,8 @@
                            "name":  "NormalizeAdminDemoInventoryRow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2275,
-                           "endLine":  2286,
+                           "startLine":  2283,
+                           "endLine":  2294,
                            "lineCount":  12,
                            "directCalls":  [
                                                "AdminDemoInventoryRowForSku",
@@ -19339,8 +19343,8 @@
                            "name":  "AdminDemoInventoryRowForSku",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2288,
-                           "endLine":  2301,
+                           "startLine":  2296,
+                           "endLine":  2309,
                            "lineCount":  14,
                            "directCalls":  [
                                                "Sku"
@@ -19360,8 +19364,8 @@
                            "name":  "ResolveAdminDemoInventoryCsvPath",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2303,
-                           "endLine":  2335,
+                           "startLine":  2311,
+                           "endLine":  2343,
                            "lineCount":  33,
                            "directCalls":  [
                                                "Add"
@@ -19381,8 +19385,8 @@
                            "name":  "CsvHeaderMapAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2337,
-                           "endLine":  2350,
+                           "startLine":  2345,
+                           "endLine":  2358,
                            "lineCount":  14,
                            "directCalls":  [
 
@@ -19402,8 +19406,8 @@
                            "name":  "CsvFieldAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2352,
-                           "endLine":  2361,
+                           "startLine":  2360,
+                           "endLine":  2369,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -19423,8 +19427,8 @@
                            "name":  "ParseCsvLineAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2363,
-                           "endLine":  2389,
+                           "startLine":  2371,
+                           "endLine":  2397,
                            "lineCount":  27,
                            "directCalls":  [
                                                "Add"
@@ -19444,8 +19448,8 @@
                            "name":  "ResolveDemoSeedQuantityAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2391,
-                           "endLine":  2393,
+                           "startLine":  2399,
+                           "endLine":  2401,
                            "lineCount":  3,
                            "directCalls":  [
                                                "Category",
@@ -19466,8 +19470,8 @@
                            "name":  "PromptForWarehouseDirectoryRootIfNeeded",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2395,
-                           "endLine":  2404,
+                           "startLine":  2403,
+                           "endLine":  2412,
                            "lineCount":  10,
                            "directCalls":  [
                                                "HasRememberedWarehouseScanRoots",
@@ -19488,8 +19492,8 @@
                            "name":  "Verify_AddinsPublished",
                            "visibility":  "DEFAULT",
                            "kind":  "SUB",
-                           "startLine":  2406,
-                           "endLine":  2424,
+                           "startLine":  2414,
+                           "endLine":  2432,
                            "lineCount":  19,
                            "directCalls":  [
                                                "EnsureAdminLegacyWorkbookSurface",
@@ -19512,8 +19516,8 @@
                            "name":  "Export_LoadedPackageReport",
                            "visibility":  "DEFAULT",
                            "kind":  "SUB",
-                           "startLine":  2426,
-                           "endLine":  2439,
+                           "startLine":  2434,
+                           "endLine":  2447,
                            "lineCount":  14,
                            "directCalls":  [
                                                "EnsureAdminLegacyWorkbookSurface",
@@ -19535,8 +19539,8 @@
                            "name":  "Admin_RetireMigrateWarehouse_Click",
                            "visibility":  "DEFAULT",
                            "kind":  "SUB",
-                           "startLine":  2441,
-                           "endLine":  2448,
+                           "startLine":  2449,
+                           "endLine":  2456,
                            "lineCount":  8,
                            "directCalls":  [
                                                "EnsureAdminLegacyWorkbookSurface",
@@ -19557,8 +19561,8 @@
                            "name":  "Open_RetireMigrateWarehouse",
                            "visibility":  "DEFAULT",
                            "kind":  "SUB",
-                           "startLine":  2450,
-                           "endLine":  2452,
+                           "startLine":  2458,
+                           "endLine":  2460,
                            "lineCount":  3,
                            "directCalls":  [
                                                "Admin_RetireMigrateWarehouse_Click"
@@ -19578,8 +19582,8 @@
                            "name":  "Scheduler_RunWarehouseBatch",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  2454,
-                           "endLine":  2456,
+                           "startLine":  2462,
+                           "endLine":  2464,
                            "lineCount":  3,
                            "directCalls":  [
                                                "PublishSchedulerResult",
@@ -19600,8 +19604,8 @@
                            "name":  "Scheduler_RunWarehousePublish",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  2458,
-                           "endLine":  2460,
+                           "startLine":  2466,
+                           "endLine":  2468,
                            "lineCount":  3,
                            "directCalls":  [
                                                "PublishSchedulerResult",
@@ -19622,8 +19626,8 @@
                            "name":  "Scheduler_RunHQAggregation",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  2462,
-                           "endLine":  2464,
+                           "startLine":  2470,
+                           "endLine":  2472,
                            "lineCount":  3,
                            "directCalls":  [
                                                "PublishSchedulerResult",
@@ -19641,11 +19645,35 @@
                        },
                        {
                            "componentName":  "modAdmin",
+                           "name":  "Admin_AggregateGlobalSnapshot_Click",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  2474,
+                           "endLine":  2496,
+                           "lineCount":  23,
+                           "directCalls":  [
+                                               "EnsureAdminLegacyWorkbookSurface",
+                                               "RequireCurrentUserCapabilityCached",
+                                               "ResolveInteractiveAdminWorkbook",
+                                               "RunHQAggregationFromAdmin"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "ribbon:btnAdminHqAggregator:Admin_AggregateGlobalSnapshot_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "modAdmin",
                            "name":  "PublishSchedulerResult",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2466,
-                           "endLine":  2471,
+                           "startLine":  2498,
+                           "endLine":  2503,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -19665,8 +19693,8 @@
                            "name":  "ResolveInteractiveAdminWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  2473,
-                           "endLine":  2475,
+                           "startLine":  2505,
+                           "endLine":  2507,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ResolveAdminTargetWorkbook"
@@ -20428,11 +20456,61 @@
                        },
                        {
                            "componentName":  "modAdminConsole",
+                           "name":  "RunHQAggregationFromAdmin",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  888,
+                           "endLine":  952,
+                           "lineCount":  65,
+                           "directCalls":  [
+                                               "AppendAuditEntry",
+                                               "CountPublishedInventorySnapshotsAdmin",
+                                               "EnsureAdminContext",
+                                               "GetString",
+                                               "RefreshAdminConsole",
+                                               "RequireAdminMaintenance",
+                                               "ResolveAdminWorkbook",
+                                               "RunHQAggregation",
+                                               "SafeTrimAdmin"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modAdminConsole",
+                           "name":  "CountPublishedInventorySnapshotsAdmin",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  954,
+                           "endLine":  969,
+                           "lineCount":  16,
+                           "directCalls":  [
+                                               "SafeTrimAdmin"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modAdminConsole",
                            "name":  "ResolveAdminWorkbook",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  888,
-                           "endLine":  890,
+                           "startLine":  971,
+                           "endLine":  973,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ResolveAdminTargetWorkbook"
@@ -20452,8 +20530,8 @@
                            "name":  "EnsureSchedulerWarehouseContext",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  892,
-                           "endLine":  914,
+                           "startLine":  975,
+                           "endLine":  997,
                            "lineCount":  23,
                            "directCalls":  [
                                                "GetString",
@@ -20479,8 +20557,8 @@
                            "name":  "FormatAutomationResultAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  916,
-                           "endLine":  918,
+                           "startLine":  999,
+                           "endLine":  1001,
                            "lineCount":  3,
                            "directCalls":  [
                                                "SafeTrimAdmin"
@@ -20500,8 +20578,8 @@
                            "name":  "SanitizeAutomationTextAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  920,
-                           "endLine":  922,
+                           "startLine":  1003,
+                           "endLine":  1005,
                            "lineCount":  3,
                            "directCalls":  [
                                                "SafeTrimAdmin"
@@ -20521,8 +20599,8 @@
                            "name":  "EnsureWorksheetAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  924,
-                           "endLine":  933,
+                           "startLine":  1007,
+                           "endLine":  1016,
                            "lineCount":  10,
                            "directCalls":  [
                                                "Add"
@@ -20542,8 +20620,8 @@
                            "name":  "InitializeAdminConsoleLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  935,
-                           "endLine":  973,
+                           "startLine":  1018,
+                           "endLine":  1056,
                            "lineCount":  39,
                            "directCalls":  [
                                                "ClearAdminConsoleActionButtons"
@@ -20563,8 +20641,8 @@
                            "name":  "ClearAdminConsoleActionButtons",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  975,
-                           "endLine":  982,
+                           "startLine":  1058,
+                           "endLine":  1065,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -20584,8 +20662,8 @@
                            "name":  "InitializeAdminConsoleValues",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  984,
-                           "endLine":  1001,
+                           "startLine":  1067,
+                           "endLine":  1084,
                            "lineCount":  18,
                            "directCalls":  [
 
@@ -20605,8 +20683,8 @@
                            "name":  "EnsureAdminTableWithHeaders",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1003,
-                           "endLine":  1034,
+                           "startLine":  1086,
+                           "endLine":  1117,
                            "lineCount":  32,
                            "directCalls":  [
                                                "Add",
@@ -20630,8 +20708,8 @@
                            "name":  "GetNextTableStartCellAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1036,
-                           "endLine":  1042,
+                           "startLine":  1119,
+                           "endLine":  1125,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -20651,8 +20729,8 @@
                            "name":  "EnsureListColumnAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1044,
-                           "endLine":  1048,
+                           "startLine":  1127,
+                           "endLine":  1131,
                            "lineCount":  5,
                            "directCalls":  [
                                                "Add",
@@ -20673,8 +20751,8 @@
                            "name":  "HasListColumnAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1050,
-                           "endLine":  1052,
+                           "startLine":  1133,
+                           "endLine":  1135,
                            "lineCount":  3,
                            "directCalls":  [
                                                "GetColumnIndexAdmin"
@@ -20694,8 +20772,8 @@
                            "name":  "RefreshWarehouseDirectory",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1054,
-                           "endLine":  1104,
+                           "startLine":  1137,
+                           "endLine":  1187,
                            "lineCount":  51,
                            "directCalls":  [
                                                "Add",
@@ -20724,8 +20802,8 @@
                            "name":  "GetWarehouseDirectoryScanRoots",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1106,
-                           "endLine":  1129,
+                           "startLine":  1189,
+                           "endLine":  1212,
                            "lineCount":  24,
                            "directCalls":  [
                                                "AddWarehouseDirectoryScanRoot",
@@ -20751,8 +20829,8 @@
                            "name":  "AddWarehouseDirectoryScanRoot",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1131,
-                           "endLine":  1148,
+                           "startLine":  1214,
+                           "endLine":  1231,
                            "lineCount":  18,
                            "directCalls":  [
                                                "Add",
@@ -20775,8 +20853,8 @@
                            "name":  "GetRememberedWarehouseScanRoots",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1150,
-                           "endLine":  1171,
+                           "startLine":  1233,
+                           "endLine":  1254,
                            "lineCount":  22,
                            "directCalls":  [
                                                "AddWarehouseDirectoryScanRoot"
@@ -20796,8 +20874,8 @@
                            "name":  "AddOpenWarehouseConfigsToDirectory",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1173,
-                           "endLine":  1183,
+                           "startLine":  1256,
+                           "endLine":  1266,
                            "lineCount":  11,
                            "directCalls":  [
                                                "AddConfigWorkbookToWarehouseDirectory",
@@ -20819,8 +20897,8 @@
                            "name":  "AddWarehouseConfigsUnderRootToDirectory",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1185,
-                           "endLine":  1213,
+                           "startLine":  1268,
+                           "endLine":  1296,
                            "lineCount":  29,
                            "directCalls":  [
                                                "AddConfigPathToWarehouseDirectory",
@@ -20842,8 +20920,8 @@
                            "name":  "AddConfigPathToWarehouseDirectory",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1215,
-                           "endLine":  1226,
+                           "startLine":  1298,
+                           "endLine":  1309,
                            "lineCount":  12,
                            "directCalls":  [
                                                "AddConfigWorkbookToWarehouseDirectory",
@@ -20865,8 +20943,8 @@
                            "name":  "AddConfigWorkbookToWarehouseDirectory",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1228,
-                           "endLine":  1270,
+                           "startLine":  1311,
+                           "endLine":  1353,
                            "lineCount":  43,
                            "directCalls":  [
                                                "AddWarehouseDirectoryRow",
@@ -20893,8 +20971,8 @@
                            "name":  "AddWarehouseDirectoryRow",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1272,
-                           "endLine":  1324,
+                           "startLine":  1355,
+                           "endLine":  1407,
                            "lineCount":  53,
                            "directCalls":  [
                                                "Add",
@@ -20919,8 +20997,8 @@
                            "name":  "BuildWarehouseDirectoryStatus",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1326,
-                           "endLine":  1346,
+                           "startLine":  1409,
+                           "endLine":  1429,
                            "lineCount":  21,
                            "directCalls":  [
                                                "AppendMissingAdmin",
@@ -20941,8 +21019,8 @@
                            "name":  "AppendMissingAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1348,
-                           "endLine":  1351,
+                           "startLine":  1431,
+                           "endLine":  1434,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -20962,8 +21040,8 @@
                            "name":  "JoinIssuesAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1353,
-                           "endLine":  1360,
+                           "startLine":  1436,
+                           "endLine":  1443,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -20983,8 +21061,8 @@
                            "name":  "EnsureAdminContext",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1362,
-                           "endLine":  1388,
+                           "startLine":  1445,
+                           "endLine":  1471,
                            "lineCount":  27,
                            "directCalls":  [
                                                "GetString",
@@ -21009,8 +21087,8 @@
                            "name":  "RequireAdminMaintenance",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1390,
-                           "endLine":  1404,
+                           "startLine":  1473,
+                           "endLine":  1487,
                            "lineCount":  15,
                            "directCalls":  [
                                                "GetResolvedAuthWorkbookName",
@@ -21033,8 +21111,8 @@
                            "name":  "ValueOrPlaceholderAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1406,
-                           "endLine":  1413,
+                           "startLine":  1489,
+                           "endLine":  1496,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -21054,8 +21132,8 @@
                            "name":  "AppendAuditEntry",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1415,
-                           "endLine":  1447,
+                           "startLine":  1498,
+                           "endLine":  1530,
                            "lineCount":  33,
                            "directCalls":  [
                                                "Add",
@@ -21079,8 +21157,8 @@
                            "name":  "CountInboxStatuses",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1449,
-                           "endLine":  1463,
+                           "startLine":  1532,
+                           "endLine":  1546,
                            "lineCount":  15,
                            "directCalls":  [
                                                "CountStatusesInTable",
@@ -21101,8 +21179,8 @@
                            "name":  "CountStatusesInTable",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1465,
-                           "endLine":  1487,
+                           "startLine":  1548,
+                           "endLine":  1570,
                            "lineCount":  23,
                            "directCalls":  [
                                                "GetCellByColumnAdmin",
@@ -21123,8 +21201,8 @@
                            "name":  "AppendPoisonRowsFromInbox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1489,
-                           "endLine":  1516,
+                           "startLine":  1572,
+                           "endLine":  1599,
                            "lineCount":  28,
                            "directCalls":  [
                                                "Add",
@@ -21149,8 +21227,8 @@
                            "name":  "DeleteAllAdminTableRows",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1518,
-                           "endLine":  1524,
+                           "startLine":  1601,
+                           "endLine":  1607,
                            "lineCount":  7,
                            "directCalls":  [
                                                "EnsureTableSheetEditableAdmin"
@@ -21170,8 +21248,8 @@
                            "name":  "FindListObjectByNameAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1526,
-                           "endLine":  1534,
+                           "startLine":  1609,
+                           "endLine":  1617,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -21191,8 +21269,8 @@
                            "name":  "TryResolveExistingAdminRuntimeContext",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1536,
-                           "endLine":  1596,
+                           "startLine":  1619,
+                           "endLine":  1679,
                            "lineCount":  61,
                            "directCalls":  [
                                                "CloseWorkbookIfTransientAdmin",
@@ -21220,8 +21298,8 @@
                            "name":  "FindExistingConfigWorkbookPathAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1598,
-                           "endLine":  1636,
+                           "startLine":  1681,
+                           "endLine":  1719,
                            "lineCount":  39,
                            "directCalls":  [
                                                "GetAdminRuntimeScanRoot",
@@ -21244,8 +21322,8 @@
                            "name":  "PathIsUnderRootAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1638,
-                           "endLine":  1649,
+                           "startLine":  1721,
+                           "endLine":  1732,
                            "lineCount":  12,
                            "directCalls":  [
                                                "NormalizePathAdmin"
@@ -21265,8 +21343,8 @@
                            "name":  "GetAdminRuntimeScanRoot",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1651,
-                           "endLine":  1669,
+                           "startLine":  1734,
+                           "endLine":  1752,
                            "lineCount":  19,
                            "directCalls":  [
                                                "DefaultRuntimeHubRootPath",
@@ -21290,8 +21368,8 @@
                            "name":  "LooksLikeWarehouseRuntimeRootAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1671,
-                           "endLine":  1676,
+                           "startLine":  1754,
+                           "endLine":  1759,
                            "lineCount":  6,
                            "directCalls":  [
                                                "FindPairedConfigWorkbookPathAdmin",
@@ -21312,8 +21390,8 @@
                            "name":  "FindPairedConfigWorkbookPathAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1678,
-                           "endLine":  1701,
+                           "startLine":  1761,
+                           "endLine":  1784,
                            "lineCount":  24,
                            "directCalls":  [
                                                "FindWarehouseArtifactPathAdmin",
@@ -21335,8 +21413,8 @@
                            "name":  "FindWarehouseArtifactPathAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1703,
-                           "endLine":  1728,
+                           "startLine":  1786,
+                           "endLine":  1811,
                            "lineCount":  26,
                            "directCalls":  [
                                                "FileExistsAdmin",
@@ -21358,8 +21436,8 @@
                            "name":  "GetLeafFolderNameAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1730,
-                           "endLine":  1741,
+                           "startLine":  1813,
+                           "endLine":  1824,
                            "lineCount":  12,
                            "directCalls":  [
                                                "NormalizePathAdmin"
@@ -21379,8 +21457,8 @@
                            "name":  "GetParentFolderAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1743,
-                           "endLine":  1754,
+                           "startLine":  1826,
+                           "endLine":  1837,
                            "lineCount":  12,
                            "directCalls":  [
                                                "NormalizePathAdmin"
@@ -21400,8 +21478,8 @@
                            "name":  "NormalizePathAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1756,
-                           "endLine":  1762,
+                           "startLine":  1839,
+                           "endLine":  1845,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -21421,8 +21499,8 @@
                            "name":  "FileExistsAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1764,
-                           "endLine":  1777,
+                           "startLine":  1847,
+                           "endLine":  1860,
                            "lineCount":  14,
                            "directCalls":  [
                                                "NormalizePathAdmin"
@@ -21442,8 +21520,8 @@
                            "name":  "OpenWorkbookIfExistsAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1779,
-                           "endLine":  1798,
+                           "startLine":  1862,
+                           "endLine":  1881,
                            "lineCount":  20,
                            "directCalls":  [
                                                "FileExistsAdmin"
@@ -21463,8 +21541,8 @@
                            "name":  "CloseWorkbookIfTransientAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1800,
-                           "endLine":  1806,
+                           "startLine":  1883,
+                           "endLine":  1889,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -21484,8 +21562,8 @@
                            "name":  "InferWarehouseIdFromPathAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1808,
-                           "endLine":  1823,
+                           "startLine":  1891,
+                           "endLine":  1906,
                            "lineCount":  16,
                            "directCalls":  [
 
@@ -21505,8 +21583,8 @@
                            "name":  "IsConfigWorkbookNameAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1825,
-                           "endLine":  1831,
+                           "startLine":  1908,
+                           "endLine":  1914,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -21526,8 +21604,8 @@
                            "name":  "FindLockRowAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1833,
-                           "endLine":  1843,
+                           "startLine":  1916,
+                           "endLine":  1926,
                            "lineCount":  11,
                            "directCalls":  [
                                                "GetCellByColumnAdmin",
@@ -21548,8 +21626,8 @@
                            "name":  "GetLockFieldAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1845,
-                           "endLine":  1849,
+                           "startLine":  1928,
+                           "endLine":  1932,
                            "lineCount":  5,
                            "directCalls":  [
                                                "GetCellByColumnAdmin"
@@ -21569,8 +21647,8 @@
                            "name":  "GetLatestAppliedValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1851,
-                           "endLine":  1869,
+                           "startLine":  1934,
+                           "endLine":  1952,
                            "lineCount":  19,
                            "directCalls":  [
                                                "GetCellByColumnAdmin"
@@ -21590,8 +21668,8 @@
                            "name":  "FindRowByColumnValueAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1871,
-                           "endLine":  1881,
+                           "startLine":  1954,
+                           "endLine":  1964,
                            "lineCount":  11,
                            "directCalls":  [
                                                "GetCellByColumnAdmin",
@@ -21612,8 +21690,8 @@
                            "name":  "GetCellByColumnAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1883,
-                           "endLine":  1889,
+                           "startLine":  1966,
+                           "endLine":  1972,
                            "lineCount":  7,
                            "directCalls":  [
                                                "GetColumnIndexAdmin"
@@ -21633,8 +21711,8 @@
                            "name":  "SetTableRowValueAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1891,
-                           "endLine":  1896,
+                           "startLine":  1974,
+                           "endLine":  1979,
                            "lineCount":  6,
                            "directCalls":  [
                                                "GetColumnIndexAdmin"
@@ -21654,8 +21732,8 @@
                            "name":  "GetColumnIndexAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1898,
-                           "endLine":  1907,
+                           "startLine":  1981,
+                           "endLine":  1990,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -21675,8 +21753,8 @@
                            "name":  "SafeTrimAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1909,
-                           "endLine":  1912,
+                           "startLine":  1992,
+                           "endLine":  1995,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -21696,8 +21774,8 @@
                            "name":  "ResolveOpenWorkbookByNameAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1914,
-                           "endLine":  1923,
+                           "startLine":  1997,
+                           "endLine":  2006,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -21717,8 +21795,8 @@
                            "name":  "EnsureTableSheetEditableAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1925,
-                           "endLine":  1932,
+                           "startLine":  2008,
+                           "endLine":  2015,
                            "lineCount":  8,
                            "directCalls":  [
                                                "EnsureTableSheetEditableAdminSheet"
@@ -21738,8 +21816,8 @@
                            "name":  "EnsureTableSheetEditableAdminSheet",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1934,
-                           "endLine":  1941,
+                           "startLine":  2017,
+                           "endLine":  2024,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -21759,8 +21837,8 @@
                            "name":  "ResolveSnapshotPathAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1943,
-                           "endLine":  1954,
+                           "startLine":  2026,
+                           "endLine":  2037,
                            "lineCount":  12,
                            "directCalls":  [
                                                "GetString"
@@ -21780,8 +21858,8 @@
                            "name":  "GenerateGuidAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1956,
-                           "endLine":  1966,
+                           "startLine":  2039,
+                           "endLine":  2049,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -21801,8 +21879,8 @@
                            "name":  "EnsureFolderForFileAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1968,
-                           "endLine":  1976,
+                           "startLine":  2051,
+                           "endLine":  2059,
                            "lineCount":  9,
                            "directCalls":  [
                                                "CreateFolderRecursiveAdmin"
@@ -21822,8 +21900,8 @@
                            "name":  "CreateFolderRecursiveAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1978,
-                           "endLine":  1995,
+                           "startLine":  2061,
+                           "endLine":  2078,
                            "lineCount":  18,
                            "directCalls":  [
 
@@ -21843,8 +21921,8 @@
                            "name":  "CloseWorkbookByFullNameAdmin",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1997,
-                           "endLine":  2008,
+                           "startLine":  2080,
+                           "endLine":  2091,
                            "lineCount":  12,
                            "directCalls":  [
 
@@ -131700,6 +131778,18 @@
                                                                                                 ]
                                                                                },
                                                                                {
+                                                                                   "id":  "btnAdminHqAggregator",
+                                                                                   "nodeType":  "button",
+                                                                                   "label":  "Aggregate Global Snapshot",
+                                                                                   "callbacks":  [
+                                                                                                     "modAdmin.Admin_AggregateGlobalSnapshot_Click"
+                                                                                                 ],
+                                                                                   "capabilityGate":  "ADMIN_MAINT",
+                                                                                   "children":  [
+
+                                                                                                ]
+                                                                               },
+                                                                               {
                                                                                    "id":  "btnAdminRetireMigrateWarehouse",
                                                                                    "nodeType":  "button",
                                                                                    "label":  "Retire / Migrate Warehouse",
@@ -132923,6 +133013,7 @@
                        "PathSharePointRoot is not configured",
                        "PathSharePointRoot is not configured.",
                        "PathSharePointRoot not configured.",
+                       "PathSharePointRoot required",
                        "PathSharePointRoot=",
                        "PoisonRetryMax",
                        "SnapshotCadence",
@@ -133301,6 +133392,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Admin_AggregateGlobalSnapshot_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "AllocationTotalForEntity",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4xReusableProduction.ps1"
@@ -133310,6 +133407,12 @@
                                "entryPoint":  "AnyTextMatchesSearch",
                                "testPaths":  [
                                                  "tests/unit/TestCoreItemSearch.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "AppendAuditEntry",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1"
                                              ]
                            },
                            {
@@ -134505,6 +134608,12 @@
                                "entryPoint":  "EnforceShippingSupportSheetsHidden",
                                "testPaths":  [
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "EnsureAdminContext",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1"
                                              ]
                            },
                            {
@@ -136984,6 +137093,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "RequireAdminMaintenance",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "RequireCurrentUserCapabilityCached",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
@@ -137226,8 +137341,15 @@
                                "entryPoint":  "RunHQAggregation",
                                "testPaths":  [
                                                  "tests/tooling/Test-Phase6TwoWarehouseProofHarness.ps1",
+                                                 "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1",
                                                  "tests/unit/TestPhase5HqBoundary.bas",
                                                  "tests/unit/TestPhase5Sync.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "RunHQAggregationFromAdmin",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1"
                                              ]
                            },
                            {
@@ -138866,6 +138988,13 @@
                              "rootKind":  "CROSS_XLAM_BRIDGE",
                              "reason":  "Literal Application.Run target discovered in exported VBA.",
                              "source":  "src/Core/ClassModules/cDynItemSearch.cls"
+                         },
+                         {
+                             "id":  "ribbon:btnAdminHqAggregator:Admin_AggregateGlobalSnapshot_Click",
+                             "procedure":  "Admin_AggregateGlobalSnapshot_Click",
+                             "rootKind":  "RIBBON_CALLBACK",
+                             "reason":  "Referenced by Ribbon definition node btnAdminHqAggregator.",
+                             "source":  "tools/build-xlam.ps1"
                          },
                          {
                              "id":  "ribbon:btnAdminDesignLifecycle:Admin_DesignLifecycle_Click",

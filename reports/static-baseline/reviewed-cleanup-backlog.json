@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-01T20:50:38Z",
+    "generatedAtUtc":  "2026-09-04T03:14:31Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "b4dff683f545b14787e2d70ac1222601c5e026bf9102e2cddab92e36d6b53430",
-                          "maintenanceCandidatesSha256":  "bcc88890f90e06d999778082160fed17a7c024853c27ef6602e8777c922ee01d"
+                          "implementationManifestSha256":  "f9319814cd986f08b74cde225811db218256ee313da397854e4941669770e2d0",
+                          "maintenanceCandidatesSha256":  "cbd979d66b7092bbad305d6486639721a59af676f1e1f476b2d87f79b7aa41c0"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1066,
-                    "reviewedCandidateCount":  1068,
+                    "scannerCandidateCount":  1067,
+                    "reviewedCandidateCount":  1069,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -52,7 +52,7 @@
                         },
                         {
                             "name":  "ADMIN",
-                            "candidateCount":  224,
+                            "candidateCount":  225,
                             "reason":  "Administrative setup, lifecycle, and developer-support source."
                         },
                         {
@@ -98,14 +98,14 @@
                                                   "sourcePath":  "src/Admin/Modules/modAdmin.bas",
                                                   "componentName":  "modAdmin",
                                                   "packageKey":  "Admin",
-                                                  "baselineLineCount":  2482,
+                                                  "baselineLineCount":  2514,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
                                                   "sourcePath":  "src/Admin/Modules/modAdminConsole.bas",
                                                   "componentName":  "modAdminConsole",
                                                   "packageKey":  "Admin",
-                                                  "baselineLineCount":  2008,
+                                                  "baselineLineCount":  2091,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -1302,6 +1302,7 @@
                                                   "AddInventoryItemForWarehouse",
                                                   "AddInventoryQuantityForWarehouse",
                                                   "AddPictureReferencesToPayloadAdmin",
+                                                  "Admin_AggregateGlobalSnapshot_Click",
                                                   "Admin_Click",
                                                   "Admin_RetireMigrateWarehouse_Click",
                                                   "Admin_SetupTesterStation_Click",
@@ -1422,6 +1423,7 @@
                                                   "CloseWorkbookByFullNameAdmin",
                                                   "CloseWorkbookIfTransientAdmin",
                                                   "CountInboxStatuses",
+                                                  "CountPublishedInventorySnapshotsAdmin",
                                                   "CountStatusesInTable",
                                                   "CreateFolderRecursiveAdmin",
                                                   "DeleteAllAdminTableRows",
@@ -1485,6 +1487,7 @@
                                                   "ResolveOpenWorkbookByNameAdmin",
                                                   "ResolveSnapshotPathAdmin",
                                                   "RetireSourceWarehouseAdmin",
+                                                  "RunHQAggregationFromAdmin",
                                                   "RunProcessorFromConsole",
                                                   "RunScheduledHQAggregationForAutomation",
                                                   "RunScheduledWarehouseBatchForAutomation",
@@ -5751,6 +5754,29 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
 
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_Modules_modAdmin.bas:modAdmin.Admin_AggregateGlobalSnapshot_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "modAdmin",
+                           "procedureNames":  [
+                                                  "Admin_AggregateGlobalSnapshot_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Modules/modAdmin.bas"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."

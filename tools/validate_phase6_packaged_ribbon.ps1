@@ -294,6 +294,7 @@ $ribbonSpecs = @(
             @{ Id = "btnAdminAddInventoryItem"; Label = "Add/Edit Inventory Items"; Macro = "modAdmin.Add_InventoryItem"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
             @{ Id = "btnAdminSeedInventory"; Label = "Demo Inventory"; Macro = "modAdmin.Seed_DemoInventory"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
             @{ Id = "btnAdminDesignLifecycle"; Label = "Design Lifecycle"; Macro = "modAdminDesignLifecycle.Admin_DesignLifecycle_Click"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
+            @{ Id = "btnAdminHqAggregator"; Label = "Aggregate Global Snapshot"; Macro = "modAdmin.Admin_AggregateGlobalSnapshot_Click"; Execute = $false; Screentip = "Rebuild the advisory-only global inventory snapshot from published warehouse snapshots"; RequiredCapability = "ADMIN_MAINT" },
             @{ Id = "btnAdminVerifyAddinsPublished"; Label = "Verify Add-ins Published"; Macro = "modAdmin.Verify_AddinsPublished"; Execute = $false; RequiredCapability = "ADMIN_MAINT" },
             @{ Id = "btnAdminRetireMigrateWarehouse"; Label = "Retire / Migrate Warehouse"; Macro = "modAdmin.Admin_RetireMigrateWarehouse_Click"; Execute = $false; Screentip = "Archive, migrate, retire, or delete a warehouse runtime"; RequiredCapability = "ADMIN_MAINT" }
         )

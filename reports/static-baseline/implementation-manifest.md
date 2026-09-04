@@ -1,10 +1,10 @@
 # invSys Static Implementation Manifest
 
 - Schema: 1.0.0
-- Generated: 2026-09-01T20:50:38Z
+- Generated: 2026-09-04T03:14:31Z
 - Packages: 6
 - Components: 156
-- Procedures: 5360
+- Procedures: 5363
 - Literal Application.Run targets: 8
 - Unresolved dynamic calls: 45
 
@@ -26,6 +26,7 @@
 | Add_InventoryItem | RIBBON_CALLBACK | tools/build-xlam.ps1 |
 | Add_WarehouseDirectoryRoot | RIBBON_CALLBACK | tools/build-xlam.ps1 |
 | AddOrMergeFromSearch | CROSS_XLAM_BRIDGE | src/Core/ClassModules/cDynItemSearch.cls |
+| Admin_AggregateGlobalSnapshot_Click | RIBBON_CALLBACK | tools/build-xlam.ps1 |
 | Admin_DesignLifecycle_Click | RIBBON_CALLBACK | tools/build-xlam.ps1 |
 | Admin_RetireMigrateWarehouse_Click | RIBBON_CALLBACK | tools/build-xlam.ps1 |
 | Admin_SetupTesterStation_Click | RIBBON_CALLBACK | tools/build-xlam.ps1 |

@@ -115,12 +115,20 @@ Public Function AdminSettingsFormInitializeSmokeForWorkbook(ByVal operatorWb As 
 
     Dim frm As frmAdminSettings
     Dim detail As String
+    Dim configRows As Variant
+    Dim expectedRowCount As Long
 
     Set frm = New frmAdminSettings
     detail = frm.TestInitializeConfigEditor()
-    If InStr(1, detail, "Rows=28", vbTextCompare) = 0 Then
+    configRows = modConfig.GetConfigEditorRows()
+    If Not IsArray(configRows) Then
+        Err.Raise vbObjectError + 7319, "AdminSettingsFormInitializeSmokeForWorkbook", _
+                  "Admin config schema rows could not be resolved. " & detail
+    End If
+    expectedRowCount = UBound(configRows, 1)
+    If InStr(1, detail, "Rows=" & CStr(expectedRowCount), vbTextCompare) = 0 Then
         Err.Raise vbObjectError + 7320, "AdminSettingsFormInitializeSmokeForWorkbook", _
-                  "Admin config editor did not load all 28 config keys. " & detail
+                  "Admin config editor did not load all " & CStr(expectedRowCount) & " config keys. " & detail
     End If
     AdminSettingsFormInitializeSmokeForWorkbook = "OK|" & detail
 
@@ -2461,6 +2469,30 @@ End Sub
 
 Public Sub Scheduler_RunHQAggregation()
     PublishSchedulerResult modAdminConsole.RunScheduledHQAggregationForAutomation("", "")
+End Sub
+
+Public Sub Admin_AggregateGlobalSnapshot_Click()
+    Dim report As String
+    Dim targetWb As Workbook
+
+    If Not modRoleUiAccess.RequireCurrentUserCapabilityCached("ADMIN_MAINT", "", report) Then Exit Sub
+
+    Set targetWb = ResolveInteractiveAdminWorkbook()
+    Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
+
+    If modAdminConsole.RunHQAggregationFromAdmin("", "", targetWb, report) Then
+        MsgBox "Advisory Global Inventory Snapshot updated." & vbCrLf & vbCrLf & _
+               report & vbCrLf & vbCrLf & _
+               "This snapshot is read-only cross-warehouse visibility. " & _
+               "Each warehouse's local inventory remains authoritative.", _
+               vbInformation, "invSys Aggregator"
+    Else
+        If Len(Trim$(report)) = 0 Then report = "Global snapshot aggregation could not be completed."
+        MsgBox report & vbCrLf & vbCrLf & _
+               "Setup: configure PathSharePointRoot in Admin Settings, then publish a snapshot " & _
+               "from each warehouse before aggregating.", _
+               vbExclamation, "invSys Aggregator"
+    End If
 End Sub
 
 Private Sub PublishSchedulerResult(ByVal resultText As String)

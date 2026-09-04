@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-01T20:50:38Z
-- Scanner candidates: 1066
-- Reviewed candidates: 1068
+- Baseline: 2026-09-04T03:14:31Z
+- Scanner candidates: 1067
+- Reviewed candidates: 1069
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -17,7 +17,7 @@
 | SHARED_OPERATIONS | 64 | Cross-role or future invSys.Operations packaging work. |
 | CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
-| ADMIN | 224 | Administrative setup, lifecycle, and developer-support source. |
+| ADMIN | 225 | Administrative setup, lifecycle, and developer-support source. |
 | DEVELOPER_TOOLING | 14 | Build, scan, report, and other developer-only tooling. |
 | TESTING | 0 | Test harness and fixture source that must remain outside runtime packages. |
 
@@ -33,8 +33,8 @@
 | src/Admin/Forms/frmAddInventoryItem.frm | Admin | 1573 |
 | src/Admin/Forms/frmCreateDeleteUser.frm | Admin | 1388 |
 | src/Admin/Forms/frmRetireMigrateWarehouse.frm | Admin | 1644 |
-| src/Admin/Modules/modAdmin.bas | Admin | 2482 |
-| src/Admin/Modules/modAdminConsole.bas | Admin | 2008 |
+| src/Admin/Modules/modAdmin.bas | Admin | 2514 |
+| src/Admin/Modules/modAdminConsole.bas | Admin | 2091 |
 | src/Admin/Modules/modTesterSetup.bas | Admin | 1655 |
 | src/Core/ClassModules/cDynItemSearch.cls | Core | 1999 |
 | src/Core/Modules/modAuth.bas | Core | 1804 |
@@ -276,6 +276,7 @@
 | root:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Terminate | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Modules_modAdmin.bas:modAdmin.Add_InventoryItem | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Modules_modAdmin.bas:modAdmin.Add_WarehouseDirectoryRoot | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_Modules_modAdmin.bas:modAdmin.Admin_AggregateGlobalSnapshot_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Modules_modAdmin.bas:modAdmin.Admin_RetireMigrateWarehouse_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Modules_modAdmin.bas:modAdmin.Admin_SetupTesterStation_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Modules_modAdmin.bas:modAdmin.Open_CreateDeleteUser | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |

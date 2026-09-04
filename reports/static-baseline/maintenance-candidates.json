@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-01T20:50:38Z",
+    "generatedAtUtc":  "2026-09-04T03:14:31Z",
     "baseline":  {
                      "componentCount":  156,
-                     "procedureCount":  5360,
-                     "lineCount":  120947,
+                     "procedureCount":  5363,
+                     "lineCount":  121062,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  190
@@ -8153,6 +8153,23 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Admin_Modules_modAdmin.bas:modAdmin.Admin_AggregateGlobalSnapshot_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "modAdmin",
+                           "procedureNames":  [
+                                                  "Admin_AggregateGlobalSnapshot_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Modules/modAdmin.bas"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Admin_Modules_modAdmin.bas:modAdmin.Admin_RetireMigrateWarehouse_Click",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -13361,6 +13378,7 @@
                                                   "AddInventoryItemForWarehouse",
                                                   "AddInventoryQuantityForWarehouse",
                                                   "AddPictureReferencesToPayloadAdmin",
+                                                  "Admin_AggregateGlobalSnapshot_Click",
                                                   "Admin_Click",
                                                   "Admin_RetireMigrateWarehouse_Click",
                                                   "Admin_SetupTesterStation_Click",
@@ -13475,6 +13493,7 @@
                                                   "CloseWorkbookByFullNameAdmin",
                                                   "CloseWorkbookIfTransientAdmin",
                                                   "CountInboxStatuses",
+                                                  "CountPublishedInventorySnapshotsAdmin",
                                                   "CountStatusesInTable",
                                                   "CreateFolderRecursiveAdmin",
                                                   "DeleteAllAdminTableRows",
@@ -13538,6 +13557,7 @@
                                                   "ResolveOpenWorkbookByNameAdmin",
                                                   "ResolveSnapshotPathAdmin",
                                                   "RetireSourceWarehouseAdmin",
+                                                  "RunHQAggregationFromAdmin",
                                                   "RunProcessorFromConsole",
                                                   "RunScheduledHQAggregationForAutomation",
                                                   "RunScheduledWarehouseBatchForAutomation",

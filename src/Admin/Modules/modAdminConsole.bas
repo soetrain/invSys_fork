@@ -885,6 +885,89 @@ FailAggregateAutomation:
         "|Report=" & SanitizeAutomationTextAdmin("RunScheduledHQAggregationForAutomation failed: " & Err.Description))
 End Function
 
+Public Function RunHQAggregationFromAdmin(Optional ByVal adminUserId As String = "", _
+                                          Optional ByVal warehouseId As String = "", _
+                                          Optional ByVal adminWb As Workbook = Nothing, _
+                                          Optional ByRef report As String = "") As Boolean
+    On Error GoTo FailAggregate
+
+    Dim resolvedUser As String
+    Dim resolvedWh As String
+    Dim resolvedSt As String
+    Dim sharePointRoot As String
+    Dim outputPath As String
+    Dim aggregateReport As String
+    Dim refreshReport As String
+    Dim snapshotCount As Long
+    Dim auditWb As Workbook
+
+    Set auditWb = ResolveAdminWorkbook(adminWb)
+    If auditWb Is Nothing Then
+        report = "Admin workbook not resolved."
+        Exit Function
+    End If
+    If Not EnsureAdminContext(adminUserId, warehouseId, resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
+    If Not RequireAdminMaintenance(resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
+
+    sharePointRoot = SafeTrimAdmin(modConfig.GetString("PathSharePointRoot", ""))
+    If sharePointRoot = "" Then
+        report = "Aggregator setup is incomplete: PathSharePointRoot is blank for warehouse " & resolvedWh & "."
+        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
+                         "ADVISORY_GLOBAL_SNAPSHOT", "", "PathSharePointRoot required", report, "SKIP"
+        Exit Function
+    End If
+
+    snapshotCount = CountPublishedInventorySnapshotsAdmin(sharePointRoot)
+    If snapshotCount = 0 Then
+        report = "No published warehouse inventory snapshots were found under " & _
+                 sharePointRoot & "\\Snapshots."
+        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
+                         "ADVISORY_GLOBAL_SNAPSHOT", sharePointRoot, "Published snapshots required", report, "SKIP"
+        Exit Function
+    End If
+
+    outputPath = sharePointRoot & "\\Global\\invSys.Global.InventorySnapshot.xlsb"
+    If modHqAggregator.RunHQAggregation(sharePointRoot, outputPath, aggregateReport) Then
+        report = "Published snapshots read: " & CStr(snapshotCount) & ". " & _
+                 "Advisory global snapshot: " & outputPath & ". " & aggregateReport
+        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
+                         "ADVISORY_GLOBAL_SNAPSHOT", outputPath, "Manual Admin command", report, "OK"
+        Call RefreshAdminConsole(auditWb, refreshReport)
+        RunHQAggregationFromAdmin = True
+    Else
+        report = "Aggregator failed. " & aggregateReport
+        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
+                         "ADVISORY_GLOBAL_SNAPSHOT", outputPath, "Manual Admin command", report, "FAIL"
+    End If
+    Exit Function
+
+FailAggregate:
+    report = "RunHQAggregationFromAdmin failed: " & Err.Description
+    On Error Resume Next
+    If Not auditWb Is Nothing Then
+        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
+                         "ADVISORY_GLOBAL_SNAPSHOT", "", "Manual Admin command", report, "FAIL"
+    End If
+    On Error GoTo 0
+End Function
+
+Private Function CountPublishedInventorySnapshotsAdmin(ByVal sharePointRoot As String) As Long
+    Dim snapshotFolder As String
+    Dim fileName As String
+
+    sharePointRoot = SafeTrimAdmin(sharePointRoot)
+    If sharePointRoot = "" Then Exit Function
+    snapshotFolder = sharePointRoot & "\\Snapshots\\"
+
+    On Error Resume Next
+    fileName = Dir$(snapshotFolder & "*.invSys.Snapshot.Inventory.xls*")
+    Do While fileName <> ""
+        CountPublishedInventorySnapshotsAdmin = CountPublishedInventorySnapshotsAdmin + 1
+        fileName = Dir$()
+    Loop
+    On Error GoTo 0
+End Function
+
 Private Function ResolveAdminWorkbook(ByVal adminWb As Workbook) As Workbook
     Set ResolveAdminWorkbook = modAdminWorkbookTarget.ResolveAdminTargetWorkbook(adminWb, ThisWorkbook, True)
 End Function
