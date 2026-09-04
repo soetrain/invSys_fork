@@ -80,7 +80,7 @@ Check "ExplorerRevalidation.DiscoveryRemainsReadOnly" (
 Check "ExplorerRevalidation.ContractDocumented" (
     $spec.Contains('**Explorer-compatible NAS revalidation:**') -and
     $spec.Contains('**Scan Roots** action') -and
-    $plan.Contains('**Slice 4bl -- Explorer-compatible NAS revalidation: implemented; visible UAT pending.**')
+    $plan.Contains('**Slice 4bl -- Explorer-compatible NAS revalidation: implemented and visibly accepted.**')
 ) "Architecture v4.11 and Plan 022 must define this compatibility behavior before Core implementation."
 
 Write-Host "RESULT passed=$($passes.Count) failed=$($failures.Count)"
