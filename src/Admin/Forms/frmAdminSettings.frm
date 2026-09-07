@@ -191,7 +191,7 @@ Private Sub mBtnSaveConfig_Click()
         Exit Sub
     End If
 
-    If modConfig.UpdateConfigValue(keyName, mTxtConfigValue.Value, report, mWarehouseId, mStationId) Then
+    If modConfigCommands.UpdateConfigValue(keyName, mTxtConfigValue.Value, report, mWarehouseId, mStationId) Then
         LoadConfigRows
         If StrComp(keyName, "UomCatalog", vbTextCompare) = 0 Then LoadUoms
         ShowStatus report

@@ -8204,7 +8204,7 @@ Private Function ShippingRuntimeInboxDiagnostic(ByVal warehouseId As String, ByV
                                                               pendingCount, _
                                                               matchingCount, _
                                                               inboxError)
-    stagingReport = modRoleEventWriter.DescribeLocalStagedInboxSystemKeys(EVENT_TYPE_SHIP & "," & EVENT_TYPE_SHIP_RESERVE & "," & EVENT_TYPE_SHIP_RELEASE & "," & EVENT_TYPE_BOX_BUILD & "," & EVENT_TYPE_BOX_UNBOX, _
+    stagingReport = modRoleEventWriter.DescribeLocalStagedInboxRows(EVENT_TYPE_SHIP & "," & EVENT_TYPE_SHIP_RESERVE & "," & EVENT_TYPE_SHIP_RELEASE & "," & EVENT_TYPE_BOX_BUILD & "," & EVENT_TYPE_BOX_UNBOX, _
                                                                     warehouseId, _
                                                                     stationId, _
                                                                     stagedCount, _
@@ -8581,7 +8581,7 @@ Private Function HistoryExportSourceSummaryShipping(ByVal inventoryWb As Workboo
     If probeEventType <> "" Then
         inboxReport = modRoleEventWriter.DescribeInboxPendingRows(probeEventType, warehouseId, stationId, "", pendingCount, matchingPending, inboxError)
     End If
-    stagedReport = modRoleEventWriter.DescribeLocalStagedInboxSystemKeys(eventTypesCsv, warehouseId, stationId, stagedRows, matchingStaged, stagedError)
+    stagedReport = modRoleEventWriter.DescribeLocalStagedInboxRows(eventTypesCsv, warehouseId, stationId, stagedRows, matchingStaged, stagedError)
 
     HistoryExportSourceSummaryShipping = "Source: WarehouseId=" & warehouseId & _
         "; StationId=" & stationId & _
@@ -8971,7 +8971,7 @@ Private Function ShipmentPipelineStatusTextShipping(ByVal warehouseId As String,
     Dim stagedError As String
 
     inboxReport = modRoleEventWriter.DescribeInboxPendingRows(EVENT_TYPE_SHIP, warehouseId, stationId, "", pendingCount, matchingPending, inboxError)
-    stagedReport = modRoleEventWriter.DescribeLocalStagedInboxSystemKeys(EVENT_TYPE_SHIP & "," & EVENT_TYPE_SHIP_RESERVE & "," & EVENT_TYPE_SHIP_RELEASE, _
+    stagedReport = modRoleEventWriter.DescribeLocalStagedInboxRows(EVENT_TYPE_SHIP & "," & EVENT_TYPE_SHIP_RESERVE & "," & EVENT_TYPE_SHIP_RELEASE, _
                                                                     warehouseId, _
                                                                     stationId, _
                                                                     stagedRows, _

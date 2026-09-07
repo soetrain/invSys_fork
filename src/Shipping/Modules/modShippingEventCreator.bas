@@ -291,7 +291,7 @@ Private Function QueueShipmentsSentEventCore(ByVal deltas As Collection, ByRef e
     End If
 
     QueueShipmentsSentEventCore = modRoleEventWriter.QueuePayloadEventCurrent( _
-        EVENT_TYPE_SHIP, _
+        modInventoryDomainBridge.CORE_EVENT_TYPE_SHIP, _
         "", _
         payloadJson, _
         "BTN_SHIPMENTS_SENT", _

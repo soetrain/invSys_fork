@@ -33,7 +33,7 @@ Public Function QueueProductionCompleteEventFromWorkbook(ByVal wb As Workbook, _
 
     QueueProductionCompleteEventFromWorkbook = _
         modRoleEventWriter.QueuePayloadEventCurrent( _
-            EVENT_TYPE_PROD_COMPLETE, _
+            modInventoryDomainBridge.CORE_EVENT_TYPE_PROD_COMPLETE, _
             "", _
             modProductionJson.BuildJsonArray(outputItems), _
             "PRODUCTION_OUTPUT_COMPLETE", _

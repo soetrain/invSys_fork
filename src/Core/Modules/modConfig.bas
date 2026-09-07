@@ -29,12 +29,11 @@ Public Function LoadConfig(Optional ByVal whId As String = "", Optional ByVal st
     Dim rawVal As Variant
     Dim valOut As Variant
     Dim hasVal As Boolean
-    Dim schemaWasPresent As Boolean
 
     InitializeState
 
     Set preOpen = CaptureOpenWorkbookPathsConfig()
-    Set wb = ResolveConfigWorkbook(whId, stId)
+    Set wb = ResolveExistingConfigForRead(whId)
     If wb Is Nothing Then
         AddValidationIssue "ERROR", "CONFIG_MISSING", "No open config workbook found."
         GoTo FailSoft
@@ -46,14 +45,6 @@ Public Function LoadConfig(Optional ByVal whId As String = "", Optional ByVal st
     End If
     mResolvedWorkbook = wb.Name
 
-    schemaWasPresent = modRuntimeWorkbooks.RuntimeWorkbookSchemaPresentForRead(wb, "CONFIG")
-    If Not schemaWasPresent Then
-        If Not EnsureConfigSchema(wb, whId, stId, , False) Then
-            AddValidationIssue "ERROR", "CONFIG_SELF_HEAL_FAILED", "Failed to create/repair config tables."
-            GoTo FailSoft
-        End If
-    End If
-
     Set loWh = FindListObjectByName(wb, "tblWarehouseConfig")
     Set loSt = FindListObjectByName(wb, "tblStationConfig")
     If loWh Is Nothing Then
@@ -64,9 +55,6 @@ Public Function LoadConfig(Optional ByVal whId As String = "", Optional ByVal st
         AddValidationIssue "ERROR", "CONFIG_TABLE_MISSING", "tblStationConfig not found."
         GoTo FailSoft
     End If
-
-    EnsureTableHasRow loWh
-    EnsureTableHasRow loSt
 
     whRow = ResolveWarehouseRow(loWh, whId, wb.Name)
     If whRow = 0 Then
@@ -102,7 +90,7 @@ Public Function LoadConfig(Optional ByVal whId As String = "", Optional ByVal st
         End If
 
         If hasVal Then
-            If TryCoerceValue(defs(i).DataType, rawVal, valOut) Then
+            If TryCoerceConfigValue(defs(i).DataType, rawVal, valOut) Then
                 mConfigCache(defs(i).Key) = valOut
             Else
                 HandleMalformedKey defs(i), rawVal
@@ -140,7 +128,55 @@ FailLoad:
     Resume FailSoft
 
 CleanExit:
-    CloseTransientConfigAfterLoad wb, openedTransient, Not schemaWasPresent
+    CloseTransientConfigAfterLoad wb, openedTransient, False
+End Function
+
+Private Function ResolveExistingConfigForRead(ByVal warehouseId As String) As Workbook
+    Dim target As WarehouseTarget, wb As Workbook, matched As Workbook
+    Dim path As String, root As String, candidatePath As String
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        If Trim$(warehouseId) <> "" And StrComp(warehouseId, target.WarehouseId, vbTextCompare) <> 0 Then Exit Function
+        path = target.ConfigPath
+    Else
+        root = modRuntimeWorkbooks.GetCoreDataRootOverride()
+        If root <> "" And Trim$(warehouseId) <> "" Then
+            path = NormalizeFolderPathConfig(root, False) & "\" & warehouseId & ".invSys.Config.xlsb"
+        End If
+    End If
+    If path = "" Then
+        For Each wb In Application.Workbooks
+            If WorkbookHasListObject(wb, "tblWarehouseConfig") Then
+                If warehouseId = "" Or WorkbookHasWarehouseConfigRow(wb, warehouseId) Then
+                    If Not matched Is Nothing Then Exit Function
+                    Set matched = wb
+                End If
+            End If
+        Next wb
+        If Not matched Is Nothing Then
+            Set ResolveExistingConfigForRead = matched
+            Exit Function
+        End If
+        root = modRuntimeWorkbooks.ResolveCoreDataRoot("", warehouseId)
+        If Trim$(warehouseId) <> "" Then
+            path = NormalizeFolderPathConfig(root, False) & "\" & warehouseId & ".invSys.Config.xlsb"
+        Else
+            candidatePath = Dir$(NormalizeFolderPathConfig(root, False) & "\*.invSys.Config.xlsb")
+            If candidatePath <> "" Then
+                path = NormalizeFolderPathConfig(root, False) & "\" & candidatePath
+                If Dir$() <> "" Then Exit Function
+            End If
+        End If
+    End If
+    If path = "" Then Exit Function
+    For Each wb In Application.Workbooks
+        If StrComp(wb.FullName, path, vbTextCompare) = 0 Then
+            Set ResolveExistingConfigForRead = wb
+            Exit Function
+        End If
+    Next wb
+    If Len(Dir$(path)) = 0 Then Exit Function
+    Set ResolveExistingConfigForRead = Application.Workbooks.Open(path, UpdateLinks:=0, ReadOnly:=True, AddToMru:=False)
 End Function
 
 Public Function EnsureConfigSchema(Optional ByVal targetWb As Workbook = Nothing, _
@@ -547,7 +583,7 @@ Public Function GetBool(ByVal key As String, ByVal defaultVal As Boolean) As Boo
     Dim v As Variant
     Dim parsed As Variant
     If TryGet(key, v) Then
-        If TryCoerceValue(CONFIG_TYPE_BOOLEAN, v, parsed) Then
+        If TryCoerceConfigValue(CONFIG_TYPE_BOOLEAN, v, parsed) Then
             GetBool = CBool(parsed)
             Exit Function
         End If
@@ -603,112 +639,8 @@ Public Function UpdateConfigValue(ByVal key As String, ByVal rawValue As Variant
                                   Optional ByRef report As String = "", _
                                   Optional ByVal warehouseId As String = "", _
                                   Optional ByVal stationId As String = "") As Boolean
-    On Error GoTo FailUpdate
-
-    Dim defs() As ConfigKeyDef
-    Dim defCount As Long
-    Dim found As Boolean
-    Dim selectedType As String
-    Dim selectedScope As String
-    Dim selectedRequired As Boolean
-    Dim coercedValue As Variant
-    Dim preOpen As Object
-    Dim wb As Workbook
-    Dim openedTransient As Boolean
-    Dim lo As ListObject
-    Dim rowIndex As Long
-    Dim i As Long
-    Dim resolvedWh As String
-    Dim resolvedSt As String
-
-    key = Trim$(key)
-    If key = "" Then
-        report = "Select a config key before saving."
-        Exit Function
-    End If
-    If StrComp(key, "WarehouseId", vbTextCompare) = 0 Or StrComp(key, "StationId", vbTextCompare) = 0 Then
-        report = key & " is runtime identity and cannot be renamed from the Settings form."
-        Exit Function
-    End If
-
-    resolvedWh = Trim$(warehouseId)
-    resolvedSt = Trim$(stationId)
-    If Not mIsLoaded _
-       Or (resolvedWh <> "" And StrComp(resolvedWh, mWarehouseId, vbTextCompare) <> 0) _
-       Or (resolvedSt <> "" And StrComp(resolvedSt, mStationId, vbTextCompare) <> 0) Then
-        If Not LoadConfig(resolvedWh, resolvedSt) Then
-            report = "Config load failed: " & Validate()
-            Exit Function
-        End If
-    End If
-    If resolvedWh = "" Then resolvedWh = mWarehouseId
-    If resolvedSt = "" Then resolvedSt = mStationId
-
-    defCount = GetConfigSchema(defs)
-    For i = 1 To defCount
-        If StrComp(defs(i).Key, key, vbTextCompare) = 0 Then
-            selectedType = defs(i).DataType
-            selectedScope = defs(i).Scope
-            selectedRequired = defs(i).Required
-            found = True
-            Exit For
-        End If
-    Next i
-    If Not found Then
-        report = "Unknown config key: " & key
-        Exit Function
-    End If
-
-    If IsBlankValue(rawValue) And Not selectedRequired Then
-        coercedValue = ""
-    ElseIf Not TryCoerceValue(selectedType, rawValue, coercedValue) Then
-        report = key & " requires a " & LCase$(selectedType) & " value."
-        Exit Function
-    End If
-
-    Set preOpen = CaptureOpenWorkbookPathsConfig()
-    Set wb = ResolveConfigWorkbook(resolvedWh, resolvedSt)
-    If wb Is Nothing Then
-        report = "Canonical config workbook could not be resolved."
-        Exit Function
-    End If
-    openedTransient = Not WorkbookWasAlreadyOpenConfig(preOpen, wb)
-    If wb.ReadOnly Then
-        report = "Config workbook is read-only or locked: " & wb.FullName
-        GoTo CleanExit
-    End If
-    If Not EnsureConfigSchema(wb, resolvedWh, resolvedSt, report) Then GoTo CleanExit
-
-    If UCase$(selectedScope) = CONFIG_SCOPE_STATION Then
-        Set lo = FindListObjectByName(wb, "tblStationConfig")
-        rowIndex = ResolveStationRow(lo, resolvedSt, resolvedWh)
-    Else
-        Set lo = FindListObjectByName(wb, "tblWarehouseConfig")
-        rowIndex = ResolveWarehouseRow(lo, resolvedWh, wb.Name)
-    End If
-    If lo Is Nothing Or rowIndex = 0 Then
-        report = "The target config row could not be resolved for " & key & "."
-        GoTo CleanExit
-    End If
-
-    EnsureWorksheetEditableConfig lo.Parent
-    SetConfigCellValue lo, rowIndex, key, coercedValue
-    SaveConfigWorkbookIfWritable wb
-    If mConfigCache Is Nothing Then
-        Set mConfigCache = CreateObject("Scripting.Dictionary")
-        mConfigCache.CompareMode = vbTextCompare
-    End If
-    mConfigCache(key) = coercedValue
-    UpdateConfigValue = True
-    report = key & " saved to " & wb.Name & "."
-
-CleanExit:
-    CloseTransientConfigAfterLoad wb, openedTransient
-    Exit Function
-
-FailUpdate:
-    report = "UpdateConfigValue failed: " & Err.Description
-    Resume CleanExit
+    ' Compatibility boundary only. Every caller uses the same authorized command.
+    UpdateConfigValue = modConfigCommands.UpdateConfigValue(key, rawValue, report, warehouseId, stationId)
 End Function
 
 Private Sub InitializeState()
@@ -771,7 +703,7 @@ End Function
 
 Private Sub HandleMalformedKey(ByRef def As ConfigKeyDef, ByVal rawVal As Variant)
     Dim v As Variant
-    If def.DefaultVal <> "" And TryCoerceValue(def.DataType, def.DefaultVal, v) Then
+    If def.DefaultVal <> "" And TryCoerceConfigValue(def.DataType, def.DefaultVal, v) Then
         mConfigCache(def.Key) = v
         AddValidationIssue "WARN", "CONFIG_KEY_DEFAULT", def.Key & " malformed (" & CStr(rawVal) & "), default applied."
     ElseIf def.Required Then
@@ -783,7 +715,7 @@ End Sub
 
 Private Sub HandleMissingKey(ByRef def As ConfigKeyDef)
     Dim v As Variant
-    If def.DefaultVal <> "" And TryCoerceValue(def.DataType, def.DefaultVal, v) Then
+    If def.DefaultVal <> "" And TryCoerceConfigValue(def.DataType, def.DefaultVal, v) Then
         mConfigCache(def.Key) = v
         AddValidationIssue "WARN", "CONFIG_KEY_DEFAULT", def.Key & " missing, default applied."
     ElseIf def.Required Then
@@ -960,7 +892,7 @@ Private Function BuildRowDictionary(ByVal lo As ListObject, ByVal rowIndex As Lo
     End If
 
     For Each col In lo.ListColumns
-        d(col.Name) = lo.DataBodyRange.Cells(rowIndex, col.Index).Value
+        d(Trim$(col.Name)) = lo.DataBodyRange.Cells(rowIndex, col.Index).Value
     Next col
     Set BuildRowDictionary = d
 End Function
@@ -980,7 +912,7 @@ Private Function GetDictionaryValue(ByVal d As Object, ByVal key As String) As V
     End If
 End Function
 
-Private Function TryCoerceValue(ByVal dataType As String, ByVal rawValue As Variant, ByRef outVal As Variant) As Boolean
+Public Function TryCoerceConfigValue(ByVal dataType As String, ByVal rawValue As Variant, ByRef outVal As Variant) As Boolean
     Dim t As String
 
     If IsError(rawValue) Then Exit Function
@@ -989,34 +921,34 @@ Private Function TryCoerceValue(ByVal dataType As String, ByVal rawValue As Vari
     Select Case t
         Case CONFIG_TYPE_STRING
             outVal = SafeTrim(rawValue)
-            TryCoerceValue = True
+            TryCoerceConfigValue = True
         Case CONFIG_TYPE_LONG
             If IsNumeric(rawValue) Then
                 outVal = CLng(rawValue)
-                TryCoerceValue = True
+                TryCoerceConfigValue = True
             End If
         Case CONFIG_TYPE_BOOLEAN
             If VarType(rawValue) = vbBoolean Then
                 outVal = CBool(rawValue)
-                TryCoerceValue = True
+                TryCoerceConfigValue = True
             Else
                 Select Case UCase$(SafeTrim(rawValue))
                     Case "TRUE", "1", "YES", "Y", "ON"
                         outVal = True
-                        TryCoerceValue = True
+                        TryCoerceConfigValue = True
                     Case "FALSE", "0", "NO", "N", "OFF"
                         outVal = False
-                        TryCoerceValue = True
+                        TryCoerceConfigValue = True
                 End Select
             End If
         Case CONFIG_TYPE_DATETIME
             If IsDate(rawValue) Then
                 outVal = CDate(rawValue)
-                TryCoerceValue = True
+                TryCoerceConfigValue = True
             End If
         Case Else
             outVal = rawValue
-            TryCoerceValue = True
+            TryCoerceConfigValue = True
     End Select
 End Function
 

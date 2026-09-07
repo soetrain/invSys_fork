@@ -193,6 +193,19 @@ End Function
 
 Public Function PublishUomCatalogRows(ByVal rows As Variant, _
                                       Optional ByRef report As String = "") As Boolean
+    PublishUomCatalogRows = modConfigCommands.PublishUomCatalogRows(rows, report)
+End Function
+
+Public Function UomCatalogMatches(ByVal packedUoms As String, ByVal packedConversions As String) As Boolean
+    Dim currentConversions As String
+    currentConversions = modConfig.GetString(CONFIG_KEY_UOM_CONVERSION_CATALOG, "")
+    If currentConversions = "" Then currentConversions = DEFAULT_UOM_CONVERSION_CATALOG
+    UomCatalogMatches = (StrComp(modConfig.GetString(CONFIG_KEY_UOM_CATALOG, DEFAULT_UOMS), packedUoms, vbTextCompare) = 0 _
+        And StrComp(currentConversions, packedConversions, vbTextCompare) = 0)
+End Function
+
+Public Function PrepareUomCatalogRows(ByVal rows As Variant, ByRef packedUoms As String, ByRef packedConversions As String, _
+                                      Optional ByRef report As String = "") As Boolean
     Dim records As Object
     Dim rowIndex As Long
     Dim uomName As String
@@ -201,15 +214,11 @@ Public Function PublishUomCatalogRows(ByVal rows As Variant, _
     Dim unitsPerBase As Double
     Dim convertible As Boolean
     Dim enabled As Boolean
-    Dim packedConversions As String
-    Dim packedUoms As String
     Dim key As Variant
     Dim record As Variant
     Dim baseRecord As Variant
-    Dim nextVersion As Long
-    Dim currentUoms As String
-    Dim currentConversions As String
-
+    packedUoms = ""
+    packedConversions = ""
     If Not IsArray(rows) Then
         report = "Select a populated UOM Catalog table."
         Exit Function
@@ -273,22 +282,7 @@ NextRow:
         If packedUoms <> "" Then packedUoms = packedUoms & UOM_DELIMITER
         packedUoms = packedUoms & CStr(key)
     Next key
-    currentUoms = modConfig.GetString(CONFIG_KEY_UOM_CATALOG, DEFAULT_UOMS)
-    currentConversions = modConfig.GetString(CONFIG_KEY_UOM_CONVERSION_CATALOG, "")
-    If currentConversions = "" Then currentConversions = DEFAULT_UOM_CONVERSION_CATALOG
-    If StrComp(currentUoms, packedUoms, vbTextCompare) = 0 And _
-       StrComp(currentConversions, packedConversions, vbTextCompare) = 0 Then
-        report = "UOM Catalog version " & CStr(modConfig.GetLong( _
-            CONFIG_KEY_UOM_CONVERSION_CATALOG_VERSION, 1)) & " is unchanged."
-        PublishUomCatalogRows = True
-        Exit Function
-    End If
-    If Not modConfig.UpdateConfigValue(CONFIG_KEY_UOM_CATALOG, packedUoms, report) Then Exit Function
-    If Not modConfig.UpdateConfigValue(CONFIG_KEY_UOM_CONVERSION_CATALOG, packedConversions, report) Then Exit Function
-    nextVersion = modConfig.GetLong(CONFIG_KEY_UOM_CONVERSION_CATALOG_VERSION, 1) + 1
-    If Not modConfig.UpdateConfigValue(CONFIG_KEY_UOM_CONVERSION_CATALOG_VERSION, CStr(nextVersion), report) Then Exit Function
-    report = "UOM Catalog version " & CStr(nextVersion) & " published."
-    PublishUomCatalogRows = True
+    PrepareUomCatalogRows = True
 End Function
 
 Private Function ConfiguredUomConversionRecords() As Collection
@@ -372,7 +366,7 @@ Private Function SaveUomCollection(ByVal uoms As Collection, ByRef report As Str
         report = "The warehouse UOM catalog must contain at least one value."
         Exit Function
     End If
-    SaveUomCollection = modConfig.UpdateConfigValue(CONFIG_KEY_UOM_CATALOG, packed, report)
+    SaveUomCollection = modConfigCommands.UpdateConfigValue(CONFIG_KEY_UOM_CATALOG, packed, report)
 End Function
 
 Private Function PackUomCollection(ByVal uoms As Collection) As String

@@ -1139,6 +1139,9 @@ try {
     }
     try {
         [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modRuntimeWorkbooks.SetCoreDataRootOverride" -Arguments @($bootstrapRoot))
+        $missingLoad = [bool](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modConfig.LoadConfig" -Arguments @("WH1", "S1"))
+        Add-ResultRow -Rows $resultRows -Check "Core.ConfigRead.MissingDoesNotCreate" -Passed (-not $missingLoad -and @(Get-ChildItem -LiteralPath $bootstrapRoot -File).Count -eq 0) -Detail "D5 read fails without creating a configuration workbook."
+        [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime" -Arguments @("WH1", "S1", $bootstrapRoot))
         $cfgLoadOk = [bool](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modConfig.LoadConfig" -Arguments @("", ""))
         $cfgValidate = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modConfig.Validate")
         $bootstrapConfigPath = Join-Path $bootstrapRoot "WH1.invSys.Config.xlsb"

@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-04T23:10:24Z",
+    "generatedAtUtc":  "2026-09-06T00:00:00Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "93fe56016b2454da7a82f32231eb3edc14427c01f877f8bf08bf6f6c2d731e06",
-                          "maintenanceCandidatesSha256":  "85636491846deca9cb3085f9fa84722fa80ac3962b81ca90c634bee95e7883f8"
+                          "implementationManifestSha256":  "d48614a33b6da9e5c527f8b33694b51a2f45133cffa52860bc626622d1d4f8b8",
+                          "maintenanceCandidatesSha256":  "2fa5604ff77987de5ef6bbafe426b93cf589861cc8122b74659f6e9e4c09b2ec"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1079,
-                    "reviewedCandidateCount":  1081,
+                    "scannerCandidateCount":  1077,
+                    "reviewedCandidateCount":  1079,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -42,7 +42,7 @@
                         },
                         {
                             "name":  "CORE",
-                            "candidateCount":  288,
+                            "candidateCount":  286,
                             "reason":  "Headless shared runtime and developer-support source in Core."
                         },
                         {
@@ -133,7 +133,7 @@
                                                   "sourcePath":  "src/Core/Modules/modConfig.bas",
                                                   "componentName":  "modConfig",
                                                   "packageKey":  "Core",
-                                                  "baselineLineCount":  1683,
+                                                  "baselineLineCount":  1615,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -3388,7 +3388,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -3526,7 +3526,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -9813,6 +9813,7 @@
                                                   "Reload",
                                                   "ResolveConfigWorkbook",
                                                   "ResolveConfigWorkbookForSetup",
+                                                  "ResolveExistingConfigForRead",
                                                   "ResolveSeedStationIdConfig",
                                                   "ResolveSeedWarehouseIdConfig",
                                                   "ResolveStationInboxPath",
@@ -9822,7 +9823,7 @@
                                                   "SaveConfigWorkbookIfWritable",
                                                   "SeedConfigDefaults",
                                                   "SetConfigCellValue",
-                                                  "TryCoerceValue",
+                                                  "TryCoerceConfigValue",
                                                   "TryGet",
                                                   "TryGetDictionaryValue",
                                                   "UpdateConfigValue",
@@ -10888,29 +10889,6 @@
                            "nextAction":  "Investigate callers, callbacks, package ownership, and protecting tests before selecting a source change."
                        },
                        {
-                           "id":  "reachability:src_Core_Modules_modAuth.bas:modAuth.SignInCurrentTargetForAutomation",
-                           "origin":  "SCANNER",
-                           "scannerCandidateType":  "UNRESOLVED",
-                           "disposition":  "UNRESOLVED",
-                           "scannerConfidence":  "MEDIUM",
-                           "reviewedConfidence":  "MEDIUM",
-                           "reviewStatus":  "MANUAL_INVESTIGATION",
-                           "workstream":  "CORE",
-                           "componentName":  "modAuth",
-                           "procedureNames":  [
-                                                  "SignInCurrentTargetForAutomation"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Core/Modules/modAuth.bas"
-                                           ],
-                           "reason":  "No direct, dynamic-root, or test reference was found, but public visibility requires review.",
-                           "protectingTests":  [
-
-                                               ],
-                           "deletionApproved":  false,
-                           "nextAction":  "Investigate callers, callbacks, package ownership, and protecting tests before selecting a source change."
-                       },
-                       {
                            "id":  "reachability:src_Core_Modules_modAuth.bas:modAuth.ValidateStationRoleAuthPackedForAutomation",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "UNRESOLVED",
@@ -11760,29 +11738,6 @@
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Write a focused test for the nearest public entry point, prove compile and regression GREEN, then request reviewed deletion."
-                       },
-                       {
-                           "id":  "reachability:src_Core_Modules_modNasConnection.bas:modNasConnection.SelectWarehouseTargetForAutomation",
-                           "origin":  "SCANNER",
-                           "scannerCandidateType":  "UNRESOLVED",
-                           "disposition":  "UNRESOLVED",
-                           "scannerConfidence":  "MEDIUM",
-                           "reviewedConfidence":  "MEDIUM",
-                           "reviewStatus":  "MANUAL_INVESTIGATION",
-                           "workstream":  "CORE",
-                           "componentName":  "modNasConnection",
-                           "procedureNames":  [
-                                                  "SelectWarehouseTargetForAutomation"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Core/Modules/modNasConnection.bas"
-                                           ],
-                           "reason":  "No direct, dynamic-root, or test reference was found, but public visibility requires review.",
-                           "protectingTests":  [
-
-                                               ],
-                           "deletionApproved":  false,
-                           "nextAction":  "Investigate callers, callbacks, package ownership, and protecting tests before selecting a source change."
                        },
                        {
                            "id":  "reachability:src_Core_Modules_modNasConnection.bas:modNasConnection.SetRequireManualServerCredentialsForAutomation",
@@ -21441,7 +21396,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1"
+                                                   "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1",
+                                                   "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -21464,7 +21420,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1"
+                                                   "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1",
+                                                   "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."

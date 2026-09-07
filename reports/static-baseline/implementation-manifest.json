@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-04T23:10:24Z",
+    "generatedAtUtc":  "2026-09-06T00:00:00Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -63,6 +63,7 @@
                                                 "modAuth",
                                                 "modCarrierSettings",
                                                 "modConfig",
+                                                "modConfigCommands",
                                                 "modConfigDefaults",
                                                 "modDeploymentPaths",
                                                 "modDesignsDomainBridge",
@@ -1999,7 +2000,7 @@
                            "name":  "modConfig",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modConfig.bas",
-                           "lineCount":  1683,
+                           "lineCount":  1615,
                            "procedureNames":  [
                                                   "AddValidationIssue",
                                                   "BuildRowDictionary",
@@ -2070,6 +2071,7 @@
                                                   "Reload",
                                                   "ResolveConfigWorkbook",
                                                   "ResolveConfigWorkbookForSetup",
+                                                  "ResolveExistingConfigForRead",
                                                   "ResolveSeedStationIdConfig",
                                                   "ResolveSeedWarehouseIdConfig",
                                                   "ResolveStationInboxPath",
@@ -2079,7 +2081,7 @@
                                                   "SaveConfigWorkbookIfWritable",
                                                   "SeedConfigDefaults",
                                                   "SetConfigCellValue",
-                                                  "TryCoerceValue",
+                                                  "TryCoerceConfigValue",
                                                   "TryGet",
                                                   "TryGetDictionaryValue",
                                                   "UpdateConfigValue",
@@ -2089,6 +2091,23 @@
                                                   "WorkbookWasAlreadyOpenConfig",
                                                   "WorksheetHasListObjectConfig",
                                                   "WorksheetHasUnexpectedContentConfig"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "modConfigCommands",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modConfigCommands.bas",
+                           "lineCount":  219,
+                           "procedureNames":  [
+                                                  "AuthorizeCommand",
+                                                  "ColumnIndex",
+                                                  "PersistChanges",
+                                                  "PublishUomCatalogRows",
+                                                  "TargetRow",
+                                                  "UpdateConfigValue"
                                               ],
                            "metadata":  {
 
@@ -3226,7 +3245,7 @@
                            "name":  "modUomSettings",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modUomSettings.bas",
-                           "lineCount":  421,
+                           "lineCount":  415,
                            "procedureNames":  [
                                                   "AddConfiguredUom",
                                                   "ConfiguredUomCollection",
@@ -3240,11 +3259,13 @@
                                                   "NormalizeUomName",
                                                   "PackUomCollection",
                                                   "ParseUomPackedText",
+                                                  "PrepareUomCatalogRows",
                                                   "PublishUomCatalogRows",
                                                   "RemoveConfiguredUom",
                                                   "ResetConfiguredUoms",
                                                   "SaveUomCollection",
                                                   "TestUomCatalogConversionContract",
+                                                  "UomCatalogMatches",
                                                   "UomCollectionContains",
                                                   "UomRequiresWholeQuantity",
                                                   "ValidateQuantityForUom"
@@ -20858,7 +20879,8 @@
                                                "ResolveAdminWorkbook",
                                                "ResolveOpenWorkbookByNameAdmin",
                                                "SafeTrimAdmin",
-                                               "SetTableRowValueAdmin"
+                                               "SetTableRowValueAdmin",
+                                               "TargetRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -35523,16 +35545,14 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  14,
-                           "endLine":  144,
-                           "lineCount":  131,
+                           "endLine":  132,
+                           "lineCount":  119,
                            "directCalls":  [
                                                "AddValidationIssue",
                                                "BuildRowDictionary",
                                                "CaptureOpenWorkbookPathsConfig",
                                                "CloseTransientConfigAfterLoad",
                                                "CountFatalIssues",
-                                               "EnsureConfigSchema",
-                                               "EnsureTableHasRow",
                                                "FindListObjectByName",
                                                "GetConfigSchema",
                                                "GetDictionaryValue",
@@ -35542,14 +35562,39 @@
                                                "HideWorkbookWindowsConfig",
                                                "InitializeState",
                                                "IsBlankValue",
-                                               "ResolveConfigWorkbook",
+                                               "ResolveExistingConfigForRead",
                                                "ResolveStationRow",
                                                "ResolveWarehouseRow",
-                                               "RuntimeWorkbookSchemaPresentForRead",
                                                "SafeTrim",
-                                               "TryCoerceValue",
+                                               "TryCoerceConfigValue",
                                                "TryGetDictionaryValue",
                                                "WorkbookWasAlreadyOpenConfig"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modConfig",
+                           "name":  "ResolveExistingConfigForRead",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  134,
+                           "endLine":  180,
+                           "lineCount":  47,
+                           "directCalls":  [
+                                               "GetCoreDataRootOverride",
+                                               "GetCurrentTarget",
+                                               "NormalizeFolderPathConfig",
+                                               "ResolveCoreDataRoot",
+                                               "WorkbookHasListObject",
+                                               "WorkbookHasWarehouseConfigRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -35566,8 +35611,8 @@
                            "name":  "EnsureConfigSchema",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  146,
-                           "endLine":  174,
+                           "startLine":  182,
+                           "endLine":  210,
                            "lineCount":  29,
                            "directCalls":  [
                                                "EnsureConfigTables",
@@ -35589,8 +35634,8 @@
                            "name":  "EnsureStationConfigEntry",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  176,
-                           "endLine":  261,
+                           "startLine":  212,
+                           "endLine":  297,
                            "lineCount":  86,
                            "directCalls":  [
                                                "EnsureConfigSchema",
@@ -35622,8 +35667,8 @@
                            "name":  "EnsureStationConfigEntryForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  263,
-                           "endLine":  277,
+                           "startLine":  299,
+                           "endLine":  313,
                            "lineCount":  15,
                            "directCalls":  [
                                                "EnsureStationConfigEntry"
@@ -35643,8 +35688,8 @@
                            "name":  "EnsureStationConfigEntryPackedForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  279,
-                           "endLine":  291,
+                           "startLine":  315,
+                           "endLine":  327,
                            "lineCount":  13,
                            "directCalls":  [
                                                "EnsureStationConfigEntryForAutomation",
@@ -35665,8 +35710,8 @@
                            "name":  "EnsureStationInbox",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  293,
-                           "endLine":  389,
+                           "startLine":  329,
+                           "endLine":  425,
                            "lineCount":  97,
                            "directCalls":  [
                                                "BuildStationInboxWorkbookPathConfig",
@@ -35701,8 +35746,8 @@
                            "name":  "GetResolvedWorkbookName",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  391,
-                           "endLine":  393,
+                           "startLine":  427,
+                           "endLine":  429,
                            "lineCount":  3,
                            "directCalls":  [
                                                "SafeTrim"
@@ -35722,8 +35767,8 @@
                            "name":  "EnsureStationInboxForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  395,
-                           "endLine":  407,
+                           "startLine":  431,
+                           "endLine":  443,
                            "lineCount":  13,
                            "directCalls":  [
                                                "EnsureStationInbox"
@@ -35743,8 +35788,8 @@
                            "name":  "EnsureStationInboxPackedForAutomation",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  409,
-                           "endLine":  418,
+                           "startLine":  445,
+                           "endLine":  454,
                            "lineCount":  10,
                            "directCalls":  [
                                                "EnsureStationInboxForAutomation",
@@ -35765,8 +35810,8 @@
                            "name":  "ResolveStationInboxPath",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  420,
-                           "endLine":  477,
+                           "startLine":  456,
+                           "endLine":  513,
                            "lineCount":  58,
                            "directCalls":  [
                                                "BuildStationInboxWorkbookPathConfig",
@@ -35795,8 +35840,8 @@
                            "name":  "Reload",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  479,
-                           "endLine":  481,
+                           "startLine":  515,
+                           "endLine":  517,
                            "lineCount":  3,
                            "directCalls":  [
                                                "LoadConfig"
@@ -35816,8 +35861,8 @@
                            "name":  "IsLoaded",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  483,
-                           "endLine":  485,
+                           "startLine":  519,
+                           "endLine":  521,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -35837,8 +35882,8 @@
                            "name":  "GetRequired",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  487,
-                           "endLine":  496,
+                           "startLine":  523,
+                           "endLine":  532,
                            "lineCount":  10,
                            "directCalls":  [
                                                "IsBlankValue",
@@ -35859,8 +35904,8 @@
                            "name":  "TryGet",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  498,
-                           "endLine":  504,
+                           "startLine":  534,
+                           "endLine":  540,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -35880,8 +35925,8 @@
                            "name":  "Validate",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  506,
-                           "endLine":  525,
+                           "startLine":  542,
+                           "endLine":  561,
                            "lineCount":  20,
                            "directCalls":  [
 
@@ -35901,8 +35946,8 @@
                            "name":  "GetWarehouseId",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  527,
-                           "endLine":  529,
+                           "startLine":  563,
+                           "endLine":  565,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -35922,8 +35967,8 @@
                            "name":  "GetStationId",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  531,
-                           "endLine":  533,
+                           "startLine":  567,
+                           "endLine":  569,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -35943,8 +35988,8 @@
                            "name":  "GetLong",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  535,
-                           "endLine":  544,
+                           "startLine":  571,
+                           "endLine":  580,
                            "lineCount":  10,
                            "directCalls":  [
                                                "TryGet"
@@ -35964,11 +36009,11 @@
                            "name":  "GetBool",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  546,
-                           "endLine":  556,
+                           "startLine":  582,
+                           "endLine":  592,
                            "lineCount":  11,
                            "directCalls":  [
-                                               "TryCoerceValue",
+                                               "TryCoerceConfigValue",
                                                "TryGet"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -35986,8 +36031,8 @@
                            "name":  "GetString",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  558,
-                           "endLine":  565,
+                           "startLine":  594,
+                           "endLine":  601,
                            "lineCount":  8,
                            "directCalls":  [
                                                "SafeTrim",
@@ -36008,8 +36053,8 @@
                            "name":  "GetConfigEditorRows",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  567,
-                           "endLine":  600,
+                           "startLine":  603,
+                           "endLine":  636,
                            "lineCount":  34,
                            "directCalls":  [
                                                "GetConfigSchema",
@@ -36031,26 +36076,11 @@
                            "name":  "UpdateConfigValue",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  602,
-                           "endLine":  712,
-                           "lineCount":  111,
+                           "startLine":  638,
+                           "endLine":  644,
+                           "lineCount":  7,
                            "directCalls":  [
-                                               "CaptureOpenWorkbookPathsConfig",
-                                               "CloseTransientConfigAfterLoad",
-                                               "EnsureConfigSchema",
-                                               "EnsureWorksheetEditableConfig",
-                                               "FindListObjectByName",
-                                               "GetConfigSchema",
-                                               "IsBlankValue",
-                                               "LoadConfig",
-                                               "ResolveConfigWorkbook",
-                                               "ResolveStationRow",
-                                               "ResolveWarehouseRow",
-                                               "SaveConfigWorkbookIfWritable",
-                                               "SetConfigCellValue",
-                                               "TryCoerceValue",
-                                               "Validate",
-                                               "WorkbookWasAlreadyOpenConfig"
+
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -36067,8 +36097,8 @@
                            "name":  "InitializeState",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  714,
-                           "endLine":  722,
+                           "startLine":  646,
+                           "endLine":  654,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -36088,8 +36118,8 @@
                            "name":  "ResolveConfigWorkbookForSetup",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  724,
-                           "endLine":  770,
+                           "startLine":  656,
+                           "endLine":  702,
                            "lineCount":  47,
                            "directCalls":  [
                                                "Add",
@@ -36115,12 +36145,12 @@
                            "name":  "HandleMalformedKey",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  772,
-                           "endLine":  782,
+                           "startLine":  704,
+                           "endLine":  714,
                            "lineCount":  11,
                            "directCalls":  [
                                                "AddValidationIssue",
-                                               "TryCoerceValue"
+                                               "TryCoerceConfigValue"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -36137,12 +36167,12 @@
                            "name":  "HandleMissingKey",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  784,
-                           "endLine":  794,
+                           "startLine":  716,
+                           "endLine":  726,
                            "lineCount":  11,
                            "directCalls":  [
                                                "AddValidationIssue",
-                                               "TryCoerceValue"
+                                               "TryCoerceConfigValue"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -36159,8 +36189,8 @@
                            "name":  "CountFatalIssues",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  796,
-                           "endLine":  805,
+                           "startLine":  728,
+                           "endLine":  737,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -36180,8 +36210,8 @@
                            "name":  "AddValidationIssue",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  807,
-                           "endLine":  810,
+                           "startLine":  739,
+                           "endLine":  742,
                            "lineCount":  4,
                            "directCalls":  [
                                                "Add",
@@ -36202,8 +36232,8 @@
                            "name":  "ResolveConfigWorkbook",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  812,
-                           "endLine":  853,
+                           "startLine":  744,
+                           "endLine":  785,
                            "lineCount":  42,
                            "directCalls":  [
                                                "IsConfigWorkbookName",
@@ -36227,8 +36257,8 @@
                            "name":  "IsConfigWorkbookName",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  855,
-                           "endLine":  861,
+                           "startLine":  787,
+                           "endLine":  793,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -36248,8 +36278,8 @@
                            "name":  "WorkbookHasListObject",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  863,
-                           "endLine":  865,
+                           "startLine":  795,
+                           "endLine":  797,
                            "lineCount":  3,
                            "directCalls":  [
                                                "FindListObjectByName"
@@ -36269,8 +36299,8 @@
                            "name":  "WorkbookHasWarehouseConfigRow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  867,
-                           "endLine":  872,
+                           "startLine":  799,
+                           "endLine":  804,
                            "lineCount":  6,
                            "directCalls":  [
                                                "FindListObjectByName",
@@ -36291,8 +36321,8 @@
                            "name":  "ResolveWarehouseRow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  874,
-                           "endLine":  889,
+                           "startLine":  806,
+                           "endLine":  821,
                            "lineCount":  16,
                            "directCalls":  [
                                                "FindRowByValue",
@@ -36313,8 +36343,8 @@
                            "name":  "ResolveStationRow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  891,
-                           "endLine":  913,
+                           "startLine":  823,
+                           "endLine":  845,
                            "lineCount":  23,
                            "directCalls":  [
                                                "FindFirstRowByValue",
@@ -36335,8 +36365,8 @@
                            "name":  "InferWarehouseIdFromWorkbookName",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  915,
-                           "endLine":  919,
+                           "startLine":  847,
+                           "endLine":  851,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -36356,8 +36386,8 @@
                            "name":  "FindRowByValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  921,
-                           "endLine":  937,
+                           "startLine":  853,
+                           "endLine":  869,
                            "lineCount":  17,
                            "directCalls":  [
                                                "GetColumnIndex",
@@ -36378,8 +36408,8 @@
                            "name":  "FindFirstRowByValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  939,
-                           "endLine":  941,
+                           "startLine":  871,
+                           "endLine":  873,
                            "lineCount":  3,
                            "directCalls":  [
                                                "FindRowByValue"
@@ -36399,8 +36429,8 @@
                            "name":  "BuildRowDictionary",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  943,
-                           "endLine":  966,
+                           "startLine":  875,
+                           "endLine":  898,
                            "lineCount":  24,
                            "directCalls":  [
 
@@ -36420,8 +36450,8 @@
                            "name":  "TryGetDictionaryValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  968,
-                           "endLine":  974,
+                           "startLine":  900,
+                           "endLine":  906,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -36441,8 +36471,8 @@
                            "name":  "GetDictionaryValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  976,
-                           "endLine":  981,
+                           "startLine":  908,
+                           "endLine":  913,
                            "lineCount":  6,
                            "directCalls":  [
                                                "TryGetDictionaryValue"
@@ -36459,11 +36489,11 @@
                        },
                        {
                            "componentName":  "modConfig",
-                           "name":  "TryCoerceValue",
-                           "visibility":  "PRIVATE",
+                           "name":  "TryCoerceConfigValue",
+                           "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  983,
-                           "endLine":  1021,
+                           "startLine":  915,
+                           "endLine":  953,
                            "lineCount":  39,
                            "directCalls":  [
                                                "SafeTrim"
@@ -36483,8 +36513,8 @@
                            "name":  "IsBlankValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1023,
-                           "endLine":  1031,
+                           "startLine":  955,
+                           "endLine":  963,
                            "lineCount":  9,
                            "directCalls":  [
                                                "SafeTrim"
@@ -36504,8 +36534,8 @@
                            "name":  "SafeTrim",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1033,
-                           "endLine":  1036,
+                           "startLine":  965,
+                           "endLine":  968,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -36525,8 +36555,8 @@
                            "name":  "EnsureConfigTables",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1038,
-                           "endLine":  1061,
+                           "startLine":  970,
+                           "endLine":  993,
                            "lineCount":  24,
                            "directCalls":  [
                                                "EnsureListObjectWithHeaders"
@@ -36546,8 +36576,8 @@
                            "name":  "EnsureListObjectWithHeaders",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1063,
-                           "endLine":  1102,
+                           "startLine":  995,
+                           "endLine":  1034,
                            "lineCount":  40,
                            "directCalls":  [
                                                "Add",
@@ -36574,8 +36604,8 @@
                            "name":  "EnsureConfigWorksheet",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1104,
-                           "endLine":  1125,
+                           "startLine":  1036,
+                           "endLine":  1057,
                            "lineCount":  22,
                            "directCalls":  [
                                                "AddValidationIssue",
@@ -36600,8 +36630,8 @@
                            "name":  "EnsureWorksheet",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1127,
-                           "endLine":  1136,
+                           "startLine":  1059,
+                           "endLine":  1068,
                            "lineCount":  10,
                            "directCalls":  [
                                                "Add"
@@ -36621,8 +36651,8 @@
                            "name":  "FindWorksheetByNameConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1138,
-                           "endLine":  1142,
+                           "startLine":  1070,
+                           "endLine":  1074,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -36642,8 +36672,8 @@
                            "name":  "WorksheetHasListObjectConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1144,
-                           "endLine":  1148,
+                           "startLine":  1076,
+                           "endLine":  1080,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -36663,8 +36693,8 @@
                            "name":  "WorksheetHasUnexpectedContentConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1150,
-                           "endLine":  1157,
+                           "startLine":  1082,
+                           "endLine":  1089,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -36684,8 +36714,8 @@
                            "name":  "QuarantineConfigWorksheet",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1159,
-                           "endLine":  1176,
+                           "startLine":  1091,
+                           "endLine":  1108,
                            "lineCount":  18,
                            "directCalls":  [
                                                "FindWorksheetByNameConfig"
@@ -36705,8 +36735,8 @@
                            "name":  "SeedConfigDefaults",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1178,
-                           "endLine":  1226,
+                           "startLine":  1110,
+                           "endLine":  1158,
                            "lineCount":  49,
                            "directCalls":  [
                                                "DefaultWarehouseBackupRootPath",
@@ -36732,8 +36762,8 @@
                            "name":  "EnsureConfigCellDefault",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1228,
-                           "endLine":  1239,
+                           "startLine":  1160,
+                           "endLine":  1171,
                            "lineCount":  12,
                            "directCalls":  [
                                                "GetColumnIndex",
@@ -36754,8 +36784,8 @@
                            "name":  "ResolveSeedWarehouseIdConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1241,
-                           "endLine":  1245,
+                           "startLine":  1173,
+                           "endLine":  1177,
                            "lineCount":  5,
                            "directCalls":  [
                                                "InferWarehouseIdFromWorkbookName",
@@ -36776,8 +36806,8 @@
                            "name":  "ResolveSeedStationIdConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1247,
-                           "endLine":  1250,
+                           "startLine":  1179,
+                           "endLine":  1182,
                            "lineCount":  4,
                            "directCalls":  [
                                                "CurrentComputerStationId",
@@ -36798,8 +36828,8 @@
                            "name":  "FormatConfigSurface",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1252,
-                           "endLine":  1259,
+                           "startLine":  1184,
+                           "endLine":  1191,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -36819,8 +36849,8 @@
                            "name":  "GetNextTableStartCell",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1261,
-                           "endLine":  1267,
+                           "startLine":  1193,
+                           "endLine":  1199,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -36840,8 +36870,8 @@
                            "name":  "EnsureListColumn",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1269,
-                           "endLine":  1277,
+                           "startLine":  1201,
+                           "endLine":  1209,
                            "lineCount":  9,
                            "directCalls":  [
                                                "Add",
@@ -36863,8 +36893,8 @@
                            "name":  "EnsureTableHasRow",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1279,
-                           "endLine":  1282,
+                           "startLine":  1211,
+                           "endLine":  1214,
                            "lineCount":  4,
                            "directCalls":  [
                                                "Add"
@@ -36884,8 +36914,8 @@
                            "name":  "EnsureWorksheetEditableConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1284,
-                           "endLine":  1296,
+                           "startLine":  1216,
+                           "endLine":  1228,
                            "lineCount":  13,
                            "directCalls":  [
 
@@ -36905,8 +36935,8 @@
                            "name":  "GetColumnIndex",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1298,
-                           "endLine":  1307,
+                           "startLine":  1230,
+                           "endLine":  1239,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -36926,8 +36956,8 @@
                            "name":  "EnsureWarehouseRowConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1309,
-                           "endLine":  1318,
+                           "startLine":  1241,
+                           "endLine":  1250,
                            "lineCount":  10,
                            "directCalls":  [
                                                "Add",
@@ -36950,8 +36980,8 @@
                            "name":  "EnsureStationRowConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1320,
-                           "endLine":  1343,
+                           "startLine":  1252,
+                           "endLine":  1275,
                            "lineCount":  24,
                            "directCalls":  [
                                                "Add",
@@ -36973,8 +37003,8 @@
                            "name":  "GetConfigCellValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1345,
-                           "endLine":  1353,
+                           "startLine":  1277,
+                           "endLine":  1285,
                            "lineCount":  9,
                            "directCalls":  [
                                                "GetColumnIndex"
@@ -36994,8 +37024,8 @@
                            "name":  "SetConfigCellValue",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1355,
-                           "endLine":  1363,
+                           "startLine":  1287,
+                           "endLine":  1295,
                            "lineCount":  9,
                            "directCalls":  [
                                                "GetColumnIndex"
@@ -37015,8 +37045,8 @@
                            "name":  "NormalizeRoleToEventTypeConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1365,
-                           "endLine":  1374,
+                           "startLine":  1297,
+                           "endLine":  1306,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -37036,8 +37066,8 @@
                            "name":  "GetPackedArgConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1376,
-                           "endLine":  1379,
+                           "startLine":  1308,
+                           "endLine":  1311,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -37057,8 +37087,8 @@
                            "name":  "BuildStationInboxWorkbookPathConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1381,
-                           "endLine":  1401,
+                           "startLine":  1313,
+                           "endLine":  1333,
                            "lineCount":  21,
                            "directCalls":  [
                                                "CombinePathConfig",
@@ -37084,8 +37114,8 @@
                            "name":  "ExpandConfigPathValueConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1403,
-                           "endLine":  1409,
+                           "startLine":  1335,
+                           "endLine":  1341,
                            "lineCount":  7,
                            "directCalls":  [
                                                "NormalizeFolderPathConfig"
@@ -37105,8 +37135,8 @@
                            "name":  "InboxWorkbookNameConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1411,
-                           "endLine":  1420,
+                           "startLine":  1343,
+                           "endLine":  1352,
                            "lineCount":  10,
                            "directCalls":  [
                                                "EventType"
@@ -37126,8 +37156,8 @@
                            "name":  "OpenOrCreateWorkbookByPathConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1422,
-                           "endLine":  1454,
+                           "startLine":  1354,
+                           "endLine":  1386,
                            "lineCount":  33,
                            "directCalls":  [
                                                "Add",
@@ -37152,8 +37182,8 @@
                            "name":  "FindOpenWorkbookByFullNameConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1456,
-                           "endLine":  1465,
+                           "startLine":  1388,
+                           "endLine":  1397,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -37173,8 +37203,8 @@
                            "name":  "CaptureOpenWorkbookPathsConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1467,
-                           "endLine":  1479,
+                           "startLine":  1399,
+                           "endLine":  1411,
                            "lineCount":  13,
                            "directCalls":  [
 
@@ -37194,8 +37224,8 @@
                            "name":  "WorkbookWasAlreadyOpenConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1481,
-                           "endLine":  1486,
+                           "startLine":  1413,
+                           "endLine":  1418,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -37215,8 +37245,8 @@
                            "name":  "HideWorkbookWindowsConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1488,
-                           "endLine":  1497,
+                           "startLine":  1420,
+                           "endLine":  1429,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -37236,8 +37266,8 @@
                            "name":  "CloseTransientConfigAfterLoad",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1499,
-                           "endLine":  1512,
+                           "startLine":  1431,
+                           "endLine":  1444,
                            "lineCount":  14,
                            "directCalls":  [
 
@@ -37257,8 +37287,8 @@
                            "name":  "GetParentFolderConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1514,
-                           "endLine":  1519,
+                           "startLine":  1446,
+                           "endLine":  1451,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -37278,8 +37308,8 @@
                            "name":  "EnsureFolderRecursiveConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1521,
-                           "endLine":  1546,
+                           "startLine":  1453,
+                           "endLine":  1478,
                            "lineCount":  26,
                            "directCalls":  [
                                                "FolderExistsConfig",
@@ -37302,8 +37332,8 @@
                            "name":  "NormalizeFolderPathConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1548,
-                           "endLine":  1560,
+                           "startLine":  1480,
+                           "endLine":  1492,
                            "lineCount":  13,
                            "directCalls":  [
                                                "CollapseBackslashesConfig"
@@ -37323,8 +37353,8 @@
                            "name":  "NormalizeFolderPathForRuntime",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  1562,
-                           "endLine":  1564,
+                           "startLine":  1494,
+                           "endLine":  1496,
                            "lineCount":  3,
                            "directCalls":  [
                                                "NormalizeFolderPathConfig"
@@ -37344,8 +37374,8 @@
                            "name":  "CombinePathConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1566,
-                           "endLine":  1574,
+                           "startLine":  1498,
+                           "endLine":  1506,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -37365,8 +37395,8 @@
                            "name":  "FileExistsConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1576,
-                           "endLine":  1590,
+                           "startLine":  1508,
+                           "endLine":  1522,
                            "lineCount":  15,
                            "directCalls":  [
 
@@ -37386,8 +37416,8 @@
                            "name":  "FolderExistsConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1592,
-                           "endLine":  1606,
+                           "startLine":  1524,
+                           "endLine":  1538,
                            "lineCount":  15,
                            "directCalls":  [
                                                "NormalizeFolderPathConfig"
@@ -37407,8 +37437,8 @@
                            "name":  "IsUncPathConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1608,
-                           "endLine":  1611,
+                           "startLine":  1540,
+                           "endLine":  1543,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -37428,8 +37458,8 @@
                            "name":  "IsUncShareRootConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1613,
-                           "endLine":  1625,
+                           "startLine":  1545,
+                           "endLine":  1557,
                            "lineCount":  13,
                            "directCalls":  [
                                                "NormalizeFolderPathConfig"
@@ -37449,8 +37479,8 @@
                            "name":  "CollapseBackslashesConfig",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1627,
-                           "endLine":  1666,
+                           "startLine":  1559,
+                           "endLine":  1598,
                            "lineCount":  40,
                            "directCalls":  [
 
@@ -37470,8 +37500,8 @@
                            "name":  "SaveConfigWorkbookIfWritable",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1668,
-                           "endLine":  1673,
+                           "startLine":  1600,
+                           "endLine":  1605,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -37491,11 +37521,152 @@
                            "name":  "FindListObjectByName",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1675,
-                           "endLine":  1683,
+                           "startLine":  1607,
+                           "endLine":  1615,
                            "lineCount":  9,
                            "directCalls":  [
 
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modConfigCommands",
+                           "name":  "UpdateConfigValue",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  5,
+                           "endLine":  20,
+                           "lineCount":  16,
+                           "directCalls":  [
+                                               "Add",
+                                               "AuthorizeCommand",
+                                               "PersistChanges"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modConfigCommands",
+                           "name":  "PublishUomCatalogRows",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  22,
+                           "endLine":  50,
+                           "lineCount":  29,
+                           "directCalls":  [
+                                               "Add",
+                                               "AuthorizeCommand",
+                                               "GetLong",
+                                               "LoadConfig",
+                                               "PersistChanges",
+                                               "PrepareUomCatalogRows",
+                                               "UomCatalogMatches"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modConfigCommands",
+                           "name":  "AuthorizeCommand",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  52,
+                           "endLine":  84,
+                           "lineCount":  33,
+                           "directCalls":  [
+                                               "CanCurrentUserPerformCapabilityCached",
+                                               "GetCurrentTarget",
+                                               "IsSignedIn"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modConfigCommands",
+                           "name":  "PersistChanges",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  86,
+                           "endLine":  188,
+                           "lineCount":  103,
+                           "directCalls":  [
+                                               "Add",
+                                               "ColumnIndex",
+                                               "GetConfigSchema",
+                                               "LoadConfig",
+                                               "TargetRow",
+                                               "TryCoerceConfigValue"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modConfigCommands",
+                           "name":  "ColumnIndex",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  190,
+                           "endLine":  198,
+                           "lineCount":  9,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modConfigCommands",
+                           "name":  "TargetRow",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  200,
+                           "endLine":  219,
+                           "lineCount":  20,
+                           "directCalls":  [
+                                               "ColumnIndex"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -56672,14 +56843,53 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  194,
-                           "endLine":  292,
-                           "lineCount":  99,
+                           "endLine":  197,
+                           "lineCount":  4,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modUomSettings",
+                           "name":  "UomCatalogMatches",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  199,
+                           "endLine":  205,
+                           "lineCount":  7,
+                           "directCalls":  [
+                                               "GetString"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modUomSettings",
+                           "name":  "PrepareUomCatalogRows",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  207,
+                           "endLine":  286,
+                           "lineCount":  80,
                            "directCalls":  [
                                                "Add",
-                                               "GetLong",
-                                               "GetString",
-                                               "NormalizeUomName",
-                                               "UpdateConfigValue"
+                                               "NormalizeUomName"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -56696,8 +56906,8 @@
                            "name":  "ConfiguredUomConversionRecords",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  294,
-                           "endLine":  319,
+                           "startLine":  288,
+                           "endLine":  313,
                            "lineCount":  26,
                            "directCalls":  [
                                                "Add",
@@ -56719,8 +56929,8 @@
                            "name":  "FindUomConversionRecord",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  321,
-                           "endLine":  333,
+                           "startLine":  315,
+                           "endLine":  327,
                            "lineCount":  13,
                            "directCalls":  [
 
@@ -56740,8 +56950,8 @@
                            "name":  "ConfiguredUomCollection",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  335,
-                           "endLine":  343,
+                           "startLine":  329,
+                           "endLine":  337,
                            "lineCount":  9,
                            "directCalls":  [
                                                "GetString",
@@ -56762,8 +56972,8 @@
                            "name":  "ParseUomPackedText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  345,
-                           "endLine":  365,
+                           "startLine":  339,
+                           "endLine":  359,
                            "lineCount":  21,
                            "directCalls":  [
                                                "Add",
@@ -56785,8 +56995,8 @@
                            "name":  "SaveUomCollection",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  367,
-                           "endLine":  376,
+                           "startLine":  361,
+                           "endLine":  370,
                            "lineCount":  10,
                            "directCalls":  [
                                                "PackUomCollection",
@@ -56807,8 +57017,8 @@
                            "name":  "PackUomCollection",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  378,
-                           "endLine":  390,
+                           "startLine":  372,
+                           "endLine":  384,
                            "lineCount":  13,
                            "directCalls":  [
                                                "NormalizeUomName"
@@ -56828,8 +57038,8 @@
                            "name":  "UomCollectionContains",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  392,
-                           "endLine":  402,
+                           "startLine":  386,
+                           "endLine":  396,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -56849,8 +57059,8 @@
                            "name":  "NormalizeUomName",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  404,
-                           "endLine":  421,
+                           "startLine":  398,
+                           "endLine":  415,
                            "lineCount":  18,
                            "directCalls":  [
 
@@ -60600,6 +60810,7 @@
                                                "ResolveStringSync",
                                                "SaveWorkbookSync",
                                                "SetTableRowValueSync",
+                                               "TargetRow",
                                                "WorkbookWasAlreadyOpenSync"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -63516,7 +63727,8 @@
                                                "PayloadText",
                                                "ReadDesignTableText",
                                                "ReadDesignTableValue",
-                                               "SetDesignTableValue"
+                                               "SetDesignTableValue",
+                                               "TargetRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -63548,7 +63760,8 @@
                                                "ProjectRecipePayloadItem",
                                                "ReadDesignTableText",
                                                "ReadDesignTableValue",
-                                               "SetDesignTableValue"
+                                               "SetDesignTableValue",
+                                               "TargetRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -78138,7 +78351,8 @@
                            "endLine":  2880,
                            "lineCount":  7,
                            "directCalls":  [
-                                               "NzStr"
+                                               "NzStr",
+                                               "TargetRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -79196,7 +79410,8 @@
                                                "ProductionTable",
                                                "RefreshBuilderLines",
                                                "ResequenceRecipeBuilderLines",
-                                               "ShowStatus"
+                                               "ShowStatus",
+                                               "TargetRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -94833,7 +95048,8 @@
                            "endLine":  1076,
                            "lineCount":  17,
                            "directCalls":  [
-                                               "ClearExcelClipboardStateProduction"
+                                               "ClearExcelClipboardStateProduction",
+                                               "TargetRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -99345,7 +99561,8 @@
                                                "FindFirstEmptyOutputRow",
                                                "NzStr",
                                                "ResolveProductionOutputIdentity",
-                                               "SystemKey"
+                                               "SystemKey",
+                                               "TargetRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -107831,7 +108048,8 @@
                                                "SetCellText",
                                                "SetCellValue",
                                                "Sku",
-                                               "SystemKey"
+                                               "SystemKey",
+                                               "TargetRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -115798,7 +116016,8 @@
                            "lineCount":  21,
                            "directCalls":  [
                                                "ClearExcelClipboardStateShipping",
-                                               "ClearSystemClipboardShipping"
+                                               "ClearSystemClipboardShipping",
+                                               "TargetRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -122001,7 +122220,8 @@
                            "endLine":  8222,
                            "lineCount":  35,
                            "directCalls":  [
-                                               "DescribeInboxPendingRows"
+                                               "DescribeInboxPendingRows",
+                                               "DescribeLocalStagedInboxRows"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -122315,6 +122535,7 @@
                            "directCalls":  [
                                                "CountHistoryInventoryLogRowsShipping",
                                                "DescribeInboxPendingRows",
+                                               "DescribeLocalStagedInboxRows",
                                                "FirstHistoryEventTypeShipping"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -122631,7 +122852,8 @@
                            "endLine":  8999,
                            "lineCount":  37,
                            "directCalls":  [
-                                               "DescribeInboxPendingRows"
+                                               "DescribeInboxPendingRows",
+                                               "DescribeLocalStagedInboxRows"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -126550,7 +126772,8 @@
                            "lineCount":  19,
                            "directCalls":  [
                                                "GetListObject",
-                                               "MoveListObjectToRowColShipping"
+                                               "MoveListObjectToRowColShipping",
+                                               "TargetRow"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -133988,6 +134211,7 @@
                                          "src/Admin/Modules/modAdminConsole.bas",
                                          "src/Admin/Modules/modTesterBundle.bas",
                                          "src/Core/Modules/modConfig.bas",
+                                         "src/Core/Modules/modConfigCommands.bas",
                                          "src/Core/Modules/modNasConnection.bas",
                                          "src/Core/Modules/modProcessor.bas",
                                          "src/Core/Modules/modRibbonRuntimeStatus.bas",
@@ -134050,6 +134274,7 @@
                                          "src/Admin/Modules/modTesterBundle.bas",
                                          "src/Admin/Modules/modTesterSetup.bas",
                                          "src/Core/Modules/modConfig.bas",
+                                         "src/Core/Modules/modConfigCommands.bas",
                                          "src/Core/Modules/modNasConnection.bas",
                                          "src/Core/Modules/modRibbonRuntimeStatus.bas",
                                          "src/Core/Modules/modRuntimeWorkbooks.bas",
@@ -134288,6 +134513,7 @@
                                "testPaths":  [
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Test-Plan022Slice4aaProcessBulkImport.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4zProcessWorkbench.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
@@ -134322,6 +134548,7 @@
                                                  "tests/integration/test_ReceivingReadiness.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterBundle.bas",
+                                                 "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Phase6TwoWarehouseProofHarness.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1",
@@ -134354,6 +134581,7 @@
                                                  "tests/tooling/Test-Slice3Baseline.ps1",
                                                  "tests/tooling/Test-Slice4bdExplicitSourceAggregation.ps1",
                                                  "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/tooling/Test-Slice4bfDeployment.ps1",
                                                  "tests/tooling/Test-Slice5BehaviorLocks.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1",
@@ -134817,7 +135045,8 @@
                            {
                                "entryPoint":  "BootstrapWarehouseLocalAdmin",
                                "testPaths":  [
-                                                 "tests/tooling/Test-Slice14FullChain.ps1"
+                                                 "tests/tooling/Test-Slice14FullChain.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
                            {
@@ -134970,7 +135199,8 @@
                            {
                                "entryPoint":  "BuildLayout",
                                "testPaths":  [
-                                                 "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
+                                                 "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
                            {
@@ -135730,9 +135960,11 @@
                            {
                                "entryPoint":  "EnableEvents",
                                "testPaths":  [
+                                                 "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4pReceiving.ps1",
                                                  "tests/tooling/Test-Slice4bdAdminFormSmoke.ps1",
-                                                 "tests/tooling/Test-Slice4bdExplicitSourceAggregation.ps1"
+                                                 "tests/tooling/Test-Slice4bdExplicitSourceAggregation.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
                            {
@@ -136417,6 +136649,7 @@
                            {
                                "entryPoint":  "GetLong",
                                "testPaths":  [
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestCoreConfig.bas"
                                              ]
                            },
@@ -136512,6 +136745,12 @@
                                "testPaths":  [
                                                  "tests/unit/TestCoreConfig.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "GetUomCatalogRows",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
                            {
@@ -136981,6 +137220,7 @@
                                "testPaths":  [
                                                  "tests/integration/prove_wan_wh1_setup.bas",
                                                  "tests/integration/prove_wan_wh2_setup.bas",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestCoreAuth.bas",
                                                  "tests/unit/TestCoreConfig.bas",
                                                  "tests/unit/TestCoreLockManager.bas",
@@ -137343,6 +137583,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mBtnSaveConfig_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "mBtnSend_Click",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4tShippingPostSend.ps1",
@@ -137361,13 +137607,15 @@
                            {
                                "entryPoint":  "mBtnUomCatalogRetrieve_Click",
                                "testPaths":  [
-                                                 "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1"
+                                                 "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
                            {
                                "entryPoint":  "mBtnUomCatalogSend_Click",
                                "testPaths":  [
-                                                 "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1"
+                                                 "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
                            {
@@ -137396,6 +137644,7 @@
                                                  "tests/tooling/Test-ShippingStatusAnchor.ps1",
                                                  "tests/tooling/Test-Slice0ToolContracts.ps1",
                                                  "tests/tooling/Test-Slice3Baseline.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
                            },
@@ -137410,6 +137659,12 @@
                                "entryPoint":  "mLstAggregate_Click",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mLstConfig_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
                            {
@@ -137880,6 +138135,12 @@
                                "entryPoint":  "PublishTesterBundle",
                                "testPaths":  [
                                                  "tests/integration/test_TesterBundle.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "PublishUomCatalogRows",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
                            {
@@ -138847,6 +139108,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "SelectWarehouseTargetForAutomation",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "SelectWarehouseTargetTextForAutomation",
                                "testPaths":  [
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
@@ -138886,6 +139153,7 @@
                                                  "tests/integration/test_ReceivingReadiness.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterBundle.bas",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
                                                  "tests/unit/TestCoreProcessor.bas",
                                                  "tests/unit/TestCoreRoleEventWriter.bas",
@@ -138908,6 +139176,7 @@
                            {
                                "entryPoint":  "SetCurrentTargetPathsForTest",
                                "testPaths":  [
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
                            },
@@ -138940,7 +139209,8 @@
                            {
                                "entryPoint":  "SetLocalOperatorRootOverrideForAutomation",
                                "testPaths":  [
-                                                 "tests/tooling/Test-Plan022LauncherContracts.ps1"
+                                                 "tests/tooling/Test-Plan022LauncherContracts.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
                            {
@@ -138990,6 +139260,7 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestWarehouseBootstrap.bas",
                                                  "tests/unit/TestWarehouseRetireArchive.bas",
                                                  "tests/unit/TestWarehouseRetireLifecycle.bas",
@@ -139213,9 +139484,16 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "SignInCurrentTargetForAutomation",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "SignOut",
                                "testPaths":  [
                                                  "tests/integration/test_ReceivingReadiness.bas",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestReceivingReadiness.bas"
                                              ]
@@ -139336,6 +139614,7 @@
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                  "tests/tooling/Test-ShippingStatusAnchor.ps1",
                                                  "tests/tooling/Test-Slice14FullChain.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/tooling/Test-Slice4bfDeployment.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
                                                  "tests/unit/TestCoreAuth.bas",
@@ -139837,6 +140116,7 @@
                                                  "tests/tooling/Test-Plan022Slice4bcBatchNotesViewerListExport.ps1",
                                                  "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1",
                                                  "tests/tooling/Test-Plan022Slice4yProcessWorksheet.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestDesignsDomain.bas",
                                                  "tests/unit/TestPhase3RoleFlows.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
@@ -139857,6 +140137,7 @@
                            {
                                "entryPoint":  "UpdateConfigValue",
                                "testPaths":  [
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
                            },

@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-04T23:10:24Z
-- Scanner candidates: 1079
-- Reviewed candidates: 1081
+- Baseline: 2026-09-06T00:00:00Z
+- Scanner candidates: 1077
+- Reviewed candidates: 1079
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -15,7 +15,7 @@
 | PRODUCTION | 222 | Production-owned forms, services, and role package source. |
 | SHIPPING | 156 | Shipping and Boxing forms, services, and role package source. |
 | SHARED_OPERATIONS | 64 | Cross-role or future invSys.Operations packaging work. |
-| CORE | 288 | Headless shared runtime and developer-support source in Core. |
+| CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
 | ADMIN | 235 | Administrative setup, lifecycle, and developer-support source. |
 | DEVELOPER_TOOLING | 14 | Build, scan, report, and other developer-only tooling. |
@@ -38,7 +38,7 @@
 | src/Admin/Modules/modTesterSetup.bas | Admin | 1655 |
 | src/Core/ClassModules/cDynItemSearch.cls | Core | 1999 |
 | src/Core/Modules/modAuth.bas | Core | 1804 |
-| src/Core/Modules/modConfig.bas | Core | 1683 |
+| src/Core/Modules/modConfig.bas | Core | 1615 |
 | src/Core/Modules/modNasConnection.bas | Core | 1603 |
 | src/Core/Modules/modOperatorReadModel.bas | Core | 1919 |
 | src/Core/Modules/modProcessor.bas | Core | 1479 |
@@ -444,7 +444,6 @@
 | reachability:src_Core_ClassModules_cTableBandManager.cls:cTableBandManager.ExpandBandForTable | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Core_Forms_frmItemSearch.frm:frmItemSearch.ConfigureRuntimeLayout | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Core_Modules_modAuth.bas:modAuth.EnsureStationRoleAuthPackedForAutomation | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
-| reachability:src_Core_Modules_modAuth.bas:modAuth.SignInCurrentTargetForAutomation | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Core_Modules_modAuth.bas:modAuth.ValidateStationRoleAuthPackedForAutomation | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Core_Modules_modCarrierSettings.bas:modCarrierSettings.GetConfiguredCarriersText | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Core_Modules_modCarrierSettings.bas:modCarrierSettings.SaveConfiguredCarriersText | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
@@ -482,7 +481,6 @@
 | reachability:src_Core_Modules_modNasConnection.bas:modNasConnection.EnsureWarehouseTargetInteractive | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Core_Modules_modNasConnection.bas:modNasConnection.IsConnected | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Core_Modules_modNasConnection.bas:modNasConnection.PromptTextNas | CORE | REMOVE | MEDIUM | REQUIRES_PROTECTING_TEST |
-| reachability:src_Core_Modules_modNasConnection.bas:modNasConnection.SelectWarehouseTargetForAutomation | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Core_Modules_modNasConnection.bas:modNasConnection.SetRequireManualServerCredentialsForAutomation | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Core_Modules_modOperatorReadModel.bas:modOperatorReadModel.DiagnoseCurrentWorkbookInventoryReadModelRefresh | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Core_Modules_modOperatorReadModel.bas:modOperatorReadModel.FindInvSysRowBySku | CORE | REMOVE | MEDIUM | REQUIRES_PROTECTING_TEST |

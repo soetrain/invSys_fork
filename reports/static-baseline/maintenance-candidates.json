@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-04T23:10:24Z",
+    "generatedAtUtc":  "2026-09-06T00:00:00Z",
     "baseline":  {
-                     "componentCount":  157,
-                     "procedureCount":  5406,
-                     "lineCount":  121869,
+                     "componentCount":  158,
+                     "procedureCount":  5415,
+                     "lineCount":  122014,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192
@@ -6393,7 +6393,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -6495,7 +6495,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -11216,7 +11216,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1"
+                                                   "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1",
+                                                   "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -11233,7 +11234,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1"
+                                                   "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1",
+                                                   "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -14149,6 +14151,7 @@
                                                   "Reload",
                                                   "ResolveConfigWorkbook",
                                                   "ResolveConfigWorkbookForSetup",
+                                                  "ResolveExistingConfigForRead",
                                                   "ResolveSeedStationIdConfig",
                                                   "ResolveSeedWarehouseIdConfig",
                                                   "ResolveStationInboxPath",
@@ -14158,7 +14161,7 @@
                                                   "SaveConfigWorkbookIfWritable",
                                                   "SeedConfigDefaults",
                                                   "SetConfigCellValue",
-                                                  "TryCoerceValue",
+                                                  "TryCoerceConfigValue",
                                                   "TryGet",
                                                   "TryGetDictionaryValue",
                                                   "UpdateConfigValue",
@@ -19008,23 +19011,6 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "reachability:src_Core_Modules_modAuth.bas:modAuth.SignInCurrentTargetForAutomation",
-                           "candidateType":  "UNRESOLVED",
-                           "confidence":  "MEDIUM",
-                           "componentName":  "modAuth",
-                           "procedureNames":  [
-                                                  "SignInCurrentTargetForAutomation"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Core/Modules/modAuth.bas"
-                                           ],
-                           "reason":  "No direct, dynamic-root, or test reference was found, but public visibility requires review.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
                            "id":  "reachability:src_Core_Modules_modAuth.bas:modAuth.ValidateStationRoleAuthPackedForAutomation",
                            "candidateType":  "UNRESOLVED",
                            "confidence":  "MEDIUM",
@@ -19541,23 +19527,6 @@
                            "componentName":  "modNasConnection",
                            "procedureNames":  [
                                                   "IsConnected"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Core/Modules/modNasConnection.bas"
-                                           ],
-                           "reason":  "No direct, dynamic-root, or test reference was found, but public visibility requires review.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
-                           "id":  "reachability:src_Core_Modules_modNasConnection.bas:modNasConnection.SelectWarehouseTargetForAutomation",
-                           "candidateType":  "UNRESOLVED",
-                           "confidence":  "MEDIUM",
-                           "componentName":  "modNasConnection",
-                           "procedureNames":  [
-                                                  "SelectWarehouseTargetForAutomation"
                                               ],
                            "sourcePaths":  [
                                                "src/Core/Modules/modNasConnection.bas"

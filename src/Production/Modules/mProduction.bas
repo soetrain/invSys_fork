@@ -4185,7 +4185,7 @@ Private Sub ResolveInvSysDetailsBySystemKey(ByVal loInv As ListObject, _
     If cSystemKey = 0 Then Exit Sub
 
     Dim cel As Range
-    For Each cel In invLo.ListColumns(cSystemKey).DataBodyRange.Cells
+    For Each cel In loInv.ListColumns(cSystemKey).DataBodyRange.Cells
         If StrComp(Trim$(NzStr(cel.value)), systemKey, vbTextCompare) = 0 Then
             If itemName = "" And cItem > 0 Then itemName = NzStr(cel.Offset(0, cItem - cel.Column).value)
             If uomVal = "" And cUom > 0 Then uomVal = NzStr(cel.Offset(0, cUom - cel.Column).value)
