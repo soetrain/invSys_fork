@@ -3,7 +3,8 @@ param(
     [string]$RepoRoot = '',
     [string]$DeployRoot = 'deploy/current',
     [ValidateSet('RED','GREEN')][string]$Phase = 'GREEN',
-    [switch]$CaptureEvidence
+    [switch]$CaptureEvidence,
+    [switch]$CheckActivityEvidence
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -13,6 +14,10 @@ $deploy = (Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
 if (Get-Process EXCEL -ErrorAction SilentlyContinue) { throw 'Close Excel before isolated packaged validation.' }
 $runRoot = Join-Path ([IO.Path]::GetTempPath()) ('invsys-config-command-' + [guid]::NewGuid().ToString('N'))
 $reportRoot = Join-Path $repo 'reports/runtime/config-commands'
+if ($CheckActivityEvidence) {
+    $reportRoot = Join-Path $repo 'reports/runtime/slice4be-activity'
+    . (Join-Path $PSScriptRoot 'Slice4beActivityAssertions.ps1')
+}
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $results = [Collections.Generic.List[object]]::new()
 $excel = $null
@@ -219,8 +224,15 @@ End Function
     Check 'Command.MissingCapabilityDenied' (-not $ok -and $before -eq (Get-FileHash -LiteralPath $a.Config).Hash)
     SelectTarget $a
     [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
+    if ($CheckActivityEvidence) { $activityBefore = @(Get-Slice4beActivityFiles $a) }
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('BatchSize','601'))
     Check 'Settings.RealSaveHandler' ($ok -and [long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('BatchSize',0)) -eq 601)
+    if ($CheckActivityEvidence) {
+        if (-not $ok) { throw 'Activity fixture Settings action failed.' }
+        Test-Slice4beObservedAction $a $activityBefore 'ADMIN_SETTINGS_SAVE_VALUE' `
+            'CONFIG_SAVE_REQUESTED' 'CONFIG_SAVE_COMPLETED' 'Changed' 'Info' `
+            'config-admin' 'Activity.AdminSettings'
+    }
     if($CaptureEvidence){
         [void](Run 'invSys.Admin.xlam' 'TestD5Commands.ShowSettings')
         Start-Sleep -Milliseconds 300
@@ -249,20 +261,39 @@ End Function
     $cfg.Close($false)
     SelectTarget $a 'config-producer'
     $version=[long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('UomConversionCatalogVersion',1))
+    if ($CheckActivityEvidence) { $activityBefore = @(Get-Slice4beActivityFiles $a) }
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.PublishUom')
     Check 'Production.ValidatedUomRouteRetained' ($ok -and [long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('UomConversionCatalogVersion',1)) -eq $version+1)
+    if ($CheckActivityEvidence) {
+        $activityAfter = @(Get-Slice4beActivityFiles $a)
+        Check 'Activity.DirectServiceIsNotUserControl' (@($activityAfter | Where-Object { $_ -notin $activityBefore }).Count -eq 0)
+    }
     $before=(Get-FileHash -LiteralPath $a.Config).Hash
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveDirect' @('BatchSize','603',$a.Warehouse,'S1'))
     Check 'Production.ArbitraryConfigDenied' (-not $ok -and $before -eq (Get-FileHash -LiteralPath $a.Config).Hash)
     $stage=$excel.Workbooks.Add()
+    if ($CheckActivityEvidence) { $activityBefore = @(Get-Slice4beActivityFiles $a) }
     $ok=[bool](Run 'invSys.Operations.xlam' 'TestD5Uom.RoundTrip' @($stage.Name))
     Check 'Production.RealUomRetrieveHandler' $ok
+    if ($CheckActivityEvidence) {
+        if (-not $ok) { throw 'Activity fixture Production action failed.' }
+        Test-Slice4beObservedAction $a $activityBefore 'PRODUCTION_UOM_RETRIEVE' `
+            'UOM_RETRIEVE_REQUESTED' 'UOM_RETRIEVE_COMPLETED' 'Changed' 'Info' `
+            'config-producer' 'Activity.ProductionRetrieve'
+    }
     $stage.Close($false)
     SelectTarget $a 'config-reader'
     $before=(Get-FileHash -LiteralPath $a.Config).Hash
     $stage=$excel.Workbooks.Add()
+    if ($CheckActivityEvidence) { $activityBefore = @(Get-Slice4beActivityFiles $a) }
     $ok=[bool](Run 'invSys.Operations.xlam' 'TestD5Uom.RoundTrip' @($stage.Name))
     Check 'Production.DeniedRetrievePreservesStaging' (-not $ok -and $stage.Worksheets.Item('invSys UOM Catalog').ListObjects.Count -eq 1 -and $before -eq (Get-FileHash -LiteralPath $a.Config).Hash)
+    if ($CheckActivityEvidence) {
+        if ($ok) { throw 'Activity fixture denied action unexpectedly succeeded.' }
+        Test-Slice4beObservedAction $a $activityBefore 'PRODUCTION_UOM_RETRIEVE' `
+            'UOM_RETRIEVE_REQUESTED' 'UOM_RETRIEVE_DENIED' 'Unchanged' 'Blocked' `
+            'config-reader' 'Activity.ProductionDenied'
+    }
     $stage.Close($false)
     SelectTarget $a
     $cfg=$excel.Workbooks.Open($a.Config,0,$true)
