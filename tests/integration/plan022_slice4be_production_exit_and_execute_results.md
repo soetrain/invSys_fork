@@ -110,3 +110,7 @@ Next: calibrate a read-only classification of the failing execution site's memor
 state/type/protection, then capture those bounded labels from an owned native
 failure without reading memory contents. Do not repeat the rejected exit-wait,
 save/compile preparation or RibbonX-order hypotheses as proposed repairs.
+
+The [subsequent memory diagnostic](plan022_slice4be_production_memory_diagnostics.md)
+calibrates that query but has not captured a fault region. Its instrumented passes
+do not close the earlier regression.
