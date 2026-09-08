@@ -660,14 +660,14 @@ Private Function ResolveConfigWorkbookForSetup(ByVal configWorkbookPath As Strin
                                                Optional ByRef openedForSetup As Boolean = False) As Workbook
     On Error GoTo FailOpen
 
-    Dim targetPath As String
-    Dim wb As Workbook
-    Dim prevEvents As Boolean
-    Dim eventsSuppressed As Boolean
+    Dim targetPath As String, wb As Workbook, preOpen As Object
+    Dim prevEvents As Boolean, eventsSuppressed As Boolean
 
     targetPath = Trim$(configWorkbookPath)
     If targetPath = "" Then
+        Set preOpen = CaptureOpenWorkbookPathsConfig()
         Set ResolveConfigWorkbookForSetup = ResolveConfigWorkbook(warehouseId, stationId)
+        openedForSetup = Not WorkbookWasAlreadyOpenConfig(preOpen, ResolveConfigWorkbookForSetup)
         If ResolveConfigWorkbookForSetup Is Nothing Then report = "Config workbook could not be resolved."
         Exit Function
     End If

@@ -2,14 +2,19 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 1
+Public Const CATALOG_VERSION As Long = 2
 
-Public Function ControlIds() As Variant
-    ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE")
+Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
+    If version = 1 Then
+        ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE")
+    ElseIf version = 2 Then
+        ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", "RECEIVING_CONFIRM_WRITES")
+    End If
 End Function
 
-Public Function Control(ByVal controlId As String) As Object
+Public Function Control(ByVal controlId As String, Optional ByVal version As Long = CATALOG_VERSION) As Object
     Dim record As Object
+    If version < 1 Or version > CATALOG_VERSION Then Exit Function
     Set record = CreateObject("Scripting.Dictionary")
     record.Add "ControlId", controlId
     record.Add "OwnerId", "CORE_CONFIGURATION"
@@ -27,6 +32,14 @@ Public Function Control(ByVal controlId As String) As Object
             record.Add "Surface", "Operations > Production > UOM Catalog"
             record.Add "Capability", "PROD_POST"
             record.Add "CodePrefix", "UOM_RETRIEVE_"
+        Case "RECEIVING_CONFIRM_WRITES"
+            If version < 2 Then Exit Function
+            record("OwnerId") = "RECEIVING_WORKFLOW"
+            record.Add "Role", "Receiving"
+            record.Add "Caption", "Confirm Writes"
+            record.Add "Surface", "Operations > Receiving"
+            record.Add "Capability", "RECEIVE_POST"
+            record.Add "CodePrefix", "RECEIVE_CONFIRM_"
         Case Else: Exit Function
     End Select
     Set Control = record
@@ -36,6 +49,10 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Dim record As Object, definition As Object, message As String
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
+    If definition("Role") = "Receiving" Then
+        Set Outcome = modReceivingActivityCodes.Outcome(outcomeCode)
+        Exit Function
+    End If
     Set record = CreateObject("Scripting.Dictionary")
     record.Add "EventCode", definition("CodePrefix") & outcomeCode
     record.Add "OutcomeCode", outcomeCode

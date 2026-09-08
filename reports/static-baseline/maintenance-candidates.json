@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-08T00:19:30Z",
+    "generatedAtUtc":  "2026-09-08T02:04:41Z",
     "baseline":  {
-                     "componentCount":  167,
-                     "procedureCount":  5451,
-                     "lineCount":  122864,
+                     "componentCount":  170,
+                     "procedureCount":  5460,
+                     "lineCount":  123098,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192
@@ -2514,18 +2514,16 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "duplicate:2f6790461dcf5201:UserForm_Initialize+UserForm_Initialize+UserForm_Initialize",
+                           "id":  "duplicate:2f6790461dcf5201:UserForm_Initialize+UserForm_Initialize",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "LOW",
                            "componentName":  "frmInventoryViewer",
                            "procedureNames":  [
                                                   "UserForm_Initialize",
-                                                  "UserForm_Initialize",
                                                   "UserForm_Initialize"
                                               ],
                            "sourcePaths":  [
                                                "src/Operations/Forms/frmInventoryViewer.frm",
-                                               "src/Receiving/Forms/frmReceiving.frm",
                                                "src/Shipping/Forms/frmShipmentsTally.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
@@ -6239,6 +6237,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -6308,7 +6307,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -9695,6 +9694,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -12072,7 +12072,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -12143,6 +12143,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -12177,7 +12178,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -12537,7 +12538,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -12843,6 +12844,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true

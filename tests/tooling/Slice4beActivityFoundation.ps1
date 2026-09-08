@@ -135,6 +135,11 @@ function Test-Slice4beActivityPolicy($Fixture,[string]$RecordId) {
         $rows.DataBodyRange.Cells.Item(1,4).Value2=$true
         $cfg.Save(); $cfg.Close($false); $cfg=$null
         Check 'Activity.Policy.ValidVisibleRecordReturned' ((Get-ActivityRead $RecordId).StartsWith('OK|'))
+        if ($CheckReceivingActivity) {
+            $beforeNewControl = @(Get-Slice4beActivityFiles $Fixture).Count
+            $newControl = [string](Run 'invSys.Core.xlam' 'modActivity.BeginAction' @('RECEIVING_CONFIRM_WRITES',$context))
+            Check 'Receiving.Policy.OlderCatalogDoesNotEnableNewControl' ($newControl -eq '' -and @(Get-Slice4beActivityFiles $Fixture).Count -eq $beforeNewControl)
+        }
         foreach($case in @(@('InvalidTimestamp','CreatedAtUTC','2026-99-99T88:77:66.000Z'),@('InvalidFlag','ViewerActionPathCaptureEnabled','yes'),@('UnknownCatalog','CatalogVersion',999.0))) {
             $cfg=$excel.Workbooks.Open($Fixture.Config,0,$false)
             $meta=Table $cfg 'tblEventTrackingPolicies'

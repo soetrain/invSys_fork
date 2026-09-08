@@ -16,6 +16,7 @@ $buildPath = Join-Path $repo "tools/build-xlam.ps1"
 
 $moduleText = Get-Content -Raw -LiteralPath $modulePath
 $formText = Get-Content -Raw -LiteralPath $formPath
+$actionText = Get-Content -Raw -LiteralPath (Join-Path $receivingRoot 'Modules/modReceivingActivityAction.bas')
 $buildText = Get-Content -Raw -LiteralPath $buildPath
 $serviceText = if (Test-Path -LiteralPath $servicePath) {
     Get-Content -Raw -LiteralPath $servicePath
@@ -75,11 +76,13 @@ $confirmMatch = [regex]::Match(
 )
 if ($confirmMatch.Success) { $confirmBody = $confirmMatch.Groups["body"].Value }
 Add-Check "Receiving.Form.RealActionUsesTypedService" `
-    (($confirmBody -match '(?i)modReceivingPostingService\.ExecuteConfirmWrites') -and
+    (($confirmBody -match '(?i)modReceivingActivityAction\.ConfirmWrites') -and
+     ($actionText -match '(?i)modReceivingPostingService\.ExecuteConfirmWrites') -and
+     ([regex]::Matches($actionText,'modReceivingPostingService\.ExecuteConfirmWrites').Count -eq 1) -and
      ($confirmBody -match '(?i)mOperatorWorkbook') -and
      ($confirmBody -notmatch '(?i)modTS_Received\.ConfirmWrites') -and
      ($confirmBody -notmatch '(?i)ClearReceivingFormStaging')) `
-    "The operator Confirm Writes handler must call the typed service with captured context; the service owns clearing after confirmed application."
+    "The operator handler must reach the typed service once through the context/observation controller; the owning service retains staging cleanup."
 
 Add-Check "Receiving.Form.ModelessCapturedContext" `
     (($moduleText -match '(?i)(?:frm|mReceivingLauncherForm)\.Show\s+vbModeless') -and

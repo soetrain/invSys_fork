@@ -89,7 +89,7 @@ Private Function ValidBody(ByVal target As WarehouseTarget, ByVal recordId As St
         End Select
     Next key
     If record.Count <> 26 Then Exit Function
-    If record("SchemaVersion") <> 1 Or record("CatalogVersion") <> modActivityCatalog.CATALOG_VERSION Then Exit Function
+    If record("SchemaVersion") <> 1 Then Exit Function
     If record("RecordId") <> recordId Or Not modTrainingWire.ValidId(record("ActivityId")) Then Exit Function
     If record("WarehouseId") <> target.WarehouseId Or record("SourceKind") <> "User activity" Then Exit Function
     If Not modTrainingWire.ValidSegment(record("StationId")) Or record("UserId") = "" Then Exit Function
@@ -102,7 +102,7 @@ Private Function ValidBody(ByVal target As WarehouseTarget, ByVal recordId As St
     Else
         If record("Ordinal") <> 0 Then Exit Function
     End If
-    Set definition = modActivityCatalog.Control(record("ControlId"))
+    Set definition = modActivityCatalog.Control(record("ControlId"), record("CatalogVersion"))
     Set outcome = modActivityCatalog.Outcome(record("ControlId"), record("OutcomeCode"))
     If definition Is Nothing Or outcome Is Nothing Then Exit Function
     For Each field In Array("OwnerId", "Caption", "Surface")
@@ -113,8 +113,7 @@ Private Function ValidBody(ByVal target As WarehouseTarget, ByVal recordId As St
         If record(field) <> outcome(field) Then Exit Function
     Next field
     If TypeName(record("SourceEventRefs")) <> "Collection" Then Exit Function
-    ' These initial configuration controls have no canonical business event.
-    If record("SourceEventRefs").Count <> 0 Then Exit Function
+    If Not modActivityReferences.Valid(target.WarehouseId, record("ControlId"), record("OutcomeCode"), record("SourceEventRefs")) Then Exit Function
     ValidBody = True
 Invalid:
 End Function

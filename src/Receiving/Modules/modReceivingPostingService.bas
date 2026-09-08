@@ -9,7 +9,10 @@ Private Const TABLE_AGGREGATE As String = "AggregateReceived"
 Private Const TABLE_LOG As String = "ReceivedLog"
 
 Public Function ExecuteConfirmWrites(ByVal operatorWb As Workbook, _
-                                     Optional ByRef report As String = "") As Boolean
+                                     Optional ByRef report As String = "", _
+                                     Optional ByRef outcome As String = "", _
+                                     Optional ByRef sourceEventIds As String = "", _
+                                     Optional ByRef submissionState As String = "Unknown") As Boolean
     On Error GoTo Failed
 
     Dim aggregateTable As ListObject
@@ -26,6 +29,7 @@ Public Function ExecuteConfirmWrites(ByVal operatorWb As Workbook, _
     Dim queuedCount As Long
     Dim persistenceSummary As String
 
+    outcome = "REJECTED": sourceEventIds = "": submissionState = "Unknown"
     If operatorWb Is Nothing Then
         report = "Receiving operator workbook was not provided."
         Exit Function
@@ -35,7 +39,10 @@ Public Function ExecuteConfirmWrites(ByVal operatorWb As Workbook, _
         Exit Function
     End If
     If Not modRoleUiAccess.CanCurrentUserPerformCapability( _
-        "RECEIVE_POST", "", "", "", report) Then Exit Function
+        "RECEIVE_POST", "", "", "", report) Then
+        outcome = "DENIED"
+        Exit Function
+    End If
 
     Set stagingTable = FindTableReceivingService(operatorWb, TABLE_STAGING)
     Set aggregateTable = FindTableReceivingService(operatorWb, TABLE_AGGREGATE)
@@ -75,12 +82,15 @@ Public Function ExecuteConfirmWrites(ByVal operatorWb As Workbook, _
         End If
     Next rowIndex
     queueError = ""
+    sourceEventIds = ReceivingSourceEventIds(states)
+    outcome = "FAILED"
     If queuePayload <> "" Then
         If Not modRoleEventWriter.QueueReceiveEventBatchServer( _
             "", "", userId, queuePayload, queueError, queuedCount) Then
             report = "Inbox queue failed for staged receipt batch: " & queueError
             Exit Function
         End If
+        submissionState = "Submitted"
         For rowIndex = 1 To states.Count
             Set state = states(rowIndex)
             If StrComp(state.CurrentState, state.StateValidated, vbBinaryCompare) = 0 Then
@@ -90,6 +100,8 @@ Public Function ExecuteConfirmWrites(ByVal operatorWb As Workbook, _
         Next rowIndex
     End If
 
+    submissionState = "Submitted"
+    outcome = "PENDING"
     If Not modOperationsPrimitiveBridge.RunBatchAndRefreshOperatorWorkbook( _
         operatorWb.Name, "", "LOCAL", runtimeReport, False, queuedWorkHandled) Then
         report = "Receiving rows remain submitted; processor application or snapshot refresh " & _
@@ -131,11 +143,25 @@ Public Function ExecuteConfirmWrites(ByVal operatorWb As Workbook, _
         persistenceSummary = persistenceSummary & "; no new processor write required"
     End If
     report = report & vbCrLf & "Persistence summary: " & persistenceSummary & "."
+    outcome = "CONFIRMED"
     ExecuteConfirmWrites = True
     Exit Function
 
 Failed:
+    outcome = "FAILED"
     report = "Receiving Confirm Writes failed: " & Err.Description
+End Function
+
+' Optional observation preparation must not prevent the owning business command.
+Private Function ReceivingSourceEventIds(ByVal states As Collection) As String
+    Dim state As cReceivingWorkflowState, ids As String
+    On Error GoTo Unavailable
+    For Each state In states
+        If ids <> "" Then ids = ids & vbLf
+        ids = ids & state.EventId
+    Next state
+    ReceivingSourceEventIds = ids
+Unavailable:
 End Function
 
 Public Sub ClearReceivingStaging(ByVal stagingTable As ListObject, _

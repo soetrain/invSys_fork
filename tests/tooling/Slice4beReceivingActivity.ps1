@@ -29,15 +29,18 @@ function Get-ReceivingFixtureHash([string]$Path) {
 
 function Test-ReceivingObservations($Fixture,[string[]]$Before,$Expected,[bool]$Pending) {
     $records = @()
+    $payloads = @()
     foreach ($path in @(Get-Slice4beActivityFiles $Fixture)) {
         if ($path -in $Before) { continue }
-        $record = [IO.File]::ReadAllText($path) | ConvertFrom-Json
-        if ((Get-Slice4beField $record 'ControlId') -eq 'RECEIVING_CONFIRM_WRITES') { $records += $record }
+        $raw = [IO.File]::ReadAllText($path)
+        $record = $raw | ConvertFrom-Json
+        if ((Get-Slice4beField $record 'ControlId') -eq 'RECEIVING_CONFIRM_WRITES') { $records += $record; $payloads += $raw }
     }
     $attempts = @($records | Where-Object { (Get-Slice4beField $_ 'OutcomeCode') -eq 'REQUESTED' })
     $outcomes = @($records | Where-Object { (Get-Slice4beField $_ 'OutcomeCode') -ne 'REQUESTED' })
     $pair = $attempts.Count -eq 1 -and $outcomes.Count -eq 1
     $label = if ($Pending) { 'Pending' } else { 'Applied' }
+    Write-Output "Receiving observation counts: $label attempts=$($attempts.Count) outcomes=$($outcomes.Count)"
     Check "Receiving.Activity.$label.AttemptAndOutcome" $pair
     $correlated = $false; $sources = $false; $truthful = $false
     if ($pair) {
@@ -54,20 +57,41 @@ function Test-ReceivingObservations($Fixture,[string[]]$Before,$Expected,[bool]$
             $sources = $ids.Count -eq $Expected.Count
             foreach ($item in $Expected) { $sources = $sources -and ($item.EventId -cin $ids) }
             $sources = $sources -and @($ids | Select-Object -Unique).Count -eq $Expected.Count
+            foreach ($reference in $refs) {
+                $sources = $sources -and (Get-Slice4beField $reference 'WarehouseId') -ceq $Fixture.Warehouse -and
+                    (Get-Slice4beField $reference 'SourceKind') -ceq 'Inventory' -and
+                    (Get-Slice4beField $reference 'SubmissionState') -ceq 'Submitted' -and
+                    @($reference.PSObject.Properties).Count -eq 4
+            }
         }
         $truthful = (Get-Slice4beField $first 'DataEffect') -ceq 'Unknown'
-        if ($Pending) {
-            $truthful = $truthful -and (Get-Slice4beField $last 'DataEffect') -ceq 'Unknown' -and
-                (Get-Slice4beField $last 'OutcomeCode') -cnotin @('APPLIED','COMPLETED')
-        } else {
-            # A known applied result may report Changed; otherwise keep explicit
-            # uncertainty until owning per-event evidence is available.
-            $truthful = $truthful -and (Get-Slice4beField $last 'DataEffect') -cin @('Changed','Unknown')
-        }
+        $expectedOutcome = if ($Pending) { 'PENDING' } else { 'CONFIRMED' }
+        $truthful = $truthful -and (Get-Slice4beField $last 'DataEffect') -ceq 'Unknown' -and
+            (Get-Slice4beField $last 'OutcomeCode') -ceq $expectedOutcome -and
+            (Get-Slice4beField $last 'EventCode') -ceq ('RECEIVE_CONFIRM_'+$expectedOutcome)
     }
     Check "Receiving.Activity.$label.StableCorrelation" $correlated
     Check "Receiving.Activity.$label.EveryExactSourceEvent" $sources
     Check "Receiving.Activity.$label.NoInferredApplication" $truthful
+    $redacted = $pair; $integrity = $pair
+    foreach ($raw in $payloads) {
+        foreach ($forbidden in @($Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,
+            'ACTIVITY-PRIVATE-REFERENCE','ACTIVITY-PRIVATE-LOCATION','mBtnConfirm_Click','PinHash','Err.Description')) {
+            if ($raw.IndexOf($forbidden,[StringComparison]::OrdinalIgnoreCase) -ge 0) { $redacted = $false }
+        }
+        foreach ($item in $Expected) {
+            if ($raw.Contains([string]$item.System_Key)) { $redacted = $false }
+        }
+        $match = [regex]::Match($raw,'^(?<body>\{.*),"ContentSha256":"(?<hash>[a-f0-9]{64})"\}$')
+        if (-not $match.Success) { $integrity = $false; continue }
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try {
+            $digest = [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($match.Groups['body'].Value+'}'))).Replace('-','').ToLowerInvariant()
+            $integrity = $integrity -and $digest -ceq $match.Groups['hash'].Value
+        } finally { $sha.Dispose() }
+    }
+    Check "Receiving.Activity.$label.RedactedPayload" $redacted
+    Check "Receiving.Activity.$label.ContentIntegrity" $integrity
 }
 
 function Test-Slice4beReceivingActivity {
@@ -82,6 +106,11 @@ Public Pending As Boolean
 Public Sub SetPending(ByVal value As Boolean)
     Pending = value
 End Sub
+Public Function PolicyStatus() As String
+    Dim target As WarehouseTarget, version As Long, collect As Boolean, visible As Boolean, notice As String
+    Set target = modNasConnection.GetCurrentTarget()
+    PolicyStatus = CStr(modActivityPolicy.ReadPolicy(target, "RECEIVING_CONFIRM_WRITES", version, collect, visible, notice)) & ";Loaded=" & CStr(modConfig.IsLoaded()) & ";" & notice
+End Function
 '@)
     $bridge = $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modOperationsPrimitiveBridge').CodeModule
     $procedureStart = $bridge.ProcStartLine('RunBatchAndRefreshOperatorWorkbook',0)
@@ -95,8 +124,10 @@ End Sub
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     $fixture = NewFixture 'receiving-activity'
     SelectTarget $fixture
+    $configWasOpen = @($excel.Workbooks | Where-Object { $_.FullName -eq $fixture.Config }).Count -gt 0
     $seeded = [string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($fixture.Warehouse,'S1','config-admin'))
     if (-not $seeded.StartsWith('OK|')) { throw 'Receiving fixture Seed failed.' }
+    Check 'Receiving.Setup.ImplicitConfigOwnershipReleased' (-not $configWasOpen -and @($excel.Workbooks | Where-Object { $_.FullName -eq $fixture.Config }).Count -eq 0)
     SelectTarget $fixture 'config-reader'
     $formCode = $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmReceiving').CodeModule
     $formCode.AddFromString(@'
@@ -130,15 +161,22 @@ Public Function Stage(ByVal workbookName As String) As Boolean
     Set mForm = New frmReceiving
     Stage = mForm.ActivityTestStage(Application.Workbooks(workbookName))
 End Function
-Public Function Confirm(ByVal workbookName As String, ByVal otherName As String) As String
+Public Function Confirm(ByVal workbookName As String, ByVal otherName As String, ByVal showEvidence As Boolean) As String
     Application.Workbooks(otherName).Activate
     Confirm = mForm.TestRunConfirmWritesActionForWorkbook(Application.Workbooks(workbookName))
+    If showEvidence Then
+        mForm.Show 0
+    Else
+        CloseForm
+    End If
+End Function
+Public Sub CloseForm()
     Unload mForm
     Set mForm = Nothing
-End Function
+End Sub
 '@)
-    foreach ($pending in @($false,$true)) {
-        $label = if ($pending) { 'Pending' } else { 'Applied' }
+    foreach ($label in @('Applied','Pending','Stale','StoreFailure')) {
+        $pending = $label -eq 'Pending'
         Write-Output "Receiving fixture: $label"
         $operator = $excel.Workbooks.Add()
         $operator.SaveAs((Join-Path $runRoot ("receiving-$label.xlsm")),52)
@@ -158,8 +196,38 @@ End Function
         [void](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.SetPending' @($pending))
         $before = @(Get-Slice4beActivityFiles $fixture)
         $otherSavedBefore = $other.Saved
-        $status = [string](Run 'invSys.Operations.xlam' 'TestReceivingActivity.Confirm' @($operator.Name,$other.Name))
+        if ($label -eq 'Stale') {
+            [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
+            SelectTarget $fixture 'config-reader'
+        }
+        $blockedLeaf = ''; $heldLeaf = ''; $movedLeaf = $false
+        try {
+            if ($label -eq 'StoreFailure') {
+                $parent = Join-Path $fixture.Root 'Training\Activity'
+                $blockedLeaf = Join-Path $parent $fixture.Warehouse
+                $heldLeaf = $blockedLeaf+'-fixture-held'
+                foreach ($path in @($blockedLeaf,$heldLeaf)) {
+                    if (-not [IO.Path]::GetFullPath($path).StartsWith($fixture.Root.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Tracking fault escaped fixture root.' }
+                }
+                New-Item -ItemType Directory -Path $parent -Force | Out-Null
+                if (Test-Path -LiteralPath $blockedLeaf) { Move-Item -LiteralPath $blockedLeaf -Destination $heldLeaf; $movedLeaf=$true }
+                [IO.File]::WriteAllText($blockedLeaf,'Blocked test activity path')
+            }
+            $status = [string](Run 'invSys.Operations.xlam' 'TestReceivingActivity.Confirm' @($operator.Name,$other.Name,[bool]$CaptureEvidence))
+            if ($CaptureEvidence) {
+                Start-Sleep -Milliseconds 300
+                CaptureFormEvidence 'Receiving' ('receiving-'+$label.ToLowerInvariant()+'.png')
+                [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.CloseForm')
+            }
+        } finally {
+            if ($blockedLeaf -ne '' -and (Test-Path -LiteralPath $blockedLeaf -PathType Leaf)) { Remove-Item -LiteralPath $blockedLeaf -Force }
+            if ($movedLeaf) { Move-Item -LiteralPath $heldLeaf -Destination $blockedLeaf }
+        }
         Write-Output "Receiving fixture: $label Confirm handler returned"
+        foreach ($notice in @('source references are invalid','training record could not be saved','action context is no longer current','completion is not authorized','saved tracking policy is invalid','configuration could not be validated','action could not be recorded')) {
+            if ($status.Contains($notice)) { Write-Output ("Receiving tracking diagnostic: " + $notice) }
+        }
+        Write-Output ('Receiving policy diagnostic: ' + [string](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.PolicyStatus'))
         $inboxPath = [string](Run 'invSys.Core.xlam' 'modRoleEventWriter.ResolveInboxWorkbookPath' @('RECEIVE',$fixture.Warehouse,'S1',''))
         if (-not [IO.Path]::GetFullPath($inboxPath).StartsWith($fixture.Root.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)) {
             throw 'Receiving fixture inbox path escaped its generated runtime.'
@@ -173,7 +241,9 @@ End Function
         $applied = @($appliedRows | Where-Object { $_.EventID -cin $ids })
         $logged = @($logRows | Where-Object { $_.EventID -cin $ids })
         $business = $queued.Count -eq 2
-        if ($pending) {
+        if ($label -eq 'Stale') {
+            $business = $status.StartsWith('Succeeded=False') -and $queued.Count -eq 0 -and $applied.Count -eq 0 -and $logged.Count -eq 0 -and $staging.ListRows.Count -eq 2
+        } elseif ($pending) {
             $business = $business -and $status.StartsWith('Succeeded=False') -and $applied.Count -eq 0 -and $logged.Count -eq 0 -and $staging.ListRows.Count -eq 2
         } else {
             $business = $business -and $status.StartsWith('Succeeded=True') -and $applied.Count -eq 2 -and $logged.Count -eq 2 -and $staging.ListRows.Count -eq 0
@@ -183,17 +253,37 @@ End Function
             }
         }
         Check "Receiving.$label.IndependentBusinessEvidence" $business
-        if (-not $business) { throw 'Receiving fixture business evidence did not establish the intended scenario.' }
+        if (-not $business -and $label -ne 'Stale') { throw 'Receiving fixture business evidence did not establish the intended scenario.' }
         Check "Receiving.$label.CapturedWorkbook" ($status.Contains('BoundWorkbook='+$operator.Name))
         Check "Receiving.$label.QuietUi" ($status.Contains('QuietDuring=True') -and $status.Contains('QuietRestored=True'))
         Check "Receiving.$label.OtherWorkbookBytes" ($otherHash -eq (Get-ReceivingFixtureHash $other.FullName))
         Check "Receiving.$label.OtherWorkbookContent" ($other.Worksheets.Count -eq 1 -and $other.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq 'unrelated workbook sentinel' -and $other.Worksheets.Item(1).ListObjects.Count -eq 0)
         Write-Output "Receiving fixture: $label other workbook Saved before=$otherSavedBefore after=$($other.Saved)"
         Check "Receiving.$label.UnknownColumnPreserved" ($staging.ListColumns.Item('Operator Extra').Name -ceq 'Operator Extra')
-        Test-ReceivingObservations $fixture $before $expected $pending
+        if ($label -eq 'Stale') {
+            Check 'Receiving.Stale.VisibleContextRejection' ($status.Contains('Session or warehouse changed'))
+            Check 'Receiving.Stale.NoNewSessionAttribution' (@(Get-Slice4beActivityFiles $fixture).Count -eq $before.Count)
+        } elseif ($label -eq 'StoreFailure') {
+            Check 'Receiving.StoreFailure.TrackingUnavailableVisible' ($status.Contains('Tracking unavailable'))
+            Check 'Receiving.StoreFailure.NoDurableLocalFallback' (@(Get-Slice4beActivityFiles $fixture).Count -eq $before.Count)
+        } else {
+            Test-ReceivingObservations $fixture $before $expected $pending
+        }
         foreach ($book in $receivingEvidenceOpened) { $book.Close($false) }
         $receivingEvidenceOpened.Clear()
         $operator.Close($false); $other.Close($false)
     }
     [void](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.SetPending' @($false))
+    Test-ReceivingReferenceRead $fixture $a $expected
+    $existingConfig = $excel.Workbooks.Open($fixture.Config,0,$false)
+    $extra = (Table $existingConfig 'tblWarehouseConfig').ListColumns.Add()
+    $extra.Name = 'Setup Existing Extra'; $extra.DataBodyRange.Value2 = 'preserve existing setup value'
+    $existingConfig.Save()
+    $ok = [bool](Run 'invSys.Core.xlam' 'modConfig.EnsureStationInbox' @($fixture.Warehouse,'S1','RECEIVE',''))
+    $stillOpen = @($excel.Workbooks | Where-Object { $_.FullName -eq $fixture.Config }).Count -eq 1
+    Check 'Receiving.Setup.PreExistingConfigRemainsOpen' ($ok -and $stillOpen)
+    if ($stillOpen) {
+        Check 'Receiving.Setup.PreExistingUnknownColumnPreserved' ((Table $existingConfig 'tblWarehouseConfig').ListColumns.Item('Setup Existing Extra').DataBodyRange.Cells.Item(1,1).Value2 -ceq 'preserve existing setup value')
+        $existingConfig.Close($false)
+    } else { Check 'Receiving.Setup.PreExistingUnknownColumnPreserved' $false }
 }

@@ -10,6 +10,7 @@ $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 $resultPath = Join-Path $repo "tests/unit/slice5_behavior_lock_results.md"
 $receivingModule = Get-Content -LiteralPath (Join-Path $repo "src/Receiving/Modules/modTS_Received.bas") -Raw
 $receivingForm = Get-Content -LiteralPath (Join-Path $repo "src/Receiving/Forms/frmReceiving.frm") -Raw
+$receivingAction = Get-Content -LiteralPath (Join-Path $repo "src/Receiving/Modules/modReceivingActivityAction.bas") -Raw
 $productionModule = Get-Content -LiteralPath (Join-Path $repo "src/Production/Modules/mProduction.bas") -Raw
 $productionForm = Get-Content -LiteralPath (Join-Path $repo "src/Production/Forms/frmProduction.frm") -Raw
 $shippingModule = Get-Content -LiteralPath (Join-Path $repo "src/Shipping/Modules/modTS_Shipments.bas") -Raw
@@ -23,8 +24,10 @@ function Add-Check {
 }
 
 Add-Check "Receiving.FormAction.ConfirmWrites.Handler" `
-    ($receivingForm -match '(?s)Private Sub mBtnConfirm_Click\(\).*?modReceivingPostingService\.ExecuteConfirmWrites') `
-    "The form button must call the operator Confirm Writes handler."
+    (($receivingForm -match '(?s)Private Sub mBtnConfirm_Click\(\).*?modReceivingActivityAction\.ConfirmWrites') -and
+     ($receivingAction -match 'modReceivingPostingService\.ExecuteConfirmWrites') -and
+     ([regex]::Matches($receivingAction,'modReceivingPostingService\.ExecuteConfirmWrites').Count -eq 1)) `
+    "The form button must reach the owning Confirm Writes service once through its context/observation controller."
 Add-Check "Production.FormActions.RequiredHandlers" `
     (($productionForm -match '(?s)Private Sub mBtnRunApplyPalette_Click\(\).*?ApplySelectedRunPaletteSplit') -and
      ($productionForm -match '(?s)Private Sub mBtnManagerCheckIn_Click\(\).*?CheckInProductionRun') -and

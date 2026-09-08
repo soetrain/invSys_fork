@@ -26,6 +26,8 @@ if ($CheckReceivingActivity) {
     $reportRoot = Join-Path $repo 'reports/runtime/slice4be-receiving-activity'
     . (Join-Path $PSScriptRoot 'Slice4beActivityAssertions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingActivity.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingReferences.ps1')
+    if (-not $CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $results = [Collections.Generic.List[object]]::new()
@@ -44,7 +46,8 @@ function Check([string]$Name,[bool]$Passed) {
     $results.Add([pscustomobject]@{Check=$Name;Passed=$Passed})
     Write-Output ("{0}: {1}" -f $Name, $(if($Passed){'PASS'}else{'FAIL'}))
 }
-function CaptureSettingsEvidence {
+function CaptureFormEvidence([string]$Title,[string]$FileName) {
+    if (-not ('InvSysSettingsCapture' -as [type])) {
     Add-Type -ReferencedAssemblies System.Drawing @'
 using System; using System.Drawing; using System.Runtime.InteropServices;
 public static class InvSysSettingsCapture {
@@ -52,9 +55,9 @@ public static class InvSysSettingsCapture {
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
-    public static void Save(string path) {
-        var hwnd=FindWindow(null,"invSys Settings"); Rect r;
-        if(hwnd==IntPtr.Zero || !GetWindowRect(hwnd,out r)) throw new Exception("Settings window unavailable.");
+    public static void Save(string title, string path) {
+        var hwnd=FindWindow(null,title); Rect r;
+        if(hwnd==IntPtr.Zero || !GetWindowRect(hwnd,out r)) throw new Exception("Requested form window unavailable.");
         using(var bitmap=new Bitmap(r.Right-r.Left,r.Bottom-r.Top)) {
             using(var graphics=Graphics.FromImage(bitmap)) {
                 var hdc=graphics.GetHdc(); bool captured;
@@ -66,7 +69,8 @@ public static class InvSysSettingsCapture {
     }
 }
 '@
-    [InvSysSettingsCapture]::Save((Join-Path $reportRoot 'settings-save.png'))
+    }
+    [InvSysSettingsCapture]::Save($Title,(Join-Path $reportRoot $FileName))
 }
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
     $name="'$Package'!$Macro"
@@ -264,7 +268,7 @@ End Function
     if($CaptureEvidence){
         [void](Run 'invSys.Admin.xlam' 'TestD5Commands.ShowSettings')
         Start-Sleep -Milliseconds 300
-        CaptureSettingsEvidence
+        CaptureFormEvidence 'invSys Settings' 'settings-save.png'
     }
     SelectTarget $b
     $beforeA=(Get-FileHash -LiteralPath $a.Config).Hash; $beforeB=(Get-FileHash -LiteralPath $b.Config).Hash

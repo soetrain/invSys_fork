@@ -5,7 +5,7 @@
 
 | Check | Result | Contract |
 |---|---|---|
-| Receiving.FormAction.ConfirmWrites.Handler | PASS | The form button must call the operator Confirm Writes handler. |
+| Receiving.FormAction.ConfirmWrites.Handler | PASS | The form button must reach the owning Confirm Writes service once through its context/observation controller. |
 | Production.FormActions.RequiredHandlers | PASS | Selection/Apply, Check In, Complete Run, and Next Batch must remain wired to the operator handlers. |
 | Shipping.FormActions.RequiredHandlers | PASS | To Shipments and Shipments Sent must remain wired to the operator handlers. |
 | Receiving.Form.ModelessLauncher | PASS | Receiving launcher must open the main form modelessly. |

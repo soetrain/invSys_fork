@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-08T00:19:30Z",
+    "generatedAtUtc":  "2026-09-08T02:04:41Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "4cd51b00cfe6396ed7103b595c476476b2d70ead6a8d73fd1e9b95e41b8a0674",
-                          "maintenanceCandidatesSha256":  "2a4defe0555afe52b814fa8f63b25dcc7a9e7e6496d00c9454cd957c4d03d37f"
+                          "implementationManifestSha256":  "7b16263e21e5263fe680e6f88f60da954d6215ced6f95d2eac47676cfdc6fd07",
+                          "maintenanceCandidatesSha256":  "4a6653f9808009e80e1682916374ad71a110f1248d160a577b2ac49e6e758265"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -245,7 +245,7 @@
                                                   "sourcePath":  "src/Receiving/Forms/frmReceiving.frm",
                                                   "componentName":  "frmReceiving",
                                                   "packageKey":  "Receiving",
-                                                  "baselineLineCount":  1260,
+                                                  "baselineLineCount":  1259,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -3180,6 +3180,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -3273,7 +3274,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -14287,6 +14288,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -23046,7 +23048,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -23141,6 +23143,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -23187,7 +23190,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -23770,7 +23773,7 @@
                            "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
-                           "id":  "duplicate:2f6790461dcf5201:UserForm_Initialize+UserForm_Initialize+UserForm_Initialize",
+                           "id":  "duplicate:2f6790461dcf5201:UserForm_Initialize+UserForm_Initialize",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "REPLACE_DUPLICATE",
                            "disposition":  "REPLACE_DUPLICATE",
@@ -23781,12 +23784,10 @@
                            "componentName":  "frmInventoryViewer",
                            "procedureNames":  [
                                                   "UserForm_Initialize",
-                                                  "UserForm_Initialize",
                                                   "UserForm_Initialize"
                                               ],
                            "sourcePaths":  [
                                                "src/Operations/Forms/frmInventoryViewer.frm",
-                                               "src/Receiving/Forms/frmReceiving.frm",
                                                "src/Shipping/Forms/frmShipmentsTally.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
@@ -28616,7 +28617,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -29030,6 +29031,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,

@@ -11,6 +11,8 @@ $roleWriter = Get-Content (Join-Path $repo "src/Core/Modules/modRoleEventWriter.
 $processor = Get-Content (Join-Path $repo "src/Core/Modules/modProcessor.bas") -Raw
 $config = Get-Content (Join-Path $repo "src/Core/Modules/modConfig.bas") -Raw
 $auth = Get-Content (Join-Path $repo "src/Core/Modules/modAuth.bas") -Raw
+$configLoad = [regex]::Match($config,'(?ms)^Public Function LoadConfig\b.*?^End Function').Value
+$configRead = [regex]::Match($config,'(?ms)^Private Function ResolveExistingConfigForRead\b.*?^End Function').Value
 
 $checks = @(
     [pscustomobject]@{
@@ -63,7 +65,9 @@ $checks = @(
     },
     [pscustomobject]@{
         Name = "SignIn.HealthyReadsRemainSaved"
-        Passed = ($config -match 'EnsureConfigSchema\(wb, whId, stId, , False\)') -and
+        Passed = ($configLoad -match 'ResolveExistingConfigForRead\(whId\)') -and
+            ($configLoad -notmatch 'EnsureConfigSchema|\bwb\.Save\b') -and
+            ($configRead -match 'ReadOnly:=True') -and
             ($auth -match 'EnsureAuthSchema\(wb, whId, modConfig.+, , False\)')
         Contract = "Healthy Config/Auth reads do not dirty and resave unchanged workbooks during sign-in."
     }

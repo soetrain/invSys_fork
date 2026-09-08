@@ -65,9 +65,11 @@ Failed:
 End Function
 
 Public Function FinishAction(ByVal activityId As String, ByVal outcomeCode As String, _
-                             Optional ByRef notice As String = "") As Boolean
+                             Optional ByRef notice As String = "", _
+                             Optional ByVal sourceReferencesJson As String = "[]") As Boolean
     Dim action As Object, target As WarehouseTarget, definition As Object, outcome As Object
     Dim version As Long, collect As Boolean, visible As Boolean, ignored As String, permitted As Boolean
+    Dim references As Collection, canonicalReferences As String
     On Error GoTo Failed
     If activityId = "" Then Exit Function
     notice = "Tracking unavailable: the action context is no longer current."
@@ -79,22 +81,29 @@ Public Function FinishAction(ByVal activityId As String, ByVal outcomeCode As St
     Set definition = modActivityCatalog.Control(action("ControlId"))
     Set outcome = modActivityCatalog.Outcome(action("ControlId"), outcomeCode)
     If outcome Is Nothing Or outcomeCode = "REQUESTED" Then Exit Function
+    Set references = modActivityReferences.Decode(target.WarehouseId, action("ControlId"), outcomeCode, sourceReferencesJson)
+    If references Is Nothing Then notice = "Tracking unavailable: source references are invalid.": Exit Function
+    canonicalReferences = modActivityReferences.Encode(references)
     mBusy = True
     If Not modActivityPolicy.ReadPolicy(target, action("ControlId"), version, collect, visible, notice) Then GoTo CleanExit
     If Not collect Or version <> CLng(action("PolicyVersion")) Then
         notice = "Tracking unavailable: the tracking policy changed during this action."
         GoTo CleanExit
     End If
-    If outcomeCode = "COMPLETED" Or outcomeCode = "UNCHANGED" Then
+    If outcomeCode = "COMPLETED" Or outcomeCode = "UNCHANGED" Or outcomeCode = "CONFIRMED" Or outcomeCode = "PENDING" Then
         permitted = modRoleUiAccess.CanCurrentUserPerformCapabilityCached(definition("Capability"), ignored)
         If Not permitted And definition("Role") = "Production" Then _
             permitted = modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", ignored)
         If Not permitted Then notice = "Tracking unavailable: completion is not authorized.": GoTo CleanExit
     End If
     If action.Exists("OutcomeBody") Then
-        If action("OutcomeCode") <> outcomeCode Then notice = "Tracking unavailable: conflicting completion.": GoTo CleanExit
+        If action("OutcomeCode") <> outcomeCode Or action("ReferencesJson") <> canonicalReferences Then
+            notice = "Tracking unavailable: conflicting completion.": GoTo CleanExit
+        End If
     Else
         action.Add "OutcomeCode", outcomeCode
+        action.Add "ReferencesJson", canonicalReferences
+        action.Add "SourceEventRefs", references
         action.Add "OutcomeId", modTrainingWire.NewId()
         action.Add "OutcomeBody", MakeBody(action, action("OutcomeId"), outcomeCode)
     End If
@@ -105,6 +114,18 @@ CleanExit:
 Failed:
     notice = "Tracking unavailable: the result could not be recorded."
     Resume CleanExit
+End Function
+
+' Serialization only: callers supply owner-observed identities and submission facts.
+Public Function InventorySourceReferences(ByVal activityId As String, ByVal eventIds As String, _
+                                          ByVal submissionState As String) As String
+    Dim target As WarehouseTarget
+    On Error GoTo Unavailable
+    If mActions Is Nothing Then Exit Function
+    If Not mActions.Exists(activityId) Then Exit Function
+    Set target = mActions(activityId)("Target")
+    InventorySourceReferences = modActivityReferences.Inventory(target.WarehouseId, eventIds, submissionState)
+Unavailable:
 End Function
 
 Public Function ReadActivityRecord(ByVal recordId As String) As String
@@ -158,7 +179,11 @@ Private Function MakeBody(ByVal action As Object, ByVal recordId As String, ByVa
     For Each key In outcome.Keys
         record.Add key, outcome(key)
     Next key
-    Set references = New Collection
+    If action.Exists("SourceEventRefs") Then
+        Set references = action("SourceEventRefs")
+    Else
+        Set references = New Collection
+    End If
     record.Add "SourceEventRefs", references
     MakeBody = modTrainingJson.EncodeObject(record)
 End Function

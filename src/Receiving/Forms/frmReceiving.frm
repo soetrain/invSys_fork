@@ -58,7 +58,7 @@ Private mLblAggregateReferences As MSForms.Label
 Private mTxtAggregateReferences As MSForms.TextBox
 Private mLblPurchasingStub As MSForms.Label
 Private mTxtStatus As MSForms.TextBox
-Private mOperatorWorkbook As Workbook
+Private mOperatorWorkbook As Workbook, mActivityContext As String
 Private mHistoryRows As Variant
 Private mItemRows As Variant
 ' Hidden representative System_Key values aligned one-for-one with result rows.
@@ -73,6 +73,7 @@ Private Const RECEIVING_BASE_WIDTH As Double = 1020
 Private Const RECEIVING_BASE_HEIGHT As Double = 900
 
 Private Sub UserForm_Initialize()
+    mActivityContext = modActivity.CaptureContext()
     BuildLayout
 End Sub
 
@@ -755,10 +756,8 @@ End Sub
 
 Private Sub mBtnConfirm_Click()
     On Error GoTo ErrHandler
-    Dim report As String
-    Dim succeeded As Boolean
-    Dim quietStarted As Boolean
-    Dim statusMessage As String
+    Dim report As String, statusMessage As String
+    Dim succeeded As Boolean, quietStarted As Boolean
 
     mLastConfirmQuietActive = False
     If mTabs.Value = 1 Then
@@ -769,8 +768,8 @@ Private Sub mBtnConfirm_Click()
     modUiQuiet.BeginQuietUi mOperatorWorkbook
     quietStarted = True
     mLastConfirmQuietActive = modUiQuiet.QuietUiIsActive()
-    succeeded = modReceivingPostingService.ExecuteConfirmWrites( _
-        mOperatorWorkbook, report)
+    succeeded = modReceivingActivityAction.ConfirmWrites( _
+        mOperatorWorkbook, mActivityContext, mTabs.Value = 0, report)
     modTS_Received.RecordConfirmWritesResult succeeded, report
     If succeeded Then
         mTxtRef.Value = ""

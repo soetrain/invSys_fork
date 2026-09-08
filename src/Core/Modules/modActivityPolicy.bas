@@ -8,6 +8,7 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
     Dim wb As Workbook, candidate As Workbook, headers As ListObject, controls As ListObject
     Dim opened As Boolean, row As Long, selected As Long, number As Long, latest As Long
     Dim seen As Object, rowsSeen As Object, key As String, definition As Object, ids As Variant
+    Dim catalogVersion As Long
     On Error GoTo Failed
     collect = False: visible = False: version = 0
     notice = "Tracking unavailable: configuration could not be validated."
@@ -19,7 +20,12 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
         Set wb = Application.Workbooks.Open(target.ConfigPath, UpdateLinks:=0, ReadOnly:=True, AddToMru:=False)
         opened = True
     End If
-    If Not wb.Saved Then GoTo CleanExit
+    ' Excel can mark a freshly opened read-only workbook dirty during calculation.
+    ' It came from the saved file; only a pre-existing dirty workbook has edits
+    ' this reader cannot distinguish from the persisted policy.
+    If Not opened Then
+        If Not wb.Saved Then GoTo CleanExit
+    End If
     Set headers = FindTable(wb, "tblEventTrackingPolicies")
     Set controls = FindTable(wb, "tblEventTrackingControls")
     If headers Is Nothing And controls Is Nothing Then
@@ -38,7 +44,8 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
     Next row
     If selected = 0 Then GoTo CleanExit
     If PositiveInteger(CellValue(headers, selected, "SchemaVersion")) <> 1 Then GoTo CleanExit
-    If PositiveInteger(CellValue(headers, selected, "CatalogVersion")) <> modActivityCatalog.CATALOG_VERSION Then GoTo CleanExit
+    catalogVersion = PositiveInteger(CellValue(headers, selected, "CatalogVersion"))
+    If catalogVersion < 1 Or catalogVersion > modActivityCatalog.CATALOG_VERSION Then GoTo CleanExit
     key = CStr(CellValue(headers, selected, "DefaultView"))
     If key <> "How-To" And key <> "Diagnostic" And key <> "Compare both" Then GoTo CleanExit
     If CStr(CellValue(headers, selected, "CreatedByUserId")) = "" Then GoTo CleanExit
@@ -53,7 +60,7 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
         If number = latest Then
             key = CStr(CellValue(controls, row, "ControlId"))
             If rowsSeen.Exists(key) Then GoTo CleanExit
-            Set definition = modActivityCatalog.Control(key)
+            Set definition = modActivityCatalog.Control(key, catalogVersion)
             If definition Is Nothing Then GoTo CleanExit
             rowsSeen.Add key, True
             If Not IsBooleanValue(CellValue(controls, row, "Collect")) Then GoTo CleanExit
@@ -67,8 +74,12 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
         End If
     Next row
     ' A saved profile must explicitly cover every registered control.
-    ids = modActivityCatalog.ControlIds()
-    If rowsSeen.Count <> UBound(ids) - LBound(ids) + 1 Or Not rowsSeen.Exists(controlId) Then GoTo CleanExit
+    ids = modActivityCatalog.ControlIds(catalogVersion)
+    If rowsSeen.Count <> UBound(ids) - LBound(ids) + 1 Then GoTo CleanExit
+    If Not rowsSeen.Exists(controlId) Then
+        notice = "Tracking unavailable: the saved policy does not include this control."
+        GoTo CleanExit
+    End If
     version = latest
     ReadPolicy = True: notice = ""
 CleanExit:

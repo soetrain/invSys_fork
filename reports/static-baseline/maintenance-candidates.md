@@ -1,7 +1,7 @@
 # invSys VBA Maintenance Candidates
 
 - Schema: 1.0.0
-- Generated: 2026-09-08T00:19:30Z
+- Generated: 2026-09-08T02:04:41Z
 - Total candidates: 1077
 - Duplicate-body groups: 192
 - Unresolved dynamic calls: 45
@@ -151,7 +151,7 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_DUPLICATE | HIGH | mProduction | WorkbookSheetExists, WorkbookSheetExistsShipping | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modAuth | CaptureOpenWorkbookPathsAuth, CaptureOpenWorkbookPathsConfig, CaptureOpenWorkbookPathsProcessor, CaptureOpenWorkbookPathsRole, CaptureOpenWorkbookPathsSync | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modInventoryDomainBridge | GetParentFolderApply, GetParentFolderLocal | Normalized procedure bodies are identical; review before consolidation. |
-| REPLACE_DUPLICATE | LOW | frmInventoryViewer | UserForm_Initialize, UserForm_Initialize, UserForm_Initialize | Normalized procedure bodies are identical; review before consolidation. |
+| REPLACE_DUPLICATE | LOW | frmInventoryViewer | UserForm_Initialize, UserForm_Initialize | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modTesterBundle | CloseWorkbookNoSaveProduction, CloseWorkbookQuietlyTester | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modAuth | HideInventoryBridgeWorkbookWindows, HideWorkbookWindowsAuth, HideWorkbookWindowsConfig, HideWorkbookWindowsPublisher, HideWorkbookWindowsShipping | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modProductionEventCreator | CellText, NzStrShip, TextValue | Normalized procedure bodies are identical; review before consolidation. |

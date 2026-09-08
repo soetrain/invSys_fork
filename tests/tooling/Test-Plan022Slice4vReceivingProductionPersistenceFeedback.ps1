@@ -7,6 +7,7 @@ $ErrorActionPreference = "Stop"
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 $receivingFormText = Get-Content -Raw -LiteralPath (Join-Path $repo "src/Receiving/Forms/frmReceiving.frm")
 $receivingServiceText = Get-Content -Raw -LiteralPath (Join-Path $repo "src/Receiving/Modules/modReceivingPostingService.bas")
+$receivingControllerText = Get-Content -Raw -LiteralPath (Join-Path $repo "src/Receiving/Modules/modReceivingActivityAction.bas")
 $productionFormText = Get-Content -Raw -LiteralPath (Join-Path $repo "src/Production/Forms/frmProduction.frm")
 $productionText = Get-Content -Raw -LiteralPath (Join-Path $repo "src/Production/Modules/mProduction.bas")
 $readModelText = Get-Content -Raw -LiteralPath (Join-Path $repo "src/Core/Modules/modOperatorReadModel.bas")
@@ -37,7 +38,8 @@ $duplicatePublishCall = $sharedRuntime.IndexOf("PublishInventorySnapshotBridge",
 $checks = @(
     [pscustomobject]@{
         Check = "Receiving.Persistence.FormSummary"
-        Passed = ($receivingCallback -match 'ExecuteConfirmWrites') -and
+        Passed = ($receivingCallback -match 'modReceivingActivityAction\.ConfirmWrites') -and
+            ($receivingControllerText -match 'modReceivingPostingService\.ExecuteConfirmWrites') -and
             ($receivingCallback -match 'ShowStatus\s+statusMessage') -and
             ($receivingAction -match 'Persistence summary:') -and
             ($receivingAction -match 'receiving inbox batch saved') -and
