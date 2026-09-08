@@ -56,6 +56,11 @@ Public Function LocalOutcome(ByVal code As String, ByVal clearing As Boolean) As
             effect = "Changed"
             message = "Workbook-local Receiving projections refreshed; no inventory event submitted."
             nextStep = "Review displayed inventory and staged entries."
+        Case "STALE"
+            If clearing Then Exit Function
+            severity = "Warning": effect = "Changed"
+            message = "Receiving retains cached or stale inventory; local freshness metadata updated, no inventory event submitted."
+            nextStep = "Review source availability before explicitly refreshing again."
         Case "CLEARED", "EMPTY"
             If Not clearing Then Exit Function
             effect = "Changed"

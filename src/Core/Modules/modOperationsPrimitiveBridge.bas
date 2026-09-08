@@ -166,9 +166,10 @@ End Sub
 Public Function RefreshInventoryReadModel(ByVal workbookName As String, _
                                           Optional ByVal warehouseId As String = "", _
                                           Optional ByVal sourceType As String = "LOCAL", _
-                                          Optional ByRef report As String = "") As Boolean
+                                          Optional ByRef report As String = "", _
+                                          Optional ByRef refreshState As String = "") As Boolean
     Dim wb As Workbook
-
+    refreshState = "FAILED"
     Set wb = ResolveOpenWorkbook(workbookName)
     If wb Is Nothing Then
         report = "Operator workbook is not open: " & Trim$(workbookName)
@@ -176,7 +177,7 @@ Public Function RefreshInventoryReadModel(ByVal workbookName As String, _
     End If
     RefreshInventoryReadModel = _
         modOperatorReadModel.RefreshInventoryReadModelForWorkbook( _
-            wb, warehouseId, sourceType, report)
+            wb, warehouseId, sourceType, report, refreshState)
 End Function
 
 Public Function DiagnoseInventoryReadModel(ByVal workbookName As String, _

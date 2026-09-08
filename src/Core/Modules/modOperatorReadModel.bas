@@ -16,8 +16,10 @@ Private mAutoRefreshRunning As Boolean
 Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
                                                      Optional ByVal warehouseId As String = "", _
                                                      Optional ByVal sourceType As String = "LOCAL", _
-                                                     Optional ByRef report As String = "") As Boolean
+                                                     Optional ByRef report As String = "", _
+                                                     Optional ByRef refreshState As String = "") As Boolean
     On Error GoTo FailRefresh
+    refreshState = "FAILED"
 
     Dim wb As Workbook
     Dim loInv As ListObject
@@ -74,41 +76,23 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
     snapshotIsStale = ResolveSnapshotContextFlagReadModel(snapshotContext, "IsStale")
 
     If effectiveSource = "CACHED" Then
-        snapshotId = ResolveExistingSnapshotIdReadModel(loInv)
-        MarkReadModelState loInv, refreshUtc, snapshotId, "CACHED", True
         report = detailMessage
         If report = "" Then report = "Snapshot workbook not available; operator read model kept cached."
-        If configValidation <> "" Then report = report & " " & configValidation
-        ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, "CACHED", True, report
-        UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, normalizedSource, refreshUtc
-        RefreshInventoryReadModelForWorkbook = True
-        GoTo CleanExit
+        GoTo CachedResult
     End If
 
     snapshotAlreadyOpen = WorkbookIsOpenByPathReadModel(snapshotPath)
     Set wbSnap = ResolveSnapshotWorkbook(resolvedWarehouseId, snapshotPath, Nothing, False)
     If wbSnap Is Nothing Then
-        snapshotId = ResolveExistingSnapshotIdReadModel(loInv)
         report = "Snapshot workbook could not be opened for source " & effectiveSource & "; operator read model kept cached."
-        If configValidation <> "" Then report = report & " " & configValidation
-        MarkReadModelState loInv, refreshUtc, snapshotId, "CACHED", True
-        ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, "CACHED", True, report
-        UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, normalizedSource, refreshUtc
-        RefreshInventoryReadModelForWorkbook = True
-        GoTo CleanExit
+        GoTo CachedResult
     End If
     If Not snapshotAlreadyOpen Then HideWorkbookWindowsReadModel wbSnap
 
     Set loSnap = FindListObjectReadModel(wbSnap, TABLE_SNAPSHOT)
     If loSnap Is Nothing Then
-        snapshotId = ResolveExistingSnapshotIdReadModel(loInv)
         report = "Snapshot table not found for source " & effectiveSource & "; operator read model kept cached."
-        If configValidation <> "" Then report = report & " " & configValidation
-        MarkReadModelState loInv, refreshUtc, snapshotId, "CACHED", True
-        ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, "CACHED", True, report
-        UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, normalizedSource, refreshUtc
-        RefreshInventoryReadModelForWorkbook = True
-        GoTo CleanExit
+        GoTo CachedResult
     End If
 
     Set snapshotRows = BuildSnapshotDictionary(loSnap)
@@ -125,6 +109,18 @@ Public Function RefreshInventoryReadModelForWorkbook(Optional ByVal targetWb As 
     End If
     ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, effectiveSource, snapshotIsStale, detailMessage
     UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, normalizedSource, refreshUtc
+    refreshState = "REFRESHED"
+    If snapshotIsStale Then refreshState = "STALE"
+    RefreshInventoryReadModelForWorkbook = True
+    GoTo CleanExit
+
+CachedResult:
+    snapshotId = ResolveExistingSnapshotIdReadModel(loInv)
+    MarkReadModelState loInv, refreshUtc, snapshotId, "CACHED", True
+    If configValidation <> "" Then report = report & " " & configValidation
+    ApplyReadModelStatusSurface wb, refreshUtc, snapshotId, "CACHED", True, report
+    UpdateAutoRefreshEntryReadModel wb, resolvedWarehouseId, normalizedSource, refreshUtc
+    refreshState = "STALE"
     RefreshInventoryReadModelForWorkbook = True
     
 CleanExit:
@@ -134,6 +130,7 @@ CleanExit:
     Exit Function
 
 FailRefresh:
+    refreshState = "FAILED"
     report = "RefreshInventoryReadModelForWorkbook failed: " & Err.Description
     ApplyReadModelStatusSurface wb, Now, vbNullString, "CACHED", True, report
     On Error Resume Next

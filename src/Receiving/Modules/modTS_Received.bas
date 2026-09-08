@@ -49,9 +49,9 @@ End Sub
 
 Public Function RefreshReceivingUiForWorkbook(Optional ByVal targetWb As Workbook = Nothing, _
                                               Optional ByVal sourceType As String = "LOCAL", _
-                                              Optional ByRef report As String = "") As Boolean
+                                              Optional ByRef report As String = "", Optional ByRef refreshState As String = "") As Boolean
     Dim wb As Workbook
-
+    refreshState = "FAILED"
     Set wb = ResolveReceivingWorkbook(targetWb)
     If wb Is Nothing Then
         report = "Activate a Receiving operator workbook before refreshing."
@@ -60,7 +60,7 @@ Public Function RefreshReceivingUiForWorkbook(Optional ByVal targetWb As Workboo
     InitializeReceivingUiForWorkbook wb
     RefreshReceivingUiForWorkbook = _
         modOperationsPrimitiveBridge.RefreshInventoryReadModel( _
-            wb.Name, "", sourceType, report)
+            wb.Name, "", sourceType, report, refreshState)
     EnforceReceivingSupportSheetsHidden wb
 End Function
 

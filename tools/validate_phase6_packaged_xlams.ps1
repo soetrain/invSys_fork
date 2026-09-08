@@ -9,6 +9,14 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+if (Get-Process EXCEL -ErrorAction SilentlyContinue) { throw "Close Excel before packaged validation." }
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class PackagedValidationProcess {
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+}
+'@
 
 function Release-ComObject {
     param([object]$Obj)
@@ -208,6 +216,51 @@ function ConvertTo-SafePackagedEvidenceText {
     return $safe
 }
 
+function Set-PackagedValidationRoot {
+    param([object]$Excel, [string]$Phase)
+    [void]$Excel.Run("'invSys.Core.xlam'!modRuntimeWorkbooks.SetCoreDataRootOverride", $targetRoot)
+    $actual = [string]$Excel.Run("'invSys.Core.xlam'!modRuntimeWorkbooks.GetCoreDataRootOverride")
+    $bound = [string]::Equals($actual, $targetRoot, [StringComparison]::OrdinalIgnoreCase)
+    if (-not $bound) { throw "Packaged fixture runtime root was not bound." }
+    if ($Phase -eq "Initial") {
+        $setup = [string]$Excel.Run("'invSys.Core.xlam'!modConfig.EnsureStationConfigEntryForAutomation",
+            "WH1", "S1", "Packaged validation", (Join-Path $targetRoot "inbox"), "ADMIN",
+            (Join-Path $targetRoot "WH1.invSys.Config.xlsb"), $targetRoot)
+        Add-ResultRow -Rows $resultRows -Check "Fixture.ConfigProvisioned" -Passed ($setup -eq "OK") -Detail "Explicit Core setup provisioned Config inside the disposable fixture."
+        if ($setup -ne "OK") { throw "Packaged Config fixture provisioning failed." }
+    }
+    $loaded = [bool]$Excel.Run("'invSys.Core.xlam'!modConfig.LoadConfig", "WH1", "S1")
+    $bound = $bound -and $loaded
+    Add-ResultRow -Rows $resultRows -Check "$Phase.IsolatedRuntimeRoot" -Passed $bound -Detail "Core runtime root is the generated fixture directory."
+    if (-not $bound) { throw "Packaged fixture runtime root was not bound." }
+}
+
+function Close-PackagedValidationSession {
+    param([object]$Excel, [string]$Phase)
+    [uint32]$ownedProcessId = 0
+    [void][PackagedValidationProcess]::GetWindowThreadProcessId([IntPtr]$Excel.Hwnd, [ref]$ownedProcessId)
+    if ($ownedProcessId -eq 0 -or $null -eq $Excel.Workbooks) { throw "Owned Excel session is unavailable for cleanup." }
+    $books = @($Excel.Workbooks)
+    foreach ($book in $books) {
+        if ([string]::IsNullOrWhiteSpace([string]$book.Path)) { continue }
+        $path = [IO.Path]::GetFullPath([string]$book.FullName)
+        $fixture = $path.StartsWith($targetRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)
+        $package = [bool]$book.IsAddin -and $path.StartsWith($deployPath.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)
+        if (-not ($fixture -or $package)) { throw "A workbook outside the packaged fixture/package roots remains open; cleanup refused." }
+    }
+    $Excel.EnableEvents = $false
+    $Excel.DisplayAlerts = $false
+    foreach ($book in @($books | Sort-Object { [bool]$_.IsAddin })) { $book.Close($false) }
+    $empty = $null -ne $Excel.Workbooks -and [int]$Excel.Workbooks.Count -eq 0
+    Add-ResultRow -Rows $resultRows -Check "$Phase.OwnedWorkbooksClosed" -Passed $empty -Detail "Every workbook in the isolated Excel session closed without saving further changes."
+    if (-not $empty) { throw "Owned Excel session still contains workbooks." }
+    $Excel.Quit()
+    Release-ComObject $Excel
+    $owned = Get-Process -Id $ownedProcessId -ErrorAction SilentlyContinue
+    # Only this HWND-identified process, after a real zero-workbook check.
+    if ($null -ne $owned -and -not $owned.WaitForExit(1000)) { Stop-Process -Id $ownedProcessId }
+}
+
 $openOrder = @(
     "invSys.Core.xlam",
     "invSys.Inventory.Domain.xlam",
@@ -321,6 +374,7 @@ try {
             $wb = $excel.Workbooks.Open($path)
             $openedWorkbooks.Add($wb) | Out-Null
             $workbookMap[$fileName] = $wb
+            if ($fileName -eq "invSys.Core.xlam") { Set-PackagedValidationRoot -Excel $excel -Phase "Initial" }
             Add-ResultRow -Rows $resultRows -Check "$fileName.Open" -Passed $true -Detail "Opened from $path"
             Add-ResultRow -Rows $resultRows -Check "$fileName.IsAddin" -Passed ([bool]$wb.IsAddin) -Detail ("IsAddin=" + [string]$wb.IsAddin)
         }
@@ -696,16 +750,13 @@ try {
         }
         catch {}
     }
+    Close-PackagedValidationSession -Excel $excel -Phase "Initial"
     foreach ($targetWb in $targetWorkbooks) {
-        try { $targetWb.Close($false) } catch {}
         Release-ComObject $targetWb
     }
     foreach ($addinWb in $openedWorkbooks) {
-        try { $addinWb.Close($false) } catch {}
         Release-ComObject $addinWb
     }
-    try { $excel.Quit() } catch {}
-    Release-ComObject $excel
     $excel = $null
 
     $openedWorkbooks = New-Object 'System.Collections.Generic.List[object]'
@@ -723,6 +774,7 @@ try {
             $reopenedAddin = $excel.Workbooks.Open($reopenPath)
             $openedWorkbooks.Add($reopenedAddin) | Out-Null
             $workbookMap[$fileName] = $reopenedAddin
+            if ($fileName -eq "invSys.Core.xlam") { Set-PackagedValidationRoot -Excel $excel -Phase "Restart" }
             $sameIdentity = [string]::Equals([string]$reopenedAddin.FullName, [string](Resolve-Path $reopenPath).Path, [System.StringComparison]::OrdinalIgnoreCase)
             Add-ResultRow -Rows $resultRows -Check "Restart.$fileName" -Passed ([bool]$reopenedAddin.IsAddin -and $sameIdentity) -Detail "IsAddin=$($reopenedAddin.IsAddin); FullName=$($reopenedAddin.FullName)"
         }
@@ -761,6 +813,10 @@ try {
     }
 }
 finally {
+    if ($null -ne $excel) {
+        try { Close-PackagedValidationSession -Excel $excel -Phase "Final" }
+        catch { Add-ResultRow -Rows $resultRows -Check "Final.Cleanup" -Passed $false -Detail $_.Exception.Message }
+    }
     $failedCount = @($resultRows | Where-Object { -not $_.Passed }).Count
     $passedCount = $resultRows.Count - $failedCount
 
@@ -784,16 +840,10 @@ finally {
     [System.IO.File]::WriteAllText($resultPath, (($lines -join "`n") + "`n"), $utf8NoBom)
 
     foreach ($wb in $openedWorkbooks) {
-        try { $wb.Close($false) } catch {}
         Release-ComObject $wb
     }
     foreach ($wb in $targetWorkbooks) {
-        try { $wb.Close($false) } catch {}
         Release-ComObject $wb
-    }
-    if ($null -ne $excel) {
-        try { $excel.Quit() } catch {}
-        Release-ComObject $excel
     }
     Remove-Item -LiteralPath $targetRoot -Recurse -Force -ErrorAction SilentlyContinue
 }

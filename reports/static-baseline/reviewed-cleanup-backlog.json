@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-08T05:01:32Z",
+    "generatedAtUtc":  "2026-09-08T05:57:34Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "7a31dda570d25fca55156605d855c9d50e4eda267a208cfd6ede62cacc948a21",
-                          "maintenanceCandidatesSha256":  "1ed51ff804047bb4b271a57652faf34e1464b240daa4df504c54eb4a4e7cbe22"
+                          "implementationManifestSha256":  "642324a170df8e9282f9ae8542c0e610619aada6d3dd0e3931a636ece60b2ec6",
+                          "maintenanceCandidatesSha256":  "6abf2300f76905760dfce55f8e6cfc38c32cb1d922bf2f26089d0e57e866b367"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -147,7 +147,7 @@
                                                   "sourcePath":  "src/Core/Modules/modOperatorReadModel.bas",
                                                   "componentName":  "modOperatorReadModel",
                                                   "packageKey":  "Core",
-                                                  "baselineLineCount":  1919,
+                                                  "baselineLineCount":  1916,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {

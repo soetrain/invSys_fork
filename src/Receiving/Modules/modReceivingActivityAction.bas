@@ -37,6 +37,7 @@ End Function
 Public Function LocalAction(ByVal operatorWb As Workbook, ByVal context As String, _
                             ByVal clearStaging As Boolean, ByRef report As String) As Boolean
     Dim activityId As String, notice As String, outcome As String, controlId As String, changed As Boolean
+    Dim refreshState As String
     On Error GoTo Failed
     report = "Session or warehouse changed. Reopen Receiving before continuing."
     If context = "" Or context <> modActivity.CaptureContext() Then Exit Function
@@ -54,10 +55,17 @@ Public Function LocalAction(ByVal operatorWb As Workbook, ByVal context As Strin
         LocalAction = True
     Else
         report = ""
-        LocalAction = modTS_Received.RefreshReceivingUiForWorkbook(operatorWb, "LOCAL", report)
+        LocalAction = modTS_Received.RefreshReceivingUiForWorkbook(operatorWb, "LOCAL", report, refreshState)
         If LocalAction Then
-            outcome = "REFRESHED"
-            report = "Receiving history, managed items, and staging refreshed."
+            Select Case refreshState
+                Case "REFRESHED"
+                    outcome = refreshState
+                    report = "Receiving history, managed items, and staging refreshed."
+                Case "STALE"
+                    outcome = refreshState
+                Case Else
+                    report = report & " Receiving refresh freshness could not be verified. Review the captured workbook."
+            End Select
         ElseIf report = "" Then
             report = "Receiving refresh did not complete. Verify the captured workbook before retrying."
         End If

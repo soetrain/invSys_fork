@@ -1,8 +1,8 @@
 # Slice 4be.1 Receiving Refresh/Clear activity
 
 Architecture v4.11 D18 governs these discovered shared Receiving/Returns
-controls. Initial catalog-4 focused GREEN is recorded below; freshness correction
-and final changed-package gates are pending.
+controls. The catalog-4 Refresh/Clear/freshness candidate checkpoint is GREEN;
+comprehensive 4be coverage, user comparison and Release 1 acceptance remain open.
 The existing Add/Confirm checkpoint remains GREEN; see its
 [evidence and five baseline hashes](plan022_slice4be_receiving_staging_results.md).
 
@@ -94,3 +94,96 @@ explicit RepoRoot returns 7 PASS / 6 FAIL on both this candidate and the unchang
 `f813f2f` comparison checkout: its older roots/count/growth assertions are not
 current GREEN evidence. The default RepoRoot invocation fails in parameter
 binding; neither harness/legacy result is D13 behavioral RED for this change.
+
+## Freshness candidate GREEN
+
+Code **3b06425** preserves the initial implementation plus the expanded failing
+test before the freshness correction. The new candidate is built independently
+in `deploy/validation-receiving-freshness`; accepted deployment is unchanged.
+The existing Core owner returns explicit state through optional primitive
+ByRef parameters, retaining old Boolean callers. Its three cached-result
+branches share local metadata/cleanup handling; snapshot selection is unchanged.
+The Receiving controller records STALE/Warning/Changed and retains the owner's
+visible cause. Missing state cannot assert REFRESHED or erase an existing cause.
+
+All five builds, cold start and explicit package compiles pass. Source regressions
+pass: behavior locks 13, Receiving stabilization 10, persistence feedback 4,
+Disposition 6, Receiving 4o 5, Receiving 4p 8 and ListBox 7. Static regeneration
+retains all counts above; all 28 current oversized-module ratchets hold, and
+`modOperatorReadModel` shrinks from 1,919 to 1,916 lines. The expanded packaged
+suite is **491/491 GREEN**, with no harness exception. Checkpoint release gates
+pass as recorded below. All four cached/fallback form captures were inspected: both tabs
+retain the real cached/stale explanation with staging still displayed. Successful
+Clear and tracking-unavailable Refresh captures were also inspected. All 22
+current captures were reviewed: the 16 tab/action/local-outcome cases, two
+closed-workbook cases and four cached/fallback cases. Messages are visible and
+the form retains its existing staging/detail surfaces. These are automated
+operator evidence, not human acceptance.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -DeployRoot deploy/validation-receiving-freshness -Phase GREEN -CheckActivityEvidence -CheckActivityFoundation -CheckReceivingActivity -CheckReceivingStagingActivity -CheckReceivingLocalActivity -CaptureEvidence
+```
+
+The exact candidate hashes below identify the five packages used for GREEN and
+the subsequent release gates. They are not an accepted deployment manifest.
+
+| Package | SHA-256 |
+|---|---|
+| Core | `82b021ea4c454ece0189f4df76456b541d588d86778c539bb0d9f97beced341f` |
+| Inventory.Domain | `6c2cb6f3f59ada94b5a107e2a0daa4cdd6f594d3e1f3568ee44d695310cbecf8` |
+| Designs.Domain | `0d8cab0f1f40511869ebe6a6ae344147851c05dd029678f832c87f0850fc4180` |
+| Operations | `8587fd5f29953652e8592c3eff0e4afe39ce803ecff23bf2f2334206f3c8b2ed` |
+| Admin | `33b209633909c32faa2b6ca4b53a91b3b6889d2be505d498aaa6945eab6428de` |
+
+## Package-gate isolation correction
+
+The initial packaged gate reported 81/81 but left its first Excel session at a
+Designs save prompt; the later layout preflight correctly refused to start.
+The validator had neither bound its runtime root nor tracked every workbook
+opened by smoke tests. Its old tracked-list cleanup therefore missed that
+workbook. The identified test-session save was declined, without saving or
+terminating an unidentified process, and Excel exited. The pre-existing saved
+Designs file's last-write time predates this run; there was no pre-run byte
+baseline for that initial gate.
+
+The harness now binds and verifies Core's temporary root before role work in
+each Excel session, provisions the required Config fixture through the existing
+explicit Core setup boundary, and closes all owned workbooks. It refuses a
+workbook outside fixture/package roots. Process cleanup uses the actual Excel
+HWND and requires an available Workbooks collection with Count=0; null COM
+properties are never treated as proof of emptiness.
+
+The first isolated run returned **84 PASS / 1 FAIL**: Admin Settings exposed the
+previous external Config dependency. Both root and cleanup checks passed. After
+explicit fixture provisioning, the corrected gate is **86/86**, retaining all
+81 prior checks plus five fixture/root/cleanup checks. No Excel process remains,
+and the saved default Designs file is byte-for-byte unchanged across both
+corrected runs. This is harness isolation/fixture evidence, not D13 product RED;
+no runtime contract or XLAM was changed for it. The failed isolated report is
+retained under ignored `reports/runtime/slice4be-receiving-activity/`.
+
+Live-role workflows pass **48/48**, the ordered full chain/restart passes
+**30/30**, and Viewer passes its packaged refresh/filter/export/read-only checks.
+Production layout passes across three sizes/five inspected pages and native
+window transitions; all three layout captures were inspected. Packaged launchers
+pass **3/3**. Dedicated reusable Production passes **2/2**, including a clean Excel
+restart, reusable design/run actions, workbench/edit/export/import/output-picker,
+quantity regulation and Chai fork/convergence coverage. No focused-only switches
+were used. Its terminal report contains two passing rows, no failure row/RPC
+failure, and the final layout/launcher interval has no Excel Application Error
+event. Excel is closed and all five candidate and five pre-fix package hashes
+remain unchanged after verification.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate_phase6_packaged_xlams.ps1 -DeployRoot deploy/validation-receiving-freshness
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate_phase6_live_role_workflows.ps1 -DeployRoot deploy/validation-receiving-freshness
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate_release1_full_chain.ps1 -DeployRoot deploy/validation-receiving-freshness
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate_inventory_viewer.ps1 -DeployRoot deploy/validation-receiving-freshness
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate_slice9_production_layout.ps1 -RepoRoot . -DeployRoot deploy/validation-receiving-freshness -OutputDirectory reports/runtime/slice4be-local-layout -ResultPath reports/runtime/slice4be-local-layout/layout-results.md
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate_plan022_packaged_launchers.ps1 -DeployRoot deploy/validation-receiving-freshness -OutputDirectory reports/runtime/slice4be-local-launchers -WorkbookState NoEligible
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate_plan022_packaged_launchers.ps1 -DeployRoot deploy/validation-receiving-freshness -OutputDirectory reports/runtime/slice4be-local-production -CallbackFilter Production -WorkbookState ProductionReusable
+```
+
+The code candidate is not a NAS rollout. This checkpoint does not complete
+4be.1's remaining control coverage, publication, Event Tracking Settings,
+comprehensive Viewer, recorded conclusions, guide management or user comparison.

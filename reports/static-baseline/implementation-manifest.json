@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-08T05:01:32Z",
+    "generatedAtUtc":  "2026-09-08T05:57:34Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -2698,7 +2698,7 @@
                            "name":  "modOperationsPrimitiveBridge",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modOperationsPrimitiveBridge.bas",
-                           "lineCount":  392,
+                           "lineCount":  393,
                            "procedureNames":  [
                                                   "ApplyShapeCapability",
                                                   "BeginQuietUiForWorkbook",
@@ -2739,7 +2739,7 @@
                            "name":  "modOperatorReadModel",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modOperatorReadModel.bas",
-                           "lineCount":  1919,
+                           "lineCount":  1916,
                            "procedureNames":  [
                                                   "AddSnapshotTextPayloadReadModel",
                                                   "AppendInvSysRow",
@@ -2990,7 +2990,7 @@
                            "name":  "modReceivingActivityCodes",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modReceivingActivityCodes.bas",
-                           "lineCount":  111,
+                           "lineCount":  116,
                            "procedureNames":  [
                                                   "LocalOutcome",
                                                   "Outcome",
@@ -6281,7 +6281,7 @@
                            "name":  "modReceivingActivityAction",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Receiving/Modules/modReceivingActivityAction.bas",
-                           "lineCount":  72,
+                           "lineCount":  80,
                            "procedureNames":  [
                                                   "ConfirmWrites",
                                                   "LocalAction"
@@ -45672,8 +45672,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  166,
-                           "endLine":  180,
-                           "lineCount":  15,
+                           "endLine":  181,
+                           "lineCount":  16,
                            "directCalls":  [
                                                "RefreshInventoryReadModelForWorkbook",
                                                "ResolveOpenWorkbook"
@@ -45693,8 +45693,8 @@
                            "name":  "DiagnoseInventoryReadModel",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  182,
-                           "endLine":  196,
+                           "startLine":  183,
+                           "endLine":  197,
                            "lineCount":  15,
                            "directCalls":  [
                                                "DiagnoseInventoryReadModelRefresh",
@@ -45715,8 +45715,8 @@
                            "name":  "RunBatchAndRefreshOperatorWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  198,
-                           "endLine":  214,
+                           "startLine":  199,
+                           "endLine":  215,
                            "lineCount":  17,
                            "directCalls":  [
                                                "ResolveOpenWorkbook"
@@ -45736,8 +45736,8 @@
                            "name":  "ApplyShapeCapability",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  216,
-                           "endLine":  236,
+                           "startLine":  217,
+                           "endLine":  237,
                            "lineCount":  21,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -45758,8 +45758,8 @@
                            "name":  "ListDesigns",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  238,
-                           "endLine":  240,
+                           "startLine":  239,
+                           "endLine":  241,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ListDesignsBridge"
@@ -45779,8 +45779,8 @@
                            "name":  "GetDesignBom",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  242,
-                           "endLine":  246,
+                           "startLine":  243,
+                           "endLine":  247,
                            "lineCount":  5,
                            "directCalls":  [
                                                "DesignId",
@@ -45802,8 +45802,8 @@
                            "name":  "GetDesignBomForStatus",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  248,
-                           "endLine":  254,
+                           "startLine":  249,
+                           "endLine":  255,
                            "lineCount":  7,
                            "directCalls":  [
                                                "DesignId",
@@ -45825,8 +45825,8 @@
                            "name":  "ListProcesses",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  256,
-                           "endLine":  259,
+                           "startLine":  257,
+                           "endLine":  260,
                            "lineCount":  4,
                            "directCalls":  [
                                                "ListProcessesBridge"
@@ -45846,8 +45846,8 @@
                            "name":  "GetProcessVersion",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  261,
-                           "endLine":  266,
+                           "startLine":  262,
+                           "endLine":  267,
                            "lineCount":  6,
                            "directCalls":  [
                                                "GetProcessVersionBridge"
@@ -45867,8 +45867,8 @@
                            "name":  "ListRecipes",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  268,
-                           "endLine":  271,
+                           "startLine":  269,
+                           "endLine":  272,
                            "lineCount":  4,
                            "directCalls":  [
                                                "ListRecipesBridge"
@@ -45888,8 +45888,8 @@
                            "name":  "GetRecipeGraph",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  273,
-                           "endLine":  278,
+                           "startLine":  274,
+                           "endLine":  279,
                            "lineCount":  6,
                            "directCalls":  [
                                                "GetRecipeGraphBridge"
@@ -45909,8 +45909,8 @@
                            "name":  "ValidateReleasedRecipe",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  280,
-                           "endLine":  285,
+                           "startLine":  281,
+                           "endLine":  286,
                            "lineCount":  6,
                            "directCalls":  [
                                                "ValidateReleasedRecipeBridgeEncoded"
@@ -45930,8 +45930,8 @@
                            "name":  "ResolveOpenWorkbook",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  287,
-                           "endLine":  306,
+                           "startLine":  288,
+                           "endLine":  307,
                            "lineCount":  20,
                            "directCalls":  [
 
@@ -45951,8 +45951,8 @@
                            "name":  "IsSupportedRoleCodePrimitive",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  308,
-                           "endLine":  311,
+                           "startLine":  309,
+                           "endLine":  312,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -45972,8 +45972,8 @@
                            "name":  "RoleDisplayNamePrimitive",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  313,
-                           "endLine":  324,
+                           "startLine":  314,
+                           "endLine":  325,
                            "lineCount":  12,
                            "directCalls":  [
 
@@ -45993,8 +45993,8 @@
                            "name":  "IsEligibleRoleOperatorWorkbookPrimitive",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  326,
-                           "endLine":  344,
+                           "startLine":  327,
+                           "endLine":  345,
                            "lineCount":  19,
                            "directCalls":  [
                                                "FindListObjectPrimitive",
@@ -46015,8 +46015,8 @@
                            "name":  "IsRejectedOperatorAuthorityWorkbookPrimitive",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  346,
-                           "endLine":  379,
+                           "startLine":  347,
+                           "endLine":  380,
                            "lineCount":  34,
                            "directCalls":  [
 
@@ -46036,8 +46036,8 @@
                            "name":  "FindListObjectPrimitive",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  381,
-                           "endLine":  392,
+                           "startLine":  382,
+                           "endLine":  393,
                            "lineCount":  12,
                            "directCalls":  [
 
@@ -46058,8 +46058,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  16,
-                           "endLine":  143,
-                           "lineCount":  128,
+                           "endLine":  140,
+                           "lineCount":  125,
                            "directCalls":  [
                                                "ApplyReadModelStatusSurface",
                                                "ApplySnapshotToInvSys",
@@ -46101,8 +46101,8 @@
                            "name":  "RefreshCurrentWorkbookInventoryReadModel",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  145,
-                           "endLine":  172,
+                           "startLine":  142,
+                           "endLine":  169,
                            "lineCount":  28,
                            "directCalls":  [
                                                "RefreshInventoryReadModelForWorkbook",
@@ -46123,8 +46123,8 @@
                            "name":  "RefreshInventoryReadModelFromLocalForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  174,
-                           "endLine":  178,
+                           "startLine":  171,
+                           "endLine":  175,
                            "lineCount":  5,
                            "directCalls":  [
                                                "RefreshInventoryReadModelForWorkbook"
@@ -46144,8 +46144,8 @@
                            "name":  "RefreshInventoryReadModelFromSharePointForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  180,
-                           "endLine":  184,
+                           "startLine":  177,
+                           "endLine":  181,
                            "lineCount":  5,
                            "directCalls":  [
                                                "RefreshInventoryReadModelForWorkbook"
@@ -46165,8 +46165,8 @@
                            "name":  "RefreshInventoryReadModelFromCacheForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  186,
-                           "endLine":  190,
+                           "startLine":  183,
+                           "endLine":  187,
                            "lineCount":  5,
                            "directCalls":  [
                                                "RefreshInventoryReadModelForWorkbook"
@@ -46186,8 +46186,8 @@
                            "name":  "DiagnoseCurrentWorkbookInventoryReadModelRefresh",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  192,
-                           "endLine":  195,
+                           "startLine":  189,
+                           "endLine":  192,
                            "lineCount":  4,
                            "directCalls":  [
                                                "DiagnoseInventoryReadModelRefresh",
@@ -46208,8 +46208,8 @@
                            "name":  "DiagnoseInventoryReadModelRefresh",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  197,
-                           "endLine":  290,
+                           "startLine":  194,
+                           "endLine":  287,
                            "lineCount":  94,
                            "directCalls":  [
                                                "BuildSnapshotDictionary",
@@ -46249,8 +46249,8 @@
                            "name":  "InitializeAutoSnapshotForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  292,
-                           "endLine":  345,
+                           "startLine":  289,
+                           "endLine":  342,
                            "lineCount":  54,
                            "directCalls":  [
                                                "ApplyReadModelStatusSurface",
@@ -46287,8 +46287,8 @@
                            "name":  "UnregisterAutoSnapshotWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  347,
-                           "endLine":  360,
+                           "startLine":  344,
+                           "endLine":  357,
                            "lineCount":  14,
                            "directCalls":  [
                                                "BuildWorkbookKeyReadModel",
@@ -46311,8 +46311,8 @@
                            "name":  "RunScheduledOperatorAutoRefresh",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  362,
-                           "endLine":  418,
+                           "startLine":  359,
+                           "endLine":  415,
                            "lineCount":  57,
                            "directCalls":  [
                                                "Add",
@@ -46341,8 +46341,8 @@
                            "name":  "RunBatchAndRefreshOperatorWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  420,
-                           "endLine":  526,
+                           "startLine":  417,
+                           "endLine":  523,
                            "lineCount":  107,
                            "directCalls":  [
                                                "BatchReportHandledQueuedRowsReadModel",
@@ -46377,8 +46377,8 @@
                            "name":  "ResolveCurrentStationIdReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  528,
-                           "endLine":  540,
+                           "startLine":  525,
+                           "endLine":  537,
                            "lineCount":  13,
                            "directCalls":  [
                                                "GetCurrentTarget",
@@ -46399,8 +46399,8 @@
                            "name":  "BatchReportHandledQueuedRowsReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  542,
-                           "endLine":  556,
+                           "startLine":  539,
+                           "endLine":  553,
                            "lineCount":  15,
                            "directCalls":  [
                                                "ExtractBatchMetricReadModel"
@@ -46420,8 +46420,8 @@
                            "name":  "FormatRuntimeTimingReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  558,
-                           "endLine":  566,
+                           "startLine":  555,
+                           "endLine":  563,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -46441,8 +46441,8 @@
                            "name":  "ElapsedMillisecondsReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  568,
-                           "endLine":  574,
+                           "startLine":  565,
+                           "endLine":  571,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -46462,8 +46462,8 @@
                            "name":  "ExtractBatchMetricReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  576,
-                           "endLine":  594,
+                           "startLine":  573,
+                           "endLine":  591,
                            "lineCount":  19,
                            "directCalls":  [
 
@@ -46483,8 +46483,8 @@
                            "name":  "ResolveOperatorWorkbook",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  596,
-                           "endLine":  607,
+                           "startLine":  593,
+                           "endLine":  604,
                            "lineCount":  12,
                            "directCalls":  [
 
@@ -46504,8 +46504,8 @@
                            "name":  "ResolveWarehouseIdReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  609,
-                           "endLine":  613,
+                           "startLine":  606,
+                           "endLine":  610,
                            "lineCount":  5,
                            "directCalls":  [
                                                "GetWarehouseId"
@@ -46525,8 +46525,8 @@
                            "name":  "ResolveAutoSnapshotWarehouseIdReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  615,
-                           "endLine":  623,
+                           "startLine":  612,
+                           "endLine":  620,
                            "lineCount":  9,
                            "directCalls":  [
                                                "GetWarehouseId",
@@ -46549,8 +46549,8 @@
                            "name":  "ResolveWarehouseIdFromInvSysSnapshotReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  625,
-                           "endLine":  645,
+                           "startLine":  622,
+                           "endLine":  642,
                            "lineCount":  21,
                            "directCalls":  [
                                                "FindListObjectReadModel",
@@ -46572,8 +46572,8 @@
                            "name":  "ResolveWarehouseIdFromSnapshotIdReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  647,
-                           "endLine":  655,
+                           "startLine":  644,
+                           "endLine":  652,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -46593,8 +46593,8 @@
                            "name":  "ResolveWarehouseIdFromOpenConfigWorkbooksReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  657,
-                           "endLine":  674,
+                           "startLine":  654,
+                           "endLine":  671,
                            "lineCount":  18,
                            "directCalls":  [
                                                "ResolveWarehouseIdFromConfigWorkbookNameReadModel"
@@ -46614,8 +46614,8 @@
                            "name":  "ResolveWarehouseIdFromConfigWorkbookNameReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  676,
-                           "endLine":  684,
+                           "startLine":  673,
+                           "endLine":  681,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -46635,8 +46635,8 @@
                            "name":  "ResolveSnapshotPathReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  686,
-                           "endLine":  688,
+                           "startLine":  683,
+                           "endLine":  685,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ResolveSnapshotPathForSourceReadModel"
@@ -46656,8 +46656,8 @@
                            "name":  "ResolveSnapshotPathForSourceReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  690,
-                           "endLine":  700,
+                           "startLine":  687,
+                           "endLine":  697,
                            "lineCount":  11,
                            "directCalls":  [
                                                "ResolveSnapshotFolderPathReadModel"
@@ -46677,8 +46677,8 @@
                            "name":  "ResolveSnapshotFolderPathReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  702,
-                           "endLine":  717,
+                           "startLine":  699,
+                           "endLine":  714,
                            "lineCount":  16,
                            "directCalls":  [
                                                "GetCoreDataRootOverride",
@@ -46701,8 +46701,8 @@
                            "name":  "ResolveSnapshotContextReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  719,
-                           "endLine":  771,
+                           "startLine":  716,
+                           "endLine":  768,
                            "lineCount":  53,
                            "directCalls":  [
                                                "FileExistsReadModel",
@@ -46725,8 +46725,8 @@
                            "name":  "ResolveStaleSnapshotPathReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  773,
-                           "endLine":  806,
+                           "startLine":  770,
+                           "endLine":  803,
                            "lineCount":  34,
                            "directCalls":  [
                                                "ResolveSnapshotFolderPathReadModel",
@@ -46747,8 +46747,8 @@
                            "name":  "ResolveSnapshotContextValueReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  808,
-                           "endLine":  812,
+                           "startLine":  805,
+                           "endLine":  809,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -46768,8 +46768,8 @@
                            "name":  "ResolveSnapshotContextFlagReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  814,
-                           "endLine":  818,
+                           "startLine":  811,
+                           "endLine":  815,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -46789,8 +46789,8 @@
                            "name":  "WorkbookIsOpenByPathReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  820,
-                           "endLine":  832,
+                           "startLine":  817,
+                           "endLine":  829,
                            "lineCount":  13,
                            "directCalls":  [
 
@@ -46810,8 +46810,8 @@
                            "name":  "EnsureWorksheetEditableReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  834,
-                           "endLine":  846,
+                           "startLine":  831,
+                           "endLine":  843,
                            "lineCount":  13,
                            "directCalls":  [
 
@@ -46831,8 +46831,8 @@
                            "name":  "RestoreWorksheetProtectionReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  848,
-                           "endLine":  859,
+                           "startLine":  845,
+                           "endLine":  856,
                            "lineCount":  12,
                            "directCalls":  [
 
@@ -46852,8 +46852,8 @@
                            "name":  "NormalizeSourceType",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  861,
-                           "endLine":  869,
+                           "startLine":  858,
+                           "endLine":  866,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -46873,8 +46873,8 @@
                            "name":  "FindListObjectReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  871,
-                           "endLine":  881,
+                           "startLine":  868,
+                           "endLine":  878,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -46894,8 +46894,8 @@
                            "name":  "BuildSnapshotDictionary",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  883,
-                           "endLine":  977,
+                           "startLine":  880,
+                           "endLine":  974,
                            "lineCount":  95,
                            "directCalls":  [
                                                "Add",
@@ -46925,8 +46925,8 @@
                            "name":  "ApplySnapshotToInvSys",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  979,
-                           "endLine":  1027,
+                           "startLine":  976,
+                           "endLine":  1024,
                            "lineCount":  49,
                            "directCalls":  [
                                                "ApplyReadModelValues",
@@ -46958,8 +46958,8 @@
                            "name":  "EnsureInvSysRowsForSnapshot",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1029,
-                           "endLine":  1057,
+                           "startLine":  1026,
+                           "endLine":  1054,
                            "lineCount":  29,
                            "directCalls":  [
                                                "AppendInvSysRow",
@@ -46983,8 +46983,8 @@
                            "name":  "ResolveSnapshotPayloadForInvSysReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1059,
-                           "endLine":  1067,
+                           "startLine":  1056,
+                           "endLine":  1064,
                            "lineCount":  9,
                            "directCalls":  [
                                                "SystemKey"
@@ -47004,8 +47004,8 @@
                            "name":  "FindInvSysRowBySku",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1069,
-                           "endLine":  1081,
+                           "startLine":  1066,
+                           "endLine":  1078,
                            "lineCount":  13,
                            "directCalls":  [
                                                "ResolveInvSysSku",
@@ -47026,8 +47026,8 @@
                            "name":  "FindInvSysRowBySystemKeyReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1083,
-                           "endLine":  1098,
+                           "startLine":  1080,
+                           "endLine":  1095,
                            "lineCount":  16,
                            "directCalls":  [
                                                "GetReadModelValue",
@@ -47048,8 +47048,8 @@
                            "name":  "AppendInvSysRow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1100,
-                           "endLine":  1104,
+                           "startLine":  1097,
+                           "endLine":  1101,
                            "lineCount":  5,
                            "directCalls":  [
                                                "Add"
@@ -47069,8 +47069,8 @@
                            "name":  "SeedInvSysRow",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1106,
-                           "endLine":  1116,
+                           "startLine":  1103,
+                           "endLine":  1113,
                            "lineCount":  11,
                            "directCalls":  [
                                                "SetReadModelValue",
@@ -47092,8 +47092,8 @@
                            "name":  "ApplyReadModelValues",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1118,
-                           "endLine":  1149,
+                           "startLine":  1115,
+                           "endLine":  1146,
                            "lineCount":  32,
                            "directCalls":  [
                                                "GetReadModelValue",
@@ -47116,8 +47116,8 @@
                            "name":  "ApplySnapshotMetadataToInvSys",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1151,
-                           "endLine":  1211,
+                           "startLine":  1148,
+                           "endLine":  1208,
                            "lineCount":  61,
                            "directCalls":  [
                                                "GetReadModelValue",
@@ -47141,8 +47141,8 @@
                            "name":  "ResolveSnapshotNumberFieldReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1213,
-                           "endLine":  1216,
+                           "startLine":  1210,
+                           "endLine":  1213,
                            "lineCount":  4,
                            "directCalls":  [
                                                "NzDblReadModel"
@@ -47162,8 +47162,8 @@
                            "name":  "MarkReadModelState",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1218,
-                           "endLine":  1235,
+                           "startLine":  1215,
+                           "endLine":  1232,
                            "lineCount":  18,
                            "directCalls":  [
                                                "SetReadModelValue",
@@ -47184,8 +47184,8 @@
                            "name":  "ResolveExistingSnapshotIdReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1237,
-                           "endLine":  1251,
+                           "startLine":  1234,
+                           "endLine":  1248,
                            "lineCount":  15,
                            "directCalls":  [
                                                "GetReadModelValue"
@@ -47205,8 +47205,8 @@
                            "name":  "SyncDisplayAliases",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1253,
-                           "endLine":  1265,
+                           "startLine":  1250,
+                           "endLine":  1262,
                            "lineCount":  13,
                            "directCalls":  [
                                                "GetReadModelValue",
@@ -47230,8 +47230,8 @@
                            "name":  "ResolveInvSysSku",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1267,
-                           "endLine":  1270,
+                           "startLine":  1264,
+                           "endLine":  1267,
                            "lineCount":  4,
                            "directCalls":  [
                                                "GetReadModelValue"
@@ -47251,8 +47251,8 @@
                            "name":  "BuildSnapshotId",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1272,
-                           "endLine":  1281,
+                           "startLine":  1269,
+                           "endLine":  1278,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -47272,8 +47272,8 @@
                            "name":  "GetColumnIndexReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1283,
-                           "endLine":  1293,
+                           "startLine":  1280,
+                           "endLine":  1290,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -47293,8 +47293,8 @@
                            "name":  "GetReadModelValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1295,
-                           "endLine":  1302,
+                           "startLine":  1292,
+                           "endLine":  1299,
                            "lineCount":  8,
                            "directCalls":  [
                                                "GetColumnIndexReadModel"
@@ -47314,8 +47314,8 @@
                            "name":  "SetReadModelValue",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1304,
-                           "endLine":  1311,
+                           "startLine":  1301,
+                           "endLine":  1308,
                            "lineCount":  8,
                            "directCalls":  [
                                                "GetColumnIndexReadModel"
@@ -47335,8 +47335,8 @@
                            "name":  "NzDblReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1313,
-                           "endLine":  1316,
+                           "startLine":  1310,
+                           "endLine":  1313,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -47356,8 +47356,8 @@
                            "name":  "ResolveSnapshotQtyAvailable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1318,
-                           "endLine":  1327,
+                           "startLine":  1315,
+                           "endLine":  1324,
                            "lineCount":  10,
                            "directCalls":  [
                                                "NzDblReadModel"
@@ -47377,8 +47377,8 @@
                            "name":  "ResolveSnapshotLocationSummary",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1329,
-                           "endLine":  1334,
+                           "startLine":  1326,
+                           "endLine":  1331,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -47398,8 +47398,8 @@
                            "name":  "ResolveSnapshotLastApplied",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1336,
-                           "endLine":  1341,
+                           "startLine":  1333,
+                           "endLine":  1338,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -47419,8 +47419,8 @@
                            "name":  "ResolveSnapshotTextReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1343,
-                           "endLine":  1350,
+                           "startLine":  1340,
+                           "endLine":  1347,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -47440,8 +47440,8 @@
                            "name":  "AddSnapshotTextPayloadReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1352,
-                           "endLine":  1357,
+                           "startLine":  1349,
+                           "endLine":  1354,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -47461,8 +47461,8 @@
                            "name":  "ResolveSnapshotNumberPayloadReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1359,
-                           "endLine":  1363,
+                           "startLine":  1356,
+                           "endLine":  1360,
                            "lineCount":  5,
                            "directCalls":  [
                                                "NzDblReadModel"
@@ -47482,8 +47482,8 @@
                            "name":  "ResolveSnapshotTextPayloadReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1365,
-                           "endLine":  1369,
+                           "startLine":  1362,
+                           "endLine":  1366,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -47503,8 +47503,8 @@
                            "name":  "ResolveSnapshotValuePayloadReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1371,
-                           "endLine":  1375,
+                           "startLine":  1368,
+                           "endLine":  1372,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -47524,8 +47524,8 @@
                            "name":  "NormalizeFolderPathReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1377,
-                           "endLine":  1385,
+                           "startLine":  1374,
+                           "endLine":  1382,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -47545,8 +47545,8 @@
                            "name":  "FileExistsReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1387,
-                           "endLine":  1401,
+                           "startLine":  1384,
+                           "endLine":  1398,
                            "lineCount":  15,
                            "directCalls":  [
 
@@ -47566,8 +47566,8 @@
                            "name":  "ResolveSnapshotFileStampReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1403,
-                           "endLine":  1418,
+                           "startLine":  1400,
+                           "endLine":  1415,
                            "lineCount":  16,
                            "directCalls":  [
                                                "FileExistsReadModel",
@@ -47589,8 +47589,8 @@
                            "name":  "ResolveWorkbookNameReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1420,
-                           "endLine":  1426,
+                           "startLine":  1417,
+                           "endLine":  1423,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -47610,8 +47610,8 @@
                            "name":  "GetListRowCountReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1428,
-                           "endLine":  1432,
+                           "startLine":  1425,
+                           "endLine":  1429,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -47631,8 +47631,8 @@
                            "name":  "ProbeSnapshotOpenReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1434,
-                           "endLine":  1480,
+                           "startLine":  1431,
+                           "endLine":  1477,
                            "lineCount":  47,
                            "directCalls":  [
                                                "CloseWorkbookQuietlyReadModel",
@@ -47654,8 +47654,8 @@
                            "name":  "CloseWorkbookQuietlyReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1482,
-                           "endLine":  1488,
+                           "startLine":  1479,
+                           "endLine":  1485,
                            "lineCount":  7,
                            "directCalls":  [
                                                "HideWorkbookWindowsReadModel"
@@ -47675,8 +47675,8 @@
                            "name":  "HideWorkbookWindowsReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1490,
-                           "endLine":  1500,
+                           "startLine":  1487,
+                           "endLine":  1497,
                            "lineCount":  11,
                            "directCalls":  [
                                                "ReactivateQuietOwnerSafeReadModel"
@@ -47696,8 +47696,8 @@
                            "name":  "ReactivateQuietOwnerSafeReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1502,
-                           "endLine":  1506,
+                           "startLine":  1499,
+                           "endLine":  1503,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -47717,8 +47717,8 @@
                            "name":  "MarkSegmentSafeReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1508,
-                           "endLine":  1512,
+                           "startLine":  1505,
+                           "endLine":  1509,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -47738,8 +47738,8 @@
                            "name":  "LogDiagnosticSafeReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1514,
-                           "endLine":  1518,
+                           "startLine":  1511,
+                           "endLine":  1515,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -47759,8 +47759,8 @@
                            "name":  "PerfIsTransactionActiveSafeReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1520,
-                           "endLine":  1524,
+                           "startLine":  1517,
+                           "endLine":  1521,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -47780,8 +47780,8 @@
                            "name":  "ResolvePrimaryLocationReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1526,
-                           "endLine":  1550,
+                           "startLine":  1523,
+                           "endLine":  1547,
                            "lineCount":  25,
                            "directCalls":  [
                                                "NormalizeDisplayLocationReadModel"
@@ -47801,8 +47801,8 @@
                            "name":  "NormalizeDisplayLocationReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1552,
-                           "endLine":  1569,
+                           "startLine":  1549,
+                           "endLine":  1566,
                            "lineCount":  18,
                            "directCalls":  [
 
@@ -47822,8 +47822,8 @@
                            "name":  "NormalizeLocationSummaryReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1571,
-                           "endLine":  1616,
+                           "startLine":  1568,
+                           "endLine":  1613,
                            "lineCount":  46,
                            "directCalls":  [
                                                "Add",
@@ -47845,8 +47845,8 @@
                            "name":  "BuildNormalizedLocationSummaryReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1618,
-                           "endLine":  1632,
+                           "startLine":  1615,
+                           "endLine":  1629,
                            "lineCount":  15,
                            "directCalls":  [
                                                "FormatQuantityReadModel"
@@ -47866,8 +47866,8 @@
                            "name":  "FormatQuantityReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1634,
-                           "endLine":  1640,
+                           "startLine":  1631,
+                           "endLine":  1637,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -47887,8 +47887,8 @@
                            "name":  "ShouldAutoManageWorkbookReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1642,
-                           "endLine":  1647,
+                           "startLine":  1639,
+                           "endLine":  1644,
                            "lineCount":  6,
                            "directCalls":  [
                                                "ShouldBootstrapRoleWorkbookSurface"
@@ -47908,8 +47908,8 @@
                            "name":  "EnsureAutoRefreshRegistryReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1649,
-                           "endLine":  1654,
+                           "startLine":  1646,
+                           "endLine":  1651,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -47929,8 +47929,8 @@
                            "name":  "BuildWorkbookKeyReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1656,
-                           "endLine":  1663,
+                           "startLine":  1653,
+                           "endLine":  1660,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -47950,8 +47950,8 @@
                            "name":  "RegisterAutoRefreshWorkbookReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1665,
-                           "endLine":  1686,
+                           "startLine":  1662,
+                           "endLine":  1683,
                            "lineCount":  22,
                            "directCalls":  [
                                                "Add",
@@ -47975,8 +47975,8 @@
                            "name":  "UpdateAutoRefreshEntryReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1688,
-                           "endLine":  1703,
+                           "startLine":  1685,
+                           "endLine":  1700,
                            "lineCount":  16,
                            "directCalls":  [
                                                "BuildWorkbookKeyReadModel",
@@ -48001,8 +48001,8 @@
                            "name":  "UpdateAutoRefreshConfigReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1705,
-                           "endLine":  1719,
+                           "startLine":  1702,
+                           "endLine":  1716,
                            "lineCount":  15,
                            "directCalls":  [
                                                "EnsureAutoRefreshRegistryReadModel",
@@ -48023,8 +48023,8 @@
                            "name":  "ResolveWorkbookByKeyReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1721,
-                           "endLine":  1733,
+                           "startLine":  1718,
+                           "endLine":  1730,
                            "lineCount":  13,
                            "directCalls":  [
                                                "BuildWorkbookKeyReadModel"
@@ -48044,8 +48044,8 @@
                            "name":  "IsRefreshDueReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1735,
-                           "endLine":  1749,
+                           "startLine":  1732,
+                           "endLine":  1746,
                            "lineCount":  15,
                            "directCalls":  [
 
@@ -48065,8 +48065,8 @@
                            "name":  "ResolveMetaValueReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1751,
-                           "endLine":  1755,
+                           "startLine":  1748,
+                           "endLine":  1752,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -48086,8 +48086,8 @@
                            "name":  "ResolveAutoRefreshIntervalSecondsReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1757,
-                           "endLine":  1760,
+                           "startLine":  1754,
+                           "endLine":  1757,
                            "lineCount":  4,
                            "directCalls":  [
                                                "GetLong"
@@ -48107,8 +48107,8 @@
                            "name":  "ScheduledRefreshCanShortCircuitReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1762,
-                           "endLine":  1775,
+                           "startLine":  1759,
+                           "endLine":  1772,
                            "lineCount":  14,
                            "directCalls":  [
                                                "ResolveMetaValueReadModel",
@@ -48129,8 +48129,8 @@
                            "name":  "ScheduleNextAutoRefreshReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1777,
-                           "endLine":  1813,
+                           "startLine":  1774,
+                           "endLine":  1810,
                            "lineCount":  37,
                            "directCalls":  [
                                                "BuildScheduledProcedureReadModel",
@@ -48154,8 +48154,8 @@
                            "name":  "ResolveNextRunReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1815,
-                           "endLine":  1824,
+                           "startLine":  1812,
+                           "endLine":  1821,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -48175,8 +48175,8 @@
                            "name":  "CancelScheduledAutoRefreshReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1826,
-                           "endLine":  1834,
+                           "startLine":  1823,
+                           "endLine":  1831,
                            "lineCount":  9,
                            "directCalls":  [
                                                "BuildScheduledProcedureReadModel"
@@ -48196,8 +48196,8 @@
                            "name":  "BuildScheduledProcedureReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1836,
-                           "endLine":  1838,
+                           "startLine":  1833,
+                           "endLine":  1835,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -48217,8 +48217,8 @@
                            "name":  "ApplyReadModelStatusSurface",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1840,
-                           "endLine":  1876,
+                           "startLine":  1837,
+                           "endLine":  1873,
                            "lineCount":  37,
                            "directCalls":  [
                                                "BuildStatusBannerTextReadModel",
@@ -48240,8 +48240,8 @@
                            "name":  "ResolveInventoryManagementSheetReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1878,
-                           "endLine":  1882,
+                           "startLine":  1875,
+                           "endLine":  1879,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -48261,8 +48261,8 @@
                            "name":  "EnsureStatusShapeReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1884,
-                           "endLine":  1898,
+                           "startLine":  1881,
+                           "endLine":  1895,
                            "lineCount":  15,
                            "directCalls":  [
 
@@ -48282,8 +48282,8 @@
                            "name":  "BuildStatusBannerTextReadModel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1900,
-                           "endLine":  1919,
+                           "startLine":  1897,
+                           "endLine":  1916,
                            "lineCount":  20,
                            "directCalls":  [
 
@@ -50758,8 +50758,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  46,
-                           "endLine":  82,
-                           "lineCount":  37,
+                           "endLine":  87,
+                           "lineCount":  42,
                            "directCalls":  [
                                                "Add",
                                                "Message"
@@ -50779,8 +50779,8 @@
                            "name":  "StagingOutcome",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  84,
-                           "endLine":  111,
+                           "startLine":  89,
+                           "endLine":  116,
                            "lineCount":  28,
                            "directCalls":  [
                                                "Add",
@@ -107771,8 +107771,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  37,
-                           "endLine":  72,
-                           "lineCount":  36,
+                           "endLine":  80,
+                           "lineCount":  44,
                            "directCalls":  [
                                                "BeginAction",
                                                "CaptureContext",
@@ -135925,6 +135925,7 @@
                                "entryPoint":  "Accepted",
                                "testPaths":  [
                                                  "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aaProcessBulkImport.ps1",
                                                  "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4zProcessWorkbench.ps1",
@@ -135964,6 +135965,7 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
@@ -138430,6 +138432,7 @@
                                                  "tests/legacy-vba/modTestModule.bas",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
@@ -138932,6 +138935,7 @@
                            {
                                "entryPoint":  "LocalAction",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1"
                                              ]
                            },
@@ -141305,6 +141309,7 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
