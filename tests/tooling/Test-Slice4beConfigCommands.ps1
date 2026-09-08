@@ -6,7 +6,8 @@ param(
     [switch]$CaptureEvidence,
     [switch]$CheckActivityEvidence,
     [switch]$CheckActivityFoundation,
-    [switch]$CheckReceivingActivity
+    [switch]$CheckReceivingActivity,
+    [switch]$CheckReceivingStagingActivity
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -22,12 +23,14 @@ if ($CheckActivityEvidence) {
     if ($CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
 if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundation checks require activity evidence mode.' }
+if ($CheckReceivingStagingActivity -and -not $CheckReceivingActivity) { throw 'Staging coverage requires Receiving activity mode.' }
 if ($CheckReceivingActivity) {
     $reportRoot = Join-Path $repo 'reports/runtime/slice4be-receiving-activity'
     . (Join-Path $PSScriptRoot 'Slice4beActivityAssertions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingActivity.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingReferences.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingRetry.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingStaging.ps1')
     if (-not $CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null

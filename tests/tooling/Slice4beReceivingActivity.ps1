@@ -151,12 +151,12 @@ End Function
     SelectTarget $fixture 'config-reader'
     $formCode = $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmReceiving').CodeModule
     $formCode.AddFromString(@'
-Public Function ActivityTestStage(ByVal operatorWb As Workbook) As Boolean
+Public Function ActivityTestStage(ByVal operatorWb As Workbook, Optional ByVal disposition As Boolean = False, Optional ByVal otherWb As Workbook = Nothing) As Boolean
     Dim report As String, i As Long, lo As ListObject
     SetOperatorWorkbook operatorWb
     InitializeFromReceiving
     mBtnRefresh_Click
-    mTabs.Value = 0
+    If disposition Then mTabs.Value = 1 Else mTabs.Value = 0
     ApplyReceivingTab
     If mLstReceiveItems.ListCount = 0 Then Exit Function
     For i = 1 To 2
@@ -166,10 +166,31 @@ Public Function ActivityTestStage(ByVal operatorWb As Workbook) As Boolean
         mTxtQty.Value = CStr(i)
         mTxtReceiveLocation.Value = "ACTIVITY-PRIVATE-LOCATION"
         mCboCondition.Value = "GOOD"
+        If disposition Then
+            mCboDisposition.ListIndex = i - 1
+            mTxtReturnReason.Value = "ACTIVITY-PRIVATE-DISPOSITION-REASON"
+        End If
+        If Not otherWb Is Nothing Then otherWb.Activate
         mBtnAdd_Click
     Next i
     Set lo = operatorWb.Worksheets("ReceivedTally").ListObjects("ReceivedTally")
     ActivityTestStage = (lo.ListRows.Count = 2)
+End Function
+Public Function ActivityTestDirectStage(ByVal operatorWb As Workbook, ByVal disposition As Boolean) As Boolean
+    Dim report As String, receiptType As String
+    receiptType = "RECEIPT"
+    If disposition Then receiptType = "RETURN"
+    ActivityTestDirectStage = modTS_Received.StageReceivingFormItemForWorkbook( _
+        operatorWb, "ACTIVITY-PRIVATE-DIRECT-REFERENCE", SelectedReceiveItemSystemKey(0), _
+        NzText(mLstReceiveItems.List(0, 0)), 1, report, _
+        CStr(mTxtReceiveLocation.Value), "", "GOOD", receiptType, "ACTIVITY-PRIVATE-DIRECT-REASON")
+End Function
+Public Function ActivityTestAddCheck(ByVal rejectInput As Boolean) As String
+    mTxtRef.Value = "ACTIVITY-PRIVATE-EXTRA-REFERENCE"
+    mTxtQty.Value = "1"
+    If rejectInput Then mTxtQty.Value = "0"
+    mBtnAdd_Click
+    ActivityTestAddCheck = CStr(mTxtStatus.Value)
 End Function
 '@)
     $helper = $packages['invSys.Operations.xlam'].VBProject.VBComponents.Add(1)
@@ -177,9 +198,17 @@ End Function
     $helper.CodeModule.AddFromString(@'
 Option Explicit
 Private mForm As frmReceiving
-Public Function Stage(ByVal workbookName As String) As Boolean
+Public Function Stage(ByVal workbookName As String, Optional ByVal disposition As Boolean = False, Optional ByVal otherName As String = "") As Boolean
+    Dim otherWb As Workbook
+    If otherName <> "" Then Set otherWb = Application.Workbooks(otherName)
     Set mForm = New frmReceiving
-    Stage = mForm.ActivityTestStage(Application.Workbooks(workbookName))
+    Stage = mForm.ActivityTestStage(Application.Workbooks(workbookName), disposition, otherWb)
+End Function
+Public Function DirectStage(ByVal workbookName As String, ByVal disposition As Boolean) As Boolean
+    DirectStage = mForm.ActivityTestDirectStage(Application.Workbooks(workbookName), disposition)
+End Function
+Public Function AddCheck(ByVal rejectInput As Boolean) As String
+    AddCheck = mForm.ActivityTestAddCheck(rejectInput)
 End Function
 Public Sub Reopen(ByVal workbookName As String)
     Set mForm = New frmReceiving
@@ -352,4 +381,5 @@ End Sub
         Check 'Receiving.Setup.PreExistingUnknownColumnPreserved' ((Table $existingConfig 'tblWarehouseConfig').ListColumns.Item('Setup Existing Extra').DataBodyRange.Cells.Item(1,1).Value2 -ceq 'preserve existing setup value')
         $existingConfig.Close($false)
     } else { Check 'Receiving.Setup.PreExistingUnknownColumnPreserved' $false }
+    if ($CheckReceivingStagingActivity) { Test-ReceivingStagingCoverage $fixture }
 }
