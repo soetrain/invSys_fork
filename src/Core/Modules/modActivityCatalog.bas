@@ -2,13 +2,16 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 2
+Public Const CATALOG_VERSION As Long = 3
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     If version = 1 Then
         ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE")
     ElseIf version = 2 Then
         ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", "RECEIVING_CONFIRM_WRITES")
+    ElseIf version = 3 Then
+        ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", "RECEIVING_CONFIRM_WRITES", _
+                           "RECEIVING_ADD_SELECTED", "DISPOSITION_ADD_SELECTED", "DISPOSITION_CONFIRM")
     End If
 End Function
 
@@ -40,6 +43,24 @@ Public Function Control(ByVal controlId As String, Optional ByVal version As Lon
             record.Add "Surface", "Operations > Receiving"
             record.Add "Capability", "RECEIVE_POST"
             record.Add "CodePrefix", "RECEIVE_CONFIRM_"
+        Case "RECEIVING_ADD_SELECTED", "DISPOSITION_ADD_SELECTED", "DISPOSITION_CONFIRM"
+            If version < 3 Then Exit Function
+            record("OwnerId") = "RECEIVING_DISPOSITION"
+            record.Add "Role", "Receiving"
+            record.Add "Surface", "Operations > Receiving > Returns"
+            record.Add "Capability", "RECEIVE_POST"
+            If controlId = "RECEIVING_ADD_SELECTED" Then
+                record("OwnerId") = "RECEIVING_STAGING"
+                record("Surface") = "Operations > Receiving"
+                record.Add "Caption", "Add Selected"
+                record.Add "CodePrefix", "RECEIVE_ADD_"
+            ElseIf controlId = "DISPOSITION_ADD_SELECTED" Then
+                record.Add "Caption", "Add Disposition"
+                record.Add "CodePrefix", "DISPOSITION_ADD_"
+            Else
+                record.Add "Caption", "Confirm Dispositions"
+                record.Add "CodePrefix", "DISPOSITION_CONFIRM_"
+            End If
         Case Else: Exit Function
     End Select
     Set Control = record
@@ -50,7 +71,11 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
     If definition("Role") = "Receiving" Then
-        Set Outcome = modReceivingActivityCodes.Outcome(outcomeCode)
+        If controlId = "RECEIVING_ADD_SELECTED" Or controlId = "DISPOSITION_ADD_SELECTED" Then
+            Set Outcome = modReceivingActivityCodes.StagingOutcome(outcomeCode, definition("CodePrefix"))
+        Else
+            Set Outcome = modReceivingActivityCodes.Outcome(outcomeCode, controlId = "DISPOSITION_CONFIRM")
+        End If
         Exit Function
     End If
     Set record = CreateObject("Scripting.Dictionary")

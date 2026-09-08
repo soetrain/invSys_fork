@@ -842,62 +842,38 @@ Private Sub AddSelectedInventory()
     Dim sourceSystemKey As String
     Dim receiptType As String
     Dim returnReason As String
+    Dim activityId As String, notice As String, outcome As String, controlId As String
 
+    report = "Session or warehouse changed. Reopen Receiving before staging."
+    If mActivityContext = "" Or mActivityContext <> modActivity.CaptureContext() Then GoTo Done
+    controlId = "RECEIVING_ADD_SELECTED"
+    If mTabs.Value = 1 Then controlId = "DISPOSITION_ADD_SELECTED"
+    activityId = modActivity.BeginAction(controlId, mActivityContext, notice)
+    outcome = "REJECTED"
+    If Not modReceivingAddInput.Valid(Me, receiptType, report) Then GoTo Done
     idx = mLstReceiveItems.ListIndex
-    If idx < 0 Then
-        ShowStatus "Select a managed item to receive first."
-        Exit Sub
-    End If
-
     refVal = Trim$(CStr(mTxtRef.Value))
-    If refVal = "" Then
-        ShowStatus "Ref number is required."
-        Exit Sub
-    End If
-
     sourceSystemKey = SelectedReceiveItemSystemKey(idx)
     itemCode = NzText(mLstReceiveItems.List(idx, 0))
     qtyVal = CDbl(Val(CStr(mTxtQty.Value)))
-    If qtyVal <= 0 Then
-        ShowStatus "Quantity must be greater than zero."
-        Exit Sub
-    End If
-    If Trim$(CStr(mTxtReceiveLocation.Value)) = "" Then
-        ShowStatus "Receive location is required."
-        Exit Sub
-    End If
-    If mCboCondition.ListIndex < 0 Then
-        ShowStatus "Choose the condition of the received goods."
-        Exit Sub
-    End If
-    If mTabs.Value = 1 Then
-        If mCboDisposition.ListIndex < 0 Then
-            ShowStatus "Choose RETURN or DUMP."
-            Exit Sub
-        End If
-        receiptType = UCase$(Trim$(CStr(mCboDisposition.Value)))
-    Else
-        receiptType = "RECEIPT"
-    End If
     returnReason = Trim$(CStr(mTxtReturnReason.Value))
-    If receiptType <> "RECEIPT" And returnReason = "" Then
-        ShowStatus "Disposition reason is required."
-        Exit Sub
-    End If
-
+    outcome = "FAILED"
     If modTS_Received.StageReceivingFormItemForWorkbook( _
         ResolveOperatorWorkbook(), refVal, sourceSystemKey, itemCode, qtyVal, report, _
         Trim$(CStr(mTxtReceiveLocation.Value)), Trim$(CStr(mTxtLotNumber.Value)), _
         CStr(mCboCondition.Value), receiptType, returnReason) Then
+        outcome = "STAGED"
         RefreshStaging
-        ShowStatus report
-    Else
-        ShowStatus report
     End If
+Done:
+    modReceivingAddInput.Finish activityId, outcome, notice, report
+    ShowStatus report
     Exit Sub
 
 ErrHandler:
-    ShowStatus "Add failed: " & Err.Description
+    If outcome <> "STAGED" Then outcome = "FAILED"
+    report = "Add failed: " & Err.Description
+    Resume Done
 End Sub
 
 Private Sub mTabs_Change()

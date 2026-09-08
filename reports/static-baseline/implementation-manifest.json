@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-08T02:04:41Z",
+    "generatedAtUtc":  "2026-09-08T03:19:17Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -203,6 +203,7 @@
                                                 "modProductionUomAction",
                                                 "modProductionUomCatalog",
                                                 "modReceivingActivityAction",
+                                                "modReceivingAddInput",
                                                 "modReceivingFormWindow",
                                                 "modReceivingInit",
                                                 "modReceivingPostingService",
@@ -1918,7 +1919,7 @@
                            "name":  "modActivityCatalog",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActivityCatalog.bas",
-                           "lineCount":  89,
+                           "lineCount":  114,
                            "procedureNames":  [
                                                   "Control",
                                                   "ControlIds",
@@ -2989,9 +2990,10 @@
                            "name":  "modReceivingActivityCodes",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modReceivingActivityCodes.bas",
-                           "lineCount":  40,
+                           "lineCount":  73,
                            "procedureNames":  [
-                                                  "Outcome"
+                                                  "Outcome",
+                                                  "StagingOutcome"
                                               ],
                            "metadata":  {
 
@@ -6205,7 +6207,7 @@
                            "name":  "frmReceiving",
                            "kind":  "FORM",
                            "sourcePath":  "src/Receiving/Forms/frmReceiving.frm",
-                           "lineCount":  1259,
+                           "lineCount":  1235,
                            "procedureNames":  [
                                                   "AddButton",
                                                   "AddComboBox",
@@ -6278,9 +6280,22 @@
                            "name":  "modReceivingActivityAction",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Receiving/Modules/modReceivingActivityAction.bas",
-                           "lineCount":  30,
+                           "lineCount":  34,
                            "procedureNames":  [
                                                   "ConfirmWrites"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "modReceivingAddInput",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Receiving/Modules/modReceivingAddInput.bas",
+                           "lineCount":  39,
+                           "procedureNames":  [
+                                                  "Finish",
+                                                  "Valid"
                                               ],
                            "metadata":  {
 
@@ -33637,8 +33652,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  7,
-                           "endLine":  13,
-                           "lineCount":  7,
+                           "endLine":  16,
+                           "lineCount":  10,
                            "directCalls":  [
                                                "Version"
                                            ],
@@ -33657,9 +33672,9 @@
                            "name":  "Control",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  15,
-                           "endLine":  46,
-                           "lineCount":  32,
+                           "startLine":  18,
+                           "endLine":  67,
+                           "lineCount":  50,
                            "directCalls":  [
                                                "Add",
                                                "Version"
@@ -33679,13 +33694,14 @@
                            "name":  "Outcome",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  48,
-                           "endLine":  89,
-                           "lineCount":  42,
+                           "startLine":  69,
+                           "endLine":  114,
+                           "lineCount":  46,
                            "directCalls":  [
                                                "Add",
                                                "Control",
-                                               "Message"
+                                               "Message",
+                                               "StagingOutcome"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -50717,8 +50733,30 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  6,
-                           "endLine":  40,
-                           "lineCount":  35,
+                           "endLine":  44,
+                           "lineCount":  39,
+                           "directCalls":  [
+                                               "Add",
+                                               "Message"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingActivityCodes",
+                           "name":  "StagingOutcome",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  46,
+                           "endLine":  73,
+                           "lineCount":  28,
                            "directCalls":  [
                                                "Add",
                                                "Message"
@@ -107312,15 +107350,20 @@
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
                            "startLine":  834,
-                           "endLine":  901,
-                           "lineCount":  68,
+                           "endLine":  877,
+                           "lineCount":  44,
                            "directCalls":  [
+                                               "BeginAction",
+                                               "CaptureContext",
+                                               "Finish",
                                                "NzText",
+                                               "Outcome",
                                                "RefreshStaging",
                                                "ResolveOperatorWorkbook",
                                                "SelectedReceiveItemSystemKey",
                                                "ShowStatus",
-                                               "StageReceivingFormItemForWorkbook"
+                                               "StageReceivingFormItemForWorkbook",
+                                               "Valid"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -107337,8 +107380,8 @@
                            "name":  "mTabs_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  903,
-                           "endLine":  906,
+                           "startLine":  879,
+                           "endLine":  882,
                            "lineCount":  4,
                            "directCalls":  [
                                                "ApplyReceivingTab"
@@ -107359,8 +107402,8 @@
                            "name":  "ApplyReceivingTab",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  908,
-                           "endLine":  970,
+                           "startLine":  884,
+                           "endLine":  946,
                            "lineCount":  63,
                            "directCalls":  [
                                                "Control",
@@ -107382,8 +107425,8 @@
                            "name":  "ApplyReceivingHeaderLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  972,
-                           "endLine":  981,
+                           "startLine":  948,
+                           "endLine":  957,
                            "lineCount":  10,
                            "directCalls":  [
                                                "AlignReceivingHeader"
@@ -107403,8 +107446,8 @@
                            "name":  "AlignReceivingHeader",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  983,
-                           "endLine":  995,
+                           "startLine":  959,
+                           "endLine":  971,
                            "lineCount":  13,
                            "directCalls":  [
                                                "BuildReceivingHeaderCaption"
@@ -107424,8 +107467,8 @@
                            "name":  "BuildReceivingHeaderCaption",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  997,
-                           "endLine":  1021,
+                           "startLine":  973,
+                           "endLine":  997,
                            "lineCount":  25,
                            "directCalls":  [
 
@@ -107445,8 +107488,8 @@
                            "name":  "TestReturnsTabContract",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  1023,
-                           "endLine":  1042,
+                           "startLine":  999,
+                           "endLine":  1018,
                            "lineCount":  20,
                            "directCalls":  [
                                                "ApplyReceivingTab",
@@ -107468,8 +107511,8 @@
                            "name":  "TestStageInboundReturnActionForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  1044,
-                           "endLine":  1122,
+                           "startLine":  1020,
+                           "endLine":  1098,
                            "lineCount":  79,
                            "directCalls":  [
                                                "ApplyReceivingTab",
@@ -107497,8 +107540,8 @@
                            "name":  "TestStageProtectedDispositionActionForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  1124,
-                           "endLine":  1157,
+                           "startLine":  1100,
+                           "endLine":  1133,
                            "lineCount":  34,
                            "directCalls":  [
                                                "ApplyReceivingTab",
@@ -107523,8 +107566,8 @@
                            "name":  "TestReceivingSearchAndHeaderContract",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  1159,
-                           "endLine":  1220,
+                           "startLine":  1135,
+                           "endLine":  1196,
                            "lineCount":  62,
                            "directCalls":  [
                                                "ApplyReceivingHeaderLayout",
@@ -107549,8 +107592,8 @@
                            "name":  "ShowStatus",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1222,
-                           "endLine":  1225,
+                           "startLine":  1198,
+                           "endLine":  1201,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -107570,8 +107613,8 @@
                            "name":  "ShowPersistencePending",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1227,
-                           "endLine":  1231,
+                           "startLine":  1203,
+                           "endLine":  1207,
                            "lineCount":  5,
                            "directCalls":  [
                                                "ShowStatus"
@@ -107591,8 +107634,8 @@
                            "name":  "DefaultReceiptId",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1233,
-                           "endLine":  1235,
+                           "startLine":  1209,
+                           "endLine":  1211,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -107612,8 +107655,8 @@
                            "name":  "NormalizeSearchText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1237,
-                           "endLine":  1243,
+                           "startLine":  1213,
+                           "endLine":  1219,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -107633,8 +107676,8 @@
                            "name":  "NzText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1245,
-                           "endLine":  1251,
+                           "startLine":  1221,
+                           "endLine":  1227,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -107654,8 +107697,8 @@
                            "name":  "MaxDoubleReceiving",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1253,
-                           "endLine":  1259,
+                           "startLine":  1229,
+                           "endLine":  1235,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -107676,14 +107719,57 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  5,
-                           "endLine":  30,
-                           "lineCount":  26,
+                           "endLine":  34,
+                           "lineCount":  30,
                            "directCalls":  [
                                                "BeginAction",
                                                "CaptureContext",
                                                "ExecuteConfirmWrites",
                                                "FinishAction",
                                                "InventorySourceReferences",
+                                               "Outcome"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingAddInput",
+                           "name":  "Valid",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  6,
+                           "endLine":  28,
+                           "lineCount":  23,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingAddInput",
+                           "name":  "Finish",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  31,
+                           "endLine":  39,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "FinishAction",
                                                "Outcome"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -135827,6 +135913,7 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Phase6TwoWarehouseProofHarness.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
@@ -136293,7 +136380,8 @@
                            {
                                "entryPoint":  "BeginAction",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beActivityFoundation.ps1"
+                                                 "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beReceivingReferences.ps1"
                                              ]
                            },
                            {
@@ -136653,7 +136741,8 @@
                            {
                                "entryPoint":  "CaptureContext",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beActivityFoundation.ps1"
+                                                 "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beReceivingReferences.ps1"
                                              ]
                            },
                            {
@@ -137021,6 +137110,7 @@
                                "entryPoint":  "Control",
                                "testPaths":  [
                                                  "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4afRecipeIdentity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aoRecipeConnectionEditor.ps1",
@@ -137537,6 +137627,8 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
+                                                 "tests/tooling/Slice4beReceivingRetry.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
                                                  "tests/unit/TestCoreProcessor.bas",
@@ -137559,6 +137651,7 @@
                                "testPaths":  [
                                                  "tests/integration/test_CreateWarehouse.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-Plan022Slice4akAdminAddVisibilityDropdowns.ps1",
                                                  "tests/tooling/Test-Plan022Slice4qDisposition.ps1",
                                                  "tests/unit/TestCoreRoleEventWriter.bas",
@@ -137716,9 +137809,16 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Finish",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-PackagedVbaCompile.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "FinishAction",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beActivityFoundation.ps1"
+                                                 "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beReceivingReferences.ps1"
                                              ]
                            },
                            {
@@ -138269,6 +138369,8 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
+                                                 "tests/tooling/Slice4beReceivingRetry.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4abProcessPickerInventory.ps1",
@@ -138835,7 +138937,8 @@
                            {
                                "entryPoint":  "mBtnAdd_Click",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1"
                                              ]
                            },
                            {
@@ -138877,6 +138980,8 @@
                            {
                                "entryPoint":  "mBtnConfirm_Click",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                  "tests/tooling/Test-Slice10ReceivingStabilization.ps1",
@@ -139289,6 +139394,7 @@
                            {
                                "entryPoint":  "NzText",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4auReceivingListbox.ps1"
                                              ]
                            },
@@ -139367,6 +139473,8 @@
                            {
                                "entryPoint":  "Outcome",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1"
                                              ]
                            },
@@ -139717,6 +139825,7 @@
                            {
                                "entryPoint":  "QueueReceiveEventBatchServer",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4pReceiving.ps1"
                                              ]
                            },
@@ -140136,7 +140245,8 @@
                                "entryPoint":  "ResolveInboxWorkbookPath",
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
-                                                 "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingRetry.ps1"
                                              ]
                            },
                            {
@@ -140565,6 +140675,7 @@
                            {
                                "entryPoint":  "SelectedReceiveItemSystemKey",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4auReceivingListbox.ps1"
                                              ]
                            },
@@ -141071,6 +141182,7 @@
                            {
                                "entryPoint":  "StageReceivingFormItemForWorkbook",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/unit/TestPhase6RoleSurfaces.bas",
                                                  "tests/unit/TestReceivingStabilization.bas",
                                                  "tests/unit/TestStub_modTS_Received.bas"
@@ -141107,6 +141219,8 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingRetry.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1",
                                                  "tests/tooling/Test-Plan022Slice4biFirstUseNasOnboarding.ps1",
@@ -141160,6 +141274,8 @@
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingRetry.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestStub_modTS_Received.bas"
@@ -141702,6 +141818,7 @@
                                                  "tests/integration/test_CreateWarehouse.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                  "tests/tooling/Test-Plan022Slice4xProductionRestart.ps1",

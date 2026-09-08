@@ -29,8 +29,10 @@ function Test-ReceivingControlRecords($Fixture,[string[]]$Before,[string]$Contro
             $references = $references -and $match.Count -eq 1
         }
     }
+    $readable = $complete
     foreach ($record in $records) {
         $owned = $owned -and $record.OwnerId -ceq $Owner -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-reader' -and $record.SourceRole -ceq 'Receiving'
+        $readable = $readable -and $record.CatalogVersion -eq 3 -and (Get-ActivityRead $record.RecordId).StartsWith('OK|')
     }
     foreach ($raw in $payloads) {
         foreach ($value in @($Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'ACTIVITY-PRIVATE','mBtnAdd_Click','mBtnConfirm_Click','Err.Description')) {
@@ -41,6 +43,7 @@ function Test-ReceivingControlRecords($Fixture,[string[]]$Before,[string]$Contro
     Check "$Label.OwnerAndEffect" $owned
     Check "$Label.ExactSubmissionReferencesOnly" $references
     Check "$Label.InputValuesExcluded" $redacted
+    Check "$Label.SupportedCatalogRead" $readable
 }
 
 function Test-ReceivingStagingCoverage($Fixture) {
@@ -68,6 +71,7 @@ function Test-ReceivingStagingCoverage($Fixture) {
         $owner = if ($disposition) { 'RECEIVING_DISPOSITION' } else { 'RECEIVING_STAGING' }
         $prefix = if ($disposition) { 'DISPOSITION_ADD_' } else { 'RECEIVE_ADD_' }
         Test-ReceivingControlRecords $Fixture $before $control $owner $prefix 'STAGED' 2 'Changed' @() "Coverage.$label"
+        Show-ReceivingStagingEvidence ($label+'-staged')
         foreach ($rejected in @($true,$false)) {
             $case = if ($rejected) { 'Rejected' } else { 'Failed' }
             $beforeCheck = @(Get-Slice4beActivityFiles $Fixture)
@@ -78,14 +82,20 @@ function Test-ReceivingStagingCoverage($Fixture) {
             $stagingAfter = @(Get-ReceivingFixtureRows $staging) | ConvertTo-Json -Depth 5 -Compress
             $cause = if ($rejected) { 'Quantity must be greater than zero.' } else { 'staging failed' }
             Check "Coverage.$label.$case.BusinessUnchangedAndCauseVisible" ($stagingBefore -ceq $stagingAfter -and $status.Contains($cause))
+            Show-ReceivingStagingEvidence ($label+'-'+$case)
             $effect = if ($rejected) { 'Unchanged' } else { 'Unknown' }
             $severity = if ($rejected) { 'Warning' } else { 'Error' }
             Test-ReceivingControlRecords $Fixture $beforeCheck $control $owner $prefix $case.ToUpperInvariant() 1 $effect @() "Coverage.$label.$case" $severity
         }
+        $beforeUnavailable = @(Get-Slice4beActivityFiles $Fixture)
+        $status = Invoke-ReceivingStagingStoreFault $Fixture
+        Check "Coverage.$label.StoreFailureDoesNotBlockStaging" ($staging.ListRows.Count -eq 3 -and $status.Contains('Staged ') -and $status.Contains('Tracking unavailable'))
+        Check "Coverage.$label.StoreFailureDoesNotInventEvidence" (@(Get-Slice4beActivityFiles $Fixture).Count -eq $beforeUnavailable.Count)
+        Show-ReceivingStagingEvidence ($label+'-tracking-unavailable')
         $beforeDirect = @(Get-Slice4beActivityFiles $Fixture)
         $direct = [bool](Run 'invSys.Operations.xlam' 'TestReceivingActivity.DirectStage' @($operator.Name,$disposition))
-        Check "Coverage.$label.DirectServiceIsNotUserAction" ($direct -and $staging.ListRows.Count -eq 3 -and @(Get-Slice4beActivityFiles $Fixture).Count -eq $beforeDirect.Count)
-        if (-not $direct -or $staging.ListRows.Count -ne 3) { throw 'Direct staging fixture did not establish its business effect.' }
+        Check "Coverage.$label.DirectServiceIsNotUserAction" ($direct -and $staging.ListRows.Count -eq 4 -and @(Get-Slice4beActivityFiles $Fixture).Count -eq $beforeDirect.Count)
+        if (-not $direct -or $staging.ListRows.Count -ne 4) { throw 'Direct staging fixture did not establish its business effect.' }
         $expected = @(Get-ReceivingFixtureRows $staging)
         $extra = $staging.ListColumns.Add(); $extra.Name = 'Coverage Extra'
         $beforeConfirm = @(Get-Slice4beActivityFiles $Fixture)
@@ -115,5 +125,44 @@ function Test-ReceivingStagingCoverage($Fixture) {
         foreach ($book in $receivingEvidenceOpened) { $book.Close($false) }
         $receivingEvidenceOpened.Clear()
         $operator.Close($false); $other.Close($false)
+    }
+    $operator = $excel.Workbooks.Add()
+    $operator.SaveAs((Join-Path $runRoot 'coverage-stale-add.xlsm'),52)
+    if (-not [bool](Run 'invSys.Operations.xlam' 'TestReceivingActivity.Stage' @($operator.Name))) { throw 'Stale Add fixture staging failed.' }
+    $staging = Table $operator 'ReceivedTally'
+    $stagedBefore = @(Get-ReceivingFixtureRows $staging) | ConvertTo-Json -Depth 5 -Compress
+    $before = @(Get-Slice4beActivityFiles $Fixture)
+    [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
+    SelectTarget $Fixture 'config-reader'
+    $status = [string](Run 'invSys.Operations.xlam' 'TestReceivingActivity.AddCheck' @($false))
+    Check 'Coverage.StaleAdd.StagingPreserved' ($stagedBefore -ceq (@(Get-ReceivingFixtureRows $staging) | ConvertTo-Json -Depth 5 -Compress))
+    Check 'Coverage.StaleAdd.VisibleRejectionWithoutAttribution' ($status.Contains('Session or warehouse changed') -and @(Get-Slice4beActivityFiles $Fixture).Count -eq $before.Count)
+    Show-ReceivingStagingEvidence 'stale-add'
+    [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.CloseForm')
+    $operator.Close($false)
+}
+
+function Show-ReceivingStagingEvidence([string]$Name) {
+    if (-not $CaptureEvidence) { return }
+    [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.ShowForm' @($true))
+    Start-Sleep -Milliseconds 300
+    CaptureFormEvidence 'Receiving' ('coverage-'+$Name.ToLowerInvariant()+'.png')
+    [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.ShowForm' @($false))
+}
+
+function Invoke-ReceivingStagingStoreFault($Fixture) {
+    $leaf = Join-Path $Fixture.Root ('Training\Activity\'+$Fixture.Warehouse)
+    $held = $leaf+'-staging-fixture-held'
+    foreach ($path in @($leaf,$held)) {
+        if (-not [IO.Path]::GetFullPath($path).StartsWith($Fixture.Root.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Staging store fault escaped its fixture.' }
+    }
+    if (-not (Test-Path -LiteralPath $leaf -PathType Container) -or (Test-Path -LiteralPath $held)) { throw 'Staging store fault fixture is not ready.' }
+    Move-Item -LiteralPath $leaf -Destination $held
+    try {
+        [IO.File]::WriteAllText($leaf,'Blocked disposable activity path')
+        return [string](Run 'invSys.Operations.xlam' 'TestReceivingActivity.AddCheck' @($false))
+    } finally {
+        if (Test-Path -LiteralPath $leaf -PathType Leaf) { Remove-Item -LiteralPath $leaf }
+        Move-Item -LiteralPath $held -Destination $leaf
     }
 }

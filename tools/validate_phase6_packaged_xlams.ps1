@@ -768,7 +768,7 @@ finally {
     $lines += "# Phase 6 Packaged XLAM Validation Results"
     $lines += ""
     $lines += "- Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-    $lines += "- Deploy root: deploy/current"
+    $lines += "- Deploy root: $(ConvertTo-SafePackagedEvidenceText $deployPath)"
     $lines += "- Passed: $passedCount"
     $lines += "- Failed: $failedCount"
     $lines += ""

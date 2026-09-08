@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-08T02:04:41Z",
+    "generatedAtUtc":  "2026-09-08T03:19:17Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "7b16263e21e5263fe680e6f88f60da954d6215ced6f95d2eac47676cfdc6fd07",
-                          "maintenanceCandidatesSha256":  "4a6653f9808009e80e1682916374ad71a110f1248d160a577b2ac49e6e758265"
+                          "implementationManifestSha256":  "1a0f51a487e8c38f15c688fcb614ec75db6f55ed9364974aeb4a80c74dc3b183",
+                          "maintenanceCandidatesSha256":  "1fe19f71409e75110d6cd568f55ccfd145ab6ad09bd21a7a3bd06382c010bd00"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -245,7 +245,7 @@
                                                   "sourcePath":  "src/Receiving/Forms/frmReceiving.frm",
                                                   "componentName":  "frmReceiving",
                                                   "packageKey":  "Receiving",
-                                                  "baselineLineCount":  1259,
+                                                  "baselineLineCount":  1235,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -3274,7 +3274,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingStaging.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -23048,7 +23049,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingStaging.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -23117,6 +23119,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingStaging.ps1",
                                                    "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                    "tests/tooling/Test-Slice10ReceivingStabilization.ps1",
@@ -28617,7 +28621,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingStaging.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."

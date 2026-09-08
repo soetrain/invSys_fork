@@ -1,5 +1,10 @@
 # Slice 4be.1 Receiving activity candidate
 
+This records the earlier confirmation candidate and its exact hashes. The
+[staging/disposition extension](plan022_slice4be_receiving_staging_results.md)
+is the current candidate evidence; it retains these checks and adds catalog-3
+Add/Confirm coverage. Pending Add statements below describe the earlier revision.
+
 Last verified: 2026-09-07. Architecture v4.11 D18 and Plan 022 govern this
 implementation checkpoint. Comprehensive control coverage, Events publication,
 Settings policy editing and both Action Path presentations remain incomplete.

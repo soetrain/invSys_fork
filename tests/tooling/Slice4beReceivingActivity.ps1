@@ -210,6 +210,9 @@ End Function
 Public Function AddCheck(ByVal rejectInput As Boolean) As String
     AddCheck = mForm.ActivityTestAddCheck(rejectInput)
 End Function
+Public Sub ShowForm(ByVal visible As Boolean)
+    If visible Then mForm.Show 0 Else mForm.Hide
+End Sub
 Public Sub Reopen(ByVal workbookName As String)
     Set mForm = New frmReceiving
     mForm.SetOperatorWorkbook Application.Workbooks(workbookName)

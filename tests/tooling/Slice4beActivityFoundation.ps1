@@ -140,6 +140,26 @@ function Test-Slice4beActivityPolicy($Fixture,[string]$RecordId) {
             $newControl = [string](Run 'invSys.Core.xlam' 'modActivity.BeginAction' @('RECEIVING_CONFIRM_WRITES',$context))
             Check 'Receiving.Policy.OlderCatalogDoesNotEnableNewControl' ($newControl -eq '' -and @(Get-Slice4beActivityFiles $Fixture).Count -eq $beforeNewControl)
         }
+        if ($CheckReceivingStagingActivity) {
+            $cfg=$excel.Workbooks.Open($Fixture.Config,0,$false)
+            $meta=Table $cfg 'tblEventTrackingPolicies'; $rows=Table $cfg 'tblEventTrackingControls'
+            $meta.ListColumns.Item('CatalogVersion').DataBodyRange.Cells.Item(1,1).Value2=2.0
+            $row=$rows.ListRows.Add()
+            foreach($field in @('Collect','Visible','SequenceEligible')) { $row.Range.Cells.Item(1,$rows.ListColumns.Item($field).Index).Value2=$true }
+            $row.Range.Cells.Item(1,$rows.ListColumns.Item('PolicyVersion').Index).Value2=1.0
+            $row.Range.Cells.Item(1,$rows.ListColumns.Item('ControlId').Index).Value2='RECEIVING_CONFIRM_WRITES'
+            $cfg.Save(); $cfg.Close($false); $cfg=$null
+            Check 'Coverage.Policy.CatalogTwoRemainsValid' ((Get-ActivityRead $RecordId).StartsWith('OK|'))
+            foreach($control in @('RECEIVING_ADD_SELECTED','DISPOSITION_ADD_SELECTED','DISPOSITION_CONFIRM')) {
+                $count=@(Get-Slice4beActivityFiles $Fixture).Count
+                $id=[string](Run 'invSys.Core.xlam' 'modActivity.BeginAction' @($control,$context))
+                Check ('Coverage.Policy.OlderCatalogDoesNotEnable.'+$control) ($id -eq '' -and @(Get-Slice4beActivityFiles $Fixture).Count -eq $count)
+            }
+            $cfg=$excel.Workbooks.Open($Fixture.Config,0,$false)
+            (Table $cfg 'tblEventTrackingControls').ListRows.Item(3).Delete()
+            (Table $cfg 'tblEventTrackingPolicies').ListColumns.Item('CatalogVersion').DataBodyRange.Cells.Item(1,1).Value2=1.0
+            $cfg.Save(); $cfg.Close($false); $cfg=$null
+        }
         foreach($case in @(@('InvalidTimestamp','CreatedAtUTC','2026-99-99T88:77:66.000Z'),@('InvalidFlag','ViewerActionPathCaptureEnabled','yes'),@('UnknownCatalog','CatalogVersion',999.0))) {
             $cfg=$excel.Workbooks.Open($Fixture.Config,0,$false)
             $meta=Table $cfg 'tblEventTrackingPolicies'

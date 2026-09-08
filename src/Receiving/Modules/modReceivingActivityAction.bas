@@ -9,7 +9,11 @@ Public Function ConfirmWrites(ByVal operatorWb As Workbook, ByVal context As Str
     On Error GoTo Failed
     report = "Session or warehouse changed. Reopen Receiving before confirming."
     If context = "" Or context <> modActivity.CaptureContext() Then Exit Function
-    If trackReceipts Then activityId = modActivity.BeginAction("RECEIVING_CONFIRM_WRITES", context, notice)
+    If trackReceipts Then
+        activityId = modActivity.BeginAction("RECEIVING_CONFIRM_WRITES", context, notice)
+    Else
+        activityId = modActivity.BeginAction("DISPOSITION_CONFIRM", context, notice)
+    End If
     ConfirmWrites = modReceivingPostingService.ExecuteConfirmWrites( _
         operatorWb, report, outcome, eventIds, submissionState)
 Done:

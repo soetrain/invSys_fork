@@ -89,11 +89,12 @@ function Get-OpenWorkbookNames {
 function Start-DialogCaptureAndDismiss {
     param(
         [int]$ExcelProcessId,
-        [int]$TimeoutSeconds = 20
+        [int]$TimeoutSeconds = 20,
+        [string]$StopPath = ""
     )
 
     return Start-Job -ScriptBlock {
-        param($processId, $timeoutSeconds)
+        param($processId, $timeoutSeconds, $stopPath)
 
         Add-Type -AssemblyName UIAutomationClient
         Add-Type -AssemblyName UIAutomationTypes
@@ -116,6 +117,7 @@ public static class Plan022DialogDismiss
         $seen = @{}
         try {
             while ((Get-Date) -lt $stopAt) {
+                if ($stopPath -ne "" -and [IO.File]::Exists($stopPath)) { break }
                 Start-Sleep -Milliseconds 200
                 $desktop = [System.Windows.Automation.AutomationElement]::RootElement
                 $processCondition = New-Object System.Windows.Automation.PropertyCondition(
@@ -247,7 +249,7 @@ public static class Plan022DialogDismiss
                 try { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($shell) } catch {}
             }
         }
-    } -ArgumentList $ExcelProcessId, $TimeoutSeconds
+    } -ArgumentList $ExcelProcessId, $TimeoutSeconds, $StopPath
 }
 
 function Invoke-PackagedCallback {
@@ -257,7 +259,8 @@ function Invoke-PackagedCallback {
         [string]$MacroName
     )
 
-    $job = Start-DialogCaptureAndDismiss -ExcelProcessId (Get-ExcelProcessId $Excel)
+    $stopPath = Join-Path $runtimeRoot ('dialog-stop-'+[guid]::NewGuid().ToString('N'))
+    $job = Start-DialogCaptureAndDismiss -ExcelProcessId (Get-ExcelProcessId $Excel) -StopPath $stopPath
     $errorText = ""
     try {
         [void](Run-WorkbookMacro -Excel $Excel -WorkbookName $WorkbookName -MacroName $MacroName)
@@ -267,20 +270,27 @@ function Invoke-PackagedCallback {
     }
     finally {
         Start-Sleep -Milliseconds 600
-        Stop-Job -Job $job -ErrorAction SilentlyContinue
-        Wait-Job -Job $job -Timeout 2 -ErrorAction SilentlyContinue | Out-Null
+        [IO.File]::WriteAllText($stopPath, '')
+        Wait-Job -Job $job -Timeout 25 -ErrorAction SilentlyContinue | Out-Null
+        if ($job.State -notin @('Completed','Failed','Stopped')) {
+            throw 'Dialog observer did not finish; callback evidence is incomplete.'
+        }
+        Remove-Item -LiteralPath $stopPath -ErrorAction SilentlyContinue
     }
 
+    $observerCompleted = $job.State -eq 'Completed'
+    if (-not $observerCompleted -and $errorText -eq '') { $errorText = 'Dialog observer did not complete normally.' }
     $captured = @(
         Receive-Job -Job $job -ErrorAction SilentlyContinue |
             ForEach-Object { [string]$_ } |
             Sort-Object -Unique
     )
-    Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+    Remove-Job -Job $job -ErrorAction SilentlyContinue
     return [pscustomobject]@{
         Macro = $MacroName
         Error = $errorText
         WindowText = $captured
+        ObserverCompleted = $observerCompleted
     }
 }
 
