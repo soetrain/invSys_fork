@@ -108,6 +108,10 @@ an explicit WaitForExit before constructing the next instance. An exit-order
 race is a hypothesis, not a verified cause. Protect any harness correction with
 focused process-identity/terminal-state evidence before rerunning the unchanged
 full Production gate; do not weaken its workflow or substitute marker success.
+The [subsequent exit/execute investigation](plan022_slice4be_production_exit_and_execute_results.md)
+observed terminal ordering in three focused cases and a full 2/2 run, without
+support for an exit-wait fix. It also classified the original native failure as
+an execute access violation and verified the existing package-edit boundary.
 
 ## Reproduction and retained evidence
 
