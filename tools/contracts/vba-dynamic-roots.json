@@ -52,7 +52,7 @@
       "rootKind": "CLASS_EVENT",
       "matchType": "REGEX",
       "componentPattern": ".*",
-      "procedurePattern": "^(Class_(Initialize|Terminate)|[A-Za-z0-9_]+_(Activate|AfterUpdate|BeforeUpdate|Change|Click|DblClick|Enter|Error|Exit|KeyDown|KeyPress|KeyUp|MouseDown|MouseMove|MouseUp|Scroll|Terminate))$",
+      "procedurePattern": "^(Class_(Initialize|Terminate)|[A-Za-z0-9_]+_(Activate|AfterUpdate|BeforeUpdate|Change|Click|DblClick|DropButtonClick|Enter|Error|Exit|KeyDown|KeyPress|KeyUp|MouseDown|MouseMove|MouseUp|Scroll|Terminate))$",
       "sourcePathPattern": ".*\\.cls$",
       "reason": "Class lifecycle and WithEvents callback procedures are convention-dispatched."
     },

@@ -2,7 +2,7 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 5
+Public Const CATALOG_VERSION As Long = 6
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     If version = 1 Then
@@ -20,6 +20,16 @@ Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As 
         ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", "RECEIVING_CONFIRM_WRITES", _
                            "RECEIVING_ADD_SELECTED", "DISPOSITION_ADD_SELECTED", "DISPOSITION_CONFIRM", _
                            "RECEIVING_REFRESH", "RECEIVING_CLEAR", "RECEIVING_OPEN", "RECEIVING_CLOSE")
+    ElseIf version = 6 Then
+        ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", "RECEIVING_CONFIRM_WRITES", _
+                           "RECEIVING_ADD_SELECTED", "DISPOSITION_ADD_SELECTED", "DISPOSITION_CONFIRM", _
+                           "RECEIVING_REFRESH", "RECEIVING_CLEAR", "RECEIVING_OPEN", "RECEIVING_CLOSE", _
+                           "RECEIVING_PAGE_RECEIPTS", "RECEIVING_PAGE_RETURNS", "RECEIVING_PAGE_PURCHASING", _
+                           "RECEIVING_SELECT_ITEM", "DISPOSITION_SELECT_ITEM", _
+                           "RECEIVING_SELECT_AGGREGATE", "DISPOSITION_SELECT_AGGREGATE", _
+                           "RECEIVING_SELECT_HISTORY", "DISPOSITION_SELECT_HISTORY", _
+                           "RECEIVING_SELECT_STAGED", "DISPOSITION_SELECT_STAGED", _
+                           "RECEIVING_SELECT_CONDITION", "DISPOSITION_SELECT_KIND")
     End If
 End Function
 
@@ -96,7 +106,9 @@ Public Function Control(ByVal controlId As String, Optional ByVal version As Lon
                 record.Add "Caption", "Close"
                 record.Add "CodePrefix", "RECEIVE_CLOSE_"
             End If
-        Case Else: Exit Function
+        Case Else
+            If version >= 6 Then Set Control = modReceivingNavigationCodes.Control(controlId)
+            Exit Function
     End Select
     Set Control = record
 End Function
@@ -105,6 +117,10 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Dim record As Object, definition As Object, message As String
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
+    If definition("Class") = "Navigation" Then
+        Set Outcome = modReceivingNavigationCodes.Outcome(controlId, outcomeCode)
+        Exit Function
+    End If
     If definition("Role") = "Receiving" Then
         If controlId = "RECEIVING_ADD_SELECTED" Or controlId = "DISPOSITION_ADD_SELECTED" Then
             Set Outcome = modReceivingActivityCodes.StagingOutcome(outcomeCode, definition("CodePrefix"))

@@ -65,6 +65,7 @@ Private mItemRows As Variant
 Private mReceiveItemSystemKeys As Collection
 Private mBuilt As Boolean
 Private mLoading As Boolean
+Private mNavigationInputs As Collection
 Private mResizeInitialized As Boolean
 Private mResizing As Boolean
 Private mLastConfirmQuietActive As Boolean
@@ -93,6 +94,7 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     If CloseMode = vbFormControlMenu Then _
         modReceivingActivityAction.CloseForm Me, ResolveOperatorWorkbook(), mActivityContext, True
     On Error Resume Next
+    modReceivingNavigation.Detach mNavigationInputs
     modTS_Received.NotifyReceivingLauncherFormTerminating Me
     On Error GoTo 0
 End Sub
@@ -332,6 +334,7 @@ Private Sub BuildLayout()
     End With
 
     mBuilt = True
+    Set mNavigationInputs = modReceivingNavigation.CreateInputs(Me)
     ResizeReceivingLayout
     ApplyReceivingTab
 End Sub
@@ -739,7 +742,7 @@ Private Sub mTxtItemSearch_Change()
 End Sub
 
 Private Sub mLstReceiveItems_Click()
-    LoadSelectedReceiveItemDetails
+    NavigationSelection "lstReceiveItems"
 End Sub
 
 Private Sub LoadSelectedReceiveItemDetails()
@@ -800,7 +803,7 @@ CleanExit:
 End Sub
 
 Private Sub mLstAggregate_Click()
-    ShowSelectedAggregateReferences
+    NavigationSelection "lstAggregate"
 End Sub
 
 Private Sub ShowSelectedAggregateReferences()
@@ -887,70 +890,49 @@ End Sub
 
 Private Sub mTabs_Change()
     If mLoading Then Exit Sub
-    ApplyReceivingTab
+    NavigationSelection "tabsReceiving"
+End Sub
+
+Private Sub mLstInventory_Click()
+    NavigationSelection "lstInventory"
+End Sub
+Private Sub mLstStaged_Click()
+    NavigationSelection "lstStaged"
+End Sub
+Private Sub mCboCondition_Click()
+    NavigationSelection "cboCondition"
+End Sub
+Private Sub mCboDisposition_Click()
+    NavigationSelection "cboDisposition"
+End Sub
+
+Private Sub NavigationSelection(ByVal controlName As String)
+    Dim activityId As String, notice As String, report As String, outcome As String
+    On Error GoTo Failed
+    If Not modReceivingNavigation.BeginSelection(Me, mNavigationInputs, controlName, _
+        ResolveOperatorWorkbook(), mActivityContext, activityId, notice, report) Then
+        If report <> "" Then ShowStatus report
+        Exit Sub
+    End If
+    outcome = "FAILED"
+    Select Case controlName
+        Case "tabsReceiving": ApplyReceivingTab
+        Case "lstReceiveItems": LoadSelectedReceiveItemDetails
+        Case "lstAggregate": ShowSelectedAggregateReferences
+    End Select
+    outcome = "SELECTED"
+Done:
+    modReceivingAddInput.Finish activityId, outcome, notice, report
+    If report <> "" Then ShowStatus Trim$(CStr(mTxtStatus.Value) & " " & report)
+    Exit Sub
+Failed:
+    report = "Selection failed: " & Err.Description
+    Resume Done
 End Sub
 
 Private Sub ApplyReceivingTab()
-    Dim control As Object
-    Dim showReceiving As Boolean
-    Dim showReturns As Boolean
-    Dim showOperational As Boolean
-
     If mTabs Is Nothing Or Not mBuilt Then Exit Sub
-    showReceiving = (mTabs.Value = 0)
-    showReturns = (mTabs.Value = 1)
-    showOperational = showReceiving Or showReturns
-    For Each control In Me.Controls
-        Select Case CStr(control.Name)
-            Case "tabsReceiving", "btnClose", "txtStatus"
-                control.Visible = True
-            Case "lblPurchasingStub"
-                control.Visible = Not showOperational
-            Case "lblReturnReason", "txtReturnReason", "lblDisposition", "cboDisposition"
-                control.Visible = showReturns
-            Case Else
-                control.Visible = showOperational
-        End Select
-    Next control
-    If showReceiving Then
-        mLblRef.Caption = "PO/BOL Ref"
-        mLblItemSearch.Caption = "Receive item search"
-        mLblReceiveItemsTitle.Caption = "Receive Item Results"
-        mBtnAdd.Caption = "Add Selected"
-        mBtnConfirm.Caption = "Confirm Writes"
-        mLblInventoryTitle.Caption = "Receiving Entries History"
-        mLblStagedTitle.Caption = "Received Tally"
-        mLblAggregateTitle.Caption = "Aggregate Received"
-        mLblReceiveLocation.Caption = "Receive location *"
-        mLblReturnReason.Caption = "Return reason *"
-        mTxtReceiveLocation.Locked = False
-        mTxtLotNumber.Locked = False
-        mCboCondition.Locked = False
-        mTxtReceiveLocation.BackColor = &HFFFFFF
-        mTxtLotNumber.BackColor = &HFFFFFF
-        mCboCondition.BackColor = &HFFFFFF
-        ShowStatus "Receiving is ready."
-    ElseIf showReturns Then
-        mLblRef.Caption = "Disposition Ref"
-        mLblItemSearch.Caption = "Return item search"
-        mLblReceiveItemsTitle.Caption = "Return Item Results"
-        mBtnAdd.Caption = "Add Disposition"
-        mBtnConfirm.Caption = "Confirm Dispositions"
-        mLblInventoryTitle.Caption = "Return Entries History"
-        mLblStagedTitle.Caption = "Return Tally"
-        mLblAggregateTitle.Caption = "Aggregate Returns"
-        mLblReceiveLocation.Caption = "Source location"
-        mLblReturnReason.Caption = "Disposition reason *"
-        mTxtReceiveLocation.Locked = True
-        mTxtLotNumber.Locked = True
-        mCboCondition.Locked = True
-        mTxtReceiveLocation.BackColor = &HEFEFEF
-        mTxtLotNumber.BackColor = &HEFEFEF
-        mCboCondition.BackColor = &HEFEFEF
-        ShowStatus "Outbound inventory disposition is ready. Choose RETURN or DUMP."
-    Else
-        ShowStatus "Purchasing is not yet operational."
-    End If
+    ShowStatus modReceivingNavigation.ApplyTab(Me, mTabs.Value)
     ResizeReceivingLayout
 End Sub
 

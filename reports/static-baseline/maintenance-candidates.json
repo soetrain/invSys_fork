@@ -1,14 +1,14 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-08T08:53:13Z",
+    "generatedAtUtc":  "2026-09-08T10:44:20Z",
     "baseline":  {
-                     "componentCount":  171,
-                     "procedureCount":  5471,
-                     "lineCount":  123380,
+                     "componentCount":  175,
+                     "procedureCount":  5500,
+                     "lineCount":  123611,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
-                     "duplicateBodyCandidateCount":  192
+                     "duplicateBodyCandidateCount":  195
                  },
     "candidates":  [
                        {
@@ -2262,6 +2262,27 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "duplicate:19430283728cb931:mChoice_KeyUp+mList_KeyUp+mList_MouseUp+mPage_KeyUp+mPage_MouseUp",
+                           "candidateType":  "REPLACE_DUPLICATE",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mChoice_KeyUp",
+                                                  "mList_KeyUp",
+                                                  "mList_MouseUp",
+                                                  "mPage_KeyUp",
+                                                  "mPage_MouseUp"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "duplicate:1aed08997a62a835:AddLabel+AddLabel+AddLabel",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
@@ -3229,6 +3250,24 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "duplicate:549be2182bb05fc3:mChoice_MouseDown+mList_MouseDown",
+                           "candidateType":  "REPLACE_DUPLICATE",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mChoice_MouseDown",
+                                                  "mList_MouseDown"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "duplicate:55a9c7cd01824ef3:IsInputIoValue+IsOutputIoValue",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
@@ -3323,6 +3362,28 @@
                            "sourcePaths":  [
                                                "src/Core/Modules/modProcessor.bas",
                                                "src/Shipping/Modules/modTS_Shipments.bas"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "duplicate:5e36e88918a58120:mCboCondition_Click+mCboDisposition_Click+mLstAggregate_Click+mLstInventory_Click+mLstReceiveItems_Click+mLstStaged_Click",
+                           "candidateType":  "REPLACE_DUPLICATE",
+                           "confidence":  "LOW",
+                           "componentName":  "frmReceiving",
+                           "procedureNames":  [
+                                                  "mCboCondition_Click",
+                                                  "mCboDisposition_Click",
+                                                  "mLstAggregate_Click",
+                                                  "mLstInventory_Click",
+                                                  "mLstReceiveItems_Click",
+                                                  "mLstStaged_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/Forms/frmReceiving.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
@@ -12029,6 +12090,227 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_DropButtonClick",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mChoice_DropButtonClick"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_KeyDown",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mChoice_KeyDown"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_KeyUp",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mChoice_KeyUp"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_MouseDown",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mChoice_MouseDown"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_MouseUp",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mChoice_MouseUp"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_KeyDown",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mList_KeyDown"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_KeyUp",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mList_KeyUp"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_MouseDown",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mList_MouseDown"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_MouseUp",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mList_MouseUp"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_KeyDown",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mPage_KeyDown"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_KeyUp",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mPage_KeyUp"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_MouseDown",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mPage_MouseDown"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_MouseUp",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cReceivingSelectionInput",
+                           "procedureNames":  [
+                                                  "mPage_MouseUp"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/ClassModules/cReceivingSelectionInput.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Receiving_ClassModules_Sheets_ReceivedTally.cls:ReceivedTally.Worksheet_Change",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -12156,6 +12438,40 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mCboCondition_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmReceiving",
+                           "procedureNames":  [
+                                                  "mCboCondition_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/Forms/frmReceiving.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mCboDisposition_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmReceiving",
+                           "procedureNames":  [
+                                                  "mCboDisposition_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/Forms/frmReceiving.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstAggregate_Click",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -12173,6 +12489,23 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstInventory_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmReceiving",
+                           "procedureNames":  [
+                                                  "mLstInventory_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/Forms/frmReceiving.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstReceiveItems_Click",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -12186,6 +12519,23 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstStaged_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmReceiving",
+                           "procedureNames":  [
+                                                  "mLstStaged_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/Forms/frmReceiving.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
                                                ],
                            "reviewRequired":  true
                        },
@@ -14538,7 +14888,6 @@
                                                   "CombinePathRole",
                                                   "ConnectWarehouseStorageForCapability",
                                                   "CreateEventIdRole",
-                                                  "CreateGuidFallbackRole",
                                                   "CreateInventoryEntityPayloadItem",
                                                   "CreatePayloadItem",
                                                   "CreateSystemKey",
@@ -14588,7 +14937,6 @@
                                                   "MergeRowsIntoNasInboxRole",
                                                   "NormalizeFolderPathRole",
                                                   "NormalizeFolderRole",
-                                                  "NormalizeGuidRole",
                                                   "NormalizeVersionLabelRole",
                                                   "OpenInboxWorkbook",
                                                   "ParentFolderPathRole",
@@ -16458,11 +16806,16 @@
                                                   "mBtnClose_Click",
                                                   "mBtnConfirm_Click",
                                                   "mBtnRefresh_Click",
+                                                  "mCboCondition_Click",
+                                                  "mCboDisposition_Click",
                                                   "mLstAggregate_Click",
+                                                  "mLstInventory_Click",
                                                   "mLstReceiveItems_Click",
+                                                  "mLstStaged_Click",
                                                   "mTabs_Change",
                                                   "mTxtItemSearch_Change",
                                                   "mTxtSearch_Change",
+                                                  "NavigationSelection",
                                                   "NormalizeSearchText",
                                                   "NzText",
                                                   "RefreshAllViews",

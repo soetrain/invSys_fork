@@ -102,6 +102,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modAuthSession.bas"),
         (Join-Path $repo "src/Core/Modules/modLockManager.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
+        (Join-Path $repo "src/Core/Modules/modSystemIdentity.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
         (Join-Path $repo "src/Core/Modules/modHqAggregator.bas"),
         (Join-Path $repo "src/Core/Modules/modProcessor.bas"),

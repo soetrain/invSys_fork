@@ -2247,7 +2247,7 @@ Private Sub ArchiveStagingFileRole(ByVal workingPath As String)
     EnsureFolderExistsRole archiveFolder
     archivePath = CombinePathRole(archiveFolder, Format$(Now, "yyyymmdd_hhnnss") & "_" & fso.GetFileName(workingPath) & ".done")
     Do While FileExistsRole(archivePath)
-        archivePath = CombinePathRole(archiveFolder, Format$(Now, "yyyymmdd_hhnnss") & "_" & CreateGuidFallbackRole() & "_" & fso.GetFileName(workingPath) & ".done")
+        archivePath = CombinePathRole(archiveFolder, Format$(Now, "yyyymmdd_hhnnss") & "_" & CreateEventIdRole() & "_" & fso.GetFileName(workingPath) & ".done")
     Loop
     Name workingPath As archivePath
     Exit Sub
@@ -2994,47 +2994,7 @@ Private Function GetColumnIndexRole(ByVal lo As ListObject, ByVal columnName As 
 End Function
 
 Private Function CreateEventIdRole() As String
-    Dim rawGuid As String
-
-    On Error Resume Next
-    rawGuid = CreateObject("Scriptlet.TypeLib").GUID
-    On Error GoTo 0
-    CreateEventIdRole = NormalizeGuidRole(rawGuid)
-    If CreateEventIdRole = "" Then CreateEventIdRole = CreateGuidFallbackRole()
-End Function
-
-Private Function NormalizeGuidRole(ByVal rawGuid As String) As String
-    Dim i As Long
-    Dim currentChar As String
-    Dim normalized As String
-
-    For i = 1 To Len(rawGuid)
-        currentChar = Mid$(rawGuid, i, 1)
-        If InStr(1, "0123456789ABCDEFabcdef-", currentChar, vbBinaryCompare) > 0 Then
-            normalized = normalized & currentChar
-        End If
-    Next i
-
-    normalized = UCase$(normalized)
-    If Len(normalized) <> 36 Then Exit Function
-    If Mid$(normalized, 9, 1) <> "-" Or _
-       Mid$(normalized, 14, 1) <> "-" Or _
-       Mid$(normalized, 19, 1) <> "-" Or _
-       Mid$(normalized, 24, 1) <> "-" Then Exit Function
-    NormalizeGuidRole = normalized
-End Function
-
-Private Function CreateGuidFallbackRole() As String
-    Dim i As Long
-    Dim token As String
-    Dim chars As String
-
-    chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    Randomize
-    For i = 1 To 32
-        token = token & Mid$(chars, Int((Len(chars) * Rnd) + 1), 1)
-    Next i
-    CreateGuidFallbackRole = Left$(token, 8) & "-" & Mid$(token, 9, 4) & "-" & Mid$(token, 13, 4) & "-" & Mid$(token, 17, 4) & "-" & Right$(token, 12)
+    CreateEventIdRole = UCase$(modSystemIdentity.NewId())
 End Function
 
 Private Function EventIdListedRole(ByVal eventId As String, ByVal eventIdsCsv As String) As Boolean

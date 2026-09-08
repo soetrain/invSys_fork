@@ -7,6 +7,7 @@ $repo = (Resolve-Path $RepoRoot).Path
 $adminForm = Get-Content (Join-Path $repo "src/Admin/Forms/frmSeedInventory.frm") -Raw
 $adminModule = Get-Content (Join-Path $repo "src/Admin/Modules/modAdmin.bas") -Raw
 $receivingForm = Get-Content (Join-Path $repo "src/Receiving/Forms/frmReceiving.frm") -Raw
+$receivingNavigation = Get-Content (Join-Path $repo "src/Receiving/Modules/modReceivingNavigation.bas") -Raw
 $receivingModule = Get-Content (Join-Path $repo "src/Receiving/Modules/modTS_Received.bas") -Raw
 $surface = Get-Content (Join-Path $repo "src/Core/Modules/modRoleWorkbookSurfaces.bas") -Raw
 
@@ -28,8 +29,9 @@ $checks = @(
     [pscustomobject]@{
         Name = "Receiving.ReturnsIsOperational"
         Passed = ($receivingForm -match 'tabReturns') -and
-            ($receivingForm -match 'Add Disposition') -and
-            ($receivingForm -match 'Disposition reason') -and
+            ($receivingForm -match 'modReceivingNavigation.ApplyTab\(Me, mTabs.Value\)') -and
+            ($receivingNavigation -match 'Add Disposition') -and
+            ($receivingNavigation -match 'Disposition reason') -and
             ($receivingForm -match 'RETURN,DUMP') -and
             ($receivingModule -match 'RunReceivingReturnsTabContractForTest')
         Contract = "Receiving exposes operational RETURN/DUMP disposition actions through a public testable form action boundary."

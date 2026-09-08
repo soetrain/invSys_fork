@@ -1,10 +1,10 @@
 # invSys Static Implementation Manifest
 
 - Schema: 1.0.0
-- Generated: 2026-09-08T08:53:13Z
+- Generated: 2026-09-08T10:44:20Z
 - Packages: 6
-- Components: 171
-- Procedures: 5471
+- Components: 175
+- Procedures: 5500
 - Literal Application.Run targets: 8
 - Unresolved dynamic calls: 45
 
@@ -13,10 +13,10 @@
 | Package | Project | Output | Components |
 |---|---|---|---:|
 | Admin | invSys_Admin | invSys.Admin.xlam | 27 |
-| Core | invSys_Core | invSys.Core.xlam | 67 |
+| Core | invSys_Core | invSys.Core.xlam | 69 |
 | DesignsDomain | invSys_Designs_Domain | invSys.Designs.Domain.xlam | 14 |
 | InventoryDomain | invSys_Inventory_Domain | invSys.Inventory.Domain.xlam | 10 |
-| Operations | invSys_Operations | invSys.Operations.xlam | 44 |
+| Operations | invSys_Operations | invSys.Operations.xlam | 46 |
 | OperationsShadow | invSys_Operations_Shadow | invSys.Operations.xlam | 0 |
 
 ## Dynamic roots
@@ -270,9 +270,16 @@
 | mBtnWarehouseRootRefresh_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCboBoxBuilderVersion_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCboBoxMakerVersion_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mCboCondition_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCboDemoDataSet_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mCboDisposition_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mChkRoamingStation_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mChkUseExisting_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mChoice_DropButtonClick | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mChoice_KeyDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mChoice_KeyUp | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mChoice_MouseDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mChoice_MouseUp | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCmbConnectionFromNode_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCmbConnectionOutput_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCmbConnectionToNode_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
@@ -291,6 +298,10 @@
 | mCmbUom_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCmbWarehouse_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCmbWarehouse_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mList_KeyDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mList_KeyUp | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mList_MouseDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mList_MouseUp | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstAggregate_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstAssignIngredients_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstAssignRecipes_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
@@ -302,6 +313,7 @@
 | mLstConfig_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstEditItemResults_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstHold_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mLstInventory_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstLoaderLines_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstManagerOutput_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstOutputRegulations_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
@@ -319,6 +331,7 @@
 | mLstShippables_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstSources_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstSourceWarehouses_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mLstStaged_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstTargets_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstUoms_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLstUsers_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
@@ -328,6 +341,10 @@
 | mOptArchiveRetire_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mOptArchiveRetireDelete_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | MouseProc | WINDOWS_CALLBACK | src/Core/Modules/MouseScroll.bas |
+| mPage_KeyDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mPage_KeyUp | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mPage_MouseDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mPage_MouseUp | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mPages_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mTabs_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mTabs_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |

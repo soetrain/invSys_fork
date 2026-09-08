@@ -5,6 +5,7 @@ $ErrorActionPreference = "Stop"
 
 $repo = (Resolve-Path $RepoRoot).Path
 $receivingForm = Get-Content (Join-Path $repo "src/Receiving/Forms/frmReceiving.frm") -Raw
+$receivingNavigation = Get-Content (Join-Path $repo "src/Receiving/Modules/modReceivingNavigation.bas") -Raw
 $receivingModule = Get-Content (Join-Path $repo "src/Receiving/Modules/modTS_Received.bas") -Raw
 $postingService = Get-Content (Join-Path $repo "src/Receiving/Modules/modReceivingPostingService.bas") -Raw
 $roleWriter = Get-Content (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas") -Raw
@@ -23,9 +24,10 @@ $checks = @(
     },
     [pscustomobject]@{
         Name = "Receiving.ReturnLabelsAndCondition"
-        Passed = ($receivingForm -match 'Return Entries History') -and
-            ($receivingForm -match 'Return Tally') -and
-            ($receivingForm -match 'Aggregate Returns') -and
+        Passed = ($receivingForm -match 'modReceivingNavigation.ApplyTab\(Me, mTabs.Value\)') -and
+            ($receivingNavigation -match 'Return Entries History') -and
+            ($receivingNavigation -match 'Return Tally') -and
+            ($receivingNavigation -match 'Aggregate Returns') -and
             ($receivingForm -match 'ItemConditionColumn=True')
         Contract = "Returns uses return-specific titles and its item results expose Condition."
     },

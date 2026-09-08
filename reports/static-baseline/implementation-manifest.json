@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-08T08:53:13Z",
+    "generatedAtUtc":  "2026-09-08T10:44:20Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -91,12 +91,14 @@
                                                 "modPhase6DemoData",
                                                 "modProcessor",
                                                 "modReceivingActivityCodes",
+                                                "modReceivingNavigationCodes",
                                                 "modRibbonRuntimeStatus",
                                                 "modRoleEventWriter",
                                                 "modRoleUiAccess",
                                                 "modRoleWorkbookSurfaces",
                                                 "modRuntimeWorkbooks",
                                                 "modStationIdentity",
+                                                "modSystemIdentity",
                                                 "modTrainingJson",
                                                 "modTrainingWire",
                                                 "modUiQuiet",
@@ -179,6 +181,7 @@
                                                 "cProductionCompletionResult",
                                                 "cProductionRunSession",
                                                 "cReceivingAppEvents",
+                                                "cReceivingSelectionInput",
                                                 "cReceivingWorkflowState",
                                                 "cShippingAppEvents",
                                                 "cShippingWorkflowState",
@@ -206,6 +209,7 @@
                                                 "modReceivingAddInput",
                                                 "modReceivingFormWindow",
                                                 "modReceivingInit",
+                                                "modReceivingNavigation",
                                                 "modReceivingPostingService",
                                                 "modShippingEventCreator",
                                                 "modShippingInit",
@@ -1919,7 +1923,7 @@
                            "name":  "modActivityCatalog",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActivityCatalog.bas",
-                           "lineCount":  153,
+                           "lineCount":  169,
                            "procedureNames":  [
                                                   "Control",
                                                   "ControlIds",
@@ -1933,7 +1937,7 @@
                            "name":  "modActivityPolicy",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActivityPolicy.bas",
-                           "lineCount":  125,
+                           "lineCount":  127,
                            "procedureNames":  [
                                                   "CellValue",
                                                   "FindTable",
@@ -3002,6 +3006,19 @@
                                         }
                        },
                        {
+                           "name":  "modReceivingNavigationCodes",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modReceivingNavigationCodes.bas",
+                           "lineCount":  62,
+                           "procedureNames":  [
+                                                  "Control",
+                                                  "Outcome"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
                            "name":  "modRibbonRuntimeStatus",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modRibbonRuntimeStatus.bas",
@@ -3071,7 +3088,7 @@
                            "name":  "modRoleEventWriter",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modRoleEventWriter.bas",
-                           "lineCount":  3104,
+                           "lineCount":  3064,
                            "procedureNames":  [
                                                   "AccumulateBoxPayloadInventoryDeltasRole",
                                                   "AccumulateBoxPayloadVersionInventoryDeltasRole",
@@ -3093,7 +3110,6 @@
                                                   "CombinePathRole",
                                                   "ConnectWarehouseStorageForCapability",
                                                   "CreateEventIdRole",
-                                                  "CreateGuidFallbackRole",
                                                   "CreateInventoryEntityPayloadItem",
                                                   "CreatePayloadItem",
                                                   "CreateSystemKey",
@@ -3143,7 +3159,6 @@
                                                   "MergeRowsIntoNasInboxRole",
                                                   "NormalizeFolderPathRole",
                                                   "NormalizeFolderRole",
-                                                  "NormalizeGuidRole",
                                                   "NormalizeVersionLabelRole",
                                                   "OpenInboxWorkbook",
                                                   "ParentFolderPathRole",
@@ -3356,6 +3371,18 @@
                                         }
                        },
                        {
+                           "name":  "modSystemIdentity",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modSystemIdentity.bas",
+                           "lineCount":  15,
+                           "procedureNames":  [
+                                                  "NewId"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
                            "name":  "modTrainingJson",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modTrainingJson.bas",
@@ -3379,7 +3406,7 @@
                            "name":  "modTrainingWire",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modTrainingWire.bas",
-                           "lineCount":  105,
+                           "lineCount":  103,
                            "procedureNames":  [
                                                   "NewId",
                                                   "Sha256",
@@ -6144,6 +6171,34 @@
                                         }
                        },
                        {
+                           "name":  "cReceivingSelectionInput",
+                           "kind":  "CLASS_MODULE",
+                           "sourcePath":  "src/Receiving/ClassModules/cReceivingSelectionInput.cls",
+                           "lineCount":  88,
+                           "procedureNames":  [
+                                                  "Attach",
+                                                  "Consume",
+                                                  "Detach",
+                                                  "mChoice_DropButtonClick",
+                                                  "mChoice_KeyDown",
+                                                  "mChoice_KeyUp",
+                                                  "mChoice_MouseDown",
+                                                  "mChoice_MouseUp",
+                                                  "mList_KeyDown",
+                                                  "mList_KeyUp",
+                                                  "mList_MouseDown",
+                                                  "mList_MouseUp",
+                                                  "mPage_KeyDown",
+                                                  "mPage_KeyUp",
+                                                  "mPage_MouseDown",
+                                                  "mPage_MouseUp",
+                                                  "SelectionKey"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
                            "name":  "cReceivingWorkflowState",
                            "kind":  "CLASS_MODULE",
                            "sourcePath":  "src/Receiving/ClassModules/cReceivingWorkflowState.cls",
@@ -6209,7 +6264,7 @@
                            "name":  "frmReceiving",
                            "kind":  "FORM",
                            "sourcePath":  "src/Receiving/Forms/frmReceiving.frm",
-                           "lineCount":  1218,
+                           "lineCount":  1200,
                            "procedureNames":  [
                                                   "AddButton",
                                                   "AddComboBox",
@@ -6239,11 +6294,16 @@
                                                   "mBtnClose_Click",
                                                   "mBtnConfirm_Click",
                                                   "mBtnRefresh_Click",
+                                                  "mCboCondition_Click",
+                                                  "mCboDisposition_Click",
                                                   "mLstAggregate_Click",
+                                                  "mLstInventory_Click",
                                                   "mLstReceiveItems_Click",
+                                                  "mLstStaged_Click",
                                                   "mTabs_Change",
                                                   "mTxtItemSearch_Change",
                                                   "mTxtSearch_Change",
+                                                  "NavigationSelection",
                                                   "NormalizeSearchText",
                                                   "NzText",
                                                   "RefreshAllViews",
@@ -6395,6 +6455,23 @@
                                                   "WorkbookHasReceivingSurfacesReadiness",
                                                   "WorkbookSheetByNameReadiness",
                                                   "WorksheetExistsReadiness"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "modReceivingNavigation",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Receiving/Modules/modReceivingNavigation.bas",
+                           "lineCount":  108,
+                           "procedureNames":  [
+                                                  "ApplyTab",
+                                                  "BeginSelection",
+                                                  "ControlIdFor",
+                                                  "CreateInputs",
+                                                  "Detach",
+                                                  "SetLabels"
                                               ],
                            "metadata":  {
 
@@ -33660,8 +33737,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  7,
-                           "endLine":  24,
-                           "lineCount":  18,
+                           "endLine":  34,
+                           "lineCount":  28,
                            "directCalls":  [
                                                "Version"
                                            ],
@@ -33680,9 +33757,9 @@
                            "name":  "Control",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  26,
-                           "endLine":  102,
-                           "lineCount":  77,
+                           "startLine":  36,
+                           "endLine":  114,
+                           "lineCount":  79,
                            "directCalls":  [
                                                "Add",
                                                "Version"
@@ -33702,9 +33779,9 @@
                            "name":  "Outcome",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  104,
-                           "endLine":  153,
-                           "lineCount":  50,
+                           "startLine":  116,
+                           "endLine":  169,
+                           "lineCount":  54,
                            "directCalls":  [
                                                "Add",
                                                "Control",
@@ -33729,8 +33806,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  5,
-                           "endLine":  92,
-                           "lineCount":  88,
+                           "endLine":  94,
+                           "lineCount":  90,
                            "directCalls":  [
                                                "Add",
                                                "CellValue",
@@ -33758,8 +33835,8 @@
                            "name":  "FindTable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  94,
-                           "endLine":  101,
+                           "startLine":  96,
+                           "endLine":  103,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -33779,8 +33856,8 @@
                            "name":  "CellValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  103,
-                           "endLine":  113,
+                           "startLine":  105,
+                           "endLine":  115,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -33800,8 +33877,8 @@
                            "name":  "PositiveInteger",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  115,
-                           "endLine":  121,
+                           "startLine":  117,
+                           "endLine":  123,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -33821,8 +33898,8 @@
                            "name":  "IsBooleanValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  123,
-                           "endLine":  125,
+                           "startLine":  125,
+                           "endLine":  127,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -50826,6 +50903,50 @@
                                        ]
                        },
                        {
+                           "componentName":  "modReceivingNavigationCodes",
+                           "name":  "Control",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  6,
+                           "endLine":  36,
+                           "lineCount":  31,
+                           "directCalls":  [
+                                               "Add"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingNavigationCodes",
+                           "name":  "Outcome",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  38,
+                           "endLine":  62,
+                           "lineCount":  25,
+                           "directCalls":  [
+                                               "Add",
+                                               "Control",
+                                               "Message"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
                            "componentName":  "modRibbonRuntimeStatus",
                            "name":  "RegisterRibbonUi",
                            "visibility":  "PUBLIC",
@@ -54127,7 +54248,7 @@
                            "lineCount":  21,
                            "directCalls":  [
                                                "CombinePathRole",
-                                               "CreateGuidFallbackRole",
+                                               "CreateEventIdRole",
                                                "EnsureFolderExistsRole",
                                                "FileExistsRole",
                                                "ParentFolderPathRole"
@@ -55005,53 +55126,10 @@
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
                            "startLine":  2996,
-                           "endLine":  3004,
-                           "lineCount":  9,
+                           "endLine":  2998,
+                           "lineCount":  3,
                            "directCalls":  [
-                                               "CreateGuidFallbackRole",
-                                               "NormalizeGuidRole"
-                                           ],
-                           "literalApplicationRunTargets":  [
-
-                                                            ],
-                           "unresolvedApplicationRunExpressions":  [
-
-                                                                   ],
-                           "rootIds":  [
-
-                                       ]
-                       },
-                       {
-                           "componentName":  "modRoleEventWriter",
-                           "name":  "NormalizeGuidRole",
-                           "visibility":  "PRIVATE",
-                           "kind":  "FUNCTION",
-                           "startLine":  3006,
-                           "endLine":  3025,
-                           "lineCount":  20,
-                           "directCalls":  [
-
-                                           ],
-                           "literalApplicationRunTargets":  [
-
-                                                            ],
-                           "unresolvedApplicationRunExpressions":  [
-
-                                                                   ],
-                           "rootIds":  [
-
-                                       ]
-                       },
-                       {
-                           "componentName":  "modRoleEventWriter",
-                           "name":  "CreateGuidFallbackRole",
-                           "visibility":  "PRIVATE",
-                           "kind":  "FUNCTION",
-                           "startLine":  3027,
-                           "endLine":  3038,
-                           "lineCount":  12,
-                           "directCalls":  [
-
+                                               "NewId"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -55068,8 +55146,8 @@
                            "name":  "EventIdListedRole",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  3040,
-                           "endLine":  3049,
+                           "startLine":  3000,
+                           "endLine":  3009,
                            "lineCount":  10,
                            "directCalls":  [
                                                "EventId"
@@ -55089,8 +55167,8 @@
                            "name":  "EventTypeListedRole",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  3051,
-                           "endLine":  3064,
+                           "startLine":  3011,
+                           "endLine":  3024,
                            "lineCount":  14,
                            "directCalls":  [
                                                "EventType"
@@ -55110,8 +55188,8 @@
                            "name":  "DictionaryToJson",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  3066,
-                           "endLine":  3079,
+                           "startLine":  3026,
+                           "endLine":  3039,
                            "lineCount":  14,
                            "directCalls":  [
                                                "EscapeJsonRole",
@@ -55132,8 +55210,8 @@
                            "name":  "JsonValueRole",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  3081,
-                           "endLine":  3094,
+                           "startLine":  3041,
+                           "endLine":  3054,
                            "lineCount":  14,
                            "directCalls":  [
                                                "EscapeJsonRole"
@@ -55153,8 +55231,8 @@
                            "name":  "EscapeJsonRole",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  3096,
-                           "endLine":  3104,
+                           "startLine":  3056,
+                           "endLine":  3064,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -57401,6 +57479,27 @@
                                        ]
                        },
                        {
+                           "componentName":  "modSystemIdentity",
+                           "name":  "NewId",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  9,
+                           "endLine":  15,
+                           "lineCount":  7,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
                            "componentName":  "modTrainingJson",
                            "name":  "Quote",
                            "visibility":  "PUBLIC",
@@ -57605,8 +57704,8 @@
                            "name":  "NewId",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  25,
-                           "endLine":  31,
+                           "startLine":  23,
+                           "endLine":  29,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -57626,8 +57725,8 @@
                            "name":  "UtcTimestamp",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  33,
-                           "endLine":  39,
+                           "startLine":  31,
+                           "endLine":  37,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -57647,8 +57746,8 @@
                            "name":  "Sha256",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  43,
-                           "endLine":  68,
+                           "startLine":  41,
+                           "endLine":  66,
                            "lineCount":  26,
                            "directCalls":  [
 
@@ -57668,8 +57767,8 @@
                            "name":  "ValidId",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  70,
-                           "endLine":  82,
+                           "startLine":  68,
+                           "endLine":  80,
                            "lineCount":  13,
                            "directCalls":  [
 
@@ -57689,8 +57788,8 @@
                            "name":  "ValidUtcTimestamp",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  84,
-                           "endLine":  93,
+                           "startLine":  82,
+                           "endLine":  91,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -57710,8 +57809,8 @@
                            "name":  "ValidSegment",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  95,
-                           "endLine":  105,
+                           "startLine":  93,
+                           "endLine":  103,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -105693,6 +105792,363 @@
                                        ]
                        },
                        {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "Attach",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  19,
+                           "endLine":  23,
+                           "lineCount":  5,
+                           "directCalls":  [
+                                               "Control"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "Detach",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  25,
+                           "endLine":  29,
+                           "lineCount":  5,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "Consume",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  31,
+                           "endLine":  34,
+                           "lineCount":  4,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "SelectionKey",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  36,
+                           "endLine":  41,
+                           "lineCount":  6,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mList_MouseDown",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  43,
+                           "endLine":  45,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_MouseDown"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mList_MouseUp",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  46,
+                           "endLine":  48,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_MouseUp"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mList_KeyDown",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  49,
+                           "endLine":  51,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "SelectionKey"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_KeyDown"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mList_KeyUp",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  52,
+                           "endLine":  54,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_KeyUp"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mChoice_MouseDown",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  56,
+                           "endLine":  58,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_MouseDown"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mChoice_MouseUp",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  59,
+                           "endLine":  63,
+                           "lineCount":  5,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_MouseUp"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mChoice_DropButtonClick",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  64,
+                           "endLine":  67,
+                           "lineCount":  4,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_DropButtonClick"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mChoice_KeyDown",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  68,
+                           "endLine":  71,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "SelectionKey"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_KeyDown"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mChoice_KeyUp",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  72,
+                           "endLine":  74,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_KeyUp"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mPage_MouseDown",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  76,
+                           "endLine":  78,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_MouseDown"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mPage_MouseUp",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  79,
+                           "endLine":  81,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_MouseUp"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mPage_KeyDown",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  82,
+                           "endLine":  85,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "SelectionKey"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_KeyDown"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cReceivingSelectionInput",
+                           "name":  "mPage_KeyUp",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  86,
+                           "endLine":  88,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_KeyUp"
+                                       ]
+                       },
+                       {
                            "componentName":  "cReceivingWorkflowState",
                            "name":  "Initialize",
                            "visibility":  "PUBLIC",
@@ -106309,8 +106765,8 @@
                            "name":  "UserForm_Initialize",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  75,
-                           "endLine":  78,
+                           "startLine":  76,
+                           "endLine":  79,
                            "lineCount":  4,
                            "directCalls":  [
                                                "BuildLayout",
@@ -106347,8 +106803,8 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  80,
-                           "endLine":  86,
+                           "startLine":  81,
+                           "endLine":  87,
                            "lineCount":  7,
                            "directCalls":  [
                                                "EnableReceivingResizable",
@@ -106386,8 +106842,8 @@
                            "name":  "UserForm_Resize",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  88,
-                           "endLine":  90,
+                           "startLine":  89,
+                           "endLine":  91,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ResizeReceivingLayout"
@@ -106408,11 +106864,12 @@
                            "name":  "UserForm_QueryClose",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  92,
-                           "endLine":  98,
-                           "lineCount":  7,
+                           "startLine":  93,
+                           "endLine":  100,
+                           "lineCount":  8,
                            "directCalls":  [
                                                "CloseForm",
+                                               "Detach",
                                                "NotifyReceivingLauncherFormTerminating",
                                                "ResolveOperatorWorkbook"
                                            ],
@@ -106434,8 +106891,8 @@
                            "name":  "UserForm_Terminate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  100,
-                           "endLine":  102,
+                           "startLine":  102,
+                           "endLine":  104,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -106465,8 +106922,8 @@
                            "name":  "SetOperatorWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  104,
-                           "endLine":  108,
+                           "startLine":  106,
+                           "endLine":  110,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -106486,8 +106943,8 @@
                            "name":  "InitializeFromReceiving",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  110,
-                           "endLine":  133,
+                           "startLine":  112,
+                           "endLine":  135,
                            "lineCount":  24,
                            "directCalls":  [
                                                "BuildLayout",
@@ -106512,8 +106969,8 @@
                            "name":  "TestSearchInventoryCount",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  135,
-                           "endLine":  140,
+                           "startLine":  137,
+                           "endLine":  142,
                            "lineCount":  6,
                            "directCalls":  [
                                                "BuildLayout",
@@ -106535,8 +106992,8 @@
                            "name":  "TestReceiptIdSeparatedFromReference",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  142,
-                           "endLine":  150,
+                           "startLine":  144,
+                           "endLine":  152,
                            "lineCount":  9,
                            "directCalls":  [
                                                "BuildLayout",
@@ -106557,8 +107014,8 @@
                            "name":  "TestInitializeForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  152,
-                           "endLine":  159,
+                           "startLine":  154,
+                           "endLine":  161,
                            "lineCount":  8,
                            "directCalls":  [
                                                "BuildLayout",
@@ -106579,8 +107036,8 @@
                            "name":  "TestRefreshInventoryActionForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  161,
-                           "endLine":  184,
+                           "startLine":  163,
+                           "endLine":  186,
                            "lineCount":  24,
                            "directCalls":  [
                                                "BuildLayout",
@@ -106604,8 +107061,8 @@
                            "name":  "CountManagedItemChoices",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  186,
-                           "endLine":  197,
+                           "startLine":  188,
+                           "endLine":  199,
                            "lineCount":  12,
                            "directCalls":  [
                                                "NzText"
@@ -106625,8 +107082,8 @@
                            "name":  "TestRunConfirmWritesActionForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  199,
-                           "endLine":  210,
+                           "startLine":  201,
+                           "endLine":  212,
                            "lineCount":  12,
                            "directCalls":  [
                                                "BuildLayout",
@@ -106651,8 +107108,8 @@
                            "name":  "TestPurchasingTabContract",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  212,
-                           "endLine":  222,
+                           "startLine":  214,
+                           "endLine":  224,
                            "lineCount":  11,
                            "directCalls":  [
                                                "ApplyReceivingTab",
@@ -106674,9 +107131,9 @@
                            "name":  "BuildLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  224,
-                           "endLine":  337,
-                           "lineCount":  114,
+                           "startLine":  226,
+                           "endLine":  340,
+                           "lineCount":  115,
                            "directCalls":  [
                                                "Add",
                                                "AddButton",
@@ -106685,6 +107142,7 @@
                                                "AddListBox",
                                                "AddTextBox",
                                                "ApplyReceivingTab",
+                                               "CreateInputs",
                                                "ResizeReceivingLayout"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -106702,8 +107160,8 @@
                            "name":  "AddLabel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  339,
-                           "endLine":  353,
+                           "startLine":  342,
+                           "endLine":  356,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -106723,8 +107181,8 @@
                            "name":  "AddTextBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  355,
-                           "endLine":  366,
+                           "startLine":  358,
+                           "endLine":  369,
                            "lineCount":  12,
                            "directCalls":  [
                                                "Add"
@@ -106744,8 +107202,8 @@
                            "name":  "AddComboBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  368,
-                           "endLine":  380,
+                           "startLine":  371,
+                           "endLine":  383,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -106765,8 +107223,8 @@
                            "name":  "AddButton",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  382,
-                           "endLine":  394,
+                           "startLine":  385,
+                           "endLine":  397,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -106786,8 +107244,8 @@
                            "name":  "AddListBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  396,
-                           "endLine":  411,
+                           "startLine":  399,
+                           "endLine":  414,
                            "lineCount":  16,
                            "directCalls":  [
                                                "Add"
@@ -106807,8 +107265,8 @@
                            "name":  "ResizeReceivingLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  413,
-                           "endLine":  519,
+                           "startLine":  416,
+                           "endLine":  522,
                            "lineCount":  107,
                            "directCalls":  [
                                                "ApplyReceivingHeaderLayout",
@@ -106829,8 +107287,8 @@
                            "name":  "ResolveOperatorWorkbook",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  521,
-                           "endLine":  531,
+                           "startLine":  524,
+                           "endLine":  534,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -106850,8 +107308,8 @@
                            "name":  "RefreshAllViews",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  533,
-                           "endLine":  540,
+                           "startLine":  536,
+                           "endLine":  543,
                            "lineCount":  8,
                            "directCalls":  [
                                                "EnforceReceivingSupportSheetsHidden",
@@ -106877,8 +107335,8 @@
                            "name":  "LoadInventoryCache",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  542,
-                           "endLine":  550,
+                           "startLine":  545,
+                           "endLine":  553,
                            "lineCount":  9,
                            "directCalls":  [
                                                "LoadReceivingFormInventoryForWorkbook",
@@ -106900,8 +107358,8 @@
                            "name":  "CanReuseFor",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  552,
-                           "endLine":  557,
+                           "startLine":  555,
+                           "endLine":  560,
                            "lineCount":  6,
                            "directCalls":  [
                                                "CaptureContext",
@@ -106922,8 +107380,8 @@
                            "name":  "RefreshReceiveItems",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  559,
-                           "endLine":  565,
+                           "startLine":  562,
+                           "endLine":  568,
                            "lineCount":  7,
                            "directCalls":  [
                                                "FillReceiveItemResults",
@@ -106944,8 +107402,8 @@
                            "name":  "FillReceiveItemResults",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  567,
-                           "endLine":  589,
+                           "startLine":  570,
+                           "endLine":  592,
                            "lineCount":  23,
                            "directCalls":  [
                                                "Add",
@@ -106966,8 +107424,8 @@
                            "name":  "SelectedReceiveItemSystemKey",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  591,
-                           "endLine":  595,
+                           "startLine":  594,
+                           "endLine":  598,
                            "lineCount":  5,
                            "directCalls":  [
                                                "NzText"
@@ -106987,8 +107445,8 @@
                            "name":  "LoadHistoryCache",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  597,
-                           "endLine":  604,
+                           "startLine":  600,
+                           "endLine":  607,
                            "lineCount":  8,
                            "directCalls":  [
                                                "LoadReceivingEntriesHistoryForWorkbook",
@@ -107010,8 +107468,8 @@
                            "name":  "RefreshInventory",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  606,
-                           "endLine":  612,
+                           "startLine":  609,
+                           "endLine":  615,
                            "lineCount":  7,
                            "directCalls":  [
                                                "FillInventoryList",
@@ -107033,8 +107491,8 @@
                            "name":  "RefreshStaging",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  614,
-                           "endLine":  638,
+                           "startLine":  617,
+                           "endLine":  641,
                            "lineCount":  25,
                            "directCalls":  [
                                                "ClearAggregateReferenceDetail",
@@ -107061,8 +107519,8 @@
                            "name":  "FillListBox",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  640,
-                           "endLine":  665,
+                           "startLine":  643,
+                           "endLine":  668,
                            "lineCount":  26,
                            "directCalls":  [
                                                "NzText"
@@ -107082,8 +107540,8 @@
                            "name":  "FilterInventoryRows",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  667,
-                           "endLine":  719,
+                           "startLine":  670,
+                           "endLine":  722,
                            "lineCount":  53,
                            "directCalls":  [
                                                "NormalizeSearchText",
@@ -107104,8 +107562,8 @@
                            "name":  "FillInventoryList",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  721,
-                           "endLine":  728,
+                           "startLine":  724,
+                           "endLine":  731,
                            "lineCount":  8,
                            "directCalls":  [
                                                "FillListBox",
@@ -107126,8 +107584,8 @@
                            "name":  "mTxtSearch_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  730,
-                           "endLine":  733,
+                           "startLine":  733,
+                           "endLine":  736,
                            "lineCount":  4,
                            "directCalls":  [
                                                "RefreshInventory"
@@ -107148,8 +107606,8 @@
                            "name":  "mTxtItemSearch_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  735,
-                           "endLine":  739,
+                           "startLine":  738,
+                           "endLine":  742,
                            "lineCount":  5,
                            "directCalls":  [
                                                "LoadInventoryCache",
@@ -107170,11 +107628,11 @@
                            "name":  "mLstReceiveItems_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  741,
-                           "endLine":  743,
+                           "startLine":  744,
+                           "endLine":  746,
                            "lineCount":  3,
                            "directCalls":  [
-                                               "LoadSelectedReceiveItemDetails"
+                                               "NavigationSelection"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -107191,8 +107649,8 @@
                            "name":  "LoadSelectedReceiveItemDetails",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  745,
-                           "endLine":  756,
+                           "startLine":  748,
+                           "endLine":  759,
                            "lineCount":  12,
                            "directCalls":  [
                                                "NzText"
@@ -107212,8 +107670,8 @@
                            "name":  "mBtnRefresh_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  758,
-                           "endLine":  760,
+                           "startLine":  761,
+                           "endLine":  763,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshClicked"
@@ -107236,8 +107694,8 @@
                            "name":  "mBtnAdd_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  762,
-                           "endLine":  764,
+                           "startLine":  765,
+                           "endLine":  767,
                            "lineCount":  3,
                            "directCalls":  [
                                                "AddSelectedInventory"
@@ -107259,8 +107717,8 @@
                            "name":  "mBtnConfirm_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  766,
-                           "endLine":  800,
+                           "startLine":  769,
+                           "endLine":  803,
                            "lineCount":  35,
                            "directCalls":  [
                                                "BeginQuietUi",
@@ -107289,11 +107747,11 @@
                            "name":  "mLstAggregate_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  802,
-                           "endLine":  804,
+                           "startLine":  805,
+                           "endLine":  807,
                            "lineCount":  3,
                            "directCalls":  [
-                                               "ShowSelectedAggregateReferences"
+                                               "NavigationSelection"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -107310,8 +107768,8 @@
                            "name":  "ShowSelectedAggregateReferences",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  806,
-                           "endLine":  813,
+                           "startLine":  809,
+                           "endLine":  816,
                            "lineCount":  8,
                            "directCalls":  [
                                                "ClearAggregateReferenceDetail"
@@ -107331,8 +107789,8 @@
                            "name":  "ClearAggregateReferenceDetail",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  815,
-                           "endLine":  817,
+                           "startLine":  818,
+                           "endLine":  820,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -107352,8 +107810,8 @@
                            "name":  "mBtnClear_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  819,
-                           "endLine":  827,
+                           "startLine":  822,
+                           "endLine":  830,
                            "lineCount":  9,
                            "directCalls":  [
                                                "LocalAction",
@@ -107377,8 +107835,8 @@
                            "name":  "mBtnClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  829,
-                           "endLine":  831,
+                           "startLine":  832,
+                           "endLine":  834,
                            "lineCount":  3,
                            "directCalls":  [
                                                "CloseForm",
@@ -107406,8 +107864,8 @@
                            "name":  "RefreshClicked",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  833,
-                           "endLine":  841,
+                           "startLine":  836,
+                           "endLine":  844,
                            "lineCount":  9,
                            "directCalls":  [
                                                "LocalAction",
@@ -107430,8 +107888,8 @@
                            "name":  "AddSelectedInventory",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  843,
-                           "endLine":  886,
+                           "startLine":  846,
+                           "endLine":  889,
                            "lineCount":  44,
                            "directCalls":  [
                                                "BeginAction",
@@ -107461,11 +107919,11 @@
                            "name":  "mTabs_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  888,
-                           "endLine":  891,
+                           "startLine":  891,
+                           "endLine":  894,
                            "lineCount":  4,
                            "directCalls":  [
-                                               "ApplyReceivingTab"
+                                               "NavigationSelection"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -107480,14 +107938,126 @@
                        },
                        {
                            "componentName":  "frmReceiving",
+                           "name":  "mLstInventory_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  896,
+                           "endLine":  898,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "NavigationSelection"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstInventory_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmReceiving",
+                           "name":  "mLstStaged_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  899,
+                           "endLine":  901,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "NavigationSelection"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstStaged_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmReceiving",
+                           "name":  "mCboCondition_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  902,
+                           "endLine":  904,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "NavigationSelection"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mCboCondition_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmReceiving",
+                           "name":  "mCboDisposition_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  905,
+                           "endLine":  907,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "NavigationSelection"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mCboDisposition_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmReceiving",
+                           "name":  "NavigationSelection",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  909,
+                           "endLine":  931,
+                           "lineCount":  23,
+                           "directCalls":  [
+                                               "ApplyReceivingTab",
+                                               "BeginSelection",
+                                               "Finish",
+                                               "LoadSelectedReceiveItemDetails",
+                                               "Outcome",
+                                               "ResolveOperatorWorkbook",
+                                               "ShowSelectedAggregateReferences",
+                                               "ShowStatus"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmReceiving",
                            "name":  "ApplyReceivingTab",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  893,
-                           "endLine":  955,
-                           "lineCount":  63,
+                           "startLine":  933,
+                           "endLine":  937,
+                           "lineCount":  5,
                            "directCalls":  [
-                                               "Control",
+                                               "ApplyTab",
                                                "ResizeReceivingLayout",
                                                "ShowStatus"
                                            ],
@@ -107506,8 +108076,8 @@
                            "name":  "ApplyReceivingHeaderLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  957,
-                           "endLine":  966,
+                           "startLine":  939,
+                           "endLine":  948,
                            "lineCount":  10,
                            "directCalls":  [
                                                "AlignReceivingHeader"
@@ -107527,8 +108097,8 @@
                            "name":  "AlignReceivingHeader",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  968,
-                           "endLine":  980,
+                           "startLine":  950,
+                           "endLine":  962,
                            "lineCount":  13,
                            "directCalls":  [
                                                "BuildReceivingHeaderCaption"
@@ -107548,8 +108118,8 @@
                            "name":  "TestReturnsTabContract",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  982,
-                           "endLine":  1001,
+                           "startLine":  964,
+                           "endLine":  983,
                            "lineCount":  20,
                            "directCalls":  [
                                                "ApplyReceivingTab",
@@ -107571,8 +108141,8 @@
                            "name":  "TestStageInboundReturnActionForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  1003,
-                           "endLine":  1081,
+                           "startLine":  985,
+                           "endLine":  1063,
                            "lineCount":  79,
                            "directCalls":  [
                                                "ApplyReceivingTab",
@@ -107600,8 +108170,8 @@
                            "name":  "TestStageProtectedDispositionActionForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  1083,
-                           "endLine":  1116,
+                           "startLine":  1065,
+                           "endLine":  1098,
                            "lineCount":  34,
                            "directCalls":  [
                                                "ApplyReceivingTab",
@@ -107626,8 +108196,8 @@
                            "name":  "TestReceivingSearchAndHeaderContract",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  1118,
-                           "endLine":  1179,
+                           "startLine":  1100,
+                           "endLine":  1161,
                            "lineCount":  62,
                            "directCalls":  [
                                                "ApplyReceivingHeaderLayout",
@@ -107652,8 +108222,8 @@
                            "name":  "ShowStatus",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1181,
-                           "endLine":  1184,
+                           "startLine":  1163,
+                           "endLine":  1166,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -107673,8 +108243,8 @@
                            "name":  "ShowPersistencePending",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1186,
-                           "endLine":  1190,
+                           "startLine":  1168,
+                           "endLine":  1172,
                            "lineCount":  5,
                            "directCalls":  [
                                                "ShowStatus"
@@ -107694,8 +108264,8 @@
                            "name":  "DefaultReceiptId",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1192,
-                           "endLine":  1194,
+                           "startLine":  1174,
+                           "endLine":  1176,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -107715,8 +108285,8 @@
                            "name":  "NormalizeSearchText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1196,
-                           "endLine":  1202,
+                           "startLine":  1178,
+                           "endLine":  1184,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -107736,8 +108306,8 @@
                            "name":  "NzText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1204,
-                           "endLine":  1210,
+                           "startLine":  1186,
+                           "endLine":  1192,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -107757,8 +108327,8 @@
                            "name":  "MaxDoubleReceiving",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1212,
-                           "endLine":  1218,
+                           "startLine":  1194,
+                           "endLine":  1200,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -109252,6 +109822,137 @@
                            "kind":  "FUNCTION",
                            "startLine":  877,
                            "endLine":  891,
+                           "lineCount":  15,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingNavigation",
+                           "name":  "CreateInputs",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  4,
+                           "endLine":  12,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "Add",
+                                               "Attach"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingNavigation",
+                           "name":  "Detach",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  14,
+                           "endLine":  21,
+                           "lineCount":  8,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingNavigation",
+                           "name":  "BeginSelection",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  23,
+                           "endLine":  39,
+                           "lineCount":  17,
+                           "directCalls":  [
+                                               "BeginAction",
+                                               "CaptureContext",
+                                               "Consume",
+                                               "ControlIdFor"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingNavigation",
+                           "name":  "ControlIdFor",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  41,
+                           "endLine":  62,
+                           "lineCount":  22,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingNavigation",
+                           "name":  "ApplyTab",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  65,
+                           "endLine":  92,
+                           "lineCount":  28,
+                           "directCalls":  [
+                                               "Control",
+                                               "SetLabels"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingNavigation",
+                           "name":  "SetLabels",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  94,
+                           "endLine":  108,
                            "lineCount":  15,
                            "directCalls":  [
 
@@ -136115,8 +136816,10 @@
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Phase6TwoWarehouseProofHarness.ps1",
                                                  "tests/tooling/Test-Plan022DialogObserver.ps1",
@@ -136458,7 +137161,8 @@
                            {
                                "entryPoint":  "ApplyReceivingTab",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1"
                                              ]
                            },
                            {
@@ -136518,6 +137222,13 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ApplyTab",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4oReceiving.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4pReceiving.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ApplyUsedDeltasLocal",
                                "testPaths":  [
                                                  "tests/tooling/Test-Slice8ProductionRetirement.ps1"
@@ -136551,6 +137262,13 @@
                                "entryPoint":  "AssignmentSystemKeyReadable",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4atLocationStock.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Attach",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice0ToolContracts.ps1",
+                                                 "tests/tooling/Test-Slice14FullChain.ps1"
                                              ]
                            },
                            {
@@ -136939,6 +137657,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Capture",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "CaptureCompletedOutputHistory",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4ajProductionHistoryUtility.ps1"
@@ -137124,6 +137848,7 @@
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1"
                                              ]
@@ -137331,6 +138056,15 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Consume",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Slice8ProductionRetirement.ps1",
+                                                 "tests/unit/TestCoreProcessor.bas",
+                                                 "tests/unit/TestPhase6CoreSurfaces.bas",
+                                                 "tests/unit/TestProductionSessionService.bas"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ConsumeEventId",
                                "testPaths":  [
                                                  "tests/unit/TestProductionSessionService.bas"
@@ -137343,6 +138077,7 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4afRecipeIdentity.ps1",
@@ -137407,6 +138142,7 @@
                                "entryPoint":  "CreateSystemKey",
                                "testPaths":  [
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
+                                                 "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
                                                  "tests/tooling/Test-Phase6PackagedWanHqSystemKey.ps1",
                                                  "tests/tooling/Test-Plan022Slice4akAdminAddVisibilityDropdowns.ps1",
                                                  "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1",
@@ -138535,6 +139271,7 @@
                                "entryPoint":  "Initialize",
                                "testPaths":  [
                                                  "tests/legacy-vba/modTestModule.bas",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1"
                                              ]
                            },
@@ -138553,7 +139290,8 @@
                            {
                                "entryPoint":  "InitializeFromReceiving",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1"
                                              ]
                            },
                            {
@@ -138984,6 +139722,7 @@
                                                  "tests/integration/prove_wan_wh1_setup.bas",
                                                  "tests/integration/prove_wan_wh2_setup.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4pReceiving.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestCoreAuth.bas",
@@ -139068,6 +139807,12 @@
                                "entryPoint":  "LoadReceivingFormTable",
                                "testPaths":  [
                                                  "tests/unit/TestStub_modTS_Received.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "LoadSelectedReceiveItemDetails",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1"
                                              ]
                            },
                            {
@@ -139438,6 +140183,7 @@
                                "entryPoint":  "Message",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                 "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
                                                  "tests/tooling/Test-Plan022DialogObserver.ps1",
                                                  "tests/tooling/Test-Plan022Slice4bkUserOnboardingPacket.ps1",
                                                  "tests/tooling/Test-Plan022Slice4uShippingPersistenceFeedback.ps1",
@@ -139734,6 +140480,7 @@
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1"
                                              ]
@@ -140190,6 +140937,7 @@
                                "entryPoint":  "RefreshAllViews",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4afRecipeIdentity.ps1"
                                              ]
                            },
@@ -141148,6 +141896,7 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4bjNasStationSetup.ps1",
                                                  "tests/tooling/Test-Slice0ToolContracts.ps1",
@@ -141368,6 +142117,7 @@
                            {
                                "entryPoint":  "ShowSelectedAggregateReferences",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                              ]
                            },
@@ -141398,6 +142148,7 @@
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
@@ -141517,6 +142268,7 @@
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
@@ -142384,6 +143136,7 @@
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-EaWholeUnitInvariant.ps1",
+                                                 "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
                                                  "tests/tooling/Test-Phase6PackagedWanHqSystemKey.ps1",
                                                  "tests/tooling/Test-Phase6TwoWarehouseProofHarness.ps1",
                                                  "tests/tooling/Test-Plan022DialogObserver.ps1",
@@ -144234,8 +144987,22 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mCboCondition_Click",
+                             "procedure":  "mCboCondition_Click",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.userform-event:src_Admin_Forms_frmSeedInventory.frm:frmSeedInventory.mCboDemoDataSet_Change",
                              "procedure":  "mCboDemoDataSet_Change",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mCboDisposition_Click",
+                             "procedure":  "mCboDisposition_Click",
                              "rootKind":  "USERFORM_EVENT",
                              "reason":  "UserForm and control events are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
@@ -144252,6 +145019,41 @@
                              "procedure":  "mChkUseExisting_Click",
                              "rootKind":  "USERFORM_EVENT",
                              "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_DropButtonClick",
+                             "procedure":  "mChoice_DropButtonClick",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_KeyDown",
+                             "procedure":  "mChoice_KeyDown",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_KeyUp",
+                             "procedure":  "mChoice_KeyUp",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_MouseDown",
+                             "procedure":  "mChoice_MouseDown",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_MouseUp",
+                             "procedure":  "mChoice_MouseUp",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
@@ -144381,6 +145183,34 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_KeyDown",
+                             "procedure":  "mList_KeyDown",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_KeyUp",
+                             "procedure":  "mList_KeyUp",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_MouseDown",
+                             "procedure":  "mList_MouseDown",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_MouseUp",
+                             "procedure":  "mList_MouseUp",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstAggregate_Click",
                              "procedure":  "mLstAggregate_Click",
                              "rootKind":  "USERFORM_EVENT",
@@ -144453,6 +145283,13 @@
                          {
                              "id":  "convention.userform-event:src_Shipping_Forms_frmShipmentsTally.frm:frmShipmentsTally.mLstHold_Click",
                              "procedure":  "mLstHold_Click",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstInventory_Click",
+                             "procedure":  "mLstInventory_Click",
                              "rootKind":  "USERFORM_EVENT",
                              "reason":  "UserForm and control events are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
@@ -144577,6 +145414,13 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstStaged_Click",
+                             "procedure":  "mLstStaged_Click",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.mLstTargets_Change",
                              "procedure":  "mLstTargets_Change",
                              "rootKind":  "USERFORM_EVENT",
@@ -144638,6 +145482,34 @@
                              "rootKind":  "WINDOWS_CALLBACK",
                              "reason":  "Procedure is passed with AddressOf and is not reachable as a normal direct call.",
                              "source":  "src/Core/Modules/MouseScroll.bas"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_KeyDown",
+                             "procedure":  "mPage_KeyDown",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_KeyUp",
+                             "procedure":  "mPage_KeyUp",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_MouseDown",
+                             "procedure":  "mPage_MouseDown",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_MouseUp",
+                             "procedure":  "mPage_MouseUp",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
                              "id":  "convention.userform-event:src_Shipping_Forms_frmShipmentsTally.frm:frmShipmentsTally.mPages_Change",

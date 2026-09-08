@@ -208,6 +208,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modRoleUiAccess.bas"),
         (Join-Path $repo "src/Core/Modules/modRibbonRuntimeStatus.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
+        (Join-Path $repo "src/Core/Modules/modSystemIdentity.bas"),
         (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),
         (Join-Path $repo "src/Core/Modules/modDesignsDomainBridge.bas"),
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),

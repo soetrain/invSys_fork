@@ -13,8 +13,6 @@ Private Type SystemTime
 End Type
 
 Private Declare PtrSafe Sub GetSystemTime Lib "kernel32" (ByRef value As SystemTime)
-Private Declare PtrSafe Function CoCreateGuid Lib "ole32" (ByRef value As Any) As Long
-Private Declare PtrSafe Function StringFromGUID2 Lib "ole32" (ByRef value As Any, ByVal buffer As LongPtr, ByVal length As Long) As Long
 Private Declare PtrSafe Function BCryptOpenAlgorithmProvider Lib "bcrypt" (ByRef algorithm As LongPtr, ByVal name As LongPtr, ByVal provider As LongPtr, ByVal flags As Long) As Long
 Private Declare PtrSafe Function BCryptCreateHash Lib "bcrypt" (ByVal algorithm As LongPtr, ByRef hash As LongPtr, ByVal buffer As LongPtr, ByVal bufferLength As Long, ByVal secret As LongPtr, ByVal secretLength As Long, ByVal flags As Long) As Long
 Private Declare PtrSafe Function BCryptHashData Lib "bcrypt" (ByVal hash As LongPtr, ByRef data As Any, ByVal length As Long, ByVal flags As Long) As Long
@@ -23,11 +21,11 @@ Private Declare PtrSafe Function BCryptDestroyHash Lib "bcrypt" (ByVal hash As L
 Private Declare PtrSafe Function BCryptCloseAlgorithmProvider Lib "bcrypt" (ByVal algorithm As LongPtr, ByVal flags As Long) As Long
 
 Public Function NewId() As String
-    Dim bytes(0 To 15) As Byte, buffer As String
-    buffer = String$(39, vbNullChar)
-    If CoCreateGuid(bytes(0)) <> 0 Then Err.Raise 5, , "Training identity unavailable."
-    If StringFromGUID2(bytes(0), StrPtr(buffer), 39) <> 39 Then Err.Raise 5, , "Training identity unavailable."
-    NewId = LCase$(Mid$(buffer, 2, 36))
+    On Error GoTo Failed
+    NewId = modSystemIdentity.NewId()
+    Exit Function
+Failed:
+    Err.Raise 5, , "Training identity unavailable."
 End Function
 
 Public Function UtcTimestamp() As String

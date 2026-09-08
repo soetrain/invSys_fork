@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-08T08:53:13Z
-- Scanner candidates: 1077
-- Reviewed candidates: 1079
+- Baseline: 2026-09-08T10:44:20Z
+- Scanner candidates: 1097
+- Reviewed candidates: 1099
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -11,7 +11,7 @@
 
 | Workstream | Candidates | Scope |
 |---|---:|---|
-| RECEIVING | 34 | Receiving-owned forms, services, and role package source. |
+| RECEIVING | 54 | Receiving-owned forms, services, and role package source. |
 | PRODUCTION | 222 | Production-owned forms, services, and role package source. |
 | SHIPPING | 156 | Shipping and Boxing forms, services, and role package source. |
 | SHARED_OPERATIONS | 64 | Cross-role or future invSys.Operations packaging work. |
@@ -42,7 +42,7 @@
 | src/Core/Modules/modNasConnection.bas | Core | 1603 |
 | src/Core/Modules/modOperatorReadModel.bas | Core | 1916 |
 | src/Core/Modules/modProcessor.bas | Core | 1479 |
-| src/Core/Modules/modRoleEventWriter.bas | Core | 3104 |
+| src/Core/Modules/modRoleEventWriter.bas | Core | 3064 |
 | src/Core/Modules/modWarehouseBootstrap.bas | Core | 1278 |
 | src/Core/Modules/modWarehouseRetire.bas | Core | 1658 |
 | src/Core/Modules/modWarehouseSync.bas | Core | 1753 |
@@ -54,7 +54,7 @@
 | src/Production/Modules/modProductionProcessWorksheet.bas | Production | 1362 |
 | src/Production/Modules/modProductionReusableRun.bas | Production | 2781 |
 | src/Production/Modules/mProduction.bas | Production | 13279 |
-| src/Receiving/Forms/frmReceiving.frm | Receiving | 1218 |
+| src/Receiving/Forms/frmReceiving.frm | Receiving | 1200 |
 | src/Receiving/Modules/modTS_Received.bas | Receiving | 1575 |
 | src/Shipping/Forms/frmShipmentsTally.frm | Shipping | 3025 |
 | src/Shipping/Modules/modTS_Shipments.bas | Shipping | 22451 |
@@ -888,6 +888,9 @@
 | root:src_Production_Modules_mProduction.bas:mProduction.RunChaiForkConvergenceRunActionContractTest | PRODUCTION | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Production_Modules_mProduction.bas:mProduction.TestProductionIngredientPaletteRuntimeRoundTrip | PRODUCTION | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Production_Modules_mProduction.bas:mProduction.TestProductionInventoryPickerPrefersCanonicalRuntime | PRODUCTION | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| duplicate:19430283728cb931:mChoice_KeyUp+mList_KeyUp+mList_MouseUp+mPage_KeyUp+mPage_MouseUp | RECEIVING | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
+| duplicate:549be2182bb05fc3:mChoice_MouseDown+mList_MouseDown | RECEIVING | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
+| duplicate:5e36e88918a58120:mCboCondition_Click+mCboDisposition_Click+mLstAggregate_Click+mLstInventory_Click+mLstReceiveItems_Click+mLstStaged_Click | RECEIVING | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | module-size:src_Receiving_Forms_frmReceiving.frm:frmReceiving | RECEIVING | SPLIT_MODULE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | module-size:src_Receiving_Modules_modTS_Received.bas:modTS_Received | RECEIVING | SPLIT_MODULE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | reachability:src_Receiving_ClassModules_cReceivingAppEvents.cls:cReceivingAppEvents.App_NewWorkbook | RECEIVING | REMOVE | MEDIUM | REQUIRES_PROTECTING_TEST |
@@ -904,6 +907,19 @@
 | reachability:src_Receiving_Modules_modTS_Received.bas:modTS_Received.RebuildAggregation | RECEIVING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Receiving_Modules_modTS_Received.bas:modTS_Received.ReceivingFormInitializeSmokeForWorkbook | RECEIVING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Receiving_Modules_modTS_Received.bas:modTS_Received.RunReceivingRefreshFormActionForTest | RECEIVING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_DropButtonClick | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_KeyDown | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_KeyUp | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_MouseDown | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_MouseUp | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_KeyDown | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_KeyUp | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_MouseDown | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mList_MouseUp | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_KeyDown | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_KeyUp | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_MouseDown | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mPage_MouseUp | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_ClassModules_Sheets_ReceivedTally.cls:ReceivedTally.Worksheet_Change | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_ClassModules_Sheets_ReceivedTally.cls:ReceivedTally.Worksheet_SelectionChange | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mBtnAdd_Click | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
@@ -911,8 +927,12 @@
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mBtnClose_Click | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mBtnConfirm_Click | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mBtnRefresh_Click | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mCboCondition_Click | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mCboDisposition_Click | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstAggregate_Click | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstInventory_Click | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstReceiveItems_Click | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mLstStaged_Click | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mTabs_Change | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mTxtItemSearch_Change | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.mTxtSearch_Change | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |

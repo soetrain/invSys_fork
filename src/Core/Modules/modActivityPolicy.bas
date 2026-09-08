@@ -29,7 +29,9 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
     Set headers = FindTable(wb, "tblEventTrackingPolicies")
     Set controls = FindTable(wb, "tblEventTrackingControls")
     If headers Is Nothing And controls Is Nothing Then
-        collect = True: visible = True
+        Set definition = modActivityCatalog.Control(controlId)
+        If definition Is Nothing Then GoTo CleanExit
+        collect = (definition("Class") = "Command"): visible = True
         ReadPolicy = True: notice = ""
         GoTo CleanExit
     End If
