@@ -34,6 +34,7 @@ if ($CheckReceivingActivity) {
     . (Join-Path $PSScriptRoot 'Slice4beReceivingRetry.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingStaging.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingLocal.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingFreshness.ps1')
     if (-not $CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null

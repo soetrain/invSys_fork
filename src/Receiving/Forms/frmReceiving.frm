@@ -809,9 +809,9 @@ End Sub
 
 Private Sub mBtnClear_Click()
     On Error GoTo ErrHandler
-    modTS_Received.ClearReceivingFormStagingForWorkbook mOperatorWorkbook
-    RefreshStaging
-    ShowStatus "Receiving form staging cleared."
+    Dim report As String
+    If modReceivingActivityAction.LocalAction(ResolveOperatorWorkbook(), mActivityContext, True, report) Then RefreshStaging
+    ShowStatus report
     Exit Sub
 ErrHandler:
     ShowStatus "Clear failed: " & Err.Description
@@ -823,9 +823,9 @@ End Sub
 
 Private Sub RefreshClicked()
     On Error GoTo ErrHandler
-    modTS_Received.RefreshReceivingUiForWorkbook ResolveOperatorWorkbook(), "LOCAL"
-    RefreshAllViews
-    ShowStatus "Receiving history, managed items, and staging refreshed."
+    Dim report As String
+    If modReceivingActivityAction.LocalAction(ResolveOperatorWorkbook(), mActivityContext, False, report) Then RefreshAllViews
+    ShowStatus report
     Exit Sub
 ErrHandler:
     ShowStatus "Refresh failed: " & Err.Description

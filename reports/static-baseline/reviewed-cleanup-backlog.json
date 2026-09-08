@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-08T03:19:17Z",
+    "generatedAtUtc":  "2026-09-08T05:01:32Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "1a0f51a487e8c38f15c688fcb614ec75db6f55ed9364974aeb4a80c74dc3b183",
-                          "maintenanceCandidatesSha256":  "1fe19f71409e75110d6cd568f55ccfd145ab6ad09bd21a7a3bd06382c010bd00"
+                          "implementationManifestSha256":  "7a31dda570d25fca55156605d855c9d50e4eda267a208cfd6ede62cacc948a21",
+                          "maintenanceCandidatesSha256":  "1ed51ff804047bb4b271a57652faf34e1464b240daa4df504c54eb4a4e7cbe22"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -3181,6 +3181,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -3808,7 +3809,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -14290,6 +14291,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -23073,7 +23075,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -23148,6 +23150,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -29037,6 +29040,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,

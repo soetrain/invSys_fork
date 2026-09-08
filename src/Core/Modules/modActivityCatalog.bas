@@ -2,7 +2,7 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 3
+Public Const CATALOG_VERSION As Long = 4
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     If version = 1 Then
@@ -12,6 +12,10 @@ Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As 
     ElseIf version = 3 Then
         ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", "RECEIVING_CONFIRM_WRITES", _
                            "RECEIVING_ADD_SELECTED", "DISPOSITION_ADD_SELECTED", "DISPOSITION_CONFIRM")
+    ElseIf version = 4 Then
+        ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", "RECEIVING_CONFIRM_WRITES", _
+                           "RECEIVING_ADD_SELECTED", "DISPOSITION_ADD_SELECTED", "DISPOSITION_CONFIRM", _
+                           "RECEIVING_REFRESH", "RECEIVING_CLEAR")
     End If
 End Function
 
@@ -61,6 +65,20 @@ Public Function Control(ByVal controlId As String, Optional ByVal version As Lon
                 record.Add "Caption", "Confirm Dispositions"
                 record.Add "CodePrefix", "DISPOSITION_CONFIRM_"
             End If
+        Case "RECEIVING_REFRESH", "RECEIVING_CLEAR"
+            If version < 4 Then Exit Function
+            record("OwnerId") = "RECEIVING_WORKFLOW"
+            record.Add "Role", "Receiving"
+            record.Add "Surface", "Operations > Receiving"
+            record.Add "Capability", "RECEIVE_POST"
+            If controlId = "RECEIVING_CLEAR" Then
+                record("OwnerId") = "RECEIVING_STAGING"
+                record.Add "Caption", "Clear"
+                record.Add "CodePrefix", "RECEIVE_CLEAR_"
+            Else
+                record.Add "Caption", "Refresh"
+                record.Add "CodePrefix", "RECEIVE_REFRESH_"
+            End If
         Case Else: Exit Function
     End Select
     Set Control = record
@@ -73,6 +91,8 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     If definition("Role") = "Receiving" Then
         If controlId = "RECEIVING_ADD_SELECTED" Or controlId = "DISPOSITION_ADD_SELECTED" Then
             Set Outcome = modReceivingActivityCodes.StagingOutcome(outcomeCode, definition("CodePrefix"))
+        ElseIf controlId = "RECEIVING_REFRESH" Or controlId = "RECEIVING_CLEAR" Then
+            Set Outcome = modReceivingActivityCodes.LocalOutcome(outcomeCode, controlId = "RECEIVING_CLEAR")
         Else
             Set Outcome = modReceivingActivityCodes.Outcome(outcomeCode, controlId = "DISPOSITION_CONFIRM")
         End If

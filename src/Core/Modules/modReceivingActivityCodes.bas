@@ -43,6 +43,44 @@ Public Function Outcome(ByVal code As String, Optional ByVal disposition As Bool
     Set Outcome = record
 End Function
 
+Public Function LocalOutcome(ByVal code As String, ByVal clearing As Boolean) As Object
+    Dim record As Object, severity As String, effect As String, message As String, nextStep As String, prefix As String
+    severity = "Info": effect = "Unknown": prefix = "RECEIVE_REFRESH_"
+    If clearing Then prefix = "RECEIVE_CLEAR_"
+    Select Case code
+        Case "REQUESTED"
+            message = "Workbook-local refresh requested."
+            If clearing Then message = "Local staging clear requested."
+        Case "REFRESHED"
+            If clearing Then Exit Function
+            effect = "Changed"
+            message = "Workbook-local Receiving projections refreshed; no inventory event submitted."
+            nextStep = "Review displayed inventory and staged entries."
+        Case "CLEARED", "EMPTY"
+            If Not clearing Then Exit Function
+            effect = "Changed"
+            message = "Workbook-local Receiving staging cleared; no inventory event submitted."
+            If code = "EMPTY" Then
+                effect = "Unchanged": message = "Workbook-local Receiving staging was already empty."
+            End If
+            nextStep = "Add entries to stage further work."
+        Case "FAILED"
+            severity = "Error"
+            message = "Local refresh failed; its final state requires verification."
+            If clearing Then message = "Local staging clear failed; its final state requires verification."
+            nextStep = "Inspect the captured Receiving workbook before retrying."
+        Case Else: Exit Function
+    End Select
+    Set record = CreateObject("Scripting.Dictionary")
+    record.Add "EventCode", prefix & code
+    record.Add "OutcomeCode", code
+    record.Add "Severity", severity
+    record.Add "DataEffect", effect
+    record.Add "UserMessage", message
+    record.Add "NextStep", nextStep
+    Set LocalOutcome = record
+End Function
+
 Public Function StagingOutcome(ByVal code As String, ByVal prefix As String) As Object
     Dim record As Object, severity As String, effect As String, message As String, nextStep As String
     severity = "Info": effect = "Unknown"

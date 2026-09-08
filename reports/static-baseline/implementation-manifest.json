@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-08T03:19:17Z",
+    "generatedAtUtc":  "2026-09-08T05:01:32Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -1919,7 +1919,7 @@
                            "name":  "modActivityCatalog",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActivityCatalog.bas",
-                           "lineCount":  114,
+                           "lineCount":  134,
                            "procedureNames":  [
                                                   "Control",
                                                   "ControlIds",
@@ -2990,8 +2990,9 @@
                            "name":  "modReceivingActivityCodes",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modReceivingActivityCodes.bas",
-                           "lineCount":  73,
+                           "lineCount":  111,
                            "procedureNames":  [
+                                                  "LocalOutcome",
                                                   "Outcome",
                                                   "StagingOutcome"
                                               ],
@@ -6280,9 +6281,10 @@
                            "name":  "modReceivingActivityAction",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Receiving/Modules/modReceivingActivityAction.bas",
-                           "lineCount":  34,
+                           "lineCount":  72,
                            "procedureNames":  [
-                                                  "ConfirmWrites"
+                                                  "ConfirmWrites",
+                                                  "LocalAction"
                                               ],
                            "metadata":  {
 
@@ -6396,7 +6398,7 @@
                            "name":  "modReceivingPostingService",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Receiving/Modules/modReceivingPostingService.bas",
-                           "lineCount":  538,
+                           "lineCount":  545,
                            "procedureNames":  [
                                                   "AppendReceivedLog",
                                                   "BuildEventNote",
@@ -33652,8 +33654,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  7,
-                           "endLine":  16,
-                           "lineCount":  10,
+                           "endLine":  20,
+                           "lineCount":  14,
                            "directCalls":  [
                                                "Version"
                                            ],
@@ -33672,9 +33674,9 @@
                            "name":  "Control",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  18,
-                           "endLine":  67,
-                           "lineCount":  50,
+                           "startLine":  22,
+                           "endLine":  85,
+                           "lineCount":  64,
                            "directCalls":  [
                                                "Add",
                                                "Version"
@@ -33694,12 +33696,13 @@
                            "name":  "Outcome",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  69,
-                           "endLine":  114,
-                           "lineCount":  46,
+                           "startLine":  87,
+                           "endLine":  134,
+                           "lineCount":  48,
                            "directCalls":  [
                                                "Add",
                                                "Control",
+                                               "LocalOutcome",
                                                "Message",
                                                "StagingOutcome"
                                            ],
@@ -50751,11 +50754,33 @@
                        },
                        {
                            "componentName":  "modReceivingActivityCodes",
-                           "name":  "StagingOutcome",
+                           "name":  "LocalOutcome",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  46,
-                           "endLine":  73,
+                           "endLine":  82,
+                           "lineCount":  37,
+                           "directCalls":  [
+                                               "Add",
+                                               "Message"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingActivityCodes",
+                           "name":  "StagingOutcome",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  84,
+                           "endLine":  111,
                            "lineCount":  28,
                            "directCalls":  [
                                                "Add",
@@ -107277,8 +107302,9 @@
                            "endLine":  818,
                            "lineCount":  9,
                            "directCalls":  [
-                                               "ClearReceivingFormStagingForWorkbook",
+                                               "LocalAction",
                                                "RefreshStaging",
+                                               "ResolveOperatorWorkbook",
                                                "ShowStatus"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -107329,8 +107355,8 @@
                            "endLine":  832,
                            "lineCount":  9,
                            "directCalls":  [
+                                               "LocalAction",
                                                "RefreshAllViews",
-                                               "RefreshReceivingUiForWorkbook",
                                                "ResolveOperatorWorkbook",
                                                "ShowStatus"
                                            ],
@@ -107728,6 +107754,32 @@
                                                "FinishAction",
                                                "InventorySourceReferences",
                                                "Outcome"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingActivityAction",
+                           "name":  "LocalAction",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  37,
+                           "endLine":  72,
+                           "lineCount":  36,
+                           "directCalls":  [
+                                               "BeginAction",
+                                               "CaptureContext",
+                                               "ClearReceivingFormStagingForWorkbook",
+                                               "Finish",
+                                               "Outcome",
+                                               "RefreshReceivingUiForWorkbook"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -109142,8 +109194,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
                            "startLine":  167,
-                           "endLine":  175,
-                           "lineCount":  9,
+                           "endLine":  182,
+                           "lineCount":  16,
                            "directCalls":  [
 
                                            ],
@@ -109162,8 +109214,8 @@
                            "name":  "ReceivingWorkflowContractProbe",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  177,
-                           "endLine":  219,
+                           "startLine":  184,
+                           "endLine":  226,
                            "lineCount":  43,
                            "directCalls":  [
                                                "CurrentState",
@@ -109192,8 +109244,8 @@
                            "name":  "BuildValidatedStates",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  221,
-                           "endLine":  270,
+                           "startLine":  228,
+                           "endLine":  277,
                            "lineCount":  50,
                            "directCalls":  [
                                                "Add",
@@ -109229,8 +109281,8 @@
                            "name":  "BuildReceivingAttributesJson",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  272,
-                           "endLine":  291,
+                           "startLine":  279,
+                           "endLine":  298,
                            "lineCount":  20,
                            "directCalls":  [
                                                "CellText",
@@ -109251,8 +109303,8 @@
                            "name":  "EscapeJsonReceiving",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  293,
-                           "endLine":  300,
+                           "startLine":  300,
+                           "endLine":  307,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -109272,8 +109324,8 @@
                            "name":  "BuildReceivingQueueJson",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  302,
-                           "endLine":  313,
+                           "startLine":  309,
+                           "endLine":  320,
                            "lineCount":  12,
                            "directCalls":  [
                                                "AttributesJson",
@@ -109302,8 +109354,8 @@
                            "name":  "EventTypeForReceiptType",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  315,
-                           "endLine":  323,
+                           "startLine":  322,
+                           "endLine":  330,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -109323,8 +109375,8 @@
                            "name":  "WriteWorkflowState",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  325,
-                           "endLine":  331,
+                           "startLine":  332,
+                           "endLine":  338,
                            "lineCount":  7,
                            "directCalls":  [
                                                "CurrentState",
@@ -109347,8 +109399,8 @@
                            "name":  "WriteWorkflowStateBySystemKey",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  333,
-                           "endLine":  340,
+                           "startLine":  340,
+                           "endLine":  347,
                            "lineCount":  8,
                            "directCalls":  [
                                                "FindTableRow",
@@ -109370,8 +109422,8 @@
                            "name":  "AppendReceivedLog",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  342,
-                           "endLine":  376,
+                           "startLine":  349,
+                           "endLine":  383,
                            "lineCount":  35,
                            "directCalls":  [
                                                "CellText",
@@ -109402,8 +109454,8 @@
                            "name":  "BuildEventNote",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  378,
-                           "endLine":  399,
+                           "startLine":  385,
+                           "endLine":  406,
                            "lineCount":  22,
                            "directCalls":  [
                                                "CellText"
@@ -109423,8 +109475,8 @@
                            "name":  "FindTableReceivingService",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  401,
-                           "endLine":  416,
+                           "startLine":  408,
+                           "endLine":  423,
                            "lineCount":  16,
                            "directCalls":  [
 
@@ -109444,8 +109496,8 @@
                            "name":  "RequiredColumnsPresent",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  418,
-                           "endLine":  428,
+                           "startLine":  425,
+                           "endLine":  435,
                            "lineCount":  11,
                            "directCalls":  [
                                                "FindColumnReceivingService"
@@ -109465,8 +109517,8 @@
                            "name":  "FindColumnReceivingService",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  430,
-                           "endLine":  441,
+                           "startLine":  437,
+                           "endLine":  448,
                            "lineCount":  12,
                            "directCalls":  [
 
@@ -109486,8 +109538,8 @@
                            "name":  "CellText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  443,
-                           "endLine":  454,
+                           "startLine":  450,
+                           "endLine":  461,
                            "lineCount":  12,
                            "directCalls":  [
                                                "FindColumnReceivingService"
@@ -109507,8 +109559,8 @@
                            "name":  "CellNumber",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  456,
-                           "endLine":  467,
+                           "startLine":  463,
+                           "endLine":  474,
                            "lineCount":  12,
                            "directCalls":  [
                                                "FindColumnReceivingService"
@@ -109528,8 +109580,8 @@
                            "name":  "SetCellText",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  469,
-                           "endLine":  474,
+                           "startLine":  476,
+                           "endLine":  481,
                            "lineCount":  6,
                            "directCalls":  [
                                                "SetCellValue"
@@ -109549,8 +109601,8 @@
                            "name":  "SetCellValue",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  476,
-                           "endLine":  488,
+                           "startLine":  483,
+                           "endLine":  495,
                            "lineCount":  13,
                            "directCalls":  [
                                                "FindColumnReceivingService"
@@ -109570,8 +109622,8 @@
                            "name":  "FindTableRow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  490,
-                           "endLine":  510,
+                           "startLine":  497,
+                           "endLine":  517,
                            "lineCount":  21,
                            "directCalls":  [
                                                "FindColumnReceivingService"
@@ -109591,8 +109643,8 @@
                            "name":  "FirstBlankOrNewRow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  512,
-                           "endLine":  526,
+                           "startLine":  519,
+                           "endLine":  533,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -109612,8 +109664,8 @@
                            "name":  "WorkbookIsOpenReceivingService",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  528,
-                           "endLine":  538,
+                           "startLine":  535,
+                           "endLine":  545,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -135912,6 +135964,7 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
@@ -136381,6 +136434,7 @@
                                "entryPoint":  "BeginAction",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1"
                                              ]
                            },
@@ -136861,6 +136915,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ClearReceivingFormStagingForWorkbook",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ClearReceivingStaging",
                                "testPaths":  [
                                                  "tests/tooling/Test-Slice10ReceivingStabilization.ps1"
@@ -137110,6 +137170,8 @@
                                "entryPoint":  "Control",
                                "testPaths":  [
                                                  "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                 "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4afRecipeIdentity.ps1",
@@ -138868,6 +138930,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "LocalAction",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "Location",
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
@@ -138975,6 +139043,12 @@
                                "entryPoint":  "mBtnBoxMakerUnmake_Click",
                                "testPaths":  [
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mBtnClear_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1"
                                              ]
                            },
                            {
@@ -139115,6 +139189,7 @@
                                "entryPoint":  "mBtnRefresh_Click",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                              ]
                            },
@@ -139474,6 +139549,7 @@
                                "entryPoint":  "Outcome",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1"
                                              ]
@@ -139929,6 +140005,7 @@
                            {
                                "entryPoint":  "RefreshAllViews",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Test-Plan022Slice4afRecipeIdentity.ps1"
                                              ]
                            },
@@ -139948,6 +140025,12 @@
                                "entryPoint":  "RefreshEvents",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "RefreshInventoryReadModel",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1"
                                              ]
                            },
                            {
@@ -139993,6 +140076,7 @@
                            {
                                "entryPoint":  "RefreshReceivingUiForWorkbook",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/unit/TestStub_modTS_Received.bas"
                                              ]
                            },
@@ -141104,6 +141188,8 @@
                                                  "tests/integration/test_ReceivingReadiness.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestReceivingReadiness.bas"
@@ -141219,6 +141305,7 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",

@@ -165,12 +165,19 @@ Unavailable:
 End Function
 
 Public Sub ClearReceivingStaging(ByVal stagingTable As ListObject, _
-                                 ByVal aggregateTable As ListObject)
+                                 ByVal aggregateTable As ListObject, Optional ByRef changed As Boolean = False)
+    changed = False
     If Not stagingTable Is Nothing Then
-        If Not stagingTable.DataBodyRange Is Nothing Then stagingTable.DataBodyRange.Delete
+        If Not stagingTable.DataBodyRange Is Nothing Then
+            stagingTable.DataBodyRange.Delete
+            changed = True
+        End If
     End If
     If Not aggregateTable Is Nothing Then
-        If Not aggregateTable.DataBodyRange Is Nothing Then aggregateTable.DataBodyRange.Delete
+        If Not aggregateTable.DataBodyRange Is Nothing Then
+            aggregateTable.DataBodyRange.Delete
+            changed = True
+        End If
     End If
 End Sub
 

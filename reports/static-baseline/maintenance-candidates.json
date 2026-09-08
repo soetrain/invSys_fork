@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-08T03:19:17Z",
+    "generatedAtUtc":  "2026-09-08T05:01:32Z",
     "baseline":  {
                      "componentCount":  171,
-                     "procedureCount":  5463,
-                     "lineCount":  123175,
+                     "procedureCount":  5465,
+                     "lineCount":  123278,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192
@@ -6238,6 +6238,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -6703,7 +6704,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -9696,6 +9697,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -12091,7 +12093,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -12148,6 +12150,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -12850,6 +12853,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true

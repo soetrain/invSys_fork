@@ -35,6 +35,10 @@ Public Sub DirectLocal(ByVal workbookName As String)
     ignored = mForm.ActivityTestLocalAction("Internal")
     modTS_Received.ClearReceivingFormStagingForWorkbook Application.Workbooks(workbookName)
 End Sub
+Public Function DirectRefresh(ByVal workbookName As String) As Boolean
+    Dim report As String
+    DirectRefresh = modTS_Received.RefreshReceivingUiForWorkbook(Application.Workbooks(workbookName), "LOCAL", report)
+End Function
 '@)
 }
 
@@ -168,6 +172,7 @@ function Test-ReceivingLocalActivity($Fixture) {
         }
     }
     Test-ReceivingLocalClosedWorkbook $Fixture
+    Test-ReceivingRefreshFreshness $Fixture
 }
 
 function Test-ReceivingLocalClosedWorkbook($Fixture) {

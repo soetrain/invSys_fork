@@ -1127,13 +1127,13 @@ Public Sub RebuildAggregation()
     End If
 End Sub
 
-Public Sub ClearReceivingFormStagingForWorkbook(ByVal operatorWb As Workbook)
+Public Sub ClearReceivingFormStagingForWorkbook(ByVal operatorWb As Workbook, Optional ByRef changed As Boolean = False)
     Dim stagingTable As ListObject
     Dim aggregateTable As ListObject
 
     Set stagingTable = FindTable(operatorWb, TABLE_STAGING)
     Set aggregateTable = FindTable(operatorWb, TABLE_AGGREGATE)
-    modReceivingPostingService.ClearReceivingStaging stagingTable, aggregateTable
+    modReceivingPostingService.ClearReceivingStaging stagingTable, aggregateTable, changed
 End Sub
 
 Public Sub ClearReceivingFormStaging()
