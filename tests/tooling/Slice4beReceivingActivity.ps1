@@ -27,7 +27,8 @@ function Get-ReceivingFixtureHash([string]$Path) {
     finally { $sha.Dispose(); $stream.Dispose() }
 }
 
-function Test-ReceivingObservations($Fixture,[string[]]$Before,$Expected,[bool]$Pending) {
+function Test-ReceivingObservations($Fixture,[string[]]$Before,$Expected,[bool]$Pending,
+    [string]$CaseLabel='', [string]$Outcome='', [string]$ReferenceState='Submitted') {
     $records = @()
     $payloads = @()
     foreach ($path in @(Get-Slice4beActivityFiles $Fixture)) {
@@ -39,7 +40,7 @@ function Test-ReceivingObservations($Fixture,[string[]]$Before,$Expected,[bool]$
     $attempts = @($records | Where-Object { (Get-Slice4beField $_ 'OutcomeCode') -eq 'REQUESTED' })
     $outcomes = @($records | Where-Object { (Get-Slice4beField $_ 'OutcomeCode') -ne 'REQUESTED' })
     $pair = $attempts.Count -eq 1 -and $outcomes.Count -eq 1
-    $label = if ($Pending) { 'Pending' } else { 'Applied' }
+    $label = if ($CaseLabel) { $CaseLabel } elseif ($Pending) { 'Pending' } else { 'Applied' }
     Write-Output "Receiving observation counts: $label attempts=$($attempts.Count) outcomes=$($outcomes.Count)"
     Check "Receiving.Activity.$label.AttemptAndOutcome" $pair
     $correlated = $false; $sources = $false; $truthful = $false
@@ -54,19 +55,23 @@ function Test-ReceivingObservations($Fixture,[string[]]$Before,$Expected,[bool]$
         if ($null -ne $property) {
             $refs = @($property.Value)
             $ids = @($refs | ForEach-Object { Get-Slice4beField $_ 'EventId' })
-            $sources = $ids.Count -eq $Expected.Count
-            foreach ($item in $Expected) { $sources = $sources -and ($item.EventId -cin $ids) }
-            $sources = $sources -and @($ids | Select-Object -Unique).Count -eq $Expected.Count
+            if ($ReferenceState -eq 'Empty') { $sources = $refs.Count -eq 0 }
+            else {
+                $sources = $ids.Count -eq $Expected.Count
+                foreach ($item in $Expected) { $sources = $sources -and ($item.EventId -cin $ids) }
+                $sources = $sources -and @($ids | Select-Object -Unique).Count -eq $Expected.Count
+            }
             foreach ($reference in $refs) {
                 $sources = $sources -and (Get-Slice4beField $reference 'WarehouseId') -ceq $Fixture.Warehouse -and
                     (Get-Slice4beField $reference 'SourceKind') -ceq 'Inventory' -and
-                    (Get-Slice4beField $reference 'SubmissionState') -ceq 'Submitted' -and
+                    (Get-Slice4beField $reference 'SubmissionState') -ceq $ReferenceState -and
                     @($reference.PSObject.Properties).Count -eq 4
             }
         }
         $truthful = (Get-Slice4beField $first 'DataEffect') -ceq 'Unknown'
-        $expectedOutcome = if ($Pending) { 'PENDING' } else { 'CONFIRMED' }
-        $truthful = $truthful -and (Get-Slice4beField $last 'DataEffect') -ceq 'Unknown' -and
+        $expectedOutcome = if ($Outcome) { $Outcome } elseif ($Pending) { 'PENDING' } else { 'CONFIRMED' }
+        $expectedEffect = if ($expectedOutcome -eq 'DENIED') { 'Unchanged' } else { 'Unknown' }
+        $truthful = $truthful -and (Get-Slice4beField $last 'DataEffect') -ceq $expectedEffect -and
             (Get-Slice4beField $last 'OutcomeCode') -ceq $expectedOutcome -and
             (Get-Slice4beField $last 'EventCode') -ceq ('RECEIVE_CONFIRM_'+$expectedOutcome)
     }
@@ -103,8 +108,12 @@ function Test-Slice4beReceivingActivity {
     $gate.CodeModule.AddFromString(@'
 Option Explicit
 Public Pending As Boolean
+Public LoseAcknowledgement As Boolean
 Public Sub SetPending(ByVal value As Boolean)
     Pending = value
+End Sub
+Public Sub SetLoseAcknowledgement(ByVal value As Boolean)
+    LoseAcknowledgement = value
 End Sub
 Public Function PolicyStatus() As String
     Dim target As WarehouseTarget, version As Long, collect As Boolean, visible As Boolean, notice As String
@@ -120,9 +129,20 @@ End Function
     if ($changed -eq $savedProcedure) { throw 'Pending fixture bridge seam not found.' }
     $bridge.DeleteLines($procedureStart,$count)
     $bridge.InsertLines($procedureStart,$changed)
+    # The real queue persists normally; withhold only its acknowledgement.
+    # This models an uncertain response after durable submission, not a rollback.
+    $writer = $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modRoleEventWriter').CodeModule
+    $queueStart = $writer.ProcStartLine('QueueReceiveEventBatchServer',0)
+    $queueCount = $writer.ProcCountLines('QueueReceiveEventBatchServer',0)
+    $queueSource = $writer.Lines($queueStart,$queueCount)
+    $queueChanged = $queueSource -replace '(?im)^[ \t]*acceptedCount[ \t]*=[ \t]*rows\.Count[ \t]*\r?$', ('    If TestReceivingActivityGate.LoseAcknowledgement Then errorMessage = "Fixture queue acknowledgement withheld.": Exit Function' + "`r`n" + '    acceptedCount = rows.Count')
+    if ($queueChanged -eq $queueSource) { throw 'Queue acknowledgement fixture seam not found.' }
+    $writer.DeleteLines($queueStart,$queueCount)
+    $writer.InsertLines($queueStart,$queueChanged)
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     $fixture = NewFixture 'receiving-activity'
+    Write-Output 'Receiving fixture: generated; signing in setup actor'
     SelectTarget $fixture
     $configWasOpen = @($excel.Workbooks | Where-Object { $_.FullName -eq $fixture.Config }).Count -gt 0
     $seeded = [string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($fixture.Warehouse,'S1','config-admin'))
@@ -161,6 +181,10 @@ Public Function Stage(ByVal workbookName As String) As Boolean
     Set mForm = New frmReceiving
     Stage = mForm.ActivityTestStage(Application.Workbooks(workbookName))
 End Function
+Public Sub Reopen(ByVal workbookName As String)
+    Set mForm = New frmReceiving
+    mForm.SetOperatorWorkbook Application.Workbooks(workbookName)
+End Sub
 Public Function Confirm(ByVal workbookName As String, ByVal otherName As String, ByVal showEvidence As Boolean) As String
     Application.Workbooks(otherName).Activate
     Confirm = mForm.TestRunConfirmWritesActionForWorkbook(Application.Workbooks(workbookName))
@@ -175,7 +199,7 @@ Public Sub CloseForm()
     Set mForm = Nothing
 End Sub
 '@)
-    foreach ($label in @('Applied','Pending','Stale','StoreFailure')) {
+    foreach ($label in @('Applied','Pending','Stale','StoreFailure','Denied','Rejected','UnknownSubmission')) {
         $pending = $label -eq 'Pending'
         Write-Output "Receiving fixture: $label"
         $operator = $excel.Workbooks.Add()
@@ -193,7 +217,10 @@ End Sub
         $ids = @($expected | ForEach-Object { $_.EventId } | Select-Object -Unique)
         if ($keys.Count -ne 2 -or $ids.Count -ne 2 -or '' -in $keys -or '' -in $ids) { throw 'Receiving fixture identity generation failed.' }
         $extra = $staging.ListColumns.Add(); $extra.Name = 'Operator Extra'
+        $extra.DataBodyRange.Cells.Item(1,1).Value2 = 'preserve first extra'
+        $extra.DataBodyRange.Cells.Item(2,1).Value2 = 'preserve second extra'
         [void](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.SetPending' @($pending))
+        [void](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.SetLoseAcknowledgement' @($label -eq 'UnknownSubmission'))
         $before = @(Get-Slice4beActivityFiles $fixture)
         $otherSavedBefore = $other.Saved
         if ($label -eq 'Stale') {
@@ -201,7 +228,26 @@ End Sub
             SelectTarget $fixture 'config-reader'
         }
         $blockedLeaf = ''; $heldLeaf = ''; $movedLeaf = $false
+        $authPath = Join-Path $fixture.Root ($fixture.Warehouse+'.invSys.Auth.xlsb')
+        $authBefore = $null
         try {
+            if ($label -eq 'Denied') {
+                $authBefore = [IO.File]::ReadAllBytes($authPath)
+                $auth = $excel.Workbooks.Open($authPath,0,$false)
+                $caps = Table $auth 'tblCapabilities'
+                $revoked = 0
+                foreach ($row in $caps.ListRows) {
+                    if ($row.Range.Cells.Item(1,$caps.ListColumns.Item('UserId').Index).Value2 -ceq 'config-reader' -and
+                        $row.Range.Cells.Item(1,$caps.ListColumns.Item('Capability').Index).Value2 -ceq 'RECEIVE_POST') {
+                        $row.Range.Cells.Item(1,$caps.ListColumns.Item('Status').Index).Value2 = 'Inactive'; $revoked++
+                    }
+                }
+                $auth.Save(); $auth.Close($false)
+                if ($revoked -ne 1) { throw 'Receiving denial fixture capability was not unique.' }
+            }
+            if ($label -eq 'Rejected') {
+                $staging.ListColumns.Item('QUANTITY').DataBodyRange.Cells.Item(2,1).Value2 = -1.0
+            }
             if ($label -eq 'StoreFailure') {
                 $parent = Join-Path $fixture.Root 'Training\Activity'
                 $blockedLeaf = Join-Path $parent $fixture.Warehouse
@@ -222,6 +268,7 @@ End Sub
         } finally {
             if ($blockedLeaf -ne '' -and (Test-Path -LiteralPath $blockedLeaf -PathType Leaf)) { Remove-Item -LiteralPath $blockedLeaf -Force }
             if ($movedLeaf) { Move-Item -LiteralPath $heldLeaf -Destination $blockedLeaf }
+            if ($null -ne $authBefore) { [IO.File]::WriteAllBytes($authPath,$authBefore) }
         }
         Write-Output "Receiving fixture: $label Confirm handler returned"
         foreach ($notice in @('source references are invalid','training record could not be saved','action context is no longer current','completion is not authorized','saved tracking policy is invalid','configuration could not be validated','action could not be recorded')) {
@@ -241,9 +288,9 @@ End Sub
         $applied = @($appliedRows | Where-Object { $_.EventID -cin $ids })
         $logged = @($logRows | Where-Object { $_.EventID -cin $ids })
         $business = $queued.Count -eq 2
-        if ($label -eq 'Stale') {
+        if ($label -in @('Stale','Denied','Rejected')) {
             $business = $status.StartsWith('Succeeded=False') -and $queued.Count -eq 0 -and $applied.Count -eq 0 -and $logged.Count -eq 0 -and $staging.ListRows.Count -eq 2
-        } elseif ($pending) {
+        } elseif ($pending -or $label -eq 'UnknownSubmission') {
             $business = $business -and $status.StartsWith('Succeeded=False') -and $applied.Count -eq 0 -and $logged.Count -eq 0 -and $staging.ListRows.Count -eq 2
         } else {
             $business = $business -and $status.StartsWith('Succeeded=True') -and $applied.Count -eq 2 -and $logged.Count -eq 2 -and $staging.ListRows.Count -eq 0
@@ -266,14 +313,33 @@ End Sub
         } elseif ($label -eq 'StoreFailure') {
             Check 'Receiving.StoreFailure.TrackingUnavailableVisible' ($status.Contains('Tracking unavailable'))
             Check 'Receiving.StoreFailure.NoDurableLocalFallback' (@(Get-Slice4beActivityFiles $fixture).Count -eq $before.Count)
+        } elseif ($label -in @('Denied','Rejected','UnknownSubmission')) {
+            $outcome = @{Denied='DENIED';Rejected='REJECTED';UnknownSubmission='FAILED'}[$label]
+            $referenceState = if ($label -eq 'UnknownSubmission') { 'Unknown' } else { 'Empty' }
+            Test-ReceivingObservations $fixture $before $expected $false $label $outcome $referenceState
+            Check "Receiving.$label.UnknownValuesPreserved" ($extra.DataBodyRange.Cells.Item(1,1).Value2 -ceq 'preserve first extra' -and $extra.DataBodyRange.Cells.Item(2,1).Value2 -ceq 'preserve second extra')
+            $current = @(Get-ReceivingFixtureRows $staging)
+            $identities = $current.Count -eq $expected.Count
+            for ($i=0; $i -lt $current.Count; $i++) { $identities = $identities -and $current[$i].System_Key -ceq $expected[$i].System_Key -and $current[$i].EventId -ceq $expected[$i].EventId }
+            Check "Receiving.$label.StagingIdentitiesPreserved" $identities
+            if ($label -eq 'Rejected') {
+                Check 'Receiving.Rejected.PartialValidationIsNotRollback' ($current[0].WorkflowState -cne $expected[0].WorkflowState -and $current[1].WorkflowState -ceq $expected[1].WorkflowState)
+            }
+            $visibleCause = @{Denied='lacks RECEIVE_POST';Rejected='Receiving validation failed';UnknownSubmission='queue acknowledgement withheld'}[$label]
+            Check "Receiving.$label.VisibleOwnerFailure" ($status.Contains($visibleCause) -and -not $status.Contains('Tracking unavailable'))
         } else {
             Test-ReceivingObservations $fixture $before $expected $pending
         }
         foreach ($book in $receivingEvidenceOpened) { $book.Close($false) }
         $receivingEvidenceOpened.Clear()
+        if ($label -eq 'UnknownSubmission') {
+            Test-ReceivingRetryAfterUncertainSubmission $fixture $operator $other $expected $otherHash
+        }
+        if ($label -eq 'Denied') { SelectTarget $fixture 'config-reader' }
         $operator.Close($false); $other.Close($false)
     }
     [void](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.SetPending' @($false))
+    [void](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.SetLoseAcknowledgement' @($false))
     Test-ReceivingReferenceRead $fixture $a $expected
     $existingConfig = $excel.Workbooks.Open($fixture.Config,0,$false)
     $extra = (Table $existingConfig 'tblWarehouseConfig').ListColumns.Add()

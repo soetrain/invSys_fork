@@ -52,6 +52,11 @@ do not save the file; unrelated dirty open Config remains unavailable/preserved.
   does not enable the new control. Identical completion retries preserve every
   byte; conflicting source references are rejected. Independent SHA-256 and
   private-input exclusion checks protect both Receiving attempt/result pairs.
+- Subsequent owner-outcome and explicit-retry verification: **190 PASS / 0 FAIL**
+  on unchanged runtime source and the same five candidate hashes. The initial
+  Receiving-only extension was 136/136; a final partial-validation assertion and
+  all foundation checks are included in 190/190. No artificial runtime RED was
+  introduced for already correct behavior.
 
 Actual Add handlers generate two distinct keys/events for each disposable case.
 Applied proves both exact keys/quantities in inbox, applied events and inventory
@@ -60,6 +65,26 @@ logged, with staging retained. Stale proves no submission and visible rejection.
 Store failure proves business completion and a visible tracking warning without
 a durable local fallback. All cases protect captured binding, quiet UI, other
 workbook file bytes/sentinel content and the extra staging column header.
+
+The extension revokes RECEIVE_POST in the disposable Auth fixture after staging:
+the real owner denies without posting, and activity has empty references and
+Unchanged effect. An invalid second quantity leaves the first row validated,
+proving that rejection cannot claim a full local rollback; the activity keeps
+Unknown effect. The acknowledgement fault is inserted only after the real queue
+merge/save and before its successful return. Both events exist in the inbox,
+neither is applied, and the failed observation retains both exact EventIds with
+Unknown submission state. A second explicit form Confirm applies each once using
+the original keys/IDs, records a distinct ActivityId, and preserves every prior
+observation byte. The observer never initiates that retry.
+
+These tests change no runtime source or package. Existing compile, static,
+layout, live-role and full-chain gates below are the previously verified gates
+for those exact unchanged hashes, not newly rerun gates. Eight actual Receiving
+captures are now inspected, including denial, rejection, uncertain submission
+and explicit retry. A VBA-editor formatting-sensitive fixture locator and one
+transient fixture sign-in failure stopped preliminary runs before the new cases;
+both are excluded from behavioral evidence. The locator now tolerates VBA
+formatting, and sign-in diagnostics expose only a fixed status code.
 
 Synthetic wire/delivery checks supplement the real form tests; they are not
 captured user actions or Diagnostic conclusions. Runtime JSON, fixture values,
@@ -82,7 +107,7 @@ The next focused run started only after its Excel-isolation guard passed.
 | Production layout/window states | PASS; three size requests across five pages, minimize/restore/maximize/restore, no overlap/out-of-bounds; all three captures inspected. Smaller request clamps to approved minimum |
 | Packaged launcher reuse | 3/3 PASS; no eligible workbook initially open; Receiving/Production/Shipping provision and reuse their saved role workbook/form |
 | Reusable Production/restart | 2/2 aggregate checks PASS; worksheet/lifecycle/run/Chai scenarios and a fresh Excel restart reuse the same saved workbook and released Recipe |
-| Visible Receiving evidence | Four actual form captures inspected: applied, pending, stale and unavailable store; staging and completion/warning text visible. Settings save/tracking warning also inspected. Human acceptance remains pending |
+| Visible Receiving evidence | Eight actual form captures inspected: applied, pending, stale, unavailable store, denied, rejected, uncertain submission and explicit retry; staging and completion/warning text visible. Settings save/tracking warning also inspected. Human acceptance remains pending |
 | Static maintenance | 1,077 candidates; 192 duplicate groups; 45 unresolved dynamic calls; eight literal Application.Run targets; unchanged |
 | Module growth | All 28 previous oversized ratchets respected; Receiving form 1,260 -> 1,259 lines; Config remains 1,615 |
 

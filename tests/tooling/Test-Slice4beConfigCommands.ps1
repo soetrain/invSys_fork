@@ -27,6 +27,7 @@ if ($CheckReceivingActivity) {
     . (Join-Path $PSScriptRoot 'Slice4beActivityAssertions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingActivity.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingReferences.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingRetry.ps1')
     if (-not $CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
@@ -102,7 +103,10 @@ function SelectTarget($Fixture,[string]$User='config-admin') {
     if(-not $selected.StartsWith('OK|')){throw 'Fixture target selection failed.'}
     [void](Run 'invSys.Core.xlam' 'modNasConnection.SetCurrentTargetPathsForTest' @('\\fixture-host\config-command',$Fixture.Root))
     $signed = [string](Run 'invSys.Core.xlam' 'modAuth.SignInCurrentTargetForAutomation' @($User,$Fixture.Secret,''))
-    if(-not $signed.StartsWith('OK|')){throw 'Fixture sign-in failed.'}
+    if(-not $signed.StartsWith('OK|')){
+        $code = if ($signed -match '^FAIL\|([0-9]+|NO_TARGET|ERROR)(?:\||$)') { $Matches[1] } else { 'UNAVAILABLE' }
+        throw ('Fixture sign-in failed; status code='+$code+'.')
+    }
 }
 function NewFixture([string]$Suffix) {
     $wh='WHD5'+[guid]::NewGuid().ToString('N').Substring(0,6).ToUpperInvariant()
