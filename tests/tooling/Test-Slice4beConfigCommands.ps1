@@ -5,7 +5,8 @@ param(
     [ValidateSet('RED','GREEN')][string]$Phase = 'GREEN',
     [switch]$CaptureEvidence,
     [switch]$CheckActivityEvidence,
-    [switch]$CheckActivityFoundation
+    [switch]$CheckActivityFoundation,
+    [switch]$CheckReceivingActivity
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -21,6 +22,11 @@ if ($CheckActivityEvidence) {
     if ($CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
 if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundation checks require activity evidence mode.' }
+if ($CheckReceivingActivity) {
+    $reportRoot = Join-Path $repo 'reports/runtime/slice4be-receiving-activity'
+    . (Join-Path $PSScriptRoot 'Slice4beActivityAssertions.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingActivity.ps1')
+}
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $results = [Collections.Generic.List[object]]::new()
 $excel = $null
@@ -333,6 +339,11 @@ End Function
     $ok=[bool](Run 'invSys.Core.xlam' 'modConfig.LoadConfig' @($a.Warehouse,'S1'))
     Check 'Read.ClosedWorkbookBytesPreserved' ($ok -and $before -eq (Get-FileHash -LiteralPath $a.Config).Hash)
     if ($CheckActivityFoundation) { Test-Slice4beActivityFoundation $a $b }
+    if ($CheckReceivingActivity) {
+        $step='Receiving activity through packaged form handlers'
+        Test-Slice4beReceivingActivity
+        SelectTarget $a
+    }
     $cfg=$excel.Workbooks.Open($a.Config,0,$false)
     $table=Table $cfg 'tblWarehouseConfig'
     $table.ListColumns.Item('WarehouseName').Delete()
