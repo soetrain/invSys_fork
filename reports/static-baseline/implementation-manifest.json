@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-08T10:44:20Z",
+    "generatedAtUtc":  "2026-09-08T13:02:58Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -2994,7 +2994,7 @@
                            "name":  "modReceivingActivityCodes",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modReceivingActivityCodes.bas",
-                           "lineCount":  147,
+                           "lineCount":  152,
                            "procedureNames":  [
                                                   "LifecycleOutcome",
                                                   "LocalOutcome",
@@ -6342,9 +6342,10 @@
                            "name":  "modReceivingActivityAction",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Receiving/Modules/modReceivingActivityAction.bas",
-                           "lineCount":  112,
+                           "lineCount":  124,
                            "procedureNames":  [
                                                   "BeginClose",
+                                                  "BeginOpen",
                                                   "CloseForm",
                                                   "ConfirmWrites",
                                                   "FinishLifecycle",
@@ -50820,8 +50821,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  6,
-                           "endLine":  35,
-                           "lineCount":  30,
+                           "endLine":  40,
+                           "lineCount":  35,
                            "directCalls":  [
                                                "Add",
                                                "Message"
@@ -50841,8 +50842,8 @@
                            "name":  "Outcome",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  37,
-                           "endLine":  75,
+                           "startLine":  42,
+                           "endLine":  80,
                            "lineCount":  39,
                            "directCalls":  [
                                                "Add",
@@ -50863,8 +50864,8 @@
                            "name":  "LocalOutcome",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  77,
-                           "endLine":  118,
+                           "startLine":  82,
+                           "endLine":  123,
                            "lineCount":  42,
                            "directCalls":  [
                                                "Add",
@@ -50885,8 +50886,8 @@
                            "name":  "StagingOutcome",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  120,
-                           "endLine":  147,
+                           "startLine":  125,
+                           "endLine":  152,
                            "lineCount":  28,
                            "directCalls":  [
                                                "Add",
@@ -108345,11 +108346,35 @@
                        },
                        {
                            "componentName":  "modReceivingActivityAction",
+                           "name":  "BeginOpen",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  5,
+                           "endLine":  14,
+                           "lineCount":  10,
+                           "directCalls":  [
+                                               "BeginAction",
+                                               "CaptureContext",
+                                               "FinishLifecycle",
+                                               "RequireCurrentUserCapabilityCached"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modReceivingActivityAction",
                            "name":  "ShowMessage",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  4,
-                           "endLine":  10,
+                           "startLine":  16,
+                           "endLine":  22,
                            "lineCount":  7,
                            "directCalls":  [
                                                "QuietUiIsActive"
@@ -108369,8 +108394,8 @@
                            "name":  "CloseForm",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  13,
-                           "endLine":  21,
+                           "startLine":  25,
+                           "endLine":  33,
                            "lineCount":  9,
                            "directCalls":  [
                                                "BeginClose",
@@ -108391,8 +108416,8 @@
                            "name":  "BeginClose",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  23,
-                           "endLine":  26,
+                           "startLine":  35,
+                           "endLine":  38,
                            "lineCount":  4,
                            "directCalls":  [
                                                "BeginAction",
@@ -108413,8 +108438,8 @@
                            "name":  "FinishLifecycle",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  28,
-                           "endLine":  34,
+                           "startLine":  40,
+                           "endLine":  46,
                            "lineCount":  7,
                            "directCalls":  [
                                                "Finish",
@@ -108436,8 +108461,8 @@
                            "name":  "ConfirmWrites",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  37,
-                           "endLine":  66,
+                           "startLine":  49,
+                           "endLine":  78,
                            "lineCount":  30,
                            "directCalls":  [
                                                "BeginAction",
@@ -108462,8 +108487,8 @@
                            "name":  "LocalAction",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  69,
-                           "endLine":  112,
+                           "startLine":  81,
+                           "endLine":  124,
                            "lineCount":  44,
                            "directCalls":  [
                                                "BeginAction",
@@ -110607,8 +110632,7 @@
                            "endLine":  142,
                            "lineCount":  76,
                            "directCalls":  [
-                                               "BeginAction",
-                                               "CaptureContext",
+                                               "BeginOpen",
                                                "EnforceReceivingSupportSheetsHidden",
                                                "FinishLifecycle",
                                                "InitializeFromReceiving",
@@ -136774,6 +136798,7 @@
                                "testPaths":  [
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aaProcessBulkImport.ps1",
                                                  "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4zProcessWorkbench.ps1",
@@ -136813,12 +136838,15 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beReceivingSurface.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Phase6TwoWarehouseProofHarness.ps1",
@@ -137640,6 +137668,7 @@
                            {
                                "entryPoint":  "CanCurrentUserPerformCapabilityCached",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1"
                                              ]
                            },
@@ -137846,6 +137875,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
@@ -138010,6 +138040,7 @@
                                "entryPoint":  "ConfirmWrites",
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                 "tests/tooling/Slice4beReceivingSurface.ps1",
                                                  "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Slice10ReceivingStabilization.ps1",
                                                  "tests/tooling/Test-Slice13OperationsCutover.ps1",
@@ -138075,6 +138106,7 @@
                                "testPaths":  [
                                                  "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
@@ -139885,6 +139917,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "LogDecision",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ManagedItemDisplayForAssignmentCode",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4arProductionClarity.ps1"
@@ -140182,6 +140220,7 @@
                            {
                                "entryPoint":  "Message",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
                                                  "tests/tooling/Test-Plan022DialogObserver.ps1",
@@ -141163,6 +141202,7 @@
                            {
                                "entryPoint":  "RequireCurrentUserCapabilityCached",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4xReusableProduction.ps1"
                                              ]
@@ -142084,6 +142124,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ShowMessage",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ShowPersistencePending",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
@@ -142111,6 +142157,7 @@
                            {
                                "entryPoint":  "ShowReceivingMessage",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                              ]
                            },
@@ -142146,6 +142193,7 @@
                                                  "tests/integration/test_ReceivingReadiness.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",

@@ -18,6 +18,11 @@ Public Function LifecycleOutcome(ByVal code As String, ByVal closing As Boolean)
         Case "CLOSED"
             If Not closing Then Exit Function
             effect = "Unchanged": message = "Receiving form dismissed; staged work was not posted or cleared."
+        Case "DENIED"
+            If closing Then Exit Function
+            severity = "Blocked": effect = "Unchanged"
+            message = "Receiving form launch was not authorized."
+            nextStep = "Review Receiving permissions before reopening."
         Case "FAILED"
             If closing Then Exit Function
             severity = "Error": message = "Receiving form launch failed; its final state requires verification."

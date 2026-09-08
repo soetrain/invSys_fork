@@ -14,6 +14,9 @@ param(
     [switch]$ReceivingNavigationOnly,
     [switch]$CheckReceivingSurfaceCoverage,
     [switch]$ReceivingSurfaceOnly,
+    [switch]$CheckReceivingLauncherDenial,
+    [switch]$ReceivingLauncherDenialOnly,
+    [switch]$CaptureDenialDialogs,
     [switch]$ReceivingLifecycleOnly,
     [ValidateSet('None','SkipTerminationEvidence','KeepLauncherReference')]
     [string]$LifecycleDiagnostic = 'None'
@@ -39,6 +42,9 @@ if ($CheckReceivingNavigationActivity -and (-not $CheckReceivingLifecycleActivit
 if ($ReceivingNavigationOnly -and -not $CheckReceivingNavigationActivity) { throw 'Navigation-only diagnosis requires navigation coverage.' }
 if ($CheckReceivingSurfaceCoverage -and -not $CheckReceivingNavigationActivity) { throw 'Surface coverage requires the preserved navigation baseline.' }
 if ($ReceivingSurfaceOnly -and (-not $CheckReceivingSurfaceCoverage -or $ReceivingNavigationOnly)) { throw 'Surface-only diagnosis requires surface coverage without another diagnostic-only mode.' }
+if ($CheckReceivingLauncherDenial -and -not $CheckReceivingNavigationActivity) { throw 'Launcher denial coverage requires the preserved navigation baseline.' }
+if ($ReceivingLauncherDenialOnly -and (-not $CheckReceivingLauncherDenial -or $ReceivingSurfaceOnly -or $ReceivingNavigationOnly)) { throw 'Launcher-denial-only diagnosis requires its coverage without another diagnostic-only mode.' }
+if ($CaptureDenialDialogs -and -not $ReceivingLauncherDenialOnly) { throw 'Native denial dialog evidence uses the separate focused run.' }
 if ($ReceivingLifecycleOnly -and -not $CheckReceivingLifecycleActivity) { throw 'Lifecycle-only diagnosis requires lifecycle coverage.' }
 if ($LifecycleDiagnostic -ne 'None' -and -not $ReceivingLifecycleOnly) { throw 'Mutation diagnostics require the separate lifecycle-only report.' }
 if ($LifecycleDiagnostic -ne 'None' -and $Phase -ne 'RED') { throw 'Diagnostic mutations cannot be run as acceptance GREEN.' }
@@ -54,6 +60,8 @@ if ($CheckReceivingActivity) {
     . (Join-Path $PSScriptRoot 'Slice4beReceivingLifecycle.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingNavigation.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingSurface.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingLauncherDenial.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingDenialDialogs.ps1')
     if (-not $CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
@@ -443,6 +451,8 @@ finally {
     if ($ReceivingNavigationOnly) { $reportName='diagnostic-'+$reportName }
     if ($CheckReceivingSurfaceCoverage) { $reportName='surface-'+$Phase.ToLowerInvariant()+'.json' }
     if ($ReceivingSurfaceOnly) { $reportName='diagnostic-'+$reportName }
+    if ($CheckReceivingLauncherDenial) { $reportName='launcher-denial-'+$Phase.ToLowerInvariant()+'.json' }
+    if ($ReceivingLauncherDenialOnly) { $reportName='diagnostic-'+$reportName }
     if ($ReceivingLifecycleOnly) { $reportName='lifecycle-only-'+$reportName }
     if ($LifecycleDiagnostic -ne 'None') { $reportName='diagnostic-'+$LifecycleDiagnostic.ToLowerInvariant()+'.json' }
     $results | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $reportRoot $reportName)

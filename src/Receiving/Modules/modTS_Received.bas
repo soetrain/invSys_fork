@@ -70,7 +70,7 @@ Public Sub ShowReceivingForm(Optional ByVal userControlAction As Boolean = False
     Dim wb As Workbook, preferredWorkbookName As String, workbookName As String
     Dim report As String, launcherStage As String, activityId As String, notice As String, outcome As String
     outcome = "FAILED"
-    If userControlAction Then activityId = modActivity.BeginAction("RECEIVING_OPEN", modActivity.CaptureContext(), notice)
+    If Not modReceivingActivityAction.BeginOpen(userControlAction, activityId, notice) Then Exit Sub
 
     launcherStage = "capture active workbook"
     If Not Application.ActiveWorkbook Is Nothing Then

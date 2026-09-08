@@ -140,6 +140,7 @@ End Function
     $bridge.InsertLines($procedureStart,$changed)
     if ($CheckReceivingLocalActivity) { Install-ReceivingLocalCoreSeam $bridge }
     if ($CheckReceivingLifecycleActivity) { Install-ReceivingLifecycleCoreSeam $bridge $gate.CodeModule }
+    if ($CheckReceivingLauncherDenial) { Install-ReceivingLauncherDenialCoreSeam $packages['invSys.Core.xlam'].VBProject $gate.CodeModule }
     # The real queue persists normally; withhold only its acknowledgement.
     # This models an uncertain response after durable submission, not a rollback.
     $writer = $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modRoleEventWriter').CodeModule
@@ -245,6 +246,8 @@ End Sub
     if ($CheckReceivingLocalActivity) { Install-ReceivingLocalFormSeams $formCode $helper.CodeModule }
     if ($CheckReceivingLifecycleActivity) { Install-ReceivingLifecycleSeams $packages['invSys.Operations.xlam'].VBProject $formCode }
     if ($CheckReceivingNavigationActivity) { Install-ReceivingNavigationSeams $formCode $helper.CodeModule $gate.CodeModule }
+    if ($CheckReceivingLauncherDenial) { Install-ReceivingLauncherDenialOperationsSeam $packages['invSys.Operations.xlam'].VBProject }
+    if ($ReceivingLauncherDenialOnly) { Test-ReceivingLauncherDenial $fixture; return }
     if ($ReceivingSurfaceOnly) { Test-ReceivingSurfaceCoverage $fixture; return }
     if ($ReceivingNavigationOnly) { Test-ReceivingNavigationActivity $fixture; return }
     if ($ReceivingLifecycleOnly) { Test-ReceivingLifecycleActivity $fixture; return }
@@ -406,4 +409,5 @@ End Sub
     if ($CheckReceivingLifecycleActivity) { Test-ReceivingLifecycleActivity $fixture }
     if ($CheckReceivingNavigationActivity) { Test-ReceivingNavigationActivity $fixture }
     if ($CheckReceivingSurfaceCoverage) { Test-ReceivingSurfaceCoverage $fixture }
+    if ($CheckReceivingLauncherDenial) { Test-ReceivingLauncherDenial $fixture }
 }

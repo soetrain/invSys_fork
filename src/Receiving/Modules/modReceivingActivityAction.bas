@@ -1,6 +1,18 @@
 Attribute VB_Name = "modReceivingActivityAction"
 Option Explicit
 
+' The real Ribbon entry observes the attempt before its existing Core guard.
+Public Function BeginOpen(ByVal userControlAction As Boolean, ByRef activityId As String, _
+                          ByRef notice As String) As Boolean
+    BeginOpen = True
+    If Not userControlAction Then Exit Function
+    activityId = modActivity.BeginAction("RECEIVING_OPEN", modActivity.CaptureContext(), notice)
+    If modRoleUiAccess.RequireCurrentUserCapabilityCached( _
+        "RECEIVE_POST", "Current user does not have RECEIVE_POST for this warehouse/station.") Then Exit Function
+    BeginOpen = False
+    FinishLifecycle activityId, "DENIED", notice
+End Function
+
 Public Sub ShowMessage(ByVal messageText As String, ByVal style As VbMsgBoxStyle)
     If modUiQuiet.QuietUiIsActive() Then
         Debug.Print "invSys Receiving: " & messageText

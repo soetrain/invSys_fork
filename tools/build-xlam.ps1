@@ -488,7 +488,12 @@ function Add-RibbonCallbacksModule {
         if ($group.ContainsKey("PostStatusMenuButtons")) { $callbackButtons += @($group.PostStatusMenuButtons) }
         foreach ($button in $callbackButtons) {
             [void]$lines.Add(("        Case ""{0}""" -f $button.Id))
-            if ($button.ContainsKey("RequiredCapability") -and -not [string]::IsNullOrWhiteSpace($button.RequiredCapability)) {
+            $guardedByAction = $button.ContainsKey("CapabilityGuardInAction") -and [bool]$button.CapabilityGuardInAction
+            if ($guardedByAction -and ($button.Id -cne "btnOperationsReceivingForm" -or
+                    $button.DirectAction -cne "modTS_Received.ShowReceivingForm True" -or $button.RequiredCapability -cne "RECEIVE_POST")) {
+                throw "No declared action-owned capability guard for this Ribbon entry."
+            }
+            if (-not $guardedByAction -and $button.ContainsKey("RequiredCapability") -and -not [string]::IsNullOrWhiteSpace($button.RequiredCapability)) {
                 [void]$lines.Add(("            If Not modRoleUiAccess.RequireCurrentUserCapabilityCached(""{0}"", ""Current user does not have {0} for this warehouse/station."") Then Exit Sub" -f $button.RequiredCapability))
             }
             if ($button.ContainsKey("DirectAction") -and -not [string]::IsNullOrWhiteSpace($button.DirectAction)) {
@@ -946,7 +951,7 @@ $projectMap = @(
                     Id      = "grpOperationsReceiving"
                     Label   = "Receiving"
                     Buttons = @(
-                        @{ Id = "btnOperationsReceivingForm"; Label = "Receiving"; DirectAction = "modTS_Received.ShowReceivingForm True"; ImageMso = "FormControlButton"; RequiredCapability = "RECEIVE_POST" }
+                        @{ Id = "btnOperationsReceivingForm"; Label = "Receiving"; DirectAction = "modTS_Received.ShowReceivingForm True"; ImageMso = "FormControlButton"; RequiredCapability = "RECEIVE_POST"; CapabilityGuardInAction = $true }
                     )
                 },
                 @{
