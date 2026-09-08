@@ -90,6 +90,8 @@ Private Sub UserForm_Resize()
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    If CloseMode = vbFormControlMenu Then _
+        modReceivingActivityAction.CloseForm Me, ResolveOperatorWorkbook(), mActivityContext, True
     On Error Resume Next
     modTS_Received.NotifyReceivingLauncherFormTerminating Me
     On Error GoTo 0
@@ -547,6 +549,13 @@ ErrHandler:
     ShowStatus "Inventory cache load failed: " & Err.Description
 End Sub
 
+Public Function CanReuseFor(ByVal operatorWb As Workbook) As Boolean
+    Dim captured As Workbook
+    If mActivityContext = "" Or mActivityContext <> modActivity.CaptureContext() Then Exit Function
+    Set captured = ResolveOperatorWorkbook()
+    If Not captured Is Nothing Then CanReuseFor = (captured Is operatorWb)
+End Function
+
 Private Sub RefreshReceiveItems()
     FillReceiveItemResults mItemRows
     If mLstReceiveItems.ListCount = 1 Then
@@ -818,7 +827,7 @@ ErrHandler:
 End Sub
 
 Private Sub mBtnClose_Click()
-    Unload Me
+    modReceivingActivityAction.CloseForm Me, ResolveOperatorWorkbook(), mActivityContext
 End Sub
 
 Private Sub RefreshClicked()
@@ -967,34 +976,8 @@ Private Sub AlignReceivingHeader(ByVal headerLabel As MSForms.Label, _
     headerLabel.Font.Size = 8
     headerLabel.WordWrap = False
     headerLabel.AutoSize = False
-    headerLabel.Caption = BuildReceivingHeaderCaption(targetList, headings)
+    headerLabel.Caption = modReceivingFormWindow.BuildReceivingHeaderCaption(targetList, headings)
 End Sub
-
-Private Function BuildReceivingHeaderCaption(ByVal targetList As MSForms.ListBox, _
-                                              ByVal headings As Variant) As String
-    Dim widths As Variant
-    Dim i As Long
-    Dim pointWidth As Double
-    Dim charWidth As Long
-    Dim headingText As String
-
-    widths = Split(CStr(targetList.ColumnWidths), ";")
-    For i = LBound(widths) To UBound(widths)
-        pointWidth = Val(CStr(widths(i)))
-        If pointWidth > 0 Then
-            headingText = CStr(headings(i))
-            charWidth = CLng(pointWidth / 5.25)
-            If charWidth < 2 Then charWidth = 2
-            If Len(headingText) >= charWidth Then
-                BuildReceivingHeaderCaption = BuildReceivingHeaderCaption & _
-                    Left$(headingText, charWidth - 1) & " "
-            Else
-                BuildReceivingHeaderCaption = BuildReceivingHeaderCaption & _
-                    headingText & Space$(charWidth - Len(headingText))
-            End If
-        End If
-    Next i
-End Function
 
 Public Function TestReturnsTabContract(ByVal operatorWb As Workbook) As String
     If operatorWb Is Nothing Then Exit Function

@@ -1,6 +1,38 @@
 Attribute VB_Name = "modReceivingActivityAction"
 Option Explicit
 
+Public Sub ShowMessage(ByVal messageText As String, ByVal style As VbMsgBoxStyle)
+    If modUiQuiet.QuietUiIsActive() Then
+        Debug.Print "invSys Receiving: " & messageText
+    Else
+        MsgBox messageText, style, "invSys Receiving"
+    End If
+End Sub
+
+' Completion follows the owner's dismissal; internal Unload is never attributed.
+Public Sub CloseForm(ByVal form As frmReceiving, ByVal operatorWb As Workbook, ByVal context As String, _
+                     Optional ByVal nativeClosing As Boolean = False)
+    Dim activityId As String, notice As String
+    activityId = BeginClose(operatorWb, context, notice)
+    ' Native QueryClose must return to Windows without destroying its live VBA frame.
+    ' Hide commits UI dismissal now; the uncancelled native message completes teardown.
+    If nativeClosing Then form.Hide Else Unload form
+    FinishLifecycle activityId, "CLOSED", notice
+End Sub
+
+Public Function BeginClose(ByVal operatorWb As Workbook, ByVal context As String, ByRef notice As String) As String
+    If Not operatorWb Is Nothing And context <> "" And context = modActivity.CaptureContext() Then _
+        BeginClose = modActivity.BeginAction("RECEIVING_CLOSE", context, notice)
+End Function
+
+Public Sub FinishLifecycle(ByVal activityId As String, ByVal outcome As String, ByVal notice As String)
+    Dim report As String
+    On Error Resume Next
+    modReceivingAddInput.Finish activityId, outcome, notice, report
+    If report <> "" Then modTS_Received.ShowReceivingMessage Trim$(report), vbExclamation
+    On Error GoTo 0
+End Sub
+
 ' Called only by the real form action. Direct posting is not a user-control event.
 Public Function ConfirmWrites(ByVal operatorWb As Workbook, ByVal context As String, _
                               ByVal trackReceipts As Boolean, ByRef report As String) As Boolean

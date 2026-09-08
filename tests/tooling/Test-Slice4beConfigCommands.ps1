@@ -9,7 +9,10 @@ param(
     [switch]$CheckReceivingActivity,
     [switch]$CheckReceivingStagingActivity,
     [switch]$CheckReceivingLocalActivity,
-    [switch]$CheckReceivingLifecycleActivity
+    [switch]$CheckReceivingLifecycleActivity,
+    [switch]$ReceivingLifecycleOnly,
+    [ValidateSet('None','SkipTerminationEvidence','KeepLauncherReference')]
+    [string]$LifecycleDiagnostic = 'None'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -28,6 +31,9 @@ if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundati
 if ($CheckReceivingStagingActivity -and -not $CheckReceivingActivity) { throw 'Staging coverage requires Receiving activity mode.' }
 if ($CheckReceivingLocalActivity -and -not $CheckReceivingStagingActivity) { throw 'Local-action coverage requires staging activity mode.' }
 if ($CheckReceivingLifecycleActivity -and -not $CheckReceivingLocalActivity) { throw 'Lifecycle coverage requires the preserved local-action baseline.' }
+if ($ReceivingLifecycleOnly -and -not $CheckReceivingLifecycleActivity) { throw 'Lifecycle-only diagnosis requires lifecycle coverage.' }
+if ($LifecycleDiagnostic -ne 'None' -and -not $ReceivingLifecycleOnly) { throw 'Mutation diagnostics require the separate lifecycle-only report.' }
+if ($LifecycleDiagnostic -ne 'None' -and $Phase -ne 'RED') { throw 'Diagnostic mutations cannot be run as acceptance GREEN.' }
 if ($CheckReceivingActivity) {
     $reportRoot = Join-Path $repo 'reports/runtime/slice4be-receiving-activity'
     . (Join-Path $PSScriptRoot 'Slice4beActivityAssertions.ps1')
@@ -422,7 +428,10 @@ finally {
     if($resolved.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -like 'invsys-config-command-*') {
         Remove-Item -LiteralPath $resolved -Recurse -Force
     }
-    $results | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $reportRoot ($Phase.ToLowerInvariant()+'.json'))
+    $reportName=$Phase.ToLowerInvariant()+'.json'
+    if ($ReceivingLifecycleOnly) { $reportName='lifecycle-only-'+$reportName }
+    if ($LifecycleDiagnostic -ne 'None') { $reportName='diagnostic-'+$LifecycleDiagnostic.ToLowerInvariant()+'.json' }
+    $results | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $reportRoot $reportName)
 }
 $failed=@($results | Where-Object { -not $_.Passed }).Count
 Write-Output ("$Phase : {0} passed, {1} failed" -f ($results.Count-$failed),$failed)

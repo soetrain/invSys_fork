@@ -946,7 +946,7 @@ $projectMap = @(
                     Id      = "grpOperationsReceiving"
                     Label   = "Receiving"
                     Buttons = @(
-                        @{ Id = "btnOperationsReceivingForm"; Label = "Receiving"; Macro = "modTS_Received.ShowReceivingForm"; ImageMso = "FormControlButton"; RequiredCapability = "RECEIVE_POST" }
+                        @{ Id = "btnOperationsReceivingForm"; Label = "Receiving"; DirectAction = "modTS_Received.ShowReceivingForm True"; ImageMso = "FormControlButton"; RequiredCapability = "RECEIVE_POST" }
                     )
                 },
                 @{

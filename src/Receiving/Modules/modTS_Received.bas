@@ -64,14 +64,13 @@ Public Function RefreshReceivingUiForWorkbook(Optional ByVal targetWb As Workboo
     EnforceReceivingSupportSheetsHidden wb
 End Function
 
-Public Sub ShowReceivingForm()
+Public Sub ShowReceivingForm(Optional ByVal userControlAction As Boolean = False)
     On Error GoTo ErrHandler
 
-    Dim wb As Workbook
-    Dim preferredWorkbookName As String
-    Dim workbookName As String
-    Dim report As String
-    Dim launcherStage As String
+    Dim wb As Workbook, preferredWorkbookName As String, workbookName As String
+    Dim report As String, launcherStage As String, activityId As String, notice As String, outcome As String
+    outcome = "FAILED"
+    If userControlAction Then activityId = modActivity.BeginAction("RECEIVING_OPEN", modActivity.CaptureContext(), notice)
 
     launcherStage = "capture active workbook"
     If Not Application.ActiveWorkbook Is Nothing Then
@@ -85,14 +84,14 @@ Public Sub ShowReceivingForm()
             report = "The station-local Receiving operator workbook could not be opened."
         End If
         ShowReceivingMessage report, vbExclamation
-        Exit Sub
+        GoTo Done
     End If
 
     launcherStage = "capture resolved Receiving workbook"
     Set wb = modOperationsInit.ResolveOpenWorkbookByName(workbookName)
     If wb Is Nothing Then
         ShowReceivingMessage "The resolved Receiving operator workbook is no longer open.", vbExclamation
-        Exit Sub
+        GoTo Done
     End If
 
     launcherStage = "activate Receiving workbook"
@@ -104,7 +103,9 @@ Public Sub ShowReceivingForm()
         mReceivingLauncherFormTerminated = False
     End If
 
+    outcome = "REUSED"
     If Not IsReceivingLauncherFormReusable(wb) Then
+        outcome = "OPENED"
         launcherStage = "replace Receiving form binding"
         On Error Resume Next
         If Not mReceivingLauncherForm Is Nothing Then
@@ -126,6 +127,8 @@ Public Sub ShowReceivingForm()
     If Not mReceivingLauncherForm.Visible Then
         mReceivingLauncherForm.Show vbModeless
     End If
+Done:
+    modReceivingActivityAction.FinishLifecycle activityId, outcome, notice
     Exit Sub
 
 ErrHandler:
@@ -134,14 +137,15 @@ ErrHandler:
         "; Err.Number=" & CStr(Err.Number) & _
         "; Err.Source=" & modOperationsInit.SanitizeLauncherErrorSource(Err.Source) & _
         "]: " & Err.Description, vbCritical
+    outcome = "FAILED"
+    Resume Done
 End Sub
 
 Public Sub NotifyReceivingLauncherFormTerminating(ByVal terminatingForm As frmReceiving)
     If terminatingForm Is Nothing Then Exit Sub
     If mReceivingLauncherForm Is Nothing Then Exit Sub
-    If terminatingForm Is mReceivingLauncherForm Then
-        mReceivingLauncherFormTerminated = True
-    End If
+    If Not (terminatingForm Is mReceivingLauncherForm) Then Exit Sub
+    mReceivingLauncherFormTerminated = True
 End Sub
 
 Private Function IsReceivingLauncherFormReusable(ByVal operatorWb As Workbook) As Boolean
@@ -154,6 +158,7 @@ Private Function IsReceivingLauncherFormReusable(ByVal operatorWb As Workbook) A
 
     On Error GoTo Disappeared
     visibleState = mReceivingLauncherForm.Visible
+    If Not mReceivingLauncherForm.CanReuseFor(operatorWb) Then Exit Function
     IsReceivingLauncherFormReusable = visibleState
 Disappeared:
 End Function
@@ -1565,11 +1570,6 @@ Private Sub DeleteReceivingActionButton(ByVal ws As Worksheet, _
     On Error GoTo 0
 End Sub
 
-Private Sub ShowReceivingMessage(ByVal messageText As String, _
-                                 ByVal style As VbMsgBoxStyle)
-    If modUiQuiet.QuietUiIsActive() Then
-        Debug.Print "invSys Receiving: " & messageText
-    Else
-        MsgBox messageText, style, "invSys Receiving"
-    End If
+Public Sub ShowReceivingMessage(ByVal messageText As String, ByVal style As VbMsgBoxStyle)
+    modReceivingActivityAction.ShowMessage messageText, style
 End Sub

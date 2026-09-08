@@ -1,7 +1,7 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-08T06:41:13Z
+- Baseline: 2026-09-08T08:53:13Z
 - Scanner candidates: 1077
 - Reviewed candidates: 1079
 - Approved deletions: 0
@@ -54,7 +54,7 @@
 | src/Production/Modules/modProductionProcessWorksheet.bas | Production | 1362 |
 | src/Production/Modules/modProductionReusableRun.bas | Production | 2781 |
 | src/Production/Modules/mProduction.bas | Production | 13279 |
-| src/Receiving/Forms/frmReceiving.frm | Receiving | 1235 |
+| src/Receiving/Forms/frmReceiving.frm | Receiving | 1218 |
 | src/Receiving/Modules/modTS_Received.bas | Receiving | 1575 |
 | src/Shipping/Forms/frmShipmentsTally.frm | Shipping | 3025 |
 | src/Shipping/Modules/modTS_Shipments.bas | Shipping | 22451 |
@@ -973,7 +973,7 @@
 | duplicate:b6128e74972d9bee:FindDesignsApplyTable+FindDesignsTableQuery+FindInventoryQueryTable+FindListObjectByNameAdminLocal+FindListObjectByNamePublisher+FindListObjectByNameStatus+FindListObjectInWorkbook+FindListObjectNas+FindListObjectReadModel+FindProductionListObjectByName+FindTable+FindTableByName+FindTableByNameBootstrap+FindTableByNameReadiness+FindTableByNameShip+FindTableByNameSurface+ViewerFindTable | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:c01c2d3bdf55ca03:AddTextBox+AddTextBox | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:c30f7d79756508ef:NzStr+NzStr+NzStrInv | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
-| duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
+| duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:c92c185be4fadc97:AddLabel+AddLabel | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:cb1b5883fe27dc31:EnsureFolderRecursiveProduction+EnsureFolderRecursiveShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:d01218541cebf3d1:ClearClipboardSurface+ClearSystemClipboardShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |

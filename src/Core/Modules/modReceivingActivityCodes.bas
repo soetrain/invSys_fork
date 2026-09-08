@@ -3,6 +3,37 @@ Option Explicit
 Option Private Module
 
 ' Registered facts only; the Receiving owner selects the outcome.
+Public Function LifecycleOutcome(ByVal code As String, ByVal closing As Boolean) As Object
+    Dim record As Object, prefix As String, message As String, severity As String, effect As String, nextStep As String
+    prefix = "RECEIVE_OPEN_": severity = "Info": effect = "Unknown"
+    If closing Then prefix = "RECEIVE_CLOSE_"
+    Select Case code
+        Case "REQUESTED"
+            message = "Receiving form launch requested."
+            If closing Then message = "Receiving form dismissal requested."
+        Case "OPENED", "REUSED"
+            If closing Then Exit Function
+            message = "Receiving form opened; inventory completion is not asserted."
+            If code = "REUSED" Then message = "The captured Receiving form was reused; inventory completion is not asserted."
+        Case "CLOSED"
+            If Not closing Then Exit Function
+            effect = "Unchanged": message = "Receiving form dismissed; staged work was not posted or cleared."
+        Case "FAILED"
+            If closing Then Exit Function
+            severity = "Error": message = "Receiving form launch failed; its final state requires verification."
+            nextStep = "Inspect the owning workflow and its visible cause before retrying."
+        Case Else: Exit Function
+    End Select
+    Set record = CreateObject("Scripting.Dictionary")
+    record.Add "EventCode", prefix & code
+    record.Add "OutcomeCode", code
+    record.Add "Severity", severity
+    record.Add "DataEffect", effect
+    record.Add "UserMessage", message
+    record.Add "NextStep", nextStep
+    Set LifecycleOutcome = record
+End Function
+
 Public Function Outcome(ByVal code As String, Optional ByVal disposition As Boolean = False) As Object
     Dim record As Object, severity As String, effect As String, message As String, nextStep As String
     severity = "Info": effect = "Unknown"

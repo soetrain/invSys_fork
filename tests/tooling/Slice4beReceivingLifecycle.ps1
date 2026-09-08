@@ -25,6 +25,12 @@ End Function
 }
 
 function Install-ReceivingLifecycleSeams($Project,$Form) {
+    $windowModule=$Project.VBComponents.Item('modReceivingFormWindow').CodeModule
+    $windowModule.AddFromString(@'
+Public Function ActivityTestWindowHandle(ByVal form As frmReceiving) As Double
+    ActivityTestWindowHandle = CDbl(ResolveReceivingFormWindowHandle(form))
+End Function
+'@)
     $control=$Project.VBComponents.Add(2); $control.Name='TestReceivingRibbonControl'
     $control.CodeModule.AddFromString(@'
 Option Explicit
@@ -59,6 +65,21 @@ Public Function ActivityTestBoundTo(ByVal wb As Workbook) As Boolean
 End Function
 '@)
     $launcher=$Project.VBComponents.Item('modTS_Received').CodeModule
+    # Diagnostic mutations are unsaved and cannot produce acceptance GREEN.
+    if ($LifecycleDiagnostic -eq 'KeepLauncherReference') {
+        $start=$launcher.ProcStartLine('NotifyReceivingLauncherFormTerminating',0)
+        $count=$launcher.ProcCountLines('NotifyReceivingLauncherFormTerminating',0)
+        $source=$launcher.Lines($start,$count)
+        $changed=$source.Replace(': Set mReceivingLauncherForm = Nothing','')
+        if ($changed -eq $source) { throw 'Native reference-release diagnostic seam unavailable.' }
+        $launcher.DeleteLines($start,$count); $launcher.InsertLines($start,$changed)
+    }
+    if ($LifecycleDiagnostic -eq 'SkipTerminationEvidence') {
+        $start=$Form.ProcStartLine('UserForm_Terminate',0)
+        $count=$Form.ProcCountLines('UserForm_Terminate',0)
+        $Form.DeleteLines($start,$count)
+        $Form.InsertLines($start,"Private Sub UserForm_Terminate()`r`n    Set mOperatorWorkbook = Nothing`r`nEnd Sub")
+    }
     $launcher.AddFromString(@'
 Public Sub ActivityTestRibbonOpen()
     Dim control As New TestReceivingRibbonControl
@@ -79,6 +100,11 @@ Public Function ActivityTestLauncherBoundTo(ByVal workbookName As String) As Boo
     If mReceivingLauncherFormTerminated Then Exit Function
     If mReceivingLauncherForm Is Nothing Then Exit Function
     ActivityTestLauncherBoundTo = mReceivingLauncherForm.ActivityTestBoundTo(Application.Workbooks(workbookName))
+End Function
+Public Function ActivityTestLauncherHandle() As Double
+    If mReceivingLauncherFormTerminated Then Exit Function
+    If mReceivingLauncherForm Is Nothing Then Exit Function
+    ActivityTestLauncherHandle = modReceivingFormWindow.ActivityTestWindowHandle(mReceivingLauncherForm)
 End Function
 Public Sub ActivityTestLauncherDismiss(ByVal mode As String)
     Select Case mode
@@ -105,7 +131,7 @@ End Sub
     $count=$launcher.ProcCountLines('ShowReceivingMessage',0)
     $launcher.DeleteLines($start,$count)
     $launcher.InsertLines($start,@'
-Private Sub ShowReceivingMessage(ByVal messageText As String, ByVal style As VbMsgBoxStyle)
+Public Sub ShowReceivingMessage(ByVal messageText As String, ByVal style As VbMsgBoxStyle)
     TestReceivingLifecycleNotice.LastMessage = messageText
 End Sub
 '@)
@@ -116,6 +142,33 @@ function Test-ReceivingLifecycleRecords($Fixture,$Before,[string]$Control,[strin
     $effect=if($Outcome -eq 'CLOSED'){'Unchanged'}else{'Unknown'}
     $severity=if($Outcome -eq 'FAILED'){'Error'}else{'Info'}
     Test-ReceivingControlRecords $Fixture $Before $Control 'RECEIVING_WORKFLOW' $prefix $Outcome 1 $effect @() $Label $severity 5
+}
+
+# Supplement handler seams with the actual Windows close message. Only the
+# Receiving window in this isolated validator's Excel process may be targeted.
+function Close-ReceivingNativeFixtureWindow {
+    if (-not ('ReceivingLifecycleWindow' -as [type])) {
+        Add-Type @'
+using System; using System.Runtime.InteropServices;
+public static class ReceivingLifecycleWindow {
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+    [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hwnd);
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd, uint message, IntPtr wParam, IntPtr lParam);
+}
+'@
+    }
+    $window=[IntPtr][long](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestLauncherHandle')
+    [uint32]$fixtureProcess=0; [uint32]$windowProcess=0
+    [void][ReceivingLifecycleWindow]::GetWindowThreadProcessId([IntPtr][long]$excel.Hwnd,[ref]$fixtureProcess)
+    [void][ReceivingLifecycleWindow]::GetWindowThreadProcessId($window,[ref]$windowProcess)
+    if ($fixtureProcess -eq 0 -or $windowProcess -ne $fixtureProcess -or -not [ReceivingLifecycleWindow]::IsWindowVisible($window)) {
+        throw ('Native Receiving fixture window unavailable; application identified='+($fixtureProcess -ne 0)+'; owned='+($windowProcess -eq $fixtureProcess)+'; visible='+[ReceivingLifecycleWindow]::IsWindowVisible($window)+'.')
+    }
+    if (-not [ReceivingLifecycleWindow]::PostMessage($window,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)) { throw 'Native Receiving fixture close could not be delivered.' }
+    $deadline=[DateTime]::UtcNow.AddSeconds(10)
+    while ([ReceivingLifecycleWindow]::IsWindow($window) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+    return -not [ReceivingLifecycleWindow]::IsWindow($window)
 }
 
 function Test-ReceivingLifecycleActivity($Fixture) {
@@ -140,7 +193,7 @@ function Test-ReceivingLifecycleActivity($Fixture) {
     $stagingBefore=@(Get-ReceivingFixtureRows (Table $operator 'ReceivedTally')) | ConvertTo-Json -Depth 5 -Compress
     $operator.Save()
     $operatorHash=Get-ReceivingFixtureHash $operator.FullName
-    foreach($mode in @('Reuse','SessionChanged','Button','Window','Internal')) {
+    foreach($mode in @('Reuse','SessionChanged','Button','Window','NativeWindow','Internal')) {
         $other.Activate()
         $before=@(Get-Slice4beActivityFiles $Fixture)
         if($mode -eq 'SessionChanged') {
@@ -156,7 +209,8 @@ function Test-ReceivingLifecycleActivity($Fixture) {
             $new=@(Get-Slice4beActivityFiles $Fixture | Where-Object { $_ -notin $before })
             Check "Lifecycle.$mode.NoInternalCloseOrInitializationClicks" ($new.Count -le 2)
         } else {
-            [void](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestLauncherDismiss' @($mode))
+            if ($mode -eq 'NativeWindow') { Check 'Lifecycle.NativeWindow.Destroyed' (Close-ReceivingNativeFixtureWindow) }
+            else { [void](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestLauncherDismiss' @($mode)) }
             Check "Lifecycle.$mode.Dismissed" ([string](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestLauncherState') -eq '')
             if($mode -eq 'Internal') {
                 Check 'Lifecycle.Internal.NotAUserClose' (@(Get-Slice4beActivityFiles $Fixture).Count -eq $before.Count)
@@ -181,7 +235,7 @@ function Test-ReceivingLifecycleActivity($Fixture) {
     Check 'Lifecycle.Failed.OwnerCalledOnceAndCausePreserved' ([int](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.LauncherCallCount') -eq 1 -and [string](Run 'invSys.Operations.xlam' 'TestReceivingLifecycleNotice.Message') -like '*Fixture Receiving launch withheld.*')
     Test-ReceivingLifecycleRecords $Fixture $before 'RECEIVING_OPEN' 'FAILED' 'Lifecycle.Failed'
     [void](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.SetLauncherFault' @($false))
-    foreach($mode in @('Button','Window')) {
+    foreach($mode in @('Button','Window','NativeWindow')) {
         $before=@(Get-Slice4beActivityFiles $Fixture)
         $held=Hold-ReceivingLocalActivityStore $Fixture
         try {
@@ -193,7 +247,8 @@ function Test-ReceivingLifecycleActivity($Fixture) {
             Check "Lifecycle.StoreFailure.$mode.OpenedOnce" ([string](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestLauncherState') -ceq $state -and [int](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.LauncherCallCount') -eq 1)
             Check "Lifecycle.StoreFailure.$mode.OpenNoticeVisible" (($status+' '+$notice).Contains('Tracking unavailable'))
             [void](Run 'invSys.Operations.xlam' 'TestReceivingLifecycleNotice.Reset')
-            [void](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestLauncherDismiss' @($mode))
+            if ($mode -eq 'NativeWindow') { Check 'Lifecycle.StoreFailure.NativeWindow.Destroyed' (Close-ReceivingNativeFixtureWindow) }
+            else { [void](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestLauncherDismiss' @($mode)) }
             Check "Lifecycle.StoreFailure.$mode.Dismissed" ([string](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestLauncherState') -eq '')
             Check "Lifecycle.StoreFailure.$mode.CloseNoticeVisible" (([string](Run 'invSys.Operations.xlam' 'TestReceivingLifecycleNotice.Message')).Contains('Tracking unavailable'))
         } finally {

@@ -244,6 +244,7 @@ End Sub
 '@)
     if ($CheckReceivingLocalActivity) { Install-ReceivingLocalFormSeams $formCode $helper.CodeModule }
     if ($CheckReceivingLifecycleActivity) { Install-ReceivingLifecycleSeams $packages['invSys.Operations.xlam'].VBProject $formCode }
+    if ($ReceivingLifecycleOnly) { Test-ReceivingLifecycleActivity $fixture; return }
     foreach ($label in @('Applied','Pending','Stale','StoreFailure','Denied','Rejected','UnknownSubmission')) {
         $pending = $label -eq 'Pending'
         Write-Output "Receiving fixture: $label"

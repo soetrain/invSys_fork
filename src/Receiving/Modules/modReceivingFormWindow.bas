@@ -72,3 +72,29 @@ Private Function ResolveReceivingFormWindowHandle(ByVal receivingForm As Object)
 End Function
 
 #End If
+
+Public Function BuildReceivingHeaderCaption(ByVal targetList As MSForms.ListBox, _
+                                              ByVal headings As Variant) As String
+    Dim widths As Variant
+    Dim i As Long
+    Dim pointWidth As Double
+    Dim charWidth As Long
+    Dim headingText As String
+
+    widths = Split(CStr(targetList.ColumnWidths), ";")
+    For i = LBound(widths) To UBound(widths)
+        pointWidth = Val(CStr(widths(i)))
+        If pointWidth > 0 Then
+            headingText = CStr(headings(i))
+            charWidth = CLng(pointWidth / 5.25)
+            If charWidth < 2 Then charWidth = 2
+            If Len(headingText) >= charWidth Then
+                BuildReceivingHeaderCaption = BuildReceivingHeaderCaption & _
+                    Left$(headingText, charWidth - 1) & " "
+            Else
+                BuildReceivingHeaderCaption = BuildReceivingHeaderCaption & _
+                    headingText & Space$(charWidth - Len(headingText))
+            End If
+        End If
+    Next i
+End Function

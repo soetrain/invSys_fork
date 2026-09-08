@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-08T06:41:13Z",
+    "generatedAtUtc":  "2026-09-08T08:53:13Z",
     "baseline":  {
                      "componentCount":  171,
-                     "procedureCount":  5465,
-                     "lineCount":  123289,
+                     "procedureCount":  5471,
+                     "lineCount":  123380,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192
@@ -4748,7 +4748,7 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click",
+                           "id":  "duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "LOW",
                            "componentName":  "frmAdminDesignLifecycle",
@@ -4756,7 +4756,6 @@
                                                   "btnCancel_Click",
                                                   "btnCancel_Click",
                                                   "btnCancel_Click",
-                                                  "mBtnClose_Click",
                                                   "mBtnClose_Click",
                                                   "mBtnClose_Click",
                                                   "mBtnClose_Click",
@@ -4771,8 +4770,7 @@
                                                "src/Admin/Forms/frmRetireMigrateWarehouse.frm",
                                                "src/Admin/Forms/frmSetupTesterStation.frm",
                                                "src/Operations/Forms/frmInventoryViewer.frm",
-                                               "src/Production/Forms/frmProduction.frm",
-                                               "src/Receiving/Forms/frmReceiving.frm"
+                                               "src/Production/Forms/frmProduction.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
@@ -6170,7 +6168,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -7029,7 +7027,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -7302,7 +7300,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -7849,7 +7847,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -8293,7 +8291,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -9027,7 +9025,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -9803,7 +9801,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -11889,7 +11887,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -12325,7 +12323,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -12532,7 +12530,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -13203,7 +13201,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -16442,7 +16440,7 @@
                                                   "ApplyReceivingHeaderLayout",
                                                   "ApplyReceivingTab",
                                                   "BuildLayout",
-                                                  "BuildReceivingHeaderCaption",
+                                                  "CanReuseFor",
                                                   "ClearAggregateReferenceDetail",
                                                   "CountManagedItemChoices",
                                                   "DefaultReceiptId",
