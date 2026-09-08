@@ -109,6 +109,15 @@ function Test-Slice4beReceivingActivity {
 Option Explicit
 Public Pending As Boolean
 Public LoseAcknowledgement As Boolean
+Public RefreshFault As Boolean
+Public RefreshCalls As Long
+Public Sub SetRefreshFault(ByVal value As Boolean)
+    RefreshFault = value
+    RefreshCalls = 0
+End Sub
+Public Function RefreshCallCount() As Long
+    RefreshCallCount = RefreshCalls
+End Function
 Public Sub SetPending(ByVal value As Boolean)
     Pending = value
 End Sub
@@ -129,6 +138,7 @@ End Function
     if ($changed -eq $savedProcedure) { throw 'Pending fixture bridge seam not found.' }
     $bridge.DeleteLines($procedureStart,$count)
     $bridge.InsertLines($procedureStart,$changed)
+    if ($CheckReceivingLocalActivity) { Install-ReceivingLocalCoreSeam $bridge }
     # The real queue persists normally; withhold only its acknowledgement.
     # This models an uncertain response after durable submission, not a rollback.
     $writer = $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modRoleEventWriter').CodeModule
@@ -231,6 +241,7 @@ Public Sub CloseForm()
     Set mForm = Nothing
 End Sub
 '@)
+    if ($CheckReceivingLocalActivity) { Install-ReceivingLocalFormSeams $formCode $helper.CodeModule }
     foreach ($label in @('Applied','Pending','Stale','StoreFailure','Denied','Rejected','UnknownSubmission')) {
         $pending = $label -eq 'Pending'
         Write-Output "Receiving fixture: $label"
@@ -385,4 +396,5 @@ End Sub
         $existingConfig.Close($false)
     } else { Check 'Receiving.Setup.PreExistingUnknownColumnPreserved' $false }
     if ($CheckReceivingStagingActivity) { Test-ReceivingStagingCoverage $fixture }
+    if ($CheckReceivingLocalActivity) { Test-ReceivingLocalActivity $fixture }
 }

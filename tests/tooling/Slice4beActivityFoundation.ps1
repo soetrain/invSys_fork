@@ -160,6 +160,7 @@ function Test-Slice4beActivityPolicy($Fixture,[string]$RecordId) {
             (Table $cfg 'tblEventTrackingPolicies').ListColumns.Item('CatalogVersion').DataBodyRange.Cells.Item(1,1).Value2=1.0
             $cfg.Save(); $cfg.Close($false); $cfg=$null
         }
+        if ($CheckReceivingLocalActivity) { Test-ReceivingLocalOlderPolicy $Fixture $RecordId $context }
         foreach($case in @(@('InvalidTimestamp','CreatedAtUTC','2026-99-99T88:77:66.000Z'),@('InvalidFlag','ViewerActionPathCaptureEnabled','yes'),@('UnknownCatalog','CatalogVersion',999.0))) {
             $cfg=$excel.Workbooks.Open($Fixture.Config,0,$false)
             $meta=Table $cfg 'tblEventTrackingPolicies'
