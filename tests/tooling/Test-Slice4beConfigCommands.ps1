@@ -8,7 +8,8 @@ param(
     [switch]$CheckActivityFoundation,
     [switch]$CheckReceivingActivity,
     [switch]$CheckReceivingStagingActivity,
-    [switch]$CheckReceivingLocalActivity
+    [switch]$CheckReceivingLocalActivity,
+    [switch]$CheckReceivingLifecycleActivity
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -26,6 +27,7 @@ if ($CheckActivityEvidence) {
 if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundation checks require activity evidence mode.' }
 if ($CheckReceivingStagingActivity -and -not $CheckReceivingActivity) { throw 'Staging coverage requires Receiving activity mode.' }
 if ($CheckReceivingLocalActivity -and -not $CheckReceivingStagingActivity) { throw 'Local-action coverage requires staging activity mode.' }
+if ($CheckReceivingLifecycleActivity -and -not $CheckReceivingLocalActivity) { throw 'Lifecycle coverage requires the preserved local-action baseline.' }
 if ($CheckReceivingActivity) {
     $reportRoot = Join-Path $repo 'reports/runtime/slice4be-receiving-activity'
     . (Join-Path $PSScriptRoot 'Slice4beActivityAssertions.ps1')
@@ -35,6 +37,7 @@ if ($CheckReceivingActivity) {
     . (Join-Path $PSScriptRoot 'Slice4beReceivingStaging.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingLocal.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingFreshness.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingLifecycle.ps1')
     if (-not $CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
@@ -127,9 +130,13 @@ function NewFixture([string]$Suffix) {
     $auth=$excel.Workbooks.Open((Join-Path $root ($wh+'.invSys.Auth.xlsb')),0,$false)
     $users=Table $auth 'tblUsers'
     $caps=Table $auth 'tblCapabilities'
+    # Fixture credentials are text. Excel must not coerce a randomly generated
+    # all-numeric value or drop its leading zero; never emit either value.
+    $users.ListColumns.Item('PinHash').Range.NumberFormat='@'
     foreach($row in $users.ListRows) {
         if($row.Range.Cells.Item(1,$users.ListColumns.Item('UserId').Index).Value2 -eq 'config-admin') {
             $row.Range.Cells.Item(1,$users.ListColumns.Item('PinHash').Index).Value2=CredentialHash $secret
+            if ([string]$row.Range.Cells.Item(1,$users.ListColumns.Item('PinHash').Index).Value2 -cne (CredentialHash $secret)) { throw 'Fixture credential text did not round-trip.' }
         }
     }
     foreach($identity in @('config-reader','config-producer')) {
@@ -137,6 +144,7 @@ function NewFixture([string]$Suffix) {
         foreach($pair in @{UserId=$identity;DisplayName='Config fixture';PinHash=(CredentialHash $secret);Status='Active'}.GetEnumerator()) {
             $row.Range.Cells.Item(1,$users.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
+        if ([string]$row.Range.Cells.Item(1,$users.ListColumns.Item('PinHash').Index).Value2 -cne (CredentialHash $secret)) { throw 'Fixture credential text did not round-trip.' }
         $row=$caps.ListRows.Add()
         $cap=if($identity -eq 'config-producer'){'PROD_POST'}else{'RECEIVE_POST'}
         foreach($pair in @{UserId=$identity;Capability=$cap;WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()) {

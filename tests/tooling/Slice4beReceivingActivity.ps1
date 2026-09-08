@@ -139,6 +139,7 @@ End Function
     $bridge.DeleteLines($procedureStart,$count)
     $bridge.InsertLines($procedureStart,$changed)
     if ($CheckReceivingLocalActivity) { Install-ReceivingLocalCoreSeam $bridge }
+    if ($CheckReceivingLifecycleActivity) { Install-ReceivingLifecycleCoreSeam $bridge $gate.CodeModule }
     # The real queue persists normally; withhold only its acknowledgement.
     # This models an uncertain response after durable submission, not a rollback.
     $writer = $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modRoleEventWriter').CodeModule
@@ -242,6 +243,7 @@ Public Sub CloseForm()
 End Sub
 '@)
     if ($CheckReceivingLocalActivity) { Install-ReceivingLocalFormSeams $formCode $helper.CodeModule }
+    if ($CheckReceivingLifecycleActivity) { Install-ReceivingLifecycleSeams $packages['invSys.Operations.xlam'].VBProject $formCode }
     foreach ($label in @('Applied','Pending','Stale','StoreFailure','Denied','Rejected','UnknownSubmission')) {
         $pending = $label -eq 'Pending'
         Write-Output "Receiving fixture: $label"
@@ -397,4 +399,5 @@ End Sub
     } else { Check 'Receiving.Setup.PreExistingUnknownColumnPreserved' $false }
     if ($CheckReceivingStagingActivity) { Test-ReceivingStagingCoverage $fixture }
     if ($CheckReceivingLocalActivity) { Test-ReceivingLocalActivity $fixture }
+    if ($CheckReceivingLifecycleActivity) { Test-ReceivingLifecycleActivity $fixture }
 }

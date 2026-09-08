@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-08T05:57:34Z",
+    "generatedAtUtc":  "2026-09-08T06:41:13Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -135966,6 +135966,7 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
@@ -136436,6 +136437,7 @@
                                "entryPoint":  "BeginAction",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1"
                                              ]
@@ -136798,6 +136800,7 @@
                                "entryPoint":  "CaptureContext",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1"
                                              ]
                            },
@@ -137173,6 +137176,7 @@
                                "testPaths":  [
                                                  "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
@@ -139056,6 +139060,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mBtnClose_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "mBtnConfirm_Click",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -139262,6 +139272,7 @@
                            {
                                "entryPoint":  "Message",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Test-Plan022Slice4bkUserOnboardingPacket.ps1",
                                                  "tests/tooling/Test-Plan022Slice4uShippingPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-ShippingStatusAnchor.ps1",
@@ -139521,6 +139532,7 @@
                            {
                                "entryPoint":  "OpenOrCreateCurrentReceivingOperatorWorkbook",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1"
                                              ]
                            },
@@ -139553,6 +139565,7 @@
                                "entryPoint":  "Outcome",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1"
@@ -140365,6 +140378,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ResolveOperatorWorkbook",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ResolveProductionWorkbook",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1"
@@ -141162,6 +141181,18 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ShowReceivingForm",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ShowReceivingMessage",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ShowSelectedAggregateReferences",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
@@ -141192,6 +141223,7 @@
                                                  "tests/integration/test_ReceivingReadiness.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
@@ -141310,6 +141342,7 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
@@ -141901,6 +141934,7 @@
                            {
                                "entryPoint":  "UserForm_QueryClose",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1"
                                              ]
                            },
