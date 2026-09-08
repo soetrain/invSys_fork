@@ -12,6 +12,8 @@ param(
     [switch]$CheckReceivingLifecycleActivity,
     [switch]$CheckReceivingNavigationActivity,
     [switch]$ReceivingNavigationOnly,
+    [switch]$CheckReceivingSurfaceCoverage,
+    [switch]$ReceivingSurfaceOnly,
     [switch]$ReceivingLifecycleOnly,
     [ValidateSet('None','SkipTerminationEvidence','KeepLauncherReference')]
     [string]$LifecycleDiagnostic = 'None'
@@ -35,6 +37,8 @@ if ($CheckReceivingLocalActivity -and -not $CheckReceivingStagingActivity) { thr
 if ($CheckReceivingLifecycleActivity -and -not $CheckReceivingLocalActivity) { throw 'Lifecycle coverage requires the preserved local-action baseline.' }
 if ($CheckReceivingNavigationActivity -and (-not $CheckReceivingLifecycleActivity -or $ReceivingLifecycleOnly)) { throw 'Navigation coverage requires the full preserved lifecycle baseline.' }
 if ($ReceivingNavigationOnly -and -not $CheckReceivingNavigationActivity) { throw 'Navigation-only diagnosis requires navigation coverage.' }
+if ($CheckReceivingSurfaceCoverage -and -not $CheckReceivingNavigationActivity) { throw 'Surface coverage requires the preserved navigation baseline.' }
+if ($ReceivingSurfaceOnly -and (-not $CheckReceivingSurfaceCoverage -or $ReceivingNavigationOnly)) { throw 'Surface-only diagnosis requires surface coverage without another diagnostic-only mode.' }
 if ($ReceivingLifecycleOnly -and -not $CheckReceivingLifecycleActivity) { throw 'Lifecycle-only diagnosis requires lifecycle coverage.' }
 if ($LifecycleDiagnostic -ne 'None' -and -not $ReceivingLifecycleOnly) { throw 'Mutation diagnostics require the separate lifecycle-only report.' }
 if ($LifecycleDiagnostic -ne 'None' -and $Phase -ne 'RED') { throw 'Diagnostic mutations cannot be run as acceptance GREEN.' }
@@ -49,6 +53,7 @@ if ($CheckReceivingActivity) {
     . (Join-Path $PSScriptRoot 'Slice4beReceivingFreshness.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingLifecycle.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingNavigation.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingSurface.ps1')
     if (-not $CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
@@ -436,6 +441,8 @@ finally {
     $reportName=$Phase.ToLowerInvariant()+'.json'
     if ($CheckReceivingNavigationActivity) { $reportName='navigation-'+$reportName }
     if ($ReceivingNavigationOnly) { $reportName='diagnostic-'+$reportName }
+    if ($CheckReceivingSurfaceCoverage) { $reportName='surface-'+$Phase.ToLowerInvariant()+'.json' }
+    if ($ReceivingSurfaceOnly) { $reportName='diagnostic-'+$reportName }
     if ($ReceivingLifecycleOnly) { $reportName='lifecycle-only-'+$reportName }
     if ($LifecycleDiagnostic -ne 'None') { $reportName='diagnostic-'+$LifecycleDiagnostic.ToLowerInvariant()+'.json' }
     $results | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $reportRoot $reportName)

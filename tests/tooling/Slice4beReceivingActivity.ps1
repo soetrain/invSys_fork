@@ -245,6 +245,7 @@ End Sub
     if ($CheckReceivingLocalActivity) { Install-ReceivingLocalFormSeams $formCode $helper.CodeModule }
     if ($CheckReceivingLifecycleActivity) { Install-ReceivingLifecycleSeams $packages['invSys.Operations.xlam'].VBProject $formCode }
     if ($CheckReceivingNavigationActivity) { Install-ReceivingNavigationSeams $formCode $helper.CodeModule $gate.CodeModule }
+    if ($ReceivingSurfaceOnly) { Test-ReceivingSurfaceCoverage $fixture; return }
     if ($ReceivingNavigationOnly) { Test-ReceivingNavigationActivity $fixture; return }
     if ($ReceivingLifecycleOnly) { Test-ReceivingLifecycleActivity $fixture; return }
     foreach ($label in @('Applied','Pending','Stale','StoreFailure','Denied','Rejected','UnknownSubmission')) {
@@ -404,4 +405,5 @@ End Sub
     if ($CheckReceivingLocalActivity) { Test-ReceivingLocalActivity $fixture }
     if ($CheckReceivingLifecycleActivity) { Test-ReceivingLifecycleActivity $fixture }
     if ($CheckReceivingNavigationActivity) { Test-ReceivingNavigationActivity $fixture }
+    if ($CheckReceivingSurfaceCoverage) { Test-ReceivingSurfaceCoverage $fixture }
 }
