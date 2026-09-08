@@ -237,6 +237,7 @@ Public Function ValidateUserCredentialForTarget(ByVal userId As String, _
         End If
     End If
 
+    modAuthSession.Invalidate
     mCurrentUserId = normalizedUser
     mCurrentUserDisplayName = ResolveUserDisplayNameAuth(normalizedUser)
     mSignedInWarehouseId = target.WarehouseId
@@ -247,7 +248,7 @@ Public Function ValidateUserCredentialForTarget(ByVal userId As String, _
     ElseIf SafeTrim(target.RuntimeRoot) <> "" Then
         modRuntimeWorkbooks.SetCoreDataRootOverride target.RuntimeRoot
     End If
-    SetAuthSessionStatus AUTH_OK
+    mCurrentAuthStatus = AUTH_OK
     On Error Resume Next
     modRoleEventWriter.SetCurrentUserId normalizedUser
     On Error GoTo 0
@@ -314,12 +315,13 @@ FailPrompt:
 End Function
 
 Public Sub SignOut()
+    modAuthSession.Invalidate
     mCurrentUserId = vbNullString
     mCurrentUserDisplayName = vbNullString
     mSignedInWarehouseId = vbNullString
     mSignedInStationId = vbNullString
     mSignedInAt = 0
-    SetAuthSessionStatus AUTH_NOT_SIGNED_IN
+    mCurrentAuthStatus = AUTH_NOT_SIGNED_IN
     On Error Resume Next
     modRoleEventWriter.SetCurrentUserId vbNullString
     On Error GoTo 0
@@ -336,13 +338,13 @@ End Function
 
 Public Function IsSignedIn() As Boolean
     If mCurrentUserId = "" Then
-        If mCurrentAuthStatus = AUTH_OK Then SetAuthSessionStatus AUTH_NOT_SIGNED_IN
+        If mCurrentAuthStatus = AUTH_OK Then mCurrentAuthStatus = AUTH_NOT_SIGNED_IN
         Exit Function
     End If
     If mCurrentAuthStatus <> AUTH_OK Then Exit Function
     mCacheTtlSeconds = NormalizeAuthCacheTtlSeconds(mCacheTtlSeconds)
     If DateDiff("s", mSignedInAt, Now) > mCacheTtlSeconds Then
-        SetAuthSessionStatus AUTH_REAUTH_REQUIRED
+        mCurrentAuthStatus = AUTH_REAUTH_REQUIRED
         Exit Function
     End If
     IsSignedIn = True
@@ -802,10 +804,6 @@ Private Function EnsureFreshCache() As Boolean
 
     EnsureFreshCache = ReloadAuth()
 End Function
-
-Private Sub SetAuthSessionStatus(ByVal statusCode As AuthStatusCode)
-    mCurrentAuthStatus = statusCode
-End Sub
 
 Private Function NormalizeAuthCacheTtlSeconds(ByVal ttlSeconds As Long) As Long
     If ttlSeconds <= 0 Or ttlSeconds = 300 Then

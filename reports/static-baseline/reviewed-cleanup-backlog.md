@@ -1,7 +1,7 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-06T00:00:00Z
+- Baseline: 2026-09-08T00:19:30Z
 - Scanner candidates: 1077
 - Reviewed candidates: 1079
 - Approved deletions: 0
@@ -37,7 +37,7 @@
 | src/Admin/Modules/modAdminConsole.bas | Admin | 2366 |
 | src/Admin/Modules/modTesterSetup.bas | Admin | 1655 |
 | src/Core/ClassModules/cDynItemSearch.cls | Core | 1999 |
-| src/Core/Modules/modAuth.bas | Core | 1804 |
+| src/Core/Modules/modAuth.bas | Core | 1802 |
 | src/Core/Modules/modConfig.bas | Core | 1615 |
 | src/Core/Modules/modNasConnection.bas | Core | 1603 |
 | src/Core/Modules/modOperatorReadModel.bas | Core | 1919 |

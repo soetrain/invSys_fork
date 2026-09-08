@@ -219,6 +219,7 @@ Private mCmbRunTargetOutput As MSForms.ComboBox
 Private mTxtRunTargetOutputQty As MSForms.TextBox
 Private mTxtStatus As MSForms.TextBox
 Private mOperatorWorkbook As Workbook
+Private mActivityContext As String
 Private mLayout As cOperationsAnchorManager
 Private mOperatorWorkbookCaptured As Boolean
 Private mInventoryRows As Variant
@@ -265,6 +266,7 @@ Private Const TABLE_MANAGER_CHECK As String = "Prod_invSys_Check"
 
 Private Sub UserForm_Initialize()
     On Error GoTo FailInitialize
+    mActivityContext = modActivity.CaptureContext()
     BuildLayout
     Exit Sub
 
@@ -10721,13 +10723,11 @@ End Sub
 
 Private Sub mBtnUomCatalogRetrieve_Click()
     Dim report As String
-    If Not modProductionUomCatalog.RetrieveUomCatalogFromWorksheet(mOperatorWorkbook, report) Then
-        ShowStatus "UOM Catalog retrieval failed: " & report
-        Exit Sub
+    If modProductionUomAction.Retrieve(mOperatorWorkbook, mActivityContext, report) Then
+        RefreshProcessOutputUomCatalog
+        RefreshRecipeUomCatalog
+        RefreshConnectionUomCatalog
     End If
-    RefreshProcessOutputUomCatalog
-    RefreshRecipeUomCatalog
-    RefreshConnectionUomCatalog
     ShowStatus report
 End Sub
 

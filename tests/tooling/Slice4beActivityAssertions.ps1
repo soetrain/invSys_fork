@@ -1,6 +1,26 @@
 # D18 assertions shared with the proven packaged D5 fixture/real form handlers.
 # Emit check names and booleans only; activity payloads and fixture credentials
 # must never enter console output or the persisted results report.
+function Test-Slice4bePackageIdentity([string]$Deploy) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    foreach ($name in @('Core','Inventory.Domain','Designs.Domain','Operations','Admin')) {
+        $archive = $null
+        try {
+            $archive = [IO.Compression.ZipFile]::OpenRead((Join-Path $Deploy ('invSys.'+$name+'.xlam')))
+            $entry = $archive.GetEntry('docProps/custom.xml')
+            if ($null -eq $entry) { return $false }
+            $reader = [IO.StreamReader]::new($entry.Open())
+            try { [xml]$metadata = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            $version = @($metadata.Properties.property | Where-Object { $_.name -eq 'invSysPackageSetVersion' })
+            $identity = @($metadata.Properties.property | Where-Object { $_.name -eq 'invSysBuildIdentity' })
+            if ($version.Count -ne 1 -or $identity.Count -ne 1) { return $false }
+            if ($version[0].InnerText -ne 'R1-5' -or $identity[0].InnerText -notmatch '^[0-9a-f]{32}$') { return $false }
+        } catch { return $false }
+        finally { if ($null -ne $archive) { $archive.Dispose() } }
+    }
+    return $true
+}
+
 function Get-Slice4beActivityFiles($Fixture) {
     $root = Join-Path $Fixture.Root ('Training\Activity\' + $Fixture.Warehouse)
     if (Test-Path -LiteralPath $root) {
@@ -70,4 +90,43 @@ function Test-Slice4beObservedAction {
         if ($raw -match '(?i)[A-Z]:\\|\\\\fixture-host') { $redacted = $false }
     }
     Check ($CheckPrefix + '.RedactedPayload') $redacted
+    $integrity = $pair
+    foreach ($raw in $payloads) {
+        $match = [regex]::Match($raw, '^(?<body>\{.*),"ContentSha256":"(?<hash>[a-f0-9]{64})"\}$')
+        if (-not $match.Success) { $integrity = $false; continue }
+        $sha = [Security.Cryptography.SHA256]::Create()
+        try {
+            $digest = [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($match.Groups['body'].Value + '}'))).Replace('-','').ToLowerInvariant()
+            if ($digest -cne $match.Groups['hash'].Value) { $integrity = $false }
+        } finally { $sha.Dispose() }
+    }
+    Check ($CheckPrefix + '.ContentIntegrity') $integrity
+}
+
+function Test-Slice4beUnavailableStore($Fixture) {
+    $parent = Join-Path $Fixture.Root 'Training\Activity'
+    $leaf = Join-Path $parent $Fixture.Warehouse
+    $held = $leaf + '-test-held'
+    $expectedRoot = [IO.Path]::GetFullPath($Fixture.Root).TrimEnd('\') + '\'
+    foreach ($path in @($leaf,$held)) {
+        if (-not [IO.Path]::GetFullPath($path).StartsWith($expectedRoot,[StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Activity fixture path escaped its disposable root.'
+        }
+    }
+    New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    $moved = $false
+    try {
+        if (Test-Path -LiteralPath $leaf) {
+            Move-Item -LiteralPath $leaf -Destination $held
+            $moved = $true
+        }
+        [IO.File]::WriteAllText($leaf, 'blocked fixture path')
+        $ok = [bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('BatchSize','611'))
+        Check 'Activity.StoreFailureDoesNotBlockCommand' ($ok -and [long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('BatchSize',0)) -eq 611)
+        $status = [string](Run 'invSys.Admin.xlam' 'TestD5Commands.LastStatus')
+        Check 'Activity.StoreFailureIsVisible' ($status.Contains('Tracking unavailable'))
+    } finally {
+        if (Test-Path -LiteralPath $leaf -PathType Leaf) { Remove-Item -LiteralPath $leaf -Force }
+        if ($moved) { Move-Item -LiteralPath $held -Destination $leaf }
+    }
 }

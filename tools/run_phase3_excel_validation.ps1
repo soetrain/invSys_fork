@@ -93,6 +93,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modConfig.bas"),
         (Join-Path $repo "src/Core/Modules/modStationIdentity.bas"),
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
+        (Join-Path $repo "src/Core/Modules/modAuthSession.bas"),
         (Join-Path $repo "src/Core/Modules/modLockManager.bas"),
         (Join-Path $repo "src/Core/Modules/modItemSearch.bas"),
         (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),

@@ -4,7 +4,8 @@ param(
     [string]$DeployRoot = 'deploy/current',
     [ValidateSet('RED','GREEN')][string]$Phase = 'GREEN',
     [switch]$CaptureEvidence,
-    [switch]$CheckActivityEvidence
+    [switch]$CheckActivityEvidence,
+    [switch]$CheckActivityFoundation
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -17,7 +18,9 @@ $reportRoot = Join-Path $repo 'reports/runtime/config-commands'
 if ($CheckActivityEvidence) {
     $reportRoot = Join-Path $repo 'reports/runtime/slice4be-activity'
     . (Join-Path $PSScriptRoot 'Slice4beActivityAssertions.ps1')
+    if ($CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
+if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundation checks require activity evidence mode.' }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $results = [Collections.Generic.List[object]]::new()
 $excel = $null
@@ -130,6 +133,9 @@ try {
     foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam')) {
         $packages[$name]=$excel.Workbooks.Open((Join-Path $deploy $name),0,$true)
     }
+    if ($CheckActivityEvidence) {
+        Check 'Activity.ProducingPackageIdentity' (Test-Slice4bePackageIdentity $deploy)
+    }
     # Test-only instrumentation in the unsaved Admin project: invokes the exact
     # existing form selection/save handlers without changing their implementation.
     $formCode=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('frmAdminSettings').CodeModule
@@ -154,6 +160,7 @@ End Function
     $testModule.CodeModule.AddFromString(@'
 Option Explicit
 Private mForm As frmAdminSettings
+Private mLastStatus As String
 Public Sub OpenSettings()
     Set mForm = New frmAdminSettings
 End Sub
@@ -166,7 +173,11 @@ Public Sub CloseSettings()
     Set mForm = Nothing
 End Sub
 Public Function SaveSettings(ByVal key As String, ByVal value As String) As Boolean
-    SaveSettings = (InStr(1, mForm.D5TestSave(key, value), "saved", vbTextCompare) > 0)
+    mLastStatus = mForm.D5TestSave(key, value)
+    SaveSettings = (InStr(1, mLastStatus, "saved", vbTextCompare) > 0)
+End Function
+Public Function LastStatus() As String
+    LastStatus = mLastStatus
 End Function
 Public Function SaveDirect(ByVal key As String, ByVal value As String, ByVal wh As String, ByVal st As String) As Boolean
     Dim report As String
@@ -203,6 +214,16 @@ End Function
     $productionTest=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Add(1)
     $productionTest.Name='TestD5Uom'
     $productionTest.CodeModule.AddFromString(@'
+Private mHeld As frmProduction
+Public Sub HoldForm()
+    Set mHeld = New frmProduction
+    Load mHeld
+End Sub
+Public Function HeldRoundTrip(ByVal workbookName As String) As Boolean
+    HeldRoundTrip = mHeld.D5UomRoundTrip(workbookName)
+    Unload mHeld
+    Set mHeld = Nothing
+End Function
 Public Function RoundTrip(ByVal workbookName As String) As Boolean
     RoundTrip = frmProduction.D5UomRoundTrip(workbookName)
     Unload frmProduction
@@ -232,6 +253,7 @@ End Function
         Test-Slice4beObservedAction $a $activityBefore 'ADMIN_SETTINGS_SAVE_VALUE' `
             'CONFIG_SAVE_REQUESTED' 'CONFIG_SAVE_COMPLETED' 'Changed' 'Info' `
             'config-admin' 'Activity.AdminSettings'
+        Test-Slice4beUnavailableStore $a
     }
     if($CaptureEvidence){
         [void](Run 'invSys.Admin.xlam' 'TestD5Commands.ShowSettings')
@@ -310,6 +332,7 @@ End Function
     $before=(Get-FileHash -LiteralPath $a.Config).Hash
     $ok=[bool](Run 'invSys.Core.xlam' 'modConfig.LoadConfig' @($a.Warehouse,'S1'))
     Check 'Read.ClosedWorkbookBytesPreserved' ($ok -and $before -eq (Get-FileHash -LiteralPath $a.Config).Hash)
+    if ($CheckActivityFoundation) { Test-Slice4beActivityFoundation $a $b }
     $cfg=$excel.Workbooks.Open($a.Config,0,$false)
     $table=Table $cfg 'tblWarehouseConfig'
     $table.ListColumns.Item('WarehouseName').Delete()

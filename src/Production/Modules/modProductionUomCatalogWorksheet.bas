@@ -48,9 +48,11 @@ Public Function SendUomCatalogToWorksheet(ByVal wb As Workbook, _
 End Function
 
 Public Function RetrieveUomCatalogFromWorksheet(ByVal wb As Workbook, _
-                                                 Optional ByRef report As String = "") As Boolean
+                                                 Optional ByRef report As String = "", _
+                                                 Optional ByRef outcome As String = "") As Boolean
     Dim lo As ListObject
     Dim values As Variant
+    outcome = "REJECTED"
 
     If wb Is Nothing Then
         report = "Production has no captured workbook for UOM Catalog retrieval."
@@ -68,7 +70,7 @@ Public Function RetrieveUomCatalogFromWorksheet(ByVal wb As Workbook, _
         Exit Function
     End If
     values = lo.DataBodyRange.Value2
-    If Not modUomSettings.PublishUomCatalogRows(values, report) Then Exit Function
+    If Not modUomSettings.PublishUomCatalogRows(values, report, outcome) Then Exit Function
     lo.Unlist
     report = report & " The staging table was retrieved and removed."
     RetrieveUomCatalogFromWorksheet = True

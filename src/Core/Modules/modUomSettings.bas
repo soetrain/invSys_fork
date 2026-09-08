@@ -192,8 +192,9 @@ Public Function GetUomCatalogRows() As Variant
 End Function
 
 Public Function PublishUomCatalogRows(ByVal rows As Variant, _
-                                      Optional ByRef report As String = "") As Boolean
-    PublishUomCatalogRows = modConfigCommands.PublishUomCatalogRows(rows, report)
+                                      Optional ByRef report As String = "", _
+                                      Optional ByRef outcome As String = "") As Boolean
+    PublishUomCatalogRows = modConfigCommands.PublishUomCatalogRows(rows, report, outcome)
 End Function
 
 Public Function UomCatalogMatches(ByVal packedUoms As String, ByVal packedConversions As String) As Boolean

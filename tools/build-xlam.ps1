@@ -105,6 +105,21 @@ function Get-FormFiles {
     $CodeFiles | Where-Object { $_.Extension -eq ".frm" }
 }
 
+function Set-PackageBuildIdentity {
+    param([string]$WorkbookPath)
+    $document = [DocumentFormat.OpenXml.Packaging.SpreadsheetDocument]::Open($WorkbookPath, $true)
+    try {
+        $part = $document.CustomFilePropertiesPart
+        if ($null -eq $part) { $part = $document.AddCustomFilePropertiesPart() }
+        $identity = [guid]::NewGuid().ToString('N')
+        $xml = '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">' +
+            '<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="invSysPackageSetVersion"><vt:lpwstr>R1-5</vt:lpwstr></property>' +
+            '<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="3" name="invSysBuildIdentity"><vt:lpwstr>' + $identity + '</vt:lpwstr></property></Properties>'
+        $stream = [IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes($xml))
+        try { $part.FeedData($stream) } finally { $stream.Dispose() }
+    } finally { $document.Dispose() }
+}
+
 function Remove-VbaTestOnlyRegions {
     param(
         [string]$SourceText,
@@ -1241,6 +1256,7 @@ try {
         }
 
         $stagedPath = $builtOutputs[$project.Key]
+        Set-PackageBuildIdentity -WorkbookPath $stagedPath
         $finalPath = Join-Path $outputDir $project.OutputFile
         Remove-ExistingFile -Path $finalPath
         Copy-Item -LiteralPath $stagedPath -Destination $finalPath -Force

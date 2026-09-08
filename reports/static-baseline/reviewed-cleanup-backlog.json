@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-06T00:00:00Z",
+    "generatedAtUtc":  "2026-09-08T00:19:30Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "d48614a33b6da9e5c527f8b33694b51a2f45133cffa52860bc626622d1d4f8b8",
-                          "maintenanceCandidatesSha256":  "2fa5604ff77987de5ef6bbafe426b93cf589861cc8122b74659f6e9e4c09b2ec"
+                          "implementationManifestSha256":  "4cd51b00cfe6396ed7103b595c476476b2d70ead6a8d73fd1e9b95e41b8a0674",
+                          "maintenanceCandidatesSha256":  "2a4defe0555afe52b814fa8f63b25dcc7a9e7e6496d00c9454cd957c4d03d37f"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -126,7 +126,7 @@
                                                   "sourcePath":  "src/Core/Modules/modAuth.bas",
                                                   "componentName":  "modAuth",
                                                   "packageKey":  "Core",
-                                                  "baselineLineCount":  1804,
+                                                  "baselineLineCount":  1802,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -3388,6 +3388,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActivityAssertions.ps1",
                                                    "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -9705,7 +9706,6 @@
                                                   "SeedAuthDefaults",
                                                   "SetAuthCellIfDifferent",
                                                   "SetAuthFailureStatus",
-                                                  "SetAuthSessionStatus",
                                                   "ShowSignInPrompt",
                                                   "SignInCurrentTargetForAutomation",
                                                   "SignOut",
@@ -21396,6 +21396,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActivityAssertions.ps1",
                                                    "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1",
                                                    "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                                ],

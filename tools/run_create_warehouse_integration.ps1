@@ -110,6 +110,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modConfigCommands.bas"),
         (Join-Path $repo "src/Core/Modules/modStationIdentity.bas"),
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
+        (Join-Path $repo "src/Core/Modules/modAuthSession.bas"),
         (Join-Path $repo "src/Core/Modules/modRibbonRuntimeStatus.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleUiAccess.bas"),
         (Join-Path $repo "src/Core/Modules/modUiQuiet.bas"),

@@ -88,6 +88,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modConfig.bas"),
         (Join-Path $repo "src/Core/Modules/modStationIdentity.bas"),
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
+        (Join-Path $repo "src/Core/Modules/modAuthSession.bas"),
         (Join-Path $repo "src/InventoryDomain/Modules/modInventorySchema.bas"),
         (Join-Path $repo "src/InventoryDomain/Modules/modInventoryPublisher.bas"),
         (Join-Path $repo "src/InventoryDomain/Modules/modInventoryBridgeApi.bas"),

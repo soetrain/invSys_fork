@@ -1,6 +1,6 @@
 # Slice 14 Full-Chain, Restart, and Reconciliation Evidence
 
-- Date: 2026-09-06 22:33:54
+- Date: 2026-09-07 17:33:18
 - Package set: R1-5
 - Ordered phases: 
 GenerateFreshWarehouse -> SeedDemoInventoryThroughAdmin -> ReceiveInventory -> ProcessorApplyReceive -> RefreshAfterReceive -> ProductionTwoBatches -> ProductionConsumptionAndOutput -> BoxingVersionSelection -> ShipmentStagingAndSent -> ProcessorApplyShipment -> FinalRefresh -> RestartAndReconcile

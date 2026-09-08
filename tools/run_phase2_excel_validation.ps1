@@ -211,6 +211,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),
         (Join-Path $repo "src/Core/Modules/modDesignsDomainBridge.bas"),
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
+        (Join-Path $repo "src/Core/Modules/modAuthSession.bas"),
         (Join-Path $repo "src/Core/Modules/modLockManager.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
         (Join-Path $repo "src/Core/Modules/modProcessor.bas"),

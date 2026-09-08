@@ -5,28 +5,34 @@ Option Explicit
 Public Function UpdateConfigValue(ByVal key As String, ByVal rawValue As Variant, _
                                  Optional ByRef report As String = "", _
                                  Optional ByVal warehouseId As String = "", _
-                                 Optional ByVal stationId As String = "") As Boolean
+                                 Optional ByVal stationId As String = "", _
+                                 Optional ByRef outcome As String = "") As Boolean
     Dim target As WarehouseTarget
     Dim changes As Object
     On Error GoTo Failed
+    outcome = "DENIED"
     If Not AuthorizeCommand(warehouseId, stationId, False, target, report) Then Exit Function
     Set changes = CreateObject("Scripting.Dictionary")
     changes.CompareMode = vbTextCompare
     changes.Add Trim$(key), rawValue
-    UpdateConfigValue = PersistChanges(target, changes, report)
+    UpdateConfigValue = PersistChanges(target, changes, report, outcome)
     Exit Function
 Failed:
+    outcome = "FAILED"
     report = "Configuration save failed. No success was recorded."
 End Function
 
 Public Function PublishUomCatalogRows(ByVal rows As Variant, _
-                                     Optional ByRef report As String = "") As Boolean
+                                     Optional ByRef report As String = "", _
+                                     Optional ByRef outcome As String = "") As Boolean
     Dim target As WarehouseTarget
     Dim packedUoms As String, packedConversions As String
     Dim changes As Object
     Dim version As Long
     On Error GoTo Failed
+    outcome = "DENIED"
     If Not AuthorizeCommand("", "", True, target, report) Then Exit Function
+    outcome = "REJECTED"
     If Not modUomSettings.PrepareUomCatalogRows(rows, packedUoms, packedConversions, report) Then Exit Function
     If Not modConfig.LoadConfig(target.WarehouseId, target.StationId) Then
         report = "Configuration could not be read for UOM publication."
@@ -36,16 +42,18 @@ Public Function PublishUomCatalogRows(ByVal rows As Variant, _
     If modUomSettings.UomCatalogMatches(packedUoms, packedConversions) Then
         report = "UOM Catalog version " & CStr(version) & " is unchanged."
         PublishUomCatalogRows = True
+        outcome = "UNCHANGED"
         Exit Function
     End If
     Set changes = CreateObject("Scripting.Dictionary")
     changes.Add "UomCatalog", packedUoms
     changes.Add "UomConversionCatalog", packedConversions
     changes.Add "UomConversionCatalogVersion", version + 1
-    PublishUomCatalogRows = PersistChanges(target, changes, report)
+    PublishUomCatalogRows = PersistChanges(target, changes, report, outcome)
     If PublishUomCatalogRows Then report = "UOM Catalog version " & CStr(version + 1) & " published."
     Exit Function
 Failed:
+    outcome = "FAILED"
     report = "UOM Catalog publication failed. No success was recorded."
 End Function
 
@@ -84,7 +92,7 @@ Private Function AuthorizeCommand(ByVal warehouseId As String, ByVal stationId A
 End Function
 
 Private Function PersistChanges(ByVal target As WarehouseTarget, ByVal changes As Object, _
-                                ByRef report As String) As Boolean
+                                ByRef report As String, ByRef outcome As String) As Boolean
     Dim wb As Workbook, candidate As Workbook
     Dim lo As ListObject, ws As Worksheet, table As ListObject
     Dim defs() As ConfigKeyDef, defCount As Long, definition As Long, i As Long
@@ -92,6 +100,7 @@ Private Function PersistChanges(ByVal target As WarehouseTarget, ByVal changes A
     Dim cell As Range, row As Long, column As Long, tableName As String
     Dim opened As Boolean, wrote As Boolean, saved As Boolean, unchanged As Boolean
     On Error GoTo Failed
+    outcome = "REJECTED"
     Set cells = New Collection
     Set oldValues = New Collection
     defCount = modConfigDefaults.GetConfigSchema(defs)
@@ -166,6 +175,7 @@ Private Function PersistChanges(ByVal target As WarehouseTarget, ByVal changes A
         saved = True
     End If
     PersistChanges = True
+    outcome = IIf(unchanged, "UNCHANGED", "COMPLETED")
     report = "Configuration saved."
     If Not modConfig.LoadConfig(target.WarehouseId, target.StationId) Then
         report = "Configuration saved; reload failed. Reopen Settings to verify the current values."
@@ -175,6 +185,7 @@ CleanExit:
     Exit Function
 Failed:
     On Error Resume Next
+    outcome = IIf(wrote, "FAILED", "REJECTED")
     If wrote And Not saved Then
         For i = 1 To cells.Count
             Set cell = cells(i)

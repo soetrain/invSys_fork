@@ -39,6 +39,7 @@ Private mLblConfigWorkbook As MSForms.Label
 Private mLoading As Boolean
 Private mWarehouseId As String
 Private mStationId As String
+Private mActivityContext As String
 Private mResizeInitialized As Boolean
 
 Private Sub UserForm_Initialize()
@@ -68,6 +69,7 @@ Private Sub CaptureTargetContext()
     End If
     If mWarehouseId = "" Then mWarehouseId = Trim$(modConfig.GetWarehouseId())
     If mStationId = "" Then mStationId = Trim$(modConfig.GetStationId())
+    mActivityContext = modActivity.CaptureContext()
 End Sub
 
 Private Sub BuildLayout()
@@ -180,24 +182,12 @@ End Sub
 Private Sub mBtnSaveConfig_Click()
     Dim report As String
     Dim keyName As String
-
     keyName = Trim$(CStr(mTxtConfigKey.Value))
-    If keyName = "" Then
-        ShowStatus "Select a config key first."
-        Exit Sub
-    End If
-    If Not modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", report) Then
-        ShowStatus report
-        Exit Sub
-    End If
-
-    If modConfigCommands.UpdateConfigValue(keyName, mTxtConfigValue.Value, report, mWarehouseId, mStationId) Then
+    If modAdminSettingsAction.SaveValue(keyName, mTxtConfigValue.Value, mWarehouseId, mStationId, mActivityContext, report) Then
         LoadConfigRows
         If StrComp(keyName, "UomCatalog", vbTextCompare) = 0 Then LoadUoms
-        ShowStatus report
-    Else
-        ShowStatus report
     End If
+    ShowStatus report
 End Sub
 
 Private Sub mBtnReloadConfig_Click()
