@@ -17,6 +17,7 @@ param(
     [switch]$CheckReceivingNativeSurface,
     [switch]$CheckReceivingWorksheetActivity,
     [switch]$CheckReceivingWorksheetScenarios,
+    [switch]$CheckReceivingWorksheetGuards,
     [switch]$CheckReceivingLauncherDenial,
     [switch]$ReceivingLauncherDenialOnly,
     [switch]$CaptureDenialDialogs,
@@ -48,6 +49,7 @@ if ($ReceivingSurfaceOnly -and (-not $CheckReceivingSurfaceCoverage -or $Receivi
 if ($CheckReceivingNativeSurface -and -not $ReceivingSurfaceOnly) { throw 'Native worksheet discovery requires the separate surface-only run.' }
 if ($CheckReceivingWorksheetActivity -and -not $CheckReceivingNativeSurface) { throw 'Worksheet activity requires calibrated native surface coverage.' }
 if ($CheckReceivingWorksheetScenarios -and -not $CheckReceivingWorksheetActivity) { throw 'Worksheet scenarios require the protected native activity baseline.' }
+if ($CheckReceivingWorksheetGuards -and -not $CheckReceivingWorksheetActivity) { throw 'Worksheet guards require the protected native activity baseline.' }
 if ($CheckReceivingLauncherDenial -and -not $CheckReceivingNavigationActivity) { throw 'Launcher denial coverage requires the preserved navigation baseline.' }
 if ($ReceivingLauncherDenialOnly -and (-not $CheckReceivingLauncherDenial -or $ReceivingSurfaceOnly -or $ReceivingNavigationOnly)) { throw 'Launcher-denial-only diagnosis requires its coverage without another diagnostic-only mode.' }
 if ($CaptureDenialDialogs -and -not $ReceivingLauncherDenialOnly) { throw 'Native denial dialog evidence uses the separate focused run.' }
@@ -69,6 +71,7 @@ if ($CheckReceivingActivity) {
     if ($CheckReceivingNativeSurface) {
         . (Join-Path $PSScriptRoot 'Slice4beReceivingNativeSurface.ps1')
         if ($CheckReceivingWorksheetScenarios) { . (Join-Path $PSScriptRoot 'Slice4beReceivingWorksheetScenarios.ps1') }
+        if ($CheckReceivingWorksheetGuards) { . (Join-Path $PSScriptRoot 'Slice4beReceivingWorksheetGuards.ps1') }
         $reportRoot=Join-Path $reportRoot ('native-surface-'+[guid]::NewGuid().ToString('N'))
         if ($CheckReceivingWorksheetActivity) { $reportRoot=Join-Path $reportRoot 'worksheet-activity' }
     }

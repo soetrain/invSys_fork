@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-12T21:09:14Z",
+    "generatedAtUtc":  "2026-09-12T22:29:26Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -136894,6 +136894,7 @@
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-PackagedExternalEdits.ps1",
@@ -137361,6 +137362,7 @@
                            {
                                "entryPoint":  "Authenticated",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Plan022Slice4lRibbonSessionControls.ps1",
                                                  "tests/unit/TestWarehouseRetireReAuth.bas"
                                              ]
@@ -137384,7 +137386,8 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
-                                                 "tests/tooling/Slice4beReceivingReferences.ps1"
+                                                 "tests/tooling/Slice4beReceivingReferences.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1"
                                              ]
                            },
                            {
@@ -137756,7 +137759,8 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
-                                                 "tests/tooling/Slice4beReceivingReferences.ps1"
+                                                 "tests/tooling/Slice4beReceivingReferences.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1"
                                              ]
                            },
                            {
@@ -137935,6 +137939,7 @@
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1"
                                              ]
                            },
@@ -138695,6 +138700,7 @@
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
@@ -138759,6 +138765,7 @@
                            {
                                "entryPoint":  "ExecuteConfirmWrites",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                  "tests/tooling/Test-Slice10ReceivingStabilization.ps1",
@@ -139024,6 +139031,7 @@
                                "entryPoint":  "GetCurrentTarget",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Slice8ProductionRetirement.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -139044,6 +139052,7 @@
                            {
                                "entryPoint":  "GetCurrentUserId",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
                            },
@@ -139441,6 +139450,7 @@
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
@@ -139681,6 +139691,7 @@
                                "entryPoint":  "LastConfirmWritesStatus",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/unit/TestStub_modTS_Received.bas"
                                              ]
@@ -139689,6 +139700,7 @@
                                "entryPoint":  "LastConfirmWritesSucceeded",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/unit/TestStub_modTS_Received.bas"
                                              ]
@@ -140595,6 +140607,7 @@
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1"
                                              ]
@@ -141800,6 +141813,7 @@
                                "entryPoint":  "SeedDemoInventoryForAutomation",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Slice14FullChain.ps1"
                                              ]
                            },
@@ -141846,6 +141860,7 @@
                            {
                                "entryPoint":  "SelectWarehouseTargetForAutomation",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
@@ -141889,6 +141904,7 @@
                                                  "tests/integration/test_ReceivingReadiness.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterBundle.bas",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
                                                  "tests/unit/TestCoreProcessor.bas",
@@ -141912,6 +141928,7 @@
                            {
                                "entryPoint":  "SetCurrentTargetPathsForTest",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -141946,6 +141963,7 @@
                                "entryPoint":  "SetLocalOperatorRootOverrideForAutomation",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
@@ -142261,6 +142279,7 @@
                            {
                                "entryPoint":  "SignInCurrentTargetForAutomation",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
@@ -142275,6 +142294,7 @@
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestReceivingReadiness.bas"
@@ -142396,6 +142416,7 @@
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1",
@@ -142452,6 +142473,7 @@
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
@@ -143003,6 +143025,7 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                  "tests/tooling/Test-Plan022Slice4xProductionRestart.ps1",

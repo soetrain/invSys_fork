@@ -137,11 +137,95 @@ source hashes are `rebuild-package-hashes.json` and `rebuild-source-report.json`
 in the ignored evidence directory. The four changed runtime source files still
 match their recorded hashes. The rebuild has distinct binary hashes; this is
 an observed successful artifact comparison, not proof of an identified build
-defect or native-crash repair. Its focused210 and remaining regression gates
-must be verified separately before adopting it as the acceptance package set.
+defect or native-crash repair. Its focused worksheet checks now pass **210/210**
+at `native-surface-7fcd0a43c21b4fa98eca950d40cf0974/worksheet-activity/diagnostic-surface-green.json`
+under the activity evidence directory. All30 package pins remain unchanged.
+The first candidate's complete845 result is preserved as
+`first-candidate-full-845.json` in the worksheet evidence directory. Remaining
+rebuilt-package regressions must pass separately before adopting that set for
+acceptance. The rebuilt full activity suite passes **845/845**, retaining every
+prior check identity with no duplicates (`rebuilt-full-845.json`). Rebuilt smoke
+also passes **86/86** (`rebuilt-smoke.log`). Its first live-role attempt ends at
+**39 PASS / 1 harness exception**, at Production **Complete Run**, with RPC
+`0x800706BE` and Windows `c0000028` in `ntdll.dll`. The remaining empty Excel
+instance's recovery-retention dialog was inspected; **Yes, I want to view these
+files later** was selected, visually verified and confirmed. Recovered files
+were preserved. This failure is retained in `rebuilt-live-role.log` and
+`rebuilt-live-role-first-failure.md`; it is not a business RED or passing gate.
+The unchanged pinned original then passes the same gate **48/48**
+(`original-live-role-comparison.log`). The clean unchanged rebuild then passes
+**48/48** (`rebuilt-live-role-clean.log`). Neither passing comparison identifies
+or repairs the native cause. Remaining gates run serially against this same set.
+The rebuilt ordered full chain now passes **30/30**, including restart,
+reconciliation, exact balances/identities, five-package extraction and the
+static warning ratchet (`rebuilt-full-chain.log`). Windows nevertheless records
+`c0000005` in `combase.dll` during this run's time window. Business/check success
+does not establish native stability. Viewer also passes its existing public
+launch/reuse/export/filter/read-only contract (`rebuilt-viewer.log`). Rebuilt
+layout geometry and native window checks pass (`rebuilt-layout.md`); actual
+rendered dimensions remain subject to the current desktop bounds. The earlier
+header-legibility finding and normal populated-form review remain open.
+The normal full reusable Production/restart gate passes **2/2**, without reduced
+flags, debugger or diagnostic mutations (`rebuilt-production.log` and
+`rebuilt-production/production-reusable-production.md`). These package-specific
+results preserve the required regression scope; unresolved native crash records
+and human acceptance are not cleared by them.
 
-Context-change, denial and remaining worksheet edge-case evidence, candidate
-combined public-launcher stability and visible
+## Supplemental native guards
+
+The same rebuilt set passes **201/201** for Denied, SignedOut, SwitchWorkbook,
+SignOutDuringTracking and CloseDuringTracking. Adding a second generated,
+signed-in warehouse during optional tracking yields **215/215**. All actions
+use the actual worksheet button. Unsaved seams observe owner-entry count and
+exact workbook object, and deliver one interruption at the optional-tracking
+return. They do not replace the posting owner or change deployed packages.
+The tests prove no owner retry/redirection, rejected-action authority and staging
+preservation, unknown-column preservation, exact references on successful
+completion, and no invented result or attribution to the new context.
+
+Initial guard reports under the activity evidence directory:
+
+- `native-surface-47bd74395e554e61991ec3d2a95ff8af/worksheet-activity/diagnostic-surface-green.json` (201).
+- `native-surface-d7d17f13d0474aa4adec7d5952813682/worksheet-activity/diagnostic-surface-green.json` (215).
+
+Run the guard suite with Excel closed against the isolated rebuilt package:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 `
+  -RepoRoot . -DeployRoot deploy/validation-receiving-worksheet-rebuild -Phase GREEN `
+  -CheckActivityEvidence -CheckActivityFoundation -CheckReceivingActivity `
+  -CheckReceivingStagingActivity -CheckReceivingLocalActivity -CheckReceivingLifecycleActivity `
+  -CheckReceivingNavigationActivity -CheckReceivingSurfaceCoverage -ReceivingSurfaceOnly `
+  -CheckReceivingNativeSurface -CheckReceivingWorksheetActivity -CheckReceivingWorksheetGuards
+```
+
+The separate210 scenario suite replaces the final guard switch with
+`-CheckReceivingWorksheetScenarios`; neither focused mode replaces full845.
+
+The strengthened target assertion reads the actual current target's
+exact warehouse ID, runtime root and signed-in actor after the real target and
+authentication APIs return success. This is supplemental protection of D18,
+not a runtime change or retrospective substitute for the recorded 175/35 RED.
+Its first rerun stopped before native entry at **94 PASS / 1 harness exception**:
+the fixture workbook could not obtain the foreground window. No input was sent
+without the existing exact-window guard. `worksheet-exact-target-guards-green.log`
+retains that setup failure; it is not behavioral RED or proof of the stronger
+assertion. The earlier215 result applies to its original assertion scope.
+The unchanged strengthened rerun then passes **215/215**, retaining every check
+identity with no duplicates. Exact report:
+`native-surface-0e344a9320cc467c8b15fe67fe567a23/worksheet-activity/diagnostic-surface-green.json`;
+log `worksheet-exact-target-guards-retry.log`. The second target's warehouse ID,
+runtime root and signed-in actor are now directly verified. No native input
+helper or runtime implementation was changed to obtain this result.
+
+At this checkpoint, Excel is closed and all30 package pins plus all four runtime
+source pins match. Static maintenance and its JSON contracts pass; runtime
+components/procedures are byte-for-byte equal in the scanner data to the committed
+candidate (175/5503), and all28 oversized-module limits hold. The new Shipping
+[source map](plan022_slice4be_shipping_coverage.md) was checked against24 named
+controls and25 actual event handlers; this is discovery, not activity GREEN.
+
+Remaining worksheet coverage assessment, native stability and visible
 operator acceptance remain open. The
 broader Operations/Admin coverage, Event Tracking Settings, comprehensive
 Viewer publication/detail, recording/conclusions, guides and comparison remain

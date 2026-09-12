@@ -151,6 +151,7 @@ End Function
     if ($queueChanged -eq $queueSource) { throw 'Queue acknowledgement fixture seam not found.' }
     $writer.DeleteLines($queueStart,$queueCount)
     $writer.InsertLines($queueStart,$queueChanged)
+    if ($CheckReceivingWorksheetGuards) { Install-ReceivingWorksheetGuardSeams $gate.CodeModule }
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     $fixture = NewFixture 'receiving-activity'
@@ -251,6 +252,7 @@ End Sub
     if ($ReceivingSurfaceOnly) {
         Test-ReceivingSurfaceCoverage $fixture
         if ($CheckReceivingWorksheetScenarios) { Test-ReceivingWorksheetScenarios $fixture }
+        if ($CheckReceivingWorksheetGuards) { Test-ReceivingWorksheetGuards $fixture }
         return
     }
     if ($ReceivingNavigationOnly) { Test-ReceivingNavigationActivity $fixture; return }
