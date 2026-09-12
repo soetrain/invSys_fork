@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-12T22:29:26Z",
+    "generatedAtUtc":  "2026-09-12T23:13:12Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -136896,6 +136896,7 @@
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-PackagedExternalEdits.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
@@ -137540,6 +137541,7 @@
                            {
                                "entryPoint":  "BtnOpenShipmentsForm",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-R1FinalControlAcceptance.ps1",
                                                  "tests/tooling/Test-ShippingStatusAnchor.ps1",
@@ -137711,6 +137713,12 @@
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1",
                                                  "tests/tooling/Test-Plan022Slice4sShippingExactKey.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "CancelAutoSync",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -138702,6 +138710,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
                                                  "tests/unit/TestCoreProcessor.bas",
@@ -138725,6 +138734,7 @@
                                                  "tests/integration/test_CreateWarehouse.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4akAdminAddVisibilityDropdowns.ps1",
                                                  "tests/tooling/Test-Plan022Slice4qDisposition.ps1",
                                                  "tests/unit/TestCoreRoleEventWriter.bas",
@@ -139452,6 +139462,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4abProcessPickerInventory.ps1",
@@ -140045,7 +140056,14 @@
                                "entryPoint":  "mBtnAdd_Click",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
-                                                 "tests/tooling/Slice4beReceivingStaging.ps1"
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mBtnBoxBuilderAddComponent_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -140067,15 +140085,35 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mBtnBoxBuilderNew_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mBtnBoxBuilderRefresh_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "mBtnBoxBuilderSave_Click",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1"
                                              ]
                            },
                            {
                                "entryPoint":  "mBtnBoxMakerMake_Click",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mBtnBoxMakerRefresh_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -140130,6 +140168,12 @@
                                "entryPoint":  "mBtnDeleteItem_Click",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4alInventoryDeletion.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mBtnHold_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -140235,7 +140279,20 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mBtnRemove_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mBtnReturn_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -140254,6 +140311,7 @@
                            {
                                "entryPoint":  "mBtnSend_Click",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4tShippingPostSend.ps1",
                                                  "tests/tooling/Test-Plan022Slice4uShippingPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
@@ -140264,6 +140322,7 @@
                            {
                                "entryPoint":  "mBtnStage_Click",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Slice5BehaviorLocks.ps1"
                                              ]
                            },
@@ -140283,9 +140342,21 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mBtnUpdate_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "mBtnUploadInventoryTable_Click",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mChkUseExisting_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -140333,9 +140404,21 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mLstBoxMakerDesigns_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "mLstConfig_Click",
                                "testPaths":  [
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mLstHold_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -140363,9 +140446,27 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mLstShipments_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mLstShippables_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "MoveTableTopLeftAtCellSurface",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mPages_Change",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -140523,6 +140624,7 @@
                                "entryPoint":  "NzText",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4auReceivingListbox.ps1"
                                              ]
                            },
@@ -140660,6 +140762,12 @@
                                "entryPoint":  "OutputUomIsCatalogValue",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4asProcessOutputEditor.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ParseNumber",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -141814,6 +141922,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Slice14FullChain.ps1"
                                              ]
                            },
@@ -141965,6 +142074,7 @@
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
@@ -142018,6 +142128,7 @@
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestWarehouseBootstrap.bas",
                                                  "tests/unit/TestWarehouseRetireArchive.bas",
@@ -142031,6 +142142,7 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4bjNasStationSetup.ps1",
@@ -142418,6 +142530,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1",
                                                  "tests/tooling/Test-Plan022Slice4biFirstUseNasOnboarding.ps1",

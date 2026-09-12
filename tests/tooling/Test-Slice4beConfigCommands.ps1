@@ -6,6 +6,7 @@ param(
     [switch]$CaptureEvidence,
     [switch]$CheckActivityEvidence,
     [switch]$CheckActivityFoundation,
+    [switch]$CheckShippingActivity,
     [switch]$CheckReceivingActivity,
     [switch]$CheckReceivingStagingActivity,
     [switch]$CheckReceivingLocalActivity,
@@ -39,6 +40,11 @@ if ($CheckActivityEvidence) {
     if ($CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
 }
 if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundation checks require activity evidence mode.' }
+if ($CheckShippingActivity -and (-not $CheckActivityFoundation -or $CheckReceivingActivity)) { throw 'Shipping activity requires the foundation and a separate run from Receiving.' }
+if ($CheckShippingActivity) {
+    . (Join-Path $PSScriptRoot 'Slice4beShippingActivity.ps1')
+    $reportRoot = Join-Path $repo ('reports/runtime/slice4be-shipping-activity/'+[guid]::NewGuid().ToString('N'))
+}
 if ($CheckReceivingStagingActivity -and -not $CheckReceivingActivity) { throw 'Staging coverage requires Receiving activity mode.' }
 if ($CheckReceivingLocalActivity -and -not $CheckReceivingStagingActivity) { throw 'Local-action coverage requires staging activity mode.' }
 if ($CheckReceivingLifecycleActivity -and -not $CheckReceivingLocalActivity) { throw 'Lifecycle coverage requires the preserved local-action baseline.' }
@@ -401,6 +407,11 @@ End Function
     $ok=[bool](Run 'invSys.Core.xlam' 'modConfig.LoadConfig' @($a.Warehouse,'S1'))
     Check 'Read.ClosedWorkbookBytesPreserved' ($ok -and $before -eq (Get-FileHash -LiteralPath $a.Config).Hash)
     if ($CheckActivityFoundation) { Test-Slice4beActivityFoundation $a $b }
+    if ($CheckShippingActivity) {
+        $step='Shipping activity through packaged form handlers'
+        Test-Slice4beShippingActivity
+        SelectTarget $a
+    }
     if ($CheckReceivingActivity) {
         $step='Receiving activity through packaged form handlers'
         Test-Slice4beReceivingActivity
