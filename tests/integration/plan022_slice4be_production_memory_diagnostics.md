@@ -97,3 +97,7 @@ processor, status-query and list-refresh boundaries, then combine that finer
 localization with the native observer in an isolated unsaved diagnostic of the
 same packaged handler. Preserve the full gate and report any instrumentation
 effect separately. Do not repeat the broad captures unchanged hoping for a pass.
+
+The [Release-boundary/recovery follow-up](plan022_slice4be_production_release_boundary_diagnostics.md)
+records the calibrated finer markers and a later unmodified standard-gate GREEN
+after the user's reported outage, without attributing or declaring a native fix.
