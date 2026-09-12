@@ -66,6 +66,12 @@ End Sub
 Public Function ActivityShippingWorkbook() As String
     ActivityShippingWorkbook = mOperatorWorkbook.Name
 End Function
+Public Sub ActivityShippingSetQuantity(ByVal value As String)
+    mTxtQty.Value = value
+End Sub
+Public Function ActivityShippingStatus() As String
+    ActivityShippingStatus = NzText(mTxtStatus.Value)
+End Function
 Public Function ActivityShippingCreateBox() As Boolean
     Dim i As Long, chosen As Boolean
     mBtnRefresh_Click
@@ -144,7 +150,30 @@ Public Function ActivityShippingBound(ByVal expected As Workbook) As Boolean
 End Function
 '@)
     $module=$project.VBComponents.Item('modTS_Shipments').CodeModule
+    # Count entry to the existing owner/submission boundaries without replacing
+    # their logic. No payload, event identity or credential enters the counters.
+    $source=$module.Lines(1,$module.CountOfLines)
+    $source=$source.Replace('Option Explicit',"Option Explicit`r`nPublic ActivityShippingOwnerEntries As Long`r`nPublic ActivityShippingQueueEntries As Long")
+    foreach($entry in @(
+        @{Name='ShipmentsFormCommitLine';Counter='ActivityShippingOwnerEntries'},
+        @{Name='QueueShippingPayloadEventServerFirst';Counter='ActivityShippingQueueEntries'}
+    )) {
+        $pattern='(?s)((?:Public|Private) Function '+$entry.Name+'\(.*?\) As Boolean\s*\r?\n)(\s*On Error)'
+        if([regex]::Matches($source,$pattern).Count -ne 1){throw 'Shipping boundary observer anchor unavailable.'}
+        $replacement='$1'+'    '+$entry.Counter+' = '+$entry.Counter+" + 1`r`n"+'$2'
+        $source=[regex]::Replace($source,$pattern,$replacement)
+    }
+    $module.DeleteLines(1,$module.CountOfLines);$module.AddFromString($source)
     $module.AddFromString(@'
+Public Function ActivityShippingBoundaryCount(ByVal boundary As String) As Long
+    If boundary = "Owner" Then
+        ActivityShippingBoundaryCount = ActivityShippingOwnerEntries
+    ElseIf boundary = "Queue" Then
+        ActivityShippingBoundaryCount = ActivityShippingQueueEntries
+    Else
+        Err.Raise 5, , "Unknown fixture boundary."
+    End If
+End Function
 Public Function ActivityShippingOpen() As String
     BtnOpenShipmentsForm
     If mShipmentsLauncherForm Is Nothing Then Exit Function
@@ -156,6 +185,12 @@ Public Function ActivityShippingCreateBox() As Boolean
 End Function
 Public Function ActivityShippingPrepare(ByVal action As String) As String
     ActivityShippingPrepare = mShipmentsLauncherForm.ActivityShippingPrepare(action)
+End Function
+Public Sub ActivityShippingSetQuantity(ByVal value As String)
+    mShipmentsLauncherForm.ActivityShippingSetQuantity value
+End Sub
+Public Function ActivityShippingStatus() As String
+    ActivityShippingStatus = mShipmentsLauncherForm.ActivityShippingStatus()
 End Function
 Public Sub ActivityShippingClick(ByVal action As String)
     mShipmentsLauncherForm.ActivityShippingClick action
@@ -249,6 +284,63 @@ End Sub
         $keyRows=@($terminal|Where-Object {$_.System_Key -ceq $lastKey})
         $balance=($keyRows|Measure-Object -Property QtyDelta -Sum).Sum
         Check 'Shipping.Domain.BoxQuantityReconciled' ($balance -eq 8 -and @($keyRows|Where-Object {$_.EventType -ceq 'BOX_BUILD' -and [double]$_.QtyDelta -eq 10}).Count -eq 1)
+        Check 'Shipping.BoundaryObservers.CalibratedByNormalActions' ([long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Owner')) -gt 0 -and [long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Queue')) -gt 0)
+        # Negative cases follow the preserved normal sequence. Read values only
+        # in memory; reports contain fixed assertion names and booleans.
+        $sessionModule=$packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1)
+        $sessionModule.Name='TestShippingSession'
+        $sessionModule.CodeModule.AddFromString(@'
+Public Function SessionVersion() As Long
+    SessionVersion = modAuthSession.Version()
+End Function
+'@)
+        foreach($case in @('InvalidQuantity','ReauthenticatedSession')) {
+            $label='Shipping.'+$case
+            $key=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingPrepare' @('Add'))
+            if(-not $key){throw 'Shipping negative fixture selection unavailable.'}
+            if($case -eq 'InvalidQuantity') {
+                [void](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingSetQuantity' @('0'))
+            } else {
+                $sessionBefore=[long](Run 'invSys.Core.xlam' 'TestShippingSession.SessionVersion')
+                [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
+                $signed=[string](Run 'invSys.Core.xlam' 'modAuth.SignInCurrentTargetForAutomation' @('config-reader',$fixture.Secret,''))
+                $changed=$signed.StartsWith('OK|') -and [long](Run 'invSys.Core.xlam' 'TestShippingSession.SessionVersion') -ne $sessionBefore -and [string](Run 'invSys.Core.xlam' 'modAuth.GetCurrentUserId') -ceq 'config-reader'
+                Check ($label+'.FixtureSameActorNewSession') $changed
+                if(-not $changed){throw 'Shipping reauthentication fixture was not established.'}
+            }
+            $beforeRows=@(Get-ShippingActivityRows $ship)|ConvertTo-Json -Depth 5 -Compress
+            $beforeHeld=@(Get-ShippingActivityRows $hold)|ConvertTo-Json -Depth 5 -Compress
+            $beforeLog=@(Get-ShippingActivityLog $fixture)
+            $before=@(Get-Slice4beActivityFiles $fixture)
+            $ownerBefore=[long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Owner'))
+            $queueBefore=[long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Queue'))
+            $other.Activate()
+            [void](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingClick' @('Add'))
+            $ownerAfter=[long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Owner'))
+            $queueAfter=[long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Queue'))
+            Check ($label+'.NoSubmissionBoundaryEntered') ($queueBefore -eq $queueAfter)
+            $afterRows=@(Get-ShippingActivityRows $ship)|ConvertTo-Json -Depth 5 -Compress
+            $afterHeld=@(Get-ShippingActivityRows $hold)|ConvertTo-Json -Depth 5 -Compress
+            Check ($label+'.StagingValuesPreserved') ($beforeRows -ceq $afterRows -and $beforeHeld -ceq $afterHeld)
+            $beforeReadHash=Get-ShippingActivityHash $inventoryPath
+            $afterLog=@(Get-ShippingActivityLog $fixture)
+            Check ($label+'.EvidenceReadPreservedAuthorityBytes') ($beforeReadHash -ceq (Get-ShippingActivityHash $inventoryPath))
+            Check ($label+'.NoCanonicalEventApplied') (($beforeLog|ConvertTo-Json -Depth 5 -Compress) -ceq ($afterLog|ConvertTo-Json -Depth 5 -Compress))
+            Check ($label+'.CapturedWorkbookRetained') ([bool](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBound' @($name)))
+            Check ($label+'.UnrelatedWorkbookPreserved') ($otherHash -ceq (Get-ShippingActivityHash $other.FullName) -and $other.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq 'shipping unrelated sentinel' -and $other.Worksheets.Item(1).ListObjects.Count -eq 0)
+            if($case -eq 'InvalidQuantity') {
+                $status=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingStatus')
+                Check ($label+'.OwnerValidationReached') ($status.Contains('Quantity must be greater than zero.'))
+                Test-ShippingActivityPair $fixture $before 'Add' $label @()
+                $outcomes=@(Get-Slice4beActivityFiles $fixture|Where-Object {$_ -notin $before}|ForEach-Object {[IO.File]::ReadAllText($_)|ConvertFrom-Json}|Where-Object {$_.SourceRole -ceq 'Shipping' -and $_.Caption -ceq 'Add' -and $_.OutcomeCode -ceq 'REJECTED'})
+                Check ($label+'.Activity.RejectedWithNoSourceReferences') ($outcomes.Count -eq 1 -and @($outcomes[0].SourceEventRefs).Count -eq 0)
+            } else {
+                # A new sign-in must not revive the old form or attribute a
+                # stale action to that new session, even for the same user.
+                Check ($label+'.StopsBeforeStagingOwner') ($ownerBefore -eq $ownerAfter)
+                Check ($label+'.NoActivityAttributedToNewSession') (@(Get-Slice4beActivityFiles $fixture|Where-Object {$_ -notin $before}).Count -eq 0)
+            }
+        }
         Check 'Shipping.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))
     } finally {
         if($null -ne $dialogJob){

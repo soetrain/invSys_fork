@@ -1,7 +1,7 @@
 # Plan 022 Slice 4be.1 Shipping activity D13 entry
 
-Last verified: 2026-09-12. Runtime source remains `01891bb`, with validation
-checkpoint `6c9d2a1`. This is test-first work toward D18 comprehensive activity,
+Last verified: 2026-09-12. Runtime source remains `01891bb`, with prior test
+checkpoint `7420b7f`. This is test-first work toward D18 comprehensive activity,
 not Shipping implementation or Slice4be acceptance.
 
 The isolated test uses `deploy/validation-receiving-worksheet-rebuild`, the
@@ -50,6 +50,59 @@ rejection/context/policy/failure cases or every source-reference edge. Add those
 protecting cases and precise catalog/owner outcomes under D18 before runtime implementation.
 Source mapping is in [Shipping coverage](plan022_slice4be_shipping_coverage.md).
 Boxing fixture construction does not claim comprehensive Boxing activity proof.
+
+## Rejection and captured-session RED
+
+The same packaged command now appends two negative cases after the preserved
+eight-action sequence. Zero quantity goes through actual Add and reaches the
+owner's existing quantity validation. Staging values, canonical history,
+captured workbook and unrelated workbook remain intact, but the required
+REQUESTED/REJECTED activity is absent. No DataEffect or new ControlId is invented
+by this test; precise owner outcome definitions remain a prerequisite to runtime work.
+
+Sign-out followed by a successful sign-in of the same invSys user increments the
+real Core session version. The original launcher form is retained. Actual Add
+then changes local staging despite that stale session. This is behavioral RED
+against D18's shared captured-context rule and explicit statement that a new
+sign-in cannot revive an old form. No canonical event is applied in this run;
+that observation alone cannot establish that submission was never attempted.
+
+The first expanded run is **137 PASS / 47 FAIL**: all40 previous missing-activity
+failures, six missing rejection-activity failures and one stale-session staging
+failure. All165 previous check identities and all125 previous GREEN checks are
+retained, with no duplicates or harness failure. Ignored evidence is
+`negative-context-red.log` and
+`3f79618149cf4c8f964bebbc7ad5cb98/red.json` under the same runtime report root.
+
+The strengthened test adds unsaved entry counters at the existing
+`ShipmentsFormCommitLine` and `QueueShippingPayloadEventServerFirst` boundaries.
+They retain the original owner logic and collect counts only. Normal actions
+calibrate both counters; negative actions must not reach submission, and a stale
+form must stop before staging-owner entry. This guards against accepting a late
+failure or rollback as proof of the required early context check.
+
+The strengthened run is **139 PASS / 49 FAIL**, with all184 preceding check
+identities and all137 GREEN checks retained, no duplicate identities and no
+harness exception. Normal actions calibrate the two counters. Invalid quantity
+never enters submission. The stale form reaches both the staging owner and the
+submission boundary, so the two new early-guard assertions fail alongside the
+staging-preservation assertion. The remaining46 failures are missing activity.
+Queue entry does not prove successful submission, and unchanged canonical history
+does not prove no pending event: the test deliberately makes neither claim.
+Ignored evidence: `negative-boundaries-red.log` and
+`6f6d1fa7d69a4a3eb266ff64f9e3c337/red.json`.
+
+Runtime remains unchanged. The next runtime repair must check the captured form
+session before the existing owner, independently of optional tracking, with
+the remaining mutation/context matrix protected first. Pending/uncertain/store/
+policy cases and precise Shipping activity catalog/owner results remain open.
+Full compile/layout/live-role/chain and human acceptance are not rerun or claimed
+by this test-only checkpoint.
+
+Post-run verification: all 30 package pins and four runtime source pins match;
+Excel is closed. Regenerated static JSON contracts pass; runtime component,
+procedure, line, duplicate-body and dynamic-call metrics and all 28 module limits
+are unchanged. The static diff adds only test references and generation metadata.
 
 Ignored runtime evidence: `reports/runtime/slice4be-shipping-activity/initial-red.log`,
 `boxed-fixture-red.log`, `self-contained-red.log`, `source-evidence-red.log`

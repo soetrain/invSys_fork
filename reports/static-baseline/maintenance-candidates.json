@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-12T23:13:12Z",
+    "generatedAtUtc":  "2026-09-12T23:28:23Z",
     "baseline":  {
                      "componentCount":  175,
                      "procedureCount":  5503,
@@ -18090,6 +18090,7 @@
                                            ],
                            "reason":  "Procedure exceeds the 200-line new-procedure threshold.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Test-Plan022Slice4sShippingExactKey.ps1",
                                                    "tests/tooling/Test-Plan022Slice4uShippingPersistenceFeedback.ps1",
                                                    "tests/tooling/Test-R1FinalControlAcceptance.ps1"

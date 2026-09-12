@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-12T23:13:12Z",
+    "generatedAtUtc":  "2026-09-12T23:28:23Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -139063,6 +139063,7 @@
                                "entryPoint":  "GetCurrentUserId",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
                            },
@@ -141091,6 +141092,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "QueueShippingPayloadEventServerFirst",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ReadActivityRecord",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActivityFoundation.ps1"
@@ -142179,6 +142186,7 @@
                            {
                                "entryPoint":  "ShipmentsFormCommitLine",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4sShippingExactKey.ps1",
                                                  "tests/tooling/Test-Plan022Slice4uShippingPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-R1FinalControlAcceptance.ps1"
@@ -142392,6 +142400,7 @@
                                "entryPoint":  "SignInCurrentTargetForAutomation",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
@@ -142407,6 +142416,7 @@
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestReceivingReadiness.bas"
@@ -143397,6 +143407,7 @@
                                                  "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-EaWholeUnitInvariant.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",

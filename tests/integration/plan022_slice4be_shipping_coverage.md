@@ -62,12 +62,21 @@ not broaden or consolidate these distinct permissions.
   entry points. Source existence or a test-only callable wrapper is insufficient
   to declare them operator-reachable, retired or safely deletable.
 
-## Next D13 action
+## Packaged findings and next D13 action
 
-Create an isolated packaged Shipping Add/Update/Remove/Hold/Return/Sent test
-through the actual form handlers, using the public launcher and generated
-warehouse. First prove owner behavior, captured workbook/session, exact identities
-and unknown-column preservation, then obtain meaningful missing-activity RED.
+The [packaged activity test](plan022_slice4be_shipping_activity_results.md) now
+proves the eight-action normal sequence, exact source identities and shipment
+application, with missing shared activity RED. Its negative cases show that
+zero quantity reaches existing validation without staging or canonical mutation,
+while reauthentication of the same user leaves the old form able to change local
+staging. Source `CommitCurrentLine` has no captured-session check before
+`ShipmentsFormCommitLine`; this contradicts existing D18 behavior, not the
+approved architecture. The test does not establish an unauthorized Domain write.
+
+Extend the real-handler context matrix to other mutation controls, target change,
+sign-out and lost capability, retaining all prior GREEN checks. Protect pending,
+uncertain-submission, storage and policy outcomes separately. A later owner
+rejection or rollback cannot substitute for the required pre-owner stale-form guard.
 Before implementation, record discovered ControlIds and precise owner outcomes
 under D18 and synchronize Architecture, Plan022 and the controls catalog. Do not
 use a Boolean success, report-text parsing, direct owner call or test-only auth
