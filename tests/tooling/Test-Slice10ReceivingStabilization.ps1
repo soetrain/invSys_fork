@@ -75,10 +75,13 @@ $confirmMatch = [regex]::Match(
     '(?is)Private\s+Sub\s+mBtnConfirm_Click\s*\(\s*\)(?<body>.*?)End\s+Sub'
 )
 if ($confirmMatch.Success) { $confirmBody = $confirmMatch.Groups["body"].Value }
+$formActionBody=[regex]::Match($actionText,'(?is)Public\s+Function\s+ConfirmWrites\b(?<body>.*?)End\s+Function').Groups['body'].Value
+$sharedConfirmBody=[regex]::Match($actionText,'(?is)Private\s+Function\s+ConfirmAction\b(?<body>.*?)End\s+Function').Groups['body'].Value
 Add-Check "Receiving.Form.RealActionUsesTypedService" `
     (($confirmBody -match '(?i)modReceivingActivityAction\.ConfirmWrites') -and
-     ($actionText -match '(?i)modReceivingPostingService\.ExecuteConfirmWrites') -and
-     ([regex]::Matches($actionText,'modReceivingPostingService\.ExecuteConfirmWrites').Count -eq 1) -and
+     ([regex]::Matches($formActionBody,'(?i)\bConfirmAction\s*\(').Count -eq 1) -and
+     ($formActionBody -notmatch '(?i)modReceivingPostingService\.ExecuteConfirmWrites') -and
+     ([regex]::Matches($sharedConfirmBody,'(?i)modReceivingPostingService\.ExecuteConfirmWrites').Count -eq 1) -and
      ($confirmBody -match '(?i)mOperatorWorkbook') -and
      ($confirmBody -notmatch '(?i)modTS_Received\.ConfirmWrites') -and
      ($confirmBody -notmatch '(?i)ClearReceivingFormStaging')) `

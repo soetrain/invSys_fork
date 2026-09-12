@@ -17,7 +17,8 @@ Public Function Valid(ByVal warehouseId As String, ByVal controlId As String, _
                       ByVal outcomeCode As String, ByVal references As Collection) As Boolean
     Dim reference As Variant, field As Variant, seen As Object, key As String
     On Error GoTo Invalid
-    If (controlId <> "RECEIVING_CONFIRM_WRITES" And controlId <> "DISPOSITION_CONFIRM") Or outcomeCode = "REQUESTED" Or _
+    If (controlId <> "RECEIVING_CONFIRM_WRITES" And controlId <> "DISPOSITION_CONFIRM" And _
+        controlId <> "RECEIVING_WORKSHEET_CONFIRM") Or outcomeCode = "REQUESTED" Or _
        outcomeCode = "DENIED" Or outcomeCode = "REJECTED" Then
         Valid = (references.Count = 0)
         Exit Function

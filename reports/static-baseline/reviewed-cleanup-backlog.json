@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-08T13:02:58Z",
+    "generatedAtUtc":  "2026-09-12T21:09:14Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "58f5069792ed1d5a84daaef65b14f2546564f3f8661c53e42f8da45153663de6",
-                          "maintenanceCandidatesSha256":  "1293eaa2c6cb06dacc3c2cd123c17ecc0d02cd1e82dfc213af59c7dcd5511204"
+                          "implementationManifestSha256":  "39be4c5c930e3025feca36aebd070ba19e48d4a9f88f5cf152f4e3fef32ebd06",
+                          "maintenanceCandidatesSha256":  "9507bc56c387727f64a3fa299e9fd34c7650b1640aa295acaac017330b83a800"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -252,7 +252,7 @@
                                                   "sourcePath":  "src/Receiving/Modules/modTS_Received.bas",
                                                   "componentName":  "modTS_Received",
                                                   "packageKey":  "Receiving",
-                                                  "baselineLineCount":  1575,
+                                                  "baselineLineCount":  1572,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {

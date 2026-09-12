@@ -38,11 +38,17 @@ End Function
 }
 
 function Invoke-ReceivingNativeSurface($Operator,$Sheet,$Button,[string]$Mode) {
+    # Retain the exact fixture window before visibility/activation changes. COM's
+    # indexed window lookup can fail for a non-active workbook despite Count=1.
+    $fixtureWindows=@($Operator.Windows | ForEach-Object { $_ })
+    if($fixtureWindows.Count -ne 1){throw 'Native fixture must have exactly one workbook window.'}
+    $fixtureWindow=$fixtureWindows[0]
     $excel.Visible=$true
-    Write-Output ('Native fixture window visible before preparation='+[bool]$Operator.Windows.Item(1).Visible)
-    $Operator.Windows.Item(1).Visible=$true
-    $Operator.Windows.Item(1).Activate();$Operator.Activate();$Sheet.Activate()
-    $window=[IntPtr]$Operator.Windows.Item(1).Hwnd
+    Write-Output ('Native fixture window visible before preparation='+[bool]$fixtureWindow.Visible)
+    $fixtureWindow.Visible=$true
+    $fixtureWindow.Activate();$Operator.Activate();$Sheet.Activate()
+    $window=[IntPtr]$fixtureWindow.Hwnd
+    $owner=[WorksheetInput]::Owner($window)
     $excel.ActiveWindow.ScrollRow=1;$excel.ActiveWindow.ScrollColumn=1
     if(-not [WorksheetInput]::Activate($window)){throw 'Owned Receiving workbook foreground unavailable.'}
     Start-Sleep -Milliseconds 350
@@ -66,7 +72,7 @@ function Invoke-ReceivingNativeSurface($Operator,$Sheet,$Button,[string]$Mode) {
     for($poll=0;$poll -lt 5;$poll++) {
         Start-Sleep -Milliseconds 250
         # Arbitrary dialog text stays only in memory; dismiss informational OK only.
-        $notices=@([Plan022NativeDialogs]::Poll([WorksheetInput]::Owner([IntPtr]$excel.Hwnd)))
+        $notices=@([Plan022NativeDialogs]::Poll($owner))
         if(@($notices | Where-Object {$_ -match 'Cannot run the macro|macro may not be available'}).Count -gt 0){$macroBlocked=$true}
     }
     $entered=[int](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestSurfaceEntries') -eq $before+1

@@ -1,7 +1,7 @@
 # D18 next control coverage. New cases exercise actual Add/Confirm handlers;
 # direct staging is a supplemental negative user-attribution check.
 function Test-ReceivingControlRecords($Fixture,[string[]]$Before,[string]$ControlId,
-    [string]$Owner,[string]$Prefix,[string]$Outcome,[int]$Actions,[string]$Effect,$ExpectedSources,[string]$Label,[string]$Severity='Info',[int]$MinimumCatalog=3,[string]$Actor='config-reader') {
+    [string]$Owner,[string]$Prefix,[string]$Outcome,[int]$Actions,[string]$Effect,$ExpectedSources,[string]$Label,[string]$Severity='Info',[int]$MinimumCatalog=3,[string]$Actor='config-reader',[string]$ReferenceState='Submitted') {
     $records = @(); $payloads = @()
     foreach ($path in @(Get-Slice4beActivityFiles $Fixture)) {
         if ($path -in $Before) { continue }
@@ -25,14 +25,14 @@ function Test-ReceivingControlRecords($Fixture,[string[]]$Before,[string]$Contro
             $last.EventCode -ceq ($Prefix+$Outcome) -and $last.DataEffect -ceq $Effect -and $last.Severity -ceq $Severity
         $references = $references -and @($attempt.SourceEventRefs).Count -eq 0 -and @($last.SourceEventRefs).Count -eq $ExpectedSources.Count
         foreach ($source in $ExpectedSources) {
-            $match = @($last.SourceEventRefs | Where-Object { $_.EventId -ceq $source.EventId -and $_.WarehouseId -ceq $Fixture.Warehouse -and $_.SourceKind -ceq 'Inventory' -and $_.SubmissionState -ceq 'Submitted' })
+            $match = @($last.SourceEventRefs | Where-Object { $_.EventId -ceq $source.EventId -and $_.WarehouseId -ceq $Fixture.Warehouse -and $_.SourceKind -ceq 'Inventory' -and $_.SubmissionState -ceq $ReferenceState })
             $references = $references -and $match.Count -eq 1
         }
     }
     $readable = $complete
     foreach ($record in $records) {
         $owned = $owned -and $record.OwnerId -ceq $Owner -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq $Actor -and $record.SourceRole -ceq 'Receiving'
-        $readable = $readable -and $record.CatalogVersion -in @(3,4,5,6) -and $record.CatalogVersion -ge $MinimumCatalog -and (Get-ActivityRead $record.RecordId).StartsWith('OK|')
+        $readable = $readable -and $record.CatalogVersion -in @(3,4,5,6,7) -and $record.CatalogVersion -ge $MinimumCatalog -and (Get-ActivityRead $record.RecordId).StartsWith('OK|')
     }
     foreach ($raw in $payloads) {
         foreach ($value in @($Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'ACTIVITY-PRIVATE','mBtnAdd_Click','mBtnConfirm_Click','Err.Description')) {

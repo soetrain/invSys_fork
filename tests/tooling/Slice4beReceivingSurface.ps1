@@ -68,11 +68,22 @@ function Test-ReceivingSurfaceCoverage($Fixture) {
             Check ('Surface.'+$mode+'.SameVisibilityAfterFormClose') (($sheet.Visible -eq -1 -and $button.Visible -ne 0) -eq $visible)
             Check ('Surface.'+$mode+'.SavedBytesPreserved') ($operatorHash -ceq (Get-ReceivingFixtureHash $operator.FullName))
             if($visible -and $CheckReceivingNativeSurface){
+                $activityBefore=@(Get-Slice4beActivityFiles $Fixture)
                 $native=@(Invoke-ReceivingNativeSurface $operator $sheet $button $mode)
                 $native | Where-Object {$_ -is [string]} | Write-Output
                 $proof=$native[-1]
                 $observation.NativeInvocationVerified=$proof.Entered -and $proof.ShapeCaller
                 Check ('Surface.'+$mode+'.SavedBytesPreservedAfterNativeInput') ($operatorHash -ceq (Get-ReceivingFixtureHash $operator.FullName))
+                if($CheckReceivingWorksheetActivity){
+                    if(-not $observation.NativeInvocationVerified){throw 'Native worksheet owner/caller must be proven before activity assertions.'}
+                    $label='WorksheetActivity.'+$mode
+                    Check ($label+'.OwningCommandRejectedEmptyStaging') (-not [bool](Run 'invSys.Operations.xlam' 'modTS_Received.LastConfirmWritesSucceeded') -and [string](Run 'invSys.Operations.xlam' 'modTS_Received.LastConfirmWritesStatus') -ceq 'ReceivedTally has no rows to confirm.')
+                    Test-ReceivingControlRecords $Fixture $activityBefore 'RECEIVING_WORKSHEET_CONFIRM' 'RECEIVING_WORKFLOW' 'RECEIVE_WORKSHEET_CONFIRM_' 'REJECTED' 1 'Unknown' @() $label 'Warning' 7
+                    $directBefore=@(Get-Slice4beActivityFiles $Fixture)
+                    [void](Run 'invSys.Operations.xlam' 'modTS_Received.ConfirmWrites')
+                    Check ($label+'.ProgrammaticMacroUnattributed') (@(Get-Slice4beActivityFiles $Fixture).Count -eq $directBefore.Count)
+                    Check ($label+'.ProgrammaticCallerDistinct') (-not [bool](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestSurfaceNativeCaller'))
+                }
             }
         }
         Check 'Surface.AuthorityBytesPreserved' (Test-ReceivingAuthorityHashes $Fixture $authority)

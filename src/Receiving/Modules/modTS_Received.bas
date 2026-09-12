@@ -1151,19 +1151,16 @@ End Sub
 
 Public Sub ConfirmWrites()
     Dim wb As Workbook
-    Dim report As String
+    Dim callerSheet As Object, caller As Variant, notice As String
 
+    Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook)
+    Set callerSheet = Application.ActiveSheet
+    caller = Application.Caller
     mLastConfirmSucceeded = False
     mLastConfirmStatus = "Confirm Writes did not complete."
-    Set wb = ResolveReceivingWorkbook(Application.ActiveWorkbook)
-    If wb Is Nothing Then
-        mLastConfirmStatus = "Activate a Receiving operator workbook before confirming writes."
-        ShowReceivingMessage mLastConfirmStatus, vbExclamation
-        Exit Sub
-    End If
-    mLastConfirmSucceeded = modReceivingPostingService.ExecuteConfirmWrites(wb, report)
-    mLastConfirmStatus = report
-    If Not mLastConfirmSucceeded Then ShowReceivingMessage report, vbExclamation
+    mLastConfirmSucceeded = modReceivingActivityAction.ConfirmWorksheetEntry( _
+        wb, callerSheet, caller, mLastConfirmStatus, notice)
+    If Not mLastConfirmSucceeded Or notice <> "" Then ShowReceivingMessage mLastConfirmStatus, vbExclamation
 End Sub
 
 Public Sub RecordConfirmWritesResult(ByVal succeeded As Boolean, ByVal statusText As String)

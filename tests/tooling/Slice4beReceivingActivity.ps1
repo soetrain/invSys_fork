@@ -248,7 +248,11 @@ End Sub
     if ($CheckReceivingNavigationActivity) { Install-ReceivingNavigationSeams $formCode $helper.CodeModule $gate.CodeModule }
     if ($CheckReceivingLauncherDenial) { Install-ReceivingLauncherDenialOperationsSeam $packages['invSys.Operations.xlam'].VBProject }
     if ($ReceivingLauncherDenialOnly) { Test-ReceivingLauncherDenial $fixture; return }
-    if ($ReceivingSurfaceOnly) { Test-ReceivingSurfaceCoverage $fixture; return }
+    if ($ReceivingSurfaceOnly) {
+        Test-ReceivingSurfaceCoverage $fixture
+        if ($CheckReceivingWorksheetScenarios) { Test-ReceivingWorksheetScenarios $fixture }
+        return
+    }
     if ($ReceivingNavigationOnly) { Test-ReceivingNavigationActivity $fixture; return }
     if ($ReceivingLifecycleOnly) { Test-ReceivingLifecycleActivity $fixture; return }
     foreach ($label in @('Applied','Pending','Stale','StoreFailure','Denied','Rejected','UnknownSubmission')) {

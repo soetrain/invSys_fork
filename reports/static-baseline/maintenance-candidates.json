@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-08T13:02:58Z",
+    "generatedAtUtc":  "2026-09-12T21:09:14Z",
     "baseline":  {
                      "componentCount":  175,
-                     "procedureCount":  5501,
-                     "lineCount":  123628,
+                     "procedureCount":  5503,
+                     "lineCount":  123685,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  195

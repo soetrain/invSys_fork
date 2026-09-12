@@ -2,9 +2,17 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 6
+Public Const CATALOG_VERSION As Long = 7
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
+    Dim ids As Variant
+    If version = 7 Then
+        ids = ControlIds(6)
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + 1)
+        ids(UBound(ids)) = "RECEIVING_WORKSHEET_CONFIRM"
+        ControlIds = ids
+        Exit Function
+    End If
     If version = 1 Then
         ControlIds = Array("ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE")
     ElseIf version = 2 Then
@@ -53,6 +61,14 @@ Public Function Control(ByVal controlId As String, Optional ByVal version As Lon
             record.Add "Surface", "Operations > Production > UOM Catalog"
             record.Add "Capability", "PROD_POST"
             record.Add "CodePrefix", "UOM_RETRIEVE_"
+        Case "RECEIVING_WORKSHEET_CONFIRM"
+            If version < 7 Then Exit Function
+            record("OwnerId") = "RECEIVING_WORKFLOW"
+            record.Add "Role", "Receiving"
+            record.Add "Caption", "Confirm Writes"
+            record.Add "Surface", "Operations > Receiving > Received Tally"
+            record.Add "Capability", "RECEIVE_POST"
+            record.Add "CodePrefix", "RECEIVE_WORKSHEET_CONFIRM_"
         Case "RECEIVING_CONFIRM_WRITES"
             If version < 2 Then Exit Function
             record("OwnerId") = "RECEIVING_WORKFLOW"
@@ -129,7 +145,13 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
         ElseIf controlId = "RECEIVING_OPEN" Or controlId = "RECEIVING_CLOSE" Then
             Set Outcome = modReceivingActivityCodes.LifecycleOutcome(outcomeCode, controlId = "RECEIVING_CLOSE")
         Else
-            Set Outcome = modReceivingActivityCodes.Outcome(outcomeCode, controlId = "DISPOSITION_CONFIRM")
+            Set record = modReceivingActivityCodes.Outcome(outcomeCode, controlId = "DISPOSITION_CONFIRM")
+            If controlId = "RECEIVING_WORKSHEET_CONFIRM" And Not record Is Nothing Then
+                record("EventCode") = definition("CodePrefix") & outcomeCode
+                record("UserMessage") = "Worksheet Confirm Writes: " & record("UserMessage")
+                record("NextStep") = Replace(record("NextStep"), "owning form", "Receiving workflow")
+            End If
+            Set Outcome = record
         End If
         Exit Function
     End If

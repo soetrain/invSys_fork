@@ -45,20 +45,56 @@ Public Sub FinishLifecycle(ByVal activityId As String, ByVal outcome As String, 
     On Error GoTo 0
 End Sub
 
-' Called only by the real form action. Direct posting is not a user-control event.
+' The existing form handlers select their own registered control identity.
 Public Function ConfirmWrites(ByVal operatorWb As Workbook, ByVal context As String, _
                               ByVal trackReceipts As Boolean, ByRef report As String) As Boolean
-    Dim activityId As String, notice As String, outcome As String
+    Dim controlId As String, notice As String
+    controlId = "DISPOSITION_CONFIRM"
+    If trackReceipts Then controlId = "RECEIVING_CONFIRM_WRITES"
+    ConfirmWrites = ConfirmAction(operatorWb, context, controlId, report, notice)
+End Function
+
+' Capture comes from the native entry; never redirect to another active workbook.
+Public Function ConfirmWorksheetEntry(ByVal operatorWb As Workbook, ByVal callerSheet As Object, _
+                                      ByVal caller As Variant, ByRef report As String, ByRef notice As String) As Boolean
+    Dim nativeAction As Boolean, context As String, resolvedName As String
+    notice = ""
+    report = "Activate a Receiving operator workbook before confirming writes."
+    If operatorWb Is Nothing Then Exit Function
+    If VarType(caller) = vbString Then
+        If CStr(caller) = "btnConfirmWrites" And TypeOf callerSheet Is Worksheet Then
+            If callerSheet.Name = "ReceivedTally" Then nativeAction = (callerSheet.Parent Is operatorWb)
+        End If
+    End If
+    If Not nativeAction Then
+        ConfirmWorksheetEntry = modReceivingPostingService.ExecuteConfirmWrites(operatorWb, report)
+        Exit Function
+    End If
+    context = modActivity.CaptureContext()
+    report = "Session or warehouse changed. Sign in and confirm from the intended Receiving worksheet."
+    If context = "" Then Exit Function
+    If Not modOperationsPrimitiveBridge.ResolveEligibleRoleOperatorWorkbookName( _
+        operatorWb.Name, "RECEIVING", resolvedName, report) Then Exit Function
+    If resolvedName <> operatorWb.Name Then
+        report = "The captured worksheet is not an eligible Receiving operator workbook."
+        Exit Function
+    End If
+    ConfirmWorksheetEntry = ConfirmAction(operatorWb, context, "RECEIVING_WORKSHEET_CONFIRM", report, notice)
+End Function
+
+Private Function ConfirmAction(ByVal operatorWb As Workbook, ByVal context As String, _
+                               ByVal controlId As String, ByRef report As String, ByRef notice As String) As Boolean
+    Dim activityId As String, outcome As String
     Dim eventIds As String, submissionState As String, references As String
     On Error GoTo Failed
     report = "Session or warehouse changed. Reopen Receiving before confirming."
     If context = "" Or context <> modActivity.CaptureContext() Then Exit Function
-    If trackReceipts Then
-        activityId = modActivity.BeginAction("RECEIVING_CONFIRM_WRITES", context, notice)
-    Else
-        activityId = modActivity.BeginAction("DISPOSITION_CONFIRM", context, notice)
+    activityId = modActivity.BeginAction(controlId, context, notice)
+    If controlId = "RECEIVING_WORKSHEET_CONFIRM" And context <> modActivity.CaptureContext() Then
+        outcome = "REJECTED"
+        GoTo Done
     End If
-    ConfirmWrites = modReceivingPostingService.ExecuteConfirmWrites( _
+    ConfirmAction = modReceivingPostingService.ExecuteConfirmWrites( _
         operatorWb, report, outcome, eventIds, submissionState)
 Done:
     On Error GoTo ObservationFailed
@@ -69,10 +105,11 @@ Done:
     If notice <> "" Then report = report & " " & notice
     Exit Function
 ObservationFailed:
-    report = report & " Tracking unavailable: the result could not be recorded."
+    notice = "Tracking unavailable: the result could not be recorded."
+    report = report & " " & notice
     Exit Function
 Failed:
-    ConfirmWrites = False: outcome = "FAILED"
+    ConfirmAction = False: outcome = "FAILED"
     report = "Receiving confirmation failed. Verify current staging before retrying."
     Resume Done
 End Function

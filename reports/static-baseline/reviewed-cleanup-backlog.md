@@ -1,7 +1,7 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-08T13:02:58Z
+- Baseline: 2026-09-12T21:09:14Z
 - Scanner candidates: 1097
 - Reviewed candidates: 1099
 - Approved deletions: 0
@@ -55,7 +55,7 @@
 | src/Production/Modules/modProductionReusableRun.bas | Production | 2781 |
 | src/Production/Modules/mProduction.bas | Production | 13279 |
 | src/Receiving/Forms/frmReceiving.frm | Receiving | 1200 |
-| src/Receiving/Modules/modTS_Received.bas | Receiving | 1575 |
+| src/Receiving/Modules/modTS_Received.bas | Receiving | 1572 |
 | src/Shipping/Forms/frmShipmentsTally.frm | Shipping | 3025 |
 | src/Shipping/Modules/modTS_Shipments.bas | Shipping | 22451 |
 
