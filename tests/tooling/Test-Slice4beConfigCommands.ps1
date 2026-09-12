@@ -14,6 +14,7 @@ param(
     [switch]$ReceivingNavigationOnly,
     [switch]$CheckReceivingSurfaceCoverage,
     [switch]$ReceivingSurfaceOnly,
+    [switch]$CheckReceivingNativeSurface,
     [switch]$CheckReceivingLauncherDenial,
     [switch]$ReceivingLauncherDenialOnly,
     [switch]$CaptureDenialDialogs,
@@ -42,6 +43,7 @@ if ($CheckReceivingNavigationActivity -and (-not $CheckReceivingLifecycleActivit
 if ($ReceivingNavigationOnly -and -not $CheckReceivingNavigationActivity) { throw 'Navigation-only diagnosis requires navigation coverage.' }
 if ($CheckReceivingSurfaceCoverage -and -not $CheckReceivingNavigationActivity) { throw 'Surface coverage requires the preserved navigation baseline.' }
 if ($ReceivingSurfaceOnly -and (-not $CheckReceivingSurfaceCoverage -or $ReceivingNavigationOnly)) { throw 'Surface-only diagnosis requires surface coverage without another diagnostic-only mode.' }
+if ($CheckReceivingNativeSurface -and -not $ReceivingSurfaceOnly) { throw 'Native worksheet discovery requires the separate surface-only run.' }
 if ($CheckReceivingLauncherDenial -and -not $CheckReceivingNavigationActivity) { throw 'Launcher denial coverage requires the preserved navigation baseline.' }
 if ($ReceivingLauncherDenialOnly -and (-not $CheckReceivingLauncherDenial -or $ReceivingSurfaceOnly -or $ReceivingNavigationOnly)) { throw 'Launcher-denial-only diagnosis requires its coverage without another diagnostic-only mode.' }
 if ($CaptureDenialDialogs -and -not $ReceivingLauncherDenialOnly) { throw 'Native denial dialog evidence uses the separate focused run.' }
@@ -60,6 +62,10 @@ if ($CheckReceivingActivity) {
     . (Join-Path $PSScriptRoot 'Slice4beReceivingLifecycle.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingNavigation.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingSurface.ps1')
+    if ($CheckReceivingNativeSurface) {
+        . (Join-Path $PSScriptRoot 'Slice4beReceivingNativeSurface.ps1')
+        $reportRoot=Join-Path $reportRoot ('native-surface-'+[guid]::NewGuid().ToString('N'))
+    }
     . (Join-Path $PSScriptRoot 'Slice4beReceivingLauncherDenial.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingDenialDialogs.ps1')
     if (-not $CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }

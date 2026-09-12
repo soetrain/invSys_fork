@@ -15,6 +15,7 @@ function Test-ReceivingWorksheetRoute($Button) {
 }
 
 function Test-ReceivingSurfaceCoverage($Fixture) {
+    if($CheckReceivingNativeSurface){Install-ReceivingNativeSurfaceSeam}
     SelectTarget $Fixture 'config-reader'
     $authority=Get-ReceivingAuthorityHashes $Fixture
     $other=$excel.Workbooks.Add()
@@ -59,12 +60,20 @@ function Test-ReceivingSurfaceCoverage($Fixture) {
             $visible=$sheet.Visible -eq -1 -and $button.Visible -ne 0
             Write-Output ('Surface observation '+$mode+': worksheet confirm visible='+$visible)
             Check ('Surface.'+$mode+'.ExpectedSupportVisibility') ($visible -eq ($mode -ne 'Reused'))
-            $observations.Add([pscustomobject]@{Case=$mode;SheetVisibility=[int]$sheet.Visible;ButtonVisible=($button.Visible -ne 0);AssignedHandlerValid=(Test-ReceivingWorksheetRoute $button);NativeInvocationVerified=$false})
+            $observation=[pscustomobject]@{Case=$mode;SheetVisibility=[int]$sheet.Visible;ButtonVisible=($button.Visible -ne 0);AssignedHandlerValid=(Test-ReceivingWorksheetRoute $button);NativeInvocationVerified=$false}
+            $observations.Add($observation)
             Check ('Surface.'+$mode+'.AssignedPublicRoute') (Test-ReceivingWorksheetRoute $button)
             Check ('Surface.'+$mode+'.UnknownHeaderPreserved') ((Table $operator 'ReceivedTally').ListColumns.Item('Surface Extra').Name -ceq 'Surface Extra')
             [void](Run 'invSys.Operations.xlam' 'modTS_Received.ActivityTestLauncherDismiss' @('Button'))
             Check ('Surface.'+$mode+'.SameVisibilityAfterFormClose') (($sheet.Visible -eq -1 -and $button.Visible -ne 0) -eq $visible)
             Check ('Surface.'+$mode+'.SavedBytesPreserved') ($operatorHash -ceq (Get-ReceivingFixtureHash $operator.FullName))
+            if($visible -and $CheckReceivingNativeSurface){
+                $native=@(Invoke-ReceivingNativeSurface $operator $sheet $button $mode)
+                $native | Where-Object {$_ -is [string]} | Write-Output
+                $proof=$native[-1]
+                $observation.NativeInvocationVerified=$proof.Entered -and $proof.ShapeCaller
+                Check ('Surface.'+$mode+'.SavedBytesPreservedAfterNativeInput') ($operatorHash -ceq (Get-ReceivingFixtureHash $operator.FullName))
+            }
         }
         Check 'Surface.AuthorityBytesPreserved' (Test-ReceivingAuthorityHashes $Fixture $authority)
         Check 'Surface.UnrelatedWorkbookPreserved' ($otherHash -ceq (Get-ReceivingFixtureHash $other.FullName) -and $other.Worksheets.Item(1).ListObjects.Count -eq 0)
