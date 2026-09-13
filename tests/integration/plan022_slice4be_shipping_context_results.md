@@ -6,6 +6,11 @@ clarification **089ab0d** was committed/pushed before runtime edits, with Plan02
 and controls v1.92 synchronized. The clarification inherits captured-context and
 workbook-preservation rules; it adds no permission, activity catalog or authority.
 
+Continuation: [native validation and rebuilt-set evidence](plan022_slice4be_native_validation_results.md)
+records the unchanged-source comparison, individual gates and unresolved native
+failures. It does not replace this candidate's original evidence or claim full
+Slice4be acceptance.
+
 ## Protecting test and RED
 
 `Test-Slice4beConfigCommands.ps1 -CheckActivityEvidence -CheckActivityFoundation

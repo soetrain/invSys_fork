@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-13T00:28:38Z",
+    "generatedAtUtc":  "2026-09-13T02:02:41Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "d6f1b0ef524a783e9fb3584173e8cbffb22f201f52c704fd56092cfe0eb5a23a",
-                          "maintenanceCandidatesSha256":  "61ccc38f220343b6a2c5e30bdd8ed1d84c63dc00bad04f2d8f456a43d97e38e1"
+                          "implementationManifestSha256":  "053587d9cdfa84099336a91aaff03dbefb8c1584235b797b8beedbd24aedef2f",
+                          "maintenanceCandidatesSha256":  "1c15ba0f240054cc6add81df5c693fe0eedce2c51f85802af26506c59be337d0"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -6260,6 +6260,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                   "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                    "tests/tooling/Test-Slice0ToolContracts.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -14458,6 +14459,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                   "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                    "tests/tooling/Test-Slice0ToolContracts.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -16026,6 +16028,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                   "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                    "tests/tooling/Test-Slice0ToolContracts.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -16218,6 +16221,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                   "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                    "tests/tooling/Test-Slice0ToolContracts.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -22329,6 +22333,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                   "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                    "tests/tooling/Test-Slice0ToolContracts.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -23887,6 +23892,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                   "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                    "tests/tooling/Test-Slice0ToolContracts.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -30017,6 +30023,7 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                   "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                    "tests/tooling/Test-Slice0ToolContracts.ps1"
                                                ],
                            "deletionApproved":  false,

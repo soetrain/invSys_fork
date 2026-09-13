@@ -110,6 +110,24 @@ outcome contracts. D18's owner-fact rule governs the next protecting tests.
   Capture evidence at the owning submission boundary, with acceptance state per
   emitted identity; neither report parsing nor reading the latest current-state
   row can substitute for that evidence. Automatic catch-up is not another click.
+- The server-first helper falls back to `QueuePayloadEventCurrent` after a
+  negative or exceptional server result. Both calls receive the same ByRef
+  event ID; Core `QueueEventCore` generates an ID only when that value is empty.
+  Do not manufacture a second ID or duplicate reference merely because both
+  submission paths execute. Core's current-target path may confirm local staging
+  rather than server application. The pending/lost-acknowledgement tests must
+  prove the actual accepted or uncertain boundary and preserve that exact ID.
+  Both Core paths retain their capability checks; source inspection alone does
+  not prove that revoking capability preserves every preceding local mutation.
 
 The pending-yield/timer tests now separately protect stale owner dispatch; their
 stopped-owner probes do not cover the failure/outcome branches above.
+
+The subsequent [native validation/lifecycle checkpoint](plan022_slice4be_native_validation_results.md)
+adds11/11 actual workbook-close checks, producing333 PASS /46 missing-activity
+FAIL with all prior368 checks retained. Normal Shipping startup installs its event
+hook; actual workbook close releases form/callback bindings, and late timer dispatch
+does not reopen, submit, fabricate a user click or redirect to another workbook.
+Read-only reopen preserves saved active/held staging, exact keys and unknown values.
+This closes ordinary workbook-shutdown coverage only. Capability loss, a separately
+retained stale form and the pending/uncertain owner branches remain unproven.

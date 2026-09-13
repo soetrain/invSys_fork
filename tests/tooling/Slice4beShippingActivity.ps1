@@ -56,6 +56,7 @@ function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$La
 function Test-Slice4beShippingActivity {
     . (Join-Path $PSScriptRoot 'Slice4beShippingContext.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beShippingInterruptions.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beShippingWorkbookClose.ps1')
     $project=$packages['invSys.Operations.xlam'].VBProject
     $form=$project.VBComponents.Item('frmShipmentsTally').CodeModule
     # Intercept only existing report presentation, retaining the real handlers.
@@ -272,6 +273,14 @@ Public Sub ActivityShippingClose()
     Set mShipmentsAutoSyncForm = Nothing
     mShipmentsLauncherWorkbookName = ""
 End Sub
+Public Function ActivityShippingLifetimeState() As String
+    Dim visibleForm As Object, count As Long
+    For Each visibleForm In VBA.UserForms
+        If TypeName(visibleForm) = "frmShipmentsTally" Then count = count + 1
+    Next visibleForm
+    ActivityShippingLifetimeState = CStr(Not mShipmentsLauncherForm Is Nothing) & "|" & _
+                                    CStr(Not mShipmentsAutoSyncForm Is Nothing) & "|" & CStr(count)
+End Function
 '@)
     $fixture=NewFixture 'shipping-activity'
     $auth=$excel.Workbooks.Open((Join-Path $fixture.Root ($fixture.Warehouse+'.invSys.Auth.xlsb')),0,$false)
@@ -412,6 +421,8 @@ End Function
             }
         }
         Test-Slice4beShippingContextMatrix $fixture $operator $other $ship $hold
+        Test-Slice4beShippingWorkbookClose $fixture $operator $other $ship $hold
+        $operator=$null # The actual close event was exercised and verified above.
         Check 'Shipping.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))
     } finally {
         if($null -ne $dialogJob){

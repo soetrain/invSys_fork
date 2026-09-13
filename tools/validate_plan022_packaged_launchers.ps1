@@ -595,6 +595,11 @@ try {
     $setupEvidence.Add("OperatorRootOverrideSet=$operatorRootOverrideSet") | Out-Null
     $setupEvidence.Add("SignedIn=$($signInResult.StartsWith('OK|'))") | Out-Null
 
+    $currentStep = "validate signed-in fixture before callbacks"
+    if (-not $signInResult.StartsWith('OK|')) {
+        throw "Fixture sign-in failed before any packaged workflow callback."
+    }
+
     if ($WorkbookState -eq "ReceivingDurability") {
         $currentStep = "generate isolated canonical snapshot"
         [IO.File]::WriteAllText($progressPath, $currentStep)

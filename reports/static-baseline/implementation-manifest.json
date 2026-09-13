@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T00:28:38Z",
+    "generatedAtUtc":  "2026-09-13T02:02:41Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -137572,6 +137572,7 @@
                                "entryPoint":  "Auto_Open",
                                "testPaths":  [
                                                  "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                 "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                  "tests/tooling/Test-Slice0ToolContracts.ps1"
                                              ]
                            },
@@ -137945,6 +137946,12 @@
                                "testPaths":  [
                                                  "tests/unit/TestCoreAuth.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "CanReuse",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022LauncherContracts.ps1"
                                              ]
                            },
                            {
@@ -138411,6 +138418,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "CreateBoundForm",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022LauncherContracts.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "CreateFirstInventoryEntityForCatalogItemAdmin",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4akAdminAddVisibilityDropdowns.ps1"
@@ -138654,6 +138667,7 @@
                            {
                                "entryPoint":  "EnableEvents",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4pReceiving.ps1",
                                                  "tests/tooling/Test-Slice4bdAdminFormSmoke.ps1",
@@ -139541,6 +139555,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "HasCurrentContext",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022LauncherContracts.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "HashUserCredential",
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
@@ -139667,6 +139687,7 @@
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
+                                                 "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4abProcessPickerInventory.ps1",
@@ -142552,6 +142573,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ShippingPackageAutoOpen",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingWorkbookClose.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ShouldDefaultShippableForRole",
                                "testPaths":  [
                                                  "tests/unit/TestCoreItemSearch.bas"
@@ -143294,7 +143321,8 @@
                            {
                                "entryPoint":  "TriggerShipmentsFormAutoSync",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beShippingInterruptions.ps1"
+                                                 "tests/tooling/Slice4beShippingInterruptions.ps1",
+                                                 "tests/tooling/Slice4beShippingWorkbookClose.ps1"
                                              ]
                            },
                            {

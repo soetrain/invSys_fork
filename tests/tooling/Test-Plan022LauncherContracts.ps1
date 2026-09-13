@@ -34,6 +34,7 @@ $receiving = Read-Source "src/Receiving/Modules/modTS_Received.bas"
 $receivingForm = Read-Source "src/Receiving/Forms/frmReceiving.frm"
 $production = Read-Source "src/Production/Modules/mProduction.bas"
 $shipping = Read-Source "src/Shipping/Modules/modTS_Shipments.bas"
+$shippingContext = Read-Source "src/Shipping/Modules/modShippingFormContext.bas"
 $receivingEvents = Read-Source "src/Receiving/ClassModules/cReceivingAppEvents.cls"
 $productionEvents = Read-Source "src/Production/ClassModules/cProductionAppEvents.cls"
 $shippingEvents = Read-Source "src/Shipping/ClassModules/cShippingAppEvents.cls"
@@ -110,8 +111,10 @@ Add-Check $rows "Shipping launcher uses signed-in capability cache" `
 
 Add-Check $rows "Shipping launcher retains one reusable form instance" `
     (($shipping -match '(?im)^Private mShipmentsLauncherForm As frmShipmentsTally') -and
-     ($shipping -match '(?s)Public Sub BtnOpenShipmentsForm\(\).*?If mShipmentsLauncherForm Is Nothing.*?Set mShipmentsLauncherForm = New frmShipmentsTally')) `
-    "Repeated Shipping clicks must reuse one valid modeless form binding."
+     ($shipping -match '(?s)Public Sub BtnOpenShipmentsForm\(\).*?If Not modShippingFormContext.CanReuse\(mShipmentsLauncherForm\).*?Set mShipmentsLauncherForm = modShippingFormContext.CreateBoundForm\(') -and
+     ($shippingContext -match '(?s)Public Function CanReuse\(ByVal form As frmShipmentsTally\).*?CanReuse = form.HasCurrentContext\(\)') -and
+     ($shippingContext -match '(?s)Public Function CreateBoundForm\(ByVal operatorWb As Workbook,.*?Set fresh = New frmShipmentsTally.*?fresh.SetOperatorWorkbook operatorWb')) `
+    "Repeated Shipping clicks reuse a current binding; explicit stale-form recovery uses the typed bound factory."
 
 Add-Check $rows "Shipping launcher crosses Core with primitive workbook name" `
     (($shipping -match 'modOperationsPrimitiveBridge\.BeginQuietUiForWorkbook\(wb\.Name') -and
