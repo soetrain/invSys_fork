@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-13T15:54:38Z",
+    "generatedAtUtc":  "2026-09-13T16:55:08Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "26c54230c03fdbcfd061587afea5e48f123ef6a96e77379099029ed43b7fe672",
-                          "maintenanceCandidatesSha256":  "2280b302aba4b156f05ef3166ccdf248a57fafd491e536c5b4d42dae15207dec"
+                          "implementationManifestSha256":  "63098592f5026f1016131c97572567a81388149357f8bedd74be3d8494a760cb",
+                          "maintenanceCandidatesSha256":  "a6b02d0d3519538a650fb429f7aeb0f533b52a3b31a42d1368b7c10a54201a2e"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1124,
-                    "reviewedCandidateCount":  1126,
+                    "scannerCandidateCount":  1131,
+                    "reviewedCandidateCount":  1133,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -57,7 +57,7 @@
                         },
                         {
                             "name":  "DEVELOPER_TOOLING",
-                            "candidateCount":  24,
+                            "candidateCount":  31,
                             "reason":  "Build, scan, report, and other developer-only tooling."
                         },
                         {
@@ -3691,6 +3691,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -14766,6 +14767,146 @@
                            "nextAction":  "Investigate callers, callbacks, package ownership, and protecting tests before selecting a source change."
                        },
                        {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mClose_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "mClose_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mLines_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "mLines_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "UserForm_Activate"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "UserForm_Initialize"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
+                                                   "tests/tooling/Test-Slice0ToolContracts.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "UserForm_Layout"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "UserForm_QueryClose"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Test-Plan022LauncherContracts.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
                            "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.mChoice_Change",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
@@ -15041,6 +15182,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -15067,6 +15209,29 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                    "tests/tooling/Slice4beViewerSettingsPreservation.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mLstInventory_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmInventoryViewer",
+                           "procedureNames":  [
+                                                  "mLstInventory_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmInventoryViewer.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -24316,6 +24481,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -25921,7 +26087,7 @@
                            "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
-                           "id":  "duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mClose_Click",
+                           "id":  "duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mClose_Click+mClose_Click",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "REPLACE_DUPLICATE",
                            "disposition":  "REPLACE_DUPLICATE",
@@ -25940,6 +26106,7 @@
                                                   "mBtnClose_Click",
                                                   "mBtnClose_Click",
                                                   "mBtnClose_Click",
+                                                  "mClose_Click",
                                                   "mClose_Click"
                                               ],
                            "sourcePaths":  [
@@ -25950,6 +26117,7 @@
                                                "src/Admin/Forms/frmCreateWarehouse.frm",
                                                "src/Admin/Forms/frmRetireMigrateWarehouse.frm",
                                                "src/Admin/Forms/frmSetupTesterStation.frm",
+                                               "src/Operations/Forms/frmEventDetail.frm",
                                                "src/Operations/Forms/frmEventTrackingSettings.frm",
                                                "src/Operations/Forms/frmInventoryViewer.frm",
                                                "src/Production/Forms/frmProduction.frm"
@@ -30147,6 +30315,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],

@@ -13,6 +13,20 @@ Failed:
     report = "Detail profile unavailable. No configuration was changed."
 End Function
 
+Public Function ReadViewer(ByVal context As String, ByRef version As Long, ByRef request As String, ByRef report As String) As Boolean
+    Dim target As WarehouseTarget
+    On Error GoTo Failed
+    request = "": version = 0
+    report = "Detail profile unavailable. Reopen Viewer in the current invSys session."
+    If context = "" Or context <> modActivity.CaptureContext() Then Exit Function
+    Set target = modNasConnection.GetCurrentTarget()
+    ReadViewer = modEventDetailStore.ReadProfile(target, version, request, report)
+    If context = modActivity.CaptureContext() Then Exit Function
+Failed:
+    request = "": version = 0: ReadViewer = False
+    report = "Detail profile unavailable. Reopen Viewer in the current invSys session."
+End Function
+
 Public Function DefaultRequest() As String
     DefaultRequest = modTrainingJson.EncodeObject(modEventDetailModel.Defaults())
 End Function

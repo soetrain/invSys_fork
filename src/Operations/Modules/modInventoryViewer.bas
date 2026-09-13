@@ -49,6 +49,12 @@ Public Function LoadInventoryViewerEvents(Optional ByVal publishedPayload As Str
     If UBound(coreHeader) < 3 Or StrComp(CStr(coreHeader(0)), "OK", vbTextCompare) <> 0 Then
         Exit Function
     End If
+    If UBound(coreHeader) > 3 Then
+        If CStr(coreHeader(4)) <> "DETAIL1" Or UBound(coreHeader) <> 5 Then
+            LoadInventoryViewerEvents = "FAIL" & vbTab & "Events schema unavailable. Use a compatible package set and published projection."
+            Exit Function
+        End If
+    End If
     shippingPayload = modTS_Shipments.LoadShippingViewerSupplementEvents()
     shippingLines = Split(shippingPayload, vbCrLf)
     shippingHeader = Split(CStr(shippingLines(0)), vbTab)

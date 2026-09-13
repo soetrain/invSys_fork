@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-13T15:54:38Z
-- Scanner candidates: 1124
-- Reviewed candidates: 1126
+- Baseline: 2026-09-13T16:55:08Z
+- Scanner candidates: 1131
+- Reviewed candidates: 1133
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -18,7 +18,7 @@
 | CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
 | ADMIN | 258 | Administrative setup, lifecycle, and developer-support source. |
-| DEVELOPER_TOOLING | 24 | Build, scan, report, and other developer-only tooling. |
+| DEVELOPER_TOOLING | 31 | Build, scan, report, and other developer-only tooling. |
 | TESTING | 0 | Test harness and fixture source that must remain outside runtime packages. |
 
 ## Module-growth ratchets
@@ -611,6 +611,12 @@
 | reachability:src_Operations_Modules_modInventoryViewer.bas:modInventoryViewer.RunInventoryViewerFilterForTest | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Operations_Modules_modOperationsInit.bas:modOperationsInit.OperationsShadowStartupForTest | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Operations_Modules_modOperationsInit.bas:modOperationsInit.OperationsStartupReport | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
+| root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mClose_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mLines_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.mChoice_Change | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.mClose_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.mReload_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
@@ -624,6 +630,7 @@
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnExportListBox_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnRefresh_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnSettings_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mLstInventory_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mTabs_Change | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mTxtSearch_Change | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_Activate | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
@@ -1021,7 +1028,7 @@
 | duplicate:a79324680d5b40fd:StateSubmitted+StateSubmitted | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:b6128e74972d9bee:FindDesignsApplyTable+FindDesignsTableQuery+FindInventoryQueryTable+FindListObjectByNameAdminLocal+FindListObjectByNamePublisher+FindListObjectByNameStatus+FindListObjectInWorkbook+FindListObjectNas+FindListObjectReadModel+FindProductionListObjectByName+FindTable+FindTableByName+FindTableByNameBootstrap+FindTableByNameReadiness+FindTableByNameShip+FindTableByNameSurface+ViewerFindTable | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:c30f7d79756508ef:NzStr+NzStr+NzStrInv | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
-| duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mClose_Click | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
+| duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mClose_Click+mClose_Click | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:cb1b5883fe27dc31:EnsureFolderRecursiveProduction+EnsureFolderRecursiveShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:d01218541cebf3d1:ClearClipboardSurface+ClearSystemClipboardShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:d3a27d2a3e35049c:NormalizeFolderPathProduction+NormalizeFolderPathShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |

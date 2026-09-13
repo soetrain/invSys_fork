@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-13T15:54:38Z",
+    "generatedAtUtc":  "2026-09-13T16:55:08Z",
     "baseline":  {
-                     "componentCount":  199,
-                     "procedureCount":  5638,
-                     "lineCount":  125766,
+                     "componentCount":  201,
+                     "procedureCount":  5664,
+                     "lineCount":  126133,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  189
@@ -4715,7 +4715,7 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mClose_Click",
+                           "id":  "duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mClose_Click+mClose_Click",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "LOW",
                            "componentName":  "frmAdminDesignLifecycle",
@@ -4729,6 +4729,7 @@
                                                   "mBtnClose_Click",
                                                   "mBtnClose_Click",
                                                   "mBtnClose_Click",
+                                                  "mClose_Click",
                                                   "mClose_Click"
                                               ],
                            "sourcePaths":  [
@@ -4739,6 +4740,7 @@
                                                "src/Admin/Forms/frmCreateWarehouse.frm",
                                                "src/Admin/Forms/frmRetireMigrateWarehouse.frm",
                                                "src/Admin/Forms/frmSetupTesterStation.frm",
+                                               "src/Operations/Forms/frmEventDetail.frm",
                                                "src/Operations/Forms/frmEventTrackingSettings.frm",
                                                "src/Operations/Forms/frmInventoryViewer.frm",
                                                "src/Production/Forms/frmProduction.frm"
@@ -6566,6 +6568,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -10007,6 +10010,110 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mClose_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "mClose_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mLines_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "mLines_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "UserForm_Activate"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "UserForm_Initialize"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
+                                                   "tests/tooling/Test-Slice0ToolContracts.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "UserForm_Layout"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventDetail",
+                           "procedureNames":  [
+                                                  "UserForm_QueryClose"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Test-Plan022LauncherContracts.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.mChoice_Change",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -10211,6 +10318,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -10231,6 +10339,23 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                    "tests/tooling/Slice4beViewerSettingsPreservation.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mLstInventory_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmInventoryViewer",
+                           "procedureNames":  [
+                                                  "mLstInventory_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmInventoryViewer.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
                                                ],
                            "reviewRequired":  true
                        },
@@ -12910,6 +13035,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -13690,6 +13816,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],

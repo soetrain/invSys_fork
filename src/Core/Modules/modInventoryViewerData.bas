@@ -156,7 +156,8 @@ Public Function LoadCurrentInventoryEventViewerData() As String
         GoTo CleanExit
     End If
 
-    resultText = "OK" & vbTab & ViewerEscape(warehouseId) & vbTab & Format$(Now, "yyyy-mm-dd hh:nn:ss") & vbTab & "0"
+    resultText = "OK" & vbTab & ViewerEscape(warehouseId) & vbTab & Format$(Now, "yyyy-mm-dd hh:nn:ss") & vbTab & "0" & _
+        vbTab & "DETAIL1" & vbTab & modTrainingWire.UtcTimestamp()
     If Not eventTable.DataBodyRange Is Nothing Then
         For rowIndex = eventTable.ListRows.Count To 1 Step -1
             eventType = UCase$(ViewerCellText(eventTable, rowIndex, "EventType"))
@@ -176,15 +177,19 @@ Public Function LoadCurrentInventoryEventViewerData() As String
                 resultText = resultText & vbCrLf & _
                     ViewerEscape(eventDateText) & vbTab & _
                     ViewerEscape(friendlyType) & vbTab & ViewerEscape(referenceText) & vbTab & ViewerEscape(itemText) & vbTab & _
-                    ViewerEscape(ViewerCellText(eventTable, rowIndex, "QtyDelta")) & vbTab & vbTab & _
+                    ViewerEscape(ViewerCellText(eventTable, rowIndex, "QtyDelta")) & vbTab & _
+                    ViewerEscape(ViewerFirstNonBlank(ViewerCellText(eventTable, rowIndex, "UOM"), ViewerFirstNoteToken(noteText, Array("UOM")))) & vbTab & _
                     ViewerEscape(ViewerCellText(eventTable, rowIndex, "Location")) & vbTab & _
                     ViewerEscape(ViewerCellText(eventTable, rowIndex, "Condition")) & vbTab & _
-                    ViewerEscape(ViewerCellText(eventTable, rowIndex, "UserId")) & vbTab & ViewerEscape(noteText)
+                    ViewerEscape(ViewerCellText(eventTable, rowIndex, "UserId")) & vbTab & "Published inventory event. Select for detail." & vbTab & _
+                    ViewerEscape(ViewerRawCell(eventTable, rowIndex, "EventID")) & vbTab & ViewerEscape(ViewerRawCell(eventTable, rowIndex, "System_Key")) & vbTab & _
+                    ViewerEscape(ViewerRawCell(eventTable, rowIndex, "EventType")) & vbTab & ViewerEscape(ViewerRawCell(eventTable, rowIndex, "SKU")) & vbTab & _
+                    ViewerEscape(ViewerRawCell(eventTable, rowIndex, "StationId")) & vbTab & ViewerEscape(ViewerRecordedTime(eventTable, rowIndex, "OccurredAtUTC")) & vbTab & _
+                    ViewerEscape(ViewerRecordedTime(eventTable, rowIndex, "AppliedAtUTC")) & vbTab & "Inventory"
             End If
         Next rowIndex
     End If
-    resultText = Replace(resultText, vbTab & "0" & vbCrLf, vbTab & CStr(visibleCount) & vbCrLf, 1, 1)
-    If visibleCount = 0 Then resultText = Left$(resultText, InStrRev(resultText, vbTab)) & CStr(visibleCount)
+    resultText = Replace(resultText, vbTab & "0" & vbTab & "DETAIL1", vbTab & CStr(visibleCount) & vbTab & "DETAIL1", 1, 1)
     LoadCurrentInventoryEventViewerData = resultText
 
 CleanExit:
@@ -199,6 +204,26 @@ FailLoad:
     LoadCurrentInventoryEventViewerData = "FAIL" & vbTab & _
         "Inventory Viewer could not read the published Events projection: " & Err.Description
     Resume CleanExit
+End Function
+
+Private Function ViewerRawCell(ByVal table As ListObject, ByVal rowIndex As Long, ByVal headerName As String) As String
+    Dim columnIndex As Long, value As Variant
+    columnIndex = ViewerColumnIndex(table, headerName)
+    If columnIndex = 0 Or table.DataBodyRange Is Nothing Then Exit Function
+    value = table.DataBodyRange.Cells(rowIndex, columnIndex).Value2
+    If IsError(value) Or IsNull(value) Or IsEmpty(value) Then Exit Function
+    ViewerRawCell = CStr(value)
+End Function
+
+Private Function ViewerRecordedTime(ByVal table As ListObject, ByVal rowIndex As Long, ByVal headerName As String) As String
+    Dim value As String
+    value = ViewerCellText(table, rowIndex, headerName)
+    If value = "" Then Exit Function
+    If IsNumeric(value) Then
+        ViewerRecordedTime = Format$(CDate(CDbl(value)), "yyyy-mm-dd hh:nn:ss")
+    ElseIf IsDate(value) Then
+        ViewerRecordedTime = Format$(CDate(value), "yyyy-mm-dd hh:nn:ss")
+    End If
 End Function
 
 Private Function ViewerFriendlyEventType(ByVal eventType As String) As String

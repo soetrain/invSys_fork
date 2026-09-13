@@ -26,7 +26,7 @@ Private WithEvents mBtnSettings As MSForms.CommandButton
 Private WithEvents mTabs As MSForms.TabStrip
 Private WithEvents mBtnExportListBox As MSForms.CommandButton
 Private mCboEventRange As MSForms.ComboBox
-Private mLstInventory As MSForms.ListBox
+Private WithEvents mLstInventory As MSForms.ListBox
 Private mLblTitle As MSForms.Label
 Private mLblHeaders As MSForms.Label
 Private mLblStatus As MSForms.Label
@@ -45,6 +45,8 @@ Private mColumnCount As Long
 Private mLoadStatus As String
 Private mSettingsContext As String
 Private mLoadedColumnCount As Long
+Private mDetail As cEventDetailController
+Private mVisibleIndexes As Collection
 
 Private Sub UserForm_Initialize()
     BuildLayout
@@ -65,6 +67,8 @@ Private Sub UserForm_Layout()
 End Sub
 
 Private Sub UserForm_Terminate()
+    If Not mDetail Is Nothing Then mDetail.CloseDetail
+    Set mDetail = Nothing
     modOperationsTrackingSettings.CloseSettings
     modInventoryViewer.UnregisterInventoryViewer Me
     Set mLayout = Nothing
@@ -101,6 +105,7 @@ End Sub
 Private Sub ClearViewerContent()
     mRows = Empty
     mLoadedColumnCount = 0
+    If Not mDetail Is Nothing Then mDetail.Invalidate
     If Not mLstInventory Is Nothing Then mLstInventory.Clear
 End Sub
 
@@ -115,6 +120,7 @@ End Function
 Private Sub EventRefreshUnavailable()
     If mLoadedColumnCount = 10 Then
         mLoadStatus = "Stale. Events refresh failed; displaying previously loaded data. Try Refresh after publication is restored."
+        If Not mDetail Is Nothing Then mDetail.MarkStale
     Else
         ClearViewerContent
         mLoadStatus = "Unavailable. Published Events could not be loaded. Try Refresh after publication is restored."
@@ -130,6 +136,7 @@ Private Sub LoadViewerPayload(ByVal payload As String, ByVal rowLabel As String)
     Dim rowIndex As Long
     Dim columnIndex As Long
     Dim dataIndex As Long
+    Dim dataColumnCount As Long
 
     lines = Split(payload, vbCrLf)
     header = Split(CStr(lines(0)), vbTab)
@@ -148,15 +155,17 @@ Private Sub LoadViewerPayload(ByVal payload As String, ByVal rowLabel As String)
         Exit Sub
     End If
 
+    dataColumnCount = mColumnCount
+    If mColumnCount = 10 Then dataColumnCount = 18
     If UBound(lines) >= 1 Then
-        ReDim dataRows(1 To UBound(lines), 1 To mColumnCount)
+        ReDim dataRows(1 To UBound(lines), 1 To dataColumnCount)
         For rowIndex = 1 To UBound(lines)
             If Trim$(CStr(lines(rowIndex))) <> "" Then
                 fields = Split(CStr(lines(rowIndex)), vbTab)
                 If UBound(fields) >= mColumnCount - 1 Then
                     dataIndex = dataIndex + 1
-                    For columnIndex = 1 To mColumnCount
-                        dataRows(dataIndex, columnIndex) = ViewerUnescape(CStr(fields(columnIndex - 1)))
+                    For columnIndex = 1 To dataColumnCount
+                        If columnIndex <= UBound(fields) + 1 Then dataRows(dataIndex, columnIndex) = ViewerUnescape(CStr(fields(columnIndex - 1)))
                     Next columnIndex
                 End If
             End If
@@ -167,7 +176,11 @@ Private Sub LoadViewerPayload(ByVal payload As String, ByVal rowLabel As String)
     ElseIf dataIndex = UBound(dataRows, 1) Then
         mRows = dataRows
     Else
-        mRows = TrimViewerRows(dataRows, dataIndex, mColumnCount)
+        mRows = TrimViewerRows(dataRows, dataIndex, dataColumnCount)
+    End If
+    If mColumnCount = 10 Then
+        If mDetail Is Nothing Then Set mDetail = New cEventDetailController
+        mDetail.LoadProjection mRows, header, mSettingsContext
     End If
     mLoadedColumnCount = mColumnCount
     mLoadStatus = CStr(dataIndex) & " " & rowLabel & ". Published data read at " & CStr(header(2)) & "."
@@ -430,6 +443,14 @@ Private Sub ApplyViewerTab()
     ConfigureViewerHeaderGeometry
 End Sub
 
+Private Sub mLstInventory_Click()
+    If mColumnCount <> 10 Or mLstInventory.ListIndex < 0 Then Exit Sub
+    If Not ViewerContextValid() Then Exit Sub
+    If mDetail Is Nothing Or mVisibleIndexes Is Nothing Then Exit Sub
+    If mLstInventory.ListIndex >= mVisibleIndexes.Count Then Exit Sub
+    mDetail.ShowLine CLng(mVisibleIndexes(mLstInventory.ListIndex + 1))
+End Sub
+
 Private Sub mTxtSearch_Change()
     RenderRows Trim$(CStr(mTxtSearch.Value))
 End Sub
@@ -527,6 +548,7 @@ Private Sub RenderRows(ByVal filterText As String)
     Dim storedRange As String
 
     If Not ViewerContextValid() Then Exit Sub
+    Set mVisibleIndexes = New Collection
     mLstInventory.Clear
     mLblStatus.Caption = mLoadStatus
     If mTabs.Value = 1 Then
@@ -590,6 +612,7 @@ Private Sub RenderRows(ByVal filterText As String)
             End If
         End If
         If matches Then
+            mVisibleIndexes.Add rowIndex
             mLstInventory.AddItem CStr(mRows(rowIndex, 1))
             For columnIndex = 2 To mColumnCount
                 mLstInventory.List(mLstInventory.ListCount - 1, columnIndex - 1) = CStr(mRows(rowIndex, columnIndex))

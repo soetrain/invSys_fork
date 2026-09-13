@@ -14,6 +14,7 @@ param(
     [switch]$CheckAdminSettingsClose,
     [switch]$AdminSettingsCloseOnly,
     [switch]$CheckViewerRefreshFailure,
+    [switch]$CheckViewerEventDetail,
     [switch]$CheckShippingActivity,
     [switch]$TraceBootstrapForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -121,6 +122,11 @@ if ($CheckViewerRefreshFailure) {
     if ($CheckTrackingSettings -or $CheckActivityEvidence -or $CheckReceivingActivity -or $CheckShippingActivity) { throw 'Viewer refresh failure uses a separate focused run.' }
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-viewer-refresh/'+[guid]::NewGuid().ToString('N'))
     . (Join-Path $PSScriptRoot 'Slice4beViewerRefreshFailure.ps1')
+}
+if ($CheckViewerEventDetail) {
+    if ($CheckTrackingSettings -or $CheckActivityEvidence -or $CheckReceivingActivity -or $CheckShippingActivity -or $CheckViewerRefreshFailure) { throw 'Viewer event detail uses a separate focused run.' }
+    $reportRoot = Join-Path $repo ('reports/runtime/slice4be-viewer-detail/'+[guid]::NewGuid().ToString('N'))
+    . (Join-Path $PSScriptRoot 'Slice4beViewerEventDetail.ps1')
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 if ($CheckOperationsTrackingSettings) {
@@ -461,7 +467,11 @@ End Function
         $step='packaged Viewer refresh failure'
         Test-Slice4beViewerRefreshFailure $a $b
     }
-    if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure) {
+    if($CheckViewerEventDetail) {
+        $step='packaged Viewer Event Detail'
+        Test-Slice4beViewerEventDetail $a $b
+    }
+    if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail) {
     $step='unauthenticated command'
     [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
     $before=(Get-FileHash -LiteralPath $a.Config).Hash
