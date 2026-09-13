@@ -1,10 +1,10 @@
 # invSys Static Implementation Manifest
 
 - Schema: 1.0.0
-- Generated: 2026-09-12T23:49:21Z
+- Generated: 2026-09-13T00:28:38Z
 - Packages: 6
 - Components: 177
-- Procedures: 5511
+- Procedures: 5510
 - Literal Application.Run targets: 8
 - Unresolved dynamic calls: 45
 

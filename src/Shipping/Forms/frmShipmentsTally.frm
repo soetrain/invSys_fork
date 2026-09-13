@@ -145,7 +145,7 @@ Public Sub InitializeFromShipping(Optional ByVal preserveActiveRows As Boolean =
     Dim operatorWb As Workbook
     Dim loadStep As String
 
-    TimingStart
+    mActionTimer.Start
     TLap "InitializeFromShipping start"
     loadStep = "build layout"
     If Not mBuilt Then BuildLayout
@@ -217,10 +217,6 @@ CleanExit:
 FailInit:
     ShowStatus "Shipments form load failed at " & loadStep & ": " & Err.Description
     Resume CleanExit
-End Sub
-
-Private Sub TimingStart()
-    mActionTimer.Start
 End Sub
 
 Private Sub TLap(ByVal label As String)
@@ -358,6 +354,7 @@ Public Sub AutoSyncIfPending()
     Dim nasStatus As String
 
     If Not mAutoSyncArmed Then Exit Sub
+    If Not RequireActionContext() Then Exit Sub
     If mLoading Then
         ShowStatus "AutoSync: skipped (loading)."
         GoTo CleanExit
@@ -1531,7 +1528,7 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     Dim startedAt As Single
     Dim elapsedMs As Long
 
-    TimingStart
+    mActionTimer.Start
     TLap "CommitCurrentLine " & UCase$(Trim$(actionName)) & " start"
     startedAt = Timer
     actionName = UCase$(Trim$(actionName))
@@ -1755,7 +1752,7 @@ End Sub
 
 Private Sub mChkUseExisting_Click()
     If mLoading Then Exit Sub
-    TimingStart
+    mActionTimer.Start
     TLap "UseExisting click start"
     modTS_Shipments.ShipmentsFormSetUseExistingInventory CBool(mChkUseExisting.Value)
     LoadShipmentState
@@ -1773,7 +1770,7 @@ Private Sub mBtnRefresh_Click()
     Dim nasAfterRefresh As Object
     Dim nasStatus As String
 
-    TimingStart
+    mActionTimer.Start
     TLap "Refresh click start"
     Set nasBeforeRefresh = ShippableNasSnapshot()
     Set operatorWb = ResolveOperatorWorkbook()
@@ -1838,7 +1835,7 @@ Private Sub MoveSelectedShipmentHold(ByVal moveToHold As Boolean)
     Dim ok As Boolean
     Dim selectedRows As Variant
 
-    TimingStart
+    mActionTimer.Start
     TLap "Hold/Return click start"
     If moveToHold Then
         Set lst = mLstShipments
@@ -1881,7 +1878,7 @@ Private Sub RemoveSelectedShipmentRows()
     Dim startedAt As Single
     Dim elapsedMs As Long
 
-    TimingStart
+    mActionTimer.Start
     TLap "Remove selected click start"
     selectedRows = SelectedListTableRows(mLstShipments)
     If IsEmpty(selectedRows) Then
@@ -1947,7 +1944,7 @@ Private Sub mBtnSend_Click()
     Dim ok As Boolean
     Dim selectedRows As Variant
 
-    TimingStart
+    mActionTimer.Start
     TLap "Shipments Sent click start"
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
@@ -2000,7 +1997,7 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     Dim ok As Boolean
     Dim selectedRows As Variant
 
-    TimingStart
+    mActionTimer.Start
     TLap IIf(stageOnly, "To Shipments", "Shipments Sent") & " click start"
     If stageOnly Then selectedRows = SelectedListTableRows(mLstShipments)
     If stageOnly And IsEmpty(selectedRows) Then

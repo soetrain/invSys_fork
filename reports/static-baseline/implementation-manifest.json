@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-12T23:49:21Z",
+    "generatedAtUtc":  "2026-09-13T00:28:38Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -6716,7 +6716,7 @@
                            "name":  "frmShipmentsTally",
                            "kind":  "FORM",
                            "sourcePath":  "src/Shipping/Forms/frmShipmentsTally.frm",
-                           "lineCount":  3022,
+                           "lineCount":  3019,
                            "procedureNames":  [
                                                   "ActiveShipmentQtyForShippable",
                                                   "AddBoxingHeader",
@@ -6857,7 +6857,6 @@
                                                   "TestRunShipmentsSentActionForWorkbook",
                                                   "TestStatusAnchorAfterResize",
                                                   "TestSystemKeyIdentityContract",
-                                                  "TimingStart",
                                                   "TimingSummary",
                                                   "TLap",
                                                   "UniqueHeaderName",
@@ -113519,7 +113518,7 @@
                                                "ShipmentsFormClearActiveLines",
                                                "ShipmentsFormUseExistingInventory",
                                                "ShowStatus",
-                                               "TimingStart",
+                                               "Start",
                                                "TimingSummary",
                                                "TLap",
                                                "UpdateSyncStateLabel"
@@ -113536,32 +113535,11 @@
                        },
                        {
                            "componentName":  "frmShipmentsTally",
-                           "name":  "TimingStart",
+                           "name":  "TLap",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
                            "startLine":  222,
                            "endLine":  224,
-                           "lineCount":  3,
-                           "directCalls":  [
-                                               "Start"
-                                           ],
-                           "literalApplicationRunTargets":  [
-
-                                                            ],
-                           "unresolvedApplicationRunExpressions":  [
-
-                                                                   ],
-                           "rootIds":  [
-
-                                       ]
-                       },
-                       {
-                           "componentName":  "frmShipmentsTally",
-                           "name":  "TLap",
-                           "visibility":  "PRIVATE",
-                           "kind":  "SUB",
-                           "startLine":  226,
-                           "endLine":  228,
                            "lineCount":  3,
                            "directCalls":  [
                                                "Mark"
@@ -113581,8 +113559,8 @@
                            "name":  "TimingSummary",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  230,
-                           "endLine":  232,
+                           "startLine":  226,
+                           "endLine":  228,
                            "lineCount":  3,
                            "directCalls":  [
                                                "Summary"
@@ -113602,8 +113580,8 @@
                            "name":  "HasCurrentContext",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  234,
-                           "endLine":  236,
+                           "startLine":  230,
+                           "endLine":  232,
                            "lineCount":  3,
                            "directCalls":  [
                                                "IsCurrent"
@@ -113623,8 +113601,8 @@
                            "name":  "RequireActionContext",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  238,
-                           "endLine":  244,
+                           "startLine":  234,
+                           "endLine":  240,
                            "lineCount":  7,
                            "directCalls":  [
                                                "CancelAutoSync",
@@ -113646,8 +113624,8 @@
                            "name":  "SetOperatorWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  246,
-                           "endLine":  248,
+                           "startLine":  242,
+                           "endLine":  244,
                            "lineCount":  3,
                            "directCalls":  [
                                                "IsUsableOperatorWorkbook"
@@ -113667,8 +113645,8 @@
                            "name":  "ResolveOperatorWorkbook",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  250,
-                           "endLine":  265,
+                           "startLine":  246,
+                           "endLine":  261,
                            "lineCount":  16,
                            "directCalls":  [
                                                "IsUsableOperatorWorkbook"
@@ -113688,8 +113666,8 @@
                            "name":  "IsUsableOperatorWorkbook",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  267,
-                           "endLine":  276,
+                           "startLine":  263,
+                           "endLine":  272,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -113709,8 +113687,8 @@
                            "name":  "IsShipmentsOperatorWorkbook",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  278,
-                           "endLine":  291,
+                           "startLine":  274,
+                           "endLine":  287,
                            "lineCount":  14,
                            "directCalls":  [
                                                "IsUsableOperatorWorkbook",
@@ -113732,8 +113710,8 @@
                            "name":  "WorkbookSheetExists",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  293,
-                           "endLine":  297,
+                           "startLine":  289,
+                           "endLine":  293,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -113753,8 +113731,8 @@
                            "name":  "WorkbookHasTable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  299,
-                           "endLine":  318,
+                           "startLine":  295,
+                           "endLine":  314,
                            "lineCount":  20,
                            "directCalls":  [
 
@@ -113774,8 +113752,8 @@
                            "name":  "ScheduleAutoSync",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  320,
-                           "endLine":  329,
+                           "startLine":  316,
+                           "endLine":  325,
                            "lineCount":  10,
                            "directCalls":  [
                                                "CancelAutoSync",
@@ -113796,8 +113774,8 @@
                            "name":  "CancelAutoSync",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  331,
-                           "endLine":  341,
+                           "startLine":  327,
+                           "endLine":  337,
                            "lineCount":  11,
                            "directCalls":  [
                                                "ShipmentsFormAutoSyncProcedureName"
@@ -113817,8 +113795,8 @@
                            "name":  "ArmAutoSync",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  343,
-                           "endLine":  347,
+                           "startLine":  339,
+                           "endLine":  343,
                            "lineCount":  5,
                            "directCalls":  [
                                                "ScheduleAutoSync",
@@ -113839,9 +113817,9 @@
                            "name":  "AutoSyncIfPending",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  349,
-                           "endLine":  406,
-                           "lineCount":  58,
+                           "startLine":  345,
+                           "endLine":  403,
+                           "lineCount":  59,
                            "directCalls":  [
                                                "EvictCompletedShipmentInventoryOverlaysForShippables",
                                                "EvictOrphanedActiveOverlays",
@@ -113850,6 +113828,7 @@
                                                "LoadShippables",
                                                "PendingShipmentSyncCount",
                                                "RefreshProjectedShippableInventory",
+                                               "RequireActionContext",
                                                "ResolveOperatorWorkbook",
                                                "ScheduleAutoSync",
                                                "ShipmentsFormAutoSyncRefresh",
@@ -113873,8 +113852,8 @@
                            "name":  "ShippableNasSnapshot",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  408,
-                           "endLine":  439,
+                           "startLine":  405,
+                           "endLine":  436,
                            "lineCount":  32,
                            "directCalls":  [
                                                "NzText"
@@ -113894,8 +113873,8 @@
                            "name":  "ShippableNasChangeSummary",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  441,
-                           "endLine":  480,
+                           "startLine":  438,
+                           "endLine":  477,
                            "lineCount":  40,
                            "directCalls":  [
 
@@ -113915,8 +113894,8 @@
                            "name":  "BuildLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  482,
-                           "endLine":  574,
+                           "startLine":  479,
+                           "endLine":  571,
                            "lineCount":  93,
                            "directCalls":  [
                                                "AddButton",
@@ -113948,8 +113927,8 @@
                            "name":  "BuildShippingPages",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  576,
-                           "endLine":  745,
+                           "startLine":  573,
+                           "endLine":  742,
                            "lineCount":  170,
                            "directCalls":  [
                                                "Add",
@@ -113979,8 +113958,8 @@
                            "name":  "mPages_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  747,
-                           "endLine":  749,
+                           "startLine":  744,
+                           "endLine":  746,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ApplyShippingPage"
@@ -114000,8 +113979,8 @@
                            "name":  "ApplyShippingPage",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  751,
-                           "endLine":  770,
+                           "startLine":  748,
+                           "endLine":  767,
                            "lineCount":  20,
                            "directCalls":  [
                                                "Control",
@@ -114024,8 +114003,8 @@
                            "name":  "SelectShippingPageForTest",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  772,
-                           "endLine":  799,
+                           "startLine":  769,
+                           "endLine":  796,
                            "lineCount":  28,
                            "directCalls":  [
                                                "ApplyShippingPage",
@@ -114046,8 +114025,8 @@
                            "name":  "mBtnBoxBuilderRefresh_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  801,
-                           "endLine":  803,
+                           "startLine":  798,
+                           "endLine":  800,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshBoxBuilderPage"
@@ -114067,8 +114046,8 @@
                            "name":  "mBtnBoxMakerRefresh_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  805,
-                           "endLine":  807,
+                           "startLine":  802,
+                           "endLine":  804,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshBoxMakerPage"
@@ -114088,8 +114067,8 @@
                            "name":  "RefreshBoxBuilderPage",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  809,
-                           "endLine":  822,
+                           "startLine":  806,
+                           "endLine":  819,
                            "lineCount":  14,
                            "directCalls":  [
                                                "ClearBoxBuilderSelection",
@@ -114114,8 +114093,8 @@
                            "name":  "mTxtBoxBuilderSearch_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  824,
-                           "endLine":  827,
+                           "startLine":  821,
+                           "endLine":  824,
                            "lineCount":  4,
                            "directCalls":  [
                                                "FilterBoxBuilderInventory"
@@ -114135,8 +114114,8 @@
                            "name":  "FilterBoxBuilderInventory",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  829,
-                           "endLine":  867,
+                           "startLine":  826,
+                           "endLine":  864,
                            "lineCount":  39,
                            "directCalls":  [
                                                "DisplayVersionOrNA",
@@ -114158,8 +114137,8 @@
                            "name":  "DisplayVersionOrNA",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  869,
-                           "endLine":  876,
+                           "startLine":  866,
+                           "endLine":  873,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -114179,8 +114158,8 @@
                            "name":  "mBtnBoxBuilderNew_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  878,
-                           "endLine":  885,
+                           "startLine":  875,
+                           "endLine":  882,
                            "lineCount":  8,
                            "directCalls":  [
                                                "ClearBoxBuilderSelection",
@@ -114201,8 +114180,8 @@
                            "name":  "mBtnBoxBuilderAddComponent_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  887,
-                           "endLine":  922,
+                           "startLine":  884,
+                           "endLine":  919,
                            "lineCount":  36,
                            "directCalls":  [
                                                "NzText",
@@ -114224,8 +114203,8 @@
                            "name":  "mBtnBoxBuilderRemoveComponent_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  924,
-                           "endLine":  931,
+                           "startLine":  921,
+                           "endLine":  928,
                            "lineCount":  8,
                            "directCalls":  [
                                                "ShowStatus"
@@ -114245,8 +114224,8 @@
                            "name":  "RefreshBoxMakerPage",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  933,
-                           "endLine":  948,
+                           "startLine":  930,
+                           "endLine":  945,
                            "lineCount":  16,
                            "directCalls":  [
                                                "LoadBoxMakerChoices",
@@ -114269,8 +114248,8 @@
                            "name":  "mLstBoxBuilderDesigns_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  950,
-                           "endLine":  953,
+                           "startLine":  947,
+                           "endLine":  950,
                            "lineCount":  4,
                            "directCalls":  [
                                                "LoadSelectedBoxBuilderDesign"
@@ -114290,8 +114269,8 @@
                            "name":  "mCboBoxBuilderVersion_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  955,
-                           "endLine":  958,
+                           "startLine":  952,
+                           "endLine":  955,
                            "lineCount":  4,
                            "directCalls":  [
                                                "LoadSelectedBoxBuilderComponents"
@@ -114311,8 +114290,8 @@
                            "name":  "LoadSelectedBoxBuilderDesign",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  960,
-                           "endLine":  992,
+                           "startLine":  957,
+                           "endLine":  989,
                            "lineCount":  33,
                            "directCalls":  [
                                                "LoadBoxDesignVersions",
@@ -114334,8 +114313,8 @@
                            "name":  "LoadSelectedBoxBuilderComponents",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  994,
-                           "endLine":  1009,
+                           "startLine":  991,
+                           "endLine":  1006,
                            "lineCount":  16,
                            "directCalls":  [
                                                "LoadBoxDesignComponents",
@@ -114357,8 +114336,8 @@
                            "name":  "ClearBoxBuilderSelection",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1011,
-                           "endLine":  1020,
+                           "startLine":  1008,
+                           "endLine":  1017,
                            "lineCount":  10,
                            "directCalls":  [
 
@@ -114378,8 +114357,8 @@
                            "name":  "BoxBuilderPageComponents",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1022,
-                           "endLine":  1036,
+                           "startLine":  1019,
+                           "endLine":  1033,
                            "lineCount":  15,
                            "directCalls":  [
                                                "ColumnIndex"
@@ -114399,8 +114378,8 @@
                            "name":  "mBtnBoxBuilderSave_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1038,
-                           "endLine":  1049,
+                           "startLine":  1035,
+                           "endLine":  1046,
                            "lineCount":  12,
                            "directCalls":  [
                                                "BoxBuilderPageComponents",
@@ -114425,8 +114404,8 @@
                            "name":  "mBtnBoxBuilderUpdateVersion_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1051,
-                           "endLine":  1053,
+                           "startLine":  1048,
+                           "endLine":  1050,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RunBoxBuilderVersionAction"
@@ -114446,8 +114425,8 @@
                            "name":  "mBtnBoxBuilderNewVersion_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1055,
-                           "endLine":  1057,
+                           "startLine":  1052,
+                           "endLine":  1054,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RunBoxBuilderVersionAction"
@@ -114467,8 +114446,8 @@
                            "name":  "mBtnBoxBuilderDeleteVersion_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1059,
-                           "endLine":  1075,
+                           "startLine":  1056,
+                           "endLine":  1072,
                            "lineCount":  17,
                            "directCalls":  [
                                                "DeleteBoxDesignVersion",
@@ -114491,8 +114470,8 @@
                            "name":  "mBtnBoxBuilderArchive_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1077,
-                           "endLine":  1091,
+                           "startLine":  1074,
+                           "endLine":  1088,
                            "lineCount":  15,
                            "directCalls":  [
                                                "ArchiveBoxDesign",
@@ -114514,8 +114493,8 @@
                            "name":  "mBtnBoxBuilderDelete_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1093,
-                           "endLine":  1107,
+                           "startLine":  1090,
+                           "endLine":  1104,
                            "lineCount":  15,
                            "directCalls":  [
                                                "DeleteBoxDesign",
@@ -114537,8 +114516,8 @@
                            "name":  "RunBoxBuilderVersionAction",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1109,
-                           "endLine":  1121,
+                           "startLine":  1106,
+                           "endLine":  1118,
                            "lineCount":  13,
                            "directCalls":  [
                                                "BoxBuilderPageComponents",
@@ -114563,8 +114542,8 @@
                            "name":  "mLstBoxMakerDesigns_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1123,
-                           "endLine":  1126,
+                           "startLine":  1120,
+                           "endLine":  1123,
                            "lineCount":  4,
                            "directCalls":  [
                                                "LoadSelectedBoxMakerDesign"
@@ -114584,8 +114563,8 @@
                            "name":  "mCboBoxMakerVersion_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1128,
-                           "endLine":  1131,
+                           "startLine":  1125,
+                           "endLine":  1128,
                            "lineCount":  4,
                            "directCalls":  [
                                                "LoadSelectedBoxMakerComponents"
@@ -114605,8 +114584,8 @@
                            "name":  "LoadSelectedBoxMakerDesign",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1133,
-                           "endLine":  1155,
+                           "startLine":  1130,
+                           "endLine":  1152,
                            "lineCount":  23,
                            "directCalls":  [
                                                "LoadBoxMakerVersions",
@@ -114628,8 +114607,8 @@
                            "name":  "LoadSelectedBoxMakerComponents",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1157,
-                           "endLine":  1166,
+                           "startLine":  1154,
+                           "endLine":  1163,
                            "lineCount":  10,
                            "directCalls":  [
                                                "LoadBoxMakerComponents",
@@ -114651,8 +114630,8 @@
                            "name":  "BoxMakerPageComponents",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1168,
-                           "endLine":  1182,
+                           "startLine":  1165,
+                           "endLine":  1179,
                            "lineCount":  15,
                            "directCalls":  [
                                                "ColumnIndex"
@@ -114672,8 +114651,8 @@
                            "name":  "mBtnBoxMakerMake_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1184,
-                           "endLine":  1204,
+                           "startLine":  1181,
+                           "endLine":  1201,
                            "lineCount":  21,
                            "directCalls":  [
                                                "BoxMakerPageComponents",
@@ -114699,8 +114678,8 @@
                            "name":  "mBtnBoxMakerUnmake_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1206,
-                           "endLine":  1226,
+                           "startLine":  1203,
+                           "endLine":  1223,
                            "lineCount":  21,
                            "directCalls":  [
                                                "BoxMakerPageComponents",
@@ -114726,8 +114705,8 @@
                            "name":  "RenderPageRows",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1228,
-                           "endLine":  1246,
+                           "startLine":  1225,
+                           "endLine":  1243,
                            "lineCount":  19,
                            "directCalls":  [
                                                "ColumnIndex",
@@ -114748,8 +114727,8 @@
                            "name":  "MoveStatusToTop",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1248,
-                           "endLine":  1269,
+                           "startLine":  1245,
+                           "endLine":  1266,
                            "lineCount":  22,
                            "directCalls":  [
                                                "Control"
@@ -114769,8 +114748,8 @@
                            "name":  "LoadCarrierChoices",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1271,
-                           "endLine":  1290,
+                           "startLine":  1268,
+                           "endLine":  1287,
                            "lineCount":  20,
                            "directCalls":  [
                                                "GetConfiguredCarriers",
@@ -114791,8 +114770,8 @@
                            "name":  "LoadShippables",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1292,
-                           "endLine":  1318,
+                           "startLine":  1289,
+                           "endLine":  1315,
                            "lineCount":  27,
                            "directCalls":  [
                                                "CurrentShippableInventoryCache",
@@ -114820,8 +114799,8 @@
                            "name":  "ShippableRowsLoaded",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1320,
-                           "endLine":  1327,
+                           "startLine":  1317,
+                           "endLine":  1324,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -114841,8 +114820,8 @@
                            "name":  "CurrentShippableInventoryCache",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1329,
-                           "endLine":  1348,
+                           "startLine":  1326,
+                           "endLine":  1345,
                            "lineCount":  20,
                            "directCalls":  [
                                                "NzText",
@@ -114863,8 +114842,8 @@
                            "name":  "PreserveMissingShippableInventory",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1350,
-                           "endLine":  1364,
+                           "startLine":  1347,
+                           "endLine":  1361,
                            "lineCount":  15,
                            "directCalls":  [
                                                "NzText",
@@ -114885,8 +114864,8 @@
                            "name":  "ShippableInventoryKey",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1366,
-                           "endLine":  1371,
+                           "startLine":  1363,
+                           "endLine":  1368,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -114906,8 +114885,8 @@
                            "name":  "LoadShipmentState",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1373,
-                           "endLine":  1387,
+                           "startLine":  1370,
+                           "endLine":  1384,
                            "lineCount":  15,
                            "directCalls":  [
                                                "EvictOrphanedActiveOverlays",
@@ -114932,8 +114911,8 @@
                            "name":  "LoadShipmentLineState",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1389,
-                           "endLine":  1403,
+                           "startLine":  1386,
+                           "endLine":  1400,
                            "lineCount":  15,
                            "directCalls":  [
                                                "EvictOrphanedActiveOverlays",
@@ -114958,8 +114937,8 @@
                            "name":  "RenderShippables",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1405,
-                           "endLine":  1448,
+                           "startLine":  1402,
+                           "endLine":  1445,
                            "lineCount":  44,
                            "directCalls":  [
                                                "DisplayQtyText",
@@ -114985,8 +114964,8 @@
                            "name":  "ShippableMatchesFilter",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1450,
-                           "endLine":  1462,
+                           "startLine":  1447,
+                           "endLine":  1459,
                            "lineCount":  13,
                            "directCalls":  [
                                                "NzText"
@@ -115006,8 +114985,8 @@
                            "name":  "RenderLineList",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1464,
-                           "endLine":  1491,
+                           "startLine":  1461,
+                           "endLine":  1488,
                            "lineCount":  28,
                            "directCalls":  [
                                                "FormatQuantity",
@@ -115029,8 +115008,8 @@
                            "name":  "LoadSelectedShippable",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1493,
-                           "endLine":  1502,
+                           "startLine":  1490,
+                           "endLine":  1499,
                            "lineCount":  10,
                            "directCalls":  [
                                                "NzText"
@@ -115050,8 +115029,8 @@
                            "name":  "LoadSelectedLine",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1504,
-                           "endLine":  1516,
+                           "startLine":  1501,
+                           "endLine":  1513,
                            "lineCount":  13,
                            "directCalls":  [
                                                "NzText"
@@ -115071,8 +115050,8 @@
                            "name":  "CommitCurrentLine",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1518,
-                           "endLine":  1587,
+                           "startLine":  1515,
+                           "endLine":  1584,
                            "lineCount":  70,
                            "directCalls":  [
                                                "AppendTiming",
@@ -115091,7 +115070,7 @@
                                                "ShipmentsFormCommitLine",
                                                "ShowPersistencePending",
                                                "ShowStatus",
-                                               "TimingStart",
+                                               "Start",
                                                "TimingSummary",
                                                "TLap"
                                            ],
@@ -115110,8 +115089,8 @@
                            "name":  "SelectedShippableNasInventoryText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1589,
-                           "endLine":  1628,
+                           "startLine":  1586,
+                           "endLine":  1625,
                            "lineCount":  40,
                            "directCalls":  [
                                                "NzText",
@@ -115132,8 +115111,8 @@
                            "name":  "SelectedShippableProjectedInventoryText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1630,
-                           "endLine":  1659,
+                           "startLine":  1627,
+                           "endLine":  1656,
                            "lineCount":  30,
                            "directCalls":  [
                                                "NzText",
@@ -115154,8 +115133,8 @@
                            "name":  "SelectedShipmentTableRow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1661,
-                           "endLine":  1663,
+                           "startLine":  1658,
+                           "endLine":  1660,
                            "lineCount":  3,
                            "directCalls":  [
                                                "SingleSelectedListTableRow"
@@ -115175,8 +115154,8 @@
                            "name":  "SelectedHoldTableRow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1665,
-                           "endLine":  1667,
+                           "startLine":  1662,
+                           "endLine":  1664,
                            "lineCount":  3,
                            "directCalls":  [
                                                "SingleSelectedListTableRow"
@@ -115196,8 +115175,8 @@
                            "name":  "SingleSelectedListTableRow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1669,
-                           "endLine":  1686,
+                           "startLine":  1666,
+                           "endLine":  1683,
                            "lineCount":  18,
                            "directCalls":  [
                                                "NzText"
@@ -115217,8 +115196,8 @@
                            "name":  "SelectedListTableRowCount",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1688,
-                           "endLine":  1694,
+                           "startLine":  1685,
+                           "endLine":  1691,
                            "lineCount":  7,
                            "directCalls":  [
                                                "SelectedListTableRows"
@@ -115238,8 +115217,8 @@
                            "name":  "SelectedListTableRows",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  1696,
-                           "endLine":  1714,
+                           "startLine":  1693,
+                           "endLine":  1711,
                            "lineCount":  19,
                            "directCalls":  [
                                                "NzText"
@@ -115259,8 +115238,8 @@
                            "name":  "RefreshAfterAction",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1716,
-                           "endLine":  1734,
+                           "startLine":  1713,
+                           "endLine":  1731,
                            "lineCount":  19,
                            "directCalls":  [
                                                "EnforceShippingSupportSheetsHidden",
@@ -115285,8 +115264,8 @@
                            "name":  "mTxtPicker_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1736,
-                           "endLine":  1739,
+                           "startLine":  1733,
+                           "endLine":  1736,
                            "lineCount":  4,
                            "directCalls":  [
                                                "RenderShippables"
@@ -115306,8 +115285,8 @@
                            "name":  "mLstShippables_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1741,
-                           "endLine":  1744,
+                           "startLine":  1738,
+                           "endLine":  1741,
                            "lineCount":  4,
                            "directCalls":  [
                                                "LoadSelectedShippable"
@@ -115327,8 +115306,8 @@
                            "name":  "mLstShipments_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1746,
-                           "endLine":  1749,
+                           "startLine":  1743,
+                           "endLine":  1746,
                            "lineCount":  4,
                            "directCalls":  [
                                                "LoadSelectedLine"
@@ -115348,8 +115327,8 @@
                            "name":  "mLstHold_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1751,
-                           "endLine":  1754,
+                           "startLine":  1748,
+                           "endLine":  1751,
                            "lineCount":  4,
                            "directCalls":  [
                                                "LoadSelectedLine"
@@ -115369,15 +115348,15 @@
                            "name":  "mChkUseExisting_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1756,
-                           "endLine":  1766,
+                           "startLine":  1753,
+                           "endLine":  1763,
                            "lineCount":  11,
                            "directCalls":  [
                                                "LoadShipmentState",
                                                "RefreshProjectedShippableInventory",
                                                "ShipmentsFormSetUseExistingInventory",
                                                "ShowStatus",
-                                               "TimingStart",
+                                               "Start",
                                                "TimingSummary",
                                                "TLap"
                                            ],
@@ -115396,8 +115375,8 @@
                            "name":  "mBtnRefresh_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1768,
-                           "endLine":  1792,
+                           "startLine":  1765,
+                           "endLine":  1789,
                            "lineCount":  25,
                            "directCalls":  [
                                                "InitializeFromShipping",
@@ -115406,7 +115385,7 @@
                                                "ShippableNasChangeSummary",
                                                "ShippableNasSnapshot",
                                                "ShowStatus",
-                                               "TimingStart",
+                                               "Start",
                                                "TimingSummary",
                                                "TLap"
                                            ],
@@ -115428,8 +115407,8 @@
                            "name":  "mBtnHistory_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1794,
-                           "endLine":  1801,
+                           "startLine":  1791,
+                           "endLine":  1798,
                            "lineCount":  8,
                            "directCalls":  [
                                                "ShipmentsFormRecentHistoryText",
@@ -115450,8 +115429,8 @@
                            "name":  "mBtnHistorySheet_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1803,
-                           "endLine":  1810,
+                           "startLine":  1800,
+                           "endLine":  1807,
                            "lineCount":  8,
                            "directCalls":  [
                                                "ResolveOperatorWorkbook",
@@ -115473,8 +115452,8 @@
                            "name":  "mBtnAdd_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1812,
-                           "endLine":  1814,
+                           "startLine":  1809,
+                           "endLine":  1811,
                            "lineCount":  3,
                            "directCalls":  [
                                                "CommitCurrentLine"
@@ -115496,8 +115475,8 @@
                            "name":  "mBtnUpdate_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1816,
-                           "endLine":  1818,
+                           "startLine":  1813,
+                           "endLine":  1815,
                            "lineCount":  3,
                            "directCalls":  [
                                                "CommitCurrentLine"
@@ -115518,8 +115497,8 @@
                            "name":  "mBtnRemove_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1820,
-                           "endLine":  1822,
+                           "startLine":  1817,
+                           "endLine":  1819,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RemoveSelectedShipmentRows"
@@ -115540,8 +115519,8 @@
                            "name":  "mBtnHold_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1824,
-                           "endLine":  1826,
+                           "startLine":  1821,
+                           "endLine":  1823,
                            "lineCount":  3,
                            "directCalls":  [
                                                "MoveSelectedShipmentHold"
@@ -115561,8 +115540,8 @@
                            "name":  "mBtnReturn_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1828,
-                           "endLine":  1830,
+                           "startLine":  1825,
+                           "endLine":  1827,
                            "lineCount":  3,
                            "directCalls":  [
                                                "MoveSelectedShipmentHold"
@@ -115582,8 +115561,8 @@
                            "name":  "MoveSelectedShipmentHold",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1832,
-                           "endLine":  1866,
+                           "startLine":  1829,
+                           "endLine":  1863,
                            "lineCount":  35,
                            "directCalls":  [
                                                "RefreshAfterAction",
@@ -115591,7 +115570,7 @@
                                                "SelectedListTableRows",
                                                "ShipmentsFormMoveHoldRows",
                                                "ShowStatus",
-                                               "TimingStart",
+                                               "Start",
                                                "TimingSummary",
                                                "TLap"
                                            ],
@@ -115610,8 +115589,8 @@
                            "name":  "RemoveSelectedShipmentRows",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1868,
-                           "endLine":  1932,
+                           "startLine":  1865,
+                           "endLine":  1929,
                            "lineCount":  65,
                            "directCalls":  [
                                                "AppendLocalStatus",
@@ -115623,7 +115602,7 @@
                                                "SelectedListTableRows",
                                                "ShipmentsFormCommitLine",
                                                "ShowStatus",
-                                               "TimingStart",
+                                               "Start",
                                                "TimingSummary",
                                                "TLap"
                                            ],
@@ -115642,8 +115621,8 @@
                            "name":  "mBtnStage_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1934,
-                           "endLine":  1936,
+                           "startLine":  1931,
+                           "endLine":  1933,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RunShippingAction"
@@ -115663,8 +115642,8 @@
                            "name":  "mBtnSend_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1938,
-                           "endLine":  1989,
+                           "startLine":  1935,
+                           "endLine":  1986,
                            "lineCount":  52,
                            "directCalls":  [
                                                "AppendTiming",
@@ -115681,7 +115660,7 @@
                                                "ShouldShowShippingActionPopup",
                                                "ShowPersistencePending",
                                                "ShowStatus",
-                                               "TimingStart",
+                                               "Start",
                                                "TimingSummary",
                                                "TLap"
                                            ],
@@ -115700,8 +115679,8 @@
                            "name":  "RunShippingAction",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  1991,
-                           "endLine":  2050,
+                           "startLine":  1988,
+                           "endLine":  2047,
                            "lineCount":  60,
                            "directCalls":  [
                                                "AppendTiming",
@@ -115720,7 +115699,7 @@
                                                "ShouldShowShippingActionPopup",
                                                "ShowPersistencePending",
                                                "ShowStatus",
-                                               "TimingStart",
+                                               "Start",
                                                "TimingSummary",
                                                "TLap"
                                            ],
@@ -115739,8 +115718,8 @@
                            "name":  "ShouldShowShippingActionPopup",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2052,
-                           "endLine":  2058,
+                           "startLine":  2049,
+                           "endLine":  2055,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -115760,8 +115739,8 @@
                            "name":  "RefreshProjectedShippableInventory",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2060,
-                           "endLine":  2095,
+                           "startLine":  2057,
+                           "endLine":  2092,
                            "lineCount":  36,
                            "directCalls":  [
                                                "ActiveShipmentQtyForShippable",
@@ -115790,8 +115769,8 @@
                            "name":  "TestRefreshProjectedInventory",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  2097,
-                           "endLine":  2123,
+                           "startLine":  2094,
+                           "endLine":  2120,
                            "lineCount":  27,
                            "directCalls":  [
                                                "BuildLayout",
@@ -115813,8 +115792,8 @@
                            "name":  "TestReadProjectedText",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  2125,
-                           "endLine":  2129,
+                           "startLine":  2122,
+                           "endLine":  2126,
                            "lineCount":  5,
                            "directCalls":  [
                                                "NzText"
@@ -115834,8 +115813,8 @@
                            "name":  "TestPendingSyncCount",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  2131,
-                           "endLine":  2137,
+                           "startLine":  2128,
+                           "endLine":  2134,
                            "lineCount":  7,
                            "directCalls":  [
                                                "BuildLayout",
@@ -115857,8 +115836,8 @@
                            "name":  "TestInitializeForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  2139,
-                           "endLine":  2146,
+                           "startLine":  2136,
+                           "endLine":  2143,
                            "lineCount":  8,
                            "directCalls":  [
                                                "BuildLayout",
@@ -115879,8 +115858,8 @@
                            "name":  "TestStatusAnchorAfterResize",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  2148,
-                           "endLine":  2181,
+                           "startLine":  2145,
+                           "endLine":  2178,
                            "lineCount":  34,
                            "directCalls":  [
                                                "BuildLayout",
@@ -115901,8 +115880,8 @@
                            "name":  "TestSystemKeyIdentityContract",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  2183,
-                           "endLine":  2201,
+                           "startLine":  2180,
+                           "endLine":  2198,
                            "lineCount":  19,
                            "directCalls":  [
                                                "BuildLayout",
@@ -115924,8 +115903,8 @@
                            "name":  "TestRunShipmentsSentActionForWorkbook",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  2203,
-                           "endLine":  2228,
+                           "startLine":  2200,
+                           "endLine":  2225,
                            "lineCount":  26,
                            "directCalls":  [
                                                "InitializeFromShipping",
@@ -115948,8 +115927,8 @@
                            "name":  "EvictOrphanedActiveOverlays",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2230,
-                           "endLine":  2246,
+                           "startLine":  2227,
+                           "endLine":  2243,
                            "lineCount":  17,
                            "directCalls":  [
                                                "ClearActiveOverlayForSystemKeyVersion",
@@ -115971,8 +115950,8 @@
                            "name":  "HasActiveShipmentLineForSystemKey",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2248,
-                           "endLine":  2278,
+                           "startLine":  2245,
+                           "endLine":  2275,
                            "lineCount":  31,
                            "directCalls":  [
                                                "NzText"
@@ -115992,8 +115971,8 @@
                            "name":  "ShipmentListSystemKeyMatchesShippable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2280,
-                           "endLine":  2285,
+                           "startLine":  2277,
+                           "endLine":  2282,
                            "lineCount":  6,
                            "directCalls":  [
                                                "ShipmentListBoxSystemKeyMatchesShippable"
@@ -116013,8 +115992,8 @@
                            "name":  "ShipmentListBoxSystemKeyMatchesShippable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2287,
-                           "endLine":  2306,
+                           "startLine":  2284,
+                           "endLine":  2303,
                            "lineCount":  20,
                            "directCalls":  [
                                                "NzText"
@@ -116034,8 +116013,8 @@
                            "name":  "ActiveShipmentQtyForShippable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2308,
-                           "endLine":  2329,
+                           "startLine":  2305,
+                           "endLine":  2326,
                            "lineCount":  22,
                            "directCalls":  [
                                                "NzText",
@@ -116058,8 +116037,8 @@
                            "name":  "UnreservedShipmentQtyForShippable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2331,
-                           "endLine":  2344,
+                           "startLine":  2328,
+                           "endLine":  2341,
                            "lineCount":  14,
                            "directCalls":  [
                                                "NzText",
@@ -116081,8 +116060,8 @@
                            "name":  "LockedShipmentQtyForShippable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2346,
-                           "endLine":  2378,
+                           "startLine":  2343,
+                           "endLine":  2375,
                            "lineCount":  33,
                            "directCalls":  [
                                                "HasActiveShipmentLineForSystemKey",
@@ -116107,8 +116086,8 @@
                            "name":  "mBtnClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2380,
-                           "endLine":  2382,
+                           "startLine":  2377,
+                           "endLine":  2379,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -116135,8 +116114,8 @@
                            "name":  "AppendTiming",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2384,
-                           "endLine":  2389,
+                           "startLine":  2381,
+                           "endLine":  2386,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -116156,8 +116135,8 @@
                            "name":  "LayoutBoxDesignerPage",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2391,
-                           "endLine":  2480,
+                           "startLine":  2388,
+                           "endLine":  2477,
                            "lineCount":  90,
                            "directCalls":  [
                                                "MaxSingleBoxing",
@@ -116178,8 +116157,8 @@
                            "name":  "LayoutBoxMakerPage",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2482,
-                           "endLine":  2526,
+                           "startLine":  2479,
+                           "endLine":  2523,
                            "lineCount":  45,
                            "directCalls":  [
                                                "MaxSingleBoxing",
@@ -116200,8 +116179,8 @@
                            "name":  "PositionBoxingControl",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2528,
-                           "endLine":  2539,
+                           "startLine":  2525,
+                           "endLine":  2536,
                            "lineCount":  12,
                            "directCalls":  [
 
@@ -116221,8 +116200,8 @@
                            "name":  "MaxSingleBoxing",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2541,
-                           "endLine":  2547,
+                           "startLine":  2538,
+                           "endLine":  2544,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -116242,8 +116221,8 @@
                            "name":  "ConfigureBoxingListHeaders",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2549,
-                           "endLine":  2561,
+                           "startLine":  2546,
+                           "endLine":  2558,
                            "lineCount":  13,
                            "directCalls":  [
                                                "AddBoxingHeader",
@@ -116264,8 +116243,8 @@
                            "name":  "AddBoxingHeader",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2563,
-                           "endLine":  2573,
+                           "startLine":  2560,
+                           "endLine":  2570,
                            "lineCount":  11,
                            "directCalls":  [
                                                "AddLabel"
@@ -116285,8 +116264,8 @@
                            "name":  "ApplyBoxingHeaderLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2575,
-                           "endLine":  2581,
+                           "startLine":  2572,
+                           "endLine":  2578,
                            "lineCount":  7,
                            "directCalls":  [
                                                "AlignBoxingHeader"
@@ -116306,8 +116285,8 @@
                            "name":  "AlignBoxingHeader",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2583,
-                           "endLine":  2606,
+                           "startLine":  2580,
+                           "endLine":  2603,
                            "lineCount":  24,
                            "directCalls":  [
                                                "BuildBoxingHeaderCaption"
@@ -116327,8 +116306,8 @@
                            "name":  "BuildBoxingHeaderCaption",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2608,
-                           "endLine":  2631,
+                           "startLine":  2605,
+                           "endLine":  2628,
                            "lineCount":  24,
                            "directCalls":  [
 
@@ -116348,8 +116327,8 @@
                            "name":  "TestBoxingLayoutAfterResize",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  2633,
-                           "endLine":  2716,
+                           "startLine":  2630,
+                           "endLine":  2713,
                            "lineCount":  84,
                            "directCalls":  [
                                                "ApplyBoxingHeaderLayout",
@@ -116377,8 +116356,8 @@
                            "name":  "BoxDesignerHasInteractiveOverlap",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2718,
-                           "endLine":  2726,
+                           "startLine":  2715,
+                           "endLine":  2723,
                            "lineCount":  9,
                            "directCalls":  [
                                                "RectanglesOverlapBoxing"
@@ -116398,8 +116377,8 @@
                            "name":  "BoxMakerHasInteractiveOverlap",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2728,
-                           "endLine":  2733,
+                           "startLine":  2725,
+                           "endLine":  2730,
                            "lineCount":  6,
                            "directCalls":  [
                                                "RectanglesOverlapBoxing"
@@ -116419,8 +116398,8 @@
                            "name":  "RectanglesOverlapBoxing",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2735,
-                           "endLine":  2742,
+                           "startLine":  2732,
+                           "endLine":  2739,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -116440,8 +116419,8 @@
                            "name":  "InitializeAnchors",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2744,
-                           "endLine":  2784,
+                           "startLine":  2741,
+                           "endLine":  2781,
                            "lineCount":  41,
                            "directCalls":  [
                                                "Add",
@@ -116463,8 +116442,8 @@
                            "name":  "UpdateSyncStateLabel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2786,
-                           "endLine":  2802,
+                           "startLine":  2783,
+                           "endLine":  2799,
                            "lineCount":  17,
                            "directCalls":  [
                                                "PendingShipmentSyncCount"
@@ -116484,8 +116463,8 @@
                            "name":  "PendingShipmentSyncCount",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2804,
-                           "endLine":  2821,
+                           "startLine":  2801,
+                           "endLine":  2818,
                            "lineCount":  18,
                            "directCalls":  [
                                                "NzText"
@@ -116505,8 +116484,8 @@
                            "name":  "AppendLocalStatus",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2823,
-                           "endLine":  2831,
+                           "startLine":  2820,
+                           "endLine":  2828,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -116526,8 +116505,8 @@
                            "name":  "AddShippableHeaders",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2833,
-                           "endLine":  2842,
+                           "startLine":  2830,
+                           "endLine":  2839,
                            "lineCount":  10,
                            "directCalls":  [
                                                "AddHeaderLabel"
@@ -116547,8 +116526,8 @@
                            "name":  "AddShipmentLineHeaders",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2844,
-                           "endLine":  2854,
+                           "startLine":  2841,
+                           "endLine":  2851,
                            "lineCount":  11,
                            "directCalls":  [
                                                "AddHeaderLabel",
@@ -116569,8 +116548,8 @@
                            "name":  "AddLabel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2856,
-                           "endLine":  2872,
+                           "startLine":  2853,
+                           "endLine":  2869,
                            "lineCount":  17,
                            "directCalls":  [
                                                "Add"
@@ -116590,8 +116569,8 @@
                            "name":  "AddHeaderLabel",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2874,
-                           "endLine":  2883,
+                           "startLine":  2871,
+                           "endLine":  2880,
                            "lineCount":  10,
                            "directCalls":  [
                                                "AddLabel"
@@ -116611,8 +116590,8 @@
                            "name":  "AddTextBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2885,
-                           "endLine":  2897,
+                           "startLine":  2882,
+                           "endLine":  2894,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -116632,8 +116611,8 @@
                            "name":  "AddListBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2899,
-                           "endLine":  2911,
+                           "startLine":  2896,
+                           "endLine":  2908,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -116653,8 +116632,8 @@
                            "name":  "AddComboBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2913,
-                           "endLine":  2927,
+                           "startLine":  2910,
+                           "endLine":  2924,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -116674,8 +116653,8 @@
                            "name":  "AddButton",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2929,
-                           "endLine":  2943,
+                           "startLine":  2926,
+                           "endLine":  2940,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -116695,8 +116674,8 @@
                            "name":  "AddCheckBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2945,
-                           "endLine":  2959,
+                           "startLine":  2942,
+                           "endLine":  2956,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -116716,8 +116695,8 @@
                            "name":  "UniqueHeaderName",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2961,
-                           "endLine":  2963,
+                           "startLine":  2958,
+                           "endLine":  2960,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -116737,8 +116716,8 @@
                            "name":  "LockTextBox",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2965,
-                           "endLine":  2969,
+                           "startLine":  2962,
+                           "endLine":  2966,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -116758,8 +116737,8 @@
                            "name":  "ShowStatus",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2971,
-                           "endLine":  2977,
+                           "startLine":  2968,
+                           "endLine":  2974,
                            "lineCount":  7,
                            "directCalls":  [
                                                "Message"
@@ -116779,8 +116758,8 @@
                            "name":  "ShowPersistencePending",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  2979,
-                           "endLine":  2983,
+                           "startLine":  2976,
+                           "endLine":  2980,
                            "lineCount":  5,
                            "directCalls":  [
                                                "ShowStatus"
@@ -116800,8 +116779,8 @@
                            "name":  "NzText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2985,
-                           "endLine":  2991,
+                           "startLine":  2982,
+                           "endLine":  2988,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -116821,8 +116800,8 @@
                            "name":  "ParseNumber",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  2993,
-                           "endLine":  3001,
+                           "startLine":  2990,
+                           "endLine":  2998,
                            "lineCount":  9,
                            "directCalls":  [
                                                "TextValue"
@@ -116842,8 +116821,8 @@
                            "name":  "FormatQuantity",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  3003,
-                           "endLine":  3009,
+                           "startLine":  3000,
+                           "endLine":  3006,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -116863,8 +116842,8 @@
                            "name":  "DisplayQtyText",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  3011,
-                           "endLine":  3022,
+                           "startLine":  3008,
+                           "endLine":  3019,
                            "lineCount":  12,
                            "directCalls":  [
                                                "FormatQuantity",
@@ -137111,6 +137090,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
+                                                 "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-PackagedExternalEdits.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
@@ -137539,6 +137519,12 @@
                                "entryPoint":  "ArchiveBoxDesign",
                                "testPaths":  [
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ArmAutoSync",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -139680,6 +139666,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
+                                                 "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4abProcessPickerInventory.ps1",
@@ -139872,6 +139859,7 @@
                                "entryPoint":  "IsSignedIn",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beShippingContext.ps1",
+                                                 "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -141010,6 +140998,12 @@
                                "entryPoint":  "PendingBoxVersionInventoryOverlayText",
                                "testPaths":  [
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "PendingShipmentSyncCount",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
                            {
@@ -142401,6 +142395,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ShipmentsFormAutoSyncRefresh",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ShipmentsFormClearActiveLines",
                                "testPaths":  [
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
@@ -142572,6 +142572,7 @@
                            {
                                "entryPoint":  "ShowPersistencePending",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                              ]
                            },
@@ -142644,6 +142645,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
+                                                 "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestReceivingReadiness.bas"
@@ -142791,6 +142793,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
+                                                 "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1",
                                                  "tests/tooling/Test-Plan022Slice4biFirstUseNasOnboarding.ps1",
@@ -143286,6 +143289,12 @@
                                "entryPoint":  "ToggleServerSessionForCapability",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4lRibbonSessionControls.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "TriggerShipmentsFormAutoSync",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingInterruptions.ps1"
                                              ]
                            },
                            {

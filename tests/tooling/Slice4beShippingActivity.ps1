@@ -55,11 +55,16 @@ function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$La
 }
 function Test-Slice4beShippingActivity {
     . (Join-Path $PSScriptRoot 'Slice4beShippingContext.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beShippingInterruptions.ps1')
     $project=$packages['invSys.Operations.xlam'].VBProject
     $form=$project.VBComponents.Item('frmShipmentsTally').CodeModule
     # Intercept only existing report presentation, retaining the real handlers.
     $source=$form.Lines(1,$form.CountOfLines)
     $source=$source.Replace('MsgBox report,','ActivityShippingNotice report,')
+    $source=$source.Replace('Option Explicit',"Option Explicit`r`nPrivate ActivityPendingSignOut As Boolean`r`nPrivate ActivityPendingInterruptions As Long")
+    $pattern='(?s)(Private Sub ShowPersistencePending\(ByVal messageText As String\).*?    DoEvents)(\r?\nEnd Sub)'
+    if([regex]::Matches($source,$pattern).Count -ne 1){throw 'Shipping UI-yield observer anchor unavailable.'}
+    $source=[regex]::Replace($source,$pattern,'$1'+"`r`n    If ActivityPendingSignOut Then`r`n        ActivityPendingSignOut = False`r`n        ActivityPendingInterruptions = ActivityPendingInterruptions + 1`r`n        modAuth.SignOut`r`n    End If"+'$2')
     $form.DeleteLines(1,$form.CountOfLines);$form.AddFromString($source)
     $form.AddFromString(@'
 Private Sub ActivityShippingNotice(ByVal report As String, Optional ByVal style As VbMsgBoxStyle = vbOKOnly, Optional ByVal title As String = "")
@@ -72,6 +77,21 @@ Public Sub ActivityShippingSetQuantity(ByVal value As String)
 End Sub
 Public Function ActivityShippingStatus() As String
     ActivityShippingStatus = NzText(mTxtStatus.Value)
+End Function
+Public Sub ActivityShippingInterruptAtPending()
+    ActivityPendingSignOut = True
+    ActivityPendingInterruptions = 0
+End Sub
+Public Function ActivityShippingInterruptionCount() As Long
+    ActivityShippingInterruptionCount = ActivityPendingInterruptions
+End Function
+Public Function ActivityShippingArmTimer() As Long
+    ArmAutoSync
+    CancelAutoSync
+    ActivityShippingArmTimer = PendingShipmentSyncCount()
+End Function
+Public Function ActivityShippingTimerScheduled() As Boolean
+    ActivityShippingTimerScheduled = (mNextPollTime > 0)
 End Function
 Public Function ActivityShippingCreateBox() As Boolean
     Dim i As Long, chosen As Boolean
@@ -167,7 +187,7 @@ End Function
     $module.DeleteLines(1,$module.CountOfLines);$module.AddFromString($source)
     $source=$module.Lines(1,$module.CountOfLines)
     $source=$source.Replace('Option Explicit',"Option Explicit`r`nPublic ActivityShippingProbeMode As Boolean`r`nPublic ActivityShippingProbeEntries As Long")
-    foreach($owner in @('ShipmentsFormCommitLine','ShipmentsFormMoveHoldRows','ShipmentsFormRunToShipmentsRows')) {
+    foreach($owner in @('ShipmentsFormCommitLine','ShipmentsFormMoveHoldRows','ShipmentsFormRunToShipmentsRows','ShipmentsFormAutoSyncRefresh')) {
         $pattern='(?s)(Public Function '+$owner+'\(.*?\) As Boolean\s*\r?\n)'
         if([regex]::Matches($source,$pattern).Count -ne 1){throw 'Shipping guard owner anchor unavailable.'}
         $source=[regex]::Replace($source,$pattern,'$1'+'    If ActivityShippingGuardOwnerProbe() Then report = "Shipping guard boundary probe.": Exit Function'+"`r`n")
@@ -225,6 +245,21 @@ End Sub
 Public Function ActivityShippingStatus() As String
     ActivityShippingStatus = mShipmentsLauncherForm.ActivityShippingStatus()
 End Function
+Public Sub ActivityShippingInterruptAtPending()
+    mShipmentsLauncherForm.ActivityShippingInterruptAtPending
+End Sub
+Public Function ActivityShippingInterruptionCount() As Long
+    ActivityShippingInterruptionCount = mShipmentsLauncherForm.ActivityShippingInterruptionCount()
+End Function
+Public Function ActivityShippingArmTimer() As Long
+    ActivityShippingArmTimer = mShipmentsLauncherForm.ActivityShippingArmTimer()
+End Function
+Public Function ActivityShippingTimerScheduled() As Boolean
+    ActivityShippingTimerScheduled = mShipmentsLauncherForm.ActivityShippingTimerScheduled()
+End Function
+Public Sub ActivityShippingCancelTimer()
+    mShipmentsLauncherForm.CancelAutoSync
+End Sub
 Public Sub ActivityShippingClick(ByVal action As String)
     mShipmentsLauncherForm.ActivityShippingClick action
 End Sub

@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-12T23:49:21Z",
+    "generatedAtUtc":  "2026-09-13T00:28:38Z",
     "baseline":  {
                      "componentCount":  177,
-                     "procedureCount":  5511,
-                     "lineCount":  123758,
+                     "procedureCount":  5510,
+                     "lineCount":  123755,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  195
@@ -17094,7 +17094,6 @@
                                                   "TestRunShipmentsSentActionForWorkbook",
                                                   "TestStatusAnchorAfterResize",
                                                   "TestSystemKeyIdentityContract",
-                                                  "TimingStart",
                                                   "TimingSummary",
                                                   "TLap",
                                                   "UniqueHeaderName",

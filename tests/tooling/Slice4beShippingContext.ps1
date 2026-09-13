@@ -80,6 +80,7 @@ function Test-Slice4beShippingContextMatrix($Fixture,$Operator,$Other,$Ship,$Hol
         Check 'Shipping.ContextMatrix.Reopen.RetainsWorkbook' ([bool](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBound' @($name)))
         Check 'Shipping.ContextMatrix.Reopen.PreservesStaging' ($beforeRows -ceq (@(Get-ShippingActivityRows $Ship)|ConvertTo-Json -Depth 5 -Compress) -and $beforeHeld -ceq (@(Get-ShippingActivityRows $Hold)|ConvertTo-Json -Depth 5 -Compress))
         Check 'Shipping.ContextMatrix.Reopen.NextLaunchReusesForm' ([bool](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingRelaunchReuses'))
+        Test-Slice4beShippingInterruptions $Fixture $Operator $Ship $Hold
     } finally {
         [void](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingSetProbeMode' @($false))
         SelectTarget $Fixture 'config-reader'

@@ -1,6 +1,6 @@
 # Plan 022 Slice 4be.1 Shipping/Boxing activity discovery
 
-Last verified: 2026-09-12, including the Shipping context candidate described
+Last verified: 2026-09-12, including the Shipping context/timer candidates described
 in [context evidence](plan022_slice4be_shipping_context_results.md). This source map
 advances D18's comprehensive coverage inventory. It neither registers new
 ControlIds nor claims packaged activity coverage or changes a business contract.
@@ -77,11 +77,39 @@ candidate now guards all seven mutation handlers and explicit stale-form relaunc
 46 former guard failures pass, while46 missing-activity failures remain. Broader
 candidate gates and the remaining context/failure cases are still required.
 
-Extend the real-handler context matrix to capability loss, interrupted UI yields
-and workbook closure, retaining all prior GREEN checks. Protect pending,
+Extend the real-handler context matrix to capability loss and workbook closure,
+retaining the passing pending-yield/timer checks and all prior GREENs. Protect pending,
 uncertain-submission, storage and policy outcomes separately. A later owner
 rejection or rollback cannot substitute for the required pre-owner stale-form guard.
 Before implementation, record discovered ControlIds and precise owner outcomes
 under D18 and synchronize Architecture, Plan022 and the controls catalog. Do not
 use a Boolean success, report-text parsing, direct owner call or test-only auth
 bypass as a substitute for the required user-action and application evidence.
+
+## Owner branches that constrain activity implementation
+
+Source review on2026-09-12 adds these observations; they are not new runtime or
+outcome contracts. D18's owner-fact rule governs the next protecting tests.
+
+- `ShipmentsFormCommitLine` can release an earlier reservation and create a new
+  one in the same edit. Its delta-only and preserved-reservation branches may
+  complete without a new submission. Record every newly emitted identity, never
+  copy an existing row's reservation ID as a new source event. DELETE may remove
+  a row after a release-queue warning; Boolean success alone cannot prove that
+  release was accepted. Failure may follow prior local or submitted changes.
+- `ShipmentsFormRunToShipmentsRows` has two successful already-locked branches
+  that update local staging without queueing a new reservation. Its other branch
+  submits a reserve event before subsequent local work can fail. Empty references
+  and retained references must each follow actual owner evidence.
+- `ShipmentsFormRunShipmentsSentRows` explicitly checks SHIP_POST, queues SHIP,
+  finalizes local staging, then runs processing/refresh. Its Boolean result can
+  be True with `runtimeProcessed=False`. A local completion must not become an
+  all-events-applied conclusion. Exceptions after queue entry retain uncertainty.
+- `QueueShipmentsReserveEvent`, `QueueShipmentsReleaseEvent` and
+  `QueueShipmentsSentEvent` delegate to `QueueShippingPayloadEventServerFirst`.
+  Capture evidence at the owning submission boundary, with acceptance state per
+  emitted identity; neither report parsing nor reading the latest current-state
+  row can substitute for that evidence. Automatic catch-up is not another click.
+
+The pending-yield/timer tests now separately protect stale owner dispatch; their
+stopped-owner probes do not cover the failure/outcome branches above.
