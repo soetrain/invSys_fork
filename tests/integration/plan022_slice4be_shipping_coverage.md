@@ -156,6 +156,9 @@ acknowledgment, including owner failure after real server acceptance. Initial
 605-check discovery retains all558 prior checks; isolated focused validation then
 passes136/136, including66 submission/persistence/path checks. Two revised full
 runs stop early with native faults and remain unresolved. The normal activity
-test's applied-log-only reference expectation must be corrected to include actual
-pending owner submissions before Shipping observation is implemented. Those
+test's applied-log-only expectation is subsequently corrected in the
+[owner-reference RED](plan022_slice4be_shipping_owner_reference_results.md):650 checks,
+597 PASS/53 FAIL, all preceding checks/GREENs retained and all66 source-submission
+checks passing within the full route. References include pending owner submissions
+and exclude earlier actions merely applied during the current click. Those
 source facts do not yet prove Update/Remove mixed outcomes or Send processing.

@@ -148,11 +148,11 @@ access report's helper-local preservation language.
 
 ## Consequence for comprehensive activity
 
-The existing normal-action activity test uses newly applied inventory-log IDs as
+The normal-action activity test originally used newly applied inventory-log IDs as
 its reference expectation. These Add observations prove that this misses pending
-owner submissions. Correct the expected references using actual owning submission
-facts before implementing Shipping activity; preserve each prior GREEN identity
-and the existing missing-activity assertions. Submitted references mean confirmed
+owner submissions. The subsequent [owner-reference RED](plan022_slice4be_shipping_owner_reference_results.md)
+corrects that expectation and completes650 checks (597 PASS/53 FAIL), preserving
+every preceding GREEN and missing-activity assertion. Submitted references mean confirmed
 queue acceptance, Unknown references retain uncertain known IDs, and neither means
 Domain application. Do not parse report wording to recover these facts.
 

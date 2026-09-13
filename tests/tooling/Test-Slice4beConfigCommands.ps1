@@ -132,6 +132,7 @@ public static class InvSysSettingsCapture {
 }
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
     $name="'$Package'!$Macro"
+    try {
     switch($Values.Count) {
         0 { $excel.Run($name) }
         1 { $excel.Run($name,$Values[0]) }
@@ -141,6 +142,10 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
         5 { $excel.Run($name,$Values[0],$Values[1],$Values[2],$Values[3],$Values[4]) }
         6 { $excel.Run($name,$Values[0],$Values[1],$Values[2],$Values[3],$Values[4],$Values[5]) }
         default { throw 'Unsupported macro argument count' }
+    }
+    } catch {
+        Write-Host ('Packaged call failed: '+$Macro+'; argument count='+$Values.Count)
+        throw
     }
 }
 function Table($Workbook,[string]$Name) {
@@ -303,6 +308,13 @@ End Function
 Public Function RoundTrip(ByVal workbookName As String) As Boolean
     RoundTrip = frmProduction.D5UomRoundTrip(workbookName)
     Unload frmProduction
+End Function
+'@)
+    $bootstrapCode=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modWarehouseBootstrap').CodeModule
+    $bootstrapCode.AddFromString(@'
+Public Function TestFixtureBootstrapRoots(ByVal templateRoot As String, ByVal operatorRoot As String) As String
+    TestFixtureBootstrapRoots = CStr(StrComp(mBootstrapTemplateRootOverride, templateRoot, vbTextCompare) = 0) & "|" & _
+        CStr(StrComp(mLocalOperatorRootOverride, operatorRoot, vbTextCompare) = 0)
 End Function
 '@)
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))

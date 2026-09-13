@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T03:45:36Z",
+    "generatedAtUtc":  "2026-09-13T04:31:02Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -137061,6 +137061,7 @@
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aaProcessBulkImport.ps1",
                                                  "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",

@@ -19,7 +19,7 @@ function Get-ShippingActivityLog($Fixture) {
     if($null -eq $book){$book=$excel.Workbooks.Open($path,0,$true);$opened=$true}
     try{Get-ShippingActivityRows (Table $book 'tblInventoryLog')}finally{if($opened){$book.Close($false)}}
 }
-function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$Label,$AppliedIds) {
+function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$Label,$SubmittedIds) {
     $records=@();$raws=@()
     foreach($path in @(Get-Slice4beActivityFiles $Fixture)) {
         if($path -in $Before){continue}
@@ -43,11 +43,13 @@ function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$La
         $property=$result[0].PSObject.Properties['SourceEventRefs']
         if($null -ne $property){
             $refs=@($property.Value);$ids=@($refs|ForEach-Object EventId)
-            $references=$ids.Count -eq $AppliedIds.Count -and @($ids|Select-Object -Unique).Count -eq $ids.Count
-            foreach($id in $AppliedIds){$references=$references -and $id -cin $ids}
+            $references=$ids.Count -eq $SubmittedIds.Count -and @($ids|Select-Object -Unique).Count -eq $ids.Count
+            foreach($id in $SubmittedIds){$references=$references -and $id -cin $ids}
             foreach($ref in $refs){$references=$references -and $ref.WarehouseId -ceq $Fixture.Warehouse -and $ref.SourceKind -ceq 'Inventory' -and $ref.SubmissionState -ceq 'Submitted'}
         }
     }
+    # Historical check identity retained; its expectation is every owner-submitted
+    # identity, including pending work, not IDs newly encountered during catch-up.
     Check ($Label+'.Activity.ExactAppliedSourceReferences') $references
     $safe=$pair
     foreach($raw in $raws){foreach($value in @($Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'SHIPPING-PRIVATE-REFERENCE','SHIPPING-PRIVATE-CARRIER','PinHash','Err.Description','mBtnAdd_Click')){if($raw.IndexOf($value,[StringComparison]::OrdinalIgnoreCase) -ge 0){$safe=$false}}}
@@ -60,6 +62,9 @@ function Test-Slice4beShippingActivity {
     . (Join-Path $PSScriptRoot 'Slice4beShippingCapability.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beShippingAccessInterruptions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beShippingSubmission.ps1')
+    $templateRoot=Join-Path $repo 'deploy/current/templates'
+    $initialOperatorRoot=Join-Path $runRoot 'operators'
+    $rootsBeforeInstrumentation=[string](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.TestFixtureBootstrapRoots' @($templateRoot,$initialOperatorRoot))
     $project=$packages['invSys.Operations.xlam'].VBProject
     $form=$project.VBComponents.Item('frmShipmentsTally').CodeModule
     # Intercept only existing report presentation, retaining the real handlers.
@@ -178,7 +183,7 @@ End Function
     # Count entry to the existing owner/submission boundaries without replacing
     # their logic. No payload, event identity or credential enters the counters.
     $source=$module.Lines(1,$module.CountOfLines)
-    $source=$source.Replace('Option Explicit',"Option Explicit`r`nPublic ActivityShippingOwnerEntries As Long`r`nPublic ActivityShippingQueueEntries As Long")
+    $source=$source.Replace('Option Explicit',"Option Explicit`r`nPublic ActivityShippingOwnerEntries As Long`r`nPublic ActivityShippingQueueEntries As Long`r`nPrivate ActivityShippingAcceptedSourceIds As String`r`nPrivate ActivityShippingUncertainSources As Long")
     foreach($entry in @(
         @{Name='ShipmentsFormCommitLine';Counter='ActivityShippingOwnerEntries'},
         @{Name='QueueShippingPayloadEventServerFirst';Counter='ActivityShippingQueueEntries'}
@@ -188,6 +193,14 @@ End Function
         $replacement='$1'+'    '+$entry.Counter+' = '+$entry.Counter+" + 1`r`n"+'$2'
         $source=[regex]::Replace($source,$pattern,$replacement)
     }
+    $pattern='(?ms)^Private Function QueueShippingPayloadEventServerFirst\(.*?^End Function'
+    $matches=[regex]::Matches($source,$pattern)
+    if($matches.Count -ne 1){throw 'Shipping submission-return observer anchor unavailable.'}
+    $anchor='        If QueueShippingPayloadEventServerFirst Then Exit Function'
+    if(-not $matches[0].Value.Contains($anchor)){throw 'Shipping server acknowledgment anchor unavailable.'}
+    $block=$matches[0].Value.Replace($anchor,'        If QueueShippingPayloadEventServerFirst Then ActivityShippingRecordSource eventIdOut, True: Exit Function')
+    $block=$block.Replace('End Function',"    ActivityShippingRecordSource eventIdOut, QueueShippingPayloadEventServerFirst`r`nEnd Function")
+    $source=$source.Replace($matches[0].Value,$block)
     $module.DeleteLines(1,$module.CountOfLines);$module.AddFromString($source)
     $source=$module.Lines(1,$module.CountOfLines)
     $source=$source.Replace('Option Explicit',"Option Explicit`r`nPublic ActivityShippingProbeMode As Boolean`r`nPublic ActivityShippingProbeEntries As Long")
@@ -204,6 +217,23 @@ End Function
     $source=[regex]::Replace($source,$pattern,'$1'+'    If modTS_Shipments.ActivityShippingGuardOwnerProbe() Then report = "Shipping guard boundary probe.": Exit Function'+"`r`n")
     $posting.DeleteLines(1,$posting.CountOfLines);$posting.AddFromString($source)
     $module.AddFromString(@'
+Private Sub ActivityShippingRecordSource(ByVal eventId As String, ByVal accepted As Boolean)
+    If Not accepted Or eventId = "" Then
+        ActivityShippingUncertainSources = ActivityShippingUncertainSources + 1
+        Exit Sub
+    End If
+    If ActivityShippingAcceptedSourceIds <> "" Then ActivityShippingAcceptedSourceIds = ActivityShippingAcceptedSourceIds & vbLf
+    ActivityShippingAcceptedSourceIds = ActivityShippingAcceptedSourceIds & eventId
+End Sub
+Public Sub ActivityShippingResetSources()
+    ActivityShippingAcceptedSourceIds = "": ActivityShippingUncertainSources = 0
+End Sub
+Public Function ActivityShippingReadSources() As String
+    ActivityShippingReadSources = ActivityShippingAcceptedSourceIds
+End Function
+Public Function ActivityShippingSourceFailures() As Long
+    ActivityShippingSourceFailures = ActivityShippingUncertainSources
+End Function
 Public Function ActivityShippingGuardOwnerProbe() As Boolean
     If Not ActivityShippingProbeMode Then Exit Function
     ActivityShippingProbeEntries = ActivityShippingProbeEntries + 1
@@ -287,6 +317,15 @@ End Function
 '@)
     Install-Slice4beShippingAccessInterruptionProbe $form $module
     if($ShippingSubmissionOnly){Test-Slice4beShippingSubmission $module;return}
+    $rootsAfterInstrumentation=[string](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.TestFixtureBootstrapRoots' @($templateRoot,$initialOperatorRoot))
+    [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @($templateRoot))
+    $operatorRoot=Join-Path $runRoot 'shipping-operators'
+    [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @($operatorRoot))
+    $rootsBeforeGeneration=[string](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.TestFixtureBootstrapRoots' @($templateRoot,$operatorRoot))
+    $rootsReady=$rootsBeforeGeneration -ceq 'True|True' -and (Test-Path -LiteralPath (Join-Path $templateRoot 'invSys.Data.Inventory.template.xlsb'))
+    Check 'Shipping.Fixture.ExplicitRootsBeforeGeneration' $rootsReady
+    [pscustomobject]@{BeforeInstrumentation=$rootsBeforeInstrumentation;AfterInstrumentation=$rootsAfterInstrumentation;BeforeGeneration=$rootsBeforeGeneration}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $reportRoot 'shipping-fixture-root-observations.json')
+    if(-not $rootsReady){throw 'Shipping fixture bootstrap roots are unavailable.'}
     $fixture=NewFixture 'shipping-activity'
     $auth=$excel.Workbooks.Open((Join-Path $fixture.Root ($fixture.Warehouse+'.invSys.Auth.xlsb')),0,$false)
     $caps=Table $auth 'tblCapabilities';$row=$caps.ListRows.Add()
@@ -331,6 +370,7 @@ End Function
         $operator.Save()
         $inventoryPath=Join-Path $fixture.Root ($fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
         $lastKey=''
+        $sourceCounts=New-Object 'System.Collections.Generic.List[object]'
         $captions=@{Add='Add';AddAgain='Add';Update='Update Row';Remove='Remove';Hold='Send Hold';Return='Return';Stage='To Shipments';Send='Shipments Sent'}
         foreach($action in @('Add','Update','Hold','Return','Remove','AddAgain','Stage','Send')) {
             $label='Shipping.'+$action
@@ -340,6 +380,8 @@ End Function
             if($action -in @('Update','Stage')){$ship.ListColumns.Item('Shipping Extra').DataBodyRange.Value2='preserve shipping extension'}
             $beforeLog=@(Get-ShippingActivityLog $fixture)
             $before=@(Get-Slice4beActivityFiles $fixture)
+            [void](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingResetSources')
+            $queueBefore=[long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Queue'))
             $other.Activate()
             [void](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingClick' @($action))
             $rows=@(Get-ShippingActivityRows $ship);$held=@(Get-ShippingActivityRows $hold)
@@ -359,9 +401,19 @@ End Function
             Check ($label+'.EvidenceReadPreservedAuthorityBytes') ($beforeReadHash -ceq (Get-ShippingActivityHash $inventoryPath))
             $newLog=@($afterLog|Where-Object {$_.EventID -cnotin @($beforeLog.EventID)})
             $appliedIds=@($newLog|ForEach-Object EventID|Select-Object -Unique)
+            $submittedIds=@(([string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingReadSources')).Split("`n")|Where-Object {$_ -ne ''})
+            $queueCount=[long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Queue'))-$queueBefore
+            Check ($label+'.SourceObserver.UniqueExactIdentities') (@($submittedIds|Select-Object -Unique).Count -eq $submittedIds.Count -and @($submittedIds|Where-Object {$_ -cnotmatch '^[A-Za-z0-9_-]{1,128}$'}).Count -eq 0)
+            Check ($label+'.SourceObserver.AllSubmissionsAcknowledged') ($queueCount -eq $submittedIds.Count -and [long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingSourceFailures') -eq 0)
+            $cardinality=if($action -in @('Add','AddAgain','Remove','Send')){$submittedIds.Count -eq 1}else{$submittedIds.Count -eq 0}
+            Check ($label+'.SourceObserver.CommandCardinality') $cardinality
+            $pending=@($submittedIds|Where-Object {$_ -cnotin $appliedIds}).Count
+            $sourceCounts.Add([pscustomobject]@{Action=$action;Submitted=$submittedIds.Count;NewlyApplied=$appliedIds.Count;OwnPending=$pending;EarlierApplied=@($appliedIds|Where-Object {$_ -cnotin $submittedIds}).Count})
             Check ($label+'.SourceEvidenceHasExactWarehouseAndKey') (@($newLog|Where-Object {$_.WarehouseId -cne $fixture.Warehouse -or $_.System_Key -cne $key -or [string]::IsNullOrWhiteSpace($_.EventID)}).Count -eq 0)
-            Test-ShippingActivityPair $fixture $before $captions[$action] $label $appliedIds
+            Test-ShippingActivityPair $fixture $before $captions[$action] $label $submittedIds
         }
+        Check 'Shipping.SourceObserver.PendingAcknowledgmentsIncluded' (@($sourceCounts|Where-Object {$_.Action -eq 'Add' -and $_.Submitted -eq 1 -and $_.OwnPending -eq 1}).Count -eq 1)
+        $sourceCounts|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $reportRoot 'shipping-source-counts.json')
         $terminal=@(Get-ShippingActivityLog $fixture)
         $shipEvents=@($terminal|Where-Object {$_.EventType -ceq 'SHIP' -and $_.System_Key -ceq $lastKey})
         Check 'Shipping.Domain.ExactShipmentAppliedOnce' ($shipEvents.Count -eq 1 -and [double]$shipEvents[0].QtyDelta -eq -2 -and $shipEvents[0].WarehouseId -ceq $fixture.Warehouse)
