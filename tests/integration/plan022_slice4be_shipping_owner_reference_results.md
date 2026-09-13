@@ -109,7 +109,9 @@ the unrelated user changes in handoff 067 and untracked critique 023.
 
 Register the seven Shipping controls and owner-reported outcomes/source eligibility
 under D18 in Architecture v4.11, Plan 022 and the controls catalog before runtime
-observation changes. Preserve the full 650-check route and strengthen it for exact
+observation changes. The subsequent [catalog checkpoint](plan022_slice4be_shipping_catalog_results.md)
+implements Core definitions/reference eligibility after normative clarification;
+actual handler observation is still pending. Preserve the full 650-check route and strengthen it for exact
 catalog outcomes and partial/mixed submissions. Update/Remove partial failure,
 Send pending processing, policy/tracking failures, and remaining Operations/Admin
 coverage remain required. D8-A approval is independent and still pending.

@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T04:31:02Z",
+    "generatedAtUtc":  "2026-09-13T04:49:17Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -97,6 +97,7 @@
                                                 "modRoleUiAccess",
                                                 "modRoleWorkbookSurfaces",
                                                 "modRuntimeWorkbooks",
+                                                "modShippingActivityCodes",
                                                 "modStationIdentity",
                                                 "modSystemIdentity",
                                                 "modTrainingJson",
@@ -1925,7 +1926,7 @@
                            "name":  "modActivityCatalog",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActivityCatalog.bas",
-                           "lineCount":  191,
+                           "lineCount":  212,
                            "procedureNames":  [
                                                   "Control",
                                                   "ControlIds",
@@ -1955,7 +1956,7 @@
                            "name":  "modActivityReferences",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActivityReferences.bas",
-                           "lineCount":  88,
+                           "lineCount":  96,
                            "procedureNames":  [
                                                   "Decode",
                                                   "Encode",
@@ -3355,6 +3356,20 @@
                                                   "WorkbookHasListObjectRuntime",
                                                   "WorksheetIsBlankRuntime",
                                                   "WorksheetNameInSetRuntime"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "modShippingActivityCodes",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modShippingActivityCodes.bas",
+                           "lineCount":  82,
+                           "procedureNames":  [
+                                                  "Control",
+                                                  "HasInventorySources",
+                                                  "Outcome"
                                               ],
                            "metadata":  {
 
@@ -33772,8 +33787,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  7,
-                           "endLine":  42,
-                           "lineCount":  36,
+                           "endLine":  55,
+                           "lineCount":  49,
                            "directCalls":  [
                                                "Version"
                                            ],
@@ -33792,9 +33807,9 @@
                            "name":  "Control",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  44,
-                           "endLine":  130,
-                           "lineCount":  87,
+                           "startLine":  57,
+                           "endLine":  147,
+                           "lineCount":  91,
                            "directCalls":  [
                                                "Add",
                                                "Version"
@@ -33814,9 +33829,9 @@
                            "name":  "Outcome",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  132,
-                           "endLine":  191,
-                           "lineCount":  60,
+                           "startLine":  149,
+                           "endLine":  212,
+                           "lineCount":  64,
                            "directCalls":  [
                                                "Add",
                                                "Control",
@@ -33977,10 +33992,13 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  16,
-                           "endLine":  50,
-                           "lineCount":  35,
+                           "endLine":  58,
+                           "lineCount":  43,
                            "directCalls":  [
                                                "Add",
+                                               "Control",
+                                               "HasInventorySources",
+                                               "Outcome",
                                                "ValidIdentity"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -33998,8 +34016,8 @@
                            "name":  "Encode",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  52,
-                           "endLine":  59,
+                           "startLine":  60,
+                           "endLine":  67,
                            "lineCount":  8,
                            "directCalls":  [
                                                "Add",
@@ -34020,8 +34038,8 @@
                            "name":  "Inventory",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  61,
-                           "endLine":  78,
+                           "startLine":  69,
+                           "endLine":  86,
                            "lineCount":  18,
                            "directCalls":  [
                                                "Add",
@@ -34043,8 +34061,8 @@
                            "name":  "ValidIdentity",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  80,
-                           "endLine":  88,
+                           "startLine":  88,
+                           "endLine":  96,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -57488,6 +57506,72 @@
                            "unresolvedApplicationRunExpressions":  [
                                                                        "\"\u0027\" \u0026 ThisWorkbook.Name \u0026 \"\u0027!\" \u0026 macroName, arg0, arg1, arg2, arg3)",
                                                                        "macroName, arg0, arg1, arg2, arg3)"
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modShippingActivityCodes",
+                           "name":  "Control",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  6,
+                           "endLine":  28,
+                           "lineCount":  23,
+                           "directCalls":  [
+                                               "Add"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modShippingActivityCodes",
+                           "name":  "HasInventorySources",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  30,
+                           "endLine":  35,
+                           "lineCount":  6,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modShippingActivityCodes",
+                           "name":  "Outcome",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  37,
+                           "endLine":  82,
+                           "lineCount":  46,
+                           "directCalls":  [
+                                               "Add",
+                                               "Control",
+                                               "HasInventorySources",
+                                               "Message"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
                                                                    ],
                            "rootIds":  [
 
@@ -137116,6 +137200,7 @@
                                                  "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
@@ -138430,6 +138515,7 @@
                                                  "tests/tooling/Slice4beReceivingNativeSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4afRecipeIdentity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aoRecipeConnectionEditor.ps1",
@@ -138438,6 +138524,12 @@
                                                  "tests/tooling/Test-ShippingStatusAnchor.ps1",
                                                  "tests/tooling/Test-Slice9ProductionLayout.ps1",
                                                  "tests/unit/TestPhase6RoleSurfaces.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ControlIds",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1"
                                              ]
                            },
                            {
@@ -138523,6 +138615,12 @@
                                "entryPoint":  "DeclaredListBoxHeaders",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4bcBatchNotesViewerListExport.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Decode",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1"
                                              ]
                            },
                            {
@@ -138720,7 +138818,8 @@
                            {
                                "entryPoint":  "EncodeObject",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beActivityFoundation.ps1"
+                                                 "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1"
                                              ]
                            },
                            {
@@ -138960,6 +139059,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
@@ -139294,6 +139394,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Test-Slice8ProductionRetirement.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -139724,6 +139825,7 @@
                                                  "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
@@ -140118,6 +140220,7 @@
                                                  "tests/integration/prove_wan_wh2_setup.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Test-Plan022Slice4pReceiving.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestCoreAuth.bas",
@@ -140992,6 +141095,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1"
                                              ]
@@ -141406,7 +141510,8 @@
                            {
                                "entryPoint":  "ReadPolicy",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1"
                                              ]
                            },
                            {
@@ -143531,6 +143636,7 @@
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                  "tests/tooling/Test-Plan022Slice4xProductionRestart.ps1",
@@ -143790,6 +143896,7 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-EaWholeUnitInvariant.ps1",

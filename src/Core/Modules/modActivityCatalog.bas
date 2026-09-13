@@ -2,10 +2,23 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 7
+Public Const CATALOG_VERSION As Long = 8
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     Dim ids As Variant
+    If version = 8 Then
+        ids = ControlIds(7)
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + 7)
+        ids(UBound(ids) - 6) = "SHIPPING_ADD"
+        ids(UBound(ids) - 5) = "SHIPPING_UPDATE"
+        ids(UBound(ids) - 4) = "SHIPPING_REMOVE"
+        ids(UBound(ids) - 3) = "SHIPPING_HOLD"
+        ids(UBound(ids) - 2) = "SHIPPING_RETURN"
+        ids(UBound(ids) - 1) = "SHIPPING_STAGE"
+        ids(UBound(ids)) = "SHIPPING_SEND"
+        ControlIds = ids
+        Exit Function
+    End If
     If version = 7 Then
         ids = ControlIds(6)
         ReDim Preserve ids(LBound(ids) To UBound(ids) + 1)
@@ -44,6 +57,10 @@ End Function
 Public Function Control(ByVal controlId As String, Optional ByVal version As Long = CATALOG_VERSION) As Object
     Dim record As Object
     If version < 1 Or version > CATALOG_VERSION Then Exit Function
+    If version >= 8 Then
+        Set record = modShippingActivityCodes.Control(controlId)
+        If Not record Is Nothing Then Set Control = record: Exit Function
+    End If
     Set record = CreateObject("Scripting.Dictionary")
     record.Add "ControlId", controlId
     record.Add "OwnerId", "CORE_CONFIGURATION"
@@ -133,6 +150,10 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Dim record As Object, definition As Object, message As String
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
+    If definition("Role") = "Shipping" Then
+        Set Outcome = modShippingActivityCodes.Outcome(controlId, outcomeCode)
+        Exit Function
+    End If
     If definition("Class") = "Navigation" Then
         Set Outcome = modReceivingNavigationCodes.Outcome(controlId, outcomeCode)
         Exit Function

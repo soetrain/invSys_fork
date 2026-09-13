@@ -16,10 +16,18 @@ End Function
 Public Function Valid(ByVal warehouseId As String, ByVal controlId As String, _
                       ByVal outcomeCode As String, ByVal references As Collection) As Boolean
     Dim reference As Variant, field As Variant, seen As Object, key As String
+    Dim shipping As Object, outcome As Object, sourceControl As Boolean
     On Error GoTo Invalid
-    If (controlId <> "RECEIVING_CONFIRM_WRITES" And controlId <> "DISPOSITION_CONFIRM" And _
-        controlId <> "RECEIVING_WORKSHEET_CONFIRM") Or outcomeCode = "REQUESTED" Or _
-       outcomeCode = "DENIED" Or outcomeCode = "REJECTED" Then
+    sourceControl = (controlId = "RECEIVING_CONFIRM_WRITES" Or controlId = "DISPOSITION_CONFIRM" Or _
+                     controlId = "RECEIVING_WORKSHEET_CONFIRM")
+    Set shipping = modShippingActivityCodes.Control(controlId)
+    If Not shipping Is Nothing Then
+        Set outcome = modShippingActivityCodes.Outcome(controlId, outcomeCode)
+        If outcome Is Nothing Then Exit Function
+        sourceControl = modShippingActivityCodes.HasInventorySources(controlId)
+    End If
+    If Not sourceControl Or outcomeCode = "REQUESTED" Or outcomeCode = "DENIED" Or _
+       outcomeCode = "REJECTED" Or outcomeCode = "STAGED" Then
         Valid = (references.Count = 0)
         Exit Function
     End If

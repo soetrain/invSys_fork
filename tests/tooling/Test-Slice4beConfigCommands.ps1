@@ -311,6 +311,10 @@ Public Function RoundTrip(ByVal workbookName As String) As Boolean
 End Function
 '@)
     $bootstrapCode=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modWarehouseBootstrap').CodeModule
+    if($CheckShippingActivity){
+        . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
+        Install-Slice4beShippingCatalogProbe
+    }
     $bootstrapCode.AddFromString(@'
 Public Function TestFixtureBootstrapRoots(ByVal templateRoot As String, ByVal operatorRoot As String) As String
     TestFixtureBootstrapRoots = CStr(StrComp(mBootstrapTemplateRootOverride, templateRoot, vbTextCompare) = 0) & "|" & _
@@ -422,6 +426,9 @@ End Function
     Check 'Read.ClosedWorkbookBytesPreserved' ($ok -and $before -eq (Get-FileHash -LiteralPath $a.Config).Hash)
     if ($CheckActivityFoundation) { Test-Slice4beActivityFoundation $a $b }
     if ($CheckShippingActivity) {
+        $step='Shipping catalog and source-reference contract'
+        Test-Slice4beShippingCatalog
+        Test-Slice4beShippingCatalogPolicy $a
         $step='Shipping activity through packaged form handlers'
         Test-Slice4beShippingActivity
         SelectTarget $a
