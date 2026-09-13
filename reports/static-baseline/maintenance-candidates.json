@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-12T23:28:23Z",
+    "generatedAtUtc":  "2026-09-12T23:49:21Z",
     "baseline":  {
-                     "componentCount":  175,
-                     "procedureCount":  5503,
-                     "lineCount":  123685,
+                     "componentCount":  177,
+                     "procedureCount":  5511,
+                     "lineCount":  123758,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  195
@@ -1881,6 +1881,25 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "duplicate:04f87a80915a7667:UserForm_Initialize+UserForm_Initialize",
+                           "candidateType":  "REPLACE_DUPLICATE",
+                           "confidence":  "LOW",
+                           "componentName":  "frmReceiving",
+                           "procedureNames":  [
+                                                  "UserForm_Initialize",
+                                                  "UserForm_Initialize"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/Forms/frmReceiving.frm",
+                                               "src/Shipping/Forms/frmShipmentsTally.frm"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "duplicate:074e08084a5c49f0:IsAuthWorkbookName+IsConfigWorkbookName+IsConfigWorkbookNameAdmin+IsInventoryWorkbookName+IsProductionInboxWorkbookName+IsReceiveInboxWorkbookName+IsShipInboxWorkbookName",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
@@ -2527,25 +2546,6 @@
                            "sourcePaths":  [
                                                "src/Core/Modules/modInventoryDomainBridge.bas",
                                                "src/InventoryDomain/Modules/modInventoryApply.bas"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
-                           "id":  "duplicate:2f6790461dcf5201:UserForm_Initialize+UserForm_Initialize",
-                           "candidateType":  "REPLACE_DUPLICATE",
-                           "confidence":  "LOW",
-                           "componentName":  "frmInventoryViewer",
-                           "procedureNames":  [
-                                                  "UserForm_Initialize",
-                                                  "UserForm_Initialize"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Operations/Forms/frmInventoryViewer.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
@@ -3532,7 +3532,7 @@
                                               ],
                            "sourcePaths":  [
                                                "src/Core/Modules/modOperatorReadModel.bas",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm",
+                                               "src/Shipping/ClassModules/cShippingActionTimer.cls",
                                                "src/Shipping/Modules/modTS_Shipments.bas"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
@@ -16987,11 +16987,11 @@
                                                   "CurrentShippableInventoryCache",
                                                   "DisplayQtyText",
                                                   "DisplayVersionOrNA",
-                                                  "ElapsedMilliseconds",
                                                   "EvictOrphanedActiveOverlays",
                                                   "FilterBoxBuilderInventory",
                                                   "FormatQuantity",
                                                   "HasActiveShipmentLineForSystemKey",
+                                                  "HasCurrentContext",
                                                   "InitializeAnchors",
                                                   "InitializeFromShipping",
                                                   "IsShipmentsOperatorWorkbook",
@@ -17062,6 +17062,7 @@
                                                   "RenderLineList",
                                                   "RenderPageRows",
                                                   "RenderShippables",
+                                                  "RequireActionContext",
                                                   "ResolveOperatorWorkbook",
                                                   "RunBoxBuilderVersionAction",
                                                   "RunShippingAction",

@@ -1,6 +1,7 @@
 # Plan 022 Slice 4be.1 Shipping/Boxing activity discovery
 
-Last verified: 2026-09-12 against source checkpoint `01891bb`. This source map
+Last verified: 2026-09-12, including the Shipping context candidate described
+in [context evidence](plan022_slice4be_shipping_context_results.md). This source map
 advances D18's comprehensive coverage inventory. It neither registers new
 ControlIds nor claims packaged activity coverage or changes a business contract.
 Core catalog7 currently has no Shipping/Boxing activity entries. D18's existing
@@ -68,13 +69,16 @@ The [packaged activity test](plan022_slice4be_shipping_activity_results.md) now
 proves the eight-action normal sequence, exact source identities and shipment
 application, with missing shared activity RED. Its negative cases show that
 zero quantity reaches existing validation without staging or canonical mutation,
-while reauthentication of the same user leaves the old form able to change local
-staging. Source `CommitCurrentLine` has no captured-session check before
-`ShipmentsFormCommitLine`; this contradicts existing D18 behavior, not the
-approved architecture. The test does not establish an unauthorized Domain write.
+while the unchanged `8e64268` source allowed same-user reauthentication to leave
+the old form able to change local staging. Its `CommitCurrentLine` lacked a
+captured-session check before `ShipmentsFormCommitLine`; that contradicted D18.
+The test does not establish an unauthorized Domain write. The isolated context
+candidate now guards all seven mutation handlers and explicit stale-form relaunch:
+46 former guard failures pass, while46 missing-activity failures remain. Broader
+candidate gates and the remaining context/failure cases are still required.
 
-Extend the real-handler context matrix to other mutation controls, target change,
-sign-out and lost capability, retaining all prior GREEN checks. Protect pending,
+Extend the real-handler context matrix to capability loss, interrupted UI yields
+and workbook closure, retaining all prior GREEN checks. Protect pending,
 uncertain-submission, storage and policy outcomes separately. A later owner
 rejection or rollback cannot substitute for the required pre-owner stale-form guard.
 Before implementation, record discovered ControlIds and precise owner outcomes

@@ -87,13 +87,12 @@ Private mBuilt As Boolean
 Private mAnchors As Object
 Private mResizeInitialized As Boolean
 Private mOperatorWorkbook As Workbook
+Private mActivityContext As String
 Private mNextPollTime As Date
 Private mAutoSyncArmed As Boolean
 Private mLastShippablesLoadReport As String
 Private mUseInjectedReservationTotalsForTest As Boolean
-Private mTimerLog() As String
-Private mTimerCount As Long
-Private mTimerStart As Single
+Private mActionTimer As New cShippingActionTimer
 Private mSelectedBoxBuilderPackageSystemKey As String
 Private mSelectedBoxMakerPackageSystemKey As String
 Private mBoxBuilderInventoryRows As Variant
@@ -105,6 +104,7 @@ Private Const ANCHOR_BOTTOM As Long = 8
 Private Const POLL_INTERVAL_SECONDS As Long = 45
 
 Private Sub UserForm_Initialize()
+    mActivityContext = modActivity.CaptureContext()
     BuildLayout
 End Sub
 
@@ -196,7 +196,7 @@ Public Sub InitializeFromShipping(Optional ByVal preserveActiveRows As Boolean =
         mLstShippables.ListIndex = 0
         LoadSelectedShippable
     End If
-    elapsedMs = ElapsedMilliseconds(startedAt)
+    elapsedMs = mActionTimer.ElapsedMilliseconds(startedAt)
     If mLstShippables.ListCount = 0 Then
         ShowStatus "Loaded shipments form in " & CStr(elapsedMs) & " ms, but no shippable inventory rows loaded. " & mLastShippablesLoadReport & vbCrLf & TimingSummary()
     Else
@@ -220,31 +220,27 @@ FailInit:
 End Sub
 
 Private Sub TimingStart()
-    mTimerCount = 0
-    Erase mTimerLog
-    mTimerStart = Timer
+    mActionTimer.Start
 End Sub
 
 Private Sub TLap(ByVal label As String)
-    Dim elapsedMs As Long
-
-    If mTimerStart <= 0 Then mTimerStart = Timer
-    elapsedMs = ElapsedMilliseconds(mTimerStart)
-    mTimerCount = mTimerCount + 1
-    ReDim Preserve mTimerLog(1 To mTimerCount)
-    mTimerLog(mTimerCount) = Format$(elapsedMs, "00000") & " ms  " & label
+    mActionTimer.Mark label
 End Sub
 
 Private Function TimingSummary() As String
-    Dim i As Long
-    Dim lines As String
+    TimingSummary = mActionTimer.Summary()
+End Function
 
-    If mTimerCount <= 0 Then Exit Function
-    For i = 1 To mTimerCount
-        If lines <> "" Then lines = lines & vbCrLf
-        lines = lines & mTimerLog(i)
-    Next i
-    TimingSummary = lines
+Public Function HasCurrentContext() As Boolean
+    HasCurrentContext = modShippingFormContext.IsCurrent(mOperatorWorkbook, mActivityContext)
+End Function
+
+Private Function RequireActionContext() As Boolean
+    Dim report As String
+    RequireActionContext = modShippingFormContext.IsCurrent(mOperatorWorkbook, mActivityContext, report)
+    If RequireActionContext Then Exit Function
+    CancelAutoSync
+    ShowStatus report
 End Function
 
 Public Sub SetOperatorWorkbook(ByVal wb As Workbook)
@@ -1521,6 +1517,7 @@ End Sub
 
 Private Sub CommitCurrentLine(ByVal actionName As String)
     On Error GoTo FailSoft
+    If Not RequireActionContext() Then Exit Sub
 
     Dim report As String
     Dim rowIndex As Long
@@ -1552,6 +1549,7 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     displayedNasQty = SelectedShippableNasInventoryText()
     Set operatorWb = ResolveOperatorWorkbook()
     ShowPersistencePending "Saving shipment row changes to the warehouse server..."
+    If Not RequireActionContext() Then Exit Sub
     modUiQuiet.BeginQuietUi operatorWb
     quietStarted = True
     TLap "CommitCurrentLine resolved selected row/operator"
@@ -1572,7 +1570,7 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
                                                  operatorWb, _
                                                  displayedNasQty)
     TLap "CommitCurrentLine backend call"
-    elapsedMs = ElapsedMilliseconds(startedAt)
+    elapsedMs = mActionTimer.ElapsedMilliseconds(startedAt)
     report = AppendTiming(report, elapsedMs)
     If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
     RefreshAfterAction report, ok
@@ -1833,6 +1831,7 @@ End Sub
 
 Private Sub MoveSelectedShipmentHold(ByVal moveToHold As Boolean)
     On Error GoTo FailSoft
+    If Not RequireActionContext() Then Exit Sub
 
     Dim lst As MSForms.ListBox
     Dim report As String
@@ -1868,6 +1867,7 @@ End Sub
 
 Private Sub RemoveSelectedShipmentRows()
     On Error GoTo FailSoft
+    If Not RequireActionContext() Then Exit Sub
 
     Dim report As String
     Dim rowReport As String
@@ -1893,6 +1893,7 @@ Private Sub RemoveSelectedShipmentRows()
     Set operatorWb = ResolveOperatorWorkbook()
     allOk = True
     For i = UBound(selectedRows) To LBound(selectedRows) Step -1
+        If Not RequireActionContext() Then Exit Sub
         rowIndex = CLng(selectedRows(i))
         rowReport = vbNullString
         ok = modTS_Shipments.ShipmentsFormCommitLine("SHIP", _
@@ -1919,7 +1920,7 @@ Private Sub RemoveSelectedShipmentRows()
     Next i
 
     TLap "Remove selected backend call"
-    elapsedMs = ElapsedMilliseconds(startedAt)
+    elapsedMs = mActionTimer.ElapsedMilliseconds(startedAt)
     If allOk Then report = "Removed " & CStr(removedCount) & " shipment row(s)."
     report = AppendTiming(report, elapsedMs)
     If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
@@ -1936,6 +1937,7 @@ End Sub
 
 Private Sub mBtnSend_Click()
     On Error GoTo FailSoft
+    If Not RequireActionContext() Then Exit Sub
 
     Dim previousPointer As Long
     Dim quietStarted As Boolean
@@ -1950,13 +1952,14 @@ Private Sub mBtnSend_Click()
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
     ShowPersistencePending "Saving shipment events and refreshing warehouse inventory..."
+    If Not RequireActionContext() Then Me.MousePointer = previousPointer: Exit Sub
     modUiQuiet.BeginQuietUi mOperatorWorkbook
     quietStarted = True
     startedAt = Timer
     ok = modShippingPostingService.ExecuteShipmentsSent( _
         mOperatorWorkbook, selectedRows, NzText(mTxtCarrier.Value), report)
     TLap "Shipments Sent backend call"
-    elapsedMs = ElapsedMilliseconds(startedAt)
+    elapsedMs = mActionTimer.ElapsedMilliseconds(startedAt)
     Me.MousePointer = previousPointer
     LoadShipmentState mOperatorWorkbook
     TLap "Shipments Sent load shipment state"
@@ -1987,6 +1990,7 @@ End Sub
 
 Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     On Error GoTo FailSoft
+    If Not RequireActionContext() Then Exit Sub
 
     Dim previousPointer As Long
     Dim quietStarted As Boolean
@@ -2008,6 +2012,7 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     ShowPersistencePending IIf(stageOnly, _
         "Saving selected rows to Shipments...", _
         "Saving shipment events and refreshing warehouse inventory...")
+    If Not RequireActionContext() Then Me.MousePointer = previousPointer: Exit Sub
     modUiQuiet.BeginQuietUi ResolveOperatorWorkbook()
     quietStarted = True
     startedAt = Timer
@@ -2018,7 +2023,7 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
             mOperatorWorkbook, selectedRows, NzText(mTxtCarrier.Value), report)
     End If
     TLap IIf(stageOnly, "To Shipments", "Shipments Sent") & " backend call"
-    elapsedMs = ElapsedMilliseconds(startedAt)
+    elapsedMs = mActionTimer.ElapsedMilliseconds(startedAt)
     Me.MousePointer = previousPointer
     LoadShipmentState
     TLap IIf(stageOnly, "To Shipments", "Shipments Sent") & " load shipment state"
@@ -2381,14 +2386,6 @@ Private Function AppendTiming(ByVal report As String, ByVal elapsedMs As Long) A
         AppendTiming = report & vbCrLf & vbCrLf
     End If
     AppendTiming = AppendTiming & "Completed in " & Format$(elapsedMs, "#,##0") & " ms."
-End Function
-
-Private Function ElapsedMilliseconds(ByVal startedAt As Single) As Long
-    Dim deltaSeconds As Single
-
-    deltaSeconds = Timer - startedAt
-    If deltaSeconds < 0 Then deltaSeconds = deltaSeconds + 86400!
-    ElapsedMilliseconds = CLng(deltaSeconds * 1000)
 End Function
 
 Private Sub LayoutBoxDesignerPage()

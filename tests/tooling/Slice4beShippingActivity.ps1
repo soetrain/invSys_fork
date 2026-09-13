@@ -54,6 +54,7 @@ function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$La
     Check ($Label+'.Activity.InputValuesExcluded') $safe
 }
 function Test-Slice4beShippingActivity {
+    . (Join-Path $PSScriptRoot 'Slice4beShippingContext.ps1')
     $project=$packages['invSys.Operations.xlam'].VBProject
     $form=$project.VBComponents.Item('frmShipmentsTally').CodeModule
     # Intercept only existing report presentation, retaining the real handlers.
@@ -114,7 +115,7 @@ Public Function ActivityShippingPrepare(ByVal action As String) As String
     If action = "Add" Or action = "AddAgain" Then
         For i = 0 To mLstShipments.ListCount - 1: mLstShipments.Selected(i) = False: Next i
         For i = 0 To mLstShippables.ListCount - 1
-            If ParseNumber(NzText(mLstShippables.List(i, 3))) >= 5 Then
+            If ParseNumber(NzText(mLstShippables.List(i, 3))) >= 2 Then
                 mLstShippables.ListIndex = i: mLstShippables_Click: chosen = True: Exit For
             End If
         Next i
@@ -164,7 +165,32 @@ End Function
         $source=[regex]::Replace($source,$pattern,$replacement)
     }
     $module.DeleteLines(1,$module.CountOfLines);$module.AddFromString($source)
+    $source=$module.Lines(1,$module.CountOfLines)
+    $source=$source.Replace('Option Explicit',"Option Explicit`r`nPublic ActivityShippingProbeMode As Boolean`r`nPublic ActivityShippingProbeEntries As Long")
+    foreach($owner in @('ShipmentsFormCommitLine','ShipmentsFormMoveHoldRows','ShipmentsFormRunToShipmentsRows')) {
+        $pattern='(?s)(Public Function '+$owner+'\(.*?\) As Boolean\s*\r?\n)'
+        if([regex]::Matches($source,$pattern).Count -ne 1){throw 'Shipping guard owner anchor unavailable.'}
+        $source=[regex]::Replace($source,$pattern,'$1'+'    If ActivityShippingGuardOwnerProbe() Then report = "Shipping guard boundary probe.": Exit Function'+"`r`n")
+    }
+    $module.DeleteLines(1,$module.CountOfLines);$module.AddFromString($source)
+    $posting=$project.VBComponents.Item('modShippingPostingService').CodeModule
+    $source=$posting.Lines(1,$posting.CountOfLines)
+    $pattern='(?s)(Public Function ExecuteShipmentsSent\(.*?\) As Boolean\s*\r?\n)'
+    if([regex]::Matches($source,$pattern).Count -ne 1){throw 'Shipping posting guard anchor unavailable.'}
+    $source=[regex]::Replace($source,$pattern,'$1'+'    If modTS_Shipments.ActivityShippingGuardOwnerProbe() Then report = "Shipping guard boundary probe.": Exit Function'+"`r`n")
+    $posting.DeleteLines(1,$posting.CountOfLines);$posting.AddFromString($source)
     $module.AddFromString(@'
+Public Function ActivityShippingGuardOwnerProbe() As Boolean
+    If Not ActivityShippingProbeMode Then Exit Function
+    ActivityShippingProbeEntries = ActivityShippingProbeEntries + 1
+    ActivityShippingGuardOwnerProbe = True
+End Function
+Public Sub ActivityShippingSetProbeMode(ByVal enabled As Boolean)
+    ActivityShippingProbeMode = enabled
+End Sub
+Public Function ActivityShippingProbeCount() As Long
+    ActivityShippingProbeCount = ActivityShippingProbeEntries
+End Function
 Public Function ActivityShippingBoundaryCount(ByVal boundary As String) As Long
     If boundary = "Owner" Then
         ActivityShippingBoundaryCount = ActivityShippingOwnerEntries
@@ -179,6 +205,13 @@ Public Function ActivityShippingOpen() As String
     If mShipmentsLauncherForm Is Nothing Then Exit Function
     mShipmentsLauncherForm.CancelAutoSync
     ActivityShippingOpen = mShipmentsLauncherForm.ActivityShippingWorkbook()
+End Function
+Public Function ActivityShippingRelaunchReuses() As Boolean
+    Dim previous As frmShipmentsTally
+    Set previous = mShipmentsLauncherForm
+    BtnOpenShipmentsForm
+    ActivityShippingRelaunchReuses = (previous Is mShipmentsLauncherForm)
+    If Not mShipmentsLauncherForm Is Nothing Then mShipmentsLauncherForm.CancelAutoSync
 End Function
 Public Function ActivityShippingCreateBox() As Boolean
     ActivityShippingCreateBox = mShipmentsLauncherForm.ActivityShippingCreateBox()
@@ -266,6 +299,8 @@ End Sub
             $effect=if($action -eq 'Hold'){$live.Count -eq 0 -and $heldLive.Count -eq 1 -and $heldLive[0].System_Key -ceq $key -and [double]$heldLive[0].QUANTITY -eq $expectedQty}elseif($action -in @('Remove','Send')){$live.Count -eq 0 -and $heldLive.Count -eq 0}else{$live.Count -eq 1 -and $heldLive.Count -eq 0 -and $live[0].System_Key -ceq $key -and [double]$live[0].QUANTITY -eq $expectedQty}
             Check ($label+'.OwnerStagingResult') $effect
             if(-not $effect){throw ('Shipping owner staging result not established: '+$action)}
+            $status=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingStatus')
+            Check ($label+'.ExistingTimingVisible') ($status.Contains(' ms'))
             Check ($label+'.CapturedWorkbookRetained') ([bool](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBound' @($name)))
             Check ($label+'.UnknownHeadersPreserved') ($null -ne $ship.ListColumns.Item('Shipping Extra') -and $null -ne $hold.ListColumns.Item('Shipping Extra'))
             if($action -in @('Update','Stage')){Check ($label+'.UnknownValuePreserved') ($live[0].'Shipping Extra' -ceq 'preserve shipping extension')}
@@ -341,6 +376,7 @@ End Function
                 Check ($label+'.NoActivityAttributedToNewSession') (@(Get-Slice4beActivityFiles $fixture|Where-Object {$_ -notin $before}).Count -eq 0)
             }
         }
+        Test-Slice4beShippingContextMatrix $fixture $operator $other $ship $hold
         Check 'Shipping.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))
     } finally {
         if($null -ne $dialogJob){

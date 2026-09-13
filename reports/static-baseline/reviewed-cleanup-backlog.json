@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-12T23:28:23Z",
+    "generatedAtUtc":  "2026-09-12T23:49:21Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "d032351f3466393072a1f9c5c65463a5dcdc9f24ea6fdd3cb1a05c3bb42b25b0",
-                          "maintenanceCandidatesSha256":  "1260b5b2585991952251dc82570c9f4e1113ff92ca32d901e961232c418054ea"
+                          "implementationManifestSha256":  "8748d28129759510751ea957fcde4e9752f31dc07eb129272a56a814f9032b1a",
+                          "maintenanceCandidatesSha256":  "822874e4f7e4cede61482a43b7ccf91454ed3fa9621f3d70af5facf5db8ce9d3"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -259,14 +259,14 @@
                                                   "sourcePath":  "src/Shipping/Forms/frmShipmentsTally.frm",
                                                   "componentName":  "frmShipmentsTally",
                                                   "packageKey":  "Shipping",
-                                                  "baselineLineCount":  3025,
+                                                  "baselineLineCount":  3022,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
                                                   "sourcePath":  "src/Shipping/Modules/modTS_Shipments.bas",
                                                   "componentName":  "modTS_Shipments",
                                                   "packageKey":  "Shipping",
-                                                  "baselineLineCount":  22451,
+                                                  "baselineLineCount":  22443,
                                                   "growthAllowedWithoutException":  false
                                               }
                                           ]
@@ -24001,6 +24001,31 @@
                            "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
+                           "id":  "duplicate:04f87a80915a7667:UserForm_Initialize+UserForm_Initialize",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "REPLACE_DUPLICATE",
+                           "disposition":  "REPLACE_DUPLICATE",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
+                           "workstream":  "SHARED_OPERATIONS",
+                           "componentName":  "frmReceiving",
+                           "procedureNames":  [
+                                                  "UserForm_Initialize",
+                                                  "UserForm_Initialize"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Receiving/Forms/frmReceiving.frm",
+                                               "src/Shipping/Forms/frmShipmentsTally.frm"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
+                       },
+                       {
                            "id":  "duplicate:0eb4f625e03646be:FindListObjectByNameShipping+FindListObjectForm+FindTableByNameSeed",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "REPLACE_DUPLICATE",
@@ -24254,31 +24279,6 @@
                                                "src/Shipping/Modules/modTS_Shipments.bas"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
-                           "protectingTests":  [
-
-                                               ],
-                           "deletionApproved":  false,
-                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
-                       },
-                       {
-                           "id":  "duplicate:2f6790461dcf5201:UserForm_Initialize+UserForm_Initialize",
-                           "origin":  "SCANNER",
-                           "scannerCandidateType":  "REPLACE_DUPLICATE",
-                           "disposition":  "REPLACE_DUPLICATE",
-                           "scannerConfidence":  "LOW",
-                           "reviewedConfidence":  "LOW",
-                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
-                           "workstream":  "SHARED_OPERATIONS",
-                           "componentName":  "frmInventoryViewer",
-                           "procedureNames":  [
-                                                  "UserForm_Initialize",
-                                                  "UserForm_Initialize"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Operations/Forms/frmInventoryViewer.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
 
                                                ],
@@ -24729,7 +24729,7 @@
                                               ],
                            "sourcePaths":  [
                                                "src/Core/Modules/modOperatorReadModel.bas",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm",
+                                               "src/Shipping/ClassModules/cShippingActionTimer.cls",
                                                "src/Shipping/Modules/modTS_Shipments.bas"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
@@ -25940,11 +25940,11 @@
                                                   "CurrentShippableInventoryCache",
                                                   "DisplayQtyText",
                                                   "DisplayVersionOrNA",
-                                                  "ElapsedMilliseconds",
                                                   "EvictOrphanedActiveOverlays",
                                                   "FilterBoxBuilderInventory",
                                                   "FormatQuantity",
                                                   "HasActiveShipmentLineForSystemKey",
+                                                  "HasCurrentContext",
                                                   "InitializeAnchors",
                                                   "InitializeFromShipping",
                                                   "IsShipmentsOperatorWorkbook",
@@ -26015,6 +26015,7 @@
                                                   "RenderLineList",
                                                   "RenderPageRows",
                                                   "RenderShippables",
+                                                  "RequireActionContext",
                                                   "ResolveOperatorWorkbook",
                                                   "RunBoxBuilderVersionAction",
                                                   "RunShippingAction",

@@ -1,10 +1,10 @@
 # invSys Static Implementation Manifest
 
 - Schema: 1.0.0
-- Generated: 2026-09-12T23:28:23Z
+- Generated: 2026-09-12T23:49:21Z
 - Packages: 6
-- Components: 175
-- Procedures: 5503
+- Components: 177
+- Procedures: 5511
 - Literal Application.Run targets: 8
 - Unresolved dynamic calls: 45
 
@@ -16,7 +16,7 @@
 | Core | invSys_Core | invSys.Core.xlam | 69 |
 | DesignsDomain | invSys_Designs_Domain | invSys.Designs.Domain.xlam | 14 |
 | InventoryDomain | invSys_Inventory_Domain | invSys.Inventory.Domain.xlam | 10 |
-| Operations | invSys_Operations | invSys.Operations.xlam | 46 |
+| Operations | invSys_Operations | invSys.Operations.xlam | 48 |
 | OperationsShadow | invSys_Operations_Shadow | invSys.Operations.xlam | 0 |
 
 ## Dynamic roots

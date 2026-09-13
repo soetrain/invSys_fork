@@ -1,7 +1,7 @@
 # Plan 022 Slice 4be.1 Shipping activity D13 entry
 
-Last verified: 2026-09-12. Runtime source remains `01891bb`, with prior test
-checkpoint `7420b7f`. This is test-first work toward D18 comprehensive activity,
+Last verified: 2026-09-12. Initial RED uses runtime source `01891bb`, with prior test
+checkpoint `7420b7f`; the subsequent context candidate is linked below. This is work toward D18 comprehensive activity,
 not Shipping implementation or Slice4be acceptance.
 
 The isolated test uses `deploy/validation-receiving-worksheet-rebuild`, the
@@ -103,6 +103,11 @@ Post-run verification: all 30 package pins and four runtime source pins match;
 Excel is closed. Regenerated static JSON contracts pass; runtime component,
 procedure, line, duplicate-body and dynamic-call metrics and all 28 module limits
 are unchanged. The static diff adds only test references and generation metadata.
+
+The subsequent [Shipping context repair](plan022_slice4be_shipping_context_results.md)
+records the expanded seven-control matrix, explicit launcher recovery, normative
+clarification, focused guard RED/GREEN and the isolated candidate's gate status.
+Shipping activity itself remains unimplemented.
 
 Ignored runtime evidence: `reports/runtime/slice4be-shipping-activity/initial-red.log`,
 `boxed-fixture-red.log`, `self-contained-red.log`, `source-evidence-red.log`

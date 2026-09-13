@@ -1,7 +1,7 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-12T23:28:23Z
+- Baseline: 2026-09-12T23:49:21Z
 - Scanner candidates: 1097
 - Reviewed candidates: 1099
 - Approved deletions: 0
@@ -56,8 +56,8 @@
 | src/Production/Modules/mProduction.bas | Production | 13279 |
 | src/Receiving/Forms/frmReceiving.frm | Receiving | 1200 |
 | src/Receiving/Modules/modTS_Received.bas | Receiving | 1572 |
-| src/Shipping/Forms/frmShipmentsTally.frm | Shipping | 3025 |
-| src/Shipping/Modules/modTS_Shipments.bas | Shipping | 22451 |
+| src/Shipping/Forms/frmShipmentsTally.frm | Shipping | 3022 |
+| src/Shipping/Modules/modTS_Shipments.bas | Shipping | 22443 |
 
 ## Reviewed candidates
 
@@ -946,6 +946,7 @@
 | duplicate:0240399e720e0f27:UserForm_Layout+UserForm_Layout+UserForm_Layout+UserForm_Layout+UserForm_Layout+UserForm_Layout | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:0352bd7c18f22a6e:ShippingBomActiveValue+ShippingBomActiveValue | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:037587d479aa71ae:StateStaged+StateStaged | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
+| duplicate:04f87a80915a7667:UserForm_Initialize+UserForm_Initialize | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:0eb4f625e03646be:FindListObjectByNameShipping+FindListObjectForm+FindTableByNameSeed | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:114ea90fb30a174f:NormalizeHeader+NormalizeHeaderKey+NormalizeHeaderKey | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:148f921b2c802fe4:AddButton+AddButton | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
@@ -956,7 +957,6 @@
 | duplicate:28d9f2df337223a7:NzDblApply+NzDblReadModel+NzDblShip+NzDblSync | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:295ce507ab5ef7c8:HasActionableProductionWarning+HasActionableShippingWarning | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:2e3fdb55b8bf4ac8:WorkbookSheetExists+WorkbookSheetExistsShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
-| duplicate:2f6790461dcf5201:UserForm_Initialize+UserForm_Initialize | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:2fb6a140cb21ffb2:CloseWorkbookNoSaveProduction+CloseWorkbookQuietlyTester | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:2fd6555d3906b37b:HideInventoryBridgeWorkbookWindows+HideWorkbookWindowsAuth+HideWorkbookWindowsConfig+HideWorkbookWindowsPublisher+HideWorkbookWindowsShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:30348d523aeda395:CellText+NzStrShip+TextValue | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |

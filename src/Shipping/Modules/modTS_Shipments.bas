@@ -699,21 +699,13 @@ Public Sub BtnOpenShipmentsForm()
         End If
     End If
 
-    If mShipmentsLauncherForm Is Nothing _
+    If Not modShippingFormContext.CanReuse(mShipmentsLauncherForm) _
        Or mShipmentsAutoSyncForm Is Nothing _
        Or StrComp(mShipmentsLauncherWorkbookName, wb.Name, vbTextCompare) <> 0 Then
         launcherStage = "replace Shipping form binding"
-        On Error Resume Next
-        If Not mShipmentsLauncherForm Is Nothing Then Unload mShipmentsLauncherForm
-        Set mShipmentsLauncherForm = Nothing
-        On Error GoTo ErrHandler
-        launcherStage = "create Shipping form"
-        Set mShipmentsLauncherForm = New frmShipmentsTally
-        launcherStage = "bind Shipping form"
-        mShipmentsLauncherForm.SetOperatorWorkbook wb
+        Set mShipmentsLauncherForm = modShippingFormContext.CreateBoundForm( _
+            wb, mShipmentsLauncherForm, StrComp(mShipmentsLauncherWorkbookName, wb.Name, vbTextCompare) = 0)
         mShipmentsLauncherWorkbookName = wb.Name
-        launcherStage = "initialize Shipping form"
-        mShipmentsLauncherForm.InitializeFromShipping
     End If
     launcherStage = "clear clipboard"
     ClearSystemClipboardShipping
