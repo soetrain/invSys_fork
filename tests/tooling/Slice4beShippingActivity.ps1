@@ -19,7 +19,7 @@ function Get-ShippingActivityLog($Fixture) {
     if($null -eq $book){$book=$excel.Workbooks.Open($path,0,$true);$opened=$true}
     try{Get-ShippingActivityRows (Table $book 'tblInventoryLog')}finally{if($opened){$book.Close($false)}}
 }
-function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$Label,$SubmittedIds) {
+function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$Label,$SubmittedIds,[string]$ControlId,[string]$ExpectedOutcome) {
     $records=@();$raws=@()
     foreach($path in @(Get-Slice4beActivityFiles $Fixture)) {
         if($path -in $Before){continue}
@@ -38,6 +38,22 @@ function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$La
     }
     Check ($Label+'.Activity.StableCorrelation') $correlated
     Check ($Label+'.Activity.TrustedOwnerContext') $owned
+    # Independent D18 expectations: do not obtain expected facts from the catalog
+    # implementation or infer success from status/report text.
+    $registered=$pair;$requested=$false;$outcome=$false
+    if($pair){
+        foreach($r in $records){
+            $registered=$registered -and (Get-Slice4beField $r 'ControlId') -ceq $ControlId -and (Get-Slice4beField $r 'OwnerId') -ceq 'SHIPPING_WORKFLOW' -and (Get-Slice4beField $r 'Surface') -ceq 'Operations > Shipping'
+        }
+        $attemptRefs=$attempt[0].PSObject.Properties['SourceEventRefs']
+        $requested=(Get-Slice4beField $attempt[0] 'EventCode') -ceq ($ControlId+'_REQUESTED') -and (Get-Slice4beField $attempt[0] 'Severity') -ceq 'Info' -and (Get-Slice4beField $attempt[0] 'DataEffect') -ceq 'Unknown' -and $null -ne $attemptRefs -and @($attemptRefs.Value).Count -eq 0
+        $severity=if($ExpectedOutcome -ceq 'PENDING'){'Notice'}elseif($ExpectedOutcome -ceq 'REJECTED'){'Warning'}else{'Info'}
+        $effect=if($ExpectedOutcome -ceq 'STAGED'){'Changed'}elseif($ExpectedOutcome -ceq 'REJECTED'){'Unchanged'}else{'Unknown'}
+        $outcome=(Get-Slice4beField $result[0] 'OutcomeCode') -ceq $ExpectedOutcome -and (Get-Slice4beField $result[0] 'EventCode') -ceq ($ControlId+'_'+$ExpectedOutcome) -and (Get-Slice4beField $result[0] 'Severity') -ceq $severity -and (Get-Slice4beField $result[0] 'DataEffect') -ceq $effect
+    }
+    Check ($Label+'.Activity.RegisteredControlIdentity') $registered
+    Check ($Label+'.Activity.RequestedFacts') $requested
+    Check ($Label+'.Activity.OwnerOutcomeFacts') $outcome
     $references=$false
     if($pair){
         $property=$result[0].PSObject.Properties['SourceEventRefs']
@@ -372,6 +388,7 @@ End Function
         $lastKey=''
         $sourceCounts=New-Object 'System.Collections.Generic.List[object]'
         $captions=@{Add='Add';AddAgain='Add';Update='Update Row';Remove='Remove';Hold='Send Hold';Return='Return';Stage='To Shipments';Send='Shipments Sent'}
+        $outcomes=@{Add='PENDING';AddAgain='PENDING';Update='STAGED';Remove='PENDING';Hold='STAGED';Return='STAGED';Stage='STAGED';Send='CONFIRMED'}
         foreach($action in @('Add','Update','Hold','Return','Remove','AddAgain','Stage','Send')) {
             $label='Shipping.'+$action
             $key=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingPrepare' @($action))
@@ -410,7 +427,8 @@ End Function
             $pending=@($submittedIds|Where-Object {$_ -cnotin $appliedIds}).Count
             $sourceCounts.Add([pscustomobject]@{Action=$action;Submitted=$submittedIds.Count;NewlyApplied=$appliedIds.Count;OwnPending=$pending;EarlierApplied=@($appliedIds|Where-Object {$_ -cnotin $submittedIds}).Count})
             Check ($label+'.SourceEvidenceHasExactWarehouseAndKey') (@($newLog|Where-Object {$_.WarehouseId -cne $fixture.Warehouse -or $_.System_Key -cne $key -or [string]::IsNullOrWhiteSpace($_.EventID)}).Count -eq 0)
-            Test-ShippingActivityPair $fixture $before $captions[$action] $label $submittedIds
+            $controlId=if($action -eq 'AddAgain'){'SHIPPING_ADD'}else{'SHIPPING_'+$action.ToUpperInvariant()}
+            Test-ShippingActivityPair $fixture $before $captions[$action] $label $submittedIds $controlId $outcomes[$action]
         }
         Check 'Shipping.SourceObserver.PendingAcknowledgmentsIncluded' (@($sourceCounts|Where-Object {$_.Action -eq 'Add' -and $_.Submitted -eq 1 -and $_.OwnPending -eq 1}).Count -eq 1)
         $sourceCounts|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $reportRoot 'shipping-source-counts.json')
@@ -470,7 +488,7 @@ End Function
             if($case -eq 'InvalidQuantity') {
                 $status=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingStatus')
                 Check ($label+'.OwnerValidationReached') ($status.Contains('Quantity must be greater than zero.'))
-                Test-ShippingActivityPair $fixture $before 'Add' $label @()
+                Test-ShippingActivityPair $fixture $before 'Add' $label @() 'SHIPPING_ADD' 'REJECTED'
                 $outcomes=@(Get-Slice4beActivityFiles $fixture|Where-Object {$_ -notin $before}|ForEach-Object {[IO.File]::ReadAllText($_)|ConvertFrom-Json}|Where-Object {$_.SourceRole -ceq 'Shipping' -and $_.Caption -ceq 'Add' -and $_.OutcomeCode -ceq 'REJECTED'})
                 Check ($label+'.Activity.RejectedWithNoSourceReferences') ($outcomes.Count -eq 1 -and @($outcomes[0].SourceEventRefs).Count -eq 0)
             } else {

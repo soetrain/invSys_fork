@@ -161,8 +161,11 @@ Implement typed owner-reported facts and real Shipping handler observations unde
 the normative outcomes. Preserve every preceding GREEN and test mixed/partial
 Update, Remove and Stage outcomes, Send processing, denial/staleness and optional
 tracking failure. Do not derive results from report text or newly applied catch-up
-IDs. Full candidate handler validation remains blocked by the recorded fixture
-bootstrap fault until stronger evidence establishes a valid route.
+IDs. Subsequent [validation recovery](plan022_slice4be_validation_recovery_results.md)
+executes the complete candidate route under explicit unsaved bootstrap tracing:
+810 PASS / 53 FAIL, preserving all 650 preceding checks and all 213 catalog checks.
+This provides a functional route for owner-observation work; uninstrumented native
+stability and the recorded earlier failures remain unresolved.
 
 Source review also identifies a remaining ROW compatibility slot in reachable
 `PersistShipmentRowsLocal` -> `HoldRowField`. D14 prohibits it; a focused packaged

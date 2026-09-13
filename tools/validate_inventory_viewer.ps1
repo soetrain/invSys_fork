@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$RepoRoot = ".",
-    [string]$DeployRoot = "deploy/current"
+    [string]$DeployRoot = "deploy/current",
+    [switch]$RejectFixtureSignInForTest
 )
 
 Set-StrictMode -Version Latest
@@ -232,9 +233,30 @@ try {
     $targetPathsSet = [bool](Run-WorkbookMacro -Excel $excel -WorkbookName $coreName `
         -MacroName "modNasConnection.SetCurrentTargetPathsForTest" `
         -Arguments @("\\inventory-viewer-test\warehouse", $runtimeRoot))
+    $signInCredential = $testPin
+    if($RejectFixtureSignInForTest) { $signInCredential = $testPin + '-invalid-fixture-credential' }
     $signInResult = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $coreName `
         -MacroName "modAuth.SignInCurrentTargetForAutomation" `
-        -Arguments @($testUser, $testPin, "RECEIVE_POST"))
+        -Arguments @($testUser, $signInCredential, "RECEIVE_POST"))
+    $facts.ConfigLoaded = $configLoaded
+    $facts.AuthLoaded = $authLoaded
+    $facts.TargetSelected = $targetResult.StartsWith("OK|")
+    $facts.TargetPathsSet = $targetPathsSet
+    $facts.SignedIn = $signInResult.StartsWith("OK|")
+    # Never write the raw response: exceptional responses may contain entered data.
+    $facts.SignInStatus = if($facts.SignedIn) { 'OK' } elseif($signInResult -match '^FAIL\|([1-9])$') {
+        'AUTH_STATUS_' + $Matches[1]
+    } elseif($signInResult -match '^FAIL\|NO_TARGET\|[0-9]+$') { 'NO_TARGET' } else { 'UNAVAILABLE' }
+    $fixtureUsers=$authWb.Worksheets.Item('Users').ListObjects.Item('tblUsers')
+    $matchingCredential=$false
+    foreach($row in $fixtureUsers.ListRows) {
+        if([string]$row.Range.Cells.Item(1,$fixtureUsers.ListColumns.Item('UserId').Index).Value2 -ceq $testUser) {
+            $matchingCredential=([string]$row.Range.Cells.Item(1,$fixtureUsers.ListColumns.Item('PinHash').Index).Value2 -ceq $testPinHash)
+        }
+    }
+    $facts.FixtureCredentialMatches=$matchingCredential
+    $facts.PublicViewerEntryReached=$false
+    if(-not $facts.SignedIn) { throw 'Viewer fixture sign-in failed before any public Viewer action; see sanitized status.' }
 
     $step = "publish isolated snapshot"
     $snapshotCreated = [bool](Run-WorkbookMacro -Excel $excel -WorkbookName $coreName `
@@ -247,6 +269,7 @@ try {
     $snapshotHashBefore = (Get-FileHash -LiteralPath $snapshotPath -Algorithm SHA256).Hash
 
     $step = "invoke public Viewer action twice"
+    $facts.PublicViewerEntryReached=$true
     [void](Run-WorkbookMacro -Excel $excel -WorkbookName $operationsName `
         -MacroName "modOperationsInit.Auto_Open")
     $firstReport = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $operationsName `

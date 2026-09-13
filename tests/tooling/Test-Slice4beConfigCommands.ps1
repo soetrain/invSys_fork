@@ -7,6 +7,8 @@ param(
     [switch]$CheckActivityEvidence,
     [switch]$CheckActivityFoundation,
     [switch]$CheckShippingActivity,
+    [switch]$TraceBootstrapForTest,
+    [switch]$ShippingBeforeSharedFormsForTest,
     [switch]$ShippingSubmissionOnly,
     [switch]$CheckReceivingActivity,
     [switch]$CheckReceivingStagingActivity,
@@ -43,6 +45,8 @@ if ($CheckActivityEvidence) {
 if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundation checks require activity evidence mode.' }
 if ($CheckShippingActivity -and (-not $CheckActivityFoundation -or $CheckReceivingActivity)) { throw 'Shipping activity requires the foundation and a separate run from Receiving.' }
 if ($ShippingSubmissionOnly -and -not $CheckShippingActivity) { throw 'Shipping submission-only discovery requires Shipping activity mode.' }
+if ($TraceBootstrapForTest -and -not $CheckShippingActivity) { throw 'Bootstrap tracing requires the isolated Shipping route.' }
+if ($ShippingBeforeSharedFormsForTest -and (-not $CheckShippingActivity -or $ShippingSubmissionOnly)) { throw 'Shipping-first ordering requires the complete Shipping route.' }
 if ($CheckShippingActivity) {
     . (Join-Path $PSScriptRoot 'Slice4beShippingActivity.ps1')
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-shipping-activity/'+[guid]::NewGuid().ToString('N'))
@@ -321,10 +325,19 @@ Public Function TestFixtureBootstrapRoots(ByVal templateRoot As String, ByVal op
         CStr(StrComp(mLocalOperatorRootOverride, operatorRoot, vbTextCompare) = 0)
 End Function
 '@)
+    if($TraceBootstrapForTest){
+        . (Join-Path $PSScriptRoot 'Slice4beBootstrapTrace.ps1')
+        Install-Slice4beBootstrapTrace
+    }
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     $step='Admin-generated fixtures'; Write-Output $step
     $a=NewFixture 'a'; $b=NewFixture 'b'
+    if($ShippingBeforeSharedFormsForTest){
+        $step='Shipping handlers before shared form exercises'
+        Test-Slice4beShippingActivity
+        [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
+    }
     SelectTarget $a
     $step='unauthenticated command'
     [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
@@ -430,7 +443,7 @@ End Function
         Test-Slice4beShippingCatalog
         Test-Slice4beShippingCatalogPolicy $a
         $step='Shipping activity through packaged form handlers'
-        Test-Slice4beShippingActivity
+        if(-not $ShippingBeforeSharedFormsForTest){Test-Slice4beShippingActivity}
         SelectTarget $a
     }
     if ($CheckReceivingActivity) {
@@ -495,6 +508,8 @@ finally {
     }
     $reportName=$Phase.ToLowerInvariant()+'.json'
     if ($ShippingSubmissionOnly) { $reportName='diagnostic-submission-'+$reportName }
+    if ($TraceBootstrapForTest) { $reportName='diagnostic-bootstrap-'+$reportName }
+    if ($ShippingBeforeSharedFormsForTest) { $reportName='diagnostic-shipping-first-'+$reportName }
     if ($CheckReceivingNavigationActivity) { $reportName='navigation-'+$reportName }
     if ($ReceivingNavigationOnly) { $reportName='diagnostic-'+$reportName }
     if ($CheckReceivingSurfaceCoverage) { $reportName='surface-'+$Phase.ToLowerInvariant()+'.json' }

@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T04:49:17Z",
+    "generatedAtUtc":  "2026-09-13T05:52:37Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -137185,6 +137185,7 @@
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
@@ -137415,7 +137416,8 @@
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
-                                                 "tests/tooling/Slice4beActivityFoundation.ps1"
+                                                 "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
                                              ]
                            },
                            {
@@ -137750,6 +137752,7 @@
                                                  "tests/integration/test_CreateWarehouse.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterBundle.bas",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/unit/TestWarehouseBootstrap.bas",
                                                  "tests/unit/TestWarehouseRetireArchive.bas",
                                                  "tests/unit/TestWarehouseRetireLifecycle.bas",
@@ -137761,6 +137764,12 @@
                                "testPaths":  [
                                                  "tests/tooling/Test-Slice14FullChain.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "BootstrapWarehouseLocalValues",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
                                              ]
                            },
                            {
@@ -137990,6 +137999,12 @@
                                "entryPoint":  "BuildReceivingAttributesJson",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "BuildReceivingOperatorPathBootstrap",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
                                              ]
                            },
                            {
@@ -138285,6 +138300,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "CloseWorkbookIfOpenBootstrap",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "CollectBomComponents",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1"
@@ -138533,6 +138554,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "CopyInventoryTemplateBootstrap",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "CopySnapshotToTempForAggregation",
                                "testPaths":  [
                                                  "tests/unit/TestPhase5Sync.bas"
@@ -138568,6 +138595,12 @@
                                "entryPoint":  "CreateInventoryWorksheetTable",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "CreateOrVerifyReceivingOperatorWorkbookBootstrap",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
                                              ]
                            },
                            {
@@ -138974,6 +139007,7 @@
                                "entryPoint":  "EnsureReceivingWorkbookSurface",
                                "testPaths":  [
                                                  "tests/integration/test_ReceivingReadiness.bas",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestPhase6LanBoundary.bas",
@@ -139006,12 +139040,14 @@
                            {
                                "entryPoint":  "EnsureStationConfigEntry",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
                            },
                            {
                                "entryPoint":  "EnsureStationInbox",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -139019,6 +139055,7 @@
                            {
                                "entryPoint":  "EnsureStationRoleAuth",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
                            },
@@ -139215,6 +139252,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "FindOpenWorkbookByPathBootstrap",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "FindOutstandingProcessWorksheetTable",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4yProcessWorksheet.ps1"
@@ -139323,6 +139366,7 @@
                                "entryPoint":  "GenerateWarehouseSnapshot",
                                "testPaths":  [
                                                  "tests/integration/test_RetireMigrate.bas",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
@@ -140193,6 +140237,7 @@
                            {
                                "entryPoint":  "LoadAuth",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/unit/TestCoreAuth.bas",
                                                  "tests/unit/TestPhase5HqBoundary.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
@@ -140219,6 +140264,7 @@
                                                  "tests/integration/prove_wan_wh1_setup.bas",
                                                  "tests/integration/prove_wan_wh2_setup.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Test-Plan022Slice4pReceiving.ps1",
@@ -140403,6 +140449,7 @@
                            {
                                "entryPoint":  "Mark",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
                            },
@@ -141049,6 +141096,7 @@
                                "entryPoint":  "OpenOrCreateConfigWorkbookRuntime",
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestWarehouseBootstrap.bas"
                                              ]
@@ -141095,6 +141143,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1"
@@ -141198,6 +141247,12 @@
                                "entryPoint":  "PreflightInventoryWorksheetTable",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "PrepareReceivingOperatorRuntimeFilesBootstrap",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
                                              ]
                            },
                            {
@@ -141617,6 +141672,7 @@
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
                                                  "tests/integration/test_CreateWarehouse.bas",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestPhase6LanBoundary.bas"
                                              ]
@@ -141780,6 +141836,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "RemoveNonReceivingOperatorSheetsBootstrap",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "RenderedComponentInventoryAfterPendingActionForTest",
                                "testPaths":  [
                                                  "tests/tooling/Test-Slice12ReviewedCleanup.ps1"
@@ -141851,6 +141913,12 @@
                                "entryPoint":  "ResolveAdminTargetWorkbook",
                                "testPaths":  [
                                                  "tests/unit/TestPhase6RoleSurfaces.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ResolveBootstrapRootPath",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
                                              ]
                            },
                            {
@@ -141931,6 +141999,7 @@
                            {
                                "entryPoint":  "ResolveInventoryWorkbookBridge",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestPhase6LanBoundary.bas"
                                              ]
@@ -141945,6 +142014,12 @@
                                "entryPoint":  "ResolveOperatorWorkbook",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ResolveOutboxWorkbook",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
                                              ]
                            },
                            {
@@ -141975,6 +142050,12 @@
                                "entryPoint":  "ResolveWarehouseTarget",
                                "testPaths":  [
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "RestoreCoreRootOverrideBootstrap",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
                                              ]
                            },
                            {
@@ -142336,6 +142417,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "SeedBootstrapDemoInventory",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "SeedDemoInventoryForAutomation",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -142432,6 +142519,7 @@
                                                  "tests/integration/test_ReceivingReadiness.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterBundle.bas",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
@@ -142950,8 +143038,15 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "StampBootstrapConfigWorkbook",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "Start",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
@@ -143650,6 +143745,7 @@
                                "testPaths":  [
                                                  "tests/integration/prove_wan_wh1_setup.bas",
                                                  "tests/integration/prove_wan_wh2_setup.bas",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1",
                                                  "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4xReusableProduction.ps1",
@@ -143847,6 +143943,7 @@
                                "entryPoint":  "ValidateWarehouseSpec",
                                "testPaths":  [
                                                  "tests/integration/test_CreateWarehouse.bas",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/unit/TestWarehouseBootstrap.bas"
                                              ]
                            },
