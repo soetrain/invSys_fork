@@ -149,3 +149,13 @@ action also rejects mutation, but the ordinary read recreates Auth. Those seven
 creation assertions expose the pending D8-A contract decision; they are separate
 from the46 missing-activity failures. This does not approve an Auth behavior change
 or substitute for pending/uncertain submission and comprehensive activity evidence.
+
+[Submission discovery](plan022_slice4be_shipping_submission_results.md) now proves
+pending Add references and exact ID survival through negative/exceptional server
+acknowledgment, including owner failure after real server acceptance. Initial
+605-check discovery retains all558 prior checks; isolated focused validation then
+passes136/136, including66 submission/persistence/path checks. Two revised full
+runs stop early with native faults and remain unresolved. The normal activity
+test's applied-log-only reference expectation must be corrected to include actual
+pending owner submissions before Shipping observation is implemented. Those
+source facts do not yet prove Update/Remove mixed outcomes or Send processing.

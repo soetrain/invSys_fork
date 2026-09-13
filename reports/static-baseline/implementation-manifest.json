@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T03:04:09Z",
+    "generatedAtUtc":  "2026-09-13T03:45:36Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -137061,6 +137061,7 @@
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aaProcessBulkImport.ps1",
                                                  "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4zProcessWorkbench.ps1",
@@ -137116,6 +137117,7 @@
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-PackagedExternalEdits.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
@@ -137346,6 +137348,12 @@
                                "entryPoint":  "AppendEventsToOutboxBatch",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4pReceiving.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "AppendInboxRowToLocalStagingRole",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1"
                                              ]
                            },
                            {
@@ -138951,6 +138959,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
                                                  "tests/unit/TestCoreProcessor.bas",
@@ -138975,6 +138984,7 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Plan022Slice4akAdminAddVisibilityDropdowns.ps1",
                                                  "tests/tooling/Test-Plan022Slice4qDisposition.ps1",
                                                  "tests/unit/TestCoreRoleEventWriter.bas",
@@ -139715,6 +139725,7 @@
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
@@ -140234,6 +140245,12 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "LocalStagingRootRole",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1"
                                              ]
                            },
                            {
@@ -140974,6 +140991,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1"
                                              ]
                            },
@@ -141294,6 +141312,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "QueueEventCore",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "QueueInventoryCreateEvent",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4akAdminAddVisibilityDropdowns.ps1"
@@ -141315,7 +141339,14 @@
                            {
                                "entryPoint":  "QueuePayloadEventCurrent",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "QueuePayloadEventServer",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1"
                                              ]
                            },
                            {
@@ -142169,6 +142200,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "SaveWorkbookRole",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ScaledOutputRegulationCeiling",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4azOutputRegulation.ps1"
@@ -142198,6 +142235,7 @@
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Slice14FullChain.ps1"
                                              ]
                            },
@@ -142350,6 +142388,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
@@ -142404,6 +142443,7 @@
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestWarehouseBootstrap.bas",
                                                  "tests/unit/TestWarehouseRetireArchive.bas",
@@ -142461,6 +142501,7 @@
                                "entryPoint":  "ShipmentsFormCommitLine",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Plan022Slice4sShippingExactKey.ps1",
                                                  "tests/tooling/Test-Plan022Slice4uShippingPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-R1FinalControlAcceptance.ps1"
@@ -142816,6 +142857,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022DialogObserver.ps1",
                                                  "tests/tooling/Test-Slice0ToolContracts.ps1",
@@ -142854,6 +142896,7 @@
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1",
                                                  "tests/tooling/Test-Plan022Slice4biFirstUseNasOnboarding.ps1",

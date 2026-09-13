@@ -59,6 +59,7 @@ function Test-Slice4beShippingActivity {
     . (Join-Path $PSScriptRoot 'Slice4beShippingWorkbookClose.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beShippingCapability.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beShippingAccessInterruptions.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beShippingSubmission.ps1')
     $project=$packages['invSys.Operations.xlam'].VBProject
     $form=$project.VBComponents.Item('frmShipmentsTally').CodeModule
     # Intercept only existing report presentation, retaining the real handlers.
@@ -285,6 +286,7 @@ Public Function ActivityShippingLifetimeState() As String
 End Function
 '@)
     Install-Slice4beShippingAccessInterruptionProbe $form $module
+    if($ShippingSubmissionOnly){Test-Slice4beShippingSubmission $module;return}
     $fixture=NewFixture 'shipping-activity'
     $auth=$excel.Workbooks.Open((Join-Path $fixture.Root ($fixture.Warehouse+'.invSys.Auth.xlsb')),0,$false)
     $caps=Table $auth 'tblCapabilities';$row=$caps.ListRows.Add()
@@ -445,4 +447,5 @@ End Function
         if($null -ne $operator){$operator.Close($false)}
         $other.Close($false)
     }
+    Test-Slice4beShippingSubmission $module
 }

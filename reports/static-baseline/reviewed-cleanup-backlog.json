@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-13T03:04:09Z",
+    "generatedAtUtc":  "2026-09-13T03:45:36Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "2b278a9096fdf1b85107f4952ad6219d17add422da04211d43957d78712a57ba",
-                          "maintenanceCandidatesSha256":  "a9cd1998583239ad8332bc2cb93b2aee1c9a9417f5e9cad833ff4a50387cc693"
+                          "implementationManifestSha256":  "1fee27f2d6ac45ed951a98687025693203e09f67743c8e4841dd874bf710dbc4",
+                          "maintenanceCandidatesSha256":  "140acee19746a757ca1788ce498a94eeb7be02a0ee1cd5645301d6d7e918070d"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -26853,6 +26853,7 @@
                            "reason":  "Procedure exceeds the 200-line new-procedure threshold.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beShippingSubmission.ps1",
                                                    "tests/tooling/Test-Plan022Slice4sShippingExactKey.ps1",
                                                    "tests/tooling/Test-Plan022Slice4uShippingPersistenceFeedback.ps1",
                                                    "tests/tooling/Test-R1FinalControlAcceptance.ps1"

@@ -38,6 +38,9 @@ the original file. It neither overwrites nor deletes unexpected authority files.
 After an incomplete helper, cleanup does not attempt another sign-in that could
 mask its error. Only disposable fixture files are moved. This is harness repair;
 no Shipping/Core implementation or package changed.
+Unexpected Auth copies are preserved within the helper until the outer harness
+disposes the generated fixture root. Raw Auth workbooks are not retained as
+diagnostic artifacts; the sanitized reports preserve the observations.
 
 ## Completed unchanged-package result
 

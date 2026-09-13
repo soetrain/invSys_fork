@@ -7,6 +7,7 @@ param(
     [switch]$CheckActivityEvidence,
     [switch]$CheckActivityFoundation,
     [switch]$CheckShippingActivity,
+    [switch]$ShippingSubmissionOnly,
     [switch]$CheckReceivingActivity,
     [switch]$CheckReceivingStagingActivity,
     [switch]$CheckReceivingLocalActivity,
@@ -41,6 +42,7 @@ if ($CheckActivityEvidence) {
 }
 if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundation checks require activity evidence mode.' }
 if ($CheckShippingActivity -and (-not $CheckActivityFoundation -or $CheckReceivingActivity)) { throw 'Shipping activity requires the foundation and a separate run from Receiving.' }
+if ($ShippingSubmissionOnly -and -not $CheckShippingActivity) { throw 'Shipping submission-only discovery requires Shipping activity mode.' }
 if ($CheckShippingActivity) {
     . (Join-Path $PSScriptRoot 'Slice4beShippingActivity.ps1')
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-shipping-activity/'+[guid]::NewGuid().ToString('N'))
@@ -473,6 +475,7 @@ finally {
         Remove-Item -LiteralPath $resolved -Recurse -Force
     }
     $reportName=$Phase.ToLowerInvariant()+'.json'
+    if ($ShippingSubmissionOnly) { $reportName='diagnostic-submission-'+$reportName }
     if ($CheckReceivingNavigationActivity) { $reportName='navigation-'+$reportName }
     if ($ReceivingNavigationOnly) { $reportName='diagnostic-'+$reportName }
     if ($CheckReceivingSurfaceCoverage) { $reportName='surface-'+$Phase.ToLowerInvariant()+'.json' }
