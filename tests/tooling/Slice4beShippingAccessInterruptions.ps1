@@ -101,7 +101,12 @@ function Test-Slice4beShippingAccessInterruptions($Fixture,$Operator,$Other,$Shi
                     Check ($prefix+'.CorePermissionUnavailable') (-not [bool](Run 'invSys.Core.xlam' 'TestShippingSession.CanShip'))
                     Check ($prefix+'.SameSignedInSession') ([bool](Run 'invSys.Core.xlam' 'modAuth.IsSignedIn') -and $session -eq [long](Run 'invSys.Core.xlam' 'TestShippingSession.SessionVersion'))
                     Check ($prefix+'.StopsBeforeMutationOwner') ($before -eq [long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingProbeCount'))
-                    Check ($prefix+'.FixedAccessNotice') ([string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingStatus') -ceq $notice)
+                    $status=([string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingStatus')) -split '\r?\n'
+                    $trackingNotice='Tracking unavailable: configuration could not be validated.'
+                    $primary=$status[0] -ceq $notice
+                    $onlyFixed=$status.Count -eq 1 -or ($case -eq 'ConfigUnavailable' -and $status.Count -eq 2 -and $status[1] -ceq $trackingNotice)
+                    Check ($prefix+'.FixedAccessNotice') ($primary -and $onlyFixed)
+                    if($case -eq 'ConfigUnavailable'){Check ($prefix+'.TrackingNoticeIsIndependent') ($primary -and $status.Count -eq 2 -and $status[1] -ceq $trackingNotice)}
                     Check ($prefix+'.StagingAndUnknownValuesPreserved') ($rows -ceq (@(Get-ShippingActivityRows $Ship)|ConvertTo-Json -Depth 5 -Compress) -and $held -ceq (@(Get-ShippingActivityRows $Hold)|ConvertTo-Json -Depth 5 -Compress))
                     Check ($prefix+'.CapturedWorkbookRetained') ([bool](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBound' @($Operator.Name)))
                 } finally {

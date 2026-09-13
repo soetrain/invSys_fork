@@ -9,6 +9,7 @@ param(
     [switch]$CheckShippingActivity,
     [switch]$TraceBootstrapForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
+    [switch]$PrepareShippingFixturesBeforeProbesForTest,
     [switch]$ShippingSubmissionOnly,
     [switch]$CheckReceivingActivity,
     [switch]$CheckReceivingStagingActivity,
@@ -47,6 +48,9 @@ if ($CheckShippingActivity -and (-not $CheckActivityFoundation -or $CheckReceivi
 if ($ShippingSubmissionOnly -and -not $CheckShippingActivity) { throw 'Shipping submission-only discovery requires Shipping activity mode.' }
 if ($TraceBootstrapForTest -and -not $CheckShippingActivity) { throw 'Bootstrap tracing requires the isolated Shipping route.' }
 if ($ShippingBeforeSharedFormsForTest -and (-not $CheckShippingActivity -or $ShippingSubmissionOnly)) { throw 'Shipping-first ordering requires the complete Shipping route.' }
+if ($PrepareShippingFixturesBeforeProbesForTest -and -not $ShippingBeforeSharedFormsForTest) { throw 'Prepared Shipping fixtures require the complete Shipping-first route.' }
+$preparedShippingFixtures=@{}
+$preparedShippingBoundaries=@{}
 if ($CheckShippingActivity) {
     . (Join-Path $PSScriptRoot 'Slice4beShippingActivity.ps1')
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-shipping-activity/'+[guid]::NewGuid().ToString('N'))
@@ -175,6 +179,13 @@ function SelectTarget($Fixture,[string]$User='config-admin') {
     }
 }
 function NewFixture([string]$Suffix) {
+    if($preparedShippingFixtures.ContainsKey($Suffix)) {
+        $prepared=$preparedShippingFixtures[$Suffix]
+        $preparedShippingFixtures.Remove($Suffix)
+        [void](Run 'invSys.Core.xlam' 'modRuntimeWorkbooks.SetCoreDataRootOverride' @($prepared.Root))
+        return $prepared
+    }
+    if($preparedShippingBoundaries.ContainsKey($Suffix)){throw 'Prepared Shipping fixture was already consumed.'}
     $wh='WHD5'+[guid]::NewGuid().ToString('N').Substring(0,6).ToUpperInvariant()
     $root=Join-Path $runRoot $Suffix
     $share=Join-Path $runRoot ($Suffix+'-share')
@@ -333,9 +344,32 @@ End Function
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     $step='Admin-generated fixtures'; Write-Output $step
     $a=NewFixture 'a'; $b=NewFixture 'b'
+    if($PrepareShippingFixturesBeforeProbesForTest){
+        $step='Admin-generated Shipping fixtures before Shipping probes'
+        $templateRoot=Join-Path $repo 'deploy/current/templates'
+        $template=Join-Path $templateRoot 'invSys.Data.Inventory.template.xlsb'
+        foreach($entry in @(
+            @('shipping-activity','shipping-operators'),
+            @('shipping-context-other','shipping-operators'),
+            @('shipping-submission','shipping-submission-operators')
+        )){
+            $suffix=$entry[0];$operatorRoot=Join-Path $runRoot $entry[1]
+            [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @($operatorRoot))
+            $roots=[string](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.TestFixtureBootstrapRoots' @($templateRoot,$operatorRoot))
+            if($roots -cne 'True|True'){throw 'Prepared Shipping fixture roots are unavailable.'}
+            $templateHash=Get-ShippingActivityHash $template
+            $preparedShippingFixtures[$suffix]=NewFixture $suffix
+            $unchanged=$templateHash -ceq (Get-ShippingActivityHash $template)
+            Check ('Shipping.Prepared.'+$suffix+'.RootsAndTemplatePreserved') $unchanged
+            if(-not $unchanged){throw 'Accepted template changed during Shipping fixture preparation.'}
+            $preparedShippingBoundaries[$suffix]=[pscustomobject]@{Roots=$roots;TemplateHash=$templateHash}
+        }
+        [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
+    }
     if($ShippingBeforeSharedFormsForTest){
         $step='Shipping handlers before shared form exercises'
         Test-Slice4beShippingActivity
+        if($PrepareShippingFixturesBeforeProbesForTest){Check 'Shipping.Prepared.AllFixturesConsumedOnce' ($preparedShippingFixtures.Count -eq 0)}
         [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     }
     SelectTarget $a
@@ -510,6 +544,7 @@ finally {
     if ($ShippingSubmissionOnly) { $reportName='diagnostic-submission-'+$reportName }
     if ($TraceBootstrapForTest) { $reportName='diagnostic-bootstrap-'+$reportName }
     if ($ShippingBeforeSharedFormsForTest) { $reportName='diagnostic-shipping-first-'+$reportName }
+    if ($PrepareShippingFixturesBeforeProbesForTest) { $reportName='diagnostic-prepared-fixtures-'+$reportName }
     if ($CheckReceivingNavigationActivity) { $reportName='navigation-'+$reportName }
     if ($ReceivingNavigationOnly) { $reportName='diagnostic-'+$reportName }
     if ($CheckReceivingSurfaceCoverage) { $reportName='surface-'+$Phase.ToLowerInvariant()+'.json' }

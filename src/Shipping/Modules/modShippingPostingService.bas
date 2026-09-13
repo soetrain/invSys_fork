@@ -7,14 +7,15 @@ Public Function ExecuteShipmentsSent(ByVal operatorWb As Workbook, _
                                      ByVal rowIndexes As Variant, _
                                      ByVal carrierValue As String, _
                                      ByRef report As String, _
-                                     Optional ByVal skipAuthForTest As Boolean = False) As Boolean
+                                     Optional ByVal skipAuthForTest As Boolean = False, _
+                                     Optional ByVal ownerFacts As cShippingOwnerFacts = Nothing) As Boolean
     If Not CapturedWorkbookIsOpen(operatorWb) Then
         report = "The captured Shipping operator workbook is no longer open."
         Exit Function
     End If
 
     ExecuteShipmentsSent = modTS_Shipments.ShipmentsFormRunShipmentsSentRows( _
-        rowIndexes, carrierValue, report, skipAuthForTest, operatorWb)
+        rowIndexes, carrierValue, report, skipAuthForTest, operatorWb, ownerFacts)
 End Function
 
 Public Function ProjectedInventory(ByVal nasInventory As Double, _

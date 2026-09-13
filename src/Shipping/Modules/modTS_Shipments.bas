@@ -1489,9 +1489,9 @@ Public Sub BtnShipmentsSent()
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
     If Not RunShippingRuntimeQueueRefresh(ws.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport) Then
         If runtimeReport = "" Then runtimeReport = "Local shipment post succeeded, but runtime processing or read-model refresh did not complete cleanly."
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     ElseIf runtimeReport <> "" Then
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     End If
     Dim msg As String
     msg = "Finalized " & Format$(shippedTotal, "0.###") & " shipments."
@@ -1780,7 +1780,8 @@ Public Function ValidateConfirmInventoryFromCurrentWorkbook() As String
     End If
 End Function
 
-Private Function QueueShipmentsSentEvent(ByVal deltas As Collection, ByRef errNotes As String, ByRef eventIdOut As String) As Boolean
+Private Function QueueShipmentsSentEvent(ByVal deltas As Collection, ByRef errNotes As String, ByRef eventIdOut As String, _
+                                      Optional ByVal ownerFacts As cShippingOwnerFacts = Nothing) As Boolean
     Dim payloadJson As String
 
     payloadJson = BuildPayloadJsonFromDeltas(deltas, "")
@@ -1789,14 +1790,15 @@ Private Function QueueShipmentsSentEvent(ByVal deltas As Collection, ByRef errNo
         Exit Function
     End If
 
-    QueueShipmentsSentEvent = QueueShippingPayloadEventServerFirst(EVENT_TYPE_SHIP, _
+    QueueShipmentsSentEvent = QueueObservedShippingPayload(EVENT_TYPE_SHIP, _
                                                                    payloadJson, _
                                                                    "BTN_SHIPMENTS_SENT", _
                                                                    eventIdOut, _
-                                                                   errNotes)
+                                                                   errNotes, ownerFacts)
 End Function
 
-Private Function QueueShipmentsReserveEvent(ByVal deltas As Collection, ByRef errNotes As String, ByRef eventIdOut As String) As Boolean
+Private Function QueueShipmentsReserveEvent(ByVal deltas As Collection, ByRef errNotes As String, ByRef eventIdOut As String, _
+                                      Optional ByVal ownerFacts As cShippingOwnerFacts = Nothing) As Boolean
     Dim payloadJson As String
 
     payloadJson = BuildPayloadJsonFromDeltas(deltas, "RESERVED")
@@ -1805,14 +1807,15 @@ Private Function QueueShipmentsReserveEvent(ByVal deltas As Collection, ByRef er
         Exit Function
     End If
 
-    QueueShipmentsReserveEvent = QueueShippingPayloadEventServerFirst(EVENT_TYPE_SHIP_RESERVE, _
+    QueueShipmentsReserveEvent = QueueObservedShippingPayload(EVENT_TYPE_SHIP_RESERVE, _
                                                                       payloadJson, _
                                                                       "BTN_TO_SHIPMENTS_RESERVE", _
                                                                       eventIdOut, _
-                                                                      errNotes)
+                                                                      errNotes, ownerFacts)
 End Function
 
-Private Function QueueShipmentsReleaseEvent(ByVal deltas As Collection, ByRef errNotes As String, ByRef eventIdOut As String) As Boolean
+Private Function QueueShipmentsReleaseEvent(ByVal deltas As Collection, ByRef errNotes As String, ByRef eventIdOut As String, _
+                                      Optional ByVal ownerFacts As cShippingOwnerFacts = Nothing) As Boolean
     Dim payloadJson As String
 
     payloadJson = BuildPayloadJsonFromDeltas(deltas, "RELEASED")
@@ -1821,11 +1824,27 @@ Private Function QueueShipmentsReleaseEvent(ByVal deltas As Collection, ByRef er
         Exit Function
     End If
 
-    QueueShipmentsReleaseEvent = QueueShippingPayloadEventServerFirst(EVENT_TYPE_SHIP_RELEASE, _
+    QueueShipmentsReleaseEvent = QueueObservedShippingPayload(EVENT_TYPE_SHIP_RELEASE, _
                                                                       payloadJson, _
                                                                       "BTN_NOT_SHIPPED_RELEASE", _
                                                                       eventIdOut, _
-                                                                      errNotes)
+                                                                      errNotes, ownerFacts)
+End Function
+
+Private Function QueueObservedShippingPayload(ByVal eventType As String, ByVal payloadJson As String, _
+                                              ByVal noteText As String, ByRef eventIdOut As String, _
+                                              ByRef errNotes As String, ByVal ownerFacts As cShippingOwnerFacts) As Boolean
+    Dim failureNumber As Long, failureSource As String, failureText As String
+    Dim failureHelp As String, failureContext As Long
+    On Error GoTo Failed
+    QueueObservedShippingPayload = QueueShippingPayloadEventServerFirst(eventType, payloadJson, noteText, eventIdOut, errNotes)
+    If Not ownerFacts Is Nothing Then ownerFacts.ObserveSource eventIdOut, QueueObservedShippingPayload
+    Exit Function
+Failed:
+    failureNumber = Err.Number: failureSource = Err.Source: failureText = Err.Description
+    failureHelp = Err.HelpFile: failureContext = Err.HelpContext
+    If Not ownerFacts Is Nothing Then ownerFacts.ObserveSource eventIdOut, False
+    Err.Raise failureNumber, failureSource, failureText, failureHelp, failureContext
 End Function
 
 Private Function QueueShippingPayloadEventServerFirst(ByVal eventType As String, _
@@ -1861,12 +1880,12 @@ Private Function QueueShippingPayloadEventServerFirst(ByVal eventType As String,
                                                                                          eventIdOut, _
                                                                                          queueError)
         If QueueShippingPayloadEventServerFirst Then Exit Function
-        If queueError <> "" Then AppendNote errNotes, "Server inbox write failed; falling back to local staging. " & queueError
+        If queueError <> "" Then modShippingReportText.AppendNote errNotes, "Server inbox write failed; falling back to local staging. " & queueError
     End If
 
 Fallback:
     If Err.Number <> 0 Then
-        AppendNote errNotes, "Server inbox write failed; falling back to local staging. " & Err.Description
+        modShippingReportText.AppendNote errNotes, "Server inbox write failed; falling back to local staging. " & Err.Description
         Err.Clear
     End If
     QueueShippingPayloadEventServerFirst = modRoleEventWriter.QueuePayloadEventCurrent(eventType, _
@@ -7376,14 +7395,14 @@ Public Function CommitBoxMakerFormAction(ByVal packageSystemKey As String, _
     If Not batchProcessed Then batchProcessed = BoxMakerRuntimeReportShowsProcessed(runtimeReport)
     syncCompletedOut = batchProcessed
     If batchProcessed Then
-        AppendNote errNotes, "Sync complete."
+        modShippingReportText.AppendNote errNotes, "Sync complete."
     Else
-        AppendNote errNotes, "Sync pending."
+        modShippingReportText.AppendNote errNotes, "Sync pending."
     End If
-    If runtimeReport <> "" Then AppendNote errNotes, runtimeReport
-    If eventIdOut <> "" Then AppendNote errNotes, "Inbox EventID: " & eventIdOut
+    If runtimeReport <> "" Then modShippingReportText.AppendNote errNotes, runtimeReport
+    If eventIdOut <> "" Then modShippingReportText.AppendNote errNotes, "Inbox EventID: " & eventIdOut
     If packageSystemKey <> "" Then _
-        AppendNote errNotes, "OutputSystemKey: " & packageSystemKey
+        modShippingReportText.AppendNote errNotes, "OutputSystemKey: " & packageSystemKey
     If errNotes <> "" Then resultMessage = resultMessage & vbCrLf & vbCrLf & errNotes
     ShowShippingStatus resultMessage
     CommitBoxMakerFormAction = True
@@ -8049,8 +8068,8 @@ Private Function ShipmentsFormRefreshRuntimeInventoryCore(ByVal operatorWb As Wo
     End If
 
     report = runtimeReport
-    If Trim$(inventoryReport) <> "" And StrComp(Trim$(inventoryReport), "OK", vbTextCompare) <> 0 Then AppendNote report, inventoryReport
-    If Trim$(bomReport) <> "" Then AppendNote report, bomReport
+    If Trim$(inventoryReport) <> "" And StrComp(Trim$(inventoryReport), "OK", vbTextCompare) <> 0 Then modShippingReportText.AppendNote report, inventoryReport
+    If Trim$(bomReport) <> "" Then modShippingReportText.AppendNote report, bomReport
     ShipmentsFormRefreshRuntimeInventoryCore = True
     Exit Function
 
@@ -8140,17 +8159,17 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
     If Left$(batchReport, 15) = "RunBatch failed" Then
         report = "RunBatch failed after local shipping post/write. StagingReport=" & stagingReport & " " & _
                  batchReport & " RefreshReport=Skipped; " & _
-                 FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
+                 modShippingReportText.FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
         Exit Function
     End If
 
     If Not ShippingRuntimeReportShowsProcessed(processedCount, batchReport) _
-       And (requireQueuedWork Or ShippingRuntimeReportMetric(stagingReport, "LocalStagingMerged") > 0) Then
+       And (requireQueuedWork Or modShippingReportText.ShippingRuntimeReportMetric(stagingReport, "LocalStagingMerged") > 0) Then
         report = "RunBatch did not handle the queued shipping event after local post/write. " & _
                  "StagingReport=" & stagingReport & " BatchReport=" & batchReport & _
                  " InboxDiagnostic=" & ShippingRuntimeInboxDiagnostic(resolvedWarehouseId, stationId) & _
                  " RefreshReport=Skipped; " & _
-                 FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
+                 modShippingReportText.FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
         Exit Function
     End If
 
@@ -8160,7 +8179,7 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
         report = "RunBatch processed queued shipping work, but the operator read-model refresh failed. " & _
                  "StagingReport=" & stagingReport & " BatchReport=" & batchReport & _
                  " RefreshReport=" & refreshReport & "; " & _
-                 FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, refreshMs)
+                 modShippingReportText.FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, refreshMs)
         Exit Function
     End If
     refreshMs = ElapsedMillisecondsShipping(refreshTimer)
@@ -8169,7 +8188,7 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
     If Not stagingOk Then report = report & "; StagingWarning=Local staged shipping rows could not be merged before runtime processing."
     If Trim$(refreshReport) <> "" And StrComp(Trim$(refreshReport), "OK", vbTextCompare) <> 0 Then _
         report = report & "; RefreshReport=" & refreshReport
-    report = report & "; " & FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, refreshMs)
+    report = report & "; " & modShippingReportText.FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, refreshMs)
     RunShippingRuntimeQueueRefresh = True
     Exit Function
 
@@ -8233,50 +8252,22 @@ Private Function ShippingRuntimeReportShowsProcessed(ByVal processedCount As Lon
         Exit Function
     End If
 
-    If ShippingRuntimeReportMetric(batchReport, "Applied") > 0 Then
+    If modShippingReportText.ShippingRuntimeReportMetric(batchReport, "Applied") > 0 Then
         ShippingRuntimeReportShowsProcessed = True
         Exit Function
     End If
 
-    If ShippingRuntimeReportMetric(batchReport, "SkipDup") > 0 Then
+    If modShippingReportText.ShippingRuntimeReportMetric(batchReport, "SkipDup") > 0 Then
         ShippingRuntimeReportShowsProcessed = True
     End If
 End Function
 
-Private Function ShippingRuntimeReportMetric(ByVal runtimeReport As String, ByVal metricName As String) As Long
-    Dim marker As String
-    Dim pos As Long
-    Dim valueStart As Long
-    Dim valueEnd As Long
-    Dim ch As String
-
-    marker = metricName & "="
-    pos = InStr(1, runtimeReport, marker, vbTextCompare)
-    If pos <= 0 Then Exit Function
-
-    valueStart = pos + Len(marker)
-    valueEnd = valueStart
-    Do While valueEnd <= Len(runtimeReport)
-        ch = Mid$(runtimeReport, valueEnd, 1)
-        If ch < "0" Or ch > "9" Then Exit Do
-        valueEnd = valueEnd + 1
-    Loop
-    If valueEnd <= valueStart Then Exit Function
-    ShippingRuntimeReportMetric = CLng(Mid$(runtimeReport, valueStart, valueEnd - valueStart))
-End Function
 
 Public Function ShippingRuntimeProcessedCount(ByVal runtimeReport As String) As Long
-    ShippingRuntimeProcessedCount = ShippingRuntimeReportMetric(runtimeReport, "Processed") + _
-                                    ShippingRuntimeReportMetric(runtimeReport, "Applied")
+    ShippingRuntimeProcessedCount = modShippingReportText.ShippingRuntimeReportMetric(runtimeReport, "Processed") + _
+                                    modShippingReportText.ShippingRuntimeReportMetric(runtimeReport, "Applied")
 End Function
 
-Private Function FormatShippingRuntimeTiming(ByVal totalMs As Long, _
-                                             ByVal batchMs As Long, _
-                                             ByVal refreshMs As Long) As String
-    FormatShippingRuntimeTiming = "TimingMs=Total:" & CStr(totalMs) & _
-                                  ";Batch:" & CStr(batchMs) & _
-                                  ";Refresh:" & CStr(refreshMs)
-End Function
 
 Private Function ElapsedMillisecondsShipping(ByVal startedAt As Single) As Long
     Dim deltaSeconds As Single
@@ -9106,8 +9097,11 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                                         Optional ByVal displayedAvailableQty As Variant, _
                                         Optional ByVal visibleShippables As Variant, _
                                         Optional ByVal operatorWb As Workbook = Nothing, _
-                                        Optional ByVal displayedNasQty As Variant) As Boolean
+                                        Optional ByVal displayedNasQty As Variant, _
+                                        Optional ByVal ownerFacts As cShippingOwnerFacts = Nothing) As Boolean
     On Error GoTo Fail
+    Dim ownerFailed As Boolean
+    If Not ownerFacts Is Nothing Then ownerFacts.BeginOwner
 
     Dim ws As Worksheet
     Dim lo As ListObject
@@ -9150,7 +9144,10 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
 
     actionName = UCase$(Trim$(actionName))
     isHold = (UCase$(Trim$(targetName)) = "HOLD")
-    If Not ValidateShipmentCommitInputs(actionName, isHold, itemName, qtyValue, systemKey, carrierValue, report) Then Exit Function
+    If Not ValidateShipmentCommitInputs(actionName, isHold, itemName, qtyValue, systemKey, carrierValue, report) Then
+        If Not ownerFacts Is Nothing Then ownerFacts.RejectBeforeMutation
+        Exit Function
+    End If
 
     Set ws = ShipmentsWorksheetForWorkbook(operatorWb)
     If ws Is Nothing Then
@@ -9194,10 +9191,11 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
                     GoTo CleanExit
                 End If
                 SyncSingleVersionInventoryOverlayFromInvSysRows invLo, lo, singleRow
-                If QueueShipmentsReleaseEvent(releaseDeltas, errNotes, releaseEventId) Then
+                If QueueShipmentsReleaseEvent(releaseDeltas, errNotes, releaseEventId, ownerFacts) Then
                     persistenceInboxSaved = True
                 Else
-                    If errNotes <> "" Then AppendNote report, errNotes
+                    ownerFailed = True
+                    If errNotes <> "" Then modShippingReportText.AppendNote report, errNotes
                     errNotes = ""
                 End If
                 If Not MarkShippingReservationRows(lo, singleRow, SHIP_RESERVATION_RELEASED, releaseEventId, report) Then GoTo CleanExit
@@ -9218,7 +9216,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             PersistActiveShipmentRowsLocal lo
         End If
         report = "Removed shipment row."
-        AppendShippingPersistenceSummary report, persistenceInboxSaved, persistenceReservationSaved
+        modShippingReportText.AppendShippingPersistenceSummary report, persistenceInboxSaved, persistenceReservationSaved
         ShipmentsFormCommitLine = True
         GoTo CleanExit
     End If
@@ -9306,7 +9304,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             report = errNotes
             GoTo CleanExit
         End If
-        If Not QueueShipmentsReleaseEvent(releaseDeltas, errNotes, releaseEventId) Then
+        If Not QueueShipmentsReleaseEvent(releaseDeltas, errNotes, releaseEventId, ownerFacts) Then
             If errNotes = "" Then errNotes = "Unable to queue release event for the existing reservation."
             report = errNotes
             GoTo CleanExit
@@ -9380,6 +9378,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             qtyDelta, displayedAvailableQty, existingQtyValue, displayedNasQty
         WriteValue lr, COL_SHIPMENT_RESERVE_EVENT_ID, existingReserveEventId
         If Not UpsertShippingReservationRows(lo, Array(lr.Index), existingReserveEventId, report) Then
+            ownerFailed = True
             If report = "" Then report = "Warning: local quantity delta was applied, but the shipping reservation ledger was not refreshed."
         Else
             persistenceReservationSaved = True
@@ -9406,7 +9405,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
             report = errNotes
             GoTo CleanExit
         End If
-        If Not QueueShipmentsReserveEvent(reserveDeltas, errNotes, reserveEventId) Then
+        If Not QueueShipmentsReserveEvent(reserveDeltas, errNotes, reserveEventId, ownerFacts) Then
             Dim rollbackNotes As String
             releasedTotal = ApplyShipmentReleaseDeltasLocal(invLo, reserveDeltas, rollbackNotes, True)
             If errNotes = "" Then errNotes = "Unable to queue shipment reserve event."
@@ -9416,6 +9415,7 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         End If
         persistenceInboxSaved = True
         If Not UpsertShippingReservationRows(lo, Array(lr.Index), reserveEventId, report) Then
+            ownerFailed = True
             reservationWarning = Trim$(report)
             If reservationWarning = "" Then reservationWarning = "Reservation event queued and local lock applied, but the reservation ledger was not refreshed."
             report = ""
@@ -9441,8 +9441,8 @@ Public Function ShipmentsFormCommitLine(ByVal targetName As String, _
         report = "Added shipment row."
     End If
     If reserveEventId <> "" Then report = report & vbCrLf & "Locked " & Format$(reservedTotal, "0.###") & " package(s) for shipment." & vbCrLf & "Reserve EventID: " & reserveEventId
-    If reservationWarning <> "" Then AppendNote report, "Warning: " & reservationWarning
-    AppendShippingPersistenceSummary report, persistenceInboxSaved, persistenceReservationSaved
+    If reservationWarning <> "" Then modShippingReportText.AppendNote report, "Warning: " & reservationWarning
+    modShippingReportText.AppendShippingPersistenceSummary report, persistenceInboxSaved, persistenceReservationSaved
     ShipmentsFormCommitLine = True
 
 CleanExit:
@@ -9455,6 +9455,7 @@ CleanExit:
     End If
     If Not ShipmentsFormCommitLine Then RollbackShipmentCommitRow lo, lr, rowSnapshot, rowWasNew, rowWasBlank
     EndShippingTableMutation lo, previousVisibility, visibilityChanged, previousEvents, previousHandling
+    If Not ownerFacts Is Nothing Then ownerFacts.CompleteOwner ShipmentsFormCommitLine, ownerFailed
     Exit Function
 
 Fail:
@@ -9463,6 +9464,7 @@ Fail:
     If Not ShipmentsFormCommitLine Then RollbackShipmentCommitRow lo, lr, rowSnapshot, rowWasNew, rowWasBlank
     EndShippingTableMutation lo, previousVisibility, visibilityChanged, previousEvents, previousHandling
     On Error GoTo 0
+    If Not ownerFacts Is Nothing Then ownerFacts.CompleteOwner False
 End Function
 
 Public Function ShipmentsFormCommitLineTraceForTest(ByVal targetName As String, _
@@ -10209,15 +10211,15 @@ Private Function BuildSelectedShipmentRowsDeltas(ByVal invLo As ListObject, _
     For i = LBound(rowIndexes) To UBound(rowIndexes)
         rowIndex = CLng(rowIndexes(i))
         If rowIndex <= 0 Or rowIndex > loShip.ListRows.Count Then
-            AppendNote errNotes, "Selected shipment row " & CStr(rowIndex) & " is no longer valid."
+            modShippingReportText.AppendNote errNotes, "Selected shipment row " & CStr(rowIndex) & " is no longer valid."
             Exit Function
         End If
         If cArea > 0 Then currentArea = NormalizeShipmentArea(NzStr(loShip.DataBodyRange.Cells(rowIndex, cArea).Value)) Else currentArea = "Warehouse"
         If requireAreaMatch And StrComp(currentArea, requiredArea, vbTextCompare) <> 0 Then
             If StrComp(requiredArea, "Shipments", vbTextCompare) = 0 Then
-                AppendNote errNotes, "Selected row " & CStr(rowIndex) & " is in " & currentArea & ". Use To Shipments before Shipments Sent."
+                modShippingReportText.AppendNote errNotes, "Selected row " & CStr(rowIndex) & " is in " & currentArea & ". Use To Shipments before Shipments Sent."
             Else
-                AppendNote errNotes, "Selected row " & CStr(rowIndex) & " is already in " & currentArea & "."
+                modShippingReportText.AppendNote errNotes, "Selected row " & CStr(rowIndex) & " is already in " & currentArea & "."
             End If
             Exit Function
         End If
@@ -10297,7 +10299,7 @@ NextSelectedRow:
         End If
         If invRow Is Nothing Then
             If Not useShipmentStaging Then
-                AppendNote errNotes, "Package ROW " & CStr(rowKeyValue) & " not found in invSys. " & ShipmentInvSysRowRepairDebug(invLo, rowKeyValue, CStr(key), names, nasInventoryOverrides)
+                modShippingReportText.AppendNote errNotes, "Package ROW " & CStr(rowKeyValue) & " not found in invSys. " & ShipmentInvSysRowRepairDebug(invLo, rowKeyValue, CStr(key), names, nasInventoryOverrides)
                 Exit Function
             End If
         End If
@@ -10313,11 +10315,11 @@ NextSelectedRow:
             Dim orderableQty As Double: orderableQty = availableQty - floorQty
             If orderableQty < 0 Then orderableQty = 0
             If NzDbl(requirements(key)) > availableQty + 0.0000001 Then
-                AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " requires " & Format$(NzDbl(requirements(key)), "0.###") & " but only " & Format$(availableQty, "0.###") & " in TOTAL INV."
+                modShippingReportText.AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " requires " & Format$(NzDbl(requirements(key)), "0.###") & " but only " & Format$(availableQty, "0.###") & " in TOTAL INV."
                 Exit Function
             End If
             If NzDbl(requirements(key)) > orderableQty + 0.0000001 Then
-                AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " requires " & Format$(NzDbl(requirements(key)), "0.###") & " but only " & Format$(orderableQty, "0.###") & " available above floor " & Format$(floorQty, "0.###") & "."
+                modShippingReportText.AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " requires " & Format$(NzDbl(requirements(key)), "0.###") & " but only " & Format$(orderableQty, "0.###") & " available above floor " & Format$(floorQty, "0.###") & "."
                 Exit Function
             End If
         ElseIf colShipments > 0 Then
@@ -10328,7 +10330,7 @@ NextSelectedRow:
                 stagedQty = NzDbl(invRow.Range.Cells(1, colShipments).Value)
             End If
             If Not allowMissingShipmentStaging And NzDbl(requirements(key)) > stagedQty + 0.0000001 Then
-                AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " only has " & Format$(stagedQty, "0.###") & " staged but needs " & Format$(NzDbl(requirements(key)), "0.###") & "."
+                modShippingReportText.AppendNote errNotes, "ROW " & CStr(rowKeyValue) & " only has " & Format$(stagedQty, "0.###") & " staged but needs " & Format$(NzDbl(requirements(key)), "0.###") & "."
                 Exit Function
             End If
         End If
@@ -10554,7 +10556,7 @@ Private Function RepairMissingShipmentInvSysRowFromNasOverride(ByVal invLo As Li
     Exit Function
 
 Fail:
-    AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & ": " & Err.Description
+    modShippingReportText.AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & ": " & Err.Description
 End Function
 
 Private Function ShipmentInvSysRowRepairDebug(ByVal invLo As ListObject, _
@@ -10727,7 +10729,7 @@ Private Function SelectedVersionInventoryAvailable(ByVal invLo As ListObject, _
         requiredQty = NzDbl(versionRequirements(CStr(key)))
         If requiredQty > availableQty + 0.0000001 Then
             If itemName = "" Then itemName = "ROW " & CStr(rowVal)
-            AppendNote errNotes, itemName & " " & versionLabel & " requires " & Format$(requiredQty, "0.###") & " but only " & Format$(availableQty, "0.###") & " is available for that version."
+            modShippingReportText.AppendNote errNotes, itemName & " " & versionLabel & " requires " & Format$(requiredQty, "0.###") & " but only " & Format$(availableQty, "0.###") & " is available for that version."
             SelectedVersionInventoryAvailable = False
             Exit Function
         End If
@@ -10896,8 +10898,11 @@ End Function
 
 Public Function ShipmentsFormMoveHoldRows(ByVal rowIndexes As Variant, _
                                           ByVal moveToHold As Boolean, _
-                                          ByRef report As String) As Boolean
+                                          ByRef report As String, _
+                                        Optional ByVal ownerFacts As cShippingOwnerFacts = Nothing) As Boolean
     On Error GoTo Fail
+    Dim ownerFailed As Boolean
+    If Not ownerFacts Is Nothing Then ownerFacts.BeginOwner
 
     Dim ws As Worksheet
     Dim sourceTable As ListObject
@@ -10962,9 +10967,11 @@ Public Function ShipmentsFormMoveHoldRows(ByVal rowIndexes As Variant, _
 
 CleanExit:
     If mutationStarted Then EndShippingTableMutation sourceTable, previousVisibility, visibilityChanged, previousEvents, previousHandling
+    If Not ownerFacts Is Nothing Then ownerFacts.CompleteOwner ShipmentsFormMoveHoldRows, ownerFailed
     Exit Function
 
 Fail:
+    ownerFailed = True
     report = "Hold action failed: " & Err.Description
     Resume CleanExit
 End Function
@@ -12215,8 +12222,11 @@ End Function
 
 Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
                                                 ByVal carrierValue As String, _
-                                                ByRef report As String) As Boolean
+                                                ByRef report As String, _
+                                        Optional ByVal ownerFacts As cShippingOwnerFacts = Nothing) As Boolean
     On Error GoTo Fail
+    Dim ownerFailed As Boolean
+    If Not ownerFacts Is Nothing Then ownerFacts.BeginOwner
 
     Dim ws As Worksheet
     Dim invLo As ListObject
@@ -12305,7 +12315,7 @@ Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
 
     BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
     mutationStarted = True
-    If Not QueueShipmentsReserveEvent(deltas, errNotes, reserveEventId) Then
+    If Not QueueShipmentsReserveEvent(deltas, errNotes, reserveEventId, ownerFacts) Then
         If errNotes = "" Then errNotes = "Unable to queue shipment reserve event."
         report = errNotes
         GoTo CleanExit
@@ -12336,14 +12346,16 @@ Public Function ShipmentsFormRunToShipmentsRows(ByVal rowIndexes As Variant, _
     If alreadyReservedCount + locallyLockedCount > 0 Then report = report & vbCrLf & CStr(alreadyReservedCount + locallyLockedCount) & " selected row(s) were already locked."
     If Trim$(carrierValue) <> "" Then report = report & vbCrLf & "Carrier: " & Trim$(carrierValue)
     If reserveEventId <> "" Then report = report & vbCrLf & "Reserve EventID: " & reserveEventId
-    AppendShippingPersistenceSummary report, persistenceInboxSaved, persistenceReservationSaved
+    modShippingReportText.AppendShippingPersistenceSummary report, persistenceInboxSaved, persistenceReservationSaved
     ShipmentsFormRunToShipmentsRows = True
 
 CleanExit:
     If mutationStarted Then EndShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
+    If Not ownerFacts Is Nothing Then ownerFacts.CompleteOwner ShipmentsFormRunToShipmentsRows, ownerFailed
     Exit Function
 
 Fail:
+    ownerFailed = True
     report = "To Shipments failed: " & Err.Description
     Resume CleanExit
 End Function
@@ -12352,8 +12364,11 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
                                                   ByVal carrierValue As String, _
                                                   ByRef report As String, _
                                                   Optional ByVal skipAuthForTest As Boolean = False, _
-                                                  Optional ByVal operatorWb As Workbook = Nothing) As Boolean
+                                                  Optional ByVal operatorWb As Workbook = Nothing, _
+                                        Optional ByVal ownerFacts As cShippingOwnerFacts = Nothing) As Boolean
     On Error GoTo Fail
+    Dim ownerFailed As Boolean
+    If Not ownerFacts Is Nothing Then ownerFacts.BeginOwner
 
     Dim ws As Worksheet
     Dim invLo As ListObject
@@ -12378,6 +12393,7 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     If Not skipAuthForTest Then
         If Not modRoleUiAccess.CanCurrentUserPerformCapability("SHIP_POST", "", "", "", errNotes) Then
             report = errNotes
+            If Not ownerFacts Is Nothing Then ownerFacts.RejectBeforeMutation True
             Exit Function
         End If
     End If
@@ -12431,7 +12447,7 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     End If
     BeginShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
     mutationStarted = True
-    If Not QueueShipmentsSentEvent(allSentDeltas, errNotes, queuedEventId) Then
+    If Not QueueShipmentsSentEvent(allSentDeltas, errNotes, queuedEventId, ownerFacts) Then
         If errNotes = "" Then errNotes = "Unable to queue shipment sent event."
         report = errNotes
         GoTo CleanExit
@@ -12454,10 +12470,10 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     ClearInstructionStaging ws
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
     runtimeProcessed = RunShippingRuntimeQueueRefresh(ws.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport)
-    If runtimeProcessed Then processorPersistenceSaves = ShippingRuntimeReportMetric(runtimeReport, "EventPersistenceSaves")
+    If runtimeProcessed Then processorPersistenceSaves = modShippingReportText.ShippingRuntimeReportMetric(runtimeReport, "EventPersistenceSaves")
     If Not runtimeProcessed Then
         If runtimeReport = "" Then runtimeReport = "Local shipment post succeeded, but runtime processing or read-model refresh did not complete cleanly."
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     End If
 
     report = "Shipments sent: " & Format$(shippedTotal, "0.###") & " package(s)."
@@ -12473,15 +12489,17 @@ Public Function ShipmentsFormRunShipmentsSentRows(ByVal rowIndexes As Variant, _
     End If
     If queuedEventId = "" Then report = report & vbCrLf & _
         "Server inventory was reserved at To Shipments; Shipments Sent completed the reservation and is waiting for processor/log catch-up."
-    AppendShippingPersistenceSummary report, (queuedEventId <> ""), persistenceReservationSaved, processorPersistenceSaves
+    modShippingReportText.AppendShippingPersistenceSummary report, (queuedEventId <> ""), persistenceReservationSaved, processorPersistenceSaves
     If errNotes <> "" Then report = report & vbCrLf & vbCrLf & "Warnings:" & vbCrLf & errNotes
     ShipmentsFormRunShipmentsSentRows = True
 
 CleanExit:
     If mutationStarted Then EndShippingTableMutation loShip, previousVisibility, visibilityChanged, previousEvents, previousHandling
+    If Not ownerFacts Is Nothing Then ownerFacts.CompleteOwner ShipmentsFormRunShipmentsSentRows, ownerFailed, runtimeProcessed
     Exit Function
 
 Fail:
+    ownerFailed = True
     report = "Shipments Sent failed: " & Err.Description
     Resume CleanExit
 End Function
@@ -12935,9 +12953,9 @@ Public Function ShipmentsFormRunShipmentsSent(ByRef report As String) As Boolean
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
     If Not RunShippingRuntimeQueueRefresh(ws.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport) Then
         If runtimeReport = "" Then runtimeReport = "Local shipment post succeeded, but runtime processing or read-model refresh did not complete cleanly."
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     ElseIf runtimeReport <> "" Then
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     End If
     ClearShipmentStageAfterRefresh ws.Parent, deltas
 
@@ -13020,9 +13038,9 @@ Public Function ShipmentsFormRunDirectShipmentsSent(ByRef report As String, Opti
     If shipLogs.Count > 0 Then LogShippingChanges "AggregatePackages_Log", shipLogs
     If Not RunShippingRuntimeQueueRefresh(ws.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport) Then
         If runtimeReport = "" Then runtimeReport = "Local shipment post succeeded, but runtime processing or read-model refresh did not complete cleanly."
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     ElseIf runtimeReport <> "" Then
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     End If
 
     report = "Finalized " & Format$(shippedTotal, "0.###") & " shipments."
@@ -13462,7 +13480,7 @@ Public Function DeleteBoxDesignVersionForWorkbook(ByVal operatorWb As Workbook, 
     RefreshBoxBomVersionList ws, packageSystemKey
     report = deleteReport
     If report = "" Then report = "Deleted the selected box alternative."
-    If Trim$(refreshReport) <> "" Then AppendNote report, refreshReport
+    If Trim$(refreshReport) <> "" Then modShippingReportText.AppendNote report, refreshReport
     DeleteBoxDesignVersionForWorkbook = True
     Exit Function
 
@@ -13503,7 +13521,7 @@ Public Function ArchiveBoxDesignForWorkbook(ByVal operatorWb As Workbook, _
     InvalidateAggregates True
     report = archiveReport
     If report = "" Then report = "Archived the selected box design."
-    If Trim$(refreshReport) <> "" Then AppendNote report, refreshReport
+    If Trim$(refreshReport) <> "" Then modShippingReportText.AppendNote report, refreshReport
     ArchiveBoxDesignForWorkbook = True
     Exit Function
 
@@ -13542,7 +13560,7 @@ Public Function DeleteBoxDesignForWorkbook(ByVal operatorWb As Workbook, _
     RefreshShippingBomViewForWorkbook operatorWb, refreshReport
     report = deleteReport
     If report = "" Then report = "Deleted the selected box design."
-    If Trim$(refreshReport) <> "" Then AppendNote report, refreshReport
+    If Trim$(refreshReport) <> "" Then modShippingReportText.AppendNote report, refreshReport
     DeleteBoxDesignForWorkbook = True
     Exit Function
 
@@ -13647,7 +13665,7 @@ Public Function BoxBuilderFormArchiveBox(ByVal packageSystemKey As String, Optio
     InvalidateAggregates True
     report = archiveReport
     If report = "" Then report = "Archived Shipping BOM ROW " & CStr(packageSystemKey) & "."
-    If Trim$(refreshReport) <> "" Then AppendNote report, refreshReport
+    If Trim$(refreshReport) <> "" Then modShippingReportText.AppendNote report, refreshReport
     BoxBuilderFormArchiveBox = True
     Exit Function
 
@@ -15767,11 +15785,11 @@ Private Function ApplyBoxCreatedFromBuilder(ByVal loBuilder As ListObject, _
     runtimeReportOut = runtimeReport
     If Not batchProcessedOut Then
         If runtimeReport = "" Then runtimeReport = "Box build event queued, but runtime processing or read-model refresh did not complete cleanly."
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     ElseIf runtimeReport <> "" Then
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     End If
-    If eventIdOut <> "" Then AppendNote errNotes, "Inbox EventID: " & eventIdOut
+    If eventIdOut <> "" Then modShippingReportText.AppendNote errNotes, "Inbox EventID: " & eventIdOut
 
     ApplyBoxCreatedFromBuilder = True
 End Function
@@ -15809,11 +15827,11 @@ Private Function ApplyBoxUnboxedFromBuilder(ByVal loBuilder As ListObject, _
     runtimeReportOut = runtimeReport
     If Not batchProcessedOut Then
         If runtimeReport = "" Then runtimeReport = "Box unbox event queued, but runtime processing or read-model refresh did not complete cleanly."
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     ElseIf runtimeReport <> "" Then
-        AppendNote errNotes, runtimeReport
+        modShippingReportText.AppendNote errNotes, runtimeReport
     End If
-    If eventIdOut <> "" Then AppendNote errNotes, "Inbox EventID: " & eventIdOut
+    If eventIdOut <> "" Then modShippingReportText.AppendNote errNotes, "Inbox EventID: " & eventIdOut
 
     ApplyBoxUnboxedFromBuilder = True
 End Function
@@ -16694,7 +16712,7 @@ Private Function RefreshShippingBomViewForWorkbook(ByVal operatorWb As Workbook,
         End If
         If loView Is Nothing Then
             report = "ShippingBOMView table was not found in the operator workbook."
-            If Trim$(surfaceReport) <> "" Then AppendNote report, surfaceReport
+            If Trim$(surfaceReport) <> "" Then modShippingReportText.AppendNote report, surfaceReport
             Exit Function
         End If
     End If
@@ -18007,10 +18025,10 @@ Private Sub AddShippingBomSignaturePart(ByVal dict As Object, _
     If componentQty = 0 Then Exit Sub
 
     key = LCase$(Trim$(componentSystemKey)) & "|" & _
-          NormalizeShippingBomSignatureText(componentItem) & "|" & _
-          NormalizeShippingBomSignatureText(componentUom) & "|" & _
-          NormalizeShippingBomSignatureText(componentLocation) & "|" & _
-          NormalizeShippingBomSignatureText(componentDescription)
+          modShippingReportText.NormalizeShippingBomSignatureText(componentItem) & "|" & _
+          modShippingReportText.NormalizeShippingBomSignatureText(componentUom) & "|" & _
+          modShippingReportText.NormalizeShippingBomSignatureText(componentLocation) & "|" & _
+          modShippingReportText.NormalizeShippingBomSignatureText(componentDescription)
     If dict.Exists(key) Then
         dict(key) = CDbl(dict(key)) + componentQty
     Else
@@ -18027,7 +18045,7 @@ Private Function ShippingBomSignatureFromDictionary(ByVal dict As Object) As Str
     If dict Is Nothing Then Exit Function
     If dict.Count = 0 Then Exit Function
 
-    keys = SortedTextKeysShipping(dict)
+    keys = modShippingReportText.SortedTextKeysShipping(dict)
     For i = LBound(keys) To UBound(keys)
         key = keys(i)
         If result <> "" Then result = result & vbLf
@@ -18036,34 +18054,7 @@ Private Function ShippingBomSignatureFromDictionary(ByVal dict As Object) As Str
     ShippingBomSignatureFromDictionary = result
 End Function
 
-Private Function SortedTextKeysShipping(ByVal dict As Object) As Variant
-    Dim keys As Variant
-    Dim i As Long
-    Dim j As Long
-    Dim tmp As Variant
 
-    If dict Is Nothing Then Exit Function
-    keys = dict.Keys
-    If Not IsArray(keys) Then
-        SortedTextKeysShipping = keys
-        Exit Function
-    End If
-
-    For i = LBound(keys) To UBound(keys) - 1
-        For j = i + 1 To UBound(keys)
-            If StrComp(CStr(keys(j)), CStr(keys(i)), vbTextCompare) < 0 Then
-                tmp = keys(i)
-                keys(i) = keys(j)
-                keys(j) = tmp
-            End If
-        Next j
-    Next i
-    SortedTextKeysShipping = keys
-End Function
-
-Private Function NormalizeShippingBomSignatureText(ByVal valueIn As String) As String
-    NormalizeShippingBomSignatureText = LCase$(Trim$(valueIn))
-End Function
 
 Private Sub RetireActiveShippingBomPackageSystemKeys(ByVal lo As ListObject, _
                                                ByVal packageSystemKey As String, _
@@ -19482,9 +19473,9 @@ Private Function ValidateComponentInventory(invLo As ListObject, aggBom As ListO
         End If
         If invRow Is Nothing Then
             If systemKey <> "" Then
-                AppendNote shortageMsg, "invSys System_Key '" & systemKey & "' not found."
+                modShippingReportText.AppendNote shortageMsg, "invSys System_Key '" & systemKey & "' not found."
             Else
-                AppendNote shortageMsg, "invSys ROW " & rowVal & " not found."
+                modShippingReportText.AppendNote shortageMsg, "invSys ROW " & rowVal & " not found."
             End If
             GoTo NextComponent
         End If
@@ -19492,11 +19483,11 @@ Private Function ValidateComponentInventory(invLo As ListObject, aggBom As ListO
         Dim available As Double: available = NzDbl(totalCell.Value)
         If available < qtyNeeded Then
             If systemKey <> "" Then
-                AppendNote shortageMsg, "System_Key '" & systemKey & "' requires " & _
+                modShippingReportText.AppendNote shortageMsg, "System_Key '" & systemKey & "' requires " & _
                            Format$(qtyNeeded, "0.###") & " but only " & _
                            Format$(available, "0.###") & " available."
             Else
-                AppendNote shortageMsg, "ROW " & rowVal & " requires " & _
+                modShippingReportText.AppendNote shortageMsg, "ROW " & rowVal & " requires " & _
                            Format$(qtyNeeded, "0.###") & " but only " & _
                            Format$(available, "0.###") & " available."
             End If
@@ -20285,7 +20276,7 @@ NextAggRow:
     For Each key In requirements.Keys
         Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, CLng(key))
         If invRow Is Nothing Then
-            AppendNote errNotes, "Component ROW " & CStr(key) & " not found in invSys."
+            modShippingReportText.AppendNote errNotes, "Component ROW " & CStr(key) & " not found in invSys."
         Else
             Dim delta As Object: Set delta = CreateObject("Scripting.Dictionary")
             delta("ROW") = CLng(key)
@@ -20338,9 +20329,9 @@ Private Function BuildMadeDeltaPacket(invLo As ListObject, aggPack As ListObject
         End If
         If invRow Is Nothing Then
             If systemKey <> "" Then
-                AppendNote errNotes, "Package System_Key '" & systemKey & "' not found in invSys."
+                modShippingReportText.AppendNote errNotes, "Package System_Key '" & systemKey & "' not found in invSys."
             Else
-                AppendNote errNotes, "Package ROW " & rowVal & " not found in invSys."
+                modShippingReportText.AppendNote errNotes, "Package ROW " & rowVal & " not found in invSys."
             End If
         Else
             Dim delta As Object: Set delta = CreateObject("Scripting.Dictionary")
@@ -20490,7 +20481,7 @@ NextAgg:
     For Each shipKey In requirements.Keys
         Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, CLng(shipKey))
         If invRow Is Nothing Then
-            AppendNote errNotes, "Package ROW " & shipKey & " not found in invSys."
+            modShippingReportText.AppendNote errNotes, "Package ROW " & shipKey & " not found in invSys."
             Exit Function
         End If
 
@@ -20507,11 +20498,11 @@ NextAgg:
         Dim orderableQty As Double: orderableQty = available - floorQty
         If orderableQty < 0 Then orderableQty = 0
         If neededQty > available + 0.0000001 Then
-            AppendNote errNotes, "ROW " & shipKey & " requires " & Format$(neededQty, "0.###") & " but only " & Format$(available, "0.###") & " in TOTAL INV."
+            modShippingReportText.AppendNote errNotes, "ROW " & shipKey & " requires " & Format$(neededQty, "0.###") & " but only " & Format$(available, "0.###") & " in TOTAL INV."
             Exit Function
         End If
         If neededQty > orderableQty + 0.0000001 Then
-            AppendNote errNotes, "ROW " & shipKey & " requires " & Format$(neededQty, "0.###") & " but only " & Format$(orderableQty, "0.###") & " available above floor " & Format$(floorQty, "0.###") & "."
+            modShippingReportText.AppendNote errNotes, "ROW " & shipKey & " requires " & Format$(neededQty, "0.###") & " but only " & Format$(orderableQty, "0.###") & " available above floor " & Format$(floorQty, "0.###") & "."
             Exit Function
         End If
 
@@ -20575,14 +20566,14 @@ NextShipRow:
     For Each key In requirements.Keys
         Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, CLng(key))
         If invRow Is Nothing Then
-            AppendNote errNotes, "Package ROW " & CStr(key) & " not found in invSys."
+            modShippingReportText.AppendNote errNotes, "Package ROW " & CStr(key) & " not found in invSys."
             Exit Function
         End If
 
         Dim requiredQty As Double: requiredQty = NzDbl(requirements(key))
         Dim available As Double: available = NzDbl(invRow.Range.Cells(1, colTotalInv).Value)
         If requiredQty > available + 0.0000001 Then
-            AppendNote errNotes, "ROW " & CStr(key) & " requires " & Format$(requiredQty, "0.###") & " but only " & Format$(available, "0.###") & " in TOTAL INV."
+            modShippingReportText.AppendNote errNotes, "ROW " & CStr(key) & " requires " & Format$(requiredQty, "0.###") & " but only " & Format$(available, "0.###") & " in TOTAL INV."
             Exit Function
         End If
 
@@ -20649,14 +20640,14 @@ NextDisplayedRow:
     For Each key In requirements.Keys
         Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, CLng(key))
         If invRow Is Nothing Then
-            AppendNote errNotes, "Package ROW " & CStr(key) & " not found in invSys."
+            modShippingReportText.AppendNote errNotes, "Package ROW " & CStr(key) & " not found in invSys."
             Exit Function
         End If
 
         Dim requiredQty As Double: requiredQty = NzDbl(requirements(key))
         Dim available As Double: available = NzDbl(invRow.Range.Cells(1, colTotalInv).Value)
         If requiredQty > available + 0.0000001 Then
-            AppendNote errNotes, "ROW " & CStr(key) & " requires " & Format$(requiredQty, "0.###") & " but only " & Format$(available, "0.###") & " in TOTAL INV."
+            modShippingReportText.AppendNote errNotes, "ROW " & CStr(key) & " requires " & Format$(requiredQty, "0.###") & " but only " & Format$(available, "0.###") & " in TOTAL INV."
             Exit Function
         End If
 
@@ -20746,30 +20737,19 @@ Private Function ShipmentPayloadNote(ByVal delta As Object) As String
     If delta Is Nothing Then Exit Function
     If delta.Exists("ITEM_NAME") Then noteText = Trim$(NzStr(delta("ITEM_NAME")))
     If delta.Exists("VERSION") Then versionLabel = NormalizeBoxBomVersionLabelShipping(NzStr(delta("VERSION")))
-    If versionLabel <> "" Then noteText = AppendHistoryTokenShipping(noteText, "VERSION=" & versionLabel)
+    If versionLabel <> "" Then noteText = modShippingReportText.AppendHistoryTokenShipping(noteText, "VERSION=" & versionLabel)
     If delta.Exists("REF_NUMBER") Then refText = Trim$(NzStr(delta("REF_NUMBER")))
-    If refText <> "" Then noteText = AppendHistoryTokenShipping(noteText, "REF=" & refText)
+    If refText <> "" Then noteText = modShippingReportText.AppendHistoryTokenShipping(noteText, "REF=" & refText)
     If delta.Exists("CARRIER") Then carrierText = Trim$(NzStr(delta("CARRIER")))
-    If carrierText <> "" Then noteText = AppendHistoryTokenShipping(noteText, "CARRIER=" & carrierText)
+    If carrierText <> "" Then noteText = modShippingReportText.AppendHistoryTokenShipping(noteText, "CARRIER=" & carrierText)
     If delta.Exists("System_Key") Then
-        noteText = AppendHistoryTokenShipping(noteText, "System_Key=" & NzStr(delta("System_Key")))
+        noteText = modShippingReportText.AppendHistoryTokenShipping(noteText, "System_Key=" & NzStr(delta("System_Key")))
     ElseIf delta.Exists("ROW") Then
-        noteText = AppendHistoryTokenShipping(noteText, "ROW=" & CStr(NzLng(delta("ROW"))))
+        noteText = modShippingReportText.AppendHistoryTokenShipping(noteText, "ROW=" & CStr(NzLng(delta("ROW"))))
     End If
     ShipmentPayloadNote = noteText
 End Function
 
-Private Function AppendHistoryTokenShipping(ByVal baseText As String, ByVal tokenText As String) As String
-    baseText = Trim$(baseText)
-    tokenText = Trim$(tokenText)
-    If tokenText = "" Then
-        AppendHistoryTokenShipping = baseText
-    ElseIf baseText = "" Then
-        AppendHistoryTokenShipping = tokenText
-    Else
-        AppendHistoryTokenShipping = baseText & "; " & tokenText
-    End If
-End Function
 
 Private Sub PrepareTotalInventoryLogEntries(invLo As ListObject, deltas As Collection, logEntries As Collection)
     If invLo Is Nothing Then Exit Sub
@@ -20904,7 +20884,7 @@ NextDelta:
     Exit Function
 
 Fail:
-    AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & " during Shipments Sent cleanup: " & Err.Description
+    modShippingReportText.AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & " during Shipments Sent cleanup: " & Err.Description
 End Function
 
 Private Sub PrepareComponentLogEntries(invLo As ListObject, deltas As Collection, logEntries As Collection)
@@ -21049,14 +21029,14 @@ NextValidate:
         qtyVal = NzDbl(validationByRow(CStr(key)))
         Dim invRow As ListRow: Set invRow = FindShipmentSentDeltaInventoryRowForApply(invLo, deltas, rowVal, errNotes, deductTotalInv)
         If invRow Is Nothing Then
-            AppendNote errNotes, "invSys ROW " & rowVal & " not found."
+            modShippingReportText.AppendNote errNotes, "invSys ROW " & rowVal & " not found."
             ApplyShipmentsSentDeltas = -1
             Exit Function
         End If
         Dim shipCell As Range: Set shipCell = invRow.Range.Cells(1, colShip)
         Dim currentShip As Double: currentShip = NzDbl(shipCell.Value)
         If qtyVal > currentShip + 0.0000001 Then
-            AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(currentShip, "0.###") & " staged but needs " & Format$(qtyVal, "0.###") & "."
+            modShippingReportText.AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(currentShip, "0.###") & " staged but needs " & Format$(qtyVal, "0.###") & "."
             ApplyShipmentsSentDeltas = -1
             Exit Function
         End If
@@ -21064,7 +21044,7 @@ NextValidate:
             Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
             Dim currentTotal As Double: currentTotal = NzDbl(totalCell.Value)
             If qtyVal > currentTotal + 0.0000001 Then
-                AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(currentTotal, "0.###") & " in TOTAL INV but needs " & Format$(qtyVal, "0.###") & "."
+                modShippingReportText.AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(currentTotal, "0.###") & " in TOTAL INV but needs " & Format$(qtyVal, "0.###") & "."
                 ApplyShipmentsSentDeltas = -1
                 Exit Function
             End If
@@ -21392,7 +21372,7 @@ Private Function RepairShipmentQtyDeltaInventoryRow(ByVal invLo As ListObject, _
     Exit Function
 
 Fail:
-    AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & " during quantity delta apply: " & Err.Description
+    modShippingReportText.AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & " during quantity delta apply: " & Err.Description
 End Function
 
 Private Function DisplayedShipmentQtyForRepair(Optional ByVal qtyValue As Variant) As Double
@@ -21437,7 +21417,7 @@ Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collect
 
         Dim invRow As ListRow: Set invRow = EnsureShipmentDeltaInventoryRowForApply(invLo, delta, rowVal, errNotes)
         If invRow Is Nothing Then
-            AppendNote errNotes, "invSys ROW " & rowVal & " not found."
+            modShippingReportText.AppendNote errNotes, "invSys ROW " & rowVal & " not found."
             ApplyShipmentDeltasLocal = -1
             Exit Function
         End If
@@ -21455,12 +21435,12 @@ Private Function ApplyShipmentDeltasLocal(invLo As ListObject, deltas As Collect
         Dim orderableQty As Double: orderableQty = availableQty - floorQty
         If orderableQty < 0 Then orderableQty = 0
         If qtyVal > availableQty + 0.0000001 Then
-            AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(availableQty, "0.###") & " available after existing locks but needs " & Format$(qtyVal, "0.###") & "."
+            modShippingReportText.AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(availableQty, "0.###") & " available after existing locks but needs " & Format$(qtyVal, "0.###") & "."
             ApplyShipmentDeltasLocal = -1
             Exit Function
         End If
         If qtyVal > orderableQty + 0.0000001 Then
-            AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(orderableQty, "0.###") & " available above floor " & Format$(floorQty, "0.###") & " but needs " & Format$(qtyVal, "0.###") & "."
+            modShippingReportText.AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(orderableQty, "0.###") & " available above floor " & Format$(floorQty, "0.###") & " but needs " & Format$(qtyVal, "0.###") & "."
             ApplyShipmentDeltasLocal = -1
             Exit Function
         End If
@@ -21657,7 +21637,7 @@ Private Function EnsureShipmentDeltaInventoryRowForApply(ByVal invLo As ListObje
     Exit Function
 
 Fail:
-    AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & " during local lock apply: " & Err.Description
+    modShippingReportText.AppendNote errNotes, "Repair failed for ROW " & CStr(rowVal) & " during local lock apply: " & Err.Description
 End Function
 
 Private Function ApplyShipmentReleaseDeltasLocal(invLo As ListObject, deltas As Collection, ByRef errNotes As String, Optional ByVal allowMissingLocalStage As Boolean = False) As Double
@@ -21693,7 +21673,7 @@ Private Function ApplyShipmentReleaseDeltasLocal(invLo As ListObject, deltas As 
             Set invRow = DeltaInventoryRow(invLo, delta)
         End If
         If invRow Is Nothing Then
-            AppendNote errNotes, "invSys identity '" & CStr(DeltaInventoryIdentity(delta)) & "' not found."
+            modShippingReportText.AppendNote errNotes, "invSys identity '" & CStr(DeltaInventoryIdentity(delta)) & "' not found."
             ApplyShipmentReleaseDeltasLocal = -1
             Exit Function
         End If
@@ -21702,7 +21682,7 @@ Private Function ApplyShipmentReleaseDeltasLocal(invLo As ListObject, deltas As 
         Dim currentShip As Double: currentShip = NzDbl(shipCell.Value)
         If qtyVal > currentShip + 0.0000001 Then
             If Not allowMissingLocalStage Then
-                AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(currentShip, "0.###") & " staged but needs " & Format$(qtyVal, "0.###") & " to release."
+                modShippingReportText.AppendNote errNotes, "ROW " & rowVal & " only has " & Format$(currentShip, "0.###") & " staged but needs " & Format$(qtyVal, "0.###") & " to release."
                 ApplyShipmentReleaseDeltasLocal = -1
                 Exit Function
             End If
@@ -21807,7 +21787,7 @@ Private Function ApplyUsedDeltasLocal(invLo As ListObject, deltas As Collection,
 
         Dim invRow As ListRow: Set invRow = DeltaInventoryRow(invLo, delta)
         If invRow Is Nothing Then
-            AppendNote errNotes, "invSys identity '" & CStr(DeltaInventoryIdentity(delta)) & "' not found."
+            modShippingReportText.AppendNote errNotes, "invSys identity '" & CStr(DeltaInventoryIdentity(delta)) & "' not found."
             ApplyUsedDeltasLocal = -1
             Exit Function
         End If
@@ -21815,7 +21795,7 @@ Private Function ApplyUsedDeltasLocal(invLo As ListObject, deltas As Collection,
         Dim totalCell As Range: Set totalCell = invRow.Range.Cells(1, colTotal)
         Dim available As Double: available = NzDbl(totalCell.Value)
         If qtyVal > available + 0.0000001 Then
-            AppendNote errNotes, "Inventory identity '" & CStr(DeltaInventoryIdentity(delta)) & _
+            modShippingReportText.AppendNote errNotes, "Inventory identity '" & CStr(DeltaInventoryIdentity(delta)) & _
                        "' requires " & Format$(qtyVal, "0.###") & " but only " & _
                        Format$(available, "0.###") & " available."
             ApplyUsedDeltasLocal = -1
@@ -21868,7 +21848,7 @@ Private Function ApplyMadeDeltasLocal(invLo As ListObject, deltas As Collection,
 
         Dim invRow As ListRow: Set invRow = DeltaInventoryRow(invLo, delta)
         If invRow Is Nothing Then
-            AppendNote errNotes, "invSys identity '" & CStr(DeltaInventoryIdentity(delta)) & "' not found."
+            modShippingReportText.AppendNote errNotes, "invSys identity '" & CStr(DeltaInventoryIdentity(delta)) & "' not found."
             ApplyMadeDeltasLocal = -1
             Exit Function
         End If
@@ -21910,7 +21890,7 @@ Private Function ApplyMadeToInventoryDeltasLocal(invLo As ListObject, deltas As 
 
         Dim invRow As ListRow: Set invRow = DeltaInventoryRow(invLo, delta)
         If invRow Is Nothing Then
-            AppendNote errNotes, "invSys identity '" & CStr(DeltaInventoryIdentity(delta)) & "' not found."
+            modShippingReportText.AppendNote errNotes, "invSys identity '" & CStr(DeltaInventoryIdentity(delta)) & "' not found."
             ApplyMadeToInventoryDeltasLocal = -1
             Exit Function
         End If
@@ -21918,7 +21898,7 @@ Private Function ApplyMadeToInventoryDeltasLocal(invLo As ListObject, deltas As 
         Dim madeCell As Range: Set madeCell = invRow.Range.Cells(1, colMade)
         Dim stagedQty As Double: stagedQty = NzDbl(madeCell.Value)
         If qtyVal > stagedQty + 0.0000001 Then
-            AppendNote errNotes, "Inventory identity '" & CStr(DeltaInventoryIdentity(delta)) & _
+            modShippingReportText.AppendNote errNotes, "Inventory identity '" & CStr(DeltaInventoryIdentity(delta)) & _
                        "' only has " & Format$(stagedQty, "0.###") & _
                        " staged in MADE but requires " & Format$(qtyVal, "0.###") & "."
             ApplyMadeToInventoryDeltasLocal = -1
@@ -22033,7 +22013,7 @@ NextComponent:
     For Each key In requirements.Keys
         Dim invRow As ListRow: Set invRow = FindInvListRowByRowValue(invLo, CLng(key))
         If invRow Is Nothing Then
-            AppendNote errNotes, "invSys ROW " & key & " not found; staging aborted."
+            modShippingReportText.AppendNote errNotes, "invSys ROW " & key & " not found; staging aborted."
             StageComponentsToUsed = -1
             Exit Function
         End If
@@ -22050,32 +22030,7 @@ NextComponent:
     Next key
 End Function
 
-Private Sub AppendNote(ByRef target As String, ByVal text As String)
-    If Len(text) = 0 Then Exit Sub
-    If Len(target) > 0 Then
-        target = target & vbCrLf & text
-    Else
-        target = text
-    End If
-End Sub
 
-Private Sub AppendShippingPersistenceSummary(ByRef report As String, _
-                                             ByVal inboxSaved As Boolean, _
-                                             ByVal reservationLedgerSaved As Boolean, _
-                                             Optional ByVal processorDurabilitySaves As Long = 0)
-    Dim detail As String
-
-    If inboxSaved Then detail = "warehouse inbox saved"
-    If reservationLedgerSaved Then
-        If detail <> "" Then detail = detail & "; "
-        detail = detail & "reservation ledger saved"
-    End If
-    If processorDurabilitySaves > 0 Then
-        If detail <> "" Then detail = detail & "; "
-        detail = detail & "processor durability saves=" & CStr(processorDurabilitySaves)
-    End If
-    If detail <> "" Then AppendNote report, "Persistence summary: " & detail & "."
-End Sub
 
 Private Function infovalue(info As Object, field As String) As Variant
     If info Is Nothing Then Exit Function

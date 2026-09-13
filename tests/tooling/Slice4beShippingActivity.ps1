@@ -19,7 +19,7 @@ function Get-ShippingActivityLog($Fixture) {
     if($null -eq $book){$book=$excel.Workbooks.Open($path,0,$true);$opened=$true}
     try{Get-ShippingActivityRows (Table $book 'tblInventoryLog')}finally{if($opened){$book.Close($false)}}
 }
-function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$Label,$SubmittedIds,[string]$ControlId,[string]$ExpectedOutcome) {
+function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$Label,$SubmittedIds,[string]$ControlId,[string]$ExpectedOutcome,[string]$ExpectedSubmissionState='Submitted') {
     $records=@();$raws=@()
     foreach($path in @(Get-Slice4beActivityFiles $Fixture)) {
         if($path -in $Before){continue}
@@ -47,7 +47,7 @@ function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$La
         }
         $attemptRefs=$attempt[0].PSObject.Properties['SourceEventRefs']
         $requested=(Get-Slice4beField $attempt[0] 'EventCode') -ceq ($ControlId+'_REQUESTED') -and (Get-Slice4beField $attempt[0] 'Severity') -ceq 'Info' -and (Get-Slice4beField $attempt[0] 'DataEffect') -ceq 'Unknown' -and $null -ne $attemptRefs -and @($attemptRefs.Value).Count -eq 0
-        $severity=if($ExpectedOutcome -ceq 'PENDING'){'Notice'}elseif($ExpectedOutcome -ceq 'REJECTED'){'Warning'}else{'Info'}
+        $severity=if($ExpectedOutcome -ceq 'PENDING'){'Notice'}elseif($ExpectedOutcome -ceq 'REJECTED'){'Warning'}elseif($ExpectedOutcome -ceq 'FAILED'){'Error'}else{'Info'}
         $effect=if($ExpectedOutcome -ceq 'STAGED'){'Changed'}elseif($ExpectedOutcome -ceq 'REJECTED'){'Unchanged'}else{'Unknown'}
         $outcome=(Get-Slice4beField $result[0] 'OutcomeCode') -ceq $ExpectedOutcome -and (Get-Slice4beField $result[0] 'EventCode') -ceq ($ControlId+'_'+$ExpectedOutcome) -and (Get-Slice4beField $result[0] 'Severity') -ceq $severity -and (Get-Slice4beField $result[0] 'DataEffect') -ceq $effect
     }
@@ -61,7 +61,7 @@ function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$La
             $refs=@($property.Value);$ids=@($refs|ForEach-Object EventId)
             $references=$ids.Count -eq $SubmittedIds.Count -and @($ids|Select-Object -Unique).Count -eq $ids.Count
             foreach($id in $SubmittedIds){$references=$references -and $id -cin $ids}
-            foreach($ref in $refs){$references=$references -and $ref.WarehouseId -ceq $Fixture.Warehouse -and $ref.SourceKind -ceq 'Inventory' -and $ref.SubmissionState -ceq 'Submitted'}
+            foreach($ref in $refs){$references=$references -and $ref.WarehouseId -ceq $Fixture.Warehouse -and $ref.SourceKind -ceq 'Inventory' -and $ref.SubmissionState -ceq $ExpectedSubmissionState}
         }
     }
     # Historical check identity retained; its expectation is every owner-submitted
@@ -86,12 +86,12 @@ function Test-Slice4beShippingActivity {
     # Intercept only existing report presentation, retaining the real handlers.
     $source=$form.Lines(1,$form.CountOfLines)
     $source=$source.Replace('MsgBox report,','ActivityShippingNotice report,')
-    $source=$source.Replace('Option Explicit',"Option Explicit`r`nPrivate ActivityPendingSignOut As Boolean`r`nPrivate ActivityPendingInterruptions As Long")
+    $source=$source.Replace('Option Explicit',"Option Explicit`r`nPrivate ActivityPendingSignOut As Boolean`r`nPrivate ActivityPendingInterruptions As Long`r`nPrivate ActivityPendingRoot As String, ActivityBeforeLossRecords As String")
     $pattern='(?s)(Private Sub ShowPersistencePending\(ByVal messageText As String\).*?    DoEvents)(\r?\nEnd Sub)'
     if([regex]::Matches($source,$pattern).Count -ne 1){throw 'Shipping UI-yield observer anchor unavailable.'}
-    $source=[regex]::Replace($source,$pattern,'$1'+"`r`n    If ActivityPendingSignOut Then`r`n        ActivityPendingSignOut = False`r`n        ActivityPendingInterruptions = ActivityPendingInterruptions + 1`r`n        modAuth.SignOut`r`n    End If"+'$2')
+    $source=[regex]::Replace($source,$pattern,'$1'+"`r`n    If ActivityPendingSignOut Then`r`n        ActivityPendingSignOut = False`r`n        ActivityPendingInterruptions = ActivityPendingInterruptions + 1`r`n        ActivityShippingCaptureBeforeLoss`r`n        modAuth.SignOut`r`n    End If"+'$2')
     $form.DeleteLines(1,$form.CountOfLines);$form.AddFromString($source)
-    $form.AddFromString(@'
+    $formFacade = @'
 Private Sub ActivityShippingNotice(ByVal report As String, Optional ByVal style As VbMsgBoxStyle = vbOKOnly, Optional ByVal title As String = "")
 End Sub
 Public Function ActivityShippingWorkbook() As String
@@ -103,10 +103,33 @@ End Sub
 Public Function ActivityShippingStatus() As String
     ActivityShippingStatus = NzText(mTxtStatus.Value)
 End Function
-Public Sub ActivityShippingInterruptAtPending()
+Public Sub ActivityShippingInterruptAtPending(ByVal activityRoot As String)
     ActivityPendingSignOut = True
     ActivityPendingInterruptions = 0
+    ActivityPendingRoot = activityRoot
+    ActivityBeforeLossRecords = "[]"
 End Sub
+Private Sub ActivityShippingCaptureBeforeLoss()
+    Dim fso As Object, file As Object, stream As Object, records As String
+    On Error GoTo Failed
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FolderExists(ActivityPendingRoot) Then Exit Sub
+    For Each file In fso.GetFolder(ActivityPendingRoot).Files
+        If LCase$(fso.GetExtensionName(file.Name)) = "json" Then
+            Set stream = file.OpenAsTextStream(1, 0)
+            If records <> "" Then records = records & ","
+            records = records & stream.ReadAll
+            stream.Close
+        End If
+    Next file
+    ActivityBeforeLossRecords = "[" & records & "]"
+    Exit Sub
+Failed:
+    Err.Raise 5, , "Fixture activity capture before sign-out failed."
+End Sub
+Public Function ActivityShippingBeforeLossRecords() As String
+    ActivityShippingBeforeLossRecords = ActivityBeforeLossRecords
+End Function
 Public Function ActivityShippingInterruptionCount() As Long
     ActivityShippingInterruptionCount = ActivityPendingInterruptions
 End Function
@@ -194,7 +217,13 @@ End Sub
 Public Function ActivityShippingBound(ByVal expected As Workbook) As Boolean
     ActivityShippingBound = (mOperatorWorkbook Is expected)
 End Function
-'@)
+'@
+    # Existing candidate RED uses private conversions; the extracted candidate
+    # uses the same typed helpers. This changes only unsaved test-facade calls.
+    if($source -notmatch '(?im)^Private Function NzText\('){
+        $formFacade=$formFacade.Replace('NzText(', 'modShippingFormValues.NzText(').Replace('ParseNumber(', 'modShippingFormValues.ParseNumber(')
+    }
+    $form.AddFromString($formFacade)
     $module=$project.VBComponents.Item('modTS_Shipments').CodeModule
     # Count entry to the existing owner/submission boundaries without replacing
     # their logic. No payload, event identity or credential enters the counters.
@@ -295,9 +324,12 @@ End Sub
 Public Function ActivityShippingStatus() As String
     ActivityShippingStatus = mShipmentsLauncherForm.ActivityShippingStatus()
 End Function
-Public Sub ActivityShippingInterruptAtPending()
-    mShipmentsLauncherForm.ActivityShippingInterruptAtPending
+Public Sub ActivityShippingInterruptAtPending(ByVal activityRoot As String)
+    mShipmentsLauncherForm.ActivityShippingInterruptAtPending activityRoot
 End Sub
+Public Function ActivityShippingBeforeLossRecords() As String
+    ActivityShippingBeforeLossRecords = mShipmentsLauncherForm.ActivityShippingBeforeLossRecords()
+End Function
 Public Function ActivityShippingInterruptionCount() As Long
     ActivityShippingInterruptionCount = mShipmentsLauncherForm.ActivityShippingInterruptionCount()
 End Function
@@ -338,9 +370,11 @@ End Function
     $operatorRoot=Join-Path $runRoot 'shipping-operators'
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @($operatorRoot))
     $rootsBeforeGeneration=[string](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.TestFixtureBootstrapRoots' @($templateRoot,$operatorRoot))
-    $rootsReady=$rootsBeforeGeneration -ceq 'True|True' -and (Test-Path -LiteralPath (Join-Path $templateRoot 'invSys.Data.Inventory.template.xlsb'))
+    $rootsBeforeUse=$rootsBeforeGeneration
+    if($PrepareShippingFixturesBeforeProbesForTest){$rootsBeforeGeneration=$preparedShippingBoundaries['shipping-activity'].Roots}
+    $rootsReady=$rootsBeforeGeneration -ceq 'True|True' -and $rootsBeforeUse -ceq 'True|True' -and (Test-Path -LiteralPath (Join-Path $templateRoot 'invSys.Data.Inventory.template.xlsb'))
     Check 'Shipping.Fixture.ExplicitRootsBeforeGeneration' $rootsReady
-    [pscustomobject]@{BeforeInstrumentation=$rootsBeforeInstrumentation;AfterInstrumentation=$rootsAfterInstrumentation;BeforeGeneration=$rootsBeforeGeneration}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $reportRoot 'shipping-fixture-root-observations.json')
+    [pscustomobject]@{BeforeInstrumentation=$rootsBeforeInstrumentation;AfterInstrumentation=$rootsAfterInstrumentation;BeforeGeneration=$rootsBeforeGeneration;BeforeUse=$rootsBeforeUse;GeneratedBeforeShippingProbes=[bool]$PrepareShippingFixturesBeforeProbesForTest}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $reportRoot 'shipping-fixture-root-observations.json')
     if(-not $rootsReady){throw 'Shipping fixture bootstrap roots are unavailable.'}
     $fixture=NewFixture 'shipping-activity'
     $auth=$excel.Workbooks.Open((Join-Path $fixture.Root ($fixture.Warehouse+'.invSys.Auth.xlsb')),0,$false)
@@ -439,6 +473,8 @@ End Function
         $balance=($keyRows|Measure-Object -Property QtyDelta -Sum).Sum
         Check 'Shipping.Domain.BoxQuantityReconciled' ($balance -eq 8 -and @($keyRows|Where-Object {$_.EventType -ceq 'BOX_BUILD' -and [double]$_.QtyDelta -eq 10}).Count -eq 1)
         Check 'Shipping.BoundaryObservers.CalibratedByNormalActions' ([long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Owner')) -gt 0 -and [long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Queue')) -gt 0)
+        . (Join-Path $PSScriptRoot 'Slice4beShippingTrackingFailure.ps1')
+        Test-Slice4beShippingTrackingFailure $fixture $operator $other $ship $hold
         # Negative cases follow the preserved normal sequence. Read values only
         # in memory; reports contain fixed assertion names and booleans.
         $sessionModule=$packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1)

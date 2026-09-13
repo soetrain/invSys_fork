@@ -852,6 +852,8 @@ try {
     $orderedValidator = New-OrderedLiveValidator
     $live = Invoke-RepositoryScript -Path $orderedValidator `
         -Arguments @("-RepoRoot", $repo, "-DeployRoot", $DeployRoot)
+    Add-Result "OrderedLiveProcessCompleted" ($live.ExitCode -eq 0) `
+        "The ordered live-role subprocess must exit successfully; report rows alone cannot establish completion."
     $liveResultPath = Join-Path $repo "tests/unit/phase6_live_role_workflow_results.md"
     $liveText = if (Test-Path -LiteralPath $liveResultPath) {
         Get-Content -LiteralPath $liveResultPath -Raw

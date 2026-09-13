@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-13T05:52:37Z",
+    "generatedAtUtc":  "2026-09-13T07:24:24Z",
     "baseline":  {
-                     "componentCount":  178,
-                     "procedureCount":  5514,
-                     "lineCount":  123883,
+                     "componentCount":  182,
+                     "procedureCount":  5527,
+                     "lineCount":  124139,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  195
@@ -3435,12 +3435,13 @@
                            "id":  "duplicate:606aca1754beeea3:BoxMakerRuntimeReportMetric+ShippingRuntimeReportMetric",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
-                           "componentName":  "modTS_Shipments",
+                           "componentName":  "modShippingReportText",
                            "procedureNames":  [
                                                   "BoxMakerRuntimeReportMetric",
                                                   "ShippingRuntimeReportMetric"
                                               ],
                            "sourcePaths":  [
+                                               "src/Shipping/Modules/modShippingReportText.bas",
                                                "src/Shipping/Modules/modTS_Shipments.bas"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
@@ -3809,7 +3810,7 @@
                            "sourcePaths":  [
                                                "src/Production/Modules/mProduction.bas",
                                                "src/Shipping/Modules/modShippingEventCreator.bas",
-                                               "src/Shipping/Modules/modTS_Shipments.bas"
+                                               "src/Shipping/Modules/modShippingReportText.bas"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
@@ -4062,24 +4063,6 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "duplicate:8b0664d9629d7880:mBtnBoxMakerMake_Click+mBtnBoxMakerUnmake_Click",
-                           "candidateType":  "REPLACE_DUPLICATE",
-                           "confidence":  "LOW",
-                           "componentName":  "frmShipmentsTally",
-                           "procedureNames":  [
-                                                  "mBtnBoxMakerMake_Click",
-                                                  "mBtnBoxMakerUnmake_Click"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
                            "id":  "duplicate:8eccb2c78b3f8d20:DeleteShapeIfExists+DeleteShapeIfExists",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
@@ -4312,6 +4295,24 @@
                                                "src/Core/Modules/modWarehouseSync.bas",
                                                "src/DesignsDomain/Modules/modDesignsSchema.bas",
                                                "src/InventoryDomain/Modules/modInventorySchema.bas"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "duplicate:a025648d1135d692:mBtnBoxMakerMake_Click+mBtnBoxMakerUnmake_Click",
+                           "candidateType":  "REPLACE_DUPLICATE",
+                           "confidence":  "LOW",
+                           "componentName":  "frmShipmentsTally",
+                           "procedureNames":  [
+                                                  "mBtnBoxMakerMake_Click",
+                                                  "mBtnBoxMakerUnmake_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Shipping/Forms/frmShipmentsTally.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
@@ -5536,13 +5537,13 @@
                            "id":  "duplicate:f2f565dab8ad2067:FormatBoxMakerQuantityText+FormatQuantity",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
-                           "componentName":  "frmShipmentsTally",
+                           "componentName":  "modShippingFormValues",
                            "procedureNames":  [
                                                   "FormatBoxMakerQuantityText",
                                                   "FormatQuantity"
                                               ],
                            "sourcePaths":  [
-                                               "src/Shipping/Forms/frmShipmentsTally.frm",
+                                               "src/Shipping/Modules/modShippingFormValues.bas",
                                                "src/Shipping/Modules/modTS_Shipments.bas"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
@@ -9320,6 +9321,7 @@
                                                    "tests/integration/test_ConfirmWrites_Tester.bas",
                                                    "tests/tooling/Test-Plan022Slice4tShippingPostSend.ps1",
                                                    "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
+                                                   "tests/tooling/Test-Release1OrderedChildExit.ps1",
                                                    "tests/unit/TestAdminConsole.bas",
                                                    "tests/unit/TestCoreProcessor.bas",
                                                    "tests/unit/TestPhase3RoleFlows.bas",
@@ -16975,11 +16977,11 @@
                                                   "AddTextBox",
                                                   "AlignBoxingHeader",
                                                   "AppendLocalStatus",
-                                                  "AppendTiming",
                                                   "ApplyBoxingHeaderLayout",
                                                   "ApplyShippingPage",
                                                   "ArmAutoSync",
                                                   "AutoSyncIfPending",
+                                                  "BeginShippingAction",
                                                   "BoxBuilderPageComponents",
                                                   "BoxDesignerHasInteractiveOverlap",
                                                   "BoxMakerHasInteractiveOverlap",
@@ -16992,11 +16994,9 @@
                                                   "CommitCurrentLine",
                                                   "ConfigureBoxingListHeaders",
                                                   "CurrentShippableInventoryCache",
-                                                  "DisplayQtyText",
-                                                  "DisplayVersionOrNA",
                                                   "EvictOrphanedActiveOverlays",
                                                   "FilterBoxBuilderInventory",
-                                                  "FormatQuantity",
+                                                  "FinishShippingAction",
                                                   "HasActiveShipmentLineForSystemKey",
                                                   "HasCurrentContext",
                                                   "InitializeAnchors",
@@ -17055,8 +17055,6 @@
                                                   "mPages_Change",
                                                   "mTxtBoxBuilderSearch_Change",
                                                   "mTxtPicker_Change",
-                                                  "NzText",
-                                                  "ParseNumber",
                                                   "PendingShipmentSyncCount",
                                                   "PositionBoxingControl",
                                                   "PreserveMissingShippableInventory",
@@ -17075,8 +17073,6 @@
                                                   "RunShippingAction",
                                                   "ScheduleAutoSync",
                                                   "SelectedHoldTableRow",
-                                                  "SelectedListTableRowCount",
-                                                  "SelectedListTableRows",
                                                   "SelectedShipmentTableRow",
                                                   "SelectedShippableNasInventoryText",
                                                   "SelectedShippableProjectedInventoryText",
@@ -17086,7 +17082,6 @@
                                                   "ShipmentListSystemKeyMatchesShippable",
                                                   "ShippableInventoryKey",
                                                   "ShippableMatchesFilter",
-                                                  "ShippableNasChangeSummary",
                                                   "ShippableNasSnapshot",
                                                   "ShippableRowsLoaded",
                                                   "ShouldShowShippingActionPopup",
@@ -17149,11 +17144,8 @@
                                                   "AppendAggregateRowFromInventory",
                                                   "AppendBoxDesignViewerEvents",
                                                   "AppendHeldShipmentViewerEvents",
-                                                  "AppendHistoryTokenShipping",
-                                                  "AppendNote",
                                                   "AppendReadinessRows",
                                                   "AppendSentShipmentRowsLocal",
-                                                  "AppendShippingPersistenceSummary",
                                                   "AppendSyncMessage",
                                                   "ApplyBoxBomReadOnlyColumnFormatting",
                                                   "ApplyBoxBomVersionStatusValidation",
@@ -17422,7 +17414,6 @@
                                                   "FormatBoxMakerReadOnlyColumn",
                                                   "FormatCurrentInventoryColumn",
                                                   "FormatHistoryValueShipping",
-                                                  "FormatShippingRuntimeTiming",
                                                   "FriendlyShipmentHistoryEventShipping",
                                                   "GenerateRowNumbers",
                                                   "GetBomTableByRow",
@@ -17510,7 +17501,6 @@
                                                   "NormalizeInventoryLookupTextShipping",
                                                   "NormalizeShipmentArea",
                                                   "NormalizeShippingArtifactTable",
-                                                  "NormalizeShippingBomSignatureText",
                                                   "NormalizeShippingBootstrapArtifacts",
                                                   "NzDbl",
                                                   "NzLng",
@@ -17558,6 +17548,7 @@
                                                   "QueueBoxBuildEventFromBuilder",
                                                   "QueueBoxMakerFormPayload",
                                                   "QueueBoxUnboxEventFromBuilder",
+                                                  "QueueObservedShippingPayload",
                                                   "QueueShipmentsReleaseEvent",
                                                   "QueueShipmentsReserveEvent",
                                                   "QueueShipmentsSentEvent",
@@ -17767,7 +17758,6 @@
                                                   "ShippingReservationsWorkbookPath",
                                                   "ShippingRuntimeInboxDiagnostic",
                                                   "ShippingRuntimeProcessedCount",
-                                                  "ShippingRuntimeReportMetric",
                                                   "ShippingRuntimeReportShowsProcessed",
                                                   "ShippingSelectBoxBuilderDataCellForRepeatHeaderPicker",
                                                   "ShippingSystemInventorySourceDiagnostic",
@@ -17784,7 +17774,6 @@
                                                   "SingleVersionFallbackAvailableQty",
                                                   "SortBoxBomByVersionShipping",
                                                   "SortedKeys",
-                                                  "SortedTextKeysShipping",
                                                   "StageComponentsToUsed",
                                                   "StagedShipmentVersionQty",
                                                   "StageVersionInventoryCurrentQty",
@@ -17887,6 +17876,7 @@
                                                    "tests/integration/test_ConfirmWrites_Tester.bas",
                                                    "tests/tooling/Test-Plan022Slice4tShippingPostSend.ps1",
                                                    "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
+                                                   "tests/tooling/Test-Release1OrderedChildExit.ps1",
                                                    "tests/unit/TestAdminConsole.bas",
                                                    "tests/unit/TestCoreProcessor.bas",
                                                    "tests/unit/TestPhase3RoleFlows.bas",

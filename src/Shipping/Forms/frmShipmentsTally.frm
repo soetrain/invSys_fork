@@ -231,6 +231,24 @@ Public Function HasCurrentContext() As Boolean
     HasCurrentContext = modShippingFormContext.IsCurrent(mOperatorWorkbook, mActivityContext)
 End Function
 
+Private Function BeginShippingAction(ByVal controlId As String, ByRef observation As cShippingActivity) As Boolean
+    If Not RequireActionContext(False) Then Exit Function
+    Set observation = New cShippingActivity
+    observation.Start controlId, mActivityContext
+    If Not RequireActionContext() Then
+        FinishShippingAction observation, "DENIED"
+        Exit Function
+    End If
+    BeginShippingAction = True
+End Function
+
+Private Sub FinishShippingAction(ByVal observation As cShippingActivity, Optional ByVal outcome As String = "")
+    Dim notice As String
+    If observation Is Nothing Then Exit Sub
+    notice = observation.Finish(outcome)
+    If notice <> "" Then ShowStatus modShippingFormValues.NzText(mTxtStatus.Value) & vbCrLf & notice
+End Sub
+
 Private Function RequireActionContext(Optional ByVal requireCapability As Boolean = True) As Boolean
     Dim report As String
     RequireActionContext = modShippingFormContext.CanAct(mOperatorWorkbook, mActivityContext, report, requireCapability)
@@ -390,7 +408,7 @@ Public Sub AutoSyncIfPending()
         changedLoading = False
         If PendingShipmentSyncCount() <= 0 Then mAutoSyncArmed = False
         UpdateSyncStateLabel
-        nasStatus = ShippableNasChangeSummary(nasBeforeRefresh, nasAfterRefresh)
+        nasStatus = modShippingFormValues.ShippableNasChangeSummary(nasBeforeRefresh, nasAfterRefresh)
         ShowStatus nasStatus & vbCrLf & "AutoSync: " & report
     Else
         ShowStatus "AutoSync: refresh failed. " & report
@@ -419,9 +437,9 @@ Private Function ShippableNasSnapshot() As Object
     End If
 
     For r = 1 To UBound(mShippables, 1)
-        boxText = Trim$(NzText(mShippables(r, 1)))
-        versionText = Trim$(NzText(mShippables(r, 2)))
-        nasText = Trim$(NzText(mShippables(r, 4)))
+        boxText = Trim$(modShippingFormValues.NzText(mShippables(r, 1)))
+        versionText = Trim$(modShippingFormValues.NzText(mShippables(r, 2)))
+        nasText = Trim$(modShippingFormValues.NzText(mShippables(r, 4)))
         If boxText <> "" Or versionText <> "" Then
             key = LCase$(boxText) & "|" & LCase$(versionText)
             result(key) = boxText & vbTab & versionText & vbTab & nasText
@@ -435,46 +453,6 @@ CleanExit:
     Set ShippableNasSnapshot = CreateObject("Scripting.Dictionary")
 End Function
 
-Private Function ShippableNasChangeSummary(ByVal beforeMap As Object, ByVal afterMap As Object) As String
-    On Error GoTo CleanExit
-
-    Dim key As Variant
-    Dim beforeParts As Variant
-    Dim afterParts As Variant
-    Dim changes As String
-    Dim labelText As String
-
-    If afterMap Is Nothing Or afterMap.Count = 0 Then
-        ShippableNasChangeSummary = "NAS Inv checked: no visible shippable rows loaded."
-        Exit Function
-    End If
-
-    For Each key In afterMap.Keys
-        afterParts = Split(CStr(afterMap(key)), vbTab)
-        If beforeMap Is Nothing Or Not beforeMap.Exists(CStr(key)) Then GoTo NextKey
-        beforeParts = Split(CStr(beforeMap(key)), vbTab)
-        If UBound(beforeParts) < 2 Or UBound(afterParts) < 2 Then GoTo NextKey
-        If Trim$(CStr(beforeParts(2))) <> Trim$(CStr(afterParts(2))) Then
-            labelText = Trim$(CStr(afterParts(0)) & " " & CStr(afterParts(1)))
-            If labelText = "" Then labelText = CStr(key)
-            If changes <> "" Then changes = changes & "; "
-            changes = changes & labelText & " " & _
-                      IIf(Trim$(CStr(beforeParts(2))) = "", "blank", Trim$(CStr(beforeParts(2)))) & _
-                      " -> " & IIf(Trim$(CStr(afterParts(2))) = "", "blank", Trim$(CStr(afterParts(2))))
-        End If
-NextKey:
-    Next key
-
-    If changes = "" Then
-        ShippableNasChangeSummary = "NAS Inv checked: no visible changes."
-    Else
-        ShippableNasChangeSummary = "NAS Inv updated: " & changes & "."
-    End If
-    Exit Function
-
-CleanExit:
-    ShippableNasChangeSummary = "NAS Inv checked."
-End Function
 
 Private Sub BuildLayout()
     If mBuilt Then Exit Sub
@@ -753,8 +731,8 @@ Private Sub ApplyShippingPage()
     selectedPage = mPages.SelectedItem.Caption
     For Each ctl In Me.Controls
         ctl.Visible = _
-            (StrComp(NzText(ctl.Tag), "Shell", vbTextCompare) = 0) _
-            Or (StrComp(NzText(ctl.Tag), selectedPage, vbTextCompare) = 0)
+            (StrComp(modShippingFormValues.NzText(ctl.Tag), "Shell", vbTextCompare) = 0) _
+            Or (StrComp(modShippingFormValues.NzText(ctl.Tag), selectedPage, vbTextCompare) = 0)
     Next ctl
     mPages.Visible = True
 
@@ -838,19 +816,19 @@ Private Sub FilterBoxBuilderInventory()
     If IsEmpty(mBoxBuilderInventoryRows) Or Not IsArray(mBoxBuilderInventoryRows) Then Exit Sub
     sourceRows = mBoxBuilderInventoryRows
     sourceCols = UBound(sourceRows, 2)
-    searchText = LCase$(Trim$(NzText(mTxtBoxBuilderSearch.Value)))
+    searchText = LCase$(Trim$(modShippingFormValues.NzText(mTxtBoxBuilderSearch.Value)))
     ReDim filtered(1 To UBound(sourceRows, 1), 1 To 8)
     For r = 1 To UBound(sourceRows, 1)
         haystack = ""
         For c = 1 To sourceCols
-            haystack = haystack & " " & LCase$(NzText(sourceRows(r, c)))
+            haystack = haystack & " " & LCase$(modShippingFormValues.NzText(sourceRows(r, c)))
         Next c
         If searchText = "" Or InStr(1, haystack, searchText, vbTextCompare) > 0 Then
             outRow = outRow + 1
             For c = 1 To sourceCols
                 filtered(outRow, c) = sourceRows(r, c)
             Next c
-            filtered(outRow, 8) = DisplayVersionOrNA("")
+            filtered(outRow, 8) = modShippingFormValues.DisplayVersionOrNA("")
         End If
     Next r
     If outRow = 0 Then Exit Sub
@@ -863,14 +841,6 @@ Private Sub FilterBoxBuilderInventory()
     RenderPageRows mLstBoxBuilderInventory, trimmed
 End Sub
 
-Private Function DisplayVersionOrNA(ByVal versionText As String) As String
-    versionText = Trim$(versionText)
-    If versionText = "" Then
-        DisplayVersionOrNA = "NA"
-    Else
-        DisplayVersionOrNA = versionText
-    End If
-End Function
 
 Private Sub mBtnBoxBuilderNew_Click()
     mLoading = True
@@ -892,29 +862,29 @@ Private Sub mBtnBoxBuilderAddComponent_Click()
         ShowStatus "Select a managed inventory component to add."
         Exit Sub
     End If
-    quantityValue = ParseNumber(NzText(mTxtBoxBuilderComponentQty.Value))
+    quantityValue = modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mTxtBoxBuilderComponentQty.Value))
     If quantityValue <= 0 Then
         ShowStatus "Enter a positive component quantity."
         Exit Sub
     End If
-    versionLabel = NzText(mCboBoxBuilderVersion.Value)
+    versionLabel = modShippingFormValues.NzText(mCboBoxBuilderVersion.Value)
     If versionLabel = "" Then versionLabel = "v1"
 
     mLstBoxBuilderComponents.AddItem versionLabel
     targetIndex = mLstBoxBuilderComponents.ListCount - 1
     mLstBoxBuilderComponents.List(targetIndex, 1) = _
-        NzText(mLstBoxBuilderInventory.List(componentIndex, 2))
+        modShippingFormValues.NzText(mLstBoxBuilderInventory.List(componentIndex, 2))
     mLstBoxBuilderComponents.List(targetIndex, 2) = _
-        NzText(mLstBoxBuilderInventory.List(componentIndex, 1))
+        modShippingFormValues.NzText(mLstBoxBuilderInventory.List(componentIndex, 1))
     mLstBoxBuilderComponents.List(targetIndex, 3) = _
-        NzText(mLstBoxBuilderInventory.List(componentIndex, 0))
+        modShippingFormValues.NzText(mLstBoxBuilderInventory.List(componentIndex, 0))
     mLstBoxBuilderComponents.List(targetIndex, 4) = CStr(quantityValue)
     mLstBoxBuilderComponents.List(targetIndex, 5) = _
-        NzText(mLstBoxBuilderInventory.List(componentIndex, 3))
+        modShippingFormValues.NzText(mLstBoxBuilderInventory.List(componentIndex, 3))
     mLstBoxBuilderComponents.List(targetIndex, 6) = _
-        NzText(mLstBoxBuilderInventory.List(componentIndex, 4))
+        modShippingFormValues.NzText(mLstBoxBuilderInventory.List(componentIndex, 4))
     mLstBoxBuilderComponents.List(targetIndex, 7) = _
-        NzText(mLstBoxBuilderInventory.List(componentIndex, 5))
+        modShippingFormValues.NzText(mLstBoxBuilderInventory.List(componentIndex, 5))
     ShowStatus "Component added to the selected box alternative."
 End Sub
 
@@ -962,12 +932,12 @@ Private Sub LoadSelectedBoxBuilderDesign()
     If mLstBoxBuilderDesigns.ListIndex < 0 Then Exit Sub
     mLoading = True
     listIndex = mLstBoxBuilderDesigns.ListIndex
-    mSelectedBoxBuilderPackageSystemKey = NzText(mLstBoxBuilderDesigns.List(listIndex, 0))
-    mTxtBoxBuilderName.Value = NzText(mLstBoxBuilderDesigns.List(listIndex, 1))
-    mTxtBoxBuilderUom.Value = NzText(mLstBoxBuilderDesigns.List(listIndex, 2))
-    mTxtBoxBuilderLocation.Value = NzText(mLstBoxBuilderDesigns.List(listIndex, 3))
-    mTxtBoxBuilderDescription.Value = NzText(mLstBoxBuilderDesigns.List(listIndex, 4))
-    If Trim$(NzText(mTxtBoxBuilderUom.Value)) = "" Then mTxtBoxBuilderUom.Value = "ea"
+    mSelectedBoxBuilderPackageSystemKey = modShippingFormValues.NzText(mLstBoxBuilderDesigns.List(listIndex, 0))
+    mTxtBoxBuilderName.Value = modShippingFormValues.NzText(mLstBoxBuilderDesigns.List(listIndex, 1))
+    mTxtBoxBuilderUom.Value = modShippingFormValues.NzText(mLstBoxBuilderDesigns.List(listIndex, 2))
+    mTxtBoxBuilderLocation.Value = modShippingFormValues.NzText(mLstBoxBuilderDesigns.List(listIndex, 3))
+    mTxtBoxBuilderDescription.Value = modShippingFormValues.NzText(mLstBoxBuilderDesigns.List(listIndex, 4))
+    If Trim$(modShippingFormValues.NzText(mTxtBoxBuilderUom.Value)) = "" Then mTxtBoxBuilderUom.Value = "ea"
 
     mCboBoxBuilderVersion.Clear
     versionRows = modBoxingService.LoadBoxDesignVersions( _
@@ -975,10 +945,10 @@ Private Sub LoadSelectedBoxBuilderDesign()
     If Not IsEmpty(versionRows) Then
         mCboBoxBuilderVersion.ColumnCount = 2
         For rowIndex = LBound(versionRows, 1) To UBound(versionRows, 1)
-            mCboBoxBuilderVersion.AddItem NzText(versionRows(rowIndex, 1))
+            mCboBoxBuilderVersion.AddItem modShippingFormValues.NzText(versionRows(rowIndex, 1))
             If UBound(versionRows, 2) >= 2 Then
                 mCboBoxBuilderVersion.List(mCboBoxBuilderVersion.ListCount - 1, 1) = _
-                    NzText(versionRows(rowIndex, 2))
+                    modShippingFormValues.NzText(versionRows(rowIndex, 2))
             End If
         Next rowIndex
     End If
@@ -995,13 +965,13 @@ Private Sub LoadSelectedBoxBuilderComponents()
     If mSelectedBoxBuilderPackageSystemKey = "" Then Exit Sub
     If mCboBoxBuilderVersion.ListIndex < 0 Then Exit Sub
     If mCboBoxBuilderVersion.ColumnCount > 1 Then
-        statusText = NzText(mCboBoxBuilderVersion.List(mCboBoxBuilderVersion.ListIndex, 1))
+        statusText = modShippingFormValues.NzText(mCboBoxBuilderVersion.List(mCboBoxBuilderVersion.ListIndex, 1))
     End If
     If statusText = "" Then statusText = "Active"
     mCboBoxBuilderStatus.Value = statusText
     componentRows = modBoxingService.LoadBoxDesignComponents( _
         mOperatorWorkbook, mSelectedBoxBuilderPackageSystemKey, _
-        NzText(mCboBoxBuilderVersion.Value))
+        modShippingFormValues.NzText(mCboBoxBuilderVersion.Value))
     RenderPageRows mLstBoxBuilderComponents, componentRows
 End Sub
 
@@ -1037,10 +1007,10 @@ Private Sub mBtnBoxBuilderSave_Click()
     Dim succeeded As Boolean
 
     succeeded = modBoxingService.SaveBoxDesign( _
-        mOperatorWorkbook, NzText(mTxtBoxBuilderName.Value), _
-        NzText(mTxtBoxBuilderUom.Value), NzText(mTxtBoxBuilderLocation.Value), _
-        NzText(mTxtBoxBuilderDescription.Value), BoxBuilderPageComponents(), _
-        "BOX", "v1", NzText(mCboBoxBuilderStatus.Value), report)
+        mOperatorWorkbook, modShippingFormValues.NzText(mTxtBoxBuilderName.Value), _
+        modShippingFormValues.NzText(mTxtBoxBuilderUom.Value), modShippingFormValues.NzText(mTxtBoxBuilderLocation.Value), _
+        modShippingFormValues.NzText(mTxtBoxBuilderDescription.Value), BoxBuilderPageComponents(), _
+        "BOX", "v1", modShippingFormValues.NzText(mCboBoxBuilderStatus.Value), report)
     ShowStatus report
     If succeeded Then RefreshBoxBuilderPage
 End Sub
@@ -1065,7 +1035,7 @@ Private Sub mBtnBoxBuilderDeleteVersion_Click()
               vbQuestion + vbYesNo, "Delete Box Alternative") <> vbYes Then Exit Sub
     If modBoxingService.DeleteBoxDesignVersion( _
             mOperatorWorkbook, mSelectedBoxBuilderPackageSystemKey, _
-            NzText(mCboBoxBuilderVersion.Value), report) Then
+            modShippingFormValues.NzText(mCboBoxBuilderVersion.Value), report) Then
         RefreshBoxBuilderPage
     End If
     ShowStatus report
@@ -1108,11 +1078,11 @@ Private Sub RunBoxBuilderVersionAction(ByVal actionText As String)
     Dim succeeded As Boolean
 
     succeeded = modBoxingService.SaveBoxDesign( _
-        mOperatorWorkbook, NzText(mTxtBoxBuilderName.Value), _
-        NzText(mTxtBoxBuilderUom.Value), NzText(mTxtBoxBuilderLocation.Value), _
-        NzText(mTxtBoxBuilderDescription.Value), BoxBuilderPageComponents(), _
-        actionText, NzText(mCboBoxBuilderVersion.Value), _
-        NzText(mCboBoxBuilderStatus.Value), report)
+        mOperatorWorkbook, modShippingFormValues.NzText(mTxtBoxBuilderName.Value), _
+        modShippingFormValues.NzText(mTxtBoxBuilderUom.Value), modShippingFormValues.NzText(mTxtBoxBuilderLocation.Value), _
+        modShippingFormValues.NzText(mTxtBoxBuilderDescription.Value), BoxBuilderPageComponents(), _
+        actionText, modShippingFormValues.NzText(mCboBoxBuilderVersion.Value), _
+        modShippingFormValues.NzText(mCboBoxBuilderStatus.Value), report)
     ShowStatus report
     If succeeded Then RefreshBoxBuilderPage
 End Sub
@@ -1133,7 +1103,7 @@ Private Sub LoadSelectedBoxMakerDesign()
 
     If mLstBoxMakerDesigns.ListIndex < 0 Then Exit Sub
     mSelectedBoxMakerPackageSystemKey = _
-        NzText(mLstBoxMakerDesigns.List(mLstBoxMakerDesigns.ListIndex, 0))
+        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(mLstBoxMakerDesigns.ListIndex, 0))
     mLoading = True
     mCboBoxMakerVersion.Clear
     versionRows = modBoxingService.LoadBoxMakerVersions( _
@@ -1141,8 +1111,8 @@ Private Sub LoadSelectedBoxMakerDesign()
     If Not IsEmpty(versionRows) Then
         For rowIndex = LBound(versionRows, 1) To UBound(versionRows, 1)
             If UBound(versionRows, 2) < 2 Or _
-               StrComp(NzText(versionRows(rowIndex, 2)), "Active", vbTextCompare) = 0 Then
-                mCboBoxMakerVersion.AddItem NzText(versionRows(rowIndex, 1))
+               StrComp(modShippingFormValues.NzText(versionRows(rowIndex, 2)), "Active", vbTextCompare) = 0 Then
+                mCboBoxMakerVersion.AddItem modShippingFormValues.NzText(versionRows(rowIndex, 1))
             End If
         Next rowIndex
     End If
@@ -1158,7 +1128,7 @@ Private Sub LoadSelectedBoxMakerComponents()
     If mCboBoxMakerVersion.ListIndex < 0 Then Exit Sub
     componentRows = modBoxingService.LoadBoxMakerComponents( _
         mOperatorWorkbook, mSelectedBoxMakerPackageSystemKey, _
-        NzText(mCboBoxMakerVersion.Value))
+        modShippingFormValues.NzText(mCboBoxMakerVersion.Value))
     RenderPageRows mLstBoxMakerComponents, componentRows
 End Sub
 
@@ -1190,11 +1160,11 @@ Private Sub mBtnBoxMakerMake_Click()
     End If
     succeeded = modBoxingService.PostBoxMakerAction( _
         mOperatorWorkbook, mSelectedBoxMakerPackageSystemKey, _
-        NzText(mLstBoxMakerDesigns.List(selectedIndex, 1)), _
-        NzText(mLstBoxMakerDesigns.List(selectedIndex, 3)), _
-        NzText(mLstBoxMakerDesigns.List(selectedIndex, 4)), _
-        NzText(mLstBoxMakerDesigns.List(selectedIndex, 5)), _
-        NzText(mCboBoxMakerVersion.Value), ParseNumber(NzText(mTxtBoxMakerQty.Value)), _
+        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 1)), _
+        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 3)), _
+        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 4)), _
+        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 5)), _
+        modShippingFormValues.NzText(mCboBoxMakerVersion.Value), modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mTxtBoxMakerQty.Value)), _
         BoxMakerPageComponents(), "MAKE", report)
     ShowStatus report
     If succeeded Then RefreshBoxMakerPage
@@ -1212,11 +1182,11 @@ Private Sub mBtnBoxMakerUnmake_Click()
     End If
     succeeded = modBoxingService.PostBoxMakerAction( _
         mOperatorWorkbook, mSelectedBoxMakerPackageSystemKey, _
-        NzText(mLstBoxMakerDesigns.List(selectedIndex, 1)), _
-        NzText(mLstBoxMakerDesigns.List(selectedIndex, 3)), _
-        NzText(mLstBoxMakerDesigns.List(selectedIndex, 4)), _
-        NzText(mLstBoxMakerDesigns.List(selectedIndex, 5)), _
-        NzText(mCboBoxMakerVersion.Value), ParseNumber(NzText(mTxtBoxMakerQty.Value)), _
+        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 1)), _
+        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 3)), _
+        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 4)), _
+        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 5)), _
+        modShippingFormValues.NzText(mCboBoxMakerVersion.Value), modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mTxtBoxMakerQty.Value)), _
         BoxMakerPageComponents(), "UNMAKE", report)
     ShowStatus report
     If succeeded Then RefreshBoxMakerPage
@@ -1231,12 +1201,12 @@ Private Sub RenderPageRows(ByVal targetList As MSForms.ListBox, ByVal rowsData A
     targetList.Clear
     If IsEmpty(rowsData) Then Exit Sub
     For rowIndex = LBound(rowsData, 1) To UBound(rowsData, 1)
-        targetList.AddItem NzText(rowsData(rowIndex, 1))
+        targetList.AddItem modShippingFormValues.NzText(rowsData(rowIndex, 1))
         targetIndex = targetList.ListCount - 1
         For columnIndex = 2 To targetList.ColumnCount
             If columnIndex <= UBound(rowsData, 2) Then
                 targetList.List(targetIndex, columnIndex - 1) = _
-                    NzText(rowsData(rowIndex, columnIndex))
+                    modShippingFormValues.NzText(rowsData(rowIndex, columnIndex))
             End If
         Next columnIndex
     Next rowIndex
@@ -1273,12 +1243,12 @@ Private Sub LoadCarrierChoices()
     Dim currentValue As String
 
     If mTxtCarrier Is Nothing Then Exit Sub
-    currentValue = NzText(mTxtCarrier.Value)
+    currentValue = modShippingFormValues.NzText(mTxtCarrier.Value)
     mTxtCarrier.Clear
     carriers = modCarrierSettings.GetConfiguredCarriers()
     If Not IsEmpty(carriers) Then
         For idx = LBound(carriers) To UBound(carriers)
-            If Trim$(NzText(carriers(idx))) <> "" Then mTxtCarrier.AddItem NzText(carriers(idx))
+            If Trim$(modShippingFormValues.NzText(carriers(idx))) <> "" Then mTxtCarrier.AddItem modShippingFormValues.NzText(carriers(idx))
         Next idx
     End If
     If currentValue <> "" Then mTxtCarrier.Value = currentValue
@@ -1337,8 +1307,8 @@ Private Function CurrentShippableInventoryCache() As Object
     End If
 
     For r = 1 To UBound(mShippables, 1)
-        key = ShippableInventoryKey(NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
-        invText = NzText(mShippables(r, 4))
+        key = ShippableInventoryKey(modShippingFormValues.NzText(mShippables(r, 2)), modShippingFormValues.NzText(mShippables(r, 3)))
+        invText = modShippingFormValues.NzText(mShippables(r, 4))
         If key <> "" And Trim$(invText) <> "" Then result(key) = invText
     Next r
     Set CurrentShippableInventoryCache = result
@@ -1351,8 +1321,8 @@ Private Sub PreserveMissingShippableInventory(ByVal previousInv As Object)
     If previousInv Is Nothing Then Exit Sub
     If IsEmpty(mShippables) Then Exit Sub
     For r = 1 To UBound(mShippables, 1)
-        If Trim$(NzText(mShippables(r, 4))) = "" Then
-            key = ShippableInventoryKey(NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))
+        If Trim$(modShippingFormValues.NzText(mShippables(r, 4))) = "" Then
+            key = ShippableInventoryKey(modShippingFormValues.NzText(mShippables(r, 2)), modShippingFormValues.NzText(mShippables(r, 3)))
             If key <> "" Then
                 If previousInv.Exists(key) Then mShippables(r, 4) = previousInv(key)
             End If
@@ -1410,7 +1380,7 @@ Private Sub RenderShippables()
 
     mLstShippables.Clear
     If IsEmpty(mShippables) Then Exit Sub
-    filterText = LCase$(Trim$(NzText(mTxtPicker.Value)))
+    filterText = LCase$(Trim$(modShippingFormValues.NzText(mTxtPicker.Value)))
     For r = 1 To UBound(mShippables, 1)
         If ShippableMatchesFilter(r, filterText) Then shownCount = shownCount + 1
     Next r
@@ -1420,20 +1390,20 @@ Private Sub RenderShippables()
     idx = 0
     For r = 1 To UBound(mShippables, 1)
         If Not ShippableMatchesFilter(r, filterText) Then GoTo NextRow
-        displayRows(idx, 0) = NzText(mShippables(r, 2))
-        displayRows(idx, 1) = NzText(mShippables(r, 3))
-        displayRows(idx, 2) = DisplayQtyText(NzText(mShippables(r, 4)))
-        displayRows(idx, 3) = DisplayQtyText(NzText(mShippables(r, 8)))
-        displayRows(idx, 4) = DisplayQtyText(CStr(LockedShipmentQtyForShippable( _
-            NzText(mShippables(r, 1)), NzText(mShippables(r, 2)), NzText(mShippables(r, 3)))))
-        displayRows(idx, 5) = NzText(mShippables(r, 5))
-        displayRows(idx, 6) = NzText(mShippables(r, 6))
-        displayRows(idx, 7) = NzText(mShippables(r, 1))
+        displayRows(idx, 0) = modShippingFormValues.NzText(mShippables(r, 2))
+        displayRows(idx, 1) = modShippingFormValues.NzText(mShippables(r, 3))
+        displayRows(idx, 2) = modShippingFormValues.DisplayQtyText(modShippingFormValues.NzText(mShippables(r, 4)))
+        displayRows(idx, 3) = modShippingFormValues.DisplayQtyText(modShippingFormValues.NzText(mShippables(r, 8)))
+        displayRows(idx, 4) = modShippingFormValues.DisplayQtyText(CStr(LockedShipmentQtyForShippable( _
+            modShippingFormValues.NzText(mShippables(r, 1)), modShippingFormValues.NzText(mShippables(r, 2)), modShippingFormValues.NzText(mShippables(r, 3)))))
+        displayRows(idx, 5) = modShippingFormValues.NzText(mShippables(r, 5))
+        displayRows(idx, 6) = modShippingFormValues.NzText(mShippables(r, 6))
+        displayRows(idx, 7) = modShippingFormValues.NzText(mShippables(r, 1))
         idx = idx + 1
 NextRow:
     Next r
     For r = 0 To UBound(displayRows, 1)
-        displayRows(r, 1) = DisplayVersionOrNA(NzText(displayRows(r, 1)))
+        displayRows(r, 1) = modShippingFormValues.DisplayVersionOrNA(modShippingFormValues.NzText(displayRows(r, 1)))
     Next r
     mLstShippables.List = displayRows
     UpdateSyncStateLabel
@@ -1451,10 +1421,10 @@ Private Function ShippableMatchesFilter(ByVal rowIndex As Long, ByVal filterText
         ShippableMatchesFilter = True
         Exit Function
     End If
-    haystack = LCase$(NzText(mShippables(rowIndex, 2)) & " " & _
-                      NzText(mShippables(rowIndex, 3)) & " " & _
-                      NzText(mShippables(rowIndex, 6)) & " " & _
-                      NzText(mShippables(rowIndex, 7)))
+    haystack = LCase$(modShippingFormValues.NzText(mShippables(rowIndex, 2)) & " " & _
+                      modShippingFormValues.NzText(mShippables(rowIndex, 3)) & " " & _
+                      modShippingFormValues.NzText(mShippables(rowIndex, 6)) & " " & _
+                      modShippingFormValues.NzText(mShippables(rowIndex, 7)))
     ShippableMatchesFilter = (InStr(1, haystack, filterText, vbTextCompare) > 0)
 End Function
 
@@ -1468,18 +1438,18 @@ Private Sub RenderLineList(ByVal lst As MSForms.ListBox, ByVal rowsData As Varia
     If IsEmpty(rowsData) Then Exit Sub
     ReDim displayRows(0 To UBound(rowsData, 1) - 1, 0 To 11)
     For r = 1 To UBound(rowsData, 1)
-        displayRows(r - 1, 0) = NzText(rowsData(r, 1))
-        displayRows(r - 1, 1) = NzText(rowsData(r, 2))
-        displayRows(r - 1, 2) = FormatQuantity(ParseNumber(NzText(rowsData(r, 3))))
-        displayRows(r - 1, 3) = NzText(rowsData(r, 4))
-        displayRows(r - 1, 4) = NzText(rowsData(r, 9))
-        If Trim$(NzText(rowsData(r, 11))) <> "" Then displayRows(r - 1, 5) = "Yes" Else displayRows(r - 1, 5) = ""
-        displayRows(r - 1, 6) = NzText(rowsData(r, 6))
-        displayRows(r - 1, 7) = NzText(rowsData(r, 7))
-        displayRows(r - 1, 8) = NzText(rowsData(r, 10))
-        displayRows(r - 1, 9) = NzText(rowsData(r, 5))
-        displayRows(r - 1, 10) = NzText(rowsData(r, 8))
-        displayRows(r - 1, 11) = NzText(rowsData(r, 11))
+        displayRows(r - 1, 0) = modShippingFormValues.NzText(rowsData(r, 1))
+        displayRows(r - 1, 1) = modShippingFormValues.NzText(rowsData(r, 2))
+        displayRows(r - 1, 2) = modShippingFormValues.FormatQuantity(modShippingFormValues.ParseNumber(modShippingFormValues.NzText(rowsData(r, 3))))
+        displayRows(r - 1, 3) = modShippingFormValues.NzText(rowsData(r, 4))
+        displayRows(r - 1, 4) = modShippingFormValues.NzText(rowsData(r, 9))
+        If Trim$(modShippingFormValues.NzText(rowsData(r, 11))) <> "" Then displayRows(r - 1, 5) = "Yes" Else displayRows(r - 1, 5) = ""
+        displayRows(r - 1, 6) = modShippingFormValues.NzText(rowsData(r, 6))
+        displayRows(r - 1, 7) = modShippingFormValues.NzText(rowsData(r, 7))
+        displayRows(r - 1, 8) = modShippingFormValues.NzText(rowsData(r, 10))
+        displayRows(r - 1, 9) = modShippingFormValues.NzText(rowsData(r, 5))
+        displayRows(r - 1, 10) = modShippingFormValues.NzText(rowsData(r, 8))
+        displayRows(r - 1, 11) = modShippingFormValues.NzText(rowsData(r, 11))
     Next r
     lst.List = displayRows
     Exit Sub
@@ -1489,32 +1459,33 @@ End Sub
 
 Private Sub LoadSelectedShippable()
     If mLstShippables.ListIndex < 0 Then Exit Sub
-    mTxtBox.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 0))
-    mTxtVersion.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 1))
-    mTxtUom.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 5))
-    mTxtLocation.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 6))
-    mTxtSystemKey.Value = NzText(mLstShippables.List(mLstShippables.ListIndex, 7))
-    If Trim$(NzText(mTxtQty.Value)) = "" Then mTxtQty.Value = "1"
-    mTxtDescription.Value = NzText(mTxtVersion.Value)
+    mTxtBox.Value = modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 0))
+    mTxtVersion.Value = modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 1))
+    mTxtUom.Value = modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 5))
+    mTxtLocation.Value = modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 6))
+    mTxtSystemKey.Value = modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 7))
+    If Trim$(modShippingFormValues.NzText(mTxtQty.Value)) = "" Then mTxtQty.Value = "1"
+    mTxtDescription.Value = modShippingFormValues.NzText(mTxtVersion.Value)
 End Sub
 
 Private Sub LoadSelectedLine(ByVal lst As MSForms.ListBox)
     If lst Is Nothing Then Exit Sub
     If lst.ListIndex < 0 Then Exit Sub
-    mTxtRef.Value = NzText(lst.List(lst.ListIndex, 0))
-    mTxtBox.Value = NzText(lst.List(lst.ListIndex, 1))
-    mTxtQty.Value = NzText(lst.List(lst.ListIndex, 2))
-    mTxtUom.Value = NzText(lst.List(lst.ListIndex, 3))
-    mTxtLocation.Value = NzText(lst.List(lst.ListIndex, 9))
-    mTxtSystemKey.Value = NzText(lst.List(lst.ListIndex, 6))
-    mTxtDescription.Value = NzText(lst.List(lst.ListIndex, 7))
-    mTxtVersion.Value = NzText(lst.List(lst.ListIndex, 7))
-    mTxtCarrier.Value = NzText(lst.List(lst.ListIndex, 8))
+    mTxtRef.Value = modShippingFormValues.NzText(lst.List(lst.ListIndex, 0))
+    mTxtBox.Value = modShippingFormValues.NzText(lst.List(lst.ListIndex, 1))
+    mTxtQty.Value = modShippingFormValues.NzText(lst.List(lst.ListIndex, 2))
+    mTxtUom.Value = modShippingFormValues.NzText(lst.List(lst.ListIndex, 3))
+    mTxtLocation.Value = modShippingFormValues.NzText(lst.List(lst.ListIndex, 9))
+    mTxtSystemKey.Value = modShippingFormValues.NzText(lst.List(lst.ListIndex, 6))
+    mTxtDescription.Value = modShippingFormValues.NzText(lst.List(lst.ListIndex, 7))
+    mTxtVersion.Value = modShippingFormValues.NzText(lst.List(lst.ListIndex, 7))
+    mTxtCarrier.Value = modShippingFormValues.NzText(lst.List(lst.ListIndex, 8))
 End Sub
 
 Private Sub CommitCurrentLine(ByVal actionName As String)
+    Dim observation As cShippingActivity
     On Error GoTo FailSoft
-    If Not RequireActionContext() Then Exit Sub
+    If Not BeginShippingAction("SHIPPING_" & actionName, observation) Then Exit Sub
 
     Dim report As String
     Dim rowIndex As Long
@@ -1532,13 +1503,15 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     TLap "CommitCurrentLine " & UCase$(Trim$(actionName)) & " start"
     startedAt = Timer
     actionName = UCase$(Trim$(actionName))
-    selectedShipmentCount = SelectedListTableRowCount(mLstShipments)
+    selectedShipmentCount = modShippingFormValues.SelectedListTableRowCount(mLstShipments)
     If actionName = "ADD" And selectedShipmentCount > 1 Then
         ShowStatus "Select at most one shipment row before using Add."
+        FinishShippingAction observation, "REJECTED"
         Exit Sub
     End If
     If actionName = "UPDATE" And selectedShipmentCount <> 1 Then
         ShowStatus "Select exactly one shipment row before using Update Row."
+        FinishShippingAction observation, "REJECTED"
         Exit Sub
     End If
     rowIndex = SelectedShipmentTableRow()
@@ -1546,33 +1519,34 @@ Private Sub CommitCurrentLine(ByVal actionName As String)
     displayedNasQty = SelectedShippableNasInventoryText()
     Set operatorWb = ResolveOperatorWorkbook()
     ShowPersistencePending "Saving shipment row changes to the warehouse server..."
-    If Not RequireActionContext() Then Exit Sub
+    If Not RequireActionContext() Then FinishShippingAction observation, "DENIED": Exit Sub
     modUiQuiet.BeginQuietUi operatorWb
     quietStarted = True
     TLap "CommitCurrentLine resolved selected row/operator"
     ok = modTS_Shipments.ShipmentsFormCommitLine("SHIP", _
                                                  actionName, _
                                                  rowIndex, _
-                                                 NzText(mTxtRef.Value), _
-                                                 NzText(mTxtBox.Value), _
-                                                 ParseNumber(NzText(mTxtQty.Value)), _
-                                                 NzText(mTxtSystemKey.Value), _
-                                                 NzText(mTxtUom.Value), _
-                                                 NzText(mTxtLocation.Value), _
-                                                 NzText(mTxtVersion.Value), _
-                                                 NzText(mTxtCarrier.Value), _
+                                                 modShippingFormValues.NzText(mTxtRef.Value), _
+                                                 modShippingFormValues.NzText(mTxtBox.Value), _
+                                                 modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mTxtQty.Value)), _
+                                                 modShippingFormValues.NzText(mTxtSystemKey.Value), _
+                                                 modShippingFormValues.NzText(mTxtUom.Value), _
+                                                 modShippingFormValues.NzText(mTxtLocation.Value), _
+                                                 modShippingFormValues.NzText(mTxtVersion.Value), _
+                                                 modShippingFormValues.NzText(mTxtCarrier.Value), _
                                                  report, _
                                                  displayedAvailableQty, _
                                                  mShippables, _
                                                  operatorWb, _
-                                                 displayedNasQty)
+                                                 displayedNasQty, observation.Facts)
     TLap "CommitCurrentLine backend call"
     elapsedMs = mActionTimer.ElapsedMilliseconds(startedAt)
-    report = AppendTiming(report, elapsedMs)
+    report = modShippingFormValues.AppendTiming(report, elapsedMs)
     If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
     RefreshAfterAction report, ok
     modUiQuiet.EndQuietUi
     quietStarted = False
+    FinishShippingAction observation
     Exit Sub
 
 FailSoft:
@@ -1581,6 +1555,7 @@ FailSoft:
     If quietStarted Then modUiQuiet.EndQuietUi
     On Error GoTo 0
     ShowStatus "Shipment row action failed: " & failureReason
+    FinishShippingAction observation, "FAILED"
 End Sub
 
 Private Function SelectedShippableNasInventoryText() As String
@@ -1589,36 +1564,36 @@ Private Function SelectedShippableNasInventoryText() As String
     Dim boxName As String
     Dim versionLabel As String
 
-    systemKey = NzText(mTxtSystemKey.Value)
-    boxName = Trim$(NzText(mTxtBox.Value))
-    versionLabel = Trim$(NzText(mTxtVersion.Value))
+    systemKey = modShippingFormValues.NzText(mTxtSystemKey.Value)
+    boxName = Trim$(modShippingFormValues.NzText(mTxtBox.Value))
+    versionLabel = Trim$(modShippingFormValues.NzText(mTxtVersion.Value))
 
     If mLstShippables Is Nothing Then Exit Function
     If mLstShippables.ListIndex >= 0 Then
-        If StrComp(NzText(mLstShippables.List(mLstShippables.ListIndex, 7)), systemKey, vbTextCompare) = 0 _
-           And StrComp(Trim$(NzText(mLstShippables.List(mLstShippables.ListIndex, 0))), boxName, vbTextCompare) = 0 _
-           And StrComp(Trim$(NzText(mLstShippables.List(mLstShippables.ListIndex, 1))), versionLabel, vbTextCompare) = 0 Then
-            SelectedShippableNasInventoryText = NzText(mLstShippables.List(mLstShippables.ListIndex, 2))
+        If StrComp(modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 7)), systemKey, vbTextCompare) = 0 _
+           And StrComp(Trim$(modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 0))), boxName, vbTextCompare) = 0 _
+           And StrComp(Trim$(modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 1))), versionLabel, vbTextCompare) = 0 Then
+            SelectedShippableNasInventoryText = modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 2))
             Exit Function
         End If
-        If StrComp(NzText(mLstShippables.List(mLstShippables.ListIndex, 7)), systemKey, vbTextCompare) = 0 Then
-            SelectedShippableNasInventoryText = NzText(mLstShippables.List(mLstShippables.ListIndex, 2))
+        If StrComp(modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 7)), systemKey, vbTextCompare) = 0 Then
+            SelectedShippableNasInventoryText = modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 2))
             Exit Function
         End If
     End If
 
     If IsEmpty(mShippables) Then Exit Function
     For r = 1 To UBound(mShippables, 1)
-        If StrComp(NzText(mShippables(r, 1)), systemKey, vbTextCompare) = 0 _
-           And StrComp(Trim$(NzText(mShippables(r, 2))), boxName, vbTextCompare) = 0 _
-           And StrComp(Trim$(NzText(mShippables(r, 3))), versionLabel, vbTextCompare) = 0 Then
-            SelectedShippableNasInventoryText = NzText(mShippables(r, 4))
+        If StrComp(modShippingFormValues.NzText(mShippables(r, 1)), systemKey, vbTextCompare) = 0 _
+           And StrComp(Trim$(modShippingFormValues.NzText(mShippables(r, 2))), boxName, vbTextCompare) = 0 _
+           And StrComp(Trim$(modShippingFormValues.NzText(mShippables(r, 3))), versionLabel, vbTextCompare) = 0 Then
+            SelectedShippableNasInventoryText = modShippingFormValues.NzText(mShippables(r, 4))
             Exit Function
         End If
     Next r
     For r = 1 To UBound(mShippables, 1)
-        If StrComp(NzText(mShippables(r, 1)), systemKey, vbTextCompare) = 0 Then
-            SelectedShippableNasInventoryText = NzText(mShippables(r, 4))
+        If StrComp(modShippingFormValues.NzText(mShippables(r, 1)), systemKey, vbTextCompare) = 0 Then
+            SelectedShippableNasInventoryText = modShippingFormValues.NzText(mShippables(r, 4))
             Exit Function
         End If
     Next r
@@ -1630,26 +1605,26 @@ Private Function SelectedShippableProjectedInventoryText() As String
     Dim boxName As String
     Dim versionLabel As String
 
-    systemKey = NzText(mTxtSystemKey.Value)
-    boxName = Trim$(NzText(mTxtBox.Value))
-    versionLabel = Trim$(NzText(mTxtVersion.Value))
+    systemKey = modShippingFormValues.NzText(mTxtSystemKey.Value)
+    boxName = Trim$(modShippingFormValues.NzText(mTxtBox.Value))
+    versionLabel = Trim$(modShippingFormValues.NzText(mTxtVersion.Value))
 
     If mLstShippables Is Nothing Then Exit Function
     If mLstShippables.ListIndex >= 0 Then
-        If StrComp(NzText(mLstShippables.List(mLstShippables.ListIndex, 7)), systemKey, vbTextCompare) = 0 _
-           And StrComp(Trim$(NzText(mLstShippables.List(mLstShippables.ListIndex, 0))), boxName, vbTextCompare) = 0 _
-           And StrComp(Trim$(NzText(mLstShippables.List(mLstShippables.ListIndex, 1))), versionLabel, vbTextCompare) = 0 Then
-            SelectedShippableProjectedInventoryText = NzText(mLstShippables.List(mLstShippables.ListIndex, 3))
+        If StrComp(modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 7)), systemKey, vbTextCompare) = 0 _
+           And StrComp(Trim$(modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 0))), boxName, vbTextCompare) = 0 _
+           And StrComp(Trim$(modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 1))), versionLabel, vbTextCompare) = 0 Then
+            SelectedShippableProjectedInventoryText = modShippingFormValues.NzText(mLstShippables.List(mLstShippables.ListIndex, 3))
             Exit Function
         End If
     End If
 
     If IsEmpty(mShippables) Then Exit Function
     For r = 1 To UBound(mShippables, 1)
-        If StrComp(NzText(mShippables(r, 1)), systemKey, vbTextCompare) = 0 _
-           And StrComp(Trim$(NzText(mShippables(r, 2))), boxName, vbTextCompare) = 0 _
-           And StrComp(Trim$(NzText(mShippables(r, 3))), versionLabel, vbTextCompare) = 0 Then
-            SelectedShippableProjectedInventoryText = NzText(mShippables(r, 8))
+        If StrComp(modShippingFormValues.NzText(mShippables(r, 1)), systemKey, vbTextCompare) = 0 _
+           And StrComp(Trim$(modShippingFormValues.NzText(mShippables(r, 2))), boxName, vbTextCompare) = 0 _
+           And StrComp(Trim$(modShippingFormValues.NzText(mShippables(r, 3))), versionLabel, vbTextCompare) = 0 Then
+            SelectedShippableProjectedInventoryText = modShippingFormValues.NzText(mShippables(r, 8))
             Exit Function
         End If
     Next r
@@ -1670,7 +1645,7 @@ Private Function SingleSelectedListTableRow(ByVal lst As MSForms.ListBox) As Lon
     If lst Is Nothing Then Exit Function
     For i = 0 To lst.ListCount - 1
         If lst.Selected(i) Then
-            tableRow = CLng(Val(NzText(lst.List(i, 10))))
+            tableRow = CLng(Val(modShippingFormValues.NzText(lst.List(i, 10))))
             If tableRow > 0 Then
                 If SingleSelectedListTableRow <> 0 Then
                     SingleSelectedListTableRow = 0
@@ -1682,33 +1657,7 @@ Private Function SingleSelectedListTableRow(ByVal lst As MSForms.ListBox) As Lon
     Next i
 End Function
 
-Private Function SelectedListTableRowCount(ByVal lst As MSForms.ListBox) As Long
-    Dim rows As Variant
 
-    rows = SelectedListTableRows(lst)
-    If IsEmpty(rows) Then Exit Function
-    SelectedListTableRowCount = UBound(rows) - LBound(rows) + 1
-End Function
-
-Private Function SelectedListTableRows(ByVal lst As MSForms.ListBox) As Variant
-    Dim rowIndexes() As Long
-    Dim i As Long
-    Dim countRows As Long
-    Dim tableRow As Long
-
-    If lst Is Nothing Then Exit Function
-    For i = 0 To lst.ListCount - 1
-        If lst.Selected(i) Then
-            tableRow = CLng(Val(NzText(lst.List(i, 10))))
-            If tableRow > 0 Then
-                countRows = countRows + 1
-                ReDim Preserve rowIndexes(1 To countRows)
-                rowIndexes(countRows) = tableRow
-            End If
-        End If
-    Next i
-    If countRows > 0 Then SelectedListTableRows = rowIndexes
-End Function
 
 Private Sub RefreshAfterAction(ByVal report As String, ByVal ok As Boolean)
     Dim previousPointer As Long
@@ -1778,7 +1727,7 @@ Private Sub mBtnRefresh_Click()
     TLap "Refresh backend refresh"
     InitializeFromShipping True
     Set nasAfterRefresh = ShippableNasSnapshot()
-    nasStatus = ShippableNasChangeSummary(nasBeforeRefresh, nasAfterRefresh)
+    nasStatus = modShippingFormValues.ShippableNasChangeSummary(nasBeforeRefresh, nasAfterRefresh)
     TLap "Refresh reinitialize form"
     If Trim$(report) <> "" Then
         ShowStatus nasStatus & vbCrLf & "Shipments form refreshed. " & report & vbCrLf & TimingSummary()
@@ -1827,8 +1776,9 @@ Private Sub mBtnReturn_Click()
 End Sub
 
 Private Sub MoveSelectedShipmentHold(ByVal moveToHold As Boolean)
+    Dim observation As cShippingActivity
     On Error GoTo FailSoft
-    If Not RequireActionContext() Then Exit Sub
+    If Not BeginShippingAction(IIf(moveToHold, "SHIPPING_HOLD", "SHIPPING_RETURN"), observation) Then Exit Sub
 
     Dim lst As MSForms.ListBox
     Dim report As String
@@ -1842,29 +1792,33 @@ Private Sub MoveSelectedShipmentHold(ByVal moveToHold As Boolean)
     Else
         Set lst = mLstHold
     End If
-    selectedRows = SelectedListTableRows(lst)
+    selectedRows = modShippingFormValues.SelectedListTableRows(lst)
     If IsEmpty(selectedRows) Then
         If moveToHold Then
             ShowStatus "Select one or more shipment row(s) to send to Hold."
         Else
             ShowStatus "Select one or more Hold row(s) to return."
         End If
+        FinishShippingAction observation, "REJECTED"
         Exit Sub
     End If
 
-    ok = modTS_Shipments.ShipmentsFormMoveHoldRows(selectedRows, moveToHold, report)
+    ok = modTS_Shipments.ShipmentsFormMoveHoldRows(selectedRows, moveToHold, report, observation.Facts)
     TLap "Hold/Return backend move"
     If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
     RefreshAfterAction report, ok
+    FinishShippingAction observation
     Exit Sub
 
 FailSoft:
     ShowStatus "Hold action failed: " & Err.Description
+    FinishShippingAction observation, "FAILED"
 End Sub
 
 Private Sub RemoveSelectedShipmentRows()
+    Dim observation As cShippingActivity
     On Error GoTo FailSoft
-    If Not RequireActionContext() Then Exit Sub
+    If Not BeginShippingAction("SHIPPING_REMOVE", observation) Then Exit Sub
 
     Dim report As String
     Dim rowReport As String
@@ -1880,9 +1834,10 @@ Private Sub RemoveSelectedShipmentRows()
 
     mActionTimer.Start
     TLap "Remove selected click start"
-    selectedRows = SelectedListTableRows(mLstShipments)
+    selectedRows = modShippingFormValues.SelectedListTableRows(mLstShipments)
     If IsEmpty(selectedRows) Then
         ShowStatus "Select one or more shipment row(s) to remove."
+        FinishShippingAction observation, "REJECTED"
         Exit Sub
     End If
 
@@ -1890,7 +1845,7 @@ Private Sub RemoveSelectedShipmentRows()
     Set operatorWb = ResolveOperatorWorkbook()
     allOk = True
     For i = UBound(selectedRows) To LBound(selectedRows) Step -1
-        If Not RequireActionContext() Then Exit Sub
+        If Not RequireActionContext() Then FinishShippingAction observation, IIf(removedCount = 0, "DENIED", "FAILED"): Exit Sub
         rowIndex = CLng(selectedRows(i))
         rowReport = vbNullString
         ok = modTS_Shipments.ShipmentsFormCommitLine("SHIP", _
@@ -1905,7 +1860,7 @@ Private Sub RemoveSelectedShipmentRows()
                                                      "", _
                                                      "", _
                                                      rowReport, _
-                                                     operatorWb:=operatorWb)
+                                                     operatorWb:=operatorWb, ownerFacts:=observation.Facts)
         If ok Then
             removedCount = removedCount + 1
         Else
@@ -1919,13 +1874,15 @@ Private Sub RemoveSelectedShipmentRows()
     TLap "Remove selected backend call"
     elapsedMs = mActionTimer.ElapsedMilliseconds(startedAt)
     If allOk Then report = "Removed " & CStr(removedCount) & " shipment row(s)."
-    report = AppendTiming(report, elapsedMs)
+    report = modShippingFormValues.AppendTiming(report, elapsedMs)
     If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
     RefreshAfterAction report, allOk
+    FinishShippingAction observation
     Exit Sub
 
 FailSoft:
     ShowStatus "Remove action failed: " & Err.Description
+    FinishShippingAction observation, "FAILED"
 End Sub
 
 Private Sub mBtnStage_Click()
@@ -1933,8 +1890,9 @@ Private Sub mBtnStage_Click()
 End Sub
 
 Private Sub mBtnSend_Click()
+    Dim observation As cShippingActivity
     On Error GoTo FailSoft
-    If Not RequireActionContext() Then Exit Sub
+    If Not BeginShippingAction("SHIPPING_SEND", observation) Then Exit Sub
 
     Dim previousPointer As Long
     Dim quietStarted As Boolean
@@ -1949,12 +1907,12 @@ Private Sub mBtnSend_Click()
     previousPointer = Me.MousePointer
     Me.MousePointer = fmMousePointerHourGlass
     ShowPersistencePending "Saving shipment events and refreshing warehouse inventory..."
-    If Not RequireActionContext() Then Me.MousePointer = previousPointer: Exit Sub
+    If Not RequireActionContext() Then Me.MousePointer = previousPointer: FinishShippingAction observation, "DENIED": Exit Sub
     modUiQuiet.BeginQuietUi mOperatorWorkbook
     quietStarted = True
     startedAt = Timer
     ok = modShippingPostingService.ExecuteShipmentsSent( _
-        mOperatorWorkbook, selectedRows, NzText(mTxtCarrier.Value), report)
+        mOperatorWorkbook, selectedRows, modShippingFormValues.NzText(mTxtCarrier.Value), report, ownerFacts:=observation.Facts)
     TLap "Shipments Sent backend call"
     elapsedMs = mActionTimer.ElapsedMilliseconds(startedAt)
     Me.MousePointer = previousPointer
@@ -1970,11 +1928,12 @@ Private Sub mBtnSend_Click()
         modUiQuiet.EndQuietUi
         quietStarted = False
     End If
-    report = AppendTiming(report, elapsedMs)
+    report = modShippingFormValues.AppendTiming(report, elapsedMs)
     If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
     ShowStatus report
     If report <> "" And ShouldShowShippingActionPopup(report, ok) Then _
         MsgBox report, IIf(ok, vbInformation, vbExclamation)
+    FinishShippingAction observation
     Exit Sub
 
 FailSoft:
@@ -1983,11 +1942,13 @@ FailSoft:
     Me.MousePointer = previousPointer
     On Error GoTo 0
     ShowStatus "Shipping action failed: " & Err.Description
+    FinishShippingAction observation, "FAILED"
 End Sub
 
 Private Sub RunShippingAction(ByVal stageOnly As Boolean)
+    Dim observation As cShippingActivity
     On Error GoTo FailSoft
-    If Not RequireActionContext() Then Exit Sub
+    If Not BeginShippingAction(IIf(stageOnly, "SHIPPING_STAGE", "SHIPPING_SEND"), observation) Then Exit Sub
 
     Dim previousPointer As Long
     Dim quietStarted As Boolean
@@ -1999,9 +1960,10 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
 
     mActionTimer.Start
     TLap IIf(stageOnly, "To Shipments", "Shipments Sent") & " click start"
-    If stageOnly Then selectedRows = SelectedListTableRows(mLstShipments)
+    If stageOnly Then selectedRows = modShippingFormValues.SelectedListTableRows(mLstShipments)
     If stageOnly And IsEmpty(selectedRows) Then
         ShowStatus "Select shipment row(s) first."
+        FinishShippingAction observation, "REJECTED"
         Exit Sub
     End If
     previousPointer = Me.MousePointer
@@ -2009,15 +1971,15 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
     ShowPersistencePending IIf(stageOnly, _
         "Saving selected rows to Shipments...", _
         "Saving shipment events and refreshing warehouse inventory...")
-    If Not RequireActionContext() Then Me.MousePointer = previousPointer: Exit Sub
+    If Not RequireActionContext() Then Me.MousePointer = previousPointer: FinishShippingAction observation, "DENIED": Exit Sub
     modUiQuiet.BeginQuietUi ResolveOperatorWorkbook()
     quietStarted = True
     startedAt = Timer
     If stageOnly Then
-        ok = modTS_Shipments.ShipmentsFormRunToShipmentsRows(selectedRows, NzText(mTxtCarrier.Value), report)
+        ok = modTS_Shipments.ShipmentsFormRunToShipmentsRows(selectedRows, modShippingFormValues.NzText(mTxtCarrier.Value), report, observation.Facts)
     Else
         ok = modShippingPostingService.ExecuteShipmentsSent( _
-            mOperatorWorkbook, selectedRows, NzText(mTxtCarrier.Value), report)
+            mOperatorWorkbook, selectedRows, modShippingFormValues.NzText(mTxtCarrier.Value), report, ownerFacts:=observation.Facts)
     End If
     TLap IIf(stageOnly, "To Shipments", "Shipments Sent") & " backend call"
     elapsedMs = mActionTimer.ElapsedMilliseconds(startedAt)
@@ -2032,10 +1994,11 @@ Private Sub RunShippingAction(ByVal stageOnly As Boolean)
         modUiQuiet.EndQuietUi
         quietStarted = False
     End If
-    report = AppendTiming(report, elapsedMs)
+    report = modShippingFormValues.AppendTiming(report, elapsedMs)
     If TimingSummary() <> "" Then report = report & vbCrLf & TimingSummary()
     ShowStatus report
     If report <> "" And ShouldShowShippingActionPopup(report, ok) Then MsgBox report, IIf(ok, vbInformation, vbExclamation)
+    FinishShippingAction observation
     Exit Sub
 
 FailSoft:
@@ -2044,6 +2007,7 @@ FailSoft:
     Me.MousePointer = previousPointer
     On Error GoTo 0
     ShowStatus "Shipping action failed: " & Err.Description
+    FinishShippingAction observation, "FAILED"
 End Sub
 
 Private Function ShouldShowShippingActionPopup(ByVal report As String, ByVal ok As Boolean) As Boolean
@@ -2070,20 +2034,20 @@ Private Sub RefreshProjectedShippableInventory()
     If IsEmpty(mShippables) Then Exit Sub
     If Not mUseInjectedReservationTotalsForTest Then Set mNasReservationTotals = modTS_Shipments.ShipmentsFormLoadNasReservationTotals()
     For r = 1 To UBound(mShippables, 1)
-        packageSystemKey = NzText(mShippables(r, 1))
-        versionLabel = NzText(mShippables(r, 3))
-        backendText = NzText(mShippables(r, 4))
-        activeQty = ActiveShipmentQtyForShippable(packageSystemKey, NzText(mShippables(r, 2)), versionLabel)
+        packageSystemKey = modShippingFormValues.NzText(mShippables(r, 1))
+        versionLabel = modShippingFormValues.NzText(mShippables(r, 3))
+        backendText = modShippingFormValues.NzText(mShippables(r, 4))
+        activeQty = ActiveShipmentQtyForShippable(packageSystemKey, modShippingFormValues.NzText(mShippables(r, 2)), versionLabel)
         overlayText = modTS_Shipments.PendingSystemKeyInventoryOverlayText(packageSystemKey, versionLabel, backendText)
         hasSentOverlay = False
         If hasSentOverlay And activeQty > 0.0000001 Then overlayText = vbNullString
         If Trim$(overlayText) <> "" And IsNumeric(overlayText) Then
             overlayIncludesReservation = False
-            projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQtyWithOverlay(ParseNumber(backendText), activeQty, CDbl(overlayText), overlayIncludesReservation)
+            projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQtyWithOverlay(modShippingFormValues.ParseNumber(backendText), activeQty, CDbl(overlayText), overlayIncludesReservation)
         Else
-            projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQty(ParseNumber(backendText), activeQty)
+            projectedQty = modTS_Shipments.ShipmentsProjectedDisplayQty(modShippingFormValues.ParseNumber(backendText), activeQty)
         End If
-        mShippables(r, 8) = FormatQuantity(projectedQty)
+        mShippables(r, 8) = modShippingFormValues.FormatQuantity(projectedQty)
     Next r
     RenderShippables
 
@@ -2122,7 +2086,7 @@ End Function
 Public Function TestReadProjectedText(ByVal rowIndex As Long) As String
     If IsEmpty(mShippables) Then Exit Function
     If rowIndex < 1 Or rowIndex > UBound(mShippables, 1) Then Exit Function
-    TestReadProjectedText = NzText(mShippables(rowIndex, 8))
+    TestReadProjectedText = modShippingFormValues.NzText(mShippables(rowIndex, 8))
 End Function
 
 Public Function TestPendingSyncCount(ByVal shippablesArray As Variant, _
@@ -2188,7 +2152,7 @@ Public Function TestSystemKeyIdentityContract() As String
     probeKey = "SK-R1-SHIPPING-PROBE"
     controlReady = (StrComp(mTxtSystemKey.Name, "txtSystemKey", vbBinaryCompare) = 0)
     mTxtSystemKey.Value = probeKey
-    valuePreserved = (StrComp(NzText(mTxtSystemKey.Value), probeKey, vbBinaryCompare) = 0)
+    valuePreserved = (StrComp(modShippingFormValues.NzText(mTxtSystemKey.Value), probeKey, vbBinaryCompare) = 0)
     reservationKey = modTS_Shipments.ShipmentsFormReservationKey(probeKey, "v1")
     reservationUsesKey = (StrComp(reservationKey, LCase$(probeKey) & "|v1", vbBinaryCompare) = 0)
 
@@ -2211,9 +2175,9 @@ Public Function TestRunShipmentsSentActionForWorkbook(ByVal operatorWb As Workbo
     mBtnSend_Click
     If Not mLstShippables Is Nothing Then
         If mLstShippables.ListCount > 0 Then
-            visibleNas = NzText(mLstShippables.List(0, 2))
-            visibleProjected = NzText(mLstShippables.List(0, 3))
-            visibleLocked = NzText(mLstShippables.List(0, 4))
+            visibleNas = modShippingFormValues.NzText(mLstShippables.List(0, 2))
+            visibleProjected = modShippingFormValues.NzText(mLstShippables.List(0, 3))
+            visibleLocked = modShippingFormValues.NzText(mLstShippables.List(0, 4))
         End If
     End If
     TestRunShipmentsSentActionForWorkbook = _
@@ -2232,8 +2196,8 @@ Private Sub EvictOrphanedActiveOverlays()
     If IsEmpty(mShippables) Then Exit Sub
     If mLstShipments Is Nothing Then Exit Sub
     For r = 1 To UBound(mShippables, 1)
-        packageSystemKey = NzText(mShippables(r, 1))
-        versionLabel = NzText(mShippables(r, 3))
+        packageSystemKey = modShippingFormValues.NzText(mShippables(r, 1))
+        versionLabel = modShippingFormValues.NzText(mShippables(r, 3))
         If packageSystemKey <> "" And Trim$(versionLabel) <> "" Then
             If Not HasActiveShipmentLineForSystemKey(packageSystemKey, versionLabel) Then
                 modTS_Shipments.ClearActiveOverlayForSystemKeyVersion packageSystemKey, versionLabel
@@ -2249,8 +2213,8 @@ Private Function HasActiveShipmentLineForSystemKey(ByVal packageSystemKey As Str
     versionLabel = LCase$(Trim$(versionLabel))
     If Not mLstShipments Is Nothing Then
         For i = 0 To mLstShipments.ListCount - 1
-            If StrComp(NzText(mLstShipments.List(i, 6)), packageSystemKey, vbTextCompare) = 0 Then
-                rowVersion = LCase$(Trim$(NzText(mLstShipments.List(i, 7))))
+            If StrComp(modShippingFormValues.NzText(mLstShipments.List(i, 6)), packageSystemKey, vbTextCompare) = 0 Then
+                rowVersion = LCase$(Trim$(modShippingFormValues.NzText(mLstShipments.List(i, 7))))
                 If rowVersion = versionLabel Then
                     HasActiveShipmentLineForSystemKey = True
                     Exit Function
@@ -2261,10 +2225,10 @@ Private Function HasActiveShipmentLineForSystemKey(ByVal packageSystemKey As Str
 
     If Not mLstHold Is Nothing Then
         For i = 0 To mLstHold.ListCount - 1
-            If StrComp(NzText(mLstHold.List(i, 6)), packageSystemKey, vbTextCompare) = 0 Then
-                rowVersion = LCase$(Trim$(NzText(mLstHold.List(i, 7))))
+            If StrComp(modShippingFormValues.NzText(mLstHold.List(i, 6)), packageSystemKey, vbTextCompare) = 0 Then
+                rowVersion = LCase$(Trim$(modShippingFormValues.NzText(mLstHold.List(i, 7))))
                 If rowVersion = versionLabel Then
-                    If Trim$(NzText(mLstHold.List(i, 11))) <> "" Then
+                    If Trim$(modShippingFormValues.NzText(mLstHold.List(i, 11))) <> "" Then
                         HasActiveShipmentLineForSystemKey = True
                         Exit Function
                     End If
@@ -2291,9 +2255,9 @@ Private Function ShipmentListBoxSystemKeyMatchesShippable(ByVal lineList As MSFo
     Dim rowSystemKey As String
 
     If lineList Is Nothing Then Exit Function
-    rowBox = LCase$(Trim$(NzText(lineList.List(listIndex, 1))))
-    rowVersion = LCase$(Trim$(NzText(lineList.List(listIndex, 7))))
-    rowSystemKey = NzText(lineList.List(listIndex, 6))
+    rowBox = LCase$(Trim$(modShippingFormValues.NzText(lineList.List(listIndex, 1))))
+    rowVersion = LCase$(Trim$(modShippingFormValues.NzText(lineList.List(listIndex, 7))))
+    rowSystemKey = modShippingFormValues.NzText(lineList.List(listIndex, 6))
     If packageSystemKey <> "" Then
         ShipmentListBoxSystemKeyMatchesShippable = _
             (StrComp(rowSystemKey, packageSystemKey, vbTextCompare) = 0 And rowVersion = versionLabel)
@@ -2310,15 +2274,15 @@ Private Function ActiveShipmentQtyForShippable(ByVal packageSystemKey As String,
     If Not mLstShipments Is Nothing Then
         For i = 0 To mLstShipments.ListCount - 1
             If ShipmentListSystemKeyMatchesShippable(i, packageSystemKey, boxName, versionLabel) Then
-                ActiveShipmentQtyForShippable = ActiveShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
+                ActiveShipmentQtyForShippable = ActiveShipmentQtyForShippable + modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mLstShipments.List(i, 2)))
             End If
         Next i
     End If
     If Not mLstHold Is Nothing Then
         For i = 0 To mLstHold.ListCount - 1
             If ShipmentListBoxSystemKeyMatchesShippable(mLstHold, i, packageSystemKey, boxName, versionLabel) Then
-                If Trim$(NzText(mLstHold.List(i, 11))) <> "" Then
-                    ActiveShipmentQtyForShippable = ActiveShipmentQtyForShippable + ParseNumber(NzText(mLstHold.List(i, 2)))
+                If Trim$(modShippingFormValues.NzText(mLstHold.List(i, 11))) <> "" Then
+                    ActiveShipmentQtyForShippable = ActiveShipmentQtyForShippable + modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mLstHold.List(i, 2)))
                 End If
             End If
         Next i
@@ -2333,8 +2297,8 @@ Private Function UnreservedShipmentQtyForShippable(ByVal packageSystemKey As Str
     versionLabel = LCase$(Trim$(versionLabel))
     For i = 0 To mLstShipments.ListCount - 1
         If ShipmentListSystemKeyMatchesShippable(i, packageSystemKey, boxName, versionLabel) Then
-            If Trim$(NzText(mLstShipments.List(i, 11))) = "" Then
-                UnreservedShipmentQtyForShippable = UnreservedShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
+            If Trim$(modShippingFormValues.NzText(mLstShipments.List(i, 11))) = "" Then
+                UnreservedShipmentQtyForShippable = UnreservedShipmentQtyForShippable + modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mLstShipments.List(i, 2)))
             End If
         End If
     Next i
@@ -2347,7 +2311,7 @@ Private Function LockedShipmentQtyForShippable(ByVal packageSystemKey As String,
     key = modTS_Shipments.ShipmentsFormReservationKey(packageSystemKey, versionLabel)
     If Not mNasReservationTotals Is Nothing Then
         If mNasReservationTotals.Exists(key) Then
-            LockedShipmentQtyForShippable = ParseNumber(NzText(mNasReservationTotals(key)))
+            LockedShipmentQtyForShippable = modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mNasReservationTotals(key)))
             If LockedShipmentQtyForShippable > 0 And Not HasActiveShipmentLineForSystemKey(packageSystemKey, versionLabel) Then Exit Function
             LockedShipmentQtyForShippable = 0
         End If
@@ -2357,8 +2321,8 @@ Private Function LockedShipmentQtyForShippable(ByVal packageSystemKey As String,
     If Not mLstShipments Is Nothing Then
         For i = 0 To mLstShipments.ListCount - 1
             If ShipmentListSystemKeyMatchesShippable(i, packageSystemKey, boxName, versionLabel) Then
-                If Trim$(NzText(mLstShipments.List(i, 11))) <> "" Then
-                    LockedShipmentQtyForShippable = LockedShipmentQtyForShippable + ParseNumber(NzText(mLstShipments.List(i, 2)))
+                If Trim$(modShippingFormValues.NzText(mLstShipments.List(i, 11))) <> "" Then
+                    LockedShipmentQtyForShippable = LockedShipmentQtyForShippable + modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mLstShipments.List(i, 2)))
                 End If
             End If
         Next i
@@ -2366,8 +2330,8 @@ Private Function LockedShipmentQtyForShippable(ByVal packageSystemKey As String,
     If Not mLstHold Is Nothing Then
         For i = 0 To mLstHold.ListCount - 1
             If ShipmentListBoxSystemKeyMatchesShippable(mLstHold, i, packageSystemKey, boxName, versionLabel) Then
-                If Trim$(NzText(mLstHold.List(i, 11))) <> "" Then
-                    LockedShipmentQtyForShippable = LockedShipmentQtyForShippable + ParseNumber(NzText(mLstHold.List(i, 2)))
+                If Trim$(modShippingFormValues.NzText(mLstHold.List(i, 11))) <> "" Then
+                    LockedShipmentQtyForShippable = LockedShipmentQtyForShippable + modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mLstHold.List(i, 2)))
                 End If
             End If
         Next i
@@ -2378,12 +2342,6 @@ Private Sub mBtnClose_Click()
     Me.Hide
 End Sub
 
-Private Function AppendTiming(ByVal report As String, ByVal elapsedMs As Long) As String
-    If Trim$(report) <> "" Then
-        AppendTiming = report & vbCrLf & vbCrLf
-    End If
-    AppendTiming = AppendTiming & "Completed in " & Format$(elapsedMs, "#,##0") & " ms."
-End Function
 
 Private Sub LayoutBoxDesignerPage()
     If mLstBoxBuilderDesigns Is Nothing Then Exit Sub
@@ -2664,7 +2622,7 @@ Public Function TestBoxingLayoutAfterResize() As String
     designerOverlaps = BoxDesignerHasInteractiveOverlap()
     makerOverlaps = BoxMakerHasInteractiveOverlap()
     oldInventoryRows = mBoxBuilderInventoryRows
-    oldSearchText = NzText(mTxtBoxBuilderSearch.Value)
+    oldSearchText = modShippingFormValues.NzText(mTxtBoxBuilderSearch.Value)
     probeRows(1, 1) = "SK-PROBE-NEEDLE"
     probeRows(1, 2) = "Needle component"
     probeRows(1, 3) = "NEEDLE-01"
@@ -2679,7 +2637,7 @@ Public Function TestBoxingLayoutAfterResize() As String
     FilterBoxBuilderInventory
     searchFiltered = (mLstBoxBuilderInventory.ListCount = 1)
     If searchFiltered Then nonVersionIsNA = _
-        (StrComp(NzText(mLstBoxBuilderInventory.List(0, 7)), "NA", vbBinaryCompare) = 0)
+        (StrComp(modShippingFormValues.NzText(mLstBoxBuilderInventory.List(0, 7)), "NA", vbBinaryCompare) = 0)
     TestBoxingLayoutAfterResize = "OK|BuilderInventoryGrew=" & _
         CStr(mLstBoxBuilderInventory.Height > builderHeight) & _
         "|MakerDesignsGrew=" & CStr(mLstBoxMakerDesigns.Height > makerHeight) & _
@@ -2807,8 +2765,8 @@ Private Function PendingShipmentSyncCount() As Long
 
     If Not IsEmpty(mShippables) Then
         For r = 1 To UBound(mShippables, 1)
-            nasText = Trim$(NzText(mShippables(r, 4)))
-            projectedText = Trim$(NzText(mShippables(r, 8)))
+            nasText = Trim$(modShippingFormValues.NzText(mShippables(r, 4)))
+            projectedText = Trim$(modShippingFormValues.NzText(mShippables(r, 8)))
             If projectedText <> "" And StrComp(nasText, projectedText, vbTextCompare) <> 0 Then
                 PendingShipmentSyncCount = PendingShipmentSyncCount + 1
             End If
@@ -2978,42 +2936,3 @@ Private Sub ShowPersistencePending(ByVal messageText As String)
     Me.Repaint
     DoEvents
 End Sub
-
-Private Function NzText(ByVal value As Variant) As String
-    If IsError(value) Or IsNull(value) Or IsEmpty(value) Then
-        NzText = ""
-    Else
-        NzText = CStr(value)
-    End If
-End Function
-
-Private Function ParseNumber(ByVal textValue As String) As Double
-    On Error GoTo UseZero
-    textValue = Trim$(textValue)
-    If textValue = "" Then Exit Function
-    ParseNumber = CDbl(textValue)
-    Exit Function
-UseZero:
-    ParseNumber = 0
-End Function
-
-Private Function FormatQuantity(ByVal qtyValue As Double) As String
-    If Abs(qtyValue - Fix(qtyValue)) < 0.0000001 Then
-        FormatQuantity = Format$(qtyValue, "0")
-    Else
-        FormatQuantity = Format$(qtyValue, "0.###")
-    End If
-End Function
-
-Private Function DisplayQtyText(ByVal rawText As String) As String
-    Dim qty As Double
-
-    rawText = Trim$(rawText)
-    If rawText = "" Then Exit Function
-    If LCase$(rawText) = "unknown" Then
-        DisplayQtyText = "unknown"
-        Exit Function
-    End If
-    qty = ParseNumber(rawText)
-    DisplayQtyText = FormatQuantity(qty)
-End Function

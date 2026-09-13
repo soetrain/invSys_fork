@@ -128,6 +128,7 @@ function Test-Slice4beShippingSubmission($Module) {
     $template=Join-Path $repo 'deploy/current/templates/invSys.Data.Inventory.template.xlsb'
     if(-not (Test-Path -LiteralPath $template)){throw 'Accepted inventory template unavailable.'}
     $templateHash=Get-ShippingActivityHash $template
+    if($PrepareShippingFixturesBeforeProbesForTest){$templateHash=$preparedShippingBoundaries['shipping-submission'].TemplateHash}
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Split-Path $template -Parent)))
     $operatorRoot=Join-Path $runRoot 'shipping-submission-operators'
     $bounded=[bool](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @($operatorRoot))
@@ -177,6 +178,7 @@ function Test-Slice4beShippingSubmission($Module) {
             if(-not $key){throw 'Shipping submission Add selection unavailable.'}
             [void](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingSubmissionResetOwner')
             [void](Run 'invSys.Core.xlam' 'modRoleEventWriter.ActivityShippingSubmissionMode' @($mode))
+            $activityBefore=@(Get-Slice4beActivityFiles $fixture)
             $other.Activate()
             [void](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingClick' @('Add'))
             $state=([string](Run 'invSys.Core.xlam' 'modRoleEventWriter.ActivityShippingSubmissionState')).Split('|')
@@ -188,6 +190,9 @@ function Test-Slice4beShippingSubmission($Module) {
             Check ($label+'.ExactIdSurvivesFallback') ($id -ne '' -and $(if($mode -eq 1){$state[5] -eq 'True'}else{$state[4] -eq 'True'}))
             Check ($label+'.ActualOwnerResultObserved') ($owner[0] -eq 'True' -and $owner[1] -eq ([string]($mode -ne 3)))
             Check ($label+'.ExactIdRetainedByOwner') ($owner[2] -eq 'True')
+            $expectedOutcome=if($mode -eq 3){'FAILED'}else{'PENDING'}
+            $expectedState=if($mode -eq 3){'Unknown'}else{'Submitted'}
+            Test-ShippingActivityPair $fixture $activityBefore 'Add' $label @($id) 'SHIPPING_ADD' $expectedOutcome $expectedState
             $serverPath=[string](Run 'invSys.Core.xlam' 'modRoleEventWriter.ActivityShippingSubmissionStoragePath' @($true))
             $localPath=[string](Run 'invSys.Core.xlam' 'modRoleEventWriter.ActivityShippingSubmissionStoragePath' @($false))
             $bounded=$true

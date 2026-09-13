@@ -1,7 +1,7 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-13T05:52:37Z
+- Baseline: 2026-09-13T07:24:24Z
 - Scanner candidates: 1097
 - Reviewed candidates: 1099
 - Approved deletions: 0
@@ -56,8 +56,8 @@
 | src/Production/Modules/mProduction.bas | Production | 13279 |
 | src/Receiving/Forms/frmReceiving.frm | Receiving | 1200 |
 | src/Receiving/Modules/modTS_Received.bas | Receiving | 1572 |
-| src/Shipping/Forms/frmShipmentsTally.frm | Shipping | 3019 |
-| src/Shipping/Modules/modTS_Shipments.bas | Shipping | 22443 |
+| src/Shipping/Forms/frmShipmentsTally.frm | Shipping | 2938 |
+| src/Shipping/Modules/modTS_Shipments.bas | Shipping | 22398 |
 
 ## Reviewed candidates
 
@@ -1012,7 +1012,7 @@
 | duplicate:5010b83d04f91baf:EnsureBoxMakerHistoryWorksheetShipping+EnsureShipmentHistoryWorksheetShipping | SHIPPING | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:606aca1754beeea3:BoxMakerRuntimeReportMetric+ShippingRuntimeReportMetric | SHIPPING | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:6bf04a816000979b:BoxMakerFormAutoSyncProcedureName+ShipmentsFormAutoSyncProcedureName | SHIPPING | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
-| duplicate:8b0664d9629d7880:mBtnBoxMakerMake_Click+mBtnBoxMakerUnmake_Click | SHIPPING | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
+| duplicate:a025648d1135d692:mBtnBoxMakerMake_Click+mBtnBoxMakerUnmake_Click | SHIPPING | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:a803fe84139419ce:ShippingBomWorkbookPath+ShippingReservationsWorkbookPath | SHIPPING | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:b3ca9d9e25ef9972:ShippingInventoryPickerTableHasRows+ShippingManagedInventoryTableHasRows | SHIPPING | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:cb3f48556ae84c25:mBtnAdd_Click+mBtnUpdate_Click | SHIPPING | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
