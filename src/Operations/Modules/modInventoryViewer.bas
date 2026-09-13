@@ -42,24 +42,22 @@ Public Function LoadInventoryViewerEvents(Optional ByVal publishedPayload As Str
 
     corePayload = publishedPayload
     If Trim$(corePayload) = "" Then corePayload = modInventoryViewerData.LoadCurrentInventoryEventViewerData()
-    shippingPayload = modTS_Shipments.LoadShippingViewerSupplementEvents()
+    LoadInventoryViewerEvents = "FAIL" & vbTab & "Published Events are unavailable. Try Refresh after publication is restored."
+    If Trim$(corePayload) = "" Then Exit Function
     coreLines = Split(corePayload, vbCrLf)
-    shippingLines = Split(shippingPayload, vbCrLf)
     coreHeader = Split(CStr(coreLines(0)), vbTab)
-    shippingHeader = Split(CStr(shippingLines(0)), vbTab)
-
-    If UBound(coreHeader) >= 1 And StrComp(CStr(coreHeader(0)), "OK", vbTextCompare) = 0 Then
-        resultText = CStr(coreLines(0))
-        If UBound(coreHeader) >= 3 Then rowCount = CLng(Val(CStr(coreHeader(3))))
-        For lineIndex = 1 To UBound(coreLines)
-            If Trim$(CStr(coreLines(lineIndex))) <> "" Then resultText = resultText & vbCrLf & CStr(coreLines(lineIndex))
-        Next lineIndex
-    ElseIf UBound(shippingHeader) >= 1 And StrComp(CStr(shippingHeader(0)), "OK", vbTextCompare) = 0 Then
-        resultText = "OK" & vbTab & modNasConnection.GetCurrentTargetWarehouseId() & vbTab & Format$(Now, "yyyy-mm-dd hh:nn:ss") & vbTab & "0"
-    Else
-        LoadInventoryViewerEvents = corePayload
+    If UBound(coreHeader) < 3 Or StrComp(CStr(coreHeader(0)), "OK", vbTextCompare) <> 0 Then
         Exit Function
     End If
+    shippingPayload = modTS_Shipments.LoadShippingViewerSupplementEvents()
+    shippingLines = Split(shippingPayload, vbCrLf)
+    shippingHeader = Split(CStr(shippingLines(0)), vbTab)
+
+    resultText = CStr(coreLines(0))
+    rowCount = CLng(Val(CStr(coreHeader(3))))
+    For lineIndex = 1 To UBound(coreLines)
+        If Trim$(CStr(coreLines(lineIndex))) <> "" Then resultText = resultText & vbCrLf & CStr(coreLines(lineIndex))
+    Next lineIndex
 
     If UBound(shippingHeader) >= 1 And StrComp(CStr(shippingHeader(0)), "OK", vbTextCompare) = 0 Then
         If UBound(shippingHeader) >= 3 Then rowCount = rowCount + CLng(Val(CStr(shippingHeader(3))))

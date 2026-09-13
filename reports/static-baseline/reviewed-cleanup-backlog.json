@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-13T15:12:31Z",
+    "generatedAtUtc":  "2026-09-13T15:54:38Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "2ce19df1741a15a0af418ca468554c3aae83659e35543128c5f091f5372a2d0f",
-                          "maintenanceCandidatesSha256":  "07b1a312dbbe778075e9c7023cd66cadacd2b3411da14f9510646bb2ad8eb404"
+                          "implementationManifestSha256":  "26c54230c03fdbcfd061587afea5e48f123ef6a96e77379099029ed43b7fe672",
+                          "maintenanceCandidatesSha256":  "2280b302aba4b156f05ef3166ccdf248a57fafd491e536c5b4d42dae15207dec"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -3691,6 +3691,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -15040,6 +15041,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -24314,6 +24316,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -30144,6 +30147,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "deletionApproved":  false,

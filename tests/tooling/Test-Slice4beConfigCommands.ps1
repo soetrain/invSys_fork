@@ -13,6 +13,7 @@ param(
     [switch]$CheckOperationsTrackingSettings,
     [switch]$CheckAdminSettingsClose,
     [switch]$AdminSettingsCloseOnly,
+    [switch]$CheckViewerRefreshFailure,
     [switch]$CheckShippingActivity,
     [switch]$TraceBootstrapForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -116,6 +117,11 @@ if ($CheckDetailProfile -and -not $CheckTrackingSettings) { throw 'Detail profil
 if ($CheckDetailProfile -and -not $CheckTrackingPolicy) { throw 'Detail profile checks retain the tracking policy baseline and cancellation observer.' }
 if ($CheckActionPathPreference -and -not $CheckDetailProfile) { throw 'Preference checks retain the detail and policy baseline.' }
 if ($CheckOperationsTrackingSettings -and -not $CheckActionPathPreference) { throw 'Operations Settings checks retain the full personal preference baseline.' }
+if ($CheckViewerRefreshFailure) {
+    if ($CheckTrackingSettings -or $CheckActivityEvidence -or $CheckReceivingActivity -or $CheckShippingActivity) { throw 'Viewer refresh failure uses a separate focused run.' }
+    $reportRoot = Join-Path $repo ('reports/runtime/slice4be-viewer-refresh/'+[guid]::NewGuid().ToString('N'))
+    . (Join-Path $PSScriptRoot 'Slice4beViewerRefreshFailure.ps1')
+}
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 if ($CheckOperationsTrackingSettings) {
     $operationsSettingsDeploy = Join-Path $reportRoot 'operations-only'
@@ -451,7 +457,11 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beAdminSettingsClose.ps1')
         Test-AdminSettingsDefaultClose $a $testModule $formCode
     }
-    if(-not $AdminSettingsCloseOnly) {
+    if($CheckViewerRefreshFailure) {
+        $step='packaged Viewer refresh failure'
+        Test-Slice4beViewerRefreshFailure $a $b
+    }
+    if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure) {
     $step='unauthenticated command'
     [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
     $before=(Get-FileHash -LiteralPath $a.Config).Hash

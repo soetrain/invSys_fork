@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T15:12:31Z",
+    "generatedAtUtc":  "2026-09-13T15:54:38Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -4895,7 +4895,7 @@
                            "name":  "frmInventoryViewer",
                            "kind":  "FORM",
                            "sourcePath":  "src/Operations/Forms/frmInventoryViewer.frm",
-                           "lineCount":  636,
+                           "lineCount":  671,
                            "procedureNames":  [
                                                   "AddButton",
                                                   "AddLabel",
@@ -4903,7 +4903,9 @@
                                                   "AddTextBox",
                                                   "ApplyViewerTab",
                                                   "BuildLayout",
+                                                  "ClearViewerContent",
                                                   "ConfigureViewerHeaderGeometry",
+                                                  "EventRefreshUnavailable",
                                                   "ExportViewerListBoxToTable",
                                                   "LoadViewerPayload",
                                                   "mBtnClose_Click",
@@ -4926,6 +4928,7 @@
                                                   "UserForm_Initialize",
                                                   "UserForm_Layout",
                                                   "UserForm_Terminate",
+                                                  "ViewerContextValid",
                                                   "ViewerEventHeadersAlignedForTest",
                                                   "ViewerUnescape",
                                                   "ViewerVisibleHeaders"
@@ -4938,7 +4941,7 @@
                            "name":  "modInventoryViewer",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Operations/Modules/modInventoryViewer.bas",
-                           "lineCount":  207,
+                           "lineCount":  205,
                            "procedureNames":  [
                                                   "CloseInventoryViewerForTest",
                                                   "DeclaredListBoxHeaders",
@@ -76899,8 +76902,8 @@
                            "name":  "UserForm_Initialize",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  48,
-                           "endLine":  50,
+                           "startLine":  49,
+                           "endLine":  51,
                            "lineCount":  3,
                            "directCalls":  [
                                                "BuildLayout"
@@ -76937,8 +76940,8 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  52,
-                           "endLine":  59,
+                           "startLine":  53,
+                           "endLine":  60,
                            "lineCount":  8,
                            "directCalls":  [
                                                "ApplyAnchoredLayout",
@@ -76978,8 +76981,8 @@
                            "name":  "UserForm_Layout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  61,
-                           "endLine":  64,
+                           "startLine":  62,
+                           "endLine":  65,
                            "lineCount":  4,
                            "directCalls":  [
                                                "ApplyAnchoredLayout",
@@ -77009,8 +77012,8 @@
                            "name":  "UserForm_Terminate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  66,
-                           "endLine":  70,
+                           "startLine":  67,
+                           "endLine":  71,
                            "lineCount":  5,
                            "directCalls":  [
                                                "CloseSettings",
@@ -77042,11 +77045,12 @@
                            "name":  "SetWarehouse",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  72,
-                           "endLine":  76,
-                           "lineCount":  5,
+                           "startLine":  73,
+                           "endLine":  78,
+                           "lineCount":  6,
                            "directCalls":  [
-                                               "CaptureContext"
+                                               "CaptureContext",
+                                               "ClearViewerContent"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -77063,8 +77067,8 @@
                            "name":  "SetGeneration",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  78,
-                           "endLine":  80,
+                           "startLine":  80,
+                           "endLine":  82,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -77084,13 +77088,14 @@
                            "name":  "RefreshInventory",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  82,
-                           "endLine":  86,
-                           "lineCount":  5,
+                           "startLine":  84,
+                           "endLine":  89,
+                           "lineCount":  6,
                            "directCalls":  [
                                                "BuildLayout",
                                                "LoadCurrentInventoryViewerData",
-                                               "LoadViewerPayload"
+                                               "LoadViewerPayload",
+                                               "ViewerContextValid"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -77107,14 +77112,78 @@
                            "name":  "RefreshEvents",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  88,
-                           "endLine":  94,
-                           "lineCount":  7,
+                           "startLine":  91,
+                           "endLine":  99,
+                           "lineCount":  9,
                            "directCalls":  [
                                                "BuildLayout",
-                                               "LoadCurrentInventoryEventViewerData",
                                                "LoadInventoryViewerEvents",
-                                               "LoadViewerPayload"
+                                               "LoadViewerPayload",
+                                               "ViewerContextValid"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmInventoryViewer",
+                           "name":  "ClearViewerContent",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  101,
+                           "endLine":  105,
+                           "lineCount":  5,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmInventoryViewer",
+                           "name":  "ViewerContextValid",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  107,
+                           "endLine":  113,
+                           "lineCount":  7,
+                           "directCalls":  [
+                                               "CaptureContext",
+                                               "ClearViewerContent"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmInventoryViewer",
+                           "name":  "EventRefreshUnavailable",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  115,
+                           "endLine":  123,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "ClearViewerContent"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -77131,11 +77200,13 @@
                            "name":  "LoadViewerPayload",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  96,
-                           "endLine":  143,
-                           "lineCount":  48,
+                           "startLine":  125,
+                           "endLine":  176,
+                           "lineCount":  52,
                            "directCalls":  [
+                                               "ClearViewerContent",
                                                "ColumnIndex",
+                                               "EventRefreshUnavailable",
                                                "Fields",
                                                "RenderRows",
                                                "TrimViewerRows",
@@ -77156,8 +77227,8 @@
                            "name":  "TestReport",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  145,
-                           "endLine":  150,
+                           "startLine":  178,
+                           "endLine":  183,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -77177,8 +77248,8 @@
                            "name":  "TestApplySearch",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  152,
-                           "endLine":  158,
+                           "startLine":  185,
+                           "endLine":  191,
                            "lineCount":  7,
                            "directCalls":  [
                                                "RenderRows"
@@ -77198,8 +77269,8 @@
                            "name":  "TestEventsReport",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  160,
-                           "endLine":  212,
+                           "startLine":  193,
+                           "endLine":  245,
                            "lineCount":  53,
                            "directCalls":  [
                                                "BuildLayout",
@@ -77221,8 +77292,8 @@
                            "name":  "ExportViewerListBoxToTable",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  214,
-                           "endLine":  225,
+                           "startLine":  247,
+                           "endLine":  258,
                            "lineCount":  12,
                            "directCalls":  [
                                                "ExportVisibleListBoxToNewTable",
@@ -77243,8 +77314,8 @@
                            "name":  "TestListBoxTableAction",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  227,
-                           "endLine":  232,
+                           "startLine":  260,
+                           "endLine":  265,
                            "lineCount":  6,
                            "directCalls":  [
                                                "ApplyViewerTab",
@@ -77266,8 +77337,8 @@
                            "name":  "ViewerVisibleHeaders",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  234,
-                           "endLine":  242,
+                           "startLine":  267,
+                           "endLine":  275,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -77287,8 +77358,8 @@
                            "name":  "BuildLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  244,
-                           "endLine":  344,
+                           "startLine":  277,
+                           "endLine":  377,
                            "lineCount":  101,
                            "directCalls":  [
                                                "Add",
@@ -77317,8 +77388,8 @@
                            "name":  "mTabs_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  346,
-                           "endLine":  348,
+                           "startLine":  379,
+                           "endLine":  381,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ApplyViewerTab"
@@ -77339,8 +77410,8 @@
                            "name":  "mBtnSettings_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  350,
-                           "endLine":  353,
+                           "startLine":  383,
+                           "endLine":  386,
                            "lineCount":  4,
                            "directCalls":  [
                                                "OpenSettings"
@@ -77360,8 +77431,8 @@
                            "name":  "ApplyViewerTab",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  355,
-                           "endLine":  398,
+                           "startLine":  388,
+                           "endLine":  431,
                            "lineCount":  44,
                            "directCalls":  [
                                                "ConfigureViewerHeaderGeometry",
@@ -77383,8 +77454,8 @@
                            "name":  "mTxtSearch_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  400,
-                           "endLine":  402,
+                           "startLine":  433,
+                           "endLine":  435,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RenderRows"
@@ -77405,8 +77476,8 @@
                            "name":  "mBtnRefresh_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  404,
-                           "endLine":  410,
+                           "startLine":  437,
+                           "endLine":  443,
                            "lineCount":  7,
                            "directCalls":  [
                                                "RefreshEvents",
@@ -77430,11 +77501,12 @@
                            "name":  "mBtnExportListBox_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  412,
-                           "endLine":  419,
-                           "lineCount":  8,
+                           "startLine":  445,
+                           "endLine":  453,
+                           "lineCount":  9,
                            "directCalls":  [
-                                               "ExportDeclaredListBoxToTable"
+                                               "ExportDeclaredListBoxToTable",
+                                               "ViewerContextValid"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -77451,8 +77523,8 @@
                            "name":  "ConfigureViewerHeaderGeometry",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  421,
-                           "endLine":  460,
+                           "startLine":  455,
+                           "endLine":  494,
                            "lineCount":  40,
                            "directCalls":  [
                                                "Add",
@@ -77473,8 +77545,8 @@
                            "name":  "ViewerEventHeadersAlignedForTest",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  462,
-                           "endLine":  477,
+                           "startLine":  496,
+                           "endLine":  511,
                            "lineCount":  16,
                            "directCalls":  [
 
@@ -77494,8 +77566,8 @@
                            "name":  "mBtnClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  479,
-                           "endLine":  481,
+                           "startLine":  513,
+                           "endLine":  515,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -77522,11 +77594,12 @@
                            "name":  "RenderRows",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  483,
-                           "endLine":  568,
-                           "lineCount":  86,
+                           "startLine":  517,
+                           "endLine":  603,
+                           "lineCount":  87,
                            "directCalls":  [
-                                               "ColumnIndex"
+                                               "ColumnIndex",
+                                               "ViewerContextValid"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -77543,8 +77616,8 @@
                            "name":  "TrimViewerRows",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  570,
-                           "endLine":  582,
+                           "startLine":  605,
+                           "endLine":  617,
                            "lineCount":  13,
                            "directCalls":  [
                                                "ColumnIndex"
@@ -77564,8 +77637,8 @@
                            "name":  "ViewerUnescape",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  584,
-                           "endLine":  590,
+                           "startLine":  619,
+                           "endLine":  625,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -77585,8 +77658,8 @@
                            "name":  "AddLabel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  592,
-                           "endLine":  605,
+                           "startLine":  627,
+                           "endLine":  640,
                            "lineCount":  14,
                            "directCalls":  [
                                                "Add"
@@ -77606,8 +77679,8 @@
                            "name":  "AddTextBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  607,
-                           "endLine":  614,
+                           "startLine":  642,
+                           "endLine":  649,
                            "lineCount":  8,
                            "directCalls":  [
                                                "Add"
@@ -77627,8 +77700,8 @@
                            "name":  "AddListBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  616,
-                           "endLine":  623,
+                           "startLine":  651,
+                           "endLine":  658,
                            "lineCount":  8,
                            "directCalls":  [
                                                "Add"
@@ -77648,8 +77721,8 @@
                            "name":  "AddButton",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  625,
-                           "endLine":  636,
+                           "startLine":  660,
+                           "endLine":  671,
                            "lineCount":  12,
                            "directCalls":  [
                                                "Add"
@@ -77695,10 +77768,9 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  32,
-                           "endLine":  78,
-                           "lineCount":  47,
+                           "endLine":  76,
+                           "lineCount":  45,
                            "directCalls":  [
-                                               "GetCurrentTargetWarehouseId",
                                                "LoadCurrentInventoryEventViewerData",
                                                "LoadShippingViewerSupplementEvents"
                                            ],
@@ -77717,8 +77789,8 @@
                            "name":  "UnregisterInventoryViewer",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  80,
-                           "endLine":  86,
+                           "startLine":  78,
+                           "endLine":  84,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -77738,8 +77810,8 @@
                            "name":  "RunInventoryViewerActionForTest",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  88,
-                           "endLine":  95,
+                           "startLine":  86,
+                           "endLine":  93,
                            "lineCount":  8,
                            "directCalls":  [
                                                "OpenInventoryViewer",
@@ -77760,8 +77832,8 @@
                            "name":  "RunInventoryViewerFilterForTest",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  97,
-                           "endLine":  104,
+                           "startLine":  95,
+                           "endLine":  102,
                            "lineCount":  8,
                            "directCalls":  [
                                                "OpenInventoryViewer",
@@ -77782,8 +77854,8 @@
                            "name":  "RunInventoryViewerEventsForTest",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  106,
-                           "endLine":  113,
+                           "startLine":  104,
+                           "endLine":  111,
                            "lineCount":  8,
                            "directCalls":  [
                                                "OpenInventoryViewer",
@@ -77804,8 +77876,8 @@
                            "name":  "ExportDeclaredListBoxToTable",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  115,
-                           "endLine":  165,
+                           "startLine":  113,
+                           "endLine":  163,
                            "lineCount":  51,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -77828,8 +77900,8 @@
                            "name":  "DeclaredListBoxHeaders",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  167,
-                           "endLine":  189,
+                           "startLine":  165,
+                           "endLine":  187,
                            "lineCount":  23,
                            "directCalls":  [
 
@@ -77849,8 +77921,8 @@
                            "name":  "RunInventoryViewerListBoxTableActionForTest",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  191,
-                           "endLine":  203,
+                           "startLine":  189,
+                           "endLine":  201,
                            "lineCount":  13,
                            "directCalls":  [
                                                "OpenInventoryViewer",
@@ -77871,8 +77943,8 @@
                            "name":  "CloseInventoryViewerForTest",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  205,
-                           "endLine":  207,
+                           "startLine":  203,
+                           "endLine":  205,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -142879,6 +142951,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "GetCurrentTargetWarehouseId",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beViewerRefreshFailure.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "GetCurrentUserActionLabel",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4lRibbonSessionControls.ps1",
@@ -143125,6 +143203,7 @@
                                "entryPoint":  "GetUserFormWindowHandle",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
+                                                 "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                              ]
                            },
@@ -143328,6 +143407,7 @@
                                                  "tests/tooling/Slice4beShippingPrewriteRefusal.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Slice4beShippingWorkbookClose.ps1",
+                                                 "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4abProcessPickerInventory.ps1",
@@ -143742,6 +143822,7 @@
                            {
                                "entryPoint":  "LoadCurrentInventoryEventViewerData",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                              ]
                            },
@@ -143841,6 +143922,7 @@
                            {
                                "entryPoint":  "LoadShippingViewerSupplementEvents",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                              ]
                            },
@@ -144174,6 +144256,7 @@
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                              ]
                            },
@@ -144639,6 +144722,7 @@
                                "entryPoint":  "OpenInventoryViewer",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
+                                                 "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1"
                                              ]
                            },
@@ -146702,6 +146786,7 @@
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1",
+                                                 "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestReceivingReadiness.bas"

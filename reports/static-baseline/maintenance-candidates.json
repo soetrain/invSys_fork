@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-13T15:12:31Z",
+    "generatedAtUtc":  "2026-09-13T15:54:38Z",
     "baseline":  {
                      "componentCount":  199,
-                     "procedureCount":  5635,
-                     "lineCount":  125733,
+                     "procedureCount":  5638,
+                     "lineCount":  125766,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  189
@@ -6566,6 +6566,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -10210,6 +10211,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -12908,6 +12910,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true
@@ -13687,6 +13690,7 @@
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
+                                                   "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
                            "reviewRequired":  true

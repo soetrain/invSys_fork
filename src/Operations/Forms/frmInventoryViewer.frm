@@ -44,6 +44,7 @@ Private mGeneration As Long
 Private mColumnCount As Long
 Private mLoadStatus As String
 Private mSettingsContext As String
+Private mLoadedColumnCount As Long
 
 Private Sub UserForm_Initialize()
     BuildLayout
@@ -70,6 +71,7 @@ Private Sub UserForm_Terminate()
 End Sub
 
 Public Sub SetWarehouse(ByVal warehouseId As String)
+    If mSettingsContext <> modActivity.CaptureContext() Then ClearViewerContent
     mWarehouseId = Trim$(warehouseId)
     mSettingsContext = modActivity.CaptureContext()
     Me.Caption = "Viewer - " & mWarehouseId
@@ -81,6 +83,7 @@ End Sub
 
 Public Sub RefreshInventory()
     If Not mBuilt Then BuildLayout
+    If Not ViewerContextValid() Then Exit Sub
     mColumnCount = 6
     LoadViewerPayload modInventoryViewerData.LoadCurrentInventoryViewerData(), "inventory level(s)"
 End Sub
@@ -88,9 +91,35 @@ End Sub
 Public Sub RefreshEvents()
     Dim publishedPayload As String
     If Not mBuilt Then BuildLayout
+    If Not ViewerContextValid() Then Exit Sub
     mColumnCount = 10
-    publishedPayload = modInventoryViewerData.LoadCurrentInventoryEventViewerData()
-    LoadViewerPayload modInventoryViewer.LoadInventoryViewerEvents(publishedPayload), "event(s)"
+    publishedPayload = modInventoryViewer.LoadInventoryViewerEvents()
+    If Not ViewerContextValid() Then Exit Sub
+    LoadViewerPayload publishedPayload, "event(s)"
+End Sub
+
+Private Sub ClearViewerContent()
+    mRows = Empty
+    mLoadedColumnCount = 0
+    If Not mLstInventory Is Nothing Then mLstInventory.Clear
+End Sub
+
+Private Function ViewerContextValid() As Boolean
+    ViewerContextValid = (mSettingsContext <> "" And mSettingsContext = modActivity.CaptureContext())
+    If ViewerContextValid Then Exit Function
+    ClearViewerContent
+    mLoadStatus = "Unavailable. The invSys session or warehouse changed. Reopen Viewer."
+    mLblStatus.Caption = mLoadStatus
+End Function
+
+Private Sub EventRefreshUnavailable()
+    If mLoadedColumnCount = 10 Then
+        mLoadStatus = "Stale. Events refresh failed; displaying previously loaded data. Try Refresh after publication is restored."
+    Else
+        ClearViewerContent
+        mLoadStatus = "Unavailable. Published Events could not be loaded. Try Refresh after publication is restored."
+    End If
+    mLblStatus.Caption = mLoadStatus
 End Sub
 
 Private Sub LoadViewerPayload(ByVal payload As String, ByVal rowLabel As String)
@@ -105,8 +134,11 @@ Private Sub LoadViewerPayload(ByVal payload As String, ByVal rowLabel As String)
     lines = Split(payload, vbCrLf)
     header = Split(CStr(lines(0)), vbTab)
     If UBound(header) < 1 Or StrComp(CStr(header(0)), "OK", vbTextCompare) <> 0 Then
-        mRows = Empty
-        mLstInventory.Clear
+        If mColumnCount = 10 Then
+            EventRefreshUnavailable
+            Exit Sub
+        End If
+        ClearViewerContent
         If UBound(header) >= 1 Then
             mLoadStatus = ViewerUnescape(CStr(header(1)))
         Else
@@ -137,6 +169,7 @@ Private Sub LoadViewerPayload(ByVal payload As String, ByVal rowLabel As String)
     Else
         mRows = TrimViewerRows(dataRows, dataIndex, mColumnCount)
     End If
+    mLoadedColumnCount = mColumnCount
     mLoadStatus = CStr(dataIndex) & " " & rowLabel & ". Published data read at " & CStr(header(2)) & "."
     mLblStatus.Caption = mLoadStatus
     RenderRows Trim$(CStr(mTxtSearch.Value))
@@ -411,6 +444,7 @@ End Sub
 
 Private Sub mBtnExportListBox_Click()
     Dim report As String
+    If Not ViewerContextValid() Then Exit Sub
     If modInventoryViewer.ExportDeclaredListBoxToTable(Trim$(mTxtExportListBox.Text), report) Then
         mLblStatus.Caption = report
     Else
@@ -492,6 +526,7 @@ Private Sub RenderRows(ByVal filterText As String)
     Dim numericRange As Double
     Dim storedRange As String
 
+    If Not ViewerContextValid() Then Exit Sub
     mLstInventory.Clear
     mLblStatus.Caption = mLoadStatus
     If mTabs.Value = 1 Then
