@@ -129,3 +129,10 @@ own precise evidence; pre-entry revocation is not proof of those branches.
 Then refine Shipping control/outcome/source-reference catalog definitions under
 D18 and implement comprehensive activity. Full4be.1-4be.6, physical deployment and
 human comparison/acceptance remain required; no narrower completion is claimed.
+
+The [subsequent access matrix](plan022_slice4be_shipping_access_results.md) now
+proves the three actual-yield revocations and seven unavailable-Config cases on
+the unchanged candidate. Its558-check result retains all435 checks/389 GREENs.
+Missing Auth rejects all seven mutations but recreates the file; the explicit
+pending D8-A proposal records the resulting architecture decision. Neither this
+extension nor the proposed decision clears pending/uncertain submission coverage.

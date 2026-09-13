@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T02:20:37Z",
+    "generatedAtUtc":  "2026-09-13T03:04:09Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -137111,6 +137111,7 @@
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
@@ -139709,6 +139710,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
@@ -139905,6 +139907,7 @@
                            {
                                "entryPoint":  "IsSignedIn",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
@@ -142626,6 +142629,7 @@
                            {
                                "entryPoint":  "ShowPersistencePending",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                              ]
@@ -142845,6 +142849,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",

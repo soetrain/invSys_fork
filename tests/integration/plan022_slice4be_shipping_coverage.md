@@ -141,3 +141,11 @@ clarification0cc61c9 and the bounded form/context-helper repair. All435 checks a
 prior GREENs remain. Owner checks and Core security authority are retained; the
 timer keeps its existing context entry contract. Permission loss during a UI yield
 and unavailable Auth/Config are separate cases, not implied by pre-entry revocation.
+
+The subsequent [access-interruption evidence](plan022_slice4be_shipping_access_results.md)
+completes558 checks:505 PASS/53 FAIL, retaining every prior435 check/389 GREEN.
+All actual-yield revocations and missing-Config cases pass. Every missing-Auth
+action also rejects mutation, but the ordinary read recreates Auth. Those seven
+creation assertions expose the pending D8-A contract decision; they are separate
+from the46 missing-activity failures. This does not approve an Auth behavior change
+or substitute for pending/uncertain submission and comprehensive activity evidence.
