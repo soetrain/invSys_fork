@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T10:10:43Z",
+    "generatedAtUtc":  "2026-09-13T10:30:12Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -406,7 +406,7 @@
                            "name":  "frmAdminSettings",
                            "kind":  "FORM",
                            "sourcePath":  "src/Admin/Forms/frmAdminSettings.frm",
-                           "lineCount":  462,
+                           "lineCount":  484,
                            "procedureNames":  [
                                                   "AddButton",
                                                   "AddCheckBox",
@@ -10332,8 +10332,8 @@
                            "name":  "UserForm_Initialize",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  45,
-                           "endLine":  52,
+                           "startLine":  47,
+                           "endLine":  54,
                            "lineCount":  8,
                            "directCalls":  [
                                                "BuildLayout",
@@ -10374,8 +10374,8 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  54,
-                           "endLine":  60,
+                           "startLine":  56,
+                           "endLine":  62,
                            "lineCount":  7,
                            "directCalls":  [
                                                "EnableResizableUserForm"
@@ -10412,8 +10412,8 @@
                            "name":  "CaptureTargetContext",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  62,
-                           "endLine":  73,
+                           "startLine":  64,
+                           "endLine":  75,
                            "lineCount":  12,
                            "directCalls":  [
                                                "CaptureContext",
@@ -10436,10 +10436,11 @@
                            "name":  "BuildLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  75,
-                           "endLine":  137,
-                           "lineCount":  63,
+                           "startLine":  77,
+                           "endLine":  159,
+                           "lineCount":  83,
                            "directCalls":  [
+                                               "Add",
                                                "AddButton",
                                                "AddCheckBox",
                                                "AddLabel",
@@ -10461,8 +10462,8 @@
                            "name":  "LoadConfigRows",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  139,
-                           "endLine":  163,
+                           "startLine":  161,
+                           "endLine":  185,
                            "lineCount":  25,
                            "directCalls":  [
                                                "GetConfigEditorRows",
@@ -10489,8 +10490,8 @@
                            "name":  "mLstConfig_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  165,
-                           "endLine":  180,
+                           "startLine":  187,
+                           "endLine":  202,
                            "lineCount":  16,
                            "directCalls":  [
                                                "IsIdentityConfigKey",
@@ -10511,8 +10512,8 @@
                            "name":  "mBtnSaveConfig_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  182,
-                           "endLine":  191,
+                           "startLine":  204,
+                           "endLine":  213,
                            "lineCount":  10,
                            "directCalls":  [
                                                "LoadConfigRows",
@@ -10535,8 +10536,8 @@
                            "name":  "mBtnReloadConfig_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  193,
-                           "endLine":  200,
+                           "startLine":  215,
+                           "endLine":  222,
                            "lineCount":  8,
                            "directCalls":  [
                                                "LoadConfigRows",
@@ -10559,8 +10560,8 @@
                            "name":  "IsIdentityConfigKey",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  202,
-                           "endLine":  205,
+                           "startLine":  224,
+                           "endLine":  227,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -10580,8 +10581,8 @@
                            "name":  "TestInitializeConfigEditor",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  207,
-                           "endLine":  217,
+                           "startLine":  229,
+                           "endLine":  239,
                            "lineCount":  11,
                            "directCalls":  [
                                                "BuildLayout",
@@ -10605,8 +10606,8 @@
                            "name":  "LoadConnectionPolicy",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  219,
-                           "endLine":  222,
+                           "startLine":  241,
+                           "endLine":  244,
                            "lineCount":  4,
                            "directCalls":  [
                                                "RequireManualServerCredentials"
@@ -10626,8 +10627,8 @@
                            "name":  "mBtnSaveConnectionPolicy_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  224,
-                           "endLine":  234,
+                           "startLine":  246,
+                           "endLine":  256,
                            "lineCount":  11,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -10649,8 +10650,8 @@
                            "name":  "LoadCarriers",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  236,
-                           "endLine":  252,
+                           "startLine":  258,
+                           "endLine":  274,
                            "lineCount":  17,
                            "directCalls":  [
                                                "GetConfiguredCarriers"
@@ -10670,8 +10671,8 @@
                            "name":  "mBtnAdd_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  254,
-                           "endLine":  270,
+                           "startLine":  276,
+                           "endLine":  292,
                            "lineCount":  17,
                            "directCalls":  [
                                                "AddConfiguredCarrier",
@@ -10695,8 +10696,8 @@
                            "name":  "mBtnRemove_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  272,
-                           "endLine":  287,
+                           "startLine":  294,
+                           "endLine":  309,
                            "lineCount":  16,
                            "directCalls":  [
                                                "LoadCarriers",
@@ -10719,8 +10720,8 @@
                            "name":  "mBtnReset_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  289,
-                           "endLine":  294,
+                           "startLine":  311,
+                           "endLine":  316,
                            "lineCount":  6,
                            "directCalls":  [
                                                "LoadCarriers",
@@ -10742,8 +10743,8 @@
                            "name":  "mBtnClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  296,
-                           "endLine":  298,
+                           "startLine":  318,
+                           "endLine":  320,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -10770,8 +10771,8 @@
                            "name":  "mLstCarriers_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  300,
-                           "endLine":  303,
+                           "startLine":  322,
+                           "endLine":  325,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -10791,8 +10792,8 @@
                            "name":  "LoadUoms",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  305,
-                           "endLine":  321,
+                           "startLine":  327,
+                           "endLine":  343,
                            "lineCount":  17,
                            "directCalls":  [
                                                "GetConfiguredUoms"
@@ -10812,8 +10813,8 @@
                            "name":  "mBtnUomAdd_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  323,
-                           "endLine":  338,
+                           "startLine":  345,
+                           "endLine":  360,
                            "lineCount":  16,
                            "directCalls":  [
                                                "AddConfiguredUom",
@@ -10837,8 +10838,8 @@
                            "name":  "mBtnUomRemove_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  340,
-                           "endLine":  359,
+                           "startLine":  362,
+                           "endLine":  381,
                            "lineCount":  20,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -10862,8 +10863,8 @@
                            "name":  "mBtnUomReset_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  361,
-                           "endLine":  374,
+                           "startLine":  383,
+                           "endLine":  396,
                            "lineCount":  14,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -10887,8 +10888,8 @@
                            "name":  "mLstUoms_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  376,
-                           "endLine":  379,
+                           "startLine":  398,
+                           "endLine":  401,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -10908,8 +10909,8 @@
                            "name":  "ShowStatus",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  381,
-                           "endLine":  384,
+                           "startLine":  403,
+                           "endLine":  406,
                            "lineCount":  4,
                            "directCalls":  [
                                                "Message"
@@ -10929,8 +10930,8 @@
                            "name":  "AddLabel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  386,
-                           "endLine":  402,
+                           "startLine":  408,
+                           "endLine":  424,
                            "lineCount":  17,
                            "directCalls":  [
                                                "Add"
@@ -10950,8 +10951,8 @@
                            "name":  "AddTextBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  404,
-                           "endLine":  416,
+                           "startLine":  426,
+                           "endLine":  438,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -10971,8 +10972,8 @@
                            "name":  "AddListBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  418,
-                           "endLine":  430,
+                           "startLine":  440,
+                           "endLine":  452,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -10992,8 +10993,8 @@
                            "name":  "AddCheckBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  432,
-                           "endLine":  446,
+                           "startLine":  454,
+                           "endLine":  468,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -11013,8 +11014,8 @@
                            "name":  "AddButton",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  448,
-                           "endLine":  462,
+                           "startLine":  470,
+                           "endLine":  484,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"

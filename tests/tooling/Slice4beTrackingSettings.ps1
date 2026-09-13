@@ -3,6 +3,7 @@
 # Only fixed booleans leave Excel; no Config values, paths or actors are emitted.
 function Install-Slice4beTrackingSettingsProbe($TestModule) {
     $TestModule.CodeModule.AddFromString(@'
+Private mTrackingLayoutFailure As String
 Public Function TrackingSettingsSurface() As String
     Dim general As Object, tracking As Object, capture As Object, views As Object
     mForm.Show vbModeless
@@ -27,6 +28,53 @@ Public Function TrackingSettingsSurface() As String
     TrackingSettingsSurface = TrackingSettingsSurface & "|" & CStr(TrackingUnchecked(capture))
     Set views = TrackingControl(tracking, "ComboBox", "", "cmbPreferredActionPathView")
     TrackingSettingsSurface = TrackingSettingsSurface & "|" & CStr(TrackingViewChoices(views))
+End Function
+Public Function TrackingSettingsSelectPage(ByVal caption As String) As Boolean
+    Dim control As Object, page As Object
+    For Each control In mForm.Controls
+        If TypeName(control) = "MultiPage" Then
+            For Each page In control.Pages
+                If page.Caption = caption Then
+                    control.Value = page.Index
+                    mForm.Repaint
+                    TrackingSettingsSelectPage = (control.Value = page.Index)
+                    Exit Function
+                End If
+            Next page
+        End If
+    Next control
+End Function
+Public Function TrackingSettingsLayoutFits() As Boolean
+    mTrackingLayoutFailure = ""
+    TrackingSettingsLayoutFits = TrackingChildrenFit(mForm)
+End Function
+Public Function TrackingSettingsLayoutFailure() As String
+    TrackingSettingsLayoutFailure = mTrackingLayoutFailure
+End Function
+Private Function TrackingChildrenFit(ByVal parent As Object) As Boolean
+    Dim control As Object, page As Object
+    For Each control In parent.Controls
+        If control.Visible Then
+            If control.Left < 0 Or control.Top < 0 Or _
+               control.Left + control.Width > parent.InsideWidth + 1 Or _
+               control.Top + control.Height > parent.InsideHeight + 1 Then
+                mTrackingLayoutFailure = TypeName(parent) & "|" & control.Name & "|" & _
+                    CStr(control.Left + control.Width) & "|" & CStr(parent.InsideWidth) & "|" & _
+                    CStr(control.Top + control.Height) & "|" & CStr(parent.InsideHeight)
+                Exit Function
+            End If
+        End If
+        If TypeName(control) = "MultiPage" Then
+            For Each page In control.Pages
+                ' Inactive pages retain their initial client bounds until shown.
+                ' The caller separately selects and checks both Settings pages.
+                If page.Index = control.Value Then
+                    If Not TrackingChildrenFit(page) Then Exit Function
+                End If
+            Next page
+        End If
+    Next control
+    TrackingChildrenFit = True
 End Function
 Private Function TrackingPage(ByVal parent As Object, ByVal caption As String) As Object
     Dim item As Object, page As Object, found As Object
@@ -87,7 +135,10 @@ End Function
 '@)
 }
 function Test-Slice4beTrackingSettingsSurface($Fixture) {
+    $wasVisible=$excel.Visible
+    try {
     $before=(Get-FileHash -LiteralPath $Fixture.Config).Hash
+    $excel.Visible=$true
     $observed=[string](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSurface')
     $flags=$observed.Split('|')
     if ($flags.Count -ne 7 -or @($flags | Where-Object { $_ -cnotin @('True','False') }).Count) {
@@ -102,4 +153,20 @@ function Test-Slice4beTrackingSettingsSurface($Fixture) {
     Check 'TrackingSettings.PersonalViewChoices' ($flags[6] -ceq 'True')
     Check 'TrackingSettings.OpenDoesNotWriteConfig' ($before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
     if ($CaptureEvidence) { CaptureFormEvidence 'invSys Settings' 'tracking-settings-open.png' }
+    $fits=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsLayoutFits')
+    Check 'TrackingSettings.LayoutFitsContainers' $fits
+    if(-not $fits){
+        $failure=[string](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsLayoutFailure')
+        if($failure -notmatch '^[A-Za-z0-9_]+\|[A-Za-z0-9_]+\|[0-9.,-]+\|[0-9.,-]+\|[0-9.,-]+\|[0-9.,-]+$'){throw 'Invalid layout diagnostic'}
+        Write-Output ('Layout container|control|right|width|bottom|height: '+$failure)
+        $failure|Set-Content -LiteralPath (Join-Path $reportRoot 'tracking-layout-failure.txt')
+    }
+    $before=(Get-FileHash -LiteralPath $Fixture.Config).Hash
+    $selected=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('Event Tracking'))
+    Check 'TrackingSettings.SelectEventTracking' $selected
+    Check 'TrackingSettings.EventTrackingLayoutFitsContainers' ($selected -and [bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsLayoutFits'))
+    if ($CaptureEvidence) { CaptureFormEvidence 'invSys Settings' 'tracking-settings-page.png' }
+    Check 'TrackingSettings.ReturnToGeneral' ([bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('General')))
+    Check 'TrackingSettings.SwitchDoesNotWriteConfig' ($before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    } finally { $excel.Visible=$wasVisible }
 }

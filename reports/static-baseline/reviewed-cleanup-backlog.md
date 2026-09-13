@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-13T10:10:43Z
-- Scanner candidates: 1097
-- Reviewed candidates: 1099
+- Baseline: 2026-09-13T10:30:12Z
+- Scanner candidates: 1092
+- Reviewed candidates: 1094
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -14,7 +14,7 @@
 | RECEIVING | 54 | Receiving-owned forms, services, and role package source. |
 | PRODUCTION | 222 | Production-owned forms, services, and role package source. |
 | SHIPPING | 156 | Shipping and Boxing forms, services, and role package source. |
-| SHARED_OPERATIONS | 64 | Cross-role or future invSys.Operations packaging work. |
+| SHARED_OPERATIONS | 59 | Cross-role or future invSys.Operations packaging work. |
 | CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
 | ADMIN | 235 | Administrative setup, lifecycle, and developer-support source. |
@@ -942,18 +942,15 @@
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.UserForm_Resize | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_Forms_frmReceiving.frm:frmReceiving.UserForm_Terminate | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Receiving_Modules_modReceivingAutoOpen.bas:modReceivingAutoOpen.Auto_Open | RECEIVING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
-| duplicate:001250ca4c3969cb:AddListBox+AddListBox | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:0240399e720e0f27:UserForm_Layout+UserForm_Layout+UserForm_Layout+UserForm_Layout+UserForm_Layout+UserForm_Layout | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:0352bd7c18f22a6e:ShippingBomActiveValue+ShippingBomActiveValue | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:037587d479aa71ae:StateStaged+StateStaged | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:04f87a80915a7667:UserForm_Initialize+UserForm_Initialize | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:0eb4f625e03646be:FindListObjectByNameShipping+FindListObjectForm+FindTableByNameSeed | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:114ea90fb30a174f:NormalizeHeader+NormalizeHeaderKey+NormalizeHeaderKey | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
-| duplicate:148f921b2c802fe4:AddButton+AddButton | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:15552355539c4c1f:ShowStatus+ShowStatus | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:162d045cebea9efe:Location+Location | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:1aed08997a62a835:AddLabel+AddLabel+AddLabel | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
-| duplicate:264a4885df3e9dde:AddCheckBox+AddCheckBox | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:28d9f2df337223a7:NzDblApply+NzDblReadModel+NzDblShip+NzDblSync | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:295ce507ab5ef7c8:HasActionableProductionWarning+HasActionableShippingWarning | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:2e3fdb55b8bf4ac8:WorkbookSheetExists+WorkbookSheetExistsShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
@@ -991,10 +988,8 @@
 | duplicate:a66e81b15f7c084a:ColumnIndex+ColumnIndex | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:a79324680d5b40fd:StateSubmitted+StateSubmitted | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:b6128e74972d9bee:FindDesignsApplyTable+FindDesignsTableQuery+FindInventoryQueryTable+FindListObjectByNameAdminLocal+FindListObjectByNamePublisher+FindListObjectByNameStatus+FindListObjectInWorkbook+FindListObjectNas+FindListObjectReadModel+FindProductionListObjectByName+FindTable+FindTableByName+FindTableByNameBootstrap+FindTableByNameReadiness+FindTableByNameShip+FindTableByNameSurface+ViewerFindTable | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
-| duplicate:c01c2d3bdf55ca03:AddTextBox+AddTextBox | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:c30f7d79756508ef:NzStr+NzStr+NzStrInv | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
-| duplicate:c92c185be4fadc97:AddLabel+AddLabel | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:cb1b5883fe27dc31:EnsureFolderRecursiveProduction+EnsureFolderRecursiveShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:d01218541cebf3d1:ClearClipboardSurface+ClearSystemClipboardShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:d3a27d2a3e35049c:NormalizeFolderPathProduction+NormalizeFolderPathShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |

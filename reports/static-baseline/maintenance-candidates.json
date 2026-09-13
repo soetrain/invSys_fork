@@ -1,14 +1,14 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-13T10:10:43Z",
+    "generatedAtUtc":  "2026-09-13T10:30:12Z",
     "baseline":  {
                      "componentCount":  183,
                      "procedureCount":  5527,
-                     "lineCount":  124165,
+                     "lineCount":  124187,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
-                     "duplicateBodyCandidateCount":  195
+                     "duplicateBodyCandidateCount":  190
                  },
     "candidates":  [
                        {
@@ -1729,25 +1729,6 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "duplicate:001250ca4c3969cb:AddListBox+AddListBox",
-                           "candidateType":  "REPLACE_DUPLICATE",
-                           "confidence":  "HIGH",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "AddListBox",
-                                                  "AddListBox"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
                            "id":  "duplicate:00583da1f4f34c75:OpenFirstRuntimeAuthWorkbook+OpenFirstRuntimeConfigWorkbook",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
@@ -2148,25 +2129,6 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "duplicate:148f921b2c802fe4:AddButton+AddButton",
-                           "candidateType":  "REPLACE_DUPLICATE",
-                           "confidence":  "HIGH",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "AddButton",
-                                                  "AddButton"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
                            "id":  "duplicate:1553b6a78b17ae63:AddLabel+AddLabel",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
@@ -2353,25 +2315,6 @@
                            "sourcePaths":  [
                                                "src/Admin/Forms/frmAddInventoryItem.frm",
                                                "src/Admin/Forms/frmSeedInventory.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
-                           "id":  "duplicate:264a4885df3e9dde:AddCheckBox+AddCheckBox",
-                           "candidateType":  "REPLACE_DUPLICATE",
-                           "confidence":  "HIGH",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "AddCheckBox",
-                                                  "AddCheckBox"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
@@ -4714,25 +4657,6 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "duplicate:c01c2d3bdf55ca03:AddTextBox+AddTextBox",
-                           "candidateType":  "REPLACE_DUPLICATE",
-                           "confidence":  "HIGH",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "AddTextBox",
-                                                  "AddTextBox"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
                            "id":  "duplicate:c09c7fb73ecc2e3e:GetParentFolderForm+ParentFolderStatus",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
@@ -4946,25 +4870,6 @@
                            "sourcePaths":  [
                                                "src/Core/ClassModules/cDynItemSearch.cls",
                                                "src/Core/ClassModules/cTemplateApplier.cls"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
-                           "id":  "duplicate:c92c185be4fadc97:AddLabel+AddLabel",
-                           "candidateType":  "REPLACE_DUPLICATE",
-                           "confidence":  "HIGH",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "AddLabel",
-                                                  "AddLabel"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [

@@ -1,9 +1,9 @@
 # invSys VBA Maintenance Candidates
 
 - Schema: 1.0.0
-- Generated: 2026-09-13T10:10:43Z
-- Total candidates: 1097
-- Duplicate-body groups: 195
+- Generated: 2026-09-13T10:30:12Z
+- Total candidates: 1092
+- Duplicate-body groups: 190
 - Unresolved dynamic calls: 45
 
 Scanner output is review evidence only. It never authorizes automatic deletion.
@@ -113,7 +113,6 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REMOVE | HIGH | modTS_Shipments | ResolveBoxPayloadSystemKeyShipping | No direct, dynamic-root, or test reference was found for a private procedure. |
 | REMOVE | HIGH | modTS_Shipments | ShippingNasInventoryOverride | No direct, dynamic-root, or test reference was found for a private procedure. |
 | REMOVE | HIGH | modTS_Shipments | SyncSavedBomRows | No direct, dynamic-root, or test reference was found for a private procedure. |
-| REPLACE_DUPLICATE | HIGH | frmAdminSettings | AddListBox, AddListBox | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modRuntimeWorkbooks | OpenFirstRuntimeAuthWorkbook, OpenFirstRuntimeConfigWorkbook | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modAddinsPublish | GetRequiredAddinNames, GetRequiredAddinNamesPackageDiagnostic, GetRequiredAddinsTester, RequiredInvSysAddinNamesLocal, RequiredTesterAddinNamesTesterSetup | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | LOW | frmAddInventoryItem | UserForm_Layout, UserForm_Layout, UserForm_Layout, UserForm_Layout, UserForm_Layout, UserForm_Layout | Normalized procedure bodies are identical; review before consolidation. |
@@ -133,7 +132,6 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_DUPLICATE | LOW | MouseOverControl | m_CheckBox_MouseMove, m_ComboBox_MouseMove, m_CommandButton_MouseMove, m_Frame_MouseMove, m_Image_MouseMove, m_Label_MouseMove, m_ListBox_MouseMove, m_ListView_MouseMove, m_MultiPage_MouseMove, m_OptionButton_MouseMove, M_TabStrip_MouseMove, m_TextBox_MouseMove, m_ToggleButton_MouseMove, m_UserForm_MouseMove | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | frmCreateDeleteUser | ResolveRememberedNasUserForm, ResolveRememberedNasUserNas | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modTesterSetup | RemoveNonReceivingOperatorSheetsBootstrap, RemoveNonReceivingOperatorSheetsTesterSetup | Normalized procedure bodies are identical; review before consolidation. |
-| REPLACE_DUPLICATE | HIGH | frmAdminSettings | AddButton, AddButton | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | frmAddInventoryItem | AddLabel, AddLabel | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | frmProduction | ShowStatus, ShowStatus | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modOperatorReadModel | NormalizeFolderPathReadModel, NormalizeFolderPathSync | Normalized procedure bodies are identical; review before consolidation. |
@@ -144,7 +142,6 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_DUPLICATE | HIGH | frmSignIn | AddLabel, AddLabel, AddLabel | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | frmAddInventoryItem | AddTextBox, AddTextBox | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | frmAddInventoryItem | Accepted, Accepted | Normalized procedure bodies are identical; review before consolidation. |
-| REPLACE_DUPLICATE | HIGH | frmAdminSettings | AddCheckBox, AddCheckBox | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | LOW | frmShipmentsTally | mBtnBoxBuilderNewVersion_Click, mBtnBoxBuilderUpdateVersion_Click | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modConfig | SaveConfigWorkbookIfWritable, SaveDesignsWorkbook, SaveInventoryWorkbookIfWritable, SaveLockWorkbookIfWritable, SaveRuntimeWorkbook, SaveWorkbookIfWritableBootstrap, SaveWorkbookProcessor, SaveWorkbookQuietlyRetire | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | LOW | frmCreateWarehouse | chkPublishInitial_Click, txtPathSharePoint_Change, txtPathSharePoint_Change | Normalized procedure bodies are identical; review before consolidation. |
@@ -256,7 +253,6 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_DUPLICATE | HIGH | frmSignIn | ShowStatus, ShowStatus | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modInventoryDomainBridge | FileExistsBootstrap, FileExistsLocal, FileExistsStatus | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modAuth | WorkbookWasAlreadyOpenAuth, WorkbookWasAlreadyOpenConfig, WorkbookWasAlreadyOpenProcessor, WorkbookWasAlreadyOpenRole, WorkbookWasAlreadyOpenSync | Normalized procedure bodies are identical; review before consolidation. |
-| REPLACE_DUPLICATE | HIGH | frmAdminSettings | AddTextBox, AddTextBox | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | frmRetireMigrateWarehouse | GetParentFolderForm, ParentFolderStatus | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modAuth | IsAuthLoaded, IsLoaded | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | cPickerRouter | NzStr, NzStr, NzStrInv | Normalized procedure bodies are identical; review before consolidation. |
@@ -268,7 +264,6 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_DUPLICATE | HIGH | modInventoryPublisher | ResolveWarehouseIdFromConfigWorkbookNamePublisher, ResolveWarehouseIdFromInventoryWorkbookNamePublisher | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modOperationsPrimitiveBridge | EnsureProductionWorkbookSurface, EnsureReceivingWorkbookSurface, EnsureShippingWorkbookSurface | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | cDynItemSearch | NzStr, NzStr | Normalized procedure bodies are identical; review before consolidation. |
-| REPLACE_DUPLICATE | HIGH | frmAdminSettings | AddLabel, AddLabel | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modAdminConsole | ValueOrPlaceholderAdmin, ValueOrPlaceholderRole | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modTesterBundle | QuoteForCmdTester, QuoteForPowerShellTester | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | frmCreateWarehouse | ClearErrorLabel, ClearErrorLabel, ClearInlineError | Normalized procedure bodies are identical; review before consolidation. |

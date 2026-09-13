@@ -41,6 +41,8 @@ Private mWarehouseId As String
 Private mStationId As String
 Private mActivityContext As String
 Private mResizeInitialized As Boolean
+Private mPages As MSForms.MultiPage
+Private mControlParent As Object
 
 Private Sub UserForm_Initialize()
     CaptureTargetContext
@@ -74,8 +76,19 @@ End Sub
 
 Private Sub BuildLayout()
     Me.Caption = "invSys Settings"
-    Me.Width = 720
-    Me.Height = 630
+    Me.Width = 744
+    Me.Height = 696
+    Set mPages = Me.Controls.Add("Forms.MultiPage.1", "mpSettings", True)
+    With mPages
+        .Left = 6
+        .Top = 6
+        .Width = 720
+        .Height = 600
+        .Pages(0).Caption = "General"
+        .Pages(1).Caption = "Event Tracking"
+        .Value = 0
+    End With
+    Set mControlParent = mPages.Pages(0)
 
     AddLabel "lblTitle", "Warehouse Settings", 12, 10, 180, 18, True
     Set mLblConfigWorkbook = AddLabel("lblConfigWorkbook", "", 200, 10, 490, 18, False)
@@ -132,8 +145,17 @@ Private Sub BuildLayout()
     End With
     Set mBtnUomReset = AddButton("btnUomReset", "Reset", 608, 476, 54, 28)
 
-    Set mBtnClose = AddButton("btnClose", "Close", 626, 558, 66, 28)
-    Set mLblStatus = AddLabel("lblStatus", "", 12, 558, 600, 36, False)
+    Set mControlParent = mPages.Pages(1)
+    AddLabel "lblTracking", "Tracking", 12, 12, 200, 18, True
+    AddLabel "lblTrackingAvailability", "Tracking policy editor unavailable.", 12, 38, 670, 32, False
+    AddLabel "lblEventDetail", "Event Detail", 12, 170, 200, 18, True
+    AddLabel "lblDetailAvailability", "Event detail profile editor unavailable.", 12, 196, 670, 32, False
+    AddLabel "lblActionPaths", "Action Paths", 12, 328, 200, 18, True
+    AddLabel "lblActionPathAvailability", "Action Path preferences unavailable.", 12, 354, 670, 32, False
+    Set mControlParent = Me
+    Set mBtnClose = AddButton("btnClose", "Close", 654, 614, 66, 28)
+    Set mLblStatus = AddLabel("lblStatus", "", 12, 614, 626, 36, False)
+    Set mControlParent = Nothing
 End Sub
 
 Private Sub LoadConfigRows()
@@ -390,7 +412,7 @@ Private Function AddLabel(ByVal name As String, _
                           ByVal widthVal As Single, _
                           ByVal heightVal As Single, _
                           ByVal boldText As Boolean) As MSForms.Label
-    Set AddLabel = Me.Controls.Add("Forms.Label.1", name, True)
+    Set AddLabel = mControlParent.Controls.Add("Forms.Label.1", name, True)
     With AddLabel
         .Caption = caption
         .Left = leftPos
@@ -406,7 +428,7 @@ Private Function AddTextBox(ByVal name As String, _
                             ByVal topPos As Single, _
                             ByVal widthVal As Single, _
                             ByVal heightVal As Single) As MSForms.TextBox
-    Set AddTextBox = Me.Controls.Add("Forms.TextBox.1", name, True)
+    Set AddTextBox = mControlParent.Controls.Add("Forms.TextBox.1", name, True)
     With AddTextBox
         .Left = leftPos
         .Top = topPos
@@ -420,7 +442,7 @@ Private Function AddListBox(ByVal name As String, _
                             ByVal topPos As Single, _
                             ByVal widthVal As Single, _
                             ByVal heightVal As Single) As MSForms.ListBox
-    Set AddListBox = Me.Controls.Add("Forms.ListBox.1", name, True)
+    Set AddListBox = mControlParent.Controls.Add("Forms.ListBox.1", name, True)
     With AddListBox
         .Left = leftPos
         .Top = topPos
@@ -435,7 +457,7 @@ Private Function AddCheckBox(ByVal name As String, _
                              ByVal topPos As Single, _
                              ByVal widthVal As Single, _
                              ByVal heightVal As Single) As MSForms.CheckBox
-    Set AddCheckBox = Me.Controls.Add("Forms.CheckBox.1", name, True)
+    Set AddCheckBox = mControlParent.Controls.Add("Forms.CheckBox.1", name, True)
     With AddCheckBox
         .Caption = caption
         .Left = leftPos
@@ -451,7 +473,7 @@ Private Function AddButton(ByVal name As String, _
                            ByVal topPos As Single, _
                            ByVal widthVal As Single, _
                            ByVal heightVal As Single) As MSForms.CommandButton
-    Set AddButton = Me.Controls.Add("Forms.CommandButton.1", name, True)
+    Set AddButton = mControlParent.Controls.Add("Forms.CommandButton.1", name, True)
     With AddButton
         .Caption = caption
         .Left = leftPos

@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-13T10:10:43Z",
+    "generatedAtUtc":  "2026-09-13T10:30:12Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "08044d28bda963f8733f7ef0d8aae2db3a59a1636e7526fd76796fb13f99d6c3",
-                          "maintenanceCandidatesSha256":  "d3ac6c7b362eddfc3ce70ab7b68ff9982399869eca90c2a5d75b8440d4a00291"
+                          "implementationManifestSha256":  "7e7c20eec34b20fb76f38ae91c2dd632308c272f2198fb2f65be5503f01fe184",
+                          "maintenanceCandidatesSha256":  "a61b6a34727bf25ba6a748746edad2126072021e320fe6e2b8214622c838a0c6"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1097,
-                    "reviewedCandidateCount":  1099,
+                    "scannerCandidateCount":  1092,
+                    "reviewedCandidateCount":  1094,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -37,7 +37,7 @@
                         },
                         {
                             "name":  "SHARED_OPERATIONS",
-                            "candidateCount":  64,
+                            "candidateCount":  59,
                             "reason":  "Cross-role or future invSys.Operations packaging work."
                         },
                         {
@@ -23898,31 +23898,6 @@
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
                        },
                        {
-                           "id":  "duplicate:001250ca4c3969cb:AddListBox+AddListBox",
-                           "origin":  "SCANNER",
-                           "scannerCandidateType":  "REPLACE_DUPLICATE",
-                           "disposition":  "REPLACE_DUPLICATE",
-                           "scannerConfidence":  "HIGH",
-                           "reviewedConfidence":  "MEDIUM",
-                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
-                           "workstream":  "SHARED_OPERATIONS",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "AddListBox",
-                                                  "AddListBox"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
-                           "protectingTests":  [
-
-                                               ],
-                           "deletionApproved":  false,
-                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
-                       },
-                       {
                            "id":  "duplicate:0240399e720e0f27:UserForm_Layout+UserForm_Layout+UserForm_Layout+UserForm_Layout+UserForm_Layout+UserForm_Layout",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "REPLACE_DUPLICATE",
@@ -24085,31 +24060,6 @@
                            "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
-                           "id":  "duplicate:148f921b2c802fe4:AddButton+AddButton",
-                           "origin":  "SCANNER",
-                           "scannerCandidateType":  "REPLACE_DUPLICATE",
-                           "disposition":  "REPLACE_DUPLICATE",
-                           "scannerConfidence":  "HIGH",
-                           "reviewedConfidence":  "MEDIUM",
-                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
-                           "workstream":  "SHARED_OPERATIONS",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "AddButton",
-                                                  "AddButton"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
-                           "protectingTests":  [
-
-                                               ],
-                           "deletionApproved":  false,
-                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
-                       },
-                       {
                            "id":  "duplicate:15552355539c4c1f:ShowStatus+ShowStatus",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "REPLACE_DUPLICATE",
@@ -24178,31 +24128,6 @@
                                                "src/Core/Forms/frmSignIn.frm",
                                                "src/Core/Forms/frmWarehouseConnection.frm",
                                                "src/Shipping/Forms/frmBoxVersionSaveChoice.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
-                           "protectingTests":  [
-
-                                               ],
-                           "deletionApproved":  false,
-                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
-                       },
-                       {
-                           "id":  "duplicate:264a4885df3e9dde:AddCheckBox+AddCheckBox",
-                           "origin":  "SCANNER",
-                           "scannerCandidateType":  "REPLACE_DUPLICATE",
-                           "disposition":  "REPLACE_DUPLICATE",
-                           "scannerConfidence":  "HIGH",
-                           "reviewedConfidence":  "MEDIUM",
-                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
-                           "workstream":  "SHARED_OPERATIONS",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "AddCheckBox",
-                                                  "AddCheckBox"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
                            "protectingTests":  [
@@ -25220,31 +25145,6 @@
                            "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
-                           "id":  "duplicate:c01c2d3bdf55ca03:AddTextBox+AddTextBox",
-                           "origin":  "SCANNER",
-                           "scannerCandidateType":  "REPLACE_DUPLICATE",
-                           "disposition":  "REPLACE_DUPLICATE",
-                           "scannerConfidence":  "HIGH",
-                           "reviewedConfidence":  "MEDIUM",
-                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
-                           "workstream":  "SHARED_OPERATIONS",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "AddTextBox",
-                                                  "AddTextBox"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
-                           "protectingTests":  [
-
-                                               ],
-                           "deletionApproved":  false,
-                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
-                       },
-                       {
                            "id":  "duplicate:c30f7d79756508ef:NzStr+NzStr+NzStrInv",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "REPLACE_DUPLICATE",
@@ -25302,31 +25202,6 @@
                                                "src/Production/Forms/frmProduction.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
-                           "protectingTests":  [
-
-                                               ],
-                           "deletionApproved":  false,
-                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
-                       },
-                       {
-                           "id":  "duplicate:c92c185be4fadc97:AddLabel+AddLabel",
-                           "origin":  "SCANNER",
-                           "scannerCandidateType":  "REPLACE_DUPLICATE",
-                           "disposition":  "REPLACE_DUPLICATE",
-                           "scannerConfidence":  "HIGH",
-                           "reviewedConfidence":  "MEDIUM",
-                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
-                           "workstream":  "SHARED_OPERATIONS",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "AddLabel",
-                                                  "AddLabel"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
                            "protectingTests":  [
 
                                                ],
