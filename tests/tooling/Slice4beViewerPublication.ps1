@@ -9,6 +9,37 @@ function Test-Slice4beViewerPublication($Fixture) {
         try {([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-','')} finally {$hash.Dispose();$stream.Dispose()}
     }
     SelectTarget $Fixture 'config-admin'
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive=[IO.Compression.ZipFile]::OpenRead((Join-Path $deploy 'invSys.Core.xlam'))
+    try {
+        $reader=[IO.StreamReader]::new($archive.GetEntry('docProps/custom.xml').Open())
+        try {[xml]$metadata=$reader.ReadToEnd()} finally {$reader.Dispose()}
+        $version=@($metadata.Properties.property|Where-Object name -eq 'invSysPackageSetVersion')
+        $build=@($metadata.Properties.property|Where-Object name -eq 'invSysBuildIdentity')
+        if($version.Count -ne 1 -or $build.Count -ne 1){throw 'Publisher package identity metadata is missing.'}
+        $publisherVersion=[string]$version[0].InnerText;$publisherBuild=[string]$build[0].InnerText
+    } finally {$archive.Dispose()}
+    $activityRoot=Join-Path $Fixture.Root ('Training\Activity\'+$Fixture.Warehouse)
+    $beforeActivity=@()
+    if(Test-Path -LiteralPath $activityRoot){$beforeActivity=@(Get-ChildItem -LiteralPath $activityRoot -Filter '*.json' -File | Select-Object -ExpandProperty FullName)}
+    try {
+        [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
+        $saved=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('BatchSize','601'))
+        if(-not $saved){throw 'Actual Settings Save did not prepare publication activity.'}
+    } finally {[void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')}
+    $activityRecords=@();$activityPins=@{}
+    if(Test-Path -LiteralPath $activityRoot){
+        foreach($file in Get-ChildItem -LiteralPath $activityRoot -Filter '*.json' -File){
+            $activityPins[$file.FullName]=PublicationSourceHash $file.FullName
+            if($file.FullName -notin $beforeActivity){$activityRecords+=([IO.File]::ReadAllText($file.FullName)|ConvertFrom-Json)}
+        }
+    }
+    $attempts=@($activityRecords|Where-Object {$_.ControlId -ceq 'ADMIN_SETTINGS_SAVE_VALUE' -and $_.OutcomeCode -ceq 'REQUESTED'})
+    $resultsForAction=@($activityRecords|Where-Object {$_.ControlId -ceq 'ADMIN_SETTINGS_SAVE_VALUE' -and $_.OutcomeCode -cne 'REQUESTED'})
+    $prepared=$attempts.Count -eq 1 -and $resultsForAction.Count -eq 1
+    if($prepared){$prepared=$attempts[0].ActivityId -ceq $resultsForAction[0].ActivityId -and $attempts[0].RecordId -cne $resultsForAction[0].RecordId}
+    Check 'ViewerPublication.RealSettingsHandlerPreparedActivityPair' $prepared
+    if(-not $prepared){throw 'Publication activity fixture lacks the actual correlated attempt/result pair.'}
     $snapshot=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Snapshot.Inventory.xlsb')
     $source=Join-Path $runRoot 'viewer-publication-source.xlsb'
     Copy-Item -LiteralPath $snapshot -Destination $source
@@ -103,6 +134,32 @@ End Function
     $coverage=$false
     if($null -ne $artifact){$coverage=$null -ne $artifact.Coverage -and $null -ne $artifact.Coverage.Sources -and @($artifact.Coverage.Sources).Count -ge 4}
     Check 'ViewerPublication.ExpectedSourceCoverageIsExplicit' $coverage
+    $activityGroup=@($groups|Where-Object {$_.Source -ceq 'Activity' -and $_.SourceId -ceq $attempts[0].ActivityId})
+    $publishedRecords=@();$publishedOutcomes=@()
+    if($activityGroup.Count -eq 1){$publishedRecords=@($activityGroup[0].Lines);$publishedOutcomes=@($activityGroup[0].Outcomes)}
+    $exactPair=$publishedRecords.Count -eq 2
+    foreach($record in $activityRecords){$exactPair=$exactPair -and @($publishedRecords|Where-Object {$_.RecordId -ceq $record.RecordId -and $_.ActivityId -ceq $record.ActivityId -and $_.OccurredAtUTC -ceq $record.OccurredAtUTC}).Count -eq 1}
+    Check 'ViewerPublication.ActivityGroupRetainsEveryExactRecord' ($activityGroup.Count -eq 1 -and $exactPair)
+    $truthful=$publishedOutcomes.Count -eq 1
+    if($truthful){$truthful=$publishedOutcomes[0].RecordId -ceq $resultsForAction[0].RecordId -and $publishedOutcomes[0].OutcomeCode -ceq $resultsForAction[0].OutcomeCode -and $publishedOutcomes[0].DataEffect -ceq $resultsForAction[0].DataEffect}
+    Check 'ViewerPublication.ActivityOutcomeIsObservedResult' $truthful
+    $chronology=$activityGroup.Count -eq 1
+    if($chronology){$chronology=$activityGroup[0].RecordedAt -ceq $attempts[0].OccurredAtUTC -and $activityGroup[0].SourceKind -ceq 'User activity'}
+    Check 'ViewerPublication.ActivityGroupUsesEarliestRecordedTime' $chronology
+    $sources=@();if($null -ne $artifact){$sources=@($artifact.Coverage.Sources)}
+    $named=$sources.Count -eq 5
+    foreach($name in @('Inventory','Designs','Activity','ShippingBOM','ShippingHolds')){$named=$named -and @($sources|Where-Object {$_.Source -ceq $name -and $_.Availability -ne '' -and $_.Scope -ne ''}).Count -eq 1}
+    Check 'ViewerPublication.EveryExpectedSourceHasNamedCoverage' $named
+    $counts=$true
+    foreach($expect in @(@('Inventory',5001,4999,2,5003,5001,2),@('Activity',1,1,0,2,2,0))){
+        $entry=@($sources|Where-Object {$_.Source -ceq $expect[0]})
+        if($entry.Count -ne 1){$counts=$false;continue}
+        $i=1;foreach($field in @('AvailableGroups','IncludedGroups','OmittedGroups','AvailableLines','IncludedLines','OmittedLines')){$counts=$counts -and $entry[0].$field -eq $expect[$i];$i++}
+    }
+    Check 'ViewerPublication.MixedSourceCountsReconcileGlobalBound' $counts
+    $provenance=$null -ne $artifact
+    if($provenance){$provenance=$artifact.PackageSetVersion -ceq $publisherVersion -and $artifact.BuildIdentity -ceq $publisherBuild -and $artifact.PolicyVersion -eq $attempts[0].PolicyVersion}
+    Check 'ViewerPublication.PackageAndPolicyProvenanceMatchesOwner' $provenance
     $hashValid=$false
     $marker=$raw.LastIndexOf(',"ContentSha256":"',[StringComparison]::Ordinal)
     if($marker -gt 0 -and $raw -match ',"ContentSha256":"([0-9a-f]{64})"}$'){
@@ -125,4 +182,7 @@ End Function
     }
     $sourceFacts | ConvertTo-Json | Set-Content (Join-Path $reportRoot 'publication-source-preservation.json')
     Check 'ViewerPublication.SourceCopyAndCanonicalWorkbookBytesUnchanged' $unchanged
+    $activityUnchanged=$activityPins.Count -eq @(Get-ChildItem -LiteralPath $activityRoot -Filter '*.json' -File).Count
+    foreach($path in $activityPins.Keys){$activityUnchanged=$activityUnchanged -and (PublicationSourceHash $path) -ceq $activityPins[$path]}
+    Check 'ViewerPublication.PublicationDoesNotRewriteActivityRecords' $activityUnchanged
 }
