@@ -1,6 +1,32 @@
 # Serialized policy requests stay in memory; reports contain check identities,
 # Boolean outcomes and version/count observations, never Config values.
 function Install-Slice4beTrackingPolicyProbe($TestModule,$FormCode) {
+    # Observe a real Excel cancellation, not a substituted persistence method.
+    # Install before any fixtures/forms exist so VBE edits cannot reset live state.
+    $observer=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Add(2)
+    $observer.Name='cTrackingPolicySaveObserver'
+    $observer.CodeModule.AddFromString(@'
+Option Explicit
+Private WithEvents mExcel As Excel.Application
+Private mPath As String
+Private mCancelled As Long
+Public Sub Arm(ByVal path As String)
+    mPath = path
+    mCancelled = 0
+    Set mExcel = Application
+End Sub
+Public Sub Disarm()
+    Set mExcel = Nothing
+End Sub
+Public Property Get CancelledCount() As Long
+    CancelledCount = mCancelled
+End Property
+Private Sub mExcel_WorkbookBeforeSave(ByVal Wb As Workbook, ByVal SaveAsUI As Boolean, Cancel As Boolean)
+    If StrComp(Wb.FullName, mPath, vbTextCompare) <> 0 Then Exit Sub
+    mCancelled = mCancelled + 1
+    Cancel = True
+End Sub
+'@)
     $class=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('cAdminTrackingPolicy').CodeModule
     $class.AddFromString(@'
 Private mPolicyTestEntries As Long
@@ -22,6 +48,26 @@ Public Sub PolicyTestView(ByVal value As String)
     mView.Value = value
     mView_Change
 End Sub
+Public Sub PolicyTestControl(ByVal controlId As String, ByVal enabled As Boolean)
+    Dim index As Long
+    For index = 0 To mRows.ListCount - 1
+        If mRows.List(index, 0) = controlId Then
+            mRows.ListIndex = index
+            mRows_Click
+            mCollect.Value = enabled
+            mCollect_Click
+            mVisible.Value = enabled
+            mVisible_Click
+            mSequence.Value = enabled
+            mSequence_Click
+            Exit Sub
+        End If
+    Next index
+    Err.Raise 5
+End Sub
+Public Function PolicyTestShowsSaved() As Boolean
+    PolicyTestShowsSaved = (InStr(1, mStatus.Caption, " saved.", vbBinaryCompare) > 0)
+End Function
 '@)
     $line=$class.ProcBodyLine('SavePolicy',0)
     $class.InsertLines($line+2,'    mPolicyTestEntries = mPolicyTestEntries + 1')
@@ -50,8 +96,39 @@ End Sub
 Public Sub PolicyTestReload()
     mTracking.ReloadPolicy
 End Sub
+Public Sub PolicyTestControl(ByVal controlId As String, ByVal enabled As Boolean)
+    mTracking.PolicyTestControl controlId, enabled
+End Sub
+Public Function PolicyTestShowsSaved() As Boolean
+    PolicyTestShowsSaved = mTracking.PolicyTestShowsSaved()
+End Function
+Public Sub PolicyTestCloseAction()
+    mBtnClose_Click
+End Sub
 '@)
     $TestModule.CodeModule.AddFromString(@'
+Private mPolicySaveObserver As cTrackingPolicySaveObserver
+Public Sub TrackingPolicyCancelSave(ByVal path As String)
+    Set mPolicySaveObserver = New cTrackingPolicySaveObserver
+    mPolicySaveObserver.Arm path
+End Sub
+Public Function TrackingPolicyCancelledCount() As Long
+    TrackingPolicyCancelledCount = mPolicySaveObserver.CancelledCount
+End Function
+Public Sub TrackingPolicyStopCancelling()
+    mPolicySaveObserver.Disarm
+    Set mPolicySaveObserver = Nothing
+End Sub
+Public Sub TrackingPolicyControl(ByVal controlId As String, ByVal enabled As Boolean)
+    mForm.PolicyTestControl controlId, enabled
+End Sub
+Public Function TrackingPolicyShowsSaved() As Boolean
+    TrackingPolicyShowsSaved = mForm.PolicyTestShowsSaved()
+End Function
+Public Sub TrackingPolicyCloseAction()
+    mForm.PolicyTestCloseAction
+    Set mForm = Nothing
+End Sub
 Public Function TrackingPolicyRequest() As String
     TrackingPolicyRequest = mForm.PolicyTestRequest()
 End Function
@@ -160,6 +237,30 @@ function Test-Slice4beTrackingPolicy($Fixture,$Other) {
         $book.Close($false)
         Check ('TrackingPolicy.'+$name+'ConfigPreserved') ($memoryPreserved -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
     }
+    $controlId='RECEIVING_CONFIRM_WRITES'
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyControl' @($controlId,$false))
+    $selected=(Get-TrackingPolicyRequest|ConvertFrom-Json).Controls|Where-Object ControlId -CEQ $controlId
+    Check 'TrackingPolicy.PerControlHandlersStageOnly' (-not $selected.Collect -and -not $selected.Visible -and -not $selected.SequenceEligible -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyReload')
+    $selected=(Get-TrackingPolicyRequest|ConvertFrom-Json).Controls|Where-Object ControlId -CEQ $controlId
+    Check 'TrackingPolicy.ReloadDiscardsStagedControlEdits' ($selected.Collect -and $selected.Visible -and $selected.SequenceEligible -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyCapture' @($true))
+    $staged=Get-TrackingPolicyRequest
+    $eventsEnabled=$excel.EnableEvents
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyCancelSave' @($Fixture.Config))
+    try {
+        $excel.EnableEvents=$true
+        $cancelledSave=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySave')
+        $cancelCount=[int](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyCancelledCount')
+    } finally {
+        $excel.EnableEvents=$eventsEnabled
+        [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyStopCancelling')
+    }
+    Check 'TrackingPolicy.ExcelBeforeSaveActuallyCancelled' ($cancelCount -eq 1)
+    Check 'TrackingPolicy.CancelledSavePreservesConfigBytes' ($before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash -and (Get-TrackingPolicyVersion $Fixture) -eq 0)
+    Check 'TrackingPolicy.CancelledSaveNeverReportsSuccess' (-not $cancelledSave -and -not [bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyShowsSaved'))
+    Check 'TrackingPolicy.CancelledSaveRetainsStagedEdits' ($staged -ceq (Get-TrackingPolicyRequest))
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyControl' @($controlId,$false))
     [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyCapture' @($true))
     [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyAdminVisible' @($false))
     [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyView' @('Compare both'))
@@ -172,6 +273,8 @@ function Test-Slice4beTrackingPolicy($Fixture,$Other) {
     Check 'TrackingPolicy.SavedCaptureReloads' (Get-TrackingPolicyRequest|ConvertFrom-Json).ViewerActionPathCaptureEnabled
     Check 'TrackingPolicy.CompatibilityFlagsReloadTogether' (-not (Get-TrackingPolicyRequest|ConvertFrom-Json).AdminViewerEventLoggingEnabled)
     Check 'TrackingPolicy.WarehouseViewReloads' ((Get-TrackingPolicyRequest|ConvertFrom-Json).DefaultView -ceq 'Compare both')
+    $selected=(Get-TrackingPolicyRequest|ConvertFrom-Json).Controls|Where-Object ControlId -CEQ $controlId
+    Check 'TrackingPolicy.PerControlFlagsPersistTogether' (-not $selected.Collect -and -not $selected.Visible -and -not $selected.SequenceEligible)
     $before=(Get-FileHash -LiteralPath $Fixture.Config).Hash
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySaveDirect' @($context,0,$request))
     Check 'TrackingPolicy.StaleVersionCannotAppend' (-not $ok -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
@@ -204,4 +307,10 @@ function Test-Slice4beTrackingPolicy($Fixture,$Other) {
             [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('General'))
         } finally {$excel.Visible=$wasVisible}
     }
+    $before=(Get-FileHash -LiteralPath $Fixture.Config).Hash
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyCapture' @($true))
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyCloseAction')
+    Check 'TrackingPolicy.CloseActionDoesNotSave' ($before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
+    Check 'TrackingPolicy.CloseDiscardsStagedEdits' (-not (Get-TrackingPolicyRequest|ConvertFrom-Json).ViewerActionPathCaptureEnabled -and (Get-TrackingPolicyVersion $Fixture) -eq 2)
 }

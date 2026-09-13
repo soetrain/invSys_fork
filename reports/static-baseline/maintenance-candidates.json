@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-13T11:32:38Z",
+    "generatedAtUtc":  "2026-09-13T11:51:57Z",
     "baseline":  {
                      "componentCount":  187,
                      "procedureCount":  5565,
-                     "lineCount":  124730,
+                     "lineCount":  124732,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  190
@@ -5809,7 +5809,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -5860,7 +5860,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -5894,7 +5894,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -5928,7 +5928,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -6322,7 +6322,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -6464,7 +6465,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -6756,7 +6758,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -6877,7 +6880,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -9823,7 +9827,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -10288,7 +10293,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -12496,7 +12502,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -13245,7 +13252,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
                        },

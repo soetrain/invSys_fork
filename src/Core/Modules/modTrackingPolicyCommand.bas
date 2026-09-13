@@ -75,6 +75,8 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
         Next field
     Next row
     wb.Save
+    ' Excel BeforeSave can cancel without raising an error.
+    If Not wb.Saved Then Err.Raise 5
     saved = True
     Save = True
     report = "Tracking policy version " & CStr(version + 1) & " saved."

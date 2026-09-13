@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T11:32:38Z",
+    "generatedAtUtc":  "2026-09-13T11:51:57Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -3454,7 +3454,7 @@
                            "name":  "modTrackingPolicyCommand",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modTrackingPolicyCommand.bas",
-                           "lineCount":  141,
+                           "lineCount":  143,
                            "procedureNames":  [
                                                   "CreatePolicyTable",
                                                   "FindPolicyTable",
@@ -58241,8 +58241,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  5,
-                           "endLine":  111,
-                           "lineCount":  107,
+                           "endLine":  113,
+                           "lineCount":  109,
                            "directCalls":  [
                                                "Add",
                                                "AuthorizeEditor",
@@ -58270,8 +58270,8 @@
                            "name":  "FindPolicyTable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  113,
-                           "endLine":  120,
+                           "startLine":  115,
+                           "endLine":  122,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -58291,8 +58291,8 @@
                            "name":  "CreatePolicyTable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  122,
-                           "endLine":  136,
+                           "startLine":  124,
+                           "endLine":  138,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -58312,8 +58312,8 @@
                            "name":  "SetPolicyCell",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  138,
-                           "endLine":  141,
+                           "startLine":  140,
+                           "endLine":  143,
                            "lineCount":  4,
                            "directCalls":  [
                                                "TableColumn"
@@ -140218,6 +140218,7 @@
                                "entryPoint":  "EnableEvents",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beShippingWorkbookClose.ps1",
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4pReceiving.ps1",
                                                  "tests/tooling/Test-Slice4bdAdminFormSmoke.ps1",
@@ -141963,7 +141964,8 @@
                            {
                                "entryPoint":  "mBtnClose_Click",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
                                              ]
                            },
                            {
@@ -142210,6 +142212,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mCollect_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "Message",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
@@ -142308,6 +142316,18 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mRows_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mSequence_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "mTxtBoxBuilderSearch_Change",
                                "testPaths":  [
                                                  "tests/tooling/Test-R1FinalControlAcceptance.ps1"
@@ -142327,6 +142347,12 @@
                            },
                            {
                                "entryPoint":  "mView_Change",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mVisible_Click",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1"
                                              ]

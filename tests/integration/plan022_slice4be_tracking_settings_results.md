@@ -1,6 +1,76 @@
 # Slice 4be.2 Event Tracking Settings
 
-## Current checkpoint: staged tracking policy and Core persistence
+## Current checkpoint: cancelled saves cannot report success
+
+Last verified 2026-09-13. Existing D18/D5 requires a verified persisted policy
+version before reporting save success. A real Excel `WorkbookBeforeSave` test
+observer cancels only the disposable Config workbook's save. The old candidate
+leaves disk bytes/version unchanged but returns success, displays a saved message
+and reloads away staged edits. This is meaningful RED through the same Settings
+Save action used by the operator, not an injected exception or replaced writer.
+All probe code is installed before form/fixture creation; the temporary observer
+is disarmed and Excel's prior EnableEvents state restored after the action.
+
+Expanded RED is **65 checks: 61 PASS / 4 FAIL**. The two new failures are
+`TrackingPolicy.CancelledSaveNeverReportsSuccess` and
+`TrackingPolicy.CancelledSaveRetainsStagedEdits`; the other two remain the broad
+profile/preference gaps. Candidate `deploy/validation-tracking-policy-cancel`
+checks `Workbook.Saved` after the single save call and enters the existing
+unverified-save cleanup on cancellation. Settings reports uncertainty and keeps
+staged edits. No normative contract or Auth provisioning/read semantics change.
+
+The corrected candidate completes **65 checks: 63 PASS / 2 FAIL**, including
+**34/34 policy** and **18/18 D5** checks. The same expanded test also proves all
+three per-control flags stage without writes, Reload discards those edits, the
+flags persist together after an authorized save, and the actual Close handler
+discards staged capture changes without saving. Every earlier GREEN/check
+identity remains, with no duplicates. The overall suite intentionally remains
+RED until the profile/preference workflow is implemented.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-tracking-policy-cancel -Phase RED -CheckTrackingSettings -CheckTrackingPolicy -CaptureEvidence
+```
+
+Five packages build/explicitly compile and Operations cold start passes;
+packaged smoke is **86/86**. Compiled-source comparison across all 180 components
+finds exactly one changed component, `modTrackingPolicyCommand`. The previous
+70/70 activity and 854/854 full Receiving runs remain evidence for their prior
+candidate; they were not rerun for this isolated policy-save correction. The
+current focused suite covers the changed command. No new full-chain/live-role,
+physical NAS or human acceptance is claimed.
+
+The new saved-policy capture was inspected: selected Receiving Confirm has all
+three flags off, capture remains off, Compare both remains the warehouse default,
+and version 2 is displayed after successful save. This is fixture evidence,
+not a screenshot of the cancellation notice or human UAT. Older-policy editor,
+protected/missing Config and interrupted-save/caller-open rollback edge cases,
+new-control activity coverage and policy-save observations remain required.
+Proceed with Event Detail profile and personal preference implementation under
+D18 while retaining those cases as explicit acceptance work.
+
+Ignored evidence in `reports/runtime/slice4be-tracking-settings/`:
+
+- `b078a0e9dcdf490184f7eddb959e7071/red.json`: expanded cancelled-save RED.
+- `de5b71ff932d413a9a3b8865fbc382a9/red.json`: corrected 63/2 result and
+  inspected `tracking-policy-saved.png`.
+- `policy-cancel-red.log`, `policy-cancel-green.log`, `policy-cancel-comparison.json`.
+- `policy-cancel-build.log`, `policy-cancel-compile.log`,
+  `policy-cancel-compiled-sources.json`, `policy-cancel-component-comparison.json`.
+- `policy-cancel-smoke.log`, `policy-cancel-smoke-report.md`.
+- `policy-cancel-static.log`: 187 components / 5,565 procedures; literal and
+  unresolved dynamic calls remain 8/45 and duplicate-body groups remain 190.
+  All three regenerated report schemas pass.
+- `policy-cancel-package-hashes.json`, `policy-cancel-pin-verification.json`:
+  five new candidate hashes recorded; all 85 prior package pins and 16 preserved
+  runtime source pins match. Operational workbooks and accepted deployment are
+  untouched; Excel is closed.
+- `policy-cancel-size-ratchets.json`: all 28 existing module limits hold; the
+  policy command is 143 lines and its Save procedure is 109 lines.
+- `policy-cancel-native-windows.json`: no observed Excel Application 1000 fault
+  across five bounded RED/build/compile/corrected-test/smoke windows. Historical
+  native failures remain unresolved.
+
+## Previous checkpoint: staged tracking policy and Core persistence
 
 Last verified 2026-09-13. The isolated five-package candidate
 `deploy/validation-tracking-policy-save` adds the Admin-owned tracking editor
@@ -243,8 +313,7 @@ compile, full Release 1 chain, live-role GREEN or human acceptance is claimed.
 
 ## Required continuation
 
-Complete the remaining tracking-policy action/coverage cases above, then
-continue with the detail profile and personal preference editors using focused
+Continue with the detail profile and personal preference editors using focused
 packaged behavioral RED before their persistence implementation. Exercise the actual tracking policy save,
 detail profile save, personal save, Reload, Reset and Close handlers; missing
 seams/compile failures must never substitute for behavioral RED. Keep these

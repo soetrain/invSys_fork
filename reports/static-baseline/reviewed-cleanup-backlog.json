@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-13T11:32:38Z",
+    "generatedAtUtc":  "2026-09-13T11:51:57Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "474af4b029e0fedf22e14e84a833e9e85f886ea129d13a4c4992d077c96845af",
-                          "maintenanceCandidatesSha256":  "cb5a06f0918309d862fe0fb8aac2c42fb706eb4a0a042955128ad4f7dc0c4c6a"
+                          "implementationManifestSha256":  "35f20877e61627a05fbd329e2d96cf29b9c02e7b057610d4a87e43e2f390c8e4",
+                          "maintenanceCandidatesSha256":  "e3e2fea848b4ac745de8c2bbff9462980ff0b78d80113587157f5117c53f12b8"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -2649,7 +2649,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -2718,7 +2718,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -2764,7 +2764,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -2810,7 +2810,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -3342,7 +3342,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -3532,7 +3533,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -3926,7 +3928,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -4089,7 +4092,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -14500,7 +14504,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -20182,7 +20187,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -23743,7 +23749,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -29552,7 +29559,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
