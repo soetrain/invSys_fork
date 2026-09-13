@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T08:37:51Z",
+    "generatedAtUtc":  "2026-09-13T09:42:23Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -137585,6 +137585,7 @@
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
@@ -138489,6 +138490,7 @@
                                "entryPoint":  "Capture",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
@@ -138934,6 +138936,7 @@
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingNativeSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
@@ -140198,6 +140201,7 @@
                                "testPaths":  [
                                                  "tests/legacy-vba/modTestModule.bas",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1"
                                              ]
                            },

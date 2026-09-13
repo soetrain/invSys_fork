@@ -45,6 +45,13 @@ End Sub
 Public Sub ActivityTestNavigationProgrammatic(ByVal name As String, ByVal index As Long)
     If name = "tabsReceiving" Then Me.Controls(name).Value = index Else Me.Controls(name).ListIndex = index
 End Sub
+Public Function ActivityTestNavigationFocus(ByVal name As String) As Boolean
+    Me.Controls(name).SetFocus
+    ActivityTestNavigationFocus = (Me.ActiveControl.Name = name)
+End Function
+Public Function ActivityTestNavigationStoredBookIs(ByVal expected As Workbook) As Boolean
+    ActivityTestNavigationStoredBookIs = (mOperatorWorkbook Is expected)
+End Function
 Public Function ActivityTestNavigationIndex(ByVal name As String) As Long
     If name = "tabsReceiving" Then ActivityTestNavigationIndex = mTabs.Value Else ActivityTestNavigationIndex = Me.Controls(name).ListIndex
 End Function
@@ -103,12 +110,35 @@ End Sub
         $Form.InsertLines($body+1,('    ActivityTestNavigationTrace "Owner.'+$owner+'"'))
     }
     $Helper.AddFromString(@'
+Private Declare PtrSafe Function NavigationSetActiveWindow Lib "user32" Alias "SetActiveWindow" (ByVal hwnd As LongPtr) As LongPtr
+Private Declare PtrSafe Function NavigationGetActiveWindow Lib "user32" Alias "GetActiveWindow" () As LongPtr
+Private Declare PtrSafe Function NavigationGetAncestor Lib "user32" Alias "GetAncestor" (ByVal hwnd As LongPtr, ByVal flags As Long) As LongPtr
+Private mNavigationExpectedWorkbook As Workbook
 Public Sub NavigationPrepare(ByVal pageIndex As Long, ByVal name As String)
     mForm.ActivityTestNavigationPrepare pageIndex, name
 End Sub
 Public Sub NavigationProgrammatic(ByVal name As String, ByVal index As Long)
     mForm.ActivityTestNavigationProgrammatic name, index
 End Sub
+Public Function NavigationFocus(ByVal name As String) As Boolean
+    Dim window As LongPtr
+    window = CLngPtr(modReceivingFormWindow.ActivityTestWindowHandle(mForm))
+    window = NavigationGetAncestor(window, 2)
+    If window = 0 Then Exit Function
+    NavigationSetActiveWindow window
+    If NavigationGetActiveWindow() <> window Then Exit Function
+    NavigationFocus = mForm.ActivityTestNavigationFocus(name)
+End Function
+Public Function NavigationActiveBookIsCaptured() As Boolean
+    If Not Application.ActiveWorkbook Is Nothing Then _
+        NavigationActiveBookIsCaptured = mForm.ActivityTestBoundTo(Application.ActiveWorkbook)
+End Function
+Public Sub NavigationRememberCapturedWorkbook(ByVal name As String)
+    Set mNavigationExpectedWorkbook = Application.Workbooks(name)
+End Sub
+Public Function NavigationStoredBindingPreserved() As Boolean
+    NavigationStoredBindingPreserved = mForm.ActivityTestNavigationStoredBookIs(mNavigationExpectedWorkbook)
+End Function
 Public Function NavigationIndex(ByVal name As String) As Long
     NavigationIndex = mForm.ActivityTestNavigationIndex(name)
 End Function
@@ -152,15 +182,18 @@ public static class ReceivingNavigationInput {
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h,out uint p);
     [DllImport("user32.dll")] static extern bool GetGUIThreadInfo(uint t,ref Gui g);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] static extern bool IsChild(IntPtr parent,IntPtr child);
     [DllImport("user32.dll")] static extern bool PostMessage(IntPtr h,uint m,IntPtr w,IntPtr l);
     [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr h,out Rect r);
     [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr h,ref Point p);
     [DllImport("user32.dll")] static extern bool ScreenToClient(IntPtr h,ref Point p);
     [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(Point p);
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(Point p,uint flags);
     static uint Owner(IntPtr h) { uint p; GetWindowThreadProcessId(h,out p); return p; }
     public static void Key(IntPtr form,IntPtr excel,int key) {
         uint p; uint t=GetWindowThreadProcessId(form,out p); var g=new Gui(); g.Size=Marshal.SizeOf(g);
-        if(p==0 || p!=Owner(excel) || !IsWindowVisible(form) || !GetGUIThreadInfo(t,ref g) || g.Focus==IntPtr.Zero || Owner(g.Focus)!=p)
+        if(p==0 || p!=Owner(excel) || !IsWindowVisible(form) || !GetGUIThreadInfo(t,ref g) || g.Focus==IntPtr.Zero || Owner(g.Focus)!=p ||
+            (g.Focus!=form && !IsChild(form,g.Focus)))
             throw new Exception("Owned focused navigation control unavailable.");
         if(!PostMessage(g.Focus,0x100,(IntPtr)key,(IntPtr)1) || !PostMessage(g.Focus,0x101,(IntPtr)key,(IntPtr)0xC0000001))
             throw new Exception("Navigation key delivery failed.");
@@ -170,7 +203,8 @@ public static class ReceivingNavigationInput {
             throw new Exception("Owned navigation form unavailable.");
         var p=new Point { X=(int)(x*(r.Right-r.Left)/width), Y=(int)(y*(r.Bottom-r.Top)/height) };
         ClientToScreen(form,ref p); var target=WindowFromPoint(p);
-        if(Owner(target)!=Owner(form)) throw new Exception("Navigation point is not on the owned Excel form.");
+        if(Owner(target)!=Owner(form)) throw new Exception("Navigation point is not on the owned Excel form. HasWindow="+
+            (target!=IntPtr.Zero)+"; OnMonitor="+(MonitorFromPoint(p,0)!=IntPtr.Zero));
         ScreenToClient(target,ref p); var lp=(IntPtr)((p.Y<<16)|(p.X&65535));
         if(!PostMessage(target,0x201,(IntPtr)1,lp) || !PostMessage(target,0x202,IntPtr.Zero,lp))
             throw new Exception("Navigation mouse delivery failed.");
@@ -182,6 +216,14 @@ public static class ReceivingNavigationInput {
 function Invoke-ReceivingNavigationInput($Case,[string]$Mode='Keyboard',[switch]$MayReject) {
     $handle=[IntPtr][long][double](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationHandle')
     if($Mode -eq 'Keyboard') {
+        $activeWorkbookName=[string]$excel.ActiveWorkbook.Name
+        $focused=[bool](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationFocus' @($Case[1]))
+        if(-not $focused) { throw 'Intended navigation control focus unavailable.' }
+        if([string]$excel.ActiveWorkbook.Name -cne $activeWorkbookName) {
+            if(-not [bool](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationActiveBookIsCaptured')) {
+                throw 'Navigation focus selected a workbook outside the captured binding.'
+            }
+        }
         $key=40
         if($Case[1] -eq 'tabsReceiving') { $key=if($Case[3] -lt $Case[2]) {37}else{39} }
         [ReceivingNavigationInput]::Key($handle,[IntPtr]$excel.Hwnd,$key)
@@ -262,11 +304,16 @@ function Test-ReceivingNavigationActivity($Fixture) {
     $other.SaveAs((Join-Path $runRoot 'navigation-other.xlsm'),52)
     $configBytes=[IO.File]::ReadAllBytes($Fixture.Config)
     $operatorClosed=$false
+    $previousExcelVisibility=[bool]$excel.Visible
     try {
+        $operator.Activate()
+        $excel.Visible=$true
         if(-not [bool](Run 'invSys.Operations.xlam' 'TestReceivingActivity.Stage' @($operator.Name))) { throw 'Navigation fixture actual staging failed.' }
         $extra=(Table $operator 'ReceivedTally').ListColumns.Add(); $extra.Name='Navigation Extra'; $extra.DataBodyRange.Value2='preserve navigation staging'
         $stagedBefore=@(Get-ReceivingFixtureRows (Table $operator 'ReceivedTally')) | ConvertTo-Json -Depth 5 -Compress
         $operator.Save(); $operatorHash=Get-ReceivingFixtureHash $operator.FullName; $otherHash=Get-ReceivingFixtureHash $other.FullName
+        . (Join-Path $PSScriptRoot 'Slice4beReceivingNavigationTarget.ps1')
+        Initialize-ReceivingNavigationTargetProbe
         foreach($case in Get-ReceivingNavigationCases) {
             $definition=[string](Run 'invSys.Core.xlam' 'TestReceivingActivityGate.NavigationDefinition' @($case[0]))
             Check ('Navigation.Catalog.'+$case[0]) ($definition -ceq ('Navigation|RECEIVING_NAVIGATION|'+$case[4]+'|RECEIVE_POST'))
@@ -283,7 +330,10 @@ function Test-ReceivingNavigationActivity($Fixture) {
             [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationProgrammatic' @($case[1],$case[3]))
             Check ('Navigation.ProgrammaticExcluded.'+$case[0]) (@(Get-Slice4beActivityFiles $Fixture).Count -eq $before.Count)
             [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationPrepare' @($case[2],$case[1]))
+            $preparedForm=[IntPtr][long][double](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationHandle')
+            $preparedFocus=[ReceivingNavigationTargetProbe]::WithinForm($preparedForm)
             $other.Activate()
+            if($case[0] -ceq 'RECEIVING_PAGE_RECEIPTS') { Test-ReceivingNavigationTarget $Fixture $other $preparedFocus }
             $before=@(Get-Slice4beActivityFiles $Fixture)
             Invoke-ReceivingNavigationInput $case
             Test-ReceivingNavigationRecords $Fixture $before $case ('Navigation.Keyboard.'+$case[0])
@@ -348,11 +398,19 @@ function Test-ReceivingNavigationActivity($Fixture) {
         [void](Run 'invSys.Core.xlam' 'modConfig.LoadConfig' @($Fixture.Warehouse,'S1'))
         Set-ReceivingNavigationPolicy $Fixture $true
         [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.CloseForm')
+        $other.Activate()
         [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.Reopen' @($operator.Name))
         [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationInitialize')
+        $other.Activate()
+        [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.ShowForm' @($true))
         [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationPrepare' @($case[2],$case[1]))
+        [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationRememberCapturedWorkbook' @($operator.Name))
+        Check 'Navigation.ClosedWorkbook.CapturedObjectBeforeClose' ([bool](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationStoredBindingPreserved'))
+        $windowBeforeClose=[double](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationHandle')
         $before=@(Get-Slice4beActivityFiles $Fixture)
         $operator.Close($false); $operatorClosed=$true; $other.Activate()
+        Check 'Navigation.ClosedWorkbook.SameNativeFormSurvives' ($windowBeforeClose -ne 0 -and [double](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationHandle') -eq $windowBeforeClose)
+        Check 'Navigation.ClosedWorkbook.CapturedObjectSurvivesClose' ([bool](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationStoredBindingPreserved'))
         Invoke-ReceivingNavigationInput $case -MayReject
         $trace=[string](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationTrace')
         $status=[string](Run 'invSys.Operations.xlam' 'TestReceivingActivity.NavigationStatus')
@@ -362,6 +420,7 @@ function Test-ReceivingNavigationActivity($Fixture) {
         Check 'Navigation.ClosedWorkbook.NoActiveWorkbookRedirection' ($otherHash -ceq (Get-ReceivingFixtureHash $other.FullName) -and $other.Worksheets.Item(1).ListObjects.Count -eq 0)
     } finally {
         [void](Run 'invSys.Operations.xlam' 'TestReceivingActivity.CloseForm')
+        $excel.Visible=$previousExcelVisibility
         if(-not $operatorClosed) { $operator.Close($false) }; $other.Close($false)
         [IO.File]::WriteAllBytes($Fixture.Config,$configBytes)
         [void](Run 'invSys.Core.xlam' 'modConfig.LoadConfig' @($Fixture.Warehouse,'S1'))
