@@ -45,6 +45,7 @@ Private mPages As MSForms.MultiPage
 Private mControlParent As Object
 Private mTracking As cAdminTrackingPolicy
 Private mDetail As cAdminEventDetail
+Private mPreference As cAdminActionPathPreference
 Private mTrackingSections As MSForms.MultiPage
 
 Private Sub UserForm_Initialize()
@@ -59,6 +60,7 @@ End Sub
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     Set mTracking = Nothing
     Set mDetail = Nothing
+    Set mPreference = Nothing
 End Sub
 
 Private Sub UserForm_Activate()
@@ -170,7 +172,8 @@ Private Sub BuildLayout()
     mDetail.Initialize mControlParent, mActivityContext
     Set mControlParent = mTrackingSections.Pages(2)
     AddLabel "lblActionPaths", "Action Paths", 12, 12, 200, 18, True
-    AddLabel "lblActionPathAvailability", "Action Path preferences unavailable.", 12, 40, 670, 32, False
+    Set mPreference = New cAdminActionPathPreference
+    mPreference.Initialize mControlParent, mActivityContext
     Set mControlParent = Me
     Set mBtnClose = AddButton("btnClose", "Close", 654, 614, 66, 28)
     Set mLblStatus = AddLabel("lblStatus", "", 12, 614, 626, 36, False)

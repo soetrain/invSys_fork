@@ -1,6 +1,98 @@
 # Slice 4be.2 Event Tracking Settings
 
-## Current checkpoint: Event Detail profile editor and persistence
+## Current checkpoint: personal Action Path preference
+
+Last verified 2026-09-13; **145/145 packaged Settings checks pass**, including
+38 personal preference checks and the preserved 42 profile / 34 policy checks.
+Every prior check identity and GREEN remains, with no duplicates. D18's existing
+four-choice personal preference contract now has a staged Admin editor and a
+headless Core read/save boundary. The storage refinement uses current-Windows-user
+settings with separately encoded exact invSys-user and warehouse keys; only a
+fixed view choice is persisted. The writer validates captured signed-in context
+and exact choice, saves locally and verifies read-back. It never writes Config
+or grants tracking permission. Admin's form gate remains ADMIN_MAINT, while the
+personal Core boundary does not add that capability requirement.
+
+Initial packaged surface RED on `deploy/validation-detail-profile-final` is
+**112 checks: 107 PASS / 5 FAIL** (`ab13cb604309423997bdec4581345f2a/red.json`):
+three missing personal surfaces plus the two prior broad Settings gaps.
+The staged editor/no-write scaffold builds and compiles all five packages.
+Its clean action RED is **124 checks: 123 PASS / 1 FAIL**
+(`13e9dabc27544c47a69137150b5e6350/red.json`): the real Save handler is entered
+but `Preference.SavePersistsLocalChoice` fails. All prior Settings, profile,
+policy and D5 GREENs remain. Local persistence implementation follows that RED.
+
+An earlier scaffold run stopped at Settings reopen after 48 PASS / 1 harness
+failure (`preference-action-red.log`), before preference actions. There was no
+observed Excel Application-1000 fault. Its test-owned Excel instance had zero
+workbooks and was quit; the empty lingering process was then stopped. Numeric
+initialization diagnostics were added to unsaved test code. The following clean
+run did not reproduce the failure; no runtime repair or root cause is claimed.
+
+The first persistence candidate run reached 121 PASS before the test's dirty-Config
+setup referenced a nonexistent generic `Value` header and failed with invalid
+index. This is a fixture error, not product RED. The fixture now uses the existing
+`WarehouseName` column, as the protecting profile tests do. The same packaged
+candidate is rerun without a runtime change (`preference-save-green.log` records
+the incomplete run). The next run (`preference-final-green.log`) reached 122 PASS
+before file hashing failed against Excel's open write handle. The test now checks
+the dirty cell/state in memory and hashes bytes after closing without saving;
+`preference-verified-green.log` records that corrected run. Neither fixture error
+is product RED, and neither changed the packaged runtime.
+
+That run completes all 141 Settings checks, then loses Excel RPC while creating
+an additional late bootstrap fixture for restart. One Excel Application-1000 fault
+was observed (`preference-restart-setup-fault.json`); the failed test-owned process
+was stopped. The restart test now reuses the already Admin-generated second
+fixture, whose Config was preserved by the preceding checks. No runtime repair
+or explanation of the native failure is claimed. `preference-restart-green.log`
+records the corrected fixture sequence on the same candidate.
+
+The expanded tests cover invalid choices, real Save/Reload/Reset/Close, registry
+read-back, user/warehouse/session isolation, no Admin capability at the personal
+Core boundary, dirty/read-only Config preservation, and unavailable effective
+policy. The second disposable fixture saves through the Admin handler, restarts
+Excel, then reads through Core with the four non-Admin packages loaded. This
+does not substitute for the still-missing Operations personal Settings UI.
+The final restart check passes: a handler-saved Compare both choice survives a
+different Excel process and is read with Core/Domain/Operations loaded and no
+Admin package loaded, without changing Config bytes. The captured Action Paths section
+was inspected: the selected/effective choice, policy version, capture-off notice,
+scope and separate Save/Reset/Reload actions fit within the existing form. This
+is automated evidence, not human acceptance or an implemented comparison view.
+Five packages build/compile and cold start passes; packaged smoke is **86/86**.
+The updated source harness imports successfully and its selected test passes
+**1/1** (global test 1 of 314; not a full 314-test run). Static reports
+contain 197 components / 5616 procedures, unchanged 8 literal / 45 unresolved
+dynamic calls and 190 duplicate-body groups. All 28 oversized-module limits hold;
+the two new components have at most 84 lines and their procedures at most 36.
+All three JSON schemas validate. The 188-to-190 compiled-component comparison
+shows only `frmAdminSettings` changed plus the two intended new components.
+All 105 prior complete-package pins and 16 protected source pins match; ten new
+preference package pins are recorded for preservation. The last full Receiving
+run remains 854/854 on the preceding profile candidate; it was not rerun for this
+preference checkpoint. Broader release/live-role/chain gates remain required.
+
+Ignored evidence is under `reports/runtime/slice4be-tracking-settings/`:
+`preference-surface-red.log`, `preference-action-red.log`,
+`preference-action-diagnostic.log`, `preference-scaffold-build.log`,
+`preference-scaffold-compile.log`, `preference-scaffold-compiled.json`.
+Runtime values, registry identities and fixture credentials remain uncommitted.
+
+Final ignored evidence: `769a647689ff48639e93fd33a3ff97d4/green.json` and
+`action-path-preference.png` in that directory, `preference-restart-green.log`,
+`preference-green-comparison.json`, `preference-save-build.log`,
+`preference-save-compile.log`, `preference-save-compiled.json`,
+`preference-component-comparison.json`, `preference-smoke.log`,
+`preference-smoke-report.md`, `preference-static-ratchets.json`,
+`preference-preservation.json` and `preference-native-fault-audit.json`.
+`preference-source-import.log` / `preference-source-import-report.md` record the
+source-import check; `preference-final-native-fault-audit.json` records no
+observed Excel Application-1000 faults in the final full run, smoke or source
+check. All sessions are terminal and Excel is closed. The earlier native failure
+and unexplained reopen failure remain recorded above.
+
+## Previous checkpoint: Event Detail profile editor and persistence
 
 Last verified 2026-09-13; focused validation is complete. The Admin Settings
 General/Event Tracking contract is preserved. Event Tracking now contains
@@ -437,11 +529,13 @@ compile, full Release 1 chain, live-role GREEN or human acceptance is claimed.
 
 ## Required continuation
 
-Next, add focused packaged action tests for personal Action Path preference
-Save/Reload/Reset/Close and demonstrate meaningful RED before implementing local
-persistence. Retain the 42 profile and 34 policy GREEN checks. Viewer profile
-consumption, the Operations-owned personal Settings surface, and comprehensive
-new-control activity/save-version observations remain separate unfinished work.
+Next, add focused RED through packaged `modInventoryViewer.OpenInventoryViewer`
+for Operations > Settings > Event Tracking with no Admin package dependency,
+then implement the Operations-owned personal surface using the existing Core
+preference boundary. Retain all 145 current Settings GREEN checks. Viewer profile
+and preference consumption, and comprehensive new-control activity/save-version
+observations remain separate unfinished work. Both How-To/Diagnostic presentations
+and Compare both must still be implemented and visibly compared.
 Missing seams/compile failures must never substitute for behavioral RED. Keep
 these requirements explicit:
 

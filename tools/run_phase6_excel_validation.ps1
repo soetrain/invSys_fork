@@ -416,6 +416,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modEventDetailCatalog.bas"),
         (Join-Path $repo "src/Core/Modules/modEventDetailModel.bas"),
         (Join-Path $repo "src/Core/Modules/modEventDetailSettings.bas"),
+        (Join-Path $repo "src/Core/Modules/modActionPathPreference.bas"),
         (Join-Path $repo "src/Core/Modules/modEventDetailStore.bas"),
         (Join-Path $repo "src/Core/Modules/modEventDetailCommand.bas"),
         (Join-Path $repo "src/Core/Modules/modEventSettingsTables.bas"),

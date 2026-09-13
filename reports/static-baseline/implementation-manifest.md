@@ -1,10 +1,10 @@
 # invSys Static Implementation Manifest
 
 - Schema: 1.0.0
-- Generated: 2026-09-13T12:50:16Z
+- Generated: 2026-09-13T13:34:12Z
 - Packages: 6
-- Components: 195
-- Procedures: 5602
+- Components: 197
+- Procedures: 5616
 - Literal Application.Run targets: 8
 - Unresolved dynamic calls: 45
 
@@ -12,8 +12,8 @@
 
 | Package | Project | Output | Components |
 |---|---|---|---:|
-| Admin | invSys_Admin | invSys.Admin.xlam | 30 |
-| Core | invSys_Core | invSys.Core.xlam | 80 |
+| Admin | invSys_Admin | invSys.Admin.xlam | 31 |
+| Core | invSys_Core | invSys.Core.xlam | 81 |
 | DesignsDomain | invSys_Designs_Domain | invSys.Designs.Domain.xlam | 14 |
 | InventoryDomain | invSys_Inventory_Domain | invSys.Inventory.Domain.xlam | 10 |
 | Operations | invSys_Operations | invSys.Operations.xlam | 52 |
@@ -277,6 +277,7 @@
 | mCboDisposition_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mChkRoamingStation_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mChkUseExisting_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mChoice_Change | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mChoice_DropButtonClick | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mChoice_KeyDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mChoice_KeyUp | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
@@ -354,10 +355,13 @@
 | mPages_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mReload_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mReload_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mReload_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mReset_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mReset_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mReset_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mRows_Change | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mRows_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mSave_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mSave_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mSave_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mSequence_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |

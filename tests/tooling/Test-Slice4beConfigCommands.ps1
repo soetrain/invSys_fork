@@ -9,6 +9,7 @@ param(
     [switch]$CheckTrackingSettings,
     [switch]$CheckTrackingPolicy,
     [switch]$CheckDetailProfile,
+    [switch]$CheckActionPathPreference,
     [switch]$CheckShippingActivity,
     [switch]$TraceBootstrapForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -108,6 +109,7 @@ if ($CheckTrackingSettings) {
 if ($CheckTrackingPolicy -and -not $CheckTrackingSettings) { throw 'Tracking policy checks require the Settings route.' }
 if ($CheckDetailProfile -and -not $CheckTrackingSettings) { throw 'Detail profile checks require the Settings route.' }
 if ($CheckDetailProfile -and -not $CheckTrackingPolicy) { throw 'Detail profile checks retain the tracking policy baseline and cancellation observer.' }
+if ($CheckActionPathPreference -and -not $CheckDetailProfile) { throw 'Preference checks retain the detail and policy baseline.' }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $results = [Collections.Generic.List[object]]::new()
 $excel = $null
@@ -347,6 +349,10 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beDetailProfile.ps1')
         Install-Slice4beDetailProfileProbe $testModule $formCode
     }
+    if ($CheckActionPathPreference) {
+        . (Join-Path $PSScriptRoot 'Slice4beActionPathPreference.ps1')
+        Install-Slice4beActionPathPreferenceProbe $testModule $formCode
+    }
     $bootstrapCode=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modWarehouseBootstrap').CodeModule
     if($CheckShippingActivity){
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
@@ -411,6 +417,7 @@ End Function
         Test-Slice4beTrackingSettingsSurface $a
         if ($CheckTrackingPolicy) { Test-Slice4beTrackingPolicy $a $b }
         if ($CheckDetailProfile) { Test-Slice4beDetailProfile $a $b }
+        if ($CheckActionPathPreference) { Test-Slice4beActionPathPreference $a $b }
     }
     if ($CheckActivityEvidence) { $activityBefore = @(Get-Slice4beActivityFiles $a) }
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('BatchSize','601'))
@@ -538,6 +545,10 @@ End Function
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveDirect' @('BatchSize','606',$a.Warehouse,'S1'))
     Check 'Command.MissingIdentityDenied' (-not $ok -and $table.ListColumns.Count -eq $count -and $cfg.Saved)
     $cfg.Close($false)
+    if($CheckActionPathPreference -and $preferenceSaveVerified) {
+        $step = 'personal preference Excel restart'
+        Test-ActionPathPreferenceRestart $b
+    }
 }
 catch {
     Check ('Harness.Exception.'+$step) $false
@@ -546,7 +557,11 @@ catch {
 }
 finally {
     if($null -ne $excel) {
-        try { [void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings') } catch {}
+        try {
+            if(@($excel.Workbooks | Where-Object Name -eq 'invSys.Admin.xlam').Count -gt 0) {
+                [void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')
+            }
+        } catch {}
         try { foreach($book in @($excel.Workbooks)){ $book.Close($false) }; $excel.Quit() } catch {}
         [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($excel)
     }

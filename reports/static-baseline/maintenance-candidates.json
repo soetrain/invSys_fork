@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-13T12:50:16Z",
+    "generatedAtUtc":  "2026-09-13T13:34:12Z",
     "baseline":  {
-                     "componentCount":  195,
-                     "procedureCount":  5602,
-                     "lineCount":  125343,
+                     "componentCount":  197,
+                     "procedureCount":  5616,
+                     "lineCount":  125509,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  190
@@ -5757,6 +5757,74 @@
                                                "src/Core/ClassModules/cDynItemSearch.cls"
                                            ],
                            "reason":  "Literal Application.Run resolves to a procedure in the scanned project surface.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mChoice_Change",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminActionPathPreference",
+                           "procedureNames":  [
+                                                  "mChoice_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminActionPathPreference.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mReload_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminActionPathPreference",
+                           "procedureNames":  [
+                                                  "mReload_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminActionPathPreference.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mReset_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminActionPathPreference",
+                           "procedureNames":  [
+                                                  "mReset_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminActionPathPreference.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mSave_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminActionPathPreference",
+                           "procedureNames":  [
+                                                  "mSave_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminActionPathPreference.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
 
                                                ],

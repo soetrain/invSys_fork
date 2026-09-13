@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T12:50:16Z",
+    "generatedAtUtc":  "2026-09-13T13:34:12Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -12,6 +12,7 @@
                                              "src/Admin"
                                          ],
                          "componentNames":  [
+                                                "cAdminActionPathPreference",
                                                 "cAdminEventDetail",
                                                 "cAdminTrackingPolicy",
                                                 "Emails",
@@ -64,6 +65,7 @@
                                                 "frmItemSearch",
                                                 "frmSignIn",
                                                 "frmWarehouseConnection",
+                                                "modActionPathPreference",
                                                 "modActivity",
                                                 "modActivityCatalog",
                                                 "modActivityPolicy",
@@ -259,6 +261,25 @@
                      }
                  ],
     "components":  [
+                       {
+                           "name":  "cAdminActionPathPreference",
+                           "kind":  "CLASS_MODULE",
+                           "sourcePath":  "src/Admin/ClassModules/cAdminActionPathPreference.cls",
+                           "lineCount":  79,
+                           "procedureNames":  [
+                                                  "Initialize",
+                                                  "mChoice_Change",
+                                                  "mReload_Click",
+                                                  "mReset_Click",
+                                                  "mSave_Click",
+                                                  "ReloadPreference",
+                                                  "ResetPreference",
+                                                  "SavePreference"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
                        {
                            "name":  "cAdminEventDetail",
                            "kind":  "CLASS_MODULE",
@@ -474,7 +495,7 @@
                            "name":  "frmAdminSettings",
                            "kind":  "FORM",
                            "sourcePath":  "src/Admin/Forms/frmAdminSettings.frm",
-                           "lineCount":  503,
+                           "lineCount":  506,
                            "procedureNames":  [
                                                   "AddButton",
                                                   "AddCheckBox",
@@ -1989,6 +2010,23 @@
                                               ],
                            "metadata":  {
                                             "controlCount":  0
+                                        }
+                       },
+                       {
+                           "name":  "modActionPathPreference",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modActionPathPreference.bas",
+                           "lineCount":  84,
+                           "procedureNames":  [
+                                                  "Choices",
+                                                  "IdentityPart",
+                                                  "PreferenceKey",
+                                                  "ReadPreference",
+                                                  "SavePreference",
+                                                  "ValidChoice"
+                                              ],
+                           "metadata":  {
+
                                         }
                        },
                        {
@@ -8036,6 +8074,184 @@
                    ],
     "procedures":  [
                        {
+                           "componentName":  "cAdminActionPathPreference",
+                           "name":  "Initialize",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  22,
+                           "endLine":  40,
+                           "lineCount":  19,
+                           "directCalls":  [
+                                               "AddControl",
+                                               "Choice",
+                                               "Choices",
+                                               "ReloadPreference"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminActionPathPreference",
+                           "name":  "ReloadPreference",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  42,
+                           "endLine":  53,
+                           "lineCount":  12,
+                           "directCalls":  [
+                                               "Choice",
+                                               "ReadPreference"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminActionPathPreference",
+                           "name":  "ResetPreference",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  55,
+                           "endLine":  59,
+                           "lineCount":  5,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminActionPathPreference",
+                           "name":  "SavePreference",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  61,
+                           "endLine":  66,
+                           "lineCount":  6,
+                           "directCalls":  [
+                                               "ReloadPreference"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminActionPathPreference",
+                           "name":  "mChoice_Change",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  68,
+                           "endLine":  70,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mChoice_Change"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminActionPathPreference",
+                           "name":  "mSave_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  71,
+                           "endLine":  73,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "SavePreference"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mSave_Click",
+                                           "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mSave_Click",
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSave_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminActionPathPreference",
+                           "name":  "mReset_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  74,
+                           "endLine":  76,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "ResetPreference"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mReset_Click",
+                                           "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mReset_Click",
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReset_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminActionPathPreference",
+                           "name":  "mReload_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  77,
+                           "endLine":  79,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "ReloadPreference"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mReload_Click",
+                                           "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mReload_Click",
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReload_Click"
+                                       ]
+                       },
+                       {
                            "componentName":  "cAdminEventDetail",
                            "name":  "Initialize",
                            "visibility":  "PUBLIC",
@@ -8313,6 +8529,7 @@
 
                                                                    ],
                            "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mSave_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mSave_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSave_Click"
                                        ]
@@ -8335,6 +8552,7 @@
 
                                                                    ],
                            "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mReset_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mReset_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReset_Click"
                                        ]
@@ -8357,6 +8575,7 @@
 
                                                                    ],
                            "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mReload_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mReload_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReload_Click"
                                        ]
@@ -8700,6 +8919,7 @@
 
                                                                    ],
                            "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mSave_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mSave_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSave_Click"
                                        ]
@@ -8722,6 +8942,7 @@
 
                                                                    ],
                            "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mReset_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mReset_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReset_Click"
                                        ]
@@ -8744,6 +8965,7 @@
 
                                                                    ],
                            "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mReload_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mReload_Click",
                                            "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReload_Click"
                                        ]
@@ -11288,8 +11510,8 @@
                            "name":  "UserForm_Initialize",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  50,
-                           "endLine":  57,
+                           "startLine":  51,
+                           "endLine":  58,
                            "lineCount":  8,
                            "directCalls":  [
                                                "BuildLayout",
@@ -11330,9 +11552,9 @@
                            "name":  "UserForm_QueryClose",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  59,
-                           "endLine":  62,
-                           "lineCount":  4,
+                           "startLine":  60,
+                           "endLine":  64,
+                           "lineCount":  5,
                            "directCalls":  [
 
                                            ],
@@ -11355,8 +11577,8 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  64,
-                           "endLine":  70,
+                           "startLine":  66,
+                           "endLine":  72,
                            "lineCount":  7,
                            "directCalls":  [
                                                "EnableResizableUserForm"
@@ -11393,8 +11615,8 @@
                            "name":  "CaptureTargetContext",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  72,
-                           "endLine":  83,
+                           "startLine":  74,
+                           "endLine":  85,
                            "lineCount":  12,
                            "directCalls":  [
                                                "CaptureContext",
@@ -11417,9 +11639,9 @@
                            "name":  "BuildLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  85,
-                           "endLine":  178,
-                           "lineCount":  94,
+                           "startLine":  87,
+                           "endLine":  181,
+                           "lineCount":  95,
                            "directCalls":  [
                                                "Add",
                                                "AddButton",
@@ -11444,8 +11666,8 @@
                            "name":  "LoadConfigRows",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  180,
-                           "endLine":  204,
+                           "startLine":  183,
+                           "endLine":  207,
                            "lineCount":  25,
                            "directCalls":  [
                                                "GetConfigEditorRows",
@@ -11472,8 +11694,8 @@
                            "name":  "mLstConfig_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  206,
-                           "endLine":  221,
+                           "startLine":  209,
+                           "endLine":  224,
                            "lineCount":  16,
                            "directCalls":  [
                                                "IsIdentityConfigKey",
@@ -11494,8 +11716,8 @@
                            "name":  "mBtnSaveConfig_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  223,
-                           "endLine":  232,
+                           "startLine":  226,
+                           "endLine":  235,
                            "lineCount":  10,
                            "directCalls":  [
                                                "LoadConfigRows",
@@ -11518,8 +11740,8 @@
                            "name":  "mBtnReloadConfig_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  234,
-                           "endLine":  241,
+                           "startLine":  237,
+                           "endLine":  244,
                            "lineCount":  8,
                            "directCalls":  [
                                                "LoadConfigRows",
@@ -11542,8 +11764,8 @@
                            "name":  "IsIdentityConfigKey",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  243,
-                           "endLine":  246,
+                           "startLine":  246,
+                           "endLine":  249,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -11563,8 +11785,8 @@
                            "name":  "TestInitializeConfigEditor",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  248,
-                           "endLine":  258,
+                           "startLine":  251,
+                           "endLine":  261,
                            "lineCount":  11,
                            "directCalls":  [
                                                "BuildLayout",
@@ -11588,8 +11810,8 @@
                            "name":  "LoadConnectionPolicy",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  260,
-                           "endLine":  263,
+                           "startLine":  263,
+                           "endLine":  266,
                            "lineCount":  4,
                            "directCalls":  [
                                                "RequireManualServerCredentials"
@@ -11609,8 +11831,8 @@
                            "name":  "mBtnSaveConnectionPolicy_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  265,
-                           "endLine":  275,
+                           "startLine":  268,
+                           "endLine":  278,
                            "lineCount":  11,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -11632,8 +11854,8 @@
                            "name":  "LoadCarriers",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  277,
-                           "endLine":  293,
+                           "startLine":  280,
+                           "endLine":  296,
                            "lineCount":  17,
                            "directCalls":  [
                                                "GetConfiguredCarriers"
@@ -11653,8 +11875,8 @@
                            "name":  "mBtnAdd_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  295,
-                           "endLine":  311,
+                           "startLine":  298,
+                           "endLine":  314,
                            "lineCount":  17,
                            "directCalls":  [
                                                "AddConfiguredCarrier",
@@ -11678,8 +11900,8 @@
                            "name":  "mBtnRemove_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  313,
-                           "endLine":  328,
+                           "startLine":  316,
+                           "endLine":  331,
                            "lineCount":  16,
                            "directCalls":  [
                                                "LoadCarriers",
@@ -11702,8 +11924,8 @@
                            "name":  "mBtnReset_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  330,
-                           "endLine":  335,
+                           "startLine":  333,
+                           "endLine":  338,
                            "lineCount":  6,
                            "directCalls":  [
                                                "LoadCarriers",
@@ -11725,8 +11947,8 @@
                            "name":  "mBtnClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  337,
-                           "endLine":  339,
+                           "startLine":  340,
+                           "endLine":  342,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -11753,8 +11975,8 @@
                            "name":  "mLstCarriers_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  341,
-                           "endLine":  344,
+                           "startLine":  344,
+                           "endLine":  347,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -11774,8 +11996,8 @@
                            "name":  "LoadUoms",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  346,
-                           "endLine":  362,
+                           "startLine":  349,
+                           "endLine":  365,
                            "lineCount":  17,
                            "directCalls":  [
                                                "GetConfiguredUoms"
@@ -11795,8 +12017,8 @@
                            "name":  "mBtnUomAdd_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  364,
-                           "endLine":  379,
+                           "startLine":  367,
+                           "endLine":  382,
                            "lineCount":  16,
                            "directCalls":  [
                                                "AddConfiguredUom",
@@ -11820,8 +12042,8 @@
                            "name":  "mBtnUomRemove_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  381,
-                           "endLine":  400,
+                           "startLine":  384,
+                           "endLine":  403,
                            "lineCount":  20,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -11845,8 +12067,8 @@
                            "name":  "mBtnUomReset_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  402,
-                           "endLine":  415,
+                           "startLine":  405,
+                           "endLine":  418,
                            "lineCount":  14,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -11870,8 +12092,8 @@
                            "name":  "mLstUoms_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  417,
-                           "endLine":  420,
+                           "startLine":  420,
+                           "endLine":  423,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -11891,8 +12113,8 @@
                            "name":  "ShowStatus",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  422,
-                           "endLine":  425,
+                           "startLine":  425,
+                           "endLine":  428,
                            "lineCount":  4,
                            "directCalls":  [
                                                "Message"
@@ -11912,8 +12134,8 @@
                            "name":  "AddLabel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  427,
-                           "endLine":  443,
+                           "startLine":  430,
+                           "endLine":  446,
                            "lineCount":  17,
                            "directCalls":  [
                                                "Add"
@@ -11933,8 +12155,8 @@
                            "name":  "AddTextBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  445,
-                           "endLine":  457,
+                           "startLine":  448,
+                           "endLine":  460,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -11954,8 +12176,8 @@
                            "name":  "AddListBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  459,
-                           "endLine":  471,
+                           "startLine":  462,
+                           "endLine":  474,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -11975,8 +12197,8 @@
                            "name":  "AddCheckBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  473,
-                           "endLine":  487,
+                           "startLine":  476,
+                           "endLine":  490,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -11996,8 +12218,8 @@
                            "name":  "AddButton",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  489,
-                           "endLine":  503,
+                           "startLine":  492,
+                           "endLine":  506,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -34701,6 +34923,141 @@
                            "startLine":  359,
                            "endLine":  363,
                            "lineCount":  5,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionPathPreference",
+                           "name":  "ReadPreference",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  9,
+                           "endLine":  44,
+                           "lineCount":  36,
+                           "directCalls":  [
+                                               "Choice",
+                                               "PreferenceKey",
+                                               "ReadPolicy",
+                                               "ValidChoice",
+                                               "Version"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionPathPreference",
+                           "name":  "SavePreference",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  46,
+                           "endLine":  59,
+                           "lineCount":  14,
+                           "directCalls":  [
+                                               "Choice",
+                                               "PreferenceKey",
+                                               "ValidChoice"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionPathPreference",
+                           "name":  "Choices",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  61,
+                           "endLine":  63,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionPathPreference",
+                           "name":  "ValidChoice",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  65,
+                           "endLine":  67,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Choice"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionPathPreference",
+                           "name":  "PreferenceKey",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  69,
+                           "endLine":  76,
+                           "lineCount":  8,
+                           "directCalls":  [
+                                               "CaptureContext",
+                                               "GetCurrentTarget",
+                                               "GetCurrentUserId",
+                                               "IdentityPart"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionPathPreference",
+                           "name":  "IdentityPart",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  78,
+                           "endLine":  84,
+                           "lineCount":  7,
                            "directCalls":  [
 
                                            ],
@@ -79069,6 +79426,7 @@
                            "endLine":  654,
                            "lineCount":  12,
                            "directCalls":  [
+                                               "Choices",
                                                "IsRunTreeOutputRow",
                                                "IsRunTreeParentRow"
                                            ],
@@ -80995,6 +81353,7 @@
                                                "AddRunPaletteRows",
                                                "BindOperatorWorkbookForRun",
                                                "BuildRunTreeFromPaletteList",
+                                               "Choices",
                                                "EnsureRunInventoryCache",
                                                "EnsureRunItemCodeMap",
                                                "GetCurrentProductionRunRecipeId",
@@ -139540,6 +139899,7 @@
                                                  "tests/integration/test_ReceivingReadiness.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterBundle.bas",
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
@@ -140456,6 +140816,7 @@
                            {
                                "entryPoint":  "Capture",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
@@ -140475,6 +140836,7 @@
                            {
                                "entryPoint":  "CaptureContext",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
@@ -140543,7 +140905,17 @@
                            {
                                "entryPoint":  "Choice",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Test-Plan022DialogObserver.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Choices",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
+                                                 "tests/tooling/Slice4beTrackingSettings.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4qDisposition.ps1"
                                              ]
                            },
                            {
@@ -141228,6 +141600,7 @@
                            {
                                "entryPoint":  "EnableEvents",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1",
@@ -142295,6 +142668,7 @@
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/legacy-vba/modTestModule.bas",
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
@@ -143767,6 +144141,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "PreferenceKey",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "PreflightInventoryWorksheetTable",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1"
@@ -144118,6 +144498,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ReadPreference",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ReadProcessDraftFromWorksheet",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4yProcessWorksheet.ps1"
@@ -144353,6 +144739,7 @@
                            {
                                "entryPoint":  "Reload",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beTrackingSettings.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
@@ -144371,6 +144758,12 @@
                                "entryPoint":  "ReloadPolicy",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ReloadPreference",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1"
                                              ]
                            },
                            {
@@ -144482,6 +144875,12 @@
                                "entryPoint":  "ResetPolicy",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ResetPreference",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1"
                                              ]
                            },
                            {
@@ -144963,6 +145362,7 @@
                                                  "tests/integration/test_ReceivingReadiness.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
@@ -145026,6 +145426,12 @@
                                "entryPoint":  "SavePolicy",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "SavePreference",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1"
                                              ]
                            },
                            {
@@ -145588,6 +145994,7 @@
                                "entryPoint":  "SignOut",
                                "testPaths":  [
                                                  "tests/integration/test_ReceivingReadiness.bas",
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -145709,6 +146116,7 @@
                            {
                                "entryPoint":  "Start",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -148585,6 +148993,13 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mChoice_Change",
+                             "procedure":  "mChoice_Change",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.class-event:src_Receiving_ClassModules_cReceivingSelectionInput.cls:cReceivingSelectionInput.mChoice_DropButtonClick",
                              "procedure":  "mChoice_DropButtonClick",
                              "rootKind":  "CLASS_EVENT",
@@ -149110,6 +149525,13 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mReload_Click",
+                             "procedure":  "mReload_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mReload_Click",
                              "procedure":  "mReload_Click",
                              "rootKind":  "CLASS_EVENT",
@@ -149119,6 +149541,13 @@
                          {
                              "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReload_Click",
                              "procedure":  "mReload_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mReset_Click",
+                             "procedure":  "mReset_Click",
                              "rootKind":  "CLASS_EVENT",
                              "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
@@ -149147,6 +149576,13 @@
                          {
                              "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mRows_Click",
                              "procedure":  "mRows_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminActionPathPreference.cls:cAdminActionPathPreference.mSave_Click",
+                             "procedure":  "mSave_Click",
                              "rootKind":  "CLASS_EVENT",
                              "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
