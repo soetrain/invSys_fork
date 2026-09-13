@@ -46,6 +46,20 @@ function Test-Slice4beViewerPublication($Fixture,$OtherFixture) {
     $source=Join-Path $runRoot 'viewer-publication-source.xlsb'
     Copy-Item -LiteralPath $snapshot -Destination $source
     $sourceHash=PublicationSourceHash $source
+    . (Join-Path $PSScriptRoot 'Slice4beShippingPublicationFixture.ps1')
+    $shippingFixture=$null
+    New-Slice4beShippingPublicationFixture $Fixture ([ref]$shippingFixture)
+    try {
+    # Real Boxing/Shipping handlers may publish inventory and append activity.
+    # The volume source is already copied; pin all activity after owner setup.
+    $allActivity=@();$activityPins=@{}
+    foreach($file in Get-ChildItem -LiteralPath $activityRoot -Filter '*.json' -File){
+        $activityPins[$file.FullName]=PublicationSourceHash $file.FullName
+        $allActivity+=([IO.File]::ReadAllText($file.FullName)|ConvertFrom-Json)
+    }
+    $activityIds=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach($record in $allActivity){[void]$activityIds.Add([string]$record.ActivityId)}
+    $activityGroupCount=$activityIds.Count
     $sourceBook=$excel.Workbooks.Open($source,0,$true)
     $core=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modWarehouseSync').CodeModule
     $first=$core.ProcBodyLine('WriteSnapshotEventRows',0)
@@ -153,12 +167,15 @@ End Function
     foreach($name in @('Inventory','Designs','Activity','ShippingBOM','ShippingHolds')){$named=$named -and @($sources|Where-Object {$_.Source -ceq $name -and $_.Availability -ne '' -and $_.Scope -ne ''}).Count -eq 1}
     Check 'ViewerPublication.EveryExpectedSourceHasNamedCoverage' $named
     $counts=$true
-    foreach($expect in @(@('Inventory',5001,4997,4,5003,4999,4),@('Activity',1,1,0,2,2,0),@('Designs',2,2,0,2,2,0))){
+    $inventoryIncluded=5000-2-$activityGroupCount
+    $inventoryOmitted=5001-$inventoryIncluded
+    foreach($expect in @(@('Inventory',5001,$inventoryIncluded,$inventoryOmitted,5003,($inventoryIncluded+2),$inventoryOmitted),@('Activity',$activityGroupCount,$activityGroupCount,0,$allActivity.Count,$allActivity.Count,0),@('Designs',2,2,0,2,2,0))){
         $entry=@($sources|Where-Object {$_.Source -ceq $expect[0]})
         if($entry.Count -ne 1){$counts=$false;continue}
         $i=1;foreach($field in @('AvailableGroups','IncludedGroups','OmittedGroups','AvailableLines','IncludedLines','OmittedLines')){$counts=$counts -and $entry[0].$field -eq $expect[$i];$i++}
     }
     Check 'ViewerPublication.MixedSourceCountsReconcileGlobalBound' $counts
+    Test-Slice4beShippingPublication $artifact $shippingFixture
     $provenance=$null -ne $artifact
     if($provenance){$provenance=$artifact.PackageSetVersion -ceq $publisherVersion -and $artifact.BuildIdentity -ceq $publisherBuild -and $artifact.PolicyVersion -eq $attempts[0].PolicyVersion}
     Check 'ViewerPublication.PackageAndPolicyProvenanceMatchesOwner' $provenance
@@ -187,4 +204,5 @@ End Function
     $activityUnchanged=$activityPins.Count -eq @(Get-ChildItem -LiteralPath $activityRoot -Filter '*.json' -File).Count
     foreach($path in $activityPins.Keys){$activityUnchanged=$activityUnchanged -and (PublicationSourceHash $path) -ceq $activityPins[$path]}
     Check 'ViewerPublication.PublicationDoesNotRewriteActivityRecords' $activityUnchanged
+    } finally {Remove-Slice4beShippingPublicationFiles $shippingFixture.LocalFiles}
 }
