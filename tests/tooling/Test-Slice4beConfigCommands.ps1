@@ -6,6 +6,7 @@ param(
     [switch]$CaptureEvidence,
     [switch]$CheckActivityEvidence,
     [switch]$CheckActivityFoundation,
+    [switch]$CheckTrackingSettings,
     [switch]$CheckShippingActivity,
     [switch]$TraceBootstrapForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -94,6 +95,13 @@ if ($CheckReceivingActivity) {
     . (Join-Path $PSScriptRoot 'Slice4beReceivingLauncherDenial.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingDenialDialogs.ps1')
     if (-not $CheckActivityFoundation) { . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1') }
+}
+if ($CheckTrackingSettings) {
+    if ($CheckShippingActivity -or $CheckReceivingActivity -or $CheckActivityEvidence) {
+        throw 'Tracking Settings discovery uses the separate preserved D5 route.'
+    }
+    . (Join-Path $PSScriptRoot 'Slice4beTrackingSettings.ps1')
+    $reportRoot = Join-Path $repo ('reports/runtime/slice4be-tracking-settings/'+[guid]::NewGuid().ToString('N'))
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $results = [Collections.Generic.List[object]]::new()
@@ -325,6 +333,7 @@ Public Function RoundTrip(ByVal workbookName As String) As Boolean
     Unload frmProduction
 End Function
 '@)
+    if ($CheckTrackingSettings) { Install-Slice4beTrackingSettingsProbe $testModule }
     $bootstrapCode=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modWarehouseBootstrap').CodeModule
     if($CheckShippingActivity){
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
@@ -384,6 +393,10 @@ End Function
     Check 'Command.MissingCapabilityDenied' (-not $ok -and $before -eq (Get-FileHash -LiteralPath $a.Config).Hash)
     SelectTarget $a
     [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
+    if ($CheckTrackingSettings) {
+        $step='packaged Settings tracking surface'
+        Test-Slice4beTrackingSettingsSurface $a
+    }
     if ($CheckActivityEvidence) { $activityBefore = @(Get-Slice4beActivityFiles $a) }
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('BatchSize','601'))
     Check 'Settings.RealSaveHandler' ($ok -and [long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('BatchSize',0)) -eq 601)

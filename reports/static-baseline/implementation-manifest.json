@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T09:42:23Z",
+    "generatedAtUtc":  "2026-09-13T10:10:43Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -138494,6 +138494,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
+                                                 "tests/tooling/Slice4beTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-Slice4beWorksheetInput.ps1"
                                              ]
@@ -138939,6 +138940,7 @@
                                                  "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
+                                                 "tests/tooling/Slice4beTrackingSettings.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4afRecipeIdentity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aoRecipeConnectionEditor.ps1",
@@ -139614,7 +139616,8 @@
                            {
                                "entryPoint":  "Facts",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beShippingActivity.ps1"
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beTrackingSettings.ps1"
                                              ]
                            },
                            {
@@ -140202,6 +140205,7 @@
                                                  "tests/legacy-vba/modTestModule.bas",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
+                                                 "tests/tooling/Slice4beTrackingSettings.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1"
                                              ]
                            },
@@ -142225,6 +142229,7 @@
                            {
                                "entryPoint":  "Reload",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingSettings.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1",
                                                  "tests/unit/TestCoreConfig.bas",
