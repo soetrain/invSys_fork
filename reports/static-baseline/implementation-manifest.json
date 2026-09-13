@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T18:17:39Z",
+    "generatedAtUtc":  "2026-09-13T19:24:01Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -145,6 +145,7 @@
                                              "src/DesignsDomain"
                                          ],
                          "componentNames":  [
+                                                "cDesignsEventPublicationSource",
                                                 "CreateRecipe",
                                                 "IngredientsPalette",
                                                 "modDesignsApply",
@@ -4172,6 +4173,26 @@
                                         }
                        },
                        {
+                           "name":  "cDesignsEventPublicationSource",
+                           "kind":  "CLASS_MODULE",
+                           "sourcePath":  "src/DesignsDomain/ClassModules/cDesignsEventPublicationSource.cls",
+                           "lineCount":  156,
+                           "procedureNames":  [
+                                                  "Acquire",
+                                                  "CloseSource",
+                                                  "Envelope",
+                                                  "EscapeField",
+                                                  "FieldText",
+                                                  "Folder",
+                                                  "Read",
+                                                  "ReadRows",
+                                                  "RequiredColumns"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
                            "name":  "CreateRecipe",
                            "kind":  "CLASS_MODULE",
                            "sourcePath":  "src/DesignsDomain/ClassModules/Sheets/CreateRecipe.cls",
@@ -4335,7 +4356,7 @@
                            "name":  "modDesignsBridgeApi",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/DesignsDomain/Modules/modDesignsBridgeApi.bas",
-                           "lineCount":  131,
+                           "lineCount":  135,
                            "procedureNames":  [
                                                   "ApplyDesignEventBridgeEncoded",
                                                   "DiagnoseDesignsDomainBridgeResult",
@@ -22995,7 +23016,8 @@
                            "endLine":  1145,
                            "lineCount":  13,
                            "directCalls":  [
-                                               "Add"
+                                               "Add",
+                                               "Folder"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -56583,6 +56605,7 @@
                            "lineCount":  30,
                            "directCalls":  [
                                                "Add",
+                                               "Folder",
                                                "FolderExistsRole"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -67631,6 +67654,208 @@
                                        ]
                        },
                        {
+                           "componentName":  "cDesignsEventPublicationSource",
+                           "name":  "Read",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  14,
+                           "endLine":  33,
+                           "lineCount":  20,
+                           "directCalls":  [
+                                               "Acquire",
+                                               "CloseSource",
+                                               "Envelope",
+                                               "Fields",
+                                               "Folder",
+                                               "GetCurrentTargetRuntimeRoot",
+                                               "GetCurrentTargetWarehouseId",
+                                               "IsCurrentTargetAllowed",
+                                               "ReadRows"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cDesignsEventPublicationSource",
+                           "name":  "Acquire",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  35,
+                           "endLine":  68,
+                           "lineCount":  34,
+                           "directCalls":  [
+                                               "CloseSource",
+                                               "EnableEvents"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cDesignsEventPublicationSource",
+                           "name":  "ReadRows",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  70,
+                           "endLine":  100,
+                           "lineCount":  31,
+                           "directCalls":  [
+                                               "Envelope",
+                                               "EscapeField",
+                                               "Fields",
+                                               "FieldText",
+                                               "RequiredColumns"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cDesignsEventPublicationSource",
+                           "name":  "RequiredColumns",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  102,
+                           "endLine":  117,
+                           "lineCount":  16,
+                           "directCalls":  [
+                                               "Add"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cDesignsEventPublicationSource",
+                           "name":  "FieldText",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  119,
+                           "endLine":  128,
+                           "lineCount":  10,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cDesignsEventPublicationSource",
+                           "name":  "EscapeField",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  130,
+                           "endLine":  135,
+                           "lineCount":  6,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cDesignsEventPublicationSource",
+                           "name":  "Envelope",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  137,
+                           "endLine":  139,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "EscapeField"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cDesignsEventPublicationSource",
+                           "name":  "Folder",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  141,
+                           "endLine":  147,
+                           "lineCount":  7,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cDesignsEventPublicationSource",
+                           "name":  "CloseSource",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  149,
+                           "endLine":  156,
+                           "lineCount":  8,
+                           "directCalls":  [
+                                               "EnableEvents"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
                            "componentName":  "Production",
                            "name":  "Worksheet_SelectionChange",
                            "visibility":  "PRIVATE",
@@ -69198,8 +69423,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  96,
-                           "endLine":  121,
-                           "lineCount":  26,
+                           "endLine":  125,
+                           "lineCount":  30,
                            "directCalls":  [
                                                "GetBOM",
                                                "GetBOMForStatus",
@@ -69208,6 +69433,7 @@
                                                "ListDesigns",
                                                "ListProcesses",
                                                "ListRecipes",
+                                               "Read",
                                                "ValidateReleasedRecipeBridgeEncoded"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -69225,8 +69451,8 @@
                            "name":  "DiagnoseDesignsDomainBridgeResult",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  123,
-                           "endLine":  125,
+                           "startLine":  127,
+                           "endLine":  129,
                            "lineCount":  3,
                            "directCalls":  [
                                                "DiagnoseDesignsDomain"
@@ -69246,8 +69472,8 @@
                            "name":  "EncodeDesignsBridgeField",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  127,
-                           "endLine":  131,
+                           "startLine":  131,
+                           "endLine":  135,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -140397,6 +140623,7 @@
                                           ],
                        "unknownHeadersPolicy":  "PRESERVE",
                        "locations":  [
+                                         "src/DesignsDomain/ClassModules/cDesignsEventPublicationSource.cls",
                                          "src/DesignsDomain/Modules/modDesignsApply.bas",
                                          "src/DesignsDomain/Modules/modDesignsSchema.bas"
                                      ]
@@ -141480,6 +141707,13 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Acquire",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4bjNasStationSetup.ps1",
+                                                 "tests/unit/TestPhase6CoreSurfaces.bas"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "AcquireLock",
                                "testPaths":  [
                                                  "tests/unit/TestAdminConsole.bas",
@@ -141512,6 +141746,7 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beAdminSettingsClose.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -141821,6 +142056,7 @@
                            {
                                "entryPoint":  "ApplyDesignEvent",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/unit/TestDesignsDomain.bas"
                                              ]
                            },
@@ -142052,6 +142288,7 @@
                                                  "tests/integration/prove_wan_wh2_setup.bas",
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beReceivingNativeSurface.ps1",
                                                  "tests/tooling/Test-Plan022Slice4agProductionActualOutput.ps1",
                                                  "tests/tooling/Test-Plan022Slice4atLocationStock.ps1",
@@ -142690,6 +142927,7 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1",
+                                                 "tests/tooling/Slice4beViewerPublication.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
@@ -143170,6 +143408,7 @@
                            {
                                "entryPoint":  "DesignId",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aaProcessBulkImport.ps1",
                                                  "tests/unit/TestCoreRoleEventWriter.bas",
                                                  "tests/unit/TestDesignsDomain.bas",
@@ -143179,6 +143418,7 @@
                            {
                                "entryPoint":  "DesignVersion",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/unit/TestCoreRoleEventWriter.bas",
                                                  "tests/unit/TestDesignsDomain.bas"
                                              ]
@@ -143507,6 +143747,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Envelope",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-PackagedSystemKeyGeneration.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ErrorText",
                                "testPaths":  [
                                                  "tests/unit/TestWarehouseRetireReAuth.bas"
@@ -143523,6 +143769,7 @@
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
@@ -143556,6 +143803,7 @@
                                "testPaths":  [
                                                  "tests/integration/test_CreateWarehouse.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
@@ -143690,6 +143938,7 @@
                            {
                                "entryPoint":  "Fields",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Test-Slice0ToolContracts.ps1"
@@ -143782,6 +144031,7 @@
                            {
                                "entryPoint":  "Finish",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1"
                                              ]
                            },
@@ -143796,6 +144046,17 @@
                                "entryPoint":  "FirstUseServerConnectionPromptRole",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4biFirstUseNasOnboarding.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Folder",
+                               "testPaths":  [
+                                                 "tests/integration/prove_wan_wh1_setup.bas",
+                                                 "tests/integration/prove_wan_wh2_setup.bas",
+                                                 "tests/integration/test_RetireMigrate.bas",
+                                                 "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beReceivingFreshness.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
                                              ]
                            },
                            {
@@ -145405,6 +145666,7 @@
                            {
                                "entryPoint":  "Message",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
@@ -145682,6 +145944,7 @@
                                                  "tests/integration/prove_wan_wh1_setup.bas",
                                                  "tests/integration/prove_wan_wh2_setup.bas",
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                  "tests/tooling/Test-Plan022Slice4alInventoryDeletion.ps1",
@@ -145801,6 +146064,7 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1",
+                                                 "tests/tooling/Slice4beViewerPublication.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
@@ -145838,7 +146102,8 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
-                                                 "tests/tooling/Slice4beShippingInterruptions.ps1"
+                                                 "tests/tooling/Slice4beShippingInterruptions.ps1",
+                                                 "tests/tooling/Slice4beViewerPublication.ps1"
                                              ]
                            },
                            {
@@ -146131,6 +146396,7 @@
                                "entryPoint":  "Qty",
                                "testPaths":  [
                                                  "tests/integration/test_RetireMigrate.bas",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Test-Phase6PackagedWanHqSystemKey.ps1",
                                                  "tests/tooling/Test-Plan022Slice4agProductionActualOutput.ps1",
@@ -146290,6 +146556,7 @@
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -146799,6 +147066,7 @@
                            {
                                "entryPoint":  "ResolveDesignsWorkbook",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/unit/TestDesignsDomain.bas"
                                              ]
                            },
@@ -146992,6 +147260,12 @@
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Slice10ReceivingStabilization.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "RunDesignsQueryBridge",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1"
                                              ]
                            },
                            {
@@ -147220,6 +147494,7 @@
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
@@ -147242,6 +147517,7 @@
                                                  "tests/tooling/Slice4beTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Slice4beViewerEventGroups.ps1",
+                                                 "tests/tooling/Slice4beViewerPublication.ps1",
                                                  "tests/tooling/Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
                                                  "tests/tooling/Test-Plan022Slice4biFirstUseNasOnboarding.ps1",
@@ -147922,6 +148198,7 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                  "tests/tooling/Test-Phase6PackagedWanHqSystemKey.ps1",
@@ -148036,6 +148313,7 @@
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
@@ -148588,6 +148866,7 @@
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1",
@@ -148698,6 +148977,7 @@
                                                  "tests/integration/test_CreateWarehouse.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
@@ -148974,6 +149254,7 @@
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1",
+                                                 "tests/tooling/Slice4beViewerPublication.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-EaWholeUnitInvariant.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",

@@ -490,7 +490,7 @@ End Function
         Test-Slice4beViewerEventGroups $a $b
         if($CheckViewerPublication) {
             $step='packaged Admin Events publication'
-            Test-Slice4beViewerPublication $a
+            Test-Slice4beViewerPublication $a $b
         }
     }
     if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail -and -not $CheckViewerEventGroups) {

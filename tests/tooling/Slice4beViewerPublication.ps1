@@ -2,7 +2,7 @@
 # The existing owning publication command executes unchanged. Only its source
 # table read receives a disposable published-fixture copy; canonical rows stay
 # untouched. Reports contain fixed checks/Booleans, never source rows or paths.
-function Test-Slice4beViewerPublication($Fixture) {
+function Test-Slice4beViewerPublication($Fixture,$OtherFixture) {
     function PublicationSourceHash([string]$Path) {
         $stream=[IO.File]::Open($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite)
         $hash=[Security.Cryptography.SHA256]::Create()
@@ -40,6 +40,8 @@ function Test-Slice4beViewerPublication($Fixture) {
     if($prepared){$prepared=$attempts[0].ActivityId -ceq $resultsForAction[0].ActivityId -and $attempts[0].RecordId -cne $resultsForAction[0].RecordId}
     Check 'ViewerPublication.RealSettingsHandlerPreparedActivityPair' $prepared
     if(-not $prepared){throw 'Publication activity fixture lacks the actual correlated attempt/result pair.'}
+    . (Join-Path $PSScriptRoot 'Slice4beDesignsPublicationSource.ps1')
+    Test-Slice4beDesignsPublicationSource $Fixture $OtherFixture
     $snapshot=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Snapshot.Inventory.xlsb')
     $source=Join-Path $runRoot 'viewer-publication-source.xlsb'
     Copy-Item -LiteralPath $snapshot -Destination $source
@@ -151,7 +153,7 @@ End Function
     foreach($name in @('Inventory','Designs','Activity','ShippingBOM','ShippingHolds')){$named=$named -and @($sources|Where-Object {$_.Source -ceq $name -and $_.Availability -ne '' -and $_.Scope -ne ''}).Count -eq 1}
     Check 'ViewerPublication.EveryExpectedSourceHasNamedCoverage' $named
     $counts=$true
-    foreach($expect in @(@('Inventory',5001,4999,2,5003,5001,2),@('Activity',1,1,0,2,2,0))){
+    foreach($expect in @(@('Inventory',5001,4997,4,5003,4999,4),@('Activity',1,1,0,2,2,0),@('Designs',2,2,0,2,2,0))){
         $entry=@($sources|Where-Object {$_.Source -ceq $expect[0]})
         if($entry.Count -ne 1){$counts=$false;continue}
         $i=1;foreach($field in @('AvailableGroups','IncludedGroups','OmittedGroups','AvailableLines','IncludedLines','OmittedLines')){$counts=$counts -and $entry[0].$field -eq $expect[$i];$i++}

@@ -98,7 +98,11 @@ Public Function ReadDesignsQueryBridgeResult(ByVal queryName As String, _
                                              Optional ByVal arg2 As String = "", _
                                              Optional ByVal arg3 As String = "", _
                                              Optional ByVal designsWb As Workbook = Nothing) As Variant
+    Dim publication As cDesignsEventPublicationSource
     Select Case UCase$(Trim$(queryName))
+        Case "PUBLICATION_EVENTS"
+            Set publication = New cDesignsEventPublicationSource
+            ReadDesignsQueryBridgeResult = publication.Read(arg1, arg2)
         Case "LIST_DESIGNS"
             ReadDesignsQueryBridgeResult = modDesignsQueries.ListDesigns(designsWb, arg1)
         Case "GET_BOM"

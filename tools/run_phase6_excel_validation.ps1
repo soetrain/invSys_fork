@@ -439,6 +439,7 @@ try {
         (Join-Path $repo "src/DesignsDomain/Modules/modDesignsApply.bas"),
         (Join-Path $repo "src/DesignsDomain/Modules/modDesignsQueries.bas"),
         (Join-Path $repo "src/DesignsDomain/Modules/modDesignsBridgeApi.bas"),
+        (Join-Path $repo "src/DesignsDomain/ClassModules/cDesignsEventPublicationSource.cls"),
         (Join-Path $repo "src/Receiving/Modules/modReceivingInit.bas"),
         (Join-Path $repo "src/Receiving/Modules/modReceivingFormWindow.bas"),
         (Join-Path $repo "src/Receiving/Modules/modReceivingPostingService.bas"),

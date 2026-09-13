@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-13T18:17:39Z",
+    "generatedAtUtc":  "2026-09-13T19:24:01Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "f394ec3c5c7929a1cab4d35ac0c1a3ddc9dcf01b9513bb152041f272d6232c2e",
-                          "maintenanceCandidatesSha256":  "82fca23ac155ab77a354ccb3dd65d7a764f0c54798f4b055ae5cb661085f11a0"
+                          "implementationManifestSha256":  "bb986e3bc1427ede086c12b3c12fb7637fd54438ac49f568c237ff3e9d053f5b",
+                          "maintenanceCandidatesSha256":  "58fe5730ef30138e794d985bae9a3274ae7c8fca43deb01ce517912e6a0bcfa6"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -16941,6 +16941,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                    "tests/unit/TestDesignsDomain.bas"
                                                ],
                            "deletionApproved":  false,
