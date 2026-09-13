@@ -236,7 +236,7 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
     On Error GoTo FailSnapshot
 
     Dim t0 As Single
-    Dim wbInv As Workbook
+    Dim wbInv As Workbook, inventorySource As New cSnapshotInventorySource
     Dim wbSnap As Workbook
     Dim snapshotRows As Object
     Dim savePath As String
@@ -246,7 +246,7 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
     t0 = Timer
 
     If warehouseId = "" Then warehouseId = modConfig.GetWarehouseId()
-    Set wbInv = ResolveInventoryWorkbookBridge(warehouseId, inventoryWb)
+    Set wbInv = inventorySource.Read(warehouseId, inventoryWb)
     If wbInv Is Nothing Then
         report = "Inventory workbook not found."
         Exit Function

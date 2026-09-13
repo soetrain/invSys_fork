@@ -16,6 +16,8 @@ param(
     [switch]$CheckViewerRefreshFailure,
     [switch]$CheckViewerEventDetail,
     [switch]$CheckViewerEventGroups,
+    [switch]$CheckViewerPublication,
+    [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
     [switch]$TraceBootstrapForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -43,6 +45,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($AdminSettingsCloseOnly) { $CheckAdminSettingsClose = $true }
+if($ViewerPublicationOnly) {
+    if($Phase -ne 'RED'){throw 'Publication-only diagnosis is not acceptance GREEN.'}
+    $CheckViewerPublication = $true
+}
+if($CheckViewerPublication) { $CheckViewerEventGroups = $true }
 if($CheckAdminSettingsClose -and -not $CheckActionPathPreference) { throw 'Admin close requires the complete preference probes.' }
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
@@ -133,6 +140,7 @@ if ($CheckViewerEventGroups) {
     if ($CheckTrackingSettings -or $CheckActivityEvidence -or $CheckReceivingActivity -or $CheckShippingActivity -or $CheckViewerRefreshFailure -or $CheckViewerEventDetail) { throw 'Viewer event groups uses a separate focused run.' }
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-viewer-groups/'+[guid]::NewGuid().ToString('N'))
     . (Join-Path $PSScriptRoot 'Slice4beViewerEventGroups.ps1')
+    if ($CheckViewerPublication) { . (Join-Path $PSScriptRoot 'Slice4beViewerPublication.ps1') }
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 if ($CheckOperationsTrackingSettings) {
@@ -480,6 +488,10 @@ End Function
     if($CheckViewerEventGroups) {
         $step='packaged Viewer complete event groups'
         Test-Slice4beViewerEventGroups $a $b
+        if($CheckViewerPublication) {
+            $step='packaged Admin Events publication'
+            Test-Slice4beViewerPublication $a
+        }
     }
     if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail -and -not $CheckViewerEventGroups) {
     $step='unauthenticated command'
@@ -671,6 +683,7 @@ finally {
         Remove-Item -LiteralPath $resolved -Recurse -Force
     }
     $reportName=$Phase.ToLowerInvariant()+'.json'
+    if($ViewerPublicationOnly){$reportName='diagnostic-publication-'+$reportName}
     if ($ShippingSubmissionOnly) { $reportName='diagnostic-submission-'+$reportName }
     if ($TraceBootstrapForTest) { $reportName='diagnostic-bootstrap-'+$reportName }
     if ($ShippingBeforeSharedFormsForTest) { $reportName='diagnostic-shipping-first-'+$reportName }

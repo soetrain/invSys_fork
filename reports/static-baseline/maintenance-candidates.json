@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-13T16:55:08Z",
+    "generatedAtUtc":  "2026-09-13T18:17:39Z",
     "baseline":  {
-                     "componentCount":  201,
-                     "procedureCount":  5664,
-                     "lineCount":  126133,
+                     "componentCount":  202,
+                     "procedureCount":  5666,
+                     "lineCount":  126192,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  189
@@ -6569,6 +6569,7 @@
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
+                                                   "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -9013,6 +9014,23 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Core_ClassModules_cSnapshotInventorySource.cls:cSnapshotInventorySource.Class_Terminate",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cSnapshotInventorySource",
+                           "procedureNames":  [
+                                                  "Class_Terminate"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Core/ClassModules/cSnapshotInventorySource.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Core_ClassModules_MouseOverControl.cls:MouseOverControl.Class_Terminate",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -10319,6 +10337,7 @@
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
+                                                   "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -13036,6 +13055,7 @@
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
+                                                   "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -13817,6 +13837,7 @@
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
+                                                   "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],

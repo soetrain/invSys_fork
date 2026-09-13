@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-13T16:55:08Z
-- Scanner candidates: 1131
-- Reviewed candidates: 1133
+- Baseline: 2026-09-13T18:17:39Z
+- Scanner candidates: 1132
+- Reviewed candidates: 1134
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -15,7 +15,7 @@
 | PRODUCTION | 222 | Production-owned forms, services, and role package source. |
 | SHIPPING | 156 | Shipping and Boxing forms, services, and role package source. |
 | SHARED_OPERATIONS | 58 | Cross-role or future invSys.Operations packaging work. |
-| CORE | 286 | Headless shared runtime and developer-support source in Core. |
+| CORE | 287 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
 | ADMIN | 258 | Administrative setup, lifecycle, and developer-support source. |
 | DEVELOPER_TOOLING | 31 | Build, scan, report, and other developer-only tooling. |
@@ -34,7 +34,7 @@
 | src/Admin/Forms/frmCreateDeleteUser.frm | Admin | 1395 |
 | src/Admin/Forms/frmRetireMigrateWarehouse.frm | Admin | 1644 |
 | src/Admin/Modules/modAdmin.bas | Admin | 2507 |
-| src/Admin/Modules/modAdminConsole.bas | Admin | 2366 |
+| src/Admin/Modules/modAdminConsole.bas | Admin | 2362 |
 | src/Admin/Modules/modTesterSetup.bas | Admin | 1655 |
 | src/Core/ClassModules/cDynItemSearch.cls | Core | 1999 |
 | src/Core/Modules/modAuth.bas | Core | 1802 |
@@ -557,6 +557,7 @@
 | root:src_Core_ClassModules_cDynItemSearch.cls:cDynItemSearch.txtSearch_Change | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_ClassModules_cDynItemSearch.cls:cDynItemSearch.txtSearch_KeyDown | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_ClassModules_clsBulkSnapshot.cls:clsBulkSnapshot.class_initialize | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Core_ClassModules_cSnapshotInventorySource.cls:cSnapshotInventorySource.Class_Terminate | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_ClassModules_MouseOverControl.cls:MouseOverControl.Class_Terminate | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_ClassModules_MouseOverControl.cls:MouseOverControl.m_CheckBox_MouseMove | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_ClassModules_MouseOverControl.cls:MouseOverControl.m_ComboBox_MouseMove | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |

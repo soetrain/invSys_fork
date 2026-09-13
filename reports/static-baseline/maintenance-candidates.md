@@ -1,8 +1,8 @@
 # invSys VBA Maintenance Candidates
 
 - Schema: 1.0.0
-- Generated: 2026-09-13T16:55:08Z
-- Total candidates: 1131
+- Generated: 2026-09-13T18:17:39Z
+- Total candidates: 1132
 - Duplicate-body groups: 189
 - Unresolved dynamic calls: 45
 
@@ -499,6 +499,7 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | RETAIN_DYNAMIC_ROOT | LOW | cDynItemSearch | txtSearch_Change | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | cDynItemSearch | txtSearch_KeyDown | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | clsBulkSnapshot | class_initialize | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cSnapshotInventorySource | Class_Terminate | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | MouseOverControl | Class_Terminate | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | MouseOverControl | m_CheckBox_MouseMove | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | MouseOverControl | m_ComboBox_MouseMove | Procedure is a registered or discovered dynamic root. |

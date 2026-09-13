@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-13T16:55:08Z",
+    "generatedAtUtc":  "2026-09-13T18:17:39Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "63098592f5026f1016131c97572567a81388149357f8bedd74be3d8494a760cb",
-                          "maintenanceCandidatesSha256":  "a6b02d0d3519538a650fb429f7aeb0f533b52a3b31a42d1368b7c10a54201a2e"
+                          "implementationManifestSha256":  "f394ec3c5c7929a1cab4d35ac0c1a3ddc9dcf01b9513bb152041f272d6232c2e",
+                          "maintenanceCandidatesSha256":  "82fca23ac155ab77a354ccb3dd65d7a764f0c54798f4b055ae5cb661085f11a0"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1131,
-                    "reviewedCandidateCount":  1133,
+                    "scannerCandidateCount":  1132,
+                    "reviewedCandidateCount":  1134,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -42,7 +42,7 @@
                         },
                         {
                             "name":  "CORE",
-                            "candidateCount":  286,
+                            "candidateCount":  287,
                             "reason":  "Headless shared runtime and developer-support source in Core."
                         },
                         {
@@ -105,7 +105,7 @@
                                                   "sourcePath":  "src/Admin/Modules/modAdminConsole.bas",
                                                   "componentName":  "modAdminConsole",
                                                   "packageKey":  "Admin",
-                                                  "baselineLineCount":  2366,
+                                                  "baselineLineCount":  2362,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -3692,6 +3692,7 @@
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
+                                                   "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -13501,6 +13502,29 @@
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
                        },
                        {
+                           "id":  "root:src_Core_ClassModules_cSnapshotInventorySource.cls:cSnapshotInventorySource.Class_Terminate",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "CORE",
+                           "componentName":  "cSnapshotInventorySource",
+                           "procedureNames":  [
+                                                  "Class_Terminate"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Core/ClassModules/cSnapshotInventorySource.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
                            "id":  "root:src_Core_ClassModules_MouseOverControl.cls:MouseOverControl.Class_Terminate",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
@@ -15183,6 +15207,7 @@
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
+                                                   "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -24482,6 +24507,7 @@
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
+                                                   "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],
@@ -30316,6 +30342,7 @@
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
+                                                   "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                    "tests/tooling/Slice4beViewerRefreshFailure.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                                ],

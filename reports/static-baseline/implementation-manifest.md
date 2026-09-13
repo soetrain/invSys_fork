@@ -1,10 +1,10 @@
 # invSys Static Implementation Manifest
 
 - Schema: 1.0.0
-- Generated: 2026-09-13T16:55:08Z
+- Generated: 2026-09-13T18:17:39Z
 - Packages: 6
-- Components: 201
-- Procedures: 5664
+- Components: 202
+- Procedures: 5666
 - Literal Application.Run targets: 8
 - Unresolved dynamic calls: 45
 
@@ -13,7 +13,7 @@
 | Package | Project | Output | Components |
 |---|---|---|---:|
 | Admin | invSys_Admin | invSys.Admin.xlam | 31 |
-| Core | invSys_Core | invSys.Core.xlam | 81 |
+| Core | invSys_Core | invSys.Core.xlam | 82 |
 | DesignsDomain | invSys_Designs_Domain | invSys.Designs.Domain.xlam | 14 |
 | InventoryDomain | invSys_Inventory_Domain | invSys.Inventory.Domain.xlam | 10 |
 | Operations | invSys_Operations | invSys.Operations.xlam | 56 |
@@ -60,6 +60,7 @@
 | chkShippable_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | class_initialize | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | Class_Initialize | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| Class_Terminate | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | Class_Terminate | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | cmbSourceWarehouse_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | cmbTargetWarehouse_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |

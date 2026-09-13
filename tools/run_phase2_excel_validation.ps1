@@ -215,6 +215,8 @@ try {
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
         (Join-Path $repo "src/Core/Modules/modAuthSession.bas"),
         (Join-Path $repo "src/Core/Modules/modLockManager.bas"),
+        (Join-Path $repo "src/Core/ClassModules/cSnapshotInventorySource.cls"),
+        (Join-Path $repo "src/Core/Modules/modTrainingWire.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
         (Join-Path $repo "src/Core/Modules/modProcessor.bas"),
         (Join-Path $repo "src/InventoryDomain/Modules/modInventoryInit.bas"),

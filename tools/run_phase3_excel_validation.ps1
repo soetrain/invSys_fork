@@ -98,6 +98,8 @@ try {
         (Join-Path $repo "src/Core/Modules/modItemSearch.bas"),
         (Join-Path $repo "src/Core/Modules/modInventoryDomainBridge.bas"),
         (Join-Path $repo "src/Core/Modules/modDesignsDomainBridge.bas"),
+        (Join-Path $repo "src/Core/ClassModules/cSnapshotInventorySource.cls"),
+        (Join-Path $repo "src/Core/Modules/modTrainingWire.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
         (Join-Path $repo "src/Core/Modules/modOperatorReadModel.bas"),
         (Join-Path $repo "src/Core/Modules/modProcessor.bas"),

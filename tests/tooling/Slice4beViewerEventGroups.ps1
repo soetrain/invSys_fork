@@ -69,6 +69,7 @@ End Function
     $book=$excel.Workbooks.Open($snapshot,0,$false)
     if(-not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PrepareViewerGroupsForTest' @($book.Name))) {throw 'Published group fixture preparation failed.'}
     $book.Save();$book.Close($false)
+    if($ViewerPublicationOnly){return}
     $pins=@{}
     foreach($file in Get-ChildItem -LiteralPath $Fixture.Root -Filter '*.xlsb') {$pins[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash}
 

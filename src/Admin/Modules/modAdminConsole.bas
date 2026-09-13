@@ -688,11 +688,7 @@ Public Function GenerateInventorySnapshot(Optional ByVal adminUserId As String =
     If Not EnsureAdminContext(adminUserId, warehouseId, resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
     If Not RequireAdminMaintenance(resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
 
-    Set sourceInvWb = modInventoryDomainBridge.ResolveInventoryWorkbookBridge(resolvedWh, inventoryWb)
-    If sourceInvWb Is Nothing Then
-        report = "Inventory workbook not found."
-        Exit Function
-    End If
+    Set sourceInvWb = inventoryWb
 
     snapPath = vbNullString
     If Not modWarehouseSync.GenerateWarehouseSnapshot(resolvedWh, sourceInvWb, outputPath, Nothing, snapPath) Then
