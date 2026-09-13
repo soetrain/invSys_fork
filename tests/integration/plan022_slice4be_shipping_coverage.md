@@ -77,8 +77,9 @@ candidate now guards all seven mutation handlers and explicit stale-form relaunc
 46 former guard failures pass, while46 missing-activity failures remain. Broader
 candidate gates and the remaining context/failure cases are still required.
 
-Extend the real-handler context matrix to capability loss and workbook closure,
-retaining the passing pending-yield/timer checks and all prior GREENs. Protect pending,
+Normal workbook closure and pre-entry capability loss now have the focused evidence
+below. Extend the real-handler matrix to permission loss during a yield and unavailable
+Auth/Config, retaining the passing pending-yield/timer checks and all prior GREENs. Protect pending,
 uncertain-submission, storage and policy outcomes separately. A later owner
 rejection or rollback cannot substitute for the required pre-owner stale-form guard.
 Before implementation, record discovered ControlIds and precise owner outcomes
@@ -129,5 +130,14 @@ FAIL with all prior368 checks retained. Normal Shipping startup installs its eve
 hook; actual workbook close releases form/callback bindings, and late timer dispatch
 does not reopen, submit, fabricate a user click or redirect to another workbook.
 Read-only reopen preserves saved active/held staging, exact keys and unknown values.
-This closes ordinary workbook-shutdown coverage only. Capability loss, a separately
-retained stale form and the pending/uncertain owner branches remain unproven.
+This closes ordinary workbook-shutdown coverage only. A separately retained stale
+form and the pending/uncertain owner branches remain unproven.
+
+The [capability checkpoint](plan022_slice4be_shipping_capability_results.md) proves
+same-session SHIP_POST revocation before all seven mutation handlers. Seven healthy
+owner probes calibrate dispatch; the denied probes originally enter owners, and a
+real denied Hold moves staging. RED374/61 becomes GREEN389/46 after normative
+clarification0cc61c9 and the bounded form/context-helper repair. All435 checks and
+prior GREENs remain. Owner checks and Core security authority are retained; the
+timer keeps its existing context entry contract. Permission loss during a UI yield
+and unavailable Auth/Config are separate cases, not implied by pre-entry revocation.

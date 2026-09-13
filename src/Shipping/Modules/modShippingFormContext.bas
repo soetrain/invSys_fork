@@ -21,6 +21,23 @@ Public Function IsCurrent(ByVal operatorWb As Workbook, ByVal context As String,
 Unavailable:
 End Function
 
+Public Function CanAct(ByVal operatorWb As Workbook, ByVal context As String, _
+                       ByRef report As String, Optional ByVal requireCapability As Boolean = True) As Boolean
+    Dim allowed As Boolean
+    On Error GoTo Denied
+    If Not IsCurrent(operatorWb, context, report) Then Exit Function
+    If requireCapability Then
+        allowed = modRoleUiAccess.CanCurrentUserPerformCapability("SHIP_POST")
+        If Not IsCurrent(operatorWb, context, report) Then Exit Function
+        If Not allowed Then GoTo Denied
+    End If
+    CanAct = True
+    Exit Function
+Denied:
+    If Not IsCurrent(operatorWb, context, report) Then Exit Function
+    report = "Shipping permission could not be verified. Review Shipping access before continuing."
+End Function
+
 Public Function CanReuse(ByVal form As frmShipmentsTally) As Boolean
     If form Is Nothing Then Exit Function
     CanReuse = form.HasCurrentContext()

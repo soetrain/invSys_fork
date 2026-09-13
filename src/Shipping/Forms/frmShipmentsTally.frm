@@ -231,9 +231,9 @@ Public Function HasCurrentContext() As Boolean
     HasCurrentContext = modShippingFormContext.IsCurrent(mOperatorWorkbook, mActivityContext)
 End Function
 
-Private Function RequireActionContext() As Boolean
+Private Function RequireActionContext(Optional ByVal requireCapability As Boolean = True) As Boolean
     Dim report As String
-    RequireActionContext = modShippingFormContext.IsCurrent(mOperatorWorkbook, mActivityContext, report)
+    RequireActionContext = modShippingFormContext.CanAct(mOperatorWorkbook, mActivityContext, report, requireCapability)
     If RequireActionContext Then Exit Function
     CancelAutoSync
     ShowStatus report
@@ -354,7 +354,7 @@ Public Sub AutoSyncIfPending()
     Dim nasStatus As String
 
     If Not mAutoSyncArmed Then Exit Sub
-    If Not RequireActionContext() Then Exit Sub
+    If Not RequireActionContext(False) Then Exit Sub
     If mLoading Then
         ShowStatus "AutoSync: skipped (loading)."
         GoTo CleanExit

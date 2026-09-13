@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T02:02:41Z",
+    "generatedAtUtc":  "2026-09-13T02:20:37Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -6953,8 +6953,9 @@
                            "name":  "modShippingFormContext",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Shipping/Modules/modShippingFormContext.bas",
-                           "lineCount":  39,
+                           "lineCount":  56,
                            "procedureNames":  [
+                                                  "CanAct",
                                                   "CanReuse",
                                                   "CreateBoundForm",
                                                   "IsCurrent"
@@ -113605,8 +113606,8 @@
                            "endLine":  240,
                            "lineCount":  7,
                            "directCalls":  [
+                                               "CanAct",
                                                "CancelAutoSync",
-                                               "IsCurrent",
                                                "ShowStatus"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -117842,11 +117843,33 @@
                        },
                        {
                            "componentName":  "modShippingFormContext",
-                           "name":  "CanReuse",
+                           "name":  "CanAct",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  24,
-                           "endLine":  27,
+                           "endLine":  39,
+                           "lineCount":  16,
+                           "directCalls":  [
+                                               "CanCurrentUserPerformCapability",
+                                               "IsCurrent"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modShippingFormContext",
+                           "name":  "CanReuse",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  41,
+                           "endLine":  44,
                            "lineCount":  4,
                            "directCalls":  [
                                                "HasCurrentContext"
@@ -117866,8 +117889,8 @@
                            "name":  "CreateBoundForm",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  30,
-                           "endLine":  39,
+                           "startLine":  47,
+                           "endLine":  56,
                            "lineCount":  10,
                            "directCalls":  [
                                                "InitializeFromShipping",
@@ -137089,6 +137112,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Slice4beWorksheetInput.ps1",
@@ -137925,6 +137949,7 @@
                            {
                                "entryPoint":  "CanCurrentUserPerformCapability",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/unit/TestCoreRoleUiAccess.bas"
                                              ]
                            },
@@ -139685,6 +139710,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingWorkbookClose.ps1",
@@ -139879,6 +139905,7 @@
                            {
                                "entryPoint":  "IsSignedIn",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Test-R1ControlSurface.ps1",
@@ -142819,6 +142846,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",

@@ -57,6 +57,7 @@ function Test-Slice4beShippingActivity {
     . (Join-Path $PSScriptRoot 'Slice4beShippingContext.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beShippingInterruptions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beShippingWorkbookClose.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beShippingCapability.ps1')
     $project=$packages['invSys.Operations.xlam'].VBProject
     $form=$project.VBComponents.Item('frmShipmentsTally').CodeModule
     # Intercept only existing report presentation, retaining the real handlers.
@@ -372,6 +373,9 @@ End Function
 Public Function SessionVersion() As Long
     SessionVersion = modAuthSession.Version()
 End Function
+Public Function CanShip() As Boolean
+    CanShip = modRoleUiAccess.CanCurrentUserPerformCapability("SHIP_POST")
+End Function
 '@)
         foreach($case in @('InvalidQuantity','ReauthenticatedSession')) {
             $label='Shipping.'+$case
@@ -421,6 +425,7 @@ End Function
             }
         }
         Test-Slice4beShippingContextMatrix $fixture $operator $other $ship $hold
+        Test-Slice4beShippingCapability $fixture $operator $other $ship $hold
         Test-Slice4beShippingWorkbookClose $fixture $operator $other $ship $hold
         $operator=$null # The actual close event was exercised and verified above.
         Check 'Shipping.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))
