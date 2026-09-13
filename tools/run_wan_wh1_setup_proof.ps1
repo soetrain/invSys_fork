@@ -125,6 +125,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modAuth.bas"),
         (Join-Path $repo "src/Core/Modules/modAuthSession.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleEventWriter.bas"),
+        (Join-Path $repo "src/Core/Modules/modRoleEventJson.bas"),
         (Join-Path $repo "src/Core/Modules/modSystemIdentity.bas"),
         (Join-Path $repo "src/Core/Modules/modDiagnostics.bas"),
         (Join-Path $repo "src/Core/Modules/modPerfLog.bas"),

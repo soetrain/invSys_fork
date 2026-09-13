@@ -10,6 +10,7 @@ Private ActivityServerCalls As Long, ActivityCurrentCalls As Long
 Private ActivityServerAccepted As Boolean, ActivityCurrentAccepted As Boolean
 Private ActivityServerId As String, ActivityCurrentInput As String, ActivityCurrentOutput As String
 Private ActivitySubmissionRoot As String, ActivityServerPath As String, ActivityCurrentPath As String
+Private ActivityPrewriteRefusals As Long, ActivityServerWriteEntries As Long, ActivityLocalWriteEntries As Long
 '@)
     foreach($name in @('QueuePayloadEventServer','QueuePayloadEventCurrent')) {
         $pattern='(?ms)^Public Function '+$name+'\(.*?^End Function'
@@ -69,9 +70,32 @@ End Function
     $matches=[regex]::Matches($source,$pattern)
     if($matches.Count -ne 1){throw 'Shipping persistence observer anchor unavailable.'}
     $block=$matches[0].Value.Replace('    SaveWorkbookRole wbInbox',"    SaveWorkbookRole wbInbox`r`n    If ActivitySubmitMode <> 0 Then ActivityServerPath = wbInbox.FullName")
-    $anchor='        If Not AppendInboxRowToLocalStagingRole(rowValues, stagingPath, errorMessage) Then GoTo CleanExit'
-    $block=$block.Replace($anchor,$anchor+"`r`n        If ActivitySubmitMode <> 0 Then ActivityCurrentPath = stagingPath")
+    $anchor='    If localStageOnly Then'
+    if([regex]::Matches($block,[regex]::Escape($anchor)).Count -ne 1){throw 'Allocated-before-write refusal anchor unavailable.'}
+    $block=$block.Replace($anchor,@'
+    If ActivitySubmitMode = 5 Then
+        If eventIdOut = "" Then Err.Raise 5, , "Fixture expected Core to allocate before this boundary."
+        ActivityPrewriteRefusals = ActivityPrewriteRefusals + 1
+        errorMessage = "Fixture refused before either inventory submission write."
+        GoTo CleanExit
+    End If
+    If localStageOnly Then
+'@)
+    $anchor='(?im)^        If Not AppendInboxRowToLocalStagingRole\(rowValues, stagingPath, errorMessage(?:, writeAttemptedOut)?\) Then GoTo CleanExit'
+    if([regex]::Matches($block,$anchor).Count -ne 1){throw 'Local submission persistence observer anchor unavailable.'}
+    $block=[regex]::Replace($block,$anchor,'$0'+"`r`n        If ActivitySubmitMode <> 0 Then ActivityCurrentPath = stagingPath")
     $source=$source.Replace($matches[0].Value,$block)
+    foreach($entry in @(
+        @('AppendInboxRowToLocalStagingRole','    On Error GoTo FailAppend','ActivityLocalWriteEntries'),
+        @('WriteInboxRowValuesRole','    rowIndex = lo.ListRows.Add.Index','ActivityServerWriteEntries')
+    )){
+        $pattern='(?ims)^Private (?:Function|Sub) '+$entry[0]+'\(.*?^End (?:Function|Sub)'
+        $matches=[regex]::Matches($source,$pattern)
+        $anchorPattern='(?im)^'+[regex]::Escape($entry[1])
+        if($matches.Count -ne 1 -or [regex]::Matches($matches[0].Value,$anchorPattern).Count -ne 1){throw ('Actual write entry observer anchor unavailable: '+$entry[0])}
+        $block=[regex]::Replace($matches[0].Value,$anchorPattern,('    If ActivitySubmitMode <> 0 Then '+$entry[2]+' = '+$entry[2]+" + 1`r`n"+'$0'))
+        $source=$source.Replace($matches[0].Value,$block)
+    }
     $pattern='(?ms)^Private Function LocalStagingRootRole\(\) As String.*?^End Function'
     $matches=[regex]::Matches($source,$pattern)
     if($matches.Count -ne 1){throw 'Shipping staging fixture root anchor unavailable.'}
@@ -85,7 +109,11 @@ Public Sub ActivityShippingSubmissionMode(ByVal mode As Long)
     ActivityServerAccepted = False: ActivityCurrentAccepted = False
     ActivityServerId = "": ActivityCurrentInput = "": ActivityCurrentOutput = ""
     ActivityServerPath = "": ActivityCurrentPath = ""
+    ActivityPrewriteRefusals = 0: ActivityServerWriteEntries = 0: ActivityLocalWriteEntries = 0
 End Sub
+Public Function ActivityShippingWriteEntryState() As String
+    ActivityShippingWriteEntryState = CStr(ActivityPrewriteRefusals) & "|" & CStr(ActivityServerWriteEntries) & "|" & CStr(ActivityLocalWriteEntries)
+End Function
 Public Sub ActivityShippingSubmissionFixtureRoot(ByVal root As String)
     ActivitySubmissionRoot = root
 End Sub
@@ -189,6 +217,10 @@ function Test-Slice4beShippingSubmission($Module) {
             Check ($label+'.ActualFallbackResultObserved') ($state[3] -eq ([string]($mode -ne 3)))
             Check ($label+'.ExactIdSurvivesFallback') ($id -ne '' -and $(if($mode -eq 1){$state[5] -eq 'True'}else{$state[4] -eq 'True'}))
             Check ($label+'.ActualOwnerResultObserved') ($owner[0] -eq 'True' -and $owner[1] -eq ([string]($mode -ne 3)))
+            $entries=([string](Run 'invSys.Core.xlam' 'modRoleEventWriter.ActivityShippingWriteEntryState')).Split('|')
+            $calibrated=$entries[0] -ceq '0' -and $entries[1] -ceq $(if($mode -eq 1){'0'}else{'1'}) -and $entries[2] -ceq $(if($mode -eq 3){'0'}else{'1'})
+            Check ($label+'.ActualWriteEntriesObserved') $calibrated
+            if(-not $calibrated){throw 'Actual write observer calibration failed; not a product RED.'}
             Check ($label+'.ExactIdRetainedByOwner') ($owner[2] -eq 'True')
             $expectedOutcome=if($mode -eq 3){'FAILED'}else{'PENDING'}
             $expectedState=if($mode -eq 3){'Unknown'}else{'Submitted'}
@@ -229,6 +261,8 @@ function Test-Slice4beShippingSubmission($Module) {
                 Check ($label+'.ActualRemoveClearsStaging') (@(Get-ShippingActivityRows $ship | Where-Object {[double]$_.QUANTITY -gt 0}).Count -eq 0)
             }
         }
+        . (Join-Path $PSScriptRoot 'Slice4beShippingPrewriteRefusal.ps1')
+        Test-Slice4beShippingPrewriteRefusal $fixture $operator $other $ship $hold
         Check 'Shipping.Submission.AuthBytesPreserved' ($authHash -ceq (Get-ShippingActivityHash $authPath))
         Check 'Shipping.Submission.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))
         Check 'Shipping.Submission.UnrelatedWorkbookPreserved' ($otherHash -ceq (Get-ShippingActivityHash $other.FullName) -and $other.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq 'shipping submission sentinel')

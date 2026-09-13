@@ -1836,14 +1836,20 @@ Private Function QueueObservedShippingPayload(ByVal eventType As String, ByVal p
                                               ByRef errNotes As String, ByVal ownerFacts As cShippingOwnerFacts) As Boolean
     Dim failureNumber As Long, failureSource As String, failureText As String
     Dim failureHelp As String, failureContext As Long
+    Dim serverAttempted As Boolean, localAttempted As Boolean
     On Error GoTo Failed
-    QueueObservedShippingPayload = QueueShippingPayloadEventServerFirst(eventType, payloadJson, noteText, eventIdOut, errNotes)
-    If Not ownerFacts Is Nothing Then ownerFacts.ObserveSource eventIdOut, QueueObservedShippingPayload
+    QueueObservedShippingPayload = QueueShippingPayloadEventServerFirst(eventType, payloadJson, noteText, eventIdOut, errNotes, serverAttempted, localAttempted)
+    If Not ownerFacts Is Nothing Then
+        If QueueObservedShippingPayload Or serverAttempted Or localAttempted Then _
+            ownerFacts.ObserveSource eventIdOut, QueueObservedShippingPayload
+    End If
     Exit Function
 Failed:
     failureNumber = Err.Number: failureSource = Err.Source: failureText = Err.Description
     failureHelp = Err.HelpFile: failureContext = Err.HelpContext
-    If Not ownerFacts Is Nothing Then ownerFacts.ObserveSource eventIdOut, False
+    If Not ownerFacts Is Nothing Then
+        If serverAttempted Or localAttempted Then ownerFacts.ObserveSource eventIdOut, False
+    End If
     Err.Raise failureNumber, failureSource, failureText, failureHelp, failureContext
 End Function
 
@@ -1851,7 +1857,9 @@ Private Function QueueShippingPayloadEventServerFirst(ByVal eventType As String,
                                                       ByVal payloadJson As String, _
                                                       ByVal noteText As String, _
                                                       ByRef eventIdOut As String, _
-                                                      ByRef errNotes As String) As Boolean
+                                                      ByRef errNotes As String, _
+                                                      Optional ByRef serverAttempted As Boolean = False, _
+                                                      Optional ByRef localAttempted As Boolean = False) As Boolean
     On Error GoTo Fallback
 
     Dim target As WarehouseTarget
@@ -1878,7 +1886,7 @@ Private Function QueueShippingPayloadEventServerFirst(ByVal eventType As String,
                                                                                          "", _
                                                                                          0, _
                                                                                          eventIdOut, _
-                                                                                         queueError)
+                                                                                         queueError, writeAttemptedOut:=serverAttempted)
         If QueueShippingPayloadEventServerFirst Then Exit Function
         If queueError <> "" Then modShippingReportText.AppendNote errNotes, "Server inbox write failed; falling back to local staging. " & queueError
     End If
@@ -1893,7 +1901,7 @@ Fallback:
                                                                                       payloadJson, _
                                                                                       noteText, _
                                                                                       eventIdOut, _
-                                                                                      errNotes)
+                                                                                      errNotes, writeAttemptedOut:=localAttempted)
 End Function
 
 Private Function QueueBoxBuildEventFromBuilder(ByVal loBuilder As ListObject, _
@@ -8155,40 +8163,40 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
     stagingOk = modRoleEventWriter.SyncLocalStagedInboxRows(stagingReport, resolvedWarehouseId, stationId)
 
     processedCount = modProcessor.RunBatch(resolvedWarehouseId, 0, batchReport)
-    batchMs = ElapsedMillisecondsShipping(batchTimer)
+    batchMs = modShippingReportText.ElapsedMillisecondsShipping(batchTimer)
     If Left$(batchReport, 15) = "RunBatch failed" Then
         report = "RunBatch failed after local shipping post/write. StagingReport=" & stagingReport & " " & _
                  batchReport & " RefreshReport=Skipped; " & _
-                 modShippingReportText.FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
+                 modShippingReportText.FormatShippingRuntimeTiming(modShippingReportText.ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
         Exit Function
     End If
 
-    If Not ShippingRuntimeReportShowsProcessed(processedCount, batchReport) _
+    If Not modShippingReportText.ShippingRuntimeReportShowsProcessed(processedCount, batchReport) _
        And (requireQueuedWork Or modShippingReportText.ShippingRuntimeReportMetric(stagingReport, "LocalStagingMerged") > 0) Then
         report = "RunBatch did not handle the queued shipping event after local post/write. " & _
                  "StagingReport=" & stagingReport & " BatchReport=" & batchReport & _
                  " InboxDiagnostic=" & ShippingRuntimeInboxDiagnostic(resolvedWarehouseId, stationId) & _
                  " RefreshReport=Skipped; " & _
-                 modShippingReportText.FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
+                 modShippingReportText.FormatShippingRuntimeTiming(modShippingReportText.ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
         Exit Function
     End If
 
     refreshTimer = Timer
     If Not ShipmentsFormRefreshReadModelForWorkbook(wb, refreshReport, resolvedWarehouseId) Then
-        refreshMs = ElapsedMillisecondsShipping(refreshTimer)
+        refreshMs = modShippingReportText.ElapsedMillisecondsShipping(refreshTimer)
         report = "RunBatch processed queued shipping work, but the operator read-model refresh failed. " & _
                  "StagingReport=" & stagingReport & " BatchReport=" & batchReport & _
                  " RefreshReport=" & refreshReport & "; " & _
-                 modShippingReportText.FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, refreshMs)
+                 modShippingReportText.FormatShippingRuntimeTiming(modShippingReportText.ElapsedMillisecondsShipping(totalTimer), batchMs, refreshMs)
         Exit Function
     End If
-    refreshMs = ElapsedMillisecondsShipping(refreshTimer)
+    refreshMs = modShippingReportText.ElapsedMillisecondsShipping(refreshTimer)
 
     report = "Processed=" & CStr(processedCount) & "; StagingReport=" & stagingReport & "; BatchReport=" & batchReport
     If Not stagingOk Then report = report & "; StagingWarning=Local staged shipping rows could not be merged before runtime processing."
     If Trim$(refreshReport) <> "" And StrComp(Trim$(refreshReport), "OK", vbTextCompare) <> 0 Then _
         report = report & "; RefreshReport=" & refreshReport
-    report = report & "; " & modShippingReportText.FormatShippingRuntimeTiming(ElapsedMillisecondsShipping(totalTimer), batchMs, refreshMs)
+    report = report & "; " & modShippingReportText.FormatShippingRuntimeTiming(modShippingReportText.ElapsedMillisecondsShipping(totalTimer), batchMs, refreshMs)
     RunShippingRuntimeQueueRefresh = True
     Exit Function
 
@@ -8246,21 +8254,7 @@ Private Function ResolveCurrentShippingStationId(ByVal warehouseId As String) As
     If ResolveCurrentShippingStationId = "" Then ResolveCurrentShippingStationId = Trim$(modConfig.GetStationId())
 End Function
 
-Private Function ShippingRuntimeReportShowsProcessed(ByVal processedCount As Long, ByVal batchReport As String) As Boolean
-    If processedCount > 0 Then
-        ShippingRuntimeReportShowsProcessed = True
-        Exit Function
-    End If
 
-    If modShippingReportText.ShippingRuntimeReportMetric(batchReport, "Applied") > 0 Then
-        ShippingRuntimeReportShowsProcessed = True
-        Exit Function
-    End If
-
-    If modShippingReportText.ShippingRuntimeReportMetric(batchReport, "SkipDup") > 0 Then
-        ShippingRuntimeReportShowsProcessed = True
-    End If
-End Function
 
 
 Public Function ShippingRuntimeProcessedCount(ByVal runtimeReport As String) As Long
@@ -8269,13 +8263,7 @@ Public Function ShippingRuntimeProcessedCount(ByVal runtimeReport As String) As 
 End Function
 
 
-Private Function ElapsedMillisecondsShipping(ByVal startedAt As Single) As Long
-    Dim deltaSeconds As Single
 
-    deltaSeconds = Timer - startedAt
-    If deltaSeconds < 0 Then deltaSeconds = deltaSeconds + 86400!
-    ElapsedMillisecondsShipping = CLng(deltaSeconds * 1000)
-End Function
 
 Private Function ResolveCurrentShippingWarehouseId() As String
     On Error Resume Next

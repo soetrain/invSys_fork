@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-13T07:24:24Z",
+    "generatedAtUtc":  "2026-09-13T08:37:51Z",
     "baseline":  {
-                     "componentCount":  182,
+                     "componentCount":  183,
                      "procedureCount":  5527,
-                     "lineCount":  124139,
+                     "lineCount":  124165,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  195
@@ -3534,7 +3534,7 @@
                            "sourcePaths":  [
                                                "src/Core/Modules/modOperatorReadModel.bas",
                                                "src/Shipping/ClassModules/cShippingActionTimer.cls",
-                                               "src/Shipping/Modules/modTS_Shipments.bas"
+                                               "src/Shipping/Modules/modShippingReportText.bas"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
@@ -14914,14 +14914,12 @@
                                                   "CurrentInvSysUserDisplayRole",
                                                   "DescribeInboxPendingRows",
                                                   "DescribeLocalStagedInboxRows",
-                                                  "DictionaryToJson",
                                                   "EndServerConnectionProgressRole",
                                                   "EnsureContextResolved",
                                                   "EnsureCurrentRoleWriteAllowed",
                                                   "EnsureFolderExistsRole",
                                                   "EnsureFolderExistsSafeRole",
                                                   "EnsureWorksheetEditableRole",
-                                                  "EscapeJsonRole",
                                                   "EscapeRegexRole",
                                                   "EventIdListedRole",
                                                   "EventTypeListedRole",
@@ -14948,7 +14946,6 @@
                                                   "JsonObjectNumberFieldRole",
                                                   "JsonObjectStringFieldRole",
                                                   "JsonUnescapeRole",
-                                                  "JsonValueRole",
                                                   "LocalStagingPathRole",
                                                   "LocalStagingRootRole",
                                                   "LocalStagingSearchRootRole",
@@ -17348,7 +17345,6 @@
                                                   "DeltaInventoryRow",
                                                   "DisplayedBoxBomHasVersionRowsShipping",
                                                   "DisplayedShipmentQtyForRepair",
-                                                  "ElapsedMillisecondsShipping",
                                                   "EndShippingTableMutation",
                                                   "EnforceShippingSupportSheetsHidden",
                                                   "EnsureBoxBomEntryColumns",
@@ -17758,7 +17754,6 @@
                                                   "ShippingReservationsWorkbookPath",
                                                   "ShippingRuntimeInboxDiagnostic",
                                                   "ShippingRuntimeProcessedCount",
-                                                  "ShippingRuntimeReportShowsProcessed",
                                                   "ShippingSelectBoxBuilderDataCellForRepeatHeaderPicker",
                                                   "ShippingSystemInventorySourceDiagnostic",
                                                   "ShippingSystemOverlayDiagnostic",

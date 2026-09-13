@@ -99,3 +99,27 @@ End Function
 Public Function NormalizeShippingBomSignatureText(ByVal valueIn As String) As String
     NormalizeShippingBomSignatureText = LCase$(Trim$(valueIn))
 End Function
+
+Public Function ShippingRuntimeReportShowsProcessed(ByVal processedCount As Long, ByVal batchReport As String) As Boolean
+    If processedCount > 0 Then
+        ShippingRuntimeReportShowsProcessed = True
+        Exit Function
+    End If
+
+    If modShippingReportText.ShippingRuntimeReportMetric(batchReport, "Applied") > 0 Then
+        ShippingRuntimeReportShowsProcessed = True
+        Exit Function
+    End If
+
+    If modShippingReportText.ShippingRuntimeReportMetric(batchReport, "SkipDup") > 0 Then
+        ShippingRuntimeReportShowsProcessed = True
+    End If
+End Function
+
+Public Function ElapsedMillisecondsShipping(ByVal startedAt As Single) As Long
+    Dim deltaSeconds As Single
+
+    deltaSeconds = Timer - startedAt
+    If deltaSeconds < 0 Then deltaSeconds = deltaSeconds + 86400!
+    ElapsedMillisecondsShipping = CLng(deltaSeconds * 1000)
+End Function

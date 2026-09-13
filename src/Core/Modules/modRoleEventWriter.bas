@@ -834,8 +834,10 @@ Public Function QueuePayloadEventServer(ByVal eventType As String, _
                                         Optional ByVal createdAtUtc As Date = 0, _
                                         Optional ByRef eventIdOut As String = "", _
                                         Optional ByRef errorMessage As String = "", _
-                                        Optional ByVal perfRunId As String = "") As Boolean
-    QueuePayloadEventServer = QueueEventCore(eventType, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, "", parentEventId, undoOfEventId, createdAtUtc, Nothing, eventIdOut, errorMessage, perfRunId, False, True)
+                                        Optional ByVal perfRunId As String = "", _
+                                        Optional ByRef writeAttemptedOut As Boolean = False) As Boolean
+    writeAttemptedOut = False
+    QueuePayloadEventServer = QueueEventCore(eventType, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, "", parentEventId, undoOfEventId, createdAtUtc, Nothing, eventIdOut, errorMessage, perfRunId, False, True, writeAttemptedOut:=writeAttemptedOut)
 End Function
 
 Public Function QueueDesignEvent(ByVal eventType As String, _
@@ -905,7 +907,9 @@ Public Function QueuePayloadEventCurrent(ByVal eventType As String, _
                                          Optional ByVal noteVal As String = "", _
                                          Optional ByRef eventIdOut As String = "", _
                                          Optional ByRef errorMessage As String = "", _
-                                         Optional ByVal perfRunId As String = "") As Boolean
+                                         Optional ByVal perfRunId As String = "", _
+                                        Optional ByRef writeAttemptedOut As Boolean = False) As Boolean
+    writeAttemptedOut = False
     Dim targetInboxWb As Workbook
     Dim resolvedUser As String
     Dim capability As String
@@ -935,7 +939,7 @@ Public Function QueuePayloadEventCurrent(ByVal eventType As String, _
                                              eventIdOut, _
                                              errorMessage, _
                                              perfRunId, _
-                                             True)
+                                             True, writeAttemptedOut:=writeAttemptedOut)
 End Function
 
 Public Function QueueDesignEventCurrent(ByVal eventType As String, _
@@ -1003,7 +1007,7 @@ Public Function BuildPayloadJson(ParamArray items() As Variant) As String
     For i = LBound(items) To UBound(items)
         Set item = items(i)
         If i > LBound(items) Then BuildPayloadJson = BuildPayloadJson & ","
-        BuildPayloadJson = BuildPayloadJson & DictionaryToJson(item)
+        BuildPayloadJson = BuildPayloadJson & modRoleEventJson.DictionaryToJson(item)
     Next i
     BuildPayloadJson = BuildPayloadJson & "]"
 End Function
@@ -1019,7 +1023,7 @@ Public Function BuildPayloadJsonFromCollection(ByVal items As Collection) As Str
 
     For i = 1 To items.Count
         If i > 1 Then BuildPayloadJsonFromCollection = BuildPayloadJsonFromCollection & ","
-        BuildPayloadJsonFromCollection = BuildPayloadJsonFromCollection & DictionaryToJson(items(i))
+        BuildPayloadJsonFromCollection = BuildPayloadJsonFromCollection & modRoleEventJson.DictionaryToJson(items(i))
     Next i
     BuildPayloadJsonFromCollection = BuildPayloadJsonFromCollection & "]"
 End Function
@@ -1095,8 +1099,10 @@ Private Function QueueEventCore(ByVal eventType As String, _
                                 Optional ByVal designVersion As String = "", _
                                 Optional ByVal systemKey As String = "", _
                                 Optional ByVal conditionValue As String = "", _
-                                Optional ByVal attributesJson As String = "") As Boolean
+                                Optional ByVal attributesJson As String = "", _
+                                Optional ByRef writeAttemptedOut As Boolean = False) As Boolean
     On Error GoTo FailQueue
+    writeAttemptedOut = False
 
     Dim resolvedWh As String
     Dim resolvedSt As String
@@ -1166,7 +1172,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
 
     If localStageOnly Then
         stagingPath = LocalStagingPathRole(eventType, resolvedWh, resolvedSt)
-        If Not AppendInboxRowToLocalStagingRole(rowValues, stagingPath, errorMessage) Then GoTo CleanExit
+        If Not AppendInboxRowToLocalStagingRole(rowValues, stagingPath, errorMessage, writeAttemptedOut) Then GoTo CleanExit
         If queueRunId <> "" Then PerfMarkSafeRole queueRunId, "LocalStagingWrite", CLng((Timer - queueStart) * 1000)
         QueueEventCore = True
         GoTo CleanExit
@@ -1216,6 +1222,7 @@ Private Function QueueEventCore(ByVal eventType As String, _
     sheetWasProtected = ws.ProtectContents
     EnsureWorksheetEditableRole ws, lo.Name
 
+    writeAttemptedOut = True
     WriteInboxRowValuesRole lo, rowValues
 
     SaveWorkbookRole wbInbox
@@ -1626,15 +1633,19 @@ End Function
 
 Private Function AppendInboxRowToLocalStagingRole(ByVal rowValues As Object, _
                                                   ByVal stagingPath As String, _
-                                                  ByRef errorMessage As String) As Boolean
+                                                  ByRef errorMessage As String, _
+                                                  Optional ByRef writeAttemptedOut As Boolean = False) As Boolean
     On Error GoTo FailAppend
 
     Dim fileNum As Integer
+    Dim serializedRow As String
 
     EnsureFolderExistsRole ParentFolderPathRole(stagingPath)
     fileNum = FreeFile
     Open stagingPath For Append As #fileNum
-    Print #fileNum, DictionaryToJson(rowValues)
+    serializedRow = modRoleEventJson.DictionaryToJson(rowValues)
+    writeAttemptedOut = True
+    Print #fileNum, serializedRow
     Close #fileNum
     AppendInboxRowToLocalStagingRole = True
     Exit Function
@@ -3021,44 +3032,4 @@ Private Function EventTypeListedRole(ByVal eventType As String, ByVal eventTypes
 
     normalizedTypes = "," & eventTypesCsv & ","
     EventTypeListedRole = (InStr(1, normalizedTypes, "," & eventType & ",", vbTextCompare) > 0)
-End Function
-
-Private Function DictionaryToJson(ByVal d As Object) As String
-    Dim keys As Variant
-    Dim i As Long
-    Dim key As String
-
-    DictionaryToJson = "{"
-    keys = d.Keys
-    For i = LBound(keys) To UBound(keys)
-        key = CStr(keys(i))
-        If i > LBound(keys) Then DictionaryToJson = DictionaryToJson & ","
-        DictionaryToJson = DictionaryToJson & """" & EscapeJsonRole(key) & """:" & JsonValueRole(d(key))
-    Next i
-    DictionaryToJson = DictionaryToJson & "}"
-End Function
-
-Private Function JsonValueRole(ByVal valueIn As Variant) As String
-    Select Case True
-        Case IsObject(valueIn)
-            JsonValueRole = "null"
-        Case IsNull(valueIn), IsEmpty(valueIn)
-            JsonValueRole = "null"
-        Case VarType(valueIn) = vbBoolean
-            JsonValueRole = IIf(CBool(valueIn), "true", "false")
-        Case IsNumeric(valueIn)
-            JsonValueRole = Replace$(CStr(valueIn), ",", "")
-        Case Else
-            JsonValueRole = """" & EscapeJsonRole(CStr(valueIn)) & """"
-    End Select
-End Function
-
-Private Function EscapeJsonRole(ByVal textIn As String) As String
-    EscapeJsonRole = textIn
-    EscapeJsonRole = Replace$(EscapeJsonRole, "\", "\\")
-    EscapeJsonRole = Replace$(EscapeJsonRole, Chr$(34), "\" & Chr$(34))
-    EscapeJsonRole = Replace$(EscapeJsonRole, vbCrLf, "\n")
-    EscapeJsonRole = Replace$(EscapeJsonRole, vbCr, "\n")
-    EscapeJsonRole = Replace$(EscapeJsonRole, vbLf, "\n")
-    EscapeJsonRole = Replace$(EscapeJsonRole, vbTab, "\t")
 End Function

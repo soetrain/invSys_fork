@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-13T07:24:24Z",
+    "generatedAtUtc":  "2026-09-13T08:37:51Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "101387b1fa0b3a64fa25853708589638c4677c9b5d61c58bc5f4cacad4fe97d9",
-                          "maintenanceCandidatesSha256":  "466c7bb7f1de080def855330d325ba8b7439d6c1e6581f191bfc8e367a0ca8d9"
+                          "implementationManifestSha256":  "bbbf00ab7cc89467efddfab9340d20c2f780db9f108ee6b80cf7eecd39723e80",
+                          "maintenanceCandidatesSha256":  "49564f7decc250f83a799a00aad1a64a77c1b05830dbe23c11a4c86b687bd93b"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -161,7 +161,7 @@
                                                   "sourcePath":  "src/Core/Modules/modRoleEventWriter.bas",
                                                   "componentName":  "modRoleEventWriter",
                                                   "packageKey":  "Core",
-                                                  "baselineLineCount":  3064,
+                                                  "baselineLineCount":  3035,
                                                   "growthAllowedWithoutException":  false
                                               },
                                               {
@@ -266,7 +266,7 @@
                                                   "sourcePath":  "src/Shipping/Modules/modTS_Shipments.bas",
                                                   "componentName":  "modTS_Shipments",
                                                   "packageKey":  "Shipping",
-                                                  "baselineLineCount":  22398,
+                                                  "baselineLineCount":  22386,
                                                   "growthAllowedWithoutException":  false
                                               }
                                           ]
@@ -10224,14 +10224,12 @@
                                                   "CurrentInvSysUserDisplayRole",
                                                   "DescribeInboxPendingRows",
                                                   "DescribeLocalStagedInboxRows",
-                                                  "DictionaryToJson",
                                                   "EndServerConnectionProgressRole",
                                                   "EnsureContextResolved",
                                                   "EnsureCurrentRoleWriteAllowed",
                                                   "EnsureFolderExistsRole",
                                                   "EnsureFolderExistsSafeRole",
                                                   "EnsureWorksheetEditableRole",
-                                                  "EscapeJsonRole",
                                                   "EscapeRegexRole",
                                                   "EventIdListedRole",
                                                   "EventTypeListedRole",
@@ -10258,7 +10256,6 @@
                                                   "JsonObjectNumberFieldRole",
                                                   "JsonObjectStringFieldRole",
                                                   "JsonUnescapeRole",
-                                                  "JsonValueRole",
                                                   "LocalStagingPathRole",
                                                   "LocalStagingRootRole",
                                                   "LocalStagingSearchRootRole",
@@ -24738,7 +24735,7 @@
                            "sourcePaths":  [
                                                "src/Core/Modules/modOperatorReadModel.bas",
                                                "src/Shipping/ClassModules/cShippingActionTimer.cls",
-                                               "src/Shipping/Modules/modTS_Shipments.bas"
+                                               "src/Shipping/Modules/modShippingReportText.bas"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
                            "protectingTests":  [
@@ -26307,7 +26304,6 @@
                                                   "DeltaInventoryRow",
                                                   "DisplayedBoxBomHasVersionRowsShipping",
                                                   "DisplayedShipmentQtyForRepair",
-                                                  "ElapsedMillisecondsShipping",
                                                   "EndShippingTableMutation",
                                                   "EnforceShippingSupportSheetsHidden",
                                                   "EnsureBoxBomEntryColumns",
@@ -26717,7 +26713,6 @@
                                                   "ShippingReservationsWorkbookPath",
                                                   "ShippingRuntimeInboxDiagnostic",
                                                   "ShippingRuntimeProcessedCount",
-                                                  "ShippingRuntimeReportShowsProcessed",
                                                   "ShippingSelectBoxBuilderDataCellForRepeatHeaderPicker",
                                                   "ShippingSystemInventorySourceDiagnostic",
                                                   "ShippingSystemOverlayDiagnostic",
