@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-13T11:51:57Z
-- Scanner candidates: 1103
-- Reviewed candidates: 1105
+- Baseline: 2026-09-13T12:50:16Z
+- Scanner candidates: 1111
+- Reviewed candidates: 1113
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -17,7 +17,7 @@
 | SHARED_OPERATIONS | 59 | Cross-role or future invSys.Operations packaging work. |
 | CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
-| ADMIN | 246 | Administrative setup, lifecycle, and developer-support source. |
+| ADMIN | 254 | Administrative setup, lifecycle, and developer-support source. |
 | DEVELOPER_TOOLING | 14 | Build, scan, report, and other developer-only tooling. |
 | TESTING | 0 | Test harness and fixture source that must remain outside runtime packages. |
 
@@ -138,6 +138,14 @@
 | reachability:src_Admin_Modules_modTesterSetup.bas:modTesterSetup.ClearTesterSharePointRootOverride | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Admin_Modules_modTesterSetup.bas:modTesterSetup.GetLastTesterSharePointRoot | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Admin_Modules_modTesterSetup.bas:modTesterSetup.SetTesterSharePointRootOverride | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
+| root:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mDown_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mEnabled_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mFamily_Change | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mReload_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mReset_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mRows_Change | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mSave_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mUp_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mAdminVisible_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCapture_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCollect_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |

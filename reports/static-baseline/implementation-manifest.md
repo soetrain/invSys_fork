@@ -1,10 +1,10 @@
 # invSys Static Implementation Manifest
 
 - Schema: 1.0.0
-- Generated: 2026-09-13T11:51:57Z
+- Generated: 2026-09-13T12:50:16Z
 - Packages: 6
-- Components: 187
-- Procedures: 5565
+- Components: 195
+- Procedures: 5602
 - Literal Application.Run targets: 8
 - Unresolved dynamic calls: 45
 
@@ -12,8 +12,8 @@
 
 | Package | Project | Output | Components |
 |---|---|---|---:|
-| Admin | invSys_Admin | invSys.Admin.xlam | 28 |
-| Core | invSys_Core | invSys.Core.xlam | 74 |
+| Admin | invSys_Admin | invSys.Admin.xlam | 30 |
+| Core | invSys_Core | invSys.Core.xlam | 80 |
 | DesignsDomain | invSys_Designs_Domain | invSys.Designs.Domain.xlam | 14 |
 | InventoryDomain | invSys_Inventory_Domain | invSys.Inventory.Domain.xlam | 10 |
 | Operations | invSys_Operations | invSys.Operations.xlam | 52 |
@@ -301,6 +301,9 @@
 | mCmbWarehouse_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCmbWarehouse_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCollect_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mDown_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mEnabled_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mFamily_Change | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mList_KeyDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mList_KeyUp | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mList_MouseDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
@@ -350,8 +353,12 @@
 | mPage_MouseUp | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mPages_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mReload_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mReload_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mReset_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mReset_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mRows_Change | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mRows_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mSave_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mSave_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mSequence_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mTabs_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
@@ -375,6 +382,7 @@
 | mTxtTreePaletteQty_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mTxtTreePaletteSplit_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mTxtWarehouseRootPath_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mUp_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mView_Change | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mVisible_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | Open_CreateDeleteUser | RIBBON_CALLBACK | tools/build-xlam.ps1 |

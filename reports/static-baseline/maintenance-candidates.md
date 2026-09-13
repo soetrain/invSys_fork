@@ -1,8 +1,8 @@
 # invSys VBA Maintenance Candidates
 
 - Schema: 1.0.0
-- Generated: 2026-09-13T11:51:57Z
-- Total candidates: 1103
+- Generated: 2026-09-13T12:50:16Z
+- Total candidates: 1111
 - Duplicate-body groups: 190
 - Unresolved dynamic calls: 45
 
@@ -310,6 +310,14 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_SAME_PROJECT_LATE_BINDING | HIGH | cDynItemSearch | CommitSelection, HandlePaletteRecipeSelected | Literal Application.Run resolves to a procedure in the scanned project surface. |
 | REPLACE_SAME_PROJECT_LATE_BINDING | HIGH | cDynItemSearch | CommitSelection, LoadRecipeChooser | Literal Application.Run resolves to a procedure in the scanned project surface. |
 | REPLACE_SAME_PROJECT_LATE_BINDING | HIGH | cDynItemSearch | CommitSelection, LoadRecipeFromRecipes | Literal Application.Run resolves to a procedure in the scanned project surface. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminEventDetail | mDown_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminEventDetail | mEnabled_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminEventDetail | mFamily_Change | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminEventDetail | mReload_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminEventDetail | mReset_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminEventDetail | mRows_Change | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminEventDetail | mSave_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminEventDetail | mUp_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mAdminVisible_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mCapture_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mCollect_Click | Procedure is a registered or discovered dynamic root. |

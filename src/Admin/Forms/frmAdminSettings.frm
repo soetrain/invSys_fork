@@ -44,6 +44,8 @@ Private mResizeInitialized As Boolean
 Private mPages As MSForms.MultiPage
 Private mControlParent As Object
 Private mTracking As cAdminTrackingPolicy
+Private mDetail As cAdminEventDetail
+Private mTrackingSections As MSForms.MultiPage
 
 Private Sub UserForm_Initialize()
     CaptureTargetContext
@@ -56,6 +58,7 @@ End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     Set mTracking = Nothing
+    Set mDetail = Nothing
 End Sub
 
 Private Sub UserForm_Activate()
@@ -150,14 +153,24 @@ Private Sub BuildLayout()
     End With
     Set mBtnUomReset = AddButton("btnUomReset", "Reset", 608, 476, 54, 28)
 
-    Set mControlParent = mPages.Pages(1)
+    Set mTrackingSections = mPages.Pages(1).Controls.Add("Forms.MultiPage.1", "mpEventTracking", True)
+    With mTrackingSections
+        .Left = 6: .Top = 6: .Width = 700: .Height = 554
+        .Pages(0).Caption = "Tracking": .Pages(1).Caption = "Event Detail"
+        .Pages.Add().Caption = "Action Paths"
+        .Value = 0
+    End With
+    Set mControlParent = mTrackingSections.Pages(0)
     AddLabel "lblTracking", "Tracking", 12, 12, 200, 18, True
     Set mTracking = New cAdminTrackingPolicy
     mTracking.Initialize mControlParent, mActivityContext
-    AddLabel "lblEventDetail", "Event Detail", 12, 400, 200, 18, True
-    AddLabel "lblDetailAvailability", "Event detail profile editor unavailable.", 12, 426, 670, 32, False
-    AddLabel "lblActionPaths", "Action Paths", 12, 490, 200, 18, True
-    AddLabel "lblActionPathAvailability", "Action Path preferences unavailable.", 12, 516, 670, 32, False
+    Set mControlParent = mTrackingSections.Pages(1)
+    AddLabel "lblEventDetail", "Event Detail", 12, 12, 200, 18, True
+    Set mDetail = New cAdminEventDetail
+    mDetail.Initialize mControlParent, mActivityContext
+    Set mControlParent = mTrackingSections.Pages(2)
+    AddLabel "lblActionPaths", "Action Paths", 12, 12, 200, 18, True
+    AddLabel "lblActionPathAvailability", "Action Path preferences unavailable.", 12, 40, 670, 32, False
     Set mControlParent = Me
     Set mBtnClose = AddButton("btnClose", "Close", 654, 614, 66, 28)
     Set mLblStatus = AddLabel("lblStatus", "", 12, 614, 626, 36, False)

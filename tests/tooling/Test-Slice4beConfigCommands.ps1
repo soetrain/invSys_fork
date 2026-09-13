@@ -8,6 +8,7 @@ param(
     [switch]$CheckActivityFoundation,
     [switch]$CheckTrackingSettings,
     [switch]$CheckTrackingPolicy,
+    [switch]$CheckDetailProfile,
     [switch]$CheckShippingActivity,
     [switch]$TraceBootstrapForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -105,6 +106,8 @@ if ($CheckTrackingSettings) {
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-tracking-settings/'+[guid]::NewGuid().ToString('N'))
 }
 if ($CheckTrackingPolicy -and -not $CheckTrackingSettings) { throw 'Tracking policy checks require the Settings route.' }
+if ($CheckDetailProfile -and -not $CheckTrackingSettings) { throw 'Detail profile checks require the Settings route.' }
+if ($CheckDetailProfile -and -not $CheckTrackingPolicy) { throw 'Detail profile checks retain the tracking policy baseline and cancellation observer.' }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $results = [Collections.Generic.List[object]]::new()
 $excel = $null
@@ -340,6 +343,10 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beTrackingPolicy.ps1')
         Install-Slice4beTrackingPolicyProbe $testModule $formCode
     }
+    if ($CheckDetailProfile) {
+        . (Join-Path $PSScriptRoot 'Slice4beDetailProfile.ps1')
+        Install-Slice4beDetailProfileProbe $testModule $formCode
+    }
     $bootstrapCode=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modWarehouseBootstrap').CodeModule
     if($CheckShippingActivity){
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
@@ -403,9 +410,15 @@ End Function
         $step='packaged Settings tracking surface'
         Test-Slice4beTrackingSettingsSurface $a
         if ($CheckTrackingPolicy) { Test-Slice4beTrackingPolicy $a $b }
+        if ($CheckDetailProfile) { Test-Slice4beDetailProfile $a $b }
     }
     if ($CheckActivityEvidence) { $activityBefore = @(Get-Slice4beActivityFiles $a) }
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('BatchSize','601'))
+    if($CheckDetailProfile -and -not $ok){
+        $diagnostic=[string](Run 'invSys.Admin.xlam' 'TestD5Commands.DetailGeneralDiagnostic')
+        if($diagnostic -notmatch '^-?[0-9]+\|-?[0-9]+$'){throw 'Invalid fixed General diagnostic'}
+        Write-Output ('General save error|stage: '+$diagnostic)
+    }
     Check 'Settings.RealSaveHandler' ($ok -and [long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('BatchSize',0)) -eq 601)
     if ($CheckActivityEvidence) {
         if (-not $ok) { throw 'Activity fixture Settings action failed.' }

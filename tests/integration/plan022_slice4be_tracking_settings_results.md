@@ -1,6 +1,130 @@
 # Slice 4be.2 Event Tracking Settings
 
-## Current checkpoint: cancelled saves cannot report success
+## Current checkpoint: Event Detail profile editor and persistence
+
+Last verified 2026-09-13; focused validation is complete. The Admin Settings
+General/Event Tracking contract is preserved. Event Tracking now contains
+Tracking, Event Detail and Action Paths section tabs, giving each editor room
+within the existing 744 by 696 point form. The D18 profile refinement names the
+two Config tables and the complete SchemaVersion-1 display snapshot. Core owns
+validation, reads and append-only saves; Admin owns the staged editor. Profiles
+control rendering only. Viewer consumption and personal preferences are still
+unimplemented and must not be inferred from profile persistence.
+
+The editor provides nine registered display families and 42 allowlisted fields,
+required/default-enabled flags, Move Up/Down, a locked synthetic preview, and
+separate Save Detail Profile / Reset to Default / Reload actions. Source identity,
+exact System_Key, action/outcome, source/warehouse, time, coverage/freshness and
+safety context remain required. Optional values are never read from live events
+for preview. Whole-profile versions preserve every family and unknown columns;
+field choices do not grant collection or access rights.
+
+The initial actual-form surface RED is **72 checks: 64 PASS / 8 FAIL**: six new
+profile-surface gaps plus the two existing Settings gaps. After the staged editor
+and no-write Save action were built, the clean action RED was **97 checks: 94
+PASS / 3 FAIL**, including `DetailProfile.AuthorizedSavePublishesVersion`. The
+real Save action entry passes; the missing persisted version is meaningful RED.
+The scaffold already exercises field selection/toggle/order, required identity
+locking, synthetic preview, staging-only Reset, request rejection, captured-target,
+stale-session, capability and read-only/dirty Config guards, plus the preserved
+policy and D5 suite.
+
+The first writer candidate publishes version 1 but fails reload. Its complete
+107-check run is 100 PASS / 7 FAIL: the two broad gaps, a reload failure and four
+dependent second-save/cancellation failures. A focused diagnostic run stops the
+dependent sequence on reload failure and records **98 checks: 95 PASS / 3 FAIL**.
+Fixed reader diagnostics report stage 9 / error 5 before model decoding. The
+cause is Excel Value2 returning DisplayOrder as Double while the existing JSON
+encoder deliberately accepts integer wire values only. The adapter now validates
+the stored order, then converts that valid integral value to Long before encoding;
+the shared encoder and its strict activity contract are unchanged.
+
+The corrected candidate `deploy/validation-detail-profile-final` completes
+**107 checks: 105 PASS / 2 FAIL**, including **42/42 Detail Profile** checks.
+Every check identity and GREEN from the previous 65-check policy checkpoint is
+retained, with no duplicate identities. The two remaining failures are
+`TrackingSettings.SeparateSaveReloadResetActions` and
+`TrackingSettings.PersonalViewChoices`; the personal Action Path workflow is
+still absent. Version 1/2 save and reload, unknown columns and prior versions,
+policy-table preservation, real Excel save cancellation, Close-discard and
+malformed-latest safe defaults all pass. This is profile persistence GREEN,
+not completed Settings or Slice 4be acceptance.
+
+All five isolated packages build and compile, cold start passes, and packaged
+smoke passes **86/86**. The final version-2 editor capture was inspected: family,
+field choices/order, required-field lock, synthetic preview and separate actions
+are visible within the form. This is automated visual evidence, not human UAT.
+Static evidence contains 195 components / 5602 procedures, with unchanged
+8 literal / 45 unresolved dynamic calls and 190 duplicate-body groups. None of
+the 28 oversized modules grows; all three JSON report schemas validate.
+Full Receiving passes **854/854**, preserving all prior identities and GREENs
+without duplicates. The updated source harness imports successfully and its
+selected test passes **1/1** (global test 1 of 314); this is deliberately a
+source-import check, not a claim that all 314 source tests ran.
+
+The 180-to-188 packaged-component comparison has eight intended additions and
+three intended edits. Twenty other raw hashes differ only by source casing;
+read-only code inspection confirms identical string literals and no other
+changes in those components. All 90 prior complete-package pins and 16 protected
+source pins match. Fifteen new profile-candidate hashes were recorded after
+validation; they are future preservation pins, not a claimed before/after check.
+No Excel Application-1000 fault was observed in the final build, compile, focused
+test, smoke, full Receiving, package-code inspection or source-import windows.
+All validation sessions are terminal and Excel is closed. The earlier
+partial-build native failure remains below.
+
+The shared Admin control builder and Core version-table creation/cell writer
+avoid copying those implementations into the new editor/command. Existing policy
+actions remain protected by their complete packaged suite. The profile selection
+method owns its loading guard, removing the new duplicate event-wrapper group.
+
+Ignored evidence under `reports/runtime/slice4be-tracking-settings/`:
+
+- `e705061a615c4f839d406a0fa3c696c5/red.json`,
+  `detail-profile-final-test.log`, `detail-profile-focused-comparison.json`:
+  final 107-check run and preservation comparison. The report remains named RED
+  because the two broader Settings checks still fail.
+- `e705061a615c4f839d406a0fa3c696c5/detail-profile-editor.png`: inspected capture.
+- `detail-profile-final-build.log`, `detail-profile-final-compile.log`,
+  `detail-profile-final-compiled.json`, `detail-profile-final-smoke.log`,
+  `detail-profile-final-smoke.md`: complete candidate build, compile and smoke.
+- `detail-profile-full-receiving.log`, `detail-profile-full-receiving-green.json`,
+  `detail-profile-receiving-comparison.json`: 854/854 regression and preservation.
+- `detail-profile-component-comparison.json`, `detail-profile-package-code-review.json`,
+  `detail-profile-package-code-review.log`: raw hashes and casing/literal review.
+- `detail-profile-static-ratchets.json`, `detail-profile-preservation.json`,
+  `detail-profile-final-native-fault-audit.json`: static limits, prior pins and
+  bounded crash observations. Runtime reports remain ignored and uncommitted.
+- `detail-profile-source-import.log`, `detail-profile-source-import-report.md`,
+  `detail-profile-regression-native-fault-audit.json`: source-import result and
+  the final regression/inspection crash windows.
+- `4bcbabc263ba4353b26ed719c0abbb16/red.json`, `detail-profile-surface-red.log`:
+  clean initial 72-check surface RED on the previous policy candidate.
+- `f042895373634e54aa852513fb326fa6/red.json`,
+  `detail-profile-action-diagnostic.log`: clean 97-check persistence RED on
+  `deploy/validation-detail-profile-scaffold`.
+- `f2092e75b2fb4fb6bd99f684ad6aa793/red.json`, `detail-profile-save-test.log`:
+  first writer's reload/derived failures on `deploy/validation-detail-profile-save`.
+- `892f5b8bc17b4cf5a30055c2c663afcd/red.json`, `detail-profile-read-diagnostic.log`:
+  isolated reader-stage diagnosis. Counters contain only fixed stages/row counts,
+  error numbers and booleans, never configuration or event values.
+- `detail-profile-read-build.log`, `detail-profile-read-build-faults.json`: an
+  Excel native fault interrupted import of unchanged Designs code, leaving only
+  Core/Inventory packages in `deploy/validation-detail-profile-read`. This partial
+  directory is not a package set. The subsequent compile attempt necessarily
+  failed on a missing Operations package; neither failure is product RED.
+
+An earlier scaffold action run (`bc46f04fc39c4933b76a2bb366a6367b/red.json`,
+`detail-profile-action-red.log`) reached the persistence RED but later failed in
+the General Save harness call: 78 PASS / 4 FAIL across 82 checks. No Excel native
+fault was observed in that window. The following full run with a fixed numeric
+General error/stage observer recorded no such error and retained every D5 GREEN.
+The first transient remains unexplained; do not claim the observer repaired a
+runtime defect. Its partially painted capture does not prove empty editor data.
+Capture now follows the existing policy pattern: make the isolated Excel instance
+visible, select/show the section, repaint and wait briefly before PrintWindow.
+
+## Previous checkpoint: cancelled saves cannot report success
 
 Last verified 2026-09-13. Existing D18/D5 requires a verified persisted policy
 version before reporting save success. A real Excel `WorkbookBeforeSave` test
@@ -313,11 +437,13 @@ compile, full Release 1 chain, live-role GREEN or human acceptance is claimed.
 
 ## Required continuation
 
-Continue with the detail profile and personal preference editors using focused
-packaged behavioral RED before their persistence implementation. Exercise the actual tracking policy save,
-detail profile save, personal save, Reload, Reset and Close handlers; missing
-seams/compile failures must never substitute for behavioral RED. Keep these
-requirements explicit:
+Next, add focused packaged action tests for personal Action Path preference
+Save/Reload/Reset/Close and demonstrate meaningful RED before implementing local
+persistence. Retain the 42 profile and 34 policy GREEN checks. Viewer profile
+consumption, the Operations-owned personal Settings surface, and comprehensive
+new-control activity/save-version observations remain separate unfinished work.
+Missing seams/compile failures must never substitute for behavioral RED. Keep
+these requirements explicit:
 
 - D5 Core ownership, captured session/warehouse/station, ADMIN_MAINT at editor
   open/save and rejection after session/context/capability change.
@@ -327,6 +453,9 @@ requirements explicit:
 - Stale/unknown/duplicate/invalid requests, dirty/read-only/locked/missing Config,
   malformed policy errors without repair and unchanged bytes on rejection.
 - Synthetic preview; separate scopes; Reset stages only and Close discards edits.
+- Complete profile persistence edge coverage beyond real save cancellation,
+  including caller-open rollback and interruption; focused GREEN does not prove
+  every release failure mode or Viewer rendering.
 - Operations personal Settings without Admin installed, Windows/invSys-user and
   warehouse isolation, restart restoration and invalid-preference fallback.
 - Both Action Path presentations and current policy-aware evidence availability;
