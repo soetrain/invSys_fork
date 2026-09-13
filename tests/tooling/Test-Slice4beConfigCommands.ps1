@@ -7,6 +7,7 @@ param(
     [switch]$CheckActivityEvidence,
     [switch]$CheckActivityFoundation,
     [switch]$CheckTrackingSettings,
+    [switch]$CheckTrackingPolicy,
     [switch]$CheckShippingActivity,
     [switch]$TraceBootstrapForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -103,6 +104,7 @@ if ($CheckTrackingSettings) {
     . (Join-Path $PSScriptRoot 'Slice4beTrackingSettings.ps1')
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-tracking-settings/'+[guid]::NewGuid().ToString('N'))
 }
+if ($CheckTrackingPolicy -and -not $CheckTrackingSettings) { throw 'Tracking policy checks require the Settings route.' }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $results = [Collections.Generic.List[object]]::new()
 $excel = $null
@@ -334,6 +336,10 @@ Public Function RoundTrip(ByVal workbookName As String) As Boolean
 End Function
 '@)
     if ($CheckTrackingSettings) { Install-Slice4beTrackingSettingsProbe $testModule }
+    if ($CheckTrackingPolicy) {
+        . (Join-Path $PSScriptRoot 'Slice4beTrackingPolicy.ps1')
+        Install-Slice4beTrackingPolicyProbe $testModule $formCode
+    }
     $bootstrapCode=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modWarehouseBootstrap').CodeModule
     if($CheckShippingActivity){
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
@@ -396,6 +402,7 @@ End Function
     if ($CheckTrackingSettings) {
         $step='packaged Settings tracking surface'
         Test-Slice4beTrackingSettingsSurface $a
+        if ($CheckTrackingPolicy) { Test-Slice4beTrackingPolicy $a $b }
     }
     if ($CheckActivityEvidence) { $activityBefore = @(Get-Slice4beActivityFiles $a) }
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('BatchSize','601'))

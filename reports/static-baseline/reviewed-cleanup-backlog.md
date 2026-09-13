@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-13T10:30:12Z
-- Scanner candidates: 1092
-- Reviewed candidates: 1094
+- Baseline: 2026-09-13T11:32:38Z
+- Scanner candidates: 1103
+- Reviewed candidates: 1105
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -17,7 +17,7 @@
 | SHARED_OPERATIONS | 59 | Cross-role or future invSys.Operations packaging work. |
 | CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
-| ADMIN | 235 | Administrative setup, lifecycle, and developer-support source. |
+| ADMIN | 246 | Administrative setup, lifecycle, and developer-support source. |
 | DEVELOPER_TOOLING | 14 | Build, scan, report, and other developer-only tooling. |
 | TESTING | 0 | Test harness and fixture source that must remain outside runtime packages. |
 
@@ -138,6 +138,16 @@
 | reachability:src_Admin_Modules_modTesterSetup.bas:modTesterSetup.ClearTesterSharePointRootOverride | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Admin_Modules_modTesterSetup.bas:modTesterSetup.GetLastTesterSharePointRoot | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Admin_Modules_modTesterSetup.bas:modTesterSetup.SetTesterSharePointRootOverride | ADMIN | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
+| root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mAdminVisible_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCapture_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCollect_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReload_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReset_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mRows_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSave_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSequence_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mView_Change | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mVisible_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.mBtnAddField_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.mBtnAddMode_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.mBtnCancel_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
@@ -182,6 +192,7 @@
 | root:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.mLstUoms_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_Activate | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_Initialize | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnAddServer_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnAggregate_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.mBtnClose_Click | ADMIN | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |

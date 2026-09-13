@@ -1,0 +1,207 @@
+# Serialized policy requests stay in memory; reports contain check identities,
+# Boolean outcomes and version/count observations, never Config values.
+function Install-Slice4beTrackingPolicyProbe($TestModule,$FormCode) {
+    $class=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('cAdminTrackingPolicy').CodeModule
+    $class.AddFromString(@'
+Private mPolicyTestEntries As Long
+Public Function PolicyTestRequest() As String
+    PolicyTestRequest = mRequest
+End Function
+Public Function PolicyTestEntries() As Long
+    PolicyTestEntries = mPolicyTestEntries
+End Function
+Public Sub PolicyTestCapture(ByVal enabled As Boolean)
+    mCapture.Value = enabled
+    mCapture_Click
+End Sub
+Public Sub PolicyTestAdminVisible(ByVal enabled As Boolean)
+    mAdminVisible.Value = enabled
+    mAdminVisible_Click
+End Sub
+Public Sub PolicyTestView(ByVal value As String)
+    mView.Value = value
+    mView_Change
+End Sub
+'@)
+    $line=$class.ProcBodyLine('SavePolicy',0)
+    $class.InsertLines($line+2,'    mPolicyTestEntries = mPolicyTestEntries + 1')
+    $FormCode.AddFromString(@'
+Public Function PolicyTestRequest() As String
+    PolicyTestRequest = mTracking.PolicyTestRequest()
+End Function
+Public Function PolicyTestSave() As Boolean
+    PolicyTestSave = mTracking.SavePolicy()
+End Function
+Public Function PolicyTestEntries() As Long
+    PolicyTestEntries = mTracking.PolicyTestEntries()
+End Function
+Public Sub PolicyTestCapture(ByVal enabled As Boolean)
+    mTracking.PolicyTestCapture enabled
+End Sub
+Public Sub PolicyTestAdminVisible(ByVal enabled As Boolean)
+    mTracking.PolicyTestAdminVisible enabled
+End Sub
+Public Sub PolicyTestView(ByVal value As String)
+    mTracking.PolicyTestView value
+End Sub
+Public Sub PolicyTestReset()
+    mTracking.ResetPolicy
+End Sub
+Public Sub PolicyTestReload()
+    mTracking.ReloadPolicy
+End Sub
+'@)
+    $TestModule.CodeModule.AddFromString(@'
+Public Function TrackingPolicyRequest() As String
+    TrackingPolicyRequest = mForm.PolicyTestRequest()
+End Function
+Public Function TrackingPolicySave() As Boolean
+    TrackingPolicySave = mForm.PolicyTestSave()
+End Function
+Public Function TrackingPolicyEntries() As Long
+    TrackingPolicyEntries = mForm.PolicyTestEntries()
+End Function
+Public Sub TrackingPolicyCapture(ByVal enabled As Boolean)
+    mForm.PolicyTestCapture enabled
+End Sub
+Public Sub TrackingPolicyAdminVisible(ByVal enabled As Boolean)
+    mForm.PolicyTestAdminVisible enabled
+End Sub
+Public Sub TrackingPolicyView(ByVal value As String)
+    mForm.PolicyTestView value
+End Sub
+Public Sub TrackingPolicyReset()
+    mForm.PolicyTestReset
+End Sub
+Public Sub TrackingPolicyReload()
+    mForm.PolicyTestReload
+End Sub
+Public Function TrackingPolicyContext() As String
+    TrackingPolicyContext = modActivity.CaptureContext()
+End Function
+Public Function TrackingPolicySaveDirect(ByVal context As String, ByVal version As Long, ByVal request As String) As Boolean
+    Dim report As String
+    TrackingPolicySaveDirect = modTrackingPolicySettings.SavePolicy(context, version, request, report)
+End Function
+'@)
+}
+function Get-TrackingPolicyRequest {
+    [string](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyRequest')
+}
+function Get-TrackingPolicyVersion($Fixture) {
+    $book=$excel.Workbooks.Open($Fixture.Config,0,$true)
+    try {
+        $latest=0
+        foreach($sheet in $book.Worksheets){ foreach($table in $sheet.ListObjects){
+            if($table.Name -eq 'tblEventTrackingPolicies'){
+                foreach($row in $table.ListRows){$latest=[Math]::Max($latest,[int]$row.Range.Cells.Item(1,$table.ListColumns.Item('PolicyVersion').Index).Value2)}
+            }
+        }}
+        return $latest
+    } finally {$book.Close($false)}
+}
+function Test-Slice4beTrackingPolicy($Fixture,$Other) {
+    $request=Get-TrackingPolicyRequest
+    $model=$request|ConvertFrom-Json
+    $loaded=($model.SchemaVersion -eq 1 -and $model.CatalogVersion -eq 8 -and $model.Controls.Count -gt 2)
+    Check 'TrackingPolicy.EditorLoaded' $loaded
+    if(-not $loaded){throw 'Tracking policy editor fixture did not load.'}
+    Check 'TrackingPolicy.BuiltInDefaults' (-not $model.ViewerActionPathCaptureEnabled -and $model.AdminViewerEventLoggingEnabled -and $model.DefaultView -ceq 'How-To' -and
+        @($model.Controls|Where-Object {$_.ControlId -eq 'RECEIVING_CONFIRM_WRITES' -and $_.Collect}).Count -eq 1 -and
+        @($model.Controls|Where-Object {$_.ControlId -eq 'RECEIVING_PAGE_RECEIPTS' -and -not $_.Collect}).Count -eq 1)
+    $before=(Get-FileHash -LiteralPath $Fixture.Config).Hash
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyCapture' @($true))
+    Check 'TrackingPolicy.CaptureStagesOnly' ((Get-TrackingPolicyRequest|ConvertFrom-Json).ViewerActionPathCaptureEnabled -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyReset')
+    Check 'TrackingPolicy.ResetStagesOnly' (-not (Get-TrackingPolicyRequest|ConvertFrom-Json).ViewerActionPathCaptureEnabled -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    $context=[string](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyContext')
+    foreach($case in @('UnknownField','InvalidBoolean','InvalidView','UnknownControl','MissingControl','DuplicateControl')){
+        $bad=$request|ConvertFrom-Json
+        switch($case){
+            UnknownField {$bad|Add-Member NoteProperty Unrecognized $true}
+            InvalidBoolean {$bad.ViewerActionPathCaptureEnabled='true'}
+            InvalidView {$bad.DefaultView='not-a-view'}
+            UnknownControl {$bad.Controls[0].ControlId='CANONICAL_INVENTORY_COLLECTION'}
+            MissingControl {$bad.Controls=@($bad.Controls|Select-Object -Skip 1)}
+            DuplicateControl {$bad.Controls[1].ControlId=$bad.Controls[0].ControlId}
+        }
+        $badText=$bad|ConvertTo-Json -Depth 8 -Compress
+        $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySaveDirect' @($context,0,$badText))
+        Check ('TrackingPolicy.Reject'+$case) (-not $ok -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    }
+    $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySaveDirect' @($context,1,$request))
+    Check 'TrackingPolicy.WrongExpectedVersionDenied' (-not $ok -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
+    $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySaveDirect' @($context,0,$request))
+    Check 'TrackingPolicy.SignedOutDenied' (-not $ok -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    SelectTarget $Other
+    $otherBefore=(Get-FileHash -LiteralPath $Other.Config).Hash
+    $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySave')
+    Check 'TrackingPolicy.CapturedTargetDenied' (-not $ok -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash -and $otherBefore -ceq (Get-FileHash -LiteralPath $Other.Config).Hash)
+    SelectTarget $Fixture 'config-reader'
+    $context=[string](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyContext')
+    $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySaveDirect' @($context,0,$request))
+    Check 'TrackingPolicy.MissingCapabilityDenied' (-not $ok -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    SelectTarget $Fixture
+    $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySave')
+    Check 'TrackingPolicy.StaleSessionDenied' (-not $ok -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
+    $context=[string](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyContext')
+    foreach($readOnly in @($true,$false)){
+        $book=$excel.Workbooks.Open($Fixture.Config,0,$readOnly)
+        $table=Table $book 'tblWarehouseConfig'
+        $cell=$table.ListColumns.Item('WarehouseName').DataBodyRange.Cells.Item(1,1)
+        if(-not $readOnly){$cell.Value2='unsaved fixture marker'}
+        $value=$cell.Value2
+        $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySaveDirect' @($context,0,$request))
+        $name=if($readOnly){'ReadOnly'}else{'Dirty'}
+        $memoryPreserved=(-not $ok -and $cell.Value2 -ceq $value -and ($readOnly -or -not $book.Saved))
+        $book.Close($false)
+        Check ('TrackingPolicy.'+$name+'ConfigPreserved') ($memoryPreserved -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    }
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyCapture' @($true))
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyAdminVisible' @($false))
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyView' @('Compare both'))
+    $entries=[int](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyEntries')
+    $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySave')
+    Check 'TrackingPolicy.RealSaveActionEntered' ([int](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyEntries') -eq $entries+1)
+    Check 'TrackingPolicy.AuthorizedSavePublishesVersion' ($ok -and (Get-TrackingPolicyVersion $Fixture) -eq 1)
+    if(-not $ok){return}
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyReload')
+    Check 'TrackingPolicy.SavedCaptureReloads' (Get-TrackingPolicyRequest|ConvertFrom-Json).ViewerActionPathCaptureEnabled
+    Check 'TrackingPolicy.CompatibilityFlagsReloadTogether' (-not (Get-TrackingPolicyRequest|ConvertFrom-Json).AdminViewerEventLoggingEnabled)
+    Check 'TrackingPolicy.WarehouseViewReloads' ((Get-TrackingPolicyRequest|ConvertFrom-Json).DefaultView -ceq 'Compare both')
+    $before=(Get-FileHash -LiteralPath $Fixture.Config).Hash
+    $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySaveDirect' @($context,0,$request))
+    Check 'TrackingPolicy.StaleVersionCannotAppend' (-not $ok -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    $book=$excel.Workbooks.Open($Fixture.Config,0,$false)
+    $headers=Table $book 'tblEventTrackingPolicies'; $controls=Table $book 'tblEventTrackingControls'
+    $headerColumn=$headers.ListColumns.Add(1); $headerColumn.Name='Operator Extra'; $headerColumn.DataBodyRange.Value2='header fixture value'
+    $controlColumn=$controls.ListColumns.Add(1); $controlColumn.Name='Operator Extra'; $controlColumn.DataBodyRange.Value2='control fixture value'
+    $priorHeaders=$headers.DataBodyRange.Value2; $priorControls=$controls.DataBodyRange.Value2
+    $controlCount=$controls.ListRows.Count
+    $book.Save(); $book.Close($false)
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyCapture' @($false))
+    $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySave')
+    Check 'TrackingPolicy.SecondSaveAppendsVersion' ($ok -and (Get-TrackingPolicyVersion $Fixture) -eq 2)
+    $book=$excel.Workbooks.Open($Fixture.Config,0,$true)
+    try {
+        $headers=Table $book 'tblEventTrackingPolicies'; $controls=Table $book 'tblEventTrackingControls'
+        $retained=($headers.ListRows.Count -eq 2 -and $controls.ListRows.Count -eq $controlCount*2)
+        for($c=1;$c -le $headers.ListColumns.Count;$c++){$retained=$retained -and $headers.DataBodyRange.Cells.Item(1,$c).Value2 -ceq $priorHeaders.GetValue(1,$c)}
+        for($r=1;$r -le $controlCount;$r++){for($c=1;$c -le $controls.ListColumns.Count;$c++){$retained=$retained -and $controls.DataBodyRange.Cells.Item($r,$c).Value2 -ceq $priorControls.GetValue($r,$c)}}
+        Check 'TrackingPolicy.EarlierRowsAndUnknownColumnsPreserved' $retained
+    } finally {$book.Close($false)}
+    if($CaptureEvidence){
+        $wasVisible=$excel.Visible
+        try {
+            $excel.Visible=$true
+            [void](Run 'invSys.Admin.xlam' 'TestD5Commands.ShowSettings')
+            [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('Event Tracking'))
+            Start-Sleep -Milliseconds 300
+            CaptureFormEvidence 'invSys Settings' 'tracking-policy-saved.png'
+            [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('General'))
+        } finally {$excel.Visible=$wasVisible}
+    }
+}

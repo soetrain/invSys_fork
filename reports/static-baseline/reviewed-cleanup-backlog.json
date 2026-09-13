@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-13T10:30:12Z",
+    "generatedAtUtc":  "2026-09-13T11:32:38Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "7e7c20eec34b20fb76f38ae91c2dd632308c272f2198fb2f65be5503f01fe184",
-                          "maintenanceCandidatesSha256":  "a61b6a34727bf25ba6a748746edad2126072021e320fe6e2b8214622c838a0c6"
+                          "implementationManifestSha256":  "474af4b029e0fedf22e14e84a833e9e85f886ea129d13a4c4992d077c96845af",
+                          "maintenanceCandidatesSha256":  "cb5a06f0918309d862fe0fb8aac2c42fb706eb4a0a042955128ad4f7dc0c4c6a"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1092,
-                    "reviewedCandidateCount":  1094,
+                    "scannerCandidateCount":  1103,
+                    "reviewedCandidateCount":  1105,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -52,7 +52,7 @@
                         },
                         {
                             "name":  "ADMIN",
-                            "candidateCount":  235,
+                            "candidateCount":  246,
                             "reason":  "Administrative setup, lifecycle, and developer-support source."
                         },
                         {
@@ -2586,6 +2586,236 @@
                            "nextAction":  "Investigate callers, callbacks, package ownership, and protecting tests before selecting a source change."
                        },
                        {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mAdminVisible_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mAdminVisible_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCapture_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mCapture_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCollect_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mCollect_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReload_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mReload_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReset_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mReset_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mRows_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mRows_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSave_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mSave_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSequence_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mSequence_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mView_Change",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mView_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mVisible_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mVisible_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
                            "id":  "root:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.mBtnAddField_Click",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
@@ -3604,6 +3834,30 @@
                            "protectingTests":  [
                                                    "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
                                                    "tests/tooling/Test-Slice0ToolContracts.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "ADMIN",
+                           "componentName":  "frmAdminSettings",
+                           "procedureNames":  [
+                                                  "UserForm_QueryClose"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAdminSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Test-Plan022LauncherContracts.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."

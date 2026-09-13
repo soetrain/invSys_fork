@@ -4,12 +4,14 @@ Option Private Module
 
 Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As String, _
                            ByRef version As Long, ByRef collect As Boolean, _
-                           ByRef visible As Boolean, ByRef notice As String) As Boolean
+                           ByRef visible As Boolean, ByRef notice As String, _
+                           Optional ByVal editorProjection As Object = Nothing) As Boolean
     Dim wb As Workbook, candidate As Workbook, headers As ListObject, controls As ListObject
     Dim opened As Boolean, row As Long, selected As Long, number As Long, latest As Long
     Dim seen As Object, rowsSeen As Object, key As String, definition As Object, ids As Variant
     Dim catalogVersion As Long
     On Error GoTo Failed
+    If Not editorProjection Is Nothing Then editorProjection.RemoveAll
     collect = False: visible = False: version = 0
     notice = "Tracking unavailable: configuration could not be validated."
     If Not modConfig.LoadConfig(target.WarehouseId, target.StationId) Then Exit Function
@@ -85,6 +87,13 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
     version = latest
     ReadPolicy = True: notice = ""
 CleanExit:
+    If Not editorProjection Is Nothing Then
+        If ReadPolicy Then
+            modTrackingPolicyModel.Project headers, controls, selected, latest, editorProjection
+        Else
+            editorProjection.RemoveAll
+        End If
+    End If
     If Not ReadPolicy Then collect = False: visible = False
     If opened And Not wb Is Nothing Then wb.Close SaveChanges:=False
     Exit Function

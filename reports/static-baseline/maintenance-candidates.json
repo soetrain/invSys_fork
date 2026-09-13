@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-13T10:30:12Z",
+    "generatedAtUtc":  "2026-09-13T11:32:38Z",
     "baseline":  {
-                     "componentCount":  183,
-                     "procedureCount":  5527,
-                     "lineCount":  124187,
+                     "componentCount":  187,
+                     "procedureCount":  5565,
+                     "lineCount":  124730,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  190
@@ -5763,6 +5763,176 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mAdminVisible_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mAdminVisible_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCapture_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mCapture_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCollect_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mCollect_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReload_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mReload_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReset_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mReset_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mRows_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mRows_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSave_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mSave_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSequence_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mSequence_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mView_Change",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mView_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mVisible_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cAdminTrackingPolicy",
+                           "procedureNames":  [
+                                                  "mVisible_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/ClassModules/cAdminTrackingPolicy.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.mBtnAddField_Click",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -6518,6 +6688,24 @@
                            "protectingTests":  [
                                                    "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
                                                    "tests/tooling/Test-Slice0ToolContracts.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmAdminSettings",
+                           "procedureNames":  [
+                                                  "UserForm_QueryClose"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Admin/Forms/frmAdminSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Test-Plan022LauncherContracts.ps1"
                                                ],
                            "reviewRequired":  true
                        },

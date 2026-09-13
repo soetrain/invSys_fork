@@ -1,8 +1,8 @@
 # invSys VBA Maintenance Candidates
 
 - Schema: 1.0.0
-- Generated: 2026-09-13T10:30:12Z
-- Total candidates: 1092
+- Generated: 2026-09-13T11:32:38Z
+- Total candidates: 1103
 - Duplicate-body groups: 190
 - Unresolved dynamic calls: 45
 
@@ -310,6 +310,16 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_SAME_PROJECT_LATE_BINDING | HIGH | cDynItemSearch | CommitSelection, HandlePaletteRecipeSelected | Literal Application.Run resolves to a procedure in the scanned project surface. |
 | REPLACE_SAME_PROJECT_LATE_BINDING | HIGH | cDynItemSearch | CommitSelection, LoadRecipeChooser | Literal Application.Run resolves to a procedure in the scanned project surface. |
 | REPLACE_SAME_PROJECT_LATE_BINDING | HIGH | cDynItemSearch | CommitSelection, LoadRecipeFromRecipes | Literal Application.Run resolves to a procedure in the scanned project surface. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mAdminVisible_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mCapture_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mCollect_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mReload_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mReset_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mRows_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mSave_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mSequence_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mView_Change | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cAdminTrackingPolicy | mVisible_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmAddInventoryItem | mBtnAddField_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmAddInventoryItem | mBtnAddMode_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmAddInventoryItem | mBtnCancel_Click | Procedure is a registered or discovered dynamic root. |
@@ -354,6 +364,7 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | RETAIN_DYNAMIC_ROOT | LOW | frmAdminSettings | mLstUoms_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmAdminSettings | UserForm_Activate | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmAdminSettings | UserForm_Initialize | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmAdminSettings | UserForm_QueryClose | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmAggregationSources | mBtnAddServer_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmAggregationSources | mBtnAggregate_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmAggregationSources | mBtnClose_Click | Procedure is a registered or discovered dynamic root. |

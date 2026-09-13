@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-13T10:30:12Z",
+    "generatedAtUtc":  "2026-09-13T11:32:38Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -12,6 +12,7 @@
                                              "src/Admin"
                                          ],
                          "componentNames":  [
+                                                "cAdminTrackingPolicy",
                                                 "Emails",
                                                 "frmAddInventoryItem",
                                                 "frmAdminDesignLifecycle",
@@ -101,6 +102,9 @@
                                                 "modShippingActivityCodes",
                                                 "modStationIdentity",
                                                 "modSystemIdentity",
+                                                "modTrackingPolicyCommand",
+                                                "modTrackingPolicyModel",
+                                                "modTrackingPolicySettings",
                                                 "modTrainingJson",
                                                 "modTrainingWire",
                                                 "modUiQuiet",
@@ -247,6 +251,36 @@
                      }
                  ],
     "components":  [
+                       {
+                           "name":  "cAdminTrackingPolicy",
+                           "kind":  "CLASS_MODULE",
+                           "sourcePath":  "src/Admin/ClassModules/cAdminTrackingPolicy.cls",
+                           "lineCount":  170,
+                           "procedureNames":  [
+                                                  "AddControl",
+                                                  "Initialize",
+                                                  "mAdminVisible_Click",
+                                                  "mCapture_Click",
+                                                  "mCollect_Click",
+                                                  "mReload_Click",
+                                                  "mReset_Click",
+                                                  "mRows_Click",
+                                                  "mSave_Click",
+                                                  "mSequence_Click",
+                                                  "mView_Change",
+                                                  "mVisible_Click",
+                                                  "ReloadPolicy",
+                                                  "Render",
+                                                  "ResetPolicy",
+                                                  "SavePolicy",
+                                                  "ShowSelection",
+                                                  "StageControl",
+                                                  "StageTop"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
                        {
                            "name":  "Emails",
                            "kind":  "CLASS_MODULE",
@@ -406,7 +440,7 @@
                            "name":  "frmAdminSettings",
                            "kind":  "FORM",
                            "sourcePath":  "src/Admin/Forms/frmAdminSettings.frm",
-                           "lineCount":  484,
+                           "lineCount":  490,
                            "procedureNames":  [
                                                   "AddButton",
                                                   "AddCheckBox",
@@ -436,7 +470,8 @@
                                                   "ShowStatus",
                                                   "TestInitializeConfigEditor",
                                                   "UserForm_Activate",
-                                                  "UserForm_Initialize"
+                                                  "UserForm_Initialize",
+                                                  "UserForm_QueryClose"
                                               ],
                            "metadata":  {
                                             "controlCount":  0
@@ -1945,7 +1980,7 @@
                            "name":  "modActivityPolicy",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActivityPolicy.bas",
-                           "lineCount":  127,
+                           "lineCount":  136,
                            "procedureNames":  [
                                                   "CellValue",
                                                   "FindTable",
@@ -3410,6 +3445,57 @@
                            "lineCount":  15,
                            "procedureNames":  [
                                                   "NewId"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "modTrackingPolicyCommand",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modTrackingPolicyCommand.bas",
+                           "lineCount":  141,
+                           "procedureNames":  [
+                                                  "CreatePolicyTable",
+                                                  "FindPolicyTable",
+                                                  "Save",
+                                                  "SetPolicyCell"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "modTrackingPolicyModel",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modTrackingPolicyModel.bas",
+                           "lineCount":  125,
+                           "procedureNames":  [
+                                                  "AuthorizeEditor",
+                                                  "Decode",
+                                                  "Defaults",
+                                                  "ExactInteger",
+                                                  "HasFields",
+                                                  "Project",
+                                                  "TableColumn",
+                                                  "TableValue"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "modTrackingPolicySettings",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modTrackingPolicySettings.bas",
+                           "lineCount":  92,
+                           "procedureNames":  [
+                                                  "ControlRows",
+                                                  "DefaultRequest",
+                                                  "FieldValue",
+                                                  "ReadEditor",
+                                                  "SavePolicy",
+                                                  "StageValue"
                                               ],
                            "metadata":  {
 
@@ -7817,6 +7903,412 @@
                    ],
     "procedures":  [
                        {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "Initialize",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  29,
+                           "endLine":  51,
+                           "lineCount":  23,
+                           "directCalls":  [
+                                               "AddControl",
+                                               "ReloadPolicy"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "ReloadPolicy",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  53,
+                           "endLine":  61,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "ReadEditor",
+                                               "Render"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "ResetPolicy",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  63,
+                           "endLine":  69,
+                           "lineCount":  7,
+                           "directCalls":  [
+                                               "DefaultRequest",
+                                               "Render"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "SavePolicy",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  71,
+                           "endLine":  79,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "ReloadPolicy"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "Render",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  81,
+                           "endLine":  101,
+                           "lineCount":  21,
+                           "directCalls":  [
+                                               "ControlRows",
+                                               "FieldValue",
+                                               "ShowSelection"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "ShowSelection",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  103,
+                           "endLine":  110,
+                           "lineCount":  8,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "StageTop",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  112,
+                           "endLine":  119,
+                           "lineCount":  8,
+                           "directCalls":  [
+                                               "StageValue"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "StageControl",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  121,
+                           "endLine":  129,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "Render",
+                                               "StageValue"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "mRows_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  131,
+                           "endLine":  133,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "ShowSelection"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mRows_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "mCapture_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  134,
+                           "endLine":  136,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "StageTop"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCapture_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "mAdminVisible_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  137,
+                           "endLine":  139,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "StageTop"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mAdminVisible_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "mView_Change",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  140,
+                           "endLine":  142,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "StageTop"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mView_Change"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "mCollect_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  143,
+                           "endLine":  145,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "StageControl"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCollect_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "mVisible_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  146,
+                           "endLine":  148,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "StageControl"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mVisible_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "mSequence_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  149,
+                           "endLine":  151,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "StageControl"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSequence_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "mSave_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  152,
+                           "endLine":  154,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "SavePolicy"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSave_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "mReset_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  155,
+                           "endLine":  157,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "ResetPolicy"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReset_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "mReload_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  158,
+                           "endLine":  160,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "ReloadPolicy"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReload_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cAdminTrackingPolicy",
+                           "name":  "AddControl",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  162,
+                           "endLine":  170,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "Add",
+                                               "Control"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
                            "componentName":  "frmAddInventoryItem",
                            "name":  "Accepted",
                            "visibility":  "PUBLIC",
@@ -8583,6 +9075,7 @@
                                                                    ],
                            "rootIds":  [
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
+                                           "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
                                            "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.UserForm_QueryClose",
                                            "convention.userform-event:src_Shipping_Forms_frmBoxVersionSaveChoice.frm:frmBoxVersionSaveChoice.UserForm_QueryClose"
@@ -9111,6 +9604,7 @@
                            "endLine":  1015,
                            "lineCount":  30,
                            "directCalls":  [
+                                               "FieldValue",
                                                "FindCustomFieldRow",
                                                "IsReservedCustomField",
                                                "NormalizeCustomFieldName"
@@ -10332,8 +10826,8 @@
                            "name":  "UserForm_Initialize",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  47,
-                           "endLine":  54,
+                           "startLine":  48,
+                           "endLine":  55,
                            "lineCount":  8,
                            "directCalls":  [
                                                "BuildLayout",
@@ -10371,11 +10865,36 @@
                        },
                        {
                            "componentName":  "frmAdminSettings",
+                           "name":  "UserForm_QueryClose",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  57,
+                           "endLine":  59,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
+                                           "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
+                                           "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                                           "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.UserForm_QueryClose",
+                                           "convention.userform-event:src_Shipping_Forms_frmBoxVersionSaveChoice.frm:frmBoxVersionSaveChoice.UserForm_QueryClose"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmAdminSettings",
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  56,
-                           "endLine":  62,
+                           "startLine":  61,
+                           "endLine":  67,
                            "lineCount":  7,
                            "directCalls":  [
                                                "EnableResizableUserForm"
@@ -10412,8 +10931,8 @@
                            "name":  "CaptureTargetContext",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  64,
-                           "endLine":  75,
+                           "startLine":  69,
+                           "endLine":  80,
                            "lineCount":  12,
                            "directCalls":  [
                                                "CaptureContext",
@@ -10436,16 +10955,17 @@
                            "name":  "BuildLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  77,
-                           "endLine":  159,
-                           "lineCount":  83,
+                           "startLine":  82,
+                           "endLine":  165,
+                           "lineCount":  84,
                            "directCalls":  [
                                                "Add",
                                                "AddButton",
                                                "AddCheckBox",
                                                "AddLabel",
                                                "AddListBox",
-                                               "AddTextBox"
+                                               "AddTextBox",
+                                               "Initialize"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -10462,8 +10982,8 @@
                            "name":  "LoadConfigRows",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  161,
-                           "endLine":  185,
+                           "startLine":  167,
+                           "endLine":  191,
                            "lineCount":  25,
                            "directCalls":  [
                                                "GetConfigEditorRows",
@@ -10490,8 +11010,8 @@
                            "name":  "mLstConfig_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  187,
-                           "endLine":  202,
+                           "startLine":  193,
+                           "endLine":  208,
                            "lineCount":  16,
                            "directCalls":  [
                                                "IsIdentityConfigKey",
@@ -10512,8 +11032,8 @@
                            "name":  "mBtnSaveConfig_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  204,
-                           "endLine":  213,
+                           "startLine":  210,
+                           "endLine":  219,
                            "lineCount":  10,
                            "directCalls":  [
                                                "LoadConfigRows",
@@ -10536,8 +11056,8 @@
                            "name":  "mBtnReloadConfig_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  215,
-                           "endLine":  222,
+                           "startLine":  221,
+                           "endLine":  228,
                            "lineCount":  8,
                            "directCalls":  [
                                                "LoadConfigRows",
@@ -10560,8 +11080,8 @@
                            "name":  "IsIdentityConfigKey",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  224,
-                           "endLine":  227,
+                           "startLine":  230,
+                           "endLine":  233,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -10581,8 +11101,8 @@
                            "name":  "TestInitializeConfigEditor",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  229,
-                           "endLine":  239,
+                           "startLine":  235,
+                           "endLine":  245,
                            "lineCount":  11,
                            "directCalls":  [
                                                "BuildLayout",
@@ -10606,8 +11126,8 @@
                            "name":  "LoadConnectionPolicy",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  241,
-                           "endLine":  244,
+                           "startLine":  247,
+                           "endLine":  250,
                            "lineCount":  4,
                            "directCalls":  [
                                                "RequireManualServerCredentials"
@@ -10627,8 +11147,8 @@
                            "name":  "mBtnSaveConnectionPolicy_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  246,
-                           "endLine":  256,
+                           "startLine":  252,
+                           "endLine":  262,
                            "lineCount":  11,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -10650,8 +11170,8 @@
                            "name":  "LoadCarriers",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  258,
-                           "endLine":  274,
+                           "startLine":  264,
+                           "endLine":  280,
                            "lineCount":  17,
                            "directCalls":  [
                                                "GetConfiguredCarriers"
@@ -10671,8 +11191,8 @@
                            "name":  "mBtnAdd_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  276,
-                           "endLine":  292,
+                           "startLine":  282,
+                           "endLine":  298,
                            "lineCount":  17,
                            "directCalls":  [
                                                "AddConfiguredCarrier",
@@ -10696,8 +11216,8 @@
                            "name":  "mBtnRemove_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  294,
-                           "endLine":  309,
+                           "startLine":  300,
+                           "endLine":  315,
                            "lineCount":  16,
                            "directCalls":  [
                                                "LoadCarriers",
@@ -10720,8 +11240,8 @@
                            "name":  "mBtnReset_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  311,
-                           "endLine":  316,
+                           "startLine":  317,
+                           "endLine":  322,
                            "lineCount":  6,
                            "directCalls":  [
                                                "LoadCarriers",
@@ -10743,8 +11263,8 @@
                            "name":  "mBtnClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  318,
-                           "endLine":  320,
+                           "startLine":  324,
+                           "endLine":  326,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -10771,8 +11291,8 @@
                            "name":  "mLstCarriers_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  322,
-                           "endLine":  325,
+                           "startLine":  328,
+                           "endLine":  331,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -10792,8 +11312,8 @@
                            "name":  "LoadUoms",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  327,
-                           "endLine":  343,
+                           "startLine":  333,
+                           "endLine":  349,
                            "lineCount":  17,
                            "directCalls":  [
                                                "GetConfiguredUoms"
@@ -10813,8 +11333,8 @@
                            "name":  "mBtnUomAdd_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  345,
-                           "endLine":  360,
+                           "startLine":  351,
+                           "endLine":  366,
                            "lineCount":  16,
                            "directCalls":  [
                                                "AddConfiguredUom",
@@ -10838,8 +11358,8 @@
                            "name":  "mBtnUomRemove_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  362,
-                           "endLine":  381,
+                           "startLine":  368,
+                           "endLine":  387,
                            "lineCount":  20,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -10863,8 +11383,8 @@
                            "name":  "mBtnUomReset_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  383,
-                           "endLine":  396,
+                           "startLine":  389,
+                           "endLine":  402,
                            "lineCount":  14,
                            "directCalls":  [
                                                "CanCurrentUserPerformCapabilityCached",
@@ -10888,8 +11408,8 @@
                            "name":  "mLstUoms_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  398,
-                           "endLine":  401,
+                           "startLine":  404,
+                           "endLine":  407,
                            "lineCount":  4,
                            "directCalls":  [
 
@@ -10909,8 +11429,8 @@
                            "name":  "ShowStatus",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  403,
-                           "endLine":  406,
+                           "startLine":  409,
+                           "endLine":  412,
                            "lineCount":  4,
                            "directCalls":  [
                                                "Message"
@@ -10930,8 +11450,8 @@
                            "name":  "AddLabel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  408,
-                           "endLine":  424,
+                           "startLine":  414,
+                           "endLine":  430,
                            "lineCount":  17,
                            "directCalls":  [
                                                "Add"
@@ -10951,8 +11471,8 @@
                            "name":  "AddTextBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  426,
-                           "endLine":  438,
+                           "startLine":  432,
+                           "endLine":  444,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -10972,8 +11492,8 @@
                            "name":  "AddListBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  440,
-                           "endLine":  452,
+                           "startLine":  446,
+                           "endLine":  458,
                            "lineCount":  13,
                            "directCalls":  [
                                                "Add"
@@ -10993,8 +11513,8 @@
                            "name":  "AddCheckBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  454,
-                           "endLine":  468,
+                           "startLine":  460,
+                           "endLine":  474,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -11014,8 +11534,8 @@
                            "name":  "AddButton",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  470,
-                           "endLine":  484,
+                           "startLine":  476,
+                           "endLine":  490,
                            "lineCount":  15,
                            "directCalls":  [
                                                "Add"
@@ -12438,6 +12958,7 @@
                                                "OpenSelectedAuthWorkbookForm",
                                                "RefreshUsersForm",
                                                "SafeTextForm",
+                                               "Save",
                                                "SaveCapabilityChoiceForm",
                                                "SetCellByColumnForm",
                                                "ShowStatusForm"
@@ -12466,6 +12987,7 @@
                                                "FindUserRowForm",
                                                "OpenSelectedAuthWorkbookForm",
                                                "RefreshUsersForm",
+                                               "Save",
                                                "SetCellByColumnForm",
                                                "ShowStatusForm"
                                            ],
@@ -12496,6 +13018,7 @@
                                                "OpenSelectedAuthWorkbookForm",
                                                "RefreshUsersForm",
                                                "SafeTextForm",
+                                               "Save",
                                                "ShowStatusForm"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -14202,6 +14725,7 @@
                                                                    ],
                            "rootIds":  [
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
+                                           "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
                                            "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.UserForm_QueryClose",
                                            "convention.userform-event:src_Shipping_Forms_frmBoxVersionSaveChoice.frm:frmBoxVersionSaveChoice.UserForm_QueryClose"
@@ -19349,6 +19873,7 @@
                                                "AppendCatalogEditHistoryAdmin",
                                                "FindCatalogRowBySkuAdmin",
                                                "FindListObjectByNameAdminLocal",
+                                               "Save",
                                                "SetCatalogValueAdmin",
                                                "SetSheetProtectionAdminLocal",
                                                "Sku"
@@ -19479,6 +20004,7 @@
                                                "ImagePath",
                                                "ItemName",
                                                "ResolveInventoryWorkbookPathForAutomation",
+                                               "Save",
                                                "SetCatalogValueAdmin",
                                                "SetPictureReferencesInCatalogAdmin",
                                                "SetSheetProtectionAdminLocal",
@@ -24382,7 +24908,8 @@
                                                "EnsureInventoryEditorSheet",
                                                "FormatInventoryWorksheet",
                                                "IsUsableInventoryWorkbook",
-                                               "NextInventoryTableHeaderRow"
+                                               "NextInventoryTableHeaderRow",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -25084,7 +25611,7 @@
                            "endLine":  752,
                            "lineCount":  5,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -28028,6 +28555,7 @@
                                                "NormalizeTesterSetupSpec",
                                                "OpenWorkbookForWriteTesterSetup",
                                                "SafeTrimTesterSetup",
+                                               "Save",
                                                "SetTableCellTesterSetup"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -28372,6 +28900,7 @@
                                                "LogDiagnosticEvent",
                                                "RefreshInventoryReadModelForWorkbook",
                                                "RemoveNonReceivingOperatorSheetsTesterSetup",
+                                               "Save",
                                                "VerifyReceivingWorkbook"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -28423,6 +28952,7 @@
                                                "NormalizeFolderPathTesterSetup",
                                                "OpenWorkbookForWriteTesterSetup",
                                                "SafeTrimTesterSetup",
+                                               "Save",
                                                "SetTableCellTesterSetup"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -28696,7 +29226,8 @@
                                                "NormalizeFolderPathTesterSetup",
                                                "OpenOrCreateConfigWorkbookRuntime",
                                                "ResolveInventoryWorkbookBridge",
-                                               "ResolveOutboxWorkbook"
+                                               "ResolveOutboxWorkbook",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -28861,6 +29392,7 @@
                                                "NormalizeFolderPathTesterSetup",
                                                "OpenWorkbookForWriteTesterSetup",
                                                "SafeTrimTesterSetup",
+                                               "Save",
                                                "SetTableCellTesterSetup"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -28886,7 +29418,8 @@
                                                "DeactivateCapabilityTesterSetup",
                                                "FindTableByNameTesterSetup",
                                                "NormalizeFolderPathTesterSetup",
-                                               "OpenWorkbookForWriteTesterSetup"
+                                               "OpenWorkbookForWriteTesterSetup",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -29036,7 +29569,7 @@
                            "endLine":  1326,
                            "lineCount":  11,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -33933,8 +34466,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  5,
-                           "endLine":  94,
-                           "lineCount":  90,
+                           "endLine":  103,
+                           "lineCount":  99,
                            "directCalls":  [
                                                "Add",
                                                "CellValue",
@@ -33944,6 +34477,7 @@
                                                "IsBooleanValue",
                                                "LoadConfig",
                                                "PositiveInteger",
+                                               "Project",
                                                "ValidUtcTimestamp",
                                                "Version"
                                            ],
@@ -33962,8 +34496,8 @@
                            "name":  "FindTable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  96,
-                           "endLine":  103,
+                           "startLine":  105,
+                           "endLine":  112,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -33983,8 +34517,8 @@
                            "name":  "CellValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  105,
-                           "endLine":  115,
+                           "startLine":  114,
+                           "endLine":  124,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -34004,8 +34538,8 @@
                            "name":  "PositiveInteger",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  117,
-                           "endLine":  123,
+                           "startLine":  126,
+                           "endLine":  132,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -34025,8 +34559,8 @@
                            "name":  "IsBooleanValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  125,
-                           "endLine":  127,
+                           "startLine":  134,
+                           "endLine":  136,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -35523,7 +36057,7 @@
                            "endLine":  1328,
                            "lineCount":  14,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -36139,7 +36673,7 @@
                            "endLine":  1771,
                            "lineCount":  5,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -38317,7 +38851,7 @@
                            "endLine":  1444,
                            "lineCount":  14,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -38551,7 +39085,7 @@
                            "endLine":  1605,
                            "lineCount":  6,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -38674,6 +39208,7 @@
                                                "GetConfigSchema",
                                                "LoadConfig",
                                                "Outcome",
+                                               "Save",
                                                "TargetRow",
                                                "TryCoerceConfigValue"
                                            ],
@@ -42359,7 +42894,8 @@
                                                "FindOpenWorkbookByFullNameLocal",
                                                "GetParentFolderLocal",
                                                "HideInventoryBridgeWorkbookWindows",
-                                               "IsWorkbookFileLockedLocal"
+                                               "IsWorkbookFileLockedLocal",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -43557,7 +44093,7 @@
                            "endLine":  397,
                            "lineCount":  6,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -50914,7 +51450,7 @@
                            "endLine":  1468,
                            "lineCount":  6,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -50935,7 +51471,7 @@
                            "endLine":  1479,
                            "lineCount":  10,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -55011,7 +55547,7 @@
                            "endLine":  2870,
                            "lineCount":  9,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -55179,7 +55715,8 @@
                            "endLine":  2941,
                            "lineCount":  13,
                            "directCalls":  [
-                                               "HideWorkbookWindowsRole"
+                                               "HideWorkbookWindowsRole",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -57469,7 +58006,7 @@
                            "endLine":  633,
                            "lineCount":  6,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -57687,6 +58224,411 @@
                            "lineCount":  7,
                            "directCalls":  [
 
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyCommand",
+                           "name":  "Save",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  5,
+                           "endLine":  111,
+                           "lineCount":  107,
+                           "directCalls":  [
+                                               "Add",
+                                               "AuthorizeEditor",
+                                               "CreatePolicyTable",
+                                               "Decode",
+                                               "FindPolicyTable",
+                                               "GetCurrentUserId",
+                                               "ReadPolicy",
+                                               "SetPolicyCell",
+                                               "UtcTimestamp",
+                                               "Version"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyCommand",
+                           "name":  "FindPolicyTable",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  113,
+                           "endLine":  120,
+                           "lineCount":  8,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyCommand",
+                           "name":  "CreatePolicyTable",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  122,
+                           "endLine":  136,
+                           "lineCount":  15,
+                           "directCalls":  [
+                                               "Add"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyCommand",
+                           "name":  "SetPolicyCell",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  138,
+                           "endLine":  141,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "TableColumn"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyModel",
+                           "name":  "AuthorizeEditor",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  5,
+                           "endLine":  12,
+                           "lineCount":  8,
+                           "directCalls":  [
+                                               "CanCurrentUserPerformCapabilityCached",
+                                               "CaptureContext",
+                                               "GetCurrentTarget"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyModel",
+                           "name":  "Defaults",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  14,
+                           "endLine":  34,
+                           "lineCount":  21,
+                           "directCalls":  [
+                                               "Add",
+                                               "Control",
+                                               "ControlIds"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyModel",
+                           "name":  "Decode",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  36,
+                           "endLine":  67,
+                           "lineCount":  32,
+                           "directCalls":  [
+                                               "Add",
+                                               "Control",
+                                               "ControlIds",
+                                               "DecodeObject",
+                                               "ExactInteger",
+                                               "HasFields"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyModel",
+                           "name":  "HasFields",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  69,
+                           "endLine":  78,
+                           "lineCount":  10,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyModel",
+                           "name":  "ExactInteger",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  80,
+                           "endLine":  84,
+                           "lineCount":  5,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyModel",
+                           "name":  "Project",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  86,
+                           "endLine":  110,
+                           "lineCount":  25,
+                           "directCalls":  [
+                                               "Add",
+                                               "Defaults",
+                                               "TableValue",
+                                               "Version"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyModel",
+                           "name":  "TableColumn",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  112,
+                           "endLine":  121,
+                           "lineCount":  10,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicyModel",
+                           "name":  "TableValue",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  123,
+                           "endLine":  125,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "TableColumn"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicySettings",
+                           "name":  "ReadEditor",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  5,
+                           "endLine":  23,
+                           "lineCount":  19,
+                           "directCalls":  [
+                                               "AuthorizeEditor",
+                                               "EncodeObject",
+                                               "ReadPolicy",
+                                               "Version"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicySettings",
+                           "name":  "DefaultRequest",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  25,
+                           "endLine":  27,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Defaults",
+                                               "EncodeObject"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicySettings",
+                           "name":  "FieldValue",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  29,
+                           "endLine":  37,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "Decode"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicySettings",
+                           "name":  "ControlRows",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  39,
+                           "endLine":  59,
+                           "lineCount":  21,
+                           "directCalls":  [
+                                               "Control",
+                                               "Decode"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicySettings",
+                           "name":  "StageValue",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  61,
+                           "endLine":  87,
+                           "lineCount":  27,
+                           "directCalls":  [
+                                               "Decode",
+                                               "EncodeObject"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modTrackingPolicySettings",
+                           "name":  "SavePolicy",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  89,
+                           "endLine":  92,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -59701,7 +60643,8 @@
                                                "IsTargetResolved",
                                                "RefreshInventoryReadModelForWorkbook",
                                                "RemoveCreatedStarterSheetBootstrap",
-                                               "RoleDisplayNameBootstrap"
+                                               "RoleDisplayNameBootstrap",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -60013,7 +60956,8 @@
                                                "EnsureFolderRecursiveBootstrap",
                                                "EnsureInventorySchemaBridge",
                                                "FileExistsBootstrap",
-                                               "GetParentFolderBootstrap"
+                                               "GetParentFolderBootstrap",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -60199,7 +61143,8 @@
                                                "FindOpenWorkbookByPathBootstrap",
                                                "GetParentFolderBootstrap",
                                                "RefreshInventoryReadModelForWorkbook",
-                                               "RemoveNonReceivingOperatorSheetsBootstrap"
+                                               "RemoveNonReceivingOperatorSheetsBootstrap",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -60490,7 +61435,7 @@
                            "endLine":  1194,
                            "lineCount":  6,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -60511,7 +61456,7 @@
                            "endLine":  1204,
                            "lineCount":  9,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -61061,7 +62006,7 @@
                            "endLine":  609,
                            "lineCount":  6,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -62429,6 +63374,7 @@
                                                "PerfMarkSafeSync",
                                                "ResolveInventoryWorkbookBridge",
                                                "ResolveSnapshotWorkbook",
+                                               "Save",
                                                "WorkbookWasAlreadyOpenSync",
                                                "WriteSnapshotEventRows",
                                                "WriteSnapshotRows"
@@ -63777,7 +64723,7 @@
                            "endLine":  1516,
                            "lineCount":  6,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -63924,7 +64870,8 @@
                            "endLine":  1579,
                            "lineCount":  11,
                            "directCalls":  [
-                                               "HideWorkbookWindowsSync"
+                                               "HideWorkbookWindowsSync",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -65931,7 +66878,7 @@
                            "endLine":  1526,
                            "lineCount":  6,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -67406,7 +68353,8 @@
                                                "BuildDesignsWorkbookPath",
                                                "EnsureDesignsSchema",
                                                "KeepCanonicalDesignsAuthorityInternal",
-                                               "ResolveDesignsWarehouseId"
+                                               "ResolveDesignsWarehouseId",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -68107,7 +69055,7 @@
                            "endLine":  192,
                            "lineCount":  6,
                            "directCalls":  [
-
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -68150,7 +69098,8 @@
                            "lineCount":  22,
                            "directCalls":  [
                                                "EnsureInventorySchema",
-                                               "RebuildInventoryProjections"
+                                               "RebuildInventoryProjections",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -69806,7 +70755,8 @@
                                                "EnsureFolderRecursiveApply",
                                                "EnsureInventorySchema",
                                                "GetParentFolderApply",
-                                               "IsWorkbookFileLockedApply"
+                                               "IsWorkbookFileLockedApply",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -72188,6 +73138,7 @@
                                                "FindManagedInventoryTablePublisher",
                                                "ResolveCatalogSourceValuePublisher",
                                                "RestoreWorksheetProtectionPublisher",
+                                               "Save",
                                                "Sku"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -72509,6 +73460,7 @@
                                                "CloseWorkbookQuietlyPublisher",
                                                "FindOpenConfigWorkbookByWarehousePublisher",
                                                "HideWorkbookWindowsPublisher",
+                                               "Save",
                                                "WorkbookHasUnsavedChangesPublisher"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -90722,6 +91674,7 @@
                                                "FormatProcessWorksheet",
                                                "IsBase36Identifier",
                                                "NextProcessTableTopRow",
+                                               "Save",
                                                "WorksheetAlternativePairCountForRows",
                                                "WriteWorksheetHeaders",
                                                "WriteWorksheetRecord"
@@ -90787,7 +91740,8 @@
                            "lineCount":  23,
                            "directCalls":  [
                                                "ClearProcessTableMetadata",
-                                               "FindProcessTableByName"
+                                               "FindProcessTableByName",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -90938,7 +91892,8 @@
                                                "Add",
                                                "AlternativePairCount",
                                                "FindProcessTableByName",
-                                               "FindSelectedProcessWorksheetTable"
+                                               "FindSelectedProcessWorksheetTable",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -103800,6 +104755,7 @@
                                                "LoadIngredientListForRecipe",
                                                "NzStr",
                                                "OpenProductionRecipesWorkbook",
+                                               "Save",
                                                "SetCoreDataRootOverride",
                                                "SetProductionTableCellByHeader",
                                                "WorkbookSheetExists"
@@ -103867,7 +104823,8 @@
                                                "DeleteProductionRecipeRowsById",
                                                "EnsureProductionRecipesSchema",
                                                "OpenProductionRecipesWorkbook",
-                                               "ResolveProductionRecipesStorageTarget"
+                                               "ResolveProductionRecipesStorageTarget",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -104221,7 +105178,8 @@
                                                "DeleteIngredientPaletteRowsByKey",
                                                "EnsureProductionIngredientPaletteSchema",
                                                "OpenProductionRecipesWorkbook",
-                                               "ResolveProductionRecipesStorageTarget"
+                                               "ResolveProductionRecipesStorageTarget",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -107082,6 +108040,7 @@
                                                                    ],
                            "rootIds":  [
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
+                                           "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
                                            "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.UserForm_QueryClose",
                                            "convention.userform-event:src_Shipping_Forms_frmBoxVersionSaveChoice.frm:frmBoxVersionSaveChoice.UserForm_QueryClose"
@@ -113701,6 +114660,7 @@
                                                                    ],
                            "rootIds":  [
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
+                                           "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
                                            "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.UserForm_QueryClose",
                                            "convention.userform-event:src_Shipping_Forms_frmBoxVersionSaveChoice.frm:frmBoxVersionSaveChoice.UserForm_QueryClose"
@@ -131410,6 +132370,7 @@
                                                "NzStr",
                                                "OpenShippingBomWorkbook",
                                                "ResolveCurrentUserId",
+                                               "Save",
                                                "SetTableCellShipping",
                                                "ShippingBomPackageHasRows",
                                                "WriteShippingBomPackageTable"
@@ -131463,6 +132424,7 @@
                                                "NzStr",
                                                "OpenShippingBomWorkbook",
                                                "ResolveCurrentUserId",
+                                               "Save",
                                                "SetTableCellShipping",
                                                "ShippingBomActiveValue"
                                            ],
@@ -132069,6 +133031,7 @@
                                                "OpenCurrentShippingReservationsWorkbook",
                                                "ReadListRowValue",
                                                "ResolveCurrentUserId",
+                                               "Save",
                                                "ShipmentRowText",
                                                "ShippingReservationId",
                                                "WriteValue"
@@ -132095,6 +133058,7 @@
                                                "CloseWorkbookNoSaveShipping",
                                                "FindShippingReservationRow",
                                                "OpenCurrentShippingReservationsWorkbook",
+                                               "Save",
                                                "ShipmentRowText",
                                                "WriteValue"
                                            ],
@@ -132209,7 +133173,8 @@
                                                "EnsureShippingBomSchema",
                                                "GetCurrentTarget",
                                                "NormalizeFolderPathShipping",
-                                               "OpenShippingBomWorkbook"
+                                               "OpenShippingBomWorkbook",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -132237,7 +133202,8 @@
                                                "EnsureShippingBomSchema",
                                                "GetCurrentTarget",
                                                "NormalizeFolderPathShipping",
-                                               "OpenShippingBomWorkbook"
+                                               "OpenShippingBomWorkbook",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -132265,7 +133231,8 @@
                                                "NormalizeFolderPathShipping",
                                                "OpenShippingBomWorkbook",
                                                "ResolveCurrentUserId",
-                                               "RetireActiveShippingBomPackageSystemKeys"
+                                               "RetireActiveShippingBomPackageSystemKeys",
+                                               "Save"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -136543,7 +137510,8 @@
                                           ],
                        "unknownHeadersPolicy":  "PRESERVE",
                        "locations":  [
-                                         "src/Core/Modules/modActivityPolicy.bas"
+                                         "src/Core/Modules/modActivityPolicy.bas",
+                                         "src/Core/Modules/modTrackingPolicyCommand.bas"
                                      ]
                    },
                    {
@@ -136553,7 +137521,8 @@
                                           ],
                        "unknownHeadersPolicy":  "PRESERVE",
                        "locations":  [
-                                         "src/Core/Modules/modActivityPolicy.bas"
+                                         "src/Core/Modules/modActivityPolicy.bas",
+                                         "src/Core/Modules/modTrackingPolicyCommand.bas"
                                      ]
                    },
                    {
@@ -137601,6 +138570,7 @@
                                                  "tests/tooling/Slice4beShippingPrewriteRefusal.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Slice4beShippingTrackingFailure.ps1",
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1",
                                                  "tests/tooling/Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-PackagedExternalEdits.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
@@ -138512,7 +139482,8 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
-                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1"
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
                                              ]
                            },
                            {
@@ -138941,6 +139912,7 @@
                                                  "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1",
                                                  "tests/tooling/Slice4beTrackingSettings.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022Slice4afRecipeIdentity.ps1",
@@ -139065,6 +140037,13 @@
                                "entryPoint":  "DecodeObject",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActivityFoundation.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Defaults",
+                               "testPaths":  [
+                                                 "tests/integration/test_CreateWarehouse.bas",
+                                                 "tests/tooling/Test-Plan022Slice4azOutputRegulation.ps1"
                                              ]
                            },
                            {
@@ -140857,6 +141836,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mAdminVisible_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ManagedItemDisplayForAssignmentCode",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4arProductionClarity.ps1"
@@ -141201,6 +142186,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mCapture_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "mChkUseExisting_Click",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beShippingActivity.ps1"
@@ -141332,6 +142323,12 @@
                                "entryPoint":  "mTxtOutputReal_Change",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4agProductionActualOutput.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "mView_Change",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
                                              ]
                            },
                            {
@@ -141764,6 +142761,23 @@
                                "entryPoint":  "ProductionSessionContractProbe",
                                "testPaths":  [
                                                  "tests/unit/TestProductionSessionService.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Project",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Test-PackagedVbaCompile.ps1",
+                                                 "tests/tooling/Test-Slice13OperationsCutover.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice6ShadowOperations.ps1",
+                                                 "tests/tooling/Test-Slice9ProductionLayout.ps1",
+                                                 "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
                            },
                            {
@@ -142244,6 +143258,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ReloadPolicy",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "RememberRoot",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
@@ -142271,6 +143291,13 @@
                                "entryPoint":  "RemoveNonReceivingOperatorSheetsBootstrap",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Render",
+                               "testPaths":  [
+                                                 "tests/integration/test_ReceivingReadiness.bas",
+                                                 "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
                                              ]
                            },
                            {
@@ -142333,6 +143360,12 @@
                                "entryPoint":  "ResetPendingBoxVersionInventoryOverlayCacheForTest",
                                "testPaths":  [
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ResetPolicy",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
                                              ]
                            },
                            {
@@ -142801,10 +143834,75 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Save",
+                               "testPaths":  [
+                                                 "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                 "tests/integration/test_CreateWarehouse.bas",
+                                                 "tests/integration/test_ReceivingReadiness.bas",
+                                                 "tests/integration/test_RetireMigrate.bas",
+                                                 "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beReceivingNativeSurface.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
+                                                 "tests/tooling/Slice4beReceivingReferences.ps1",
+                                                 "tests/tooling/Slice4beReceivingSurface.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingCapability.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
+                                                 "tests/tooling/Slice4beShippingSubmission.ps1",
+                                                 "tests/tooling/Slice4beShippingWorkbookClose.ps1",
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1",
+                                                 "tests/tooling/Slice4beTrackingSettings.ps1",
+                                                 "tests/tooling/Slice4beWorksheetInput.ps1",
+                                                 "tests/tooling/Test-Plan022LauncherContracts.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4biFirstUseNasOnboarding.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4pReceiving.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4sShippingExactKey.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4uShippingPersistenceFeedback.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4xProductionRestart.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4xReusableProduction.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4yProcessWorksheet.ps1",
+                                                 "tests/tooling/Test-Slice0ToolContracts.ps1",
+                                                 "tests/tooling/Test-Slice14FullChain.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4beWorksheetInput.ps1",
+                                                 "tests/unit/TestCoreProcessor.bas",
+                                                 "tests/unit/TestCoreRoleEventWriter.bas",
+                                                 "tests/unit/TestDesignsDomain.bas",
+                                                 "tests/unit/TestPhase3RoleFlows.bas",
+                                                 "tests/unit/TestPhase5HqBoundary.bas",
+                                                 "tests/unit/TestPhase5Sync.bas",
+                                                 "tests/unit/TestPhase6CoreSurfaces.bas",
+                                                 "tests/unit/TestPhase6LanBoundary.bas",
+                                                 "tests/unit/TestReceivingReadiness.bas",
+                                                 "tests/unit/TestWarehouseBootstrap.bas",
+                                                 "tests/unit/TestWarehouseRetireArchive.bas",
+                                                 "tests/unit/TestWarehouseRetireLifecycle.bas",
+                                                 "tests/unit/TestWarehouseRetireMigration.bas",
+                                                 "tests/unit/TestWarehouseRetireReAuth.bas"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "SaveBoxDesign",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4sShippingExactKey.ps1",
                                                  "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "SavePolicy",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1"
                                              ]
                            },
                            {
@@ -143372,6 +144470,7 @@
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestReceivingReadiness.bas"
@@ -143493,6 +144592,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Plan022DialogObserver.ps1",
                                                  "tests/tooling/Test-Slice0ToolContracts.ps1",
@@ -144430,6 +145530,7 @@
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-EaWholeUnitInvariant.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
@@ -145012,6 +146113,13 @@
                          {
                              "id":  "convention.class-event:src_Core_ClassModules_MouseOverControl.cls:MouseOverControl.m_UserForm_Scroll",
                              "procedure":  "m_UserForm_Scroll",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mAdminVisible_Click",
+                             "procedure":  "mAdminVisible_Click",
                              "rootKind":  "CLASS_EVENT",
                              "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
@@ -146277,6 +147385,13 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCapture_Click",
+                             "procedure":  "mCapture_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.userform-event:src_Shipping_Forms_frmShipmentsTally.frm:frmShipmentsTally.mCboBoxBuilderVersion_Change",
                              "procedure":  "mCboBoxBuilderVersion_Change",
                              "rootKind":  "USERFORM_EVENT",
@@ -146484,6 +147599,13 @@
                              "procedure":  "mCmbWarehouse_Change",
                              "rootKind":  "USERFORM_EVENT",
                              "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mCollect_Click",
+                             "procedure":  "mCollect_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
@@ -146823,6 +147945,41 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReload_Click",
+                             "procedure":  "mReload_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mReset_Click",
+                             "procedure":  "mReset_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mRows_Click",
+                             "procedure":  "mRows_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSave_Click",
+                             "procedure":  "mSave_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mSequence_Click",
+                             "procedure":  "mSequence_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mTabs_Change",
                              "procedure":  "mTabs_Change",
                              "rootKind":  "USERFORM_EVENT",
@@ -146967,6 +148124,20 @@
                              "procedure":  "mTxtWarehouseRootPath_Change",
                              "rootKind":  "USERFORM_EVENT",
                              "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mView_Change",
+                             "procedure":  "mView_Change",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Admin_ClassModules_cAdminTrackingPolicy.cls:cAdminTrackingPolicy.mVisible_Click",
+                             "procedure":  "mVisible_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
@@ -150485,6 +151656,13 @@
                          },
                          {
                              "id":  "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
+                             "procedure":  "UserForm_QueryClose",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                              "procedure":  "UserForm_QueryClose",
                              "rootKind":  "USERFORM_EVENT",
                              "reason":  "UserForm and control events are convention-dispatched.",

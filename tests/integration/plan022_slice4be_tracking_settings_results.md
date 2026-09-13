@@ -1,6 +1,96 @@
 # Slice 4be.2 Event Tracking Settings
 
-## Current checkpoint: tabs implemented, editors incomplete
+## Current checkpoint: staged tracking policy and Core persistence
+
+Last verified 2026-09-13. The isolated five-package candidate
+`deploy/validation-tracking-policy-save` adds the Admin-owned tracking editor
+and headless Core whole-policy save under existing Architecture v4.11 D18/D5.
+No architectural rule changes. Detail profiles, personal preferences and the
+new Settings controls' activity coverage remain incomplete; 4be.2 stays open.
+
+The protecting no-write candidate `deploy/validation-tracking-policy-red`
+completes **47 checks: 44 PASS / 3 FAIL**. The real class Save action is entered,
+but `TrackingPolicy.AuthorizedSavePublishesVersion` fails. The other two failures
+are the existing broad Settings assertions for separate profile/preference
+actions and personal view choices. This is behavioral RED, not a missing seam
+or compile failure. The persistence candidate completes **56 checks: 54 PASS /
+2 FAIL**, including **25/25 TrackingPolicy** and **18/18 preserved D5** checks.
+Both broad failures remain; all earlier tabbed-candidate GREENs are retained.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-tracking-policy-save -Phase RED -CheckTrackingSettings -CheckTrackingPolicy -CaptureEvidence
+```
+
+The tests stage and reset through the same class action bodies used by the
+operator, and save/reload versions 1 and 2 through that action. Supplemental Core
+tests reject unknown fields/controls, missing/duplicate controls, invalid flags
+and view, stale versions, signed-out/capability/stale-session/cross-target
+contexts and read-only/dirty Config. The second save shifts managed columns by
+inserting an unknown first column in both tables, then verifies all prior rows
+and unknown values survive unchanged. Requests remain in memory; report JSON
+contains only fixed check identities and Boolean outcomes.
+
+Core validates the existing latest policy through the existing reader, stages
+the entire request, appends metadata and control rows, then saves Config once.
+Both compatibility flags and the warehouse default are in that same version.
+This does not claim a new generic scalar Config compatibility API. Both tables
+absent yields labelled version-0 defaults; controls absent from a valid older
+catalog remain unavailable until explicit policy update. Default sequence
+eligibility in the editor is permission to include registered controls, not
+automatic recording: capture remains off and navigation collection defaults off.
+Required audit/business collection cannot be edited here.
+
+The inspected `tracking-policy-saved.png` shows version 2, Compare both as the
+warehouse default, capture off, per-control flags and all three policy actions.
+It is an internal disposable-fixture capture, not human acceptance. New-control
+coverage, policy-save version/outcome observations, Close-discard proof, detailed
+per-control interaction/older-policy editor tests, cancelled/interrupted-save recovery and
+the full profile/preference/Operations-without-Admin scope remain outstanding.
+No new full-chain, live-role, NAS or visible user-comparison acceptance is claimed.
+
+Ignored evidence under `reports/runtime/slice4be-tracking-settings/`:
+
+- `14f7b73e7f6c468f984bbd7aef41fe08/red.json`: meaningful policy save RED.
+- `79e30c97bd484d8da1a27f21e023372d/red.json`: final 54/2 candidate and inspected
+  `tracking-policy-saved.png`.
+- `policy-red-build.log`, `policy-red-compile.log`, `policy-red-compiled-sources.json`;
+  `policy-save-build.log`, `policy-save-compile.log`, `policy-save-compiled-sources.json`:
+  both candidates build and all five projects explicitly compile, including
+  Operations cold start.
+- `policy-action-red-test.log`, `policy-save-final-test.log`.
+- `policy-activity-regression.log`: shared activity foundation **70/70**.
+- `policy-comparison.json`: all 28 prior tabbed GREENs and all 44 policy-RED
+  GREENs retained, no duplicate identities; all 70 prior activity GREENs retained.
+- `policy-static.log`, `policy-size-ratchets.json`: regenerated static reports
+  contain 187 components and 5,565 procedures. Literal/unresolved Application.Run
+  counts remain 8/45; duplicate-body groups remain 190. All 28 prior oversized
+  module limits hold. The four new modules are at most 170 scanner-counted lines,
+  their procedures at most 107; Settings is 490. All three report schemas pass.
+  These are maintenance checks, not authority to delete scanner candidates.
+- `policy-full-receiving.log`, `policy-full-receiving-green.json`,
+  `policy-receiving-comparison.json`: **854/854**, preserving every prior check
+  identity and GREEN without duplicates. The runner's original output is
+  `reports/runtime/slice4be-receiving-activity/launcher-denial-green.json` for
+  this flag combination, not the historical shorter `green.json`.
+- `policy-packaged-smoke.log`, `policy-packaged-report.md`: **86/86**.
+- `policy-source-import.log`, `policy-source-import-report.md`: source-backed
+  harness imports all three new Core helpers and passes selected test 1/314
+  (**1/1**); this does not claim all 314 source-backed cases were run.
+- `policy-red-package-hashes.json`, `policy-save-package-hashes.json`,
+  `policy-additional-pin-verification.json`: 10 policy-candidate hashes pinned
+  and matching after smoke; all 75 earlier package pins and 16 preserved runtime
+  source pins also match. Accepted deployment and operational NAS workbooks were
+  not changed. Excel is closed.
+- `policy-native-windows.json`: no observed Excel Application 1000 faults in
+  eleven bounded setup/build/compile/test windows. Earlier historical native
+  faults remain open; this evidence does not explain or erase them.
+
+The earlier `policy-red-test.log` attempt failed in test setup because a disk
+hash was requested while Excel held a read/write fixture handle. It is not
+product RED. The corrected test inspects in-memory dirty state first, closes
+only its disposable fixture without saving, then compares the file hash.
+
+## Previous checkpoint: tabs implemented, editors incomplete
 
 Last verified 2026-09-13. The isolated candidate
 `deploy/validation-tracking-settings-tabs-final` now has the approved General and
@@ -153,10 +243,9 @@ compile, full Release 1 chain, live-role GREEN or human acceptance is claimed.
 
 ## Required continuation
 
-Next implement the staged tracking-policy editor and its real Save Tracking
-Policy/Reset handlers, establishing packaged behavioral RED for version
-publication and rejection paths before implementing the Core persistence body.
-Continue with the detail profile and personal preference editors. Exercise the actual tracking policy save,
+Complete the remaining tracking-policy action/coverage cases above, then
+continue with the detail profile and personal preference editors using focused
+packaged behavioral RED before their persistence implementation. Exercise the actual tracking policy save,
 detail profile save, personal save, Reload, Reset and Close handlers; missing
 seams/compile failures must never substitute for behavioral RED. Keep these
 requirements explicit:

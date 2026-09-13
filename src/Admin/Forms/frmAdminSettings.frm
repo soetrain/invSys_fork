@@ -43,6 +43,7 @@ Private mActivityContext As String
 Private mResizeInitialized As Boolean
 Private mPages As MSForms.MultiPage
 Private mControlParent As Object
+Private mTracking As cAdminTrackingPolicy
 
 Private Sub UserForm_Initialize()
     CaptureTargetContext
@@ -51,6 +52,10 @@ Private Sub UserForm_Initialize()
     LoadConnectionPolicy
     LoadCarriers
     LoadUoms
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    Set mTracking = Nothing
 End Sub
 
 Private Sub UserForm_Activate()
@@ -147,11 +152,12 @@ Private Sub BuildLayout()
 
     Set mControlParent = mPages.Pages(1)
     AddLabel "lblTracking", "Tracking", 12, 12, 200, 18, True
-    AddLabel "lblTrackingAvailability", "Tracking policy editor unavailable.", 12, 38, 670, 32, False
-    AddLabel "lblEventDetail", "Event Detail", 12, 170, 200, 18, True
-    AddLabel "lblDetailAvailability", "Event detail profile editor unavailable.", 12, 196, 670, 32, False
-    AddLabel "lblActionPaths", "Action Paths", 12, 328, 200, 18, True
-    AddLabel "lblActionPathAvailability", "Action Path preferences unavailable.", 12, 354, 670, 32, False
+    Set mTracking = New cAdminTrackingPolicy
+    mTracking.Initialize mControlParent, mActivityContext
+    AddLabel "lblEventDetail", "Event Detail", 12, 400, 200, 18, True
+    AddLabel "lblDetailAvailability", "Event detail profile editor unavailable.", 12, 426, 670, 32, False
+    AddLabel "lblActionPaths", "Action Paths", 12, 490, 200, 18, True
+    AddLabel "lblActionPathAvailability", "Action Path preferences unavailable.", 12, 516, 670, 32, False
     Set mControlParent = Me
     Set mBtnClose = AddButton("btnClose", "Close", 654, 614, 66, 28)
     Set mLblStatus = AddLabel("lblStatus", "", 12, 614, 626, 36, False)
