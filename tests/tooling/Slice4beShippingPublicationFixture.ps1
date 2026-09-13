@@ -78,6 +78,35 @@ Public Sub PublicationShippingCloseForTest()
     Set mShipmentsAutoSyncForm = Nothing
     mShipmentsLauncherWorkbookName = ""
 End Sub
+Public Function PublicationShippingColumnForTest(ByVal workbookName As String) As Boolean
+    Dim wb As Workbook, ws As Worksheet, lo As ListObject, column As ListColumn
+    Set wb = Application.Workbooks(workbookName)
+    For Each ws In wb.Worksheets
+        For Each lo In ws.ListObjects
+            If lo.Name = "tblShippingBOM" Then
+                Set column = lo.ListColumns.Add(1)
+                column.Name = "Publication fixture extra"
+                column.DataBodyRange.Value2 = "DO-NOT-DISPLAY"
+                wb.Save
+                PublicationShippingColumnForTest = (column.Name = "Publication fixture extra" And wb.Saved)
+                Exit Function
+            End If
+        Next lo
+    Next ws
+End Function
+Public Function PublicationShippingDirtyForTest(ByVal workbookName As String) As Boolean
+    Dim wb As Workbook, ws As Worksheet, lo As ListObject
+    Set wb = Application.Workbooks(workbookName)
+    For Each ws In wb.Worksheets
+        For Each lo In ws.ListObjects
+            If lo.Name = "tblShippingBOM" Then
+                lo.ListColumns("Publication fixture extra").DataBodyRange.Value2 = "UNSAVED-FIXTURE"
+                PublicationShippingDirtyForTest = Not wb.Saved
+                Exit Function
+            End If
+        Next lo
+    Next ws
+End Function
 '@)
     $dialogStop=Join-Path $runRoot 'publication-shipping-dialog.stop'
     try {
@@ -110,6 +139,9 @@ End Sub
         $created=[bool](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublicationShippingBoxForTest')
         if(-not $created){throw 'Publication two-component box fixture was not created by the form handlers.'}
         Check 'ViewerPublication.ShippingFixture.ActualBoxDesignerAndMaker' $created
+        $boxMakerPublication=$null
+        $ownerPublicationPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Snapshot.Events.json')
+        if(Test-Path -LiteralPath $ownerPublicationPath){$boxMakerPublication=[IO.File]::ReadAllText($ownerPublicationPath)|ConvertFrom-Json}
         $added=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublicationShippingActionForTest' @('Add'))
         $held=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublicationShippingActionForTest' @('Hold'))
         $hold=Table $operator 'NotShipped'
@@ -121,16 +153,19 @@ End Sub
         $bomPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.ShippingBOM.xlsb')
         $bomBook=$excel.Workbooks.Open($bomPath,0,$false)
         try {
+            if(-not [bool](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublicationShippingColumnForTest' @($bomBook.Name))){throw 'Shipping BOM unknown-column fixture was not saved by the calibrated VBA edit.'}
             $bom=Table $bomBook 'tblShippingBOM'
-            $extra=$bom.ListColumns.Add(1);$extra.Name='Publication fixture extra'
-            $extra.DataBodyRange.Value2='DO-NOT-DISPLAY'
-            $bomBook.Save()
             $bomRows=@(foreach($row in $bom.ListRows){
                 $fields=[ordered]@{}
                 foreach($column in $bom.ListColumns){if($column.Name -cne 'Publication fixture extra'){$fields[$column.Name]=[string]$row.Range.Cells.Item(1,$column.Index).Value2}}
                 [pscustomobject]$fields
             })
         } finally {$bomBook.Close($false)}
+        $reopenedBom=$excel.Workbooks.Open($bomPath,0,$true)
+        try {
+            if(-not $reopenedBom.ReadOnly -or (Table $reopenedBom 'tblShippingBOM').ListRows.Count -ne 2){throw 'Saved Shipping BOM fixture did not reopen with its two owner rows.'}
+            Check 'ViewerPublication.ShippingFixture.SavedBomReopensReadOnly' $true
+        } finally {$reopenedBom.Close($false)}
         $holdPath=$localFiles[0]
         $heldRows=@(foreach($line in [IO.File]::ReadAllLines($holdPath)){
             if(-not $line){continue}
@@ -155,15 +190,23 @@ End Sub
         }
         $persisted=$excel.Workbooks.Open($inventoryPath,0,$true)
         try {
-            $log=Table $persisted 'tblInventoryLog';$builds=0
+            $log=Table $persisted 'tblInventoryLog';$builds=0;$buildId=''
             foreach($row in $log.ListRows){
                 if([string]$row.Range.Cells.Item(1,$log.ListColumns.Item('System_Key').Index).Value2 -ceq $added -and
                    [string]$row.Range.Cells.Item(1,$log.ListColumns.Item('EventType').Index).Value2 -ceq 'BOX_BUILD' -and
-                   [double]$row.Range.Cells.Item(1,$log.ListColumns.Item('QtyDelta').Index).Value2 -eq 10){$builds++}
+                   [double]$row.Range.Cells.Item(1,$log.ListColumns.Item('QtyDelta').Index).Value2 -eq 10){$builds++;$buildId=[string]$row.Range.Cells.Item(1,$log.ListColumns.Item('EventID').Index).Value2}
             }
             if($builds -ne 1){throw 'Box Maker did not persist its owning inventory event.'}
             Check 'ViewerPublication.ShippingFixture.OwnerBuildWasAlreadyDurable' $true
         } finally {$persisted.Close($false)}
+        # Prove ordinary publication through the real Box Maker handler before
+        # the explicit Admin publication command or volume-source substitution.
+        $publishedBuild=$false
+        if($null -ne $boxMakerPublication){
+            $ownerGroups=@($boxMakerPublication.Groups|Where-Object {$_.Source -ceq 'Inventory' -and $_.SourceId -ceq $buildId})
+            if($ownerGroups.Count -eq 1){$publishedBuild=@($ownerGroups[0].Lines|Where-Object {$_.EventType -ceq 'BOX_BUILD' -and $_.System_Key -ceq $added -and [string]$_.QtyDelta -ceq '10'}).Count -eq 1}
+        }
+        Check 'ViewerPublication.ShippingFixture.ActualBoxMakerPublishedOwnerEvent' $publishedBuild
         $pins=@{};foreach($path in $localFiles){if(Test-Path -LiteralPath $path){$pins[$path]=PublicationSourceHash $path}}
         $succeeded=$true
         $Result.Value=[pscustomobject]@{BomRows=$bomRows;HoldRows=$heldRows;LocalFiles=$localFiles;Pins=$pins}
@@ -196,8 +239,13 @@ function Test-Slice4beShippingPublication($Artifact,$Fixture) {
             })
             $preserved=$preserved -and $matched.Count -eq 1
             if($matched.Count -eq 1){
-                $fields=if($source -ceq 'ShippingBOM'){@('PackageItem','PackageUOM','PackageLocation','PackageDescription','BomVersionLabel','ComponentItemCode','ComponentItem','ComponentQty','ComponentUOM','ComponentLocation','ComponentDescription','UpdatedBy')}else{@('Ref','Item','Qty','UOM','Location','Description','Area','Carrier','ReserveEventId')}
-                foreach($field in $fields){$preserved=$preserved -and [string]$matched[0].$field -ceq [string]$row.$field}
+                $fields=if($source -ceq 'ShippingBOM'){@('PackageItem','PackageUOM','PackageLocation','PackageDescription','BomVersionLabel','IsActive','EffectiveFromUTC','EffectiveToUTC','RetiredAtUTC','ComponentItemCode','ComponentItem','ComponentQty','ComponentUOM','ComponentLocation','ComponentDescription','UpdatedAtUTC','UpdatedBy')}else{@('Ref','Item','Qty','UOM','Location','Description','Area','Carrier','ReserveEventId')}
+                foreach($field in $fields){
+                    $expectedValue=[string]$row.$field
+                    if($source -ceq 'ShippingBOM' -and $field.EndsWith('UTC') -and $expectedValue -ne ''){$expectedValue=[DateTime]::FromOADate([double]$expectedValue).ToString('yyyy-MM-ddTHH:mm:ss')}
+                    $preserved=$preserved -and [string]$matched[0].$field -ceq $expectedValue
+                }
+                $preserved=$preserved -and @($matched[0].PSObject.Properties).Count -eq $(if($source -ceq 'ShippingBOM'){20}else{11})
             }
         }
         Check ('ViewerPublication.'+$source+'.EveryExactOwnerLineRetained') $preserved

@@ -95,9 +95,13 @@ End Function
 '@)
     $admin=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('modAdminConsole').CodeModule
     $admin.AddFromString(@'
+Private PublicationReportForTest As String
 Public Function PublishViewerGroupsForTest() As Boolean
-    Dim report As String
-    PublishViewerGroupsForTest = GenerateInventorySnapshot("config-admin", "", Nothing, "", Nothing, report)
+    PublicationReportForTest = ""
+    PublishViewerGroupsForTest = GenerateInventorySnapshot("config-admin", "", Nothing, "", Nothing, PublicationReportForTest)
+End Function
+Public Function PublicationNoticeForTest(ByVal expected As String) As Boolean
+    PublicationNoticeForTest = (InStr(1, PublicationReportForTest, vbCrLf & expected, vbBinaryCompare) > 0)
 End Function
 '@)
     $pins=@{}
@@ -105,10 +109,12 @@ End Function
         if($file.FullName -ine $snapshot){$pins[$file.FullName]=PublicationSourceHash $file.FullName}
     }
     try {
+        SelectTarget $Fixture 'config-admin'
         [void](Run 'invSys.Core.xlam' 'modWarehouseSync.SetViewerPublicationSourceForTest' @($sourceBook.Name))
         $started=[DateTimeOffset]::UtcNow
         $published=[bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishViewerGroupsForTest')
         $finished=[DateTimeOffset]::UtcNow
+        [pscustomobject]@{CommandSeconds=($finished-$started).TotalSeconds} | ConvertTo-Json | Set-Content (Join-Path $reportRoot 'publication-timing.json')
         if(-not $published){throw 'Existing Admin inventory-snapshot command did not complete the publication fixture.'}
         Check 'ViewerPublication.ActualAdminSnapshotCommandSucceeded' $published
         if(-not [bool](Run 'invSys.Core.xlam' 'modWarehouseSync.ViewerPublicationSourceReadForTest')){throw 'Publication did not consume the controlled source fixture.'}
@@ -163,6 +169,7 @@ End Function
     if($chronology){$chronology=$activityGroup[0].RecordedAt -ceq $attempts[0].OccurredAtUTC -and $activityGroup[0].SourceKind -ceq 'User activity'}
     Check 'ViewerPublication.ActivityGroupUsesEarliestRecordedTime' $chronology
     $sources=@();if($null -ne $artifact){$sources=@($artifact.Coverage.Sources)}
+    $sources | Select-Object Source,Availability,Scope,Explanation,AvailableGroups,IncludedGroups,OmittedGroups,AvailableLines,IncludedLines,OmittedLines | ConvertTo-Json | Set-Content (Join-Path $reportRoot 'publication-coverage.json')
     $named=$sources.Count -eq 5
     foreach($name in @('Inventory','Designs','Activity','ShippingBOM','ShippingHolds')){$named=$named -and @($sources|Where-Object {$_.Source -ceq $name -and $_.Availability -ne '' -and $_.Scope -ne ''}).Count -eq 1}
     Check 'ViewerPublication.EveryExpectedSourceHasNamedCoverage' $named
@@ -190,6 +197,29 @@ End Function
     }
     Check 'ViewerPublication.ExactBodyIntegrityMatches' $hashValid
     Check 'ViewerPublication.UnknownSourceColumnExcluded' ($raw.Length -gt 0 -and -not $raw.Contains('DO-NOT-DISPLAY') -and -not $raw.Contains('User group sentinel'))
+    # Fault only the generated destination. The same public Admin command must
+    # retain its inventory success while reporting the independent Events result.
+    if($null -ne $artifact) {
+        $priorHash=PublicationSourceHash $path
+        $destinationLock=[IO.File]::Open($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+        try {
+            Check 'ViewerPublication.LockedDestinationKeepsInventorySuccess' ([bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishViewerGroupsForTest'))
+            Check 'ViewerPublication.LockedDestinationReportsEventsFailure' ([bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublicationNoticeForTest' @('Events publication failed; the prior complete Events artifact was retained.')))
+            Check 'ViewerPublication.LockedDestinationRetainsExactPriorBytes' ((PublicationSourceHash $path) -ceq $priorHash)
+            Check 'ViewerPublication.FailedReplacementLeavesNoPendingFile' (@(Get-ChildItem -LiteralPath $Fixture.Root -Filter '.events-*.pending' -File).Count -eq 0)
+        } finally {$destinationLock.Dispose()}
+        Check 'ViewerPublication.ReplacementAfterUnlockSucceeds' ([bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishViewerGroupsForTest'))
+        Check 'ViewerPublication.ReplacementReportsEventsSuccess' ([bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublicationNoticeForTest' @('Events publication complete.')))
+        $replacement=[IO.File]::ReadAllText($path)|ConvertFrom-Json
+        Check 'ViewerPublication.SuccessfulReplacementHasNewIdentity' ($replacement.PublicationId -cne $artifact.PublicationId)
+        . (Join-Path $PSScriptRoot 'Slice4bePublicationSourceFailures.ps1')
+        Test-Slice4bePublicationSourceFailures $Fixture $path
+    } else {
+        foreach($name in @('LockedDestinationKeepsInventorySuccess','LockedDestinationReportsEventsFailure','LockedDestinationRetainsExactPriorBytes','FailedReplacementLeavesNoPendingFile','ReplacementAfterUnlockSucceeds','ReplacementReportsEventsSuccess','SuccessfulReplacementHasNewIdentity',
+            'MissingBom.InventoryCommandSucceeds','MissingBom.CountsUnavailableNotZero','MissingBom.NoInventedCurrentState','MissingBom.NotRecreated',
+            'DirtyBom.InventoryCommandSucceeds','DirtyBom.CountsUnavailableNotZero','DirtyBom.NoInventedCurrentState','DirtyBom.BorrowedWithoutSaveOrClose',
+            'RestoredBom.InventoryCommandSucceeds','RestoredBom.AvailableWithOriginalBytes')){Check ('ViewerPublication.'+$name) $false}
+    }
     $unchanged=(PublicationSourceHash $source) -ceq $sourceHash
     $sourceFacts=[Collections.Generic.List[object]]::new()
     $sourceFacts.Add([pscustomobject]@{Source='PublishedFixtureCopy';Unchanged=$unchanged})
