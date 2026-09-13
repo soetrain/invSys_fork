@@ -338,7 +338,7 @@ Private Sub mBtnReset_Click()
 End Sub
 
 Private Sub mBtnClose_Click()
-    Me.Hide
+    Unload Me
 End Sub
 
 Private Sub mLstCarriers_Click()

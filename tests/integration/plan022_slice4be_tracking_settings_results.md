@@ -1,6 +1,176 @@
 # Slice 4be.2 Event Tracking Settings
 
-## Current checkpoint: personal Action Path preference
+## Current checkpoint: Operations Event Tracking Settings and Admin Close
+
+Last verified 2026-09-13: **187/187 packaged Settings checks pass** on
+`deploy/validation-operations-settings-close`, including 36 Operations checks,
+six actual Admin launcher/Close checks and all 145 preceding Settings identities
+and GREENs. No duplicate checks. Final report:
+`2189c935ed5c479ba249b804919713b9/green.json` under the ignored Settings evidence
+root. The corrected header/default/maximize/restore checks pass and the current
+visible Settings capture is inspected. This is automated operator evidence,
+not human acceptance or completed Event Viewer/Action Path presentation work.
+
+Five packages build/compile and cold start passes. Compiled-code comparison finds
+the three intended edits (`modActionPathPreference`, `frmInventoryViewer`,
+`frmAdminSettings`) and two intended Operations additions. Ten additional raw
+hash differences are casing-only with identical string literals; inspected
+package bytes are unchanged. Static evidence has 199 components / 5635 procedures,
+8 literal / 45 unresolved dynamic calls and 189 duplicate-body groups (down one).
+All 28 oversized modules do not grow; new components/procedures fit their limits;
+all three JSON schemas validate. Packaged smoke is **86/86**.
+
+The unchanged candidate's full-chain retry passes **31/31**, including successful
+ordered-child exit, restart/reconciliation, exact identity/balance/header checks
+and five-package runtime evidence. Its ordered live-role child passes **48/48**.
+The earlier native failure below remains recorded; a successful retry does not
+establish its cause. All **115 prior package pins, 25 Operations candidate pins
+and 16 protected source pins** match after verification; Excel is closed.
+See `operations-full-chain-green.md`, `operations-full-chain-retry.log`,
+`operations-preservation.json`, and the sanitized maintained
+[full-chain result](slice14_results.md). The populated Viewer result remains
+the verified layout-candidate run; the final candidate's only subsequent runtime
+edit is Admin Close, and Operations compiled-code equality is separately checked.
+
+The first full-chain attempt passes its four Admin entry/source checks, then the
+ordered live-role child loses Excel RPC during **Delete and rebuild canonical
+inventory projections**, after Production completion/application and the projection
+deletion checks pass. The bounded Application-1000 audit records one Excel native
+fault (`ntdll.dll`, `c0000028`). The child report and failed 4 PASS / 1 FAIL outer
+result are retained in ignored evidence; the restarted test-owned Excel process
+is stopped. This is not full-chain GREEN or proof of a new runtime cause.
+The same candidate was rerun with temporary fixture artifacts retained for diagnosis
+(`operations-full-chain-retry.log`). No operational warehouse or accepted deployment
+is used or changed.
+
+The D18 Operations surface uses the existing headless Core personal preference
+boundary with a read-only policy projection from the same validated read. Viewer
+owns the captured modeless Settings instance; no Admin package is required.
+Packaged tests enter the public Viewer callback and actual Settings handlers,
+protect staging, context, policy authority, Viewer state and local storage.
+
+The previous preference candidate produces surface RED: initially 148 PASS /
+2 FAIL, then 148 PASS / 6 FAIL with expanded surface checks. One failure in each
+run was an invalid package-enumeration assertion, not product RED. A separate
+isolated calibration proves that Excel's Workbooks enumeration omits these open
+XLAMs (zero enumerated, four returned open handles, named Core lookup succeeds).
+Package assertions now use named Workbooks.Item lookups, validate all four loaded
+paths against a copied four-package directory and prove named Admin absence.
+The old preference restart's absence assertion was too weak; its replacement is
+revalidated in the Operations runs without changing the retained check identity.
+
+The no-write Operations scaffold builds and explicitly compiles all five packages
+and passes cold-start initialization. `operations-settings-action-red.log` records
+159 PASS / 2 FAIL: the real Save handler is entered but personal persistence fails
+(behavioral RED), followed by an independent form-window screenshot lookup failure.
+The prior 145 Settings checks and all four-package checks pass. Captures now resolve
+the actual form caption rather than assuming a native title.
+
+`operations-settings-expanded-red.log` stops earlier with 48 PASS / 1 harness
+failure at Admin Settings reopen, before Operations checks. No Excel Application
+1000 fault was observed in its bounded log window. The remaining test-owned Excel
+process was stopped after runner completion. Preserve this interruption separately
+from product RED; no runtime repair or root cause is claimed. The unchanged
+scaffold is rerun in `operations-settings-confirmed-red.log`.
+
+That rerun retains all 145 prior checks and reaches Operations (149 PASS), then
+stops on a compile error in newly injected test code: `Tab` was used as a VBA
+parameter name. `operations-probe-syntax.png` shows the selected offending test
+declaration. The probe now uses `tabIndex`; the test-owned instance was stopped
+after capture and the runner records the resulting RPC failure. This is test
+setup failure, not runtime RED, and does not replace the earlier entered-Save RED.
+
+The existing Core Save boundary is now delegated from Operations Save, followed
+by display reload only on success. A rejected save retains staging. The fresh
+`deploy/validation-operations-settings-save` candidate builds and all five XLAMs
+explicitly compile, including cold-start dependency validation. The expanded
+packaged run is recorded in `operations-settings-save-green.log`.
+
+That candidate finishes **178 checks: 177 PASS / 1 FAIL**
+(`22ff774936644c3ba8f2c362d54d5464/green.json`). All personal save, read-only
+authority, Viewer-state, context, close/discard and default/restored resize checks
+pass. The remaining title check finds **UserForm1** instead of **Event Tracking
+Settings**. Its blank PrintWindow capture is rejected as operator evidence.
+The form now explicitly initializes its approved caption, and the read-only
+default policy says Built-in defaults rather than the editor's Staged defaults.
+The final candidate builds/compiles all five packages with cold-start validation.
+The expanded final test uses the actual form window handle, foreground-checked
+screen capture, and native maximize/restore geometry checks in addition to the
+preserved 178 checks (`operations-settings-final-green.log`).
+
+The final run is **180/180** (`bb026d22ef4d4b8bbffb5bcdc228eb7f/green.json`),
+including native maximize/restore and successful visible captures. Inspection
+accepts the title, personal choice/evidence/actions and form bounds, but finds
+misaligned policy headings and clipped operation names. The layout candidate
+replaces the space-padded heading with six labels derived from the list's column
+widths and gives the operation column 140 points. A protecting header-alignment
+check also runs at native maximize/restore; no policy/permission contract changes.
+
+The populated Viewer regression now optionally checks Settings preservation on
+Inventory, Events and ListBox->Table, comparing loaded data only in VBA memory.
+On the preceding preference candidate all existing Viewer facts pass (three
+inventory rows, one filtered row, six/seven event rows, dates, export, reuse and
+unchanged snapshot bytes), while all three Settings checks fail because the
+entry is absent. See `operations-populated-viewer-red.md` and its log. This
+supplements the empty-projection Settings fixture and requires matching GREEN.
+
+The first populated candidate run keeps all existing Viewer facts GREEN and passes
+Events preservation, but fails Inventory and third-tab setup. Test injection had
+occurred after form creation, and the existing export helper deliberately selects
+Inventory. Probes now install before the public launch and explicitly select the
+third tab before capturing its state. On the same layout candidate the corrected
+run passes the complete Viewer contract and all three populated Settings facts
+(`operations-populated-viewer-green.md`, `operations-populated-viewer-verified-green.log`).
+The failed first-run report remains separate; no runtime repair was made for it.
+
+The first layout Settings run stops at the recurring Admin reopen interruption
+(48 PASS / 1 harness failure; `operations-settings-layout-green.log`). Its bounded
+Application-1000 audit again finds no Excel native fault. The test-owned process
+is stopped after completion. The runner now records initial/live process identity
+and the HRESULT of the first failed call in ignored evidence; no cause is inferred
+from the generic COM error.
+
+The next layout run completes 178 PASS / 3 FAIL
+(`823486e7de504fc2be0d83467a055162/green.json`): only the new header checks fail.
+The inspected capture shows corrected headings and readable operation names.
+A separate read-only form probe proves MSForms stores the requested 140-point
+column as 139.95 points (`header-container-probe.log`). The test now uses the
+same one-point geometry tolerance as its other comparisons; no runtime change.
+`operations-settings-accepted-green.log` records the corrected run.
+
+That run hits the Admin reopen interruption again (48 PASS / 1 harness failure).
+The new failure record proves the initial Excel process disappeared and a new
+process was present at the failed call; it does not establish why. Source review
+also identifies a separate D18 defect: the real Admin launcher uses the default
+form instance, whose Close handler hides it. Existing private-instance tests
+discard their own reference and cannot prove the default-instance reopen path.
+
+`-AdminSettingsCloseOnly` exercises `modAdmin.Open_Settings` twice with an
+isolated saved operator workbook. An activation probe stages choices and invokes
+the actual Close handler during the modal call; it never replaces the launcher
+or Close implementation. Clean RED is **3 PASS / 3 FAIL**
+(`admin-default-close-red.log`): both real activations and Config preservation
+pass; a hidden default instance and retained personal/policy staging fail.
+D18, Plan 022 and the controls catalog clarify the existing Close-discard rule.
+The correction replaces Hide with Unload in the real Close handler, allowing
+the existing QueryClose cleanup to release editors. It does not change modal
+presentation or authority, and no native-failure cause is claimed from this fix.
+
+The fresh `deploy/validation-operations-settings-close` candidate builds and
+explicitly compiles all five packages with cold-start validation. Focused
+actual-launcher Close GREEN is **6/6** (`admin-default-close-green.log`): the
+hidden default instance is gone, both unsaved choices are discarded on real
+reopen, both activations execute and Config bytes remain unchanged. The combined
+run adds these six checks to the complete Operations/Settings suite and is
+recorded in `operations-settings-complete-green.log`.
+
+All these runtime logs, package copies and generated fixture reports remain ignored
+under `reports/runtime/slice4be-tracking-settings/`. The current 187/187 result
+supersedes the earlier incomplete Settings runs without erasing their failures.
+Comprehensive control activity, Viewer consumption, Action Path presentations,
+live-role/full-chain and human acceptance remain part of the active Release 1 goal.
+
+## Previous checkpoint: personal Action Path preference
 
 Last verified 2026-09-13; **145/145 packaged Settings checks pass**, including
 38 personal preference checks and the preserved 42 profile / 34 policy checks.
@@ -529,12 +699,9 @@ compile, full Release 1 chain, live-role GREEN or human acceptance is claimed.
 
 ## Required continuation
 
-Next, add focused RED through packaged `modInventoryViewer.OpenInventoryViewer`
-for Operations > Settings > Event Tracking with no Admin package dependency,
-then implement the Operations-owned personal surface using the existing Core
-preference boundary. Retain all 145 current Settings GREEN checks. Viewer profile
-and preference consumption, and comprehensive new-control activity/save-version
-observations remain separate unfinished work. Both How-To/Diagnostic presentations
+Advance Viewer profile and preference consumption and comprehensive new-control
+activity/save-version observations. Retain all preceding Settings checks and the
+populated Viewer regression. Both How-To/Diagnostic presentations
 and Compare both must still be implemented and visibly compared.
 Missing seams/compile failures must never substitute for behavioral RED. Keep
 these requirements explicit:

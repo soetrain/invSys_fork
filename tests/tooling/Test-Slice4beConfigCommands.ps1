@@ -10,6 +10,9 @@ param(
     [switch]$CheckTrackingPolicy,
     [switch]$CheckDetailProfile,
     [switch]$CheckActionPathPreference,
+    [switch]$CheckOperationsTrackingSettings,
+    [switch]$CheckAdminSettingsClose,
+    [switch]$AdminSettingsCloseOnly,
     [switch]$CheckShippingActivity,
     [switch]$TraceBootstrapForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -36,6 +39,8 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($AdminSettingsCloseOnly) { $CheckAdminSettingsClose = $true }
+if($CheckAdminSettingsClose -and -not $CheckActionPathPreference) { throw 'Admin close requires the complete preference probes.' }
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 $deploy = (Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
@@ -110,7 +115,16 @@ if ($CheckTrackingPolicy -and -not $CheckTrackingSettings) { throw 'Tracking pol
 if ($CheckDetailProfile -and -not $CheckTrackingSettings) { throw 'Detail profile checks require the Settings route.' }
 if ($CheckDetailProfile -and -not $CheckTrackingPolicy) { throw 'Detail profile checks retain the tracking policy baseline and cancellation observer.' }
 if ($CheckActionPathPreference -and -not $CheckDetailProfile) { throw 'Preference checks retain the detail and policy baseline.' }
+if ($CheckOperationsTrackingSettings -and -not $CheckActionPathPreference) { throw 'Operations Settings checks retain the full personal preference baseline.' }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
+if ($CheckOperationsTrackingSettings) {
+    $operationsSettingsDeploy = Join-Path $reportRoot 'operations-only'
+    New-Item -ItemType Directory -Path $operationsSettingsDeploy | Out-Null
+    foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam')) {
+        Copy-Item -LiteralPath (Join-Path $deploy $name) -Destination (Join-Path $operationsSettingsDeploy $name)
+    }
+    . (Join-Path $PSScriptRoot 'Slice4beOperationsTrackingSettings.ps1')
+}
 $results = [Collections.Generic.List[object]]::new()
 $excel = $null
 $step = 'startup'
@@ -127,7 +141,11 @@ function Check([string]$Name,[bool]$Passed) {
     $results.Add([pscustomobject]@{Check=$Name;Passed=$Passed})
     Write-Output ("{0}: {1}" -f $Name, $(if($Passed){'PASS'}else{'FAIL'}))
 }
-function CaptureFormEvidence([string]$Title,[string]$FileName) {
+function Test-LoadedPackage([string]$Name) {
+    try { return ($excel.Workbooks.Item($Name).Name -ieq $Name) }
+    catch { return $false }
+}
+function CaptureFormEvidence([string]$Title,[string]$FileName,[long]$WindowHandle=0) {
     if (-not ('InvSysSettingsCapture' -as [type])) {
     Add-Type -ReferencedAssemblies System.Drawing @'
 using System; using System.Drawing; using System.Runtime.InteropServices;
@@ -136,8 +154,14 @@ public static class InvSysSettingsCapture {
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
     public static void Save(string title, string path) {
-        var hwnd=FindWindow(null,title); Rect r;
+        SaveWindow(FindWindow(null,title),path);
+    }
+    public static void SaveWindow(IntPtr hwnd, string path) {
+        Rect r;
         if(hwnd==IntPtr.Zero || !GetWindowRect(hwnd,out r)) throw new Exception("Requested form window unavailable.");
         using(var bitmap=new Bitmap(r.Right-r.Left,r.Bottom-r.Top)) {
             using(var graphics=Graphics.FromImage(bitmap)) {
@@ -148,10 +172,22 @@ public static class InvSysSettingsCapture {
             bitmap.Save(path,System.Drawing.Imaging.ImageFormat.Png);
         }
     }
+    public static void SaveVisibleWindow(IntPtr hwnd, string path) {
+        Rect r;
+        if(hwnd==IntPtr.Zero || !GetWindowRect(hwnd,out r)) throw new Exception("Requested form window unavailable.");
+        SetForegroundWindow(hwnd);
+        System.Threading.Thread.Sleep(200);
+        if(GetAncestor(GetForegroundWindow(),2)!=GetAncestor(hwnd,2)) throw new Exception("Requested form is not in the foreground.");
+        using(var bitmap=new Bitmap(r.Right-r.Left,r.Bottom-r.Top)) {
+            using(var graphics=Graphics.FromImage(bitmap)) { graphics.CopyFromScreen(r.Left,r.Top,0,0,bitmap.Size); }
+            bitmap.Save(path,System.Drawing.Imaging.ImageFormat.Png);
+        }
+    }
 }
 '@
     }
-    [InvSysSettingsCapture]::Save($Title,(Join-Path $reportRoot $FileName))
+    if($WindowHandle) { [InvSysSettingsCapture]::SaveVisibleWindow([IntPtr]$WindowHandle,(Join-Path $reportRoot $FileName)) }
+    else { [InvSysSettingsCapture]::Save($Title,(Join-Path $reportRoot $FileName)) }
 }
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
     $name="'$Package'!$Macro"
@@ -168,6 +204,14 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
     }
     } catch {
         Write-Host ('Packaged call failed: '+$Macro+'; argument count='+$Values.Count)
+        $failurePath = Join-Path $reportRoot 'first-call-failure.json'
+        if(-not (Test-Path -LiteralPath $failurePath)) {
+            [pscustomobject]@{
+                Macro=$Macro; HResult=$_.Exception.HResult
+                InitialExcelProcessIds=$initialExcelProcessIds
+                LiveExcelProcesses=@(Get-Process EXCEL -ErrorAction SilentlyContinue | Select-Object Id,StartTime)
+            } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $failurePath
+        }
         throw
     }
 }
@@ -238,6 +282,7 @@ function NewFixture([string]$Suffix) {
 }
 try {
     $excel=New-Object -ComObject Excel.Application
+    $initialExcelProcessIds = @(Get-Process EXCEL -ErrorAction Stop | Select-Object -ExpandProperty Id)
     $excel.Visible=$false; $excel.DisplayAlerts=$false; $excel.EnableEvents=$false; $excel.AutomationSecurity=1
     $step='load packages'
     $packages=@{}
@@ -401,6 +446,12 @@ End Function
         [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     }
     SelectTarget $a
+    if($CheckAdminSettingsClose) {
+        $step='real Admin Settings close and reopen'
+        . (Join-Path $PSScriptRoot 'Slice4beAdminSettingsClose.ps1')
+        Test-AdminSettingsDefaultClose $a $testModule $formCode
+    }
+    if(-not $AdminSettingsCloseOnly) {
     $step='unauthenticated command'
     [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
     $before=(Get-FileHash -LiteralPath $a.Config).Hash
@@ -549,6 +600,7 @@ End Function
         $step = 'personal preference Excel restart'
         Test-ActionPathPreferenceRestart $b
     }
+    }
 }
 catch {
     Check ('Harness.Exception.'+$step) $false
@@ -558,7 +610,7 @@ catch {
 finally {
     if($null -ne $excel) {
         try {
-            if(@($excel.Workbooks | Where-Object Name -eq 'invSys.Admin.xlam').Count -gt 0) {
+            if(Test-LoadedPackage 'invSys.Admin.xlam') {
                 [void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')
             }
         } catch {}

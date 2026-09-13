@@ -7,11 +7,14 @@ Private Const DEFAULT_CHOICE As String = "Use warehouse default"
 
 ' D18 primitive personal boundary; warehouse policy remains read-only here.
 Public Function ReadPreference(ByVal context As String, ByRef choice As String, _
-                               ByRef effective As String, ByRef evidence As String, ByRef report As String) As Boolean
+                               ByRef effective As String, ByRef evidence As String, ByRef report As String, _
+                               Optional ByRef policyVersion As Long = 0, Optional ByRef policyRequest As String = "", _
+                               Optional ByRef savedCatalogVersion As Long = 0) As Boolean
     Dim target As WarehouseTarget, key As String, saved As String, model As Object
     Dim version As Long, collect As Boolean, visible As Boolean, notice As String
     On Error GoTo Failed
     choice = "": effective = "Unavailable": evidence = "Diagnostic evidence unavailable."
+    policyVersion = 0: policyRequest = "": savedCatalogVersion = 0
     If Not PreferenceKey(context, key, target, report) Then Exit Function
     saved = GetSetting(SETTINGS_APP, SETTINGS_SECTION, key, DEFAULT_CHOICE)
     choice = saved
@@ -31,15 +34,24 @@ Public Function ReadPreference(ByVal context As String, ByRef choice As String, 
         Else
             evidence = "Diagnostic evidence unavailable: recorded-control capture is off."
         End If
+        policyVersion = version
+        savedCatalogVersion = CLng(model("SavedCatalogVersion"))
+        model.Remove "SavedCatalogVersion"
+        policyRequest = modTrainingJson.EncodeObject(model)
     Else
         report = report & " Tracking policy unavailable; no effective view or tracking permission is inferred."
         evidence = "Diagnostic evidence unavailable: tracking policy could not be read."
     End If
-    If Not PreferenceKey(context, key, target, notice) Then report = notice: choice = "": Exit Function
+    If Not PreferenceKey(context, key, target, notice) Then
+        report = notice: choice = "": effective = "Unavailable": evidence = "Diagnostic evidence unavailable."
+        policyVersion = 0: policyRequest = "": savedCatalogVersion = 0
+        Exit Function
+    End If
     ReadPreference = True
     Exit Function
 Failed:
     choice = "": effective = "Unavailable": evidence = "Diagnostic evidence unavailable."
+    policyVersion = 0: policyRequest = "": savedCatalogVersion = 0
     report = "Personal preference could not be read. No settings were changed."
 End Function
 

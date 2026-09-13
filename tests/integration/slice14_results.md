@@ -1,10 +1,10 @@
 # Slice 14 Full-Chain, Restart, and Reconciliation Evidence
 
-- Date: 2026-09-12 15:40:12
+- Date: 2026-09-13 08:28:15
 - Package set: R1-5
 - Ordered phases: 
 GenerateFreshWarehouse -> SeedDemoInventoryThroughAdmin -> ReceiveInventory -> ProcessorApplyReceive -> RefreshAfterReceive -> ProductionTwoBatches -> ProductionConsumptionAndOutput -> BoxingVersionSelection -> ShipmentStagingAndSent -> ProcessorApplyShipment -> FinalRefresh -> RestartAndReconcile
-- Passed: 30
+- Passed: 31
 - Failed: 0
 
 ## D13 trace
@@ -20,6 +20,7 @@ GenerateFreshWarehouse -> SeedDemoInventoryThroughAdmin -> ReceiveInventory -> P
 | SeedDemoInventoryThroughAdmin | PASS | OK/Demo inventory seeded./Created=21/Skipped=3/Applied=1/Processor=Applied=1; SkipDup=0; Poison=0; RunId=<redacted>; EventPersistenceSaves=3 |
 | AdminEntry.InventoryCreated | PASS | The packaged entry boundary produced the canonical inventory workbook. |
 | AdminEntry.SourceIntegrationRegression | PASS | Create Warehouse D14 source integration remained green. |
+| OrderedLiveProcessCompleted | PASS | The ordered live-role subprocess must exit successfully; report rows alone cannot establish completion. |
 | ReceiveInventory | PASS | Packaged Receiving used its captured-workbook form action. |
 | ProcessorApplyReceive | PASS | The processor applied the Receive event and wrote canonical evidence. |
 | RefreshAfterReceive | PASS | The read-model projections rebuilt from authoritative log state. |

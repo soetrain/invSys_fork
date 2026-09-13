@@ -1,9 +1,9 @@
 # invSys VBA Maintenance Candidates
 
 - Schema: 1.0.0
-- Generated: 2026-09-13T13:34:12Z
-- Total candidates: 1115
-- Duplicate-body groups: 190
+- Generated: 2026-09-13T15:12:31Z
+- Total candidates: 1124
+- Duplicate-body groups: 189
 - Unresolved dynamic calls: 45
 
 Scanner output is review evidence only. It never authorizes automatic deletion.
@@ -220,7 +220,6 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_DUPLICATE | HIGH | modUtils | ClearExcelClipboardState, ClearExcelClipboardStateProduction, ClearExcelClipboardStateShipping | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modProductionInit | WorkbookTableExistsProductionInit, WorkbookTableExistsShippingInit | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modInventoryApply | FileExistsApply, FileExistsPublisher | Normalized procedure bodies are identical; review before consolidation. |
-| REPLACE_DUPLICATE | LOW | frmAdminSettings | mBtnClose_Click, mBtnClose_Click | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modAddinsPublish | NormalizeFolderPathAddins, NormalizeFolderPathRetire, NormalizeFolderPathTester | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modProcessor | CloseTransientProcessorWorkbook, CloseWorkbookIfOpenBootstrap | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modConfig | FileExistsConfig, FileExistsReadModel, FileExistsSync | Normalized procedure bodies are identical; review before consolidation. |
@@ -257,7 +256,7 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_DUPLICATE | HIGH | modAuth | IsAuthLoaded, IsLoaded | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | cPickerRouter | NzStr, NzStr, NzStrInv | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | LOW | cDynItemSearch | chkShippable_Click, txtSearch_Change | Normalized procedure bodies are identical; review before consolidation. |
-| REPLACE_DUPLICATE | LOW | frmAdminDesignLifecycle | btnCancel_Click, btnCancel_Click, btnCancel_Click, mBtnClose_Click, mBtnClose_Click, mBtnClose_Click, mBtnClose_Click, mBtnClose_Click | Normalized procedure bodies are identical; review before consolidation. |
+| REPLACE_DUPLICATE | LOW | frmAdminDesignLifecycle | btnCancel_Click, btnCancel_Click, btnCancel_Click, mBtnClose_Click, mBtnClose_Click, mBtnClose_Click, mBtnClose_Click, mBtnClose_Click, mBtnClose_Click, mClose_Click | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | LOW | frmProduction | mBtnProcessRefresh_Click, mBtnRecipeRefresh_Click | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modHqAggregator | NormalizeFolderPathApply, NormalizeFolderPathHq, NormalizeFolderPathLocal | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | LOW | frmProduction | mBtnProcessClear_Click, mBtnProcessNew_Click | Normalized procedure bodies are identical; review before consolidation. |
@@ -557,9 +556,19 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | RETAIN_DYNAMIC_ROOT | LOW | modInventoryApply | ApplyLatestMovementToInvSysApply | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | modInventoryApply | ApplyReceiveEvent | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | modInventoryInit | Auto_Open | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmEventTrackingSettings | mChoice_Change | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmEventTrackingSettings | mClose_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmEventTrackingSettings | mReload_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmEventTrackingSettings | mReset_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmEventTrackingSettings | mSave_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmEventTrackingSettings | UserForm_Activate | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmEventTrackingSettings | UserForm_Initialize | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmEventTrackingSettings | UserForm_Layout | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmEventTrackingSettings | UserForm_Terminate | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmInventoryViewer | mBtnClose_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmInventoryViewer | mBtnExportListBox_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmInventoryViewer | mBtnRefresh_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmInventoryViewer | mBtnSettings_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmInventoryViewer | mTabs_Change | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmInventoryViewer | mTxtSearch_Change | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmInventoryViewer | UserForm_Activate | Procedure is a registered or discovered dynamic root. |

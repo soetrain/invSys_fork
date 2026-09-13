@@ -22,6 +22,7 @@ Private Const SETTINGS_EVENT_RANGE As String = "InventoryViewerEventRange"
 Private WithEvents mTxtSearch As MSForms.TextBox
 Private WithEvents mBtnRefresh As MSForms.CommandButton
 Private WithEvents mBtnClose As MSForms.CommandButton
+Private WithEvents mBtnSettings As MSForms.CommandButton
 Private WithEvents mTabs As MSForms.TabStrip
 Private WithEvents mBtnExportListBox As MSForms.CommandButton
 Private mCboEventRange As MSForms.ComboBox
@@ -42,6 +43,7 @@ Private mResizeInitialized As Boolean
 Private mGeneration As Long
 Private mColumnCount As Long
 Private mLoadStatus As String
+Private mSettingsContext As String
 
 Private Sub UserForm_Initialize()
     BuildLayout
@@ -62,12 +64,14 @@ Private Sub UserForm_Layout()
 End Sub
 
 Private Sub UserForm_Terminate()
+    modOperationsTrackingSettings.CloseSettings
     modInventoryViewer.UnregisterInventoryViewer Me
     Set mLayout = Nothing
 End Sub
 
 Public Sub SetWarehouse(ByVal warehouseId As String)
     mWarehouseId = Trim$(warehouseId)
+    mSettingsContext = modActivity.CaptureContext()
     Me.Caption = "Viewer - " & mWarehouseId
 End Sub
 
@@ -255,6 +259,7 @@ Private Sub BuildLayout()
     End With
     Set mLblTitle = AddLabel("lblTitle", "Current inventory levels", 12, 40, 360, 22, True)
     Set mBtnRefresh = AddButton("btnRefresh", "Refresh", 740, 38, 92, 28)
+    Set mBtnSettings = AddButton("btnSettings", "Settings", 636, 38, 92, 28)
     AddLabel "lblSearch", "Search", 12, 78, 76, 18, True
     Set mTxtSearch = AddTextBox("txtSearch", 92, 74, 740, 24)
     Set mLblEventRange = AddLabel("lblEventRange", "Event range", 12, 110, 96, 18, True)
@@ -322,6 +327,7 @@ Private Sub BuildLayout()
     mLayout.RegisterControl mTabs, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP Or OPERATIONS_ANCHOR_RIGHT
     mLayout.RegisterControl mLblTitle, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP
     mLayout.RegisterControl mBtnRefresh, OPERATIONS_ANCHOR_TOP Or OPERATIONS_ANCHOR_RIGHT
+    mLayout.RegisterControl mBtnSettings, OPERATIONS_ANCHOR_TOP Or OPERATIONS_ANCHOR_RIGHT
     mLayout.RegisterControl mTxtSearch, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP Or OPERATIONS_ANCHOR_RIGHT
     mLayout.RegisterControl mLblEventRange, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP
     mLayout.RegisterControl mCboEventRange, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP
@@ -339,6 +345,11 @@ End Sub
 
 Private Sub mTabs_Change()
     ApplyViewerTab
+End Sub
+
+Private Sub mBtnSettings_Click()
+    Dim report As String
+    If Not modOperationsTrackingSettings.OpenSettings(mSettingsContext, report) Then mLblStatus.Caption = report
 End Sub
 
 Private Sub ApplyViewerTab()

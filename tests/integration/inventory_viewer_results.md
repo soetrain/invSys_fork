@@ -7,6 +7,12 @@
 - TargetSelected: True
 - TargetPathsSet: True
 - SignedIn: True
+- SignInStatus: OK
+- FixtureCredentialMatches: True
+- PublicViewerEntryReached: True
+- SettingsPreservePopulatedInventory: True
+- SettingsPreservePopulatedExportTab: True
+- SettingsPreservePopulatedEvents: True
 - SnapshotCreated: True
 - FirstActionRows: 3
 - RepeatedLaunchReusedGeneration: True

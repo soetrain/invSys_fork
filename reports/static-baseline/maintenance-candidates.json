@@ -1,14 +1,14 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-13T13:34:12Z",
+    "generatedAtUtc":  "2026-09-13T15:12:31Z",
     "baseline":  {
-                     "componentCount":  197,
-                     "procedureCount":  5616,
-                     "lineCount":  125509,
+                     "componentCount":  199,
+                     "procedureCount":  5635,
+                     "lineCount":  125733,
                      "literalApplicationRunCount":  8,
                      "unresolvedApplicationRunCount":  45,
-                     "duplicateBodyCandidateCount":  190
+                     "duplicateBodyCandidateCount":  189
                  },
     "candidates":  [
                        {
@@ -3926,25 +3926,6 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "duplicate:862c21be3babc752:mBtnClose_Click+mBtnClose_Click",
-                           "candidateType":  "REPLACE_DUPLICATE",
-                           "confidence":  "LOW",
-                           "componentName":  "frmAdminSettings",
-                           "procedureNames":  [
-                                                  "mBtnClose_Click",
-                                                  "mBtnClose_Click"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Admin/Forms/frmAdminSettings.frm",
-                                               "src/Shipping/Forms/frmShipmentsTally.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
                            "id":  "duplicate:864bbead8f0e7b19:NormalizeFolderPathAddins+NormalizeFolderPathRetire+NormalizeFolderPathTester",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
@@ -4734,7 +4715,7 @@
                            "reviewRequired":  true
                        },
                        {
-                           "id":  "duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click",
+                           "id":  "duplicate:c47acf96b3f0f5b1:btnCancel_Click+btnCancel_Click+btnCancel_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mBtnClose_Click+mClose_Click",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "LOW",
                            "componentName":  "frmAdminDesignLifecycle",
@@ -4746,15 +4727,19 @@
                                                   "mBtnClose_Click",
                                                   "mBtnClose_Click",
                                                   "mBtnClose_Click",
-                                                  "mBtnClose_Click"
+                                                  "mBtnClose_Click",
+                                                  "mBtnClose_Click",
+                                                  "mClose_Click"
                                               ],
                            "sourcePaths":  [
                                                "src/Admin/Forms/frmAdminDesignLifecycle.frm",
+                                               "src/Admin/Forms/frmAdminSettings.frm",
                                                "src/Admin/Forms/frmAggregationSources.frm",
                                                "src/Admin/Forms/frmCreateDeleteUser.frm",
                                                "src/Admin/Forms/frmCreateWarehouse.frm",
                                                "src/Admin/Forms/frmRetireMigrateWarehouse.frm",
                                                "src/Admin/Forms/frmSetupTesterStation.frm",
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm",
                                                "src/Operations/Forms/frmInventoryViewer.frm",
                                                "src/Production/Forms/frmProduction.frm"
                                            ],
@@ -5792,7 +5777,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -5809,7 +5794,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -5894,7 +5879,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -5911,7 +5896,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -6030,7 +6015,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -6047,7 +6032,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -6439,7 +6424,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -6615,7 +6600,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -6877,7 +6862,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -7034,7 +7019,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -7342,7 +7327,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -7615,7 +7600,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -7718,7 +7703,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -8162,7 +8147,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -8350,7 +8335,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -8606,7 +8591,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -8796,7 +8781,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -9359,7 +9344,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -9445,7 +9430,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -9584,7 +9569,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -10021,6 +10006,160 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.mChoice_Change",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventTrackingSettings",
+                           "procedureNames":  [
+                                                  "mChoice_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.mClose_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventTrackingSettings",
+                           "procedureNames":  [
+                                                  "mClose_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.mReload_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventTrackingSettings",
+                           "procedureNames":  [
+                                                  "mReload_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.mReset_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventTrackingSettings",
+                           "procedureNames":  [
+                                                  "mReset_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.mSave_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventTrackingSettings",
+                           "procedureNames":  [
+                                                  "mSave_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventTrackingSettings",
+                           "procedureNames":  [
+                                                  "UserForm_Activate"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventTrackingSettings",
+                           "procedureNames":  [
+                                                  "UserForm_Initialize"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
+                                                   "tests/tooling/Test-Slice0ToolContracts.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventTrackingSettings",
+                           "procedureNames":  [
+                                                  "UserForm_Layout"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Terminate",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmEventTrackingSettings",
+                           "procedureNames":  [
+                                                  "UserForm_Terminate"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnClose_Click",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -10076,6 +10215,24 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnSettings_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmInventoryViewer",
+                           "procedureNames":  [
+                                                  "mBtnSettings_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmInventoryViewer.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
+                                                   "tests/tooling/Slice4beViewerSettingsPreservation.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mTabs_Change",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -10122,7 +10279,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -12210,7 +12367,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -12921,7 +13078,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -13129,7 +13286,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -13825,7 +13982,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
                                                ],
                            "reviewRequired":  true
                        },

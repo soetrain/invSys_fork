@@ -284,8 +284,10 @@ function Test-ActionPathPreferenceRestart($Fixture) {
     if(Get-Process EXCEL -ErrorAction SilentlyContinue) { throw 'Another Excel process prevents isolated restart.' }
     $script:excel = New-Object -ComObject Excel.Application
     $excel.Visible=$false; $excel.DisplayAlerts=$false; $excel.EnableEvents=$false; $excel.AutomationSecurity=1
+    $restartDeploy = $deploy
+    if($CheckOperationsTrackingSettings) { $restartDeploy = $operationsSettingsDeploy }
     foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam')) {
-        $packages[$name] = $excel.Workbooks.Open((Join-Path $deploy $name),0,$true)
+        $packages[$name] = $excel.Workbooks.Open((Join-Path $restartDeploy $name),0,$true)
     }
     $probe = $packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1)
     $probe.Name = 'PreferenceRestartProbe'
@@ -300,6 +302,7 @@ End Function
     $choice = [string](Run 'invSys.Core.xlam' 'PreferenceRestartProbe.ReadChoice' @($context))
     $current = @(Get-Process EXCEL -ErrorAction Stop)
     Check 'Preference.NewExcelProcessRestoresSavedChoice' ($current.Count -eq 1 -and $current[0].Id -ne $owned[0].Id -and $choice -ceq 'Compare both')
-    Check 'Preference.CoreReadHasNoAdminPackageDependency' (@($excel.Workbooks | Where-Object Name -eq 'invSys.Admin.xlam').Count -eq 0 -and $choice -ceq 'Compare both')
+    Check 'Preference.CoreReadHasNoAdminPackageDependency' (-not (Test-LoadedPackage 'invSys.Admin.xlam') -and $choice -ceq 'Compare both')
     Check 'Preference.RestartReadPreservesConfig' ($before -ceq (Get-FileHash -LiteralPath $fixture.Config).Hash)
+    if($CheckOperationsTrackingSettings) { Test-OperationsTrackingSettings $fixture }
 }

@@ -2,7 +2,8 @@
 param(
     [string]$RepoRoot = ".",
     [string]$DeployRoot = "deploy/current",
-    [switch]$RejectFixtureSignInForTest
+    [switch]$RejectFixtureSignInForTest,
+    [switch]$CheckTrackingSettings
 )
 
 Set-StrictMode -Version Latest
@@ -269,6 +270,10 @@ try {
     $snapshotHashBefore = (Get-FileHash -LiteralPath $snapshotPath -Algorithm SHA256).Hash
 
     $step = "invoke public Viewer action twice"
+    if($CheckTrackingSettings) {
+        . (Join-Path $repo 'tests/tooling/Slice4beViewerSettingsPreservation.ps1')
+        Initialize-PopulatedViewerSettings $packages['invSys.Operations.xlam']
+    }
     $facts.PublicViewerEntryReached=$true
     [void](Run-WorkbookMacro -Excel $excel -WorkbookName $operationsName `
         -MacroName "modOperationsInit.Auto_Open")
@@ -279,15 +284,20 @@ try {
     $filterReport = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $operationsName `
         -MacroName "modInventoryViewer.RunInventoryViewerFilterForTest" `
         -Arguments @("SKU-SHIP"))
+    if($CheckTrackingSettings) {
+        $facts.SettingsPreservePopulatedInventory = Test-PopulatedViewerSettings $excel $packages['invSys.Operations.xlam'] 0
+    }
     $step = "export Viewer ListBox to a new worksheet table"
     $listBoxExportReport = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $operationsName `
         -MacroName "modInventoryViewer.RunInventoryViewerListBoxTableActionForTest")
+    if($CheckTrackingSettings) { $facts.SettingsPreservePopulatedExportTab = Test-PopulatedViewerSettings $excel $packages['invSys.Operations.xlam'] 2 }
     $listBoxExportWb = $excel.ActiveWorkbook
     if ($null -ne $listBoxExportWb -and $listBoxExportWb.Name -ne $operationsName) {
         $listBoxExportWb.Close($false)
     }
     $eventsReport = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $operationsName `
         -MacroName "modInventoryViewer.RunInventoryViewerEventsForTest")
+    if($CheckTrackingSettings) { $facts.SettingsPreservePopulatedEvents = Test-PopulatedViewerSettings $excel $packages['invSys.Operations.xlam'] 1 }
 
     $step = "publish a newer event and refresh the open Events page"
     $refreshInventoryWb = $excel.Workbooks.Open($inventoryPath)
@@ -434,6 +444,9 @@ try {
         $refreshedEventsOk -and $dateFiltersOk -and $rememberedRangeOk -and
         $invalidRememberedFallbackOk -and
         $snapshotAdvanced -and $snapshotUnchanged
+    if($CheckTrackingSettings) {
+        $passed = $passed -and $facts.SettingsPreservePopulatedInventory -and $facts.SettingsPreservePopulatedExportTab -and $facts.SettingsPreservePopulatedEvents
+    }
     $detail = if ($passed) {
         "The public Operations Viewer action exported the displayed ListBox to a new unsaved worksheet table, loaded readable Receipt, Production input/output, and Shipping Remove events, excluded the internal SHIP_RESERVE fixture from the operator-action log, refreshed the already-open Events page to show a newly published receipt first, applied All/Day/Week/Month/custom rolling-day filters, restored custom 14 days after form close/reopen, kept Events read-only, and left the new snapshot byte-for-byte unchanged."
     } else {
