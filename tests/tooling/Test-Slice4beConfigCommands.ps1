@@ -573,6 +573,8 @@ End Function
         if($CheckBoxingActivity){
             . (Join-Path $PSScriptRoot 'Slice4beBoxingActivity.ps1')
             Install-Slice4beBoxingActivityProbe
+            . (Join-Path $PSScriptRoot 'Slice4beBoxingContext.ps1')
+            Install-Slice4beBoxingContextProbe
         }
         if($CompileEvaluationProbesForTest -or $CheckShippingRecording){
             . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')

@@ -416,12 +416,13 @@ End Function
         [uint32]$ownedProcess=0
         [void][Plan022NativeDialogs]::GetWindowThreadProcessId([IntPtr]$excel.Hwnd,[ref]$ownedProcess)
         if($ownedProcess -eq 0){throw 'Owned Shipping fixture process unavailable.'}
-        $dialogJob=Start-Job -ArgumentList $observerPath,$ownedProcess,$dialogStop -ScriptBlock {
-            param($observer,$owned,$stop)
+        $dialogSeconds=if($CheckBoxingActivity){600}else{180}
+        $dialogJob=Start-Job -ArgumentList $observerPath,$ownedProcess,$dialogStop,$dialogSeconds -ScriptBlock {
+            param($observer,$owned,$stop,$seconds)
             . $observer
             # Existing observer accepts only one owned informational OK. Do not
             # persist or return the native dialog's arbitrary text or values.
-            Invoke-Plan022NativeDialogObservation -ProcessId $owned -TimeoutSeconds 180 -StopPath $stop | Out-Null
+            Invoke-Plan022NativeDialogObservation -ProcessId $owned -TimeoutSeconds $seconds -StopPath $stop | Out-Null
         }
         $created=[bool](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingCreateBox')
         Check 'Shipping.Setup.BoxDesignerAndMakerHandlers' $created
@@ -558,6 +559,7 @@ End Function
         Test-Slice4beShippingContextMatrix $fixture $operator $other $ship $hold
         Test-Slice4beShippingCapability $fixture $operator $other $ship $hold
         Test-Slice4beShippingAccessInterruptions $fixture $operator $other $ship $hold
+        if($CheckBoxingActivity){Test-Slice4beBoxingContext $fixture $operator $other $ship $hold}
         Test-Slice4beShippingWorkbookClose $fixture $operator $other $ship $hold
         $operator=$null # The actual close event was exercised and verified above.
         Check 'Shipping.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))

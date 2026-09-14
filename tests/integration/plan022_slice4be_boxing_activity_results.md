@@ -1,6 +1,50 @@
 # Plan 022 Slice 4be.1 Boxing Make/Unbox activity RED
 
-Last verified 2026-09-14: the complete run finishes **1041 PASS / 33 expected
+Current verified result, 2026-09-14: **1123 PASS / 57 expected FAIL** across
+1180 checks. All preceding 1074 checks and 1041 GREENs remain, including Shipping
+recording40/40. The added context/permission matrix is **82 PASS / 24 expected
+FAIL**: 16 context failures and eight absent denial-observation assertions.
+The other failures retain their original scope: 26 missing Boxing observations
+and seven D8-A findings. No duplicate check or harness exception occurs.
+
+Healthy Make/Unbox calls calibrate both entry counters. Signed-out calls still
+dispatch to the service and show a permission message rather than context rejection;
+the service's existing authorization check stops mutation. Same-user reauthentication
+and another SHIP_POST-authorized target let the old form enter both service and
+mutation owner. The test stops at mutation entry, so this proves missing pre-owner
+guards, not an unauthorized inventory write. Revoked permission within the same
+signed-in session correctly stops mutation and shows denial, but emits neither
+required observation. Both warehouses' authority bytes, staging/custom values,
+captured workbook and unrelated workbook remain unchanged. Fixture Auth bytes are
+restored, and explicit relaunch/reuse passes.
+
+All five instrumented projects compile. Excel closes normally, with no Excel
+Event1000 in the verified run window; earlier native failures remain unresolved.
+All 325 package pins, protected runtime sources and unrelated user documents are
+preserved. Fresh static output matches every runtime metric/component line count
+and all 28 limits; three changed scripts parse and 84 local links resolve.
+No runtime, package build/deployment, full-chain rerun or human acceptance is claimed.
+The next D13 work remains failed staging/refresh, uncertain submission and optional
+tracking/policy cases before structured Boxing outcome wiring.
+
+Current ignored evidence: `reports/runtime/boxing-context-red.log`,
+`boxing-context-red-verification.json`, `boxing-context-red-native-windows.json`,
+`boxing-context-red-final-verification.json` and `boxing-context-red-static/`.
+Exact report:
+`reports/runtime/slice4be-shipping-activity/096ad8bf00a64d4aa42152c05c3fb6a3/boxing-activity-shipping-recording-red.json`.
+
+The initial RED checkpoint below is committed and pushed as code `2593385` and
+docs `deea147`. The next test entry adds `Slice4beBoxingContext.ps1` under the same
+packaged command, before the existing real-workbook-close gate. Healthy Make/Unbox
+calls calibrate service and mutation entry. Signed-out, same-actor reauthenticated,
+other authorized target and revoked-SHIP_POST cases retain the actual form/service
+authorization, with a mutation-entry probe preventing writes. It does not substitute
+for the real accepted Make/Unbox actions below. Both warehouse authority files,
+staging/unknown values, captured workbook and unrelated workbook are protected;
+permission denial additionally requires its REQUESTED/DENIED observation pair.
+The unchanged normative Boxing refinement already requires these behaviors.
+
+Initial run, verified 2026-09-14: the complete run finishes **1041 PASS / 33 expected
 FAIL**. Those failures are exactly the 26 missing Boxing-observation assertions
 and seven pre-existing D8-A findings. Every preceding 1016 check and 1009 GREEN,
 including all 40 Shipping recording checks, is retained with no duplicate or
