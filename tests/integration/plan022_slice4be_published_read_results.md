@@ -8,6 +8,18 @@ package, control or architectural rule. Release 1 and Slice 4be remain open.
 
 ## Current implementation checkpoint
 
+The subsequent paging candidate passes the expanded reader **30/30**. Actual
+Day/All checks first expose the UTC/local comparison at24/1 RED; real-form layout
+checks then expose status clipping at25/4 RED. A mixed-source serialized fixture
+through the actual Viewer handlers establishes29/1 RED for equal-time ordering.
+The corrected comparator uses the declared SourceKind, exact ID and source,
+matching D18 and the publisher. Five-package compile and cold start pass.
+The same candidate also passes group/page16/16, stale Refresh16/16 and Detail34/34,
+retaining the exact prior regression identities; static call/duplicate/size ratchets
+hold and protected package/source pins match with Excel closed.
+See [paging evidence](plan022_slice4be_event_groups_results.md) for complete scope,
+excluded setup failures and pending broader gates. No broad acceptance is inferred.
+
 The isolated `validation-events-reader-compiled` candidate now passes **23/23**
 focused checks, preserving all23 RED identities. All five packages compile and
 Operations resolves its cold-start dependencies inside this candidate. Refresh

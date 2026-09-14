@@ -1,5 +1,5 @@
 # D18: real Settings activity -> real Admin publication -> actual Viewer handlers.
-# Only disposable published bytes are faulted. No runtime reader is replaced.
+# Faults affect only disposable publication bytes; ordering uses a synthetic wire.
 function Test-Slice4beViewerPublishedRead($Fixture,$OtherFixture) {
     SelectTarget $Fixture 'config-admin'
     try {
@@ -22,12 +22,23 @@ End Function
     if($activity.Count -ne 1 -or $activity[0].Lines.Count -ne 2 -or $activity[0].Outcomes.Count -ne 1){throw 'Actual publication lacks the correlated Settings activity fixture.'}
     $activityId=[string]$activity[0].SourceId
     $core=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modInventoryViewerData').CodeModule
+    $core.InsertLines($core.CountOfDeclarationLines+1,'Private PublishedOrderingPayloadForTest As String')
     $core.AddFromString(@'
 Public Function PublishedReadFixtureValidForTest(ByVal path As String, ByVal warehouse As String) As Boolean
     Dim model As Object
     Set model = modEventsPublicationStore.Read(path, warehouse)
     PublishedReadFixtureValidForTest = Not model Is Nothing
 End Function
+Public Sub SetPublishedOrderingForTest(ByVal payload As String)
+    PublishedOrderingPayloadForTest = payload
+End Sub
+'@)
+    $entry=$core.ProcBodyLine('LoadCurrentInventoryEventViewerData',0)
+    $core.InsertLines($entry+1,@'
+    If PublishedOrderingPayloadForTest <> "" Then
+        LoadCurrentInventoryEventViewerData = PublishedOrderingPayloadForTest
+        Exit Function
+    End If
 '@)
     $valid=[bool](Run 'invSys.Core.xlam' 'modInventoryViewerData.PublishedReadFixtureValidForTest' @($path,$Fixture.Warehouse))
     Check 'PublishedRead.RealPublicationFixtureValid' $valid
@@ -62,7 +73,15 @@ Public Function PublishedReadActionForTest(ByVal action As String, Optional ByVa
     Select Case action
         Case "Events": mCboEventRange.Value = "All": mTabs.Value = 1: mBtnRefresh_Click
         Case "Refresh": mBtnRefresh_Click
+        Case "Day": mCboEventRange.Value = "Day": mBtnRefresh_Click
         Case "Search": mTxtSearch.Value = expected
+        Case "MixedOrder"
+            If mVisibleIndexes.Count <> 3 Then Exit Function
+            PublishedReadActionForTest = (CStr(mRows(CLng(mVisibleIndexes(1)), 11)) = "MIX-A-INVENTORY" And _
+                CStr(mRows(CLng(mVisibleIndexes(2)), 11)) = "MIX-Z-DESIGNS" And CStr(mRows(CLng(mVisibleIndexes(3)), 11)) = "MIX-A-ACTIVITY"): Exit Function
+        Case "FitMinimum": Me.Width = 720: Me.Height = 430: Me.Repaint: DoEvents: PublishedReadActionForTest = PublishedReadPageFitsForTest(): Exit Function
+        Case "FitDefault": Me.Width = 860: Me.Height = 535: Me.Repaint: DoEvents: PublishedReadActionForTest = PublishedReadPageFitsForTest(): Exit Function
+        Case "FitLarger": Me.Width = 1000: Me.Height = 650: Me.Repaint: DoEvents: PublishedReadActionForTest = PublishedReadPageFitsForTest(): Exit Function
         Case "ContainsSource", "SelectSource"
             If IsEmpty(mRows) Then Exit Function
             For r = 1 To mVisibleIndexes.Count
@@ -88,6 +107,22 @@ Public Function PublishedReadActionForTest(ByVal action As String, Optional ByVa
     PublishedReadActionForTest = True
 Failed:
 End Function
+Private Function PublishedReadPageFitsForTest() As Boolean
+    Dim previous As Object, following As Object, page As Object, name As Variant, control As Object
+    On Error GoTo Failed
+    Set previous = Me.Controls("btnEventsPrevious"): Set following = Me.Controls("btnEventsNext")
+    Set page = Me.Controls("lblEventPage")
+    For Each name In Array("lstInventory", "btnEventsPrevious", "btnEventsNext", "lblEventPage", "lblStatus", "btnClose")
+        Set control = Me.Controls(CStr(name))
+        If Not control.Visible Or control.Left < 0 Or control.Top < 0 Or control.Width <= 0 Or control.Height <= 0 Then Exit Function
+        If control.Left + control.Width > Me.InsideWidth + 1 Or control.Top + control.Height > Me.InsideHeight + 1 Then Exit Function
+    Next name
+    If mLstInventory.Top + mLstInventory.Height > previous.Top Then Exit Function
+    If previous.Left + previous.Width > following.Left Or following.Left + following.Width > page.Left Then Exit Function
+    If previous.Top + previous.Height > mLblStatus.Top Or following.Top + following.Height > mLblStatus.Top Or page.Top + page.Height > mLblStatus.Top Then Exit Function
+    PublishedReadPageFitsForTest = (mLstInventory.ListCount > 0)
+Failed:
+End Function
 Public Function PublishedReadDetailForTest(ByVal caption As String, ByVal expected As String) As Boolean
     Dim fields As Variant, r As Long
     On Error GoTo Failed
@@ -101,6 +136,14 @@ Public Function PublishedReadDetailForTest(ByVal caption As String, ByVal expect
     Next r
 Failed:
 End Function
+Public Function PublishedReadGeometryForTest() As String
+    Dim name As Variant, control As Object
+    For Each name In Array("lstInventory", "btnEventsPrevious", "btnEventsNext", "lblEventPage", "lblStatus", "btnClose")
+        Set control = Me.Controls(CStr(name))
+        PublishedReadGeometryForTest = PublishedReadGeometryForTest & CStr(name) & vbTab & CStr(control.Left) & vbTab & CStr(control.Top) & vbTab & _
+            CStr(control.Width) & vbTab & CStr(control.Height) & vbTab & CStr(control.Visible) & vbTab & CStr(Me.InsideWidth) & vbTab & CStr(Me.InsideHeight) & vbLf
+    Next name
+End Function
 '@)
     $manager=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modInventoryViewer').CodeModule
     $manager.AddFromString(@'
@@ -113,6 +156,9 @@ End Function
 Public Function PublishedReadWindowForTest() As Double
     mInventoryViewer.Repaint: DoEvents
     PublishedReadWindowForTest = CDbl(modUserFormResizeWin.GetUserFormWindowHandle(mInventoryViewer))
+End Function
+Public Function PublishedReadGeometryForTest() As String
+    PublishedReadGeometryForTest = mInventoryViewer.PublishedReadGeometryForTest()
 End Function
 '@)
     $policy=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('cAdminTrackingPolicy').CodeModule
@@ -159,6 +205,41 @@ End Function
         Check 'PublishedRead.SearchRetainsExactActivityGroup' (ReadAct 'ContainsSource' $activityId)
         [void](ReadAct 'Search' '')
         Check 'PublishedRead.OpenRefreshSearchAvoidShippingAuthority' ([long](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublishedReadAuthorityCallsForTest') -eq 0)
+        [void](ReadAct 'Day')
+        Check 'PublishedRead.DayFilterRetainsVerifiedUtcActivity' (ReadAct 'ContainsSource' $activityId)
+        [void](ReadAct 'Events')
+        Check 'PublishedRead.AllDatesRestoresActivity' (ReadAct 'ContainsSource' $activityId)
+        foreach($layout in @('FitMinimum','FitDefault','FitLarger','FitDefault')) {
+            $suffix=if($layout -eq 'FitDefault' -and @($results.Check) -contains 'PublishedRead.Layout.FitDefault'){'.Restored'}else{''}
+            Check ('PublishedRead.Layout.'+$layout+$suffix) ((ReadAct $layout) -and (ReadAct 'ContainsSource' $activityId))
+            [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadGeometryForTest') | Set-Content -LiteralPath (Join-Path $reportRoot ($layout+$suffix+'-geometry.tsv'))
+        }
+        # A synthetic serialized projection isolates the Operations comparator.
+        # It never replaces a business owner or writes an authority/artifact.
+        $wire=[string](Run 'invSys.Core.xlam' 'modInventoryViewerData.LoadCurrentInventoryEventViewerData')
+        $header=($wire -split "`r`n")[0] -split "`t"
+        if($header.Count -ne 12 -or $header[4] -cne 'EVENTS1'){throw 'Mixed ordering fixture requires the validated EVENTS1 reader.'}
+        $fieldIds=$header[9] -split ','
+        $header[3]='3';$header[6]=[guid]::NewGuid().ToString();$header[8]='Synthetic ordering fixture; no business effect.'
+        $mixed=@($header -join "`t")
+        foreach($record in @(@('Inventory','MIX-A-INVENTORY','Business event','Receiving','RECEIVE'),@('Activity','MIX-A-ACTIVITY','User activity','Admin','CONFIG_SAVE_REQUESTED'),@('Designs','MIX-Z-DESIGNS','Business event','Designs','PROCESS_SAVE'))) {
+            $values=[string[]]::new(18+$fieldIds.Count)
+            for($i=0;$i -lt $values.Length;$i++){$values[$i]=''}
+            $values[0]=$header[2].Replace('T',' ').Replace('Z',' UTC');$values[1]=$record[4]
+            $values[2]=$record[1];$values[9]='Synthetic ordering fixture.';$values[10]=$record[1]
+            $values[12]=$record[4];$values[17]=$record[0]
+            $details=@{SourceId=$record[1];SourceKind=$record[2];EventFamily=$record[3];EventCode=$record[4];EventType=$record[4];WarehouseId=$Fixture.Warehouse;TimeProvenance='Verified UTC';Coverage=$header[8];Explanation=$values[9]}
+            foreach($field in $details.Keys){$column=[array]::IndexOf($fieldIds,$field);if($column -lt 0){throw 'Ordering detail field is missing.'};$values[18+$column]=$details[$field]}
+            $mixed+=($values -join "`t")
+        }
+        try {
+            [void](Run 'invSys.Core.xlam' 'modInventoryViewerData.SetPublishedOrderingForTest' @($mixed -join "`r`n"))
+            [void](ReadAct 'Events')
+            Check 'PublishedRead.MixedSourceEqualTimeOrder' (ReadAct 'MixedOrder')
+        } finally {
+            [void](Run 'invSys.Core.xlam' 'modInventoryViewerData.SetPublishedOrderingForTest' @(''))
+            [void](ReadAct 'Events')
+        }
 
         $utf8=[Text.UTF8Encoding]::new($false)
         [IO.File]::WriteAllText($path,$original.Replace('"ContentSha256":"','"ContentSha256":"0'),$utf8)
