@@ -565,6 +565,63 @@ Additional ignored evidence: `recording-restart-calibrated.log`,
 `recording-restart-calibrated-cleanup.json`, `recording-restart-first-summary.json`
 and `recording-restart-final-preservation.json`.
 
+### Separate reader controller and standalone pristine startup
+
+The reader now runs in `Slice4beRecordingRestartWorker.ps1`, a distinct PowerShell
+process verified by its actual parent/process identities. Fixture input travels
+only through redirected stdin; command-line arguments contain the worker path,
+not fixture data. Worker output contains fixed stages and boolean check records;
+raw exceptions and input are not emitted. `Test-Slice4beRecordingWorkerProtocol.ps1`
+passes6/6: valid/malformed/missing/extra/escaped-root input, output redaction, and
+no Excel or fixture creation. These are transport tests, not product acceptance.
+
+`Slice4beRecordingFixture.ps1` shares the existing14 helper bodies unchanged;
+source comparison verifies that extraction, five PowerShell parsers pass, and
+all13 previous restart check identities remain. The fresh-controller assertion
+adds one check. No runtime VBA, schema, control, architecture or package changes
+are made. The parent skips its final Viewer close only when its Excel reference
+has already been cleared after the proven interruption.
+
+The full run completes **112PASS/2harness flags**, exit1. All108 earlier checks,
+the original interruption/process checks and the distinct-controller check pass.
+Pristine Viewer launch in the worker reaches the same compiler file-access
+dialog before driver installation. The worker and enclosing harness both flag
+that one failure; they are not two independent product defects. Acknowledgement
+does not release the invocation, so only the exact verified failed worker Excel
+process is terminated. Both controllers then exit and Excel is closed. A fresh
+reader controller alone does not resolve the failure; the original creator
+controller is still alive during this comparison.
+
+A separate `Test-Slice4bePristineViewer.ps1` uses the established Admin Generate
+Warehouse/auth fixture functions, without running their surrounding instrumentation
+or editing VBA. In its own new Excel process, with no interruption within this
+testcase, the existing Viewer action wrapper opens and reuses the same form.
+It passes **6/6**, exit0, preserves all fixture files and five package files, and
+Excel closes normally. This disproves a universal pristine-launch failure under
+that tested setup. It does not isolate the cause: this control both lacks a live
+old creator and performs warehouse bootstrap in the fresh Excel process.
+
+Next use a neutral coordinator so the creator controller fully exits before a
+fresh reader consumes the same saved recording fixture, with no repeated bootstrap
+or VBA edits before pristine launch. Keep fixture transfer private/in memory and
+restore registry/fixture ownership across both processes. Full interrupted-reader,
+native reliability, Operations sequences, conclusions and guide comparison remain
+open; do not substitute the standalone6/6 for them.
+
+Ignored evidence: `recording-controller-static.json`,
+`recording-fresh-controller.log`, `recording-fresh-controller-exit.json`,
+`recording-fresh-controller-processes.json`, `recording-fresh-controller-dialog.json`,
+`recording-fresh-controller-cleanup.json`, `pristine-viewer-first.log` and
+`pristine-viewer-first-exit.json` under `reports/runtime/`.
+Final preservation verifies260 package pins,15 protected source files and the
+existing reviewed Shipping visibility-only change with Excel closed. All six
+changed PowerShell files parse,83 local document links resolve, and every111
+previously passing restart-attempt identity remains GREEN in the fresh-controller
+run. See `recording-controller-final-preservation.json` and
+`recording-controller-final-checks.json`. No new runtime build, static-baseline
+regeneration, full-chain rerun or human acceptance is claimed for this test-only
+checkpoint.
+
 ### Earlier foundation artifacts
 
 - `reports/runtime/action-recording-red.log`
