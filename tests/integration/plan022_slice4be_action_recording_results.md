@@ -474,7 +474,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beC
 
 ## Foundation raw evidence
 
-### Actual interrupted Excel restart: test prepared, execution pending
+### Actual interrupted Excel restart: first execution and calibration
 
 `-CheckRecordingRestart` retains the reader foundation and adds12 checks through
 the existing Viewer Start/Stop, Action Paths selection and Admin Save Value
@@ -502,6 +502,68 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beC
 
 Failure to set up the fixture, prove process ownership, restart Excel or compile
 the disposable drivers is a harness failure, never meaningful product RED.
+
+The previous chain's residual dialog is now identified through MSAA as Document
+Recovery. The exact process identity was reverified, **Yes, I want to view these
+files later** was selected and its checked state verified, then OK allowed normal
+exit. No forced stop or recovery-file deletion was performed. This explains that
+shutdown obstruction; the earlier RPC/native failures remain unresolved. See
+`recording-isolation-chain-dialog-options.json` and
+`recording-isolation-chain-final-closure.json` under ignored runtime evidence.
+
+The first cold-restart run completes **111PASS/1harness failure**, exit1. All108
+preceding recording/reader checks and the first three restart checks pass: a real
+unclosed journal is durable, deliberate interruption preserves it, and a different
+Excel process loads the same five package paths. Fresh-process Viewer opening
+then encounters a VBA compiler dialog: **Error accessing file. Network connection
+may have been lost.** The selected code pane is cOperationsAnchorManager, line75;
+that observation does not establish a root cause or actual network loss.
+
+After acknowledging that exact compiler error, the verified test project remains
+in break mode. Its enabled Reset command is used only to end this failed test;
+the harness records its error and Excel exits normally. No reset substituted for
+the earlier actual interruption, and no later restarted-reader checks passed in
+this attempt. All five candidate file hashes remain unchanged. This is a harness
+failure, not behavioral RED or full cold-restart GREEN.
+
+The next controlled run adds one calibration check: open the pristine packaged
+Viewer through its existing action wrapper before installing fresh-process test
+drivers. Close it, install only those unsaved drivers, then continue all original
+12 restart checks. This distinguishes pristine launch from instrumented launch
+without changing runtime packages. Thirteen unique restart checks and PowerShell
+syntax are verified. Ignored first-run evidence:
+`recording-restart-first.log`, `recording-restart-first-exit.json`,
+`recording-restart-dialog-classification.json` and
+`recording-restart-compiler-position.json`.
+
+The calibrated run also ends **111PASS/1harness failure**, exit1, preserving the
+same108 earlier checks and three interruption/process checks. The pristine
+`modInventoryViewer.RunInventoryViewerActionForTest` call encounters the same
+compiler message **before any fresh-process test drivers are installed**. Thus
+those edits are not a necessary trigger in this scenario. This does not prove a
+general cold-start defect: the verified scenario uses the same PowerShell
+controller after intentionally terminating the preceding Excel process.
+
+After acknowledgement, the COM attachment supplies no usable code pane or debugger
+state; no null value is treated as proof of an empty or reset process. The exact
+failed fresh test process is then terminated, releasing the waiting harness.
+Its final RPC-unavailable message follows that deliberate cleanup and is not a
+new independent crash finding. Both runs are terminal and Excel is closed.
+The original interruption and failed-test cleanup are distinct actions; no
+post-reset/cleanup observation is promoted to restart acceptance.
+
+The closed-Excel preservation check passes260 package pins,15 protected source
+files and the existing reviewed Shipping visibility-only difference. Runtime
+source and packages remain unchanged. Full cold-restart, clean native and visible
+acceptance remain open. Next isolate the controller boundary: start the reader
+in a separate fresh PowerShell process with in-memory fixture input, then prove
+pristine Viewer launch before adding drivers. Do not infer network loss from the
+compiler wording or patch runtime behavior without a protecting behavioral test.
+
+Additional ignored evidence: `recording-restart-calibrated.log`,
+`recording-restart-calibrated-exit.json`, `recording-restart-pristine-dialog.json`,
+`recording-restart-calibrated-cleanup.json`, `recording-restart-first-summary.json`
+and `recording-restart-final-preservation.json`.
 
 ### Earlier foundation artifacts
 

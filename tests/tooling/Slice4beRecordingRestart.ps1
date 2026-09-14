@@ -106,6 +106,14 @@ public static class RecordingRestartProcess {
     $distinct=$current.Count -eq 1 -and $current[0].Id -eq $newOwner -and $newOwner -ne $owner
     Check 'RecordingRestart.FreshExcelProcessVerified' $distinct
     if(-not $distinct){throw 'Fresh isolated Excel identity is unavailable.'}
+    Write-Output 'Recording restart: calibrate pristine packaged Viewer before fresh-process probes.'
+    SelectTarget $Fixture 'config-admin'
+    $pristine=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RunInventoryViewerActionForTest')
+    $openedPristine=$pristine.StartsWith('OK|')
+    Check 'RecordingRestart.PristinePackagedViewerLaunches' $openedPristine
+    if(-not $openedPristine){throw 'Pristine fresh-process Viewer baseline is unavailable.'}
+    CloseRecordingViewer
+    Write-Output 'Recording restart: install only the unsaved control drivers.'
     foreach($probe in $probes){
         if($probe.Module -eq 'TestD5Commands'){
             $module=$packages[$probe.Package].VBProject.VBComponents.Add(1)
@@ -129,6 +137,7 @@ Public Function PublishedReadActionForTest(ByVal action As String, Optional ByVa
 End Function
 '@)
     SelectTarget $Fixture 'config-admin'
+    Write-Output 'Recording restart: open instrumented Viewer and inspect the original journal.'
     OpenRecordingViewer
     Check 'RecordingRestart.NoRecorderResumed' ((RecordingControl 'Start Recording') -ceq 'True|True' -and
         (RecordingControl 'Stop Recording') -ceq 'True|False' -and (RecordingStatus) -notmatch '(?i)recording.*1\s*/\s*256')
