@@ -93,7 +93,7 @@ Failed:
     reason = "ReadFailed"
 End Function
 
-Private Function ValidBody(ByVal target As WarehouseTarget, ByVal recordId As String, ByVal body As String) As Boolean
+Public Function ValidBody(ByVal target As WarehouseTarget, ByVal recordId As String, ByVal body As String) As Boolean
     Dim record As Object, definition As Object, outcome As Object, key As Variant
     Dim allowed As String, field As Variant
     On Error GoTo Invalid

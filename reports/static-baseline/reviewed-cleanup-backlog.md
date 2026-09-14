@@ -2,8 +2,8 @@
 
 - Schema: 1.0.0
 - Baseline: 2026-07-27T20:00:00Z
-- Scanner candidates: 1136
-- Reviewed candidates: 1138
+- Scanner candidates: 1137
+- Reviewed candidates: 1139
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -18,7 +18,7 @@
 | CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
 | ADMIN | 258 | Administrative setup, lifecycle, and developer-support source. |
-| DEVELOPER_TOOLING | 35 | Build, scan, report, and other developer-only tooling. |
+| DEVELOPER_TOOLING | 36 | Build, scan, report, and other developer-only tooling. |
 | TESTING | 0 | Test harness and fixture source that must remain outside runtime packages. |
 
 ## Module-growth ratchets
@@ -611,6 +611,7 @@
 | reachability:src_Operations_Modules_modInventoryViewer.bas:modInventoryViewer.RunInventoryViewerFilterForTest | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Operations_Modules_modOperationsInit.bas:modOperationsInit.OperationsShadowStartupForTest | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Operations_Modules_modOperationsInit.bas:modOperationsInit.OperationsStartupReport | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
+| root:src_Operations_ClassModules_cRecordingButton.cls:cRecordingButton.mButton_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_ClassModules_cViewerFilterBinding.cls:cViewerFilterBinding.mControl_Change | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mClose_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mLines_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |

@@ -20,20 +20,23 @@ End Function
 Public Function BeginAction(ByVal controlId As String, ByVal capturedContext As String, _
                             Optional ByRef notice As String = "") As String
     Dim target As WarehouseTarget, definition As Object, action As Object, id As String
+    Dim captureEnabled As Boolean, sequenceEligible As Boolean
     Dim version As Long, collect As Boolean, visible As Boolean, current As String, key As Variant
     On Error GoTo Failed
     notice = ""
     If mBusy Then Exit Function
     current = CaptureContext()
-    If current = "" Then Exit Function
+    If current = "" Then modRecordingSession.Interrupt "SESSION_CHANGED": Exit Function
     notice = "Tracking unavailable: the form context changed. Reopen the form."
-    If capturedContext = "" Or current <> capturedContext Then Exit Function
+    If capturedContext = "" Or current <> capturedContext Then modRecordingSession.InterruptContext capturedContext, "VIEWER_CLOSED": Exit Function
     Set definition = modActivityCatalog.Control(controlId)
     If definition Is Nothing Then notice = "Tracking unavailable: the control is unregistered.": Exit Function
     mBusy = True
     Set target = modNasConnection.GetCurrentTarget()
-    If Not modActivityPolicy.ReadPolicy(target, controlId, version, collect, visible, notice) Then GoTo CleanExit
-    If Not collect Then GoTo CleanExit
+    If Not modActivityPolicy.ReadPolicy(target, controlId, version, collect, visible, notice, Nothing, captureEnabled, sequenceEligible) Then
+        modRecordingSession.Interrupt "TRACKING_UNAVAILABLE": GoTo CleanExit
+    End If
+    If Not collect And Not modRecordingSession.ActiveFor(current) Then GoTo CleanExit
     If mActions Is Nothing Or mContext <> current Then
         Set mActions = CreateObject("Scripting.Dictionary")
         mContext = current
@@ -52,14 +55,20 @@ Public Function BeginAction(ByVal controlId As String, ByVal capturedContext As 
     action.Add "PolicyVersion", version
     action.Add "Target", target
     action.Add "UserId", modAuth.GetCurrentUserId()
+    modRecordingSession.Prepare action, captureEnabled, sequenceEligible, collect
+    If Not collect Then GoTo CleanExit
     action.Add "AttemptBody", MakeBody(action, id, "REQUESTED")
-    If Not modActivityStore.Append(target, id, action("AttemptBody"), notice) Then GoTo CleanExit
+    If Not modActivityStore.Append(target, id, action("AttemptBody"), notice) Then
+        modRecordingSession.Interrupt "TRACKING_UNAVAILABLE": GoTo CleanExit
+    End If
     mActions.Add id, action
+    modRecordingSession.Observe action("AttemptBody"), notice
     BeginAction = id
 CleanExit:
     mBusy = False
     Exit Function
 Failed:
+    modRecordingSession.Interrupt "TRACKING_UNAVAILABLE"
     notice = "Tracking unavailable: the action could not be recorded."
     Resume CleanExit
 End Function
@@ -86,7 +95,8 @@ Public Function FinishAction(ByVal activityId As String, ByVal outcomeCode As St
     canonicalReferences = modActivityReferences.Encode(references)
     mBusy = True
     If Not modActivityPolicy.ReadPolicy(target, action("ControlId"), version, collect, visible, notice) Then GoTo CleanExit
-    If Not collect Or version <> CLng(action("PolicyVersion")) Then
+    If (Not collect And Not CBool(action("CaptureCollected"))) Or version <> CLng(action("PolicyVersion")) Then
+        modRecordingSession.Interrupt "POLICY_CHANGED"
         notice = "Tracking unavailable: the tracking policy changed during this action."
         GoTo CleanExit
     End If
@@ -108,10 +118,16 @@ Public Function FinishAction(ByVal activityId As String, ByVal outcomeCode As St
         action.Add "OutcomeBody", MakeBody(action, action("OutcomeId"), outcomeCode)
     End If
     FinishAction = modActivityStore.Append(target, action("OutcomeId"), action("OutcomeBody"), notice)
+    If FinishAction Then
+        modRecordingSession.Observe action("OutcomeBody"), notice
+    Else
+        modRecordingSession.Interrupt "TRACKING_UNAVAILABLE"
+    End If
 CleanExit:
     mBusy = False
     Exit Function
 Failed:
+    modRecordingSession.Interrupt "TRACKING_UNAVAILABLE"
     notice = "Tracking unavailable: the result could not be recorded."
     Resume CleanExit
 End Function
@@ -163,7 +179,7 @@ Private Function MakeBody(ByVal action As Object, ByVal recordId As String, ByVa
     record.Add "BuildIdentity", CStr(source.CustomDocumentProperties("invSysBuildIdentity").Value)
     record.Add "RecordId", recordId
     record.Add "ActivityId", action("ActivityId")
-    record.Add "SequenceId", ""
+    record.Add "SequenceId", action("SequenceId")
     record.Add "WarehouseId", target.WarehouseId
     record.Add "StationId", target.StationId
     record.Add "UserId", action("UserId")
@@ -173,7 +189,7 @@ Private Function MakeBody(ByVal action As Object, ByVal recordId As String, ByVa
     record.Add "SourceRole", definition("Role")
     record.Add "Caption", definition("Caption")
     record.Add "Surface", definition("Surface")
-    record.Add "Ordinal", 0&
+    record.Add "Ordinal", CLng(action("Ordinal"))
     record.Add "OccurredAtUTC", modTrainingWire.UtcTimestamp()
     record.Add "PolicyVersion", CLng(action("PolicyVersion"))
     For Each key In outcome.Keys

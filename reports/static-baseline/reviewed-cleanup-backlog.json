@@ -3,8 +3,8 @@
     "reportType":  "reviewed-cleanup-backlog",
     "generatedAtUtc":  "2026-07-27T20:00:00Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "619d18f5fec66e739a7f1e066962248589d130b9ea46b18ad6f63899751e494e",
-                          "maintenanceCandidatesSha256":  "18505ce6a0f82f9ff05e7d5ec96cb34dd781ef850204fac04565a7979956bcfc"
+                          "implementationManifestSha256":  "0729076b221b211da9d6b7ad331910ccca9ac6ec05ceee891f7d102c6f8c2db7",
+                          "maintenanceCandidatesSha256":  "94fc6d6de80a5996ef6b5ad0d1ce95392f2c279bb8d6f566172ffa03b7423433"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1136,
-                    "reviewedCandidateCount":  1138,
+                    "scannerCandidateCount":  1137,
+                    "reviewedCandidateCount":  1139,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -57,7 +57,7 @@
                         },
                         {
                             "name":  "DEVELOPER_TOOLING",
-                            "candidateCount":  35,
+                            "candidateCount":  36,
                             "reason":  "Build, scan, report, and other developer-only tooling."
                         },
                         {
@@ -2672,6 +2672,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActionRecording.ps1",
                                                    "tests/tooling/Slice4beViewerPublishedRead.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -2833,6 +2834,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActionRecording.ps1",
                                                    "tests/tooling/Slice4beViewerPublishedRead.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -2903,6 +2905,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActionRecording.ps1",
                                                    "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -3018,6 +3021,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActionRecording.ps1",
                                                    "tests/tooling/Slice4beViewerPublishedRead.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -14781,6 +14785,29 @@
                            "nextAction":  "Investigate callers, callbacks, package ownership, and protecting tests before selecting a source change."
                        },
                        {
+                           "id":  "root:src_Operations_ClassModules_cRecordingButton.cls:cRecordingButton.mButton_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "cRecordingButton",
+                           "procedureNames":  [
+                                                  "mButton_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/ClassModules/cRecordingButton.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
                            "id":  "root:src_Operations_ClassModules_cViewerFilterBinding.cls:cViewerFilterBinding.mControl_Change",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
@@ -15054,6 +15081,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActionRecording.ps1",
                                                    "tests/tooling/Slice4beViewerPublishedRead.ps1"
                                                ],
                            "deletionApproved":  false,

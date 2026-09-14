@@ -2,7 +2,7 @@
 
 - Schema: 1.0.0
 - Generated: 2026-07-27T20:00:00Z
-- Total candidates: 1136
+- Total candidates: 1137
 - Duplicate-body groups: 189
 - Unresolved dynamic calls: 45
 
@@ -556,6 +556,7 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | RETAIN_DYNAMIC_ROOT | LOW | modInventoryApply | ApplyLatestMovementToInvSysApply | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | modInventoryApply | ApplyReceiveEvent | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | modInventoryInit | Auto_Open | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cRecordingButton | mButton_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | cViewerFilterBinding | mControl_Change | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmEventDetail | mClose_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmEventDetail | mLines_Click | Procedure is a registered or discovered dynamic root. |

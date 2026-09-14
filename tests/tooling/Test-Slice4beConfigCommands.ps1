@@ -20,6 +20,8 @@ param(
     [switch]$CheckViewerShippingState,
     [switch]$CheckViewerFilters,
     [switch]$CheckActionRecording,
+    [switch]$CheckRecordingLimits,
+    [switch]$CheckRecordingStorageBounds,
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
@@ -60,6 +62,8 @@ if($ViewerPublicationOnly) {
 if($CheckViewerPublication) { $CheckViewerEventGroups = $true }
 if($CheckViewerShippingState) { $CheckViewerPublishedRead = $true }
 if($CheckViewerFilters) { $CheckViewerPublishedRead = $true }
+if($CheckRecordingLimits) { $CheckActionRecording = $true }
+if($CheckRecordingStorageBounds) { $CheckActionRecording = $true }
 if($CheckActionRecording) { $CheckViewerPublishedRead = $true }
 if($CheckAdminSettingsClose -and -not $CheckActionPathPreference) { throw 'Admin close requires the complete preference probes.' }
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
@@ -520,6 +524,11 @@ End Function
             $step='packaged Viewer recording lifecycle'
             . (Join-Path $PSScriptRoot 'Slice4beActionRecording.ps1')
             Test-Slice4beActionRecording $a
+            if($CheckRecordingStorageBounds) {
+                $step='recording journal serialized storage bounds'
+                . (Join-Path $PSScriptRoot 'Slice4beRecordingStorageBounds.ps1')
+                Test-Slice4beRecordingStorageBounds $a
+            }
         }
         if($CheckViewerFilters) {
             $step='packaged Viewer loaded projection filters'

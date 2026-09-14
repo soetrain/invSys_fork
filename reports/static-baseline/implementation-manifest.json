@@ -68,6 +68,7 @@
                                                 "frmSignIn",
                                                 "frmWarehouseConnection",
                                                 "modActionPathPreference",
+                                                "modActionRecording",
                                                 "modActivity",
                                                 "modActivityCatalog",
                                                 "modActivityPolicy",
@@ -107,6 +108,9 @@
                                                 "modPublishedEventsReader",
                                                 "modReceivingActivityCodes",
                                                 "modReceivingNavigationCodes",
+                                                "modRecordingJournal",
+                                                "modRecordingModel",
+                                                "modRecordingSession",
                                                 "modRibbonRuntimeStatus",
                                                 "modRoleEventJson",
                                                 "modRoleEventWriter",
@@ -206,6 +210,8 @@
                                                 "cReceivingAppEvents",
                                                 "cReceivingSelectionInput",
                                                 "cReceivingWorkflowState",
+                                                "cRecordingButton",
+                                                "cRecordingControls",
                                                 "cShippingActionTimer",
                                                 "cShippingActivity",
                                                 "cShippingAppEvents",
@@ -2081,10 +2087,24 @@
                                         }
                        },
                        {
+                           "name":  "modActionRecording",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modActionRecording.bas",
+                           "lineCount":  15,
+                           "procedureNames":  [
+                                                  "ContextClosed",
+                                                  "Control",
+                                                  "Status"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
                            "name":  "modActivity",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActivity.bas",
-                           "lineCount":  189,
+                           "lineCount":  205,
                            "procedureNames":  [
                                                   "BeginAction",
                                                   "CaptureContext",
@@ -2115,7 +2135,7 @@
                            "name":  "modActivityPolicy",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActivityPolicy.bas",
-                           "lineCount":  136,
+                           "lineCount":  142,
                            "procedureNames":  [
                                                   "CellValue",
                                                   "FindTable",
@@ -2261,7 +2281,7 @@
                            "name":  "modAuthSession",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modAuthSession.bas",
-                           "lineCount":  14,
+                           "lineCount":  15,
                            "procedureNames":  [
                                                   "Invalidate",
                                                   "Version"
@@ -3317,6 +3337,55 @@
                                         }
                        },
                        {
+                           "name":  "modRecordingJournal",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modRecordingJournal.bas",
+                           "lineCount":  106,
+                           "procedureNames":  [
+                                                  "Append",
+                                                  "JournalRoot",
+                                                  "ReadEntry",
+                                                  "ReadText"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "modRecordingModel",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modRecordingModel.bas",
+                           "lineCount":  68,
+                           "procedureNames":  [
+                                                  "Validate"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "modRecordingSession",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modRecordingSession.bas",
+                           "lineCount":  201,
+                           "procedureNames":  [
+                                                  "ActiveFor",
+                                                  "AppendEntry",
+                                                  "CloseRun",
+                                                  "ExecuteCommand",
+                                                  "Interrupt",
+                                                  "InterruptContext",
+                                                  "Observe",
+                                                  "Prepare",
+                                                  "ReadPolicySnapshot",
+                                                  "ReadStatus",
+                                                  "Start"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
                            "name":  "modRibbonRuntimeStatus",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modRibbonRuntimeStatus.bas",
@@ -3709,7 +3778,7 @@
                            "name":  "modTrackingPolicyCommand",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modTrackingPolicyCommand.bas",
-                           "lineCount":  131,
+                           "lineCount":  132,
                            "procedureNames":  [
                                                   "CreatePolicyTable",
                                                   "FindPolicyTable",
@@ -5016,6 +5085,37 @@
                                         }
                        },
                        {
+                           "name":  "cRecordingButton",
+                           "kind":  "CLASS_MODULE",
+                           "sourcePath":  "src/Operations/ClassModules/cRecordingButton.cls",
+                           "lineCount":  26,
+                           "procedureNames":  [
+                                                  "Connect",
+                                                  "Disconnect",
+                                                  "mButton_Click"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "cRecordingControls",
+                           "kind":  "CLASS_MODULE",
+                           "sourcePath":  "src/Operations/ClassModules/cRecordingControls.cls",
+                           "lineCount":  79,
+                           "procedureNames":  [
+                                                  "Arrange",
+                                                  "BindContext",
+                                                  "Disconnect",
+                                                  "Execute",
+                                                  "Initialize",
+                                                  "Render"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
                            "name":  "cViewerFilterBinding",
                            "kind":  "CLASS_MODULE",
                            "sourcePath":  "src/Operations/ClassModules/cViewerFilterBinding.cls",
@@ -5080,7 +5180,7 @@
                            "name":  "frmInventoryViewer",
                            "kind":  "FORM",
                            "sourcePath":  "src/Operations/Forms/frmInventoryViewer.frm",
-                           "lineCount":  862,
+                           "lineCount":  872,
                            "procedureNames":  [
                                                   "AddButton",
                                                   "AddEventFilter",
@@ -35820,6 +35920,69 @@
                                        ]
                        },
                        {
+                           "componentName":  "modActionRecording",
+                           "name":  "Control",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  5,
+                           "endLine":  7,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "ExecuteCommand"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionRecording",
+                           "name":  "Status",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  9,
+                           "endLine":  11,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "ReadStatus"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionRecording",
+                           "name":  "ContextClosed",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  13,
+                           "endLine":  15,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "InterruptContext"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
                            "componentName":  "modActivity",
                            "name":  "CaptureContext",
                            "visibility":  "PUBLIC",
@@ -35851,18 +36014,23 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  20,
-                           "endLine":  65,
-                           "lineCount":  46,
+                           "endLine":  74,
+                           "lineCount":  55,
                            "directCalls":  [
+                                               "ActiveFor",
                                                "Add",
                                                "Append",
                                                "CaptureContext",
                                                "Control",
                                                "GetCurrentTarget",
                                                "GetCurrentUserId",
+                                               "Interrupt",
+                                               "InterruptContext",
                                                "Keys",
                                                "MakeBody",
                                                "NewId",
+                                               "Observe",
+                                               "Prepare",
                                                "ReadPolicy",
                                                "Version"
                                            ],
@@ -35881,9 +36049,9 @@
                            "name":  "FinishAction",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  67,
-                           "endLine":  117,
-                           "lineCount":  51,
+                           "startLine":  76,
+                           "endLine":  133,
+                           "lineCount":  58,
                            "directCalls":  [
                                                "Add",
                                                "Append",
@@ -35892,8 +36060,10 @@
                                                "Control",
                                                "Decode",
                                                "Encode",
+                                               "Interrupt",
                                                "MakeBody",
                                                "NewId",
+                                               "Observe",
                                                "Outcome",
                                                "OutcomeCode",
                                                "ReadPolicy",
@@ -35914,8 +36084,8 @@
                            "name":  "InventorySourceReferences",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  120,
-                           "endLine":  129,
+                           "startLine":  136,
+                           "endLine":  145,
                            "lineCount":  10,
                            "directCalls":  [
                                                "Inventory"
@@ -35935,8 +36105,8 @@
                            "name":  "ReadActivityRecord",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  131,
-                           "endLine":  146,
+                           "startLine":  147,
+                           "endLine":  162,
                            "lineCount":  16,
                            "directCalls":  [
                                                "CaptureContext",
@@ -35962,8 +36132,8 @@
                            "name":  "MakeBody",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  148,
-                           "endLine":  189,
+                           "startLine":  164,
+                           "endLine":  205,
                            "lineCount":  42,
                            "directCalls":  [
                                                "Add",
@@ -36060,8 +36230,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  5,
-                           "endLine":  103,
-                           "lineCount":  99,
+                           "endLine":  109,
+                           "lineCount":  105,
                            "directCalls":  [
                                                "Add",
                                                "CellValue",
@@ -36090,8 +36260,8 @@
                            "name":  "FindTable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  105,
-                           "endLine":  112,
+                           "startLine":  111,
+                           "endLine":  118,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -36111,8 +36281,8 @@
                            "name":  "CellValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  114,
-                           "endLine":  124,
+                           "startLine":  120,
+                           "endLine":  130,
                            "lineCount":  11,
                            "directCalls":  [
 
@@ -36132,8 +36302,8 @@
                            "name":  "PositiveInteger",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  126,
-                           "endLine":  132,
+                           "startLine":  132,
+                           "endLine":  138,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -36153,8 +36323,8 @@
                            "name":  "IsBooleanValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  134,
-                           "endLine":  136,
+                           "startLine":  140,
+                           "endLine":  142,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -36365,7 +36535,7 @@
                        {
                            "componentName":  "modActivityStore",
                            "name":  "ValidBody",
-                           "visibility":  "PRIVATE",
+                           "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  96,
                            "endLine":  142,
@@ -38399,10 +38569,10 @@
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
                            "startLine":  8,
-                           "endLine":  10,
-                           "lineCount":  3,
+                           "endLine":  11,
+                           "lineCount":  4,
                            "directCalls":  [
-
+                                               "Interrupt"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -38419,8 +38589,8 @@
                            "name":  "Version",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  12,
-                           "endLine":  14,
+                           "startLine":  13,
+                           "endLine":  15,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -42418,6 +42588,7 @@
                            "endLine":  115,
                            "lineCount":  28,
                            "directCalls":  [
+                                               "Execute",
                                                "Keys",
                                                "ParseProcedureBody",
                                                "Start"
@@ -42441,7 +42612,7 @@
                            "endLine":  153,
                            "lineCount":  35,
                            "directCalls":  [
-
+                                               "Execute"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -42483,7 +42654,7 @@
                            "endLine":  198,
                            "lineCount":  20,
                            "directCalls":  [
-
+                                               "Execute"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -47453,6 +47624,7 @@
                            "lineCount":  19,
                            "directCalls":  [
                                                "AddPathIfMissingNas",
+                                               "Execute",
                                                "NasServerNameFromRoot",
                                                "NormalizeFolderNas",
                                                "ReadNasDiscoveryCommand"
@@ -53975,6 +54147,389 @@
                                        ]
                        },
                        {
+                           "componentName":  "modRecordingJournal",
+                           "name":  "Append",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  5,
+                           "endLine":  53,
+                           "lineCount":  49,
+                           "directCalls":  [
+                                               "EncodeObject",
+                                               "JournalRoot",
+                                               "NewId",
+                                               "ReadEntry",
+                                               "ReadText",
+                                               "Sha256",
+                                               "Validate"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingJournal",
+                           "name":  "ReadEntry",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  55,
+                           "endLine":  75,
+                           "lineCount":  21,
+                           "directCalls":  [
+                                               "Add",
+                                               "DecodeObject",
+                                               "JournalRoot",
+                                               "ReadText",
+                                               "Sha256",
+                                               "Text",
+                                               "Validate",
+                                               "ValidId",
+                                               "Version"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingJournal",
+                           "name":  "JournalRoot",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  77,
+                           "endLine":  93,
+                           "lineCount":  17,
+                           "directCalls":  [
+                                               "IsWarehouseTargetAllowed",
+                                               "ValidSegment"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingJournal",
+                           "name":  "ReadText",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  95,
+                           "endLine":  106,
+                           "lineCount":  12,
+                           "directCalls":  [
+                                               "Read",
+                                               "Sha256",
+                                               "Text"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingModel",
+                           "name":  "Validate",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  5,
+                           "endLine":  68,
+                           "lineCount":  64,
+                           "directCalls":  [
+                                               "Add",
+                                               "EncodeObject",
+                                               "Fields",
+                                               "Keys",
+                                               "ValidBody",
+                                               "ValidId",
+                                               "ValidUtcTimestamp"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "ExecuteCommand",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  19,
+                           "endLine":  42,
+                           "lineCount":  24,
+                           "directCalls":  [
+                                               "CaptureContext",
+                                               "CloseRun",
+                                               "Interrupt",
+                                               "Start"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "Start",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  44,
+                           "endLine":  74,
+                           "lineCount":  31,
+                           "directCalls":  [
+                                               "Add",
+                                               "AppendEntry",
+                                               "CaptureContext",
+                                               "GetCurrentTarget",
+                                               "GetCurrentUserId",
+                                               "Interrupt",
+                                               "NewId",
+                                               "ReadPolicySnapshot",
+                                               "Version"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "ReadStatus",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  76,
+                           "endLine":  100,
+                           "lineCount":  25,
+                           "directCalls":  [
+                                               "CaptureContext",
+                                               "GetCurrentTarget",
+                                               "ReadPolicySnapshot",
+                                               "Version"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "ReadPolicySnapshot",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  102,
+                           "endLine":  105,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "ReadPolicy",
+                                               "Version"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "Prepare",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  107,
+                           "endLine":  124,
+                           "lineCount":  18,
+                           "directCalls":  [
+                                               "Add",
+                                               "Control",
+                                               "Interrupt"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "ActiveFor",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  126,
+                           "endLine":  128,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "Observe",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  130,
+                           "endLine":  160,
+                           "lineCount":  31,
+                           "directCalls":  [
+                                               "Add",
+                                               "AppendEntry",
+                                               "DecodeObject",
+                                               "Interrupt"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "InterruptContext",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  162,
+                           "endLine":  164,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Interrupt"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "Interrupt",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  166,
+                           "endLine":  169,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "CloseRun"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "CloseRun",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  171,
+                           "endLine":  186,
+                           "lineCount":  16,
+                           "directCalls":  [
+                                               "AppendEntry"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "AppendEntry",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  188,
+                           "endLine":  201,
+                           "lineCount":  14,
+                           "directCalls":  [
+                                               "Add",
+                                               "Append",
+                                               "Keys",
+                                               "NewId",
+                                               "UtcTimestamp"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
                            "componentName":  "modRibbonRuntimeStatus",
                            "name":  "RegisterRibbonUi",
                            "visibility":  "PUBLIC",
@@ -56989,6 +57544,7 @@
                            "lineCount":  62,
                            "directCalls":  [
                                                "EventType",
+                                               "Execute",
                                                "JsonObjectNumberFieldRole",
                                                "JsonObjectStringFieldRole"
                                            ],
@@ -57012,6 +57568,7 @@
                            "lineCount":  67,
                            "directCalls":  [
                                                "EventType",
+                                               "Execute",
                                                "JsonObjectNumberFieldRole",
                                                "JsonObjectStringFieldRole",
                                                "NormalizeVersionLabelRole"
@@ -57057,6 +57614,7 @@
                            "lineCount":  15,
                            "directCalls":  [
                                                "EscapeRegexRole",
+                                               "Execute",
                                                "JsonUnescapeRole"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -57078,7 +57636,8 @@
                            "endLine":  2096,
                            "lineCount":  19,
                            "directCalls":  [
-                                               "EscapeRegexRole"
+                                               "EscapeRegexRole",
+                                               "Execute"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -60603,8 +61162,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  5,
-                           "endLine":  113,
-                           "lineCount":  109,
+                           "endLine":  114,
+                           "lineCount":  110,
                            "directCalls":  [
                                                "Add",
                                                "AuthorizeEditor",
@@ -60612,6 +61171,7 @@
                                                "Decode",
                                                "FindPolicyTable",
                                                "GetCurrentUserId",
+                                               "InterruptContext",
                                                "ReadPolicy",
                                                "SetPolicyCell",
                                                "UtcTimestamp",
@@ -60632,8 +61192,8 @@
                            "name":  "FindPolicyTable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  115,
-                           "endLine":  122,
+                           "startLine":  116,
+                           "endLine":  123,
                            "lineCount":  8,
                            "directCalls":  [
 
@@ -60653,8 +61213,8 @@
                            "name":  "CreatePolicyTable",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  124,
-                           "endLine":  127,
+                           "startLine":  125,
+                           "endLine":  128,
                            "lineCount":  4,
                            "directCalls":  [
                                                "CreateTable",
@@ -60675,8 +61235,8 @@
                            "name":  "SetPolicyCell",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  129,
-                           "endLine":  131,
+                           "startLine":  130,
+                           "endLine":  132,
                            "lineCount":  3,
                            "directCalls":  [
                                                "WriteCell"
@@ -78249,6 +78809,199 @@
                                        ]
                        },
                        {
+                           "componentName":  "cRecordingButton",
+                           "name":  "Connect",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  16,
+                           "endLine":  18,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cRecordingButton",
+                           "name":  "Disconnect",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  20,
+                           "endLine":  22,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cRecordingButton",
+                           "name":  "mButton_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  24,
+                           "endLine":  26,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Execute"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Operations_ClassModules_cRecordingButton.cls:cRecordingButton.mButton_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cRecordingControls",
+                           "name":  "Initialize",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  18,
+                           "endLine":  31,
+                           "lineCount":  14,
+                           "directCalls":  [
+                                               "Add",
+                                               "Connect"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cRecordingControls",
+                           "name":  "BindContext",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  33,
+                           "endLine":  37,
+                           "lineCount":  5,
+                           "directCalls":  [
+                                               "ContextClosed",
+                                               "Render"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cRecordingControls",
+                           "name":  "Execute",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  39,
+                           "endLine":  44,
+                           "lineCount":  6,
+                           "directCalls":  [
+                                               "Control",
+                                               "Render",
+                                               "Succeeded"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cRecordingControls",
+                           "name":  "Render",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  46,
+                           "endLine":  58,
+                           "lineCount":  13,
+                           "directCalls":  [
+                                               "Status"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cRecordingControls",
+                           "name":  "Arrange",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  60,
+                           "endLine":  70,
+                           "lineCount":  11,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cRecordingControls",
+                           "name":  "Disconnect",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  72,
+                           "endLine":  79,
+                           "lineCount":  8,
+                           "directCalls":  [
+                                               "ContextClosed"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
                            "componentName":  "cViewerFilterBinding",
                            "name":  "Bind",
                            "visibility":  "PUBLIC",
@@ -78987,8 +79740,8 @@
                            "name":  "UserForm_Initialize",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  64,
-                           "endLine":  66,
+                           "startLine":  65,
+                           "endLine":  67,
                            "lineCount":  3,
                            "directCalls":  [
                                                "BuildLayout"
@@ -79026,13 +79779,14 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  68,
-                           "endLine":  75,
-                           "lineCount":  8,
+                           "startLine":  69,
+                           "endLine":  77,
+                           "lineCount":  9,
                            "directCalls":  [
                                                "ApplyAnchoredLayout",
                                                "ConfigureViewerHeaderGeometry",
-                                               "EnableResizableUserForm"
+                                               "EnableResizableUserForm",
+                                               "Render"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -79068,8 +79822,8 @@
                            "name":  "UserForm_Layout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  77,
-                           "endLine":  80,
+                           "startLine":  79,
+                           "endLine":  82,
                            "lineCount":  4,
                            "directCalls":  [
                                                "ApplyAnchoredLayout",
@@ -79100,8 +79854,8 @@
                            "name":  "UserForm_Terminate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  82,
-                           "endLine":  88,
+                           "startLine":  84,
+                           "endLine":  90,
                            "lineCount":  7,
                            "directCalls":  [
                                                "CloseDetail",
@@ -79134,9 +79888,9 @@
                            "name":  "UserForm_QueryClose",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  90,
-                           "endLine":  95,
-                           "lineCount":  6,
+                           "startLine":  92,
+                           "endLine":  99,
+                           "lineCount":  8,
                            "directCalls":  [
                                                "Disconnect"
                                            ],
@@ -79161,10 +79915,11 @@
                            "name":  "SetWarehouse",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  97,
-                           "endLine":  102,
-                           "lineCount":  6,
+                           "startLine":  101,
+                           "endLine":  107,
+                           "lineCount":  7,
                            "directCalls":  [
+                                               "BindContext",
                                                "CaptureContext",
                                                "ClearViewerContent"
                                            ],
@@ -79183,8 +79938,8 @@
                            "name":  "SetGeneration",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  104,
-                           "endLine":  106,
+                           "startLine":  109,
+                           "endLine":  111,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -79204,13 +79959,14 @@
                            "name":  "RefreshInventory",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  108,
-                           "endLine":  113,
-                           "lineCount":  6,
+                           "startLine":  113,
+                           "endLine":  119,
+                           "lineCount":  7,
                            "directCalls":  [
                                                "BuildLayout",
                                                "LoadCurrentInventoryViewerData",
                                                "LoadViewerPayload",
+                                               "Render",
                                                "ViewerContextValid"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -79228,13 +79984,14 @@
                            "name":  "RefreshEvents",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  115,
-                           "endLine":  123,
-                           "lineCount":  9,
+                           "startLine":  121,
+                           "endLine":  130,
+                           "lineCount":  10,
                            "directCalls":  [
                                                "BuildLayout",
                                                "LoadInventoryViewerEvents",
                                                "LoadViewerPayload",
+                                               "Render",
                                                "ViewerContextValid"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -79252,8 +80009,8 @@
                            "name":  "ClearViewerContent",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  125,
-                           "endLine":  136,
+                           "startLine":  132,
+                           "endLine":  143,
                            "lineCount":  12,
                            "directCalls":  [
                                                "Invalidate",
@@ -79274,8 +80031,8 @@
                            "name":  "ViewerContextValid",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  138,
-                           "endLine":  144,
+                           "startLine":  145,
+                           "endLine":  151,
                            "lineCount":  7,
                            "directCalls":  [
                                                "CaptureContext",
@@ -79296,8 +80053,8 @@
                            "name":  "EventRefreshUnavailable",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  146,
-                           "endLine":  155,
+                           "startLine":  153,
+                           "endLine":  162,
                            "lineCount":  10,
                            "directCalls":  [
                                                "ClearViewerContent",
@@ -79318,8 +80075,8 @@
                            "name":  "LoadViewerPayload",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  157,
-                           "endLine":  226,
+                           "startLine":  164,
+                           "endLine":  233,
                            "lineCount":  70,
                            "directCalls":  [
                                                "ClearViewerContent",
@@ -79347,8 +80104,8 @@
                            "name":  "TestReport",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  228,
-                           "endLine":  233,
+                           "startLine":  235,
+                           "endLine":  240,
                            "lineCount":  6,
                            "directCalls":  [
 
@@ -79368,8 +80125,8 @@
                            "name":  "TestApplySearch",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  235,
-                           "endLine":  241,
+                           "startLine":  242,
+                           "endLine":  248,
                            "lineCount":  7,
                            "directCalls":  [
                                                "RenderRows"
@@ -79389,8 +80146,8 @@
                            "name":  "TestEventsReport",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  243,
-                           "endLine":  295,
+                           "startLine":  250,
+                           "endLine":  302,
                            "lineCount":  53,
                            "directCalls":  [
                                                "BuildLayout",
@@ -79412,8 +80169,8 @@
                            "name":  "ExportViewerListBoxToTable",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  297,
-                           "endLine":  308,
+                           "startLine":  304,
+                           "endLine":  315,
                            "lineCount":  12,
                            "directCalls":  [
                                                "ExportVisibleListBoxToNewTable",
@@ -79434,8 +80191,8 @@
                            "name":  "TestListBoxTableAction",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  310,
-                           "endLine":  315,
+                           "startLine":  317,
+                           "endLine":  322,
                            "lineCount":  6,
                            "directCalls":  [
                                                "ApplyViewerTab",
@@ -79457,8 +80214,8 @@
                            "name":  "ViewerVisibleHeaders",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  317,
-                           "endLine":  325,
+                           "startLine":  324,
+                           "endLine":  332,
                            "lineCount":  9,
                            "directCalls":  [
 
@@ -79478,9 +80235,9 @@
                            "name":  "BuildLayout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  327,
-                           "endLine":  438,
-                           "lineCount":  112,
+                           "startLine":  334,
+                           "endLine":  447,
+                           "lineCount":  114,
                            "directCalls":  [
                                                "Add",
                                                "AddButton",
@@ -79491,6 +80248,7 @@
                                                "ApplyViewerTab",
                                                "ConfigureForForm",
                                                "ConfigureViewerHeaderGeometry",
+                                               "Initialize",
                                                "OperationsAnchorManager",
                                                "RegisterControl"
                                            ],
@@ -79509,8 +80267,8 @@
                            "name":  "mTabs_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  440,
-                           "endLine":  442,
+                           "startLine":  449,
+                           "endLine":  451,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ApplyViewerTab"
@@ -79531,8 +80289,8 @@
                            "name":  "mBtnSettings_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  444,
-                           "endLine":  447,
+                           "startLine":  453,
+                           "endLine":  456,
                            "lineCount":  4,
                            "directCalls":  [
                                                "OpenSettings"
@@ -79552,8 +80310,8 @@
                            "name":  "ApplyViewerTab",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  449,
-                           "endLine":  495,
+                           "startLine":  458,
+                           "endLine":  504,
                            "lineCount":  47,
                            "directCalls":  [
                                                "ConfigureViewerHeaderGeometry",
@@ -79575,8 +80333,8 @@
                            "name":  "mLstInventory_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  497,
-                           "endLine":  503,
+                           "startLine":  506,
+                           "endLine":  512,
                            "lineCount":  7,
                            "directCalls":  [
                                                "ShowLine",
@@ -79598,8 +80356,8 @@
                            "name":  "mTxtSearch_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  505,
-                           "endLine":  507,
+                           "startLine":  514,
+                           "endLine":  516,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RenderRows"
@@ -79620,8 +80378,8 @@
                            "name":  "ApplyEventFilters",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  509,
-                           "endLine":  514,
+                           "startLine":  518,
+                           "endLine":  523,
                            "lineCount":  6,
                            "directCalls":  [
                                                "RenderRows",
@@ -79642,8 +80400,8 @@
                            "name":  "AddEventFilter",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  516,
-                           "endLine":  531,
+                           "startLine":  525,
+                           "endLine":  540,
                            "lineCount":  16,
                            "directCalls":  [
                                                "Add",
@@ -79665,8 +80423,8 @@
                            "name":  "RefreshEventFilterChoices",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  533,
-                           "endLine":  540,
+                           "startLine":  542,
+                           "endLine":  549,
                            "lineCount":  8,
                            "directCalls":  [
                                                "FillEventFacet"
@@ -79686,8 +80444,8 @@
                            "name":  "FillEventFacet",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  542,
-                           "endLine":  561,
+                           "startLine":  551,
+                           "endLine":  570,
                            "lineCount":  20,
                            "directCalls":  [
                                                "Control",
@@ -79708,10 +80466,11 @@
                            "name":  "ConfigureEventFilterGeometry",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  563,
-                           "endLine":  587,
-                           "lineCount":  25,
+                           "startLine":  572,
+                           "endLine":  597,
+                           "lineCount":  26,
                            "directCalls":  [
+                                               "Arrange",
                                                "Control"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -79729,8 +80488,8 @@
                            "name":  "mBtnEventsPrevious_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  589,
-                           "endLine":  593,
+                           "startLine":  599,
+                           "endLine":  603,
                            "lineCount":  5,
                            "directCalls":  [
                                                "RenderRows",
@@ -79751,8 +80510,8 @@
                            "name":  "mBtnEventsNext_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  595,
-                           "endLine":  599,
+                           "startLine":  605,
+                           "endLine":  609,
                            "lineCount":  5,
                            "directCalls":  [
                                                "RenderRows",
@@ -79773,8 +80532,8 @@
                            "name":  "mBtnRefresh_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  601,
-                           "endLine":  607,
+                           "startLine":  611,
+                           "endLine":  617,
                            "lineCount":  7,
                            "directCalls":  [
                                                "RefreshEvents",
@@ -79798,8 +80557,8 @@
                            "name":  "mBtnExportListBox_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  609,
-                           "endLine":  617,
+                           "startLine":  619,
+                           "endLine":  627,
                            "lineCount":  9,
                            "directCalls":  [
                                                "ExportDeclaredListBoxToTable",
@@ -79821,8 +80580,8 @@
                            "name":  "ConfigureViewerHeaderGeometry",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  619,
-                           "endLine":  659,
+                           "startLine":  629,
+                           "endLine":  669,
                            "lineCount":  41,
                            "directCalls":  [
                                                "Add",
@@ -79844,8 +80603,8 @@
                            "name":  "ViewerEventHeadersAlignedForTest",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  661,
-                           "endLine":  676,
+                           "startLine":  671,
+                           "endLine":  686,
                            "lineCount":  16,
                            "directCalls":  [
 
@@ -79865,8 +80624,8 @@
                            "name":  "mBtnClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  678,
-                           "endLine":  680,
+                           "startLine":  688,
+                           "endLine":  690,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -79893,8 +80652,8 @@
                            "name":  "RenderRows",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  682,
-                           "endLine":  760,
+                           "startLine":  692,
+                           "endLine":  770,
                            "lineCount":  79,
                            "directCalls":  [
                                                "Add",
@@ -79917,8 +80676,8 @@
                            "name":  "RenderEventPage",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  762,
-                           "endLine":  794,
+                           "startLine":  772,
+                           "endLine":  804,
                            "lineCount":  33,
                            "directCalls":  [
                                                "Add",
@@ -79944,8 +80703,8 @@
                            "name":  "TrimViewerRows",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  796,
-                           "endLine":  808,
+                           "startLine":  806,
+                           "endLine":  818,
                            "lineCount":  13,
                            "directCalls":  [
                                                "ColumnIndex"
@@ -79965,8 +80724,8 @@
                            "name":  "ViewerUnescape",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  810,
-                           "endLine":  816,
+                           "startLine":  820,
+                           "endLine":  826,
                            "lineCount":  7,
                            "directCalls":  [
 
@@ -79986,8 +80745,8 @@
                            "name":  "AddLabel",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  818,
-                           "endLine":  831,
+                           "startLine":  828,
+                           "endLine":  841,
                            "lineCount":  14,
                            "directCalls":  [
                                                "Add"
@@ -80007,8 +80766,8 @@
                            "name":  "AddTextBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  833,
-                           "endLine":  840,
+                           "startLine":  843,
+                           "endLine":  850,
                            "lineCount":  8,
                            "directCalls":  [
                                                "Add"
@@ -80028,8 +80787,8 @@
                            "name":  "AddListBox",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  842,
-                           "endLine":  849,
+                           "startLine":  852,
+                           "endLine":  859,
                            "lineCount":  8,
                            "directCalls":  [
                                                "Add"
@@ -80049,8 +80808,8 @@
                            "name":  "AddButton",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  851,
-                           "endLine":  862,
+                           "startLine":  861,
+                           "endLine":  872,
                            "lineCount":  12,
                            "directCalls":  [
                                                "Add"
@@ -105144,6 +105903,7 @@
                                                "BuildDesignRecipeStagingWorkbookFromData",
                                                "CanonicalRecipeIdProduction",
                                                "CurrentProductionWarehouseId",
+                                               "Execute",
                                                "GetLocalStagedDesignIdentities",
                                                "IsUsableProductionArray",
                                                "JsonPayloadNumberField",
@@ -107052,6 +107812,7 @@
                            "lineCount":  61,
                            "directCalls":  [
                                                "Add",
+                                               "Execute",
                                                "JsonPayloadNumberField",
                                                "JsonPayloadStringField",
                                                "LocationValue",
@@ -107079,6 +107840,7 @@
                            "endLine":  7743,
                            "lineCount":  11,
                            "directCalls":  [
+                                               "Execute",
                                                "JsonPayloadUnescape"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -107100,7 +107862,7 @@
                            "endLine":  7759,
                            "lineCount":  15,
                            "directCalls":  [
-
+                                               "Execute"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -143433,6 +144195,7 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beSettingsOpenTrace.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1"
                                              ]
@@ -143755,6 +144518,7 @@
                                                  "tests/integration/test_CreateWarehouse.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beAdminSettingsClose.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
@@ -144204,6 +144968,7 @@
                                "entryPoint":  "Capture",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
@@ -144449,6 +145214,7 @@
                            {
                                "entryPoint":  "CloseInventoryViewerForTest",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beViewerFilters.ps1",
                                                  "tests/tooling/Slice4beViewerPublishedRead.ps1",
                                                  "tests/tooling/Slice4beViewerShippingState.ps1",
@@ -144459,6 +145225,7 @@
                                "entryPoint":  "CloseSettings",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1",
@@ -144665,6 +145432,14 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Connect",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-Plan022Slice4apNamedRecipeGraph.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4lRibbonSessionControls.ps1",
+                                                 "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ConnectAggregationServerForAdmin",
                                "testPaths":  [
                                                  "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1"
@@ -144722,6 +145497,7 @@
                                "entryPoint":  "Control",
                                "testPaths":  [
                                                  "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
@@ -144875,7 +145651,8 @@
                                "entryPoint":  "DecodeObject",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
-                                                 "tests/tooling/Slice4beDetailProfile.ps1"
+                                                 "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beRecordingStorageBounds.ps1"
                                              ]
                            },
                            {
@@ -145465,6 +146242,14 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Execute",
+                               "testPaths":  [
+                                                 "tests/tooling/Test-PackagedVbaCompile.ps1",
+                                                 "tests/tooling/Test-Release1OrderedChildExit.ps1",
+                                                 "tests/tooling/Test-Slice14FullChain.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ExecuteConfirmWrites",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
@@ -145817,6 +146602,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Test-Slice8ProductionRetirement.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
@@ -146248,6 +147034,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Interrupt",
+                               "testPaths":  [
+                                                 "tests/unit/TestPhase5Sync.bas"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "Invalidate",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
@@ -146534,6 +147326,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "JournalRoot",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beActionRecording.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "JsonValue",
                                "testPaths":  [
                                                  "tests/unit/TestPhase2Helpers.bas"
@@ -146543,6 +147341,7 @@
                                "entryPoint":  "Keys",
                                "testPaths":  [
                                                  "tests/integration/test_CreateWarehouse.bas",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
@@ -146991,12 +147790,14 @@
                                "entryPoint":  "Match",
                                "testPaths":  [
                                                  "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingNativeSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
@@ -147388,6 +148189,7 @@
                            {
                                "entryPoint":  "mCapture_Click",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1"
                                              ]
                            },
@@ -147560,6 +148362,7 @@
                            {
                                "entryPoint":  "mSave_Click",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beViewerPublishedRead.ps1"
                                              ]
                            },
@@ -147757,6 +148560,13 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Observe",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "Open_Settings",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beAdminSettingsClose.ps1"
@@ -147785,6 +148595,7 @@
                            {
                                "entryPoint":  "OpenInventoryViewer",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Slice4beViewerEventGroups.ps1",
@@ -147841,6 +148652,7 @@
                                "entryPoint":  "OpenSettings",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beSettingsOpenTrace.ps1",
@@ -147859,6 +148671,7 @@
                            {
                                "entryPoint":  "Outcome",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
@@ -147866,6 +148679,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
@@ -147877,6 +148691,7 @@
                            {
                                "entryPoint":  "OutcomeCode",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
@@ -147996,6 +148811,14 @@
                                "entryPoint":  "PreflightInventoryWorksheetTable",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Prepare",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beShippingContext.ps1",
+                                                 "tests/tooling/Slice4beViewerPublication.ps1"
                                              ]
                            },
                            {
@@ -148425,6 +149248,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ReadEntry",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beRecordingStorageBounds.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ReadPolicy",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -148764,6 +149593,7 @@
                            {
                                "entryPoint":  "Require",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Test-Plan022Slice4biFirstUseNasOnboarding.ps1",
                                                  "tests/tooling/Test-Slice13OperationsCutover.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
@@ -149310,6 +150140,7 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
@@ -149678,6 +150509,7 @@
                            {
                                "entryPoint":  "Sha256",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -149963,6 +150795,7 @@
                                "testPaths":  [
                                                  "tests/integration/test_ReceivingReadiness.bas",
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
@@ -150100,6 +150933,7 @@
                                "entryPoint":  "Start",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
@@ -150651,6 +151485,7 @@
                                "entryPoint":  "Text",
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
@@ -150873,6 +151708,7 @@
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1",
                                                  "tests/tooling/Slice4beViewerPublishedRead.ps1",
@@ -150890,6 +151726,7 @@
                                                  "tests/integration/prove_wan_wh1_setup.bas",
                                                  "tests/integration/prove_wan_wh2_setup.bas",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1",
                                                  "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4xReusableProduction.ps1",
@@ -151140,6 +151977,7 @@
                                "testPaths":  [
                                                  "tests/tooling/fixtures/static/src/Operations/Classes/CSyntheticSession.cls",
                                                  "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
@@ -153024,6 +153862,13 @@
                              "procedure":  "mBtnWarehouseRootRefresh_Click",
                              "rootKind":  "USERFORM_EVENT",
                              "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Operations_ClassModules_cRecordingButton.cls:cRecordingButton.mButton_Click",
+                             "procedure":  "mButton_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {

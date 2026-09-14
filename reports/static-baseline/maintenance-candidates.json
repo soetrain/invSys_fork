@@ -3,9 +3,9 @@
     "reportType":  "maintenance-candidates",
     "generatedAtUtc":  "2026-07-27T20:00:00Z",
     "baseline":  {
-                     "componentCount":  209,
-                     "procedureCount":  5727,
-                     "lineCount":  127496,
+                     "componentCount":  215,
+                     "procedureCount":  5755,
+                     "lineCount":  128025,
                      "literalApplicationRunCount":  9,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  189
@@ -5796,6 +5796,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActionRecording.ps1",
                                                    "tests/tooling/Slice4beViewerPublishedRead.ps1"
                                                ],
                            "reviewRequired":  true
@@ -5915,6 +5916,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActionRecording.ps1",
                                                    "tests/tooling/Slice4beViewerPublishedRead.ps1"
                                                ],
                            "reviewRequired":  true
@@ -5967,6 +5969,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActionRecording.ps1",
                                                    "tests/tooling/Slice4beTrackingPolicy.ps1"
                                                ],
                            "reviewRequired":  true
@@ -6052,6 +6055,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActionRecording.ps1",
                                                    "tests/tooling/Slice4beViewerPublishedRead.ps1"
                                                ],
                            "reviewRequired":  true
@@ -10026,6 +10030,23 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Operations_ClassModules_cRecordingButton.cls:cRecordingButton.mButton_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "cRecordingButton",
+                           "procedureNames":  [
+                                                  "mButton_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/ClassModules/cRecordingButton.cls"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Operations_ClassModules_cViewerFilterBinding.cls:cViewerFilterBinding.mControl_Change",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -10228,6 +10249,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
+                                                   "tests/tooling/Slice4beActionRecording.ps1",
                                                    "tests/tooling/Slice4beViewerPublishedRead.ps1"
                                                ],
                            "reviewRequired":  true

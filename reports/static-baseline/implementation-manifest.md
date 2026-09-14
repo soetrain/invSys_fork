@@ -3,8 +3,8 @@
 - Schema: 1.0.0
 - Generated: 2026-07-27T20:00:00Z
 - Packages: 6
-- Components: 209
-- Procedures: 5727
+- Components: 215
+- Procedures: 5755
 - Literal Application.Run targets: 9
 - Unresolved dynamic calls: 45
 
@@ -13,10 +13,10 @@
 | Package | Project | Output | Components |
 |---|---|---|---:|
 | Admin | invSys_Admin | invSys.Admin.xlam | 31 |
-| Core | invSys_Core | invSys.Core.xlam | 85 |
+| Core | invSys_Core | invSys.Core.xlam | 89 |
 | DesignsDomain | invSys_Designs_Domain | invSys.Designs.Domain.xlam | 15 |
 | InventoryDomain | invSys_Inventory_Domain | invSys.Inventory.Domain.xlam | 10 |
-| Operations | invSys_Operations | invSys.Operations.xlam | 59 |
+| Operations | invSys_Operations | invSys.Operations.xlam | 61 |
 | OperationsShadow | invSys_Operations_Shadow | invSys.Operations.xlam | 0 |
 
 ## Dynamic roots
@@ -273,6 +273,7 @@
 | mBtnUploadInventoryTable_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mBtnWarehouseRootBrowse_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mBtnWarehouseRootRefresh_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mButton_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCapture_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCboBoxBuilderVersion_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCboBoxMakerVersion_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |

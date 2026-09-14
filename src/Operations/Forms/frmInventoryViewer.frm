@@ -60,12 +60,14 @@ Private mSettingsContext As String
 Private mLoadedColumnCount As Long
 Private mDetail As cEventDetailController
 Private mVisibleIndexes As Collection
+Private mRecording As cRecordingControls
 
 Private Sub UserForm_Initialize()
     BuildLayout
 End Sub
 
 Private Sub UserForm_Activate()
+    If Not mRecording Is Nothing Then mRecording.Render
     If Not mResizeInitialized Then
         modUserFormResizeWin.EnableResizableUserForm Me, True, True
         mResizeInitialized = True
@@ -89,6 +91,8 @@ End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     Dim binding As cViewerFilterBinding
+    If Not mRecording Is Nothing Then mRecording.Disconnect
+    Set mRecording = Nothing
     If mFilterBindings Is Nothing Then Exit Sub
     For Each binding In mFilterBindings: binding.Disconnect: Next binding
     Set mFilterBindings = Nothing
@@ -98,6 +102,7 @@ Public Sub SetWarehouse(ByVal warehouseId As String)
     If mSettingsContext <> modActivity.CaptureContext() Then ClearViewerContent
     mWarehouseId = Trim$(warehouseId)
     mSettingsContext = modActivity.CaptureContext()
+    If Not mRecording Is Nothing Then mRecording.BindContext mSettingsContext
     Me.Caption = "Viewer - " & mWarehouseId
 End Sub
 
@@ -107,6 +112,7 @@ End Sub
 
 Public Sub RefreshInventory()
     If Not mBuilt Then BuildLayout
+    If Not mRecording Is Nothing Then mRecording.Render
     If Not ViewerContextValid() Then Exit Sub
     mColumnCount = 6
     LoadViewerPayload modInventoryViewerData.LoadCurrentInventoryViewerData(), "inventory level(s)"
@@ -115,6 +121,7 @@ End Sub
 Public Sub RefreshEvents()
     Dim publishedPayload As String
     If Not mBuilt Then BuildLayout
+    If Not mRecording Is Nothing Then mRecording.Render
     If Not ViewerContextValid() Then Exit Sub
     mColumnCount = 10
     publishedPayload = modInventoryViewer.LoadInventoryViewerEvents()
@@ -413,6 +420,8 @@ Private Sub BuildLayout()
     ConfigureViewerHeaderGeometry
     Set mLblStatus = AddLabel("lblStatus", "Select Refresh to load the current published snapshot.", 12, 466, 680, 32, False)
     Set mBtnClose = AddButton("btnClose", "Close", 740, 466, 92, 30)
+    Set mRecording = New cRecordingControls
+    mRecording.Initialize Me
 
     Set mLayout = modOperationsLayout.OperationsAnchorManager()
     mLayout.ConfigureForForm Me, 720, 430
@@ -567,7 +576,8 @@ Private Sub ConfigureEventFilterGeometry()
     On Error GoTo Done
     mConfiguringFilters = True
     visible = (mTabs.Value = 1)
-    top = 162: If visible Then top = 208
+    top = 162: If visible Then top = 254
+    If Not mRecording Is Nothing Then mRecording.Arrange visible, mTabs.Width
     height = mBtnEventsPrevious.Top - top - 10
     If Not visible And Not mBtnClose Is Nothing Then height = mBtnClose.Top - top - 12
     If height < 20 Then height = 20

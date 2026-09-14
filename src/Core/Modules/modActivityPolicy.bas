@@ -5,7 +5,9 @@ Option Private Module
 Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As String, _
                            ByRef version As Long, ByRef collect As Boolean, _
                            ByRef visible As Boolean, ByRef notice As String, _
-                           Optional ByVal editorProjection As Object = Nothing) As Boolean
+                           Optional ByVal editorProjection As Object = Nothing, _
+                           Optional ByRef captureEnabled As Boolean = False, _
+                           Optional ByRef sequenceEligible As Boolean = False) As Boolean
     Dim wb As Workbook, candidate As Workbook, headers As ListObject, controls As ListObject
     Dim opened As Boolean, row As Long, selected As Long, number As Long, latest As Long
     Dim seen As Object, rowsSeen As Object, key As String, definition As Object, ids As Variant
@@ -13,6 +15,7 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
     On Error GoTo Failed
     If Not editorProjection Is Nothing Then editorProjection.RemoveAll
     collect = False: visible = False: version = 0
+    captureEnabled = False: sequenceEligible = False
     notice = "Tracking unavailable: configuration could not be validated."
     If Not modConfig.LoadConfig(target.WarehouseId, target.StationId) Then Exit Function
     For Each candidate In Application.Workbooks
@@ -34,6 +37,7 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
         Set definition = modActivityCatalog.Control(controlId)
         If definition Is Nothing Then GoTo CleanExit
         collect = (definition("Class") = "Command"): visible = True
+        sequenceEligible = True
         ReadPolicy = True: notice = ""
         GoTo CleanExit
     End If
@@ -57,6 +61,7 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
     If Not modTrainingWire.ValidUtcTimestamp(key) Then GoTo CleanExit
     If Not IsBooleanValue(CellValue(headers, selected, "ViewerActionPathCaptureEnabled")) Then GoTo CleanExit
     If Not IsBooleanValue(CellValue(headers, selected, "AdminViewerEventLoggingEnabled")) Then GoTo CleanExit
+    captureEnabled = CBool(CellValue(headers, selected, "ViewerActionPathCaptureEnabled"))
     Set rowsSeen = CreateObject("Scripting.Dictionary")
     For row = 1 To controls.ListRows.Count
         number = PositiveInteger(CellValue(controls, row, "PolicyVersion"))
@@ -73,6 +78,7 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
             If key = controlId Then
                 collect = CBool(CellValue(controls, row, "Collect"))
                 visible = CBool(CellValue(controls, row, "Visible"))
+                sequenceEligible = CBool(CellValue(controls, row, "SequenceEligible"))
                 If definition("Role") = "Admin" Then visible = visible And CBool(CellValue(headers, selected, "AdminViewerEventLoggingEnabled"))
             End If
         End If
@@ -94,7 +100,7 @@ CleanExit:
             editorProjection.RemoveAll
         End If
     End If
-    If Not ReadPolicy Then collect = False: visible = False
+    If Not ReadPolicy Then collect = False: visible = False: captureEnabled = False: sequenceEligible = False
     If opened And Not wb Is Nothing Then wb.Close SaveChanges:=False
     Exit Function
 Failed:

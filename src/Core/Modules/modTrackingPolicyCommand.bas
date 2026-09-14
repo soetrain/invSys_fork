@@ -50,6 +50,7 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
     End If
     ' Workbook opening/validation may run Excel callbacks. Recheck before mutation.
     If Not modTrackingPolicyModel.AuthorizeEditor(context, target, report) Then GoTo CleanExit
+    modRecordingSession.InterruptContext context, "POLICY_CHANGED"
     changed = True
     If headers Is Nothing Then
         Set headers = CreatePolicyTable(wb, "tblEventTrackingPolicies", Array("PolicyVersion", "SchemaVersion", _
