@@ -1,8 +1,8 @@
 # invSys VBA Maintenance Candidates
 
 - Schema: 1.0.0
-- Generated: 2026-09-14T15:54:32Z
-- Total candidates: 1158
+- Generated: 2026-09-14T17:26:35Z
+- Total candidates: 1159
 - Duplicate-body groups: 192
 - Unresolved dynamic calls: 45
 
@@ -571,6 +571,7 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | RETAIN_DYNAMIC_ROOT | LOW | frmActionPathExpectation | UserForm_Layout | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmActionPathExpectation | UserForm_QueryClose | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmActionPaths | mClose_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmActionPaths | mEvaluate_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmActionPaths | mExpected_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmActionPaths | mPaths_Change | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmActionPaths | mRefresh_Click | Procedure is a registered or discovered dynamic root. |

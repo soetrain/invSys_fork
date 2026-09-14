@@ -29,6 +29,7 @@ param(
     [switch]$CheckRecordingEvaluation,
     [switch]$CheckEvaluationContracts,
     [switch]$CheckExpectationCompatibility,
+    [switch]$RecordingEvaluationDiagnostic,
     [switch]$CheckExpectationEditor,
     [string]$RecordingContinuationPipeName = '',
     [switch]$CheckViewerPublication,
@@ -60,6 +61,11 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($RecordingEvaluationDiagnostic){
+    if($Phase -ne 'RED' -or -not $CheckExpectationCompatibility){throw 'Evaluation isolation requires RED and the full evaluation contract probes; it is not regression acceptance.'}
+    if($CheckRecordingLimits -or $CheckRecordingStorageBounds -or $CheckRecordingRestart -or $CheckExpectationEditor){throw 'Run limits, storage, restart and editor-only gates separately from evaluation diagnosis.'}
+    Write-Output 'DIAGNOSTIC: evaluation fixture first; full regression gate remains required.'
+}
 if($TraceSettingsOpenForTest -and ($Phase -ne 'RED' -or -not $CheckTrackingSettings)) {
     throw 'Settings constructor tracing requires RED and the Settings checks; it is not acceptance GREEN.'
 }
@@ -804,6 +810,7 @@ finally {
     if ($ReceivingLauncherDenialOnly) { $reportName='diagnostic-'+$reportName }
     if ($ReceivingLifecycleOnly) { $reportName='lifecycle-only-'+$reportName }
     if ($LifecycleDiagnostic -ne 'None') { $reportName='diagnostic-'+$LifecycleDiagnostic.ToLowerInvariant()+'.json' }
+    if($RecordingEvaluationDiagnostic){$reportName='diagnostic-evaluation-'+$reportName}
     $results | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $reportRoot $reportName)
     if($null -ne $recordingHandoff){$recordingHandoff.Dispose()}
 }

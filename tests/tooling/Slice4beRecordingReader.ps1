@@ -1,7 +1,7 @@
 # D18 full-journal reads through the actual Viewer/library controls.
 # Called inside the recording suite so its real handler fixture helpers remain
 # in scope. No substitute reader, inferred business outcome or product seam.
-function Test-Slice4beRecordingReader($Fixture,$OtherFixture) {
+function Test-Slice4beRecordingReader($Fixture,$OtherFixture,[bool]$InstallOnly=$false) {
     CloseRecordingViewer
     $manager=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modInventoryViewer').CodeModule
     $manager.AddFromString(@'
@@ -69,6 +69,7 @@ Public Function RecordingLibraryForTest(ByVal action As String, Optional ByVal v
     RecordingLibraryForTest = "DELIVERED"
 End Function
 '@)
+    if($InstallOnly){return}
     function Library([string]$Action,[string]$Value='') {
         [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @($Action,$Value))
     }

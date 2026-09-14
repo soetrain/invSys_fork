@@ -43,9 +43,10 @@ Failed:
     End If
 End Function
 
-Public Function Read(ByVal path As String, ByVal warehouseId As String) As Object
+Public Function Read(ByVal path As String, ByVal warehouseId As String, Optional ByRef contentSha256 As String = "") As Object
     Dim content As String, body As String, hash As String, marker As Long, model As Object
     On Error GoTo Invalid
+    contentSha256 = ""
     content = ReadAscii(path)
     marker = InStrRev(content, ",""ContentSha256"":""", -1, vbBinaryCompare)
     If marker = 0 Then Exit Function
@@ -55,7 +56,7 @@ Public Function Read(ByVal path As String, ByVal warehouseId As String) As Objec
     If Len(hash) <> 64 Or modTrainingWire.Sha256(body) <> hash Then Exit Function
     Set model = modTrainingJson.DecodePublicationObject(body)
     If model Is Nothing Then Exit Function
-    If ValidModel(model, warehouseId) Then Set Read = model
+    If ValidModel(model, warehouseId) Then Set Read = model: contentSha256 = hash
 Invalid:
 End Function
 

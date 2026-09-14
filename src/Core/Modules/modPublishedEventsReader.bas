@@ -8,15 +8,16 @@ Public Function ReadCurrent() As String
     Dim version As Long, collect As Boolean, visible As Boolean, notice As String
     Dim allowed As Object, entry As Object, definition As Object, group As Object, row As Object
     Dim lines As New Collection, fields As Object, ids As Variant, header As Variant
-    Dim loaded As String, coverage As String, hidden As Long, values() As String, i As Long
+    Dim loaded As String, coverage As String, hidden As Long, values() As String, i As Long, hash As String
     On Error GoTo Unavailable
     ReadCurrent = "FAIL" & vbTab & "Published Events unavailable. Select a valid signed-in warehouse and compatible publication."
     context = modActivity.CaptureContext()
+    modLoadedEvents.BeginRead context
     If context = "" Then Exit Function
     Set target = modNasConnection.GetCurrentTarget()
     Set policy = CreateObject("Scripting.Dictionary")
     If Not modActivityPolicy.ReadPolicy(target, "ADMIN_SETTINGS_SAVE_VALUE", version, collect, visible, notice, policy) Then Exit Function
-    Set model = modEventsPublicationStore.Read(target.RuntimeRoot & "\" & target.WarehouseId & ".invSys.Snapshot.Events.json", target.WarehouseId)
+    Set model = modEventsPublicationStore.Read(target.RuntimeRoot & "\" & target.WarehouseId & ".invSys.Snapshot.Events.json", target.WarehouseId, hash)
     If model Is Nothing Then Exit Function
     Set allowed = CreateObject("Scripting.Dictionary"): allowed.CompareMode = vbBinaryCompare
     For Each entry In policy("Controls")
@@ -74,6 +75,7 @@ Public Function ReadCurrent() As String
     ReDim values(0 To lines.Count): values(0) = Join(header, vbTab)
     For i = 1 To lines.Count: values(i) = CStr(lines(i)): Next i
     ReadCurrent = Join(values, vbCrLf)
+    modLoadedEvents.StageRead context, model, hash, loaded
 Unavailable:
 End Function
 

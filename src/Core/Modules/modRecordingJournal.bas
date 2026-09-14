@@ -92,7 +92,7 @@ Public Function JournalRoot(ByVal target As WarehouseTarget, ByVal create As Boo
     JournalRoot = root
 End Function
 
-Private Function ReadText(ByVal path As String) As String
+Public Function ReadText(ByVal path As String) As String
     Dim fso As Object, stream As Object, text As String
     On Error GoTo Done
     Set fso = CreateObject("Scripting.FileSystemObject")

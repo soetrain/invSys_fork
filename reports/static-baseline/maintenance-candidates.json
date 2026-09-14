@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-14T15:54:32Z",
+    "generatedAtUtc":  "2026-09-14T17:26:35Z",
     "baseline":  {
-                     "componentCount":  224,
-                     "procedureCount":  5834,
-                     "lineCount":  129133,
+                     "componentCount":  232,
+                     "procedureCount":  5873,
+                     "lineCount":  129994,
                      "literalApplicationRunCount":  9,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192
@@ -10292,6 +10292,23 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mEvaluate_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mEvaluate_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
                                                ],
                            "reviewRequired":  true
                        },

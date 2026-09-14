@@ -94,6 +94,13 @@ Public Function RecordingCapturePolicyForTest(ByVal enabled As Boolean) As Boole
 End Function
 '@)
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
+    if($RecordingEvaluationDiagnostic){
+        . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
+        Test-Slice4beRecordingReader $Fixture $b $true
+        . (Join-Path $PSScriptRoot 'Slice4beRecordingOperations.ps1')
+        Test-Slice4beRecordingOperations
+        return
+    }
     SelectTarget $Fixture 'config-admin'
     try {
         SetRecordingPolicy $false

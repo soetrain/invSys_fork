@@ -28,6 +28,10 @@ Private mStatus As MSForms.Label
 Private mSummary As MSForms.Label
 Private WithEvents mExpected As MSForms.CommandButton
 Private mSelectedId As String
+Private mEvaluationId As String
+Private WithEvents mEvaluate As MSForms.CommandButton
+Private mEvaluation As MSForms.TextBox
+Private mEvaluationStatus As MSForms.Label
 
 Private Sub UserForm_Initialize()
     Dim definition As Variant, control As Object
@@ -40,10 +44,13 @@ Private Sub UserForm_Initialize()
         Array("CommandButton", "btnPathRefresh", "Refresh", 708, 10, 92, 26, 6), _
         Array("Label", "lblPathList", "Saved recordings - select one to validate its evidence", 12, 44, 788, 20, 7), _
         Array("ListBox", "lstActionPaths", "", 12, 68, 788, 130, 7), _
-        Array("Label", "lblPathEvidence", "Observed controls and outcomes", 12, 208, 600, 20, 7), _
+        Array("Label", "lblPathEvidence", "Observed controls and outcomes / Saved diagnostic result", 12, 208, 500, 20, 7), _
+        Array("CommandButton", "btnEvaluatePath", "Evaluate", 532, 204, 90, 26, 6), _
         Array("CommandButton", "btnExpectedConclusion", "Expected conclusion", 630, 204, 170, 26, 6), _
-        Array("TextBox", "txtPathEvidence", "", 12, 232, 788, 284, 15), _
-        Array("Label", "lblExpectationSummary", "", 12, 528, 788, 24, 13), _
+        Array("TextBox", "txtPathEvidence", "", 12, 232, 426, 250, 15), _
+        Array("TextBox", "txtPathEvaluation", "", 450, 232, 350, 250, 14), _
+        Array("Label", "lblExpectationSummary", "", 12, 490, 788, 24, 13), _
+        Array("Label", "lblEvaluationStatus", "", 12, 522, 788, 32, 13), _
         Array("Label", "lblPathStatus", "Select a recording to inspect its evidence.", 12, 560, 680, 40, 13), _
         Array("CommandButton", "btnClose", "Close", 714, 564, 86, 28, 12))
         Set control = Me.Controls.Add("Forms." & definition(0) & ".1", CStr(definition(1)), True)
@@ -55,6 +62,11 @@ Private Sub UserForm_Initialize()
     Set mPaths = Me.Controls("lstActionPaths"): Set mEvidence = Me.Controls("txtPathEvidence")
     Set mStatus = Me.Controls("lblPathStatus"): Set mClose = Me.Controls("btnClose")
     Set mSummary = Me.Controls("lblExpectationSummary"): Set mExpected = Me.Controls("btnExpectedConclusion")
+    Set mEvaluate = Me.Controls("btnEvaluatePath"): Set mEvaluation = Me.Controls("txtPathEvaluation")
+    Set mEvaluationStatus = Me.Controls("lblEvaluationStatus")
+    mEvaluation.MultiLine = True: mEvaluation.WordWrap = True: mEvaluation.Locked = True
+    mEvaluation.ScrollBars = fmScrollBarsVertical: mEvaluationStatus.WordWrap = True
+    mEvaluate.Enabled = False
     mExpected.Enabled = False: mSummary.WordWrap = True
     mPaths.ColumnCount = 3: mPaths.ColumnWidths = "0 pt;340 pt;300 pt": mPaths.IntegralHeight = False
     mEvidence.MultiLine = True: mEvidence.WordWrap = True: mEvidence.Locked = True
@@ -106,18 +118,21 @@ Private Sub ReadSelection()
     If Not ContextValid() Then Exit Sub
     If mPaths.ListIndex >= 0 Then selected = CStr(mPaths.List(mPaths.ListIndex, 0))
     If mSelectedId <> selected Then
+        ClearEvaluation
         modExpectationEditor.CloseLibrary Me
         modActionPathRead.ClearSelection mContext
     End If
-    mSelectedId = selected: mExpected.Enabled = False: mSummary.Caption = ""
+    mSelectedId = selected: mExpected.Enabled = False: mEvaluate.Enabled = False: mSummary.Caption = ""
     If selected = "" Then Exit Sub
     succeeded = modActionPathRead.ReadPath(mContext, selected, evidence, notice)
     mStatus.Caption = notice
     If succeeded Then
-        mEvidence.Value = evidence: mExpected.Enabled = True
+        mEvidence.Value = evidence: mExpected.Enabled = True: mEvaluate.Enabled = True
         RefreshExpectation
+        ReadEvaluation
     Else
         modExpectationEditor.CloseLibrary Me
+        ClearEvaluation
     End If
 End Sub
 
@@ -131,7 +146,28 @@ Private Sub mExpected_Click()
     modExpectationEditor.OpenForRun mContext, mSelectedId, Me
 End Sub
 
+Private Sub mEvaluate_Click()
+    Dim evaluationId As String, text As String, notice As String, succeeded As Boolean
+    If Not ContextValid() Or mSelectedId = "" Then Exit Sub
+    mEvaluate.Enabled = False
+    succeeded = modPathEvaluation.Evaluate(mContext, mSelectedId, mEvaluationId, evaluationId, text, notice)
+    mEvaluationId = evaluationId: mEvaluation.Value = text: mEvaluationStatus.Caption = notice
+    mEvaluate.Enabled = True
+End Sub
+
+Private Sub ReadEvaluation()
+    Dim text As String, notice As String, succeeded As Boolean
+    If mEvaluationId = "" Then Exit Sub
+    succeeded = modPathEvaluation.ReadSaved(mContext, mSelectedId, mEvaluationId, text, notice)
+    mEvaluation.Value = text: mEvaluationStatus.Caption = notice
+End Sub
+
+Private Sub ClearEvaluation()
+    mEvaluationId = "": mEvaluation.Value = "": mEvaluationStatus.Caption = "": mEvaluate.Enabled = False
+End Sub
+
 Public Sub ClearContent(ByVal notice As String)
+    ClearEvaluation
     modExpectationEditor.CloseLibrary Me
     modActionPathRead.ClearSelection mContext
     mLoading = True

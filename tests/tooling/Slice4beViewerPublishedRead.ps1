@@ -1,11 +1,13 @@
 # D18: real Settings activity -> real Admin publication -> actual Viewer handlers.
 # Faults affect only disposable publication bytes; ordering uses a synthetic wire.
 function Test-Slice4beViewerPublishedRead($Fixture,$OtherFixture) {
+    if(-not $RecordingEvaluationDiagnostic){
     SelectTarget $Fixture 'config-admin'
     try {
         [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
         if(-not [bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('BatchSize','601'))) {throw 'Actual Settings activity fixture failed.'}
     } finally {[void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')}
+    }
     $admin=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('modAdminConsole').CodeModule
     $admin.AddFromString(@'
 Public Function PublishReadFixtureForTest() As Boolean
@@ -13,6 +15,7 @@ Public Function PublishReadFixtureForTest() As Boolean
     PublishReadFixtureForTest = GenerateInventorySnapshot("config-admin", "", Nothing, "", Nothing, report)
 End Function
 '@)
+    if(-not $RecordingEvaluationDiagnostic){
     if(-not [bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest')) {throw 'Actual Admin publication fixture failed.'}
     $path=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Snapshot.Events.json')
     if(-not (Test-Path -LiteralPath $path)){throw 'Published-read fixture requires the independently tested publisher candidate.'}
@@ -21,6 +24,7 @@ End Function
     $activity=@($model.Groups|Where-Object {$_.Source -ceq 'Activity' -and @($_.Lines|Where-Object ControlId -CEQ 'ADMIN_SETTINGS_SAVE_VALUE').Count -gt 0})
     if($activity.Count -ne 1 -or $activity[0].Lines.Count -ne 2 -or $activity[0].Outcomes.Count -ne 1){throw 'Actual publication lacks the correlated Settings activity fixture.'}
     $activityId=[string]$activity[0].SourceId
+    }
     $core=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modInventoryViewerData').CodeModule
     $core.InsertLines($core.CountOfDeclarationLines+1,'Private PublishedOrderingPayloadForTest As String')
     $core.AddFromString(@'
@@ -40,10 +44,12 @@ End Sub
         Exit Function
     End If
 '@)
+    if(-not $RecordingEvaluationDiagnostic){
     $valid=[bool](Run 'invSys.Core.xlam' 'modInventoryViewerData.PublishedReadFixtureValidForTest' @($path,$Fixture.Warehouse))
     Check 'PublishedRead.RealPublicationFixtureValid' $valid
     if(-not $valid){throw 'Fixture schema or integrity is invalid; not a behavioral RED.'}
     Check 'PublishedRead.RealSettingsAttemptAndOutcomePublished' ($activity[0].Lines[0].RecordId -cne $activity[0].Lines[1].RecordId)
+    }
 
     $shipping=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modTS_Shipments').CodeModule
     $entry=$shipping.ProcBodyLine('LoadShippingViewerSupplementEvents',0)
@@ -182,6 +188,7 @@ Public Function PublishedReadVisibilityForTest(ByVal enabled As Boolean) As Bool
     PublishedReadVisibilityForTest = mForm.PublishedReadVisibilityForTest(enabled)
 End Function
 '@)
+    if($RecordingEvaluationDiagnostic){return}
     function ReadAct([string]$Action,[string]$Expected='') {[bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @($Action,$Expected))}
     function ReadDetail([string]$Caption,[string]$Expected) {[bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadDetailForTest' @($Caption,$Expected))}
     function WriteReadFixture([string]$Body) {

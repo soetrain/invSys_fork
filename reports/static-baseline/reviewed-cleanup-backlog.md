@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-14T15:54:32Z
-- Scanner candidates: 1158
-- Reviewed candidates: 1160
+- Baseline: 2026-09-14T17:26:35Z
+- Scanner candidates: 1159
+- Reviewed candidates: 1161
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -18,7 +18,7 @@
 | CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
 | ADMIN | 258 | Administrative setup, lifecycle, and developer-support source. |
-| DEVELOPER_TOOLING | 56 | Build, scan, report, and other developer-only tooling. |
+| DEVELOPER_TOOLING | 57 | Build, scan, report, and other developer-only tooling. |
 | TESTING | 0 | Test harness and fixture source that must remain outside runtime packages. |
 
 ## Module-growth ratchets
@@ -624,6 +624,7 @@
 | root:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mClose_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mEvaluate_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mExpected_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mPaths_Change | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mRefresh_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |

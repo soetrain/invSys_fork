@@ -61,6 +61,10 @@ function Test-EvaluationContracts {
             $text=ExpectationControl 'txtPathEvaluation' 'Value' '' 'frmActionPaths'
             Check 'EvaluationContract.CommandConclusionDoesNotAssertDomainApplication' ($ready -and $text.Contains('Command completed; Domain application not asserted'))
         }
+        if($case.Name -eq 'RepeatedRequiredActionsNeedDistinctOccurrences'){
+            $text=ExpectationControl 'txtPathEvaluation' 'Value' '' 'frmActionPaths'
+            Check 'EvaluationContract.MissingExpectedStepExplainedInResult' ($ready -and $text.Contains('Missing expected step') -and $text.Contains('Save Value'))
+        }
     }
     [void](Select-EvaluationRun $originalPath)
     $terminalSteps=@(@('RECEIVING_CONFIRM_WRITES','PENDING','True'),@('RECEIVING_CONFIRM_WRITES','PENDING','True'))
@@ -72,7 +76,21 @@ function Test-EvaluationContracts {
         [IO.File]::WriteAllText($eventsPath,$body.Replace('"ContentSha256":"','"ContentSha256":"0'),[Text.UTF8Encoding]::new($false))
         Assert-EvaluationStatus 'EvaluateUsesValidatedLoadWithoutRereadingChangedFile' 'Conclusion observed' $ready
         [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('Refresh',''))
+        $beforeStaleEvaluation=@(EvaluationFiles|ForEach-Object FullName)
         Assert-EvaluationStatus 'FailedRefreshInvalidatesConclusion' 'Incomplete evidence' $ready
+        $staleResults=@(EvaluationFiles|Where-Object {$_.FullName -cnotin $beforeStaleEvaluation})
+        $staleReferences=$false
+        if($staleResults.Count -eq 1){
+            $staleResult=Get-Content -LiteralPath $staleResults[0].FullName -Raw|ConvertFrom-Json
+            $staleReferences=$staleResult.ResultState -ceq 'Incomplete' -and $staleResult.Publication.Availability -ceq 'Stale' -and
+                @($staleResult.TerminalSources).Count -eq $submissionIds.Count
+            foreach($id in $submissionIds){
+                $ref=@($staleResult.TerminalSources|Where-Object EventId -CEQ $id)
+                $staleReferences=$staleReferences -and $ref.Count -eq 1 -and $ref[0].SubmissionState -ceq 'Submitted' -and
+                    $ref[0].OwnerStatus -ceq 'Unavailable' -and $ref[0].LineCount -eq 0 -and $ref[0].LinesSha256 -ceq '' -and @($ref[0].SystemKeys).Count -eq 0
+            }
+        }
+        Check 'EvaluationContract.StaleResultRetainsEveryTerminalReferenceAsUnavailable' $staleReferences
         [IO.File]::WriteAllBytes($eventsPath,$publication)
         Assert-EvaluationStatus 'RestoringFileWithoutRefreshDoesNotClearStaleEvidence' 'Incomplete evidence' $ready
     } finally {
@@ -143,6 +161,10 @@ function Test-EvaluationContracts {
         $ready=Set-EvaluationDraft $steps 0 'CommandCompleted'
         $expected=if($allowed -eq 'True'){'Conclusion observed'}else{'Failed'}
         Assert-EvaluationStatus ('RetryAllowed'+$allowed) $expected $ready
+        if($allowed -eq 'False'){
+            $text=ExpectationControl 'txtPathEvaluation' 'Value' '' 'frmActionPaths'
+            Check 'EvaluationContract.MismatchedExpectedOutcomeExplainedInResult' ($ready -and $text.Contains('Outcome mismatch') -and $text.Contains('Save Value'))
+        }
         $observed=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Evidence',''))
         Check ('EvaluationContract.Retry'+$allowed+'RetainsRejectedAndSuccessfulOccurrences') ($observed.Contains($attempt[0].ActivityId) -and $observed.Contains($retry.Attempt.ActivityId) -and $observed.Contains('REJECTED') -and $observed.Contains('COMPLETED'))
     }

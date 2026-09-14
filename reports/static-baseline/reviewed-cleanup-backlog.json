@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-14T15:54:32Z",
+    "generatedAtUtc":  "2026-09-14T17:26:35Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "e575131c2c69b267aec3322250bc9d19cebec368745fa86ae429d89f74aba605",
-                          "maintenanceCandidatesSha256":  "e18550f57739d01d4ffc55b6d2b7f8c3e4b84901173fc45e6fea04ec2ce1106e"
+                          "implementationManifestSha256":  "54c1facd4b65ef3d44541973dbc7c2b899a4561698606210e861bcee370ce4a7",
+                          "maintenanceCandidatesSha256":  "0e9945e9f34967d5be83da2c9595b71a7d5f3e31a0cb2e2f564d3a39241975ab"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1158,
-                    "reviewedCandidateCount":  1160,
+                    "scannerCandidateCount":  1159,
+                    "reviewedCandidateCount":  1161,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -57,7 +57,7 @@
                         },
                         {
                             "name":  "DEVELOPER_TOOLING",
-                            "candidateCount":  56,
+                            "candidateCount":  57,
                             "reason":  "Build, scan, report, and other developer-only tooling."
                         },
                         {
@@ -15088,6 +15088,29 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mEvaluate_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mEvaluate_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."

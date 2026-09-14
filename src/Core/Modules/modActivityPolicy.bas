@@ -7,12 +7,14 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
                            ByRef visible As Boolean, ByRef notice As String, _
                            Optional ByVal editorProjection As Object = Nothing, _
                            Optional ByRef captureEnabled As Boolean = False, _
-                           Optional ByRef sequenceEligible As Boolean = False) As Boolean
+                           Optional ByRef sequenceEligible As Boolean = False, _
+                           Optional ByVal requestedVersion As Long = -1) As Boolean
     Dim wb As Workbook, candidate As Workbook, headers As ListObject, controls As ListObject
     Dim opened As Boolean, row As Long, selected As Long, number As Long, latest As Long
     Dim seen As Object, rowsSeen As Object, key As String, definition As Object, ids As Variant
     Dim catalogVersion As Long
     On Error GoTo Failed
+    If requestedVersion < -1 Then Exit Function
     If Not editorProjection Is Nothing Then editorProjection.RemoveAll
     collect = False: visible = False: version = 0
     captureEnabled = False: sequenceEligible = False
@@ -34,6 +36,7 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
     Set headers = FindTable(wb, "tblEventTrackingPolicies")
     Set controls = FindTable(wb, "tblEventTrackingControls")
     If headers Is Nothing And controls Is Nothing Then
+        If requestedVersion > 0 Then GoTo CleanExit
         Set definition = modActivityCatalog.Control(controlId)
         If definition Is Nothing Then GoTo CleanExit
         collect = (definition("Class") = "Command"): visible = True
@@ -50,6 +53,13 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
         seen.Add CStr(number), True
         If number > latest Then latest = number: selected = row
     Next row
+    If requestedVersion >= 0 Then
+        selected = 0
+        For row = 1 To headers.ListRows.Count
+            If PositiveInteger(CellValue(headers, row, "PolicyVersion")) = requestedVersion Then selected = row: Exit For
+        Next row
+        latest = requestedVersion
+    End If
     If selected = 0 Then GoTo CleanExit
     If PositiveInteger(CellValue(headers, selected, "SchemaVersion")) <> 1 Then GoTo CleanExit
     catalogVersion = PositiveInteger(CellValue(headers, selected, "CatalogVersion"))

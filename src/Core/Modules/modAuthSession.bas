@@ -7,6 +7,7 @@ Private mVersion As Long
 ' Called only by the owning authentication boundary, never by observers.
 Public Sub Invalidate()
     modRecordingSession.Interrupt "SESSION_CHANGED"
+    modLoadedEvents.ClearAll
     mVersion = mVersion + 1
 End Sub
 

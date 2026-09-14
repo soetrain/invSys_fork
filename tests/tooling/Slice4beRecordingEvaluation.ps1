@@ -88,6 +88,7 @@ function EvaluationFiles {
 }
 
 function Test-RecordingEvaluationStage([string]$Stage) {
+    . (Join-Path $PSScriptRoot 'Slice4beEvaluationEvidence.ps1')
     $prefix='RecordingEvaluation.'+$Stage+'.'
     $oldActivity=ActivityPins
     $oldResults=@{}
@@ -141,6 +142,8 @@ function Test-RecordingEvaluationStage([string]$Stage) {
             $record.WarehouseId -ceq $Fixture.Warehouse
     }
     Check ($prefix+'SeparateDerivedResultBoundToRun') $valid
+    $savedFile=if($created.Count -eq 1){$created[0]}else{$null}
+    Test-EvaluationEvidence $Stage $savedFile
     foreach($file in @(EvaluationFiles)){$oldResults[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash}
     [void](ExpectationControl 'btnEvaluatePath' 'Click' '' 'frmActionPaths')
     Check ($prefix+'ReevaluationAppendsNewResult') (@(EvaluationFiles).Count -eq $oldResults.Count+1)

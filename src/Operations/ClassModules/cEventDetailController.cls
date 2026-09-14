@@ -38,7 +38,12 @@ Public Sub LoadProjection(ByVal rows As Variant, ByVal header As Variant, ByVal 
         If CStr(header(4)) = "EVENTS1" Then
             ids = Split(CStr(header(9)), ",")
             For i = 0 To UBound(ids): mFields.Add CStr(ids(i)), 19 + i: Next i
+            If Not modPathEvaluation.AcceptLoaded(context, CStr(header(6)), CStr(header(5))) Then modPathEvaluation.StaleLoaded context
+        Else
+            modPathEvaluation.ClearLoaded context
         End If
+    Else
+        modPathEvaluation.ClearLoaded context
     End If
     mProfile = profile: mProfileVersion = version: mProfileStatus = report: mStale = False
     mLoaded = "Unavailable"
@@ -69,6 +74,7 @@ Public Function ContextValid() As Boolean
 End Function
 
 Public Sub Invalidate()
+    modPathEvaluation.ClearLoaded mContext
     If mContext = "" And IsEmpty(mData) And mSelected Is Nothing Then Exit Sub
     mData = Empty: Set mSelected = Nothing
     Set mGroups = Nothing
@@ -77,6 +83,7 @@ Public Sub Invalidate()
 End Sub
 
 Public Sub MarkStale()
+    modPathEvaluation.StaleLoaded mContext
     mStale = True
     If Not mForm Is Nothing Then mForm.RefreshFields
 End Sub

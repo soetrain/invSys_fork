@@ -4,6 +4,134 @@ Last verified 2026-09-14. Architecture v4.11 D18 and Plan022 govern the explicit
 actor/warehouse sequence, immutable observations and advisory conclusions.
 Slice4be and full Release1 acceptance remain open.
 
+## Diagnostic evaluator implementation in validation
+
+The frozen `validation-analysis-expectation` candidate supplies partial expanded
+RED at 151 PASS / 30 FAIL. Pending and Partial reach the new saved-result provenance
+and integrity assertions; the Applied stage is not reached. The next owning
+processor call loses Excel/RPC and terminates with one Harness.Exception. That
+failure is not product RED and does not replace the last complete 210 PASS baseline.
+The verified empty residual Excel instance exits through normal Quit; file hashes
+are preserved and a subsequent process check confirms closure. No native root
+cause or repair is claimed.
+
+The implementation retains Core's validated publication until explicit Viewer
+acceptance, reads the exact historical capture policy, matches distinct ordered
+actions, assesses every terminal source, and writes separate immutable evaluation
+records. Operations owns Evaluate and the locked result pane. The first isolated
+candidate, `deploy/validation-diagnostic-evaluation`, builds and compiles all five
+packages, including Operations cold-start dependency validation. Packaged behavioral,
+maintenance, full-chain and visible acceptance are still in progress. Display fixes
+made after that build require a subsequent candidate; source is not yet a validated
+release. Neither accepted deployment nor operational NAS workbooks were changed.
+
+The first full candidate run ends at 129 PASS / one terminal Excel/RPC harness
+failure while reopening the expectation editor. A second compiled candidate with
+the two display corrections ends at 68 PASS / one terminal harness failure before
+the reader phase. Neither establishes full regression retention. The first fault
+has Windows Event1000 access-violation evidence with an unknown module. That does
+not identify its root cause. Empty residual instances exit through normal Quit;
+the second residual's three loaded package files are hashed through shared-read
+handles before/after and remain unchanged. For the first residual, ordinary hash
+reads were denied, so no before/after hash claim is made for that Quit operation.
+The independent prior-package verification still preserves 290 pins and protected
+sources. No accepted package was rebuilt or deployed.
+
+`-RecordingEvaluationDiagnostic` is a RED-only fixture-isolation route, requiring
+the full expectation/evaluation probes. It installs the existing probes before
+the recording forms and runs the same Admin/Receiving/Evaluate scenario without
+the earlier Viewer/lifecycle/reader exercises. Normal full-suite assertions remain
+unchanged. This is diagnostic scope, not an alternative regression gate or a
+proven native-failure fix. Its first run completes at 172 PASS / 17 FAIL without
+a terminal harness exception, and Excel closes normally. Seven product failures
+protect rehashed reversed matches, forged ordinals, substituted terminal event
+IDs, duplicate reason codes, stale-result terminal-reference retention, and
+missing/mismatched-step explanations. Four failures are foreground captures.
+Six provenance assertions use an incorrect whole-second-only pattern; the existing
+UTC wire requires milliseconds, and their test patterns are corrected accordingly.
+
+The next source revision validates ordered saved matches against the exact
+journal, rejects duplicate reasons, retains unavailable terminal references and
+renders per-step explanations with fixed captions. Its next compiled candidate
+exposes a validator regression: a local `reasons` dictionary shadows the module's
+`REASONS` constant in VBA and rejects valid result saves. The local variable is
+renamed before the following corrected-candidate run.
+
+The corrected `deploy/validation-diagnostic-evaluation-reasons` candidate builds
+and explicitly compiles all five packages, including Operations cold start. Its
+RED-only diagnostic run completes at **185 PASS / 4 FAIL**, preserving every one
+of the preceding 172 passing identities and gaining the seven product checks plus
+the six corrected timestamp assertions. There are no duplicate checks or terminal
+harness exceptions. Pending, partial and applied conclusions, immutable result
+provenance, exact source/line/key retention, current visibility versus historical
+capture policy, retries, invalid saved records and sign-out behavior pass within
+that scope. The four remaining failures are expectation-editor foreground captures;
+they do not establish visible operator acceptance. Excel closes normally.
+
+Compiled comparison against `validation-analysis-expectation` finds eight new Core
+modules, eight changed components and no deletions (217 to 225 compiled components).
+Static evidence records 232 source components, 5,873 procedures and 129,994 lines;
+all 28 existing module limits, 192 duplicate groups and 9/45 literal/unresolved
+dynamic calls are preserved. Verification retains 310 package pins, 15 protected
+sources and the one already reviewed Shipping visibility delta; 24 PowerShell
+scripts parse and 83 local links resolve. No maintenance exception is added.
+
+The same candidate completes the Release 1 chain **32/32**, live roles **48/48**,
+and Create Warehouse **15/15**. The chain's settings and all three tracked reports
+are restored, and its controller exits successfully. During the chain, Windows
+records an Excel access violation in `combase.dll`; this successful assertion set
+does not prove native reliability. Its verified crash-recovery child has zero open
+workbooks and three known loaded add-ins. Normal Quit preserves their file hashes;
+the subsequent recovery prompt is completed with **retain files for later viewing**.
+Excel then exits and the original controller completes restoration. No operational
+workbook, accepted package, NAS deployment or recovery file is deleted or rebuilt.
+
+The subsequent complete packaged route (without diagnostic isolation) terminates
+at **293 PASS / 4 FAIL**, preserving all **210** previous passing check identities
+and gaining **83**. There are no duplicates or terminal harness exceptions. The
+only failures are the four foreground captures; they remain failures. This proves
+full prior-check retention for this route, not visible acceptance. The Viewer,
+recording lifecycle/reader, expectation compatibility/editor and evaluator actions
+all execute in their original order. Library minimum/default/larger/restored layout,
+editor minimum/default/larger layout, exact source/unknown-column preservation and
+unrelated workbook/content/file checks pass. Excel closes normally. This one run
+does not explain or resolve the earlier intermittent native failures.
+
+Commands for the corrected candidate:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-diagnostic-evaluation-reasons -Phase RED -CheckExpectationCompatibility -RecordingEvaluationDiagnostic
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-diagnostic-evaluation-reasons -Phase GREEN -CheckExpectationCompatibility
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-diagnostic-evaluation-reasons -Phase GREEN -CheckActionRecording -CheckRecordingLimits -CheckRecordingStorageBounds
+```
+
+Ignored evidence under `reports/runtime/` uses the `diagnostic-evaluation-reasons-`
+prefix: `focused.log`, `retention.json`, `full-focused.log`, `full-retention.json`,
+`full-checks.json`, `compiled.json`, `compiled-delta.json`, `package-pins.json`,
+`final-verification.json`, and `chain-exit.json`. The diagnostic route omits earlier
+Viewer/reader actions; only the complete route establishes the 210-check retention.
+
+The separate limits/storage gate completes at **77/77 PASS**, retaining all 77
+previous check identities. All 256 distinct actions/512 observations persist;
+the visible partial reason is correct and action 257 continues outside the closed
+sequence. Exactly 1 MiB saves and reads with integrity, an identical append preserves
+bytes, and one byte over the limit is rejected without publishing a partial file.
+Its controller exits successfully and Excel closes normally. The third command
+above runs this gate; `limits-focused.log` and `limits-retention.json`
+under the same ignored prefix retain its evidence. Final preservation checks again
+pass for 310 package pins, protected sources, 28 module limits, 24 scripts and 83 links.
+
+Native reliability, saved-result selection fidelity, guide lifecycle, both
+presentations, comprehensive role coverage,
+visible/NAS and human acceptance remain open. This is an in-validation implementation
+checkpoint, not completed Slice 4be or Release 1.
+
+Next protecting tests must cover selection during Evaluate, a newer version of the
+same selected journal, complete saved terminal-reference retention, and D18's
+display timestamp format. The current renderer prints wire timestamps directly;
+the full run's wire-provenance checks do not test the required display format.
+No fix or acceptance of those cases is inferred from the present passing checks.
+
 ## Test-first evidence
 
 ```powershell

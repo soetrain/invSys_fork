@@ -9,6 +9,7 @@ Private mSequence As String
 Private mBinding As String
 Private mDefinition As Object
 Private mSource As String
+Private mHeader As Object
 
 Public Sub BindRun(ByVal context As String, ByVal header As Object)
     Dim binding As String
@@ -17,6 +18,7 @@ Public Sub BindRun(ByVal context As String, ByVal header As Object)
     ClearContext mContext
     mContext = context: mPathId = CStr(header("ActionPathId"))
     mSequence = CStr(header("SequenceId")): mBinding = binding
+    Set mHeader = modTrainingJson.DecodeObject(modTrainingJson.EncodeObject(header))
     Set mDefinition = modExpectationModel.NoneDefinition()
     mSource = "No expected conclusion selected"
     If header.Exists("ExpectedConclusion") Then
@@ -65,9 +67,22 @@ Public Function Summary(ByVal context As String, ByVal pathId As String) As Stri
     Summary = notice
 End Function
 
+Public Function ReadSelected(ByVal context As String, ByVal pathId As String, ByRef header As Object, _
+                             ByRef definition As Object, ByRef source As String, ByRef notice As String) As Boolean
+    Dim sequenceId As String, binding As String
+    Set header = Nothing
+    If Not ReadDefinition(context, pathId, sequenceId, binding, definition, notice) Then Exit Function
+    If mHeader Is Nothing Then Exit Function
+    Set header = modTrainingJson.DecodeObject(modTrainingJson.EncodeObject(mHeader))
+    source = mSource
+    If source = "No expected conclusion selected" Then source = "No expectation"
+    ReadSelected = Not header Is Nothing
+End Function
+
 Public Sub ClearContext(ByVal context As String)
     If context <> mContext Then Exit Sub
     modExpectationDraft.ClosePath mContext, mPathId
     mContext = "": mPathId = "": mSequence = "": mBinding = "": mSource = ""
     Set mDefinition = Nothing
+    Set mHeader = Nothing
 End Sub
