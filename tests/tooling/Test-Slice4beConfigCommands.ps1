@@ -16,6 +16,7 @@ param(
     [switch]$CheckViewerRefreshFailure,
     [switch]$CheckViewerEventDetail,
     [switch]$CheckViewerEventGroups,
+    [switch]$CheckViewerPublishedRead,
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
@@ -139,6 +140,11 @@ if ($CheckViewerEventDetail) {
     if ($CheckTrackingSettings -or $CheckActivityEvidence -or $CheckReceivingActivity -or $CheckShippingActivity -or $CheckViewerRefreshFailure) { throw 'Viewer event detail uses a separate focused run.' }
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-viewer-detail/'+[guid]::NewGuid().ToString('N'))
     . (Join-Path $PSScriptRoot 'Slice4beViewerEventDetail.ps1')
+}
+if ($CheckViewerPublishedRead) {
+    if ($CheckTrackingSettings -or $CheckActivityEvidence -or $CheckReceivingActivity -or $CheckShippingActivity -or $CheckViewerRefreshFailure -or $CheckViewerEventDetail -or $CheckViewerEventGroups -or $CheckViewerPublication) { throw 'Published Viewer reads use a separate focused run.' }
+    $reportRoot = Join-Path $repo ('reports/runtime/slice4be-viewer-published-read/'+[guid]::NewGuid().ToString('N'))
+    . (Join-Path $PSScriptRoot 'Slice4beViewerPublishedRead.ps1')
 }
 if ($CheckViewerEventGroups) {
     if ($CheckTrackingSettings -or $CheckActivityEvidence -or $CheckReceivingActivity -or $CheckShippingActivity -or $CheckViewerRefreshFailure -or $CheckViewerEventDetail) { throw 'Viewer event groups uses a separate focused run.' }
@@ -501,7 +507,11 @@ End Function
             Test-Slice4beViewerPublication $a $b
         }
     }
-    if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail -and -not $CheckViewerEventGroups) {
+    if($CheckViewerPublishedRead) {
+        $step='packaged Viewer persisted publication read'
+        Test-Slice4beViewerPublishedRead $a $b
+    }
+    if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail -and -not $CheckViewerEventGroups -and -not $CheckViewerPublishedRead) {
     $step='unauthenticated command'
     [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
     $before=(Get-FileHash -LiteralPath $a.Config).Hash
