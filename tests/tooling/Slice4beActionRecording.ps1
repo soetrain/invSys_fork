@@ -310,5 +310,9 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
             Test-Slice4beRecordingReader $Fixture $b
         }
+        if($CheckRecordingRestart) {
+            . (Join-Path $PSScriptRoot 'Slice4beRecordingRestart.ps1')
+            Test-Slice4beRecordingRestart $Fixture
+        }
     } finally { CloseRecordingViewer }
 }

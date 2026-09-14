@@ -474,6 +474,37 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beC
 
 ## Foundation raw evidence
 
+### Actual interrupted Excel restart: test prepared, execution pending
+
+`-CheckRecordingRestart` retains the reader foundation and adds12 checks through
+the existing Viewer Start/Stop, Action Paths selection and Admin Save Value
+handlers. It creates a real durable Start plus two owning observations, verifies
+the exact initial Excel HWND/process and all five candidate project paths, checks
+every non-package workbook belongs to the generated temporary fixture and is
+saved, then deliberately terminates only that held process. No Close record is
+deleted and no runtime reset substitutes for interruption. A fresh Excel process
+loads the same package files; credentials and copied test drivers stay in memory.
+
+The expected contract is Interrupted, never Conclusion observed or a resumed
+recorder. Reads preserve all fixture files. A later ordinary action has no
+sequence, and a new explicitly started/stopped run gets a distinct identity while
+preserving the old evidence. Package hashes must remain unchanged. Three changed
+PowerShell parsers and whitespace checks pass; runtime execution/compile of the
+fresh-process drivers remains unverified. No behavioral RED or GREEN is claimed.
+The existing Excel-open guard prevents running while the chain's residual dialog
+remains. This adds D13 evidence for existing D18; it changes no runtime contract.
+
+Run separately from the unchanged154-check limits/storage/isolation gate:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-recording-isolation -Phase RED -CheckRecordingRestart
+```
+
+Failure to set up the fixture, prove process ownership, restart Excel or compile
+the disposable drivers is a harness failure, never meaningful product RED.
+
+### Earlier foundation artifacts
+
 - `reports/runtime/action-recording-red.log`
 - `reports/runtime/slice4be-viewer-published-read/d3e82e13f0f04c5aa9a6f0881f0775a1/red.json`
 - `reports/runtime/events-maintenance-package-pins.json`

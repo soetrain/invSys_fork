@@ -24,6 +24,7 @@ param(
     [switch]$CheckRecordingStorageBounds,
     [switch]$CheckRecordingReader,
     [switch]$CheckRecordingIsolation,
+    [switch]$CheckRecordingRestart,
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
@@ -66,6 +67,12 @@ if($CheckViewerShippingState) { $CheckViewerPublishedRead = $true }
 if($CheckViewerFilters) { $CheckViewerPublishedRead = $true }
 if($CheckRecordingLimits) { $CheckActionRecording = $true }
 if($CheckRecordingStorageBounds) { $CheckActionRecording = $true }
+if($CheckRecordingRestart) {
+    if($CheckRecordingLimits -or $CheckRecordingStorageBounds -or $CheckRecordingIsolation -or $CheckViewerFilters -or $CheckViewerShippingState) {
+        throw 'Cold recording restart uses its separate reader gate; run the preserved limits/isolation/filter gates separately.'
+    }
+    $CheckRecordingReader = $true
+}
 if($CheckRecordingReader) { $CheckActionRecording = $true }
 if($CheckRecordingIsolation) { $CheckActionRecording = $true }
 if($CheckActionRecording) { $CheckViewerPublishedRead = $true }
