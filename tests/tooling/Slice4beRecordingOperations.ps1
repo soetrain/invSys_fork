@@ -5,6 +5,7 @@ function Test-Slice4beRecordingOperations {
     if($CheckRecordingEvaluation){
         . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
         Install-RecordingEvaluationProbe
+        if($CheckEvaluationContracts){. (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')}
     }
     $operations=$packages['invSys.Operations.xlam'].VBProject
     $control=$operations.VBComponents.Add(2);$control.Name='TestRecordingRibbonControl'
@@ -236,6 +237,7 @@ End Function
                 foreach($i in 0..3){$group=@($events|Where-Object SourceId -CEQ $submissionIds[$i]);$exact=$exact -and $group.Count -eq 1 -and @($group[0].Lines|Where-Object {$_.System_Key -ceq $entityKeys[$i] -and $_.AppliedAtUTC -ne ''}).Count -eq 1}
                 Check 'RecordingOperations.PublishedApplicationPreservesExactKeys' $exact
             }
+            if($CheckEvaluationContracts -and $stage -ne 'Pending'){Test-EvaluationLoadedPublication $stage}
             [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('Refresh',''))
             [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Open',''))
             $selected=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Select',$pathId))
@@ -250,6 +252,10 @@ End Function
             if($CheckRecordingEvaluation){Test-RecordingEvaluationStage $stage}
             ObserveRecordingOther ($stage+'Viewer')
             if($CaptureEvidence){CaptureFormEvidence 'Action Paths' ('recording-operations-'+$stage.ToLowerInvariant()+'.png')}
+        }
+        if($CheckEvaluationContracts){
+            Test-EvaluationContracts
+            ObserveRecordingOther 'EvaluationContracts'
         }
         # D18 permits new derived evaluation records; original journal bytes stay immutable.
         $preserved=$true

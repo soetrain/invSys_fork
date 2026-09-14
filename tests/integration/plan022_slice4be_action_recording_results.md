@@ -816,6 +816,74 @@ Ignored evidence: `reports/runtime/recording-evaluation-first-red.log`,
 `recording-evaluation-preservation.json`, `recording-evaluation-residual-quit.json`
 and `recording-evaluation-residual-terminal.json` under the same runtime directory.
 
+### Expectation and evidence semantics test entry (2026-09-14)
+
+`-CheckEvaluationContracts` retains the complete 153/33 evaluation gate and adds
+tests through the same actual form controls under D18. It does not change the
+normative contract, runtime source or package set.
+
+- Explicit None remains incomplete; Admin command completion must include
+  **Command completed; Domain application not asserted**.
+- Three required Admin Saves cannot match two observed occurrences; an authored
+  Confirm/Save/Confirm order cannot be reconstructed from an incompatible run.
+- A newly written publication does not advance the currently loaded evaluation.
+  Changing the publication bytes alone does not invalidate a previously validated
+  load; a failed actual Viewer Refresh makes evaluation incomplete until an
+  explicit successful Refresh. Only disposable publication bytes are faulted,
+  and exact original bytes are restored in finally.
+- Current Admin visibility restrictions must apply to loaded observations.
+  Later policy versions must not erase valid historical capture eligibility.
+- A separate actual recording stages a captured command expectation, then performs
+  a genuinely rejected Admin Save with an invalid BatchSize and a valid Save.
+  Stop must persist the schema-2 expectation; retry disabled must fail, while
+  retry enabled may conclude without erasing either original occurrence.
+- Cancelled recording stays cancelled. A signed-in ordinary Viewer user may
+  evaluate the permitted recording without guide-maintenance authority. Sign-out
+  cannot leave a usable loaded conclusion.
+
+Missing product controls are expected RED. An unavailable fixture, unexpected
+COM/VBA exception or missing owner-generated observation pair remains a harness
+failure. Stable StepId edits, exhaustive schema/size/integrity cases, incomplete/
+corrupt run evaluation and saved-result read permissions still need protection
+before their corresponding runtime changes. Full How-To/Diagnostic/Compare and
+guide authoring/version/import/export remain required.
+
+Command: `powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-recording-isolation -Phase RED -CheckEvaluationContracts`.
+The first expanded run reports **160 PASS / 55 FAIL**, no harness exception,
+with normal Excel closure. Review identifies one weak assertion: a disabled
+Evaluate button alone could satisfy sign-out without proving result content was
+cleared. The corrected probe reads the retained result text even when hidden,
+requires successful expectation staging beforehand, and checks that sign-out
+writes no derived result. The rejected Admin Save additionally must preserve
+configuration file bytes. These tighten the intended D18 checks; they do not
+change runtime behavior or relax a previous accepted regression.
+
+The corrected run reports **160 PASS / 56 FAIL**, expected RED, with no harness
+exception and normal Excel closure. All 153 prior passing identities remain GREEN;
+there are no duplicate check identities. The sole previously passing new assertion
+that becomes RED is the intentionally tightened sign-out check. The actual rejected
+Save and successful retry have distinct ActivityIds in one sequence, retain both
+outcomes, and preserve configuration bytes on rejection. All original journal,
+unknown staging-column and unrelated-workbook checks pass. Missing capture/editor/
+evaluation behavior remains RED; no diagnostic conclusion is implemented.
+
+Closed-Excel verification preserves all 260 package pins, 15 protected source files
+and the reviewed Shipping visibility-only change. Four changed PowerShell scripts
+parse and all 83 local document links resolve. Runtime remains `99a69aa` /
+`deploy/validation-recording-isolation`; no new
+build/compile, static baseline, full-chain, layout or human acceptance is claimed.
+Earlier native/RPC failures remain unresolved; these two successful fixture runs
+do not explain them.
+
+Next create the packaged schema-1/schema-2/mixed-schema and stale-editor sequence/
+context tests, including stable StepId edits, before implementing Core expectation
+validation and the shared Operations editor. Keep the remaining evaluator/storage/
+guide and full Release 1 gates open.
+
+Ignored evidence under `reports/runtime/`: `evaluation-contracts-first-red.log`,
+`evaluation-contracts-final-red.log`, `evaluation-contracts-retention.json`, and
+`evaluation-contracts-preservation.json`.
+
 ### Earlier foundation artifacts
 
 - `reports/runtime/action-recording-red.log`

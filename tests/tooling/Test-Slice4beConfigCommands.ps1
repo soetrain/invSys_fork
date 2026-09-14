@@ -27,6 +27,7 @@ param(
     [switch]$CheckRecordingRestart,
     [switch]$CheckRecordingOperations,
     [switch]$CheckRecordingEvaluation,
+    [switch]$CheckEvaluationContracts,
     [string]$RecordingContinuationPipeName = '',
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
@@ -70,6 +71,7 @@ if($CheckViewerShippingState) { $CheckViewerPublishedRead = $true }
 if($CheckViewerFilters) { $CheckViewerPublishedRead = $true }
 if($CheckRecordingLimits) { $CheckActionRecording = $true }
 if($CheckRecordingStorageBounds) { $CheckActionRecording = $true }
+if($CheckEvaluationContracts) { $CheckRecordingEvaluation = $true }
 if($CheckRecordingEvaluation) { $CheckRecordingOperations = $true }
 if($CheckRecordingOperations) {
     if($CheckRecordingRestart){throw 'Operations sequence and cold restart use separate runs.'}

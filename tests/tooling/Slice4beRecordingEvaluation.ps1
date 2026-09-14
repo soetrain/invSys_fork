@@ -12,7 +12,9 @@ Public Function RecordingExpectationForTest(ByVal formName As String, ByVal cont
     If target Is Nothing Then Exit Function
     For Each control In target.Controls
         If control.Name = controlName Then
-            If Not target.Visible Or Not control.Visible Then RecordingExpectationForTest = "HIDDEN": Exit Function
+            If action <> "ValueAnyVisibility" Then
+                If Not target.Visible Or Not control.Visible Then RecordingExpectationForTest = "HIDDEN": Exit Function
+            End If
             Select Case action
                 Case "Click"
                     If Not control.Enabled Then RecordingExpectationForTest = "DISABLED": Exit Function
@@ -29,7 +31,7 @@ Public Function RecordingExpectationForTest(ByVal formName As String, ByVal cont
                 Case "Index": control.ListIndex = CLng(value)
                 Case "Boolean": control.Value = (value = "True")
                 Case "Count": RecordingExpectationForTest = CStr(control.ListCount): Exit Function
-                Case "Value": RecordingExpectationForTest = CStr(control.Value): Exit Function
+                Case "Value", "ValueAnyVisibility": RecordingExpectationForTest = CStr(control.Value): Exit Function
                 Case "Caption": RecordingExpectationForTest = CStr(control.Caption): Exit Function
                 Case "Locked": RecordingExpectationForTest = CStr(control.Locked): Exit Function
                 Case Else: Err.Raise 5, , "Unsupported expectation probe action."
