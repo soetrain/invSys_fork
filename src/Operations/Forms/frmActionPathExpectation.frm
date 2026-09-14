@@ -87,11 +87,14 @@ Private Sub UserForm_Initialize()
     ArrangeColumns
 End Sub
 
-Public Function BindContext(ByVal context As String) As Boolean
+Public Function BindContext(ByVal context As String, Optional ByVal pathId As String = "") As Boolean
     Dim projection As String, notice As String
     ReleaseDraft
     mContext = context
-    If Not modActionRecording.OpenExpectation(context, projection, notice) Then mStatus.Caption = notice: Exit Function
+    If Not modActionRecording.OpenExpectation(context, projection, notice, pathId) Then mStatus.Caption = notice: Exit Function
+    mUse.Caption = IIf(pathId = "", "Use for this recording", "Use for this evaluation")
+    Me.Controls("lblExpectationHelp").Caption = "Choose the controls and outcomes expected for this " & _
+        IIf(pathId = "", "recording", "evaluation") & ". These steps describe intent; they do not perform the work."
     LoadProjection projection, False
     mLoading = True
     FillChoices mControl, modActionRecording.ExpectationChoices(mContext, mDraftId, "")
@@ -175,6 +178,7 @@ End Sub
 Private Sub mUse_Click()
     Dim notice As String, valid As Boolean
     If modActionRecording.UseExpectation(mContext, mDraftId, SelectedValue(mTerminal), SelectedValue(mKind), notice) Then
+        modExpectationEditor.Staged
         ReleaseDraft: Me.Hide
     Else
         valid = ValidateBinding()

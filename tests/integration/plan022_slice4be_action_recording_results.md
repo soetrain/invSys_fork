@@ -1131,6 +1131,66 @@ Ignored evidence under `reports/runtime/` includes `captured-expectation-focused
 cleanup evidence. Remaining evaluation/guide/presentation work, native reliability
 and human acceptance remain open.
 
+## Selected-run expectation entry
+
+Under the existing D18 expectation/evaluation refinement, the selected-run library
+must use the shared Operations editor while Core retains separate analysis intent.
+The binding is the validated selected journal's exact RecordId/version/hash plus
+captured context and SequenceId. An analysis draft is not a guide or recording
+edit. Cancel, selection/context changes and current-policy checks preserve those
+boundaries; the library retains its accepted 720 by 520 minimum.
+
+The expanded actual-handler suite adds a nonempty draft left open across a switch
+between two real saved runs. The old draft must be cleared, and opening the new
+selection cannot inherit its steps. The unchanged captured candidate completes
+**189 PASS / 60 FAIL**, retaining all **189 previous passing identities**, without
+a terminal harness exception. Both added cases fail meaningfully before their
+implementation. Four of the failures remain foreground-capture failures.
+
+The implementation adds headless `modPathExpectation` and one Operations-owned
+`modExpectationEditor`, reuses `frmActionPathExpectation` for both contexts, and
+adds the approved library Expected conclusion/summary controls. The Core bridge
+accepts an optional exact selected path ID; draft edits cannot retarget its captured
+journal binding. Sixteen source-import harnesses include the new Core dependency.
+No analysis edit appends training files or workflow observations. Evaluator and
+immutable-result implementation remain pending.
+
+The candidate builds and explicitly compiles all five packages, including Operations
+cold start. Compiled comparison finds exactly seven changed components and two new
+modules, with no other code changes. The packaged run completes **210 PASS / 39 FAIL**,
+retaining all **189 prior passing identities**, with 21 gained GREEN checks and no
+duplicate identities or terminal harness exception. Analysis opening, None defaults,
+Cancel, ordered editing, staging, provenance and both run-switch checks pass. The
+captured recording/editor regressions and library minimum/default/larger/restored
+layouts pass. Journal/activity bytes, unknown staging columns and unrelated workbook
+bytes/content remain preserved. Excel closes normally.
+
+Review tightens the existing sign-out result assertion to require a populated
+conclusion before sign-out. Once staging works, an absent result control must not
+pass as cleared evidence. This tightening is loaded before the Operations sequence
+starts in this run and remains RED. The remaining failures are **35 evaluator checks
+and four foreground captures**; no diagnostic-result or visible acceptance is claimed.
+Static evidence records 224 components, 5,834 procedures and 129,133 VBA lines (195
+added). All 28 existing module limits, 192 duplicate groups and 9/45 literal/unresolved
+calls hold. Maintenance candidates are 1,158 and reviewed candidates 1,160; none is
+deleted. The same compiled candidate passes the full Release 1 chain **32/32**,
+live roles **48/48**, and Create Warehouse **15/15**. The chain exits successfully,
+verifies local-settings restoration, and restores all three tracked reports
+exactly. Excel closes normally. Final checks preserve **290 package pins**, 15
+protected sources and the existing reviewed Shipping visibility-only delta;
+**17 scripts parse** and **83 local links resolve**. These results do not resolve
+earlier native failures or establish visible, NAS, or full Release 1 acceptance.
+
+Ignored evidence: `reports/runtime/analysis-expectation-entry-red.log`,
+`analysis-expectation-entry-red-summary.json`, `analysis-expectation-focused.log`,
+`analysis-expectation-retention.json`, `analysis-expectation-compiled-comparison.json`,
+`analysis-expectation-static.log`, `analysis-expectation-chain-exit.json`,
+`analysis-expectation-chain-slice14_results.md`,
+`analysis-expectation-chain-phase6_live_role_workflow_results.md`,
+`analysis-expectation-chain-create-warehouse-results.md`,
+`analysis-expectation-final-verification.json`, and isolated candidate
+`deploy/validation-analysis-expectation`.
+
 ### Earlier foundation artifacts
 
 - `reports/runtime/action-recording-red.log`

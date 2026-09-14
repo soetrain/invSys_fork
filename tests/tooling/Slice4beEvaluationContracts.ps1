@@ -149,6 +149,19 @@ function Test-EvaluationContracts {
     $unchanged=$true
     foreach($path in $retryPins.Keys){if((Get-FileHash -LiteralPath $path).Hash -cne $retryPins[$path]){$unchanged=$false}}
     Check 'EvaluationContract.AnalysisNeverRewritesCapturedExpectationOrObservations' $unchanged
+    [void](Select-EvaluationRun $retryPath)
+    $opened=ExpectationControl 'btnExpectedConclusion' 'Click' '' 'frmActionPaths'
+    $draftCount=ExpectationControl 'lstExpectedSteps' 'Count'
+    [void](Select-EvaluationRun $originalPath)
+    [void](ExpectationControl 'btnUseExpectation' 'Click')
+    $staleCount=ExpectationControl 'lstExpectedSteps' 'CountAnyVisibility'
+    $summary=ExpectationControl 'lblExpectationSummary' 'Caption' '' 'frmActionPaths'
+    Check 'EvaluationContract.RunSwitchDiscardsNonemptyAnalysisDraft' ($opened -ceq 'DELIVERED' -and $draftCount -ceq '1' -and
+        ($staleCount -ceq 'MISSING' -or $staleCount -ceq '0') -and -not $summary.Contains('This evaluation'))
+    $reopened=ExpectationControl 'btnExpectedConclusion' 'Click' '' 'frmActionPaths'
+    Check 'EvaluationContract.NewRunNeverInheritsPreviousAnalysisSteps' ($reopened -ceq 'DELIVERED' -and
+        (ExpectationControl 'lstExpectedSteps' 'Count') -ceq '0')
+    [void](ExpectationControl 'btnCancelExpectation' 'Click')
     # Explicit cancel is a lifecycle outcome even when no expectation is chosen.
     [void](RecordingControl 'Start Recording' 'Click')
     $cancelled=SaveRecordedSetting '672'
@@ -165,13 +178,17 @@ function Test-EvaluationContracts {
     [void](Select-EvaluationRun $retryPath)
     $ready=Set-EvaluationDraft $command 0 'CommandCompleted'
     Assert-EvaluationStatus 'OrdinaryViewerCanEvaluatePermittedRunWithoutGuideMaintenance' 'Conclusion observed' $ready
+    $loadedResult=ExpectationControl 'txtPathEvaluation' 'Value' '' 'frmActionPaths'
+    $loadedStatus=ExpectationControl 'lblEvaluationStatus' 'Caption' '' 'frmActionPaths'
+    $hadConclusion=$loadedResult -cne 'MISSING' -and $loadedResult.Length -gt 0 -and
+        $loadedStatus.StartsWith('Conclusion observed',[StringComparison]::Ordinal)
     $beforeSignOut=@(EvaluationFiles).Count
     [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
     $invoked=ExpectationControl 'btnEvaluatePath' 'Click' '' 'frmActionPaths'
     # A hidden/disabled button is insufficient: inspect retained text even when
     # hidden, or require that the form was unloaded. No private text is reported.
     $text=ExpectationControl 'txtPathEvaluation' 'ValueAnyVisibility' '' 'frmActionPaths'
-    Check 'EvaluationContract.SignOutClearsLoadedConclusion' ($ready -and ($text -ceq '' -or $text -ceq 'MISSING') -and @(EvaluationFiles).Count -eq $beforeSignOut)
+    Check 'EvaluationContract.SignOutClearsLoadedConclusion' ($ready -and $hadConclusion -and ($text -ceq '' -or $text -ceq 'MISSING') -and @(EvaluationFiles).Count -eq $beforeSignOut)
     CloseRecordingViewer
     SelectTarget $Fixture 'config-admin'
     OpenRecordingViewer

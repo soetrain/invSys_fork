@@ -15,7 +15,6 @@ Private mStatus As MSForms.Label
 Private mContext As String
 Private mRendering As Boolean
 Private WithEvents mExpectationButton As MSForms.CommandButton
-Private mEditor As frmActionPathExpectation
 
 Public Sub Initialize(ByVal form As Object)
     Dim command As Variant, button As MSForms.CommandButton, binding As cRecordingButton
@@ -92,13 +91,9 @@ Public Sub Disconnect()
 End Sub
 
 Private Sub mExpectationButton_Click()
-    If mEditor Is Nothing Then Set mEditor = New frmActionPathExpectation
-    If mEditor.Visible Then Exit Sub
-    If mEditor.BindContext(mContext) Then mEditor.Show vbModeless
+    modExpectationEditor.OpenForRecording mContext
 End Sub
 
 Private Sub CloseEditor()
-    If mEditor Is Nothing Then Exit Sub
-    mEditor.ReleaseDraft
-    Unload mEditor: Set mEditor = Nothing
+    modExpectationEditor.CloseRecording mContext
 End Sub

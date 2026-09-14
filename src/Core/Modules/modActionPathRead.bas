@@ -29,13 +29,13 @@ Public Function ReadPath(ByVal context As String, ByVal pathId As String, ByRef 
     Dim record As Variant, row As Variant, visible As Object, definition As Object, hidden As Long, reference As Variant
     On Error GoTo Invalid
     evidence = ""
-    If Not ReadContext(context, target, policy, notice) Then Exit Function
+    If Not ReadContext(context, target, policy, notice) Then GoTo Unavailable
     Set versions = modRecordingReader.Versions(target)
     notice = "Incomplete evidence: the selected recording is unavailable."
-    If versions Is Nothing Then Exit Function
-    If Not versions.Exists(pathId) Then Exit Function
+    If versions Is Nothing Then GoTo Unavailable
+    If Not versions.Exists(pathId) Then GoTo Unavailable
     Set records = modRecordingReader.ReadRun(target, pathId, CLng(versions(pathId)), header, notice)
-    If records Is Nothing Then Exit Function
+    If records Is Nothing Then GoTo Unavailable
     Set visible = CreateObject("Scripting.Dictionary")
     For Each row In policy("Controls")
         Set definition = modActivityCatalog.Control(CStr(row("ControlId")), CLng(policy("SavedCatalogVersion")))
@@ -67,11 +67,22 @@ Public Function ReadPath(ByVal context As String, ByVal pathId As String, ByRef 
         notice = notice & " Different release/build; relative age unavailable."
     End If
     If context <> modActivity.CaptureContext() Then GoTo Invalid
+    modPathExpectation.BindRun context, header
     ReadPath = True
     Exit Function
 Invalid:
     evidence = "": notice = "Unavailable: the invSys session, policy or recording library changed. Reopen Viewer."
+Unavailable:
+    modPathExpectation.ClearContext context
 End Function
+
+Public Function ExpectationSummary(ByVal context As String, ByVal pathId As String) As String
+    ExpectationSummary = modPathExpectation.Summary(context, pathId)
+End Function
+
+Public Sub ClearSelection(ByVal context As String)
+    modPathExpectation.ClearContext context
+End Sub
 
 Private Function CanShow(ByVal record As Object, ByVal visible As Object) As Boolean
     If visible.Exists(record("ControlId")) Then CanShow = CBool(visible(record("ControlId")))

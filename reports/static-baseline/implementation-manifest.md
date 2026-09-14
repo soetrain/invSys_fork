@@ -1,10 +1,10 @@
 # invSys Static Implementation Manifest
 
 - Schema: 1.0.0
-- Generated: 2026-09-14T15:28:09Z
+- Generated: 2026-09-14T15:54:32Z
 - Packages: 6
-- Components: 222
-- Procedures: 5815
+- Components: 224
+- Procedures: 5834
 - Literal Application.Run targets: 9
 - Unresolved dynamic calls: 45
 
@@ -13,10 +13,10 @@
 | Package | Project | Output | Components |
 |---|---|---|---:|
 | Admin | invSys_Admin | invSys.Admin.xlam | 31 |
-| Core | invSys_Core | invSys.Core.xlam | 93 |
+| Core | invSys_Core | invSys.Core.xlam | 94 |
 | DesignsDomain | invSys_Designs_Domain | invSys.Designs.Domain.xlam | 15 |
 | InventoryDomain | invSys_Inventory_Domain | invSys.Inventory.Domain.xlam | 10 |
-| Operations | invSys_Operations | invSys.Operations.xlam | 64 |
+| Operations | invSys_Operations | invSys.Operations.xlam | 65 |
 | OperationsShadow | invSys_Operations_Shadow | invSys.Operations.xlam | 0 |
 
 ## Dynamic roots
@@ -319,6 +319,7 @@
 | mDown_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mEnabled_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mExpectationButton_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mExpected_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mFamily_Change | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLines_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mList_KeyDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |

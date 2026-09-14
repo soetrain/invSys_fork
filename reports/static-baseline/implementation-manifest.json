@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-14T15:28:09Z",
+    "generatedAtUtc":  "2026-09-14T15:54:32Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -105,6 +105,7 @@
                                                 "modNasConnection",
                                                 "modOperationsPrimitiveBridge",
                                                 "modOperatorReadModel",
+                                                "modPathExpectation",
                                                 "modPerfLog",
                                                 "modPhase6DemoData",
                                                 "modProcessor",
@@ -233,6 +234,7 @@
                                                 "frmReceiving",
                                                 "frmShipmentsTally",
                                                 "modBoxingService",
+                                                "modExpectationEditor",
                                                 "modInventoryViewer",
                                                 "modListBoxTableExport",
                                                 "modOperationsInit",
@@ -2097,9 +2099,11 @@
                            "name":  "modActionPathRead",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActionPathRead.bas",
-                           "lineCount":  87,
+                           "lineCount":  98,
                            "procedureNames":  [
                                                   "CanShow",
+                                                  "ClearSelection",
+                                                  "ExpectationSummary",
                                                   "ListPaths",
                                                   "ReadContext",
                                                   "ReadPath"
@@ -2732,17 +2736,20 @@
                            "name":  "modExpectationDraft",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modExpectationDraft.bas",
-                           "lineCount":  143,
+                           "lineCount":  169,
                            "procedureNames":  [
                                                   "Choices",
                                                   "CloseContext",
+                                                  "ClosePath",
                                                   "Discard",
+                                                  "DiscardRecording",
                                                   "Edit",
                                                   "Guard",
-                                                  "OpenRecording",
+                                                  "OpenEditor",
                                                   "Project",
+                                                  "ReadSource",
                                                   "SafeCaption",
-                                                  "UseRecording"
+                                                  "UseDraft"
                                               ],
                            "metadata":  {
 
@@ -3203,6 +3210,22 @@
                                                   "UpdateAutoRefreshConfigReadModel",
                                                   "UpdateAutoRefreshEntryReadModel",
                                                   "WorkbookIsOpenByPathReadModel"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
+                           "name":  "modPathExpectation",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modPathExpectation.bas",
+                           "lineCount":  73,
+                           "procedureNames":  [
+                                                  "BindRun",
+                                                  "ClearContext",
+                                                  "ReadDefinition",
+                                                  "Stage",
+                                                  "Summary"
                                               ],
                            "metadata":  {
 
@@ -5192,7 +5215,7 @@
                            "name":  "cRecordingControls",
                            "kind":  "CLASS_MODULE",
                            "sourcePath":  "src/Operations/ClassModules/cRecordingControls.cls",
-                           "lineCount":  104,
+                           "lineCount":  99,
                            "procedureNames":  [
                                                   "Arrange",
                                                   "BindContext",
@@ -5225,7 +5248,7 @@
                            "name":  "frmActionPathExpectation",
                            "kind":  "FORM",
                            "sourcePath":  "src/Operations/Forms/frmActionPathExpectation.frm",
-                           "lineCount":  232,
+                           "lineCount":  236,
                            "procedureNames":  [
                                                   "ArrangeColumns",
                                                   "BindContext",
@@ -5251,16 +5274,18 @@
                            "name":  "frmActionPaths",
                            "kind":  "FORM",
                            "sourcePath":  "src/Operations/Forms/frmActionPaths.frm",
-                           "lineCount":  143,
+                           "lineCount":  179,
                            "procedureNames":  [
                                                   "BindContext",
                                                   "ClearContent",
                                                   "ContextValid",
                                                   "mClose_Click",
+                                                  "mExpected_Click",
                                                   "mPaths_Change",
                                                   "mRefresh_Click",
                                                   "mSearch_Change",
                                                   "ReadSelection",
+                                                  "RefreshExpectation",
                                                   "RefreshPaths",
                                                   "UserForm_Activate",
                                                   "UserForm_Initialize",
@@ -5374,6 +5399,24 @@
                                               ],
                            "metadata":  {
                                             "controlCount":  0
+                                        }
+                       },
+                       {
+                           "name":  "modExpectationEditor",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Operations/Modules/modExpectationEditor.bas",
+                           "lineCount":  50,
+                           "procedureNames":  [
+                                                  "CloseEditor",
+                                                  "CloseLibrary",
+                                                  "CloseRecording",
+                                                  "OpenForRecording",
+                                                  "OpenForRun",
+                                                  "Present",
+                                                  "Staged"
+                                              ],
+                           "metadata":  {
+
                                         }
                        },
                        {
@@ -8898,6 +8941,7 @@
                            "lineCount":  10,
                            "directCalls":  [
                                                "Render",
+                                               "Staged",
                                                "StageField"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -9227,6 +9271,7 @@
                            "endLine":  119,
                            "lineCount":  8,
                            "directCalls":  [
+                                               "Staged",
                                                "StageValue"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -9249,6 +9294,7 @@
                            "lineCount":  9,
                            "directCalls":  [
                                                "Render",
+                                               "Staged",
                                                "StageValue"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -20714,6 +20760,7 @@
                                                "ResolveSeedInventoryContext",
                                                "SanitizeSeedCallbackErrorText",
                                                "SeedDemoInventoryForWarehouse",
+                                               "Stage",
                                                "Succeeded",
                                                "UploadDemoInventoryForWarehouse"
                                            ],
@@ -36163,12 +36210,14 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  27,
-                           "endLine":  74,
-                           "lineCount":  48,
+                           "endLine":  77,
+                           "lineCount":  51,
                            "directCalls":  [
                                                "Add",
+                                               "BindRun",
                                                "CanShow",
                                                "CaptureContext",
+                                               "ClearContext",
                                                "Control",
                                                "ReadContext",
                                                "ReadRun",
@@ -36186,11 +36235,53 @@
                        },
                        {
                            "componentName":  "modActionPathRead",
+                           "name":  "ExpectationSummary",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  79,
+                           "endLine":  81,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Summary"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionPathRead",
+                           "name":  "ClearSelection",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  83,
+                           "endLine":  85,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "ClearContext"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionPathRead",
                            "name":  "CanShow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  76,
-                           "endLine":  78,
+                           "startLine":  87,
+                           "endLine":  89,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -36210,8 +36301,8 @@
                            "name":  "ReadContext",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  80,
-                           "endLine":  87,
+                           "startLine":  91,
+                           "endLine":  98,
                            "lineCount":  8,
                            "directCalls":  [
                                                "CaptureContext",
@@ -36301,7 +36392,7 @@
                            "endLine":  22,
                            "lineCount":  3,
                            "directCalls":  [
-                                               "OpenRecording"
+                                               "OpenEditor"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -36365,7 +36456,7 @@
                            "endLine":  37,
                            "lineCount":  4,
                            "directCalls":  [
-                                               "UseRecording"
+                                               "UseDraft"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -44005,16 +44096,38 @@
                        },
                        {
                            "componentName":  "modExpectationDraft",
-                           "name":  "OpenRecording",
+                           "name":  "OpenEditor",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  10,
-                           "endLine":  24,
-                           "lineCount":  15,
+                           "startLine":  12,
+                           "endLine":  27,
+                           "lineCount":  16,
                            "directCalls":  [
                                                "Discard",
                                                "NewId",
                                                "Project",
+                                               "ReadSource"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "ReadSource",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  29,
+                           "endLine":  37,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "ReadDefinition",
                                                "ReadExpectation"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -44032,12 +44145,12 @@
                            "name":  "Guard",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  26,
-                           "endLine":  33,
+                           "startLine":  39,
+                           "endLine":  46,
                            "lineCount":  8,
                            "directCalls":  [
                                                "Discard",
-                                               "ReadExpectation"
+                                               "ReadSource"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -44054,8 +44167,8 @@
                            "name":  "Choices",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  35,
-                           "endLine":  58,
+                           "startLine":  48,
+                           "endLine":  71,
                            "lineCount":  24,
                            "directCalls":  [
                                                "Control",
@@ -44079,8 +44192,8 @@
                            "name":  "Edit",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  60,
-                           "endLine":  103,
+                           "startLine":  73,
+                           "endLine":  116,
                            "lineCount":  44,
                            "directCalls":  [
                                                "Add",
@@ -44103,17 +44216,18 @@
                        },
                        {
                            "componentName":  "modExpectationDraft",
-                           "name":  "UseRecording",
+                           "name":  "UseDraft",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  105,
-                           "endLine":  117,
-                           "lineCount":  13,
+                           "startLine":  118,
+                           "endLine":  134,
+                           "lineCount":  17,
                            "directCalls":  [
                                                "DecodeObject",
                                                "Discard",
                                                "EncodeObject",
                                                "Guard",
+                                               "Stage",
                                                "StageExpectation"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -44131,8 +44245,50 @@
                            "name":  "CloseContext",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  119,
-                           "endLine":  121,
+                           "startLine":  136,
+                           "endLine":  138,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Discard"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "ClosePath",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  140,
+                           "endLine":  142,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Discard"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "DiscardRecording",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  144,
+                           "endLine":  146,
                            "lineCount":  3,
                            "directCalls":  [
                                                "Discard"
@@ -44152,9 +44308,9 @@
                            "name":  "Discard",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  123,
-                           "endLine":  127,
-                           "lineCount":  5,
+                           "startLine":  148,
+                           "endLine":  153,
+                           "lineCount":  6,
                            "directCalls":  [
 
                                            ],
@@ -44173,8 +44329,8 @@
                            "name":  "Project",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  129,
-                           "endLine":  139,
+                           "startLine":  155,
+                           "endLine":  165,
                            "lineCount":  11,
                            "directCalls":  [
                                                "Control",
@@ -44195,8 +44351,8 @@
                            "name":  "SafeCaption",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  141,
-                           "endLine":  143,
+                           "startLine":  167,
+                           "endLine":  169,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -52065,6 +52221,124 @@
                                        ]
                        },
                        {
+                           "componentName":  "modPathExpectation",
+                           "name":  "BindRun",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  13,
+                           "endLine":  26,
+                           "lineCount":  14,
+                           "directCalls":  [
+                                               "ClearContext",
+                                               "DecodeObject",
+                                               "EncodeObject",
+                                               "NoneDefinition"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modPathExpectation",
+                           "name":  "ReadDefinition",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  28,
+                           "endLine":  47,
+                           "lineCount":  20,
+                           "directCalls":  [
+                                               "CaptureContext",
+                                               "ClearContext",
+                                               "DecodeObject",
+                                               "EncodeObject",
+                                               "GetCurrentTarget",
+                                               "ReadPolicy",
+                                               "Version"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modPathExpectation",
+                           "name":  "Stage",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  49,
+                           "endLine":  60,
+                           "lineCount":  12,
+                           "directCalls":  [
+                                               "DecodeObject",
+                                               "EncodeObject",
+                                               "ReadDefinition",
+                                               "Validate"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modPathExpectation",
+                           "name":  "Summary",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  62,
+                           "endLine":  66,
+                           "lineCount":  5,
+                           "directCalls":  [
+                                               "Available",
+                                               "ReadDefinition"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modPathExpectation",
+                           "name":  "ClearContext",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  68,
+                           "endLine":  73,
+                           "lineCount":  6,
+                           "directCalls":  [
+                                               "ClosePath"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
                            "componentName":  "modPerfLog",
                            "name":  "BeginTransaction",
                            "visibility":  "PUBLIC",
@@ -55028,7 +55302,7 @@
                                                "Add",
                                                "AppendEntry",
                                                "CaptureContext",
-                                               "Discard",
+                                               "DiscardRecording",
                                                "GetCurrentTarget",
                                                "GetCurrentUserId",
                                                "Interrupt",
@@ -55281,7 +55555,7 @@
                            "lineCount":  18,
                            "directCalls":  [
                                                "AppendEntry",
-                                               "Discard"
+                                               "DiscardRecording"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -79731,8 +80005,8 @@
                            "name":  "Initialize",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  20,
-                           "endLine":  35,
+                           "startLine":  19,
+                           "endLine":  34,
                            "lineCount":  16,
                            "directCalls":  [
                                                "Add",
@@ -79753,8 +80027,8 @@
                            "name":  "BindContext",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  37,
-                           "endLine":  44,
+                           "startLine":  36,
+                           "endLine":  43,
                            "lineCount":  8,
                            "directCalls":  [
                                                "CloseEditor",
@@ -79776,8 +80050,8 @@
                            "name":  "Execute",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  46,
-                           "endLine":  51,
+                           "startLine":  45,
+                           "endLine":  50,
                            "lineCount":  6,
                            "directCalls":  [
                                                "Control",
@@ -79799,8 +80073,8 @@
                            "name":  "Render",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  53,
-                           "endLine":  67,
+                           "startLine":  52,
+                           "endLine":  66,
                            "lineCount":  15,
                            "directCalls":  [
                                                "CloseEditor",
@@ -79821,8 +80095,8 @@
                            "name":  "Arrange",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  69,
-                           "endLine":  81,
+                           "startLine":  68,
+                           "endLine":  80,
                            "lineCount":  13,
                            "directCalls":  [
 
@@ -79842,8 +80116,8 @@
                            "name":  "Disconnect",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  83,
-                           "endLine":  92,
+                           "startLine":  82,
+                           "endLine":  91,
                            "lineCount":  10,
                            "directCalls":  [
                                                "CloseEditor",
@@ -79864,11 +80138,11 @@
                            "name":  "mExpectationButton_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  94,
-                           "endLine":  98,
-                           "lineCount":  5,
+                           "startLine":  93,
+                           "endLine":  95,
+                           "lineCount":  3,
                            "directCalls":  [
-                                               "BindContext"
+                                               "OpenForRecording"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -79885,11 +80159,11 @@
                            "name":  "CloseEditor",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  100,
-                           "endLine":  104,
-                           "lineCount":  5,
+                           "startLine":  97,
+                           "endLine":  99,
+                           "lineCount":  3,
                            "directCalls":  [
-                                               "ReleaseDraft"
+                                               "CloseRecording"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -80019,8 +80293,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  90,
-                           "endLine":  102,
-                           "lineCount":  13,
+                           "endLine":  105,
+                           "lineCount":  16,
                            "directCalls":  [
                                                "ExpectationChoices",
                                                "FillChoices",
@@ -80043,8 +80317,8 @@
                            "name":  "FillChoices",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  104,
-                           "endLine":  114,
+                           "startLine":  107,
+                           "endLine":  117,
                            "lineCount":  11,
                            "directCalls":  [
                                                "Control",
@@ -80065,8 +80339,8 @@
                            "name":  "SelectedValue",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  116,
-                           "endLine":  118,
+                           "startLine":  119,
+                           "endLine":  121,
                            "lineCount":  3,
                            "directCalls":  [
                                                "Control"
@@ -80086,8 +80360,8 @@
                            "name":  "LoadProjection",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  120,
-                           "endLine":  148,
+                           "startLine":  123,
+                           "endLine":  151,
                            "lineCount":  29,
                            "directCalls":  [
                                                "Fields",
@@ -80108,8 +80382,8 @@
                            "name":  "ValidateBinding",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  150,
-                           "endLine":  154,
+                           "startLine":  153,
+                           "endLine":  157,
                            "lineCount":  5,
                            "directCalls":  [
                                                "EditExpectation",
@@ -80130,8 +80404,8 @@
                            "name":  "ChangeDraft",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  156,
-                           "endLine":  167,
+                           "startLine":  159,
+                           "endLine":  170,
                            "lineCount":  12,
                            "directCalls":  [
                                                "EditExpectation",
@@ -80155,8 +80429,8 @@
                            "name":  "mControl_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  169,
-                           "endLine":  173,
+                           "startLine":  172,
+                           "endLine":  176,
                            "lineCount":  5,
                            "directCalls":  [
                                                "ExpectationChoices",
@@ -80180,12 +80454,13 @@
                            "name":  "mUse_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  175,
-                           "endLine":  183,
-                           "lineCount":  9,
+                           "startLine":  178,
+                           "endLine":  187,
+                           "lineCount":  10,
                            "directCalls":  [
                                                "ReleaseDraft",
                                                "SelectedValue",
+                                               "Staged",
                                                "UseExpectation",
                                                "Valid",
                                                "ValidateBinding"
@@ -80205,8 +80480,8 @@
                            "name":  "mCancel_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  185,
-                           "endLine":  187,
+                           "startLine":  189,
+                           "endLine":  191,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ReleaseDraft"
@@ -80226,8 +80501,8 @@
                            "name":  "ReleaseDraft",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  189,
-                           "endLine":  196,
+                           "startLine":  193,
+                           "endLine":  200,
                            "lineCount":  8,
                            "directCalls":  [
                                                "CloseExpectation"
@@ -80247,8 +80522,8 @@
                            "name":  "UserForm_QueryClose",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  198,
-                           "endLine":  208,
+                           "startLine":  202,
+                           "endLine":  212,
                            "lineCount":  11,
                            "directCalls":  [
                                                "Disconnect",
@@ -80277,8 +80552,8 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  210,
-                           "endLine":  218,
+                           "startLine":  214,
+                           "endLine":  222,
                            "lineCount":  9,
                            "directCalls":  [
                                                "ApplyAnchoredLayout",
@@ -80322,8 +80597,8 @@
                            "name":  "ArrangeColumns",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  220,
-                           "endLine":  227,
+                           "startLine":  224,
+                           "endLine":  231,
                            "lineCount":  8,
                            "directCalls":  [
                                                "Control"
@@ -80343,8 +80618,8 @@
                            "name":  "UserForm_Layout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  229,
-                           "endLine":  232,
+                           "startLine":  233,
+                           "endLine":  236,
                            "lineCount":  4,
                            "directCalls":  [
                                                "ApplyAnchoredLayout",
@@ -80377,9 +80652,9 @@
                            "name":  "UserForm_Initialize",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  29,
-                           "endLine":  56,
-                           "lineCount":  28,
+                           "startLine":  32,
+                           "endLine":  63,
+                           "lineCount":  32,
                            "directCalls":  [
                                                "Add",
                                                "ConfigureForForm",
@@ -80422,8 +80697,8 @@
                            "name":  "BindContext",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  58,
-                           "endLine":  62,
+                           "startLine":  65,
+                           "endLine":  69,
                            "lineCount":  5,
                            "directCalls":  [
                                                "ClearContent",
@@ -80444,8 +80719,8 @@
                            "name":  "ContextValid",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  64,
-                           "endLine":  67,
+                           "startLine":  71,
+                           "endLine":  74,
                            "lineCount":  4,
                            "directCalls":  [
                                                "CaptureContext",
@@ -80466,8 +80741,8 @@
                            "name":  "RefreshPaths",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  69,
-                           "endLine":  93,
+                           "startLine":  76,
+                           "endLine":  100,
                            "lineCount":  25,
                            "directCalls":  [
                                                "ClearContent",
@@ -80491,12 +80766,15 @@
                            "name":  "ReadSelection",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  95,
-                           "endLine":  103,
-                           "lineCount":  9,
+                           "startLine":  102,
+                           "endLine":  122,
+                           "lineCount":  21,
                            "directCalls":  [
+                                               "ClearSelection",
+                                               "CloseLibrary",
                                                "ContextValid",
                                                "ReadPath",
+                                               "RefreshExpectation",
                                                "Succeeded"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -80511,14 +80789,59 @@
                        },
                        {
                            "componentName":  "frmActionPaths",
+                           "name":  "RefreshExpectation",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  124,
+                           "endLine":  127,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "ContextValid",
+                                               "ExpectationSummary"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPaths",
+                           "name":  "mExpected_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  129,
+                           "endLine":  132,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "ContextValid",
+                                               "OpenForRun"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mExpected_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPaths",
                            "name":  "ClearContent",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  105,
-                           "endLine":  109,
-                           "lineCount":  5,
+                           "startLine":  134,
+                           "endLine":  141,
+                           "lineCount":  8,
                            "directCalls":  [
-
+                                               "ClearSelection",
+                                               "CloseLibrary"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -80535,8 +80858,8 @@
                            "name":  "mPaths_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  111,
-                           "endLine":  113,
+                           "startLine":  143,
+                           "endLine":  145,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ReadSelection"
@@ -80556,8 +80879,8 @@
                            "name":  "mSearch_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  115,
-                           "endLine":  117,
+                           "startLine":  147,
+                           "endLine":  149,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshPaths"
@@ -80577,8 +80900,8 @@
                            "name":  "mRefresh_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  119,
-                           "endLine":  121,
+                           "startLine":  151,
+                           "endLine":  153,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshPaths"
@@ -80598,8 +80921,8 @@
                            "name":  "mClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  123,
-                           "endLine":  125,
+                           "startLine":  155,
+                           "endLine":  157,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -80621,11 +80944,11 @@
                            "name":  "UserForm_QueryClose",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  127,
-                           "endLine":  129,
-                           "lineCount":  3,
+                           "startLine":  159,
+                           "endLine":  165,
+                           "lineCount":  7,
                            "directCalls":  [
-
+                                               "ClearContent"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -80650,8 +80973,8 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  131,
-                           "endLine":  139,
+                           "startLine":  167,
+                           "endLine":  175,
                            "lineCount":  9,
                            "directCalls":  [
                                                "ApplyAnchoredLayout",
@@ -80695,8 +81018,8 @@
                            "name":  "UserForm_Layout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  141,
-                           "endLine":  143,
+                           "startLine":  177,
+                           "endLine":  179,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ApplyAnchoredLayout"
@@ -82542,6 +82865,155 @@
                            "lineCount":  12,
                            "directCalls":  [
                                                "Add"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationEditor",
+                           "name":  "OpenForRecording",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  10,
+                           "endLine":  12,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Present"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationEditor",
+                           "name":  "OpenForRun",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  14,
+                           "endLine":  16,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Present"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationEditor",
+                           "name":  "Present",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  18,
+                           "endLine":  28,
+                           "lineCount":  11,
+                           "directCalls":  [
+                                               "BindContext",
+                                               "CloseEditor",
+                                               "ValidateBinding"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationEditor",
+                           "name":  "Staged",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  30,
+                           "endLine":  32,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "RefreshExpectation"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationEditor",
+                           "name":  "CloseRecording",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  34,
+                           "endLine":  36,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "CloseEditor"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationEditor",
+                           "name":  "CloseLibrary",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  38,
+                           "endLine":  41,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "CloseEditor"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationEditor",
+                           "name":  "CloseEditor",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  43,
+                           "endLine":  50,
+                           "lineCount":  8,
+                           "directCalls":  [
+                                               "ReleaseDraft"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -104613,7 +105085,8 @@
                                                "AccumulateLatestRecipeVersionProduction",
                                                "CurrentProductionWarehouseId",
                                                "GetLocalStagedDesignIdentities",
-                                               "ListDesigns"
+                                               "ListDesigns",
+                                               "Staged"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -104745,7 +105218,8 @@
                                                "GetLocalStagedDesignIdentities",
                                                "IsUsableProductionArray",
                                                "Keys",
-                                               "NzStr"
+                                               "NzStr",
+                                               "Staged"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -107641,7 +108115,8 @@
                                                "IsUsableProductionArray",
                                                "JsonPayloadNumberField",
                                                "JsonPayloadStringField",
-                                               "NzStr"
+                                               "NzStr",
+                                               "Staged"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -111522,6 +111997,7 @@
                                                "RecipeLinesHasProcess",
                                                "RefreshProductionRecipesFromRuntime",
                                                "SheetExists",
+                                               "Staged",
                                                "WorkbookSheetExists",
                                                "WriteProductionTextCell"
                                            ],
@@ -147023,6 +147499,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ClosePath",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beRecordingReader.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "CloseSettings",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
@@ -150763,6 +151245,19 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Present",
+                               "testPaths":  [
+                                                 "tests/integration/prove_wan_wh1_setup.bas",
+                                                 "tests/integration/prove_wan_wh2_setup.bas",
+                                                 "tests/integration/test_RetireMigrate.bas",
+                                                 "tests/tooling/Test-R1ControlSurface.ps1",
+                                                 "tests/tooling/Test-Slice0ToolContracts.ps1",
+                                                 "tests/tooling/Test-Slice4bfDeployment.ps1",
+                                                 "tests/unit/TestPhase6CoreSurfaces.bas",
+                                                 "tests/unit/TestPhase6RoleSurfaces.bas"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "Preview",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
@@ -152851,6 +153346,67 @@
                                                  "tests/unit/TestReceivingStabilization.bas",
                                                  "tests/unit/TestWarehouseRetireLifecycle.bas",
                                                  "tests/unit/TestWarehouseRetireMigration.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Stage",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beActionPathPreference.ps1",
+                                                 "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingFreshness.ps1",
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                 "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
+                                                 "tests/tooling/Slice4beSettingsOpenTrace.ps1",
+                                                 "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingCapability.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
+                                                 "tests/tooling/Slice4beShippingContext.ps1",
+                                                 "tests/tooling/Slice4beShippingInterruptions.ps1",
+                                                 "tests/tooling/Test-PackagedExternalEdits.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4apNamedRecipeGraph.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4aqOutputFlow.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4arProductionClarity.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4pReceiving.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4tShippingPostSend.ps1",
+                                                 "tests/tooling/Test-Release1OrderedChildExit.ps1",
+                                                 "tests/tooling/Test-Slice10ReceivingStabilization.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/unit/TestPhase6CoreSurfaces.bas",
+                                                 "tests/unit/TestReceivingStabilization.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Staged",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
+                                                 "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                 "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingCatalog.ps1",
+                                                 "tests/tooling/Slice4beTrackingPolicy.ps1",
+                                                 "tests/tooling/Test-Slice10ReceivingStabilization.ps1",
+                                                 "tests/tooling/Test-Slice11ShippingBoxingStabilization.ps1",
+                                                 "tests/unit/TestInventoryApply.bas",
+                                                 "tests/unit/TestPhase6CoreSurfaces.bas",
+                                                 "tests/unit/TestPhase6RoleSurfaces.bas",
+                                                 "tests/unit/TestProductionSessionService.bas",
+                                                 "tests/unit/TestStub_modTS_Received.bas"
                                              ]
                            },
                            {
@@ -156192,6 +156748,13 @@
                              "procedure":  "mExpectationButton_Click",
                              "rootKind":  "CLASS_EVENT",
                              "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mExpected_Click",
+                             "procedure":  "mExpected_Click",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {

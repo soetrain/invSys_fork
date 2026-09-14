@@ -67,7 +67,7 @@ Private Function Start(ByVal context As String, ByRef report As String) As Boole
     mContext = context: mCount = 0: mVersion = 0: mPreviousId = "": mPreviousHash = ""
     Set mObservations = New Collection
     Set mExpectation = modExpectationModel.NoneDefinition()
-    modExpectationDraft.Discard ""
+    modExpectationDraft.DiscardRecording
     Set mSeen = CreateObject("Scripting.Dictionary"): Set mPending = CreateObject("Scripting.Dictionary")
     mBusy = True
     Start = AppendEntry("Start", "Recording", "", mObservations)
@@ -216,7 +216,7 @@ Private Function CloseRun(ByVal life As String, ByVal reason As String) As Boole
 Failed:
     If Err.Number <> 0 Then mReport = "Incomplete evidence: recording closure could not be saved."
     mActive = False: mBusy = False
-    modExpectationDraft.Discard ""
+    modExpectationDraft.DiscardRecording
     Set mExpectation = Nothing
 End Function
 
