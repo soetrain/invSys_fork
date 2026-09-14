@@ -95,18 +95,21 @@ and 34 changes limited to capitalization with identical string literals. There
 are no unexpected source differences, and all inspected package bytes remain
 unchanged.
 
-Static evidence is **206 components / 5,700 procedures / 127,033 lines**, nine
+Current source static evidence is **206 components / 5,700 procedures / 127,035 lines**, nine
 literal and 45 unresolved Application.Run calls, 189 duplicate-body groups and
-28 oversized-module ratchets. Plan 022 records the four-line snapshot-orchestrator
-exception (1,753 to 1,757); the implementation remains in the new bounded class.
+28 oversized-module ratchets. Plan 022 records the six-line snapshot-orchestrator
+exception (1,753 to 1,759); the implementation remains in the new bounded class.
 No other oversized-module growth or duplicate-body increase is authorized.
 
 The atomic candidate passes Detail **34/34**, Refresh **16/16**, Settings
-**187/187**, populated Viewer and packaged smoke **86/86**. Two unchanged-package
+**187/187**, populated Viewer, packaged smoke **86/86** and full Receiving
+**854/854**, retaining every preceding Receiving check identity and GREEN result,
+with no duplicate checks. Source layout checks pass Shipping status **4/4** and
+Production run-list **7/7**; these are not native packaged layout evidence.
+Two unchanged-package
 full-chain attempts stop at projection rebuild with a native Excel failure:
 top-level **4 PASS / 1 harness failure**, ordered live child **32 PASS / 1 harness
-failure**. Neither attempt is behavioral RED or acceptance GREEN. Receiving has
-not yet run against this candidate.
+failure**. Neither attempt is behavioral RED or acceptance GREEN.
 
 The interrupted CompileOnly diagnostic completed **48/48** live-role checks after
 an unsaved, unused Core procedure forced recompilation. This is diagnostic evidence
@@ -128,6 +131,43 @@ with publication enabled, this does not isolate publication as the crash cause.
 The bypass is never saved, shipped or treated as acceptance. Its first attempt
 stopped before workflow execution because an exact-case source anchor did not
 match VBE-normalized identifiers; the corrected lookup requires exactly one match.
+
+The same full-chain runner subsequently passes against the pre-publication
+`validation-designs-publication-source` baseline: **31/31**, with ordered live
+**48/48**. This establishes a passing comparison in the current environment;
+it does not identify the candidate's native-crash cause. A separate
+`validation-events-publication-local-result` experiment assigns the Events result
+to a local string before copying it to the optional output parameter. Five packages
+compile, and only the snapshot-owner component differs from the atomic candidate.
+Its full chain passes **31/31**, with ordered live **48/48**. The source now uses
+that same per-call local result, retaining D18's independent output semantics.
+A fresh `validation-events-publication-reviewed` build compiles all five packages,
+resolves cold-start dependencies and changes only the expected snapshot-owner
+component against the atomic candidate's 199 components. Its chain reports
+**31/31**, ordered live **48/48**, publication **66/66**, Detail **34/34** and
+Refresh **16/16**. Settings stops at **54 PASS / 1 harness failure** on reopening
+after the actual Close action, so candidate regression acceptance remains open.
+
+Windows fault records also exist after the passing baseline, local-result and
+reviewed live runs. Their process creation times are later than the respective
+live report completion times; they do not identify the live-role instances.
+The subsequent reconciliation/cleanup phase requires process ownership evidence
+before attribution. Passing rows alone do not establish clean native shutdown.
+Neither the local-string experiment nor the generic fault labels establish a
+general native-crash cause or an Office installation defect.
+
+The optional unsaved Settings constructor trace reproduces 54/1 and stops during
+layout construction on its third explicit OpenSettings call, without a recorded
+VBA error. Its separate diagnostic result is not behavioral RED or acceptance
+GREEN. The surviving recovery process is proven by the test's parent/birth
+receipt and has no ordinary workbooks; closure without saving preserves all
+three loaded add-in files. Finer layout tracing completes **187/187**, retaining
+all check identities without duplicates. Its 258 trace rows contain only numeric
+attempt/stage/error values. The saved-policy capture is inspected and Excel closes.
+The subsequent **uninstrumented Settings regression passes 187/187**, with every
+check identity and GREEN result preserved and no duplicates. This closes the
+candidate Settings gate; the earlier native failures remain unexplained. The
+remaining serial package regressions and clean-shutdown attribution stay open.
 
 Preservation verification matches all **175 historical package pins**, **15 prior
 publication-candidate pins** and **15 protected source files**. The remaining
@@ -173,6 +213,33 @@ Ignored reports under `reports/runtime/`:
   `events-live-bypasspublication-c46564f602fd4b37b91d4d2c977ea738/result.json`:
   isolated live failure and non-acceptance bypass diagnostic.
 - `events-publication-preservation.json`: historical package/source preservation.
+- `events-publication-atomic-receiving.log`, `events-publication-receiving-green.json`
+  and `events-publication-receiving-comparison.json`: 854/854, retaining every
+  prior check identity and GREEN result without duplicates.
+- `events-publication-status-layout-source.log` and
+  `events-publication-production-layout-source.log`: source geometry checks.
+- `events-publication-baseline-chain-comparison.log`,
+  `events-publication-baseline-chain-comparison.md` and
+  `events-publication-baseline-live-comparison.json`: current baseline31/31 and48/48.
+- `events-publication-local-result/` and `events-publication-local-result-chain.log`:
+  isolated local-output experiment; chain31/31 and live48/48.
+- `events-publication-reviewed-compiled.json`,
+  `events-publication-reviewed-source-comparison.json`,
+  `events-publication-reviewed-maintenance-comparison.json` and
+  `events-publication-reviewed-chain.md`: fresh source package and chain evidence.
+- `events-publication-reviewed-regressions.json`: publication66, Detail34,
+  Refresh16 and the Settings54/1 failure; later serial gates did not run.
+- `events-publication-excel-fault-processes.json`: post-live native fault timing,
+  with phase attribution unresolved.
+- `slice4be-tracking-settings/c02dcf6db8254048967cb441535517f0/`:
+  numeric constructor trace, diagnostic54/1 and first-call process receipt.
+- `events-publication-reviewed-settings-trace-recovery.json`: exact test-process
+  ownership, empty ordinary-workbook set, unchanged add-in bytes and Excel closed.
+- `slice4be-tracking-settings/de8d2cf63196402d8bf6cb70365e90d9/`: finer layout
+  diagnostic187/187, numeric trace and inspected saved-policy capture.
+- `slice4be-tracking-settings/54a0eceb233c487f9a32d9067b4b3905/` and
+  `events-publication-reviewed-settings-comparison.json`: uninstrumented187/187
+  with every check identity/GREEN preserved and no duplicates.
 
 Accepted deployment and operational/NAS workbooks remain outside this candidate.
 Unrelated handoff 067 and critique 023 must remain unstaged and unchanged.

@@ -20,6 +20,7 @@ param(
     [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
     [switch]$TraceBootstrapForTest,
+    [switch]$TraceSettingsOpenForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
     [switch]$PrepareShippingFixturesBeforeProbesForTest,
     [switch]$ShippingSubmissionOnly,
@@ -44,6 +45,9 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($TraceSettingsOpenForTest -and ($Phase -ne 'RED' -or -not $CheckTrackingSettings)) {
+    throw 'Settings constructor tracing requires RED and the Settings checks; it is not acceptance GREEN.'
+}
 if($AdminSettingsCloseOnly) { $CheckAdminSettingsClose = $true }
 if($ViewerPublicationOnly) {
     if($Phase -ne 'RED'){throw 'Publication-only diagnosis is not acceptance GREEN.'}
@@ -424,6 +428,10 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beActionPathPreference.ps1')
         Install-Slice4beActionPathPreferenceProbe $testModule $formCode
     }
+    if($TraceSettingsOpenForTest) {
+        . (Join-Path $PSScriptRoot 'Slice4beSettingsOpenTrace.ps1')
+        Install-Slice4beSettingsOpenTrace $testModule $formCode (Join-Path $reportRoot 'settings-open-stages.csv')
+    }
     $bootstrapCode=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modWarehouseBootstrap').CodeModule
     if($CheckShippingActivity){
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
@@ -686,6 +694,7 @@ finally {
     if($ViewerPublicationOnly){$reportName='diagnostic-publication-'+$reportName}
     if ($ShippingSubmissionOnly) { $reportName='diagnostic-submission-'+$reportName }
     if ($TraceBootstrapForTest) { $reportName='diagnostic-bootstrap-'+$reportName }
+    if ($TraceSettingsOpenForTest) { $reportName='diagnostic-settings-open-'+$reportName }
     if ($ShippingBeforeSharedFormsForTest) { $reportName='diagnostic-shipping-first-'+$reportName }
     if ($PrepareShippingFixturesBeforeProbesForTest) { $reportName='diagnostic-prepared-fixtures-'+$reportName }
     if ($CheckReceivingNavigationActivity) { $reportName='navigation-'+$reportName }
