@@ -3398,13 +3398,14 @@
                            "name":  "modRecordingSession",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modRecordingSession.bas",
-                           "lineCount":  201,
+                           "lineCount":  208,
                            "procedureNames":  [
                                                   "ActiveFor",
                                                   "AppendEntry",
                                                   "CloseRun",
                                                   "ExecuteCommand",
                                                   "Interrupt",
+                                                  "InterruptAction",
                                                   "InterruptContext",
                                                   "Observe",
                                                   "Prepare",
@@ -36249,7 +36250,7 @@
                                                "Control",
                                                "Decode",
                                                "Encode",
-                                               "Interrupt",
+                                               "InterruptAction",
                                                "MakeBody",
                                                "NewId",
                                                "Observe",
@@ -54702,11 +54703,32 @@
                        },
                        {
                            "componentName":  "modRecordingSession",
-                           "name":  "Interrupt",
+                           "name":  "InterruptAction",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
                            "startLine":  166,
-                           "endLine":  169,
+                           "endLine":  171,
+                           "lineCount":  6,
+                           "directCalls":  [
+                                               "Interrupt"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "Interrupt",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  173,
+                           "endLine":  176,
                            "lineCount":  4,
                            "directCalls":  [
                                                "CloseRun"
@@ -54726,8 +54748,8 @@
                            "name":  "CloseRun",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  171,
-                           "endLine":  186,
+                           "startLine":  178,
+                           "endLine":  193,
                            "lineCount":  16,
                            "directCalls":  [
                                                "AppendEntry"
@@ -54747,8 +54769,8 @@
                            "name":  "AppendEntry",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  188,
-                           "endLine":  201,
+                           "startLine":  195,
+                           "endLine":  208,
                            "lineCount":  14,
                            "directCalls":  [
                                                "Add",
@@ -144561,6 +144583,7 @@
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
+                                                 "tests/tooling/Slice4beRecordingIsolation.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Plan022Slice4aaProcessBulkImport.ps1",
@@ -145205,6 +145228,7 @@
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingIsolation.ps1",
                                                  "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
@@ -147103,6 +147127,7 @@
                                "entryPoint":  "Finish",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
+                                                 "tests/tooling/Slice4beRecordingIsolation.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1"
                                              ]
                            },
@@ -147110,7 +147135,8 @@
                                "entryPoint":  "FinishAction",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
-                                                 "tests/tooling/Slice4beReceivingReferences.ps1"
+                                                 "tests/tooling/Slice4beReceivingReferences.ps1",
+                                                 "tests/tooling/Slice4beRecordingIsolation.ps1"
                                              ]
                            },
                            {
@@ -147999,6 +148025,7 @@
                                "entryPoint":  "JournalRoot",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionRecording.ps1",
+                                                 "tests/tooling/Slice4beRecordingIsolation.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1"
                                              ]
                            },
@@ -148018,6 +148045,7 @@
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
+                                                 "tests/tooling/Slice4beRecordingIsolation.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingPrewriteRefusal.ps1",
@@ -148469,6 +148497,7 @@
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingNativeSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beRecordingIsolation.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
@@ -149353,6 +149382,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingIsolation.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
@@ -149374,6 +149404,7 @@
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingIsolation.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
@@ -151626,6 +151657,7 @@
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingIsolation.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beSettingsOpenTrace.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",

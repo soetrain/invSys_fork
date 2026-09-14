@@ -375,6 +375,99 @@ Ignored evidence: `recording-isolation-red.log`, `recording-isolation-red-exit.j
 `recording-isolation-red-summary.json` and `recording-isolation-desktop.json` under
 `reports/runtime/`.
 
+The expanded pre-implementation matrix adds stale append-failure and result-
+exception cases, plus the corresponding owning-sequence positive controls.
+A conflicting generated activity file exercises Append=False; a test-only
+exception at the resolved owning-action boundary exercises the actual
+FinishAction error handler. All outcomes come from real Admin Save Value actions.
+Restore exact fixture bytes and clear the exception selector; journal
+observations and business outcomes are never fabricated. An owning
+failure must still append an Incomplete Close, so suppressing all interruption
+cannot satisfy the test. The first extension stops75PASS/1harness failure because
+reusing the Settings value produces a legitimate UNCHANGED outcome, unsuitable
+for this COMPLETED fixture. That run supplies no new RED. The corrected matrix
+uses distinct values and runs before any runtime change. That corrected-value
+run completes94/11: six valid failures reproduce stale policy/append interruption,
+but five assertions belong to a CVErr-based exception fixture that did not reach
+the intended error branch. Those five failures are excluded from behavioral RED.
+Replace coercion with a calibrated Err.Raise after action/context resolution in
+the disposable unsaved Core project; require the actual sanitized result-error
+response before counting exception isolation. The package files remain unchanged.
+
+The first explicit-error probe stops68/1 because its case-sensitive marker does
+not match VBE's `Action` identifier spelling; no exception case ran. A read-only
+package probe verifies exactly one case-insensitive resolved-action marker.
+The calibrated matrix then completes **96PASS/9FAIL** across105 unique checks,
+without a harness failure. All nine failures are the three stale-result symptoms
+under policy, append-conflict and exception cases. Both active-sequence failure
+controls pass every check, including immutable prior entries and Incomplete Close.
+
+The implementation adds internal `modRecordingSession.InterruptAction`, checking
+the action's captured Context and exact SequenceId before delegating interruption.
+FinishAction's three failure paths use it. Global authentication/context/policy
+boundaries retain their existing behavior. This enforces D18 ownership without
+adding UI, write authority or a cross-package contract. The new isolated
+`deploy/validation-recording-isolation` candidate builds and explicitly compiles
+all five packages, including Operations cold-start dependency validation. Compile
+initially deferred while build Excel exited; a subsequent closed-process check
+allowed compile of the same candidate, without rebuilding.
+
+Static generation reports218 components/5777 procedures,1149 unchanged scanner
+candidate identities and1151 reviewed candidates,192 duplicate groups,45 unresolved/
+9 literal calls. Every28 oversized source-file limit is preserved; the sole added
+procedure is6 lines. Existing RDR-UI-THUNKS-01 scope is unchanged. The expanded154-
+check focused gate and full chain remain required.
+
+The first combined candidate run reaches109PASS/1harness failure. All37 isolation
+checks pass, including the nine corrected stale-result assertions and owning-
+failure controls; reader entry then loses its packaged RPC connection
+(0x800706BE). Reader/storage gates and the chain do not complete. This is partial
+GREEN evidence, not a passing154-check gate. Its exact owned child has zero
+workbooks. Normal Quit is requested; the helper refuses forced termination while
+a native window remains, and a subsequent process check verifies normal exit.
+No forced stop occurs and all five candidate hashes are preserved. The helper's
+guarded exit1 is retained; do not claim its post-Quit project-hash loop completed.
+No Excel Application Error1000 is observed at the subsequent query, which does
+not resolve the RPC/recovery failure. An unchanged candidate/test retry is running
+before the full chain; native-clean and visible acceptance remain unproven.
+
+The unchanged retry completes **154/154 GREEN**, exit0, preserving every check
+identity from the prior117-check reader baseline,130-check original isolation
+run and105-check calibrated matrix. The compiled-source comparison covers211
+components in each candidate; only modActivity and modRecordingSession differ.
+This proves the corrected interruption scope while retaining owning failures,
+idempotence, journal/policy/context reads, layouts and256-action/1MiB boundaries.
+The same candidate completes the full Release1 chain **31/31**, live-role
+**48/48**, and Create Warehouse **15/15**, exit0. All five candidate hashes are
+unchanged and the three tracked fixture reports are restored exactly. No Excel
+Application Error1000 was observed during that chain window. The first combined
+RPC failure is not erased by the successful retry.
+
+The chain leaves one residual Excel instance. Read-only inspection identified
+zero workbooks and three loaded add-in projects; normal Quit was requested and
+all three add-in files remained unchanged afterward. The process persists with
+a visible native dialog whose text is unavailable through automation. No forced
+termination occurred. Its relationship to registration restoration is suspected,
+not proven. Null COM properties during shutdown are not evidence of empty state.
+Excel closure, clean native reliability and visible human acceptance remain open;
+no further build or Excel job is started while the residual remains.
+
+A read-only hash snapshot verifies **260 package pins**,15 protected source files
+unchanged and one previously reviewed Shipping visibility-only difference. This
+snapshot records ExcelClosed=False and does not claim clean shutdown. The initial
+additional-pin script incorrectly wrapped ConvertFrom-Json arrays; correcting
+that PowerShell enumeration made the70 additional pin checks pass without changing
+packages. This was a verifier setup error, not product RED.
+
+Final ignored evidence under `reports/runtime/`: `recording-isolation-green-summary.json`,
+`recording-isolation-focused-retry.log`, `recording-isolation-chain-summary.json`,
+`recording-isolation-chain.md`, `recording-isolation-chain-live.md`,
+`recording-isolation-chain-create.md`, `recording-isolation-maintenance-checks.json`,
+`recording-isolation-compiled-diff.json`, `recording-isolation-chain-residual-closure.json`,
+`recording-isolation-chain-residual-window-classes.json`,
+`recording-isolation-historical-preservation.json` and
+`recording-isolation-final-preservation.json`.
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-recording-owner-provenance -Phase RED -CheckRecordingReader -CheckRecordingLimits -CheckRecordingStorageBounds -CheckRecordingIsolation
 ```

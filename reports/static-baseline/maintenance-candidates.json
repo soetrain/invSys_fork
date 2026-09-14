@@ -4,8 +4,8 @@
     "generatedAtUtc":  "2026-07-27T20:00:00Z",
     "baseline":  {
                      "componentCount":  218,
-                     "procedureCount":  5776,
-                     "lineCount":  128376,
+                     "procedureCount":  5777,
+                     "lineCount":  128383,
                      "literalApplicationRunCount":  9,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192

@@ -163,6 +163,13 @@ Public Sub InterruptContext(ByVal context As String, ByVal reason As String)
     If context <> "" And context = mContext Then Interrupt reason
 End Sub
 
+Public Sub InterruptAction(ByVal action As Object, ByVal reason As String)
+    If Not mActive Or mBusy Then Exit Sub
+    If action Is Nothing Then Exit Sub
+    If Not action.Exists("Context") Or Not action.Exists("SequenceId") Then Exit Sub
+    If action("Context") = mContext And action("SequenceId") = mHeader("SequenceId") Then Interrupt reason
+End Sub
+
 Public Sub Interrupt(ByVal reason As String)
     If Not mActive Or mBusy Then Exit Sub
     CloseRun "Incomplete", reason

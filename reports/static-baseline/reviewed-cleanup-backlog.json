@@ -3,8 +3,8 @@
     "reportType":  "reviewed-cleanup-backlog",
     "generatedAtUtc":  "2026-07-27T20:00:00Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "abc960bb06068935826bf4ca85c74dd139afffb677af85d10b8dcf9649f6608f",
-                          "maintenanceCandidatesSha256":  "361800e04a54bb6a91b5d0d56bde5b49f52b86debf1b25d72b277bde30a57642"
+                          "implementationManifestSha256":  "365b4f23c0734d146c4e7da2dfb1a91bf86212f13602b9a90565e2fd09bc7d91",
+                          "maintenanceCandidatesSha256":  "0faf959fb70012123528924b67143d152b785a17f30155a8ac5bcdde4788750b"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,

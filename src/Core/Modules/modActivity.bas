@@ -96,7 +96,7 @@ Public Function FinishAction(ByVal activityId As String, ByVal outcomeCode As St
     mBusy = True
     If Not modActivityPolicy.ReadPolicy(target, action("ControlId"), version, collect, visible, notice) Then GoTo CleanExit
     If (Not collect And Not CBool(action("CaptureCollected"))) Or version <> CLng(action("PolicyVersion")) Then
-        modRecordingSession.Interrupt "POLICY_CHANGED"
+        modRecordingSession.InterruptAction action, "POLICY_CHANGED"
         notice = "Tracking unavailable: the tracking policy changed during this action."
         GoTo CleanExit
     End If
@@ -121,13 +121,13 @@ Public Function FinishAction(ByVal activityId As String, ByVal outcomeCode As St
     If FinishAction Then
         modRecordingSession.Observe action("OutcomeBody"), notice
     Else
-        modRecordingSession.Interrupt "TRACKING_UNAVAILABLE"
+        modRecordingSession.InterruptAction action, "TRACKING_UNAVAILABLE"
     End If
 CleanExit:
     mBusy = False
     Exit Function
 Failed:
-    modRecordingSession.Interrupt "TRACKING_UNAVAILABLE"
+    modRecordingSession.InterruptAction action, "TRACKING_UNAVAILABLE"
     notice = "Tracking unavailable: the result could not be recorded."
     Resume CleanExit
 End Function
