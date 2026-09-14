@@ -38,6 +38,12 @@ Public Function RecordingExpectationForTest(ByVal formName As String, ByVal cont
                 Case "Value", "ValueAnyVisibility": RecordingExpectationForTest = CStr(control.Value): Exit Function
                 Case "Caption": RecordingExpectationForTest = CStr(control.Caption): Exit Function
                 Case "Locked": RecordingExpectationForTest = CStr(control.Locked): Exit Function
+                Case "ViewportTop", "ViewportBottom"
+                    If Not control.Locked Then RecordingExpectationForTest = "UNLOCKED": Exit Function
+                    control.SetFocus
+                    control.SelStart = IIf(action = "ViewportBottom", Len(CStr(control.Value)), 0)
+                    control.SelLength = 0
+                    target.Repaint: DoEvents
                 Case Else: Err.Raise 5, , "Unsupported expectation probe action."
             End Select
             RecordingExpectationForTest = "DELIVERED": Exit Function
@@ -75,6 +81,7 @@ Public Function RecordingExpectationLayoutForTest(ByVal formName As String, ByVa
     Next control
     RecordingExpectationLayoutForTest = "FITS"
 End Function
+
 '@)
 }
 

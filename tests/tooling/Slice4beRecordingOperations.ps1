@@ -166,9 +166,17 @@ End Function
     Check 'RecordingOperations.ActualRefreshPreparesManagedItems' $ready
     if(-not $ready){throw 'Actual Receiving Refresh did not prepare managed item choices.'}
     ObserveRecordingOther 'Prepared'
-    OpenRecordingViewer
-    [void](Run 'invSys.Core.xlam' 'TestRecordingDeferred.SetWithhold' @($true))
+    $visualVisibility=$null
+    if($CheckEvaluationVisualEvidence){
+        $visualVisibility=$excel.Visible
+        if($null -eq $visualVisibility){throw 'Excel visibility is unavailable; not product RED.'}
+    }
     try {
+        # Set native visibility before creating Viewer/library windows, as in
+        # the existing editor capture fixture. VBA Visible alone is insufficient.
+        if($CheckEvaluationVisualEvidence){$excel.Visible=$true}
+        OpenRecordingViewer
+        [void](Run 'invSys.Core.xlam' 'TestRecordingDeferred.SetWithhold' @($true))
         if((RecordingControl 'Start Recording' 'Click') -cne 'DELIVERED'){throw 'Actual Start control unavailable.'}
         $first=SaveRecordedSetting '651';$sequence=[string]$first.Attempt.SequenceId
         ObserveRecordingOther 'FirstAdminSave'
@@ -259,6 +267,10 @@ End Function
             Check ('RecordingOperations.'+$stage+'.RepeatedSourceReferencesVisible') $referencesVisible
             Check ('RecordingOperations.'+$stage+'.NoConclusionWithoutExpectation') ($evidence -notmatch '(?i)conclusion observed')
             if($CheckRecordingEvaluation){Test-RecordingEvaluationStage $stage}
+            if($CheckEvaluationVisualEvidence){
+                . (Join-Path $PSScriptRoot 'Slice4beEvaluationVisualEvidence.ps1')
+                Test-EvaluationVisualEvidence $stage
+            }
             ObserveRecordingOther ($stage+'Viewer')
             if($CaptureEvidence){CaptureFormEvidence 'Action Paths' ('recording-operations-'+$stage.ToLowerInvariant()+'.png')}
         }
@@ -284,6 +296,7 @@ End Function
         Check 'RecordingOperations.UnrelatedContentsPreserved' ($lastOther.SheetCount -eq 1 -and $lastOther.UsedRows -eq 1 -and $lastOther.UsedColumns -eq 1 -and $lastOther.SentinelPreserved)
     } finally {
         $otherObservations|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $reportRoot 'recording-operations-other-state.json')
+        if($CheckEvaluationVisualEvidence){$excel.Visible=[bool]$visualVisibility}
         [void](Run 'invSys.Core.xlam' 'TestRecordingDeferred.SetWithhold' @($false))
         CloseRecordingViewer
         [void](Run 'invSys.Operations.xlam' 'modTS_Received.RecordingReceivingForTest' @('Close'))

@@ -29,6 +29,7 @@ param(
     [switch]$CheckRecordingEvaluation,
     [switch]$CheckEvaluationContracts,
     [switch]$CheckExpectationCompatibility,
+    [switch]$CheckEvaluationVisualEvidence,
     [switch]$RecordingEvaluationDiagnostic,
     [switch]$CheckExpectationEditor,
     [string]$RecordingContinuationPipeName = '',
@@ -61,6 +62,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($CheckEvaluationVisualEvidence){$CheckExpectationCompatibility=$true}
 if($RecordingEvaluationDiagnostic){
     if($Phase -ne 'RED' -or -not $CheckExpectationCompatibility){throw 'Evaluation isolation requires RED and the full evaluation contract probes; it is not regression acceptance.'}
     if($CheckRecordingLimits -or $CheckRecordingStorageBounds -or $CheckRecordingRestart -or $CheckExpectationEditor){throw 'Run limits, storage, restart and editor-only gates separately from evaluation diagnosis.'}

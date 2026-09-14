@@ -4,6 +4,109 @@ Last verified 2026-09-14. Architecture v4.11 D18 and Plan022 govern the explicit
 actor/warehouse sequence, immutable observations and advisory conclusions.
 Slice4be and full Release1 acceptance remain open.
 
+## Diagnostic-pane visible evidence: test entry
+
+The unchanged `7c1bb5e` candidate retains its 324/324 full packaged baseline.
+`-CheckEvaluationVisualEvidence` extends that same route with actual Pending,
+Partial and Applied result captures at minimum/default/larger/restored sizes and
+a scrolled source view. Existing form handlers produce the result; the disposable
+probe changes only size/focus/caret position. Selection, result/text, training and
+activity bytes, publication bytes and publisher/Shipping-owner call counts must
+remain unchanged.
+This implements existing D18 evidence requirements and changes no runtime or
+architectural contract. No behavioral RED is manufactured for test-only capture;
+any actual product defect found requires its own RED before implementation.
+Plan022 and controls v1.143 record the same scope. Human acceptance remains separate.
+
+The first full visual run ends at 109 PASS / one harness exception during Admin
+fixture bootstrap, before the new visual checks. Event1000 records an Excel native
+failure (`c0000028`, `ntdll.dll`); the associated WER report labels it
+`OFFICE_MODULE_VERSION_MISMATCH`. This is an observed label, not an established
+cause or evidence of a repair. WER report/process linkage identifies the subsequent
+recovery instance as belonging to this test crash. Its first valid COM inspection
+finds no workbooks and preserves the three loaded add-in hashes across normal Quit.
+Later COM bindings are unavailable; null collections are not empty-workbook proof.
+Two native recovery dialogs obstruct closure and are absent from the earlier UIA
+tree search. Both are visually inspected, set to **Yes, I want to view these files
+later**, verified selected, and confirmed against the exact owned dialog. Excel
+then exits. No recovery files are discarded and no process is force-terminated.
+The preflight preserves all 315 package pins/protected sources, parses four changed
+scripts and resolves 83 local links. The unchanged full route is retried in a
+separate log; the initial failure remains evidence and is not product RED.
+
+The unchanged retry also ends at 109 PASS / one harness exception at the same
+Operations-fixture Admin bootstrap boundary. Its native event again identifies
+`c0000028` in `ntdll.dll` and the same WER event label. The test-owned recovery
+instance has a valid empty-workbook inspection; normal Quit preserves its three
+loaded package hashes. The remaining recovery prompt is inspected and confirmed
+with retain-for-later selected, after which Excel exits. Repeating the expanded
+gate is suspended. A separate ignored copy of the committed `7c1bb5e` harness now
+runs the original `-CheckExpectationCompatibility` route against the same package
+candidate, to distinguish the added instrumentation from a baseline/environment
+failure. No runtime correction or narrowed acceptance claim follows this failure.
+
+That comparison passes the earlier failing bootstrap and reaches 185 PASS before
+one terminal Excel/RPC exception in `modAdminConsole.RecordingProcessForTest` after
+the Partial stage. All three restored scripts match their committed Git blobs.
+The added viewport probe is therefore not required for an Excel/RPC failure;
+the precise native cause remains unproven. A delayed recovery instance is a direct
+child of the recorded test Excel process, created during that run. It has no open
+workbooks at a valid inspection and closes after normal Quit, with three package
+hashes preserved and no further dialog input required. A launch guard rejects an
+attempt while that recovery process is still present. After confirmed closure,
+the existing `-Phase RED -RecordingEvaluationDiagnostic` route is run with
+`-CheckEvaluationVisualEvidence`. This is scoped diagnosis/visible evidence, not
+a substitute for full 324-check retention and not a newly manufactured product RED.
+
+The diagnostic run fails during bootstrap at 1 PASS / one harness exception. The
+viewport operation is then consolidated into the existing `RecordingExpectationForTest`
+control probe, removing the redundant injected public procedure. That diagnostic
+attempt reaches Pending: all four layout checks, selection/text preservation,
+training/activity byte preservation and publication/owner-call preservation pass.
+All five captures fail native-window discovery, followed by a processor Excel/RPC
+failure: **51 PASS / 6 FAIL** (five captures and one harness failure). The WER-linked
+empty recovery instance closes normally after a verified retain-for-later choice;
+three loaded package hashes remain unchanged.
+
+The capture fixture now sets Excel visibility before creating Viewer/library,
+matching the existing editor fixture, and restores visibility during cleanup.
+The next diagnostic attempt passes bootstrap but loses Excel/RPC in Admin Seed:
+**1 PASS / one harness failure**, before reaching that visibility change. The
+fixture correction therefore remains unverified. No diagnostic-pane image has
+been accepted. Repeated native failures prevent current full-gate completion;
+the historical 324/324 result is not relabelled as a current passing run.
+
+Read-only inspection finds four matching archived WER reports with the
+module-version-mismatch event label and no retained dump in those report folders.
+No `cdb`, `windbg` or `dumpchk` command is available on PATH. Report module paths and
+current on-disk versions do not establish the versions loaded at failure; missing
+version reads are unavailable evidence, not proof of missing/broken Office files.
+No Office repair/update, global setting change, runtime correction or force kill
+is performed. Next: isolate the native fixture/processor failure before repeating
+the complete visual acceptance route, then inspect all fifteen actual-pane images.
+
+Commands (all packages from `deploy/validation-evaluation-selection`):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-evaluation-selection -Phase GREEN -CheckEvaluationVisualEvidence
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-evaluation-selection -Phase RED -CheckEvaluationVisualEvidence -RecordingEvaluationDiagnostic
+```
+
+Ignored evidence uses `reports/runtime/evaluation-visual-`: `full.log`,
+`full-retry.log`, `frozen-comparison.log`, `diagnostic.log`,
+`viewport-diagnostic.log`, `visible-diagnostic.log`, their native/recovery metadata
+and retained-choice captures. `frozen-harness/` holds the comparison's source copy;
+the three restored files are Git-blob verified against `7c1bb5e`. Diagnostic runs
+are explicitly labelled and cannot replace the full route.
+
+Checkpoint verification preserves 315 package pins and the protected sources,
+parses four changed scripts, resolves 83 local links, and retains all 28 module
+limits and the existing duplicate/dynamic-call metrics. Both unrelated document
+hashes remain unchanged. All test sessions are terminal and Excel is closed.
+No runtime source changed, so this evidence-only checkpoint does not claim a new
+build/compile, static regeneration, live-role or full-chain run; the earlier
+candidate results retain their historical scope. Slice4be/Release1 remain open.
+
 ## Evaluation selection continuity: packaged GREEN
 
 The frozen code `01e32ff` candidate remains the 293 PASS / 4 foreground-capture
