@@ -302,6 +302,10 @@ End Function
             $afterLimit=SaveRecordedSetting '999'
             Check 'Recording.Action257ContinuesOutsideClosedSequence' ($afterLimit.Attempt.SequenceId -ceq '' -and $afterLimit.Outcome.SequenceId -ceq '' -and $afterLimit.Attempt.Ordinal -eq 0)
         }
+        if($CheckRecordingIsolation) {
+            . (Join-Path $PSScriptRoot 'Slice4beRecordingIsolation.ps1')
+            Test-Slice4beRecordingIsolation $Fixture
+        }
         if($CheckRecordingReader) {
             . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
             Test-Slice4beRecordingReader $Fixture $b

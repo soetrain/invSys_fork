@@ -23,6 +23,7 @@ param(
     [switch]$CheckRecordingLimits,
     [switch]$CheckRecordingStorageBounds,
     [switch]$CheckRecordingReader,
+    [switch]$CheckRecordingIsolation,
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
@@ -66,6 +67,7 @@ if($CheckViewerFilters) { $CheckViewerPublishedRead = $true }
 if($CheckRecordingLimits) { $CheckActionRecording = $true }
 if($CheckRecordingStorageBounds) { $CheckActionRecording = $true }
 if($CheckRecordingReader) { $CheckActionRecording = $true }
+if($CheckRecordingIsolation) { $CheckActionRecording = $true }
 if($CheckActionRecording) { $CheckViewerPublishedRead = $true }
 if($CheckAdminSettingsClose -and -not $CheckActionPathPreference) { throw 'Admin close requires the complete preference probes.' }
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }

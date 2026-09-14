@@ -338,6 +338,47 @@ detail and chain reports. recording-owner-provenance-prior-checks.json and
 recording-owner-provenance-maintenance-checks.json retain exact comparisons;
 recording-owner-publication-recovery-closure.json retains guarded recovery proof.
 
+## Late-result sequence isolation test entry
+
+Under D18's immutable selected-run and re-entrancy boundaries, an old action's
+result may not terminate a newer recording. The new packaged isolation test
+creates both runs through actual Viewer Start/Stop controls and Admin Save Value.
+It replays only the old handler's recorded COMPLETED outcome, first under the
+same policy and then after actual Settings policy saves. It does not fabricate
+a business result or replay a task. Same-policy replay must remain idempotent;
+an old-policy result must be rejected without changing either journal, current
+recording status, activity bytes or configuration. The new run must still stop
+normally through its actual control.
+
+The current FinishAction calls global Interrupt on policy mismatch, so the
+expected behavioral RED is closure of the new run when the old result is
+rejected. The isolated frozen target is the five-package owner-provenance
+candidate. All117 prior focused identities remain required. No runtime change
+or isolation GREEN is claimed at this checkpoint.
+
+The frozen candidate completes **127 PASS / 3 FAIL**,130 unique checks, retaining
+all117 prior GREEN identities and no harness failure. Same-policy replay passes
+all six controls; changed-policy rejection preserves activity/config bytes but
+fails ReplayPreservesBothJournals, CurrentRunRemainsActive and
+CurrentRunStopsNormally. Those are meaningful behavioral RED: the stale result's
+global policy interruption appends an Incomplete Close to the unrelated new run.
+Five candidate package hashes remain unchanged and Excel closes normally. No
+Excel Application Error1000 is observed during this test window; the preceding
+native faults remain unresolved. Foreground/input-desktop probes are unavailable.
+
+Next implement an internal owning-sequence guard for FinishAction interruption,
+then rerun the exact130-check gate and applicable packaged/regression/maintenance
+gates. Preserve policy rejection and same-policy idempotence; do not suppress
+current-run tracking failures globally. Actual cold interruption/restart,
+Operations sequences, conclusions and comparison remain required.
+Ignored evidence: `recording-isolation-red.log`, `recording-isolation-red-exit.json`,
+`recording-isolation-red-summary.json` and `recording-isolation-desktop.json` under
+`reports/runtime/`.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-recording-owner-provenance -Phase RED -CheckRecordingReader -CheckRecordingLimits -CheckRecordingStorageBounds -CheckRecordingIsolation
+```
+
 ## Foundation raw evidence
 
 - `reports/runtime/action-recording-red.log`
