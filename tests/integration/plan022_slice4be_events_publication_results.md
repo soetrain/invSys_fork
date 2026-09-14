@@ -167,7 +167,28 @@ attempt/stage/error values. The saved-policy capture is inspected and Excel clos
 The subsequent **uninstrumented Settings regression passes 187/187**, with every
 check identity and GREEN result preserved and no duplicates. This closes the
 candidate Settings gate; the earlier native failures remain unexplained. The
-remaining serial package regressions and clean-shutdown attribution stay open.
+reviewed candidate also passes populated Viewer, smoke **86/86**, native Shipping
+layout **1/1**, and reusable Production/restart **2/2**. The serial runner stops
+before Receiving because Excel is still present at its between-test guard;
+subsequent process inspection proves shutdown completed without an intervention.
+Receiving starts separately after that proof. Clean-shutdown fault attribution
+for the earlier full-chain runs remains open.
+The reviewed Receiving run stops **690 PASS / 1 harness failure** when Excel
+rejects NavigationIndex readback after the keyboard cases, before the first
+mouse-case result (`RPC_E_CALL_REJECTED`). The process exits and Excel closes;
+this is neither a behavioral RED nor a completed854 regression. The saved failure
+JSON is verified against the terminal691-check count; the older navigation-only
+report was not the result of this run. The unchanged focused navigation diagnostic
+subsequently passes **266/266**, including the mouse transition and closed-workbook
+guards. This does not explain the earlier failure or replace the complete854 gate;
+a fresh full Receiving retry is running against the unchanged reviewed packages.
+
+An isolated replay of only the full-chain reconciliation and package-inspection
+phases passes **13/13**, with numeric phase/stage/process tracing. It records one
+first-package Close exception in each phase but no matching Excel Application
+Error during the diagnostic. The native fault is not reproduced, so its earlier
+phase attribution remains unresolved. These13 checks are not a new full-chain
+acceptance run and do not establish a runtime repair.
 
 Preservation verification matches all **175 historical package pins**, **15 prior
 publication-candidate pins** and **15 protected source files**. The remaining
@@ -240,6 +261,24 @@ Ignored reports under `reports/runtime/`:
 - `slice4be-tracking-settings/54a0eceb233c487f9a32d9067b4b3905/` and
   `events-publication-reviewed-settings-comparison.json`: uninstrumented187/187
   with every check identity/GREEN preserved and no duplicates.
+- `events-publication-reviewed-resumed-regressions.json`,
+  `events-publication-reviewed-shipping-layout/shipping-layout.md` and
+  `events-publication-reviewed-production/production-reusable-production.md`:
+  completed Settings, Viewer, smoke, native layout and reusable/restart gates.
+- `events-publication-reviewed-diagnostic-static.log`: regenerated static evidence
+  after the diagnostic tooling change; metrics and 28 size ratchets retained.
+- `events-publication-reviewed-resumed-receiving.log`,
+  `events-publication-reviewed-receiving-failed.json` and
+  `events-publication-reviewed-receiving-first-call-failure.json`: verified690/1
+  native navigation readback failure, with854 acceptance still pending.
+- `events-chain-final-phases-summary.json`, `events-chain-final-phases-checks.json`,
+  `events-chain-process-trace.jsonl` and `events-chain-final-phases-findings.json`:
+  diagnostic13/13 and cleanup exception observations; no reproduced native fault.
+- `events-publication-reviewed-receiving-navigation.log` and
+  `events-publication-reviewed-navigation-green.json`: unchanged focused266/266;
+  `events-publication-reviewed-receiving-retry.log`: subsequent full retry, pending.
+- `events-publication-additional-candidates-preservation.json`: all15 additional
+  finalized/local-result/reviewed package pins match by read-only hash verification.
 
 Accepted deployment and operational/NAS workbooks remain outside this candidate.
 Unrelated handoff 067 and critique 023 must remain unstaged and unchanged.
