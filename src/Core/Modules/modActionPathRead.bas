@@ -60,7 +60,12 @@ Public Function ReadPath(ByVal context As String, ByVal pathId As String, ByRef 
         End If
     Next record
     If hidden > 0 Then notice = "Incomplete evidence: current tracking policy restricts " & CStr(hidden) & " observation(s)."
-    If CLng(header("CatalogVersion")) < modActivityCatalog.CATALOG_VERSION Then notice = notice & " Older release."
+    If CLng(header("CatalogVersion")) < modActivityCatalog.CATALOG_VERSION Then
+        notice = notice & " Older release."
+    ElseIf CStr(header("PackageSetVersion")) <> CStr(ThisWorkbook.CustomDocumentProperties("invSysPackageSetVersion").Value) Or _
+           CStr(header("BuildIdentity")) <> CStr(ThisWorkbook.CustomDocumentProperties("invSysBuildIdentity").Value) Then
+        notice = notice & " Different release/build; relative age unavailable."
+    End If
     If context <> modActivity.CaptureContext() Then GoTo Invalid
     ReadPath = True
     Exit Function

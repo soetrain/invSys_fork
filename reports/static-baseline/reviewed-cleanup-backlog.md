@@ -2,8 +2,8 @@
 
 - Schema: 1.0.0
 - Baseline: 2026-07-27T20:00:00Z
-- Scanner candidates: 1150
-- Reviewed candidates: 1152
+- Scanner candidates: 1149
+- Reviewed candidates: 1151
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -18,7 +18,7 @@
 | CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
 | ADMIN | 258 | Administrative setup, lifecycle, and developer-support source. |
-| DEVELOPER_TOOLING | 48 | Build, scan, report, and other developer-only tooling. |
+| DEVELOPER_TOOLING | 47 | Build, scan, report, and other developer-only tooling. |
 | TESTING | 0 | Test harness and fixture source that must remain outside runtime packages. |
 
 ## Module-growth ratchets
@@ -607,7 +607,6 @@
 | same-project-run:src_Core_ClassModules_cDynItemSearch.cls:cDynItemSearch.CommitSelection:HandlePaletteRecipeSelected | CORE | REPLACE_SAME_PROJECT_LATE_BINDING | MEDIUM | REQUIRES_PROTECTING_TEST |
 | same-project-run:src_Core_ClassModules_cDynItemSearch.cls:cDynItemSearch.CommitSelection:LoadRecipeChooser | CORE | REPLACE_SAME_PROJECT_LATE_BINDING | MEDIUM | REQUIRES_PROTECTING_TEST |
 | same-project-run:src_Core_ClassModules_cDynItemSearch.cls:cDynItemSearch.CommitSelection:LoadRecipeFromRecipes | CORE | REPLACE_SAME_PROJECT_LATE_BINDING | MEDIUM | REQUIRES_PROTECTING_TEST |
-| duplicate:5c6db13a20ef48fe:MakeControl+MakeControl | DEVELOPER_TOOLING | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:9546f46f4520c584:UserForm_Layout+UserForm_Layout | DEVELOPER_TOOLING | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:c6fd55022a9ee927:mRefresh_Click+mSearch_Change | DEVELOPER_TOOLING | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | reachability:src_Operations_Modules_modInventoryViewer.bas:modInventoryViewer.RunInventoryViewerActionForTest | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |

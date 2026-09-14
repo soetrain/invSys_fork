@@ -2,8 +2,8 @@
 
 - Schema: 1.0.0
 - Generated: 2026-07-27T20:00:00Z
-- Total candidates: 1150
-- Duplicate-body groups: 193
+- Total candidates: 1149
+- Duplicate-body groups: 192
 - Unresolved dynamic calls: 45
 
 Scanner output is review evidence only. It never authorizes automatic deletion.
@@ -189,7 +189,6 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | REPLACE_DUPLICATE | HIGH | frmReAuthGate | ResolveCurrentAdminUserRetire, ResolveCurrentUserForm, ResolveCurrentUserIdAuth, ResolveDefaultAdminUserReAuth, ResolveDefaultUserIdSetupForm | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modConfig | CombinePathConfig, CombinePathProcessor, CombinePathRole | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modAuth | FormatAuthSurface, FormatConfigSurface | Normalized procedure bodies are identical; review before consolidation. |
-| REPLACE_DUPLICATE | HIGH | frmActionPaths | MakeControl, MakeControl | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | HIGH | modProcessor | FindOpenWorkbookByFullNameShipping, FindOpenWorkbookByPathProcessor | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | LOW | frmReceiving | mCboCondition_Click, mCboDisposition_Click, mLstAggregate_Click, mLstInventory_Click, mLstReceiveItems_Click, mLstStaged_Click | Normalized procedure bodies are identical; review before consolidation. |
 | REPLACE_DUPLICATE | LOW | frmCreateWarehouse | txtWarehouseName_Change, txtWarehouseName_Change | Normalized procedure bodies are identical; review before consolidation. |

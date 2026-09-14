@@ -1,6 +1,6 @@
 # Slice 4be.4 recording lifecycle
 
-Last verified 2026-09-13. Architecture v4.11 D18 and Plan022 govern the explicit
+Last verified 2026-09-14. Architecture v4.11 D18 and Plan022 govern the explicit
 actor/warehouse sequence, immutable observations and advisory conclusions.
 Slice4be and full Release1 acceptance remain open.
 
@@ -220,6 +220,123 @@ Reader evidence (ignored): `recording-reader-red.log`,
 `recording-reader-package-pins.json`, `recording-reader-green.log` and
 `recording-reader-static.log` and `recording-reader-checkpoint-summary.json`,
 all under `reports/runtime/`.
+
+## Reader integrity and maintenance follow-up
+
+The final owner-provenance candidate explicitly compiles all five packages and
+passes **117/117** focused checks, retaining all77 foundation and89 initial-reader
+identities. All104 expanded identities are GREEN with the corrected expectations
+documented below. This includes four library geometry sizes, actual Close/reopen,
+foreign-warehouse/schema rejection, owning result-build mismatch, known older
+catalogs, opaque build/package warnings,256 actions and1MiB boundaries.
+Filters/layout pass **59/59**, retaining every prior identity.
+
+Static validation confirms218 components/5776 procedures,1149 scanner/1151
+reviewed candidates,192 duplicates (only the three explicit exceptions below),
+45 unresolved/9 literal calls and all28 individual oversized-module limits.
+The copied builder group is removed. Publication's first attempt stops0/1 at
+PublishProjectionFixtureForTest with RPC unavailable, before product assertions.
+The exact recovery child is verified empty and closed; all three loaded add-in
+files retain their hashes. The unchanged candidate's publication retry passes
+**82/82** and Event Detail passes **34/34**. Full-chain validation passes **31/31**,
+including live roles **48/48** and Create Warehouse **15/15**, with five candidate
+hashes unchanged, Excel closed and the three original generated reports restored.
+The chain observation window records one combase.dll/c0000005 Excel fault.
+Both native failures remain unresolved despite the passing assertions.
+
+Final preservation checks verify190 earlier package pins plus65 recording,
+reader, paging and related candidate pins, including the rejected candidate.
+Fifteen protected source files remain exact; the one previously reviewed
+Shipping visibility-only change retains its documented scope. All19 reader
+procedures fit the200-line limit (maximum69). Both changed PowerShell scripts
+parse and repository whitespace checks pass. No accepted deployment is replaced.
+
+Reproduce the focused candidate gate:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-recording-owner-provenance -Phase GREEN -CheckRecordingReader -CheckRecordingLimits -CheckRecordingStorageBounds
+```
+
+**Owner-build correction:** The first combined candidate fails58/15 and never
+reaches the new reader fixture. Fourteen failures lose accepted recording checks;
+one is the consequent missing-journal fixture exception. Source inspection
+locates the error in the newly added model comparison: Activity.MakeBody reads
+Admin/Operations BuildIdentity, while the journal header reads Core. D18 original
+owner provenance requires those distinct identities. This candidate is not
+GREEN and supplies no new acceptance. Excel closes normally.
+
+Remove only the incorrect build-equality comparison; keep common package-set
+and catalog validation. The stable ObservationBuildMismatch check now changes
+only outcomes, protecting the existing owning attempt/result equality instead
+of imposing equality with Core. The earlier99/5 run therefore supplies four
+valid RED failures (two common-provenance checks and two truthful difference
+warnings), not five. Its proposed Core/role-build failure is invalid and is
+explicitly excluded. The corrected build test is a regression for existing
+ReadRun behavior. Original observations and package build IDs are never rewritten.
+
+The expanded packaged test covers common package-set/catalog provenance,
+owning attempt/result builds, foreign warehouse/schema and release warnings;
+four library bounds/non-overlap sizes; and changed-target recovery. Rehashed
+faults retain a calibrated six-entry hash chain, so a hash failure cannot stand
+in for semantic rejection. The frozen reader candidate is the RED target.
+These cases enforce the existing D18 identity, provenance and context contract.
+
+The first expanded run completes99/5 across104 identities. Its two common
+package-set/catalog failures are valid RED; the proposed Core/role build equality
+is excluded as explained above. Two warning failures were based
+on an invalid age inference: the build tool generates random GUID identities
+and writes PackageSetVersion as the compatibility label R1-5. Neither orders
+releases. Those two original failures are not claimed as meaningful RED for
+chronological age. Architecture, Plan022 and controls now clarify the inherited
+truthful-provenance rule: a lower supported catalog can say Older release;
+otherwise differing package/build identity says Different release/build with
+relative age unavailable.
+
+The corrected warning run is again99/5; its initially claimed five valid failures
+are qualified by the owner-build correction above. Every89 prior reader GREEN
+identity is retained. Historical check IDs
+OlderPackage/OlderBuild remain stable, but their expectations now require the
+truthful difference/unknown-age label; their original-evidence checks also remain.
+The final model rejects package-set/catalog disagreement between a journal and
+its observations, preserving per-owner build identity. The reader distinguishes
+known older catalogs from opaque
+identity differences. The final focused GREEN and static results above supersede
+the failed candidate. Added lower-catalog
+and actual Close/reopen checks are supplemental regressions, not new behavioral
+RED claims.
+
+The duplicated MakeControl routine is replaced by one declarative control table
+inside library initialization, retaining the same controls, geometry and event
+bindings. This is refactoring under the existing89/89 GREEN; the expanded
+geometry and action checks protect the resulting candidate.
+
+**Explicit maintenance exception RDR-UI-THUNKS-01:** retain only the following
+three LOW-confidence duplicate groups, each a single-statement event body:
+
+- `duplicate:862c21be3babc752:mBtnClose_Click+mClose_Click` (Me.Hide).
+- `duplicate:9546f46f4520c584:UserForm_Layout+UserForm_Layout` (guarded layout).
+- `duplicate:c6fd55022a9ee927:mRefresh_Click+mSearch_Change` (RefreshPaths).
+
+These are distinct required MSForms event entrypoints; the action/layout logic
+already has one shared implementation. Removing or indirectly rerouting events
+solely to change a scanner count would obscure actual operator entry. This
+bounded exception follows AGENTS.md's explicit-exception rule and explains the
+three groups above the preceding189 baseline; the expected ceiling is192 after
+builder cleanup. It grants no general duplication, module-growth, dynamic-call
+or architectural exception. Other new groups remain failures. Packaged action
+and geometry checks, compile and individual module limits still apply. Raw
+generated scanner findings remain visible and are not rewritten as deletions.
+
+Ignored follow-up evidence under reports/runtime: recording-reader-integrity-red.log,
+recording-reader-provenance-red.log, recording-provenance-red-summary.json,
+recording-provenance-build.log, recording-provenance-compile.log,
+recording-provenance-compiled.json, recording-provenance-package-pins.json,
+recording-provenance-focused.log and recording-provenance-static.log.
+Final candidate evidence uses the recording-owner-provenance prefix for build,
+compile, compiled source, package pins, focused, filters, publication/retry,
+detail and chain reports. recording-owner-provenance-prior-checks.json and
+recording-owner-provenance-maintenance-checks.json retain exact comparisons;
+recording-owner-publication-recovery-closure.json retains guarded recovery proof.
 
 ## Foundation raw evidence
 

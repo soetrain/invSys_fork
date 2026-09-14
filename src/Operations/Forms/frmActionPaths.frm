@@ -27,22 +27,32 @@ Private mEvidence As MSForms.TextBox
 Private mStatus As MSForms.Label
 
 Private Sub UserForm_Initialize()
+    Dim definition As Variant, control As Object
     Me.Width = 820: Me.Height = 640
     Set mLayout = modOperationsLayout.OperationsAnchorManager()
     mLayout.ConfigureForForm Me, 720, 520
-    MakeControl "Label", "lblPathSearch", "Search recordings", 12, 12, 130, 20, 3
-    Set mSearch = MakeControl("TextBox", "txtPathSearch", "", 148, 10, 550, 24, 7)
-    Set mRefresh = MakeControl("CommandButton", "btnPathRefresh", "Refresh", 708, 10, 92, 26, 6)
-    MakeControl "Label", "lblPathList", "Saved recordings - select one to validate its evidence", 12, 44, 788, 20, 7
-    Set mPaths = MakeControl("ListBox", "lstActionPaths", "", 12, 68, 788, 130, 7)
+    For Each definition In Array( _
+        Array("Label", "lblPathSearch", "Search recordings", 12, 12, 130, 20, 3), _
+        Array("TextBox", "txtPathSearch", "", 148, 10, 550, 24, 7), _
+        Array("CommandButton", "btnPathRefresh", "Refresh", 708, 10, 92, 26, 6), _
+        Array("Label", "lblPathList", "Saved recordings - select one to validate its evidence", 12, 44, 788, 20, 7), _
+        Array("ListBox", "lstActionPaths", "", 12, 68, 788, 130, 7), _
+        Array("Label", "lblPathEvidence", "Observed controls and outcomes", 12, 208, 788, 20, 7), _
+        Array("TextBox", "txtPathEvidence", "", 12, 232, 788, 284, 15), _
+        Array("Label", "lblPathStatus", "Select a recording to inspect its evidence.", 12, 528, 680, 60, 13), _
+        Array("CommandButton", "btnClose", "Close", 714, 564, 86, 28, 12))
+        Set control = Me.Controls.Add("Forms." & definition(0) & ".1", CStr(definition(1)), True)
+        control.Move definition(3), definition(4), definition(5), definition(6)
+        If definition(0) = "Label" Or definition(0) = "CommandButton" Then control.Caption = definition(2)
+        mLayout.RegisterControl control, CLng(definition(7))
+    Next definition
+    Set mSearch = Me.Controls("txtPathSearch"): Set mRefresh = Me.Controls("btnPathRefresh")
+    Set mPaths = Me.Controls("lstActionPaths"): Set mEvidence = Me.Controls("txtPathEvidence")
+    Set mStatus = Me.Controls("lblPathStatus"): Set mClose = Me.Controls("btnClose")
     mPaths.ColumnCount = 3: mPaths.ColumnWidths = "0 pt;340 pt;300 pt": mPaths.IntegralHeight = False
-    MakeControl "Label", "lblPathEvidence", "Observed controls and outcomes", 12, 208, 788, 20, 7
-    Set mEvidence = MakeControl("TextBox", "txtPathEvidence", "", 12, 232, 788, 284, 15)
     mEvidence.MultiLine = True: mEvidence.WordWrap = True: mEvidence.Locked = True
     mEvidence.ScrollBars = fmScrollBarsVertical
-    Set mStatus = MakeControl("Label", "lblPathStatus", "Select a recording to inspect its evidence.", 12, 528, 680, 60, 13)
     mStatus.WordWrap = True
-    Set mClose = MakeControl("CommandButton", "btnClose", "Close", 714, 564, 86, 28, 12)
 End Sub
 
 Public Sub BindContext(ByVal context As String)
@@ -131,13 +141,3 @@ End Sub
 Private Sub UserForm_Layout()
     If Not mLayout Is Nothing Then mLayout.ApplyAnchoredLayout
 End Sub
-
-Private Function MakeControl(ByVal kind As String, ByVal name As String, ByVal caption As String, ByVal x As Single, _
-                             ByVal y As Single, ByVal width As Single, ByVal height As Single, ByVal anchors As Long) As Object
-    Dim control As Object
-    Set control = Me.Controls.Add("Forms." & kind & ".1", name, True)
-    control.Move x, y, width, height
-    If kind = "Label" Or kind = "CommandButton" Then control.Caption = caption
-    mLayout.RegisterControl control, anchors
-    Set MakeControl = control
-End Function

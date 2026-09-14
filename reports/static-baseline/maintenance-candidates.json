@@ -4,11 +4,11 @@
     "generatedAtUtc":  "2026-07-27T20:00:00Z",
     "baseline":  {
                      "componentCount":  218,
-                     "procedureCount":  5777,
-                     "lineCount":  128368,
+                     "procedureCount":  5776,
+                     "lineCount":  128376,
                      "literalApplicationRunCount":  9,
                      "unresolvedApplicationRunCount":  45,
-                     "duplicateBodyCandidateCount":  193
+                     "duplicateBodyCandidateCount":  192
                  },
     "candidates":  [
                        {
@@ -3269,25 +3269,6 @@
                            "sourcePaths":  [
                                                "src/Core/Modules/modAuth.bas",
                                                "src/Core/Modules/modConfig.bas"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
-                           "id":  "duplicate:5c6db13a20ef48fe:MakeControl+MakeControl",
-                           "candidateType":  "REPLACE_DUPLICATE",
-                           "confidence":  "HIGH",
-                           "componentName":  "frmActionPaths",
-                           "procedureNames":  [
-                                                  "MakeControl",
-                                                  "MakeControl"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Operations/Forms/frmActionPaths.frm",
-                                               "src/Operations/Forms/frmEventDetail.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [

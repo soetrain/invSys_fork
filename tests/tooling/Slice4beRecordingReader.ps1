@@ -1,12 +1,13 @@
 # D18 full-journal reads through the actual Viewer/library controls.
 # Called inside the recording suite so its real handler fixture helpers remain
 # in scope. No substitute reader, inferred business outcome or product seam.
-function Test-Slice4beRecordingReader($Fixture) {
+function Test-Slice4beRecordingReader($Fixture,$OtherFixture) {
     CloseRecordingViewer
     $manager=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modInventoryViewer').CodeModule
     $manager.AddFromString(@'
 Public Function RecordingLibraryForTest(ByVal action As String, Optional ByVal value As String = "") As String
     Dim item As Object, library As Object, control As Object, count As Long, r As Long, c As Long
+    Dim other As Object
     If action = "Open" Then
         If mInventoryViewer Is Nothing Then Err.Raise 5, , "Viewer fixture is missing."
         For Each control In mInventoryViewer.Controls
@@ -43,6 +44,27 @@ Public Function RecordingLibraryForTest(ByVal action As String, Optional ByVal v
         Case "Evidence": RecordingLibraryForTest = CStr(library.Controls("txtPathEvidence").Value): Exit Function
         Case "Status": RecordingLibraryForTest = CStr(library.Controls("lblPathStatus").Caption): Exit Function
         Case "ReadOnly": RecordingLibraryForTest = CStr(library.Controls("txtPathEvidence").Locked): Exit Function
+        Case "Close": library.Controls("btnClose").Value = True
+        Case "Visible": RecordingLibraryForTest = CStr(library.Visible): Exit Function
+        Case "FitMinimum", "FitDefault", "FitLarger"
+            Select Case action
+                Case "FitMinimum": library.Width = 720: library.Height = 520
+                Case "FitDefault": library.Width = 820: library.Height = 640
+                Case "FitLarger": library.Width = 1000: library.Height = 760
+            End Select
+            library.Repaint: DoEvents
+            RecordingLibraryForTest = "False"
+            For Each control In library.Controls
+                If Not control.Visible Or control.Left < 0 Or control.Top < 0 Or control.Width <= 0 Or control.Height <= 0 Then Exit Function
+                If control.Left + control.Width > library.InsideWidth Or control.Top + control.Height > library.InsideHeight Then Exit Function
+                For Each other In library.Controls
+                    If control.Name <> other.Name Then
+                        If control.Left < other.Left + other.Width And other.Left < control.Left + control.Width And _
+                           control.Top < other.Top + other.Height And other.Top < control.Top + control.Height Then Exit Function
+                    End If
+                Next other
+            Next control
+            RecordingLibraryForTest = "True": Exit Function
     End Select
     RecordingLibraryForTest = "DELIVERED"
 End Function
@@ -91,6 +113,10 @@ End Function
         Check 'RecordingRead.ViewerActionPathsOpensLibrary' ((Library 'Open') -ceq 'DELIVERED' -and (Library 'Count') -ceq '1')
         [void](Library 'Open')
         Check 'RecordingRead.RepeatedLaunchReusesLibrary' ((Library 'Count') -ceq '1')
+        foreach($layout in @('FitMinimum','FitDefault','FitLarger','FitDefault')) {
+            $suffix=if($layout -eq 'FitDefault' -and @($results.Check) -contains 'RecordingRead.Layout.FitDefault'){'FitDefault.Restored'}else{$layout}
+            Check ('RecordingRead.Layout.'+$suffix) ((Library $layout) -ceq 'True')
+        }
         Check 'RecordingRead.RealRunSelectable' ((Library 'Select' $pathId) -ceq 'SELECTED')
         $text=(Library 'Status')+"`n"+(Library 'Evidence')
         Check 'RecordingRead.StoppedNeverAssertsConclusion' ($text -match '(?i)stopped' -and $text -notmatch '(?i)conclusion observed')
@@ -102,7 +128,8 @@ End Function
         Check 'RecordingRead.SearchFiltersLibrary' ((Library 'Rows') -ceq '0')
         [void](Library 'Search' '')
         Check 'RecordingRead.SearchClearRestoresRun' ((Library 'Select' $pathId) -ceq 'SELECTED')
-        foreach($fault in @('MissingClose','MissingMiddle','DamagedHash','BrokenPreviousLink','ClosingObservationOmitted','RepeatedOrdinal')) {
+        foreach($fault in @('MissingClose','MissingMiddle','DamagedHash','BrokenPreviousLink','ClosingObservationOmitted','RepeatedOrdinal',
+            'ObservationPackageMismatch','ObservationBuildMismatch','ObservationCatalogMismatch','ForeignWarehouse','UnsupportedSchema','OlderPackage','OlderBuild','OlderCatalog')) {
             try {
                 if($fault -eq 'MissingClose'){Remove-Item -LiteralPath $closePath}
                 elseif($fault -eq 'MissingMiddle'){Remove-Item -LiteralPath $middlePath}
@@ -119,16 +146,34 @@ End Function
                         if($fault -eq 'BrokenPreviousLink' -and $model.Version -eq 6){$model.PreviousSha256='0'*64}
                         if($fault -eq 'ClosingObservationOmitted' -and $model.Version -eq 6){$model.Observations=@($model.Observations|Select-Object -First 1)}
                         if($fault -eq 'RepeatedOrdinal'){foreach($observation in $model.Observations){if($observation.ActivityId -ceq $second.Attempt.ActivityId){$observation.Ordinal=1}}}
+                        if($fault -eq 'ForeignWarehouse'){$model.WarehouseId='FOREIGN-RECORDING-FIXTURE'}
+                        if($fault -eq 'UnsupportedSchema'){$model.SchemaVersion=99}
+                        if($fault -eq 'OlderPackage'){$model.PackageSetVersion='prior-package-fixture'}
+                        if($fault -eq 'OlderBuild'){$model.BuildIdentity='prior-build-fixture'}
+                        if($fault -eq 'OlderCatalog'){$model.CatalogVersion=7}
+                        foreach($observation in $model.Observations) {
+                            if($fault -in @('ObservationPackageMismatch','OlderPackage')){$observation.PackageSetVersion='prior-package-fixture'}
+                            if($fault -eq 'OlderBuild' -or ($fault -eq 'ObservationBuildMismatch' -and $observation.OutcomeCode -cne 'REQUESTED')){$observation.BuildIdentity='prior-build-fixture'}
+                            if($fault -in @('ObservationCatalogMismatch','OlderCatalog')){$observation.CatalogVersion=7}
+                        }
                         $body=$model|ConvertTo-Json -Depth 30 -Compress
                         $sha=[Security.Cryptography.SHA256]::Create()
                         try{$previousHash=([BitConverter]::ToString($sha.ComputeHash($utf8.GetBytes($body)))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
                         $content=$body.Substring(0,$body.Length-1)+',"ContentSha256":"'+$previousHash+'"}'
                         [IO.File]::WriteAllText($file,$content,$utf8)
                     }
+                    if($fault -ne 'BrokenPreviousLink' -and -not (JournalChain $sequence 6)) {
+                        throw 'Rehashed reader fault fixture lacks a complete six-entry chain.'
+                    }
                 }
                 $text=InspectRun
-                $required=if($fault -eq 'MissingClose'){'(?i)interrupted'}else{'(?i)incomplete evidence'}
+                # Preserve established check IDs; these opaque fixture labels
+                # cannot establish chronological age from package/build IDs.
+                $required=if($fault -eq 'MissingClose'){'(?i)interrupted'}elseif($fault -in @('OlderPackage','OlderBuild')){'(?i)different release/build.*relative age unavailable'}elseif($fault -eq 'OlderCatalog'){'(?i)older release'}else{'(?i)incomplete evidence'}
                 Check ('RecordingRead.'+$fault+'IsExplicit') ($text -match $required -and $text -notmatch '(?i)conclusion observed')
+                if($fault -in @('OlderPackage','OlderBuild','OlderCatalog')) {
+                    Check ('RecordingRead.'+$fault+'RetainsOriginalEvidence') ($text.Contains($first.Attempt.ActivityId) -and $text.Contains($second.Attempt.ActivityId) -and $text -match 'COMPLETED')
+                }
             } finally {foreach($file in $bytes.Keys){[IO.File]::WriteAllBytes($file,$bytes[$file])}}
         }
         $text=InspectRun
@@ -141,11 +186,25 @@ End Function
         SaveVisibility $true
         $text=InspectRun
         Check 'RecordingRead.CurrentPolicyCanRestorePermittedEvidence' ($text.Contains($first.Attempt.ActivityId) -and $text.Contains($second.Attempt.ActivityId))
+        [void](Library 'Close')
+        Check 'RecordingRead.ActualCloseHidesLibrary' ((Library 'Visible') -ceq 'False')
+        [void](Library 'Open')
+        Check 'RecordingRead.OpenAfterCloseReusesAndReadsLibrary' ((Library 'Visible') -ceq 'True' -and (Library 'Count') -ceq '1' -and (Library 'Select' $pathId) -ceq 'SELECTED' -and (Library 'Evidence').Contains($first.Attempt.ActivityId))
         CloseRecordingViewer
         Check 'RecordingRead.ViewerCloseClosesLibrary' ((Library 'Count') -ceq '0')
         OpenRecordingViewer
         [void](Library 'Open')
         [void](Library 'Select' $pathId)
+        if($null -eq $OtherFixture -or $OtherFixture.Warehouse -ceq $Fixture.Warehouse){throw 'Distinct warehouse fixture is required.'}
+        SelectTarget $OtherFixture 'config-reader'
+        [void](Library 'Refresh')
+        $text=(Library 'Status')+"`n"+(Library 'Evidence')
+        Check 'RecordingRead.TargetChangeClearsCapturedEvidence' ((Library 'Count') -ceq '1' -and $text -match '(?i)(session|warehouse|context|unavailable)' -and -not $text.Contains($first.Attempt.ActivityId))
+        CloseRecordingViewer
+        SelectTarget $Fixture 'config-admin'
+        OpenRecordingViewer
+        [void](Library 'Open')
+        Check 'RecordingRead.ReopenAfterTargetChangeReadsOriginalRun' ((Library 'Select' $pathId) -ceq 'SELECTED' -and (Library 'Evidence').Contains($first.Attempt.ActivityId))
         [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
         [void](Library 'Refresh')
         $text=(Library 'Status')+"`n"+(Library 'Evidence')

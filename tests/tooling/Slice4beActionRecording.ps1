@@ -304,7 +304,7 @@ End Function
         }
         if($CheckRecordingReader) {
             . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
-            Test-Slice4beRecordingReader $Fixture
+            Test-Slice4beRecordingReader $Fixture $b
         }
     } finally { CloseRecordingViewer }
 }

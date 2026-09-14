@@ -60,6 +60,9 @@ Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object)
         If Not modActivityStore.ValidBody(target, CStr(record("RecordId")), modTrainingJson.EncodeObject(record)) Then Exit Function
         If record("SequenceId") <> model("SequenceId") Or record("UserId") <> model("CreatedByUserId") Then Exit Function
         If record("PolicyVersion") <> model("PolicyVersion") Or record("Ordinal") > model("ActionCount") Then Exit Function
+        For Each field In Array("CatalogVersion", "PackageSetVersion")
+            If record(field) <> model(field) Then Exit Function
+        Next field
         If seen.Exists(record("RecordId")) Then Exit Function
         seen.Add record("RecordId"), True
     Next record

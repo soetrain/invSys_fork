@@ -3,8 +3,8 @@
     "reportType":  "reviewed-cleanup-backlog",
     "generatedAtUtc":  "2026-07-27T20:00:00Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "73670f31f840f1e5b31c5c012bc1992e498cfaf0ac50670b9df6e8f1dcefd1b9",
-                          "maintenanceCandidatesSha256":  "3c275793d53687b367c3ca2eb71df1686d2f2761929592faaf532c6058f0216d"
+                          "implementationManifestSha256":  "abc960bb06068935826bf4ca85c74dd139afffb677af85d10b8dcf9649f6608f",
+                          "maintenanceCandidatesSha256":  "361800e04a54bb6a91b5d0d56bde5b49f52b86debf1b25d72b277bde30a57642"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1150,
-                    "reviewedCandidateCount":  1152,
+                    "scannerCandidateCount":  1149,
+                    "reviewedCandidateCount":  1151,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -57,7 +57,7 @@
                         },
                         {
                             "name":  "DEVELOPER_TOOLING",
-                            "candidateCount":  48,
+                            "candidateCount":  47,
                             "reason":  "Build, scan, report, and other developer-only tooling."
                         },
                         {
@@ -14691,31 +14691,6 @@
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Protect the public action, replace the same-project string dispatch with a direct typed call, and rescan."
-                       },
-                       {
-                           "id":  "duplicate:5c6db13a20ef48fe:MakeControl+MakeControl",
-                           "origin":  "SCANNER",
-                           "scannerCandidateType":  "REPLACE_DUPLICATE",
-                           "disposition":  "REPLACE_DUPLICATE",
-                           "scannerConfidence":  "HIGH",
-                           "reviewedConfidence":  "MEDIUM",
-                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
-                           "workstream":  "DEVELOPER_TOOLING",
-                           "componentName":  "frmActionPaths",
-                           "procedureNames":  [
-                                                  "MakeControl",
-                                                  "MakeControl"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Operations/Forms/frmActionPaths.frm",
-                                               "src/Operations/Forms/frmEventDetail.frm"
-                                           ],
-                           "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
-                           "protectingTests":  [
-
-                                               ],
-                           "deletionApproved":  false,
-                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
                            "id":  "duplicate:9546f46f4520c584:UserForm_Layout+UserForm_Layout",

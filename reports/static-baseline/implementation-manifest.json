@@ -2093,7 +2093,7 @@
                            "name":  "modActionPathRead",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActionPathRead.bas",
-                           "lineCount":  82,
+                           "lineCount":  87,
                            "procedureNames":  [
                                                   "CanShow",
                                                   "ListPaths",
@@ -3373,7 +3373,7 @@
                            "name":  "modRecordingModel",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modRecordingModel.bas",
-                           "lineCount":  68,
+                           "lineCount":  71,
                            "procedureNames":  [
                                                   "Validate"
                                               ],
@@ -5169,7 +5169,6 @@
                                                   "BindContext",
                                                   "ClearContent",
                                                   "ContextValid",
-                                                  "MakeControl",
                                                   "mClose_Click",
                                                   "mPaths_Change",
                                                   "mRefresh_Click",
@@ -36043,8 +36042,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  27,
-                           "endLine":  69,
-                           "lineCount":  43,
+                           "endLine":  74,
+                           "lineCount":  48,
                            "directCalls":  [
                                                "Add",
                                                "CanShow",
@@ -36069,8 +36068,8 @@
                            "name":  "CanShow",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  71,
-                           "endLine":  73,
+                           "startLine":  76,
+                           "endLine":  78,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -36090,8 +36089,8 @@
                            "name":  "ReadContext",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  75,
-                           "endLine":  82,
+                           "startLine":  80,
+                           "endLine":  87,
                            "lineCount":  8,
                            "directCalls":  [
                                                "CaptureContext",
@@ -54443,8 +54442,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  5,
-                           "endLine":  68,
-                           "lineCount":  64,
+                           "endLine":  71,
+                           "lineCount":  67,
                            "directCalls":  [
                                                "Add",
                                                "EncodeObject",
@@ -79309,12 +79308,14 @@
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
                            "startLine":  29,
-                           "endLine":  46,
-                           "lineCount":  18,
+                           "endLine":  56,
+                           "lineCount":  28,
                            "directCalls":  [
+                                               "Add",
                                                "ConfigureForForm",
-                                               "MakeControl",
-                                               "OperationsAnchorManager"
+                                               "Control",
+                                               "OperationsAnchorManager",
+                                               "RegisterControl"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -79350,8 +79351,8 @@
                            "name":  "BindContext",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  48,
-                           "endLine":  52,
+                           "startLine":  58,
+                           "endLine":  62,
                            "lineCount":  5,
                            "directCalls":  [
                                                "ClearContent",
@@ -79372,8 +79373,8 @@
                            "name":  "ContextValid",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  54,
-                           "endLine":  57,
+                           "startLine":  64,
+                           "endLine":  67,
                            "lineCount":  4,
                            "directCalls":  [
                                                "CaptureContext",
@@ -79394,8 +79395,8 @@
                            "name":  "RefreshPaths",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  59,
-                           "endLine":  83,
+                           "startLine":  69,
+                           "endLine":  93,
                            "lineCount":  25,
                            "directCalls":  [
                                                "ClearContent",
@@ -79419,8 +79420,8 @@
                            "name":  "ReadSelection",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  85,
-                           "endLine":  93,
+                           "startLine":  95,
+                           "endLine":  103,
                            "lineCount":  9,
                            "directCalls":  [
                                                "ContextValid",
@@ -79442,8 +79443,8 @@
                            "name":  "ClearContent",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  95,
-                           "endLine":  99,
+                           "startLine":  105,
+                           "endLine":  109,
                            "lineCount":  5,
                            "directCalls":  [
 
@@ -79463,8 +79464,8 @@
                            "name":  "mPaths_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  101,
-                           "endLine":  103,
+                           "startLine":  111,
+                           "endLine":  113,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ReadSelection"
@@ -79484,8 +79485,8 @@
                            "name":  "mSearch_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  105,
-                           "endLine":  107,
+                           "startLine":  115,
+                           "endLine":  117,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshPaths"
@@ -79505,8 +79506,8 @@
                            "name":  "mRefresh_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  109,
-                           "endLine":  111,
+                           "startLine":  119,
+                           "endLine":  121,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshPaths"
@@ -79526,8 +79527,8 @@
                            "name":  "mClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  113,
-                           "endLine":  115,
+                           "startLine":  123,
+                           "endLine":  125,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -79549,8 +79550,8 @@
                            "name":  "UserForm_QueryClose",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  117,
-                           "endLine":  119,
+                           "startLine":  127,
+                           "endLine":  129,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -79577,8 +79578,8 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  121,
-                           "endLine":  129,
+                           "startLine":  131,
+                           "endLine":  139,
                            "lineCount":  9,
                            "directCalls":  [
                                                "ApplyAnchoredLayout",
@@ -79621,8 +79622,8 @@
                            "name":  "UserForm_Layout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  131,
-                           "endLine":  133,
+                           "startLine":  141,
+                           "endLine":  143,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ApplyAnchoredLayout"
@@ -79646,29 +79647,6 @@
                                            "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_Layout",
                                            "convention.userform-event:src_Shipping_Forms_frmBoxVersionSaveChoice.frm:frmBoxVersionSaveChoice.UserForm_Layout",
                                            "convention.userform-event:src_Shipping_Forms_frmShipmentsTally.frm:frmShipmentsTally.UserForm_Layout"
-                                       ]
-                       },
-                       {
-                           "componentName":  "frmActionPaths",
-                           "name":  "MakeControl",
-                           "visibility":  "PRIVATE",
-                           "kind":  "FUNCTION",
-                           "startLine":  135,
-                           "endLine":  143,
-                           "lineCount":  9,
-                           "directCalls":  [
-                                               "Add",
-                                               "Control",
-                                               "RegisterControl"
-                                           ],
-                           "literalApplicationRunTargets":  [
-
-                                                            ],
-                           "unresolvedApplicationRunExpressions":  [
-
-                                                                   ],
-                           "rootIds":  [
-
                                        ]
                        },
                        {
@@ -149396,6 +149374,7 @@
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
