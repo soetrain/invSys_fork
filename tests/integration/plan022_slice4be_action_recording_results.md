@@ -753,6 +753,69 @@ the per-run `recording-operations-other-state.json`,
 `recording-operations-residual-terminal.json`, `recording-operations-final-red-retry.log`
 and `recording-operations-final-checks.json`.
 
+### Expectation editor and partial application test entry (2026-09-14)
+
+Architecture v4.11 D18's expectation/evaluation refinement, Plan 022 and controls
+v1.134 name the optional captured expectation, separate analysis draft, shared
+Operations editor and immutable Core-owned derived results. These implement the
+approved D18 rules under semantic inheritance. No runtime implementation or new
+architecture approval is claimed at this test entry.
+
+`-CheckRecordingEvaluation` extends `-CheckRecordingOperations` and preserves its
+existing check identities. The test injects only unsaved UI probes before live
+authentication/forms, then clicks actual Expected conclusion/Add/Use/Cancel and
+Evaluate controls. Missing product controls return a fixed MISSING observation;
+unexpected VBA/COM errors remain harness failures. The authored expectation is
+fixed: Admin Save completed, Receiving Confirm pending, Receiving Confirm pending,
+Admin Save completed. Its third step requires application of every source event
+emitted by the second Confirm, including both earlier submitted IDs.
+
+The actual Admin BatchSize save limits the first processor batch to three events.
+The next batch must bring the total to four. None/three/four corresponding published
+groups establish distinct pending/partial/applied fixtures; no owning event or key
+is fabricated. The expected diagnostic statuses are Awaiting published result,
+Awaiting published result and Conclusion observed, respectively. Tests also require
+an explicit analysis provenance label, locked result display, separate saved result
+bound to the exact run, another file on reevaluation, unchanged prior results and
+unchanged original observations/activity.
+
+This entry does not yet cover all evaluator requirements. Before runtime changes,
+extend focused tests for captured schema-2 expectation and schema-1 compatibility,
+stable StepId edits, retry/missing/order failures, command-only completion, current
+and historical policy, failed/stale Refresh, cancelled/interrupted/corrupt runs,
+result integrity/provenance/size/save failures and saved-result permissions.
+How-To/Diagnostic/Compare, immutable guide versions/import/export, comprehensive
+role coverage and visible Release 1 acceptance remain required.
+
+Command: `powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-recording-isolation -Phase RED -CheckRecordingEvaluation`.
+The first run ends **138 PASS / 23 FAIL**: 22 missing-functionality failures and
+one RPC harness failure during the second Admin processor call. All 108 foundation
+checks and the real three-event partial application pass. The original fixture
+Excel process terminates; its verified child has zero workbooks and three add-in
+projects. Normal Quit preserves all three files, and subsequent process checks
+prove complete Excel closure. This is not a clean full test gate.
+
+The unchanged-candidate comparison reaches all three states and ends **153 PASS /
+33 FAIL**, expected RED, with no harness exception and normal Excel closure. All
+135 previous passing identities and all 108 foundation identities remain GREEN;
+there are no duplicate check identities. The actual processor applies three then
+one event; the final four published groups retain the original exact System_Key
+values. All failures concern missing expectation/evaluation controls or results.
+Passing preservation assertions do not establish that a result was saved: the
+separate-save and reevaluation-append checks explicitly fail on this candidate.
+
+Final verification preserves all 260 package pins, 15 protected source files and
+the existing reviewed Shipping visibility-only change. All three changed
+PowerShell files parse, and all 83 local document links resolve. Runtime remains `99a69aa`
+in `deploy/validation-recording-isolation`; no runtime, XLAM, static-baseline,
+build/compile, full-chain or human-acceptance change is claimed. The earlier RPC
+failure remains unresolved despite the successful comparison fixture.
+
+Ignored evidence: `reports/runtime/recording-evaluation-first-red.log`,
+`recording-evaluation-red-retry.log`, `recording-evaluation-check-retention.json`,
+`recording-evaluation-preservation.json`, `recording-evaluation-residual-quit.json`
+and `recording-evaluation-residual-terminal.json` under the same runtime directory.
+
 ### Earlier foundation artifacts
 
 - `reports/runtime/action-recording-red.log`

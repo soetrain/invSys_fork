@@ -2,6 +2,10 @@
 # and deferred owning application. No fabricated activity or source identities.
 function Test-Slice4beRecordingOperations {
     CloseRecordingViewer
+    if($CheckRecordingEvaluation){
+        . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
+        Install-RecordingEvaluationProbe
+    }
     $operations=$packages['invSys.Operations.xlam'].VBProject
     $control=$operations.VBComponents.Add(2);$control.Name='TestRecordingRibbonControl'
     $control.CodeModule.AddFromString(@'
@@ -206,18 +210,26 @@ End Function
         $pins=RestartPins $journalRoot
         $pathId=[string]$closed[0].ActionPathId
         $eventsPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Snapshot.Events.json')
-        foreach($stage in @('Pending','Applied')){
-            if($stage -eq 'Applied'){
+        $stages=if($CheckRecordingEvaluation){@('Pending','Partial','Applied')}else{@('Pending','Applied')}
+        $totalProcessed=0
+        foreach($stage in $stages){
+            if($stage -ne 'Pending'){
+                if($CheckRecordingEvaluation -and $stage -eq 'Partial'){
+                    $batchSetting=SaveRecordedSetting '3'
+                    Check 'RecordingEvaluation.BatchLimitUsesActualAdminHandler' ($batchSetting.Outcome.SequenceId -ceq '')
+                }
                 [void](Run 'invSys.Core.xlam' 'TestRecordingDeferred.SetWithhold' @($false))
                 $processed=[long](Run 'invSys.Admin.xlam' 'modAdminConsole.RecordingProcessForTest' @($adminBook.Name))
-                Check 'RecordingOperations.OwnerAppliesFourDistinctEvents' ($processed -eq 4)
+                $totalProcessed+=$processed
+                if($stage -eq 'Partial'){Check 'RecordingEvaluation.OwnerAppliesOnlyThreeEvents' ($processed -eq 3)}
+                if($stage -eq 'Applied'){Check 'RecordingOperations.OwnerAppliesFourDistinctEvents' ($totalProcessed -eq 4)}
                 ObserveRecordingOther 'Processor'
             }
             if(-not [bool](Run 'invSys.Admin.xlam' 'modAdminConsole.RecordingPublishForTest' @($adminBook.Name))){throw 'Owning publication failed in Operations fixture.'}
             ObserveRecordingOther ($stage+'Publication')
             $published=Get-Content -LiteralPath $eventsPath -Raw|ConvertFrom-Json
             $events=@($published.Groups|Where-Object {$_.Source -ceq 'Inventory' -and $_.SourceId -cin $submissionIds})
-            $expectedCount=if($stage -eq 'Applied'){4}else{0}
+            $expectedCount=if($stage -eq 'Applied'){4}elseif($stage -eq 'Partial'){3}else{0}
             Check ('RecordingOperations.'+$stage+'.PublishedOwnerEventCount') ($events.Count -eq $expectedCount)
             if($stage -eq 'Applied'){
                 $exact=$true
@@ -235,6 +247,7 @@ End Function
             foreach($id in $submissionIds){$referencesVisible=$referencesVisible -and $evidence.Contains($id)}
             Check ('RecordingOperations.'+$stage+'.RepeatedSourceReferencesVisible') $referencesVisible
             Check ('RecordingOperations.'+$stage+'.NoConclusionWithoutExpectation') ($evidence -notmatch '(?i)conclusion observed')
+            if($CheckRecordingEvaluation){Test-RecordingEvaluationStage $stage}
             ObserveRecordingOther ($stage+'Viewer')
             if($CaptureEvidence){CaptureFormEvidence 'Action Paths' ('recording-operations-'+$stage.ToLowerInvariant()+'.png')}
         }
