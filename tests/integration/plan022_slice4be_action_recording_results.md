@@ -884,6 +884,53 @@ Ignored evidence under `reports/runtime/`: `evaluation-contracts-first-red.log`,
 `evaluation-contracts-final-red.log`, `evaluation-contracts-retention.json`, and
 `evaluation-contracts-preservation.json`.
 
+## Expectation reader compatibility checkpoint
+
+The packaged `-CheckExpectationCompatibility` gate uses actual library selection
+on format variants of a real Operations/Admin journal. It restores original
+fixture bytes after each case. On `deploy/validation-recording-isolation`, it
+records **173 PASS / 61 FAIL**. Valid schema-2 None and explicit expectations are
+the two reader RED cases; absent editor/evaluator behavior remains separately RED.
+
+`deploy/validation-expectation-schema` implements strict headless Core validation
+in `modExpectationModel`, called by `modRecordingModel`; `modRecordingReader`
+also requires one schema throughout a journal. The same gate records **175 PASS /
+59 FAIL**, retaining all 173 prior passing identities, with no duplicate checks or
+harness exception. All **15/15 compatibility checks** pass, including schema-1,
+schema-2, malformed definitions, mixed journals and exact fixture-byte restoration.
+The three new editor tests remain RED: stable StepId/terminal on reorder, stale
+editor across Stop/Start, and clearing a nonempty draft on sign-out.
+
+All five packages build and explicitly compile, including Operations cold-start
+references. Compiled comparison finds only two changed Core modules and the one
+new expectation validator; no component is removed. The candidate passes the
+isolated full chain **31/31**, live-role workflows **48/48**, and Create Warehouse
+**15/15**. Generated reports remain ignored; the three tracked reports are restored
+byte-for-byte. Excel is closed and all **265 package pins**, 15 protected sources
+and the reviewed Shipping visibility-only change are preserved.
+
+Regenerated static evidence has 219 components, 5,778 procedures and 128,445 lines
+(one module/procedure and 62 lines added). All 28 individual large-module ratchets
+hold; duplicate groups remain 192, literal calls 9 and unresolved calls 45.
+Candidates decrease 1,149 to 1,148 because existing restart/pristine Viewer tests
+now register test reachability for `RunInventoryViewerActionForTest`; no code is
+deleted. Reviewed candidates decrease 1,151 to 1,150 for the same reason.
+
+This is a reader implementation checkpoint under the existing D18 refinement,
+not completed Slice 4be acceptance. The writer still emits schema 1 pending the
+shared editor and exact-context captured staging; new schema-2 writing remains
+required. Evaluation, both presentations, guides/import/export, comprehensive
+role coverage, native reliability, NAS/multi-station and human acceptance remain
+open. Existing Viewer/library layout checks pass; no new editor layout or visible
+operator acceptance is claimed. Earlier native/RPC failures remain unexplained.
+
+Ignored evidence: `expectation-compatibility-red.log`,
+`expectation-schema-focused.log`, `expectation-schema-focused-retention.json`,
+`expectation-schema-compiled-diff.json`, `expectation-schema-maintenance.json`,
+`expectation-schema-chain.log` and `expectation-schema-chain-exit.json`, all under
+`reports/runtime/`. Next implement the already-RED captured expectation/editor
+contract without reducing the remaining evaluation or Release 1 scope.
+
 ### Earlier foundation artifacts
 
 - `reports/runtime/action-recording-red.log`

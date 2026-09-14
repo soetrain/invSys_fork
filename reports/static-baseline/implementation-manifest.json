@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-07-27T20:00:00Z",
+    "generatedAtUtc":  "2026-09-14T12:26:40Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -94,6 +94,7 @@
                                                 "modEventDetailStore",
                                                 "modEventSettingsTables",
                                                 "modEventsPublicationStore",
+                                                "modExpectationModel",
                                                 "modGlobals",
                                                 "modHqAggregator",
                                                 "modInventoryDomainBridge",
@@ -2720,6 +2721,18 @@
                                         }
                        },
                        {
+                           "name":  "modExpectationModel",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modExpectationModel.bas",
+                           "lineCount":  50,
+                           "procedureNames":  [
+                                                  "Validate"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
                            "name":  "modGlobals",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modGlobals.bas",
@@ -3373,7 +3386,7 @@
                            "name":  "modRecordingModel",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modRecordingModel.bas",
-                           "lineCount":  71,
+                           "lineCount":  83,
                            "procedureNames":  [
                                                   "Validate"
                                               ],
@@ -43778,6 +43791,30 @@
                                        ]
                        },
                        {
+                           "componentName":  "modExpectationModel",
+                           "name":  "Validate",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  6,
+                           "endLine":  50,
+                           "lineCount":  45,
+                           "directCalls":  [
+                                               "Add",
+                                               "Control",
+                                               "Keys",
+                                               "Outcome"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
                            "componentName":  "modGlobals",
                            "name":  "CommitSelectionAndCloseWrapper",
                            "visibility":  "PUBLIC",
@@ -54443,8 +54480,8 @@
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  5,
-                           "endLine":  71,
-                           "lineCount":  67,
+                           "endLine":  83,
+                           "lineCount":  79,
                            "directCalls":  [
                                                "Add",
                                                "EncodeObject",
@@ -144581,6 +144618,7 @@
                                "entryPoint":  "Accepted",
                                "testPaths":  [
                                                  "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
@@ -144638,6 +144676,8 @@
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
@@ -144652,6 +144692,10 @@
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beSettingsOpenTrace.ps1",
                                                  "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
@@ -144708,6 +144752,9 @@
                                                  "tests/tooling/Test-Slice4bdExplicitSourceAggregation.ps1",
                                                  "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingWorkerProtocol.ps1",
                                                  "tests/tooling/Test-Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-Slice4bfDeployment.ps1",
                                                  "tests/tooling/Test-Slice5BehaviorLocks.ps1",
@@ -145036,7 +145083,8 @@
                                "entryPoint":  "ApplyReceivingTab",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
-                                                 "tests/tooling/Slice4beReceivingNavigation.ps1"
+                                                 "tests/tooling/Slice4beReceivingNavigation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1"
                                              ]
                            },
                            {
@@ -145190,6 +145238,7 @@
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4bePublicationSourceFailures.ps1",
                                                  "tests/tooling/Slice4beReceivingNativeSurface.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beShippingPublicationFixture.ps1",
                                                  "tests/tooling/Test-Plan022Slice4agProductionActualOutput.ps1",
                                                  "tests/tooling/Test-Plan022Slice4atLocationStock.ps1",
@@ -145208,11 +145257,11 @@
                                                  "tests/integration/test_CreateWarehouse.bas",
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
-                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beAdminSettingsClose.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4bePublishedProjectionFixture.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -145228,7 +145277,12 @@
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
@@ -145258,6 +145312,10 @@
                                                  "tests/tooling/Test-Slice12ReviewedCleanup.ps1",
                                                  "tests/tooling/Test-Slice14FullChain.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingHandoff.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingWorkerProtocol.ps1",
                                                  "tests/tooling/Test-Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-Slice4bfDeployment.ps1",
                                                  "tests/unit/TestCoreAuth.bas",
@@ -145773,6 +145831,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beTrackingSettings.ps1",
                                                  "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1",
                                                  "tests/tooling/Test-Plan022Slice4qDisposition.ps1"
@@ -145905,11 +145964,12 @@
                            {
                                "entryPoint":  "CloseInventoryViewerForTest",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beActionRecording.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beViewerFilters.ps1",
                                                  "tests/tooling/Slice4beViewerPublishedRead.ps1",
                                                  "tests/tooling/Slice4beViewerShippingState.ps1",
-                                                 "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
+                                                 "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1"
                                              ]
                            },
                            {
@@ -145919,7 +145979,11 @@
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1",
                                                  "tests/tooling/Slice4beViewerPublishedRead.ps1",
@@ -146128,7 +146192,10 @@
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4apNamedRecipeGraph.ps1",
                                                  "tests/tooling/Test-Plan022Slice4lRibbonSessionControls.ps1",
-                                                 "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1"
+                                                 "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingHandoff.ps1"
                                              ]
                            },
                            {
@@ -146191,6 +146258,7 @@
                                                  "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
@@ -146199,7 +146267,10 @@
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
                                                  "tests/tooling/Slice4beSettingsOpenTrace.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1",
@@ -146556,6 +146627,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beShippingWorkbookClose.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
@@ -146563,6 +146635,7 @@
                                                  "tests/tooling/Test-Slice4bdAdminFormSmoke.ps1",
                                                  "tests/tooling/Test-Slice4bdExplicitSourceAggregation.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1",
                                                  "tests/tooling/Test-Slice4beWorksheetInput.ps1"
                                              ]
                            },
@@ -146854,6 +146927,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingPublicationFixture.ps1",
@@ -147215,6 +147289,7 @@
                            {
                                "entryPoint":  "GenerateInventorySnapshot",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1",
                                                  "tests/tooling/Slice4beViewerPublishedRead.ps1",
                                                  "tests/unit/TestAdminConsole.bas"
@@ -147544,6 +147619,8 @@
                            {
                                "entryPoint":  "GetString",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/unit/TestCoreConfig.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
@@ -147770,6 +147847,9 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
@@ -147816,6 +147896,7 @@
                                                  "tests/tooling/Test-Slice14FullChain.ps1",
                                                  "tests/tooling/Test-Slice4bdExplicitSourceAggregation.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1",
                                                  "tests/tooling/Test-Slice4bfDeployment.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1",
                                                  "tests/tooling/Test-Slice8ProductionRetirement.ps1",
@@ -148025,8 +148106,15 @@
                                "entryPoint":  "JournalRoot",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionRecording.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
-                                                 "tests/tooling/Slice4beRecordingReader.ps1"
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                 "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1"
                                              ]
                            },
                            {
@@ -148039,14 +148127,19 @@
                                "entryPoint":  "Keys",
                                "testPaths":  [
                                                  "tests/integration/test_CreateWarehouse.bas",
-                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingPrewriteRefusal.ps1",
                                                  "tests/tooling/Slice4beShippingPublicationFixture.ps1",
@@ -148062,6 +148155,8 @@
                                                  "tests/tooling/Test-Plan022Slice4xReusableProduction.ps1",
                                                  "tests/tooling/Test-Release1PackageCloseOrder.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
                                                  "tests/tooling/Test-Slice8ProductionRetirement.ps1",
                                                  "tests/unit/TestPhase2Helpers.bas",
                                                  "tests/unit/TestWarehouseRetireArchive.bas"
@@ -148082,6 +148177,7 @@
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/unit/TestStub_modTS_Received.bas"
                                              ]
                            },
@@ -148401,6 +148497,7 @@
                                                  "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beShippingPublicationFixture.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Slice4beViewerEventGroups.ps1",
@@ -148493,12 +148590,16 @@
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingNativeSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
@@ -148565,6 +148666,8 @@
                                                  "tests/tooling/Test-Slice4bdAdminAggregatorCommand.ps1",
                                                  "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
                                                  "tests/tooling/Test-Slice4bfDeployment.ps1",
                                                  "tests/tooling/Test-Slice5BehaviorLocks.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1",
@@ -148578,6 +148681,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1"
                                              ]
                            },
@@ -148662,6 +148766,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                  "tests/tooling/Test-Slice10ReceivingStabilization.ps1",
@@ -148802,6 +148907,8 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Slice4beViewerEventGroups.ps1",
@@ -148938,6 +149045,7 @@
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
                                                  "tests/tooling/Test-PackagedExternalEdits.ps1",
                                                  "tests/tooling/Test-PackagedSystemKeyGeneration.ps1",
                                                  "tests/tooling/Test-Plan022DialogObserver.ps1",
@@ -148947,6 +149055,7 @@
                                                  "tests/tooling/Test-Slice0ToolContracts.ps1",
                                                  "tests/tooling/Test-Slice3Baseline.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
                                                  "tests/tooling/Test-Slice4beWorksheetInput.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -148998,7 +149107,8 @@
                            {
                                "entryPoint":  "mLstReceiveItems_Click",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                 "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1"
                                              ]
                            },
                            {
@@ -149297,8 +149407,8 @@
                            {
                                "entryPoint":  "OpenInventoryViewer",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                  "tests/tooling/Slice4beViewerFilters.ps1",
@@ -149357,7 +149467,10 @@
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
                                                  "tests/tooling/Slice4beSettingsOpenTrace.ps1",
                                                  "tests/tooling/Slice4beTrackingPolicy.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1",
@@ -149375,6 +149488,7 @@
                                "entryPoint":  "Outcome",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionRecording.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
@@ -149382,8 +149496,12 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
@@ -149398,13 +149516,16 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
@@ -149524,6 +149645,7 @@
                                "entryPoint":  "Prepare",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1"
                                              ]
@@ -149630,6 +149752,8 @@
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Slice13OperationsCutover.ps1",
@@ -149903,6 +150027,9 @@
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
+                                                 "tests/tooling/Slice4beRecordingTransfer.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1",
@@ -149937,6 +150064,9 @@
                                                  "tests/tooling/Test-Slice14FullChain.ps1",
                                                  "tests/tooling/Test-Slice3Baseline.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingHandoff.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingWorkerProtocol.ps1",
                                                  "tests/unit/TestAddinsPublish.bas",
                                                  "tests/unit/TestAdminConsole.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
@@ -150300,6 +150430,7 @@
                            {
                                "entryPoint":  "Require",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Test-Plan022Slice4biFirstUseNasOnboarding.ps1",
                                                  "tests/tooling/Test-Slice13OperationsCutover.ps1",
@@ -150613,6 +150744,7 @@
                                "entryPoint":  "RunBatchAndRefreshOperatorWorkbook",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Slice10ReceivingStabilization.ps1"
                                              ]
@@ -150645,6 +150777,13 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "RunInventoryViewerActionForTest",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "RunInventoryViewerEventsForTest",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
@@ -150665,6 +150804,7 @@
                            {
                                "entryPoint":  "RunProcessorFromConsole",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -150852,6 +150992,7 @@
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
@@ -150863,6 +151004,7 @@
                                                  "tests/tooling/Slice4beReceivingSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
@@ -150993,6 +151135,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingPublicationFixture.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
@@ -151043,6 +151186,7 @@
                                "entryPoint":  "SelectWarehouseTargetForAutomation",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
                                              ]
                            },
@@ -151088,6 +151232,7 @@
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
                                                  "tests/unit/TestCoreProcessor.bas",
@@ -151112,6 +151257,7 @@
                                "entryPoint":  "SetCurrentTargetPathsForTest",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -151148,11 +151294,13 @@
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingPublicationFixture.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Plan022LauncherContracts.ps1",
-                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1"
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1"
                                              ]
                            },
                            {
@@ -151204,10 +151352,12 @@
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingPublicationFixture.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1",
                                                  "tests/unit/TestWarehouseBootstrap.bas",
                                                  "tests/unit/TestWarehouseRetireArchive.bas",
                                                  "tests/unit/TestWarehouseRetireLifecycle.bas",
@@ -151217,10 +151367,11 @@
                            {
                                "entryPoint":  "Sha256",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1",
@@ -151494,6 +151645,7 @@
                                "entryPoint":  "SignInCurrentTargetForAutomation",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
@@ -151507,6 +151659,8 @@
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
@@ -151516,6 +151670,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
@@ -151646,6 +151801,8 @@
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
@@ -151658,7 +151815,10 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beSettingsOpenTrace.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingPublicationFixture.ps1",
@@ -151669,6 +151829,9 @@
                                                  "tests/tooling/Test-Plan022DialogObserver.ps1",
                                                  "tests/tooling/Test-Slice0ToolContracts.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingHandoff.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingWorkerProtocol.ps1",
                                                  "tests/tooling/Test-Slice4beWorksheetInput.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -151690,6 +151853,8 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
@@ -151699,7 +151864,9 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beShippingAccessInterruptions.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCapability.ps1",
@@ -151782,6 +151949,8 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
                                                  "tests/tooling/Test-PackagedExternalEdits.ps1",
                                                  "tests/tooling/Test-Plan022Slice4uShippingPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
@@ -152198,10 +152367,11 @@
                                "entryPoint":  "Text",
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
-                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
+                                                 "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
@@ -152209,7 +152379,12 @@
                                                  "tests/tooling/Slice4beReceivingNativeSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
+                                                 "tests/tooling/Slice4beRecordingTransfer.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingPublicationFixture.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1",
@@ -152245,6 +152420,9 @@
                                                  "tests/tooling/Test-Slice0ToolContracts.ps1",
                                                  "tests/tooling/Test-Slice13OperationsCutover.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingHandoff.ps1",
                                                  "tests/tooling/Test-Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-Slice5BehaviorLocks.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1",
@@ -152420,8 +152598,10 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterSetup.bas",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
                                                  "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1",
@@ -152430,6 +152610,7 @@
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                  "tests/tooling/Test-Plan022Slice4xProductionRestart.ps1",
                                                  "tests/tooling/Test-Slice0ToolContracts.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingWorkerProtocol.ps1",
                                                  "tests/unit/test_RetireMigrateSpec.bas",
                                                  "tests/unit/TestDesignsDomain.bas"
                                              ]
@@ -152445,6 +152626,7 @@
                                                  "tests/tooling/Test-Plan022Slice4blExplorerRevalidation.ps1",
                                                  "tests/tooling/Test-Plan022Slice4xReusableProduction.ps1",
                                                  "tests/tooling/Test-Slice3Baseline.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingWorkerProtocol.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1",
                                                  "tests/unit/TestDesignsDomain.bas",
                                                  "tests/unit/TestPhase5HqBoundary.bas",
@@ -152691,12 +152873,16 @@
                                "testPaths":  [
                                                  "tests/tooling/fixtures/static/src/Operations/Classes/CSyntheticSession.cls",
                                                  "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
-                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestart.ps1",
+                                                 "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingCatalog.ps1",
                                                  "tests/tooling/Slice4beShippingContext.ps1",
@@ -152741,6 +152927,9 @@
                                                  "tests/tooling/Test-Slice4bdExplicitSourceAggregation.ps1",
                                                  "tests/tooling/Test-Slice4bdMultiServerSourceSet.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/tooling/Test-Slice4bePristineViewer.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingWorkerProtocol.ps1",
                                                  "tests/tooling/Test-Slice4bfDeployment.ps1",
                                                  "tests/tooling/Test-Slice5BehaviorLocks.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1",

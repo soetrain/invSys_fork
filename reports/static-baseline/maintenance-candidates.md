@@ -1,8 +1,8 @@
 # invSys VBA Maintenance Candidates
 
 - Schema: 1.0.0
-- Generated: 2026-07-27T20:00:00Z
-- Total candidates: 1149
+- Generated: 2026-09-14T12:26:40Z
+- Total candidates: 1148
 - Duplicate-body groups: 192
 - Unresolved dynamic calls: 45
 
@@ -1044,7 +1044,6 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | UNRESOLVED | MEDIUM | modInvMan | DeductUsed_Click | No direct, dynamic-root, or test reference was found, but public visibility requires review. |
 | UNRESOLVED | MEDIUM | modInvMan | ReAddBulkLogEntries | No direct, dynamic-root, or test reference was found, but public visibility requires review. |
 | UNRESOLVED | MEDIUM | modInvMan | RemoveLastBulkLogEntries | No direct, dynamic-root, or test reference was found, but public visibility requires review. |
-| UNRESOLVED | MEDIUM | modInventoryViewer | RunInventoryViewerActionForTest | No direct, dynamic-root, or test reference was found, but public visibility requires review. |
 | UNRESOLVED | MEDIUM | modInventoryViewer | RunInventoryViewerFilterForTest | No direct, dynamic-root, or test reference was found, but public visibility requires review. |
 | UNRESOLVED | MEDIUM | modOperationsInit | OperationsShadowStartupForTest | No direct, dynamic-root, or test reference was found, but public visibility requires review. |
 | UNRESOLVED | MEDIUM | modOperationsInit | OperationsStartupReport | No direct, dynamic-root, or test reference was found, but public visibility requires review. |

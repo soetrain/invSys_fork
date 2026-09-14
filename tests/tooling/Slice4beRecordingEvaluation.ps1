@@ -12,7 +12,7 @@ Public Function RecordingExpectationForTest(ByVal formName As String, ByVal cont
     If target Is Nothing Then Exit Function
     For Each control In target.Controls
         If control.Name = controlName Then
-            If action <> "ValueAnyVisibility" Then
+            If action <> "ValueAnyVisibility" And action <> "CountAnyVisibility" Then
                 If Not target.Visible Or Not control.Visible Then RecordingExpectationForTest = "HIDDEN": Exit Function
             End If
             Select Case action
@@ -30,7 +30,7 @@ Public Function RecordingExpectationForTest(ByVal formName As String, ByVal cont
                     RecordingExpectationForTest = "CHOICE_UNAVAILABLE": Exit Function
                 Case "Index": control.ListIndex = CLng(value)
                 Case "Boolean": control.Value = (value = "True")
-                Case "Count": RecordingExpectationForTest = CStr(control.ListCount): Exit Function
+                Case "Count", "CountAnyVisibility": RecordingExpectationForTest = CStr(control.ListCount): Exit Function
                 Case "Value", "ValueAnyVisibility": RecordingExpectationForTest = CStr(control.Value): Exit Function
                 Case "Caption": RecordingExpectationForTest = CStr(control.Caption): Exit Function
                 Case "Locked": RecordingExpectationForTest = CStr(control.Locked): Exit Function

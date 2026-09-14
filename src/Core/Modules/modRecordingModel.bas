@@ -8,10 +8,18 @@ Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object)
     On Error GoTo Invalid
     fields = "|SchemaVersion|RecordKind|RecordType|RecordId|ActionPathId|SequenceId|Version|PreviousRecordId|PreviousSha256|Lifecycle|ReasonCode|ActionCount|CreatedByUserId|CreatedAtUTC|WarehouseId|OriginWarehouseId|PolicyVersion|CatalogVersion|PackageSetVersion|BuildIdentity|Name|Tags|Instructions|Method|Observations|"
     numbers = "|SchemaVersion|Version|ActionCount|PolicyVersion|CatalogVersion|"
-    If model.Count <> 25 Then Exit Function
+    If model("SchemaVersion") = 2 Then
+        fields = fields & "ExpectedConclusion|"
+        If model.Count <> 26 Then Exit Function
+    ElseIf model.Count <> 25 Then
+        Exit Function
+    End If
     For Each field In model.Keys
         If InStr(1, fields, "|" & CStr(field) & "|", vbBinaryCompare) = 0 Then Exit Function
-        If field = "Tags" Or field = "Observations" Then
+        If field = "ExpectedConclusion" Then
+            If Not IsObject(model(field)) Then Exit Function
+            If Not modExpectationModel.Validate(model(field), CLng(model("CatalogVersion"))) Then Exit Function
+        ElseIf field = "Tags" Or field = "Observations" Then
             If TypeName(model(field)) <> "Collection" Then Exit Function
         ElseIf InStr(1, numbers, "|" & CStr(field) & "|", vbBinaryCompare) > 0 Then
             If VarType(model(field)) <> vbLong And VarType(model(field)) <> vbInteger Then Exit Function
@@ -19,7 +27,8 @@ Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object)
             If VarType(model(field)) <> vbString Then Exit Function
         End If
     Next field
-    If model("SchemaVersion") <> 1 Or model("RecordKind") <> "Recording" Then Exit Function
+    If model("SchemaVersion") <> 1 And model("SchemaVersion") <> 2 Then Exit Function
+    If model("RecordKind") <> "Recording" Then Exit Function
     If model("WarehouseId") <> target.WarehouseId Or model("OriginWarehouseId") <> target.WarehouseId Then Exit Function
     For Each field In Array("RecordId", "ActionPathId", "SequenceId")
         If Not modTrainingWire.ValidId(CStr(model(field))) Then Exit Function
@@ -32,6 +41,9 @@ Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object)
     If model("PackageSetVersion") = "" Or model("BuildIdentity") = "" Then Exit Function
     If model("Name") <> "Recorded sequence" Or model("Method") <> "Diagnostic" Or model("Instructions") <> "" Or model("Tags").Count <> 0 Then Exit Function
     kind = model("RecordType"): life = model("Lifecycle")
+    If model("SchemaVersion") = 2 And kind <> "Close" Then
+        If model("ExpectedConclusion")("TerminalKind") <> "None" Then Exit Function
+    End If
     If model("Version") = 1 Then
         If kind <> "Start" Or model("PreviousRecordId") <> "" Or model("PreviousSha256") <> "" Then Exit Function
     Else

@@ -49,7 +49,7 @@ Public Function ReadRun(ByVal target As WarehouseTarget, ByVal pathId As String,
             If previous("Lifecycle") <> "Recording" Then Exit Function
             If entry("PreviousRecordId") <> previous("RecordId") Or entry("PreviousSha256") <> previous("ContentSha256") Then Exit Function
             If entry("CreatedAtUTC") < previous("CreatedAtUTC") Then Exit Function
-            For Each field In Array("ActionPathId", "SequenceId", "CreatedByUserId", "WarehouseId", "OriginWarehouseId", _
+            For Each field In Array("SchemaVersion", "ActionPathId", "SequenceId", "CreatedByUserId", "WarehouseId", "OriginWarehouseId", _
                 "PolicyVersion", "CatalogVersion", "PackageSetVersion", "BuildIdentity")
                 If entry(field) <> first(field) Then Exit Function
             Next field

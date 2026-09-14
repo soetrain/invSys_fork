@@ -28,6 +28,7 @@ param(
     [switch]$CheckRecordingOperations,
     [switch]$CheckRecordingEvaluation,
     [switch]$CheckEvaluationContracts,
+    [switch]$CheckExpectationCompatibility,
     [string]$RecordingContinuationPipeName = '',
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
@@ -71,6 +72,7 @@ if($CheckViewerShippingState) { $CheckViewerPublishedRead = $true }
 if($CheckViewerFilters) { $CheckViewerPublishedRead = $true }
 if($CheckRecordingLimits) { $CheckActionRecording = $true }
 if($CheckRecordingStorageBounds) { $CheckActionRecording = $true }
+if($CheckExpectationCompatibility) { $CheckEvaluationContracts = $true }
 if($CheckEvaluationContracts) { $CheckRecordingEvaluation = $true }
 if($CheckRecordingEvaluation) { $CheckRecordingOperations = $true }
 if($CheckRecordingOperations) {

@@ -6,6 +6,7 @@ function Test-Slice4beRecordingOperations {
         . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
         Install-RecordingEvaluationProbe
         if($CheckEvaluationContracts){. (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')}
+        if($CheckExpectationCompatibility){. (Join-Path $PSScriptRoot 'Slice4beExpectationCompatibility.ps1')}
     }
     $operations=$packages['invSys.Operations.xlam'].VBProject
     $control=$operations.VBComponents.Add(2);$control.Name='TestRecordingRibbonControl'
@@ -254,7 +255,9 @@ End Function
             if($CaptureEvidence){CaptureFormEvidence 'Action Paths' ('recording-operations-'+$stage.ToLowerInvariant()+'.png')}
         }
         if($CheckEvaluationContracts){
+            if($CheckExpectationCompatibility){Test-ExpectationCompatibility}
             Test-EvaluationContracts
+            if($CheckExpectationCompatibility){Test-ExpectationEditorBinding}
             ObserveRecordingOther 'EvaluationContracts'
         }
         # D18 permits new derived evaluation records; original journal bytes stay immutable.

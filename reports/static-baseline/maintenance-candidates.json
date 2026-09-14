@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-07-27T20:00:00Z",
+    "generatedAtUtc":  "2026-09-14T12:26:40Z",
     "baseline":  {
-                     "componentCount":  218,
-                     "procedureCount":  5777,
-                     "lineCount":  128383,
+                     "componentCount":  219,
+                     "procedureCount":  5778,
+                     "lineCount":  128445,
                      "literalApplicationRunCount":  9,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192
@@ -6612,6 +6612,8 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                   "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerEventGroups.ps1",
@@ -6689,6 +6691,7 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1"
                                                ],
                            "reviewRequired":  true
@@ -10620,6 +10623,8 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                   "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerEventGroups.ps1",
@@ -13283,6 +13288,7 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1"
                                                ],
                            "reviewRequired":  true
@@ -13337,6 +13343,7 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
                                                    "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                    "tests/tooling/Test-Slice10ReceivingStabilization.ps1",
@@ -13359,6 +13366,8 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                   "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerEventGroups.ps1",
@@ -13449,7 +13458,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1"
                                                ],
                            "reviewRequired":  true
                        },
@@ -13833,6 +13843,7 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1"
                                                ],
                            "reviewRequired":  true
@@ -14145,6 +14156,8 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                   "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerEventGroups.ps1",
@@ -22138,23 +22151,6 @@
                                               ],
                            "sourcePaths":  [
                                                "src/InventoryDomain/Modules/modInvMan.bas"
-                                           ],
-                           "reason":  "No direct, dynamic-root, or test reference was found, but public visibility requires review.",
-                           "protectingTests":  [
-
-                                               ],
-                           "reviewRequired":  true
-                       },
-                       {
-                           "id":  "reachability:src_Operations_Modules_modInventoryViewer.bas:modInventoryViewer.RunInventoryViewerActionForTest",
-                           "candidateType":  "UNRESOLVED",
-                           "confidence":  "MEDIUM",
-                           "componentName":  "modInventoryViewer",
-                           "procedureNames":  [
-                                                  "RunInventoryViewerActionForTest"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Operations/Modules/modInventoryViewer.bas"
                                            ],
                            "reason":  "No direct, dynamic-root, or test reference was found, but public visibility requires review.",
                            "protectingTests":  [

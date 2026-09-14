@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-07-27T20:00:00Z",
+    "generatedAtUtc":  "2026-09-14T12:26:40Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "365b4f23c0734d146c4e7da2dfb1a91bf86212f13602b9a90565e2fd09bc7d91",
-                          "maintenanceCandidatesSha256":  "0faf959fb70012123528924b67143d152b785a17f30155a8ac5bcdde4788750b"
+                          "implementationManifestSha256":  "eff3965b88ce2f211a7990b8c5fb68576e4699a5accf65ae0d1e0b09c03be906",
+                          "maintenanceCandidatesSha256":  "ce450dc1f4cc1c8ad02fb315c118ac8287bfa1696f4515ed0e11246e003b303d"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1149,
-                    "reviewedCandidateCount":  1151,
+                    "scannerCandidateCount":  1148,
+                    "reviewedCandidateCount":  1150,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -57,7 +57,7 @@
                         },
                         {
                             "name":  "DEVELOPER_TOOLING",
-                            "candidateCount":  47,
+                            "candidateCount":  46,
                             "reason":  "Build, scan, report, and other developer-only tooling."
                         },
                         {
@@ -3696,6 +3696,8 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                   "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerEventGroups.ps1",
@@ -3797,6 +3799,7 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -14742,29 +14745,6 @@
                            "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
                        },
                        {
-                           "id":  "reachability:src_Operations_Modules_modInventoryViewer.bas:modInventoryViewer.RunInventoryViewerActionForTest",
-                           "origin":  "SCANNER",
-                           "scannerCandidateType":  "UNRESOLVED",
-                           "disposition":  "UNRESOLVED",
-                           "scannerConfidence":  "MEDIUM",
-                           "reviewedConfidence":  "MEDIUM",
-                           "reviewStatus":  "MANUAL_INVESTIGATION",
-                           "workstream":  "DEVELOPER_TOOLING",
-                           "componentName":  "modInventoryViewer",
-                           "procedureNames":  [
-                                                  "RunInventoryViewerActionForTest"
-                                              ],
-                           "sourcePaths":  [
-                                               "src/Operations/Modules/modInventoryViewer.bas"
-                                           ],
-                           "reason":  "No direct, dynamic-root, or test reference was found, but public visibility requires review.",
-                           "protectingTests":  [
-
-                                               ],
-                           "deletionApproved":  false,
-                           "nextAction":  "Investigate callers, callbacks, package ownership, and protecting tests before selecting a source change."
-                       },
-                       {
                            "id":  "reachability:src_Operations_Modules_modInventoryViewer.bas:modInventoryViewer.RunInventoryViewerFilterForTest",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "UNRESOLVED",
@@ -15553,6 +15533,8 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                   "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerEventGroups.ps1",
@@ -24781,6 +24763,7 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -24853,6 +24836,7 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
                                                    "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                    "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
                                                    "tests/tooling/Test-Slice10ReceivingStabilization.ps1",
@@ -24881,6 +24865,8 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                   "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerEventGroups.ps1",
@@ -25001,7 +24987,8 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-                                                   "tests/tooling/Slice4beReceivingActivity.ps1"
+                                                   "tests/tooling/Slice4beReceivingActivity.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -30325,6 +30312,7 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingStaging.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1"
                                                ],
                            "deletionApproved":  false,
@@ -30745,6 +30733,8 @@
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingActivity.ps1",
                                                    "tests/tooling/Slice4beReceivingLocal.ps1",
+                                                   "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                   "tests/tooling/Slice4beRecordingRestartWorker.ps1",
                                                    "tests/tooling/Slice4beShippingActivity.ps1",
                                                    "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                    "tests/tooling/Slice4beViewerEventGroups.ps1",
