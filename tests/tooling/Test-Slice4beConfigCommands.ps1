@@ -25,6 +25,7 @@ param(
     [switch]$CheckRecordingReader,
     [switch]$CheckRecordingIsolation,
     [switch]$CheckRecordingRestart,
+    [string]$RecordingContinuationPipeName = '',
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
@@ -81,6 +82,15 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent (S
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 $deploy = (Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
 if (Get-Process EXCEL -ErrorAction SilentlyContinue) { throw 'Close Excel before isolated packaged validation.' }
+$recordingHandoff=$null; $recordingFixtureTransferred=$false
+. (Join-Path $PSScriptRoot 'Slice4beRecordingTransfer.ps1')
+if($RecordingContinuationPipeName -ne ''){
+    if(-not $CheckRecordingRestart -or $RecordingContinuationPipeName -notmatch '^invsys-recording-[0-9a-f]{32}$'){
+        throw 'Invalid recording continuation mode.'
+    }
+    $recordingHandoff=[IO.Pipes.NamedPipeClientStream]::new('.', $RecordingContinuationPipeName, [IO.Pipes.PipeDirection]::Out)
+    $recordingHandoff.Connect(10000)
+}
 $runRoot = Join-Path ([IO.Path]::GetTempPath()) ('invsys-config-command-' + [guid]::NewGuid().ToString('N'))
 $reportRoot = Join-Path $repo 'reports/runtime/config-commands'
 if ($CheckActivityEvidence) {
@@ -738,7 +748,7 @@ finally {
     # Runtime credentials stay only in disposable generated authority fixtures.
     $resolved=[IO.Path]::GetFullPath($runRoot)
     $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')+'\'
-    if($resolved.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -like 'invsys-config-command-*') {
+    if(-not $recordingFixtureTransferred -and $resolved.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -like 'invsys-config-command-*') {
         Remove-Item -LiteralPath $resolved -Recurse -Force
     }
     $reportName=$Phase.ToLowerInvariant()+'.json'
@@ -757,6 +767,7 @@ finally {
     if ($ReceivingLifecycleOnly) { $reportName='lifecycle-only-'+$reportName }
     if ($LifecycleDiagnostic -ne 'None') { $reportName='diagnostic-'+$LifecycleDiagnostic.ToLowerInvariant()+'.json' }
     $results | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $reportRoot $reportName)
+    if($null -ne $recordingHandoff){$recordingHandoff.Dispose()}
 }
 $failed=@($results | Where-Object { -not $_.Passed }).Count
 Write-Output ("$Phase : {0} passed, {1} failed" -f ($results.Count-$failed),$failed)

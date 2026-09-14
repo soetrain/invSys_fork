@@ -87,8 +87,16 @@ public static class RecordingRestartProcess {
         (RestartPinsEqual $journalBefore $journalRoot) -and (JournalChain $sequence 3))
     $state=@{Fixture=$Fixture;OtherFixture=$b;Deploy=$deploy;RunRoot=$runRoot;ReportRoot=$reportRoot;
         PackageNames=$packageNames;PackagePins=$packagePins;Probes=$probes;OldExcelId=$owner;
-        ParentControllerId=$PID;Action=$action;Sequence=$sequence;PathId=$pathId;
+        ParentControllerId=$PID;CreatorControllerId=$PID;RequireCreatorExit=($null -ne $recordingHandoff);
+        Action=$action;Sequence=$sequence;PathId=$pathId;
         AuthorityBefore=$authorityBefore;OtherBefore=$otherBefore;JournalBefore=$journalBefore}
+    if($null -ne $recordingHandoff){
+        Write-RecordingHandoff $recordingHandoff ($state|ConvertTo-Json -Depth 40 -Compress)
+        $script:recordingFixtureTransferred=$true
+        $recordingHandoff.Dispose()
+        $state=$null
+        return
+    }
     $workerPath=Join-Path $PSScriptRoot 'Slice4beRecordingRestartWorker.ps1'
     $startInfo=[Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName=Join-Path $PSHOME 'powershell.exe'
@@ -101,7 +109,7 @@ public static class RecordingRestartProcess {
     try {
         # Credentials, paths and fixture observations never enter command-line
         # arguments, files, logs or worker output. Only this private pipe carries them.
-        $worker.StandardInput.WriteLine(($state|ConvertTo-Json -Depth 40 -Compress))
+        Write-RecordingHandoff $worker.StandardInput.BaseStream ($state|ConvertTo-Json -Depth 40 -Compress)
         $worker.StandardInput.Close()
         $badProtocol=$false
         while($null -ne ($line=$worker.StandardOutput.ReadLine())){

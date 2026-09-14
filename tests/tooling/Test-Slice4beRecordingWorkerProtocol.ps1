@@ -1,12 +1,13 @@
 # Validate private-pipe handling without starting Excel or creating authority.
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'Slice4beRecordingTransfer.ps1')
 $workerPath=Join-Path $PSScriptRoot 'Slice4beRecordingRestartWorker.ps1'
 $sentinel='NOT-A-CREDENTIAL-REDACTION-PROBE-'+[guid]::NewGuid().ToString('N')
 $root=Join-Path ([IO.Path]::GetTempPath()) ('invsys-config-command-protocol-'+[guid]::NewGuid().ToString('N'))
 $state=@{Fixture=@{Root=(Join-Path $root 'a');Secret=$sentinel};OtherFixture=@{Root=(Join-Path $root 'b')};
     Deploy=$sentinel;RunRoot=$root;ReportRoot=$sentinel;PackageNames=@();PackagePins=@{};Probes=@();
-    OldExcelId=1;ParentControllerId=$PID;Action=@{};Sequence=$sentinel;PathId=$sentinel;
+    OldExcelId=1;ParentControllerId=$PID;CreatorControllerId=$PID;RequireCreatorExit=$false;Action=@{};Sequence=$sentinel;PathId=$sentinel;
     AuthorityBefore=@{};OtherBefore=@{};JournalBefore=@{}}
 $before=@(Get-Process EXCEL -ErrorAction SilentlyContinue|Select-Object -ExpandProperty Id)
 $results=@()
@@ -27,7 +28,8 @@ foreach($case in @('Valid','Malformed','MissingField','UnexpectedField','Escaped
     if(-not $worker.Start()){throw 'Protocol worker could not start.'}
     try{
         $stdoutTask=$worker.StandardOutput.ReadToEndAsync(); $stderrTask=$worker.StandardError.ReadToEndAsync()
-        $worker.StandardInput.WriteLine($inputText); $worker.StandardInput.Close()
+        Write-RecordingHandoff $worker.StandardInput.BaseStream $inputText
+        $worker.StandardInput.Close()
         if(-not $worker.WaitForExit(15000)){$worker.Kill();throw 'Read-only protocol worker timed out.'}
         $stdout=$stdoutTask.Result; $stderr=$stderrTask.Result
         $reply=$stdout|ConvertFrom-Json

@@ -37,9 +37,10 @@ function SelectTarget($Fixture,[string]$User='config-admin') {
     if(-not $signed.StartsWith('OK|')){throw 'Worker fixture sign-in failed.'}
 }
 try {
-    $state=[Console]::In.ReadToEnd()|ConvertFrom-Json
+    . (Join-Path $PSScriptRoot 'Slice4beRecordingTransfer.ps1')
+    $state=(Read-RecordingStandardInput)|ConvertFrom-Json
     $expected=@('Fixture','OtherFixture','Deploy','RunRoot','ReportRoot','PackageNames','PackagePins','Probes',
-        'OldExcelId','ParentControllerId','Action','Sequence','PathId','AuthorityBefore','OtherBefore','JournalBefore')
+        'OldExcelId','ParentControllerId','CreatorControllerId','RequireCreatorExit','Action','Sequence','PathId','AuthorityBefore','OtherBefore','JournalBefore')
     if(@($state.PSObject.Properties).Count -ne $expected.Count){throw 'Invalid worker input.'}
     foreach($name in $expected){if($null -eq $state.$name){throw 'Missing worker input.'}}
     $Fixture=$state.Fixture; $b=$state.OtherFixture; $deploy=[string]$state.Deploy; $runRoot=[string]$state.RunRoot
@@ -75,6 +76,11 @@ public static class RecordingRestartProcess {
     $separate=$PID -ne [int]$state.ParentControllerId -and $controller.ParentProcessId -eq [int]$state.ParentControllerId
     Check 'RecordingRestart.FreshControllerVerified' $separate
     if(-not $separate){throw 'Reader controller identity is not independent.'}
+    if($state.RequireCreatorExit){
+        $creatorExited=$PID -ne [int]$state.CreatorControllerId -and -not (Get-Process -Id ([int]$state.CreatorControllerId) -ErrorAction SilentlyContinue)
+        Check 'RecordingRestart.CreatorControllerExitedBeforeReader' $creatorExited
+        if(-not $creatorExited){throw 'Creator controller remains alive.'}
+    }
 $script:excel=New-Object -ComObject Excel.Application
 $excel.Visible=$false; $excel.DisplayAlerts=$false; $excel.EnableEvents=$false; $excel.AutomationSecurity=1
 foreach($name in $packageNames){$packages[$name]=$excel.Workbooks.Open((Join-Path $deploy $name),0,$true)}
@@ -83,7 +89,7 @@ $newOwner=[RecordingRestartProcess]::Owner([long]$excel.Hwnd)
 $distinct=$current.Count -eq 1 -and $current[0].Id -eq $newOwner -and $newOwner -ne $owner
 Check 'RecordingRestart.FreshExcelProcessVerified' $distinct
 if(-not $distinct){throw 'Fresh isolated Excel identity is unavailable.'}
-[pscustomobject]@{OldProcessId=$owner;NewProcessId=$newOwner;ParentControllerId=[int]$state.ParentControllerId;
+[pscustomobject]@{OldProcessId=$owner;NewProcessId=$newOwner;ParentControllerId=[int]$state.ParentControllerId;CreatorControllerId=[int]$state.CreatorControllerId;
     FreshControllerId=$PID;InterruptionWasDeliberate=$true;FreshControllerVerified=$separate}|
     ConvertTo-Json|Set-Content -LiteralPath (Join-Path $reportRoot 'recording-restart-processes.json')
 Stage 'Pristine Viewer'

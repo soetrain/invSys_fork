@@ -622,6 +622,59 @@ run. See `recording-controller-final-preservation.json` and
 regeneration, full-chain rerun or human acceptance is claimed for this test-only
 checkpoint.
 
+### Creator exit before the fresh recording reader (2026-09-14)
+
+`Test-Slice4beRecordingControllerExit.ps1` coordinates two sequential controllers
+without opening Excel itself. The creator retains the108-check foundation, starts
+a real recording through Viewer, records an actual Admin Save Value, and deliberately
+interrupts only its verified disposable Excel process. It transfers the existing
+fixture through a current-user-only named pipe and exits completely. The fresh
+reader verifies that exit, receives the fixture through private stdin, and opens
+the same five unchanged packages and saved warehouse without repeated bootstrap
+or VBA edits before the pristine Viewer callback. Fixture input remains in memory;
+only fixed stages and boolean checks reach output. The coordinator restores
+settings and removes its disposable fixture only after both controllers and Excel
+are terminal. A live process defers cleanup explicitly.
+
+The transfer calibration initially passes4/5: Unicode text is not preserved by
+the console's implicit input decoding. Explicit UTF-8 stream reads/writes correct
+the transport; the unchanged test passes5/5, including the large Unicode payload,
+current-user ACL, creator exit, no public payload output and no Excel creation.
+Worker protocol/redaction checks pass6/6. These are harness checks, not D13 product
+RED/GREEN. The first coordinator launch fails before Excel/checks because it passes
+an absolute package path to the existing relative-path harness; forwarding the
+original relative argument corrects that setup error.
+
+The second coordinator run passes **123/123**, exit0, with normal final Excel
+closure. Every112 prior passing check identity is retained, with no duplicates;
+the108-check foundation and all15 restart checks pass. This includes verified
+creator exit, pristine Viewer launch, no resumed recorder, selection of the real
+unclosed journal as Interrupted rather than concluded, original attempt/outcome
+visibility, read-only fixture preservation, ordinary work outside that sequence,
+a distinct new explicit recording, preserved interrupted evidence and package
+hashes. All14 existing shared fixture helper bodies remain unchanged.
+
+This establishes the focused interrupted-reader gate under the tested process
+lifecycle. It does not explain every earlier compiler/native failure or prove
+general native reliability. No runtime, package, schema or architectural contract
+changes are made; no new build/static/full-chain or human UAT result is claimed.
+Full Operations/Admin multi-submission and multi-event sequences, deferred source
+outcomes, conclusions, How-To/Diagnostic/Compare, versioned guides and visible
+NAS/operator acceptance remain required. Continue with actual Operations handlers
+inside one recording and exact multi-event references through published outcomes.
+
+Command: `powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beRecordingControllerExit.ps1 -RepoRoot . -DeployRoot deploy/validation-recording-isolation -Phase RED`.
+The phase argument names the evidence run;123/123 is GREEN on the unchanged
+candidate, and neither setup error is a behavioral RED.
+
+Ignored evidence under `reports/runtime/`: `recording-controller-exit.log` (setup
+failure), `recording-controller-exit-second.log` (123/123),
+`slice4be-viewer-published-read/6738f2b85dce440c96e55bdc51a7d685/controller-exit-checks.json`,
+`recording-controller-exit-check-retention.json` and
+`recording-controller-exit-preservation.json`. Final preservation verifies260 package
+pins,15 protected source files and the existing reviewed Shipping visibility-only
+change, with Excel closed. All seven changed PowerShell files parse.
+
 ### Earlier foundation artifacts
 
 - `reports/runtime/action-recording-red.log`
