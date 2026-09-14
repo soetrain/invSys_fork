@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-14T20:59:41Z",
+    "generatedAtUtc":  "2026-09-14T21:54:01Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -155162,6 +155162,7 @@
                                                  "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",

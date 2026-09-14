@@ -38,6 +38,8 @@ function Test-EvaluationVisualEvidence([string]$Stage) {
         throw 'Actual saved-result fixture is unavailable for visible inspection.'
     }
     $title=ExpectationControl '' 'FormCaption' '' 'frmActionPaths'
+    Check ('RecordingNotice.'+$Stage+'.AfterEvaluationCaptureOnly') (
+        (ExpectationControl 'lblPathStatus' 'Caption' '' 'frmActionPaths') -ceq 'Stopped. Capture frozen.')
     Check ($prefix+'ApprovedTitle') ($title -ceq 'Action Paths')
     if($title -cmatch '^UserForm[0-9]+$'){Write-Output ('Observed generated library title: '+$title)}
     $pins=@{}

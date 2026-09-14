@@ -4,6 +4,80 @@ Last verified 2026-09-14. Architecture v4.11 D18 and Plan022 govern the explicit
 actor/warehouse sequence, immutable observations and advisory conclusions.
 Slice4be and full Release1 acceptance remain open.
 
+## Capture-only stopped notice: D13 entry
+
+The `44f0334`/`validation-library-title` baseline passes 368/368. D18's existing
+capture/result separation now explicitly names **Stopped. Capture frozen.** for
+the library status before and after evaluation. Plan022 and controls v1.146 match.
+Six focused assertions read the actual selected library's `lblPathStatus` before
+and after Pending, Partial and Applied evaluations. Expected RED is the current
+**conclusion not evaluated** suffix, which contradicts an already saved result.
+This refines displayed wording only; it changes no journal/result, authority,
+capability, policy, selection or source-evidence contract.
+
+Run the focused RED on the frozen baseline with `-Phase RED
+-CheckEvaluationVisualEvidence -RecordingEvaluationDiagnostic
+-CompileEvaluationProbesForTest`; the full GREEN must omit the diagnostic skip
+and retain all 368 prior passing identities. Runtime is unchanged until actual
+behavioral RED is observed. `reports/runtime/recording-notice-red.log` retains the
+focused attempt. Full Slice4be acceptance and the prior native-crash finding remain open.
+
+The Pending before/after assertions both fail against the unchanged packaged
+baseline, while its actual saved-result, layout, capture and preservation checks
+pass. This is behavioral RED before implementation. Core's stopped notice now
+removes only the evaluation claim. The RED run continues against the unchanged
+package; build and full GREEN must wait until that Excel instance closes.
+
+The frozen-package RED finishes **260 PASS / 6 FAIL**, exactly the six notice
+assertions, without a terminal harness exception. Excel closes normally. Static
+regeneration preserves all 232 components, 5878 procedures, 130057 lines, 192
+duplicate groups and 9/45 dynamic calls; each component's line count is unchanged.
+The isolated `deploy/validation-recording-notice` build follows, with full 374-check
+GREEN required. No old package is rebuilt and no accepted deployment changes.
+
+Five-package build and explicit compile pass, including Operations cold start.
+Comparing 225 compiled components finds only Core `modRecordingReader` changed;
+the five new package hashes are unchanged after compile. Before full GREEN,
+preservation checks retain 325 package hashes, 15 protected sources and the existing
+reviewed Shipping delta. Both changed PowerShell scripts parse, 83 local links resolve,
+and all 28 module limits hold. The complete gate runs with `-Phase GREEN
+-CheckEvaluationVisualEvidence -CompileEvaluationProbesForTest`, omitting the RED
+diagnostic skip; `reports/runtime/recording-notice-full-green.log` retains its result.
+
+The full gate completes **374/374 PASS**, retaining every previous 368 check and
+all 260 passing RED identities. The six notice assertions pass; no duplicate check
+or terminal harness exception is present. Fifteen diagnostic-pane and four editor
+captures pass. Nine distinct pane images and four editor images are inspected;
+the six restored/source images are byte-identical to the inspected defaults.
+The stopped-capture notice remains truthful beside Pending, Partial and Applied
+results. Training/activity/publication bytes, source identities, selection and
+unrelated workbook/custom columns remain protected. Excel closes normally; the
+verified native-event query finds no Event1000 for this test process, without
+establishing a general native repair. The same candidate's Release1 chain completes
+**32/32 PASS**, with **48/48 live-role** and **15/15 Create Warehouse** checks. Local
+settings and all three tracked reports are restored; all jobs terminate and Excel
+closes. The verified chain-window event query records no Excel Event1000. Earlier
+native failures remain unresolved; this successful run does not establish a repair.
+
+The capture-only notice correction is complete for this isolated checkpoint.
+Next extend actual packaged recording proof across the remaining roles under D18;
+the full Slice4be/Release1 objective, guide/comparison/import/export and human
+acceptance remain open. Ignored evidence includes `recording-notice-red-verification.json`,
+`recording-notice-compiled-delta.json`, `recording-notice-full-verification.json`,
+`recording-notice-chain.log`, `recording-notice-chain-exit.json`,
+`recording-notice-chain-native.json` and `recording-notice-final-verification.json`
+under `reports/runtime/`.
+
+**Remaining D18 recording scope:** `Slice4beRecordingOperations.ps1` records actual
+Receiving submissions and Admin actions. Its Shipping references are read-authority
+non-mutation probes, not recorded Shipping actions. The current recording/evaluation
+helpers do not prove actual Production, Boxing and Shipping actions in that shared
+sequence. Existing full-role business-chain success is a separate regression scope.
+Before 4be.4 acceptance, extend packaged recording evidence across those real handlers,
+preserving actor/warehouse, per-form workbook binding, action order and exact source
+references. This is an existing D18/Plan022 requirement, not a new contract or a
+presumed runtime defect. Guide/comparison/import/export and human UAT remain open.
+
 ## Library-title candidate and foreground evidence
 
 The isolated `deploy/validation-library-title` candidate builds all five packages,
@@ -33,7 +107,8 @@ exception. All fifteen Pending/Partial/Applied pane captures and four expectatio
 editor captures pass and are inspected. Minimum panes scroll; default/larger/restored
 panes show the four distinct source statuses. Three Applied sources plus one Awaiting
 remain awaiting; all four Applied support Conclusion observed. The separate lifecycle
-notice defect below remains open. Automated/agent inspection is not human acceptance.
+notice defect remained open at that checkpoint and is resolved above.
+Automated/agent inspection is not human acceptance.
 Excel exits normally and no Event1000 is recorded for this test process; no general
 native repair is established. Final preservation checks retain 320 package pins,
 15 protected sources and the previously reviewed Shipping visibility delta; three
@@ -126,11 +201,12 @@ procedures, 192 duplicate groups, 9/45 dynamic calls and all 28 limits remain.
 The GREEN command will use the complete visual gate with instrumented compilation,
 without `-RecordingEvaluationDiagnostic`, retaining all historical 324 checks.
 
-**Open visible wording defect:** The Applied diagnostic capture shows **Conclusion
-observed** while the library lifecycle notice still says **Stopped. Capture frozen;
-conclusion not evaluated.** This needs its own actual-handler RED and truthful
+**Historical visible wording defect:** The Applied diagnostic capture showed **Conclusion
+observed** while the library lifecycle notice still said **Stopped. Capture frozen;
+conclusion not evaluated.** This required its own actual-handler RED and truthful
 lifecycle wording under D18's separate capture/evaluation states. The title
-correction does not fix it, and these captures are not human acceptance.
+correction did not fix it; the capture-only notice checkpoint above resolves it.
+These captures are not human acceptance.
 
 ## Diagnostic-pane visible evidence: test entry
 

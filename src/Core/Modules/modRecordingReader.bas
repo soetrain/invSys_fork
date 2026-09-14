@@ -88,7 +88,7 @@ Public Function ReadRun(ByVal target As WarehouseTarget, ByVal pathId As String,
     notice = "Interrupted: no closing record is available. Recording was not resumed."
     If entry("RecordType") = "Close" Then
         Select Case entry("Lifecycle")
-            Case "Stopped": notice = "Stopped. Capture frozen; conclusion not evaluated."
+            Case "Stopped": notice = "Stopped. Capture frozen."
             Case "Cancelled": notice = "Cancelled. Observed work was not undone."
             Case Else: notice = "Incomplete evidence: " & Replace$(LCase$(entry("ReasonCode")), "_", " ") & "."
         End Select

@@ -259,6 +259,10 @@ End Function
             [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Open',''))
             $selected=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Select',$pathId))
             Check ('RecordingOperations.'+$stage+'.RealSequenceSelectable') ($selected -ceq 'SELECTED')
+            if($CheckEvaluationVisualEvidence){
+                Check ('RecordingNotice.'+$stage+'.BeforeEvaluationCaptureOnly') (
+                    (ExpectationControl 'lblPathStatus' 'Caption' '' 'frmActionPaths') -ceq 'Stopped. Capture frozen.')
+            }
             $evaluate=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingEvaluateForTest' @($true))
             Check ('RecordingOperations.'+$stage+'.EvaluateActionAvailable') ($evaluate -ceq 'AVAILABLE')
             $evidence=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Evidence',''))
