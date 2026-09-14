@@ -4,6 +4,134 @@ Last verified 2026-09-14. Architecture v4.11 D18 and Plan022 govern the explicit
 actor/warehouse sequence, immutable observations and advisory conclusions.
 Slice4be and full Release1 acceptance remain open.
 
+## Library-title candidate and foreground evidence
+
+The isolated `deploy/validation-library-title` candidate builds all five packages,
+passes Operations cold start and explicit five-project compilation. Comparing 225
+compiled components with the preceding candidate finds only `frmActionPaths`
+changed. Package hashes remain unchanged after compilation; Excel exits normally.
+
+The complete `-CheckEvaluationVisualEvidence -CompileEvaluationProbesForTest`
+GREEN route finishes **363 PASS / 5 FAIL**, with no terminal harness exception.
+All 324 historical passing identities remain GREEN, without duplicate checks.
+All three approved-title assertions pass. Foreground captures fail at Pending,
+Partial and Applied minimum sizes, plus Applied larger/restored; the latter two
+had passed during RED and are not accepted as retained. Other functional,
+geometry and preservation checks pass. Excel closes normally. This is not a
+completed visible-evidence gate.
+
+The test-only capture helper now permits at most three activation attempts for
+the same observed-title, Excel-owned form. It retries only the fixed foreground
+failure, revalidates ownership, and retains the existing foreground check before
+screen capture. It emits one final check per view; native/COM errors are not
+retried. The complete gate runs again on the unchanged frozen candidate.
+This calibration changes no runtime contract and supplies no substitute product RED.
+
+That retry completes **368/368 PASS**, retaining all 324 baseline, 254 RED-pass and
+363 first-attempt passing identities, with no duplicate checks or terminal harness
+exception. All fifteen Pending/Partial/Applied pane captures and four expectation
+editor captures pass and are inspected. Minimum panes scroll; default/larger/restored
+panes show the four distinct source statuses. Three Applied sources plus one Awaiting
+remain awaiting; all four Applied support Conclusion observed. The separate lifecycle
+notice defect below remains open. Automated/agent inspection is not human acceptance.
+Excel exits normally and no Event1000 is recorded for this test process; no general
+native repair is established. Final preservation checks retain 320 package pins,
+15 protected sources and the previously reviewed Shipping visibility delta; three
+changed scripts parse, 83 links resolve, and all 28 module limits hold.
+
+Exact full command: `powershell -NoProfile -ExecutionPolicy Bypass -File
+tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot
+deploy/validation-library-title -Phase GREEN -CheckEvaluationVisualEvidence
+-CompileEvaluationProbesForTest`. It does not use the diagnostic-route skip.
+Ignored evidence: `reports/runtime/library-title-full-retry.log`,
+`library-title-full-retry-verification.json`, `library-title-compiled-delta.json`,
+`library-title-static-verification.json`, and `library-title-final-verification.json`.
+The same candidate's Release1 chain completes **32/32 PASS**, including **48/48
+live-role** and **15/15 Create Warehouse** checks. The wrapper restores all three
+tracked reports byte for byte, and the chain confirms local settings restoration.
+All jobs terminate and Excel closes without forced termination. Event1000 records
+one native Excel failure during the chain (`c0000409`, module unknown); passing
+assertions do not establish clean native execution or a repair. The ignored
+`library-title-chain.log`, copied chain/live/Create reports, `library-title-chain-exit.json`
+and `library-title-chain-native-events.json` retain that distinction.
+
+This completes the title correction and its diagnostic-pane evidence checkpoint,
+not Slice4be.4 or Release1 acceptance. The next actual-handler RED must protect a
+capture-only stopped notice that remains truthful before and after evaluation.
+Guide authoring/search/version/publication, How-To/Diagnostic/Compare selection,
+export/import and visible human comparison remain required under 4be.5.
+
+## Instrumented-project native diagnosis
+
+The initial `cb9e080` evidence-only investigation follows the existing D18/D13
+requirements without changing runtime. `-TraceBootstrapForTest` now also
+permits the explicitly RED-only evaluation diagnostic route. Bootstrap tracing
+reaches success and prior-root restoration before a Seed Excel/RPC failure
+(1 PASS / one harness failure). Added fixed-label Admin Seed/Core processor traces
+are installed before any fixture/form. Their first setup catches a single-entry
+array-shape error (0 PASS / one harness failure); correcting that definition and
+validating its shape permits the next run.
+
+That traced run completes bootstrap, Seed application and processor cleanup, then
+loses Excel/RPC during the actual library-open call (14 PASS / one harness failure).
+Event1000 reports `c0000005`, module unknown; linked WER uses BEX64. The empty
+WER-linked recovery instance closes normally with three package hashes preserved,
+after visually verifying retain-for-later. The moving failure point does not
+identify a single faulty invSys procedure or establish a native repair.
+
+Read-only Office metadata reports x64 version `16.0.20326.20144`, matching the
+installed EXCEL.EXE. Component file-version differences are not treated as proof
+of an installation defect or as the versions loaded during a crash. No Office
+update/repair or global setting change is performed.
+
+`-CompileEvaluationProbesForTest` first compares the existing RED evaluation
+diagnostic route and is then enabled for the complete visual gate. After all
+disposable source instrumentation, it verifies each
+loaded package path and invSys reference against the candidate directory and
+explicitly compiles all five projects before the no-loaded-forms check and fixture
+creation. It preserves VBE visibility and never saves package edits. The first
+comparison passes all five compile checks; runtime acceptance remains unproven
+until that run and the complete regression route finish. This comparison tests
+instrumented-project state, not a different business contract.
+
+Read-only native window inspection during the comparison finds visible modeless
+forms but no approved library title; the expectation editor has its expected title.
+The form builder attempts `Designer.Caption` but silently catches its assignment
+failure. D18 now explicitly preserves the existing **Action Paths** title for
+runtime construction, synchronized with Plan022/controls v1.144. The next focused
+assertion reads Caption after the actual packaged library launch. A capture lookup
+failure alone is not the required behavioral RED, and no runtime fix has been made.
+
+The compiled-probe comparison completes **242 PASS / 15 FAIL** with no terminal
+harness exception, retaining all 216 included baseline checks (the full route's
+other 108 remain required). All 21 stage layout/preservation checks and five
+instrumented compile checks pass. Only fifteen native library captures fail;
+the four editor captures pass. Excel closes. This single completed diagnostic run
+does not establish a native repair.
+
+The next actual-library run adds separate approved-title assertions and uses the
+observed title for capture discovery. Pending and Partial both report **UserForm1**
+and fail the expected **Action Paths** assertion. The Pending default capture
+visibly confirms that title. This is focused behavioral RED against the unchanged
+candidate, before implementation. The one-line Operations correction now sets
+`Me.Caption = "Action Paths"` in `frmActionPaths.UserForm_Initialize`. The ongoing
+RED run continues against the unchanged package; a new five-package build and
+full regression/visible evidence remain required after Excel closes.
+
+The title RED run completes **254 PASS / 6 FAIL** with no terminal harness
+exception: three incorrect-title assertions and three minimum-size foreground
+capture failures. Excel closes normally. All 254 passing identities must remain
+GREEN. Static regeneration changes only the form's line count, 231 to 232; 5878
+procedures, 192 duplicate groups, 9/45 dynamic calls and all 28 limits remain.
+The GREEN command will use the complete visual gate with instrumented compilation,
+without `-RecordingEvaluationDiagnostic`, retaining all historical 324 checks.
+
+**Open visible wording defect:** The Applied diagnostic capture shows **Conclusion
+observed** while the library lifecycle notice still says **Stopped. Capture frozen;
+conclusion not evaluated.** This needs its own actual-handler RED and truthful
+lifecycle wording under D18's separate capture/evaluation states. The title
+correction does not fix it, and these captures are not human acceptance.
+
 ## Diagnostic-pane visible evidence: test entry
 
 The unchanged `7c1bb5e` candidate retains its 324/324 full packaged baseline.

@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-14T19:01:05Z",
+    "generatedAtUtc":  "2026-09-14T20:59:41Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "638657d097366b34bd9c768fce607bcad809ca826754daca27e710bf06659063",
-                          "maintenanceCandidatesSha256":  "f125cd8300bba7b44f1d622fa44f4806e203b97afd7bf131f705fd3823d5891a"
+                          "implementationManifestSha256":  "a39fb27a81119dee2ca2b12148c801db589480805d7878465009565c32136b8c",
+                          "maintenanceCandidatesSha256":  "f47d4306079a4a3f870b369fcb1cc7f983177185d5a16a7c84de1a29f5389d3c"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -11274,6 +11274,7 @@
                                                    "tests/integration/prove_wan_wh1_setup.bas",
                                                    "tests/integration/prove_wan_wh2_setup.bas",
                                                    "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                   "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                    "tests/tooling/Test-Plan022Slice4tShippingPostSend.ps1",
                                                    "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                    "tests/tooling/Test-Release1OrderedChildExit.ps1",
@@ -14329,6 +14330,7 @@
                                                    "tests/integration/prove_wan_wh1_setup.bas",
                                                    "tests/integration/prove_wan_wh2_setup.bas",
                                                    "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                   "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                    "tests/tooling/Test-Plan022Slice4tShippingPostSend.ps1",
                                                    "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                    "tests/tooling/Test-Release1OrderedChildExit.ps1",

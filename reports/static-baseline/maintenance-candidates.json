@@ -1,11 +1,11 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "maintenance-candidates",
-    "generatedAtUtc":  "2026-09-14T19:01:05Z",
+    "generatedAtUtc":  "2026-09-14T20:59:41Z",
     "baseline":  {
                      "componentCount":  232,
                      "procedureCount":  5878,
-                     "lineCount":  130056,
+                     "lineCount":  130057,
                      "literalApplicationRunCount":  9,
                      "unresolvedApplicationRunCount":  45,
                      "duplicateBodyCandidateCount":  192
@@ -9689,6 +9689,7 @@
                                                    "tests/integration/prove_wan_wh1_setup.bas",
                                                    "tests/integration/prove_wan_wh2_setup.bas",
                                                    "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                   "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                    "tests/tooling/Test-Plan022Slice4tShippingPostSend.ps1",
                                                    "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                    "tests/tooling/Test-Release1OrderedChildExit.ps1",
@@ -19016,6 +19017,7 @@
                                                    "tests/integration/prove_wan_wh1_setup.bas",
                                                    "tests/integration/prove_wan_wh2_setup.bas",
                                                    "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                   "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                    "tests/tooling/Test-Plan022Slice4tShippingPostSend.ps1",
                                                    "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                    "tests/tooling/Test-Release1OrderedChildExit.ps1",

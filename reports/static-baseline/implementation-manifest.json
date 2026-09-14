@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-14T19:01:05Z",
+    "generatedAtUtc":  "2026-09-14T20:59:41Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -5411,7 +5411,7 @@
                            "name":  "frmActionPaths",
                            "kind":  "FORM",
                            "sourcePath":  "src/Operations/Forms/frmActionPaths.frm",
-                           "lineCount":  231,
+                           "lineCount":  232,
                            "procedureNames":  [
                                                   "BindContext",
                                                   "ClearContent",
@@ -81890,8 +81890,8 @@
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
                            "startLine":  37,
-                           "endLine":  76,
-                           "lineCount":  40,
+                           "endLine":  77,
+                           "lineCount":  41,
                            "directCalls":  [
                                                "Add",
                                                "Caption",
@@ -81935,8 +81935,8 @@
                            "name":  "BindContext",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  78,
-                           "endLine":  82,
+                           "startLine":  79,
+                           "endLine":  83,
                            "lineCount":  5,
                            "directCalls":  [
                                                "ClearContent",
@@ -81957,8 +81957,8 @@
                            "name":  "ContextValid",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  84,
-                           "endLine":  87,
+                           "startLine":  85,
+                           "endLine":  88,
                            "lineCount":  4,
                            "directCalls":  [
                                                "CaptureContext",
@@ -81979,8 +81979,8 @@
                            "name":  "RefreshPaths",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  89,
-                           "endLine":  113,
+                           "startLine":  90,
+                           "endLine":  114,
                            "lineCount":  25,
                            "directCalls":  [
                                                "Caption",
@@ -82005,8 +82005,8 @@
                            "name":  "ReadSelection",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  115,
-                           "endLine":  143,
+                           "startLine":  116,
+                           "endLine":  144,
                            "lineCount":  29,
                            "directCalls":  [
                                                "Caption",
@@ -82035,8 +82035,8 @@
                            "name":  "RefreshExpectation",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  145,
-                           "endLine":  148,
+                           "startLine":  146,
+                           "endLine":  149,
                            "lineCount":  4,
                            "directCalls":  [
                                                "Caption",
@@ -82058,8 +82058,8 @@
                            "name":  "mExpected_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  150,
-                           "endLine":  153,
+                           "startLine":  151,
+                           "endLine":  154,
                            "lineCount":  4,
                            "directCalls":  [
                                                "ContextValid",
@@ -82080,8 +82080,8 @@
                            "name":  "mEvaluate_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  155,
-                           "endLine":  168,
+                           "startLine":  156,
+                           "endLine":  169,
                            "lineCount":  14,
                            "directCalls":  [
                                                "Caption",
@@ -82106,8 +82106,8 @@
                            "name":  "ReadEvaluation",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  170,
-                           "endLine":  179,
+                           "startLine":  171,
+                           "endLine":  180,
                            "lineCount":  10,
                            "directCalls":  [
                                                "Caption",
@@ -82131,8 +82131,8 @@
                            "name":  "ClearEvaluation",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  181,
-                           "endLine":  183,
+                           "startLine":  182,
+                           "endLine":  184,
                            "lineCount":  3,
                            "directCalls":  [
                                                "Caption"
@@ -82152,8 +82152,8 @@
                            "name":  "ClearContent",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  185,
-                           "endLine":  193,
+                           "startLine":  186,
+                           "endLine":  194,
                            "lineCount":  9,
                            "directCalls":  [
                                                "Caption",
@@ -82176,8 +82176,8 @@
                            "name":  "mPaths_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  195,
-                           "endLine":  197,
+                           "startLine":  196,
+                           "endLine":  198,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ReadSelection"
@@ -82197,8 +82197,8 @@
                            "name":  "mSearch_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  199,
-                           "endLine":  201,
+                           "startLine":  200,
+                           "endLine":  202,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshPaths"
@@ -82218,8 +82218,8 @@
                            "name":  "mRefresh_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  203,
-                           "endLine":  205,
+                           "startLine":  204,
+                           "endLine":  206,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshPaths"
@@ -82239,8 +82239,8 @@
                            "name":  "mClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  207,
-                           "endLine":  209,
+                           "startLine":  208,
+                           "endLine":  210,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -82262,8 +82262,8 @@
                            "name":  "UserForm_QueryClose",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  211,
-                           "endLine":  217,
+                           "startLine":  212,
+                           "endLine":  218,
                            "lineCount":  7,
                            "directCalls":  [
                                                "ClearContent"
@@ -82291,8 +82291,8 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  219,
-                           "endLine":  227,
+                           "startLine":  220,
+                           "endLine":  228,
                            "lineCount":  9,
                            "directCalls":  [
                                                "ApplyAnchoredLayout",
@@ -82336,8 +82336,8 @@
                            "name":  "UserForm_Layout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  229,
-                           "endLine":  231,
+                           "startLine":  230,
+                           "endLine":  232,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ApplyAnchoredLayout"
@@ -147563,6 +147563,7 @@
                            {
                                "entryPoint":  "AcquireLock",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/unit/TestAdminConsole.bas",
                                                  "tests/unit/TestCoreLockManager.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
@@ -147597,6 +147598,7 @@
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationIntegrity.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -147854,6 +147856,7 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beEvaluationBinding.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beSettingsOpenTrace.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1"
@@ -147880,6 +147883,7 @@
                            {
                                "entryPoint":  "AppendEventsToOutboxBatch",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Test-Plan022Slice4pReceiving.ps1"
                                              ]
                            },
@@ -147944,6 +147948,12 @@
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestWarehouseRetireLifecycle.bas",
                                                  "tests/unit/TestWarehouseRetireMigration.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "ApplyInventoryEventBridge",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
                                              ]
                            },
                            {
@@ -148439,6 +148449,7 @@
                            {
                                "entryPoint":  "BuildActiveDemoGroupIndex",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1"
                                              ]
                            },
@@ -148456,6 +148467,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "BuildDemoInventoryPayload",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "BuildDesignRecipeStagingWorkbookFromData",
                                "testPaths":  [
                                                  "tests/unit/TestPhase6RoleSurfaces.bas"
@@ -148465,6 +148482,12 @@
                                "entryPoint":  "BuildDispositionLines",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4qDisposition.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "BuildInboxEvent",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
                                              ]
                            },
                            {
@@ -148519,6 +148542,7 @@
                            {
                                "entryPoint":  "BuildPayloadJsonFromCollection",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Test-Slice8ProductionRetirement.ps1",
                                                  "tests/unit/TestCoreRoleEventWriter.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
@@ -148649,6 +148673,7 @@
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
                                                  "tests/tooling/Slice4beEvaluationIntegrity.ps1",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
@@ -148681,11 +148706,13 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActionRecording.ps1",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beShippingInterruptions.ps1",
                                                  "tests/tooling/Slice4beTrackingSettings.ps1",
@@ -148960,6 +148987,12 @@
                                                  "tests/tooling/Slice4beViewerPublication.ps1",
                                                  "tests/tooling/Slice4beViewerPublishedRead.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "CloseTransientProcessorWorkbook",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
                                              ]
                            },
                            {
@@ -149241,6 +149274,7 @@
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
@@ -149770,6 +149804,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "EnsureDemoStationInboxes",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "EnsureDesignsSchema",
                                "testPaths":  [
                                                  "tests/unit/TestDesignsDomain.bas"
@@ -149810,6 +149850,12 @@
                                "entryPoint":  "EnsureOutputIdentity",
                                "testPaths":  [
                                                  "tests/unit/TestProductionSessionService.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "EnsurePhase2Context",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
                                              ]
                            },
                            {
@@ -149929,6 +149975,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beShippingSubmission.ps1",
                                                  "tests/tooling/Test-DemoWorkflowSeed.ps1",
                                                  "tests/tooling/Test-PackagedExternalEdits.ps1",
@@ -149956,6 +150003,7 @@
                                                  "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beRecordingOperations.ps1"
                                              ]
                            },
@@ -150073,6 +150121,7 @@
                            {
                                "entryPoint":  "Execute",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1",
                                                  "tests/tooling/Test-Release1OrderedChildExit.ps1",
                                                  "tests/tooling/Test-Slice14FullChain.ps1"
@@ -150257,6 +150306,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "FindTableByNameSeed",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "FindTables",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beDetailProfile.ps1"
@@ -150266,6 +150321,7 @@
                                "entryPoint":  "Finish",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
                                                  "tests/tooling/Test-PackagedVbaCompile.ps1"
                                              ]
@@ -150365,6 +150421,7 @@
                                "testPaths":  [
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beViewerPublishedRead.ps1",
                                                  "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1",
@@ -150802,6 +150859,7 @@
                            {
                                "entryPoint":  "HasProvisionedCapabilityForSystem",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestWarehouseBootstrap.bas"
                                              ]
@@ -150834,6 +150892,7 @@
                                "entryPoint":  "Initialize",
                                "testPaths":  [
                                                  "tests/legacy-vba/modTestModule.bas",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
@@ -150921,6 +150980,7 @@
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
@@ -151191,6 +151251,7 @@
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beRecordingEvaluation.ps1",
                                                  "tests/tooling/Slice4beRecordingFixture.ps1",
@@ -151215,6 +151276,7 @@
                                                  "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLocal.ps1",
@@ -151637,6 +151699,7 @@
                                "entryPoint":  "Mark",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
                            },
@@ -151770,6 +151833,7 @@
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
                                                  "tests/tooling/Slice4beEvaluationIntegrity.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
                                                  "tests/tooling/Slice4beReceivingNativeSurface.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
@@ -152160,6 +152224,7 @@
                                "entryPoint":  "Message",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
@@ -152530,6 +152595,7 @@
                            {
                                "entryPoint":  "OpenInboxWorkbook",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/unit/TestCoreRoleEventWriter.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestPhase6LanBoundary.bas"
@@ -152753,6 +152819,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "PerfEndSafeProcessor",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "Permitted",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1"
@@ -152899,6 +152971,7 @@
                                "entryPoint":  "Project",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
@@ -153001,6 +153074,7 @@
                            {
                                "entryPoint":  "PublishWarehouseArtifactsToSharePoint",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/unit/TestPhase5Sync.bas"
                                              ]
                            },
@@ -153071,6 +153145,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "QueueDemoCreateAndProcess",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "QueueDesignEvent",
                                "testPaths":  [
                                                  "tests/unit/TestCoreRoleEventWriter.bas"
@@ -153085,6 +153165,7 @@
                            {
                                "entryPoint":  "QueueInventoryCreateEvent",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Test-Plan022Slice4akAdminAddVisibilityDropdowns.ps1"
                                              ]
                            },
@@ -153503,6 +153584,7 @@
                            {
                                "entryPoint":  "ReleaseLock",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/unit/TestCoreLockManager.bas",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -153734,9 +153816,16 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ResolveInboxTargets",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "ResolveInboxWorkbookPath",
                                "testPaths":  [
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1"
@@ -153760,6 +153849,7 @@
                                "entryPoint":  "ResolveInventoryWorkbookBridge",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestPhase6LanBoundary.bas"
                                              ]
@@ -153915,6 +154005,7 @@
                                                  "tests/integration/prove_wan_wh1_setup.bas",
                                                  "tests/integration/prove_wan_wh2_setup.bas",
                                                  "tests/integration/test_ConfirmWrites_Tester.bas",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Test-Plan022Slice4tShippingPostSend.ps1",
                                                  "tests/tooling/Test-Plan022Slice4vReceivingProductionPersistenceFeedback.ps1",
                                                  "tests/tooling/Test-Release1OrderedChildExit.ps1",
@@ -154283,6 +154374,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "SaveWorkbookProcessor",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "SaveWorkbookRole",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beShippingSubmission.ps1"
@@ -154313,6 +154410,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "ScheduleSourceWorkbookSyncBridge",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "SeedBootstrapDemoInventory",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1"
@@ -154321,6 +154424,7 @@
                            {
                                "entryPoint":  "SeedDemoInventoryForAutomation",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beRecordingOperations.ps1",
@@ -154333,7 +154437,8 @@
                            {
                                "entryPoint":  "SeedDemoInventoryForWarehouse",
                                "testPaths":  [
-                                                 "tests/integration/test_CreateWarehouse.bas"
+                                                 "tests/integration/test_CreateWarehouse.bas",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1"
                                              ]
                            },
                            {
@@ -154957,6 +155062,7 @@
                                                  "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
@@ -155055,6 +155161,7 @@
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -155111,6 +155218,7 @@
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
                                                  "tests/tooling/Slice4beEvaluationIntegrity.ps1",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingFreshness.ps1",
@@ -155220,6 +155328,7 @@
                            {
                                "entryPoint":  "SyncLocalStagedInboxRows",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationNativeTrace.ps1",
                                                  "tests/tooling/Test-Plan022Slice4jWorkflowReadiness.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
                                              ]
@@ -155633,6 +155742,7 @@
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
                                                  "tests/tooling/Slice4beEvaluationIntegrity.ps1",
+                                                 "tests/tooling/Slice4beEvaluationVisualEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingDenialDialogs.ps1",

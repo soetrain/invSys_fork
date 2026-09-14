@@ -1,13 +1,22 @@
 # D18 visible evidence from the actual saved result after the packaged Evaluate action.
 # Capture only the owned disposable library; no substitute rendering or source edits.
-function Capture-EvaluationLibrary([string]$Stage,[string]$View) {
+function Capture-EvaluationLibrary([string]$Stage,[string]$View,[string]$Title) {
     try {
         Initialize-SettingsCapture
-        $handle=[InvSysSettingsCapture]::OwnedVisibleForm('Action Paths',[IntPtr]$excel.Hwnd).ToInt64()
-        if($handle -eq 0){throw 'Requested form window unavailable.'}
-        $activation=New-Object -ComObject WScript.Shell
-        try {[void]$activation.AppActivate('Action Paths')}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
-        CaptureFormEvidence 'Action Paths' ('evaluation-'+$Stage.ToLowerInvariant()+'-'+$View.ToLowerInvariant()+'.png') $handle
+        for($attempt=1;$attempt -le 3;$attempt++){
+            try {
+                $handle=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
+                if($handle -eq 0){throw 'Requested form window unavailable.'}
+                $activation=New-Object -ComObject WScript.Shell
+                try {[void]$activation.AppActivate($Title)}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
+                CaptureFormEvidence $Title ('evaluation-'+$Stage.ToLowerInvariant()+'-'+$View.ToLowerInvariant()+'.png') $handle
+                break
+            } catch {
+                if($_.Exception.GetBaseException().Message -cne 'Requested form is not in the foreground.' -or $attempt -eq 3){throw}
+                Write-Output ('Diagnostic pane activation retry: '+$Stage+'/'+$View+'; attempt '+($attempt+1))
+                Start-Sleep -Milliseconds 300
+            }
+        }
         Check ('EvaluationVisual.'+$Stage+'.Capture.'+$View) $true
     } catch {
         $message=$_.Exception.GetBaseException().Message
@@ -28,6 +37,9 @@ function Test-EvaluationVisualEvidence([string]$Stage) {
         -not $text.Contains($resultId) -or -not $status.StartsWith($expected,[StringComparison]::Ordinal)){
         throw 'Actual saved-result fixture is unavailable for visible inspection.'
     }
+    $title=ExpectationControl '' 'FormCaption' '' 'frmActionPaths'
+    Check ($prefix+'ApprovedTitle') ($title -ceq 'Action Paths')
+    if($title -cmatch '^UserForm[0-9]+$'){Write-Output ('Observed generated library title: '+$title)}
     $pins=@{}
     foreach($file in Get-ChildItem -LiteralPath $journalRoot -Recurse -File){$pins[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash}
     $activity=ActivityPins
@@ -43,10 +55,10 @@ function Test-EvaluationVisualEvidence([string]$Stage) {
             Check ($prefix+'Layout.'+$size[0]) ($layout -ceq 'FITS')
             if($layout -cne 'FITS'){Write-Output ('Diagnostic geometry '+$Stage+'/'+$size[0]+': '+$layout)}
             if((ExpectationControl 'txtPathEvaluation' 'ViewportTop' '' 'frmActionPaths') -cne 'DELIVERED'){throw 'Actual diagnostic text viewport is unavailable.'}
-            Capture-EvaluationLibrary $Stage $size[0]
+            Capture-EvaluationLibrary $Stage $size[0] $title
         }
         if((ExpectationControl 'txtPathEvaluation' 'ViewportBottom' '' 'frmActionPaths') -cne 'DELIVERED'){throw 'Actual diagnostic source viewport is unavailable.'}
-        Capture-EvaluationLibrary $Stage 'Sources'
+        Capture-EvaluationLibrary $Stage 'Sources' $title
     } finally {
         $excel.Visible=[bool]$visibility
     }

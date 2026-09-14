@@ -31,6 +31,7 @@ param(
     [switch]$CheckExpectationCompatibility,
     [switch]$CheckEvaluationVisualEvidence,
     [switch]$RecordingEvaluationDiagnostic,
+    [switch]$CompileEvaluationProbesForTest,
     [switch]$CheckExpectationEditor,
     [string]$RecordingContinuationPipeName = '',
     [switch]$CheckViewerPublication,
@@ -67,6 +68,9 @@ if($RecordingEvaluationDiagnostic){
     if($Phase -ne 'RED' -or -not $CheckExpectationCompatibility){throw 'Evaluation isolation requires RED and the full evaluation contract probes; it is not regression acceptance.'}
     if($CheckRecordingLimits -or $CheckRecordingStorageBounds -or $CheckRecordingRestart -or $CheckExpectationEditor){throw 'Run limits, storage, restart and editor-only gates separately from evaluation diagnosis.'}
     Write-Output 'DIAGNOSTIC: evaluation fixture first; full regression gate remains required.'
+}
+if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence)){
+    throw 'Instrumented project compilation requires the evaluation diagnostic or full visual gate.'
 }
 if($TraceSettingsOpenForTest -and ($Phase -ne 'RED' -or -not $CheckTrackingSettings)) {
     throw 'Settings constructor tracing requires RED and the Settings checks; it is not acceptance GREEN.'
@@ -125,7 +129,9 @@ if ($CheckActivityEvidence) {
 if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundation checks require activity evidence mode.' }
 if ($CheckShippingActivity -and (-not $CheckActivityFoundation -or $CheckReceivingActivity)) { throw 'Shipping activity requires the foundation and a separate run from Receiving.' }
 if ($ShippingSubmissionOnly -and -not $CheckShippingActivity) { throw 'Shipping submission-only discovery requires Shipping activity mode.' }
-if ($TraceBootstrapForTest -and -not $CheckShippingActivity) { throw 'Bootstrap tracing requires the isolated Shipping route.' }
+if ($TraceBootstrapForTest -and -not $CheckShippingActivity -and -not $RecordingEvaluationDiagnostic) {
+    throw 'Bootstrap tracing requires the isolated Shipping or evaluation diagnostic route.'
+}
 if ($ShippingBeforeSharedFormsForTest -and (-not $CheckShippingActivity -or $ShippingSubmissionOnly)) { throw 'Shipping-first ordering requires the complete Shipping route.' }
 if ($PrepareShippingFixturesBeforeProbesForTest -and -not $ShippingBeforeSharedFormsForTest) { throw 'Prepared Shipping fixtures require the complete Shipping-first route.' }
 $preparedShippingFixtures=@{}
@@ -553,6 +559,14 @@ End Function
                 . (Join-Path $PSScriptRoot 'Slice4beRecordingOperations.ps1')
                 Test-Slice4beRecordingOperations $true
             }
+        }
+        if($TraceBootstrapForTest -and $RecordingEvaluationDiagnostic){
+            . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
+            Install-Slice4beEvaluationNativeTrace
+        }
+        if($CompileEvaluationProbesForTest){
+            . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
+            Compile-Slice4beEvaluationProbes
         }
         $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
         Check 'Harness.RecordingProbesInstalledBeforeForms' $noForms

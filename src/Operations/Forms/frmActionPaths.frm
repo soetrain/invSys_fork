@@ -36,6 +36,7 @@ Private mEvaluationStatus As MSForms.Label
 
 Private Sub UserForm_Initialize()
     Dim definition As Variant, control As Object
+    Me.Caption = "Action Paths"
     Me.Width = 820: Me.Height = 640
     Set mLayout = modOperationsLayout.OperationsAnchorManager()
     mLayout.ConfigureForForm Me, 720, 520
