@@ -121,6 +121,8 @@ try {
         (Join-Path $repo "src/Core/Modules/modActivity.bas"),
         (Join-Path $repo "src/Core/Modules/modActionRecording.bas"),
         (Join-Path $repo "src/Core/Modules/modRecordingSession.bas"),
+        (Join-Path $repo "src/Core/Modules/modRecordingReader.bas"),
+        (Join-Path $repo "src/Core/Modules/modActionPathRead.bas"),
         (Join-Path $repo "src/Core/Modules/modRecordingModel.bas"),
         (Join-Path $repo "src/Core/Modules/modRecordingJournal.bas"),
         (Join-Path $repo "src/Core/Modules/modRoleUiAccess.bas"),

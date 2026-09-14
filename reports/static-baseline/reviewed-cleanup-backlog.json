@@ -3,8 +3,8 @@
     "reportType":  "reviewed-cleanup-backlog",
     "generatedAtUtc":  "2026-07-27T20:00:00Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "0729076b221b211da9d6b7ad331910ccca9ac6ec05ceee891f7d102c6f8c2db7",
-                          "maintenanceCandidatesSha256":  "94fc6d6de80a5996ef6b5ad0d1ce95392f2c279bb8d6f566172ffa03b7423433"
+                          "implementationManifestSha256":  "73670f31f840f1e5b31c5c012bc1992e498cfaf0ac50670b9df6e8f1dcefd1b9",
+                          "maintenanceCandidatesSha256":  "3c275793d53687b367c3ca2eb71df1686d2f2761929592faaf532c6058f0216d"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -13,8 +13,8 @@
                    "scannerConfidenceIsDeletionAuthority":  false
                },
     "summary":  {
-                    "scannerCandidateCount":  1137,
-                    "reviewedCandidateCount":  1139,
+                    "scannerCandidateCount":  1150,
+                    "reviewedCandidateCount":  1152,
                     "manualCandidateCount":  2,
                     "approvedDeletionCount":  0,
                     "highConfidenceDeletionCount":  0
@@ -37,7 +37,7 @@
                         },
                         {
                             "name":  "SHARED_OPERATIONS",
-                            "candidateCount":  58,
+                            "candidateCount":  59,
                             "reason":  "Cross-role or future invSys.Operations packaging work."
                         },
                         {
@@ -57,7 +57,7 @@
                         },
                         {
                             "name":  "DEVELOPER_TOOLING",
-                            "candidateCount":  36,
+                            "candidateCount":  48,
                             "reason":  "Build, scan, report, and other developer-only tooling."
                         },
                         {
@@ -14693,6 +14693,80 @@
                            "nextAction":  "Protect the public action, replace the same-project string dispatch with a direct typed call, and rescan."
                        },
                        {
+                           "id":  "duplicate:5c6db13a20ef48fe:MakeControl+MakeControl",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "REPLACE_DUPLICATE",
+                           "disposition":  "REPLACE_DUPLICATE",
+                           "scannerConfidence":  "HIGH",
+                           "reviewedConfidence":  "MEDIUM",
+                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "MakeControl",
+                                                  "MakeControl"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm",
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
+                       },
+                       {
+                           "id":  "duplicate:9546f46f4520c584:UserForm_Layout+UserForm_Layout",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "REPLACE_DUPLICATE",
+                           "disposition":  "REPLACE_DUPLICATE",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "UserForm_Layout",
+                                                  "UserForm_Layout"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm",
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
+                       },
+                       {
+                           "id":  "duplicate:c6fd55022a9ee927:mRefresh_Click+mSearch_Change",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "REPLACE_DUPLICATE",
+                           "disposition":  "REPLACE_DUPLICATE",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mRefresh_Click",
+                                                  "mSearch_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
+                       },
+                       {
                            "id":  "reachability:src_Operations_Modules_modInventoryViewer.bas:modInventoryViewer.RunInventoryViewerActionForTest",
                            "origin":  "SCANNER",
                            "scannerCandidateType":  "UNRESOLVED",
@@ -14826,6 +14900,193 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
 
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mClose_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mClose_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mPaths_Change",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mPaths_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mRefresh_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mRefresh_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mSearch_Change",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mSearch_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "UserForm_Activate"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "UserForm_Initialize"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
+                                                   "tests/tooling/Slice4beSettingsOpenTrace.ps1",
+                                                   "tests/tooling/Test-Slice0ToolContracts.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "UserForm_Layout"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "UserForm_QueryClose"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Test-Plan022LauncherContracts.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -15177,6 +15438,29 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnActionPaths_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "disposition":  "RETAIN_DYNAMIC_ROOT",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "RETAIN",
+                           "workstream":  "DEVELOPER_TOOLING",
+                           "componentName":  "frmInventoryViewer",
+                           "procedureNames":  [
+                                                  "mBtnActionPaths_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmInventoryViewer.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."
@@ -25989,6 +26273,31 @@
                                                "src/Shipping/Modules/modShippingInit.bas"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation. Scanner confidence alone is not deletion authority; no protecting test is currently associated with this candidate.",
+                           "protectingTests":  [
+
+                                               ],
+                           "deletionApproved":  false,
+                           "nextAction":  "Choose one typed implementation boundary and protect every affected caller before consolidating duplicate bodies."
+                       },
+                       {
+                           "id":  "duplicate:862c21be3babc752:mBtnClose_Click+mClose_Click",
+                           "origin":  "SCANNER",
+                           "scannerCandidateType":  "REPLACE_DUPLICATE",
+                           "disposition":  "REPLACE_DUPLICATE",
+                           "scannerConfidence":  "LOW",
+                           "reviewedConfidence":  "LOW",
+                           "reviewStatus":  "REQUIRES_PROTECTING_TEST",
+                           "workstream":  "SHARED_OPERATIONS",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mBtnClose_Click",
+                                                  "mClose_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm",
+                                               "src/Shipping/Forms/frmShipmentsTally.frm"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
 
                                                ],

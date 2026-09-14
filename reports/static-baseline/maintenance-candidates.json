@@ -3,12 +3,12 @@
     "reportType":  "maintenance-candidates",
     "generatedAtUtc":  "2026-07-27T20:00:00Z",
     "baseline":  {
-                     "componentCount":  215,
-                     "procedureCount":  5755,
-                     "lineCount":  128025,
+                     "componentCount":  218,
+                     "procedureCount":  5777,
+                     "lineCount":  128368,
                      "literalApplicationRunCount":  9,
                      "unresolvedApplicationRunCount":  45,
-                     "duplicateBodyCandidateCount":  189
+                     "duplicateBodyCandidateCount":  193
                  },
     "candidates":  [
                        {
@@ -3277,6 +3277,25 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "duplicate:5c6db13a20ef48fe:MakeControl+MakeControl",
+                           "candidateType":  "REPLACE_DUPLICATE",
+                           "confidence":  "HIGH",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "MakeControl",
+                                                  "MakeControl"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm",
+                                               "src/Operations/Forms/frmEventDetail.frm"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "duplicate:5d6d7b8d984dd6d4:FindOpenWorkbookByFullNameShipping+FindOpenWorkbookByPathProcessor",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
@@ -3909,6 +3928,25 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "duplicate:862c21be3babc752:mBtnClose_Click+mClose_Click",
+                           "candidateType":  "REPLACE_DUPLICATE",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mBtnClose_Click",
+                                                  "mClose_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm",
+                                               "src/Shipping/Forms/frmShipmentsTally.frm"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "duplicate:864bbead8f0e7b19:NormalizeFolderPathAddins+NormalizeFolderPathRetire+NormalizeFolderPathTester",
                            "candidateType":  "REPLACE_DUPLICATE",
                            "confidence":  "HIGH",
@@ -4050,6 +4088,25 @@
                                                "src/Core/Modules/modProcessor.bas",
                                                "src/Core/Modules/modWarehouseBootstrap.bas",
                                                "src/Core/Modules/modWarehouseSync.bas"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "duplicate:9546f46f4520c584:UserForm_Layout+UserForm_Layout",
+                           "candidateType":  "REPLACE_DUPLICATE",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "UserForm_Layout",
+                                                  "UserForm_Layout"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm",
+                                               "src/Operations/Forms/frmEventTrackingSettings.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
@@ -4784,6 +4841,24 @@
                                               ],
                            "sourcePaths":  [
                                                "src/Production/Forms/frmProduction.frm"
+                                           ],
+                           "reason":  "Normalized procedure bodies are identical; review before consolidation.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "duplicate:c6fd55022a9ee927:mRefresh_Click+mSearch_Change",
+                           "candidateType":  "REPLACE_DUPLICATE",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mRefresh_Click",
+                                                  "mSearch_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
                                            ],
                            "reason":  "Normalized procedure bodies are identical; review before consolidation.",
                            "protectingTests":  [
@@ -10064,6 +10139,145 @@
                            "reviewRequired":  true
                        },
                        {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mClose_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mClose_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beOperationsTrackingSettings.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mPaths_Change",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mPaths_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mRefresh_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mRefresh_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mSearch_Change",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "mSearch_Change"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "UserForm_Activate"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beAdminSettingsClose.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "UserForm_Initialize"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
+                                                   "tests/tooling/Slice4beSettingsOpenTrace.ps1",
+                                                   "tests/tooling/Test-Slice0ToolContracts.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "UserForm_Layout"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmActionPaths",
+                           "procedureNames":  [
+                                                  "UserForm_QueryClose"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmActionPaths.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+                                                   "tests/tooling/Slice4beReceivingLifecycle.ps1",
+                                                   "tests/tooling/Test-Plan022LauncherContracts.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
                            "id":  "root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mClose_Click",
                            "candidateType":  "RETAIN_DYNAMIC_ROOT",
                            "confidence":  "LOW",
@@ -10321,6 +10535,23 @@
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
                                                    "tests/tooling/Slice4beReceivingLifecycle.ps1"
+                                               ],
+                           "reviewRequired":  true
+                       },
+                       {
+                           "id":  "root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnActionPaths_Click",
+                           "candidateType":  "RETAIN_DYNAMIC_ROOT",
+                           "confidence":  "LOW",
+                           "componentName":  "frmInventoryViewer",
+                           "procedureNames":  [
+                                                  "mBtnActionPaths_Click"
+                                              ],
+                           "sourcePaths":  [
+                                               "src/Operations/Forms/frmInventoryViewer.frm"
+                                           ],
+                           "reason":  "Procedure is a registered or discovered dynamic root.",
+                           "protectingTests":  [
+
                                                ],
                            "reviewRequired":  true
                        },

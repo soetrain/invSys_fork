@@ -167,7 +167,61 @@ both, library/version/import/export, broader regressions and visible/human
 acceptance. The existing record reader validates individual entries; do not
 claim a completed full-chain journal reader or completed diagnostic evidence.
 
-## Ignored raw evidence
+## Saved-run reader: test-first entry
+
+The frozen `17d788c` recording candidate runs `-Phase RED -CheckRecordingReader`:
+**71 PASS / 18 FAIL**, **89** unique identities, retaining all **68** applicable
+foundation checks GREEN and no harness exception. The fixture records two real
+Admin Save Value actions through Viewer Start/Stop, verifies their distinct
+ordinals and six-entry hash chain, then uses the actual Action Paths button and
+library controls. Missing library controls are observed product failures.
+
+Reader failures cover open/reuse/selection, ordered original actions, read-only
+evidence, Search, stopped-without-conclusion status, missing Close, a missing
+middle entry, damaged hash, a rehashed broken previous link, omitted closing
+observations, repeated ordinals, restoration, current visibility and sign-out.
+The three new passes establish absence of publication/Shipping authority calls,
+training-byte preservation and no library left after Viewer close; they do not
+prove a working reader. Fault injection changes only the generated run and
+restores every original journal byte in finally blocks.
+
+The first `deploy/validation-recording-reader` candidate builds and explicitly
+compiles all five packages with Operations cold-start references. Core owns
+journal enumeration/validation and permitted primitive projections; Operations
+owns the Events-only library launcher and captured read form. Focused GREEN is
+**89/89**, retaining every RED identity, with normal Excel closure and all ten
+foundation/reader package pins unchanged. No Excel Application Error1000 appears
+in this focused run's bounded observation window; earlier native faults remain
+unresolved. All 19 changed PowerShell files parse and all 16 import harnesses
+contain the two new Core modules exactly once.
+
+Static maintenance records218 components/5777 procedures,1150 scanner/1152
+reviewed candidates,45 unresolved/9 literal Application.Run calls. All28
+existing oversized modules pass individual comparisons and the three new
+modules remain below1000 lines. Duplicate groups grow189->193: one copied
+MakeControl builder and three short event-handler bodies. Nine further
+candidates are required form/callback dynamic roots. The duplicate findings
+remain unresolved; no maintenance exception or completed maintenance gate is
+claimed. Resolve the builder duplication and review the callback bodies before
+accepting the reader checkpoint.
+
+Still required for this reader: its own full layout/native geometry and visible
+inspection, additional warehouse/package/identity corruption and stale-context
+cases, current-policy failure/older-catalog cases, actual Excel interruption and
+restart, plus relevant broader regressions on the reader candidate. Foundation
+release results above apply to the preceding candidate. All-role recording,
+source-result correlation, conclusions and How-To/Diagnostic/Compare both remain
+required. This is an initial focused GREEN checkpoint, not a completed reader
+or Slice4be/Release1 acceptance claim.
+
+Reader evidence (ignored): `recording-reader-red.log`,
+`recording-reader-red-summary.json`, `recording-reader-build.log`,
+`recording-reader-compile.log`, `recording-reader-compiled.json`,
+`recording-reader-package-pins.json`, `recording-reader-green.log` and
+`recording-reader-static.log` and `recording-reader-checkpoint-summary.json`,
+all under `reports/runtime/`.
+
+## Foundation raw evidence
 
 - `reports/runtime/action-recording-red.log`
 - `reports/runtime/slice4be-viewer-published-read/d3e82e13f0f04c5aa9a6f0881f0775a1/red.json`

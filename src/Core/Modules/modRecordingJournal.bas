@@ -74,7 +74,7 @@ Public Function ReadEntry(ByVal target As WarehouseTarget, ByVal pathId As Strin
 Invalid:
 End Function
 
-Private Function JournalRoot(ByVal target As WarehouseTarget, ByVal create As Boolean) As String
+Public Function JournalRoot(ByVal target As WarehouseTarget, ByVal create As Boolean) As String
     Dim root As String, part As Variant, fso As Object
     If Not modNasConnection.IsWarehouseTargetAllowed(target, True) Then Exit Function
     If Not modTrainingWire.ValidSegment(target.WarehouseId) Then Exit Function

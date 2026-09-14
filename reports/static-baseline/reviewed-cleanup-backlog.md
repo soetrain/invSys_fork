@@ -2,8 +2,8 @@
 
 - Schema: 1.0.0
 - Baseline: 2026-07-27T20:00:00Z
-- Scanner candidates: 1137
-- Reviewed candidates: 1139
+- Scanner candidates: 1150
+- Reviewed candidates: 1152
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -14,11 +14,11 @@
 | RECEIVING | 54 | Receiving-owned forms, services, and role package source. |
 | PRODUCTION | 222 | Production-owned forms, services, and role package source. |
 | SHIPPING | 157 | Shipping and Boxing forms, services, and role package source. |
-| SHARED_OPERATIONS | 58 | Cross-role or future invSys.Operations packaging work. |
+| SHARED_OPERATIONS | 59 | Cross-role or future invSys.Operations packaging work. |
 | CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
 | ADMIN | 258 | Administrative setup, lifecycle, and developer-support source. |
-| DEVELOPER_TOOLING | 36 | Build, scan, report, and other developer-only tooling. |
+| DEVELOPER_TOOLING | 48 | Build, scan, report, and other developer-only tooling. |
 | TESTING | 0 | Test harness and fixture source that must remain outside runtime packages. |
 
 ## Module-growth ratchets
@@ -607,12 +607,23 @@
 | same-project-run:src_Core_ClassModules_cDynItemSearch.cls:cDynItemSearch.CommitSelection:HandlePaletteRecipeSelected | CORE | REPLACE_SAME_PROJECT_LATE_BINDING | MEDIUM | REQUIRES_PROTECTING_TEST |
 | same-project-run:src_Core_ClassModules_cDynItemSearch.cls:cDynItemSearch.CommitSelection:LoadRecipeChooser | CORE | REPLACE_SAME_PROJECT_LATE_BINDING | MEDIUM | REQUIRES_PROTECTING_TEST |
 | same-project-run:src_Core_ClassModules_cDynItemSearch.cls:cDynItemSearch.CommitSelection:LoadRecipeFromRecipes | CORE | REPLACE_SAME_PROJECT_LATE_BINDING | MEDIUM | REQUIRES_PROTECTING_TEST |
+| duplicate:5c6db13a20ef48fe:MakeControl+MakeControl | DEVELOPER_TOOLING | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
+| duplicate:9546f46f4520c584:UserForm_Layout+UserForm_Layout | DEVELOPER_TOOLING | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
+| duplicate:c6fd55022a9ee927:mRefresh_Click+mSearch_Change | DEVELOPER_TOOLING | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | reachability:src_Operations_Modules_modInventoryViewer.bas:modInventoryViewer.RunInventoryViewerActionForTest | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Operations_Modules_modInventoryViewer.bas:modInventoryViewer.RunInventoryViewerFilterForTest | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Operations_Modules_modOperationsInit.bas:modOperationsInit.OperationsShadowStartupForTest | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Operations_Modules_modOperationsInit.bas:modOperationsInit.OperationsStartupReport | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | root:src_Operations_ClassModules_cRecordingButton.cls:cRecordingButton.mButton_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_ClassModules_cViewerFilterBinding.cls:cViewerFilterBinding.mControl_Change | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mClose_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mPaths_Change | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mRefresh_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.mSearch_Change | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mClose_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mLines_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
@@ -628,6 +639,7 @@
 | root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Terminate | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnActionPaths_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnClose_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnEventsNext_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnEventsPrevious_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
@@ -1025,6 +1037,7 @@
 | duplicate:7ad0e1ea89bb7079:UserForm_Terminate+UserForm_Terminate+UserForm_Terminate+UserForm_Terminate+UserForm_Terminate+UserForm_Terminate | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:834c0cd6cc85ba5c:ClearExcelClipboardState+ClearExcelClipboardStateProduction+ClearExcelClipboardStateShipping | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:836394ed6c12f8fc:WorkbookTableExistsProductionInit+WorkbookTableExistsShippingInit | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
+| duplicate:862c21be3babc752:mBtnClose_Click+mClose_Click | SHARED_OPERATIONS | REPLACE_DUPLICATE | LOW | REQUIRES_PROTECTING_TEST |
 | duplicate:8eccb2c78b3f8d20:DeleteShapeIfExists+DeleteShapeIfExists | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:958efd9bdea90f68:RestoreCoreRootOverrideBootstrap+RestoreCoreRootOverrideRetire+RestoreCoreRootOverrideTesterSetup+RestoreRuntimeRootOverrideReadiness | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | duplicate:9b4198fdcfe07fab:SystemKey+SystemKey | SHARED_OPERATIONS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |

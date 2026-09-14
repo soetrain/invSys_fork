@@ -61,6 +61,8 @@ Private mLoadedColumnCount As Long
 Private mDetail As cEventDetailController
 Private mVisibleIndexes As Collection
 Private mRecording As cRecordingControls
+Private mPathLibrary As frmActionPaths
+Private WithEvents mBtnActionPaths As MSForms.CommandButton
 
 Private Sub UserForm_Initialize()
     BuildLayout
@@ -91,6 +93,7 @@ End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     Dim binding As cViewerFilterBinding
+    ClosePathLibrary
     If Not mRecording Is Nothing Then mRecording.Disconnect
     Set mRecording = Nothing
     If mFilterBindings Is Nothing Then Exit Sub
@@ -99,6 +102,7 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
 End Sub
 
 Public Sub SetWarehouse(ByVal warehouseId As String)
+    If mSettingsContext <> modActivity.CaptureContext() Then ClosePathLibrary
     If mSettingsContext <> modActivity.CaptureContext() Then ClearViewerContent
     mWarehouseId = Trim$(warehouseId)
     mSettingsContext = modActivity.CaptureContext()
@@ -145,6 +149,7 @@ End Sub
 Private Function ViewerContextValid() As Boolean
     ViewerContextValid = (mSettingsContext <> "" And mSettingsContext = modActivity.CaptureContext())
     If ViewerContextValid Then Exit Function
+    ClosePathLibrary
     ClearViewerContent
     mLoadStatus = "Unavailable. The invSys session or warehouse changed. Reopen Viewer."
     mLblStatus.Caption = mLoadStatus
@@ -350,6 +355,7 @@ Private Sub BuildLayout()
     Set mLblTitle = AddLabel("lblTitle", "Current inventory levels", 12, 40, 360, 22, True)
     Set mBtnRefresh = AddButton("btnRefresh", "Refresh", 740, 38, 92, 28)
     Set mBtnSettings = AddButton("btnSettings", "Settings", 636, 38, 92, 28)
+    Set mBtnActionPaths = AddButton("btnActionPaths", "Action Paths", 516, 38, 108, 28)
     AddLabel "lblSearch", "Search", 12, 78, 76, 18, True
     Set mTxtSearch = AddTextBox("txtSearch", 92, 74, 740, 24)
     Set mLblEventRange = AddLabel("lblEventRange", "Event range", 12, 110, 96, 18, True)
@@ -429,6 +435,7 @@ Private Sub BuildLayout()
     mLayout.RegisterControl mLblTitle, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP
     mLayout.RegisterControl mBtnRefresh, OPERATIONS_ANCHOR_TOP Or OPERATIONS_ANCHOR_RIGHT
     mLayout.RegisterControl mBtnSettings, OPERATIONS_ANCHOR_TOP Or OPERATIONS_ANCHOR_RIGHT
+    mLayout.RegisterControl mBtnActionPaths, OPERATIONS_ANCHOR_TOP Or OPERATIONS_ANCHOR_RIGHT
     mLayout.RegisterControl mTxtSearch, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP Or OPERATIONS_ANCHOR_RIGHT
     mLayout.RegisterControl mLblEventRange, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP
     mLayout.RegisterControl mCboEventRange, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP
@@ -453,6 +460,18 @@ End Sub
 Private Sub mBtnSettings_Click()
     Dim report As String
     If Not modOperationsTrackingSettings.OpenSettings(mSettingsContext, report) Then mLblStatus.Caption = report
+End Sub
+
+Private Sub mBtnActionPaths_Click()
+    If Not ViewerContextValid() Then Exit Sub
+    If mPathLibrary Is Nothing Then Set mPathLibrary = New frmActionPaths
+    mPathLibrary.BindContext mSettingsContext
+    If Not mPathLibrary.Visible Then mPathLibrary.Show vbModeless
+End Sub
+
+Private Sub ClosePathLibrary()
+    If Not mPathLibrary Is Nothing Then Unload mPathLibrary
+    Set mPathLibrary = Nothing
 End Sub
 
 Private Sub ApplyViewerTab()
@@ -576,6 +595,7 @@ Private Sub ConfigureEventFilterGeometry()
     On Error GoTo Done
     mConfiguringFilters = True
     visible = (mTabs.Value = 1)
+    If Not mBtnActionPaths Is Nothing Then mBtnActionPaths.Visible = visible
     top = 162: If visible Then top = 254
     If Not mRecording Is Nothing Then mRecording.Arrange visible, mTabs.Width
     height = mBtnEventsPrevious.Top - top - 10
