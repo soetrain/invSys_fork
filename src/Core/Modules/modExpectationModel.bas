@@ -2,6 +2,14 @@ Attribute VB_Name = "modExpectationModel"
 Option Explicit
 Option Private Module
 
+Public Function NoneDefinition() As Object
+    Dim model As Object, steps As New Collection
+    Set model = CreateObject("Scripting.Dictionary")
+    model.Add "SchemaVersion", 1&: model.Add "Steps", steps
+    model.Add "TerminalStepId", "": model.Add "TerminalKind", "None"
+    Set NoneDefinition = model
+End Function
+
 ' D18 authored intent only. Validation never executes the registered control.
 Public Function Validate(ByVal model As Object, ByVal catalogVersion As Long) As Boolean
     Dim field As Variant, step As Variant, seen As Object, definition As Object

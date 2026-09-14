@@ -10,6 +10,10 @@ Public Function RecordingExpectationForTest(ByVal formName As String, ByVal cont
     Next form
     RecordingExpectationForTest = "MISSING"
     If target Is Nothing Then Exit Function
+    If action = "FormCaption" Then RecordingExpectationForTest = CStr(target.Caption): Exit Function
+    If action = "WindowHandle" Then
+        RecordingExpectationForTest = CStr(modUserFormResizeWin.GetUserFormWindowHandle(target)): Exit Function
+    End If
     For Each control In target.Controls
         If control.Name = controlName Then
             If action <> "ValueAnyVisibility" And action <> "CountAnyVisibility" Then
@@ -39,6 +43,37 @@ Public Function RecordingExpectationForTest(ByVal formName As String, ByVal cont
             RecordingExpectationForTest = "DELIVERED": Exit Function
         End If
     Next control
+End Function
+
+Public Function RecordingExpectationLayoutForTest(ByVal formName As String, ByVal width As Single, ByVal height As Single) As String
+    Dim form As Object, target As Object, control As Object, other As Object
+    RecordingExpectationLayoutForTest = "MISSING"
+    For Each form In VBA.UserForms
+        If form.Name = formName Then Set target = form: Exit For
+    Next form
+    If target Is Nothing Then Exit Function
+    If Not target.Visible Then RecordingExpectationLayoutForTest = "HIDDEN": Exit Function
+    target.Width = width: target.Height = height
+    target.Repaint: DoEvents
+    For Each control In target.Controls
+        If control.Visible Then
+            If control.Left < 0 Or control.Top < 0 Or control.Width <= 0 Or control.Height <= 0 Or _
+               control.Left + control.Width > target.InsideWidth Or control.Top + control.Height > target.InsideHeight Then
+                RecordingExpectationLayoutForTest = "OUTSIDE:" & control.Name & "|Inside=" & CStr(target.InsideWidth) & "," & _
+                    CStr(target.InsideHeight) & "|Bounds=" & CStr(control.Left) & "," & CStr(control.Top) & "," & _
+                    CStr(control.Width) & "," & CStr(control.Height): Exit Function
+            End If
+            For Each other In target.Controls
+                If other.Visible And other.Name <> control.Name Then
+                    If control.Left < other.Left + other.Width And other.Left < control.Left + control.Width And _
+                       control.Top < other.Top + other.Height And other.Top < control.Top + control.Height Then
+                        RecordingExpectationLayoutForTest = "OVERLAP:" & control.Name & ":" & other.Name: Exit Function
+                    End If
+                End If
+            Next other
+        End If
+    Next control
+    RecordingExpectationLayoutForTest = "FITS"
 End Function
 '@)
 }

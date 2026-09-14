@@ -2,6 +2,12 @@
 # The probes are installed in disposable, unsaved package projects. Missing
 # product controls return an explicit observation; missing test seams throw.
 function Test-Slice4beActionRecording($Fixture) {
+    if($CheckExpectationEditor){
+        [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')
+        . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
+        Install-RecordingEvaluationProbe
+        . (Join-Path $PSScriptRoot 'Slice4beExpectationCompatibility.ps1')
+    }
     $form=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmInventoryViewer').CodeModule
     $form.AddFromString(@'
 Public Function RecordingControlForTest(ByVal caption As String, ByVal operation As String) As String
@@ -181,6 +187,12 @@ End Function
         OpenRecordingViewer
         Check 'Recording.OrdinaryViewerUserCanStartOwnRun' ((RecordingControl 'Start Recording' 'Click') -ceq 'DELIVERED' -and (RecordingStatus) -match '(?i)recording.*0\s*/\s*256')
         Check 'Recording.OrdinaryViewerUserCanStopOwnRun' ((RecordingControl 'Stop Recording' 'Click') -ceq 'DELIVERED' -and (RecordingStatus) -match '(?i)stopped')
+        if($CheckExpectationEditor){
+            CloseRecordingViewer
+            SelectTarget $Fixture 'config-admin'
+            OpenRecordingViewer
+            Test-ExpectationEditorBinding
+        }
         if($CheckRecordingLimits) {
             CloseRecordingViewer
             SelectTarget $Fixture 'config-admin'

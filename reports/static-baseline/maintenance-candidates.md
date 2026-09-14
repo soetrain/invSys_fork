@@ -1,8 +1,8 @@
 # invSys VBA Maintenance Candidates
 
 - Schema: 1.0.0
-- Generated: 2026-09-14T12:26:40Z
-- Total candidates: 1148
+- Generated: 2026-09-14T15:28:09Z
+- Total candidates: 1157
 - Duplicate-body groups: 192
 - Unresolved dynamic calls: 45
 
@@ -559,8 +559,17 @@ Scanner output is review evidence only. It never authorizes automatic deletion.
 | RETAIN_DYNAMIC_ROOT | LOW | modInventoryApply | ApplyLatestMovementToInvSysApply | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | modInventoryApply | ApplyReceiveEvent | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | modInventoryInit | Auto_Open | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cExpectationButton | mButton_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | cRecordingButton | mButton_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | cRecordingControls | mExpectationButton_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | cViewerFilterBinding | mControl_Change | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmActionPathExpectation | mCancel_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmActionPathExpectation | mControl_Change | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmActionPathExpectation | mUse_Click | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmActionPathExpectation | UserForm_Activate | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmActionPathExpectation | UserForm_Initialize | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmActionPathExpectation | UserForm_Layout | Procedure is a registered or discovered dynamic root. |
+| RETAIN_DYNAMIC_ROOT | LOW | frmActionPathExpectation | UserForm_QueryClose | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmActionPaths | mClose_Click | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmActionPaths | mPaths_Change | Procedure is a registered or discovered dynamic root. |
 | RETAIN_DYNAMIC_ROOT | LOW | frmActionPaths | mRefresh_Click | Procedure is a registered or discovered dynamic root. |

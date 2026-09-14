@@ -15,6 +15,7 @@ Private mVersion As Long
 Private mPreviousId As String
 Private mPreviousHash As String
 Private mReport As String
+Private mExpectation As Object
 
 Public Function ExecuteCommand(ByVal context As String, ByVal command As String, ByRef report As String) As Boolean
     On Error GoTo Failed
@@ -54,7 +55,7 @@ Private Function Start(ByVal context As String, ByRef report As String) As Boole
     mTarget.RuntimeRoot = target.RuntimeRoot: mTarget.HubRoot = target.HubRoot
     mTarget.ConfigPath = target.ConfigPath: mTarget.SourceType = target.SourceType
     Set mHeader = CreateObject("Scripting.Dictionary")
-    mHeader.Add "SchemaVersion", 1&: mHeader.Add "RecordKind", "Recording"
+    mHeader.Add "SchemaVersion", 2&: mHeader.Add "RecordKind", "Recording"
     mHeader.Add "ActionPathId", modTrainingWire.NewId(): mHeader.Add "SequenceId", modTrainingWire.NewId()
     mHeader.Add "WarehouseId", mTarget.WarehouseId: mHeader.Add "OriginWarehouseId", mTarget.WarehouseId
     mHeader.Add "CreatedByUserId", modAuth.GetCurrentUserId()
@@ -65,6 +66,8 @@ Private Function Start(ByVal context As String, ByRef report As String) As Boole
     mHeader.Add "Instructions", "": mHeader.Add "Method", "Diagnostic"
     mContext = context: mCount = 0: mVersion = 0: mPreviousId = "": mPreviousHash = ""
     Set mObservations = New Collection
+    Set mExpectation = modExpectationModel.NoneDefinition()
+    modExpectationDraft.Discard ""
     Set mSeen = CreateObject("Scripting.Dictionary"): Set mPending = CreateObject("Scripting.Dictionary")
     mBusy = True
     Start = AppendEntry("Start", "Recording", "", mObservations)
@@ -125,6 +128,29 @@ End Sub
 
 Public Function ActiveFor(ByVal context As String) As Boolean
     ActiveFor = (mActive And mContext = context)
+End Function
+
+Public Function ReadExpectation(ByVal context As String, ByRef sequenceId As String, _
+                                ByRef definition As Object, ByRef notice As String) As Boolean
+    Dim active As Boolean, canStart As Boolean
+    sequenceId = "": Set definition = Nothing
+    notice = ReadStatus(context, active, canStart)
+    If Not active Or mBusy Or mContext <> context Then Exit Function
+    sequenceId = CStr(mHeader("SequenceId"))
+    Set definition = modTrainingJson.DecodeObject(modTrainingJson.EncodeObject(mExpectation))
+    ReadExpectation = Not definition Is Nothing
+End Function
+
+Public Function StageExpectation(ByVal context As String, ByVal sequenceId As String, _
+                                 ByVal definition As Object, ByRef notice As String) As Boolean
+    Dim currentSequence As String, current As Object
+    If Not ReadExpectation(context, currentSequence, current, notice) Then Exit Function
+    If sequenceId = "" Or sequenceId <> currentSequence Then notice = "This recording has ended. Reopen Expected conclusion.": Exit Function
+    notice = "Choose valid expected steps and a conclusion, or remove all steps and choose None."
+    If Not modExpectationModel.Validate(definition, CLng(mHeader("CatalogVersion"))) Then Exit Function
+    Set mExpectation = modTrainingJson.DecodeObject(modTrainingJson.EncodeObject(definition))
+    StageExpectation = Not mExpectation Is Nothing
+    If StageExpectation Then notice = "Expected conclusion staged for this recording. Stop freezes it with the observations."
 End Function
 
 Public Sub Observe(ByVal body As String, ByRef notice As String)
@@ -190,6 +216,8 @@ Private Function CloseRun(ByVal life As String, ByVal reason As String) As Boole
 Failed:
     If Err.Number <> 0 Then mReport = "Incomplete evidence: recording closure could not be saved."
     mActive = False: mBusy = False
+    modExpectationDraft.Discard ""
+    Set mExpectation = Nothing
 End Function
 
 Private Function AppendEntry(ByVal kind As String, ByVal life As String, ByVal reason As String, ByVal observations As Collection) As Boolean
@@ -201,6 +229,11 @@ Private Function AppendEntry(ByVal kind As String, ByVal life As String, ByVal r
     model.Add "PreviousSha256", mPreviousHash: model.Add "Lifecycle", life
     model.Add "ReasonCode", reason: model.Add "ActionCount", mCount
     model.Add "CreatedAtUTC", modTrainingWire.UtcTimestamp(): model.Add "Observations", observations
+    If kind = "Close" Then
+        model.Add "ExpectedConclusion", mExpectation
+    Else
+        model.Add "ExpectedConclusion", modExpectationModel.NoneDefinition()
+    End If
     AppendEntry = modRecordingJournal.Append(mTarget, model, hash, mReport)
     If AppendEntry Then
         mVersion = mVersion + 1: mPreviousId = model("RecordId"): mPreviousHash = hash

@@ -10,6 +10,9 @@ $ErrorActionPreference = "Stop"
 
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 $deployPath = (Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
+if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated full-chain validation.'}
+. (Join-Path $repo 'tests/tooling/Slice4beRecordingLifecycle.ps1')
+$localSettingsBefore = Get-InvSysTestSettingsSnapshot
 $resultPath = Join-Path $repo "tests/integration/slice14_results.md"
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) (
     "invsys-release1-chain-" + [Guid]::NewGuid().ToString("N"))
@@ -944,6 +947,10 @@ finally {
         try { $excel.Quit() } catch {}
         Release-ComObject $excel
     }
+    # Keep the private settings copy alive through a residual Excel/recovery prompt.
+    Wait-RecordingCleanup -Creator $null -Worker $null
+    Add-Result 'LocalSettingsRestored' (Restore-InvSysTestSettingsSnapshot $localSettingsBefore) `
+        'Pre-test invSys local setting values and types restored after Excel exits.'
     Write-Evidence
     if (-not $KeepArtifacts -and (Test-Path -LiteralPath $tempRoot -PathType Container)) {
         $resolvedTemp = (Resolve-Path -LiteralPath $tempRoot).Path

@@ -77,14 +77,52 @@ function Test-ExpectationCompatibility {
     Check 'ExpectationCompatibility.OriginalJournalRestoredExactly' $preserved
 }
 
+function Capture-ExpectationEditorEvidence([string]$Name) {
+    try {
+        Initialize-SettingsCapture
+        $editorHandle=[InvSysSettingsCapture]::OwnedVisibleForm('Expected steps and conclusion',[IntPtr]$excel.Hwnd).ToInt64()
+        if($editorHandle -eq 0){throw 'Requested form window unavailable.'}
+        $editorActivation=New-Object -ComObject WScript.Shell
+        try {[void]$editorActivation.AppActivate('Expected steps and conclusion')}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($editorActivation)}
+        CaptureFormEvidence 'Expected steps and conclusion' ('expectation-editor-'+$Name.ToLowerInvariant()+'.png') $editorHandle
+        Check ('Harness.ExpectationVisibleCapture.'+$Name) $true
+    } catch {
+        $message=$_.Exception.GetBaseException().Message
+        if($message -cnotin @('Requested form is not in the foreground.','Requested form window unavailable.')){throw}
+        # A visible-evidence failure is not product RED. Continue the actual
+        # editor actions so one unavailable capture does not mask binding results.
+        Check ('Harness.ExpectationVisibleCapture.'+$Name) $false
+        Write-Output ('Visible editor evidence unavailable: '+$Name+'; '+$message)
+    }
+}
+
 function Test-ExpectationEditorBinding {
+    # Show only this owned disposable Excel instance for operator-view evidence.
+    # A modeless form's Visible property alone does not establish a native window.
+    $previousVisibility=[bool]$excel.Visible
+    $excel.Visible=$true
     if((RecordingControl 'Start Recording' 'Click') -cne 'DELIVERED'){throw 'Actual recorder baseline unavailable for editor binding.'}
     $action=SaveRecordedSetting '681'
     $activeSequence=[string]$action.Attempt.SequenceId
     $opened=ExpectationControl 'btnRecordingExpectation' 'Click' '' 'frmInventoryViewer'
+    $caption=ExpectationControl '' 'FormCaption'
+    Check 'ExpectationEditor.ApprovedCaption' ($caption -ceq 'Expected steps and conclusion')
+    Check 'ExpectationEditor.RetryDefaultsToAllowed' ((ExpectationControl 'chkExpectedRetry' 'Value') -ceq 'True')
+    if($caption -cne 'Expected steps and conclusion'){Write-Output ('Expectation editor caption observed: '+$caption)}
+    foreach($size in @(@('Minimum',760,550),@('Large',1040,750),@('Default',900,630))){
+        $layout=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingExpectationLayoutForTest' @('frmActionPathExpectation',[single]$size[1],[single]$size[2]))
+        Check ('ExpectationEditor.Layout.'+$size[0]) ($layout -ceq 'FITS')
+        if($layout -cne 'FITS'){Write-Output ('Expectation geometry '+$size[0]+': '+$layout)}
+        if($opened -ceq 'DELIVERED'){
+            Capture-ExpectationEditorEvidence $size[0]
+        }
+    }
     foreach($step in @(@('ADMIN_SETTINGS_SAVE_VALUE','COMPLETED'),@('RECEIVING_CONFIRM_WRITES','PENDING'))){
         [void](ExpectationControl 'cboExpectedControl' 'Select' $step[0])
         [void](ExpectationControl 'cboExpectedOutcome' 'Select' $step[1])
+        if($step[0] -ceq 'RECEIVING_CONFIRM_WRITES'){
+            [void](ExpectationControl 'chkExpectedRetry' 'Boolean' 'False')
+        }
         [void](ExpectationControl 'btnAddExpectedStep' 'Click')
     }
     [void](ExpectationControl 'lstExpectedSteps' 'Index' '0')
@@ -94,6 +132,7 @@ function Test-ExpectationEditorBinding {
     [void](ExpectationControl 'btnExpectedStepUp' 'Click')
     [void](ExpectationControl 'cboTerminalStep' 'Index' '1')
     [void](ExpectationControl 'cboTerminalKind' 'Select' 'CommandCompleted')
+    if($opened -ceq 'DELIVERED'){Capture-ExpectationEditorEvidence 'Ordered'}
     $used=ExpectationControl 'btnUseExpectation' 'Click'
     $reopened=ExpectationControl 'btnRecordingExpectation' 'Click' '' 'frmInventoryViewer'
     # Leave the modeless editor open across the end of this exact sequence.
@@ -109,6 +148,9 @@ function Test-ExpectationEditorBinding {
             $closed[0].ExpectedConclusion.TerminalStepId -ceq $firstId
     }
     Check 'ExpectationEditor.ReorderPreservesExactStepIdsAndTerminal' ($opened -ceq 'DELIVERED' -and $used -ceq 'DELIVERED' -and $preserved)
+    $retryPreserved=$false
+    if($preserved){$retryPreserved=$steps[0].RetryAllowed -ceq $false -and $steps[1].RetryAllowed -ceq $true}
+    Check 'ExpectationEditor.DefaultAndExplicitRetryPersistAfterReorder' $retryPreserved
     if((RecordingControl 'Start Recording' 'Click') -cne 'DELIVERED'){throw 'Actual second recording unavailable.'}
     $next=SaveRecordedSetting '682'
     [void](ExpectationControl 'btnUseExpectation' 'Click')
@@ -135,4 +177,5 @@ function Test-ExpectationEditorBinding {
     CloseRecordingViewer
     SelectTarget $Fixture 'config-admin'
     OpenRecordingViewer
+    $excel.Visible=$previousVisibility
 }

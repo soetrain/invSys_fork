@@ -966,6 +966,171 @@ compile, static or full-chain result is claimed for this test/tooling checkpoint
 Next implement the captured editor, exact-sequence staging and schema-2 writer
 against these recorded RED cases and the existing editor-binding cases.
 
+## Captured expectation editor and writer checkpoint
+
+Implementation follows the existing D18 refinement and the 175/62 RED checkpoint.
+Core owns the separate context/SequenceId-bound draft in `modExpectationDraft`;
+the `modActionRecording` bridge accepts primitive fixed edit commands and returns
+an EXPECTATION1 projection. Operations owns `frmActionPathExpectation` and its
+actual button bindings. Add creates a distinct StepId, reorder retains it, and
+Use validates/stages the explicit definition. Stop freezes that definition into
+schema-2 Close; Start/Observation use None. Closing a run discards its draft.
+The 16 source-import harnesses include the new draft service.
+
+The initial candidate `deploy/validation-captured-expectation` builds/compiles all
+five packages. Its packaged run ends **68 PASS / 1 harness failure**, an RPC server
+loss at `modInventoryViewer.PublishedReadActionForTest`, before the new editor
+cases. The original Excel process exits and its verified child remains with zero
+workbooks and three installed add-in projects. Normal Quit returns, the child
+exits, and all three add-in files retain their hashes. No matching Excel event
+1000 is found in the scoped log query; that does not establish the restart cause.
+This is not product RED or proof of editor behavior.
+
+Static review finds a duplicate group in the four short edit handlers. The
+revised `deploy/validation-captured-expectation-bindings` candidate consolidates
+their explicit Add/Remove/Up/Down bindings in `cExpectationButton`, retaining the
+actual operator events and typed calls. All five packages build/compile again.
+Static evidence has 222 components, 5,815 procedures and 128,936 lines. All 28
+individual module-growth limits hold, duplicates return to 192, and literal/
+unresolved dynamic calls remain 9/45. The nine additional maintenance candidates
+are the newly declared event roots; no scanner-reported dead code is deleted.
+
+Compiled comparison against the reader candidate finds the four declared changed
+modules, three new components, and 27 other modules differing only in casing.
+The compile report now includes case-insensitive and exact string-literal hashes;
+both establish that these 27 differences preserve every string literal. The exact
+source hash remains present. Raw source/literal text is never added to the report.
+
+The revised candidate reaches **175 PASS / 56 FAIL** before a new screenshot
+harness failure. The three new-writer cases and both captured staging/Stop cases
+pass. Its first editor layout measurement is premature: unlike the established
+library probe, it omits Repaint/DoEvents after resize. Native screenshot lookup
+also runs while Excel is hidden. The apparent minimum-layout failure therefore
+does not yet establish a runtime defect. The corrected probe repaints/processes
+resize events, shows only its owned disposable Excel instance, checks the approved
+caption, and captures the actual form handle with foreground verification.
+The corrected probe establishes minimum-layout GREEN but finds the missing runtime
+caption through the actual form (176 PASS / 56 FAIL before capture stops the run).
+The caption candidate adds the approved explicit Caption initialization; its
+editor-only run reports 75 PASS / 4 capture failures. All three layouts, exact
+StepId/terminal reorder, stale-sequence rejection and sign-out clearing pass.
+
+Review finds a separate D18 defect: RetryAllowed must default True, while the
+editor initializes it False. Two new actual-editor checks protect the initial
+choice and the saved default/explicit-False values after reorder. The unchanged
+caption candidate produces meaningful RED for both: 75 PASS / 6 FAIL, with the
+other four failures belonging to visible capture. Only after RED, the editor's
+BindContext initializes the add-step checkbox True. An explicit False remains
+unchanged in the staged and frozen definition.
+
+The final `deploy/validation-captured-expectation-retry` candidate builds and
+explicitly compiles all five packages, including Operations cold start. Its
+compiled comparison against the caption candidate changes only
+`frmActionPathExpectation`. The complete compatibility/Operations/Admin run
+finishes **189 PASS / 58 FAIL**, retaining all **175 prior passing identities**,
+with no duplicates or terminal harness exception. All three writer checks,
+captured staging/Stop, 15 compatibility checks, caption, three layouts, reorder,
+default/explicit retry, stale-editor and sign-out checks pass. The remaining
+failures are **54 pending evaluation checks and four explicit capture failures**;
+the full suite and Slice 4be are not GREEN.
+
+Read-only desktop diagnosis reports no foreground window and input-desktop access
+denied (Windows error 5). The capture guard correctly refuses to count these as
+visible operator evidence. No screenshot fallback or human acceptance is claimed.
+The cause of earlier native/RPC failures remains unresolved.
+
+Before the retry correction, the caption candidate passes full chain **31/31**,
+live roles **48/48**, and Create Warehouse **15/15**, restoring the three tracked
+reports exactly. A residual Excel process has zero non-null Workbooks and three
+installed add-in projects. Normal Quit preserves those package bytes but leaves
+the known Document Recovery prompt. Selecting and verifying **retain files for
+later**, then its normal OK action, lets that process exit without deleting
+recovery files. This identifies that cleanup obstruction, not an explanation of
+earlier native failures. The final candidate passes the limit/storage gate
+**77/77**, retaining 256 distinct actions and all 512 observations, ending partial
+at the limit, and allowing action 257 outside the run. Exact 1 MiB acceptance,
+integrity read, idempotent append, one-byte oversize rejection and absence of
+partial published files pass. Excel closes normally.
+
+The first final-candidate controller-exit run ends **120 PASS / 3 harness failures**.
+The original Excel and creator controller exit; a distinct reader/Excel launches
+the pristine Viewer, reads the interrupted run without resuming it, preserves the
+original observations/files, and performs an ordinary action outside that run.
+Failure follows during the new explicit recording sequence, before its independent
+identity assertion. The worker did not retain a failing-call diagnostic, so this
+is not a localized product RED or restart GREEN. Its recorded fresh Excel exits
+and a verified child remains. That child has zero non-null Workbooks and three
+installed add-in projects. Normal Quit preserves their bytes; the known Document
+Recovery retain-for-later choice lets it exit without deleting recovery files.
+
+This exposes a coordinator cleanup defect: it exits while Excel remains, losing
+the only in-memory copy of pre-test local settings before restoration. The worker
+leaves its disposable warehouse selected. Cleanup removes only that fixture's two
+target values and one remembered root; five other current setting values are
+unchanged by cleanup. The original pre-test selection is unavailable and is not
+guessed. The user must select the intended warehouse again; full pre-test local
+preference restoration is not proven. Fixture files remain for diagnosis.
+
+Developer tooling now keeps the coordinator and its private restoration state
+alive until controllers/Excel exit. Worker failure diagnostics retain only the
+validated last attempted macro identifier, exception type and numeric HResults;
+that identifier alone is not proof of the failing call. No exception text,
+arguments, credentials or fixture payload are serialized. Isolated lifecycle/
+redaction tests pass **6/6**, and existing private-pipe protocol tests pass **6/6**,
+without creating Excel or authority files. This is a test-isolation repair, not
+a new XLAM contract or product GREEN. The diagnostic rerun of the unchanged
+candidate passes **123/123**, including pristine Viewer launch, interrupted-run
+reading, an independent new explicit run and preservation of all five packages.
+Both controllers and Excel exit. Local selection returns to the deliberately
+deselected state that existed before this rerun, with no fixture discovery root;
+this does not recover the original selection lost by the first failed attempt.
+The first native failure remains unexplained.
+
+The final candidate also passes full chain **31/31**, live roles **48/48**, and
+Create Warehouse **15/15**. Post-run inspection finds the full-chain validator's
+own temporary selection persisted. That exact completed fixture is deselected,
+then the validator gains the shared in-memory settings snapshot/restore helper,
+an Excel-closed entry guard and cleanup wait before restoration. The recording
+coordinator reuses that helper. No settings backup is written to disk. Expanded
+isolated lifecycle/settings/redaction checks pass **10/10**, including unknown
+binary values/types and refusal to restore beneath live Excel; the private-pipe
+checks remain **6/6**.
+
+The same compiled candidate then passes the strengthened full chain **32/32**,
+retaining every prior 31 passing identity and adding **LocalSettingsRestored**.
+Live roles remain **48/48** and Create Warehouse **15/15**. The three tracked
+reports are restored exactly, Excel is closed, and the known deselected starting
+state and prior local setting values/types are restored. The current chain's
+fixture root is absent; pre-existing entries are preserved. These repairs do not
+recover the original warehouse selection lost by the earlier failed coordinator.
+
+Final verification preserves **285 package pins**, all 15 protected source files,
+and the existing reviewed Shipping visibility-only delta. All 26 changed/new
+PowerShell scripts parse and all 83 local links resolve. No accepted deployment
+or NAS workbook is replaced. Recording editor/writer behavior has focused GREEN;
+54 evaluator RED checks, four visible-capture failures, guides/presentations,
+comprehensive coverage, native reliability and full Release 1 acceptance remain open.
+
+Final static regeneration records 222 components, 5,815 procedures and 128,938
+lines (493 added against the reader baseline). All 28 individual large-module
+limits hold; duplicates stay 192 and literal/unresolved calls stay 9/45.
+Maintenance candidates are 1,157 and reviewed candidates 1,159; none is deleted.
+
+Ignored evidence under `reports/runtime/` includes `captured-expectation-focused.log`,
+`captured-expectation-bindings-focused.log`, `captured-expectation-visible-focused.log`,
+`captured-expectation-case-comparison.json`,
+`captured-expectation-bindings-case-comparison.json`,
+`captured-expectation-maintenance.json`, `captured-expectation-retry-default-red.log`,
+`captured-expectation-retry-full-focused.log`, `captured-expectation-retry-retention.json`,
+`captured-expectation-retry-limits.log`, `captured-expectation-retry-compiled-comparison.json`,
+`captured-expectation-settings-chain.log`, `captured-expectation-settings-chain-retention.json`,
+`captured-expectation-settings-chain-restoration.json`, `captured-expectation-retry-controller-diagnostic.log`,
+`captured-expectation-settings-lifecycle-tests.log`, `captured-expectation-final-worker-protocol.log`,
+`captured-expectation-final-verification.json`, and the
+`captured-expectation-chain-residual-*` / `captured-expectation-chain-recovery-retained.json`
+cleanup evidence. Remaining evaluation/guide/presentation work, native reliability
+and human acceptance remain open.
+
 ### Earlier foundation artifacts
 
 - `reports/runtime/action-recording-red.log`

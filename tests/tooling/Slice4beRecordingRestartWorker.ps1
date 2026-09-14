@@ -5,6 +5,8 @@ param([switch]$ValidateInputOnly)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $excel=$null; $packages=@{}; $failed=$false; $newOwner=0; $owner=0
+$lastMacro=''; $reportRoot=''
+. (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 function Check([string]$Name,[bool]$Passed) {
     if(-not $Passed){$script:failed=$true}
     [pscustomobject]@{Type='Check';Name=$Name;Passed=$Passed}|ConvertTo-Json -Compress
@@ -18,6 +20,7 @@ function PinMap($Value) {
     return $map
 }
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
+    $script:lastMacro=$Package+'|'+$Macro
     $name="'$Package'!$Macro"
     switch($Values.Count){
         0 {$excel.Run($name)}
@@ -155,6 +158,13 @@ foreach($path in $packagePins.Keys){if((Get-FileHash -LiteralPath $path).Hash -c
 Check 'RecordingRestart.FivePackageFilesUnchanged' $unchanged
 
 } catch {
+    # Malformed private input cannot choose a diagnostic output directory.
+    $allowedRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../reports/runtime/slice4be-viewer-published-read')).TrimEnd('\')+'\'
+    if($reportRoot -and [IO.Path]::GetFullPath($reportRoot).StartsWith($allowedRoot,[StringComparison]::OrdinalIgnoreCase) -and
+        (Split-Path $reportRoot -Leaf) -cmatch '^[0-9a-f]{32}$' -and (Test-Path -LiteralPath $reportRoot)){
+        Get-RecordingFailureFacts -Failure $_ -LastMacro $lastMacro |
+            ConvertTo-Json | Set-Content -LiteralPath (Join-Path $reportRoot 'recording-worker-failure.json')
+    }
     Check 'RecordingRestart.WorkerHarnessFailure' $false
 } finally {
     if($null -ne $excel){

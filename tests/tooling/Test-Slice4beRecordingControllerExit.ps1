@@ -10,14 +10,8 @@ $deploy=(Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before recording controller validation.'}
 $state=$null; $creator=$null; $worker=$null; $stream=$null; $failed=$false
 $results=[Collections.Generic.List[object]]::new()
-$settingsRoot='HKCU:\Software\VB and VBA Program Settings\invSys'; $registryBefore=@{}
-if(Test-Path -LiteralPath $settingsRoot){
-    foreach($key in @(Get-Item -LiteralPath $settingsRoot)+@(Get-ChildItem -LiteralPath $settingsRoot -Recurse)){
-        $values=@{}
-        foreach($name in $key.GetValueNames()){$values[$name]=@($key.GetValue($name),$key.GetValueKind($name))}
-        $registryBefore[$key.Name]=$values
-    }
-}
+. (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
+$registryBefore=Get-InvSysTestSettingsSnapshot
 function StartController([string]$Arguments,[bool]$InputPipe=$false){
     $info=[Diagnostics.ProcessStartInfo]::new()
     $info.FileName=Join-Path $PSHOME 'powershell.exe';$info.Arguments=$Arguments
@@ -83,9 +77,13 @@ try {
     $cleanupSafe=($null -eq $creator -or $creator.HasExited) -and
         ($null -eq $worker -or $worker.HasExited) -and
         -not (Get-Process EXCEL -ErrorAction SilentlyContinue)
-    if(-not $cleanupSafe){
-        $failed=$true
-        RecordCheck 'RecordingRestart.CleanupDeferredForLiveProcess' $false
+    while(-not $cleanupSafe){
+        # Keep registryBefore and the private fixture in this live coordinator.
+        # Returning here used to lose the only restoration copy on worker failure.
+        Wait-RecordingCleanup -Creator $creator -Worker $worker
+        $cleanupSafe=($null -eq $creator -or $creator.HasExited) -and
+            ($null -eq $worker -or $worker.HasExited) -and
+            -not (Get-Process EXCEL -ErrorAction SilentlyContinue)
     }
     if($cleanupSafe -and $null -ne $state){
         $resolved=[IO.Path]::GetFullPath([string]$state.RunRoot)
@@ -95,19 +93,7 @@ try {
         }
         $results|ConvertTo-Json|Set-Content -LiteralPath (Join-Path ([string]$state.ReportRoot) 'controller-exit-checks.json')
     }
-    if($cleanupSafe -and (Test-Path -LiteralPath $settingsRoot)){
-        foreach($key in @(Get-Item -LiteralPath $settingsRoot)+@(Get-ChildItem -LiteralPath $settingsRoot -Recurse)){
-            foreach($keyName in $key.GetValueNames()){
-                if(-not $registryBefore.ContainsKey($key.Name) -or -not $registryBefore[$key.Name].ContainsKey($keyName)){
-                    Remove-ItemProperty -LiteralPath ('Registry::'+$key.Name) -Name $keyName
-                }
-            }
-        }
-    }
-    if($cleanupSafe){foreach($keyPath in $registryBefore.Keys){foreach($keyName in $registryBefore[$keyPath].Keys){
-        $saved=$registryBefore[$keyPath][$keyName]
-        New-ItemProperty -LiteralPath ('Registry::'+$keyPath) -Name $keyName -Value $saved[0] -PropertyType $saved[1] -Force|Out-Null
-    }}}
+    if($cleanupSafe -and -not (Restore-InvSysTestSettingsSnapshot $registryBefore)){throw 'Local settings restoration verification failed.'}
     if($null -ne $stream){$stream.Dispose()};$pipe.Dispose()
     if($null -ne $creator){$creator.Dispose()};if($null -ne $worker){$worker.Dispose()}
     $state=$null

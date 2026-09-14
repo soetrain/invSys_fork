@@ -14,6 +14,8 @@ Private mBindings As Collection
 Private mStatus As MSForms.Label
 Private mContext As String
 Private mRendering As Boolean
+Private WithEvents mExpectationButton As MSForms.CommandButton
+Private mEditor As frmActionPathExpectation
 
 Public Sub Initialize(ByVal form As Object)
     Dim command As Variant, button As MSForms.CommandButton, binding As cRecordingButton
@@ -28,10 +30,15 @@ Public Sub Initialize(ByVal form As Object)
     Next command
     Set mStatus = form.Controls.Add("Forms.Label.1", "lblRecordingStatus", True)
     mStatus.WordWrap = True
+    Set mExpectationButton = form.Controls.Add("Forms.CommandButton.1", "btnRecordingExpectation", True)
+    mExpectationButton.Caption = "Expected conclusion"
 End Sub
 
 Public Sub BindContext(ByVal context As String)
-    If mContext <> "" And mContext <> context Then modActionRecording.ContextClosed mContext
+    If mContext <> "" And mContext <> context Then
+        CloseEditor
+        modActionRecording.ContextClosed mContext
+    End If
     mContext = context
     Render
 End Sub
@@ -53,6 +60,8 @@ Public Sub Render()
     mButtons("Start").Enabled = canStart
     mButtons("Stop").Enabled = active
     mButtons("Cancel").Enabled = active
+    mExpectationButton.Enabled = active
+    If Not active Then CloseEditor
 Done:
     mRendering = False
 End Sub
@@ -66,14 +75,30 @@ Public Sub Arrange(ByVal visible As Boolean, ByVal width As Single)
         index = index + 1
     Next button
     mStatus.Visible = visible
-    mStatus.Move 392, 184, width - 380, 40
+    mExpectationButton.Visible = visible
+    mExpectationButton.Move 392, 184, 136, 26
+    mStatus.Move 536, 184, width - 524, 40
 End Sub
 
 Public Sub Disconnect()
     Dim binding As cRecordingButton
     If mBindings Is Nothing Then Exit Sub
+    CloseEditor
     modActionRecording.ContextClosed mContext
     For Each binding In mBindings: binding.Disconnect: Next binding
     Set mBindings = Nothing: Set mButtons = Nothing: Set mStatus = Nothing
     mContext = ""
+    Set mExpectationButton = Nothing
+End Sub
+
+Private Sub mExpectationButton_Click()
+    If mEditor Is Nothing Then Set mEditor = New frmActionPathExpectation
+    If mEditor.Visible Then Exit Sub
+    If mEditor.BindContext(mContext) Then mEditor.Show vbModeless
+End Sub
+
+Private Sub CloseEditor()
+    If mEditor Is Nothing Then Exit Sub
+    mEditor.ReleaseDraft
+    Unload mEditor: Set mEditor = Nothing
 End Sub

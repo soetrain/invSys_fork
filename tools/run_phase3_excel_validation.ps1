@@ -117,6 +117,7 @@ try {
         (Join-Path $repo "src/Core/Modules/modActionPathRead.bas"),
         (Join-Path $repo "src/Core/Modules/modRecordingModel.bas"),
         (Join-Path $repo "src/Core/Modules/modExpectationModel.bas"),
+        (Join-Path $repo "src/Core/Modules/modExpectationDraft.bas"),
         (Join-Path $repo "src/Core/Modules/modRecordingJournal.bas"),
         (Join-Path $repo "src/Core/Modules/modTrainingWire.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),

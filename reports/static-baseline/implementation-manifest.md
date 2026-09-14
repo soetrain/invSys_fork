@@ -1,10 +1,10 @@
 # invSys Static Implementation Manifest
 
 - Schema: 1.0.0
-- Generated: 2026-09-14T12:26:40Z
+- Generated: 2026-09-14T15:28:09Z
 - Packages: 6
-- Components: 219
-- Procedures: 5778
+- Components: 222
+- Procedures: 5815
 - Literal Application.Run targets: 9
 - Unresolved dynamic calls: 45
 
@@ -13,10 +13,10 @@
 | Package | Project | Output | Components |
 |---|---|---|---:|
 | Admin | invSys_Admin | invSys.Admin.xlam | 31 |
-| Core | invSys_Core | invSys.Core.xlam | 92 |
+| Core | invSys_Core | invSys.Core.xlam | 93 |
 | DesignsDomain | invSys_Designs_Domain | invSys.Designs.Domain.xlam | 15 |
 | InventoryDomain | invSys_Inventory_Domain | invSys.Inventory.Domain.xlam | 10 |
-| Operations | invSys_Operations | invSys.Operations.xlam | 62 |
+| Operations | invSys_Operations | invSys.Operations.xlam | 64 |
 | OperationsShadow | invSys_Operations_Shadow | invSys.Operations.xlam | 0 |
 
 ## Dynamic roots
@@ -275,6 +275,8 @@
 | mBtnWarehouseRootBrowse_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mBtnWarehouseRootRefresh_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mButton_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mButton_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mCancel_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCapture_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCboBoxBuilderVersion_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCboBoxMakerVersion_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
@@ -313,8 +315,10 @@
 | mCmbWarehouse_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mCollect_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mControl_Change | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mControl_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mDown_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mEnabled_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mExpectationButton_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mFamily_Change | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mLines_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mList_KeyDown | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
@@ -406,6 +410,7 @@
 | mTxtTreePaletteSplit_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mTxtWarehouseRootPath_Change | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mUp_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
+| mUse_Click | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mView_Change | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | mVisible_Click | CLASS_EVENT | tools/contracts/vba-dynamic-roots.json |
 | Open_CreateDeleteUser | RIBBON_CALLBACK | tools/build-xlam.ps1 |
@@ -888,6 +893,8 @@
 | UserForm_Activate | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | UserForm_Activate | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | UserForm_Activate | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| UserForm_Activate | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| UserForm_Initialize | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | UserForm_Initialize | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | UserForm_Initialize | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | UserForm_Initialize | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
@@ -920,6 +927,8 @@
 | UserForm_Layout | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | UserForm_Layout | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | UserForm_Layout | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| UserForm_Layout | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
+| UserForm_QueryClose | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | UserForm_QueryClose | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | UserForm_QueryClose | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |
 | UserForm_QueryClose | USERFORM_EVENT | tools/contracts/vba-dynamic-roots.json |

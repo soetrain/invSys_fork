@@ -29,6 +29,7 @@ param(
     [switch]$CheckRecordingEvaluation,
     [switch]$CheckEvaluationContracts,
     [switch]$CheckExpectationCompatibility,
+    [switch]$CheckExpectationEditor,
     [string]$RecordingContinuationPipeName = '',
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
@@ -73,6 +74,10 @@ if($CheckViewerFilters) { $CheckViewerPublishedRead = $true }
 if($CheckRecordingLimits) { $CheckActionRecording = $true }
 if($CheckRecordingStorageBounds) { $CheckActionRecording = $true }
 if($CheckExpectationCompatibility) { $CheckEvaluationContracts = $true }
+if($CheckExpectationEditor) {
+    if($CheckExpectationCompatibility -or $CheckRecordingOperations -or $CheckRecordingRestart){throw 'Use the editor-focused gate separately; the full Operations gate remains required.'}
+    $CheckActionRecording = $true
+}
 if($CheckEvaluationContracts) { $CheckRecordingEvaluation = $true }
 if($CheckRecordingEvaluation) { $CheckRecordingOperations = $true }
 if($CheckRecordingOperations) {
@@ -223,11 +228,12 @@ function Test-LoadedPackage([string]$Name) {
     try { return ($excel.Workbooks.Item($Name).Name -ieq $Name) }
     catch { return $false }
 }
-function CaptureFormEvidence([string]$Title,[string]$FileName,[long]$WindowHandle=0) {
+function Initialize-SettingsCapture {
     if (-not ('InvSysSettingsCapture' -as [type])) {
     Add-Type -ReferencedAssemblies System.Drawing @'
 using System; using System.Drawing; using System.Runtime.InteropServices;
 public static class InvSysSettingsCapture {
+    public delegate bool WindowCallback(IntPtr hwnd, IntPtr state);
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left, Top, Right, Bottom; }
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
@@ -235,6 +241,24 @@ public static class InvSysSettingsCapture {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
+    [DllImport("user32.dll")] static extern bool EnumWindows(WindowCallback callback, IntPtr state);
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+    [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
+    [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int length);
+    public static IntPtr OwnedVisibleForm(string title, IntPtr ownerWindow) {
+        uint ownerProcess; GetWindowThreadProcessId(ownerWindow,out ownerProcess);
+        if(ownerProcess==0) return IntPtr.Zero;
+        int count=0; IntPtr found=IntPtr.Zero;
+        EnumWindows((hwnd,state)=>{
+            uint process; GetWindowThreadProcessId(hwnd,out process);
+            if(process==ownerProcess && IsWindowVisible(hwnd)) {
+                var text=new System.Text.StringBuilder(512); GetWindowText(hwnd,text,text.Capacity);
+                if(String.Equals(text.ToString(),title,StringComparison.Ordinal)){found=hwnd;count++;}
+            }
+            return true;
+        },IntPtr.Zero);
+        return count==1 ? found : IntPtr.Zero;
+    }
     public static void Save(string title, string path) {
         SaveWindow(FindWindow(null,title),path);
     }
@@ -264,6 +288,9 @@ public static class InvSysSettingsCapture {
 }
 '@
     }
+}
+function CaptureFormEvidence([string]$Title,[string]$FileName,[long]$WindowHandle=0) {
+    Initialize-SettingsCapture
     if($WindowHandle) { [InvSysSettingsCapture]::SaveVisibleWindow([IntPtr]$WindowHandle,(Join-Path $reportRoot $FileName)) }
     else { [InvSysSettingsCapture]::Save($Title,(Join-Path $reportRoot $FileName)) }
 }

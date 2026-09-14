@@ -66,8 +66,16 @@ try {
                 $text=''
                 if($component.CodeModule.CountOfLines -gt 0){$text=$component.CodeModule.Lines(1,$component.CodeModule.CountOfLines)}
                 $sha=[Security.Cryptography.SHA256]::Create()
-                try {$hash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes(($text -replace "`r`n","`n")))).Replace('-','').ToLowerInvariant()} finally {$sha.Dispose()}
-                $sourceHashes += [pscustomobject]@{Package=$book.Name;Component=$component.Name;CodeSha256=$hash}
+                $normalized=$text -replace "`r`n","`n"
+                $literals=([regex]::Matches($normalized,'"(?:""|[^"\r\n])*"')|ForEach-Object {$_.Value}) -join "`n"
+                try {
+                    $hash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($normalized))).Replace('-','').ToLowerInvariant()
+                    $caseHash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($normalized.ToLowerInvariant()))).Replace('-','').ToLowerInvariant()
+                    $literalHash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($literals))).Replace('-','').ToLowerInvariant()
+                } finally {$sha.Dispose()}
+                # VBE can change identifier casing across untouched modules.
+                # Case-insensitive equality alone must never hide changed string literals.
+                $sourceHashes += [pscustomobject]@{Package=$book.Name;Component=$component.Name;CodeSha256=$hash;CaseInsensitiveCodeSha256=$caseHash;StringLiteralSha256=$literalHash}
             }
         }
     }

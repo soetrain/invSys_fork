@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-14T12:26:40Z",
+    "generatedAtUtc":  "2026-09-14T15:28:09Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -94,6 +94,7 @@
                                                 "modEventDetailStore",
                                                 "modEventSettingsTables",
                                                 "modEventsPublicationStore",
+                                                "modExpectationDraft",
                                                 "modExpectationModel",
                                                 "modGlobals",
                                                 "modHqAggregator",
@@ -205,6 +206,7 @@
                          "componentNames":  [
                                                 "cEventDetailController",
                                                 "cEventPageProjection",
+                                                "cExpectationButton",
                                                 "cOperationsAnchorItem",
                                                 "cOperationsAnchorManager",
                                                 "cProductionAppEvents",
@@ -221,6 +223,7 @@
                                                 "cShippingOwnerFacts",
                                                 "cShippingWorkflowState",
                                                 "cViewerFilterBinding",
+                                                "frmActionPathExpectation",
                                                 "frmActionPaths",
                                                 "frmBoxVersionSaveChoice",
                                                 "frmEventDetail",
@@ -2109,11 +2112,16 @@
                            "name":  "modActionRecording",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modActionRecording.bas",
-                           "lineCount":  15,
+                           "lineCount":  41,
                            "procedureNames":  [
+                                                  "CloseExpectation",
                                                   "ContextClosed",
                                                   "Control",
-                                                  "Status"
+                                                  "EditExpectation",
+                                                  "ExpectationChoices",
+                                                  "OpenExpectation",
+                                                  "Status",
+                                                  "UseExpectation"
                                               ],
                            "metadata":  {
 
@@ -2721,11 +2729,32 @@
                                         }
                        },
                        {
+                           "name":  "modExpectationDraft",
+                           "kind":  "STANDARD_MODULE",
+                           "sourcePath":  "src/Core/Modules/modExpectationDraft.bas",
+                           "lineCount":  143,
+                           "procedureNames":  [
+                                                  "Choices",
+                                                  "CloseContext",
+                                                  "Discard",
+                                                  "Edit",
+                                                  "Guard",
+                                                  "OpenRecording",
+                                                  "Project",
+                                                  "SafeCaption",
+                                                  "UseRecording"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
                            "name":  "modExpectationModel",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modExpectationModel.bas",
-                           "lineCount":  50,
+                           "lineCount":  58,
                            "procedureNames":  [
+                                                  "NoneDefinition",
                                                   "Validate"
                                               ],
                            "metadata":  {
@@ -3411,7 +3440,7 @@
                            "name":  "modRecordingSession",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modRecordingSession.bas",
-                           "lineCount":  208,
+                           "lineCount":  241,
                            "procedureNames":  [
                                                   "ActiveFor",
                                                   "AppendEntry",
@@ -3422,8 +3451,10 @@
                                                   "InterruptContext",
                                                   "Observe",
                                                   "Prepare",
+                                                  "ReadExpectation",
                                                   "ReadPolicySnapshot",
                                                   "ReadStatus",
+                                                  "StageExpectation",
                                                   "Start"
                                               ],
                            "metadata":  {
@@ -5095,6 +5126,20 @@
                                         }
                        },
                        {
+                           "name":  "cExpectationButton",
+                           "kind":  "CLASS_MODULE",
+                           "sourcePath":  "src/Operations/ClassModules/cExpectationButton.cls",
+                           "lineCount":  26,
+                           "procedureNames":  [
+                                                  "Connect",
+                                                  "Disconnect",
+                                                  "mButton_Click"
+                                              ],
+                           "metadata":  {
+
+                                        }
+                       },
+                       {
                            "name":  "cOperationsAnchorItem",
                            "kind":  "CLASS_MODULE",
                            "sourcePath":  "src/Operations/ClassModules/cOperationsAnchorItem.cls",
@@ -5147,13 +5192,15 @@
                            "name":  "cRecordingControls",
                            "kind":  "CLASS_MODULE",
                            "sourcePath":  "src/Operations/ClassModules/cRecordingControls.cls",
-                           "lineCount":  79,
+                           "lineCount":  104,
                            "procedureNames":  [
                                                   "Arrange",
                                                   "BindContext",
+                                                  "CloseEditor",
                                                   "Disconnect",
                                                   "Execute",
                                                   "Initialize",
+                                                  "mExpectationButton_Click",
                                                   "Render"
                                               ],
                            "metadata":  {
@@ -5172,6 +5219,32 @@
                                               ],
                            "metadata":  {
 
+                                        }
+                       },
+                       {
+                           "name":  "frmActionPathExpectation",
+                           "kind":  "FORM",
+                           "sourcePath":  "src/Operations/Forms/frmActionPathExpectation.frm",
+                           "lineCount":  232,
+                           "procedureNames":  [
+                                                  "ArrangeColumns",
+                                                  "BindContext",
+                                                  "ChangeDraft",
+                                                  "FillChoices",
+                                                  "LoadProjection",
+                                                  "mCancel_Click",
+                                                  "mControl_Change",
+                                                  "mUse_Click",
+                                                  "ReleaseDraft",
+                                                  "SelectedValue",
+                                                  "UserForm_Activate",
+                                                  "UserForm_Initialize",
+                                                  "UserForm_Layout",
+                                                  "UserForm_QueryClose",
+                                                  "ValidateBinding"
+                                              ],
+                           "metadata":  {
+                                            "controlCount":  0
                                         }
                        },
                        {
@@ -10101,6 +10174,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -10144,6 +10218,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -10178,6 +10253,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -10207,6 +10283,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_QueryClose",
@@ -11598,6 +11675,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -11639,6 +11717,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -12001,6 +12080,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -12032,6 +12112,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_QueryClose",
@@ -12070,6 +12151,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -12735,6 +12817,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -12776,6 +12859,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -13222,6 +13306,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -13264,6 +13349,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -13298,6 +13384,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -14962,6 +15049,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -15004,6 +15092,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -15038,6 +15127,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -15842,6 +15932,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -15883,6 +15974,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -15914,6 +16006,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_QueryClose",
@@ -16284,6 +16377,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -16326,6 +16420,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -16360,6 +16455,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -18526,6 +18622,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -18567,6 +18664,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -18979,6 +19077,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -19021,6 +19120,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -19055,6 +19155,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -34922,6 +35023,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -34956,6 +35058,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -35050,6 +35153,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -35091,6 +35195,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -35376,6 +35481,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -35417,6 +35523,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -36174,6 +36281,112 @@
                            "lineCount":  3,
                            "directCalls":  [
                                                "InterruptContext"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionRecording",
+                           "name":  "OpenExpectation",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  20,
+                           "endLine":  22,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "OpenRecording"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionRecording",
+                           "name":  "ExpectationChoices",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  24,
+                           "endLine":  26,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Choices"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionRecording",
+                           "name":  "EditExpectation",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  28,
+                           "endLine":  32,
+                           "lineCount":  5,
+                           "directCalls":  [
+                                               "Edit",
+                                               "Outcome"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionRecording",
+                           "name":  "UseExpectation",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  34,
+                           "endLine":  37,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "UseRecording"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modActionRecording",
+                           "name":  "CloseExpectation",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  39,
+                           "endLine":  41,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "CloseContext"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -43791,12 +44004,241 @@
                                        ]
                        },
                        {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "OpenRecording",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  10,
+                           "endLine":  24,
+                           "lineCount":  15,
+                           "directCalls":  [
+                                               "Discard",
+                                               "NewId",
+                                               "Project",
+                                               "ReadExpectation"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "Guard",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  26,
+                           "endLine":  33,
+                           "lineCount":  8,
+                           "directCalls":  [
+                                               "Discard",
+                                               "ReadExpectation"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "Choices",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  35,
+                           "endLine":  58,
+                           "lineCount":  24,
+                           "directCalls":  [
+                                               "Control",
+                                               "ControlIds",
+                                               "Guard",
+                                               "Outcome",
+                                               "SafeCaption"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "Edit",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  60,
+                           "endLine":  103,
+                           "lineCount":  44,
+                           "directCalls":  [
+                                               "Add",
+                                               "Before",
+                                               "Control",
+                                               "Guard",
+                                               "NewId",
+                                               "Outcome",
+                                               "Project"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "UseRecording",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  105,
+                           "endLine":  117,
+                           "lineCount":  13,
+                           "directCalls":  [
+                                               "DecodeObject",
+                                               "Discard",
+                                               "EncodeObject",
+                                               "Guard",
+                                               "StageExpectation"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "CloseContext",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  119,
+                           "endLine":  121,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Discard"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "Discard",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  123,
+                           "endLine":  127,
+                           "lineCount":  5,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "Project",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  129,
+                           "endLine":  139,
+                           "lineCount":  11,
+                           "directCalls":  [
+                                               "Control",
+                                               "SafeCaption"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationDraft",
+                           "name":  "SafeCaption",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  141,
+                           "endLine":  143,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modExpectationModel",
+                           "name":  "NoneDefinition",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  5,
+                           "endLine":  11,
+                           "lineCount":  7,
+                           "directCalls":  [
+                                               "Add"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
                            "componentName":  "modExpectationModel",
                            "name":  "Validate",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  6,
-                           "endLine":  50,
+                           "startLine":  14,
+                           "endLine":  58,
                            "lineCount":  45,
                            "directCalls":  [
                                                "Add",
@@ -54555,8 +54997,8 @@
                            "name":  "ExecuteCommand",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  19,
-                           "endLine":  42,
+                           "startLine":  20,
+                           "endLine":  43,
                            "lineCount":  24,
                            "directCalls":  [
                                                "CaptureContext",
@@ -54579,17 +55021,19 @@
                            "name":  "Start",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  44,
-                           "endLine":  74,
-                           "lineCount":  31,
+                           "startLine":  45,
+                           "endLine":  77,
+                           "lineCount":  33,
                            "directCalls":  [
                                                "Add",
                                                "AppendEntry",
                                                "CaptureContext",
+                                               "Discard",
                                                "GetCurrentTarget",
                                                "GetCurrentUserId",
                                                "Interrupt",
                                                "NewId",
+                                               "NoneDefinition",
                                                "ReadPolicySnapshot",
                                                "Version"
                                            ],
@@ -54608,8 +55052,8 @@
                            "name":  "ReadStatus",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  76,
-                           "endLine":  100,
+                           "startLine":  79,
+                           "endLine":  103,
                            "lineCount":  25,
                            "directCalls":  [
                                                "CaptureContext",
@@ -54632,8 +55076,8 @@
                            "name":  "ReadPolicySnapshot",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  102,
-                           "endLine":  105,
+                           "startLine":  105,
+                           "endLine":  108,
                            "lineCount":  4,
                            "directCalls":  [
                                                "ReadPolicy",
@@ -54654,8 +55098,8 @@
                            "name":  "Prepare",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  107,
-                           "endLine":  124,
+                           "startLine":  110,
+                           "endLine":  127,
                            "lineCount":  18,
                            "directCalls":  [
                                                "Add",
@@ -54677,8 +55121,8 @@
                            "name":  "ActiveFor",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  126,
-                           "endLine":  128,
+                           "startLine":  129,
+                           "endLine":  131,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -54695,11 +55139,58 @@
                        },
                        {
                            "componentName":  "modRecordingSession",
+                           "name":  "ReadExpectation",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  133,
+                           "endLine":  142,
+                           "lineCount":  10,
+                           "directCalls":  [
+                                               "DecodeObject",
+                                               "EncodeObject",
+                                               "ReadStatus"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
+                           "name":  "StageExpectation",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  144,
+                           "endLine":  154,
+                           "lineCount":  11,
+                           "directCalls":  [
+                                               "DecodeObject",
+                                               "EncodeObject",
+                                               "ReadExpectation",
+                                               "Validate"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modRecordingSession",
                            "name":  "Observe",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  130,
-                           "endLine":  160,
+                           "startLine":  156,
+                           "endLine":  186,
                            "lineCount":  31,
                            "directCalls":  [
                                                "Add",
@@ -54722,8 +55213,8 @@
                            "name":  "InterruptContext",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  162,
-                           "endLine":  164,
+                           "startLine":  188,
+                           "endLine":  190,
                            "lineCount":  3,
                            "directCalls":  [
                                                "Interrupt"
@@ -54743,8 +55234,8 @@
                            "name":  "InterruptAction",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  166,
-                           "endLine":  171,
+                           "startLine":  192,
+                           "endLine":  197,
                            "lineCount":  6,
                            "directCalls":  [
                                                "Interrupt"
@@ -54764,8 +55255,8 @@
                            "name":  "Interrupt",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  173,
-                           "endLine":  176,
+                           "startLine":  199,
+                           "endLine":  202,
                            "lineCount":  4,
                            "directCalls":  [
                                                "CloseRun"
@@ -54785,11 +55276,12 @@
                            "name":  "CloseRun",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  178,
-                           "endLine":  193,
-                           "lineCount":  16,
+                           "startLine":  204,
+                           "endLine":  221,
+                           "lineCount":  18,
                            "directCalls":  [
-                                               "AppendEntry"
+                                               "AppendEntry",
+                                               "Discard"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -54806,14 +55298,15 @@
                            "name":  "AppendEntry",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  195,
-                           "endLine":  208,
-                           "lineCount":  14,
+                           "startLine":  223,
+                           "endLine":  241,
+                           "lineCount":  19,
                            "directCalls":  [
                                                "Add",
                                                "Append",
                                                "Keys",
                                                "NewId",
+                                               "NoneDefinition",
                                                "UtcTimestamp"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -78826,6 +79319,70 @@
                                        ]
                        },
                        {
+                           "componentName":  "cExpectationButton",
+                           "name":  "Connect",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  16,
+                           "endLine":  18,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cExpectationButton",
+                           "name":  "Disconnect",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  20,
+                           "endLine":  22,
+                           "lineCount":  3,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cExpectationButton",
+                           "name":  "mButton_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  24,
+                           "endLine":  26,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "ChangeDraft"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Operations_ClassModules_cExpectationButton.cls:cExpectationButton.mButton_Click",
+                                           "convention.class-event:src_Operations_ClassModules_cRecordingButton.cls:cRecordingButton.mButton_Click"
+                                       ]
+                       },
+                       {
                            "componentName":  "cOperationsAnchorItem",
                            "name":  "CaptureAnchor",
                            "visibility":  "PUBLIC",
@@ -79165,6 +79722,7 @@
 
                                                                    ],
                            "rootIds":  [
+                                           "convention.class-event:src_Operations_ClassModules_cExpectationButton.cls:cExpectationButton.mButton_Click",
                                            "convention.class-event:src_Operations_ClassModules_cRecordingButton.cls:cRecordingButton.mButton_Click"
                                        ]
                        },
@@ -79173,9 +79731,9 @@
                            "name":  "Initialize",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  18,
-                           "endLine":  31,
-                           "lineCount":  14,
+                           "startLine":  20,
+                           "endLine":  35,
+                           "lineCount":  16,
                            "directCalls":  [
                                                "Add",
                                                "Connect"
@@ -79195,10 +79753,11 @@
                            "name":  "BindContext",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  33,
-                           "endLine":  37,
-                           "lineCount":  5,
+                           "startLine":  37,
+                           "endLine":  44,
+                           "lineCount":  8,
                            "directCalls":  [
+                                               "CloseEditor",
                                                "ContextClosed",
                                                "Render"
                                            ],
@@ -79217,8 +79776,8 @@
                            "name":  "Execute",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  39,
-                           "endLine":  44,
+                           "startLine":  46,
+                           "endLine":  51,
                            "lineCount":  6,
                            "directCalls":  [
                                                "Control",
@@ -79240,10 +79799,11 @@
                            "name":  "Render",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  46,
-                           "endLine":  58,
-                           "lineCount":  13,
+                           "startLine":  53,
+                           "endLine":  67,
+                           "lineCount":  15,
                            "directCalls":  [
+                                               "CloseEditor",
                                                "Status"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -79261,9 +79821,9 @@
                            "name":  "Arrange",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  60,
-                           "endLine":  70,
-                           "lineCount":  11,
+                           "startLine":  69,
+                           "endLine":  81,
+                           "lineCount":  13,
                            "directCalls":  [
 
                                            ],
@@ -79282,11 +79842,54 @@
                            "name":  "Disconnect",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  72,
-                           "endLine":  79,
-                           "lineCount":  8,
+                           "startLine":  83,
+                           "endLine":  92,
+                           "lineCount":  10,
                            "directCalls":  [
+                                               "CloseEditor",
                                                "ContextClosed"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "cRecordingControls",
+                           "name":  "mExpectationButton_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  94,
+                           "endLine":  98,
+                           "lineCount":  5,
+                           "directCalls":  [
+                                               "BindContext"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Operations_ClassModules_cRecordingControls.cls:cRecordingControls.mExpectationButton_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "cRecordingControls",
+                           "name":  "CloseEditor",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  100,
+                           "endLine":  104,
+                           "lineCount":  5,
+                           "directCalls":  [
+                                               "ReleaseDraft"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -79358,7 +79961,415 @@
 
                                                                    ],
                            "rootIds":  [
-                                           "convention.class-event:src_Operations_ClassModules_cViewerFilterBinding.cls:cViewerFilterBinding.mControl_Change"
+                                           "convention.class-event:src_Operations_ClassModules_cViewerFilterBinding.cls:cViewerFilterBinding.mControl_Change",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.mControl_Change"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "UserForm_Initialize",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  35,
+                           "endLine":  88,
+                           "lineCount":  54,
+                           "directCalls":  [
+                                               "Add",
+                                               "ArrangeColumns",
+                                               "ConfigureForForm",
+                                               "Connect",
+                                               "Control",
+                                               "FillChoices",
+                                               "OperationsAnchorManager",
+                                               "RegisterControl"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_Initialize",
+                                           "convention.userform-event:src_Admin_Forms_frmAdminDesignLifecycle.frm:frmAdminDesignLifecycle.UserForm_Initialize",
+                                           "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_Initialize",
+                                           "convention.userform-event:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.UserForm_Initialize",
+                                           "convention.userform-event:src_Admin_Forms_frmCreateDeleteUser.frm:frmCreateDeleteUser.UserForm_Initialize",
+                                           "convention.userform-event:src_Admin_Forms_frmCreateWarehouse.frm:frmCreateWarehouse.UserForm_Initialize",
+                                           "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_Initialize",
+                                           "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Initialize",
+                                           "convention.userform-event:src_Admin_Forms_frmSeedInventory.frm:frmSeedInventory.UserForm_Initialize",
+                                           "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
+                                           "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
+                                           "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_Initialize",
+                                           "convention.userform-event:src_Production_Forms_frmProduction.frm:frmProduction.UserForm_Initialize",
+                                           "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.UserForm_Initialize",
+                                           "convention.userform-event:src_Shipping_Forms_frmBoxVersionSaveChoice.frm:frmBoxVersionSaveChoice.UserForm_Initialize",
+                                           "convention.userform-event:src_Shipping_Forms_frmShipmentsTally.frm:frmShipmentsTally.UserForm_Initialize"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "BindContext",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  90,
+                           "endLine":  102,
+                           "lineCount":  13,
+                           "directCalls":  [
+                                               "ExpectationChoices",
+                                               "FillChoices",
+                                               "LoadProjection",
+                                               "OpenExpectation",
+                                               "ReleaseDraft"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "FillChoices",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  104,
+                           "endLine":  114,
+                           "lineCount":  11,
+                           "directCalls":  [
+                                               "Control",
+                                               "Fields"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "SelectedValue",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  116,
+                           "endLine":  118,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "Control"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "LoadProjection",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  120,
+                           "endLine":  148,
+                           "lineCount":  29,
+                           "directCalls":  [
+                                               "Fields",
+                                               "SelectedValue"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "ValidateBinding",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  150,
+                           "endLine":  154,
+                           "lineCount":  5,
+                           "directCalls":  [
+                                               "EditExpectation",
+                                               "ReleaseDraft"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "ChangeDraft",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  156,
+                           "endLine":  167,
+                           "lineCount":  12,
+                           "directCalls":  [
+                                               "EditExpectation",
+                                               "LoadProjection",
+                                               "SelectedValue",
+                                               "Valid",
+                                               "ValidateBinding"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "mControl_Change",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  169,
+                           "endLine":  173,
+                           "lineCount":  5,
+                           "directCalls":  [
+                                               "ExpectationChoices",
+                                               "FillChoices",
+                                               "SelectedValue",
+                                               "ValidateBinding"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.class-event:src_Operations_ClassModules_cViewerFilterBinding.cls:cViewerFilterBinding.mControl_Change",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.mControl_Change"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "mUse_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  175,
+                           "endLine":  183,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "ReleaseDraft",
+                                               "SelectedValue",
+                                               "UseExpectation",
+                                               "Valid",
+                                               "ValidateBinding"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.mUse_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "mCancel_Click",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  185,
+                           "endLine":  187,
+                           "lineCount":  3,
+                           "directCalls":  [
+                                               "ReleaseDraft"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.mCancel_Click"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "ReleaseDraft",
+                           "visibility":  "PUBLIC",
+                           "kind":  "SUB",
+                           "startLine":  189,
+                           "endLine":  196,
+                           "lineCount":  8,
+                           "directCalls":  [
+                                               "CloseExpectation"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "UserForm_QueryClose",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  198,
+                           "endLine":  208,
+                           "lineCount":  11,
+                           "directCalls":  [
+                                               "Disconnect",
+                                               "ReleaseDraft"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
+                                           "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
+                                           "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_QueryClose",
+                                           "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.UserForm_QueryClose",
+                                           "convention.userform-event:src_Shipping_Forms_frmBoxVersionSaveChoice.frm:frmBoxVersionSaveChoice.UserForm_QueryClose"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "UserForm_Activate",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  210,
+                           "endLine":  218,
+                           "lineCount":  9,
+                           "directCalls":  [
+                                               "ApplyAnchoredLayout",
+                                               "ArrangeColumns",
+                                               "EnableResizableUserForm",
+                                               "ValidateBinding"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_Activate",
+                                           "convention.userform-event:src_Admin_Forms_frmAdminDesignLifecycle.frm:frmAdminDesignLifecycle.UserForm_Activate",
+                                           "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_Activate",
+                                           "convention.userform-event:src_Admin_Forms_frmAggregationSources.frm:frmAggregationSources.UserForm_Activate",
+                                           "convention.userform-event:src_Admin_Forms_frmCreateDeleteUser.frm:frmCreateDeleteUser.UserForm_Activate",
+                                           "convention.userform-event:src_Admin_Forms_frmCreateWarehouse.frm:frmCreateWarehouse.UserForm_Activate",
+                                           "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_Activate",
+                                           "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Activate",
+                                           "convention.userform-event:src_Admin_Forms_frmSeedInventory.frm:frmSeedInventory.UserForm_Activate",
+                                           "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Activate",
+                                           "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
+                                           "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
+                                           "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_Activate",
+                                           "convention.userform-event:src_Production_Forms_frmProduction.frm:frmProduction.UserForm_Activate",
+                                           "convention.userform-event:src_Receiving_Forms_frmReceiving.frm:frmReceiving.UserForm_Activate",
+                                           "convention.userform-event:src_Shipping_Forms_frmBoxVersionSaveChoice.frm:frmBoxVersionSaveChoice.UserForm_Activate",
+                                           "convention.userform-event:src_Shipping_Forms_frmShipmentsTally.frm:frmShipmentsTally.UserForm_Activate"
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "ArrangeColumns",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  220,
+                           "endLine":  227,
+                           "lineCount":  8,
+                           "directCalls":  [
+                                               "Control"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "frmActionPathExpectation",
+                           "name":  "UserForm_Layout",
+                           "visibility":  "PRIVATE",
+                           "kind":  "SUB",
+                           "startLine":  229,
+                           "endLine":  232,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "ApplyAnchoredLayout",
+                                               "ArrangeColumns"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+                                           "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_Layout",
+                                           "convention.userform-event:src_Admin_Forms_frmCreateDeleteUser.frm:frmCreateDeleteUser.UserForm_Layout",
+                                           "convention.userform-event:src_Admin_Forms_frmCreateWarehouse.frm:frmCreateWarehouse.UserForm_Layout",
+                                           "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
+                                           "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
+                                           "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_Layout",
+                                           "convention.userform-event:src_Shipping_Forms_frmBoxVersionSaveChoice.frm:frmBoxVersionSaveChoice.UserForm_Layout",
+                                           "convention.userform-event:src_Shipping_Forms_frmShipmentsTally.frm:frmShipmentsTally.UserForm_Layout"
                                        ]
                        },
                        {
@@ -79395,6 +80406,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -79625,6 +80637,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_QueryClose",
@@ -79666,6 +80679,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -79700,6 +80714,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -79740,6 +80755,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -79879,6 +80895,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_QueryClose",
@@ -79919,6 +80936,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -79954,6 +80972,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -80020,6 +81039,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -80323,6 +81343,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -80357,6 +81378,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -80418,6 +81440,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -80462,6 +81485,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -80497,6 +81521,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -80561,6 +81586,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_QueryClose",
@@ -83437,6 +84463,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -83482,6 +84509,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -113857,6 +114885,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -113899,6 +114928,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -113955,6 +114985,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_QueryClose",
@@ -120266,6 +121297,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -120308,6 +121340,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -120342,6 +121375,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -120598,6 +121632,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmAddInventoryItem.frm:frmAddInventoryItem.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmAdminSettings.frm:frmAdminSettings.UserForm_QueryClose",
                                            "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_QueryClose",
                                            "convention.userform-event:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_QueryClose",
@@ -120659,6 +121694,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Initialize",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Initialize",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Initialize",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Initialize",
@@ -120705,6 +121741,7 @@
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmSignIn.frm:frmSignIn.UserForm_Activate",
                                            "convention.userform-event:src_Core_Forms_frmWarehouseConnection.frm:frmWarehouseConnection.UserForm_Activate",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Activate",
@@ -120742,6 +121779,7 @@
                                            "convention.userform-event:src_Admin_Forms_frmRetireMigrateWarehouse.frm:frmRetireMigrateWarehouse.UserForm_Layout",
                                            "convention.userform-event:src_Admin_Forms_frmSetupTesterStation.frm:frmSetupTesterStation.UserForm_Layout",
                                            "convention.userform-event:src_Core_Forms_frmItemSearch.frm:frmItemSearch.UserForm_Layout",
+                                           "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Layout",
                                            "convention.userform-event:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout",
@@ -144542,6 +145580,13 @@
                                    ]
                   },
                   {
+                      "name":  "frmActionPathExpectation",
+                      "sourcePath":  "src/Operations/Forms/frmActionPathExpectation.frm",
+                      "controls":  [
+
+                                   ]
+                  },
+                  {
                       "name":  "frmActionPaths",
                       "sourcePath":  "src/Operations/Forms/frmActionPaths.frm",
                       "controls":  [
@@ -144754,6 +145799,7 @@
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/tooling/Test-Slice4bePristineViewer.ps1",
                                                  "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingLifecycle.ps1",
                                                  "tests/tooling/Test-Slice4beRecordingWorkerProtocol.ps1",
                                                  "tests/tooling/Test-Slice4beWorksheetInput.ps1",
                                                  "tests/tooling/Test-Slice4bfDeployment.ps1",
@@ -145262,6 +146308,7 @@
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4bePublishedProjectionFixture.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -145280,6 +146327,7 @@
                                                  "tests/tooling/Slice4beRecordingEvaluation.ps1",
                                                  "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
+                                                 "tests/tooling/Slice4beRecordingLifecycle.ps1",
                                                  "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beRecordingRestart.ps1",
                                                  "tests/tooling/Slice4beRecordingRestartWorker.ps1",
@@ -145718,6 +146766,7 @@
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActionRecording.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
@@ -145964,6 +147013,7 @@
                            {
                                "entryPoint":  "CloseInventoryViewerForTest",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beViewerFilters.ps1",
                                                  "tests/tooling/Slice4beViewerPublishedRead.ps1",
@@ -146284,6 +147334,7 @@
                                                  "tests/tooling/Test-R1ControlSurface.ps1",
                                                  "tests/tooling/Test-R1FinalControlAcceptance.ps1",
                                                  "tests/tooling/Test-ShippingStatusAnchor.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingLifecycle.ps1",
                                                  "tests/tooling/Test-Slice9ProductionLayout.ps1",
                                                  "tests/unit/TestPhase6RoleSurfaces.bas"
                                              ]
@@ -146575,6 +147626,13 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "Discard",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beAdminSettingsClose.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4zProcessWorkbench.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "Disconnect",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4xReusableProduction.ps1"
@@ -146614,6 +147672,22 @@
                                "entryPoint":  "DisplayVersionOrNA",
                                "testPaths":  [
                                                  "tests/tooling/Test-R1FinalControlAcceptance.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Edit",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
+                                                 "tests/tooling/Slice4beShippingPublicationFixture.ps1",
+                                                 "tests/tooling/Test-PackagedExternalEdits.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4ahAdminEditSelection.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4aiAdminInventoryWorksheet.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4alInventoryDeletion.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4awProcessEditExport.ps1",
+                                                 "tests/tooling/Test-Plan022Slice4bbExternalStockUomConversion.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
+                                                 "tests/unit/TestPhase6CoreSurfaces.bas",
+                                                 "tests/unit/TestPhase6RoleSurfaces.bas"
                                              ]
                            },
                            {
@@ -147069,9 +148143,11 @@
                                "entryPoint":  "Facts",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
+                                                 "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beShippingActivity.ps1",
                                                  "tests/tooling/Slice4beTrackingSettings.ps1",
-                                                 "tests/tooling/Slice4beViewerSettingsPreservation.ps1"
+                                                 "tests/tooling/Slice4beViewerSettingsPreservation.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingLifecycle.ps1"
                                              ]
                            },
                            {
@@ -147642,6 +148718,7 @@
                                "entryPoint":  "GetUserFormWindowHandle",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
+                                                 "tests/tooling/Slice4beRecordingEvaluation.ps1",
                                                  "tests/tooling/Slice4beViewerEventDetail.ps1",
                                                  "tests/tooling/Slice4beViewerEventGroups.ps1",
                                                  "tests/tooling/Slice4beViewerPublishedRead.ps1",
@@ -147654,6 +148731,18 @@
                                "testPaths":  [
                                                  "tests/unit/TestPhase6CoreSurfaces.bas",
                                                  "tests/unit/TestPhase6LanBoundary.bas"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "Guard",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
+                                                 "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
+                                                 "tests/tooling/Slice4beShippingActivity.ps1",
+                                                 "tests/tooling/Slice4beShippingContext.ps1",
+                                                 "tests/tooling/Test-PackagedExternalEdits.ps1",
+                                                 "tests/unit/TestPhase6CoreSurfaces.bas",
+                                                 "tests/unit/TestPhase6RoleSurfaces.bas"
                                              ]
                            },
                            {
@@ -147755,11 +148844,13 @@
                                "entryPoint":  "Initialize",
                                "testPaths":  [
                                                  "tests/legacy-vba/modTestModule.bas",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigation.ps1",
                                                  "tests/tooling/Slice4beReceivingNavigationTarget.ps1",
                                                  "tests/tooling/Slice4beSettingsOpenTrace.ps1",
                                                  "tests/tooling/Slice4beTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beViewerSettingsPreservation.ps1",
+                                                 "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/tooling/Test-Slice6ShadowOperations.ps1"
                                              ]
                            },
@@ -147847,6 +148938,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
+                                                 "tests/tooling/Slice4beRecordingLifecycle.ps1",
                                                  "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beRecordingRestart.ps1",
                                                  "tests/tooling/Slice4beRecordingRestartWorker.ps1",
@@ -148137,6 +149229,7 @@
                                                  "tests/tooling/Slice4beRecordingEvaluation.ps1",
                                                  "tests/tooling/Slice4beRecordingFixture.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
+                                                 "tests/tooling/Slice4beRecordingLifecycle.ps1",
                                                  "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beRecordingRestartWorker.ps1",
@@ -148156,7 +149249,7 @@
                                                  "tests/tooling/Test-Release1PackageCloseOrder.ps1",
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/tooling/Test-Slice4bePristineViewer.ps1",
-                                                 "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingLifecycle.ps1",
                                                  "tests/tooling/Test-Slice8ProductionRetirement.ps1",
                                                  "tests/unit/TestPhase2Helpers.bas",
                                                  "tests/unit/TestWarehouseRetireArchive.bas"
@@ -149042,6 +150135,7 @@
                                "entryPoint":  "Message",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
+                                                 "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetScenarios.ps1",
@@ -151815,6 +152909,7 @@
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beRecordingIsolation.ps1",
+                                                 "tests/tooling/Slice4beRecordingLifecycle.ps1",
                                                  "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beRecordingRestart.ps1",
@@ -151831,6 +152926,7 @@
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
                                                  "tests/tooling/Test-Slice4beRecordingHandoff.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingLifecycle.ps1",
                                                  "tests/tooling/Test-Slice4beRecordingWorkerProtocol.ps1",
                                                  "tests/tooling/Test-Slice4beWorksheetInput.ps1",
                                                  "tests/unit/TestPhase6CoreSurfaces.bas"
@@ -152381,6 +153477,7 @@
                                                  "tests/tooling/Slice4beReceivingWorksheetGuards.ps1",
                                                  "tests/tooling/Slice4beRecordingEvaluation.ps1",
                                                  "tests/tooling/Slice4beRecordingFixture.ps1",
+                                                 "tests/tooling/Slice4beRecordingLifecycle.ps1",
                                                  "tests/tooling/Slice4beRecordingReader.ps1",
                                                  "tests/tooling/Slice4beRecordingRestart.ps1",
                                                  "tests/tooling/Slice4beRecordingRestartWorker.ps1",
@@ -152929,6 +154026,7 @@
                                                  "tests/tooling/Test-Slice4beConfigCommands.ps1",
                                                  "tests/tooling/Test-Slice4bePristineViewer.ps1",
                                                  "tests/tooling/Test-Slice4beRecordingControllerExit.ps1",
+                                                 "tests/tooling/Test-Slice4beRecordingLifecycle.ps1",
                                                  "tests/tooling/Test-Slice4beRecordingWorkerProtocol.ps1",
                                                  "tests/tooling/Test-Slice4bfDeployment.ps1",
                                                  "tests/tooling/Test-Slice5BehaviorLocks.ps1",
@@ -154782,10 +155880,24 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.class-event:src_Operations_ClassModules_cExpectationButton.cls:cExpectationButton.mButton_Click",
+                             "procedure":  "mButton_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.class-event:src_Operations_ClassModules_cRecordingButton.cls:cRecordingButton.mButton_Click",
                              "procedure":  "mButton_Click",
                              "rootKind":  "CLASS_EVENT",
                              "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.mCancel_Click",
+                             "procedure":  "mCancel_Click",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
@@ -155055,6 +156167,13 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.mControl_Change",
+                             "procedure":  "mControl_Change",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mDown_Click",
                              "procedure":  "mDown_Click",
                              "rootKind":  "CLASS_EVENT",
@@ -155064,6 +156183,13 @@
                          {
                              "id":  "convention.class-event:src_Admin_ClassModules_cAdminEventDetail.cls:cAdminEventDetail.mEnabled_Click",
                              "procedure":  "mEnabled_Click",
+                             "rootKind":  "CLASS_EVENT",
+                             "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.class-event:src_Operations_ClassModules_cRecordingControls.cls:cRecordingControls.mExpectationButton_Click",
+                             "procedure":  "mExpectationButton_Click",
                              "rootKind":  "CLASS_EVENT",
                              "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
@@ -155703,6 +156829,13 @@
                              "procedure":  "mUp_Click",
                              "rootKind":  "CLASS_EVENT",
                              "reason":  "Class lifecycle and WithEvents callback procedures are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.mUse_Click",
+                             "procedure":  "mUse_Click",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
@@ -159024,6 +160157,13 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Activate",
+                             "procedure":  "UserForm_Activate",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Activate",
                              "procedure":  "UserForm_Activate",
                              "rootKind":  "USERFORM_EVENT",
@@ -159164,6 +160304,13 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Initialize",
+                             "procedure":  "UserForm_Initialize",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Initialize",
                              "procedure":  "UserForm_Initialize",
                              "rootKind":  "USERFORM_EVENT",
@@ -159262,6 +160409,13 @@
                              "source":  "tools/contracts/vba-dynamic-roots.json"
                          },
                          {
+                             "id":  "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_Layout",
+                             "procedure":  "UserForm_Layout",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
                              "id":  "convention.userform-event:src_Operations_Forms_frmActionPaths.frm:frmActionPaths.UserForm_Layout",
                              "procedure":  "UserForm_Layout",
                              "rootKind":  "USERFORM_EVENT",
@@ -159319,6 +160473,13 @@
                          },
                          {
                              "id":  "convention.userform-event:src_Admin_Forms_frmReAuthGate.frm:frmReAuthGate.UserForm_QueryClose",
+                             "procedure":  "UserForm_QueryClose",
+                             "rootKind":  "USERFORM_EVENT",
+                             "reason":  "UserForm and control events are convention-dispatched.",
+                             "source":  "tools/contracts/vba-dynamic-roots.json"
+                         },
+                         {
+                             "id":  "convention.userform-event:src_Operations_Forms_frmActionPathExpectation.frm:frmActionPathExpectation.UserForm_QueryClose",
                              "procedure":  "UserForm_QueryClose",
                              "rootKind":  "USERFORM_EVENT",
                              "reason":  "UserForm and control events are convention-dispatched.",
