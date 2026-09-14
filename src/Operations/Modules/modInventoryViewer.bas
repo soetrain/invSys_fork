@@ -30,55 +30,37 @@ Public Sub OpenInventoryViewer()
 End Sub
 
 Public Function LoadInventoryViewerEvents(Optional ByVal publishedPayload As String = "") As String
-    Dim corePayload As String
-    Dim shippingPayload As String
-    Dim coreLines As Variant
-    Dim shippingLines As Variant
-    Dim coreHeader As Variant
-    Dim shippingHeader As Variant
-    Dim resultText As String
-    Dim lineIndex As Long
-    Dim rowCount As Long
-
-    corePayload = publishedPayload
-    If Trim$(corePayload) = "" Then corePayload = modInventoryViewerData.LoadCurrentInventoryEventViewerData()
-    LoadInventoryViewerEvents = "FAIL" & vbTab & "Published Events are unavailable. Try Refresh after publication is restored."
-    If Trim$(corePayload) = "" Then Exit Function
-    coreLines = Split(corePayload, vbCrLf)
-    coreHeader = Split(CStr(coreLines(0)), vbTab)
-    If UBound(coreHeader) < 3 Or StrComp(CStr(coreHeader(0)), "OK", vbTextCompare) <> 0 Then
-        Exit Function
+    Dim payload As String, lines As Variant, header As Variant, fields As Variant, i As Long, count As Long, columns As Long
+    On Error GoTo Invalid
+    LoadInventoryViewerEvents = "FAIL" & vbTab & "Published Events are unavailable. Use a compatible published projection."
+    payload = publishedPayload
+    If payload = "" Then payload = modInventoryViewerData.LoadCurrentInventoryEventViewerData()
+    lines = Split(payload, vbCrLf): header = Split(CStr(lines(0)), vbTab)
+    If UBound(header) < 3 Then Exit Function
+    If CStr(header(0)) <> "OK" Or Not IsNumeric(header(3)) Then Exit Function
+    columns = 10
+    If UBound(header) > 3 Then
+        Select Case CStr(header(4))
+            Case "DETAIL1"
+                If UBound(header) <> 5 Then Exit Function
+                columns = 18
+            Case "EVENTS1"
+                If UBound(header) <> 11 Or CStr(header(9)) = "" Then Exit Function
+                columns = 19 + UBound(Split(CStr(header(9)), ","))
+            Case Else: Exit Function
+        End Select
     End If
-    If UBound(coreHeader) > 3 Then
-        If CStr(coreHeader(4)) <> "DETAIL1" Or UBound(coreHeader) <> 5 Then
-            LoadInventoryViewerEvents = "FAIL" & vbTab & "Events schema unavailable. Use a compatible package set and published projection."
-            Exit Function
+    For i = 1 To UBound(lines)
+        If CStr(lines(i)) <> "" Then
+            fields = Split(CStr(lines(i)), vbTab)
+            If UBound(fields) + 1 <> columns Then Exit Function
+            count = count + 1
         End If
-    End If
-    shippingPayload = modTS_Shipments.LoadShippingViewerSupplementEvents()
-    shippingLines = Split(shippingPayload, vbCrLf)
-    shippingHeader = Split(CStr(shippingLines(0)), vbTab)
-
-    resultText = CStr(coreLines(0))
-    rowCount = CLng(Val(CStr(coreHeader(3))))
-    For lineIndex = 1 To UBound(coreLines)
-        If Trim$(CStr(coreLines(lineIndex))) <> "" Then resultText = resultText & vbCrLf & CStr(coreLines(lineIndex))
-    Next lineIndex
-
-    If UBound(shippingHeader) >= 1 And StrComp(CStr(shippingHeader(0)), "OK", vbTextCompare) = 0 Then
-        If UBound(shippingHeader) >= 3 Then rowCount = rowCount + CLng(Val(CStr(shippingHeader(3))))
-        For lineIndex = 1 To UBound(shippingLines)
-            If Trim$(CStr(shippingLines(lineIndex))) <> "" Then resultText = resultText & vbCrLf & CStr(shippingLines(lineIndex))
-        Next lineIndex
-    End If
-    coreLines = Split(resultText, vbCrLf)
-    coreHeader = Split(CStr(coreLines(0)), vbTab)
-    If UBound(coreHeader) >= 3 Then
-        coreHeader(3) = CStr(rowCount)
-        coreLines(0) = Join(coreHeader, vbTab)
-        resultText = Join(coreLines, vbCrLf)
-    End If
-    LoadInventoryViewerEvents = resultText
+    Next i
+    If CLng(header(3)) <> count Then Exit Function
+    ' Legacy serialized compatibility never authorizes canonical supplements.
+    LoadInventoryViewerEvents = payload
+Invalid:
 End Function
 
 Public Sub UnregisterInventoryViewer(ByVal formInstance As Object)

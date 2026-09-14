@@ -70,6 +70,29 @@ Public Function ReadRecord(ByVal target As WarehouseTarget, ByVal recordId As St
 Invalid:
 End Function
 
+Public Function ReadPublicationRecords(ByVal target As WarehouseTarget, ByRef reason As String) As Collection
+    Dim root As String, fso As Object, file As Object, records As Collection, record As Object, text As String, id As String
+    On Error GoTo Failed
+    reason = "MissingSource": root = StoreRoot(target, False)
+    If root = "" Then Exit Function
+    Set fso = CreateObject("Scripting.FileSystemObject"): Set records = New Collection
+    reason = "InvalidRecord"
+    For Each file In fso.GetFolder(root).Files
+        If StrComp(fso.GetExtensionName(file.Name), "json", vbTextCompare) = 0 Then
+            id = fso.GetBaseName(file.Name)
+            text = ReadRecord(target, id)
+            If text = "" Then Exit Function
+            Set record = modTrainingJson.DecodeObject(text)
+            If record Is Nothing Then Exit Function
+            records.Add record
+        End If
+    Next file
+    reason = "OK": Set ReadPublicationRecords = records
+    Exit Function
+Failed:
+    reason = "ReadFailed"
+End Function
+
 Private Function ValidBody(ByVal target As WarehouseTarget, ByVal recordId As String, ByVal body As String) As Boolean
     Dim record As Object, definition As Object, outcome As Object, key As Variant
     Dim allowed As String, field As Variant

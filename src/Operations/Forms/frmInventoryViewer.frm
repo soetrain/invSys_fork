@@ -23,6 +23,19 @@ Private WithEvents mTxtSearch As MSForms.TextBox
 Private WithEvents mBtnRefresh As MSForms.CommandButton
 Private WithEvents mBtnClose As MSForms.CommandButton
 Private WithEvents mBtnSettings As MSForms.CommandButton
+Private WithEvents mBtnEventsPrevious As MSForms.CommandButton
+Private WithEvents mBtnEventsNext As MSForms.CommandButton
+Private mLblEventPage As MSForms.Label
+Private mEventGroups As cEventPageProjection
+Private mEventsPage As Long
+Private mCboEventsView As MSForms.ComboBox
+Private mCboEventsFamily As MSForms.ComboBox
+Private mCboEventsSource As MSForms.ComboBox
+Private mCboEventsOutcome As MSForms.ComboBox
+Private mFilterBindings As Collection
+Private mChangingFilters As Boolean
+Private mConfiguringFilters As Boolean
+Private mAppliedEventRange As String
 Private WithEvents mTabs As MSForms.TabStrip
 Private WithEvents mBtnExportListBox As MSForms.CommandButton
 Private mCboEventRange As MSForms.ComboBox
@@ -74,6 +87,13 @@ Private Sub UserForm_Terminate()
     Set mLayout = Nothing
 End Sub
 
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    Dim binding As cViewerFilterBinding
+    If mFilterBindings Is Nothing Then Exit Sub
+    For Each binding In mFilterBindings: binding.Disconnect: Next binding
+    Set mFilterBindings = Nothing
+End Sub
+
 Public Sub SetWarehouse(ByVal warehouseId As String)
     If mSettingsContext <> modActivity.CaptureContext() Then ClearViewerContent
     mWarehouseId = Trim$(warehouseId)
@@ -104,6 +124,12 @@ End Sub
 
 Private Sub ClearViewerContent()
     mRows = Empty
+    Set mEventGroups = Nothing
+    RefreshEventFilterChoices
+    mEventsPage = 0
+    If Not mBtnEventsPrevious Is Nothing Then mBtnEventsPrevious.Enabled = False
+    If Not mBtnEventsNext Is Nothing Then mBtnEventsNext.Enabled = False
+    If Not mLblEventPage Is Nothing Then mLblEventPage.Caption = "No loaded Events."
     mLoadedColumnCount = 0
     If Not mDetail Is Nothing Then mDetail.Invalidate
     If Not mLstInventory Is Nothing Then mLstInventory.Clear
@@ -157,6 +183,9 @@ Private Sub LoadViewerPayload(ByVal payload As String, ByVal rowLabel As String)
 
     dataColumnCount = mColumnCount
     If mColumnCount = 10 Then dataColumnCount = 18
+    If mColumnCount = 10 And UBound(header) = 11 Then
+        If CStr(header(4)) = "EVENTS1" Then dataColumnCount = 19 + UBound(Split(CStr(header(9)), ","))
+    End If
     If UBound(lines) >= 1 Then
         ReDim dataRows(1 To UBound(lines), 1 To dataColumnCount)
         For rowIndex = 1 To UBound(lines)
@@ -179,11 +208,19 @@ Private Sub LoadViewerPayload(ByVal payload As String, ByVal rowLabel As String)
         mRows = TrimViewerRows(dataRows, dataIndex, dataColumnCount)
     End If
     If mColumnCount = 10 Then
+        Set mEventGroups = New cEventPageProjection
+        mEventGroups.LoadProjection mRows, header
+        mAppliedEventRange = CStr(mCboEventRange.Value)
+        RefreshEventFilterChoices
         If mDetail Is Nothing Then Set mDetail = New cEventDetailController
-        mDetail.LoadProjection mRows, header, mSettingsContext
+        mDetail.LoadProjection mRows, header, mSettingsContext, mEventGroups
     End If
     mLoadedColumnCount = mColumnCount
     mLoadStatus = CStr(dataIndex) & " " & rowLabel & ". Published data read at " & CStr(header(2)) & "."
+    If mColumnCount = 10 And UBound(header) = 11 Then
+        mLoadStatus = CStr(dataIndex) & " contributing line(s). Published " & Replace$(Replace$(CStr(header(2)), "T", " "), "Z", " UTC") & _
+            "; Loaded " & Replace$(Replace$(CStr(header(5)), "T", " "), "Z", " UTC") & "."
+    End If
     mLblStatus.Caption = mLoadStatus
     RenderRows Trim$(CStr(mTxtSearch.Value))
 End Sub
@@ -351,13 +388,22 @@ Private Sub BuildLayout()
     Set mLblEventRangeHelp = AddLabel("lblEventRangeHelp", _
         "Choose Day, Week, Month, or type a whole number of days; select Refresh to apply.", _
         276, 110, 556, 18, False)
+    mAppliedEventRange = rememberedRange
+    Set mCboEventsView = AddEventFilter("cboEventsView", "View", "Operator actions")
+    mCboEventsView.AddItem "All published events": mCboEventsView.List(1, 1) = "all"
+    Set mCboEventsFamily = AddEventFilter("cboEventsFamily", "Event family", "All families")
+    Set mCboEventsSource = AddEventFilter("cboEventsSource", "Source", "All sources")
+    Set mCboEventsOutcome = AddEventFilter("cboEventsOutcome", "Recorded outcome", "All outcomes")
     Set mLblExportListBox = AddLabel("lblExportListBox", "ListBox name", 12, 110, 96, 18, True)
     Set mTxtExportListBox = AddTextBox("txtExportListBox", 112, 104, 330, 24)
     Set mBtnExportListBox = AddButton("btnExportListBox", "Export ListBox to Table", 454, 104, 170, 24)
     Set mLblHeaders = AddLabel("lblHeaders", _
         "Item Code                         Item                                  UOM       Quantity       Location                  Condition", _
         12, 140, 820, 18, True)
-    Set mLstInventory = AddListBox("lstInventory", 12, 162, 820, 292)
+    Set mLstInventory = AddListBox("lstInventory", 12, 162, 820, 252)
+    Set mBtnEventsPrevious = AddButton("btnEventsPrevious", "Previous", 12, 424, 86, 26)
+    Set mBtnEventsNext = AddButton("btnEventsNext", "Next", 108, 424, 86, 26)
+    Set mLblEventPage = AddLabel("lblEventPage", "No loaded Events.", 208, 428, 624, 22, False)
     With mLstInventory
         .ColumnCount = 6
         .ColumnWidths = "135 pt;190 pt;52 pt;72 pt;120 pt;74 pt"
@@ -365,7 +411,7 @@ Private Sub BuildLayout()
     End With
     Set mHeaderLabels = New Collection
     ConfigureViewerHeaderGeometry
-    Set mLblStatus = AddLabel("lblStatus", "Select Refresh to load the current published snapshot.", 12, 470, 680, 32, False)
+    Set mLblStatus = AddLabel("lblStatus", "Select Refresh to load the current published snapshot.", 12, 466, 680, 32, False)
     Set mBtnClose = AddButton("btnClose", "Close", 740, 466, 92, 30)
 
     Set mLayout = modOperationsLayout.OperationsAnchorManager()
@@ -382,9 +428,11 @@ Private Sub BuildLayout()
     mLayout.RegisterControl mTxtExportListBox, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP
     mLayout.RegisterControl mBtnExportListBox, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP
     mLayout.RegisterControl mLblHeaders, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP Or OPERATIONS_ANCHOR_RIGHT
-    mLayout.RegisterControl mLstInventory, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_TOP Or OPERATIONS_ANCHOR_RIGHT Or OPERATIONS_ANCHOR_BOTTOM
     mLayout.RegisterControl mLblStatus, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_RIGHT Or OPERATIONS_ANCHOR_BOTTOM
     mLayout.RegisterControl mBtnClose, OPERATIONS_ANCHOR_RIGHT Or OPERATIONS_ANCHOR_BOTTOM
+    mLayout.RegisterControl mBtnEventsPrevious, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_BOTTOM
+    mLayout.RegisterControl mBtnEventsNext, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_BOTTOM
+    mLayout.RegisterControl mLblEventPage, OPERATIONS_ANCHOR_LEFT Or OPERATIONS_ANCHOR_RIGHT Or OPERATIONS_ANCHOR_BOTTOM
     mBuilt = True
     ApplyViewerTab
 End Sub
@@ -400,6 +448,9 @@ End Sub
 
 Private Sub ApplyViewerTab()
     If mTabs Is Nothing Then Exit Sub
+    mBtnEventsPrevious.Visible = (mTabs.Value = 1)
+    mBtnEventsNext.Visible = (mTabs.Value = 1)
+    mLblEventPage.Visible = (mTabs.Value = 1)
     mTxtSearch.Value = vbNullString
     mLblHeaders.Visible = False
     mLblExportListBox.Visible = False
@@ -455,6 +506,98 @@ Private Sub mTxtSearch_Change()
     RenderRows Trim$(CStr(mTxtSearch.Value))
 End Sub
 
+Public Sub ApplyEventFilters()
+    If Not mBuilt Or mChangingFilters Then Exit Sub
+    If mTabs.Value <> 1 Then Exit Sub
+    If Not ViewerContextValid() Then Exit Sub
+    RenderRows Trim$(CStr(mTxtSearch.Value))
+End Sub
+
+Private Function AddEventFilter(ByVal name As String, ByVal caption As String, ByVal allCaption As String) As MSForms.ComboBox
+    Dim binding As cViewerFilterBinding
+    AddLabel "lbl" & Mid$(name, 4), caption, 12, 136, 190, 18, True
+    Set AddEventFilter = Me.Controls.Add("Forms.ComboBox.1", name, True)
+    With AddEventFilter
+        .Move 12, 154, 190, 24
+        .Style = fmStyleDropDownList
+        .ColumnCount = 2: .BoundColumn = 2: .TextColumn = 1
+        .ColumnWidths = "190 pt;0 pt"
+        .AddItem allCaption: .List(0, 1) = "": .ListIndex = 0
+    End With
+    If mFilterBindings Is Nothing Then Set mFilterBindings = New Collection
+    Set binding = New cViewerFilterBinding
+    binding.Bind AddEventFilter, Me
+    mFilterBindings.Add binding
+End Function
+
+Private Sub RefreshEventFilterChoices()
+    If mCboEventsFamily Is Nothing Then Exit Sub
+    mChangingFilters = True
+    FillEventFacet mCboEventsFamily, "EventFamily", "All families"
+    FillEventFacet mCboEventsSource, "Source", "All sources"
+    FillEventFacet mCboEventsOutcome, "Outcome", "All outcomes"
+    mChangingFilters = False
+End Sub
+
+Private Sub FillEventFacet(ByVal control As MSForms.ComboBox, ByVal field As String, ByVal allCaption As String)
+    Dim selected As String, value As Variant, caption As String
+    If Not IsNull(control.Value) Then selected = CStr(control.Value)
+    control.Clear: control.AddItem allCaption: control.List(0, 1) = "": control.ListIndex = 0
+    If mEventGroups Is Nothing Then Exit Sub
+    For Each value In mEventGroups.FacetChoices(field)
+        caption = CStr(value)
+        If field = "Source" Then
+            Select Case caption
+                Case "Activity": caption = "User activity"
+                Case "ShippingBOM": caption = "Box designs"
+                Case "ShippingHolds": caption = "Held shipments"
+            End Select
+        ElseIf field = "Outcome" Then
+            caption = StrConv(Replace$(caption, "_", " "), vbProperCase)
+        End If
+        control.AddItem caption: control.List(control.ListCount - 1, 1) = CStr(value)
+        If CStr(value) = selected Then control.ListIndex = control.ListCount - 1
+    Next value
+End Sub
+
+Private Sub ConfigureEventFilterGeometry()
+    Dim names As Variant, index As Long, control As Object, label As Object
+    Dim width As Single, top As Single, height As Single, visible As Boolean
+    If mConfiguringFilters Or mCboEventsView Is Nothing Or mBtnEventsPrevious Is Nothing Then Exit Sub
+    On Error GoTo Done
+    mConfiguringFilters = True
+    visible = (mTabs.Value = 1)
+    top = 162: If visible Then top = 208
+    height = mBtnEventsPrevious.Top - top - 10
+    If Not visible And Not mBtnClose Is Nothing Then height = mBtnClose.Top - top - 12
+    If height < 20 Then height = 20
+    mLstInventory.Move 12, top, mTabs.Width, height
+    width = (mLstInventory.Width - 36) / 4
+    names = Array("EventsView", "EventsFamily", "EventsSource", "EventsOutcome")
+    For index = 0 To 3
+        Set control = Me.Controls("cbo" & CStr(names(index)))
+        Set label = Me.Controls("lbl" & CStr(names(index)))
+        control.Visible = visible: label.Visible = visible
+        control.Move 12 + index * (width + 12), 154, width, 24
+        control.ColumnWidths = CStr(width - 16) & " pt;0 pt"
+        label.Move control.Left, 136, width, 18
+    Next index
+Done:
+    mConfiguringFilters = False
+End Sub
+
+Private Sub mBtnEventsPrevious_Click()
+    If Not ViewerContextValid() Or Not mBtnEventsPrevious.Enabled Then Exit Sub
+    mEventsPage = mEventsPage - 1
+    RenderRows Trim$(CStr(mTxtSearch.Value)), True
+End Sub
+
+Private Sub mBtnEventsNext_Click()
+    If Not ViewerContextValid() Or Not mBtnEventsNext.Enabled Then Exit Sub
+    mEventsPage = mEventsPage + 1
+    RenderRows Trim$(CStr(mTxtSearch.Value)), True
+End Sub
+
 Private Sub mBtnRefresh_Click()
     If mTabs.Value = 1 Then
         RefreshEvents
@@ -482,6 +625,7 @@ Private Sub ConfigureViewerHeaderGeometry()
     Dim header As MSForms.Label
 
     If mLstInventory Is Nothing Then Exit Sub
+    ConfigureEventFilterGeometry
     If mHeaderLabels Is Nothing Then Set mHeaderLabels = New Collection
     If Not mTabs Is Nothing Then
         If mTabs.Value = 1 Then
@@ -535,14 +679,13 @@ Private Sub mBtnClose_Click()
     Unload Me
 End Sub
 
-Private Sub RenderRows(ByVal filterText As String)
+Private Sub RenderRows(ByVal filterText As String, Optional ByVal keepEventPage As Boolean = False)
     Dim rowIndex As Long
     Dim columnIndex As Long
     Dim matches As Boolean
     Dim rangeText As String
     Dim eventDays As Long
     Dim eventCutoff As Date
-    Dim eventDateValue As Date
     Dim hasEventDateFilter As Boolean
     Dim numericRange As Double
     Dim storedRange As String
@@ -552,7 +695,9 @@ Private Sub RenderRows(ByVal filterText As String)
     mLstInventory.Clear
     mLblStatus.Caption = mLoadStatus
     If mTabs.Value = 1 Then
-        rangeText = UCase$(Trim$(CStr(mCboEventRange.Value)))
+        mBtnEventsPrevious.Enabled = False: mBtnEventsNext.Enabled = False
+        mLblEventPage.Caption = "No matching Events."
+        rangeText = UCase$(Trim$(mAppliedEventRange))
         Select Case rangeText
             Case "", "ALL"
                 storedRange = "All"
@@ -582,7 +727,6 @@ Private Sub RenderRows(ByVal filterText As String)
                     Exit Sub
                 End If
         End Select
-        mCboEventRange.Value = storedRange
         On Error Resume Next
         SaveSetting SETTINGS_APP, SETTINGS_SECTION_OPERATIONS, SETTINGS_EVENT_RANGE, storedRange
         On Error GoTo 0
@@ -590,26 +734,20 @@ Private Sub RenderRows(ByVal filterText As String)
             hasEventDateFilter = True
             eventCutoff = DateAdd("d", -eventDays, Now)
         End If
+        RenderEventPage filterText, hasEventDateFilter, eventCutoff, keepEventPage
+        Exit Sub
     End If
     If IsEmpty(mRows) Then Exit Sub
     filterText = LCase$(Trim$(filterText))
     For rowIndex = LBound(mRows, 1) To UBound(mRows, 1)
         matches = (filterText = "")
         If Not matches Then
-            For columnIndex = 1 To mColumnCount
+            For columnIndex = 1 To UBound(mRows, 2)
                 If InStr(1, LCase$(CStr(mRows(rowIndex, columnIndex))), filterText, vbTextCompare) > 0 Then
                     matches = True
                     Exit For
                 End If
             Next columnIndex
-        End If
-        If matches And hasEventDateFilter Then
-            If IsDate(CStr(mRows(rowIndex, 1))) Then
-                eventDateValue = CDate(CStr(mRows(rowIndex, 1)))
-                matches = (eventDateValue >= eventCutoff And eventDateValue <= Now)
-            Else
-                matches = False
-            End If
         End If
         If matches Then
             mVisibleIndexes.Add rowIndex
@@ -619,10 +757,40 @@ Private Sub RenderRows(ByVal filterText As String)
             Next columnIndex
         End If
     Next rowIndex
-    If hasEventDateFilter Then
-        mLblStatus.Caption = mLoadStatus & " Showing " & CStr(mLstInventory.ListCount) & _
-            " event(s) in the rolling " & CStr(eventDays) & "-day window."
+End Sub
+
+Private Sub RenderEventPage(ByVal filterText As String, ByVal restrictDates As Boolean, _
+                            ByVal cutoff As Date, ByVal keepPage As Boolean)
+    Dim pages As Long, first As Long, last As Long, index As Long, column As Long, utcText As String, utcNow As Date
+    If mEventGroups Is Nothing Then Exit Sub
+    If restrictDates Then
+        utcText = Replace$(Left$(modTrainingWire.UtcTimestamp(), 19), "T", " ")
+        If Not IsDate(utcText) Then
+            mLblStatus.Caption = "Verified clock unavailable. Use All dates or try again."
+            Exit Sub
+        End If
+        utcNow = CDate(utcText)
     End If
+    mEventGroups.Match filterText, restrictDates, cutoff, Now, utcNow, _
+        CStr(mCboEventsFamily.Value), CStr(mCboEventsSource.Value), CStr(mCboEventsOutcome.Value), (CStr(mCboEventsView.Value) = "all")
+    pages = (mEventGroups.MatchingCount + 99) \ 100
+    If Not keepPage Or mEventsPage < 1 Then mEventsPage = 1
+    If mEventsPage > pages Then mEventsPage = pages
+    mBtnEventsPrevious.Enabled = (mEventsPage > 1)
+    mBtnEventsNext.Enabled = (mEventsPage < pages)
+    mLblEventPage.Caption = "Page " & CStr(mEventsPage) & " of " & CStr(pages) & ". " & _
+        CStr(mEventGroups.MatchingCount) & " matching / " & CStr(mEventGroups.AvailableCount) & " available groups."
+    If pages = 0 Then Exit Sub
+    first = (mEventsPage - 1) * 100 + 1
+    last = first + 99
+    If last > mEventGroups.MatchingCount Then last = mEventGroups.MatchingCount
+    For index = first To last
+        mVisibleIndexes.Add mEventGroups.SourceIndex(index)
+        mLstInventory.AddItem mEventGroups.SummaryValue(index, 1)
+        For column = 2 To mColumnCount
+            mLstInventory.List(mLstInventory.ListCount - 1, column - 1) = mEventGroups.SummaryValue(index, column)
+        Next column
+    Next index
 End Sub
 
 Private Function TrimViewerRows(ByVal sourceRows As Variant, ByVal rowCount As Long, ByVal columnCount As Long) As Variant

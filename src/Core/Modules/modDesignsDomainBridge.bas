@@ -157,6 +157,12 @@ Public Function ValidateReleasedRecipeBridgeEncoded(ByVal recipeId As String, _
 CleanFail:
 End Function
 
+Public Function ReadDesignsEventsForPublication(ByVal warehouseId As String, ByVal runtimeRoot As String) As String
+    On Error GoTo Failed
+    ReadDesignsEventsForPublication = CStr(RunDesignsQueryBridge("PUBLICATION_EVENTS", warehouseId, runtimeRoot, "", Nothing))
+Failed:
+End Function
+
 Private Function RunDesignsQueryBridge(ByVal queryName As String, _
                                        ByVal arg1 As String, _
                                        ByVal arg2 As String, _

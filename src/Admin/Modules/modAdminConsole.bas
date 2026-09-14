@@ -683,7 +683,7 @@ Public Function GenerateInventorySnapshot(Optional ByVal adminUserId As String =
     Dim resolvedSt As String
     Dim resolvedUser As String
     Dim sourceInvWb As Workbook
-    Dim snapPath As String
+    Dim snapPath As String, eventsReport As String
 
     If Not EnsureAdminContext(adminUserId, warehouseId, resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
     If Not RequireAdminMaintenance(resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
@@ -691,14 +691,14 @@ Public Function GenerateInventorySnapshot(Optional ByVal adminUserId As String =
     Set sourceInvWb = inventoryWb
 
     snapPath = vbNullString
-    If Not modWarehouseSync.GenerateWarehouseSnapshot(resolvedWh, sourceInvWb, outputPath, Nothing, snapPath) Then
+    If Not modWarehouseSync.GenerateWarehouseSnapshot(resolvedWh, sourceInvWb, outputPath, Nothing, snapPath, "", eventsReport) Then
         report = snapPath
         Exit Function
     End If
 
     AppendAuditEntry ResolveAdminWorkbook(adminWb), "GENERATE_SNAPSHOT", resolvedUser, resolvedWh, resolvedSt, _
                      "SNAPSHOT", snapPath, "", snapPath, "OK"
-    report = snapPath
+    report = snapPath & vbCrLf & eventsReport
     GenerateInventorySnapshot = True
     Exit Function
 

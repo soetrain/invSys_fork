@@ -11505,7 +11505,7 @@ Private Function HoldRowFieldRaw(ByVal lo As ListObject, ByVal rowIndex As Long,
     HoldRowFieldRaw = NzStr(lo.DataBodyRange.Cells(rowIndex, c).Value)
 End Function
 
-Private Function EscapeHoldField(ByVal valueText As String) As String
+Public Function EscapeHoldField(ByVal valueText As String) As String
     valueText = Replace$(valueText, "\", "\\")
     valueText = Replace$(valueText, vbTab, "\t")
     valueText = Replace$(valueText, vbCr, "\r")

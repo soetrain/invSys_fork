@@ -1,9 +1,9 @@
 # invSys Reviewed Cleanup Backlog
 
 - Schema: 1.0.0
-- Baseline: 2026-09-13T19:24:01Z
-- Scanner candidates: 1132
-- Reviewed candidates: 1134
+- Baseline: 2026-07-27T20:00:00Z
+- Scanner candidates: 1136
+- Reviewed candidates: 1138
 - Approved deletions: 0
 - Automatic deletion allowed: False
 
@@ -13,12 +13,12 @@
 |---|---:|---|
 | RECEIVING | 54 | Receiving-owned forms, services, and role package source. |
 | PRODUCTION | 222 | Production-owned forms, services, and role package source. |
-| SHIPPING | 156 | Shipping and Boxing forms, services, and role package source. |
+| SHIPPING | 157 | Shipping and Boxing forms, services, and role package source. |
 | SHARED_OPERATIONS | 58 | Cross-role or future invSys.Operations packaging work. |
-| CORE | 287 | Headless shared runtime and developer-support source in Core. |
+| CORE | 286 | Headless shared runtime and developer-support source in Core. |
 | DOMAINS | 68 | Inventory and Designs Domain authority source. |
 | ADMIN | 258 | Administrative setup, lifecycle, and developer-support source. |
-| DEVELOPER_TOOLING | 31 | Build, scan, report, and other developer-only tooling. |
+| DEVELOPER_TOOLING | 35 | Build, scan, report, and other developer-only tooling. |
 | TESTING | 0 | Test harness and fixture source that must remain outside runtime packages. |
 
 ## Module-growth ratchets
@@ -45,7 +45,7 @@
 | src/Core/Modules/modRoleEventWriter.bas | Core | 3035 |
 | src/Core/Modules/modWarehouseBootstrap.bas | Core | 1278 |
 | src/Core/Modules/modWarehouseRetire.bas | Core | 1658 |
-| src/Core/Modules/modWarehouseSync.bas | Core | 1753 |
+| src/Core/Modules/modWarehouseSync.bas | Core | 1727 |
 | src/Core/Modules/MouseScroll.bas | Core | 1132 |
 | src/DesignsDomain/Modules/modDesignsApply.bas | DesignsDomain | 1775 |
 | src/InventoryDomain/Modules/modInventoryApply.bas | InventoryDomain | 2882 |
@@ -548,7 +548,6 @@
 | reachability:src_Core_Modules_modWarehouseRetire.bas:modWarehouseRetire.ResolveCurrentAdminUserRetire | CORE | REMOVE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | reachability:src_Core_Modules_modWarehouseRetire.bas:modWarehouseRetire.ResolveRequiredRoleRetire | CORE | REMOVE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | reachability:src_Core_Modules_modWarehouseSync.bas:modWarehouseSync.AppendEventToOutbox | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
-| reachability:src_Core_Modules_modWarehouseSync.bas:modWarehouseSync.AppendLocationSummariesSync | CORE | REMOVE | MEDIUM | REQUIRES_PROTECTING_TEST |
 | reachability:src_Core_Modules_MouseScroll.bas:MouseScroll.DisableMouseScroll | CORE | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | root:src_Core_ClassModules_cDynItemSearch.cls:cDynItemSearch.chkShippable_Click | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Core_ClassModules_cDynItemSearch.cls:cDynItemSearch.lst_Click | CORE | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
@@ -612,6 +611,7 @@
 | reachability:src_Operations_Modules_modInventoryViewer.bas:modInventoryViewer.RunInventoryViewerFilterForTest | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Operations_Modules_modOperationsInit.bas:modOperationsInit.OperationsShadowStartupForTest | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
 | reachability:src_Operations_Modules_modOperationsInit.bas:modOperationsInit.OperationsStartupReport | DEVELOPER_TOOLING | UNRESOLVED | MEDIUM | MANUAL_INVESTIGATION |
+| root:src_Operations_ClassModules_cViewerFilterBinding.cls:cViewerFilterBinding.mControl_Change | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mClose_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.mLines_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventDetail.frm:frmEventDetail.UserForm_Activate | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
@@ -628,6 +628,8 @@
 | root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Layout | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmEventTrackingSettings.frm:frmEventTrackingSettings.UserForm_Terminate | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnClose_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnEventsNext_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnEventsPrevious_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnExportListBox_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnRefresh_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.mBtnSettings_Click | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
@@ -637,6 +639,7 @@
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_Activate | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_Initialize | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_Layout | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_QueryClose | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Forms_frmInventoryViewer.frm:frmInventoryViewer.UserForm_Terminate | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Operations_Modules_modOperationsInit.bas:modOperationsInit.Auto_Open | DEVELOPER_TOOLING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | duplicate:84e2366b8ff1ffcf:FileExistsApply+FileExistsPublisher | DOMAINS | REPLACE_DUPLICATE | MEDIUM | REQUIRES_PROTECTING_TEST |
@@ -1194,6 +1197,7 @@
 | root:src_Shipping_Forms_frmShipmentsTally.frm:frmShipmentsTally.UserForm_Layout | SHIPPING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Shipping_Forms_frmShipmentsTally.frm:frmShipmentsTally.UserForm_Terminate | SHIPPING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Shipping_Modules_modShippingAutoOpen.bas:modShippingAutoOpen.Auto_Open | SHIPPING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
+| root:src_Shipping_Modules_modShippingPublicationSource.bas:modShippingPublicationSource.ReadForPublication | SHIPPING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Shipping_Modules_modTS_Shipments.bas:modTS_Shipments.ApplyItemSelection | SHIPPING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Shipping_Modules_modTS_Shipments.bas:modTS_Shipments.ApplyItemToBoxBOM | SHIPPING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |
 | root:src_Shipping_Modules_modTS_Shipments.bas:modTS_Shipments.ApplyItemToBoxBuilder | SHIPPING | RETAIN_DYNAMIC_ROOT | LOW | RETAIN |

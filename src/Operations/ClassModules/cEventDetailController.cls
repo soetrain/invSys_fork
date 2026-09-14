@@ -19,9 +19,11 @@ Private mProfile As String
 Private mProfileVersion As Long
 Private mProfileStatus As String
 Private mStale As Boolean
+Private mFields As Object
+Private mGroups As cEventPageProjection
 
-Public Sub LoadProjection(ByVal rows As Variant, ByVal header As Variant, ByVal context As String)
-    Dim version As Long, profile As String, report As String, oldId As String, oldSource As String, i As Long
+Public Sub LoadProjection(ByVal rows As Variant, ByVal header As Variant, ByVal context As String, ByVal groups As cEventPageProjection)
+    Dim version As Long, profile As String, report As String, oldId As String, oldSource As String, i As Long, ids As Variant
     If Not mSelected Is Nothing Then
         If mSelected.Count > 0 And Not IsEmpty(mData) Then
             oldId = CStr(mData(mSelected(1), 11)): oldSource = CStr(mData(mSelected(1), 18))
@@ -30,6 +32,14 @@ Public Sub LoadProjection(ByVal rows As Variant, ByVal header As Variant, ByVal 
     modEventDetailSettings.ReadViewer context, version, profile, report
     If context = "" Or context <> modActivity.CaptureContext() Or profile = "" Then Invalidate: Exit Sub
     mData = rows: mContext = context: mWarehouse = CStr(header(1))
+    Set mGroups = groups
+    Set mFields = CreateObject("Scripting.Dictionary")
+    If UBound(header) = 11 Then
+        If CStr(header(4)) = "EVENTS1" Then
+            ids = Split(CStr(header(9)), ",")
+            For i = 0 To UBound(ids): mFields.Add CStr(ids(i)), 19 + i: Next i
+        End If
+    End If
     mProfile = profile: mProfileVersion = version: mProfileStatus = report: mStale = False
     mLoaded = "Unavailable"
     If UBound(header) >= 5 Then mLoaded = Replace$(Replace$(CStr(header(5)), "T", " "), "Z", " UTC")
@@ -44,18 +54,10 @@ Public Sub LoadProjection(ByVal rows As Variant, ByVal header As Variant, ByVal 
 End Sub
 
 Public Sub ShowLine(ByVal sourceIndex As Long)
-    Dim i As Long, id As String, source As String
     If Not ContextValid() Or IsEmpty(mData) Then Exit Sub
     If sourceIndex < LBound(mData, 1) Or sourceIndex > UBound(mData, 1) Then Exit Sub
-    id = CStr(mData(sourceIndex, 11)): source = CStr(mData(sourceIndex, 18))
-    Set mSelected = New Collection
-    If id = "" Or source = "" Then
-        mSelected.Add sourceIndex
-    Else
-        For i = LBound(mData, 1) To UBound(mData, 1)
-            If StrComp(CStr(mData(i, 11)), id, vbBinaryCompare) = 0 And StrComp(CStr(mData(i, 18)), source, vbBinaryCompare) = 0 Then mSelected.Add i
-        Next i
-    End If
+    If mGroups Is Nothing Then Exit Sub
+    Set mSelected = mGroups.SourceMembers(sourceIndex)
     If mForm Is Nothing Then Set mForm = New frmEventDetail
     mForm.Bind Me, "Detail profile " & CStr(mProfileVersion) & ". " & mProfileStatus
     If Not mForm.Visible Then mForm.Show vbModeless
@@ -69,6 +71,7 @@ End Function
 Public Sub Invalidate()
     If mContext = "" And IsEmpty(mData) And mSelected Is Nothing Then Exit Sub
     mData = Empty: Set mSelected = Nothing
+    Set mGroups = Nothing
     mContext = "": mProfile = "": mLoaded = "": mWarehouse = ""
     If Not mForm Is Nothing Then mForm.ClearContent "Unavailable. The invSys session or warehouse changed. Reopen Viewer."
 End Sub
@@ -96,7 +99,7 @@ Public Function Fields(ByVal selection As Long) As Variant
     If mSelected Is Nothing Then Exit Function
     If selection < 1 Or selection > mSelected.Count Then Exit Function
     row = CLng(mSelected(selection))
-    rows = modEventDetailSettings.FieldRows(mProfile, Family(CStr(mData(row, 13)), CStr(mData(row, 2))))
+    rows = modEventDetailSettings.FieldRows(mProfile, RowFamily(row))
     If rows = "" Then Exit Function
     ReDim result(0 To UBound(Split(rows, vbLf)), 0 To 1)
     For Each definition In Split(rows, vbLf)
@@ -111,6 +114,13 @@ Public Function Fields(ByVal selection As Long) As Variant
 End Function
 
 Private Function FieldValue(ByVal row As Long, ByVal field As String) As String
+    If Not mFields Is Nothing Then
+        If mFields.Exists(field) Then
+            FieldValue = CStr(mData(row, CLng(mFields(field))))
+            If field = "Freshness" And mStale Then FieldValue = "Stale. Refresh failed; showing retained data."
+            Exit Function
+        End If
+    End If
     Select Case field
         Case "SourceId": FieldValue = CStr(mData(row, 11))
         Case "EventCode": FieldValue = CStr(mData(row, 13))
@@ -149,6 +159,16 @@ Private Function FieldValue(ByVal row As Long, ByVal field As String) As String
         Case "ActorId": FieldValue = CStr(mData(row, 9))
         Case "StationId": FieldValue = CStr(mData(row, 15))
     End Select
+End Function
+
+Private Function RowFamily(ByVal row As Long) As String
+    If Not mFields Is Nothing Then
+        If mFields.Exists("EventFamily") Then
+            RowFamily = CStr(mData(row, CLng(mFields("EventFamily")) ))
+            Exit Function
+        End If
+    End If
+    RowFamily = Family(CStr(mData(row, 13)), CStr(mData(row, 2)))
 End Function
 
 Private Function Family(ByVal eventType As String, Optional ByVal stateType As String = "") As String

@@ -249,7 +249,7 @@ End Function
         [IO.File]::WriteAllText($path,$original,$utf8)
         [void](ReadAct 'Refresh')
         Check 'PublishedRead.RestoredPublicationRecoversActivity' ((ReadAct 'Fresh') -and (ReadAct 'ContainsSource' $activityId))
-        if($CaptureEvidence){CaptureFormEvidence '' 'viewer-published-read.png' ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadWindowForTest'))}
+        if($CaptureEvidence -and -not $CheckViewerFilters){CaptureFormEvidence '' 'viewer-published-read.png' ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadWindowForTest'))}
 
         [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')
         $body=$original.Substring(0,$original.LastIndexOf(',"ContentSha256":"',[StringComparison]::Ordinal))+'}'

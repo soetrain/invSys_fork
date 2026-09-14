@@ -232,11 +232,13 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
                                           Optional ByVal outputPath As String = "", _
                                           Optional ByVal snapshotWb As Workbook = Nothing, _
                                           Optional ByRef report As String = "", _
-                                          Optional ByVal perfRunId As String = "") As Boolean
+                                          Optional ByVal perfRunId As String = "", _
+                                          Optional ByRef eventsReport As String = "") As Boolean
     On Error GoTo FailSnapshot
 
     Dim t0 As Single
     Dim wbInv As Workbook, inventorySource As New cSnapshotInventorySource
+    Dim events As New cEventsPublication
     Dim wbSnap As Workbook
     Dim snapshotRows As Object
     Dim savePath As String
@@ -269,8 +271,11 @@ Public Function GenerateWarehouseSnapshot(Optional ByVal warehouseId As String =
     savePath = wbSnap.FullName
     If Not EnsureSnapshotSchema(wbSnap, report) Then GoTo CleanExit
     WriteSnapshotRows wbSnap, warehouseId, snapshotRows
-    WriteSnapshotEventRows wbSnap, wbInv
+    WriteSnapshotEventRows wbSnap, wbInv, events
     wbSnap.Save
+    Dim eventsPublicationNoticeLocal As String
+    events.Publish warehouseId, wbInv.Path, eventsPublicationNoticeLocal
+    eventsReport = eventsPublicationNoticeLocal
 
     If Trim$(perfRunId) <> "" Then PerfMarkSafeSync perfRunId, "SnapshotWrite", CLng((Timer - t0) * 1000)
     report = savePath
@@ -613,7 +618,7 @@ Private Sub EnsureSnapshotEventSchema(ByVal wb As Workbook)
     RemoveBlankSeedRowSync lo
 End Sub
 
-Private Sub WriteSnapshotEventRows(ByVal snapshotWb As Workbook, ByVal inventoryWb As Workbook)
+Private Sub WriteSnapshotEventRows(ByVal snapshotWb As Workbook, ByVal inventoryWb As Workbook, ByVal events As cEventsPublication)
     Dim sourceTable As ListObject
     Dim targetTable As ListObject
     Dim headers As Variant
@@ -625,6 +630,7 @@ Private Sub WriteSnapshotEventRows(ByVal snapshotWb As Workbook, ByVal inventory
     Set targetTable = snapshotWb.Worksheets(SHEET_SNAPSHOT_EVENTS).ListObjects(TABLE_SNAPSHOT_EVENTS)
     DeleteAllRowsSync targetTable
     Set sourceTable = FindListObjectByNameSync(inventoryWb, "tblInventoryLog")
+    events.CaptureInventory sourceTable
     If sourceTable Is Nothing Or sourceTable.DataBodyRange Is Nothing Then Exit Sub
 
     For rowIndex = 1 To sourceTable.ListRows.Count
@@ -757,38 +763,6 @@ Private Function NormalizeManagedLocationSummarySync(ByVal locationSummary As St
     If qtyOnHand = 0 Then Exit Function
     NormalizeManagedLocationSummarySync = "(blank)=" & FormatQuantitySync(qtyOnHand)
 End Function
-
-Private Sub AppendLocationSummariesSync(ByVal snapshotRows As Object, _
-                                        ByVal loLoc As ListObject, _
-                                        ByVal warehouseId As String)
-    Dim rowIndex As Long
-    Dim sku As String
-    Dim locationVal As String
-    Dim qtyOnHand As Double
-    Dim entry As Object
-    Dim rowDate As Variant
-
-    If snapshotRows Is Nothing Or loLoc Is Nothing Then Exit Sub
-    If loLoc.DataBodyRange Is Nothing Then Exit Sub
-
-    For rowIndex = 1 To loLoc.ListRows.Count
-        sku = SafeTrimSync(GetCellByColumnSync(loLoc, rowIndex, "SKU"))
-        If sku = "" Then GoTo ContinueLocLoop
-
-        locationVal = SafeTrimSync(GetCellByColumnSync(loLoc, rowIndex, "Location"))
-        qtyOnHand = NzDblSync(GetCellByColumnSync(loLoc, rowIndex, "QtyOnHand"))
-        Set entry = EnsureSnapshotEntrySync(snapshotRows, sku, warehouseId)
-        AppendLocationFragmentSync entry, locationVal, qtyOnHand
-
-        rowDate = GetCellByColumnSync(loLoc, rowIndex, "LastAppliedUTC")
-        If IsDate(rowDate) Then
-            If (Not entry.Exists("LastAppliedAtUTC")) Or CDate(rowDate) > CDate(entry("LastAppliedAtUTC")) Then
-                entry("LastAppliedAtUTC") = CDate(rowDate)
-            End If
-        End If
-ContinueLocLoop:
-    Next rowIndex
-End Sub
 
 Private Function EnsureSnapshotEntrySync(ByVal rows As Object, _
                                          ByVal entityKey As String, _

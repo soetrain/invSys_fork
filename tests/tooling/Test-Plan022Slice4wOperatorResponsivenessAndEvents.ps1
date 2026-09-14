@@ -20,10 +20,13 @@ $connectionForm = Read-Source "src/Core/Forms/frmWarehouseConnection.frm"
 $roleWriter = Read-Source "src/Core/Modules/modRoleEventWriter.bas"
 $warehouseSync = Read-Source "src/Core/Modules/modWarehouseSync.bas"
 $viewerData = Read-Source "src/Core/Modules/modInventoryViewerData.bas"
+$publishedReader = Read-Source "src/Core/Modules/modPublishedEventsReader.bas"
+$eventsPublisher = Read-Source "src/Core/ClassModules/cEventsPublication.cls"
 $viewerForm = Read-Source "src/Operations/Forms/frmInventoryViewer.frm"
 $operationsAnchors = Read-Source "src/Operations/ClassModules/cOperationsAnchorManager.cls"
 $viewerController = Read-Source "src/Operations/Modules/modInventoryViewer.bas"
 $receivingForm = Read-Source "src/Receiving/Forms/frmReceiving.frm"
+$receivingActivity = Read-Source "src/Receiving/Modules/modReceivingActivityAction.bas"
 $shippingForm = Read-Source "src/Shipping/Forms/frmShipmentsTally.frm"
 $shippingService = Read-Source "src/Shipping/Modules/modTS_Shipments.bas"
 
@@ -31,6 +34,9 @@ $connectClick = Procedure-Text $connectionForm "mBtnConnect_Click"
 $connectAction = Procedure-Text $roleWriter "ConnectWarehouseStorageForCapability"
 $receivingConfirm = Procedure-Text $receivingForm "mBtnConfirm_Click"
 $receivingAggregateClick = Procedure-Text $receivingForm "mLstAggregate_Click"
+$receivingNavigation = Procedure-Text $receivingForm "NavigationSelection"
+$receivingConfirmEntry = Procedure-Text $receivingActivity "ConfirmWrites"
+$receivingConfirmOwner = Procedure-Text $receivingActivity "ConfirmAction"
 $viewerBuild = Procedure-Text $viewerForm "BuildLayout"
 $viewerTab = Procedure-Text $viewerForm "ApplyViewerTab"
 $viewerRefreshEvents = Procedure-Text $viewerForm "RefreshEvents"
@@ -55,7 +61,8 @@ $checks = @(
         Passed = ($receivingForm -match 'txtAggregateReferences') -and
             ($receivingForm -match 'Selected references') -and
             ($receivingForm -match 'mTxtAggregateReferences\.MultiLine\s*=\s*True') -and
-            ($receivingAggregateClick -match 'ShowSelectedAggregateReferences') -and
+            ($receivingAggregateClick -match 'NavigationSelection\s+"lstAggregate"') -and
+            ($receivingNavigation -match 'Case\s+"lstAggregate"\s*:\s*ShowSelectedAggregateReferences') -and
             ($receivingForm -match 'ClearAggregateReferenceDetail')
         Contract = "The fixed-height aggregate list retains one-line rows while a dedicated multiline detail surface shows every concatenated reference and clears with staging."
     },
@@ -64,11 +71,12 @@ $checks = @(
         Passed = ($viewerBuild -match 'Tabs\(0\)\.Caption\s*=\s*"Inventory"') -and
             ($viewerBuild -match 'Tabs\(1\)\.Caption\s*=\s*"Events"') -and
             ($viewerTab -match 'RefreshEvents') -and
-            ($viewerRefreshEvents -match 'LoadCurrentInventoryEventViewerData') -and
-            ($viewerController -match 'LoadShippingViewerSupplementEvents') -and
-            ($shippingService -match 'BOX_DESIGNED') -and
-            ($shippingService -match 'SHIP_HELD')
-        Contract = "Inventory Viewer exposes a read-only Events tab covering canonical inventory events plus current box-design and held-shipment activity."
+            ($viewerRefreshEvents -match 'modInventoryViewer\.LoadInventoryViewerEvents') -and
+            ($viewerController -match 'modInventoryViewerData\.LoadCurrentInventoryEventViewerData') -and
+            ($viewerController -notmatch 'LoadShippingViewerSupplementEvents') -and
+            ($publishedReader -match 'Case\s+"ShippingBOM"') -and
+            ($publishedReader -match 'Case\s+"ShippingHolds"')
+        Contract = "Viewer reads published event observations and labelled current Box Design/Held Shipment state; opening or refreshing it never reads Shipping authority supplements."
     },
     [pscustomobject]@{
         Check = "Viewer.Tabs.InventoryEventsAndListBoxTable"
@@ -91,7 +99,9 @@ $checks = @(
     },
     [pscustomobject]@{
         Check = "Viewer.Events.ReadableTimestampRefresh"
-        Passed = ($viewerData -match 'Format\$\(CDate\(CDbl\(eventDateText\)\),\s*"yyyy-mm-dd hh:nn:ss"\)') -and
+        Passed = ($eventsPublisher -match 'Format\$\(CDate\(value\),\s*"yyyy-mm-dd\\Thh:nn:ss"\)') -and
+            ($publishedReader -match 'values\(0\)\s*=\s*DisplayTime') -and
+            ($publishedReader -match '"Z",\s*" UTC"') -and
             ($viewerEventsTest -match 'ReadableDates=') -and
             ($viewerEventsTest -match 'FirstReference=')
         Contract = "Events renders readable timestamps and the public Events refresh reports the newly published first event rather than retaining stale rows."
@@ -127,26 +137,30 @@ $checks = @(
         Check = "Viewer.Events.PublishedProjection"
         Passed = ($snapshotAction -match 'WriteSnapshotEventRows') -and
             ($warehouseSync -match 'tblInventoryEvents') -and
-            ($viewerData -match 'Public Function LoadCurrentInventoryEventViewerData') -and
-            ($viewerData -match 'tblInventoryEvents')
+            ($viewerData -match 'LoadCurrentInventoryEventViewerData\s*=\s*modPublishedEventsReader\.ReadCurrent') -and
+            ($publishedReader -match 'modEventsPublicationStore\.Read') -and
+            ($publishedReader -match '\.invSys\.Snapshot\.Events\.json')
         Contract = "Viewer event history is read from the published snapshot projection rather than making the form a canonical writer or authority."
     },
     [pscustomobject]@{
         Check = "Viewer.Events.RemoveRelease"
-        Passed = ($viewerData -match 'Case\s+"SHIP_RELEASE"\s*:\s*ViewerFriendlyEventType\s*=\s*"Remove"') -and
+        Passed = ($publishedReader -match 'Case\s+"SHIP_RELEASE"\s*:\s*FriendlyType\s*=\s*"Remove"') -and
             ($shippingService -match 'EVENT_TYPE_SHIP_RELEASE')
         Contract = "Shipping Remove releases locked inventory through SHIP_RELEASE and the operator-facing Events view labels that event Remove."
     },
     [pscustomobject]@{
         Check = "Viewer.Events.ExcludesInternalReservation"
-        Passed = ($viewerData -notmatch 'Case\s+"SHIP_RESERVE"\s*:\s*ViewerFriendlyEventType\s*=\s*"Shipment Held"') -and
+        Passed = ($publishedReader -match 'Case\s+"SHIP_RESERVE"\s*:\s*FriendlyType\s*=\s*"Inventory Reserved"') -and
+            ($publishedReader -notmatch 'Case\s+"SHIP_RESERVE"\s*:\s*FriendlyType\s*=\s*"Shipment Held"') -and
             ($viewerEventsTest -match 'ShipmentHeldRows=')
         Contract = "An ordinary Shipping Add may write an internal SHIP_RESERVE row, but the operator-facing Events view does not misreport that zero-delta reservation as Shipment Held; actual held-shipment supplements remain visible."
     },
     [pscustomobject]@{
         Check = "OperatorPersistence.PendingStatus"
         Passed = ($receivingConfirm -match 'ShowPersistencePending') -and
-            ($receivingConfirm -match 'ExecuteConfirmWrites') -and
+            ($receivingConfirm -match 'modReceivingActivityAction\.ConfirmWrites') -and
+            ($receivingConfirmEntry -match 'ConfirmAction\(') -and
+            ($receivingConfirmOwner -match 'modReceivingPostingService\.ExecuteConfirmWrites') -and
             ($shippingCommit -match 'ShowPersistencePending') -and
             ($shippingSend -match 'ShowPersistencePending') -and
             ($shippingForm -match 'Me\.Repaint') -and ($shippingForm -match 'DoEvents')

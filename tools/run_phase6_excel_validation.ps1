@@ -400,6 +400,8 @@ try {
         (Join-Path $repo "src/Core/Modules/modDesignsDomainBridge.bas"),
         (Join-Path $repo "src/Core/Modules/modOperationsPrimitiveBridge.bas"),
         (Join-Path $repo "src/Core/ClassModules/cSnapshotInventorySource.cls"),
+        (Join-Path $repo "src/Core/ClassModules/cEventsPublication.cls"),
+        (Join-Path $repo "src/Core/Modules/modEventsPublicationStore.bas"),
         (Join-Path $repo "src/Core/Modules/modWarehouseSync.bas"),
         (Join-Path $repo "src/Core/Modules/modLockManager.bas"),
         (Join-Path $repo "src/Core/Modules/modProcessor.bas"),

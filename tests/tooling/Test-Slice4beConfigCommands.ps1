@@ -18,6 +18,7 @@ param(
     [switch]$CheckViewerEventGroups,
     [switch]$CheckViewerPublishedRead,
     [switch]$CheckViewerShippingState,
+    [switch]$CheckViewerFilters,
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
@@ -57,6 +58,7 @@ if($ViewerPublicationOnly) {
 }
 if($CheckViewerPublication) { $CheckViewerEventGroups = $true }
 if($CheckViewerShippingState) { $CheckViewerPublishedRead = $true }
+if($CheckViewerFilters) { $CheckViewerPublishedRead = $true }
 if($CheckAdminSettingsClose -and -not $CheckActionPathPreference) { throw 'Admin close requires the complete preference probes.' }
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
@@ -512,6 +514,11 @@ End Function
     if($CheckViewerPublishedRead) {
         $step='packaged Viewer persisted publication read'
         Test-Slice4beViewerPublishedRead $a $b
+        if($CheckViewerFilters) {
+            $step='packaged Viewer loaded projection filters'
+            . (Join-Path $PSScriptRoot 'Slice4beViewerFilters.ps1')
+            Test-Slice4beViewerFilters $a
+        }
         if($CheckViewerShippingState) {
             $step='packaged Viewer Shipping current-state presentation'
             . (Join-Path $PSScriptRoot 'Slice4beViewerShippingState.ps1')

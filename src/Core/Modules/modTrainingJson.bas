@@ -29,15 +29,18 @@ Public Function EncodeObject(ByVal values As Object) As String
 End Function
 
 Private Function EncodeValue(ByVal value As Variant) As String
-    Dim i As Long, result As String
+    Dim i As Long, result As String, parts() As String
     If IsObject(value) Then
         If TypeName(value) = "Collection" Then
-            result = "["
-            For i = 1 To value.Count
-                If i > 1 Then result = result & ","
-                result = result & EncodeValue(value(i))
-            Next i
-            EncodeValue = result & "]"
+            If value.Count = 0 Then
+                EncodeValue = "[]"
+            Else
+                ReDim parts(1 To value.Count)
+                For i = 1 To value.Count
+                    parts(i) = EncodeValue(value(i))
+                Next i
+                EncodeValue = "[" & Join(parts, ",") & "]"
+            End If
         Else
             EncodeValue = EncodeObject(value)
         End If
@@ -63,7 +66,19 @@ Public Function DecodeObject(ByVal text As String) As Object
 Invalid:
 End Function
 
-Private Function ReadObject(ByVal text As String, ByRef pos As Long, ByVal depth As Long) As Object
+' Events are bounded by complete groups; do not relax the record/guide entry.
+Public Function DecodePublicationObject(ByVal text As String) As Object
+    Dim pos As Long, result As Object
+    On Error GoTo Invalid
+    If Len(text) = 0 Then Exit Function
+    pos = 1
+    Set result = ReadObject(text, pos, 0)
+    SkipSpace text, pos
+    If pos = Len(text) + 1 Then Set DecodePublicationObject = result
+Invalid:
+End Function
+
+Private Function ReadObject(ByRef text As String, ByRef pos As Long, ByVal depth As Long) As Object
     Dim result As Object, key As String, value As Variant
     If depth > 16 Then Err.Raise 5
     Set result = CreateObject("Scripting.Dictionary")
@@ -86,7 +101,7 @@ Private Function ReadObject(ByVal text As String, ByRef pos As Long, ByVal depth
     Set ReadObject = result
 End Function
 
-Private Sub ReadValue(ByVal text As String, ByRef pos As Long, ByVal depth As Long, ByRef value As Variant)
+Private Sub ReadValue(ByRef text As String, ByRef pos As Long, ByVal depth As Long, ByRef value As Variant)
     Dim list As Collection, item As Variant, start As Long, token As String
     If depth > 16 Then Err.Raise 5
     If IsObject(value) Then Set value = Nothing
@@ -128,7 +143,7 @@ Private Sub ReadValue(ByVal text As String, ByRef pos As Long, ByVal depth As Lo
     End Select
 End Sub
 
-Private Function ReadString(ByVal text As String, ByRef pos As Long) As String
+Private Function ReadString(ByRef text As String, ByRef pos As Long) As String
     Dim ch As String, digits As String, result As String
     Require text, pos, """"
     Do While pos <= Len(text)
@@ -160,13 +175,13 @@ Private Function ReadString(ByVal text As String, ByRef pos As Long) As String
     Err.Raise 5
 End Function
 
-Private Sub Require(ByVal text As String, ByRef pos As Long, ByVal expected As String)
+Private Sub Require(ByRef text As String, ByRef pos As Long, ByVal expected As String)
     SkipSpace text, pos
     If Mid$(text, pos, 1) <> expected Then Err.Raise 5
     pos = pos + 1
 End Sub
 
-Private Sub SkipSpace(ByVal text As String, ByRef pos As Long)
+Private Sub SkipSpace(ByRef text As String, ByRef pos As Long)
     Do While pos <= Len(text)
         If InStr(1, " " & vbCr & vbLf & vbTab, Mid$(text, pos, 1), vbBinaryCompare) = 0 Then Exit Do
         pos = pos + 1
