@@ -17,6 +17,7 @@ param(
     [switch]$CheckViewerEventDetail,
     [switch]$CheckViewerEventGroups,
     [switch]$CheckViewerPublishedRead,
+    [switch]$CheckViewerShippingState,
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
@@ -55,6 +56,7 @@ if($ViewerPublicationOnly) {
     $CheckViewerPublication = $true
 }
 if($CheckViewerPublication) { $CheckViewerEventGroups = $true }
+if($CheckViewerShippingState) { $CheckViewerPublishedRead = $true }
 if($CheckAdminSettingsClose -and -not $CheckActionPathPreference) { throw 'Admin close requires the complete preference probes.' }
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
@@ -510,6 +512,11 @@ End Function
     if($CheckViewerPublishedRead) {
         $step='packaged Viewer persisted publication read'
         Test-Slice4beViewerPublishedRead $a $b
+        if($CheckViewerShippingState) {
+            $step='packaged Viewer Shipping current-state presentation'
+            . (Join-Path $PSScriptRoot 'Slice4beViewerShippingState.ps1')
+            Test-Slice4beViewerShippingState $a
+        }
     }
     if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail -and -not $CheckViewerEventGroups -and -not $CheckViewerPublishedRead) {
     $step='unauthenticated command'
