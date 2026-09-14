@@ -653,7 +653,10 @@ function Invoke-RestartReconciliation {
                     -MacroName "modRuntimeWorkbooks.ClearCoreDataRootOverride")
             }
         } catch {}
-        foreach ($workbook in $localBooks) {
+        # Release ordinary workbooks and leaf packages before their dependencies.
+        $closingBooks = $localBooks.ToArray()
+        [Array]::Reverse($closingBooks)
+        foreach ($workbook in $closingBooks) {
             try { $workbook.Close($false) } catch {}
             Release-ComObject $workbook
         }
@@ -741,7 +744,10 @@ function Invoke-RuntimeFivePackageEvidence {
              "; Unexpected active packages=" + $unexpectedAddins.Count)
     }
     finally {
-        foreach ($workbook in $localBooks) {
+        # Release ordinary workbooks and leaf packages before their dependencies.
+        $closingBooks = $localBooks.ToArray()
+        [Array]::Reverse($closingBooks)
+        foreach ($workbook in $closingBooks) {
             try { $workbook.Close($false) } catch {}
             Release-ComObject $workbook
         }

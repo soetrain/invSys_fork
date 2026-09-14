@@ -181,7 +181,8 @@ JSON is verified against the terminal691-check count; the older navigation-only
 report was not the result of this run. The unchanged focused navigation diagnostic
 subsequently passes **266/266**, including the mouse transition and closed-workbook
 guards. This does not explain the earlier failure or replace the complete854 gate;
-a fresh full Receiving retry is running against the unchanged reviewed packages.
+the fresh full Receiving retry passes **854/854** against the unchanged reviewed
+packages, with every previous check identity/GREEN retained and no duplicates.
 
 An isolated replay of only the full-chain reconciliation and package-inspection
 phases passes **13/13**, with numeric phase/stage/process tracing. It records one
@@ -189,6 +190,25 @@ first-package Close exception in each phase but no matching Excel Application
 Error during the diagnostic. The native fault is not reproduced, so its earlier
 phase attribution remains unresolved. These13 checks are not a new full-chain
 acceptance run and do not establish a runtime repair.
+
+The dependency-order cleanup correction subsequently removes both observed Close
+exceptions in real Excel while retaining13/13 phase checks. Its focused test is
+5/8 RED then13/13 GREEN; ordered-child decisions remain4/4. However, a fresh full
+chain again fails at live projection rebuild before those corrected phases:
+top-level4/1, live32/1. The failure therefore does not establish a cleanup regression
+or a resolved native crash. See the [bounded cleanup evidence](plan022_slice4be_package_cleanup_results.md).
+
+The failed generated live fixture contains one Inventory snapshot and no Events
+JSON artifact, including recursive inspection; absence does not identify the crash
+cause. A separate live diagnostic releases the test's two deleted projection-table
+COM handles before rebuilding and passes48/48 without a VBA edit or package change.
+The unchanged-handle control also passes48/48 with the same check identities.
+Neither result isolates a crash cause; the maintained projection fixture remains
+unchanged. The subsequent full-chain retry finishes with31/31 and live48/48,
+but Windows records a native Excel fault just after the report. Its verified
+empty recovery child closes without saving and preserves all three loaded add-in
+files. Passing workflow rows therefore still do not establish clean native
+shutdown or publisher acceptance. No further runtime crash patch is justified.
 
 Preservation verification matches all **175 historical package pins**, **15 prior
 publication-candidate pins** and **15 protected source files**. The remaining
@@ -270,15 +290,31 @@ Ignored reports under `reports/runtime/`:
 - `events-publication-reviewed-resumed-receiving.log`,
   `events-publication-reviewed-receiving-failed.json` and
   `events-publication-reviewed-receiving-first-call-failure.json`: verified690/1
-  native navigation readback failure, with854 acceptance still pending.
+  native navigation readback failure, followed by the complete854 retry below.
 - `events-chain-final-phases-summary.json`, `events-chain-final-phases-checks.json`,
   `events-chain-process-trace.jsonl` and `events-chain-final-phases-findings.json`:
   diagnostic13/13 and cleanup exception observations; no reproduced native fault.
 - `events-publication-reviewed-receiving-navigation.log` and
   `events-publication-reviewed-navigation-green.json`: unchanged focused266/266;
-  `events-publication-reviewed-receiving-retry.log`: subsequent full retry, pending.
+  `events-publication-reviewed-receiving-retry.log`,
+  `events-publication-reviewed-receiving-green.json` and
+  `events-publication-reviewed-receiving-comparison.json`: full854/854 retained.
 - `events-publication-additional-candidates-preservation.json`: all15 additional
   finalized/local-result/reviewed package pins match by read-only hash verification.
+- `events-publication-reviewed-cleanup-chain.md`,
+  `events-publication-reviewed-cleanup-live-failed.json` and
+  `events-publication-reviewed-crash-artifact-stage.json`: latest4/1 and32/1 failure
+  and bounded read-only inspection of the failed generated fixture.
+- `events-live-release-deleted-handles-b0a0354197354bdda2f6700f0c185987/`:
+  no-VBA-edit handle-lifetime diagnostic48/48; not acceptance or a proven crash cause.
+- `events-live-unchanged-handles-3a3a8240d96a4f129eb812d9d649e22c/` and
+  `events-projection-handle-comparison.json`: unchanged control48/48, same checks;
+  no maintained projection-fixture change.
+- `events-publication-reviewed-cleanup-chain-retry.md`,
+  `events-publication-reviewed-cleanup-chain-retry-live.md`,
+  `events-publication-reviewed-cleanup-retry-native-faults.json` and
+  `events-publication-reviewed-cleanup-retry-recovery.json`: terminal chain31/31,
+  live48/48, subsequent native fault and verified empty recovery closure.
 
 Accepted deployment and operational/NAS workbooks remain outside this candidate.
 Unrelated handoff 067 and critique 023 must remain unstaged and unchanged.
