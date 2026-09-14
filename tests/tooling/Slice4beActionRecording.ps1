@@ -219,5 +219,9 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beRecordingRestart.ps1')
             Test-Slice4beRecordingRestart $Fixture
         }
+        if($CheckRecordingOperations) {
+            . (Join-Path $PSScriptRoot 'Slice4beRecordingOperations.ps1')
+            Test-Slice4beRecordingOperations
+        }
     } finally { if($null -ne $excel){CloseRecordingViewer} }
 }

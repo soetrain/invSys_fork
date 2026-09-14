@@ -25,6 +25,7 @@ param(
     [switch]$CheckRecordingReader,
     [switch]$CheckRecordingIsolation,
     [switch]$CheckRecordingRestart,
+    [switch]$CheckRecordingOperations,
     [string]$RecordingContinuationPipeName = '',
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
@@ -68,6 +69,10 @@ if($CheckViewerShippingState) { $CheckViewerPublishedRead = $true }
 if($CheckViewerFilters) { $CheckViewerPublishedRead = $true }
 if($CheckRecordingLimits) { $CheckActionRecording = $true }
 if($CheckRecordingStorageBounds) { $CheckActionRecording = $true }
+if($CheckRecordingOperations) {
+    if($CheckRecordingRestart){throw 'Operations sequence and cold restart use separate runs.'}
+    $CheckRecordingReader = $true
+}
 if($CheckRecordingRestart) {
     if($CheckRecordingLimits -or $CheckRecordingStorageBounds -or $CheckRecordingIsolation -or $CheckViewerFilters -or $CheckViewerShippingState) {
         throw 'Cold recording restart uses its separate reader gate; run the preserved limits/isolation/filter gates separately.'

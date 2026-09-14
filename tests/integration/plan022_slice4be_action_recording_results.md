@@ -675,6 +675,84 @@ failure), `recording-controller-exit-second.log` (123/123),
 pins,15 protected source files and the existing reviewed Shipping visibility-only
 change, with Excel closed. All seven changed PowerShell files parse.
 
+### Admin/Operations sequences and deferred source application (2026-09-14)
+
+The new `-CheckRecordingOperations` gate retains the108-check reader foundation.
+Its generated warehouse uses Admin Generate Warehouse and Seed; all unsaved test
+driver/fault edits precede authentication and live forms. The Receiving launcher
+enters the actual generated Ribbon callback through an IRibbonControl fixture.
+Add and Confirm enter the same handlers on that launcher-owned form, without
+rebinding it when the unrelated workbook is active. Admin Save Value begins and
+ends the shared sequence. No activity, event ID or inventory key is fabricated.
+
+The scenario records nine actions,18 original observations and20 journal entries.
+Two first-submission receipts remain pending while two new receipts are staged.
+The next Confirm retains all four source references, including the two earlier
+identities; the library must display all six references across those observations.
+Only automatic processing/refresh is withheld. The ordinary queue persists, and
+the later owning Admin processor applies four distinct events. Publication has
+zero of those applied groups beforehand and four afterward, preserving each exact
+System_Key. A dedicated disposable Admin workbook receives console audit output.
+Original journal bytes and unknown staging columns are protected. Evaluation may
+append separate derived records under D18; the journal preservation assertion does
+not prohibit those new records.
+
+The focused expected RED is the missing actual library **Evaluate** action in
+both pending and applied views. Selection/read evidence must not claim a conclusion
+without an expectation. This presence test alone cannot establish evaluator GREEN:
+before runtime implementation, refine the expectation/evaluation surface and wire
+under approved D18 and add positive, awaiting, failed/cancelled/incomplete, stale,
+restricted and corrupt-evidence cases, plus immutable derived-result checks.
+How-To/Diagnostic/Compare and versioned guides remain required.
+
+Calibration history is retained separately from behavioral RED:
+
+- First run:110PASS/1harness failure at Add. The probe reused a reference while
+  expecting a new row; the owning staging service merges matching receipt
+  combinations. Distinct references and actual Refresh readiness calibrate the
+  fixture without changing that service or generating replacement identities.
+- Calibrated run:130PASS/3FAIL. Both missing Evaluate checks fail after successful
+  real submissions/application. The third assertion combines byte preservation
+  with Saved=True and requires further separation; it is not proof of a data write.
+- Capture-enabled run:19PASS/1harness failure in an existing Viewer foreground
+  screenshot guard, before the new scenario. No new visible acceptance is claimed.
+- Expanded preservation run:134PASS/3FAIL. Both Evaluate REDs remain; every staged
+  diagnostic preserves the unrelated file bytes, one-sheet/one-cell shape and
+  sentinel. Saved is False by the first-submission checkpoint; this probe does not
+  separate its two Add actions from Confirm. Historical GREEN
+  Receiving cases already record the same flag transition while asserting bytes.
+  The corrected check protects file/content and leaves Saved diagnostic; it never
+  forces the workbook clean. A standalone calculation-mode control was rejected
+  by automatic approval review with only "blocked by policy"; that causal
+  hypothesis remains unverified and supplies no justification for runtime changes.
+- The first corrected rerun stops120PASS/1harness failure at Admin publication with
+  RPC unavailable. A remaining Excel instance is reliably bound by window/process
+  identity and has zero workbooks plus Core/Admin/Operations add-in projects.
+  Normal Quit preserves all three loaded add-in files, then the exact process
+  terminates. No force termination or recovery-file deletion occurs. This failure
+  is neither evaluator RED nor a clean final gate, and remains a native-reliability
+  limitation even if a subsequent unchanged-candidate run succeeds.
+
+Command: `powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-recording-isolation -Phase RED -CheckRecordingOperations`.
+The final clean rerun reports **135PASS/2FAIL**, exit1 as expected for RED, with
+normal Excel closure. Only `RecordingOperations.Pending.EvaluateActionAvailable`
+and `RecordingOperations.Applied.EvaluateActionAvailable` fail. Every108 foundation
+identity and all130 earlier passing identities remain GREEN. Both repeated-reference
+display checks and all file/content preservation checks pass. The earlier native
+failure is not resolved by this successful fixture run. Three changed scripts parse.
+
+Runtime remains `99a69aa`; no package, architecture or runtime source changes are
+made. The generated driver changes are not saved to XLAMs. No new build, static
+baseline, full-chain or human acceptance is claimed for this test checkpoint.
+
+Ignored evidence under `reports/runtime/`: `recording-operations-first.log`,
+`recording-operations-calibrated.log`, `recording-operations-preservation.log`,
+`recording-operations-preservation-retry.log`, `recording-operations-final-red.log`,
+the per-run `recording-operations-other-state.json`,
+`recording-operations-residual-quit.json` and
+`recording-operations-residual-terminal.json`, `recording-operations-final-red-retry.log`
+and `recording-operations-final-checks.json`.
+
 ### Earlier foundation artifacts
 
 - `reports/runtime/action-recording-red.log`
