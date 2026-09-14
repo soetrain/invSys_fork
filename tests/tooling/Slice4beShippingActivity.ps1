@@ -492,6 +492,7 @@ End Function
         $keyRows=@($terminal|Where-Object {$_.System_Key -ceq $lastKey})
         $balance=($keyRows|Measure-Object -Property QtyDelta -Sum).Sum
         Check 'Shipping.Domain.BoxQuantityReconciled' ($balance -eq 8 -and @($keyRows|Where-Object {$_.EventType -ceq 'BOX_BUILD' -and [double]$_.QtyDelta -eq 10}).Count -eq 1)
+        if($CheckBoxingActivity){Test-Slice4beBoxingActivity $fixture $operator $other $ship $hold}
         Check 'Shipping.BoundaryObservers.CalibratedByNormalActions' ([long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Owner')) -gt 0 -and [long](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBoundaryCount' @('Queue')) -gt 0)
         . (Join-Path $PSScriptRoot 'Slice4beShippingTrackingFailure.ps1')
         Test-Slice4beShippingTrackingFailure $fixture $operator $other $ship $hold

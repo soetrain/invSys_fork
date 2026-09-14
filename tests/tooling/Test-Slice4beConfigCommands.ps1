@@ -38,6 +38,7 @@ param(
     [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
     [switch]$CheckShippingRecording,
+    [switch]$CheckBoxingActivity,
     [switch]$TraceBootstrapForTest,
     [switch]$TraceSettingsOpenForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -64,6 +65,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($CheckBoxingActivity){$CheckShippingRecording=$true}
 if($CheckEvaluationVisualEvidence){$CheckExpectationCompatibility=$true}
 if($RecordingEvaluationDiagnostic){
     if($Phase -ne 'RED' -or -not $CheckExpectationCompatibility){throw 'Evaluation isolation requires RED and the full evaluation contract probes; it is not regression acceptance.'}
@@ -568,6 +570,10 @@ End Function
             Install-Slice4beEvaluationNativeTrace
         }
         if($CheckShippingRecording){Test-Slice4beShippingActivity $true}
+        if($CheckBoxingActivity){
+            . (Join-Path $PSScriptRoot 'Slice4beBoxingActivity.ps1')
+            Install-Slice4beBoxingActivityProbe
+        }
         if($CompileEvaluationProbesForTest -or $CheckShippingRecording){
             . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
             Compile-Slice4beEvaluationProbes
@@ -845,6 +851,7 @@ finally {
     }
     $reportName=$Phase.ToLowerInvariant()+'.json'
     if($CheckShippingRecording){$reportName='shipping-recording-'+$reportName}
+    if($CheckBoxingActivity){$reportName='boxing-activity-'+$reportName}
     if($ViewerPublicationOnly){$reportName='diagnostic-publication-'+$reportName}
     if ($ShippingSubmissionOnly) { $reportName='diagnostic-submission-'+$reportName }
     if ($TraceBootstrapForTest) { $reportName='diagnostic-bootstrap-'+$reportName }
