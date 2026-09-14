@@ -37,6 +37,7 @@ param(
     [switch]$CheckViewerPublication,
     [switch]$ViewerPublicationOnly,
     [switch]$CheckShippingActivity,
+    [switch]$CheckShippingRecording,
     [switch]$TraceBootstrapForTest,
     [switch]$TraceSettingsOpenForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -128,6 +129,7 @@ if ($CheckActivityEvidence) {
 }
 if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundation checks require activity evidence mode.' }
 if ($CheckShippingActivity -and (-not $CheckActivityFoundation -or $CheckReceivingActivity)) { throw 'Shipping activity requires the foundation and a separate run from Receiving.' }
+if ($CheckShippingRecording -and (-not $CheckShippingActivity -or $ShippingSubmissionOnly)) { throw 'Shipping recording requires the complete Shipping activity route.' }
 if ($ShippingSubmissionOnly -and -not $CheckShippingActivity) { throw 'Shipping submission-only discovery requires Shipping activity mode.' }
 if ($TraceBootstrapForTest -and -not $CheckShippingActivity -and -not $RecordingEvaluationDiagnostic) {
     throw 'Bootstrap tracing requires the isolated Shipping or evaluation diagnostic route.'
@@ -545,10 +547,11 @@ End Function
     $script:RecordingProbeInstalled=$false
     $script:RecordingReaderProbeInstalled=$false
     $script:RecordingOperationsProbeInstalled=$false
-    if($CheckViewerPublishedRead){
+    $script:ShippingActivityProbeInstalled=$false
+    if($CheckViewerPublishedRead -or $CheckShippingRecording){
         . (Join-Path $PSScriptRoot 'Slice4beViewerPublishedRead.ps1')
         Test-Slice4beViewerPublishedRead $null $null $true
-        if($CheckActionRecording){
+        if($CheckActionRecording -or $CheckShippingRecording){
             . (Join-Path $PSScriptRoot 'Slice4beActionRecording.ps1')
             Test-Slice4beActionRecording $null $true
             if($CheckRecordingReader){
@@ -564,7 +567,8 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
             Install-Slice4beEvaluationNativeTrace
         }
-        if($CompileEvaluationProbesForTest){
+        if($CheckShippingRecording){Test-Slice4beShippingActivity $true}
+        if($CompileEvaluationProbesForTest -or $CheckShippingRecording){
             . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
             Compile-Slice4beEvaluationProbes
         }
@@ -840,6 +844,7 @@ finally {
         Remove-Item -LiteralPath $resolved -Recurse -Force
     }
     $reportName=$Phase.ToLowerInvariant()+'.json'
+    if($CheckShippingRecording){$reportName='shipping-recording-'+$reportName}
     if($ViewerPublicationOnly){$reportName='diagnostic-publication-'+$reportName}
     if ($ShippingSubmissionOnly) { $reportName='diagnostic-submission-'+$reportName }
     if ($TraceBootstrapForTest) { $reportName='diagnostic-bootstrap-'+$reportName }

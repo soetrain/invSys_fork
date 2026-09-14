@@ -71,7 +71,7 @@ function Test-ShippingActivityPair($Fixture,$Before,[string]$Caption,[string]$La
     foreach($raw in $raws){foreach($value in @($Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'SHIPPING-PRIVATE-REFERENCE','SHIPPING-PRIVATE-CARRIER','PinHash','Err.Description','mBtnAdd_Click')){if($raw.IndexOf($value,[StringComparison]::OrdinalIgnoreCase) -ge 0){$safe=$false}}}
     Check ($Label+'.Activity.InputValuesExcluded') $safe
 }
-function Test-Slice4beShippingActivity {
+function Test-Slice4beShippingActivity([bool]$InstallOnly=$false) {
     . (Join-Path $PSScriptRoot 'Slice4beShippingContext.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beShippingInterruptions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beShippingWorkbookClose.ps1')
@@ -80,9 +80,11 @@ function Test-Slice4beShippingActivity {
     . (Join-Path $PSScriptRoot 'Slice4beShippingSubmission.ps1')
     $templateRoot=Join-Path $repo 'deploy/current/templates'
     $initialOperatorRoot=Join-Path $runRoot 'operators'
-    $rootsBeforeInstrumentation=[string](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.TestFixtureBootstrapRoots' @($templateRoot,$initialOperatorRoot))
     $project=$packages['invSys.Operations.xlam'].VBProject
     $form=$project.VBComponents.Item('frmShipmentsTally').CodeModule
+    $module=$project.VBComponents.Item('modTS_Shipments').CodeModule
+    if(-not $script:ShippingActivityProbeInstalled){
+    $script:ShippingRootsBeforeInstrumentation=[string](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.TestFixtureBootstrapRoots' @($templateRoot,$initialOperatorRoot))
     # Intercept only existing report presentation, retaining the real handlers.
     $source=$form.Lines(1,$form.CountOfLines)
     $source=$source.Replace('MsgBox report,','ActivityShippingNotice report,')
@@ -364,6 +366,10 @@ Public Function ActivityShippingLifetimeState() As String
 End Function
 '@)
     Install-Slice4beShippingAccessInterruptionProbe $form $module
+    $script:ShippingActivityProbeInstalled=$true
+    }
+    if($InstallOnly){return}
+    $rootsBeforeInstrumentation=$script:ShippingRootsBeforeInstrumentation
     if($ShippingSubmissionOnly){Test-Slice4beShippingSubmission $module;return}
     $rootsAfterInstrumentation=[string](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.TestFixtureBootstrapRoots' @($templateRoot,$initialOperatorRoot))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @($templateRoot))
@@ -384,6 +390,11 @@ End Function
     SelectTarget $fixture
     $seed=[string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($fixture.Warehouse,'S1','config-admin'))
     if(-not $seed.StartsWith('OK|')){throw 'Shipping generated fixture seed failed.'}
+    if($CheckShippingRecording){
+        . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
+        . (Join-Path $PSScriptRoot 'Slice4beShippingRecording.ps1')
+        SetRecordingPolicy $true
+    }
     SelectTarget $fixture 'config-reader'
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'shipping-operators')))
@@ -423,6 +434,13 @@ End Function
         $sourceCounts=New-Object 'System.Collections.Generic.List[object]'
         $captions=@{Add='Add';AddAgain='Add';Update='Update Row';Remove='Remove';Hold='Send Hold';Return='Return';Stage='To Shipments';Send='Shipments Sent'}
         $outcomes=@{Add='PENDING';AddAgain='PENDING';Update='STAGED';Remove='PENDING';Hold='STAGED';Return='STAGED';Stage='STAGED';Send='CONFIRMED'}
+        if($CheckShippingRecording){
+            OpenRecordingViewer
+            $delivered=(RecordingControl 'Start Recording' 'Click') -ceq 'DELIVERED'
+            Check 'ShippingRecording.ActualStartControl' $delivered
+            if(-not $delivered){throw 'Shipping recording Start control was not delivered.'}
+            $shippingRecording=@{Sequence='';Ordinal=0;Records=@();Sources=@();Activities=@();Pins=ActivityPins}
+        }
         foreach($action in @('Add','Update','Hold','Return','Remove','AddAgain','Stage','Send')) {
             $label='Shipping.'+$action
             $key=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingPrepare' @($action))
@@ -463,7 +481,9 @@ End Function
             Check ($label+'.SourceEvidenceHasExactWarehouseAndKey') (@($newLog|Where-Object {$_.WarehouseId -cne $fixture.Warehouse -or $_.System_Key -cne $key -or [string]::IsNullOrWhiteSpace($_.EventID)}).Count -eq 0)
             $controlId=if($action -eq 'AddAgain'){'SHIPPING_ADD'}else{'SHIPPING_'+$action.ToUpperInvariant()}
             Test-ShippingActivityPair $fixture $before $captions[$action] $label $submittedIds $controlId $outcomes[$action]
+            if($CheckShippingRecording){Test-ShippingRecordingAction $fixture $before $action $controlId $submittedIds $shippingRecording}
         }
+        if($CheckShippingRecording){Test-ShippingRecordingClose $fixture $shippingRecording;CloseRecordingViewer}
         Check 'Shipping.SourceObserver.PendingAcknowledgmentsIncluded' (@($sourceCounts|Where-Object {$_.Action -eq 'Add' -and $_.Submitted -eq 1 -and $_.OwnPending -eq 1}).Count -eq 1)
         $sourceCounts|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $reportRoot 'shipping-source-counts.json')
         $terminal=@(Get-ShippingActivityLog $fixture)
@@ -541,6 +561,7 @@ End Function
         $operator=$null # The actual close event was exercised and verified above.
         Check 'Shipping.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))
     } finally {
+        if($CheckShippingRecording){CloseRecordingViewer}
         if($null -ne $dialogJob){
             [IO.File]::WriteAllText($dialogStop,'stop')
             [void](Wait-Job $dialogJob -Timeout 5)
