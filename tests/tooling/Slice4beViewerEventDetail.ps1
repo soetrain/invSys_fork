@@ -40,6 +40,8 @@ End Function
     $book = $excel.Workbooks.Open($snapshot,0,$false)
     if(-not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PrepareDetailProjectionForTest' @($book.Name))) { throw 'Typed published fixture preparation failed.' }
     $book.Save(); $book.Close($false)
+    . (Join-Path $PSScriptRoot 'Slice4bePublishedProjectionFixture.ps1')
+    Publish-Slice4beProjectionFixture $Fixture $snapshot
     $pins = @{}
     foreach($file in Get-ChildItem -LiteralPath $Fixture.Root -Filter '*.xlsb') { $pins[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash }
     $form = $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmInventoryViewer').CodeModule

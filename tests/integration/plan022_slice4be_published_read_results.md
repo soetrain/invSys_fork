@@ -1,10 +1,67 @@
-# Slice 4be.3 authenticated published Events read: RED
+# Slice 4be.3 authenticated published Events read: candidate
 
 Last verified 2026-09-13. Architecture v4.11 D18 governs this test-first entry.
 The existing contract requires Core-owned authenticated, policy-aware projection
 reads, published-only Viewer actions, explicit unavailable/stale handling, exact
 identities and captured-context invalidation. This test changes no runtime,
 package, control or architectural rule. Release 1 and Slice 4be remain open.
+
+## Current implementation checkpoint
+
+The isolated `validation-events-reader-compiled` candidate now passes **23/23**
+focused checks, preserving all23 RED identities. All five packages compile and
+Operations resolves its cold-start dependencies inside this candidate. Refresh
+**16/16** and Event Detail **34/34** remain GREEN, including native detail sizing,
+repeated exact keys, unlike units, profile changes and captured-context guards.
+These gates do not establish full Events, paging, shipping-state presentation,
+recording, Action Path or Release 1 acceptance. Runtime changes remain uncommitted
+until the required broader gates and maintenance review are complete.
+
+Core `modPublishedEventsReader` reads only the captured warehouse's validated
+Events artifact and current policy. It filters activity groups using the saved
+catalog/control visibility and Admin visibility gate, retaining every allowed
+line. The existing Core public read delegates to it. D18's `EVENTS1` primitive
+wire carries separate publication/load timestamps, coverage and named detail
+values after the eighteen compatibility slots. Operations parses those values;
+its Viewer reader no longer invokes Shipping supplement authority. Supported
+legacy serialized payloads remain readable without that fallback.
+
+The first isolated build failed Core compilation because a local variable
+shadowed the family helper. The corrected candidate compiles all five packages;
+this failure is not counted as behavioral RED. No accepted deployment is rebuilt.
+
+Historical Detail/Groups fixtures populate a disposable published XLSB. For a
+candidate containing the new reader, `Slice4bePublishedProjectionFixture.ps1`
+feeds those same lines, through a read-only workbook, to the real Core publisher.
+It validates the resulting artifact and verifies the source bytes remain exact.
+Older package baselines retain their old fixture path. The runtime reader is
+never replaced; the fixture change preserves existing assertions and supplies
+the now-required published format. The current-state legacy payload cases in
+the Detail suite still test supported serialized compatibility.
+
+Candidate evidence under `reports/runtime/`:
+
+- `events-reader-initial-build.log`, `events-reader-initial-compile.log`: initial
+  compile failure, excluded from acceptance.
+- `events-reader-compiled-build.log`, `events-reader-compiled-compile.log`,
+  `events-reader-compiled-sources.json`: fresh package/compile evidence.
+- `events-reader-focused-green.log`, `events-reader-focused-green.json`:23/23.
+- `events-reader-refresh.log`, `events-reader-detail.log`:16/16 and34/34.
+- `events-reader-package-pins.json`: five frozen candidate file hashes.
+- `events-reader-groups-red.log`, `events-reader-groups-red.json` and
+  `events-reader-group-comparison.json`:8PASS/8FAIL; all16 identities and all seven
+  previous GREEN results retained, no duplicate checks. The read boundary now
+  passes. Paging, page counts/navigation and unlike-unit summaries still fail.
+- `events-reader-static.log`:207 components/5709 procedures/127173 lines;
+ 9 literal/45 unresolved calls,189 duplicate groups and28 size ratchets unchanged.
+ The reader adds138 net lines against the preceding candidate. Four additional
+ maintenance candidates require review; obsolete helpers are not accepted debt.
+
+Maintenance review must remove or justify the retired XLSB-reader helpers after
+reviewing their remaining source-test references. Shipping current-state labels
+and complete field presentation still need comparison with the accepted package;
+the23-check activity test does not protect those behaviors. Group/paging proving,
+full role/chain gates and visible capture remain outstanding.
 
 ## Protecting packaged test
 
