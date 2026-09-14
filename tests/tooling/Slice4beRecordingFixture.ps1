@@ -72,7 +72,19 @@ function JournalFact([string]$Sequence,[string]$Type,[int]$Count,[string]$Lifecy
     $entries=@(RecordingJournal $Sequence|Where-Object {$_.RecordType -ceq $Type}|Sort-Object Version)
     if(-not $entries.Count){return $false}
     $record=$entries[-1]
-    return ($record.SchemaVersion -eq 1 -and $record.RecordKind -ceq 'Recording' -and
+    # D18 retains schema-1 reads while requiring new schema-2 writes separately.
+    # Keep these lifecycle/identity facts applicable to both supported envelopes.
+    $supportedSchema=$record.SchemaVersion -eq 1
+    if($record.SchemaVersion -eq 2 -and $null -ne $record.PSObject.Properties['ExpectedConclusion']){
+        $definition=$record.ExpectedConclusion
+        $supportedSchema=$definition.SchemaVersion -eq 1 -and
+            $definition.TerminalKind -cin @('None','CommandCompleted','SourceEventsApplied')
+        if($Type -cne 'Close' -or $definition.TerminalKind -ceq 'None'){
+            $supportedSchema=$supportedSchema -and $definition.TerminalKind -ceq 'None' -and
+                $definition.TerminalStepId -ceq '' -and @($definition.Steps).Count -eq 0
+        }
+    }
+    return ($supportedSchema -and $record.RecordKind -ceq 'Recording' -and
         $record.Lifecycle -ceq $Lifecycle -and $record.ActionCount -eq $Count -and
         $record.WarehouseId -ceq $Fixture.Warehouse -and $record.CreatedByUserId -ceq 'config-admin' -and
         $record.ActionPathId -cne $record.SequenceId -and $record.RecordId -cne $record.ActionPathId)

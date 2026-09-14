@@ -931,6 +931,41 @@ Ignored evidence: `expectation-compatibility-red.log`,
 `reports/runtime/`. Next implement the already-RED captured expectation/editor
 contract without reducing the remaining evaluation or Release 1 scope.
 
+## New-writer entry and source-harness dependency correction
+
+Before changing the writer, the same packaged gate now checks the original
+owner-written journal before compatibility variants: every entry must use schema
+2, Start/Observation must carry the None definition, and an ordinary Stop without
+editor input must close with None. These checks prevent reader compatibility from
+being mistaken for the approved new-writer behavior. `JournalFact` now accepts
+both supported envelopes for its existing lifecycle/identity assertions, checks
+schema-2 expectation shape, and preserves schema-1 compatibility coverage in the
+dedicated reader cases. The new writer assertion specifically requires schema 2;
+it does not permit either version as final new-writer behavior.
+
+Review also corrects 16 source-import harness lists: each importing
+`modRecordingModel` now includes its `modExpectationModel` dependency. The packaged
+candidate already contains that module and remains unchanged. All 16 scripts
+parse, each diff adds exactly the one dependency path, and that source exists.
+This is declarative harness maintenance, not a runtime contract change or a
+product RED. The previous source-based Create Warehouse result exercised creation;
+it did not establish compile coverage for every imported recording procedure.
+
+The unchanged `deploy/validation-expectation-schema` candidate completes
+`-Phase RED -CheckExpectationCompatibility` at **175 PASS / 62 FAIL**, with all
+175 prior passing identities retained, no harness exception, and normal Excel
+closure. The three added failures are exactly
+`ExpectationCapture.NewJournalUsesSchema2`,
+`ExpectationCapture.NonClosingEntriesHaveNoExpectation`, and
+`ExpectationCapture.DefaultCloseHasNoExpectation`. All 265 package pins, 15
+protected sources and the reviewed Shipping visibility-only delta remain intact.
+All 18 changed PowerShell scripts parse and all 83 local document links resolve.
+Ignored evidence is `reports/runtime/expectation-writer-red.log` and
+`reports/runtime/expectation-writer-retention.json`. No further runtime, build,
+compile, static or full-chain result is claimed for this test/tooling checkpoint.
+Next implement the captured editor, exact-sequence staging and schema-2 writer
+against these recorded RED cases and the existing editor-binding cases.
+
 ### Earlier foundation artifacts
 
 - `reports/runtime/action-recording-red.log`

@@ -3,6 +3,25 @@
 function Test-ExpectationCompatibility {
     $entries=@(RecordingJournal $sequence|Sort-Object Version)
     if($entries.Count -ne 20){throw 'Actual Operations compatibility fixture is incomplete.'}
+    # Inspect the original owner-written journal before any compatibility variant.
+    # Reader support for schema 2 alone does not satisfy the approved writer.
+    Check 'ExpectationCapture.NewJournalUsesSchema2' (@($entries|Where-Object SchemaVersion -NE 2).Count -eq 0)
+    $nonClosingNone=$true
+    foreach($entry in @($entries|Where-Object RecordType -CNE 'Close')){
+        if($null -eq $entry.PSObject.Properties['ExpectedConclusion']){$nonClosingNone=$false;continue}
+        $definition=$entry.ExpectedConclusion
+        if($definition.SchemaVersion -ne 1 -or $definition.TerminalKind -cne 'None' -or
+            $definition.TerminalStepId -cne '' -or @($definition.Steps).Count -ne 0){$nonClosingNone=$false}
+    }
+    Check 'ExpectationCapture.NonClosingEntriesHaveNoExpectation' $nonClosingNone
+    $defaultClose=$entries[-1]
+    $defaultNone=$false
+    if($null -ne $defaultClose.PSObject.Properties['ExpectedConclusion']){
+        $definition=$defaultClose.ExpectedConclusion
+        $defaultNone=$defaultClose.RecordType -ceq 'Close' -and $definition.SchemaVersion -eq 1 -and
+            $definition.TerminalKind -ceq 'None' -and $definition.TerminalStepId -ceq '' -and @($definition.Steps).Count -eq 0
+    }
+    Check 'ExpectationCapture.DefaultCloseHasNoExpectation' $defaultNone
     $bytes=@{}
     foreach($entry in $entries){$file=Join-Path $journalRoot ($pathId+'.'+$entry.Version+'.json');$bytes[$file]=[IO.File]::ReadAllBytes($file)}
     $identity=[string]$entries[1].Observations[0].ActivityId
