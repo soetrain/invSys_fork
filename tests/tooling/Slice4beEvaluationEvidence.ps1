@@ -77,6 +77,12 @@ function Test-EvaluationEvidence([string]$Stage,$File) {
     Check ($prefix+'LoadedPublicationIdentityHashAndCoverage') $publication
     Check ($prefix+'OrderedDistinctMatchesAndExtras') $matches
     Check ($prefix+'EveryTerminalSourceRetainsExactAppliedEvidence') $sources
+    $display=ExpectationControl 'txtPathEvaluation' 'Value' '' 'frmActionPaths'
+    $evaluationTime=$false;$loadedTime=$false
+    if($provenance){$evaluationTime=$display.Contains('Evaluated at: '+$record.EvaluatedAtUTC.Substring(0,19).Replace('T',' ')+' UTC')}
+    if($publication){$loadedTime=$display.Contains('Publication loaded at: '+$record.Publication.LoadedAtUTC.Substring(0,19).Replace('T',' ')+' UTC')}
+    Check ($prefix+'EvaluationTimeUsesVerifiedUtcDisplay') $evaluationTime
+    Check ($prefix+'LoadedTimeUsesVerifiedUtcDisplay') $loadedTime
     $rejected=$false;$restored=$false
     if($null -ne $File -and $integrity){
         $originalBytes=[IO.File]::ReadAllBytes($File.FullName)

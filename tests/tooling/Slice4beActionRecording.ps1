@@ -1,13 +1,14 @@
 # D18 recording lifecycle through actual Viewer controls and Admin Save Value.
 # The probes are installed in disposable, unsaved package projects. Missing
 # product controls return an explicit observation; missing test seams throw.
-function Test-Slice4beActionRecording($Fixture) {
+function Test-Slice4beActionRecording($Fixture,[bool]$InstallOnly=$false) {
     if($CheckExpectationEditor){
-        [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')
+        if(-not $InstallOnly){[void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')}
         . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
-        Install-RecordingEvaluationProbe
+        if(-not $script:RecordingProbeInstalled){Install-RecordingEvaluationProbe}
         . (Join-Path $PSScriptRoot 'Slice4beExpectationCompatibility.ps1')
     }
+    if(-not $script:RecordingProbeInstalled){
     $form=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmInventoryViewer').CodeModule
     $form.AddFromString(@'
 Public Function RecordingControlForTest(ByVal caption As String, ByVal operation As String) As String
@@ -93,6 +94,9 @@ Public Function RecordingCapturePolicyForTest(ByVal enabled As Boolean) As Boole
     RecordingCapturePolicyForTest = mForm.RecordingCapturePolicyForTest(enabled)
 End Function
 '@)
+    $script:RecordingProbeInstalled=$true
+    }
+    if($InstallOnly){return}
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     if($RecordingEvaluationDiagnostic){
         . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')

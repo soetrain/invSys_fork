@@ -16,18 +16,27 @@ Public Sub StaleLoaded(ByVal context As String)
     modLoadedEvents.MarkStale context
 End Sub
 
+Public Function SelectedBinding(ByVal context As String, ByVal pathId As String) As String
+    If context = "" Or context <> modActivity.CaptureContext() Then Exit Function
+    SelectedBinding = modPathExpectation.SelectionBinding(context, pathId)
+End Function
+
 Public Function Evaluate(ByVal context As String, ByVal pathId As String, ByVal previousId As String, _
                          ByRef evaluationId As String, ByRef text As String, ByRef notice As String) As Boolean
     Dim target As WarehouseTarget, policy As Object, header As Object, definition As Object, source As String
     Dim currentHeader As Object, records As Collection, result As Object, historical As Object, visible As Object
     Dim publication As Object, provenance As Object, terminal As Object, previous As Object, step As Object
     Dim version As Long, collect As Boolean, show As Boolean, available As Boolean, ignored As String
+    Dim binding As String
     On Error GoTo Failed
     evaluationId = "": text = "": notice = "Incomplete evidence: evaluation is unavailable."
     If mBusy Then Exit Function
     mBusy = True
+    binding = modPathExpectation.EvaluationBinding(context, pathId)
+    If binding = "" Then GoTo Done
     If Not ReadContext(context, target, policy, notice, version) Then GoTo Done
     If Not modPathExpectation.ReadSelected(context, pathId, header, definition, source, notice) Then GoTo Done
+    If binding <> modPathExpectation.EvaluationBinding(context, pathId) Then GoTo Failed
     Set result = modEvaluationModel.Create(header, definition, source, version)
     available = modLoadedEvents.Read(context, publication, provenance): result.Add "Publication", provenance
     Set records = modRecordingReader.ReadRun(target, pathId, CLng(header("Version")), currentHeader, ignored)
@@ -52,6 +61,7 @@ Public Function Evaluate(ByVal context As String, ByVal pathId As String, ByVal 
         End If
     End If
     If context <> modActivity.CaptureContext() Then GoTo Failed
+    If binding <> modPathExpectation.EvaluationBinding(context, pathId) Then GoTo Failed
     If Not modEvaluationStore.Append(target, result, notice) Then GoTo Done
     evaluationId = CStr(result("EvaluationId"))
     Evaluate = ReadSaved(context, pathId, evaluationId, text, notice)
@@ -94,8 +104,11 @@ Public Function ReadSaved(ByVal context As String, ByVal pathId As String, ByVal
                           ByRef text As String, ByRef notice As String) As Boolean
     Dim target As WarehouseTarget, policy As Object, result As Object, header As Object, records As Collection
     Dim visible As Object, record As Object, step As Object, displayed As Object, id As Variant
+    Dim binding As String
     On Error GoTo Invalid
     text = "": notice = "Incomplete evidence: the saved diagnostic result is unavailable."
+    binding = modPathExpectation.SelectionBinding(context, pathId)
+    If binding = "" Then Exit Function
     If Not ReadContext(context, target, policy, notice) Then Exit Function
     notice = "Incomplete evidence: the saved diagnostic result is unavailable."
     Set result = modEvaluationStore.Read(target, evaluationId)
@@ -104,6 +117,7 @@ Public Function ReadSaved(ByVal context As String, ByVal pathId As String, ByVal
     Set records = modRecordingReader.ReadRun(target, pathId, CLng(result("JournalVersion")), header, notice)
     notice = "Incomplete evidence: the saved diagnostic result cannot be verified."
     If records Is Nothing Then Exit Function
+    If Not modPathExpectation.MatchesHeader(context, pathId, header) Then Exit Function
     If Not modEvaluationJournal.Matches(result, header, records) Then Exit Function
     Set visible = modEvaluationMatches.PolicyControls(policy, False)
     Set displayed = CreateObject("Scripting.Dictionary")
@@ -118,6 +132,7 @@ Public Function ReadSaved(ByVal context As String, ByVal pathId As String, ByVal
         If Not modEvaluationMatches.Permitted(visible, CStr(step("ControlId"))) Then Exit Function
     Next step
     If context <> modActivity.CaptureContext() Then Exit Function
+    If binding <> modPathExpectation.SelectionBinding(context, pathId) Then Exit Function
     text = modEvaluationPresentation.Render(result)
     notice = modEvaluationPresentation.Caption(result)
     ReadSaved = True

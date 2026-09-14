@@ -1,13 +1,18 @@
 # D18: one real Admin/Operations recording, repeated multi-event submissions,
 # and deferred owning application. No fabricated activity or source identities.
-function Test-Slice4beRecordingOperations {
-    CloseRecordingViewer
+function Test-Slice4beRecordingOperations([bool]$InstallOnly=$false) {
+    if(-not $InstallOnly){CloseRecordingViewer}
     if($CheckRecordingEvaluation){
         . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
-        Install-RecordingEvaluationProbe
-        if($CheckEvaluationContracts){. (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')}
+        if(-not $script:RecordingOperationsProbeInstalled){Install-RecordingEvaluationProbe}
+        if($CheckEvaluationContracts){
+            . (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')
+            . (Join-Path $PSScriptRoot 'Slice4beEvaluationBinding.ps1')
+            if(-not $script:RecordingOperationsProbeInstalled){Install-EvaluationBindingProbe}
+        }
         if($CheckExpectationCompatibility){. (Join-Path $PSScriptRoot 'Slice4beExpectationCompatibility.ps1')}
     }
+    if(-not $script:RecordingOperationsProbeInstalled){
     $operations=$packages['invSys.Operations.xlam'].VBProject
     $control=$operations.VBComponents.Add(2);$control.Name='TestRecordingRibbonControl'
     $control.CodeModule.AddFromString(@'
@@ -121,7 +126,10 @@ Public Function RecordingPublishForTest(ByVal adminWorkbookName As String) As Bo
     RecordingPublishForTest = GenerateInventorySnapshot("config-admin", "", Nothing, "", Application.Workbooks(adminWorkbookName), report)
 End Function
 '@)
-    # All project edits precede authentication/forms; no probe edit resets a run.
+    $script:RecordingOperationsProbeInstalled=$true
+    }
+    if($InstallOnly){return}
+    # All project edits precede fixture creation; repeated calls only exercise actions.
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     $Fixture=NewFixture 'recording-operations'
@@ -257,6 +265,7 @@ End Function
         if($CheckEvaluationContracts){
             if($CheckExpectationCompatibility){Test-ExpectationCompatibility}
             Test-EvaluationContracts
+            Test-EvaluationBinding
             if($CheckExpectationCompatibility){Test-ExpectationEditorBinding}
             ObserveRecordingOther 'EvaluationContracts'
         }

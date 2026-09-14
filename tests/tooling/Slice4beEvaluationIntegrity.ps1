@@ -1,7 +1,7 @@
 # Mutate only the disposable saved result; invoke the actual library Refresh for
 # every read. Recompute integrity so schema/journal validation is independently tested.
 function Test-EvaluationIntegrity($File) {
-    $cases=@('UnknownField','StringVersion','WrongWarehouse','JournalHash','ReversedMatches','ForgedOrdinal','TerminalIdentity','DuplicateReason','Oversize')
+    $cases=@('UnknownField','StringVersion','WrongWarehouse','JournalHash','ReversedMatches','ForgedOrdinal','TerminalIdentity','DuplicateReason','Oversize','IncompleteTerminalRefsOmitted')
     foreach($case in $cases){
         $rejected=$false;$restored=$false
         if($null -ne $File){
@@ -19,6 +19,7 @@ function Test-EvaluationIntegrity($File) {
                     'ForgedOrdinal' {$model.Matches[0].Ordinal=2}
                     'TerminalIdentity' {$model.TerminalSources[0].EventId='unobserved-fixture-event'}
                     'DuplicateReason' {$model.ReasonCodes=@($model.ReasonCodes[0],$model.ReasonCodes[0])}
+                    'IncompleteTerminalRefsOmitted' {$model.ResultState='Incomplete';$model.ReasonCodes=@('SOURCE_UNAVAILABLE');$model.TerminalSources=@()}
                 }
                 $body=$model|ConvertTo-Json -Depth 24 -Compress
                 if($case -eq 'Oversize'){$body=$body.Substring(0,$body.Length-1)+(' '*1048576)+'}'}

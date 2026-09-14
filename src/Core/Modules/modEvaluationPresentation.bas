@@ -25,9 +25,9 @@ Public Function Render(ByVal result As Object) As String
     For Each id In result("FailedSteps"): states.Add CStr(id), "Outcome mismatch": Next id
     For Each id In result("UnavailableSteps"): states.Add CStr(id), "Evidence unavailable": Next id
     text = Caption(result) & vbCrLf & "Saved diagnostic result: " & CStr(result("EvaluationId")) & vbCrLf & _
-        CStr(result("ExpectationSource")) & vbCrLf & "Evaluated at: " & CStr(result("EvaluatedAtUTC")) & vbCrLf & _
+        CStr(result("ExpectationSource")) & vbCrLf & "Evaluated at: " & DisplayUtc(CStr(result("EvaluatedAtUTC"))) & vbCrLf & _
         "Publication: " & CStr(result("Publication")("Availability")) & vbCrLf
-    If result("Publication")("LoadedAtUTC") <> "" Then text = text & "Publication loaded at: " & CStr(result("Publication")("LoadedAtUTC")) & vbCrLf
+    If result("Publication")("LoadedAtUTC") <> "" Then text = text & "Publication loaded at: " & DisplayUtc(CStr(result("Publication")("LoadedAtUTC"))) & vbCrLf
     For Each step In result("ExpectedConclusion")("Steps")
         index = index + 1
         Set control = modActivityCatalog.Control(CStr(step("ControlId")), CLng(result("CatalogVersion")))
@@ -39,4 +39,9 @@ Public Function Render(ByVal result As Object) As String
         text = text & "Source event: " & CStr(entry("EventId")) & " - " & CStr(entry("OwnerStatus")) & vbCrLf
     Next entry
     Render = text
+End Function
+
+Private Function DisplayUtc(ByVal value As String) As String
+    DisplayUtc = "Unavailable"
+    If modTrainingWire.ValidUtcTimestamp(value) Then DisplayUtc = Replace$(Left$(value, 19), "T", " ") & " UTC"
 End Function

@@ -10,6 +10,28 @@ Private mBinding As String
 Private mDefinition As Object
 Private mSource As String
 Private mHeader As Object
+Private mSelectionRevision As Double
+Private mIntentRevision As Double
+
+' Session-local continuity tokens; never persisted or treated as business identity.
+Public Function SelectionBinding(ByVal context As String, ByVal pathId As String) As String
+    If context = "" Or context <> mContext Or pathId = "" Or pathId <> mPathId Then Exit Function
+    If mHeader Is Nothing Then Exit Function
+    SelectionBinding = mBinding & ":" & CStr(mSelectionRevision)
+End Function
+
+Public Function EvaluationBinding(ByVal context As String, ByVal pathId As String) As String
+    Dim selection As String
+    selection = SelectionBinding(context, pathId)
+    If selection <> "" Then EvaluationBinding = selection & ":" & CStr(mIntentRevision)
+End Function
+
+Public Function MatchesHeader(ByVal context As String, ByVal pathId As String, ByVal header As Object) As Boolean
+    If SelectionBinding(context, pathId) = "" Or header Is Nothing Then Exit Function
+    MatchesHeader = (CStr(header("RecordId")) = CStr(mHeader("RecordId")) And _
+        CLng(header("Version")) = CLng(mHeader("Version")) And _
+        CStr(header("ContentSha256")) = CStr(mHeader("ContentSha256")))
+End Function
 
 Public Sub BindRun(ByVal context As String, ByVal header As Object)
     Dim binding As String
@@ -58,7 +80,10 @@ Public Function Stage(ByVal context As String, ByVal pathId As String, ByVal bin
     If Not modExpectationModel.Validate(definition, modActivityCatalog.CATALOG_VERSION) Then Exit Function
     Set mDefinition = modTrainingJson.DecodeObject(modTrainingJson.EncodeObject(definition))
     Stage = Not mDefinition Is Nothing
-    If Stage Then mSource = "This evaluation": notice = "Expected conclusion staged for this evaluation. The recording is unchanged."
+    If Stage Then
+        mIntentRevision = mIntentRevision + 1
+        mSource = "This evaluation": notice = "Expected conclusion staged for this evaluation. The recording is unchanged."
+    End If
 End Function
 
 Public Function Summary(ByVal context As String, ByVal pathId As String) As String
@@ -81,6 +106,7 @@ End Function
 
 Public Sub ClearContext(ByVal context As String)
     If context <> mContext Then Exit Sub
+    mSelectionRevision = mSelectionRevision + 1
     modExpectationDraft.ClosePath mContext, mPathId
     mContext = "": mPathId = "": mSequence = "": mBinding = "": mSource = ""
     Set mDefinition = Nothing

@@ -26,9 +26,9 @@ Public Function Matches(ByVal result As Object, ByVal header As Object, ByVal re
     For Each id In result("ExtraActivityIds")
         If Not actions.Exists(id) Then Exit Function
     Next id
-    If result("TerminalSources").Count > 0 Then
-        If terminal Is Nothing Then Exit Function
-        If result("ExpectedConclusion")("TerminalKind") <> "SourceEventsApplied" Then Exit Function
+    If terminal Is Nothing Or result("ExpectedConclusion")("TerminalKind") <> "SourceEventsApplied" Then
+        If result("TerminalSources").Count <> 0 Then Exit Function
+    Else
         If result("TerminalSources").Count <> terminal("SourceEventRefs").Count Then Exit Function
         For Each entry In result("TerminalSources")
             index = index + 1: Set reference = terminal("SourceEventRefs")(index)

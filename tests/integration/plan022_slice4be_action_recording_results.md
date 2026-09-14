@@ -4,6 +4,116 @@ Last verified 2026-09-14. Architecture v4.11 D18 and Plan022 govern the explicit
 actor/warehouse sequence, immutable observations and advisory conclusions.
 Slice4be and full Release1 acceptance remain open.
 
+## Evaluation selection continuity: packaged GREEN
+
+The frozen code `01e32ff` candidate remains the 293 PASS / 4 foreground-capture
+baseline. New actual-handler tests cover selection before append and after return,
+editing staged intent during evaluation, stopping/refreshing an unfinished journal
+during evaluation, same-version result retention, newer-version invalidation,
+omitted terminal references in an Incomplete saved result, and verified-UTC display.
+One-shot callbacks exist only in unsaved disposable projects; they dispatch actual
+list, expectation-editor and Stop/Refresh handlers. No workflow outcome is fabricated.
+Architecture D18, Plan022 and controls v1.141 record the same continuity constraints.
+
+The first expanded full run ends at 68 PASS / one terminal Excel/RPC harness failure
+before the new cases. This is not behavioral RED. The harness then installs the
+recording/reader/evaluator probes once, before fixtures/forms, and checks that no
+forms were loaded. Later calls reuse those probes. Publisher/authority counters
+compare against values captured after fixture setup, retaining the same requirement
+that Viewer actions make no such calls. All existing actions/check identities remain.
+
+That controlled run passes the initial no-forms check and reaches Pending evaluation,
+where both new UTC display assertions fail against valid saved provenance. It later
+loses Excel/RPC during the Partial stage, ending at 154 PASS / 3 FAIL (two behavioral
+display failures and one terminal harness failure). Early probe installation did not
+eliminate the native fault. Both empty residual instances close normally with their
+three loaded add-in hashes preserved. The first was created during the isolated test;
+its crash-parent relationship was not established. The second was a child of the
+observed test Excel process. No operational workbook or recovery file is deleted.
+
+The frozen diagnostic route then completes at **197 PASS / 19 FAIL**, without a
+terminal harness exception and with Excel closed. Fifteen behavioral failures are
+six timestamp display checks, the omitted-terminal-reference check, and eight
+selection/intent/version append or attachment checks. All one-shot boundary entry
+checks pass; committed original-result preservation and same-version Refresh pass.
+The other four failures are foreground captures, not product RED. Evidence is the
+ignored `reports/runtime/evaluation-selection-diagnostic-red.log`.
+
+After this RED, Core now uses session-local selection and intent revisions to
+reject stale pending evaluations, and validates saved results against the selected
+journal. Operations retains the exact selection binding across Evaluate/read return
+and clears result selection on a journal-version change. These primitive bridge
+tokens are not persisted identities. Same-version Refresh retains a saved result;
+editing new analysis does not rewrite it. Display and complete-reference validation
+follow their own observed RED.
+
+The isolated `deploy/validation-evaluation-selection` candidate builds and explicitly
+compiles all five packages, including Operations cold start. Its 225 compiled
+components differ from the frozen candidate only in `modEvaluationJournal`,
+`modEvaluationPresentation`, `modPathEvaluation`, `modPathExpectation` and
+`frmActionPaths`. The initial build stopped at Operations workbook creation with
+an Excel COM `Add` error; Excel closed, and the unchanged build succeeded on retry.
+
+The first full GREEN attempt terminates at 19 PASS / one Excel/RPC harness failure
+in published-Events reading. Windows Event1000 records an Excel access violation
+(`c0000005`, module unknown) during that run; no residual Excel process remains.
+The subsequent full run completes **324/324 PASS**, retaining all **293** prior
+passing identities and gaining **31**, with no duplicates or terminal harness
+exception. All fifteen behavioral RED cases are GREEN, including all eighteen
+binding assertions. No diagnostic isolation replaces the full route.
+
+During that successful run Excel temporarily reports not responding after the
+binding checks. The same live handle is polled without restart, termination or
+UI intervention; Excel recovers, completes the editor/capture checks and exits
+normally. This is not a native-fault repair or proof of sustained reliability.
+
+All four foreground editor captures pass and were visually inspected: minimum,
+default, larger and ordered steps. Controls and wording are readable and contained;
+the ordered example distinguishes Receiving/Admin outcomes and retry settings.
+These are disposable editor views, not human UAT or a diagnostic-pane screenshot.
+The captures and `green.json` are in ignored
+`reports/runtime/slice4be-viewer-published-read/2a510bd2eec44906afbf74ca406e8e5d/`.
+
+Static maintenance retains 232 components, 192 duplicate groups, 9 literal and
+45 unresolved dynamic calls, all 28 module limits and 1159/1161 scanner/reviewed
+candidates. The five added procedures implement three local continuity checks,
+one primitive selection-binding bridge and one UTC formatter (5878 procedures,
+130056 lines). All eight changed/new PowerShell scripts parse and 83 links resolve.
+The same candidate passes Release1 chain **32/32**, live roles **48/48** and Create
+Warehouse **15/15**. The controller exits successfully, restoring local settings
+and all three tracked reports. Windows Event1000 nevertheless records another Excel
+native failure during the chain interval (`c0000409`, module unknown); the passing
+assertions do not establish native reliability. No manual recovery intervention is
+needed for this chain. Its ignored evidence adds `chain.log`, `chain-exit.json`,
+`chain-native.json` and copies of the three generated result reports. The separate
+limits/storage gate completes **78/78 PASS**, preserving every prior **77** passing
+identity and adding the initial no-loaded-forms check. All 256 actions/512 observations,
+partial status/counter, ordinary action 257, exact 1 MiB integrity, unchanged identical
+append and explicit oversize rejection pass. Its controller exits successfully and
+Excel closes without intervention. Final verification preserves **315 package pins**,
+the protected sources and existing maintenance limits. All jobs are terminal.
+
+Candidate commands:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-evaluation-selection -Phase GREEN -CheckExpectationCompatibility
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot deploy/validation-evaluation-selection -Phase GREEN -CheckActionRecording -CheckRecordingLimits -CheckRecordingStorageBounds
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate_release1_full_chain.ps1 -RepoRoot . -DeployRoot deploy/validation-evaluation-selection
+```
+
+The chain is run under the ignored `validate-evaluation-selection-chain.ps1` wrapper
+to preserve/restore all three tracked reports. Additional ignored evidence is
+`limits-focused.log`, `limits-retention.json`, `final-verification.json` and
+`verification.log` under the same prefix. No new release/deployment is published.
+
+Ignored evidence uses the `reports/runtime/evaluation-selection-` prefix:
+`diagnostic-red.log`, `red-checks.json`, `build.log`, `build-retry.log`, `compile.log`,
+`compiled.json`, `compiled-delta.json`, `package-pins.json`, `full-focused.log`,
+`first-full-native.json`, `full-retry.log`, `full-retention.json`, `visual-review.json`
+and `static.log`. Full Slice4be, guide authoring/presentations, comprehensive coverage,
+diagnostic-pane visible proof, native reliability and Release1 human/NAS acceptance
+remain open. The accepted deployment is unchanged.
+
 ## Diagnostic evaluator implementation in validation
 
 The frozen `validation-analysis-expectation` candidate supplies partial expanded

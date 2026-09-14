@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "implementation-manifest",
-    "generatedAtUtc":  "2026-09-14T17:26:35Z",
+    "generatedAtUtc":  "2026-09-14T19:01:05Z",
     "sourceRoot":  "src",
     "packages":  [
                      {
@@ -2685,9 +2685,10 @@
                            "name":  "modEvaluationPresentation",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modEvaluationPresentation.bas",
-                           "lineCount":  42,
+                           "lineCount":  47,
                            "procedureNames":  [
                                                   "Caption",
+                                                  "DisplayUtc",
                                                   "Render"
                                               ],
                            "metadata":  {
@@ -3332,7 +3333,7 @@
                            "name":  "modPathEvaluation",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modPathEvaluation.bas",
-                           "lineCount":  135,
+                           "lineCount":  150,
                            "procedureNames":  [
                                                   "AcceptLoaded",
                                                   "Classify",
@@ -3340,6 +3341,7 @@
                                                   "Evaluate",
                                                   "ReadContext",
                                                   "ReadSaved",
+                                                  "SelectedBinding",
                                                   "StaleLoaded"
                                               ],
                            "metadata":  {
@@ -3350,12 +3352,15 @@
                            "name":  "modPathExpectation",
                            "kind":  "STANDARD_MODULE",
                            "sourcePath":  "src/Core/Modules/modPathExpectation.bas",
-                           "lineCount":  88,
+                           "lineCount":  114,
                            "procedureNames":  [
                                                   "BindRun",
                                                   "ClearContext",
+                                                  "EvaluationBinding",
+                                                  "MatchesHeader",
                                                   "ReadDefinition",
                                                   "ReadSelected",
+                                                  "SelectionBinding",
                                                   "Stage",
                                                   "Summary"
                                               ],
@@ -5406,7 +5411,7 @@
                            "name":  "frmActionPaths",
                            "kind":  "FORM",
                            "sourcePath":  "src/Operations/Forms/frmActionPaths.frm",
-                           "lineCount":  215,
+                           "lineCount":  231,
                            "procedureNames":  [
                                                   "BindContext",
                                                   "ClearContent",
@@ -44011,7 +44016,29 @@
                                                "Add",
                                                "Caption",
                                                "Control",
+                                               "DisplayUtc",
                                                "Text"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modEvaluationPresentation",
+                           "name":  "DisplayUtc",
+                           "visibility":  "PRIVATE",
+                           "kind":  "FUNCTION",
+                           "startLine":  44,
+                           "endLine":  47,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "ValidUtcTimestamp"
                                            ],
                            "literalApplicationRunTargets":  [
 
@@ -53173,12 +53200,34 @@
                        },
                        {
                            "componentName":  "modPathEvaluation",
-                           "name":  "Evaluate",
+                           "name":  "SelectedBinding",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
                            "startLine":  19,
-                           "endLine":  64,
-                           "lineCount":  46,
+                           "endLine":  22,
+                           "lineCount":  4,
+                           "directCalls":  [
+                                               "CaptureContext",
+                                               "SelectionBinding"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modPathEvaluation",
+                           "name":  "Evaluate",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  24,
+                           "endLine":  74,
+                           "lineCount":  51,
                            "directCalls":  [
                                                "Add",
                                                "Append",
@@ -53186,6 +53235,7 @@
                                                "CaptureContext",
                                                "Classify",
                                                "Create",
+                                               "EvaluationBinding",
                                                "Match",
                                                "PolicyControls",
                                                "Read",
@@ -53213,8 +53263,8 @@
                            "name":  "Classify",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  66,
-                           "endLine":  91,
+                           "startLine":  76,
+                           "endLine":  101,
                            "lineCount":  26,
                            "directCalls":  [
                                                "Assess",
@@ -53237,20 +53287,22 @@
                            "name":  "ReadSaved",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  93,
-                           "endLine":  127,
-                           "lineCount":  35,
+                           "startLine":  103,
+                           "endLine":  142,
+                           "lineCount":  40,
                            "directCalls":  [
                                                "Add",
                                                "Caption",
                                                "CaptureContext",
                                                "Matches",
+                                               "MatchesHeader",
                                                "Permitted",
                                                "PolicyControls",
                                                "Read",
                                                "ReadContext",
                                                "ReadRun",
                                                "Render",
+                                               "SelectionBinding",
                                                "Text"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -53268,8 +53320,8 @@
                            "name":  "ReadContext",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  129,
-                           "endLine":  135,
+                           "startLine":  144,
+                           "endLine":  150,
                            "lineCount":  7,
                            "directCalls":  [
                                                "CaptureContext",
@@ -53289,11 +53341,74 @@
                        },
                        {
                            "componentName":  "modPathExpectation",
+                           "name":  "SelectionBinding",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  17,
+                           "endLine":  21,
+                           "lineCount":  5,
+                           "directCalls":  [
+
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modPathExpectation",
+                           "name":  "EvaluationBinding",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  23,
+                           "endLine":  27,
+                           "lineCount":  5,
+                           "directCalls":  [
+                                               "SelectionBinding"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modPathExpectation",
+                           "name":  "MatchesHeader",
+                           "visibility":  "PUBLIC",
+                           "kind":  "FUNCTION",
+                           "startLine":  29,
+                           "endLine":  34,
+                           "lineCount":  6,
+                           "directCalls":  [
+                                               "SelectionBinding"
+                                           ],
+                           "literalApplicationRunTargets":  [
+
+                                                            ],
+                           "unresolvedApplicationRunExpressions":  [
+
+                                                                   ],
+                           "rootIds":  [
+
+                                       ]
+                       },
+                       {
+                           "componentName":  "modPathExpectation",
                            "name":  "BindRun",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  14,
-                           "endLine":  28,
+                           "startLine":  36,
+                           "endLine":  50,
                            "lineCount":  15,
                            "directCalls":  [
                                                "ClearContext",
@@ -53316,8 +53431,8 @@
                            "name":  "ReadDefinition",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  30,
-                           "endLine":  49,
+                           "startLine":  52,
+                           "endLine":  71,
                            "lineCount":  20,
                            "directCalls":  [
                                                "CaptureContext",
@@ -53343,9 +53458,9 @@
                            "name":  "Stage",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  51,
-                           "endLine":  62,
-                           "lineCount":  12,
+                           "startLine":  73,
+                           "endLine":  87,
+                           "lineCount":  15,
                            "directCalls":  [
                                                "DecodeObject",
                                                "EncodeObject",
@@ -53367,8 +53482,8 @@
                            "name":  "Summary",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  64,
-                           "endLine":  68,
+                           "startLine":  89,
+                           "endLine":  93,
                            "lineCount":  5,
                            "directCalls":  [
                                                "Available",
@@ -53389,8 +53504,8 @@
                            "name":  "ReadSelected",
                            "visibility":  "PUBLIC",
                            "kind":  "FUNCTION",
-                           "startLine":  70,
-                           "endLine":  80,
+                           "startLine":  95,
+                           "endLine":  105,
                            "lineCount":  11,
                            "directCalls":  [
                                                "DecodeObject",
@@ -53412,9 +53527,9 @@
                            "name":  "ClearContext",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  82,
-                           "endLine":  88,
-                           "lineCount":  7,
+                           "startLine":  107,
+                           "endLine":  114,
+                           "lineCount":  8,
                            "directCalls":  [
                                                "ClosePath"
                                            ],
@@ -81774,8 +81889,8 @@
                            "name":  "UserForm_Initialize",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  36,
-                           "endLine":  75,
+                           "startLine":  37,
+                           "endLine":  76,
                            "lineCount":  40,
                            "directCalls":  [
                                                "Add",
@@ -81820,8 +81935,8 @@
                            "name":  "BindContext",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  77,
-                           "endLine":  81,
+                           "startLine":  78,
+                           "endLine":  82,
                            "lineCount":  5,
                            "directCalls":  [
                                                "ClearContent",
@@ -81842,8 +81957,8 @@
                            "name":  "ContextValid",
                            "visibility":  "PRIVATE",
                            "kind":  "FUNCTION",
-                           "startLine":  83,
-                           "endLine":  86,
+                           "startLine":  84,
+                           "endLine":  87,
                            "lineCount":  4,
                            "directCalls":  [
                                                "CaptureContext",
@@ -81864,8 +81979,8 @@
                            "name":  "RefreshPaths",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  88,
-                           "endLine":  112,
+                           "startLine":  89,
+                           "endLine":  113,
                            "lineCount":  25,
                            "directCalls":  [
                                                "Caption",
@@ -81890,9 +82005,9 @@
                            "name":  "ReadSelection",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  114,
-                           "endLine":  137,
-                           "lineCount":  24,
+                           "startLine":  115,
+                           "endLine":  143,
+                           "lineCount":  29,
                            "directCalls":  [
                                                "Caption",
                                                "ClearEvaluation",
@@ -81902,6 +82017,7 @@
                                                "ReadEvaluation",
                                                "ReadPath",
                                                "RefreshExpectation",
+                                               "SelectedBinding",
                                                "Succeeded"
                                            ],
                            "literalApplicationRunTargets":  [
@@ -81919,8 +82035,8 @@
                            "name":  "RefreshExpectation",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  139,
-                           "endLine":  142,
+                           "startLine":  145,
+                           "endLine":  148,
                            "lineCount":  4,
                            "directCalls":  [
                                                "Caption",
@@ -81942,8 +82058,8 @@
                            "name":  "mExpected_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  144,
-                           "endLine":  147,
+                           "startLine":  150,
+                           "endLine":  153,
                            "lineCount":  4,
                            "directCalls":  [
                                                "ContextValid",
@@ -81964,13 +82080,14 @@
                            "name":  "mEvaluate_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  149,
-                           "endLine":  156,
-                           "lineCount":  8,
+                           "startLine":  155,
+                           "endLine":  168,
+                           "lineCount":  14,
                            "directCalls":  [
                                                "Caption",
                                                "ContextValid",
                                                "Evaluate",
+                                               "SelectedBinding",
                                                "Succeeded",
                                                "Text"
                                            ],
@@ -81989,11 +82106,12 @@
                            "name":  "ReadEvaluation",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  158,
-                           "endLine":  163,
-                           "lineCount":  6,
+                           "startLine":  170,
+                           "endLine":  179,
+                           "lineCount":  10,
                            "directCalls":  [
                                                "Caption",
+                                               "ContextValid",
                                                "ReadSaved",
                                                "Succeeded",
                                                "Text"
@@ -82013,8 +82131,8 @@
                            "name":  "ClearEvaluation",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  165,
-                           "endLine":  167,
+                           "startLine":  181,
+                           "endLine":  183,
                            "lineCount":  3,
                            "directCalls":  [
                                                "Caption"
@@ -82034,8 +82152,8 @@
                            "name":  "ClearContent",
                            "visibility":  "PUBLIC",
                            "kind":  "SUB",
-                           "startLine":  169,
-                           "endLine":  177,
+                           "startLine":  185,
+                           "endLine":  193,
                            "lineCount":  9,
                            "directCalls":  [
                                                "Caption",
@@ -82058,8 +82176,8 @@
                            "name":  "mPaths_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  179,
-                           "endLine":  181,
+                           "startLine":  195,
+                           "endLine":  197,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ReadSelection"
@@ -82079,8 +82197,8 @@
                            "name":  "mSearch_Change",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  183,
-                           "endLine":  185,
+                           "startLine":  199,
+                           "endLine":  201,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshPaths"
@@ -82100,8 +82218,8 @@
                            "name":  "mRefresh_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  187,
-                           "endLine":  189,
+                           "startLine":  203,
+                           "endLine":  205,
                            "lineCount":  3,
                            "directCalls":  [
                                                "RefreshPaths"
@@ -82121,8 +82239,8 @@
                            "name":  "mClose_Click",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  191,
-                           "endLine":  193,
+                           "startLine":  207,
+                           "endLine":  209,
                            "lineCount":  3,
                            "directCalls":  [
 
@@ -82144,8 +82262,8 @@
                            "name":  "UserForm_QueryClose",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  195,
-                           "endLine":  201,
+                           "startLine":  211,
+                           "endLine":  217,
                            "lineCount":  7,
                            "directCalls":  [
                                                "ClearContent"
@@ -82173,8 +82291,8 @@
                            "name":  "UserForm_Activate",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  203,
-                           "endLine":  211,
+                           "startLine":  219,
+                           "endLine":  227,
                            "lineCount":  9,
                            "directCalls":  [
                                                "ApplyAnchoredLayout",
@@ -82218,8 +82336,8 @@
                            "name":  "UserForm_Layout",
                            "visibility":  "PRIVATE",
                            "kind":  "SUB",
-                           "startLine":  213,
-                           "endLine":  215,
+                           "startLine":  229,
+                           "endLine":  231,
                            "lineCount":  3,
                            "directCalls":  [
                                                "ApplyAnchoredLayout"
@@ -147735,6 +147853,7 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beRecordingStorageBounds.ps1",
                                                  "tests/tooling/Slice4beSettingsOpenTrace.ps1",
                                                  "tests/tooling/Slice4beViewerPublication.ps1"
@@ -148064,6 +148183,7 @@
                                                  "tests/tooling/Slice4beAdminSettingsClose.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
@@ -148525,6 +148645,7 @@
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
                                                  "tests/tooling/Slice4beEvaluationIntegrity.ps1",
@@ -148584,6 +148705,7 @@
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingLifecycle.ps1",
                                                  "tests/tooling/Slice4beReceivingReferences.ps1",
@@ -148876,6 +148998,7 @@
                            {
                                "entryPoint":  "CommandCompleted",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beRecordingFixture.ps1"
@@ -149116,6 +149239,7 @@
                                                  "tests/tooling/fixtures/static/src/Operations/Modules/modSyntheticSurface.bas",
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
                                                  "tests/tooling/Slice4beReceivingLauncherDenial.ps1",
@@ -149178,6 +149302,7 @@
                                                  "tests/integration/test_CreateWarehouse.bas",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
@@ -149522,7 +149647,6 @@
                            {
                                "entryPoint":  "Edit",
                                "testPaths":  [
-                                                 "tests/tooling/Slice4beRecordingOperations.ps1",
                                                  "tests/tooling/Slice4beShippingPublicationFixture.ps1",
                                                  "tests/tooling/Test-PackagedExternalEdits.ps1",
                                                  "tests/tooling/Test-Plan022Slice4ahAdminEditSelection.ps1",
@@ -149829,8 +149953,16 @@
                            {
                                "entryPoint":  "Evaluate",
                                "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
+                                                 "tests/tooling/Slice4beRecordingOperations.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "EvaluationBinding",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beRecordingOperations.ps1"
                                              ]
                            },
@@ -151057,6 +151189,7 @@
                                "entryPoint":  "JournalRoot",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beActionRecording.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beRecordingEvaluation.ps1",
@@ -151079,6 +151212,7 @@
                                "testPaths":  [
                                                  "tests/integration/test_CreateWarehouse.bas",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
@@ -152046,6 +152180,12 @@
                                              ]
                            },
                            {
+                               "entryPoint":  "mEvaluate_Click",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1"
+                                             ]
+                           },
+                           {
                                "entryPoint":  "mFamily_Change",
                                "testPaths":  [
                                                  "tests/tooling/Slice4beDetailProfile.ps1"
@@ -152215,6 +152355,12 @@
                                "entryPoint":  "NavigationSelection",
                                "testPaths":  [
                                                  "tests/tooling/Test-Plan022Slice4wOperatorResponsivenessAndEvents.ps1"
+                                             ]
+                           },
+                           {
+                               "entryPoint":  "NewId",
+                               "testPaths":  [
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1"
                                              ]
                            },
                            {
@@ -154033,6 +154179,7 @@
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingDenialDialogs.ps1",
@@ -154807,6 +154954,7 @@
                                                  "tests/tooling/Slice4beActionPathPreference.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
@@ -154905,6 +155053,7 @@
                                                  "tests/tooling/Slice4beActionRecording.ps1",
                                                  "tests/tooling/Slice4beBootstrapTrace.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",
                                                  "tests/tooling/Slice4beOperationsTrackingSettings.ps1",
@@ -155035,6 +155184,7 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beReceivingActivity.ps1",
                                                  "tests/tooling/Slice4beReceivingRetry.ps1",
                                                  "tests/tooling/Slice4beReceivingStaging.ps1",
@@ -155057,6 +155207,7 @@
                                                  "tests/integration/test_RetireMigrate.bas",
                                                  "tests/integration/test_TesterBundle.bas",
                                                  "tests/integration/test_TesterSetup.bas",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beRecordingEvaluation.ps1",
                                                  "tests/tooling/Test-PackagedExternalEdits.ps1",
@@ -155478,6 +155629,7 @@
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beActivityFoundation.ps1",
                                                  "tests/tooling/Slice4beDesignsPublicationSource.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationContracts.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
                                                  "tests/tooling/Slice4beEvaluationIntegrity.ps1",
@@ -155986,6 +156138,7 @@
                                                  "tests/tooling/fixtures/static/src/Operations/Forms/frmSyntheticSurface.frm",
                                                  "tests/tooling/Slice4beActivityAssertions.ps1",
                                                  "tests/tooling/Slice4beDetailProfile.ps1",
+                                                 "tests/tooling/Slice4beEvaluationBinding.ps1",
                                                  "tests/tooling/Slice4beEvaluationEvidence.ps1",
                                                  "tests/tooling/Slice4beEvaluationIntegrity.ps1",
                                                  "tests/tooling/Slice4beExpectationCompatibility.ps1",

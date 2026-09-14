@@ -439,6 +439,9 @@ Public Sub CloseSettings()
     If Not mForm Is Nothing Then Unload mForm
     Set mForm = Nothing
 End Sub
+Public Function LoadedFormsForTest() As Long
+    LoadedFormsForTest = VBA.UserForms.Count
+End Function
 Public Function SaveSettings(ByVal key As String, ByVal value As String) As Boolean
     mLastStatus = mForm.D5TestSave(key, value)
     SaveSettings = (InStr(1, mLastStatus, "saved", vbTextCompare) > 0)
@@ -527,6 +530,31 @@ End Function
     if($TraceBootstrapForTest){
         . (Join-Path $PSScriptRoot 'Slice4beBootstrapTrace.ps1')
         Install-Slice4beBootstrapTrace
+    }
+    # Install the complete recording gate before any fixture/form activity.
+    # Later helpers reuse these probes instead of editing active VBA projects.
+    $script:PublishedReadProbeInstalled=$false
+    $script:RecordingProbeInstalled=$false
+    $script:RecordingReaderProbeInstalled=$false
+    $script:RecordingOperationsProbeInstalled=$false
+    if($CheckViewerPublishedRead){
+        . (Join-Path $PSScriptRoot 'Slice4beViewerPublishedRead.ps1')
+        Test-Slice4beViewerPublishedRead $null $null $true
+        if($CheckActionRecording){
+            . (Join-Path $PSScriptRoot 'Slice4beActionRecording.ps1')
+            Test-Slice4beActionRecording $null $true
+            if($CheckRecordingReader){
+                . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
+                Test-Slice4beRecordingReader $null $null $true
+            }
+            if($CheckRecordingOperations){
+                . (Join-Path $PSScriptRoot 'Slice4beRecordingOperations.ps1')
+                Test-Slice4beRecordingOperations $true
+            }
+        }
+        $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
+        Check 'Harness.RecordingProbesInstalledBeforeForms' $noForms
+        if(-not $noForms){throw 'A form was already loaded during initial probe setup; not product RED.'}
     }
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))

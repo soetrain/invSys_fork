@@ -1,10 +1,10 @@
 {
     "schemaVersion":  "1.0.0",
     "reportType":  "reviewed-cleanup-backlog",
-    "generatedAtUtc":  "2026-09-14T17:26:35Z",
+    "generatedAtUtc":  "2026-09-14T19:01:05Z",
     "sourceReports":  {
-                          "implementationManifestSha256":  "54c1facd4b65ef3d44541973dbc7c2b899a4561698606210e861bcee370ce4a7",
-                          "maintenanceCandidatesSha256":  "0e9945e9f34967d5be83da2c9595b71a7d5f3e31a0cb2e2f564d3a39241975ab"
+                          "implementationManifestSha256":  "638657d097366b34bd9c768fce607bcad809ca826754daca27e710bf06659063",
+                          "maintenanceCandidatesSha256":  "f125cd8300bba7b44f1d622fa44f4806e203b97afd7bf131f705fd3823d5891a"
                       },
     "policy":  {
                    "automaticDeletionAllowed":  false,
@@ -15110,7 +15110,7 @@
                                            ],
                            "reason":  "Procedure is a registered or discovered dynamic root.",
                            "protectingTests":  [
-
+                                                   "tests/tooling/Slice4beEvaluationBinding.ps1"
                                                ],
                            "deletionApproved":  false,
                            "nextAction":  "Retain the procedure and keep its registry or discovered root evidence current."

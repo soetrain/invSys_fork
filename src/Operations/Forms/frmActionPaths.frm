@@ -28,6 +28,7 @@ Private mStatus As MSForms.Label
 Private mSummary As MSForms.Label
 Private WithEvents mExpected As MSForms.CommandButton
 Private mSelectedId As String
+Private mBinding As String
 Private mEvaluationId As String
 Private WithEvents mEvaluate As MSForms.CommandButton
 Private mEvaluation As MSForms.TextBox
@@ -112,12 +113,13 @@ Failed:
 End Sub
 
 Private Sub ReadSelection()
-    Dim evidence As String, notice As String, succeeded As Boolean, selected As String
+    Dim evidence As String, notice As String, succeeded As Boolean, selected As String, binding As String
     If mLoading Then Exit Sub
     mEvidence.Value = ""
     If Not ContextValid() Then Exit Sub
     If mPaths.ListIndex >= 0 Then selected = CStr(mPaths.List(mPaths.ListIndex, 0))
     If mSelectedId <> selected Then
+        mBinding = ""
         ClearEvaluation
         modExpectationEditor.CloseLibrary Me
         modActionPathRead.ClearSelection mContext
@@ -127,10 +129,14 @@ Private Sub ReadSelection()
     succeeded = modActionPathRead.ReadPath(mContext, selected, evidence, notice)
     mStatus.Caption = notice
     If succeeded Then
+        binding = modPathEvaluation.SelectedBinding(mContext, selected)
+        If mBinding <> binding Then ClearEvaluation
+        mBinding = binding
         mEvidence.Value = evidence: mExpected.Enabled = True: mEvaluate.Enabled = True
         RefreshExpectation
         ReadEvaluation
     Else
+        mBinding = ""
         modExpectationEditor.CloseLibrary Me
         ClearEvaluation
     End If
@@ -148,17 +154,27 @@ End Sub
 
 Private Sub mEvaluate_Click()
     Dim evaluationId As String, text As String, notice As String, succeeded As Boolean
+    Dim context As String, pathId As String, binding As String
     If Not ContextValid() Or mSelectedId = "" Then Exit Sub
+    context = mContext: pathId = mSelectedId: binding = mBinding
+    If binding = "" Or binding <> modPathEvaluation.SelectedBinding(context, pathId) Then Exit Sub
     mEvaluate.Enabled = False
-    succeeded = modPathEvaluation.Evaluate(mContext, mSelectedId, mEvaluationId, evaluationId, text, notice)
+    succeeded = modPathEvaluation.Evaluate(context, pathId, mEvaluationId, evaluationId, text, notice)
+    If Not ContextValid() Then Exit Sub
+    If context <> mContext Or pathId <> mSelectedId Or binding <> mBinding Then Exit Sub
+    If binding <> modPathEvaluation.SelectedBinding(context, pathId) Then Exit Sub
     mEvaluationId = evaluationId: mEvaluation.Value = text: mEvaluationStatus.Caption = notice
     mEvaluate.Enabled = True
 End Sub
 
 Private Sub ReadEvaluation()
     Dim text As String, notice As String, succeeded As Boolean
+    Dim binding As String, evaluationId As String
     If mEvaluationId = "" Then Exit Sub
+    binding = mBinding: evaluationId = mEvaluationId
     succeeded = modPathEvaluation.ReadSaved(mContext, mSelectedId, mEvaluationId, text, notice)
+    If Not ContextValid() Then Exit Sub
+    If binding <> mBinding Or evaluationId <> mEvaluationId Then Exit Sub
     mEvaluation.Value = text: mEvaluationStatus.Caption = notice
 End Sub
 
@@ -172,7 +188,7 @@ Public Sub ClearContent(ByVal notice As String)
     modActionPathRead.ClearSelection mContext
     mLoading = True
     mPaths.Clear: mEvidence.Value = "": mStatus.Caption = notice
-    mSelectedId = "": mSummary.Caption = "": mExpected.Enabled = False
+    mSelectedId = "": mBinding = "": mSummary.Caption = "": mExpected.Enabled = False
     mLoading = False
 End Sub
 

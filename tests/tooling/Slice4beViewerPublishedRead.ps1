@@ -1,13 +1,14 @@
 # D18: real Settings activity -> real Admin publication -> actual Viewer handlers.
 # Faults affect only disposable publication bytes; ordering uses a synthetic wire.
-function Test-Slice4beViewerPublishedRead($Fixture,$OtherFixture) {
-    if(-not $RecordingEvaluationDiagnostic){
+function Test-Slice4beViewerPublishedRead($Fixture,$OtherFixture,[bool]$InstallOnly=$false) {
+    if(-not $InstallOnly -and -not $RecordingEvaluationDiagnostic){
     SelectTarget $Fixture 'config-admin'
     try {
         [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
         if(-not [bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('BatchSize','601'))) {throw 'Actual Settings activity fixture failed.'}
     } finally {[void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')}
     }
+    if(-not $script:PublishedReadProbeInstalled){
     $admin=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('modAdminConsole').CodeModule
     $admin.AddFromString(@'
 Public Function PublishReadFixtureForTest() As Boolean
@@ -15,7 +16,8 @@ Public Function PublishReadFixtureForTest() As Boolean
     PublishReadFixtureForTest = GenerateInventorySnapshot("config-admin", "", Nothing, "", Nothing, report)
 End Function
 '@)
-    if(-not $RecordingEvaluationDiagnostic){
+    }
+    if(-not $InstallOnly -and -not $RecordingEvaluationDiagnostic){
     if(-not [bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest')) {throw 'Actual Admin publication fixture failed.'}
     $path=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Snapshot.Events.json')
     if(-not (Test-Path -LiteralPath $path)){throw 'Published-read fixture requires the independently tested publisher candidate.'}
@@ -25,6 +27,7 @@ End Function
     if($activity.Count -ne 1 -or $activity[0].Lines.Count -ne 2 -or $activity[0].Outcomes.Count -ne 1){throw 'Actual publication lacks the correlated Settings activity fixture.'}
     $activityId=[string]$activity[0].SourceId
     }
+    if(-not $script:PublishedReadProbeInstalled){
     $core=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modInventoryViewerData').CodeModule
     $core.InsertLines($core.CountOfDeclarationLines+1,'Private PublishedOrderingPayloadForTest As String')
     $core.AddFromString(@'
@@ -44,13 +47,15 @@ End Sub
         Exit Function
     End If
 '@)
-    if(-not $RecordingEvaluationDiagnostic){
+    }
+    if(-not $InstallOnly -and -not $RecordingEvaluationDiagnostic){
     $valid=[bool](Run 'invSys.Core.xlam' 'modInventoryViewerData.PublishedReadFixtureValidForTest' @($path,$Fixture.Warehouse))
     Check 'PublishedRead.RealPublicationFixtureValid' $valid
     if(-not $valid){throw 'Fixture schema or integrity is invalid; not a behavioral RED.'}
     Check 'PublishedRead.RealSettingsAttemptAndOutcomePublished' ($activity[0].Lines[0].RecordId -cne $activity[0].Lines[1].RecordId)
     }
 
+    if(-not $script:PublishedReadProbeInstalled){
     $shipping=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modTS_Shipments').CodeModule
     $entry=$shipping.ProcBodyLine('LoadShippingViewerSupplementEvents',0)
     $shipping.InsertLines($entry+1,'    PublishedReadAuthorityCountForTest = PublishedReadAuthorityCountForTest + 1')
@@ -188,7 +193,9 @@ Public Function PublishedReadVisibilityForTest(ByVal enabled As Boolean) As Bool
     PublishedReadVisibilityForTest = mForm.PublishedReadVisibilityForTest(enabled)
 End Function
 '@)
-    if($RecordingEvaluationDiagnostic){return}
+    $script:PublishedReadProbeInstalled=$true
+    }
+    if($InstallOnly -or $RecordingEvaluationDiagnostic){return}
     function ReadAct([string]$Action,[string]$Expected='') {[bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @($Action,$Expected))}
     function ReadDetail([string]$Caption,[string]$Expected) {[bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadDetailForTest' @($Caption,$Expected))}
     function WriteReadFixture([string]$Body) {
@@ -198,6 +205,8 @@ End Function
     }
     $pins=@{}
     foreach($file in Get-ChildItem -LiteralPath $Fixture.Root -Recurse -File){$pins[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash}
+    $viewerAuthorityBefore=[long](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublishedReadAuthorityCallsForTest')
+    $viewerPublishBefore=[long](Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest')
     SelectTarget $Fixture 'config-reader'
     try {
         $excel.Visible=$true
@@ -211,7 +220,7 @@ End Function
         [void](ReadAct 'Search' $activityId)
         Check 'PublishedRead.SearchRetainsExactActivityGroup' (ReadAct 'ContainsSource' $activityId)
         [void](ReadAct 'Search' '')
-        Check 'PublishedRead.OpenRefreshSearchAvoidShippingAuthority' ([long](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublishedReadAuthorityCallsForTest') -eq 0)
+        Check 'PublishedRead.OpenRefreshSearchAvoidShippingAuthority' ([long](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublishedReadAuthorityCallsForTest') -eq $viewerAuthorityBefore)
         [void](ReadAct 'Day')
         Check 'PublishedRead.DayFilterRetainsVerifiedUtcActivity' (ReadAct 'ContainsSource' $activityId)
         [void](ReadAct 'Events')
@@ -297,7 +306,7 @@ End Function
         [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
         [void](ReadAct 'Refresh')
         Check 'PublishedRead.SignOutCannotReloadProjection' (ReadAct 'Empty')
-        Check 'PublishedRead.ViewerNeverPublishes' ([long](Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq 0)
+        Check 'PublishedRead.ViewerNeverPublishes' ([long](Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $viewerPublishBefore)
     } finally {
         [IO.File]::WriteAllText($path,$original,[Text.UTF8Encoding]::new($false))
         [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')
