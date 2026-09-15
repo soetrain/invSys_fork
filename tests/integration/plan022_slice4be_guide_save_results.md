@@ -6,6 +6,28 @@ Five-package build/explicit compile/cold start, four editor layouts, static limi
 source preservation and terminal Excel closure pass. Current Save guide screenshots
 and broader regression/full-chain/deployed/NAS/human acceptance remain open.
 
+**Evaluation regression:** The unchanged Save candidate passes **376/376**,
+retaining all 376 preceding evaluation identities, including five instrumented
+compiles, actual Operations/Admin recording, asynchronous publication, retries,
+policy/stale-evidence handling, selection/intent/version races and expectation
+editor behavior. Report:
+`reports/runtime/slice4be-viewer-published-read/7433add3a00443cdbc0ad241cb71222a/green.json`.
+The controller exits 0 with Excel closed. All five candidate package hashes and
+both unrelated user documents remain unchanged. The UTC 2026-09-15
+07:11:46.3799770--07:30:16.0883292 window has zero Application events
+1000/1001/1002. The local verifier initially miscounted a PowerShell 5 JSON array
+wrapped in `@(...)`; correcting that verifier confirms the original 376/376
+terminal report, without rerunning or changing product behavior.
+
+All 15 diagnostic captures were directly reviewed: pending, partially applied
+and fully applied, each at minimum/default/larger/restored sizes plus the source
+viewport. Pending and partially applied runs retain Awaiting published result;
+only all four applied terminal references show Conclusion observed. Stopped
+remains capture lifecycle, and source/evaluation provenance stays visible. This
+protects the shared Guides/Evaluations folder helper and preceding diagnostic
+presentation. It does not supply the still-missing Save editor captures or human
+comparison/full Release 1 acceptance. Raw captures/reports remain local and ignored.
+
 Architecture v4.11 D18's immutable guide-save refinement names Save guide,
 publication wording, the fixed `Guides` storage child and its schema. Headless
 Core owns current-context/capability/policy validation and atomic publication;

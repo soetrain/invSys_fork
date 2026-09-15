@@ -50,6 +50,11 @@ Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As
         Case "Rows": GuideDraftControlForTest = CStr(control.ListCount)
         Case "Locked": GuideDraftControlForTest = CStr(control.Locked)
         Case "Selected": GuideDraftControlForTest = CStr(control.Value)
+        Case "Values"
+            For index = 0 To control.ListCount - 1
+                labels = labels & CStr(control.List(index, 0)) & vbLf
+            Next index
+            GuideDraftControlForTest = labels
         Case "Select"
             index = CLng(value)
             If index < 0 Or index >= control.ListCount Then GuideDraftControlForTest = "OUT OF RANGE": Exit Function

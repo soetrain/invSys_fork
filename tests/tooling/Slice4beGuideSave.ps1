@@ -208,6 +208,11 @@ function Test-GuideSave($Fixture,$Other) {
         Check 'GuideSave.PublicationPreservesOriginalTrainingActivityAndConfig' ((SamePins $sourcePins (SourcePins)) -and (PinsRetained $activity) -and (ActivityPins).Count -eq $activity.Count -and (Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configHash)
         Check 'GuideSave.DoesNotPublishBusinessEvents' ([long](Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publishedBefore)
         Check 'GuideSave.NoPendingArtifactAfterAttemptedSaves' ($savePresent -and @(Get-ChildItem -LiteralPath $journalRoot -Recurse -File -Filter '*.pending').Count -eq 0)
+        if($CheckGuideLibrary){
+            if(-not $validFirst -or -not $validSecond){throw 'Guide reader requires two real saved versions; invalid Save fixture is not reader RED.'}
+            . (Join-Path $PSScriptRoot 'Slice4beGuideLibrary.ps1')
+            Test-GuideLibrary $Fixture $Other $firstRecord $secondRecord
+        }
         OpenSaveDraft
         [void](GuideSaveControl 'lstGuideSteps' 'Select' '0')
         [void](GuideSaveControl 'btnRemoveGuideStep' 'Click')
@@ -248,6 +253,7 @@ function Test-GuideSave($Fixture,$Other) {
             if($allowed -isnot [bool] -or $allowed -or $signedIn -isnot [bool] -or -not $signedIn){throw 'Capability loss fixture is not isolated from sign-out.'}
             [void](GuideSaveControl 'btnSaveGuide' 'Click')
             Check 'GuideSave.RevokedMaintenanceCapabilityPreventsSave' ($savePresent -and (SamePins $saved (GuidePins)) -and ((GuideSaveControl '' 'Count') -ceq '0' -or (GuideSaveControl 'lblGuideStatus' 'Label') -match '(?i)permission|unavailable|changed'))
+            if($CheckGuideLibrary){Test-GuideOrdinaryReader $firstRecord}
         } finally {
             [void](GuideSaveControl 'btnCancelGuide' 'Click')
             [IO.File]::WriteAllBytes($authPath,$authBytes)
