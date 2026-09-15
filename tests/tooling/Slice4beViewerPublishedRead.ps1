@@ -223,6 +223,7 @@ End Function
         try{$hash=([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Body)))).Replace('-','')}finally{$sha.Dispose()}
         [IO.File]::WriteAllText($path,$Body.Substring(0,$Body.Length-1)+',"ContentSha256":"'+$hash+'"}',[Text.UTF8Encoding]::new($false))
     }
+    if($TraceViewerStartupForTest -and $ViewerStartupSavedWorkbookForTest){Initialize-Slice4beViewerStartupWorkbook}
     $pins=@{}
     foreach($file in Get-ChildItem -LiteralPath $Fixture.Root -Recurse -File){$pins[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash}
     $viewerAuthorityBefore=[long](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublishedReadAuthorityCallsForTest')
@@ -230,6 +231,10 @@ End Function
     SelectTarget $Fixture 'config-reader'
     try {
         $excel.Visible=$true
+        if($TraceViewerStartupForTest){
+            Test-Slice4beViewerStartup $Fixture $pins $viewerAuthorityBefore $viewerPublishBefore
+            return
+        }
         [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.OpenInventoryViewer')
         [void](ReadAct 'Events')
         Check 'PublishedRead.EventsHandlerLoadsRealActivitySource' (ReadAct 'ContainsSource' $activityId)
@@ -333,7 +338,11 @@ End Function
         Check 'PublishedRead.ViewerNeverPublishes' ([long](Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $viewerPublishBefore)
     } finally {
         [IO.File]::WriteAllText($path,$original,[Text.UTF8Encoding]::new($false))
-        [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')
+        if($TraceViewerStartupForTest){
+            $closed=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseViewerStartupDiagnosticForTest')
+            Check 'ViewerStartup.NormalFormCleanup' ($closed -ceq 'OK')
+            if($ViewerStartupSavedWorkbookForTest){Close-Slice4beViewerStartupWorkbook}
+        } else {[void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')}
     }
     $unchanged=$true
     foreach($pin in $pins.Keys){if((Get-FileHash -LiteralPath $pin).Hash -cne $pins[$pin]){$unchanged=$false}}

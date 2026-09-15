@@ -29,6 +29,8 @@ param(
     [switch]$CheckGuideExpectation,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
+    [switch]$TraceViewerStartupForTest,
+    [switch]$ViewerStartupSavedWorkbookForTest,
     [switch]$GuideDraftOnly,
     [switch]$CheckRecordingIsolation,
     [switch]$CheckRecordingRestart,
@@ -72,8 +74,14 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-if($GuideCaptureVisibleExcelForTest -and (-not $GuideDraftOnly -or -not $CaptureGuideEvidence)){
-    throw 'Visible-Excel guide capture diagnosis requires GuideDraftOnly and CaptureGuideEvidence.'
+if($GuideCaptureVisibleExcelForTest -and -not $TraceViewerStartupForTest -and (-not $GuideDraftOnly -or -not $CaptureGuideEvidence)){
+    throw 'Visible-Excel diagnosis requires Viewer startup tracing or GuideDraftOnly and CaptureGuideEvidence.'
+}
+if($TraceViewerStartupForTest -and ($Phase -ne 'RED' -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest)){
+    throw 'Viewer startup tracing requires RED and the published-Viewer fixture with instrumented compilation.'
+}
+if($ViewerStartupSavedWorkbookForTest -and -not $TraceViewerStartupForTest){
+    throw 'The saved startup workbook is restricted to Viewer startup diagnosis.'
 }
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
 if($GuideDraftOnly){$CheckGuideDraft=$true}
@@ -649,6 +657,10 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beBoxingOutcomes.ps1')
             Install-Slice4beBoxingOutcomeProbes
         }
+        if($TraceViewerStartupForTest){
+            . (Join-Path $PSScriptRoot 'Slice4beViewerStartup.ps1')
+            Install-Slice4beViewerStartupProbe
+        }
         if($CompileEvaluationProbesForTest -or $CheckShippingRecording){
             . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
             Compile-Slice4beEvaluationProbes
@@ -714,7 +726,7 @@ End Function
     if($CheckViewerPublishedRead) {
         $step='packaged Viewer persisted publication read'
         Test-Slice4beViewerPublishedRead $a $b
-        if($CheckActionRecording) {
+        if($CheckActionRecording -and -not $TraceViewerStartupForTest) {
             $step='packaged Viewer recording lifecycle'
             . (Join-Path $PSScriptRoot 'Slice4beActionRecording.ps1')
             Test-Slice4beActionRecording $a
