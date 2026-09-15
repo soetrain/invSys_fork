@@ -25,7 +25,44 @@ Application events 1000/1001/1002. Refreshed static evidence at
 This proves current candidate Save/reader screenshots, not the cause of the
 earlier Event Detail foreground failures or human acceptance. Serial recording,
 detail, Viewer/Shipping state, Boxing/Shipping, evaluation and full-chain gates
-are now running. Their results must be verified separately; D8-A is unapproved.
+were started serially. Completed regression results follow; D8-A is unapproved.
+
+**Completed reader regressions (2026-09-15):** Combined recording/guide authoring/
+Save/reader passes **170/170**, retaining all 105 prior combined identities;
+Event Detail passes **34/34**, retaining all 34; Viewer/filter/Shipping state
+passes **94/94**, retaining all 94. Exact reports, respectively:
+
+- `reports/runtime/slice4be-viewer-published-read/bba8c1423b9e489f822641c862d8c95e/green.json`
+- `reports/runtime/slice4be-viewer-detail/26784e6f223946db9191ac9574ad14e7/green.json`
+- `reports/runtime/slice4be-viewer-published-read/ae7285756ad545899c84930281ed06a0/green.json`
+
+Each controller exits 0 with Excel closed and no Application events
+1000/1001/1002 in its measured window. The combined windows span UTC
+08:00:06.7586898--08:11:34.4582673. Five reader candidate package hashes and both
+unrelated documents are preserved. Verification is recorded in ignored
+`reports/runtime/guide-library-first-regressions-verification.json`.
+These results do not establish evaluation or full-chain outcomes; log counts
+alone are not terminal evidence. All six detail/Viewer regression captures were
+directly reviewed: Event Detail default/maximized/restored, activity captions,
+event filters and Shipping held/pending status. The long Coverage field is
+visibly clipped at default/restored width and readable when maximized. Record
+this as an open visible-readability issue, not complete default-width acceptance;
+the screenshots do not establish the cause of older foreground failures.
+
+**Boxing/Shipping regression:** **1,707 PASS / seven known D8-A FAIL**, retaining
+all 1,714 preceding identities and all 18 owner-return observations. Report:
+`reports/runtime/slice4be-shipping-activity/29cca59b1d8e497e8d6a764ce5fd947c/boxing-activity-shipping-recording-green.json`.
+The seven failures are AuthUnavailable MissingFileNotRecreated for Shipping Add,
+Update, Remove, Hold, Return, Stage and Send. Terminal exit is 1 as expected for
+those failures. Its immediate ExcelClosed snapshot is false; the same owned
+Excel process subsequently exits and the serial evaluation preflight verifies
+no Excel before starting its own instance. The native-event audit therefore
+extends through that preflight: UTC 08:11:34.4846768--08:28:32.5190437, zero
+Application events 1000/1001/1002. Five candidate hashes and both unrelated
+documents remain unchanged. Ignored verification:
+`reports/runtime/guide-library-boxing-verification.json`. This is regression
+preservation, not D8-A approval or full-chain acceptance. Boxing captures from
+this run still require direct review; evaluation and full chain remain pending.
 
 **Candidate implementation:** `deploy/validation-guide-library`
 builds all five packages and passes explicit compile plus Operations cold start.

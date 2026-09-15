@@ -26,6 +26,7 @@ param(
     [switch]$CheckGuideDraft,
     [switch]$CheckGuideSave,
     [switch]$CheckGuideLibrary,
+    [switch]$CheckGuideExpectation,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideDraftOnly,
     [switch]$CheckRecordingIsolation,
@@ -73,6 +74,7 @@ $ErrorActionPreference = 'Stop'
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
 if($GuideDraftOnly){$CheckGuideDraft=$true}
 if($CaptureGuideEvidence){$CheckGuideLibrary=$true}
+if($CheckGuideExpectation){$CheckGuideLibrary=$true}
 if($CheckGuideLibrary){$CheckGuideSave=$true}
 if($CheckGuideSave){$CheckGuideDraft=$true}
 if($CheckEvaluationVisualEvidence){$CheckExpectationCompatibility=$true}

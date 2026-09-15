@@ -104,6 +104,10 @@ End Function
         if($CheckGuideSave){
             . (Join-Path $PSScriptRoot 'Slice4beGuideSave.ps1')
             Test-GuideSave $Fixture $b
+            if($CheckGuideExpectation){
+                . (Join-Path $PSScriptRoot 'Slice4beGuideExpectation.ps1')
+                Test-GuideExpectation $Fixture $b
+            }
         }
         return
     }
@@ -257,6 +261,10 @@ End Function
             if($CheckGuideSave){
                 . (Join-Path $PSScriptRoot 'Slice4beGuideSave.ps1')
                 Test-GuideSave $Fixture $b
+                if($CheckGuideExpectation){
+                    . (Join-Path $PSScriptRoot 'Slice4beGuideExpectation.ps1')
+                    Test-GuideExpectation $Fixture $b
+                }
             }
         }
         if($CheckRecordingOperations) {

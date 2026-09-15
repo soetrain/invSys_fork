@@ -25,6 +25,10 @@ Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As
             Case "Larger": owner.Width = 1000: owner.Height = 760
             Case Else: Err.Raise 5, , "Unknown guide layout fixture."
         End Select
+        If formName = "frmActionPathExpectation" Then
+            If value = "Minimum" Then owner.Height = 550
+            If value = "Default" Or value = "Restored" Then owner.Height = 630
+        End If
         owner.Repaint: DoEvents
         GuideDraftControlForTest = "False"
         For Each control In owner.Controls
@@ -60,11 +64,17 @@ Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As
             If index < 0 Or index >= control.ListCount Then GuideDraftControlForTest = "OUT OF RANGE": Exit Function
             control.ListIndex = -1: control.ListIndex = index
             GuideDraftControlForTest = "SELECTED"
-        Case "Click", "Write"
+        Case "Click", "Write", "Check"
             If Not owner.Visible Or Not control.Visible Or Not control.Enabled Then
                 GuideDraftControlForTest = "DISABLED": Exit Function
             End If
-            If action = "Click" Then control.Value = True Else control.Value = value
+            If action = "Click" Then
+                control.Value = True
+            ElseIf action = "Check" Then
+                control.Value = CBool(value)
+            Else
+                control.Value = value
+            End If
             GuideDraftControlForTest = "DELIVERED"
     End Select
 End Function
