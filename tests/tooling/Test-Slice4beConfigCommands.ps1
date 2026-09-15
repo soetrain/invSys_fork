@@ -31,7 +31,7 @@ param(
     [switch]$CheckExpectationCompatibility,
     [switch]$CheckEvaluationVisualEvidence,
     [switch]$RecordingEvaluationDiagnostic,
-    [switch]$CompileEvaluationProbesForTest,
+    [Alias('CompileViewerProbesForTest')][switch]$CompileEvaluationProbesForTest,
     [switch]$CheckExpectationEditor,
     [string]$RecordingContinuationPipeName = '',
     [switch]$CheckViewerPublication,
@@ -72,8 +72,8 @@ if($RecordingEvaluationDiagnostic){
     if($CheckRecordingLimits -or $CheckRecordingStorageBounds -or $CheckRecordingRestart -or $CheckExpectationEditor){throw 'Run limits, storage, restart and editor-only gates separately from evaluation diagnosis.'}
     Write-Output 'DIAGNOSTIC: evaluation fixture first; full regression gate remains required.'
 }
-if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence)){
-    throw 'Instrumented project compilation requires the evaluation diagnostic or full visual gate.'
+if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead)){
+    throw 'Instrumented project compilation requires the published Viewer or evaluation gate.'
 }
 if($TraceSettingsOpenForTest -and ($Phase -ne 'RED' -or -not $CheckTrackingSettings)) {
     throw 'Settings constructor tracing requires RED and the Settings checks; it is not acceptance GREEN.'

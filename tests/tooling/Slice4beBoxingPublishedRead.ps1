@@ -8,6 +8,9 @@ Public Function BoxingDetailForTest(ByVal action As String, ByVal caption As Str
     Dim index As Long, found As Boolean
     Select Case action
         Case "Lines": BoxingDetailForTest = CStr(mLines.ListCount)
+        Case "SelectedLabel"
+            If mLines.ListIndex >= 0 Then BoxingDetailForTest = CStr(mLines.List(mLines.ListIndex, 0))
+        Case "Prompt": BoxingDetailForTest = CStr(Me.Controls("lblDetailLines").Caption)
         Case "Select"
             index = CLng(expected)
             If index < 0 Or index >= mLines.ListCount Then Exit Function
@@ -88,11 +91,13 @@ function Test-Slice4beBoxingPublishedRead($Fixture,$Other,$Evidence) {
             Check ($label+'.ActualEventSelection') (BoxingRead 'SelectSource' $id)
             Check ($label+'.EveryContributingLineVisible') ((BoxingDetail 'Lines') -ceq '2')
             Check ($label+'.ReadOnlyFields') ((BoxingDetail 'ReadOnly') -ceq 'True')
+            Check ($label+'.SourceNeutralPrompt') ((BoxingDetail 'Prompt') -ceq 'Contributing lines - select a line to inspect its fields')
             if($stored.Count -eq 1){
                 $index=0
                 foreach($line in $stored[0].Lines){
                     $lineLabel=$label+'.Line'+($index+1)
                     Check ($lineLabel+'.ActualLineSelection') ((BoxingDetail 'Select' '' ([string]$index)) -ceq 'SELECTED')
+                    Check ($lineLabel+'.ExactInventoryKeyLabel') ((BoxingDetail 'SelectedLabel') -ceq [string]$line.System_Key)
                     foreach($field in @(@('Source event / activity ID',$id),@('Inventory identity (System_Key)',[string]$line.System_Key),
                         @('Source classification','Business event'),@('Event code',[string]$line.EventType),@('Quantity',[string]$line.QtyDelta))){
                         Check ($lineLabel+'.'+$field[0]) ((BoxingDetail 'Field' $field[0] $field[1]) -ceq 'True')
@@ -125,10 +130,12 @@ function Test-Slice4beBoxingPublishedRead($Fixture,$Other,$Evidence) {
             [void](BoxingRead 'Search' $id)
             Check ($label+'.ActualActivitySelection') (BoxingRead 'SelectSource' $id)
             Check ($label+'.BothObservationLinesVisible') ((BoxingDetail 'Lines') -ceq '2')
+            Check ($label+'.SourceNeutralPrompt') ((BoxingDetail 'Prompt') -ceq 'Contributing lines - select a line to inspect its fields')
             if($stored.Count -eq 1){
                 $index=0
                 foreach($line in $stored[0].Lines){
                     Check ($label+'.Line'+$index+'.ActualSelection') ((BoxingDetail 'Select' '' ([string]$index)) -ceq 'SELECTED')
+                    Check ($label+'.Line'+$index+'.FixedCaptionAndObservedOutcomeLabel') ((BoxingDetail 'SelectedLabel') -ceq (([string]$line.Caption)+' - '+([string]$line.OutcomeCode)))
                     foreach($field in @(@('Source event / activity ID',$id),@('Source classification','User activity'),
                         @('Owning operation','BOXING_WORKFLOW'),@('Event code',[string]$line.EventCode),
                         @('Outcome',[string]$line.OutcomeCode),@('Data effect',[string]$line.DataEffect))){

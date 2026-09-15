@@ -171,6 +171,26 @@ End Function
 Public Function PublishedReadGeometryForTest() As String
     PublishedReadGeometryForTest = mInventoryViewer.PublishedReadGeometryForTest()
 End Function
+Public Function PublishedDetailLabelForTest(ByVal action As String, Optional ByVal expected As String = "") As String
+    Dim instance As Object, lines As Object, index As Long, labels As String
+    For Each instance In VBA.UserForms
+        If TypeName(instance) = "frmEventDetail" Then
+            If action = "Prompt" Then
+                PublishedDetailLabelForTest = CStr(instance.Controls("lblDetailLines").Caption = expected)
+            ElseIf action = "Window" Then
+                PublishedDetailLabelForTest = CStr(modUserFormResizeWin.GetUserFormWindowHandle(instance))
+            ElseIf action = "Labels" Then
+                Set lines = instance.Controls("lstEventLines")
+                For index = 0 To lines.ListCount - 1
+                    If index > 0 Then labels = labels & vbLf
+                    labels = labels & CStr(lines.List(index, 0))
+                Next index
+                PublishedDetailLabelForTest = CStr(labels = expected)
+            End If
+            Exit Function
+        End If
+    Next instance
+End Function
 '@)
     $policy=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('cAdminTrackingPolicy').CodeModule
     $policy.AddFromString(@'
@@ -217,6 +237,10 @@ End Function
         Check 'PublishedRead.DetailPreservesExactActivityIdentity' (ReadDetail 'Source event / activity ID' $activityId)
         Check 'PublishedRead.DetailShowsVerifiedPublicationTime' (ReadDetail 'Published' ([string]$model.PublishedAtUTC).Substring(0,10))
         Check 'PublishedRead.DetailLabelsActivityProvenance' (ReadDetail 'Source classification' 'User activity')
+        $labels=@($activity[0].Lines|ForEach-Object {([string]$_.Caption)+' - '+([string]$_.OutcomeCode)}) -join "`n"
+        Check 'PublishedRead.DetailPicker.DistinguishesActualAdminObservations' ([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedDetailLabelForTest' @('Labels',$labels)) -ceq 'True')
+        Check 'PublishedRead.DetailPicker.SourceNeutralPrompt' ([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedDetailLabelForTest' @('Prompt','Contributing lines - select a line to inspect its fields')) -ceq 'True')
+        if($CaptureEvidence){CaptureFormEvidence 'Event Detail' 'viewer-activity-detail-labels.png' ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedDetailLabelForTest' @('Window','')))}
         [void](ReadAct 'Search' $activityId)
         Check 'PublishedRead.SearchRetainsExactActivityGroup' (ReadAct 'ContainsSource' $activityId)
         [void](ReadAct 'Search' '')

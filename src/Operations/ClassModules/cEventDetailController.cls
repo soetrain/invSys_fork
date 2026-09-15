@@ -100,6 +100,23 @@ Public Function Keys() As Collection
     Set Keys = result
 End Function
 
+Public Function LineLabels() As Collection
+    Dim result As New Collection, i As Variant, row As Long
+    If ContextValid() Then
+        If Not mSelected Is Nothing Then
+            For Each i In mSelected
+                row = CLng(i)
+                If CStr(mData(row, 18)) = "Activity" Then
+                    result.Add Available(FieldValue(row, "EventType")) & " - " & Available(FieldValue(row, "Outcome"))
+                Else
+                    result.Add Available(CStr(mData(row, 12)))
+                End If
+            Next i
+        End If
+    End If
+    Set LineLabels = result
+End Function
+
 Public Function Fields(ByVal selection As Long) As Variant
     Dim rows As String, definition As Variant, definitionValues As Variant, result() As Variant, count As Long, row As Long
     If Not ContextValid() Then Exit Function

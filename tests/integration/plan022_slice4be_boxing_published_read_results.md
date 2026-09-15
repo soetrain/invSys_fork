@@ -1,5 +1,8 @@
 # Plan 022 Slice 4be Boxing published Event Viewer evidence
 
+The subsequent [activity-label correction](plan022_slice4be_event_detail_labels_results.md)
+records the focused RED/GREEN for the picker finding below and its remaining gates.
+
 ## Scope and protecting route
 
 This supplementary 4be.1/4be.3 test applies Architecture v4.11 D18's existing

@@ -30,7 +30,7 @@ Private Sub UserForm_Initialize()
     Set mLayout = modOperationsLayout.OperationsAnchorManager()
     mLayout.ConfigureForForm Me, 820, 640
     Set mProfile = MakeControl("Label", "lblDetailProfile", "", 12, 10, 788, 32, 7)
-    MakeControl "Label", "lblDetailLines", "Contributing lines - select an exact inventory identity to inspect its fields", 12, 48, 788, 20, 7
+    MakeControl "Label", "lblDetailLines", "Contributing lines - select a line to inspect its fields", 12, 48, 788, 20, 7
     Set mLines = MakeControl("ListBox", "lstEventLines", "", 12, 72, 788, 104, 7)
     mLines.ColumnCount = 1
     MakeControl "Label", "lblDetailFields", "Permitted event and selected-line fields", 12, 188, 788, 20, 7
@@ -43,7 +43,7 @@ End Sub
 Public Sub Bind(ByVal owner As cEventDetailController, ByVal profileStatus As String)
     Dim key As Variant, keys As Collection
     Set mOwner = owner: mLoading = True
-    Set keys = owner.Keys()
+    Set keys = owner.LineLabels()
     mLines.Clear: mFields.Clear
     For Each key In keys
         mLines.AddItem CStr(key)
