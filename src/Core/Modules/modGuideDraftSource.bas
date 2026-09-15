@@ -5,11 +5,11 @@ Option Private Module
 ' Original training evidence stays in Core; no authority workbook is opened here.
 Public Function ReadSelected(ByVal context As String, ByVal pathId As String, ByRef header As Object, _
                              ByRef records As Collection, ByRef visible As Object, ByRef policyHash As String, _
-                             ByRef notice As String) As Boolean
+                             ByRef notice As String, Optional ByRef policyVersion As Long = 0) As Boolean
     Dim target As WarehouseTarget, policy As Object, current As Object, definition As Object
     Dim binding As String, source As String, version As Long, collect As Boolean, show As Boolean
     On Error GoTo Invalid
-    Set header = Nothing: Set records = Nothing: Set visible = Nothing: policyHash = ""
+    Set header = Nothing: Set records = Nothing: Set visible = Nothing: policyHash = "": policyVersion = 0
     notice = "Unavailable: the selected recording, session or guide permission changed. Reopen Action Paths."
     If context = "" Or context <> modActivity.CaptureContext() Then Exit Function
     binding = modPathExpectation.SelectionBinding(context, pathId)
@@ -29,7 +29,7 @@ Public Function ReadSelected(ByVal context As String, ByVal pathId As String, By
     policy("SavedCatalogVersion") = CLng(policy("SavedCatalogVersion"))
     policyHash = modTrainingWire.Sha256(modTrainingJson.EncodeObject(policy))
     If Not modEvaluationModel.IsHash(policyHash) Then GoTo Invalid
-    ReadSelected = True
+    policyVersion = version: ReadSelected = True
     Exit Function
 Invalid:
     Set header = Nothing: Set records = Nothing: Set visible = Nothing: policyHash = ""
@@ -37,9 +37,12 @@ Invalid:
 End Function
 
 Public Function SourceCaption(ByVal header As Object) As String
+    Dim lifecycle As String
+    lifecycle = CStr(header("Lifecycle"))
+    If header("RecordType") <> "Close" Then lifecycle = "Interrupted"
     SourceCaption = "Source Action Path: " & CStr(header("ActionPathId")) & vbCrLf & _
         "Sequence: " & CStr(header("SequenceId")) & "; journal version: " & CStr(header("Version")) & _
-        "; " & CStr(header("Lifecycle")) & ". Capture lifecycle is not a conclusion."
+        "; " & lifecycle & ". Capture lifecycle is not a conclusion."
 End Function
 
 Public Function Evidence(ByVal records As Collection, ByVal visible As Object) As String

@@ -318,6 +318,20 @@ function CaptureFormEvidence([string]$Title,[string]$FileName,[long]$WindowHandl
     if($WindowHandle) { [InvSysSettingsCapture]::SaveVisibleWindow([IntPtr]$WindowHandle,(Join-Path $reportRoot $FileName)) }
     else { [InvSysSettingsCapture]::Save($Title,(Join-Path $reportRoot $FileName)) }
 }
+function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$WindowHandle) {
+    Initialize-SettingsCapture
+    for($attempt=1;$attempt -le 3;$attempt++){
+        $owned=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
+        if($WindowHandle -eq 0 -or $owned -ne $WindowHandle){throw 'Requested capture does not identify a unique owned visible form.'}
+        $activation=New-Object -ComObject WScript.Shell
+        try{[void]$activation.AppActivate($Title)}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
+        try {CaptureFormEvidence $Title $FileName $WindowHandle; return}
+        catch {
+            if($_.Exception.GetBaseException().Message -cne 'Requested form is not in the foreground.' -or $attempt -eq 3){throw}
+            Start-Sleep -Milliseconds 300
+        }
+    }
+}
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
     $name="'$Package'!$Macro"
     try {

@@ -1,32 +1,36 @@
-Attribute VB_Name = "modEvaluationStore"
+Attribute VB_Name = "modGuideStore"
 Option Explicit
 Option Private Module
 
-Private Function StoreRoot(ByVal target As WarehouseTarget, ByVal create As Boolean) As String
-    StoreRoot = modRecordingJournal.ChildRoot(target, "Evaluations", create)
-End Function
-
-Public Function Append(ByVal target As WarehouseTarget, ByVal model As Object, ByRef notice As String) As Boolean
-    Dim root As String, body As String, content As String, hash As String, path As String, pending As String
-    Dim fso As Object, stream As Object, decoded As Object
+' Immutable guide revisions have their own namespace and no journal-entry limit.
+Public Function Append(ByVal target As WarehouseTarget, ByVal model As Object, ByRef hash As String, ByRef notice As String) As Boolean
+    Dim body As String, content As String, root As String, path As String, pending As String
+    Dim fso As Object, stream As Object, decoded As Object, previous As Object
     On Error GoTo Failed
-    notice = "Incomplete evidence: the diagnostic result could not be saved."
-    If Not modEvaluationModel.Validate(model, target.WarehouseId) Then Exit Function
+    hash = "": notice = "Unavailable: the guide version could not be saved. Your edits remain in this draft."
+    If Not modGuideModel.Validate(target, model) Then Exit Function
     body = modTrainingJson.EncodeObject(model)
     If Len(body) + 83 > 1048576 Then
-        notice = "Incomplete evidence: the diagnostic result exceeds 1 MiB. No evidence was truncated.": Exit Function
+        notice = "Guide save exceeds 1 MiB. No authored text or observations were truncated.": Exit Function
     End If
     Set decoded = modTrainingJson.DecodeObject(body)
     If decoded Is Nothing Then Exit Function
-    If Not modEvaluationModel.Validate(decoded, target.WarehouseId) Then Exit Function
+    If Not modGuideModel.Validate(target, decoded) Then Exit Function
     hash = modTrainingWire.Sha256(body)
     If Not modEvaluationModel.IsHash(hash) Then Exit Function
     content = Left$(body, Len(body) - 1) & ",""ContentSha256"":""" & hash & """}"
-    root = StoreRoot(target, True)
+    root = modRecordingJournal.ChildRoot(target, "Guides", True)
     If root = "" Then Exit Function
     Set fso = CreateObject("Scripting.FileSystemObject")
-    path = fso.BuildPath(root, CStr(model("EvaluationId")) & ".1.json")
-    If fso.FileExists(path) Or fso.FolderExists(path) Then Exit Function
+    path = fso.BuildPath(root, CStr(model("ActionPathId")) & "." & CStr(model("Version")) & ".json")
+    If fso.FileExists(path) Or fso.FolderExists(path) Then
+        notice = "Guide version conflict. Existing versions and your unsaved edits were preserved.": Exit Function
+    End If
+    If model("Version") > 1 Then
+        Set previous = ReadVersion(target, CStr(model("ActionPathId")), CLng(model("Version")) - 1)
+        If previous Is Nothing Then Exit Function
+        If previous("RecordId") <> model("PreviousRecordId") Or previous("ContentSha256") <> model("PreviousSha256") Then Exit Function
+    End If
     pending = fso.BuildPath(root, modTrainingWire.NewId() & ".pending")
     Set stream = fso.CreateTextFile(pending, False, False)
     stream.Write content: stream.Close: Set stream = Nothing
@@ -42,15 +46,15 @@ Failed:
     End If
 End Function
 
-Public Function Read(ByVal target As WarehouseTarget, ByVal evaluationId As String) As Object
+Public Function ReadVersion(ByVal target As WarehouseTarget, ByVal pathId As String, ByVal version As Long) As Object
     Dim root As String, path As String, text As String, body As String, hash As String, marker As Long
     Dim fso As Object, model As Object
     On Error GoTo Invalid
-    If Not modTrainingWire.ValidId(evaluationId) Then Exit Function
-    root = StoreRoot(target, False)
+    If Not modTrainingWire.ValidId(pathId) Or version < 1 Then Exit Function
+    root = modRecordingJournal.ChildRoot(target, "Guides", False)
     If root = "" Then Exit Function
     Set fso = CreateObject("Scripting.FileSystemObject")
-    path = fso.BuildPath(root, evaluationId & ".1.json")
+    path = fso.BuildPath(root, pathId & "." & CStr(version) & ".json")
     If Not fso.FileExists(path) Then Exit Function
     If (fso.GetFile(path).Attributes And &H400) <> 0 Then Exit Function
     text = modRecordingJournal.ReadText(path)
@@ -62,8 +66,9 @@ Public Function Read(ByVal target As WarehouseTarget, ByVal evaluationId As Stri
     If Not modEvaluationModel.IsHash(hash) Or modTrainingWire.Sha256(body) <> hash Then Exit Function
     Set model = modTrainingJson.DecodeObject(body)
     If model Is Nothing Then Exit Function
-    If Not modEvaluationModel.Validate(model, target.WarehouseId) Then Exit Function
-    If model("EvaluationId") <> evaluationId Then Exit Function
-    Set Read = model
+    If Not modGuideModel.Validate(target, model) Then Exit Function
+    If model("ActionPathId") <> pathId Or model("Version") <> version Then Exit Function
+    model.Add "ContentSha256", hash
+    Set ReadVersion = model
 Invalid:
 End Function

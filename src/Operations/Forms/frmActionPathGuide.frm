@@ -32,6 +32,7 @@ Private WithEvents mUp As MSForms.CommandButton
 Private WithEvents mDown As MSForms.CommandButton
 Private WithEvents mRemove As MSForms.CommandButton
 Private WithEvents mCancel As MSForms.CommandButton
+Private WithEvents mSave As MSForms.CommandButton
 
 Private Sub UserForm_Initialize()
     Dim definition As Variant, control As Object
@@ -56,6 +57,8 @@ Private Sub UserForm_Initialize()
         Array("Label", "lblGuideStepInstruction", "Authored instruction for selected step", 12, 424, 320, 18, 9), _
         Array("TextBox", "txtGuideStepInstruction", "", 12, 444, 320, 70, 9), _
         Array("Label", "lblGuideStatus", "", 12, 528, 868, 48, 13), _
+        Array("Label", "lblGuidePublication", "Save publishes a guide version for permitted Viewers in this warehouse.", 12, 586, 650, 28, 13), _
+        Array("CommandButton", "btnSaveGuide", "Save guide", 672, 586, 98, 28, 12), _
         Array("CommandButton", "btnCancelGuide", "Cancel", 782, 586, 98, 28, 12))
         Set control = Me.Controls.Add("Forms." & definition(0) & ".1", CStr(definition(1)), True)
         control.Move definition(3), definition(4), definition(5), definition(6)
@@ -69,6 +72,7 @@ Private Sub UserForm_Initialize()
     Set mSteps = Me.Controls("lstGuideSteps"): Set mEvidence = Me.Controls("txtGuideEvidence")
     Set mUp = Me.Controls("btnGuideStepUp"): Set mDown = Me.Controls("btnGuideStepDown")
     Set mRemove = Me.Controls("btnRemoveGuideStep"): Set mCancel = Me.Controls("btnCancelGuide")
+    Set mSave = Me.Controls("btnSaveGuide")
     For Each definition In Array("txtGuideInstructions", "txtGuideStepInstruction", "txtGuideEvidence")
         Set control = Me.Controls(CStr(definition))
         control.MultiLine = True: control.WordWrap = True: control.ScrollBars = fmScrollBarsVertical
@@ -155,6 +159,7 @@ Private Sub Invalidate(ByVal notice As String)
         control.Value = "": control.Enabled = False
     Next name
     mSteps.Enabled = False: mUp.Enabled = False: mDown.Enabled = False: mRemove.Enabled = False
+    mSave.Enabled = False
     mStatus.Caption = notice: mLoading = False
 End Sub
 
@@ -189,6 +194,14 @@ Private Sub mRemove_Click()
 End Sub
 Private Sub mCancel_Click()
     modGuideEditor.CancelEditor Me
+End Sub
+Private Sub mSave_Click()
+    Dim notice As String
+    If modActionGuideDraft.SaveDraft(mContext, mDraftId, notice) Then
+        mStatus.Caption = notice
+    ElseIf ValidateBinding() Then
+        mStatus.Caption = notice
+    End If
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)

@@ -1,11 +1,31 @@
 # D18 immutable guide publication through the actual packaged editor controls.
 # The fixture journal comes from real Admin actions; no guide is fabricated.
 function Test-GuideSave($Fixture,$Other) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive=[IO.Compression.ZipFile]::OpenRead((Join-Path $deploy 'invSys.Core.xlam'))
+    try {
+        $entry=$archive.GetEntry('docProps/custom.xml')
+        if($null -eq $entry){throw 'Guide publisher package metadata is missing.'}
+        $reader=[IO.StreamReader]::new($entry.Open())
+        try {[xml]$metadata=$reader.ReadToEnd()}finally{$reader.Dispose()}
+        $versions=@($metadata.Properties.property|Where-Object name -CEQ 'invSysPackageSetVersion')
+        $builds=@($metadata.Properties.property|Where-Object name -CEQ 'invSysBuildIdentity')
+        if($versions.Count -ne 1 -or $builds.Count -ne 1){throw 'Guide publisher package identity is ambiguous.'}
+        $publisherVersion=[string]$versions[0].InnerText;$publisherBuild=[string]$builds[0].InnerText
+        if($publisherVersion -ceq '' -or $publisherBuild -notmatch '^[0-9a-f]{32}$'){throw 'Guide publisher package identity is invalid.'}
+    } finally {$archive.Dispose()}
     function GuideSaveControl([string]$Name,[string]$Action,[string]$Value='', [string]$Form='frmActionPathGuide') {
         [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($Form,$Name,$Action,$Value))
     }
     function GuideSaveLibrary([string]$Action,[string]$Value='') {
         [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @($Action,$Value))
+    }
+    function CaptureSavedGuide([string]$Version) {
+        if(-not $CaptureEvidence){return}
+        Initialize-SettingsCapture
+        $handle=[InvSysSettingsCapture]::OwnedVisibleForm('Action Path guide',[IntPtr]$excel.Hwnd).ToInt64()
+        CaptureOwnedFormEvidence 'Action Path guide' ('guide-save-version-'+$Version+'.png') $handle
+        Check ('GuideSave.VisibleCapture.Version'+$Version) $true
     }
     function GuideFiles {
         if(Test-Path -LiteralPath $guideRoot){Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json'}
@@ -128,8 +148,8 @@ function Test-GuideSave($Fixture,$Other) {
         Check 'GuideSave.CreatorWarehouseAndReleaseProvenance' ($validFirst -and $firstRecord.WarehouseId -ceq $Fixture.Warehouse -and $firstRecord.OriginWarehouseId -ceq $Fixture.Warehouse -and
             $firstRecord.CreatedByUserId -ceq 'config-admin' -and $firstRecord.CreatedAtUTC -match '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$' -and
             $firstRecord.CatalogVersion -eq $source.CatalogVersion -and $firstRecord.PolicyVersion -eq $source.PolicyVersion -and
-            $firstRecord.PackageSetVersion -ceq [string]$packages['invSys.Core.xlam'].CustomDocumentProperties.Item('invSysPackageSetVersion').Value -and
-            $firstRecord.BuildIdentity -ceq [string]$packages['invSys.Core.xlam'].CustomDocumentProperties.Item('invSysBuildIdentity').Value -and
+            $firstRecord.PackageSetVersion -ceq $publisherVersion -and
+            $firstRecord.BuildIdentity -ceq $publisherBuild -and
             [guid]::TryParse([string]$firstRecord.RecordId,[ref]$recordGuid) -and $recordGuid -ne [guid]::Empty -and $firstRecord.RecordId -cnotin @($guideId,$source.RecordId,$sequence,$firstStep,$secondStep))
         Check 'GuideSave.AuthoredFieldsAndTagsPreserved' ($validFirst -and $firstRecord.Name -ceq 'Review and verify a Settings change' -and @($firstRecord.Tags).Count -eq 2 -and $firstRecord.Tags[0] -ceq 'training' -and $firstRecord.Tags[1] -ceq 'settings' -and $firstRecord.Instructions -ceq 'Read the setting, save it, and inspect the observed outcome.')
         $steps=@(if($validFirst){$firstRecord.Steps})
@@ -149,6 +169,7 @@ function Test-GuideSave($Fixture,$Other) {
         Check 'GuideSave.OriginalObservationsRetainedInOrder' ($validFirst -and ($firstRecord.Observations|ConvertTo-Json -Depth 12 -Compress) -ceq ($source.Observations|ConvertTo-Json -Depth 12 -Compress))
         Check 'GuideSave.NoInferredExpectationOrConclusion' ($validFirst -and $firstRecord.ExpectedConclusion.TerminalKind -ceq 'None' -and @($firstRecord.ExpectedConclusion.Steps).Count -eq 0 -and (GuideSaveControl 'lblGuideStatus' 'Label') -notmatch '(?i)conclusion observed')
         Check 'GuideSave.SuccessNamesPublishedGuideAndVersion' ($validFirst -and (GuideSaveControl 'lblGuideStatus' 'Label').Contains($guideId) -and (GuideSaveControl 'lblGuideStatus' 'Label') -match '(?i)version\s*:?\s*1\b')
+        if($validFirst){CaptureSavedGuide '1'}
         $firstHash=if($validFirst){(Get-FileHash -LiteralPath $firstFile.FullName).Hash}else{''}
         [void](GuideSaveControl 'txtGuideName' 'Write' 'Revised Settings training guide')
         [void](GuideSaveControl 'btnGuideStepUp' 'Click')
@@ -160,6 +181,7 @@ function Test-GuideSave($Fixture,$Other) {
         Check 'GuideSave.SecondSaveAppendsSameGuideNextVersion' ($validFirst -and $validSecond -and $files.Count -eq 2 -and $secondRecord.ActionPathId -ceq $guideId -and $secondRecord.Version -eq 2 -and $secondRecord.RecordId -cne $firstRecord.RecordId)
         Check 'GuideSave.SecondVersionLinksExactPriorRecord' ($validFirst -and $validSecond -and $secondRecord.PreviousRecordId -ceq $firstRecord.RecordId -and $secondRecord.PreviousSha256 -ceq $firstRecord.ContentSha256 -and (Get-FileHash -LiteralPath $firstFile.FullName).Hash -ceq $firstHash)
         Check 'GuideSave.RevisionChangesAuthoredOrderOnly' ($validFirst -and $validSecond -and $secondRecord.Name -ceq 'Revised Settings training guide' -and $secondRecord.Steps[0].StepId -ceq $secondStep -and $secondRecord.Steps[1].StepId -ceq $firstStep -and ($secondRecord.Observations|ConvertTo-Json -Depth 12 -Compress) -ceq ($firstRecord.Observations|ConvertTo-Json -Depth 12 -Compress) -and (GuideSaveControl 'txtGuideEvidence' 'Text') -ceq $observed)
+        if($validSecond){CaptureSavedGuide '2'}
         $saved=GuidePins
         $oversize='x'*1048576
         [void](GuideSaveControl 'txtGuideInstructions' 'Write' $oversize)

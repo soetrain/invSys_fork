@@ -240,7 +240,7 @@ End Function
         $labels=@($activity[0].Lines|ForEach-Object {([string]$_.Caption)+' - '+([string]$_.OutcomeCode)}) -join "`n"
         Check 'PublishedRead.DetailPicker.DistinguishesActualAdminObservations' ([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedDetailLabelForTest' @('Labels',$labels)) -ceq 'True')
         Check 'PublishedRead.DetailPicker.SourceNeutralPrompt' ([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedDetailLabelForTest' @('Prompt','Contributing lines - select a line to inspect its fields')) -ceq 'True')
-        if($CaptureEvidence){CaptureFormEvidence 'Event Detail' 'viewer-activity-detail-labels.png' ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedDetailLabelForTest' @('Window','')))}
+        if($CaptureEvidence){CaptureOwnedFormEvidence 'Event Detail' 'viewer-activity-detail-labels.png' ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedDetailLabelForTest' @('Window','')))}
         [void](ReadAct 'Search' $activityId)
         Check 'PublishedRead.SearchRetainsExactActivityGroup' (ReadAct 'ContainsSource' $activityId)
         [void](ReadAct 'Search' '')
@@ -289,7 +289,7 @@ End Function
         [IO.File]::WriteAllText($path,$original,$utf8)
         [void](ReadAct 'Refresh')
         Check 'PublishedRead.RestoredPublicationRecoversActivity' ((ReadAct 'Fresh') -and (ReadAct 'ContainsSource' $activityId))
-        if($CaptureEvidence -and -not $CheckViewerFilters){CaptureFormEvidence '' 'viewer-published-read.png' ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadWindowForTest'))}
+        if($CaptureEvidence -and -not $CheckViewerFilters){CaptureOwnedFormEvidence ('Viewer - '+$Fixture.Warehouse) 'viewer-published-read.png' ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadWindowForTest'))}
 
         [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')
         $body=$original.Substring(0,$original.LastIndexOf(',"ContentSha256":"',[StringComparison]::Ordinal))+'}'

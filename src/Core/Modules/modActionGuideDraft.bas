@@ -1,7 +1,7 @@
 Attribute VB_Name = "modActionGuideDraft"
 Option Explicit
 
-' D18 declared primitive Core boundary. A draft is memory-only authored intent.
+' D18 primitive Core boundary. Edits are staged until explicit immutable save.
 Private mContext As String
 Private mPathId As String
 Private mBinding As String
@@ -10,6 +10,8 @@ Private mPolicyHash As String
 Private mHeader As Object
 Private mSteps As Collection
 Private mText As Object
+Private mSaved As Object
+Private mPolicyVersion As Long
 
 Public Function CanCreate(ByVal context As String, ByVal pathId As String) As Boolean
     Dim header As Object, records As Collection, visible As Object, policyHash As String, notice As String
@@ -17,13 +19,14 @@ Public Function CanCreate(ByVal context As String, ByVal pathId As String) As Bo
 End Function
 
 Public Function OpenDraft(ByVal context As String, ByVal pathId As String, ByRef draftId As String, ByRef notice As String) As Boolean
-    Dim header As Object, records As Collection, visible As Object, policyHash As String, record As Object, step As Object
+    Dim header As Object, records As Collection, visible As Object, policyHash As String, record As Object, step As Object, policyVersion As Long
     On Error GoTo Failed
     draftId = ""
-    If Not modGuideDraftSource.ReadSelected(context, pathId, header, records, visible, policyHash, notice) Then Exit Function
+    If Not modGuideDraftSource.ReadSelected(context, pathId, header, records, visible, policyHash, notice, policyVersion) Then Exit Function
     Discard
     mContext = context: mPathId = pathId: mBinding = modPathExpectation.SelectionBinding(context, pathId)
     mDraftId = modTrainingWire.NewId(): mPolicyHash = policyHash: Set mHeader = header
+    mPolicyVersion = policyVersion
     Set mSteps = New Collection: Set mText = CreateObject("Scripting.Dictionary")
     mText.Add "Name", "": mText.Add "Tags", "": mText.Add "Instructions", ""
     For Each record In records
@@ -153,7 +156,37 @@ Public Sub CloseDraft(ByVal context As String, ByVal draftId As String)
     If context = mContext And draftId = mDraftId Then Discard
 End Sub
 
+Public Function SaveDraft(ByVal context As String, ByVal draftId As String, ByRef notice As String) As Boolean
+    Dim records As Collection, visible As Object, target As WarehouseTarget, model As Object, hash As String, step As Object
+    On Error GoTo Failed
+    If Not Guard(context, draftId, records, visible, notice) Then Exit Function
+    notice = "A guide name is required."
+    If Trim$(CStr(mText("Name"))) = "" Then Exit Function
+    notice = "At least one authored step is required."
+    If mSteps.Count = 0 Then Exit Function
+    notice = "Guide save exceeds 1 MiB. No authored text or observations were truncated."
+    ' The complete encoded record cannot be smaller than any one authored field.
+    If Len(mText("Name")) >= 1048576 Or Len(mText("Tags")) >= 1048576 Or Len(mText("Instructions")) >= 1048576 Then Exit Function
+    For Each step In mSteps
+        If Len(step("Instruction")) >= 1048576 Then Exit Function
+    Next step
+    notice = "Unavailable: the guide version could not be saved. Your edits remain in this draft."
+    If Not mSaved Is Nothing Then
+        If mSaved("Version") = 2147483647 Then notice = "Guide version limit reached. Your edits remain in this draft.": Exit Function
+    End If
+    Set model = modGuideModel.Create(mHeader, mText, mSteps, records, visible, mPolicyVersion, mSaved)
+    Set target = modNasConnection.GetCurrentTarget()
+    If target Is Nothing Then Exit Function
+    If Not modGuideStore.Append(target, model, hash, notice) Then Exit Function
+    model.Add "ContentSha256", hash: Set mSaved = model
+    notice = "Published guide " & CStr(model("ActionPathId")) & ", version " & CStr(model("Version")) & "."
+    SaveDraft = True
+    Exit Function
+Failed:
+    notice = "Unavailable: the guide version could not be saved. Your edits remain in this draft."
+End Function
+
 Private Sub Discard()
     mContext = "": mPathId = "": mBinding = "": mDraftId = "": mPolicyHash = ""
-    Set mHeader = Nothing: Set mSteps = Nothing: Set mText = Nothing
+    Set mHeader = Nothing: Set mSteps = Nothing: Set mText = Nothing: Set mSaved = Nothing: mPolicyVersion = 0
 End Sub

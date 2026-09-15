@@ -104,3 +104,18 @@ Public Function ReadText(ByVal path As String) As String
 Done:
     If Not stream Is Nothing Then stream.Close
 End Function
+
+' Fixed children share the journal's allowed-target and ancestor checks.
+Public Function ChildRoot(ByVal target As WarehouseTarget, ByVal child As String, ByVal create As Boolean) As String
+    Dim root As String, fso As Object
+    If child <> "Guides" And child <> "Evaluations" Then Exit Function
+    root = JournalRoot(target, create)
+    If root = "" Then Exit Function
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    root = fso.BuildPath(root, child)
+    If Not fso.FolderExists(root) Then
+        If Not create Or fso.FileExists(root) Then Exit Function
+        fso.CreateFolder root
+    End If
+    If (fso.GetFolder(root).Attributes And &H400) = 0 Then ChildRoot = root
+End Function
