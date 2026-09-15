@@ -101,6 +101,10 @@ End Function
     if($GuideDraftOnly){
         . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
         Test-GuideDraftEntry $Fixture $b
+        if($CheckGuideSave){
+            . (Join-Path $PSScriptRoot 'Slice4beGuideSave.ps1')
+            Test-GuideSave $Fixture $b
+        }
         return
     }
     if($RecordingEvaluationDiagnostic){
@@ -250,6 +254,10 @@ End Function
         if($CheckGuideDraft) {
             . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
             Test-GuideDraftEntry $Fixture $b
+            if($CheckGuideSave){
+                . (Join-Path $PSScriptRoot 'Slice4beGuideSave.ps1')
+                Test-GuideSave $Fixture $b
+            }
         }
         if($CheckRecordingOperations) {
             . (Join-Path $PSScriptRoot 'Slice4beRecordingOperations.ps1')

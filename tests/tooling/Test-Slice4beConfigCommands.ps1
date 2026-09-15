@@ -24,6 +24,7 @@ param(
     [switch]$CheckRecordingStorageBounds,
     [switch]$CheckRecordingReader,
     [switch]$CheckGuideDraft,
+    [switch]$CheckGuideSave,
     [switch]$GuideDraftOnly,
     [switch]$CheckRecordingIsolation,
     [switch]$CheckRecordingRestart,
@@ -69,6 +70,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
 if($GuideDraftOnly){$CheckGuideDraft=$true}
+if($CheckGuideSave){$CheckGuideDraft=$true}
 if($CheckEvaluationVisualEvidence){$CheckExpectationCompatibility=$true}
 if($RecordingEvaluationDiagnostic){
     if($Phase -ne 'RED' -or -not $CheckExpectationCompatibility){throw 'Evaluation isolation requires RED and the full evaluation contract probes; it is not regression acceptance.'}

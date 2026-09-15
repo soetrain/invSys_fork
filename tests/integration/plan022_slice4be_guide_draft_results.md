@@ -145,10 +145,31 @@ Combined recording/guide passes **105/105** at
 `reports/runtime/slice4be-viewer-published-read/36be87ce9d234bc2b98b08dac5d95e33/green.json`.
 Event Detail passes **34/34** at
 `reports/runtime/slice4be-viewer-detail/35fa03bb661b4f4e8fe01193045d9d38/green.json`.
-Both terminate at exit 0 with Excel closed. Viewer/filter/Shipping state,
-Boxing/Shipping, evaluation and full Release 1 chain/live-role regressions are
-running serially against the corrected isolated candidate. Their results remain
-pending; this is a focused GREEN checkpoint, not completed slice acceptance. Keep save/version,
+Both terminate at exit 0 with Excel closed. Subsequent unchanged-candidate gates
+pass Viewer/filter/Shipping state **94/94** and evaluation **376/376**. Their exact
+reports are `reports/runtime/slice4be-viewer-published-read/9d2c843f53db4b03a83f973cfd2e8cfe/green.json`
+and `reports/runtime/slice4be-viewer-published-read/ce64f78927fe41e990e54fa9c19a3350/green.json`.
+Boxing/Shipping retains all 1,714 prior identities and 18 owner-return facts:
+**1,707 PASS / seven known D8-A FAIL**, at
+`reports/runtime/slice4be-shipping-activity/99ce5b03f6ed46958f0a55510d8d7f75/boxing-activity-shipping-recording-green.json`.
+The seven failures remain AuthUnavailable MissingFileNotRecreated for Shipping
+Add, Update, Remove, Hold, Return, Stage and Send; D8-A remains unapproved.
+
+The full-chain attempt terminates with **5 PASS / one harness FAIL**, live roles
+**32 PASS / one harness FAIL**, and Create Warehouse **15/15**. The live failure
+is RPC HRESULT `0x800706BE` at Delete and rebuild canonical inventory projections.
+This does not establish full-chain acceptance. The three tracked reports were
+restored; sanitized copies remain under ignored `reports/runtime/guide-draft-chain-*`.
+A residual test Excel instance was independently verified to have a non-null,
+empty Workbooks collection, then closed using normal Quit. Its recovery dialog
+was visibly set to retain files before confirmation. No forced termination,
+recovered-file deletion or native repair is claimed. Terminal exit is 1 with
+Excel closed. The audited chain window (2026-09-15 06:04:08 through 06:09:38 UTC,
+including cleanup) has no Application events 1000/1001/1002; the RPC defect remains
+unresolved. Counts, native query and unrelated-document preservation are recorded
+in `reports/runtime/guide-draft-remaining-gates-verification.json`.
+
+This remains a focused GREEN checkpoint, not completed slice acceptance. Keep save/version,
 published guide discovery, both presentations, exact guide/run comparison and
 validated origin-only transfer in scope, with their own protecting tests before
 implementation. The prior label checkpoint retains its full-chain results and
