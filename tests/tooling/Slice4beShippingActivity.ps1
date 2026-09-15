@@ -563,6 +563,7 @@ End Function
         Test-Slice4beShippingWorkbookClose $fixture $operator $other $ship $hold
         $operator=$null # The actual close event was exercised and verified above.
         Check 'Shipping.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))
+        if($CheckBoxingActivity){Test-Slice4beBoxingPublishedRead $fixture $other $script:BoxingPublicationEvidence}
     } finally {
         if($CheckShippingRecording){CloseRecordingViewer}
         if($null -ne $dialogJob){

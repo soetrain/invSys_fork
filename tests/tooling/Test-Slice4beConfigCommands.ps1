@@ -578,6 +578,8 @@ End Function
             }
             . (Join-Path $PSScriptRoot 'Slice4beBoxingActivity.ps1')
             Install-Slice4beBoxingActivityProbe
+            . (Join-Path $PSScriptRoot 'Slice4beBoxingPublishedRead.ps1')
+            Install-Slice4beBoxingPublishedReadProbe
             . (Join-Path $PSScriptRoot 'Slice4beBoxingContext.ps1')
             Install-Slice4beBoxingContextProbe
             . (Join-Path $PSScriptRoot 'Slice4beShippingSubmission.ps1')

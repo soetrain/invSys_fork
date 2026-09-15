@@ -168,6 +168,7 @@ function Test-Slice4beBoxingActivity($Fixture,$Operator,$Other,$Ship,$Hold) {
         $closed=@(RecordingJournal $sequence|Where-Object RecordType -CEQ 'Close')
         Check 'Boxing.Recording.FourActionsEightObservations' ($closed.Count -eq 1 -and $closed[0].ActionCount -eq 4 -and @($closed[0].Observations).Count -eq 8)
         Check 'Boxing.Recording.CompleteIntegrityChain' (JournalChain $sequence 10)
+        $script:BoxingPublicationEvidence=[pscustomobject]@{Rows=@($applied);Observations=@($closed[0].Observations)}
         $preserved=$true
         foreach($path in $prior.Keys){if((Get-FileHash -LiteralPath $path).Hash -cne $prior[$path]){$preserved=$false}}
         Check 'Boxing.Recording.PriorShippingJournalPreserved' $preserved

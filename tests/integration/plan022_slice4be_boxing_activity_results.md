@@ -1,5 +1,10 @@
 # Plan 022 Slice 4be.1 Boxing Make/Unbox activity
 
+The subsequent [published Event Viewer proof](plan022_slice4be_boxing_published_read_results.md)
+adds 112 GREENs on the unchanged candidate: 1689 PASS / seven known D8-A FAIL,
+with all 680 Boxing checks passing. It preserves this checkpoint's evidence and
+records the activity line picker's remaining presentation issue separately.
+
 ## Verified isolated implementation checkpoint
 
 The isolated `deploy/validation-boxing-activity-visible` candidate completes
