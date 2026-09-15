@@ -572,6 +572,10 @@ End Function
         }
         if($CheckShippingRecording){Test-Slice4beShippingActivity $true}
         if($CheckBoxingActivity){
+            if($CaptureEvidence){
+                . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
+                Test-Slice4beRecordingReader $null $null $true
+            }
             . (Join-Path $PSScriptRoot 'Slice4beBoxingActivity.ps1')
             Install-Slice4beBoxingActivityProbe
             . (Join-Path $PSScriptRoot 'Slice4beBoxingContext.ps1')

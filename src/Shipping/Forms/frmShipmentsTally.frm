@@ -987,19 +987,7 @@ Private Sub ClearBoxBuilderSelection()
 End Sub
 
 Private Function BoxBuilderPageComponents() As Variant
-    Dim result() As Variant
-    Dim rowIndex As Long
-    Dim columnIndex As Long
-
-    If mLstBoxBuilderComponents.ListCount = 0 Then Exit Function
-    ReDim result(1 To mLstBoxBuilderComponents.ListCount, 1 To 8)
-    For rowIndex = 0 To mLstBoxBuilderComponents.ListCount - 1
-        For columnIndex = 0 To 7
-            result(rowIndex + 1, columnIndex + 1) = _
-                mLstBoxBuilderComponents.List(rowIndex, columnIndex)
-        Next columnIndex
-    Next rowIndex
-    BoxBuilderPageComponents = result
+    BoxBuilderPageComponents = modShippingFormValues.ComponentRows(mLstBoxBuilderComponents, 8)
 End Function
 
 Private Sub mBtnBoxBuilderSave_Click()
@@ -1133,51 +1121,29 @@ Private Sub LoadSelectedBoxMakerComponents()
 End Sub
 
 Private Function BoxMakerPageComponents() As Variant
-    Dim result() As Variant
-    Dim rowIndex As Long
-    Dim columnIndex As Long
-
-    If mLstBoxMakerComponents.ListCount = 0 Then Exit Function
-    ReDim result(1 To mLstBoxMakerComponents.ListCount, 1 To 9)
-    For rowIndex = 0 To mLstBoxMakerComponents.ListCount - 1
-        For columnIndex = 0 To 8
-            result(rowIndex + 1, columnIndex + 1) = _
-                mLstBoxMakerComponents.List(rowIndex, columnIndex)
-        Next columnIndex
-    Next rowIndex
-    BoxMakerPageComponents = result
+    BoxMakerPageComponents = modShippingFormValues.ComponentRows(mLstBoxMakerComponents, 9)
 End Function
 
 Private Sub mBtnBoxMakerMake_Click()
-    Dim report As String
-    Dim succeeded As Boolean
-    Dim selectedIndex As Long
-
-    selectedIndex = mLstBoxMakerDesigns.ListIndex
-    If selectedIndex < 0 Then
-        ShowStatus "Select a released box design."
-        Exit Sub
-    End If
-    succeeded = modBoxingService.PostBoxMakerAction( _
-        mOperatorWorkbook, mSelectedBoxMakerPackageSystemKey, _
-        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 1)), _
-        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 3)), _
-        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 4)), _
-        modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 5)), _
-        modShippingFormValues.NzText(mCboBoxMakerVersion.Value), modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mTxtBoxMakerQty.Value)), _
-        BoxMakerPageComponents(), "MAKE", report)
-    ShowStatus report
-    If succeeded Then RefreshBoxMakerPage
+    PostBoxMakerAction "MAKE", "BOXING_MAKE"
 End Sub
 
 Private Sub mBtnBoxMakerUnmake_Click()
+    PostBoxMakerAction "UNMAKE", "BOXING_UNBOX"
+End Sub
+
+Private Sub PostBoxMakerAction(ByVal action As String, ByVal controlId As String)
     Dim report As String
     Dim succeeded As Boolean
     Dim selectedIndex As Long
+    Dim observation As cShippingActivity
+    On Error GoTo Failed
+    If Not BeginShippingAction(controlId, observation) Then Exit Sub
 
     selectedIndex = mLstBoxMakerDesigns.ListIndex
     If selectedIndex < 0 Then
         ShowStatus "Select a released box design."
+        FinishShippingAction observation, "REJECTED"
         Exit Sub
     End If
     succeeded = modBoxingService.PostBoxMakerAction( _
@@ -1187,9 +1153,14 @@ Private Sub mBtnBoxMakerUnmake_Click()
         modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 4)), _
         modShippingFormValues.NzText(mLstBoxMakerDesigns.List(selectedIndex, 5)), _
         modShippingFormValues.NzText(mCboBoxMakerVersion.Value), modShippingFormValues.ParseNumber(modShippingFormValues.NzText(mTxtBoxMakerQty.Value)), _
-        BoxMakerPageComponents(), "UNMAKE", report)
+        BoxMakerPageComponents(), action, report, observation.Facts)
     ShowStatus report
     If succeeded Then RefreshBoxMakerPage
+    FinishShippingAction observation
+    Exit Sub
+Failed:
+    ShowStatus "Box Maker action could not finish."
+    FinishShippingAction observation, "FAILED"
 End Sub
 
 Private Sub RenderPageRows(ByVal targetList As MSForms.ListBox, ByVal rowsData As Variant)

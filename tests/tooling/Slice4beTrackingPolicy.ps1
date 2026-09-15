@@ -180,7 +180,7 @@ function Get-TrackingPolicyVersion($Fixture) {
 function Test-Slice4beTrackingPolicy($Fixture,$Other) {
     $request=Get-TrackingPolicyRequest
     $model=$request|ConvertFrom-Json
-    $loaded=($model.SchemaVersion -eq 1 -and $model.CatalogVersion -eq 8 -and $model.Controls.Count -gt 2)
+    $loaded=($model.SchemaVersion -eq 1 -and $model.CatalogVersion -eq 9 -and $model.Controls.Count -eq 33)
     Check 'TrackingPolicy.EditorLoaded' $loaded
     if(-not $loaded){throw 'Tracking policy editor fixture did not load.'}
     Check 'TrackingPolicy.BuiltInDefaults' (-not $model.ViewerActionPathCaptureEnabled -and $model.AdminViewerEventLoggingEnabled -and $model.DefaultView -ceq 'How-To' -and
@@ -264,6 +264,13 @@ function Test-Slice4beTrackingPolicy($Fixture,$Other) {
     [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyCapture' @($true))
     [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyAdminVisible' @($false))
     [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyView' @('Compare both'))
+    foreach($boxingId in @('BOXING_MAKE','BOXING_UNBOX')) {
+        [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyControl' @($boxingId,$false))
+        $boxingRows=@((Get-TrackingPolicyRequest|ConvertFrom-Json).Controls|Where-Object ControlId -CEQ $boxingId)
+        $boxingOff=$boxingRows.Count -eq 1
+        if($boxingOff){foreach($flag in @('Collect','Visible','SequenceEligible')){$boxingOff=$boxingOff -and $boxingRows[0].$flag -is [bool] -and -not $boxingRows[0].$flag}}
+        Check ('TrackingPolicy.Boxing.'+$boxingId+'.ActualHandlersStageOnly') ($boxingOff -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
+    }
     $entries=[int](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyEntries')
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySave')
     Check 'TrackingPolicy.RealSaveActionEntered' ([int](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicyEntries') -eq $entries+1)
@@ -275,6 +282,12 @@ function Test-Slice4beTrackingPolicy($Fixture,$Other) {
     Check 'TrackingPolicy.WarehouseViewReloads' ((Get-TrackingPolicyRequest|ConvertFrom-Json).DefaultView -ceq 'Compare both')
     $selected=(Get-TrackingPolicyRequest|ConvertFrom-Json).Controls|Where-Object ControlId -CEQ $controlId
     Check 'TrackingPolicy.PerControlFlagsPersistTogether' (-not $selected.Collect -and -not $selected.Visible -and -not $selected.SequenceEligible)
+    foreach($boxingId in @('BOXING_MAKE','BOXING_UNBOX')) {
+        $boxingRows=@((Get-TrackingPolicyRequest|ConvertFrom-Json).Controls|Where-Object ControlId -CEQ $boxingId)
+        $boxingOff=$boxingRows.Count -eq 1
+        if($boxingOff){foreach($flag in @('Collect','Visible','SequenceEligible')){$boxingOff=$boxingOff -and $boxingRows[0].$flag -is [bool] -and -not $boxingRows[0].$flag}}
+        Check ('TrackingPolicy.Boxing.'+$boxingId+'.SavedFlagsReloadTogether') $boxingOff
+    }
     $before=(Get-FileHash -LiteralPath $Fixture.Config).Hash
     $ok=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingPolicySaveDirect' @($context,0,$request))
     Check 'TrackingPolicy.StaleVersionCannotAppend' (-not $ok -and $before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)

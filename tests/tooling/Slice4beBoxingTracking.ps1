@@ -39,8 +39,8 @@ function Test-Slice4beBoxingTracking($Fixture,$Operator,$Other,$Ship,$Hold) {
                     $catalog=if($mode -eq 'OlderPolicy'){8}else{9}
                     Set-BoxingTrackingFixturePolicy $Fixture $catalog ($mode -eq 'OlderPolicy')
                     $policyPin=Get-ShippingActivityHash $Fixture.Config
-                    # Catalog 9 is an approved, not-yet-implemented contract. Its
-                    # rejected policy is product RED, never proof of disabled tracking.
+                    # Collection-off assertions require a valid catalog-9 policy;
+                    # a rejected policy never proves disabled tracking behavior.
                     $known=if($mode -eq 'OlderPolicy'){'True|True|True|1'}else{'True|False|True|1'}
                     Check ('Boxing.Tracking.'+$mode+'.WholePolicyValid') ([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Policy' @('ADMIN_SETTINGS_SAVE_VALUE')) -ceq $known)
                     foreach($action in @('MAKE','UNBOX')){
@@ -83,6 +83,7 @@ function Test-Slice4beBoxingTracking($Fixture,$Operator,$Other,$Ship,$Hold) {
                     $status=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingStatus')
                     $notice=$status.Contains('Tracking unavailable')
                     Check ($label+'.TrackingNoticeMatchesPolicy') ($status -ne '' -and $notice -eq ($mode -ne 'DisabledPolicy'))
+                    if($CaptureEvidence){Capture-BoxingFormEvidence 'Shipping Shipments' ($label.ToLowerInvariant()+'.png') ($label+'.VisibleCapture')}
                     $bound=Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingBound' @($Operator.Name)
                     Check ($label+'.CapturedWorkbookRetained') ($bound -is [bool] -and $bound)
                     Check ($label+'.StagingKeysAndUnknownValuesPreserved') ($rows -ceq (@(Get-ShippingActivityRows $Ship)|ConvertTo-Json -Depth 5 -Compress) -and $holdRows -ceq (@(Get-ShippingActivityRows $Hold)|ConvertTo-Json -Depth 5 -Compress))

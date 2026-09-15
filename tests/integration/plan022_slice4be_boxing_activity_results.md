@@ -1,6 +1,184 @@
-# Plan 022 Slice 4be.1 Boxing Make/Unbox activity RED
+# Plan 022 Slice 4be.1 Boxing Make/Unbox activity
 
-Current verified tracking checkpoint, 2026-09-14: **1388 PASS / 172 expected
+## Verified isolated implementation checkpoint
+
+The isolated `deploy/validation-boxing-activity-visible` candidate completes
+**1577 PASS / 7 known D8-A FAIL** across 1584 checks. All **568 Boxing checks**
+pass, retaining every first-candidate check and all 1553 preceding GREENs. The
+24 additional checks exercise actual form captures and the saved Action Path's
+ordered observations, exact source references, capture-only status, read-only
+evidence, three layouts and activity/journal preservation. All 18 independent
+owner-return records remain unchanged. There are no duplicate checks or harness
+exceptions. Excel closes normally.
+
+All 16 captures are inspected: ten Boxing action/tracking views, three saved-path
+layouts, the existing Settings view and two Shipping context/access views. Failed
+storage and older policy show the required tracking notice; valid disabled policy
+does not. The smaller library layouts contain the evidence in a scrolling pane;
+they do not display every line simultaneously. Automated visible evidence is not
+human acceptance.
+
+Explicit five-package compilation and Operations cold start pass. All 225 compiled
+component identities remain, with exactly the seven reviewed component changes.
+The five candidate hashes and 325 historical package pins are preserved. Fresh
+static evidence reports 232 components, 5880 procedures, 130081 lines, 191 duplicate
+groups and unchanged 9/45 dynamic-call counts. All 28 module limits hold; seven
+PowerShell scripts parse and 84 local links resolve. The final build, compile and
+visible-test windows have no Excel Event1000. The earlier native build failure
+remains unresolved.
+
+Exact report:
+`reports/runtime/slice4be-shipping-activity/b2a14070af32440fb494d5815e272bba/boxing-activity-shipping-recording-green.json`.
+Supporting ignored evidence: `boxing-visible-green-verification.json`,
+`boxing-visible-compiled-delta.json`, `boxing-visible-native-windows.json`,
+`boxing-activity-preservation.json` and `boxing-activity-final-static/` under
+`reports/runtime/`.
+
+The same candidate's functional Release 1 chain completes **32/32**, with **48/48
+live-role** and **15/15 Create Warehouse** checks. Ordered subprocess completion,
+restart reconciliation, local-settings restoration and restoration of all three
+tracked reports pass. However, its native-event audit records one Excel
+`combase.dll` / `c0000005` event at `2026-09-15T01:59:00.1991074Z`. The affected
+process started after the live-role report and before the later extraction process;
+this is consistent with the restart/cleanup interval, not proof of an exact failing
+call. A clean native chain gate is **not established** by the 32 functional passes.
+The existing initial-build failure is separate. Preserve both findings; no native
+repair or full Release 1 acceptance is claimed. Ignored chain log, exit/restoration
+record, native-event metadata and three copied reports use the
+`reports/runtime/boxing-activity-chain-` prefix (log: `boxing-activity-chain.log`).
+
+The [Settings regression](plan022_slice4be_tracking_settings_results.md) passes
+191/191, retaining all 187 prior GREENs. Four supplementary checks exercise both
+Boxing entries through actual per-control handlers and save/reload; they change
+no runtime or approved contract and do not replace the prior D13 RED. Ten Settings
+captures are inspected, including the saved policy showing both Boxing controls.
+The Settings native-event window is clean.
+
+Full Receiving regression passes **854/854**, retaining every recorded 845-check
+baseline identity and nine additional accepted native-focus/closed-workbook checks.
+There are no duplicates or harness exceptions. Excel closes and the bounded native
+audit finds no Excel Event1000. Exact copied report: `reports/runtime/boxing-receiving-green.json`;
+the `boxing-receiving-verification.json` and `boxing-receiving-native.json` siblings
+record retention and the native audit. Forty-six captures from this invocation are
+preserved in `boxing-receiving-captures/` with hashes; this does not claim all those
+unchanged-role views received a new visual review. Run flags retain full activity,
+staging, local, lifecycle, navigation, surface and launcher-denial coverage, with
+`-CaptureEvidence`.
+
+Full Action Path evaluation passes **374/374**, retaining every prior 374 GREEN,
+368-check predecessor and 260 passing RED identity. Nineteen captures pass: nine
+distinct Pending/Partial/Applied pane views and four expectation-editor views are
+inspected; the other six restored/source views are byte-identical to their matching
+defaults. Both scrolling panes remain bounded at minimum size. Five instrumented
+compiles, actual selection/expectation handlers, saved-result binding and source
+preservation pass. Excel closes before the next gate, and its native-event window
+has no Excel Event1000. Exact report:
+`reports/runtime/slice4be-viewer-published-read/d7664a206c9d40cbb460b4c59105cd52/green.json`.
+The full command uses `-CheckEvaluationVisualEvidence -CompileEvaluationProbesForTest`
+without diagnostic skips; `boxing-evaluation-green.log`, `boxing-evaluation-exit.json`
+and `boxing-evaluation-native.json` are under `reports/runtime/`.
+
+The separate native worksheet suites retain **215/215 guard** and **210/210 scenario**
+GREENs, with no duplicate checks, harness exceptions or Excel Event1000 in their
+bounded windows. Guard coverage includes exact target changes, sign-out and closure
+during tracking; scenarios retain applied, pending, uncertain-submission, failed-store
+and older-policy behavior. Each uses the real worksheet button and preserves owner
+references, unknown columns and unrelated workbooks. Exact report directories under
+`reports/runtime/slice4be-receiving-activity/` are
+`native-surface-c9a07ebda02c43d19684084bc8db573d/worksheet-activity/` (guards) and
+`native-surface-0c0e81373d3a44efb4e8968a6e283c6d/worksheet-activity/` (scenarios), each
+with `diagnostic-surface-green.json`. The corresponding `boxing-worksheet-guards-`
+and `boxing-worksheet-scenarios-` logs, exit and verification records are under
+`reports/runtime/`. The guard's immediate exit snapshot still saw Excel; the next
+run's enforced no-Excel preflight passed. Its audit includes that cleanup interval.
+The scenario exit snapshot confirms Excel closed.
+
+The fresh unchanged-candidate chain completes **32/32**, again with **48/48 live-role**
+and **15/15 Create Warehouse** checks. This run has no Excel Event1000 in its audited
+window; all processes end and Excel is closed. Local settings and the three tracked
+reports are restored. The `boxing-activity-chain-retry` log, exit, native and copied
+report files under `reports/runtime/` preserve this evidence independently of the
+first chain. A successful repeat does not establish a repair of either earlier
+native fault.
+
+Final preservation retains 325 historical package pins, both five-package Boxing
+candidates, 225 compiled component identities with exactly seven intended changes,
+all 28 module limits and unchanged 9/45 dynamic calls. Seven changed/new scripts
+parse and 85 local links resolve. The supplementary 101-check catalog result applies
+to the final candidate's identical compiled Core source; only `modTS_Shipments`
+differs between the two Boxing candidates. Both unrelated user documents retain
+their original hashes. No generated runtime report or capture is staged for commit.
+
+This completes the isolated Make/Unbox observation implementation and its selected
+regression gates under the approved D18 contract. Full Slice 4be/Release 1 acceptance
+remains open: comprehensive remaining Operations/Admin controls, combined recordings,
+guide authoring/search/version/export/import, How-To/Diagnostic/Compare presentation,
+physical NAS/multi-station and human comparison are still required. D8-A remains an
+unapproved proposal, and native-failure causes remain unresolved. The accepted
+deployment and operational workbooks are unchanged.
+
+## First implementation candidate (historical checkpoint)
+
+The first compiled implementation candidate, `deploy/validation-boxing-activity-retry`,
+passes **all 544 Boxing checks**. Its complete packaged route finishes **1553 PASS /
+7 known D8-A FAIL** across 1560 checks, retaining every preceding check identity and
+all 1388 prior GREENs. All 165 Boxing failures from the RED checkpoint become GREEN.
+The 18 independent legacy owner-return fact records are unchanged. No duplicate
+check or harness exception occurs, and Excel closes normally.
+
+The seven changed compiled components are Core `modActivityCatalog` and
+`modShippingActivityCodes`, and Operations `frmShipmentsTally`, `modBoxingService`,
+`modShippingFormValues`, `modShippingReportText`, and `modTS_Shipments`. They register
+catalog 9, reuse the pre-owner captured-context/capability guard, retain exact
+write-entry references, and pass explicit required-step failure/processing facts
+before legacy report fallback. The actual form handlers alone start observations.
+Equivalent component-list copying and report parsing are extracted; the existing
+shared metric helper is verified equivalent before replacing its duplicate.
+The form shrinks to 2909 lines and the owner module to 22375. Across the source
+surface there are 24 additional lines and two additional procedures, with no
+component or dynamic-call growth and one fewer duplicate group. All 28 limits hold.
+
+Supplementary catalog/reference regression passes **101/101**, preserving all 31
+catalog-8 definitions, excluding Boxing from versions 1-8, and rejecting unsupported
+versions, STAGED/COMPLETED outcomes and invalid references. This supplements the
+earlier real-handler RED/GREEN; it does not replace D13 with retrospective service
+tests. All 325 historical package pins hold. Of the 16 historically pinned source
+entries, ten are byte-identical and six have reviewed Boxing/prior-visibility deltas;
+all old pins still validate against the committed pre-implementation source.
+
+The first build, `deploy/validation-boxing-activity`, fails before Operations source
+import with a COM Add-method error. Event1000 records `VBE7.DLL` / `c0000005` during
+that build. The build process exits, Excel is confirmed closed, and the partial
+candidate is preserved. A fresh-directory retry builds all five packages; explicit
+compilation and Operations cold start pass, and all 225 compiled component identities
+are retained with exactly the seven reviewed changes. Retry-build, compile and test
+windows have no Excel Event1000; this does not establish a native-crash repair.
+The standalone static Shipping/Boxing test passes 11/11 with explicit `-RepoRoot .`;
+its initial omitted-root invocation fails in parameter setup, not product behavior.
+
+Exact first GREEN report:
+`reports/runtime/slice4be-shipping-activity/36e64ec5f95d4ec59f45c2da637bb25a/boxing-activity-shipping-recording-green.json`.
+Supporting ignored evidence includes `boxing-activity-green-verification.json`,
+`boxing-activity-compiled-delta.json`, `boxing-activity-first-native-windows.json`,
+`boxing-activity-build-native-windows.json`, `boxing-catalog-regression.json` and
+`boxing-activity-static/`, all under `reports/runtime/`.
+
+The next candidate, `deploy/validation-boxing-activity-visible`, captures exception
+messages before the new fact calls and adds test-only visible evidence. It has built
+and passed five-package compilation/cold start; its complete `-CaptureEvidence`
+Boxing route is running. Added checks inspect the real saved Action Path's eight
+ordered observations, exact source references, capture-only notice, read-only text,
+three layouts and unchanged activity/journal bytes. Captures use owned foreground
+fixture windows for Make/Unbox and tracking notices. The first GREEN above proves
+the preceding candidate only. Final GREEN, inspected captures, further relevant
+regressions, full Release 1 chain/live roles and commit/push remain pending.
+
+The broader Slice 4be objective is unchanged: remaining Operations/Admin controls,
+combined recordings, guides, method comparison, settings, publication/import/export,
+physical NAS/multi-station and human acceptance remain open. D8-A is separate and
+unapproved; no full Release 1 acceptance is claimed here.
+
+Historical optional-tracking RED checkpoint, 2026-09-14: **1388 PASS / 172 expected
 FAIL** across 1560 checks. All prior 1486 checks and 1321 GREENs remain, including
 Shipping recording40/40 and the full Boxing outcome matrix. The new six actual
 Make/Unbox cases contribute **67 PASS / 7 expected FAIL** across 74 checks:

@@ -125,3 +125,15 @@ Public Function DisplayQtyText(ByVal rawText As String) As String
     qty = ParseNumber(rawText)
     DisplayQtyText = FormatQuantity(qty)
 End Function
+
+Public Function ComponentRows(ByVal items As MSForms.ListBox, ByVal columns As Long) As Variant
+    Dim result() As Variant, rowIndex As Long, columnIndex As Long
+    If items.ListCount = 0 Then Exit Function
+    ReDim result(1 To items.ListCount, 1 To columns)
+    For rowIndex = 0 To items.ListCount - 1
+        For columnIndex = 0 To columns - 1
+            result(rowIndex + 1, columnIndex + 1) = items.List(rowIndex, columnIndex)
+        Next columnIndex
+    Next rowIndex
+    ComponentRows = result
+End Function

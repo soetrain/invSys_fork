@@ -33,6 +33,8 @@ End Sub
     $count=$module.ProcCountLines('CommitBoxMakerFormAction',0)
     $source=$module.Lines($start,$count)
     $anchor='    If Not batchProcessed Then batchProcessed = BoxMakerRuntimeReportShowsProcessed(runtimeReport)'
+    $extracted=$anchor.Replace('BoxMakerRuntimeReportShowsProcessed','modShippingReportText.BoxMakerRuntimeReportShowsProcessed')
+    if($source.Contains($extracted)){$anchor=$extracted}
     if(-not $source.Contains($anchor)){throw 'Boxing explicit refresh observer anchor unavailable.'}
     $source=$source.Replace('    syncCompletedOut = False',"    syncCompletedOut = False`r`n    BoxingRefreshCompletedForTest = False")
     $source=$source.Replace($anchor,"    BoxingRefreshCompletedForTest = batchProcessed`r`n"+$anchor)
@@ -102,7 +104,7 @@ function Test-Slice4beBoxingActivity($Fixture,$Operator,$Other,$Ship,$Hold) {
     $otherHash=Get-ShippingActivityHash $Other.FullName
     $inventory=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
     $prior=RestartPins $journalRoot
-    $applied=@();$ordinal=0
+    $applied=@();$ordinal=0;$displayLines=@()
     OpenRecordingViewer
     try {
         $started=(RecordingControl 'Start Recording' 'Click') -ceq 'DELIVERED'
@@ -156,6 +158,8 @@ function Test-Slice4beBoxingActivity($Fixture,$Operator,$Other,$Ship,$Hold) {
             if($valid){$outcome=if([bool](Run 'invSys.Operations.xlam' 'modTS_Shipments.BoxingRefreshForTest')){'CONFIRMED'}else{'PENDING'}}
             $caption=if($action -ceq 'MAKE'){'Make Boxes'}else{'Unbox'}
             Test-BoxingObservation $Fixture $before $label ('BOXING_'+$action) $caption $outcome $ids $sequence $ordinal
+            $displayLines+=@(($ordinal.ToString()+'. '+$caption+' - REQUESTED'),($ordinal.ToString()+'. '+$caption+' - '+$outcome))
+            if($CaptureEvidence){Capture-BoxingFormEvidence 'Shipping Shipments' ($label.ToLowerInvariant()+'.png') ($label+'.VisibleCapture')}
         }
         $groups=@($applied|Group-Object System_Key)
         Check 'Boxing.MakeUnbox.RestoresEveryExactEntityBalance' ($applied.Count -eq 4 -and $groups.Count -eq 2 -and
@@ -167,8 +171,54 @@ function Test-Slice4beBoxingActivity($Fixture,$Operator,$Other,$Ship,$Hold) {
         $preserved=$true
         foreach($path in $prior.Keys){if((Get-FileHash -LiteralPath $path).Hash -cne $prior[$path]){$preserved=$false}}
         Check 'Boxing.Recording.PriorShippingJournalPreserved' $preserved
+        if($CaptureEvidence){Test-BoxingVisibleRecording $Fixture $closed[0].ActionPathId $displayLines @($applied.EventID|Select-Object -Unique)}
     }finally{
         CloseRecordingViewer
         [void](Run 'invSys.Operations.xlam' 'modTS_Shipments.BoxingActionForTest' @('Shipping'))
     }
+}
+
+# Visible acceptance evidence uses only the owned generated-fixture windows.
+function Capture-BoxingFormEvidence([string]$Title,[string]$File,[string]$Label) {
+    Initialize-SettingsCapture
+    for($attempt=1;$attempt -le 3;$attempt++){
+        try{
+            $handle=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
+            if($handle -eq 0){throw 'Requested form window unavailable.'}
+            $activation=New-Object -ComObject WScript.Shell
+            try{[void]$activation.AppActivate($Title)}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
+            CaptureFormEvidence $Title $File $handle
+            Check $Label $true
+            return
+        }catch{
+            if($_.Exception.GetBaseException().Message -cnotin @('Requested form is not in the foreground.','Requested form window unavailable.')){throw}
+            if($attempt -lt 3){Start-Sleep -Milliseconds 300}
+        }
+    }
+    Check $Label $false
+}
+
+function Test-BoxingVisibleRecording($Fixture,[string]$PathId,$ExpectedLines,$SourceIds) {
+    $journal=RestartPins $journalRoot;$activity=RestartPins $activityRoot
+    function BoxingLibrary([string]$Action,[string]$Value=''){
+        [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @($Action,$Value))
+    }
+    try{
+        Check 'Boxing.VisualLibrary.ActualOpen' ((BoxingLibrary 'Open') -ceq 'DELIVERED')
+        Check 'Boxing.VisualLibrary.ActualSelection' ((BoxingLibrary 'Select' $PathId) -ceq 'SELECTED')
+        $evidence=BoxingLibrary 'Evidence';$previous=-1;$ordered=$ExpectedLines.Count -eq 8
+        foreach($line in $ExpectedLines){$index=$evidence.IndexOf($line,[StringComparison]::Ordinal);$ordered=$ordered -and $index -gt $previous;$previous=$index}
+        Check 'Boxing.VisualLibrary.EightOrderedObservations' $ordered
+        $sources=$SourceIds.Count -eq 2
+        foreach($id in $SourceIds){$sources=$sources -and $evidence.Contains('Source event: '+$id+' (Submitted; application not asserted)')}
+        Check 'Boxing.VisualLibrary.ExactSourcesWithoutApplicationClaim' $sources
+        Check 'Boxing.VisualLibrary.CaptureOnlyStatus' ((BoxingLibrary 'Status') -ceq 'Stopped. Capture frozen.')
+        Check 'Boxing.VisualLibrary.ReadOnlyEvidence' ((BoxingLibrary 'ReadOnly') -ceq 'True')
+        foreach($size in @('Default','Minimum','Larger')){
+            Check ('Boxing.VisualLibrary.Layout.'+$size) ((BoxingLibrary ('Fit'+$size)) -ceq 'True')
+            Capture-BoxingFormEvidence 'Action Paths' ('boxing-path-'+$size.ToLowerInvariant()+'.png') ('Boxing.VisualLibrary.Capture.'+$size)
+        }
+    }finally{[void](BoxingLibrary 'Close')}
+    Check 'Boxing.VisualLibrary.JournalBytesPreserved' (RestartPinsEqual $journal $journalRoot)
+    Check 'Boxing.VisualLibrary.ActivityBytesPreserved' (RestartPinsEqual $activity $activityRoot)
 }

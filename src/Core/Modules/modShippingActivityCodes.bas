@@ -3,7 +3,7 @@ Option Explicit
 Option Private Module
 
 ' Definitions describe owner facts; they never execute a Shipping command.
-Public Function Control(ByVal controlId As String) As Object
+Public Function Control(ByVal controlId As String, Optional ByVal version As Long = 9) As Object
     Dim caption As String, record As Object
     Select Case controlId
         Case "SHIPPING_ADD": caption = "Add"
@@ -13,6 +13,8 @@ Public Function Control(ByVal controlId As String) As Object
         Case "SHIPPING_RETURN": caption = "Return"
         Case "SHIPPING_STAGE": caption = "To Shipments"
         Case "SHIPPING_SEND": caption = "Shipments Sent"
+        Case "BOXING_MAKE": caption = "Make Boxes"
+        Case "BOXING_UNBOX": caption = "Unbox"
         Case Else: Exit Function
     End Select
     Set record = CreateObject("Scripting.Dictionary")
@@ -24,12 +26,18 @@ Public Function Control(ByVal controlId As String) As Object
     record.Add "Surface", "Operations > Shipping"
     record.Add "Capability", "SHIP_POST"
     record.Add "CodePrefix", controlId & "_"
+    If IsBoxing(controlId) Then
+        If version < 9 Then Exit Function
+        record("OwnerId") = "BOXING_WORKFLOW"
+        record("Role") = "Boxing"
+        record("Surface") = "Operations > Shipping > Box Maker"
+    End If
     Set Control = record
 End Function
 
 Public Function HasInventorySources(ByVal controlId As String) As Boolean
     Select Case controlId
-        Case "SHIPPING_ADD", "SHIPPING_UPDATE", "SHIPPING_REMOVE", "SHIPPING_STAGE", "SHIPPING_SEND"
+        Case "SHIPPING_ADD", "SHIPPING_UPDATE", "SHIPPING_REMOVE", "SHIPPING_STAGE", "SHIPPING_SEND", "BOXING_MAKE", "BOXING_UNBOX"
             HasInventorySources = True
     End Select
 End Function
@@ -52,7 +60,7 @@ Public Function Outcome(ByVal controlId As String, ByVal code As String) As Obje
             message = "Shipping validation stopped the action before staging or submission."
             nextStep = "Review the Shipping selection and prerequisites."
         Case "STAGED"
-            If controlId = "SHIPPING_SEND" Then Exit Function
+            If controlId = "SHIPPING_SEND" Or IsBoxing(controlId) Then Exit Function
             effect = "Changed"
             message = "Local Shipping staging changed; inventory application and restart persistence are unconfirmed."
             nextStep = "Review the captured Shipping staging."
@@ -62,7 +70,7 @@ Public Function Outcome(ByVal controlId As String, ByVal code As String) As Obje
             message = "Shipping submission accepted; inventory application is unconfirmed."
             nextStep = "Inspect published outcomes for every related event before retrying."
         Case "CONFIRMED"
-            If controlId <> "SHIPPING_SEND" Then Exit Function
+            If controlId <> "SHIPPING_SEND" And Not IsBoxing(controlId) Then Exit Function
             message = "Shipping processing and refresh finished; individual inventory application is unconfirmed."
             nextStep = "Inspect published outcomes for every related event."
         Case "FAILED"
@@ -71,6 +79,11 @@ Public Function Outcome(ByVal controlId As String, ByVal code As String) As Obje
             nextStep = "Inspect the Shipping workflow before retrying."
         Case Else: Exit Function
     End Select
+    If IsBoxing(controlId) Then
+        message = Replace(message, "Shipping", "Boxing")
+        nextStep = Replace(nextStep, "Shipping", "Boxing")
+        If code = "REJECTED" Then message = "Boxing validation stopped the action before submission or mutation."
+    End If
     Set record = CreateObject("Scripting.Dictionary")
     record.Add "EventCode", definition("CodePrefix") & code
     record.Add "OutcomeCode", code
@@ -79,4 +92,8 @@ Public Function Outcome(ByVal controlId As String, ByVal code As String) As Obje
     record.Add "UserMessage", message
     record.Add "NextStep", nextStep
     Set Outcome = record
+End Function
+
+Private Function IsBoxing(ByVal controlId As String) As Boolean
+    IsBoxing = (controlId = "BOXING_MAKE" Or controlId = "BOXING_UNBOX")
 End Function

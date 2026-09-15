@@ -1,5 +1,31 @@
 # Slice 4be.2 Event Tracking Settings
 
+## Catalog-9 Boxing regression
+
+The isolated `deploy/validation-boxing-activity-visible` candidate passes **191/191**
+Settings checks, retaining every preceding 187 identity and GREEN. Four additional
+checks exercise Make Boxes and Unbox through the actual per-control handlers,
+verify that collection/visibility/sequence edits initially leave Config bytes
+unchanged, and verify those flags after the real Save and Reload actions. The
+editor loads exactly 33 catalog-9 controls. This is supplementary coverage of the
+approved D18 catalog extension, with no new Settings runtime or contract change.
+
+The full route includes detail profiles, personal preference restart/isolation,
+Operations-only Settings and actual Admin launcher/Close. Ten captures are inspected;
+the saved policy visibly includes both Boxing controls with all three flags off.
+Operations default/maximize/restore layout and context preservation pass. No
+duplicate checks or harness exceptions occur. Excel closes, and the bounded Settings
+window has no Excel Event1000. This does not establish repair of the separate
+Boxing-candidate chain native failure or acceptance of complete Action Path views.
+
+Exact ignored report: `reports/runtime/slice4be-tracking-settings/8ec2e1da23754e1586a956235064ab2a/green.json`.
+Supporting evidence is `reports/runtime/boxing-settings-green.log`,
+`boxing-settings-verification.json` and `boxing-settings-native.json`.
+Command: `Test-Slice4beConfigCommands.ps1 -RepoRoot . -DeployRoot
+deploy/validation-boxing-activity-visible -Phase GREEN -CaptureEvidence
+-CheckTrackingSettings -CheckTrackingPolicy -CheckDetailProfile
+-CheckActionPathPreference -CheckOperationsTrackingSettings -CheckAdminSettingsClose`.
+
 ## Current checkpoint: Operations Event Tracking Settings and Admin Close
 
 Last verified 2026-09-13: **187/187 packaged Settings checks pass** on

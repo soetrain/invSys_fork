@@ -7102,7 +7102,8 @@ Private Function QueueBoxMakerFormPayload(ByVal isMakeAction As Boolean, _
                                           ByRef eventIdOut As String, _
                                           ByRef errNotes As String, _
                                           Optional ByVal operatorWb As Workbook = Nothing, _
-                                          Optional ByRef packageSystemKeyOut As String = "") As Boolean
+                                          Optional ByRef packageSystemKeyOut As String = "", _
+                                          Optional ByVal facts As cShippingOwnerFacts = Nothing) As Boolean
     On Error GoTo FailSoft
 
     Dim payloadItems As Collection
@@ -7123,6 +7124,7 @@ Private Function QueueBoxMakerFormPayload(ByVal isMakeAction As Boolean, _
     Dim componentSystemKey As String
     Dim invLo As ListObject
     Dim componentInvRow As ListRow
+    Dim serverAttempted As Boolean, localAttempted As Boolean
 
     errNotes = ""
     eventIdOut = ""
@@ -7133,18 +7135,22 @@ Private Function QueueBoxMakerFormPayload(ByVal isMakeAction As Boolean, _
     If versionLabel = "" Then versionLabel = "v1"
     If packageSystemKey = "" Then
         errNotes = "Saved box System_Key was not resolved."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
     If boxName = "" Then
         errNotes = "Box name is required."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
     If boxQty <= 0 Then
         errNotes = "Box quantity must be greater than zero."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
     If IsEmpty(componentSystemKeys) Then
         errNotes = "Selected box alternative has no component rows."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
 
@@ -7166,6 +7172,7 @@ Private Function QueueBoxMakerFormPayload(ByVal isMakeAction As Boolean, _
     Set invLo = GetInvSysTableFromWorkbook(operatorWb)
     If invLo Is Nothing Then
         errNotes = "Shipping inventory read model was not resolved for Box Maker."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
 
@@ -7178,11 +7185,13 @@ Private Function QueueBoxMakerFormPayload(ByVal isMakeAction As Boolean, _
         If BoxMakerComponentSystemKeyIsBlank(itemName, componentKeyValue, qtyPerBox) Then GoTo NextComponent
         If qtyPerBox <= 0 Then
             errNotes = "Component row " & CStr(r) & " needs a quantity greater than zero."
+            If Not facts Is Nothing Then facts.RejectBeforeMutation
             Exit Function
         End If
         qtyTotal = qtyPerBox * boxQty
         If qtyTotal <= 0 Then
             errNotes = "Component row " & CStr(r) & " produced a zero total quantity."
+            If Not facts Is Nothing Then facts.RejectBeforeMutation
             Exit Function
         End If
         uomVal = BoxBuilderFormBomText(componentSystemKeys, r, 6, "")
@@ -7193,12 +7202,14 @@ Private Function QueueBoxMakerFormPayload(ByVal isMakeAction As Boolean, _
         If componentSystemKey = "" Then
             errNotes = "Component '" & itemCode & _
                        "' is missing its preserved System_Key. Re-select the component."
+            If Not facts Is Nothing Then facts.RejectBeforeMutation
             Exit Function
         End If
         Set componentInvRow = FindInvListRowBySystemKey(invLo, componentSystemKey)
         If componentInvRow Is Nothing Then
             errNotes = "Component System_Key '" & componentSystemKey & _
                        "' is not present in the Shipping read model."
+            If Not facts Is Nothing Then facts.RejectBeforeMutation
             Exit Function
         End If
 
@@ -7211,6 +7222,7 @@ NextComponent:
 
     If componentTotalOut <= 0 Then
         errNotes = "No component quantities were found for the selected box alternative."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
 
@@ -7224,6 +7236,7 @@ NextComponent:
     payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
     If payloadJson = "" Or payloadJson = "[]" Then
         errNotes = "No BoxMaker payload rows were generated."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
 
@@ -7231,11 +7244,14 @@ NextComponent:
                                                                     payloadJson, _
                                                                     sourceName, _
                                                                     eventIdOut, _
-                                                                    errNotes)
+                                                                    errNotes, serverAttempted, localAttempted)
+    If Not facts Is Nothing And (serverAttempted Or localAttempted) Then _
+        facts.ObserveSource eventIdOut, QueueBoxMakerFormPayload
     Exit Function
 
 FailSoft:
     errNotes = "QueueBoxMakerFormPayload failed: " & Err.Description
+    If Not facts Is Nothing And (serverAttempted Or localAttempted) Then facts.ObserveSource eventIdOut, False
 End Function
 
 Private Sub AddBoxBuildSystemKeyPayloadItem(ByVal payloadItems As Collection, _
@@ -7290,7 +7306,8 @@ Public Function CommitBoxMakerFormAction(ByVal packageSystemKey As String, _
                                          Optional ByVal actionText As String = "MAKE", _
                                          Optional ByRef syncCompletedOut As Boolean = False, _
                                          Optional ByVal displayedAvailableQty As Variant, _
-                                         Optional ByVal operatorWb As Workbook = Nothing) As Boolean
+                                         Optional ByVal operatorWb As Workbook = Nothing, _
+                                         Optional ByVal facts As cShippingOwnerFacts = Nothing) As Boolean
     On Error GoTo ErrHandler
 
     Dim rowCount As Long
@@ -7302,10 +7319,12 @@ Public Function CommitBoxMakerFormAction(ByVal packageSystemKey As String, _
     Dim eventIdOut As String
     Dim runtimeReport As String
     Dim batchProcessed As Boolean
+    Dim requiredStepFailed As Boolean
     Dim currentQty As Double
     Dim foundCurrentQty As Boolean
     resultMessage = ""
     syncCompletedOut = False
+    If Not facts Is Nothing Then facts.BeginOwner
     actionText = UCase$(Trim$(actionText))
     boxName = Trim$(boxName)
     boxUom = Trim$(boxUom)
@@ -7314,19 +7333,23 @@ Public Function CommitBoxMakerFormAction(ByVal packageSystemKey As String, _
 
     If boxName = "" Then
         resultMessage = "Select a saved box before posting BoxMaker inventory."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
     If boxQty <= 0 Then
         resultMessage = "Box quantity must be greater than zero."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
     If IsEmpty(componentSystemKeys) Then
         resultMessage = "Selected box alternative has no component rows."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
     rowCount = UBound(componentSystemKeys, 1)
     If rowCount <= 0 Then
         resultMessage = "Selected box alternative has no component rows."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation
         Exit Function
     End If
 
@@ -7339,10 +7362,12 @@ Public Function CommitBoxMakerFormAction(ByVal packageSystemKey As String, _
         End If
         If Not foundCurrentQty Then currentQty = ResolveBoxMakerUnboxAvailableQty(packageSystemKey, boxName, foundCurrentQty, operatorWb)
         If Not foundCurrentQty Then
+            If Not facts Is Nothing Then facts.RejectBeforeMutation
             resultMessage = "Not allowed: current inventory was not resolved for " & boxName & " " & versionLabel & "."
             Exit Function
         End If
         If boxQty > currentQty + 0.0000001 Then
+            If Not facts Is Nothing Then facts.RejectBeforeMutation
             resultMessage = "Not allowed: Qty exceeds inventory. " & boxName & " " & versionLabel & _
                             " has " & FormatBoxMakerQuantityText(currentQty) & _
                             " in inventory, but Qty is " & FormatBoxMakerQuantityText(boxQty) & "."
@@ -7362,7 +7387,7 @@ Public Function CommitBoxMakerFormAction(ByVal packageSystemKey As String, _
                                         eventIdOut, _
                                         errNotes, _
                                         operatorWb, _
-                                        packageSystemKey) Then
+                                        packageSystemKey, facts) Then
             If errNotes = "" Then errNotes = "Box could not be unboxed."
             resultMessage = errNotes
             Exit Function
@@ -7387,7 +7412,7 @@ Public Function CommitBoxMakerFormAction(ByVal packageSystemKey As String, _
                                         eventIdOut, _
                                         errNotes, _
                                         operatorWb, _
-                                        packageSystemKey) Then
+                                        packageSystemKey, facts) Then
             If errNotes = "" Then errNotes = "Box creation could not be posted."
             resultMessage = errNotes
             Exit Function
@@ -7399,8 +7424,9 @@ Public Function CommitBoxMakerFormAction(ByVal packageSystemKey As String, _
                         " shippable units after processor sync."
     End If
     If operatorWb Is Nothing Then Set operatorWb = ResolveShippingWorkbook(Nothing, SHEET_SHIPMENTS)
-    batchProcessed = RunShippingRuntimeQueueRefresh(operatorWb, ResolveCurrentShippingWarehouseId(), runtimeReport)
-    If Not batchProcessed Then batchProcessed = BoxMakerRuntimeReportShowsProcessed(runtimeReport)
+    batchProcessed = RunShippingRuntimeQueueRefresh(operatorWb, ResolveCurrentShippingWarehouseId(), runtimeReport, True, requiredStepFailed)
+    If Not facts Is Nothing Then facts.CompleteOwner True, requiredStepFailed, batchProcessed
+    If Not batchProcessed Then batchProcessed = modShippingReportText.BoxMakerRuntimeReportShowsProcessed(runtimeReport)
     syncCompletedOut = batchProcessed
     If batchProcessed Then
         modShippingReportText.AppendNote errNotes, "Sync complete."
@@ -7418,6 +7444,7 @@ Public Function CommitBoxMakerFormAction(ByVal packageSystemKey As String, _
 
 ErrHandler:
     resultMessage = "BOX_MAKER_FORM_COMMIT failed: " & Err.Description
+    If Not facts Is Nothing Then facts.CompleteOwner False
 End Function
 
 Private Function ResolveBoxMakerUnboxAvailableQty(ByVal packageSystemKey As String, _
@@ -8133,7 +8160,8 @@ End Function
 Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
                                                 ByVal warehouseId As String, _
                                                 ByRef report As String, _
-                                                Optional ByVal requireQueuedWork As Boolean = True) As Boolean
+                                                Optional ByVal requireQueuedWork As Boolean = True, _
+                                                Optional ByRef requiredStepFailed As Boolean = False) As Boolean
     On Error GoTo FailSoft
 
     Dim resolvedWarehouseId As String
@@ -8149,7 +8177,9 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
     Dim refreshMs As Long
     Dim stagingOk As Boolean
 
+    requiredStepFailed = False
     If wb Is Nothing Then
+        requiredStepFailed = True
         report = "Operator workbook not resolved."
         Exit Function
     End If
@@ -8161,10 +8191,12 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
     batchTimer = Timer
 
     stagingOk = modRoleEventWriter.SyncLocalStagedInboxRows(stagingReport, resolvedWarehouseId, stationId)
+    If Not stagingOk Then requiredStepFailed = True
 
     processedCount = modProcessor.RunBatch(resolvedWarehouseId, 0, batchReport)
     batchMs = modShippingReportText.ElapsedMillisecondsShipping(batchTimer)
     If Left$(batchReport, 15) = "RunBatch failed" Then
+        requiredStepFailed = True
         report = "RunBatch failed after local shipping post/write. StagingReport=" & stagingReport & " " & _
                  batchReport & " RefreshReport=Skipped; " & _
                  modShippingReportText.FormatShippingRuntimeTiming(modShippingReportText.ElapsedMillisecondsShipping(totalTimer), batchMs, 0)
@@ -8183,6 +8215,7 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
 
     refreshTimer = Timer
     If Not ShipmentsFormRefreshReadModelForWorkbook(wb, refreshReport, resolvedWarehouseId) Then
+        requiredStepFailed = True
         refreshMs = modShippingReportText.ElapsedMillisecondsShipping(refreshTimer)
         report = "RunBatch processed queued shipping work, but the operator read-model refresh failed. " & _
                  "StagingReport=" & stagingReport & " BatchReport=" & batchReport & _
@@ -8201,6 +8234,7 @@ Private Function RunShippingRuntimeQueueRefresh(ByVal wb As Workbook, _
     Exit Function
 
 FailSoft:
+    requiredStepFailed = True
     report = "RunShippingRuntimeQueueRefresh failed: " & Err.Description
 End Function
 
@@ -15769,7 +15803,7 @@ Private Function ApplyBoxCreatedFromBuilder(ByVal loBuilder As ListObject, _
     eventQueuedOut = True
 
     batchProcessedOut = RunShippingRuntimeQueueRefresh(loBuilder.Parent.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport)
-    If Not batchProcessedOut Then batchProcessedOut = BoxMakerRuntimeReportShowsProcessed(runtimeReport)
+    If Not batchProcessedOut Then batchProcessedOut = modShippingReportText.BoxMakerRuntimeReportShowsProcessed(runtimeReport)
     runtimeReportOut = runtimeReport
     If Not batchProcessedOut Then
         If runtimeReport = "" Then runtimeReport = "Box build event queued, but runtime processing or read-model refresh did not complete cleanly."
@@ -15811,7 +15845,7 @@ Private Function ApplyBoxUnboxedFromBuilder(ByVal loBuilder As ListObject, _
     eventQueuedOut = True
 
     batchProcessedOut = RunShippingRuntimeQueueRefresh(loBuilder.Parent.Parent, ResolveCurrentShippingWarehouseId(), runtimeReport)
-    If Not batchProcessedOut Then batchProcessedOut = BoxMakerRuntimeReportShowsProcessed(runtimeReport)
+    If Not batchProcessedOut Then batchProcessedOut = modShippingReportText.BoxMakerRuntimeReportShowsProcessed(runtimeReport)
     runtimeReportOut = runtimeReport
     If Not batchProcessedOut Then
         If runtimeReport = "" Then runtimeReport = "Box unbox event queued, but runtime processing or read-model refresh did not complete cleanly."
@@ -15822,51 +15856,6 @@ Private Function ApplyBoxUnboxedFromBuilder(ByVal loBuilder As ListObject, _
     If eventIdOut <> "" Then modShippingReportText.AppendNote errNotes, "Inbox EventID: " & eventIdOut
 
     ApplyBoxUnboxedFromBuilder = True
-End Function
-
-Private Function BoxMakerRuntimeReportShowsProcessed(ByVal runtimeReport As String) As Boolean
-    Dim reportText As String
-
-    reportText = Trim$(runtimeReport)
-    If reportText = "" Then Exit Function
-
-    If InStr(1, reportText, "RunBatch processed queued event", vbTextCompare) > 0 Then
-        BoxMakerRuntimeReportShowsProcessed = True
-        Exit Function
-    End If
-    If BoxMakerRuntimeReportMetric(reportText, "Processed") > 0 Then
-        BoxMakerRuntimeReportShowsProcessed = True
-        Exit Function
-    End If
-    If BoxMakerRuntimeReportMetric(reportText, "Applied") > 0 Then
-        BoxMakerRuntimeReportShowsProcessed = True
-        Exit Function
-    End If
-    If BoxMakerRuntimeReportMetric(reportText, "SkipDup") > 0 Then
-        BoxMakerRuntimeReportShowsProcessed = True
-    End If
-End Function
-
-Private Function BoxMakerRuntimeReportMetric(ByVal runtimeReport As String, ByVal metricName As String) As Long
-    Dim marker As String
-    Dim pos As Long
-    Dim valueStart As Long
-    Dim valueEnd As Long
-    Dim ch As String
-
-    marker = metricName & "="
-    pos = InStr(1, runtimeReport, marker, vbTextCompare)
-    If pos <= 0 Then Exit Function
-
-    valueStart = pos + Len(marker)
-    valueEnd = valueStart
-    Do While valueEnd <= Len(runtimeReport)
-        ch = Mid$(runtimeReport, valueEnd, 1)
-        If ch < "0" Or ch > "9" Then Exit Do
-        valueEnd = valueEnd + 1
-    Loop
-    If valueEnd <= valueStart Then Exit Function
-    BoxMakerRuntimeReportMetric = CLng(Mid$(runtimeReport, valueStart, valueEnd - valueStart))
 End Function
 
 Private Function CaptureBoxMakerCurrentInventoryState(ByVal loBuilder As ListObject, _

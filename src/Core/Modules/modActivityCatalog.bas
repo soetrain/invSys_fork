@@ -2,10 +2,18 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 8
+Public Const CATALOG_VERSION As Long = 9
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     Dim ids As Variant
+    If version = 9 Then
+        ids = ControlIds(8)
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + 2)
+        ids(UBound(ids) - 1) = "BOXING_MAKE"
+        ids(UBound(ids)) = "BOXING_UNBOX"
+        ControlIds = ids
+        Exit Function
+    End If
     If version = 8 Then
         ids = ControlIds(7)
         ReDim Preserve ids(LBound(ids) To UBound(ids) + 7)
@@ -58,7 +66,7 @@ Public Function Control(ByVal controlId As String, Optional ByVal version As Lon
     Dim record As Object
     If version < 1 Or version > CATALOG_VERSION Then Exit Function
     If version >= 8 Then
-        Set record = modShippingActivityCodes.Control(controlId)
+        Set record = modShippingActivityCodes.Control(controlId, version)
         If Not record Is Nothing Then Set Control = record: Exit Function
     End If
     Set record = CreateObject("Scripting.Dictionary")
@@ -150,7 +158,7 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Dim record As Object, definition As Object, message As String
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
-    If definition("Role") = "Shipping" Then
+    If definition("Role") = "Shipping" Or definition("Role") = "Boxing" Then
         Set Outcome = modShippingActivityCodes.Outcome(controlId, outcomeCode)
         Exit Function
     End If

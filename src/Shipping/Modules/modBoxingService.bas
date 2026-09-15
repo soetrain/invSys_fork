@@ -158,19 +158,22 @@ Public Function PostBoxMakerAction(ByVal operatorWb As Workbook, _
                                    ByVal boxQty As Double, _
                                    ByVal componentRows As Variant, _
                                    ByVal actionText As String, _
-                                   ByRef report As String) As Boolean
+                                   ByRef report As String, _
+                                   Optional ByVal facts As cShippingOwnerFacts = Nothing) As Boolean
     On Error GoTo Fail
 
     Dim syncCompleted As Boolean
     Dim quietStarted As Boolean
     Dim failureReason As String
 
+    If Not facts Is Nothing Then facts.BeginOwner
     If operatorWb Is Nothing Then
         report = "The captured Shipping operator workbook was not provided."
         Exit Function
     End If
     If Not modRoleUiAccess.RequireCurrentUserCapability("SHIP_POST") Then
         report = "SHIP_POST capability is required."
+        If Not facts Is Nothing Then facts.RejectBeforeMutation True
         Exit Function
     End If
     modUiQuiet.BeginQuietUi operatorWb
@@ -178,13 +181,14 @@ Public Function PostBoxMakerAction(ByVal operatorWb As Workbook, _
     PostBoxMakerAction = modTS_Shipments.CommitBoxMakerFormAction( _
         packageSystemKey, boxName, boxUom, boxLocation, boxDescription, _
         versionLabel, boxQty, componentRows, report, actionText, _
-        syncCompleted, Empty, operatorWb)
+        syncCompleted, Empty, operatorWb, facts)
     modUiQuiet.EndQuietUi
     quietStarted = False
     Exit Function
 
 Fail:
     failureReason = Err.Description
+    If Not facts Is Nothing Then facts.CompleteOwner False
     On Error Resume Next
     If quietStarted Then modUiQuiet.EndQuietUi
     On Error GoTo 0

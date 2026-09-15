@@ -123,3 +123,26 @@ Public Function ElapsedMillisecondsShipping(ByVal startedAt As Single) As Long
     If deltaSeconds < 0 Then deltaSeconds = deltaSeconds + 86400!
     ElapsedMillisecondsShipping = CLng(deltaSeconds * 1000)
 End Function
+
+Public Function BoxMakerRuntimeReportShowsProcessed(ByVal runtimeReport As String) As Boolean
+    Dim reportText As String
+
+    reportText = Trim$(runtimeReport)
+    If reportText = "" Then Exit Function
+
+    If InStr(1, reportText, "RunBatch processed queued event", vbTextCompare) > 0 Then
+        BoxMakerRuntimeReportShowsProcessed = True
+        Exit Function
+    End If
+    If ShippingRuntimeReportMetric(reportText, "Processed") > 0 Then
+        BoxMakerRuntimeReportShowsProcessed = True
+        Exit Function
+    End If
+    If ShippingRuntimeReportMetric(reportText, "Applied") > 0 Then
+        BoxMakerRuntimeReportShowsProcessed = True
+        Exit Function
+    End If
+    If ShippingRuntimeReportMetric(reportText, "SkipDup") > 0 Then
+        BoxMakerRuntimeReportShowsProcessed = True
+    End If
+End Function
