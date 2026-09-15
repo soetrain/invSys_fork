@@ -1241,11 +1241,16 @@ try {
     Restore-LiveRuntimeContext -Excel $excel -WorkbookMap $workbookMap -RuntimeRoot $runtimeRoot -WarehouseId $warehouseId -StationId $stationId -UserId $resolvedUserId -Pin $testPin
     $receiveCapabilityDiagnostic = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modRoleUiAccess.DiagnoseCurrentUserCapability" -Arguments @("RECEIVE_POST"))
     Add-ResultRow -Rows $resultRows -Check "Receiving.Capability.BeforeConfirm" -Passed $receiveCapabilityDiagnostic.StartsWith("Allowed=True|") -Detail $receiveCapabilityDiagnostic
+    $currentStep = "Invoke Receiving ConfirmWrites form action"
     $receiveFormActionReport = [string](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $workbookMap["invSys.Operations.xlam"].Name -MacroName "modTS_Received.RunReceivingConfirmWritesFormActionForTest" -Arguments @($wbReceive, $wbShipOps))
+    $currentStep = "Read Receiving ConfirmWrites outcome"
     $receiveConfirmSucceeded = [bool](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Operations.xlam"].Name -MacroName "modTS_Received.LastConfirmWritesSucceeded")
+    $currentStep = "Read Receiving ConfirmWrites status"
     $receiveConfirmStatus = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Operations.xlam"].Name -MacroName "modTS_Received.LastConfirmWritesStatus")
+    $currentStep = "Revalidate Receiving capability after ConfirmWrites"
     $receiveCapabilityAfter = [string](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modRoleUiAccess.DiagnoseCurrentUserCapability" -Arguments @("RECEIVE_POST"))
 
+    $currentStep = "Inspect Receiving post-action projections"
     $wbReceive = Resolve-WorkbookSafe -Excel $excel -WorkbookName $wbReceive.Name
     $wbReceiveInboxRuntime = Resolve-WorkbookSafe -Excel $excel -WorkbookName ("invSys.Inbox.Receiving." + $stationId + ".xlsb")
     $wbInventoryRuntime = Resolve-WorkbookSafe -Excel $excel -WorkbookName ($warehouseId + ".invSys.Data.Inventory.xlsb")

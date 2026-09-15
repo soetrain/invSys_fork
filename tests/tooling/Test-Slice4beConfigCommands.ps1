@@ -28,6 +28,7 @@ param(
     [switch]$CheckGuideLibrary,
     [switch]$CheckGuideExpectation,
     [switch]$CaptureGuideEvidence,
+    [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideDraftOnly,
     [switch]$CheckRecordingIsolation,
     [switch]$CheckRecordingRestart,
@@ -71,6 +72,9 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($GuideCaptureVisibleExcelForTest -and (-not $GuideDraftOnly -or -not $CaptureGuideEvidence)){
+    throw 'Visible-Excel guide capture diagnosis requires GuideDraftOnly and CaptureGuideEvidence.'
+}
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
 if($GuideDraftOnly){$CheckGuideDraft=$true}
 if($CaptureGuideEvidence){$CheckGuideLibrary=$true}
@@ -455,7 +459,12 @@ function NewFixture([string]$Suffix) {
 try {
     $excel=New-Object -ComObject Excel.Application
     $initialExcelProcessIds = @(Get-Process EXCEL -ErrorAction Stop | Select-Object -ExpandProperty Id)
-    $excel.Visible=$false; $excel.DisplayAlerts=$false; $excel.EnableEvents=$false; $excel.AutomationSecurity=1
+    $excel.Visible=[bool]$GuideCaptureVisibleExcelForTest; $excel.DisplayAlerts=$false; $excel.EnableEvents=$false; $excel.AutomationSecurity=1
+    if($GuideCaptureVisibleExcelForTest){
+        $visible=$excel.Visible
+        Check 'Harness.GuideCaptureVisibleExcelVerified' ($visible -is [bool] -and $visible)
+        if($visible -isnot [bool] -or -not $visible){throw 'Visible-Excel capture setup was not established.'}
+    }
     $step='load packages'
     $packages=@{}
     foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam')) {

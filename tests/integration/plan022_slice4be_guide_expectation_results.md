@@ -18,6 +18,25 @@ clear pending intent. Starting/stopping a recording and switching between guide
 and run editors preserve their distinct scopes. Exact prior-version links,
 expected-step identities, instruction identities and source observations pass.
 
+**Combined recording regression GREEN: 204/204.** The same frozen candidate
+retains every preceding 170 combined check identity and all 166 focused protecting
+identities, with no duplicates or failures. Report:
+`reports/runtime/slice4be-viewer-published-read/a43f12170584430086b493cd222958a5/green.json`.
+The controller exits 0 at UTC 2026-09-15 09:45:04.9310012 with immediate Excel
+closure false; normal closure is verified at 09:45:20.7984561. Its extended
+09:32:51.6975893--09:45:20.7984561 window has zero Application events
+1000/1001/1002. All 30 package hashes and both unrelated user documents remain
+unchanged. The existing seven-component compiled scope, static metrics and 28
+module limits remain verified. Ignored verifier:
+`reports/runtime/guide-expectation-regression-recording-verification.json`.
+Remaining broader candidate regressions and full-chain acceptance stay open.
+
+The [capture diagnosis](plan022_slice4be_capture_foreground_results.md) records a
+subsequent blank-form comparison, its rendering limitation and the packaged
+visible-Excel setup comparison. The latter stops 9 PASS / one harness FAIL at
+Viewer startup, with an inspected Automation error 440 at the SetWarehouse call,
+before guide behavior. Normal cleanup closes Excel. No capture fix is claimed.
+
 The five isolated packages build and compile, and Operations cold start passes.
 Compiled-source comparison retains all 234 components and changes exactly the
 seven expected components, comparing case-insensitive VBA code and exact string
@@ -72,7 +91,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beC
 
 Omit `-GuideDraftOnly` for the combined recording regression. This retains the
 preceding 170 combined checks and adds the 34 guide-expectation checks; its
-result must be verified separately before broader acceptance is claimed.
+completed result is recorded above. It does not replace the remaining broader gates.
 
 The following RED is retained as the test-first antecedent, not current runtime
 status. Full-chain Receiving failure, guide-bound evaluation, both presentations
