@@ -23,6 +23,8 @@ param(
     [switch]$CheckRecordingLimits,
     [switch]$CheckRecordingStorageBounds,
     [switch]$CheckRecordingReader,
+    [switch]$CheckGuideDraft,
+    [switch]$GuideDraftOnly,
     [switch]$CheckRecordingIsolation,
     [switch]$CheckRecordingRestart,
     [switch]$CheckRecordingOperations,
@@ -66,6 +68,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
+if($GuideDraftOnly){$CheckGuideDraft=$true}
 if($CheckEvaluationVisualEvidence){$CheckExpectationCompatibility=$true}
 if($RecordingEvaluationDiagnostic){
     if($Phase -ne 'RED' -or -not $CheckExpectationCompatibility){throw 'Evaluation isolation requires RED and the full evaluation contract probes; it is not regression acceptance.'}
@@ -106,6 +109,7 @@ if($CheckRecordingRestart) {
     $CheckRecordingReader = $true
 }
 if($CheckRecordingReader) { $CheckActionRecording = $true }
+if($CheckGuideDraft) { $CheckActionRecording = $true }
 if($CheckRecordingIsolation) { $CheckActionRecording = $true }
 if($CheckActionRecording) { $CheckViewerPublishedRead = $true }
 if($CheckAdminSettingsClose -and -not $CheckActionPathPreference) { throw 'Admin close requires the complete preference probes.' }
@@ -400,6 +404,13 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
+    if($CheckGuideDraft){
+        # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
+        $row=$caps.ListRows.Add()
+        foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
+            $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
+        }
+    }
     $auth.Save(); $auth.Close($false)
     [pscustomobject]@{Root=$root;Warehouse=$wh;Secret=$secret;Config=(Join-Path $root ($wh+'.invSys.Config.xlsb'))}
 }
@@ -557,9 +568,13 @@ End Function
         if($CheckActionRecording -or $CheckShippingRecording){
             . (Join-Path $PSScriptRoot 'Slice4beActionRecording.ps1')
             Test-Slice4beActionRecording $null $true
-            if($CheckRecordingReader){
+            if($CheckRecordingReader -or $CheckGuideDraft){
                 . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
                 Test-Slice4beRecordingReader $null $null $true
+            }
+            if($CheckGuideDraft){
+                . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
+                Install-GuideDraftProbe
             }
             if($CheckRecordingOperations){
                 . (Join-Path $PSScriptRoot 'Slice4beRecordingOperations.ps1')

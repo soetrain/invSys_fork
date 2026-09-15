@@ -98,6 +98,11 @@ End Function
     }
     if($InstallOnly){return}
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
+    if($GuideDraftOnly){
+        . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
+        Test-GuideDraftEntry $Fixture $b
+        return
+    }
     if($RecordingEvaluationDiagnostic){
         . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
         Test-Slice4beRecordingReader $Fixture $b $true
@@ -241,6 +246,10 @@ End Function
         if($CheckRecordingRestart) {
             . (Join-Path $PSScriptRoot 'Slice4beRecordingRestart.ps1')
             Test-Slice4beRecordingRestart $Fixture
+        }
+        if($CheckGuideDraft) {
+            . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
+            Test-GuideDraftEntry $Fixture $b
         }
         if($CheckRecordingOperations) {
             . (Join-Path $PSScriptRoot 'Slice4beRecordingOperations.ps1')
