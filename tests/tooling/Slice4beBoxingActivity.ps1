@@ -55,7 +55,7 @@ End Function
 '@)
 }
 
-function Test-BoxingObservation($Fixture,$Before,[string]$Label,[string]$ControlId,[string]$Caption,[string]$Outcome,$Ids,[string]$Sequence,[int]$Ordinal) {
+function Test-BoxingObservation($Fixture,$Before,[string]$Label,[string]$ControlId,[string]$Caption,[string]$Outcome,$Ids,[string]$Sequence,[int]$Ordinal,[string]$SubmissionState='Submitted') {
     $records=@(Get-Slice4beActivityFiles $Fixture|Where-Object {$_ -cnotin $Before}|ForEach-Object {[IO.File]::ReadAllText($_)|ConvertFrom-Json})
     $attempt=@($records|Where-Object OutcomeCode -CEQ 'REQUESTED')
     $result=@($records|Where-Object OutcomeCode -CEQ $Outcome)
@@ -68,16 +68,23 @@ function Test-BoxingObservation($Fixture,$Before,[string]$Label,[string]$Control
             $_.Surface -cne 'Operations > Shipping > Box Maker' -or $_.UserId -cne 'config-reader' -or
             $_.WarehouseId -cne $Fixture.Warehouse -or $_.StationId -cne 'S1' -or
             $_.EventCode -cne ($ControlId+'_'+$_.OutcomeCode)}).Count -eq 0
-        $severity=if($Outcome -ceq 'REJECTED'){'Warning'}elseif($Outcome -ceq 'PENDING'){'Notice'}else{'Info'}
+        $severity=if($Outcome -ceq 'REJECTED'){'Warning'}elseif($Outcome -ceq 'PENDING'){'Notice'}elseif($Outcome -ceq 'FAILED'){'Error'}else{'Info'}
         $effect=if($Outcome -ceq 'REJECTED'){'Unchanged'}else{'Unknown'}
         $facts=$attempt[0].Severity -ceq 'Info' -and $attempt[0].DataEffect -ceq 'Unknown' -and
             $result[0].Severity -ceq $severity -and $result[0].DataEffect -ceq $effect
         $refs=@($result[0].SourceEventRefs)
         $references=@($attempt[0].SourceEventRefs).Count -eq 0 -and $refs.Count -eq @($Ids).Count
         foreach($id in $Ids){$references=$references -and @($refs|Where-Object {$_.EventId -ceq $id -and
-            $_.WarehouseId -ceq $Fixture.Warehouse -and $_.SourceKind -ceq 'Inventory' -and $_.SubmissionState -ceq 'Submitted'}).Count -eq 1}
-        $ordered=(HasSequence ([pscustomobject]@{Attempt=$attempt[0];Outcome=$result[0]}) $Ordinal) -and
-            $attempt[0].SequenceId -ceq $Sequence -and $attempt[0].ActivityId -ceq $result[0].ActivityId -and $attempt[0].RecordId -cne $result[0].RecordId
+            $_.WarehouseId -ceq $Fixture.Warehouse -and $_.SourceKind -ceq 'Inventory' -and $_.SubmissionState -ceq $SubmissionState}).Count -eq 1}
+        $ordered=$attempt[0].ActivityId -ne '' -and $attempt[0].ActivityId -ceq $result[0].ActivityId -and $attempt[0].RecordId -cne $result[0].RecordId
+        if($Ordinal -gt 0){
+            $ordered=$ordered -and (HasSequence ([pscustomobject]@{Attempt=$attempt[0];Outcome=$result[0]}) $Ordinal) -and $attempt[0].SequenceId -ceq $Sequence
+        }else{
+            foreach($record in $records){
+                $sequenceProperty=$record.PSObject.Properties['SequenceId']
+                if($null -ne $sequenceProperty -and -not [string]::IsNullOrEmpty([string]$sequenceProperty.Value)){$ordered=$false}
+            }
+        }
         $raw=$records|ConvertTo-Json -Depth 12 -Compress;$safe=$true
         foreach($value in @($Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'SHIPPING-ACTIVITY-BOX','SHIPPING-PRIVATE-DESCRIPTION','SHIPPING-FIXTURE-BIN','mBtnBoxMaker','PinHash')){
             if($raw.IndexOf($value,[StringComparison]::OrdinalIgnoreCase) -ge 0){$safe=$false}
@@ -86,7 +93,8 @@ function Test-BoxingObservation($Fixture,$Before,[string]$Label,[string]$Control
     Check ($Label+'.Activity.RegisteredOwnerAndContext') $metadata
     Check ($Label+'.Activity.ExplicitOutcomeFacts') $facts
     Check ($Label+'.Activity.EverySubmittedSource') $references
-    Check ($Label+'.Activity.OrderedRecordingOccurrence') $ordered
+    $correlation=if($Ordinal -gt 0){'OrderedRecordingOccurrence'}else{'CorrelatedUnrecordedPair'}
+    Check ($Label+'.Activity.'+$correlation) $ordered
     Check ($Label+'.Activity.PrivateInputsExcluded') $safe
 }
 

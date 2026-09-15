@@ -1,6 +1,7 @@
 # Unsaved faults at existing public submission returns. Real authorization,
 # writes, form handlers and Shipping owners remain active. Reports omit raw values.
 function Install-ShippingSubmissionProbe($Module) {
+    if($script:ShippingSubmissionProbeInstalled){return}
     $core=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modRoleEventWriter').CodeModule
     $source=$core.Lines(1,$core.CountOfLines)
     $source=$source.Replace('Option Explicit',@'
@@ -147,6 +148,7 @@ Public Function ActivityShippingSubmissionOwnerState(ByVal expectedId As String)
         CStr(ActivitySubmitOwnerResult) & "|" & CStr(expectedId <> "" And ActivitySubmitOwnerId = expectedId)
 End Function
 '@)
+    $script:ShippingSubmissionProbeInstalled=$true
 }
 
 function Test-Slice4beShippingSubmission($Module) {
@@ -189,10 +191,11 @@ function Test-Slice4beShippingSubmission($Module) {
         [uint32]$owned=0
         [void][Plan022NativeDialogs]::GetWindowThreadProcessId([IntPtr]$excel.Hwnd,[ref]$owned)
         if($owned -eq 0){throw 'Shipping submission fixture process unavailable.'}
-        $dialogJob=Start-Job -ArgumentList (Join-Path $repo 'tools/plan022-dialog-observer.ps1'),$owned,$stop -ScriptBlock {
-            param($path,$owned,$stop)
+        $dialogSeconds=if($CheckBoxingActivity){600}else{180}
+        $dialogJob=Start-Job -ArgumentList (Join-Path $repo 'tools/plan022-dialog-observer.ps1'),$owned,$stop,$dialogSeconds -ScriptBlock {
+            param($path,$owned,$stop,$seconds)
             . $path
-            Invoke-Plan022NativeDialogObservation -ProcessId $owned -TimeoutSeconds 180 -StopPath $stop | Out-Null
+            Invoke-Plan022NativeDialogObservation -ProcessId $owned -TimeoutSeconds $seconds -StopPath $stop | Out-Null
         }
         $created=[bool](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingCreateBox')
         Check 'Shipping.Submission.BoxFixtureThroughHandlers' $created
@@ -263,6 +266,7 @@ function Test-Slice4beShippingSubmission($Module) {
         }
         . (Join-Path $PSScriptRoot 'Slice4beShippingPrewriteRefusal.ps1')
         Test-Slice4beShippingPrewriteRefusal $fixture $operator $other $ship $hold
+        if($CheckBoxingActivity){Test-Slice4beBoxingOutcomes $fixture $operator $other $ship $hold}
         Check 'Shipping.Submission.AuthBytesPreserved' ($authHash -ceq (Get-ShippingActivityHash $authPath))
         Check 'Shipping.Submission.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))
         Check 'Shipping.Submission.UnrelatedWorkbookPreserved' ($otherHash -ceq (Get-ShippingActivityHash $other.FullName) -and $other.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq 'shipping submission sentinel')

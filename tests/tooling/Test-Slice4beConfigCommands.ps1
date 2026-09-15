@@ -550,6 +550,7 @@ End Function
     $script:RecordingReaderProbeInstalled=$false
     $script:RecordingOperationsProbeInstalled=$false
     $script:ShippingActivityProbeInstalled=$false
+    $script:ShippingSubmissionProbeInstalled=$false
     if($CheckViewerPublishedRead -or $CheckShippingRecording){
         . (Join-Path $PSScriptRoot 'Slice4beViewerPublishedRead.ps1')
         Test-Slice4beViewerPublishedRead $null $null $true
@@ -575,6 +576,10 @@ End Function
             Install-Slice4beBoxingActivityProbe
             . (Join-Path $PSScriptRoot 'Slice4beBoxingContext.ps1')
             Install-Slice4beBoxingContextProbe
+            . (Join-Path $PSScriptRoot 'Slice4beShippingSubmission.ps1')
+            Install-ShippingSubmissionProbe $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modTS_Shipments').CodeModule
+            . (Join-Path $PSScriptRoot 'Slice4beBoxingOutcomes.ps1')
+            Install-Slice4beBoxingOutcomeProbes
         }
         if($CompileEvaluationProbesForTest -or $CheckShippingRecording){
             . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')

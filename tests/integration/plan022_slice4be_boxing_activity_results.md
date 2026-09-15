@@ -1,6 +1,96 @@
 # Plan 022 Slice 4be.1 Boxing Make/Unbox activity RED
 
-Current verified result, 2026-09-14: **1123 PASS / 57 expected FAIL** across
+Current verified outcome checkpoint, 2026-09-14: the final corrected route
+finishes **1321 PASS / 165 expected FAIL** across 1486 checks. The nine cases
+through both handlers contribute **198 independent PASS / 108 missing-observation
+FAIL**. All previous 1180 checks and 1123 GREENs remain, including Shipping
+recording40/40; the other 57 failures retain their prior Boxing/context/D8-A scope.
+No duplicate or harness exception occurs. The corrected source-array assertion
+and all 18 redacted owner-fact records are retained in this final run.
+
+The independent facts show why generic success is insufficient. Both deferred
+and failed processing return generic owner success with explicit refresh False.
+Failed staging returns generic success, legacy sync True and explicit refresh
+True despite the counted staging failure. Failed refresh returns generic success
+and legacy sync True while explicit refresh is False. Each required-step failure
+must reach the observation as a structured owner fact; the observer cannot infer
+it from a success Boolean or parse the rendered report. These findings refine
+implementation under the existing D18 rule, without changing the contract.
+
+Five instrumented compiles pass before forms. Fresh static metrics and every
+component size match; all 28 limits, 325 package pins, protected sources and
+unrelated user files are preserved. Four changed scripts parse and 84 local links
+resolve. Excel closes normally and no Event1000 is recorded in the verified final
+window. The first completed run has the same checks/GREENs; its missing retained
+metadata and source-array issue remain limited as recorded below. No runtime,
+XLAM build/deployment, full-chain rerun or human acceptance is claimed.
+
+Next: complete Boxing tracking-store/disabled-policy/old-policy protection through
+the real handlers, then implement catalog-9 observations with explicit step facts
+and the proven pre-owner context guard. Preserve existing module-size limits through
+reviewed extraction. Other controls, combined recordings, guides/comparison and all
+remaining Release 1 gates remain open; D8-A remains a separate unapproved decision.
+
+Final ignored report:
+`reports/runtime/slice4be-shipping-activity/5d43d79764594b66843e851476dbb351/boxing-activity-shipping-recording-red.json`.
+Its sibling `boxing-owner-return-facts.json` contains only whitelisted case/action,
+Boolean and count fields. Supporting files are `reports/runtime/boxing-outcomes-final-red.log`,
+`boxing-outcomes-final-red-verification.json`, `boxing-outcomes-final-red-native-windows.json`,
+`boxing-outcomes-final-verification.json`, `boxing-outcomes-source-array-calibration.json`
+and `boxing-outcomes-red-static/`.
+
+**Submission/processing test entry:** `Slice4beBoxingOutcomes.ps1` extends the
+same packaged command with nine branch cases for both Make and Unbox. It enters
+the actual handlers and injects counted failures only at submission, staging,
+processor and read-model-refresh boundaries. Direct submission writes are captured
+before catch-up processing can enter the same inbox writer. Actual owner returns,
+exact event identities and independent Inventory lines protect FAILED/PENDING/
+CONFIRMED classification and preallocated-but-unsubmitted exclusion. Shared
+submission probes are now installed once before the five-project compile gate.
+All preceding 1180 checks/1123 GREENs remain required; no runtime change is made.
+
+The first outcome-test attempt stops at instrumented Core compilation (one
+package-identity pass, one harness failure), before fixtures. A no-argument
+injected call followed by a colon was interpreted as a duplicate line label;
+explicit `Call` corrects the probe. This is not D13 product RED. The hidden VBE
+error dialog has OK and Help, so the existing single-OK observer did not dismiss
+it. Cleanup verifies the owned compile dialog and its OK button directly, then
+normal Quit completes. The residual session has no workbooks and only candidate
+projects; its injected Core source is retained under ignored diagnostics and
+restored only in memory during cleanup. No package is saved. All 325 pins and
+protected sources still match, Excel closes and no Event1000 is recorded for
+that window. The corrected complete run is required before interpreting outcomes.
+
+The first completed outcome route records **1321 PASS / 165 expected FAIL**,
+retaining all preceding 1180 checks/1123 GREENs. The new matrix contributes
+198 independent passes and 108 missing-observation failures. Excel closes with
+no Event1000 in its verified window. Two test calibrations follow: preserve an
+actual empty source array for pre-write refusal (PowerShell's empty `if` result
+becomes null), and retain the nine-field Boolean/count owner metadata under the
+ignored report directory rather than the temporary fixture directory removed by
+cleanup. The actual source-array expression is calibrated for zero/one exact
+references. A full rerun with both corrections is required; this first completed
+route did not retain the extra owner-return metadata.
+
+Expected D18 outcome classifications, each exercised through Make and Unbox:
+
+| Case | Observation | Source references | Independent evidence required |
+|---|---|---|---|
+| Uncertain acceptance | FAILED | One Unknown | Server write accepted internally, acknowledgment unavailable, fallback refused; no application yet. |
+| Deferred processing | PENDING | One Submitted | Submission accepted; deferred batch has not applied this event. |
+| Failed processing | FAILED | One Submitted | Submission accepted; explicit processing failure, no application yet. |
+| Failed staging | FAILED | One Submitted | Counted staging failure; the current event can still be applied during processing. |
+| Failed refresh | FAILED | One Submitted | Processing applies the event, but the required read-model refresh fails. |
+| Server unavailable | CONFIRMED | One Submitted | Local fallback accepted, merged and processed; exact package/component lines. |
+| Lost acknowledgment | CONFIRMED | One Submitted | Same ID retained across server/local routes; exactly one application. |
+| Exceptional acknowledgment | CONFIRMED | One Submitted | Exceptional server return reaches fallback with the same ID; exactly one application. |
+| Pre-write refusal | FAILED | Empty | ID allocated, both routes refused before either writer, no application. |
+
+These are expected observations on the current contract, not existing emitted
+Boxing records. A later action's catch-up may apply earlier submitted events;
+its activity must still reference only its own submission.
+
+Prior context checkpoint, 2026-09-14: **1123 PASS / 57 expected FAIL** across
 1180 checks. All preceding 1074 checks and 1041 GREENs remain, including Shipping
 recording40/40. The added context/permission matrix is **82 PASS / 24 expected
 FAIL**: 16 context failures and eight absent denial-observation assertions.
