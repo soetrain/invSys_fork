@@ -6,7 +6,7 @@ Public Function ListPaths(ByVal context As String, ByVal search As String, ByRef
     Dim target As WarehouseTarget, policy As Object, versions As Object, id As Variant, start As Object, line As String
     On Error GoTo Invalid
     rows = ""
-    If Not ReadContext(context, target, policy, notice) Then Exit Function
+    If Not modTrainingReadContext.Read(context, target, policy, notice) Then Exit Function
     Set versions = modRecordingReader.Versions(target)
     notice = "Unavailable: the recording library could not be read."
     If versions Is Nothing Then Exit Function
@@ -29,7 +29,7 @@ Public Function ReadPath(ByVal context As String, ByVal pathId As String, ByRef 
     Dim record As Variant, row As Variant, visible As Object, definition As Object, hidden As Long, reference As Variant
     On Error GoTo Invalid
     evidence = ""
-    If Not ReadContext(context, target, policy, notice) Then GoTo Unavailable
+    If Not modTrainingReadContext.Read(context, target, policy, notice) Then GoTo Unavailable
     Set versions = modRecordingReader.Versions(target)
     notice = "Incomplete evidence: the selected recording is unavailable."
     If versions Is Nothing Then GoTo Unavailable
@@ -86,13 +86,4 @@ End Sub
 
 Private Function CanShow(ByVal record As Object, ByVal visible As Object) As Boolean
     If visible.Exists(record("ControlId")) Then CanShow = CBool(visible(record("ControlId")))
-End Function
-
-Private Function ReadContext(ByVal context As String, ByRef target As WarehouseTarget, ByRef policy As Object, ByRef notice As String) As Boolean
-    Dim version As Long, collect As Boolean, visible As Boolean
-    notice = "Unavailable: the invSys session or warehouse changed. Reopen Viewer."
-    If context = "" Or context <> modActivity.CaptureContext() Then Exit Function
-    Set target = modNasConnection.GetCurrentTarget(): Set policy = CreateObject("Scripting.Dictionary")
-    If Not modActivityPolicy.ReadPolicy(target, "ADMIN_SETTINGS_SAVE_VALUE", version, collect, visible, notice, policy) Then Exit Function
-    ReadContext = (context = modActivity.CaptureContext())
 End Function

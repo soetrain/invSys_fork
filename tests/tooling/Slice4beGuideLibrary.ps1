@@ -83,7 +83,7 @@ function Test-GuideLibrary($Fixture,$Other,$First,$Second) {
     foreach($size in @('Minimum','Default','Larger','Restored')){
         Check ('GuideLibrary.Layout.'+$size) ($opened -and (GuideReader '' 'Fit' $size) -ceq 'True')
     }
-    if($CaptureEvidence -and $opened){
+    if(($CaptureEvidence -or $CaptureGuideEvidence) -and $opened){
         Initialize-SettingsCapture
         $handle=[InvSysSettingsCapture]::OwnedVisibleForm('Published guides',[IntPtr]$excel.Hwnd).ToInt64()
         CaptureOwnedFormEvidence 'Published guides' 'published-guide-reader.png' $handle

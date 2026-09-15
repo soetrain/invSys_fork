@@ -21,7 +21,7 @@ function Test-GuideSave($Fixture,$Other) {
         [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @($Action,$Value))
     }
     function CaptureSavedGuide([string]$Version) {
-        if(-not $CaptureEvidence){return}
+        if(-not ($CaptureEvidence -or $CaptureGuideEvidence)){return}
         Initialize-SettingsCapture
         $handle=[InvSysSettingsCapture]::OwnedVisibleForm('Action Path guide',[IntPtr]$excel.Hwnd).ToInt64()
         CaptureOwnedFormEvidence 'Action Path guide' ('guide-save-version-'+$Version+'.png') $handle

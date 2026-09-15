@@ -6,6 +6,15 @@ Five-package build/explicit compile/cold start, four editor layouts, static limi
 source preservation and terminal Excel closure pass. Current Save guide screenshots
 and broader regression/full-chain/deployed/NAS/human acceptance remain open.
 
+**Subsequent reader candidate closes the Save screenshot gap:**
+`deploy/validation-guide-library` passes 135/135 focused checks, including actual
+Save version 1, Save version 2 and published-reader captures, all directly
+reviewed. The unchanged Save writer and original-observation checks remain
+passing. This is evidence on the new reader candidate, not a retrospective
+capture pass for the earlier Save-only package. Exact report, hashes, cleanup
+and remaining gates are in
+[published-guide reader evidence](plan022_slice4be_guide_library_results.md).
+
 **Evaluation regression:** The unchanged Save candidate passes **376/376**,
 retaining all 376 preceding evaluation identities, including five instrumented
 compiles, actual Operations/Admin recording, asynchronous publication, retries,

@@ -34,6 +34,8 @@ Private WithEvents mEvaluate As MSForms.CommandButton
 Private mEvaluation As MSForms.TextBox
 Private mEvaluationStatus As MSForms.Label
 Private WithEvents mCreateGuide As MSForms.CommandButton
+Private WithEvents mPublishedGuides As MSForms.CommandButton
+Private mGuideLibrary As frmActionPathLibrary
 
 Private Sub UserForm_Initialize()
     Dim definition As Variant, control As Object
@@ -45,7 +47,8 @@ Private Sub UserForm_Initialize()
         Array("Label", "lblPathSearch", "Search recordings", 12, 12, 130, 20, 3), _
         Array("TextBox", "txtPathSearch", "", 148, 10, 550, 24, 7), _
         Array("CommandButton", "btnPathRefresh", "Refresh", 708, 10, 92, 26, 6), _
-        Array("Label", "lblPathList", "Saved recordings - select one to validate its evidence", 12, 44, 620, 20, 7), _
+        Array("Label", "lblPathList", "Saved recordings - select one to validate its evidence", 12, 44, 452, 20, 7), _
+        Array("CommandButton", "btnPublishedGuides", "Published guides", 476, 40, 156, 24, 6), _
         Array("CommandButton", "btnCreateGuide", "Create guide", 644, 40, 156, 24, 6), _
         Array("ListBox", "lstActionPaths", "", 12, 68, 788, 130, 7), _
         Array("Label", "lblPathEvidence", "Observed controls and outcomes / Saved diagnostic result", 12, 208, 500, 20, 7), _
@@ -69,6 +72,7 @@ Private Sub UserForm_Initialize()
     Set mEvaluate = Me.Controls("btnEvaluatePath"): Set mEvaluation = Me.Controls("txtPathEvaluation")
     Set mEvaluationStatus = Me.Controls("lblEvaluationStatus")
     Set mCreateGuide = Me.Controls("btnCreateGuide"): mCreateGuide.Enabled = False
+    Set mPublishedGuides = Me.Controls("btnPublishedGuides")
     mEvaluation.MultiLine = True: mEvaluation.WordWrap = True: mEvaluation.Locked = True
     mEvaluation.ScrollBars = fmScrollBarsVertical: mEvaluationStatus.WordWrap = True
     mEvaluate.Enabled = False
@@ -199,6 +203,7 @@ Private Sub ClearEvaluation()
 End Sub
 
 Public Sub ClearContent(ByVal notice As String)
+    ClosePublishedGuides
     ClearEvaluation
     modExpectationEditor.CloseLibrary Me
     modGuideEditor.CloseLibrary Me
@@ -223,15 +228,34 @@ Private Sub mRefresh_Click()
 End Sub
 
 Private Sub mClose_Click()
+    ClosePublishedGuides
     Me.Hide
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     If CloseMode = 0 Then
+        ClosePublishedGuides
         Cancel = True: Me.Hide
     Else
         ClearContent ""
     End If
+End Sub
+
+Private Sub mPublishedGuides_Click()
+    If Not ContextValid() Then Exit Sub
+    If mGuideLibrary Is Nothing Then
+        Set mGuideLibrary = New frmActionPathLibrary
+        mGuideLibrary.BindContext mContext, Me
+    Else
+        mGuideLibrary.ValidateSelection
+    End If
+    If Not mGuideLibrary.Visible Then mGuideLibrary.Show vbModeless
+End Sub
+
+Public Sub ClosePublishedGuides()
+    If mGuideLibrary Is Nothing Then Exit Sub
+    mGuideLibrary.ReleaseReader
+    Unload mGuideLibrary: Set mGuideLibrary = Nothing
 End Sub
 
 Private Sub UserForm_Activate()
