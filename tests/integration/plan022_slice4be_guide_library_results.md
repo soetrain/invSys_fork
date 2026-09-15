@@ -61,8 +61,50 @@ extends through that preflight: UTC 08:11:34.4846768--08:28:32.5190437, zero
 Application events 1000/1001/1002. Five candidate hashes and both unrelated
 documents remain unchanged. Ignored verification:
 `reports/runtime/guide-library-boxing-verification.json`. This is regression
-preservation, not D8-A approval or full-chain acceptance. Boxing captures from
-this run still require direct review; evaluation and full chain remain pending.
+preservation, not D8-A approval or full-chain acceptance. All 22 PNG captures
+from this run were directly reviewed: three recorded-path sizes; accepted and
+zero-quantity Make/Unbox; disabled, older and unavailable tracking policy/store
+feedback; six published activity/business details; Settings Save; permission
+denial; and stale-session state. Accepted/rejected actions and separate tracking
+feedback are visible, and source submission is not asserted as application.
+The stale-session image is partially painted and does not establish complete
+operator feedback. The detail Coverage clipping noted above also appears here.
+Keep those visible limitations open. Evaluation and full chain remain pending.
+
+**Evaluation regression:** **376/376**, retaining every preceding Save-candidate
+identity with no duplicate checks. Report:
+`reports/runtime/slice4be-viewer-published-read/bdada077ba5d4fe3b06c522cfe4ee206/green.json`.
+Terminal exit is 0 with Excel closed. UTC 2026-09-15
+08:28:32.5190437--08:47:09.8131039 has zero Application events 1000/1001/1002.
+All 15 diagnostic images were directly reviewed: minimum/default/larger/restored
+and source views for Pending, Partial and Applied. Partial application remains
+Awaiting published result; Conclusion observed appears only with every terminal
+source applied. Scrolling preserves access at minimum size. These are automated
+operator-view captures, not human acceptance. The post-run package check was
+initially deferred because the subsequent chain held Core open; after chain
+cleanup, all five candidate and both user-document hashes pass. All 25 frozen
+package hashes also pass the separate guide-expectation entry verifier.
+
+**Full-chain attempt: FAILED**, **5 PASS / one harness FAIL**. Its ordered live
+subprocess reports **14 PASS / one harness FAIL** at **Run Receiving ConfirmWrites**,
+with `0x80020009 (DISP_E_EXCEPTION)`. Create Warehouse remains **15/15**. This
+failure is earlier than the prior draft candidate's projection-rebuild failure;
+neither is resolved by the passing focused reader or evaluation gates. Governing
+D13/D18 and full-chain acceptance remain open; this is not guide-expectation RED.
+Exact ignored reports use prefix `reports/runtime/guide-library-regression-chain-`:
+`slice14_results.md`, `phase6_live_role_workflow_results.md` and
+`create-warehouse-results.md`. UTC 08:47:09.9693674--08:51:49.7455358 contains zero
+Application events 1000/1001/1002; that does not establish a root cause or repair.
+
+The chain's original Excel process exited and a new process appeared. Read-only
+native/COM inspection verified the new process and a non-null Workbooks collection
+with integer count zero. Normal Quit was requested; the resulting recovery dialog
+was inspected and **Yes, I want to view these files later** was selected and
+visually verified before confirmation. No force termination or recovery-file
+deletion occurred. The chain then exited 1 with Excel closed, local settings
+restored and all three tracked result files restored exactly. The independent
+guide-expectation RED can now run on the unchanged reader candidate; full-chain
+failure still requires investigation before release acceptance.
 
 **Candidate implementation:** `deploy/validation-guide-library`
 builds all five packages and passes explicit compile plus Operations cold start.

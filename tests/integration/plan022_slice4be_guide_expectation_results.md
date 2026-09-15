@@ -1,6 +1,20 @@
 # Plan 022 Slice 4be.5 guide expectation authoring
 
-**Test entry prepared; RED execution pending.** Architecture v4.11 D18's
+**Focused RED: 136 PASS / 30 expected FAIL; 166 total.** Every preceding 132
+reader/Save/draft/Viewer identity remains passing, with no duplicate checks or
+harness exception. The unchanged reader candidate lacks the actual guide entry,
+guide-specific shared-editor scope, staged summary, cancellation/invalidation and
+saved expectation behavior. Four new preservation checks pass independently.
+Report:
+`reports/runtime/slice4be-viewer-published-read/1515cc3719c745afa21fa5452e43c594/red.json`.
+Terminal exit is 1 as expected, with Excel closed. All 25 frozen package hashes
+and both unrelated documents are unchanged. UTC 2026-09-15
+08:52:30.7577605--09:00:26.0713116 has zero Application events 1000/1001/1002.
+Ignored verification: `reports/runtime/guide-expectation-red-verification.json`.
+This establishes behavioral RED before runtime changes; implementation and GREEN
+remain next. The reader candidate's separate full-chain failure is not this RED.
+
+Architecture v4.11 D18's
 guide-expectation authoring refinement names Expected conclusion and the guide
 summary, reusing the existing expectation editor with an explicit guide-draft
 scope. Use for this guide stages intent; Save guide publishes that definition
@@ -36,9 +50,9 @@ bytes and source files are restored and verified, without emitting credentials.
 The existing captured-expectation and guide Save fixtures are required setup.
 Their failure or a compile/harness exception is not meaningful RED. Expected RED
 is missing guide expectation entry, scope, staging and persistence on the unchanged
-reader candidate. No new runtime implementation or GREEN is claimed yet. The
-existing reader regression runner owns Excel; this test waits for a terminal
-regression state and verified Excel closure before execution.
+reader candidate. The completed run above confirms that expected RED. No new
+runtime implementation or GREEN is claimed yet. Execution began after the
+preceding serial regression runner was terminal and Excel closure was verified.
 
 Adding `-CaptureGuideEvidence` retains the existing ownership/foreground checks
 and captures the four expectation-editor sizes, staged guide summary and second
