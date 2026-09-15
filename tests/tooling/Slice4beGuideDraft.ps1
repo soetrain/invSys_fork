@@ -67,6 +67,25 @@ End Function
 }
 
 function Test-GuideDraftEntry($Fixture,$Other) {
+    function CaptureGuide([string]$Stage) {
+        if(-not $CaptureEvidence){return}
+        Initialize-SettingsCapture
+        for($attempt=1;$attempt -le 3;$attempt++){
+            try {
+                $handle=[InvSysSettingsCapture]::OwnedVisibleForm('Action Path guide',[IntPtr]$excel.Hwnd).ToInt64()
+                if($handle -eq 0){throw 'Requested form window unavailable.'}
+                $activation=New-Object -ComObject WScript.Shell
+                try{[void]$activation.AppActivate('Action Path guide')}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
+                CaptureFormEvidence 'Action Path guide' ('guide-draft-'+$Stage.ToLowerInvariant()+'.png') $handle
+                Check ('GuideDraft.VisibleCapture.'+$Stage) $true
+                return
+            } catch {
+                if($_.Exception.GetBaseException().Message -cnotin @('Requested form is not in the foreground.','Requested form window unavailable.')){throw}
+                if($attempt -lt 3){Start-Sleep -Milliseconds 300}
+            }
+        }
+        Check ('GuideDraft.VisibleCapture.'+$Stage) $false
+    }
     function GuideControl([string]$Name,[string]$Action,[string]$Value='', [string]$Form='frmActionPathGuide') {
         [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($Form,$Name,$Action,$Value))
     }
@@ -146,6 +165,7 @@ function Test-GuideDraftEntry($Fixture,$Other) {
         $up=GuideControl 'btnGuideStepUp' 'Click'
         [void](GuideControl 'lstGuideSteps' 'Select' '0')
         Check 'GuideDraft.MoveUpKeepsStepIdentityAndInstruction' ($opened -and $up -ceq 'DELIVERED' -and (GuideControl 'lstGuideSteps' 'Selected') -ceq $secondStep -and (GuideControl 'txtGuideStepInstruction' 'Text') -ceq 'Second authored instruction')
+        if($opened){CaptureGuide 'Reordered'}
         $down=GuideControl 'btnGuideStepDown' 'Click'
         [void](GuideControl 'lstGuideSteps' 'Select' '1')
         Check 'GuideDraft.MoveDownKeepsStepIdentityAndInstruction' ($opened -and $down -ceq 'DELIVERED' -and (GuideControl 'lstGuideSteps' 'Selected') -ceq $secondStep -and (GuideControl 'txtGuideStepInstruction' 'Text') -ceq 'Second authored instruction')
@@ -155,6 +175,7 @@ function Test-GuideDraftEntry($Fixture,$Other) {
         Check 'GuideDraft.StepEditsPreserveOriginalObservationOrder' ($opened -and (GuideControl 'txtGuideEvidence' 'Text') -ceq $observed)
         foreach($layout in @('Minimum','Default','Larger','Restored')){
             Check ('GuideDraft.Layout.'+$layout) ($opened -and (GuideControl '' 'Fit' $layout) -ceq 'True')
+            if($opened){CaptureGuide $layout}
         }
         $cancel=GuideControl 'btnCancelGuide' 'Click'
         Check 'GuideDraft.CancelDiscardsEditor' ($opened -and $cancel -ceq 'DELIVERED' -and (GuideControl '' 'Count') -ceq '0')

@@ -33,6 +33,7 @@ Private mEvaluationId As String
 Private WithEvents mEvaluate As MSForms.CommandButton
 Private mEvaluation As MSForms.TextBox
 Private mEvaluationStatus As MSForms.Label
+Private WithEvents mCreateGuide As MSForms.CommandButton
 
 Private Sub UserForm_Initialize()
     Dim definition As Variant, control As Object
@@ -44,7 +45,8 @@ Private Sub UserForm_Initialize()
         Array("Label", "lblPathSearch", "Search recordings", 12, 12, 130, 20, 3), _
         Array("TextBox", "txtPathSearch", "", 148, 10, 550, 24, 7), _
         Array("CommandButton", "btnPathRefresh", "Refresh", 708, 10, 92, 26, 6), _
-        Array("Label", "lblPathList", "Saved recordings - select one to validate its evidence", 12, 44, 788, 20, 7), _
+        Array("Label", "lblPathList", "Saved recordings - select one to validate its evidence", 12, 44, 620, 20, 7), _
+        Array("CommandButton", "btnCreateGuide", "Create guide", 644, 40, 156, 24, 6), _
         Array("ListBox", "lstActionPaths", "", 12, 68, 788, 130, 7), _
         Array("Label", "lblPathEvidence", "Observed controls and outcomes / Saved diagnostic result", 12, 208, 500, 20, 7), _
         Array("CommandButton", "btnEvaluatePath", "Evaluate", 532, 204, 90, 26, 6), _
@@ -66,6 +68,7 @@ Private Sub UserForm_Initialize()
     Set mSummary = Me.Controls("lblExpectationSummary"): Set mExpected = Me.Controls("btnExpectedConclusion")
     Set mEvaluate = Me.Controls("btnEvaluatePath"): Set mEvaluation = Me.Controls("txtPathEvaluation")
     Set mEvaluationStatus = Me.Controls("lblEvaluationStatus")
+    Set mCreateGuide = Me.Controls("btnCreateGuide"): mCreateGuide.Enabled = False
     mEvaluation.MultiLine = True: mEvaluation.WordWrap = True: mEvaluation.Locked = True
     mEvaluation.ScrollBars = fmScrollBarsVertical: mEvaluationStatus.WordWrap = True
     mEvaluate.Enabled = False
@@ -123,22 +126,29 @@ Private Sub ReadSelection()
         mBinding = ""
         ClearEvaluation
         modExpectationEditor.CloseLibrary Me
+        modGuideEditor.CloseLibrary Me
         modActionPathRead.ClearSelection mContext
     End If
     mSelectedId = selected: mExpected.Enabled = False: mEvaluate.Enabled = False: mSummary.Caption = ""
+    mCreateGuide.Enabled = False
     If selected = "" Then Exit Sub
     succeeded = modActionPathRead.ReadPath(mContext, selected, evidence, notice)
     mStatus.Caption = notice
     If succeeded Then
         binding = modPathEvaluation.SelectedBinding(mContext, selected)
-        If mBinding <> binding Then ClearEvaluation
+        If mBinding <> binding Then
+            ClearEvaluation
+            modGuideEditor.CloseLibrary Me
+        End If
         mBinding = binding
         mEvidence.Value = evidence: mExpected.Enabled = True: mEvaluate.Enabled = True
+        mCreateGuide.Enabled = modActionGuideDraft.CanCreate(mContext, selected)
         RefreshExpectation
         ReadEvaluation
     Else
         mBinding = ""
         modExpectationEditor.CloseLibrary Me
+        modGuideEditor.CloseLibrary Me
         ClearEvaluation
     End If
 End Sub
@@ -146,6 +156,11 @@ End Sub
 Public Sub RefreshExpectation()
     If Not ContextValid() Or mSelectedId = "" Then Exit Sub
     mSummary.Caption = modActionPathRead.ExpectationSummary(mContext, mSelectedId)
+End Sub
+
+Private Sub mCreateGuide_Click()
+    If Not ContextValid() Or mSelectedId = "" Then Exit Sub
+    modGuideEditor.OpenForRun mContext, mSelectedId, Me
 End Sub
 
 Private Sub mExpected_Click()
@@ -186,10 +201,12 @@ End Sub
 Public Sub ClearContent(ByVal notice As String)
     ClearEvaluation
     modExpectationEditor.CloseLibrary Me
+    modGuideEditor.CloseLibrary Me
     modActionPathRead.ClearSelection mContext
     mLoading = True
     mPaths.Clear: mEvidence.Value = "": mStatus.Caption = notice
     mSelectedId = "": mBinding = "": mSummary.Caption = "": mExpected.Enabled = False
+    mCreateGuide.Enabled = False
     mLoading = False
 End Sub
 
