@@ -8,7 +8,7 @@ Private Const SOURCE_FIELDS As String = "ActionPathId|SequenceId|JournalVersion|
 ' Build authored content separately from unchanged original activity bodies.
 Public Function Create(ByVal header As Object, ByVal text As Object, ByVal draftSteps As Collection, _
                        ByVal records As Collection, ByVal visible As Object, ByVal policyVersion As Long, _
-                       ByVal previous As Object) As Object
+                       ByVal previous As Object, ByVal expectation As Object) As Object
     Dim model As Object, source As Object, field As Variant, tag As Variant, step As Object, authored As Object, record As Object
     Dim tags As New Collection, steps As New Collection, observations As New Collection, hidden As Long
     Set model = CreateObject("Scripting.Dictionary")
@@ -52,7 +52,7 @@ Public Function Create(ByVal header As Object, ByVal text As Object, ByVal draft
     source.Add "JournalVersion", header("Version"): source.Add "RecordedByUserId", header("CreatedByUserId")
     source.Add "EntryCreatedAtUTC", header("CreatedAtUTC"): source.Add "CapturePolicyVersion", header("PolicyVersion")
     source.Add "RestrictedObservationCount", hidden: model.Add "SourceRun", source
-    model.Add "ExpectedConclusion", modExpectationModel.NoneDefinition()
+    model.Add "ExpectedConclusion", modTrainingJson.DecodeObject(modTrainingJson.EncodeObject(expectation))
     Set Create = model
 End Function
 

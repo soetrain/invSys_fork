@@ -275,6 +275,15 @@ public static class InvSysSettingsCapture {
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int length);
+    [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, System.Text.StringBuilder text, int length);
+    public static string ForegroundIdentity(IntPtr intended) {
+        IntPtr wanted=GetAncestor(intended,2), actual=GetAncestor(GetForegroundWindow(),2);
+        uint wantedProcess,actualProcess;
+        GetWindowThreadProcessId(wanted,out wantedProcess);GetWindowThreadProcessId(actual,out actualProcess);
+        var wantedClass=new System.Text.StringBuilder(128);var actualClass=new System.Text.StringBuilder(128);
+        GetClassName(wanted,wantedClass,wantedClass.Capacity);GetClassName(actual,actualClass,actualClass.Capacity);
+        return wantedProcess+"|"+wanted.ToInt64()+"|"+wantedClass+"|"+actualProcess+"|"+actual.ToInt64()+"|"+actualClass;
+    }
     public static IntPtr OwnedVisibleForm(string title, IntPtr ownerWindow) {
         uint ownerProcess; GetWindowThreadProcessId(ownerWindow,out ownerProcess);
         if(ownerProcess==0) return IntPtr.Zero;
@@ -330,10 +339,17 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
         $owned=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
         if($WindowHandle -eq 0 -or $owned -ne $WindowHandle){throw 'Requested capture does not identify a unique owned visible form.'}
         $activation=New-Object -ComObject WScript.Shell
-        try{[void]$activation.AppActivate($Title)}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
+        $activated=$null
+        try{$activated=$activation.AppActivate($Title)}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
         try {CaptureFormEvidence $Title $FileName $WindowHandle; return}
         catch {
-            if($_.Exception.GetBaseException().Message -cne 'Requested form is not in the foreground.' -or $attempt -eq 3){throw}
+            if($_.Exception.GetBaseException().Message -cne 'Requested form is not in the foreground.'){throw}
+            # Window/process identifiers and classes only; never captions or workbook values.
+            $activationResult=if($null -eq $activated){'Unavailable'}else{[string]$activated}
+            $identity=[InvSysSettingsCapture]::ForegroundIdentity([IntPtr]$WindowHandle)
+            ([DateTimeOffset]::UtcNow.ToString('o')+'|'+$FileName+'|'+$attempt+'|'+$activationResult+'|'+$identity) |
+                Add-Content -LiteralPath (Join-Path $reportRoot 'capture-foreground-observations.tsv')
+            if($attempt -eq 3){throw}
             Start-Sleep -Milliseconds 300
         }
     }

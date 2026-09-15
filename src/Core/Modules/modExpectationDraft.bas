@@ -8,15 +8,17 @@ Private mId As String
 Private mModel As Object
 Private mPathId As String
 Private mBinding As String
+Private mGuideDraftId As String
 
-Public Function OpenEditor(ByVal context As String, ByRef projection As String, ByRef notice As String, Optional ByVal pathId As String = "") As Boolean
+Public Function OpenEditor(ByVal context As String, ByRef projection As String, ByRef notice As String, _
+                           Optional ByVal pathId As String = "", Optional ByVal guideDraftId As String = "") As Boolean
     Dim definition As Object, sequenceId As String, binding As String
     On Error GoTo Unavailable
     projection = ""
-    If Not ReadSource(context, pathId, sequenceId, binding, definition, notice) Then Exit Function
+    If Not ReadSource(context, pathId, guideDraftId, sequenceId, binding, definition, notice) Then Exit Function
     Discard ""
     mContext = context: mSequence = sequenceId: mId = modTrainingWire.NewId()
-    mPathId = pathId: mBinding = binding
+    mPathId = pathId: mBinding = binding: mGuideDraftId = guideDraftId
     Set mModel = definition
     projection = Project()
     notice = "Choose expected steps and the conclusion to check. This does not perform the work."
@@ -26,9 +28,16 @@ Unavailable:
     Discard "": projection = "": notice = "Expected conclusion is unavailable. Reopen the editor."
 End Function
 
-Private Function ReadSource(ByVal context As String, ByVal pathId As String, ByRef sequenceId As String, _
+Private Function ReadSource(ByVal context As String, ByVal pathId As String, ByVal guideDraftId As String, ByRef sequenceId As String, _
                             ByRef binding As String, ByRef definition As Object, ByRef notice As String) As Boolean
-    If pathId = "" Then
+    Dim serialized As String, summary As String
+    If guideDraftId <> "" Then
+        notice = "Choose one expectation scope."
+        If pathId <> "" Then Exit Function
+        If Not modActionGuideDraft.ReadExpectation(context, guideDraftId, sequenceId, serialized, summary, notice) Then Exit Function
+        Set definition = modTrainingJson.DecodeObject(serialized)
+        binding = guideDraftId: ReadSource = Not definition Is Nothing
+    ElseIf pathId = "" Then
         ReadSource = modRecordingSession.ReadExpectation(context, sequenceId, definition, notice)
         binding = sequenceId
     Else
@@ -40,7 +49,7 @@ Private Function Guard(ByVal context As String, ByVal draftId As String, ByRef n
     Dim sequenceId As String, binding As String, definition As Object
     notice = "This expectation draft is no longer available. Reopen Expected conclusion."
     If mModel Is Nothing Or draftId = "" Or draftId <> mId Or context <> mContext Then Exit Function
-    If Not ReadSource(context, mPathId, sequenceId, binding, definition, notice) Then Discard draftId: Exit Function
+    If Not ReadSource(context, mPathId, mGuideDraftId, sequenceId, binding, definition, notice) Then Discard draftId: Exit Function
     If sequenceId <> mSequence Or binding <> mBinding Then Discard draftId: Exit Function
     Guard = True
 End Function
@@ -109,6 +118,7 @@ Public Function Edit(ByVal context As String, ByVal draftId As String, ByVal com
         Case Else: notice = "Expectation edit is unavailable.": Exit Function
     End Select
     projection = Project(): notice = "Draft only. Use keeps these steps for the selected recording or evaluation."
+    If mGuideDraftId <> "" Then notice = "Draft only. Use keeps these steps for this guide."
     Edit = True
     Exit Function
 Unavailable:
@@ -122,7 +132,9 @@ Public Function UseDraft(ByVal context As String, ByVal draftId As String, ByVal
     If Not Guard(context, draftId, notice) Then Exit Function
     Set definition = modTrainingJson.DecodeObject(modTrainingJson.EncodeObject(mModel))
     definition("TerminalStepId") = terminalStepId: definition("TerminalKind") = terminalKind
-    If mPathId = "" Then
+    If mGuideDraftId <> "" Then
+        UseDraft = modActionGuideDraft.StageExpectation(context, mGuideDraftId, modTrainingJson.EncodeObject(definition), notice)
+    ElseIf mPathId = "" Then
         UseDraft = modRecordingSession.StageExpectation(context, mSequence, definition, notice)
     Else
         UseDraft = modPathExpectation.Stage(context, mPathId, mBinding, definition, notice)
@@ -131,6 +143,7 @@ Public Function UseDraft(ByVal context As String, ByVal draftId As String, ByVal
     Exit Function
 Unavailable:
     notice = "Expected conclusion could not be staged. The recording was not changed."
+    If mGuideDraftId <> "" Then notice = "Expected conclusion could not be staged. The guide was not changed."
 End Function
 
 Public Sub CloseContext(ByVal context As String, ByVal draftId As String)
@@ -142,14 +155,18 @@ Public Sub ClosePath(ByVal context As String, ByVal pathId As String)
 End Sub
 
 Public Sub DiscardRecording()
-    If mPathId = "" Then Discard ""
+    If mPathId = "" And mGuideDraftId = "" Then Discard ""
+End Sub
+
+Public Sub CloseGuide(ByVal context As String, ByVal guideDraftId As String)
+    If guideDraftId <> "" And mContext = context And mGuideDraftId = guideDraftId Then Discard mId
 End Sub
 
 Public Sub Discard(ByVal draftId As String)
     If draftId <> "" And draftId <> mId Then Exit Sub
     Set mModel = Nothing
     mContext = "": mSequence = "": mId = ""
-    mPathId = "": mBinding = ""
+    mPathId = "": mBinding = "": mGuideDraftId = ""
 End Sub
 
 Private Function Project() As String

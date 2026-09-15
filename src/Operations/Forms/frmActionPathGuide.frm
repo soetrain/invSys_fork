@@ -33,6 +33,8 @@ Private WithEvents mDown As MSForms.CommandButton
 Private WithEvents mRemove As MSForms.CommandButton
 Private WithEvents mCancel As MSForms.CommandButton
 Private WithEvents mSave As MSForms.CommandButton
+Private WithEvents mExpected As MSForms.CommandButton
+Private mExpectationSummary As MSForms.Label
 
 Private Sub UserForm_Initialize()
     Dim definition As Variant, control As Object
@@ -40,7 +42,9 @@ Private Sub UserForm_Initialize()
     Set mLayout = modOperationsLayout.OperationsAnchorManager()
     mLayout.ConfigureForForm Me, 760, 600
     For Each definition In Array( _
-        Array("Label", "lblGuideSource", "", 12, 10, 868, 48, 7), _
+        Array("Label", "lblGuideSource", "", 12, 10, 650, 48, 7), _
+        Array("CommandButton", "btnGuideExpectedConclusion", "Expected conclusion", 672, 10, 208, 26, 6), _
+        Array("Label", "lblGuideExpectationSummary", "Guide expectation: None", 672, 40, 208, 18, 6), _
         Array("Label", "lblGuideName", "Guide name", 12, 66, 510, 18, 7), _
         Array("TextBox", "txtGuideName", "", 12, 86, 510, 24, 7), _
         Array("Label", "lblGuideTags", "Tags", 540, 66, 340, 18, 6), _
@@ -73,6 +77,8 @@ Private Sub UserForm_Initialize()
     Set mUp = Me.Controls("btnGuideStepUp"): Set mDown = Me.Controls("btnGuideStepDown")
     Set mRemove = Me.Controls("btnRemoveGuideStep"): Set mCancel = Me.Controls("btnCancelGuide")
     Set mSave = Me.Controls("btnSaveGuide")
+    Set mExpected = Me.Controls("btnGuideExpectedConclusion")
+    Set mExpectationSummary = Me.Controls("lblGuideExpectationSummary")
     For Each definition In Array("txtGuideInstructions", "txtGuideStepInstruction", "txtGuideEvidence")
         Set control = Me.Controls(CStr(definition))
         control.MultiLine = True: control.WordWrap = True: control.ScrollBars = fmScrollBarsVertical
@@ -113,8 +119,19 @@ Private Function LoadDraft() As Boolean
     mSource.Caption = source: mEvidence.Value = evidence: mStatus.Caption = notice
     mLoading = False
     ReadStepInstruction
+    RefreshExpectation
     LoadDraft = (mDraftId <> "")
 End Function
+
+Public Sub RefreshExpectation()
+    Dim sequenceId As String, definition As String, summary As String, notice As String
+    If Not modActionGuideDraft.ReadExpectation(mContext, mDraftId, sequenceId, definition, summary, notice) Then Invalidate notice: Exit Sub
+    mExpectationSummary.Caption = summary
+End Sub
+
+Private Sub mExpected_Click()
+    If ValidateBinding() Then modExpectationEditor.OpenForGuide mContext, mDraftId, Me
+End Sub
 
 Private Function SelectedStep() As String
     If mSteps.ListIndex >= 0 Then SelectedStep = CStr(mSteps.List(mSteps.ListIndex, 0))
@@ -160,10 +177,12 @@ Private Sub Invalidate(ByVal notice As String)
     Next name
     mSteps.Enabled = False: mUp.Enabled = False: mDown.Enabled = False: mRemove.Enabled = False
     mSave.Enabled = False
+    mExpected.Enabled = False: mExpectationSummary.Caption = ""
     mStatus.Caption = notice: mLoading = False
 End Sub
 
 Public Sub ReleaseDraft()
+    modExpectationEditor.CloseGuide Me
     modActionGuideDraft.CloseDraft mContext, mDraftId
     mDraftId = "": mContext = ""
 End Sub

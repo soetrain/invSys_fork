@@ -17,8 +17,9 @@ End Sub
 ' EXPECTATION1 projection: header marker/draft/sequence/terminal StepId/kind;
 ' subsequent rows are StepId/control/outcome/retry/caption, tab/CRLF separated.
 ' These drafts are authored intent only, never activity or workflow commands.
-Public Function OpenExpectation(ByVal context As String, ByRef projection As String, ByRef notice As String, Optional ByVal pathId As String = "") As Boolean
-    OpenExpectation = modExpectationDraft.OpenEditor(context, projection, notice, pathId)
+Public Function OpenExpectation(ByVal context As String, ByRef projection As String, ByRef notice As String, _
+                                Optional ByVal pathId As String = "", Optional ByVal guideDraftId As String = "") As Boolean
+    OpenExpectation = modExpectationDraft.OpenEditor(context, projection, notice, pathId, guideDraftId)
 End Function
 
 Public Function ExpectationChoices(ByVal context As String, ByVal draftId As String, ByVal controlId As String) As String

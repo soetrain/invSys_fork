@@ -11,6 +11,7 @@ Private mHeader As Object
 Private mSteps As Collection
 Private mText As Object
 Private mSaved As Object
+Private mExpectation As Object
 Private mPolicyVersion As Long
 
 Public Function CanCreate(ByVal context As String, ByVal pathId As String) As Boolean
@@ -28,6 +29,7 @@ Public Function OpenDraft(ByVal context As String, ByVal pathId As String, ByRef
     mDraftId = modTrainingWire.NewId(): mPolicyHash = policyHash: Set mHeader = header
     mPolicyVersion = policyVersion
     Set mSteps = New Collection: Set mText = CreateObject("Scripting.Dictionary")
+    Set mExpectation = modExpectationModel.NoneDefinition()
     mText.Add "Name", "": mText.Add "Tags", "": mText.Add "Instructions", ""
     For Each record In records
         If record("OutcomeCode") = "REQUESTED" And modEvaluationMatches.Permitted(visible, CStr(record("ControlId"))) Then
@@ -156,6 +158,39 @@ Public Sub CloseDraft(ByVal context As String, ByVal draftId As String)
     If context = mContext And draftId = mDraftId Then Discard
 End Sub
 
+' Primitive/serialized projection; mutable expectation objects stay in Core.
+Public Function ReadExpectation(ByVal context As String, ByVal draftId As String, ByRef sequenceId As String, _
+                                ByRef definition As String, ByRef summary As String, ByRef notice As String) As Boolean
+    Dim records As Collection, visible As Object, count As Long
+    On Error GoTo Failed
+    sequenceId = "": definition = "": summary = ""
+    If Not Guard(context, draftId, records, visible, notice) Then Exit Function
+    sequenceId = CStr(mHeader("SequenceId")): definition = modTrainingJson.EncodeObject(mExpectation)
+    count = mExpectation("Steps").Count
+    summary = "Guide expectation: None"
+    If count > 0 Then summary = "Guide expectation: " & CStr(count) & " expected step(s)."
+    ReadExpectation = True
+    Exit Function
+Failed:
+    sequenceId = "": definition = "": summary = ""
+    notice = "Unavailable: the guide expectation could not be read."
+End Function
+
+Public Function StageExpectation(ByVal context As String, ByVal draftId As String, ByVal serialized As String, ByRef notice As String) As Boolean
+    Dim records As Collection, visible As Object, definition As Object
+    On Error GoTo Failed
+    If Not Guard(context, draftId, records, visible, notice) Then Exit Function
+    notice = "Choose valid expected steps and a conclusion, or remove all steps and choose None."
+    Set definition = modTrainingJson.DecodeObject(serialized)
+    If Not modExpectationModel.Validate(definition, modActivityCatalog.CATALOG_VERSION) Then Exit Function
+    Set mExpectation = definition
+    notice = "Expected conclusion staged for this guide. Save guide publishes it with the version."
+    StageExpectation = True
+    Exit Function
+Failed:
+    notice = "Unavailable: the guide expectation could not be staged."
+End Function
+
 Public Function SaveDraft(ByVal context As String, ByVal draftId As String, ByRef notice As String) As Boolean
     Dim records As Collection, visible As Object, target As WarehouseTarget, model As Object, hash As String, step As Object
     On Error GoTo Failed
@@ -174,7 +209,7 @@ Public Function SaveDraft(ByVal context As String, ByVal draftId As String, ByRe
     If Not mSaved Is Nothing Then
         If mSaved("Version") = 2147483647 Then notice = "Guide version limit reached. Your edits remain in this draft.": Exit Function
     End If
-    Set model = modGuideModel.Create(mHeader, mText, mSteps, records, visible, mPolicyVersion, mSaved)
+    Set model = modGuideModel.Create(mHeader, mText, mSteps, records, visible, mPolicyVersion, mSaved, mExpectation)
     Set target = modNasConnection.GetCurrentTarget()
     If target Is Nothing Then Exit Function
     If Not modGuideStore.Append(target, model, hash, notice) Then Exit Function
@@ -187,6 +222,8 @@ Failed:
 End Function
 
 Private Sub Discard()
+    modExpectationDraft.CloseGuide mContext, mDraftId
     mContext = "": mPathId = "": mBinding = "": mDraftId = "": mPolicyHash = ""
     Set mHeader = Nothing: Set mSteps = Nothing: Set mText = Nothing: Set mSaved = Nothing: mPolicyVersion = 0
+    Set mExpectation = Nothing
 End Sub
