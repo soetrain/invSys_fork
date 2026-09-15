@@ -1,6 +1,59 @@
 # Plan 022 Slice 4be.1 Boxing Make/Unbox activity RED
 
-Current verified outcome checkpoint, 2026-09-14: the final corrected route
+Current verified tracking checkpoint, 2026-09-14: **1388 PASS / 172 expected
+FAIL** across 1560 checks. All prior 1486 checks and 1321 GREENs remain, including
+Shipping recording40/40 and the full Boxing outcome matrix. The new six actual
+Make/Unbox cases contribute **67 PASS / 7 expected FAIL** across 74 checks:
+four absent Tracking unavailable notices (blocked store and older policy), plus
+three rejected catalog-9 policy-validity assertions. No duplicate check or harness
+exception occurs; all 18 earlier owner-fact records remain in the current report.
+
+Each new action submits exactly once and applies the exact package/component
+Inventory lines. Captured binding, staging/custom values, unrelated workbook,
+policy bytes and prior activity survive; original Config bytes are restored.
+The saved catalog-8 policy is valid and explicitly excludes the new Boxing IDs.
+The catalog-9 disabled policy remains unsupported, so its absence-of-collection
+passes are not acceptance of valid disabled tracking. Full GREEN requires that
+policy to validate as well as preserving the command and suppressing collection.
+
+All five instrumented compiles pass before forms. Fresh static evidence preserves
+every component size, all 28 growth limits, dynamic-call counts and maintenance
+metrics. All 325 package pins/protected sources and both unrelated user-file hashes
+hold; two changed scripts parse and 84 local links resolve. Excel closes normally;
+no Excel Event1000 appears in this run's verified window. The first post-run
+verifier wrapped PowerShell's root JSON array and counted one nested object;
+direct decoding confirms and validates all 18 retained owner records. This was a
+verifier-only correction, with no packaged test or runtime change and no rerun.
+
+Exact ignored report:
+`reports/runtime/slice4be-shipping-activity/b7bbacd3b41d45bfb31e9b957904ea68/boxing-activity-shipping-recording-red.json`.
+Its sibling `boxing-owner-return-facts.json` retains only the approved metadata
+fields. Supporting evidence: `reports/runtime/boxing-tracking-red.log`,
+`boxing-tracking-red-verification.json`, `boxing-tracking-red-native-windows.json`,
+`boxing-tracking-final-verification.json`, `boxing-tracking-static-verification.json`
+and `boxing-tracking-red-static/`. The command remains the existing full Boxing
+RED route documented below; no runtime, XLAM rebuild/deployment, layout, full-chain,
+live-role or human acceptance rerun is claimed by this test-only checkpoint.
+
+Next implement catalog-9 observations, the proven pre-owner context guard, and
+explicit submission/required-step facts under the existing D18 contract. Preserve
+oversized-module limits through reviewed extraction, then run all required GREEN,
+packaging, layout, maintenance and Release 1 gates. Other comprehensive controls,
+combined recordings, guides/comparison and physical/human acceptance remain open.
+D8-A remains a separate unapproved decision.
+
+**Optional-tracking D13 entry:** `Slice4beBoxingTracking.ps1` adds actual Make/
+Unbox cases after the existing outcome matrix. A bounded generated activity path
+is replaced temporarily by a blocking file and restored with exact prior hashes.
+Saved catalog-8 and catalog-9 disabled policies use disposable Config tables with
+unknown columns; exact original bytes are restored. Independent owner submission
+and exact package/component Inventory lines must pass regardless of tracking.
+Expected new RED is missing failure/older-policy notices and unsupported catalog-9
+policy validity. Absence of observations under an invalid catalog-9 policy is not
+proof of valid disabled collection. Preserve all prior 1486 checks/1321 GREENs.
+No new runtime, build, deployment or acceptance is claimed by this test entry.
+
+Prior outcome checkpoint, 2026-09-14: the final corrected route
 finishes **1321 PASS / 165 expected FAIL** across 1486 checks. The nine cases
 through both handlers contribute **198 independent PASS / 108 missing-observation
 FAIL**. All previous 1180 checks and 1123 GREENs remain, including Shipping

@@ -266,7 +266,11 @@ function Test-Slice4beShippingSubmission($Module) {
         }
         . (Join-Path $PSScriptRoot 'Slice4beShippingPrewriteRefusal.ps1')
         Test-Slice4beShippingPrewriteRefusal $fixture $operator $other $ship $hold
-        if($CheckBoxingActivity){Test-Slice4beBoxingOutcomes $fixture $operator $other $ship $hold}
+        if($CheckBoxingActivity){
+            Test-Slice4beBoxingOutcomes $fixture $operator $other $ship $hold
+            . (Join-Path $PSScriptRoot 'Slice4beBoxingTracking.ps1')
+            Test-Slice4beBoxingTracking $fixture $operator $other $ship $hold
+        }
         Check 'Shipping.Submission.AuthBytesPreserved' ($authHash -ceq (Get-ShippingActivityHash $authPath))
         Check 'Shipping.Submission.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))
         Check 'Shipping.Submission.UnrelatedWorkbookPreserved' ($otherHash -ceq (Get-ShippingActivityHash $other.FullName) -and $other.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq 'shipping submission sentinel')
