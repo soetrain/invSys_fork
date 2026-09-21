@@ -62,12 +62,14 @@ prove an empty workbook collection. Zero matching Application events are recorde
 
 All 22 Boxing/Shipping images were directly reviewed. Recording layouts, published
 action/business details, tracking warnings and Settings status are readable.
-Visible feedback remains open: `boxing.make.zeroquantity.png` shows **OK**, while
-`boxing.unbox.accepted.png` shows the prior zero-quantity rejection; the independent
-handler/owner checks pass. `shipping-permission-denied.png` also has unpainted
-regions. These images do not establish current feedback; painting/capture timing
-versus runtime behavior needs a focused comparison before any runtime fix. No
-claim that every capture passed visible acceptance follows from the check totals.
+Individual-file reinspection corrects an earlier batch-review filename association:
+`boxing.make.zeroquantity.png` correctly shows the zero-quantity rejection, and
+`boxing.unbox.accepted.png` correctly shows **OK**. No Boxing feedback defect or
+repaint diagnostic is established by that mistaken association. The independently
+reopened `shipping-permission-denied.png` still has unpainted regions. That image
+does not establish its current feedback; painting/capture timing versus runtime
+behavior needs a focused comparison before any runtime fix. No claim that every
+capture passed visible acceptance follows from the check totals.
 Evaluation regression and the guide-binding candidate chain remain in progress.
 
 **Focused behavioral RED verified, 2026-09-21: 171 PASS / 33 expected FAIL.**
