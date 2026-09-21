@@ -10,6 +10,7 @@ Private mBinding As String
 Private mDefinition As Object
 Private mSource As String
 Private mHeader As Object
+Private mGuide As Object
 Private mSelectionRevision As Double
 Private mIntentRevision As Double
 
@@ -82,6 +83,7 @@ Public Function Stage(ByVal context As String, ByVal pathId As String, ByVal bin
     Stage = Not mDefinition Is Nothing
     If Stage Then
         mIntentRevision = mIntentRevision + 1
+        Set mGuide = Nothing
         mSource = "This evaluation": notice = "Expected conclusion staged for this evaluation. The recording is unchanged."
     End If
 End Function
@@ -89,7 +91,61 @@ End Function
 Public Function Summary(ByVal context As String, ByVal pathId As String) As String
     Dim sequenceId As String, binding As String, definition As Object, notice As String, available As Boolean
     available = ReadDefinition(context, pathId, sequenceId, binding, definition, notice)
+    If available And mSource = "Guide expectation" Then
+        notice = notice & " Guide: " & CStr(mGuide("ActionPathId")) & "; version: " & CStr(mGuide("Version"))
+    End If
     Summary = notice
+End Function
+
+Public Function RunCaption(ByVal context As String, ByVal pathId As String, ByVal binding As String) As String
+    If context = "" Or context <> modActivity.CaptureContext() Then Exit Function
+    If binding = "" Or binding <> SelectionBinding(context, pathId) Then Exit Function
+    RunCaption = "Selected recording: " & pathId & "; journal version: " & CStr(mHeader("Version"))
+End Function
+
+Public Function StageGuide(ByVal context As String, ByVal pathId As String, ByVal binding As String, _
+                           ByVal key As String, ByRef notice As String) As Boolean
+    Dim target As WarehouseTarget, policy As Object, versions As Object, header As Object, records As Collection
+    Dim reference As Object, definition As Object
+    On Error GoTo Invalid
+    notice = "The selected recording changed. Reopen Published guides from the intended recording."
+    If binding = "" Or binding <> SelectionBinding(context, pathId) Then Exit Function
+    If Not modTrainingReadContext.Read(context, target, policy, notice) Then Exit Function
+    Set versions = modRecordingReader.Versions(target)
+    notice = "Unavailable: the selected recording changed. Reopen Published guides."
+    If versions Is Nothing Then Exit Function
+    If Not versions.Exists(pathId) Then Exit Function
+    Set records = modRecordingReader.ReadRun(target, pathId, CLng(versions(pathId)), header, notice)
+    If records Is Nothing Then Exit Function
+    If Not MatchesHeader(context, pathId, header) Then Exit Function
+    If Not modGuideExpectation.Read(context, key, reference, definition, notice) Then Exit Function
+    If context <> modActivity.CaptureContext() Or binding <> SelectionBinding(context, pathId) Then GoTo Invalid
+    modExpectationDraft.ClosePath context, pathId
+    Set mDefinition = definition: Set mGuide = reference
+    mSource = "Guide expectation": mIntentRevision = mIntentRevision + 1
+    notice = "Guide expectation staged for the selected recording. Choose Evaluate to check its observed actions."
+    StageGuide = True
+    Exit Function
+Invalid:
+    notice = "Unavailable: the selected recording or guide changed. Reopen Published guides."
+End Function
+
+Public Function GuideReference(ByVal context As String, ByVal pathId As String, ByRef reference As Object, _
+                               ByRef notice As String) As Boolean
+    On Error GoTo Invalid
+    Set reference = Nothing
+    If context = "" Or context <> modActivity.CaptureContext() Then GoTo Invalid
+    If SelectionBinding(context, pathId) = "" Then GoTo Invalid
+    Set reference = CreateObject("Scripting.Dictionary")
+    If mSource = "Guide expectation" Then
+        If Not modGuideExpectation.Matches(context, mGuide, mDefinition, notice) Then Exit Function
+        Set reference = modTrainingJson.DecodeObject(modTrainingJson.EncodeObject(mGuide))
+    End If
+    GuideReference = Not reference Is Nothing
+    Exit Function
+Invalid:
+    Set reference = Nothing
+    notice = "Unavailable: the selected guide expectation changed."
 End Function
 
 Public Function ReadSelected(ByVal context As String, ByVal pathId As String, ByRef header As Object, _
@@ -111,4 +167,5 @@ Public Sub ClearContext(ByVal context As String)
     mContext = "": mPathId = "": mSequence = "": mBinding = "": mSource = ""
     Set mDefinition = Nothing
     Set mHeader = Nothing
+    Set mGuide = Nothing
 End Sub

@@ -21,13 +21,22 @@ Public Function SelectedBinding(ByVal context As String, ByVal pathId As String)
     SelectedBinding = modPathExpectation.SelectionBinding(context, pathId)
 End Function
 
+Public Function SelectedRunCaption(ByVal context As String, ByVal pathId As String, ByVal binding As String) As String
+    SelectedRunCaption = modPathExpectation.RunCaption(context, pathId, binding)
+End Function
+
+Public Function UseGuide(ByVal context As String, ByVal pathId As String, ByVal binding As String, _
+                         ByVal key As String, ByRef notice As String) As Boolean
+    UseGuide = modPathExpectation.StageGuide(context, pathId, binding, key, notice)
+End Function
+
 Public Function Evaluate(ByVal context As String, ByVal pathId As String, ByVal previousId As String, _
                          ByRef evaluationId As String, ByRef text As String, ByRef notice As String) As Boolean
     Dim target As WarehouseTarget, policy As Object, header As Object, definition As Object, source As String
     Dim currentHeader As Object, records As Collection, result As Object, historical As Object, visible As Object
     Dim publication As Object, provenance As Object, terminal As Object, previous As Object, step As Object
     Dim version As Long, collect As Boolean, show As Boolean, available As Boolean, ignored As String
-    Dim binding As String
+    Dim binding As String, guide As Object
     On Error GoTo Failed
     evaluationId = "": text = "": notice = "Incomplete evidence: evaluation is unavailable."
     If mBusy Then Exit Function
@@ -38,6 +47,8 @@ Public Function Evaluate(ByVal context As String, ByVal pathId As String, ByVal 
     If Not modPathExpectation.ReadSelected(context, pathId, header, definition, source, notice) Then GoTo Done
     If binding <> modPathExpectation.EvaluationBinding(context, pathId) Then GoTo Failed
     Set result = modEvaluationModel.Create(header, definition, source, version)
+    If Not modPathExpectation.GuideReference(context, pathId, guide, notice) Then GoTo Done
+    Set result("Guide") = guide
     available = modLoadedEvents.Read(context, publication, provenance): result.Add "Publication", provenance
     Set records = modRecordingReader.ReadRun(target, pathId, CLng(header("Version")), currentHeader, ignored)
     If Not records Is Nothing Then
@@ -61,6 +72,8 @@ Public Function Evaluate(ByVal context As String, ByVal pathId As String, ByVal 
         End If
     End If
     If context <> modActivity.CaptureContext() Then GoTo Failed
+    If binding <> modPathExpectation.EvaluationBinding(context, pathId) Then GoTo Failed
+    If Not modPathExpectation.GuideReference(context, pathId, guide, notice) Then GoTo Done
     If binding <> modPathExpectation.EvaluationBinding(context, pathId) Then GoTo Failed
     If Not modEvaluationStore.Append(target, result, notice) Then GoTo Done
     evaluationId = CStr(result("EvaluationId"))
@@ -119,6 +132,9 @@ Public Function ReadSaved(ByVal context As String, ByVal pathId As String, ByVal
     If records Is Nothing Then Exit Function
     If Not modPathExpectation.MatchesHeader(context, pathId, header) Then Exit Function
     If Not modEvaluationJournal.Matches(result, header, records) Then Exit Function
+    If result("ExpectationSource") = "Guide expectation" Then
+        If Not modGuideExpectation.Matches(context, result("Guide"), result("ExpectedConclusion"), notice) Then Exit Function
+    End If
     Set visible = modEvaluationMatches.PolicyControls(policy, False)
     Set displayed = CreateObject("Scripting.Dictionary")
     For Each record In result("Matches"): displayed.Add CStr(record("ActivityId")), True: Next record

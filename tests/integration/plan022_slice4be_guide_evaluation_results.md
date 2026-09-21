@@ -1,5 +1,15 @@
 # Plan 022 Slice 4be guide-to-run expectation binding
 
+**Focused implementation GREEN: 204/204**, including all 166 preceding checks and
+all 37 guide-binding checks. Report:
+`reports/runtime/slice4be-viewer-published-read/d08d39397d2a43258459b505ed0d3147/green.json`.
+UTC **22:29:46.2433071--22:41:53.8291893**, exit 0. Immediate closure is False;
+Excel closes normally within the controller's bounded wait, without intervention.
+The window has zero Application events 1000/1001/1002. Every RED identity remains.
+Exact guide/run separation, actual apply/evaluate handlers, integrity/current-policy
+guards, independent analysis scope and source non-mutation pass. Visible captures
+and broader candidate regressions remain pending; this is not full Slice 4be acceptance.
+
 **Focused behavioral RED verified, 2026-09-21: 171 PASS / 33 expected FAIL.**
 Report: `reports/runtime/slice4be-viewer-published-read/465656eddaec49998b2c6d5a80df5a49/red.json`.
 All 166 preceding guide/expectation identities pass; the saved-probe check also
@@ -12,7 +22,7 @@ is False; normal closure is verified at **22:20:26.5316097**, without Quit,
 recovery action or forced termination. A read-only ROT attachment attempt during
 shutdown returned unavailable; it did not establish a workbook count or change
 Excel. The extended window has zero Application events 1000/1001/1002. Exact ignored
-evidence uses prefix `reports/runtime/guide-binding-red`. GREEN remains pending.
+evidence uses prefix `reports/runtime/guide-binding-red`.
 
 **Isolated implementation candidate:** `deploy/validation-guide-binding` builds
 and all five packages compile. Against the frozen overflow candidate, 234 compiled
@@ -27,7 +37,7 @@ Static evidence `reports/runtime/guide-binding-static` records 242 components,
 5,970 procedures and 131,528 lines (+183 versus overflow). Duplicate groups stay
 192; literal/unresolved dynamic calls stay 9/45. All 28 preceding module-size limits
 pass. Scanner/reviewed candidates are 1,185/1,187, with no deletion approval.
-The focused packaged GREEN run and visible evidence are pending. Accepted deployment
+The focused packaged GREEN run passes; visible evidence remains pending. Accepted deployment
 and the seven preceding frozen candidate sets remain outside this build.
 
 Architecture v4.11 D18's explicit guide-to-run refinement names the Published
@@ -59,6 +69,7 @@ the preceding checks.
 
 Operations owns the controls. Core owns selected intent, exact immutable guide
 validation and evaluation persistence through primitive cross-XLAM boundaries.
-No runtime change, schema change, authority fallback, workflow replay, deployment
-or full How-To/Diagnostic/Compare acceptance is authorized by test preparation.
-Event Detail's visible scrolling and full-chain failures remain separately open.
+No schema change, authority fallback, workflow replay, deployment or full
+How-To/Diagnostic/Compare acceptance follows from this bounded implementation.
+Event Detail's visible scrolling remains separately open; its latest chain is an
+assisted functional pass, with earlier native failures retained in its evidence.

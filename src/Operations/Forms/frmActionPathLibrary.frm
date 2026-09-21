@@ -28,6 +28,10 @@ Private mInstructions As MSForms.TextBox
 Private mObservations As MSForms.TextBox
 Private mSource As MSForms.Label
 Private mStatus As MSForms.Label
+Private mObserved As MSForms.Label
+Private WithEvents mUse As MSForms.CommandButton
+Private mObservedId As String
+Private mObservedBinding As String
 
 Private Sub UserForm_Initialize()
     Dim definition As Variant, control As Object
@@ -44,7 +48,9 @@ Private Sub UserForm_Initialize()
         Array("Label", "lblPublishedObserved", "Observed controls - original source order", 452, 264, 428, 20, 7), _
         Array("TextBox", "txtPublishedInstructions", "", 12, 292, 426, 238, 11), _
         Array("TextBox", "txtPublishedObservations", "", 452, 292, 428, 238, 15), _
-        Array("Label", "lblPublishedGuideStatus", "", 12, 542, 868, 36, 13), _
+        Array("Label", "lblGuideObservedRun", "", 12, 542, 650, 36, 13), _
+        Array("CommandButton", "btnUseGuideForRun", "Use for selected run", 674, 546, 206, 28, 12), _
+        Array("Label", "lblPublishedGuideStatus", "", 12, 582, 752, 32, 13), _
         Array("CommandButton", "btnCloseGuides", "Close", 782, 588, 98, 26, 12))
         Set control = Me.Controls.Add("Forms." & definition(0) & ".1", CStr(definition(1)), True)
         control.Move definition(3), definition(4), definition(5), definition(6)
@@ -56,12 +62,26 @@ Private Sub UserForm_Initialize()
     Set mRefresh = Me.Controls("btnRefreshGuides"): Set mClose = Me.Controls("btnCloseGuides")
     Set mInstructions = Me.Controls("txtPublishedInstructions"): Set mObservations = Me.Controls("txtPublishedObservations")
     Set mSource = Me.Controls("lblPublishedGuideSource"): Set mStatus = Me.Controls("lblPublishedGuideStatus")
+    Set mObserved = Me.Controls("lblGuideObservedRun"): Set mUse = Me.Controls("btnUseGuideForRun")
+    mUse.Enabled = False
     mGuides.ColumnCount = 3: mGuides.BoundColumn = 1
     mGuides.ColumnWidths = "0 pt;400 pt;420 pt": mGuides.IntegralHeight = False
     For Each definition In Array("txtPublishedInstructions", "txtPublishedObservations")
         Set control = Me.Controls(CStr(definition))
         control.MultiLine = True: control.WordWrap = True: control.Locked = True: control.ScrollBars = fmScrollBarsVertical
     Next definition
+End Sub
+
+Public Sub BindObservedRun(ByVal pathId As String, ByVal binding As String)
+    mObservedId = "": mObservedBinding = "": mObserved.Caption = "": mUse.Enabled = False
+    If Not ContextValid() Then Exit Sub
+    mObserved.Caption = modPathEvaluation.SelectedRunCaption(mContext, pathId, binding)
+    If mObserved.Caption <> "" Then
+        mObservedId = pathId: mObservedBinding = binding
+    Else
+        mObserved.Caption = "Select a recording in Action Paths, then reopen Published guides to use an expectation."
+    End If
+    ValidateSelection
 End Sub
 
 Public Sub BindContext(ByVal context As String, ByVal owner As frmActionPaths)
@@ -72,6 +92,7 @@ End Sub
 Private Function ContextValid() As Boolean
     ContextValid = (mContext <> "" And mContext = modActivity.CaptureContext())
     If Not ContextValid Then
+        mObservedId = "": mObservedBinding = "": mObserved.Caption = ""
         mLoading = True: mGuides.Clear: mLoading = False
         ClearSelection "Unavailable: the invSys session or warehouse changed. Reopen Viewer."
     End If
@@ -91,6 +112,11 @@ Public Sub ValidateSelection()
     If CStr(mGuides.Value) <> key Then Exit Sub
     mInstructions.Value = instructions: mObservations.Value = observations
     mSource.Caption = provenance: mStatus.Caption = notice
+    mUse.Enabled = False
+    If Not mOwner Is Nothing And mObservedId <> "" Then
+        mUse.Enabled = mOwner.ObservedRunMatches(mObservedId, mObservedBinding)
+        If Not mUse.Enabled Then mStatus.Caption = "The selected recording changed. Reopen Published guides from the intended recording."
+    End If
 End Sub
 
 Private Sub RefreshGuides()
@@ -121,13 +147,25 @@ Failed:
 End Sub
 
 Private Sub ClearSelection(ByVal notice As String)
+    mUse.Enabled = False
     mInstructions.Value = "": mObservations.Value = "": mSource.Caption = "": mStatus.Caption = notice
 End Sub
 
 Public Sub ReleaseReader()
+    mObservedId = "": mObservedBinding = "": mObserved.Caption = ""
     Set mOwner = Nothing: mContext = ""
     mLoading = True: mGuides.Clear: mSearch.Value = "": mLoading = False
     ClearSelection ""
+End Sub
+
+Private Sub mUse_Click()
+    Dim key As String, notice As String, applied As Boolean
+    If Not ContextValid() Then Exit Sub
+    If mOwner Is Nothing Or mGuides.ListIndex < 0 Then Exit Sub
+    key = CStr(mGuides.Value)
+    applied = mOwner.UseGuideForRun(mObservedId, mObservedBinding, key, notice)
+    If Not ContextValid() Then Exit Sub
+    mStatus.Caption = notice
 End Sub
 
 Private Sub mSearch_Change()

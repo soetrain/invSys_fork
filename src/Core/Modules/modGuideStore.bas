@@ -2,6 +2,26 @@ Attribute VB_Name = "modGuideStore"
 Option Explicit
 Option Private Module
 
+' Shared internal chain validation; no object crosses an XLAM boundary.
+Public Function ReadChain(ByVal target As WarehouseTarget, ByVal id As String, ByVal version As Long) As Object
+    Dim current As Object, previous As Object, identities As Object, index As Long
+    If Not modTrainingWire.ValidId(id) Or version < 1 Then Exit Function
+    Set identities = CreateObject("Scripting.Dictionary")
+    index = 1
+    Do
+        Set current = ReadVersion(target, id, index)
+        If current Is Nothing Then Exit Function
+        If identities.Exists(current("RecordId")) Then Exit Function
+        identities.Add current("RecordId"), True
+        If Not previous Is Nothing Then
+            If current("PreviousRecordId") <> previous("RecordId") Or current("PreviousSha256") <> previous("ContentSha256") Then Exit Function
+        End If
+        If index = version Then Exit Do
+        Set previous = current: index = index + 1
+    Loop
+    Set ReadChain = current
+End Function
+
 ' Immutable guide revisions have their own namespace and no journal-entry limit.
 Public Function Append(ByVal target As WarehouseTarget, ByVal model As Object, ByRef hash As String, ByRef notice As String) As Boolean
     Dim body As String, content As String, root As String, path As String, pending As String

@@ -19,7 +19,7 @@ Public Function ListGuides(ByVal context As String, ByVal search As String, ByRe
             If UBound(parts) <> 2 Then GoTo BadEntry
             If Not modTrainingWire.ValidId(CStr(parts(0))) Then GoTo BadEntry
             If Not ParseVersion(CStr(parts(1)), version) Then GoTo BadEntry
-            Set model = ReadChain(target, CStr(parts(0)), version)
+            Set model = modGuideStore.ReadChain(target, CStr(parts(0)), version)
             If model Is Nothing Then GoTo BadEntry
             tags = TagsText(model)
             If search = "" Or InStr(1, CStr(model("Name")) & " " & tags & " " & CStr(model("ActionPathId")), search, vbTextCompare) > 0 Then
@@ -65,7 +65,7 @@ Public Function ReadGuide(ByVal context As String, ByVal key As String, ByRef in
     parts = Split(key, "|")
     If UBound(parts) <> 2 Then Exit Function
     If Not ParseVersion(CStr(parts(1)), version) Then Exit Function
-    Set model = ReadChain(target, CStr(parts(0)), version)
+    Set model = modGuideStore.ReadChain(target, CStr(parts(0)), version)
     If model Is Nothing Then Exit Function
     If CStr(model("ContentSha256")) <> CStr(parts(2)) Then Exit Function
     Set visible = modEvaluationMatches.PolicyControls(policy, False)
@@ -107,25 +107,6 @@ Public Function ReadGuide(ByVal context As String, ByVal key As String, ByRef in
 Failed:
     instructions = "": observations = "": provenance = ""
     notice = "Unavailable: the selected guide, session or policy could not be validated."
-End Function
-
-Private Function ReadChain(ByVal target As WarehouseTarget, ByVal id As String, ByVal version As Long) As Object
-    Dim current As Object, previous As Object, identities As Object, index As Long
-    If Not modTrainingWire.ValidId(id) Or version < 1 Then Exit Function
-    Set identities = CreateObject("Scripting.Dictionary")
-    index = 1
-    Do
-        Set current = modGuideStore.ReadVersion(target, id, index)
-        If current Is Nothing Then Exit Function
-        If identities.Exists(current("RecordId")) Then Exit Function
-        identities.Add current("RecordId"), True
-        If Not previous Is Nothing Then
-            If current("PreviousRecordId") <> previous("RecordId") Or current("PreviousSha256") <> previous("ContentSha256") Then Exit Function
-        End If
-        If index = version Then Exit Do
-        Set previous = current: index = index + 1
-    Loop
-    Set ReadChain = current
 End Function
 
 Private Function ParseVersion(ByVal text As String, ByRef version As Long) As Boolean

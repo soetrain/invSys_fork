@@ -246,11 +246,29 @@ Private Sub mPublishedGuides_Click()
     If mGuideLibrary Is Nothing Then
         Set mGuideLibrary = New frmActionPathLibrary
         mGuideLibrary.BindContext mContext, Me
-    Else
-        mGuideLibrary.ValidateSelection
     End If
+    mGuideLibrary.BindObservedRun mSelectedId, mBinding
     If Not mGuideLibrary.Visible Then mGuideLibrary.Show vbModeless
 End Sub
+
+Public Function ObservedRunMatches(ByVal pathId As String, ByVal binding As String) As Boolean
+    If Not ContextValid() Then Exit Function
+    If pathId = "" Or pathId <> mSelectedId Or binding = "" Or binding <> mBinding Then Exit Function
+    ObservedRunMatches = (binding = modPathEvaluation.SelectedBinding(mContext, pathId))
+End Function
+
+Public Function UseGuideForRun(ByVal pathId As String, ByVal binding As String, ByVal key As String, _
+                               ByRef notice As String) As Boolean
+    notice = "The selected recording changed. Reopen Published guides from the intended recording."
+    If Not ObservedRunMatches(pathId, binding) Then Exit Function
+    If Not modPathEvaluation.UseGuide(mContext, pathId, binding, key, notice) Then Exit Function
+    If Not ObservedRunMatches(pathId, binding) Then Exit Function
+    modExpectationEditor.CloseLibrary Me
+    ClearEvaluation
+    mEvaluate.Enabled = True
+    RefreshExpectation
+    UseGuideForRun = True
+End Function
 
 Public Sub ClosePublishedGuides()
     If mGuideLibrary Is Nothing Then Exit Sub
