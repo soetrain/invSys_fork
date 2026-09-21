@@ -186,6 +186,10 @@ function Test-GuideEvaluation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideSou
             Check 'GuideEvaluation.RestrictedGuideExpectationCannotBeApplied' ($present -and (BoundControl 'lblPublishedGuideStatus' 'Label') -match '(?i)hidden|restricted|incomplete|unavailable')
         } finally {SaveGuideExpectationVisibility $true}
         Check 'GuideEvaluation.PolicyExercisePreservesGuidesAndSavedResults' ((BoundSame $guidePins (BoundPins $guideRoot)) -and (BoundSame $beforePolicyEvaluation (BoundPins $evaluationRoot)))
+        if($CheckGuidePresentation){
+            . (Join-Path $PSScriptRoot 'Slice4beGuidePresentation.ps1')
+            Test-GuidePresentation $Fixture $Other $FirstGuide $SecondGuide $GuideSource $observed $observedFirst $observedSecond
+        }
     } finally {
         CloseRecordingViewer
         SelectTarget $Fixture 'config-admin'

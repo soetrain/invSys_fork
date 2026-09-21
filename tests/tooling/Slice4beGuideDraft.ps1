@@ -29,23 +29,34 @@ Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As
             If value = "Minimum" Then owner.Height = 550
             If value = "Default" Or value = "Restored" Then owner.Height = 630
         End If
+        If formName = "frmActionPathView" Then
+            If value = "Minimum" Then owner.Width = 840: owner.Height = 600
+            If value = "Default" Or value = "Restored" Then owner.Width = 960: owner.Height = 680
+        End If
         owner.Repaint: DoEvents
         GuideDraftControlForTest = "False"
         For Each control In owner.Controls
+            If formName = "frmActionPathView" And Not control.Visible Then GoTo NextFitControl
             If Not control.Visible Or control.Left < 0 Or control.Top < 0 Or control.Width <= 0 Or control.Height <= 0 Then Exit Function
             If control.Left + control.Width > owner.InsideWidth Or control.Top + control.Height > owner.InsideHeight Then Exit Function
             For Each item In owner.Controls
-                If item.Name <> control.Name Then
+                If item.Name <> control.Name And (item.Visible Or formName <> "frmActionPathView") Then
                     If control.Left < item.Left + item.Width And item.Left < control.Left + control.Width And _
                        control.Top < item.Top + item.Height And item.Top < control.Top + control.Height Then Exit Function
                 End If
             Next item
+NextFitControl:
         Next control
         GuideDraftControlForTest = "True": Exit Function
     End If
     For Each item In owner.Controls
         If item.Name = name Then Set control = item: Exit For
     Next item
+    If control Is Nothing And formName = "frmEventTrackingSettings" Then
+        For Each item In owner.Controls("mpOperationsSettings").Pages(0).Controls
+            If item.Name = name Then Set control = item: Exit For
+        Next item
+    End If
     If control Is Nothing Then Exit Function
     Select Case action
         Case "State": GuideDraftControlForTest = CStr(control.Visible) & "|" & CStr(control.Enabled)
