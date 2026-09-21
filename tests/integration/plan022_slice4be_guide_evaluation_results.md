@@ -42,6 +42,34 @@ the uniquely owned form, uses guarded native input, restores its topmost state,
 and retains the strict foreground capture check. No runtime or workstation focus
 policy changes follow from these observations.
 
+**Guide-binding candidate regressions (2026-09-21):** Viewer **94/94** retains
+all preceding identities; report `18a7a799adb94e44a0737cbb6a7291c8/green.json`
+under the same published-read report parent. UTC
+**23:04:27.5693335--23:06:42.3203853**, exit 0, immediate closure False then normal
+closure, zero Application events 1000/1001/1002. All three images were reviewed.
+Activity labels and filters are readable; `publication-shipping-held.png` has
+unpainted regions and does not prove the current Shipping feedback. The adjacent
+System Key/Alternative headings remain a separate known layout limitation.
+
+Boxing/Shipping report
+`reports/runtime/slice4be-shipping-activity/cf9ffa5f41b24b2d803a0e65c7c5fe0b/boxing-activity-shipping-recording-green.json`
+retains all 1,714 identities: **1,707 PASS / seven unchanged D8-A FAIL**. UTC
+**23:06:42.3943575--23:22:47.3862712**, exit 1 for those same missing-Auth
+auto-creation failures; no waiver or architecture approval is inferred. Immediate
+closure is False, then Excel closes normally without Quit, recovery or forced
+termination. A read-only attachment during shutdown was unavailable; it did not
+prove an empty workbook collection. Zero matching Application events are recorded.
+
+All 22 Boxing/Shipping images were directly reviewed. Recording layouts, published
+action/business details, tracking warnings and Settings status are readable.
+Visible feedback remains open: `boxing.make.zeroquantity.png` shows **OK**, while
+`boxing.unbox.accepted.png` shows the prior zero-quantity rejection; the independent
+handler/owner checks pass. `shipping-permission-denied.png` also has unpainted
+regions. These images do not establish current feedback; painting/capture timing
+versus runtime behavior needs a focused comparison before any runtime fix. No
+claim that every capture passed visible acceptance follows from the check totals.
+Evaluation regression and the guide-binding candidate chain remain in progress.
+
 **Focused behavioral RED verified, 2026-09-21: 171 PASS / 33 expected FAIL.**
 Report: `reports/runtime/slice4be-viewer-published-read/465656eddaec49998b2c6d5a80df5a49/red.json`.
 All 166 preceding guide/expectation identities pass; the saved-probe check also
