@@ -1,6 +1,18 @@
 # Plan 022 Slice 4be guide-to-run expectation binding
 
-**D13 test connected, not yet run, 2026-09-21. No RED/GREEN or implementation claimed.**
+**Focused behavioral RED verified, 2026-09-21: 171 PASS / 33 expected FAIL.**
+Report: `reports/runtime/slice4be-viewer-published-read/465656eddaec49998b2c6d5a80df5a49/red.json`.
+All 166 preceding guide/expectation identities pass; the saved-probe check also
+passes. Of the 37 new checks, four non-mutation checks pass and 33 missing-control/
+guide-binding checks fail. No harness failure or duplicate identity occurs.
+The frozen overflow candidate has no guide-binding implementation.
+
+UTC start **22:08:44.2478089**, terminal **22:20:00.5260915**. Immediate closure
+is False; normal closure is verified at **22:20:26.5316097**, without Quit,
+recovery action or forced termination. A read-only ROT attachment attempt during
+shutdown returned unavailable; it did not establish a workbook count or change
+Excel. The extended window has zero Application events 1000/1001/1002. Exact ignored
+evidence uses prefix `reports/runtime/guide-binding-red`. GREEN remains pending.
 
 Architecture v4.11 D18's explicit guide-to-run refinement names the Published
 guides `lblGuideObservedRun` and **Use for selected run** action. These implement
@@ -24,9 +36,10 @@ before use/evaluation/saved display, and current-policy restriction. Disposable
 corruption is restored byte-for-byte; intentional policy fixture commands are
 separated from guide-action non-mutation checks. The opt-in `-CheckGuideEvaluation`
 includes existing guide-expectation prerequisites and runs after those checks.
-Before implementation, run behavioral RED on the frozen candidate.
+Behavioral RED has now run on the frozen candidate.
 Retain all preceding guide/expectation identities and the overflow candidate's
-independent tests. This initial file has only passed PowerShell syntax validation.
+independent tests. Implementation must turn these failures green without removing
+the preceding checks.
 
 Operations owns the controls. Core owns selected intent, exact immutable guide
 validation and evaluation persistence through primitive cross-XLAM boundaries.
