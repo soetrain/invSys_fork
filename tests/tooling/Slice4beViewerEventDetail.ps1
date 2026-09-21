@@ -257,6 +257,40 @@ Public Function DetailGeometryForTest() As String
         DetailGeometryForTest = DetailGeometryForTest & control.Name & vbTab & CStr(control.Left) & vbTab & CStr(control.Top) & vbTab & CStr(control.Width) & vbTab & CStr(control.Height) & vbTab & CStr(instance.InsideWidth) & vbTab & CStr(instance.InsideHeight) & vbLf
     Next control
 End Function
+Public Function DetailCompleteTextForTest() As Boolean
+    Dim instance As Object, fields As Object, measure As Object, widths As Variant
+    Dim row As Long, column As Long, complete As Boolean, capacity As Single
+    Set instance = DetailFixtureFormForTest()
+    If instance Is Nothing Then Err.Raise 5, , "Detail fixture was not opened."
+    Set fields = instance.Controls("lstEventFields")
+    If fields.ListCount = 0 Or fields.ColumnCount <> 2 Then Err.Raise 5, , "Detail fixture has no field rows."
+    widths = Split(fields.ColumnWidths, ";")
+    If UBound(widths) <> 1 Then Err.Raise 5, , "Unexpected field-column geometry."
+    Set measure = instance.Controls.Add("Forms.Label.1", "DetailTextMeasureForTest", False)
+    measure.Font.Name = fields.Font.Name: measure.Font.Size = fields.Font.Size
+    measure.Font.Bold = fields.Font.Bold: measure.Font.Italic = fields.Font.Italic
+    measure.WordWrap = False: measure.AutoSize = True
+    complete = fields.Locked
+    For row = 0 To fields.ListCount - 1
+        For column = 0 To 1
+            measure.Caption = CStr(fields.List(row, column))
+            capacity = Val(widths(column))
+            If column = 1 And fields.Width - Val(widths(0)) - 20 > capacity Then capacity = fields.Width - Val(widths(0)) - 20
+            If measure.Width > capacity Then complete = False
+        Next column
+    Next row
+    instance.Controls.Remove "DetailTextMeasureForTest"
+    DetailCompleteTextForTest = complete
+End Function
+Public Function DetailOverflowPointForTest() As String
+    Dim instance As Object, fields As Object, widths As Variant
+    Set instance = DetailFixtureFormForTest()
+    Set fields = instance.Controls("lstEventFields")
+    widths = Split(fields.ColumnWidths, ";")
+    If Val(widths(0)) + Val(widths(1)) <= fields.Width Then Exit Function
+    DetailOverflowPointForTest = CStr(fields.Left + fields.Width - 36) & vbTab & _
+        CStr(fields.Top + fields.Height - 6) & vbTab & CStr(instance.InsideWidth) & vbTab & CStr(instance.InsideHeight)
+End Function
 Public Function SelectStateFixtureForTest() As Boolean
     SelectStateFixtureForTest = mInventoryViewer.SelectStateFixtureForTest()
 End Function
@@ -290,7 +324,15 @@ End Function
     foreach($module in @('modEventDetailSettings','modInventoryViewerData')) { [void](Run 'invSys.Core.xlam' ($module+'.DetailReadCounterForTest') @($true)) }
     Check 'EventDetail.UnlikeUnitsAndRepeatedLineValuesRetained' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailLineValuesForTest'))
     foreach($module in @('modEventDetailSettings','modInventoryViewerData')) { Check ('EventDetail.SelectionDoesNotRead.'+$module) ([long](Run 'invSys.Core.xlam' ($module+'.DetailReadCounterForTest')) -eq 0) }
-    foreach($action in @('ListSafe','Filter','FitDefault','FitLarger','FitDefault')) { Check ('EventDetail.Action.'+$action+$(if($action -eq 'FitDefault' -and $results.Check -contains 'EventDetail.Action.FitDefault'){'.Restored'}else{''})) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailActionForTest' @($action))) }
+    foreach($action in @('ListSafe','Filter','FitDefault','FitLarger','FitDefault')) {
+        $suffix=if($action -eq 'FitDefault' -and $results.Check -contains 'EventDetail.Action.FitDefault'){'.Restored'}else{''}
+        Check ('EventDetail.Action.'+$action+$suffix) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailActionForTest' @($action)))
+        if($action -like 'Fit*') {
+            $complete=Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailCompleteTextForTest'
+            if($complete -isnot [bool]){throw 'Complete-text geometry probe did not return a Boolean.'}
+            Check ('EventDetail.CompleteText.'+$action+$suffix) $complete
+        }
+    }
     [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailGeometryForTest') | Set-Content (Join-Path $reportRoot 'restored-geometry.tsv')
     if(-not ('DetailNativeLayout' -as [type])) {
         Add-Type @'
@@ -298,6 +340,33 @@ using System; using System.Runtime.InteropServices;
 public static class DetailNativeLayout {
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int command);
     [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr h);
+    [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left,Top,Right,Bottom; }
+    [StructLayout(LayoutKind.Sequential)] public struct Point { public int X,Y; }
+    [StructLayout(LayoutKind.Sequential)] public struct Mouse { public int X,Y; public uint Data,Flags,Time; public UIntPtr Extra; }
+    [StructLayout(LayoutKind.Sequential)] public struct Input { public uint Type; public Mouse Mouse; }
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h,out uint p);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr h,uint flags);
+    [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr h,out Rect r);
+    [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr h,ref Point p);
+    [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(Point p);
+    [DllImport("user32.dll")] static extern bool SetCursorPos(int x,int y);
+    [DllImport("user32.dll")] static extern uint SendInput(uint n,Input[] inputs,int size);
+    static uint Owner(IntPtr h) {uint p;GetWindowThreadProcessId(h,out p);return p;}
+    public static void ScrollClick(IntPtr form,IntPtr excel,double x,double y,double width,double height) {
+        Rect r;
+        if(Owner(form)==0 || Owner(form)!=Owner(excel) || GetForegroundWindow()!=form || !GetClientRect(form,out r))
+            throw new Exception("Detail scroll requires the foreground owned form.");
+        var point=new Point {X=(int)(x*(r.Right-r.Left)/width),Y=(int)(y*(r.Bottom-r.Top)/height)};
+        if(!ClientToScreen(form,ref point))throw new Exception("Detail coordinates unavailable.");
+        var target=WindowFromPoint(point);
+        if(Owner(target)!=Owner(form) || GetAncestor(target,2)!=form)
+            throw new Exception("Detail scroll point is outside the owned form.");
+        if(!SetCursorPos(point.X,point.Y))throw new Exception("Detail cursor positioning failed.");
+        Input[] inputs={new Input {Mouse=new Mouse {Flags=2}},new Input {Mouse=new Mouse {Flags=4}}};
+        if(SendInput(2,inputs,Marshal.SizeOf(typeof(Input)))!=2)
+            throw new Exception("Detail scroll input delivery failed.");
+    }
 }
 '@
     }
@@ -308,12 +377,30 @@ public static class DetailNativeLayout {
         [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailWindowForTest')
         $name=if($command -eq 3){'Maximize'}else{'Restore'}
         Check ('EventDetail.Native'+$name) ([DetailNativeLayout]::IsZoomed([IntPtr]$window) -eq ($command -eq 3) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailActionForTest' @('FitCurrent')))
+        $complete=Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailCompleteTextForTest'
+        if($complete -isnot [bool]){throw 'Native complete-text geometry probe did not return a Boolean.'}
+        Check ('EventDetail.CompleteText.Native'+$name) $complete
         if($CaptureEvidence) { CaptureFormEvidence '' ('event-detail-'+$name.ToLowerInvariant()+'.png') $window }
+    }
+    foreach($module in @('modEventDetailSettings','modInventoryViewerData')) {
+        $readCount=Run 'invSys.Core.xlam' ($module+'.DetailReadCounterForTest')
+        if($readCount -isnot [int]){throw 'Detail read counter did not return an integer.'}
+        Check ('EventDetail.LayoutDoesNotRead.'+$module) ($readCount -eq 0)
     }
     Check 'EventDetail.FilterDoesNotDropContributingLines' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFixtureFactForTest' @('EveryKey')))
     if($CaptureEvidence) {
         $window=[long](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailWindowForTest')
         CaptureFormEvidence '' 'event-detail-default.png' $window
+        $point=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailOverflowPointForTest')
+        if($point -ne '') {
+            $parts=$point -split "`t"
+            if($parts.Count -ne 4){throw 'Unexpected detail scroll geometry.'}
+            for($scroll=0;$scroll -lt 3;$scroll++){
+                [DetailNativeLayout]::ScrollClick([IntPtr]$window,[IntPtr]$excel.Hwnd,[double]$parts[0],[double]$parts[1],[double]$parts[2],[double]$parts[3])
+                [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailWindowForTest')
+            }
+            CaptureFormEvidence '' 'event-detail-horizontal-scroll.png' $window
+        }
     }
     foreach($state in @(@('BOX_DESIGNED','Boxing'),@('SHIP_HELD','Shipping'))) {
         [void](Run 'invSys.Core.xlam' 'modInventoryViewerData.SetDetailStateTypeForTest' @($state[0]))

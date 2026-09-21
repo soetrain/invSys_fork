@@ -98,8 +98,42 @@ Every preceding 94 identity remains passing; exit 0 with Excel closed. UTC
 All three images were directly reviewed. Activity detail and event filters are
 readable; the long Coverage value still clips. The Shipping image is partially
 painted and does not establish complete operator feedback. Behavioral GREEN
-does not remove those visible limitations. Boxing/Shipping and evaluation remain
-in progress. Exact audit: `reports/runtime/guide-expectation-focus-viewer-verification.json`.
+does not remove those visible limitations. Exact audit:
+`reports/runtime/guide-expectation-focus-viewer-verification.json`.
+
+**Current-helper Boxing/Shipping regression: 1,707 PASS / seven known D8-A FAIL.**
+Report:
+`reports/runtime/slice4be-shipping-activity/adbf93b45e2c430a9f30f15fce29a910/boxing-activity-shipping-recording-green.json`.
+All preceding 1,714 identities are retained with no duplicate checks or newly
+failing GREEN. The unchanged failures are AuthUnavailable MissingFileNotRecreated
+for Add, Update, Remove, Hold, Return, Stage and Send; they remain unapproved
+D8-A findings. Exit 1 is expected for those failures, with Excel closed normally.
+UTC **2026-09-21 20:22:03.2120183--20:37:20.7199183** has zero Application events
+1000/1001/1002. Exact audit:
+`reports/runtime/guide-expectation-focus-boxing-verification.json`.
+
+All 22 captures were directly reviewed: three recording layouts, six published
+activity/business details, accepted/zero-quantity Make and Unbox, disabled/older/
+unavailable tracking, Settings Save, permission denial and stale-session feedback.
+The current stale-session image is fully painted and its reopening instruction
+is readable. Accepted/rejected outcomes and separate tracking feedback remain
+visible. Detail Coverage still clips; Shipping's adjacent System Key/Alternative
+headings and shortened displayed values also limit readability. These images do
+not establish comprehensive layout or human acceptance.
+
+**Current-helper evaluation regression: 376/376.** Report:
+`reports/runtime/slice4be-viewer-published-read/89dfb996c29b41199c8df9251185284a/green.json`.
+Every preceding 376 identity passes, with no duplicates. Exit 0 and normal Excel
+closure; UTC **2026-09-21 20:37:20.9078778--20:54:28.6696975** has zero Application
+events 1000/1001/1002. All 19 captures were directly reviewed: 15 Pending/Partial/
+Applied diagnostic layouts/source views and four expectation-editor views.
+Pending and Partial remain Awaiting published result; Conclusion observed appears
+only with every terminal source Applied. Minimum-size scrolling and the four
+editor views retain readable controls, explicit intent and retry choices. Exact
+audit: `reports/runtime/guide-expectation-focus-evaluation-verification.json`.
+All 30 frozen packages and both unrelated documents remain unchanged. These
+regressions extend the guide-expectation candidate's evidence; the seven D8-A
+findings, visible limitations and remaining Slice 4be features remain open.
 
 The [capture diagnosis](plan022_slice4be_capture_foreground_results.md) records a
 subsequent blank-form comparison, its rendering limitation and the packaged
