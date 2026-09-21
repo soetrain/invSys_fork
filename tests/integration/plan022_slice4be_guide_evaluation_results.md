@@ -14,6 +14,22 @@ shutdown returned unavailable; it did not establish a workbook count or change
 Excel. The extended window has zero Application events 1000/1001/1002. Exact ignored
 evidence uses prefix `reports/runtime/guide-binding-red`. GREEN remains pending.
 
+**Isolated implementation candidate:** `deploy/validation-guide-binding` builds
+and all five packages compile. Against the frozen overflow candidate, 234 compiled
+components become 235: six existing components change and private Core
+`modGuideExpectation` is added; none is removed. Changes are confined to Core's
+guide reader/store/intent/evaluation boundary and the two Operations library forms.
+Core validates exact guide chains and current expectation visibility before use,
+commit and saved display. Explicit form entry captures the observed run; Use stages
+intent and clears prior displayed evaluation, while Evaluate remains separate.
+
+Static evidence `reports/runtime/guide-binding-static` records 242 components,
+5,970 procedures and 131,528 lines (+183 versus overflow). Duplicate groups stay
+192; literal/unresolved dynamic calls stay 9/45. All 28 preceding module-size limits
+pass. Scanner/reviewed candidates are 1,185/1,187, with no deletion approval.
+The focused packaged GREEN run and visible evidence are pending. Accepted deployment
+and the seven preceding frozen candidate sets remain outside this build.
+
 Architecture v4.11 D18's explicit guide-to-run refinement names the Published
 guides `lblGuideObservedRun` and **Use for selected run** action. These implement
 the already approved separation of exact guide intent from an explicitly selected

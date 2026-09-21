@@ -137,9 +137,26 @@ cases pass without running Excel. The generated chain still has exactly the same
 59 macro calls and aggregate hash. This proportional harness check changes no
 runtime contract and is not a product RED or native-failure fix. Evidence:
 `reports/runtime/detail-overflow-macro-diagnostic-verification.json` and
-`detail-overflow-stage-diagnostic.json`. A packaged run with this diagnostic is pending.
+`detail-overflow-stage-diagnostic.json`.
 
-Required next gates: actual visible scrolling and
-a successful live-role/full-chain run, synchronized catalog/plan and reviewed Git
+The packaged run with that diagnostic passes **32/32 full-chain, 48/48 live-role
+and 15/15 Create Warehouse** checks, preserving every preceding identity. Ignored
+report prefix: `reports/runtime/detail-overflow-chain-macro-diagnostic-`.
+UTC **22:21:31.1037189--22:28:41.9132318** has zero Application events
+1000/1001/1002. This is an assisted functional pass: one verified empty test Excel
+process closed before a guarded Quit could run; the final separately verified
+empty process required normal Quit and a directly reviewed **Yes, view later**
+recovery selection. No forced termination or recovery deletion occurred. Excel
+is closed and all three tracked reports are restored. This does not establish the
+cause of the preceding RPC failures. The chain's static stage saw the concurrently
+prepared guide-binding source draft; its runtime used the unchanged overflow XLAMs.
+
+The immediate post-input detail diagnostic also passes 41/41 with normal closure
+(`914cf33d03fb403d88dbcd351931b221`). Direct review of its first and last immediate
+captures still shows no scrolling, so repaint/reactivation is not established as
+the cause. A visible-host input diagnostic is pending; no visual acceptance is claimed.
+
+Required next gates: actual visible scrolling,
+synchronized catalog/plan and reviewed Git
 status. Multiline detail rendering, broader Slice 4be and human Release 1 acceptance
 remain open. This entry does not authorize the separate D8-A Auth contract change.
