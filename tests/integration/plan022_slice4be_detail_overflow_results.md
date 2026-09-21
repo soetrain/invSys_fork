@@ -75,6 +75,20 @@ activity labels and filters are readable; Shipping feedback is fully painted.
 Adjacent System Key/Alternative headings and complete horizontal detail reachability
 remain separate visible limitations.
 
+Candidate Boxing/Shipping retains all 1,714 identities: **1,707 PASS / seven known
+D8-A FAIL**, with no new GREEN regression. Report:
+`reports/runtime/slice4be-shipping-activity/b7555d0f61a341d6b52c4b25ac86ca24/boxing-activity-shipping-recording-green.json`.
+UTC **21:34:49.0050885--21:49:54.8504706** has zero matching Application events.
+The immediate terminal closure observation is False; Excel then closes normally
+before the next gate's strict no-Excel guard and **21:49:55.0214369** start marker.
+No Quit assistance or recovery selection was performed in this gate. All 22 images
+were directly reviewed: three recording layouts, six published activity/business
+details, four accepted/zero-quantity actions, six tracking-policy/store cases,
+Settings Save, permission denial and stale-session feedback. The known detail and
+Shipping heading limitations remain. The seven failures are the unchanged
+`Shipping.Access.AuthUnavailable.<action>.MissingFileNotRecreated` checks for Add,
+Update, Remove, Hold, Return, Stage and Send; they do not approve D8-A.
+
 Capture diagnosis retains failures separately from product RED: the first capture
 run passed 25 checks before a current-state fixture COM exception; subsequent
 runs stopped at foreground acquisition (20/1 twice), unavailable standard native
@@ -99,6 +113,17 @@ the native failure cause. Both required normal Quit of a separately verified
 empty test Excel process, with recovery files explicitly retained. All three
 tracked reports were restored. Exact ignored evidence prefixes are
 `detail-overflow-chain` and `detail-overflow-chain-stage-corrected`.
+
+Before a further chain diagnostic, the live-role macro wrapper now reports only
+the validated module/procedure name and deepest HRESULT on failure. Workbook names,
+argument values and exception text are excluded; the original exception remains
+an in-memory inner exception. Nine fake-boundary dispatch cases retain exact
+arguments, ordering and successful return values. Both failure identity/redaction
+cases pass without running Excel. The generated chain still has exactly the same
+59 macro calls and aggregate hash. This proportional harness check changes no
+runtime contract and is not a product RED or native-failure fix. Evidence:
+`reports/runtime/detail-overflow-macro-diagnostic-verification.json` and
+`detail-overflow-stage-diagnostic.json`. A packaged run with this diagnostic is pending.
 
 Required next gates: actual visible scrolling and
 a successful live-role/full-chain run, synchronized catalog/plan and reviewed Git

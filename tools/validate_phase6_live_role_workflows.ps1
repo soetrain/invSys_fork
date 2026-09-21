@@ -67,6 +67,7 @@ function Run-WorkbookMacro {
     )
 
     $fullMacro = "'$WorkbookName'!$MacroName"
+    try {
     switch ($Arguments.Count) {
         0 { return $Excel.Run($fullMacro) }
         1 { return $Excel.Run($fullMacro, $Arguments[0]) }
@@ -78,6 +79,11 @@ function Run-WorkbookMacro {
         7 { return $Excel.Run($fullMacro, $Arguments[0], $Arguments[1], $Arguments[2], $Arguments[3], $Arguments[4], $Arguments[5], $Arguments[6]) }
         8 { return $Excel.Run($fullMacro, $Arguments[0], $Arguments[1], $Arguments[2], $Arguments[3], $Arguments[4], $Arguments[5], $Arguments[6], $Arguments[7]) }
         default { throw "Run-WorkbookMacro supports at most 8 arguments." }
+    }
+    } catch {
+        $safeMacro = if ($MacroName -cmatch '^[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*$') { $MacroName } else { '<unavailable>' }
+        $failure = $_.Exception.GetBaseException()
+        throw [InvalidOperationException]::new(('Macro={0}; HRESULT=0x{1:X8}. Workbook and argument values omitted.' -f $safeMacro, $failure.HResult), $failure)
     }
 }
 
