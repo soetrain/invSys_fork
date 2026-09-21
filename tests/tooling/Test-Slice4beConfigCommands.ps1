@@ -304,6 +304,9 @@ using System; using System.Drawing; using System.Runtime.InteropServices;
 public static class InvSysSettingsCapture {
     public delegate bool WindowCallback(IntPtr hwnd, IntPtr state);
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] public struct Point { public int X,Y; }
+    [StructLayout(LayoutKind.Sequential)] public struct Mouse { public int X,Y; public uint Data,Flags,Time; public UIntPtr Extra; }
+    [StructLayout(LayoutKind.Sequential)] public struct Input { public uint Type; public Mouse Mouse; }
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
@@ -315,6 +318,12 @@ public static class InvSysSettingsCapture {
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(Point point);
+    [DllImport("user32.dll")] static extern bool SetCursorPos(int x,int y);
+    [DllImport("user32.dll")] static extern uint SendInput(uint count,Input[] inputs,int size);
+    [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr window,IntPtr after,int x,int y,int width,int height,uint flags);
+    [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")] static extern IntPtr GetWindowLong64(IntPtr window,int index);
+    [DllImport("user32.dll",EntryPoint="GetWindowLongW")] static extern int GetWindowLong32(IntPtr window,int index);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int length);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, System.Text.StringBuilder text, int length);
     public static string ForegroundIdentity(IntPtr intended) {
@@ -338,6 +347,43 @@ public static class InvSysSettingsCapture {
             return true;
         },IntPtr.Zero);
         return count==1 ? found : IntPtr.Zero;
+    }
+    public static bool ActivateByCaptionClick(IntPtr form,IntPtr excel) {
+        Rect rect;uint formProcess,excelProcess;
+        GetWindowThreadProcessId(form,out formProcess);GetWindowThreadProcessId(excel,out excelProcess);
+        if(formProcess==0 || formProcess!=excelProcess || !IsWindowVisible(form) || !IsWindowEnabled(form) || !GetWindowRect(form,out rect))
+            throw new Exception("Owned form cannot receive capture focus.");
+        if(GetAncestor(GetForegroundWindow(),2)==form)return false;
+        bool wasTopmost=IsTopmost(form),raised=false;
+        try {
+            if(!wasTopmost) {
+                if(!SetWindowPos(form,new IntPtr(-1),0,0,0,0,0x13))throw new Exception("Owned capture form could not be raised.");
+                raised=true;
+            }
+            foreach(int offset in new int[] {36,(rect.Right-rect.Left)/3,(rect.Right-rect.Left)/2}) {
+                var point=new Point {X=rect.Left+offset,Y=rect.Top+15};
+                var target=WindowFromPoint(point);uint targetProcess;GetWindowThreadProcessId(target,out targetProcess);
+                if(targetProcess!=formProcess || GetAncestor(target,2)!=form)continue;
+                if(!SetCursorPos(point.X,point.Y))throw new Exception("Capture focus cursor positioning failed.");
+                if(GetAncestor(WindowFromPoint(point),2)!=form)throw new Exception("Capture focus point became covered.");
+                Input[] down={new Input {Mouse=new Mouse {Flags=2}}},up={new Input {Mouse=new Mouse {Flags=4}}};
+                try {
+                    if(SendInput(1,down,Marshal.SizeOf(typeof(Input)))!=1)throw new Exception("Capture focus press delivery failed.");
+                } finally {
+                    if(SendInput(1,up,Marshal.SizeOf(typeof(Input)))!=1)throw new Exception("Capture focus release delivery failed.");
+                }
+                for(int wait=0;wait<10 && GetAncestor(GetForegroundWindow(),2)!=form;wait++)System.Threading.Thread.Sleep(50);
+                return true;
+            }
+            throw new Exception("No uncovered owned form caption point is available.");
+        } finally {
+            if(raised && (!SetWindowPos(form,new IntPtr(-2),0,0,0,0,0x13) || IsTopmost(form)!=wasTopmost))
+                throw new Exception("Capture form topmost state could not be restored.");
+        }
+    }
+    static bool IsTopmost(IntPtr window) {
+        long style=IntPtr.Size==8 ? GetWindowLong64(window,-20).ToInt64() : GetWindowLong32(window,-20);
+        return (style & 8)!=0;
     }
     public static void Save(string title, string path) {
         SaveWindow(FindWindow(null,title),path);
@@ -388,6 +434,10 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
         $activation=New-Object -ComObject WScript.Shell
         $activated=$null
         try{$activated=$activation.AppActivate($Title)}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
+        $clicked=[InvSysSettingsCapture]::ActivateByCaptionClick([IntPtr]$WindowHandle,[IntPtr]$excel.Hwnd)
+        [pscustomobject]@{Image=$FileName;Attempt=$attempt;OwnedCaptionClick=$clicked}|
+            ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'capture-owned-caption.jsonl')
+        if($clicked){Start-Sleep -Milliseconds 200}
         try {CaptureFormEvidence $Title $FileName $WindowHandle; return}
         catch {
             if($_.Exception.GetBaseException().Message -cne 'Requested form is not in the foreground.'){throw}

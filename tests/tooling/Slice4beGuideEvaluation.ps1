@@ -1,6 +1,12 @@
 # D18: an explicitly selected observed run never comes from a guide's source run.
 # Call after the existing guide-expectation fixture saved both immutable versions.
 function Test-GuideEvaluation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideSource) {
+    function CaptureBoundForm([string]$Caption,[string]$FileName) {
+        if(-not $CaptureGuideEvidence){return}
+        Initialize-SettingsCapture
+        $owned=[InvSysSettingsCapture]::OwnedVisibleForm($Caption,[IntPtr]$excel.Hwnd).ToInt64()
+        CaptureOwnedFormEvidence $Caption $FileName $owned
+    }
     function BoundControl([string]$Name,[string]$Action,[string]$Value='', [string]$Form='frmActionPathLibrary') {
         [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($Form,$Name,$Action,$Value))
     }
@@ -73,6 +79,7 @@ function Test-GuideEvaluation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideSou
         Check 'GuideEvaluation.ReaderNamesCapturedObservedRun' ($present -and $runLabel.Contains([string]$observed.ActionPathId) -and $runLabel -match '(?i)version\s*:?\s*6\b')
         foreach($layout in @('Minimum','Default','Larger','Restored')){
             Check ('GuideEvaluation.Layout.'+$layout) ($present -and (BoundControl '' 'Fit' $layout) -ceq 'True')
+            CaptureBoundForm 'Published guides' ('guide-run-binding-'+$layout.ToLowerInvariant()+'.png')
         }
         if((BoundControl 'btnExpectedConclusion' 'Click' '' 'frmActionPaths') -cne 'DELIVERED'){throw 'Accepted selected-run expectation editor fixture failed.'}
         $used=(BoundControl 'btnUseGuideForRun' 'Click') -ceq 'DELIVERED'
@@ -80,6 +87,7 @@ function Test-GuideEvaluation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideSou
         $firstSummary=BoundSummary
         Check 'GuideEvaluation.ActualHandlerStagesExactFirstGuide' ($used -and $firstSummary.Contains('Guide expectation') -and $firstSummary.Contains([string]$FirstGuide.ActionPathId) -and $firstSummary -match '(?i)version\s*:?\s*1\b')
         Check 'GuideEvaluation.ApplyingDoesNotWriteTrainingOrActivity' ($used -and (BoundSame $trainingBefore (BoundPins $journalRoot)) -and (PinsRetained $activityBefore) -and (ActivityPins).Count -eq $activityBefore.Count)
+        CaptureBoundForm 'Published guides' 'guide-run-staged.png'
         BoundSelect $SecondGuide
         Check 'GuideEvaluation.BrowsingDoesNotReplaceExplicitIntent' ($used -and (BoundSummary) -ceq $firstSummary)
         [void](BoundControl 'btnRefreshGuides' 'Click')
@@ -92,6 +100,7 @@ function Test-GuideEvaluation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideSou
         Check 'GuideEvaluation.ResultUsesObservedJournalNotGuideSource' ($used -and $exact -and $firstResult.ActionPathId -ceq $observed.ActionPathId -and $firstResult.JournalRecordId -ceq $observed.RecordId -and $firstResult.JournalSha256 -ceq $observed.ContentSha256)
         Check 'GuideEvaluation.MatchesOriginalObservedActionsAndGuideSteps' ($used -and $exact -and ($firstResult.Matches.ActivityId -join '|') -ceq (@($observedFirst.Attempt.ActivityId,$observedSecond.Attempt.ActivityId) -join '|') -and ($firstResult.Matches.StepId -join '|') -ceq ($FirstGuide.ExpectedConclusion.Steps.StepId -join '|'))
         Check 'GuideEvaluation.GuideIntentCanConcludeOnlySelectedRun' ($used -and $exact -and $firstResult.ResultState -ceq 'Concluded' -and ($firstResult.ExpectedConclusion|ConvertTo-Json -Depth 12 -Compress) -ceq ($FirstGuide.ExpectedConclusion|ConvertTo-Json -Depth 12 -Compress))
+        CaptureBoundForm 'Action Paths' 'guide-run-evaluation.png'
         $guidePath=Join-Path $guideRoot ($FirstGuide.ActionPathId+'.1.json')
         $guideBytes=[IO.File]::ReadAllBytes($guidePath)
         $savedResultPins=BoundPins $evaluationRoot

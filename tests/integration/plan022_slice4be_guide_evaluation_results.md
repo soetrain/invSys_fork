@@ -7,8 +7,40 @@ UTC **22:29:46.2433071--22:41:53.8291893**, exit 0. Immediate closure is False;
 Excel closes normally within the controller's bounded wait, without intervention.
 The window has zero Application events 1000/1001/1002. Every RED identity remains.
 Exact guide/run separation, actual apply/evaluate handlers, integrity/current-policy
-guards, independent analysis scope and source non-mutation pass. Visible captures
-and broader candidate regressions remain pending; this is not full Slice 4be acceptance.
+guards, independent analysis scope and source non-mutation pass. Broader candidate
+regressions remain in progress; this is not full Slice 4be acceptance.
+
+**Visible packaged gate: 214/214**, preserving all focused 204 and preceding
+visible 177 identities. Report:
+`reports/runtime/slice4be-viewer-published-read/57bbeed83e4043fe96b6b1c7355ef546/green.json`.
+UTC **22:54:30.9577355--23:04:24.2971573** on 2026-09-21, exit 0, normal Excel
+closure without intervention, zero Application events 1000/1001/1002. All 15
+images were directly reviewed: guide revisions, published reader, expectation
+editor layouts/staging, four guide/run binding layouts, staged binding and the
+separate evaluated result. The result displays exact guide/version intent beside
+the different selected recording and original observations. Minimum, default,
+larger and restored controls are readable. The staged reader capture shows its
+generic published-guide notice after activation; the separate evaluation image
+shows the guide expectation and result. No persistent staged-notice claim follows.
+
+The guarded owned-caption input is exercised for the first capture; the remaining
+14 need no caption input. Each image retains the strict foreground guard. The
+helper validates the form's Excel ownership and visible/enabled state, hit-tests
+its caption before input, guarantees mouse release, and restores its original
+topmost flag in finally. It changes no runtime or global focus policy. This is
+test capture support under existing visible-evidence requirements, not a new
+product contract or substitute for physical human UAT.
+
+Two visible attempts stop at **83 PASS / one harness failure**, before the new
+binding captures: `51e475f8ce464a75abc36f21c844079f` fails the strict foreground
+guard, and `e607a410d9f9441b97506d0d27c1d0f7` finds no uncovered owned caption point.
+Both close Excel normally. The first log identifies Code as the foreground
+process despite a successful activation return; it does not establish the cause
+of the missing owned hit-test point. These are capture failures, not product RED
+or regressions in the completed 204 checks. A test-only retry temporarily raises
+the uniquely owned form, uses guarded native input, restores its topmost state,
+and retains the strict foreground capture check. No runtime or workstation focus
+policy changes follow from these observations.
 
 **Focused behavioral RED verified, 2026-09-21: 171 PASS / 33 expected FAIL.**
 Report: `reports/runtime/slice4be-viewer-published-read/465656eddaec49998b2c6d5a80df5a49/red.json`.
@@ -37,7 +69,7 @@ Static evidence `reports/runtime/guide-binding-static` records 242 components,
 5,970 procedures and 131,528 lines (+183 versus overflow). Duplicate groups stay
 192; literal/unresolved dynamic calls stay 9/45. All 28 preceding module-size limits
 pass. Scanner/reviewed candidates are 1,185/1,187, with no deletion approval.
-The focused packaged GREEN run passes; visible evidence remains pending. Accepted deployment
+The focused and visible packaged GREEN runs pass. Accepted deployment
 and the seven preceding frozen candidate sets remain outside this build.
 
 Architecture v4.11 D18's explicit guide-to-run refinement names the Published
