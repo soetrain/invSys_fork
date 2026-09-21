@@ -1,5 +1,47 @@
 # Plan 022 Slice 4be visible-capture diagnosis
 
+**Current visible guide gate (2026-09-21): 177/177**, preserving all 166 focused
+identities and adding nine directly reviewed PNGs plus visible-startup/saved-probe
+assertions. Report:
+`reports/runtime/slice4be-viewer-published-read/4f99d6fa6ebe482eae9f4160204442fd/green.json`.
+Both saved guide versions, the published reader, four expectation-editor sizes,
+staged intent and the next published definition are readable. Native foreground
+guards pass for all nine captures. This run uses saved disposable probes and early
+visible Excel, without the optional ordinary-workbook fixture. It exits 0 with
+Excel closed; UTC **20:10:06.2412415--20:18:25.3963102** has zero Application events
+1000/1001/1002. All 30 frozen package hashes and both unrelated documents remain
+unchanged. This closes the missing guide images for this candidate, not the cause
+of earlier activation failures or full release acceptance.
+
+An experimental UI Automation activation fallback was available during this run,
+but its counters prove **zero attempts across all nine captures**. The separate
+label-only blank-form calibration
+`reports/runtime/capture-foreground-calibration/a8b1f1b2917d46d3b5684362e82082ba/`
+then rejects direct form focus with `Target element cannot receive focus`; normal
+Quit closes its owned Excel instance. That observation applies to the calibration
+form, not every Excel provider. The unneeded experimental fallback and its forced
+calibration option were discarded. The retained helper uses the same native
+activation and mandatory foreground guard exercised by those nine captures; no
+UI Automation dependency or global focus-policy change remains.
+
+Event Detail first stops at **16 PASS / one foreground-capture harness FAIL** in
+`reports/runtime/slice4be-viewer-detail/0d1fce93745d40fa8d258e8a96983ca4/green.json`.
+A subsequent run with the experimental fallback available passes **34/34**, retaining
+all prior detail identities, in
+`reports/runtime/slice4be-viewer-detail/d6aeba20c6454261a51358dec5292c12/green.json`.
+Its three images are directly reviewed; Coverage remains clipped at default and
+restored width and readable maximized. Fallback usage was not counted in that
+run, so it does not isolate the mechanism. Exit 0 with Excel closed and zero matching
+Application events in **20:07:28.9425250--20:08:24.7594940 UTC**. Current-helper
+broader regressions remain required. The full-chain retry passes 32/32 with
+assisted normal cleanup; see the maintained guide-expectation evidence for scope.
+The retained native helper subsequently passes Viewer/filter/Shipping state
+**94/94** in `68036864e0f14b518a32a54a90d1fe3c/green.json` under the published-read
+report root, preserving all prior identities. Three images are reviewed: activity
+detail and filters are readable, Coverage still clips, and the Shipping image is
+partially painted. Keep the latter open as incomplete visible evidence. Excel
+closes with no matching Application events in **20:19:43.3976201--20:22:03.0604409 UTC**.
+
 **Latest package-state comparison (2026-09-21):** Writable temporary package
 copies with unsaved probes reproduce startup error 440 (**18 PASS / two FAIL**).
 Compiling and saving the same probe set in writable temporary copies before any
@@ -9,8 +51,8 @@ warehouse bytes/counters and the saved/reopened workbook. Neither run performs
 blank-form calibration or caption-probing warm-ups. Runtime source is unchanged;
 this is a harness-state comparison, not an implemented Viewer or Core fix.
 Earlier caption failures must be interpreted with their unsaved instrumentation
-state. Full visible acceptance remains open: saved copies clear startup but the
-first guide capture still fails, as recorded below.
+state. The subsequent guide-capture pass above supersedes this checkpoint's
+pending visible result; the failures below remain diagnostic history.
 
 Two full-gate setup attempts each reach **69 PASS / one harness FAIL**, after
 Viewer and guide-draft behavior. `facb63b9c42347958673e05b359f775f/green.json`
@@ -44,8 +86,9 @@ preservation, visible acceptance or a runtime defect from this diagnostic alone.
 `-GuideCaptureSavedWorkbookForTest` requires the visible saved-copy guide gate;
 it preserves all existing foreground guards and records only fixed labels/counts/
 booleans. The blank capture calibration explicitly disables these packaged-only
-observations. Full-chain regression is the next gate; capture and in-memory
-workbook-state diagnosis remain open.
+observations. The later full-chain retry and guide-capture pass are recorded
+above; the cause of this foreground failure and the in-memory workbook-state
+assertion remain open.
 
 `-ViewerStartupPackageStateForTest` defaults to `OriginalReadOnly`, preserving the
 original reproducer. `WritableCopies` and `SavedCopies` copy only the five input
@@ -282,7 +325,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beC
   -ViewerStartupSavedWorkbookForTest -CheckViewerPublishedRead -CompileViewerProbesForTest
 ```
 
-The blank-form and package-state comparisons above supersede the former next
-step. SavedCopies clears startup but does not complete visible acceptance.
-Continue the full-chain gate and retain the unresolved foreground/Saved-state
-findings; no caption-order or transient-workbook-visibility workaround is justified.
+The current 177/177 guide-capture gate supersedes the former next step. Retain the
+unresolved earlier foreground/Saved-state findings while completing broader
+regressions; no runtime caption-order or transient-workbook-visibility workaround
+is justified.

@@ -1,5 +1,22 @@
 # Plan 022 Slice 4be.5 guide expectation authoring
 
+**Visible focused gate: 177/177 (2026-09-21).** Report:
+`reports/runtime/slice4be-viewer-published-read/4f99d6fa6ebe482eae9f4160204442fd/green.json`.
+Every preceding 166 focused identity passes, plus nine directly reviewed captures
+and visible-startup/saved-probe checks. Five disposable instrumented XLAM copies
+compile and are saved before execution; the frozen candidate remains unchanged.
+Both saved guide revisions, the published reader, minimum/default/larger/restored
+expectation editors, staged intent and the next published definition are readable.
+Every image satisfies the existing native foreground guard. The experimental
+accessibility fallback counters remain zero for all nine; that unused experiment
+was later discarded, so it is not credited as an activation fix. The retained
+capture path is the same native path actually exercised. Exit 0, Excel closed;
+UTC **20:10:06.2412415--20:18:25.3963102** has zero Application events 1000/1001/1002.
+All 30 frozen package hashes and both unrelated documents remain unchanged.
+The [capture evidence](plan022_slice4be_capture_foreground_results.md) preserves
+the earlier failures, optional-workbook limitation and discarded calibration.
+This establishes this candidate's guide images, not complete Slice 4be acceptance.
+
 **Focused implementation GREEN: 166/166.** The isolated
 `deploy/validation-guide-expectation` candidate implements the approved explicit
 guide-draft expectation scope in Core and Operations. All 166 protecting check
@@ -29,7 +46,60 @@ closure false; normal closure is verified at 09:45:20.7984561. Its extended
 unchanged. The existing seven-component compiled scope, static metrics and 28
 module limits remain verified. Ignored verifier:
 `reports/runtime/guide-expectation-regression-recording-verification.json`.
-Remaining broader candidate regressions and full-chain acceptance stay open.
+At that checkpoint, broader candidate regressions and the full chain remained open.
+
+**Full-chain regression (2026-09-21):** The frozen expectation candidate passes
+**32/32**, retaining all 32 preceding chain identities, with **48/48** live-role
+checks and **15/15** Create Warehouse. Reports are ignored files with prefix
+`reports/runtime/guide-expectation-chain-retry-`: `slice14_results.md`,
+`phase6_live_role_workflow_results.md`, and `create-warehouse-results.md`.
+The ordered chain includes Admin seed, Receiving, two Production batches, Boxing,
+Shipping, processor application, save/reopen and reconciliation. Exact identity,
+unknown-column preservation and the static ratchet pass: no new warning paths,
+with 27 before and after. Static
+generation reports 241 components, 5,958 procedures and 1,184 candidates.
+
+This is an **assisted functional pass**. A residual Excel instance was verified
+to have zero workbooks; normal Quit exposed a recovery prompt. The retain-files
+choice was directly reviewed before confirmation. No forced termination or
+recovery-file deletion occurred. Exit 0 with Excel closed and all three tracked
+reports restored. UTC **2026-09-21 19:57:15.8378105--20:04:05.0232451** has zero
+Application events 1000/1001/1002. All 30 frozen packages and both unrelated user
+documents remain unchanged. Exact check-identity, preservation and window audit:
+`reports/runtime/guide-expectation-chain-retry-verification.json`.
+
+The preceding attempt, prefix `reports/runtime/guide-expectation-chain-`, is
+retained as **5 PASS / one chain FAIL**, **32 PASS / one live-role FAIL**, and
+Create Warehouse **15/15**. It stops at `Delete and rebuild canonical inventory
+projections` with RPC HRESULT `0x800706BE`. It also requires normal empty-instance
+cleanup with reviewed recovery-file retention, then restores all tracked reports
+and closes Excel. Its **19:51:40.3324837--19:56:15.1417865 UTC** window has zero
+matching Application events. The clean comparison passes; neither result proves
+the native cause or unattended recovery reliability.
+
+Remaining packaged regressions began after chain closure. Event Detail reaches
+**16 PASS / one foreground-capture harness FAIL** in
+`reports/runtime/slice4be-viewer-detail/0d1fce93745d40fa8d258e8a96983ca4/green.json`.
+It exits 1 with Excel closed; later queued gates were not started. This is not
+product RED, complete Event Detail acceptance, or grounds to omit prior checks.
+The capture-diagnostic record retains the independent guide capture failures.
+The following focused Event Detail comparison passes 34/34 in
+`reports/runtime/slice4be-viewer-detail/d6aeba20c6454261a51358dec5292c12/green.json`,
+with every prior identity and three reviewed captures. The experimental fallback
+was available but its usage was not counted. Default/restored Coverage remains
+clipped; maximized Coverage is readable. Exit 0, Excel closed and no matching
+Application events in **20:07:28.9425250--20:08:24.7594940 UTC**. The remaining
+Viewer, Boxing/Shipping and evaluation gates run with the retained native helper.
+
+**Current-helper Viewer/filter/Shipping state regression: 94/94.** Report:
+`reports/runtime/slice4be-viewer-published-read/68036864e0f14b518a32a54a90d1fe3c/green.json`.
+Every preceding 94 identity remains passing; exit 0 with Excel closed. UTC
+**20:19:43.3976201--20:22:03.0604409** has zero Application events 1000/1001/1002.
+All three images were directly reviewed. Activity detail and event filters are
+readable; the long Coverage value still clips. The Shipping image is partially
+painted and does not establish complete operator feedback. Behavioral GREEN
+does not remove those visible limitations. Boxing/Shipping and evaluation remain
+in progress. Exact audit: `reports/runtime/guide-expectation-focus-viewer-verification.json`.
 
 The [capture diagnosis](plan022_slice4be_capture_foreground_results.md) records a
 subsequent blank-form comparison, its rendering limitation and the packaged
@@ -64,7 +134,8 @@ root: the intended Excel `ThunderDFrame` remains behind a VS Code
 not the cause of activation failing to take effect. Exit 1, Excel closed; UTC
 09:25:01.4855933--09:28:27.1978119 has zero Application events 1000/1001/1002.
 No product change, foreground bypass or repeat without a new diagnostic is
-justified by this result. Visible acceptance remains open.
+justified by that result. That attempt did not establish visible acceptance;
+the later 177/177 capture gate above extends the record.
 
 Refreshed static evidence is **241 components / 5,958 procedures / 131,327
 lines**; duplicate groups decrease **193 to 192**, dynamic calls remain
@@ -94,7 +165,7 @@ preceding 170 combined checks and adds the 34 guide-expectation checks; its
 completed result is recorded above. It does not replace the remaining broader gates.
 
 The following RED is retained as the test-first antecedent, not current runtime
-status. Full-chain Receiving failure, guide-bound evaluation, both presentations
+status. Visible/regression completion, guide-bound evaluation, both presentations
 and Compare, closed-guide editing, direct curation, transfer and release UAT
 remain open.
 
