@@ -68,9 +68,15 @@ function Test-GuideEvaluation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideSou
         BoundOpen;BoundSelect $FirstGuide
         $present=(BoundControl 'btnUseGuideForRun' 'State') -ceq 'True|True'
         Check 'GuideEvaluation.OrdinaryReaderCanApplyToExplicitRun' $present
+        Check 'GuideEvaluation.ApplyCaptionNamesExplicitSelectedRun' ($present -and (BoundControl 'btnUseGuideForRun' 'Label') -ceq 'Use for selected run')
         $runLabel=BoundControl 'lblGuideObservedRun' 'Label'
         Check 'GuideEvaluation.ReaderNamesCapturedObservedRun' ($present -and $runLabel.Contains([string]$observed.ActionPathId) -and $runLabel -match '(?i)version\s*:?\s*6\b')
+        foreach($layout in @('Minimum','Default','Larger','Restored')){
+            Check ('GuideEvaluation.Layout.'+$layout) ($present -and (BoundControl '' 'Fit' $layout) -ceq 'True')
+        }
+        if((BoundControl 'btnExpectedConclusion' 'Click' '' 'frmActionPaths') -cne 'DELIVERED'){throw 'Accepted selected-run expectation editor fixture failed.'}
         $used=(BoundControl 'btnUseGuideForRun' 'Click') -ceq 'DELIVERED'
+        Check 'GuideEvaluation.ApplyingClosesPendingRunExpectationEditor' ($used -and (BoundControl '' 'Count' '' 'frmActionPathExpectation') -ceq '0')
         $firstSummary=BoundSummary
         Check 'GuideEvaluation.ActualHandlerStagesExactFirstGuide' ($used -and $firstSummary.Contains('Guide expectation') -and $firstSummary.Contains([string]$FirstGuide.ActionPathId) -and $firstSummary -match '(?i)version\s*:?\s*1\b')
         Check 'GuideEvaluation.ApplyingDoesNotWriteTrainingOrActivity' ($used -and (BoundSame $trainingBefore (BoundPins $journalRoot)) -and (PinsRetained $activityBefore) -and (ActivityPins).Count -eq $activityBefore.Count)

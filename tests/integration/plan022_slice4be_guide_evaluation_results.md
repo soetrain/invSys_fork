@@ -1,6 +1,6 @@
 # Plan 022 Slice 4be guide-to-run expectation binding
 
-**D13 test preparation only, 2026-09-21. No RED/GREEN or implementation claimed.**
+**D13 test connected, not yet run, 2026-09-21. No RED/GREEN or implementation claimed.**
 
 Architecture v4.11 D18's explicit guide-to-run refinement names the Published
 guides `lblGuideObservedRun` and **Use for selected run** action. These implement
@@ -15,15 +15,16 @@ the existing generic form-control probe and ordinary reader access, then inspect
 immutable evaluation output and byte preservation. Missing fixtures or existing
 entry failures throw as harness problems; missing new controls/binding fail checks.
 
-The 31-check draft covers exact observed-run provenance, explicit application,
+The 37-check draft covers exact observed-run provenance, explicit application,
 browsing/refresh/close continuity, guide version/hash and expectation StepIds,
 original observed ActivityIds, separate Evaluate, stale-run rejection, explicit
 reopening, context loss and source/guide/config/activity preservation. It also
 checks None intent, an empty observed run, analysis scope, corrupt guide evidence
 before use/evaluation/saved display, and current-policy restriction. Disposable
 corruption is restored byte-for-byte; intentional policy fixture commands are
-separated from guide-action non-mutation checks. Before implementation, connect
-the opt-in gate and run behavioral RED on the frozen candidate.
+separated from guide-action non-mutation checks. The opt-in `-CheckGuideEvaluation`
+includes existing guide-expectation prerequisites and runs after those checks.
+Before implementation, run behavioral RED on the frozen candidate.
 Retain all preceding guide/expectation identities and the overflow candidate's
 independent tests. This initial file has only passed PowerShell syntax validation.
 

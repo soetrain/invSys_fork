@@ -27,6 +27,7 @@ param(
     [switch]$CheckGuideSave,
     [switch]$CheckGuideLibrary,
     [switch]$CheckGuideExpectation,
+    [switch]$CheckGuideEvaluation,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideCaptureSavedWorkbookForTest,
@@ -79,6 +80,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($CheckGuideEvaluation){$CheckGuideExpectation=$true}
 if($GuideCaptureVisibleExcelForTest -and -not $TraceViewerStartupForTest -and (-not $GuideDraftOnly -or -not $CaptureGuideEvidence)){
     throw 'Visible-Excel diagnosis requires Viewer startup tracing or GuideDraftOnly and CaptureGuideEvidence.'
 }

@@ -244,4 +244,8 @@ function Test-GuideExpectation($Fixture,$Other) {
         CloseRecordingViewer
         SelectTarget $Fixture 'config-admin'
     }
+    if($CheckGuideEvaluation){
+        . (Join-Path $PSScriptRoot 'Slice4beGuideEvaluation.ps1')
+        Test-GuideEvaluation $Fixture $Other $saved $next $source
+    }
 }
