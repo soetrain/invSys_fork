@@ -70,7 +70,27 @@ reopened `shipping-permission-denied.png` still has unpainted regions. That imag
 does not establish its current feedback; painting/capture timing versus runtime
 behavior needs a focused comparison before any runtime fix. No claim that every
 capture passed visible acceptance follows from the check totals.
-Evaluation regression and the guide-binding candidate chain remain in progress.
+Evaluation regression passes **376/376**, preserving every preceding identity.
+Report `e37145e4ea524a908d6fba63d2705d11/green.json` under the published-read parent;
+UTC **23:22:47.5622872--23:38:29.0170943**, exit 0, immediate typed closure True,
+zero Application events 1000/1001/1002. All 19 images were reviewed individually:
+Pending and Partial remain awaiting; only the complete Applied fixture shows a
+conclusion observed. Source statuses and all four expectation-editor layouts are
+readable. This does not close the separate Shipping capture limitation.
+
+The guide-binding candidate chain fails **5 PASS / one harness FAIL**, with live
+roles **32 PASS / one harness FAIL** and Create Warehouse **15/15**. The failing
+macro is `modProcessor.RunBatchReportForAutomation`, HRESULT `0x800706BE`, at
+canonical projection rebuild. No native cause or product regression is established.
+UTC **23:39:47.4164531--23:47:29.0313871**, zero matching Application events.
+Cleanup required normal Quit of a separately verified owned test Excel process
+with a typed workbook count of zero, followed by directly reviewed **Yes, view
+later** recovery retention. No forced termination or recovery deletion occurred.
+Excel closure and restoration of all three tracked reports are verified. Exact
+ignored prefix: `reports/runtime/guide-binding-chain`. This candidate has no
+passing full-chain gate; the preceding overflow candidate's assisted pass does
+not substitute for it. Independent paired-view RED may proceed after verified
+cleanup without converting this failed chain into a success.
 
 **Focused behavioral RED verified, 2026-09-21: 171 PASS / 33 expected FAIL.**
 Report: `reports/runtime/slice4be-viewer-published-read/465656eddaec49998b2c6d5a80df5a49/red.json`.

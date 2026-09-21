@@ -155,6 +155,27 @@ The immediate post-input detail diagnostic also passes 41/41 with normal closure
 (`914cf33d03fb403d88dbcd351931b221`). Direct review of its first and last immediate
 captures still shows no scrolling, so repaint/reactivation is not established as
 the cause. A visible-host input diagnostic is pending; no visual acceptance is claimed.
+The first visibility-only setup attempt (`2dda92d91c2144608b9ee63e8589d28a`)
+stops at **zero product checks / one harness failure**: requested application
+visibility was not verified. It closes normally. A disposable blank-workbook
+capture host is the next bounded input fixture; it must preserve the same detail
+checks and source bytes and is never an operational workbook or runtime fix.
+
+The visible-host run on the frozen guide-binding candidate passes **41/41**,
+retaining all preceding 34 identities. Report
+`reports/runtime/slice4be-viewer-detail/ec5cd9c2f7ee47a5a4a36366b1acd783/green.json`;
+UTC **23:38:29.6745872--23:39:45.1650280**, normal closure, zero matching Application
+events. The disposable blank workbook verifies application visibility as a typed
+Boolean True and closes unsaved. All seven images were reviewed individually.
+The recorded list/form geometry places the input on the visible horizontal track,
+but three inputs still show no horizontal movement. Maximized text fits. These
+facts do not establish default-size visual acceptance or prove the cause.
+
+The next opt-in `-DetailScrollLockDiagnostic` compares the same native input with
+the disposable list temporarily unlocked, then restores its verified original
+lock state in finally and checks unchanged field values. It changes no runtime
+property or architectural contract. Its images require direct review; neither
+the 41 checks nor successful input delivery alone proves scrolling.
 
 Required next gates: actual visible scrolling,
 synchronized catalog/plan and reviewed Git
