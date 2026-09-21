@@ -98,6 +98,20 @@ surface rather than the windowless fields list. The retained input harness check
 the actual list bounds, owned foreground form and unobstructed target, and uses
 a bounded press with guaranteed release. Input delivery alone is never acceptance.
 
+The bounded-press capture run `c5535b27fd114f138a5a334ce97f0b08` also passes
+41/41 and closes normally. All four images were directly reviewed; they still
+do not establish horizontal movement. An immediate post-input capture is the next
+bounded harness diagnostic, before repaint or reactivation calls.
+
+Candidate evaluation regression passes **376/376**, retaining all preceding 376
+identities without duplicates. Report:
+`reports/runtime/slice4be-viewer-published-read/c166af14586c42c29ad0e1292dd1d195/green.json`;
+UTC **21:49:55.0214369--22:07:39.7785775**. Excel closes normally and the matching
+Application event count is zero. All 19 captures were directly reviewed: fifteen
+Pending/Partial/Applied diagnostic views and four expectation-editor views.
+Pending/Partial remain awaiting; only the complete Applied fixture shows conclusion
+observed. Source statuses, minimum-size scrolling and editor controls are readable.
+
 The first candidate chain stops at 5 PASS / one harness FAIL, with live roles
 36 PASS / one harness FAIL and Create Warehouse 15/15. Investigation found a
 missing separator in `New-OrderedLiveValidator`: the Production result command
