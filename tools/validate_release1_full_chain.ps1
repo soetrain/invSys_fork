@@ -366,7 +366,7 @@ $wbProdOps.Save()
     $orderedPath = Join-Path $tempRoot "validate_ordered_live_role_workflows.ps1"
     [IO.File]::WriteAllText(
         $orderedPath,
-        ($prefix + $production + $boxing + $shipping + $suffix),
+        (@($prefix, $production, $boxing, $shipping, $suffix) -join "`r`n"),
         [Text.UTF8Encoding]::new($false))
     return $orderedPath
 }
