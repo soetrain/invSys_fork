@@ -2,7 +2,10 @@
 # The fixture journal comes from real Admin actions; no guide is fabricated.
 function Test-GuideSave($Fixture,$Other) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $archive=[IO.Compression.ZipFile]::OpenRead((Join-Path $deploy 'invSys.Core.xlam'))
+    # The saved disposable copy is held writable by Excel. Read the immutable
+    # candidate; the saved-record provenance assertion below independently
+    # requires the loaded publisher's output to retain both exact identities.
+    $archive=[IO.Compression.ZipFile]::OpenRead((Join-Path $inputDeploy 'invSys.Core.xlam'))
     try {
         $entry=$archive.GetEntry('docProps/custom.xml')
         if($null -eq $entry){throw 'Guide publisher package metadata is missing.'}

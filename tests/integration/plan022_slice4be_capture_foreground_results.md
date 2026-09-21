@@ -1,5 +1,105 @@
 # Plan 022 Slice 4be visible-capture diagnosis
 
+**Latest package-state comparison (2026-09-21):** Writable temporary package
+copies with unsaved probes reproduce startup error 440 (**18 PASS / two FAIL**).
+Compiling and saving the same probe set in writable temporary copies before any
+fixture/form activity passes **20/20**, including actual public Viewer opening,
+generation reuse, measured visible Excel, captured context, loaded package paths,
+warehouse bytes/counters and the saved/reopened workbook. Neither run performs
+blank-form calibration or caption-probing warm-ups. Runtime source is unchanged;
+this is a harness-state comparison, not an implemented Viewer or Core fix.
+Earlier caption failures must be interpreted with their unsaved instrumentation
+state. Full visible acceptance remains open: saved copies clear startup but the
+first guide capture still fails, as recorded below.
+
+Two full-gate setup attempts each reach **69 PASS / one harness FAIL**, after
+Viewer and guide-draft behavior. `facb63b9c42347958673e05b359f775f/green.json`
+tries to open the writable, Excel-locked Core copy as a ZIP to obtain expected
+publisher identity. `ab704929229f4fad8766893e2be92a97/green.json` then encounters
+a null COM document-property access in an added metadata cross-check. Neither is
+product RED. The corrected harness reads expected identity from the immutable
+input candidate; the existing saved-guide provenance assertion still requires
+Core's published output to retain that exact package version and build identity.
+No metadata assertion is relaxed. Both controllers finish with Excel closed and
+zero Application events 1000/1001/1002 in their measured windows.
+
+The corrected saved-copy run `f8f8a329b3d34a93a8af309afaed12cb/green.json`
+passes **83 checks**, including saved-guide provenance, then fails the first
+foreground capture. All three observations still identify VS Code ahead of the
+owned guide form despite successful AppActivate. It produces no PNG, exits 1 and
+closes Excel, with zero Application events 1000/1001/1002 in its measured window.
+Saving probes resolves the observed startup failure; it does not by itself resolve
+this capture failure.
+
+The saved/reopened-workbook comparison
+`31f8e064c28d4b9da35408c1cd082b11/green.json` reports **84 PASS / two FAIL**.
+Capture still rejects the foreground; its three observations independently show
+Boolean ExcelVisible=True, an enabled/non-minimized form and one ordinary workbook.
+The combined saved-identity/Saved-state check also fails. Normal closure verifies
+the exact fixture path and unchanged closed-file hash, narrowing the second failure
+to the in-memory Saved-state assertion, without establishing its cause. Its actual
+value/type was not recorded, so Boolean False is not separately proven. No PNG is produced.
+The controller exits 1 with Excel closed. Do not claim complete workbook
+preservation, visible acceptance or a runtime defect from this diagnostic alone.
+`-GuideCaptureSavedWorkbookForTest` requires the visible saved-copy guide gate;
+it preserves all existing foreground guards and records only fixed labels/counts/
+booleans. The blank capture calibration explicitly disables these packaged-only
+observations. Full-chain regression is the next gate; capture and in-memory
+workbook-state diagnosis remain open.
+
+`-ViewerStartupPackageStateForTest` defaults to `OriginalReadOnly`, preserving the
+original reproducer. `WritableCopies` and `SavedCopies` copy only the five input
+XLAMs into the disposable run directory, verify reference/path ownership and open
+the copies writable. SavedCopies additionally verifies each save before execution.
+Only startup diagnosis may use WritableCopies; SavedCopies may also run the
+compiled guide-expectation gate. Frozen input XLAMs are never saved or replaced.
+
+`-ViewerStartupCalibrationForTest` defaults to `None`. Other values explicitly
+select the blank-form/caption/status/configuration comparisons below. They can
+change the state encountered by the following Viewer callback, so a later opening
+success in those modes is not an untreated startup result or product GREEN.
+All emitted observations are fixed stage labels, booleans or numeric errors.
+
+Reports under `reports/runtime/slice4be-viewer-published-read/`:
+
+| Comparison | Directory / red.json | Observed result |
+|---|---|---|
+| Blank caption only | `baeb4340325e47d8a33195b360e6a5ec` | 17 PASS / two startup FAIL; blank caption works. |
+| Viewer caption boundaries | `49588dbf56044b1a978c4df506389950` | 17 PASS / two startup FAIL; caption access works before/after layout and before generation; post-context probe does not return. |
+| Blank across recording status | `5824841d097f4b96b60ae35f744ce3cd` | 19 PASS / one calibration FAIL; subsequent caption call returns -2147418105; later Viewer opens/reuses. |
+| Blank across configuration loading, then status | `8fd5db118bbf4d0383d12c35e2d80582` | 20 PASS / one calibration FAIL after configuration loading; later status and Viewer succeed. |
+| Show blank before configuration loading | `1317a51537514c49b64844ca5996ee72` | 17 PASS / three FAIL; showing first does not preserve blank caption access or Viewer startup. |
+| Open/hide/close configuration separately | `9bebe08e5d5a47fa98ef3aea562c6d03` | 20 PASS / one calibration FAIL; caption works after open and hide, fails after close; package bindings preserved. |
+| Close configuration without hiding | `d4cdc7d2803448ba8208708e44b2a254` | 20 PASS / one calibration FAIL after close; omitting hide does not fix it. |
+| Writable unsaved copies; no calibration | `ab17fb9254cd43a48acbf26a4e3d123c` | 18 PASS / two startup FAIL; `ERROR\|440\|Warehouse.Caption`. |
+| Compiled saved copies; no calibration | `212be00330df4d1ba7eb4a58235fc112` | 20/20; `OK\|1`; opening and reuse pass. |
+
+The unsaved/saved copy comparison retains every original saved-workbook startup
+check and adds a package-state assertion plus loaded-path preservation. No guide
+expectation, caption timing, workbook visibility, configuration caching, public
+callback or runtime error suppression is changed to obtain the passing result.
+The test-only diagnostic wrapper still invokes the real public callback.
+
+All 18 completed startup observations have verified report counts, distinct
+Boolean check results and zero Application events 1000/1001/1002 in their measured
+windows. The close-without-hide case's immediate ExcelClosed value is False;
+its audit extends through the saved-probe runner's verified no-Excel preflight.
+This is subsequent closure evidence, not an immediate-cleanup pass. Eight invalid
+diagnostic option combinations are rejected before starting Excel, including
+calibration without tracing, package-copy modes outside their declared scopes and
+the guide workbook outside its visible saved-copy gate.
+Nine scripts parse, 91 local links resolve, and all 30 frozen packages plus both
+unrelated documents retain their hashes. Runtime source is unchanged.
+
+The first shown-form attempt (`48702c2576c74d338fd100a37ea0a33a`) was interrupted
+during fixture preparation. Its process handle disappeared; later inspection found
+no Excel or runner and no final report. It is neither RED nor GREEN. The normal
+cleanup/restoration block is not proven to have run: four temporary fixture
+references remained in local invSys settings, and its in-memory original snapshot
+was unavailable. Subsequent runs preserve their own starting settings; they do
+not prove restoration of the pre-interruption selection. No previous setting is
+guessed, and no operational workbook or recovery file is deleted.
+
 **Measured visibility scope:** The published-Viewer test assigns Excel.Visible=True
 before the callback, but the focused default-startup trace reads back Boolean
 False. Its visible modeless Viewer opens/reuses successfully (15/15). The
@@ -182,7 +282,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests/tooling/Test-Slice4beC
   -ViewerStartupSavedWorkbookForTest -CheckViewerPublishedRead -CompileViewerProbesForTest
 ```
 
-Next discriminator: exercise a blank form's caption setter in this same prepared
-Excel session before Viewer entry, retaining the saved workbook and all existing
-checks. The earlier standalone blank-form calibration did not use this prepared
-session. Do not infer an invSys caption-lifecycle repair from the current trace.
+The blank-form and package-state comparisons above supersede the former next
+step. SavedCopies clears startup but does not complete visible acceptance.
+Continue the full-chain gate and retain the unresolved foreground/Saved-state
+findings; no caption-order or transient-workbook-visibility workaround is justified.

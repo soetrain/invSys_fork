@@ -29,8 +29,13 @@ param(
     [switch]$CheckGuideExpectation,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
+    [switch]$GuideCaptureSavedWorkbookForTest,
     [switch]$TraceViewerStartupForTest,
     [switch]$ViewerStartupSavedWorkbookForTest,
+    [ValidateSet('None','Caption','Status','Config','ShownConfig','ConfigSteps','ConfigCloseVisible')]
+    [string]$ViewerStartupCalibrationForTest = 'None',
+    [ValidateSet('OriginalReadOnly','WritableCopies','SavedCopies')]
+    [string]$ViewerStartupPackageStateForTest = 'OriginalReadOnly',
     [switch]$GuideDraftOnly,
     [switch]$CheckRecordingIsolation,
     [switch]$CheckRecordingRestart,
@@ -82,6 +87,17 @@ if($TraceViewerStartupForTest -and ($Phase -ne 'RED' -or -not $CheckViewerPublis
 }
 if($ViewerStartupSavedWorkbookForTest -and -not $TraceViewerStartupForTest){
     throw 'The saved startup workbook is restricted to Viewer startup diagnosis.'
+}
+if($GuideCaptureSavedWorkbookForTest -and (-not $GuideCaptureVisibleExcelForTest -or -not $GuideDraftOnly -or -not $CaptureGuideEvidence -or $ViewerStartupPackageStateForTest -ne 'SavedCopies')){
+    throw 'Saved guide-capture workbook requires the visible saved-copy guide gate.'
+}
+if($ViewerStartupCalibrationForTest -ne 'None' -and -not $TraceViewerStartupForTest){
+    throw 'Viewer startup calibration requires explicit startup tracing.'
+}
+if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly' -and -not $TraceViewerStartupForTest){
+    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $GuideDraftOnly -or -not $CheckGuideExpectation -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest){
+        throw 'Package-state comparison requires startup tracing; saved copies also support the compiled guide-expectation gate.'
+    }
 }
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
 if($GuideDraftOnly){$CheckGuideDraft=$true}
@@ -242,6 +258,15 @@ if ($CheckViewerEventGroups) {
     if ($CheckViewerPublication) { . (Join-Path $PSScriptRoot 'Slice4beViewerPublication.ps1') }
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
+$inputDeploy=$deploy
+if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly'){
+    $probeDeploy=Join-Path $runRoot 'startup-probe-packages'
+    New-Item -ItemType Directory -Path $probeDeploy|Out-Null
+    foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam')){
+        Copy-Item -LiteralPath (Join-Path $deploy $name) -Destination (Join-Path $probeDeploy $name)
+    }
+    $deploy=$probeDeploy
+}
 if ($CheckOperationsTrackingSettings) {
     $operationsSettingsDeploy = Join-Path $reportRoot 'operations-only'
     New-Item -ItemType Directory -Path $operationsSettingsDeploy | Out-Null
@@ -286,6 +311,8 @@ public static class InvSysSettingsCapture {
     [DllImport("user32.dll")] static extern bool EnumWindows(WindowCallback callback, IntPtr state);
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
+    [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr hwnd);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hwnd);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int length);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, System.Text.StringBuilder text, int length);
     public static string ForegroundIdentity(IntPtr intended) {
@@ -350,6 +377,12 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
     for($attempt=1;$attempt -le 3;$attempt++){
         $owned=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
         if($WindowHandle -eq 0 -or $owned -ne $WindowHandle){throw 'Requested capture does not identify a unique owned visible form.'}
+        if($GuideCaptureVisibleExcelForTest){
+            $captureVisible=$excel.Visible
+            if($captureVisible -isnot [bool]){throw 'Capture-time application visibility is unavailable.'}
+            [pscustomobject]@{Image=$FileName;Attempt=$attempt;ExcelVisible=$captureVisible;FormEnabled=[InvSysSettingsCapture]::IsWindowEnabled([IntPtr]$WindowHandle);FormMinimized=[InvSysSettingsCapture]::IsIconic([IntPtr]$WindowHandle);WorkbookCount=$excel.Workbooks.Count;SavedWorkbookFixture=[bool]$GuideCaptureSavedWorkbookForTest}|
+                ConvertTo-Json -Compress|Add-Content -LiteralPath (Join-Path $reportRoot 'capture-window-state.jsonl')
+        }
         $activation=New-Object -ComObject WScript.Shell
         $activated=$null
         try{$activated=$activation.AppActivate($Title)}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
@@ -476,7 +509,7 @@ try {
     $step='load packages'
     $packages=@{}
     foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam')) {
-        $packages[$name]=$excel.Workbooks.Open((Join-Path $deploy $name),0,$true)
+        $packages[$name]=$excel.Workbooks.Open((Join-Path $deploy $name),0,($ViewerStartupPackageStateForTest -eq 'OriginalReadOnly'))
     }
     if ($CheckActivityEvidence) {
         Check 'Activity.ProducingPackageIdentity' (Test-Slice4bePackageIdentity $deploy)
@@ -665,12 +698,36 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
             Compile-Slice4beEvaluationProbes
         }
+        if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly'){
+            foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam')){
+                $book=$packages[$name]
+                if($null -eq $book -or $book.ReadOnly -isnot [bool] -or $book.ReadOnly -or
+                    -not [string]::Equals($book.FullName,(Join-Path $probeDeploy $name),[StringComparison]::OrdinalIgnoreCase)){
+                    throw 'Only the writable disposable probe package may be saved.'
+                }
+                if($ViewerStartupPackageStateForTest -eq 'SavedCopies'){
+                    $book.Save()
+                    if($book.Saved -isnot [bool] -or -not $book.Saved){throw 'Disposable probe package save is not verified.'}
+                }
+            }
+            if($ViewerStartupPackageStateForTest -eq 'SavedCopies'){
+                Check 'Harness.DisposableStartupProbesSaved' $true
+            } else {
+                $unsaved=$packages['invSys.Operations.xlam'].Saved
+                if($unsaved -isnot [bool] -or $unsaved){throw 'Writable Operations probes must remain unsaved for this comparison.'}
+                Check 'Harness.DisposableStartupProbesUnsaved' $true
+            }
+        }
         $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
         Check 'Harness.RecordingProbesInstalledBeforeForms' $noForms
         if(-not $noForms){throw 'A form was already loaded during initial probe setup; not product RED.'}
     }
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
+    if($GuideCaptureSavedWorkbookForTest){
+        . (Join-Path $PSScriptRoot 'Slice4beViewerStartup.ps1')
+        Initialize-Slice4beViewerStartupWorkbook
+    }
     $step='Admin-generated fixtures'; Write-Output $step
     $a=NewFixture 'a'; $b=NewFixture 'b'
     if($PrepareShippingFixturesBeforeProbesForTest){
@@ -905,6 +962,12 @@ catch {
 }
 finally {
     if($null -ne $excel) {
+        if($GuideCaptureSavedWorkbookForTest){
+            try {
+                Check 'GuideCapture.SavedWorkbookIdentityPreserved' ($null -ne $script:ViewerStartupWorkbook -and $script:ViewerStartupWorkbook.FullName -ceq $script:ViewerStartupWorkbookPath -and $script:ViewerStartupWorkbook.Saved -is [bool] -and $script:ViewerStartupWorkbook.Saved)
+                Close-Slice4beViewerStartupWorkbook 'GuideCapture.SavedWorkbookBytesPreservedAfterClose'
+            } catch {Check 'Harness.Exception.guide capture workbook cleanup' $false}
+        }
         try {
             if(Test-LoadedPackage 'invSys.Admin.xlam') {
                 [void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')
