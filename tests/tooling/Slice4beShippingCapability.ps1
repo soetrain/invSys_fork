@@ -53,7 +53,7 @@ function Test-Slice4beShippingCapability($Fixture,$Operator,$Other,$Ship,$Hold) 
                     $status=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingStatus')
                     Check ($prefix+'.VisiblePermissionDenial') ($status -match '(?i)permission|not authorized|capability')
                     if($CaptureEvidence -and $action -eq 'Hold') {
-                        CaptureFormEvidence 'Shipping Shipments' 'shipping-permission-denied.png'
+                        CaptureOwnedFormByCaptionEvidence 'Shipping Shipments' 'shipping-permission-denied.png'
                     }
                 }
                 Check ($prefix+'.StagingAndUnknownValuesPreserved') ($beforeRows -ceq (@(Get-ShippingActivityRows $Ship)|ConvertTo-Json -Depth 5 -Compress) -and $beforeHeld -ceq (@(Get-ShippingActivityRows $Hold)|ConvertTo-Json -Depth 5 -Compress))

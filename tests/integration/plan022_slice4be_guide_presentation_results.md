@@ -113,6 +113,29 @@ labels and filter controls are readable. The known adjacent Shipping headings an
 pending Event Detail horizontal-scrolling defect remain; this gate does not close
 either issue. Boxing/Shipping, evaluation and full-chain gates remain separate.
 
+Boxing/Shipping now retains all **1,707 preceding GREEN identities**, with exactly
+the same **seven pending D8-A missing-Auth findings** among 1,714 unique checks.
+Report: `reports/runtime/slice4be-shipping-activity/cc7dbd10022a4e6eae67f3d08960b956/boxing-activity-shipping-recording-green.json`.
+UTC **2026-09-22 01:06:36.9821100--01:23:39.5192895**. Immediate closure is False;
+Excel closes normally without intervention. Zero matching Application events and
+unchanged frozen packages are verified. All **22 captures were individually
+reviewed** and their hashes checked. The denied/stale-session Shipping captures
+now use the owned-form foreground helper and are painted with the expected notice.
+Make/Unbox success and zero-quantity messages are correct; older-policy and
+unavailable-store notices remain separate from business success. This is a
+capture-harness correction, with no runtime contract change or manufactured product
+RED. Existing packaged assertions and visible captures validate it proportionally.
+The pending D8-A, known heading adjacency, detail scrolling, evaluation, full chain
+and paired visible acceptance are not waived.
+
+The shared failure-boundary privacy/replay test passes **10/10 offline checks**:
+`tests/tooling/Test-Slice4beFormFailureDiagnostics.ps1`. Entered field content is
+absent, fixed control identity and inner COM code are retained, unrelated command
+arguments are omitted, and a rejected call executes once. It creates/attaches to
+no Excel instance. Report:
+`reports/runtime/form-failure-diagnostics/8a1798273fc64be7b856ea9b7895dc82/results.json`.
+This supplements diagnosis; it is not packaged product acceptance.
+
 The expanded visible gate retains the focused identities and captures all three
 methods, minimum/default/larger/restored and native maximized/restored sizes,
 the saved-result viewport, invalid guide/context and an unevaluated second guide.

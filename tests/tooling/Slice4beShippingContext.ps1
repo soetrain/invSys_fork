@@ -60,7 +60,7 @@ function Test-Slice4beShippingContextMatrix($Fixture,$Operator,$Other,$Ship,$Hol
                     $status=[string](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingStatus')
                     Check ($label+'.VisibleContextRejection') ($status -match '(?i)session' -and $status -match '(?i)reopen')
                     if($CaptureEvidence -and $context -eq 'SignedOut' -and $action -eq 'Add') {
-                        CaptureFormEvidence 'Shipping Shipments' 'shipping-stale-session.png'
+                        CaptureOwnedFormByCaptionEvidence 'Shipping Shipments' 'shipping-stale-session.png'
                     }
                     Check ($label+'.NoCrossContextActivity') (@(Get-Slice4beActivityFiles $Fixture|Where-Object {$_ -notin $beforeActivity}).Count -eq 0 -and @(Get-Slice4beActivityFiles $second|Where-Object {$_ -notin $beforeOtherActivity}).Count -eq 0)
                 }

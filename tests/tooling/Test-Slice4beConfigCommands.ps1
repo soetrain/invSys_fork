@@ -418,6 +418,20 @@ public static class InvSysSettingsCapture {
             bitmap.Save(path,System.Drawing.Imaging.ImageFormat.Png);
         }
     }
+    public static bool SaveOwnedForegroundForm(IntPtr owner, string[] titles, string path) {
+        IntPtr hwnd=GetAncestor(GetForegroundWindow(),2);
+        uint ownerProcess,foregroundProcess;
+        GetWindowThreadProcessId(owner,out ownerProcess);GetWindowThreadProcessId(hwnd,out foregroundProcess);
+        if(ownerProcess==0 || ownerProcess!=foregroundProcess || !IsWindowVisible(hwnd))return false;
+        var title=new System.Text.StringBuilder(512);GetWindowText(hwnd,title,title.Capacity);
+        if(Array.IndexOf(titles,title.ToString())<0)return false;
+        Rect r;if(!GetWindowRect(hwnd,out r))return false;
+        using(var bitmap=new Bitmap(r.Right-r.Left,r.Bottom-r.Top)) {
+            using(var graphics=Graphics.FromImage(bitmap)){graphics.CopyFromScreen(r.Left,r.Top,0,0,bitmap.Size);}
+            bitmap.Save(path,System.Drawing.Imaging.ImageFormat.Png);
+        }
+        return true;
+    }
 }
 '@
     }
@@ -480,8 +494,22 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
         Write-Host ('Packaged call failed: '+$Macro+'; argument count='+$Values.Count)
         $failurePath = Join-Path $reportRoot 'first-call-failure.json'
         if(-not (Test-Path -LiteralPath $failurePath)) {
+            $control=$null;$captured=$false;$identity='Unavailable';$codes=@()
+            for($errorNode=$_.Exception;$null -ne $errorNode;$errorNode=$errorNode.InnerException){$codes+=('0x{0:X8}' -f $errorNode.HResult)}
+            if($Macro -ceq 'modInventoryViewer.GuideDraftControlForTest' -and $Values.Count -eq 4){
+                # Only fixed form/control/action names. Never field values or call arguments.
+                $control=[pscustomobject]@{Form=[string]$Values[0];Control=[string]$Values[1];Action=[string]$Values[2]}
+                Write-Host ('Failed form action: '+$control.Form+'/'+$control.Control+'/'+$control.Action)
+            }
+            if($CheckGuidePresentation -and ('InvSysSettingsCapture' -as [type])){
+                try {
+                    $identity=[InvSysSettingsCapture]::ForegroundIdentity([IntPtr]$initialExcelWindow)
+                    $captured=[InvSysSettingsCapture]::SaveOwnedForegroundForm([IntPtr]$initialExcelWindow,@('Action Path view','Action Paths','Published guides','Operations Settings'),(Join-Path $reportRoot 'first-control-failure.png'))
+                } catch {$captured=$false}
+            }
             [pscustomobject]@{
                 Macro=$Macro; HResult=$_.Exception.HResult
+                ExceptionHResults=$codes;FormControl=$control;OwnedForegroundCapture=$captured;ForegroundIdentity=$identity
                 InitialExcelProcessIds=$initialExcelProcessIds
                 LiveExcelProcesses=@(Get-Process EXCEL -ErrorAction SilentlyContinue | Select-Object Id,StartTime)
             } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $failurePath
@@ -563,6 +591,7 @@ function NewFixture([string]$Suffix) {
 }
 try {
     $excel=New-Object -ComObject Excel.Application
+    $initialExcelWindow=[long]$excel.Hwnd
     $initialExcelProcessIds = @(Get-Process EXCEL -ErrorAction Stop | Select-Object -ExpandProperty Id)
     $excel.Visible=[bool]$GuideCaptureVisibleExcelForTest; $excel.DisplayAlerts=$false; $excel.EnableEvents=$false; $excel.AutomationSecurity=1
     if($GuideCaptureVisibleExcelForTest){
