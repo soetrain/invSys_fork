@@ -260,3 +260,23 @@ assumption that every sample was Ready is corrected from the retained trace,
 without rerunning or altering the successful runtime evidence.
 Fresh-process preference, Viewer, Boxing/Shipping, evaluation and the full Release
 1 chain remain required on this candidate and are now running serially.
+
+Fresh-process preference passes **27/27**, root
+`d1b65731f506474cb0ae83565de4cc6f`, **2026-09-22
+09:05:54.4938739--09:08:49.0217638 UTC**. A different verified Excel process
+restores the saved Operations preference without an Admin dependency, automatic
+pairing or inferred evaluation; training/config and saved probe bytes remain
+unchanged. All three current captures are directly reviewed and hashed.
+
+Viewer regression retains **94/94** prior identities, root
+`8df6935681d0497285bbb8907cba731c`, **2026-09-22
+09:08:50.2525609--09:11:27.0788155 UTC**. Filters, published-source integrity and
+policy visibility, exact Shipping inventory key/state and read-only source access
+remain protected. All three current captures are directly reviewed and hashed.
+Both gates close Excel normally without assistance, preserve source/package pins
+and have zero matching Application events. Verifiers are
+`reports/runtime/verify-guide-action-curation-integrity-restart.ps1` and
+`reports/runtime/verify-guide-action-curation-integrity-regressions.ps1 -Gates viewer`.
+Boxing/Shipping, evaluation and full-chain gates remain in progress. Native
+maximize/restore checks for the three curation surfaces will extend the existing
+71-check route after these gates; this is missing test coverage, not product RED.
