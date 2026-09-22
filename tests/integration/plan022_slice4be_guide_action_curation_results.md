@@ -280,3 +280,33 @@ and have zero matching Application events. Verifiers are
 Boxing/Shipping, evaluation and full-chain gates remain in progress. Native
 maximize/restore checks for the three curation surfaces will extend the existing
 71-check route after these gates; this is missing test coverage, not product RED.
+
+Boxing/Shipping retains **1,707 PASS / seven known pending D8-A FAIL**, all
+**1,714** unique typed identities, root `a2f2ed1e08804268b368d3bb422d53f6`,
+**2026-09-22 09:11:28.2058427--09:27:46.7966933 UTC**. Every prior GREEN remains
+GREEN. The failure set is exactly `Shipping.Access.AuthUnavailable.<Add|Update|
+Remove|Hold|Return|Stage|Send>.MissingFileNotRecreated`; no D8-A change is approved
+or implemented. All **22** current captures are directly reviewed and hashed.
+Normal unassisted Excel closure, unchanged running source/package pins and zero
+matching Application events are verified by
+`reports/runtime/verify-guide-action-curation-integrity-regressions.ps1 -Gates boxing`.
+
+The serial queue stops after this completed gate because its outer wrapper
+expects process exit 1 from a wrapper that already validated and recorded the
+inner test's known-failure exit 1 but then returns normally. This is an
+orchestration check error in an ignored runtime script, not a product regression or a reason to rerun the
+verified matrix. Evaluation continues separately; full-chain validation follows
+only after verified normal closure. The stopped queue and all evidence remain.
+
+Evaluation completes **376/376**, retaining every preceding identity, root
+`2fb2df7f872f4cd9b8d68606c0e71077`, **2026-09-22
+09:28:24.3594705--09:52:52.3870677 UTC**. All **19** current captures are directly
+reviewed and hashed. Actual Receiving source events progress through pending,
+three-of-four applied and fully applied publication; only the last stage concludes.
+Exact keys, original observations, unknown staging columns, unrelated workbook
+contents and immutable results remain protected. One bounded foreground-activation
+retry precedes the successful Applied/Minimum capture; it replays no workflow
+action. Normal unassisted Excel closure, unchanged test/package pins and zero
+matching Application events are verified by
+`reports/runtime/verify-guide-action-curation-integrity-regressions.ps1 -Gates evaluation`.
+The full Release 1 chain starts only after this completed verification.
