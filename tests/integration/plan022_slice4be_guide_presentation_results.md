@@ -186,6 +186,33 @@ counts/Booleans before rejecting an invalid fixture. No runtime or normative
 contract changes. This is a harness correction, not product RED. Its retry and
 the final unavailable-policy cases remain pending.
 
+The corrected full visible retry passes **305/305**, preserving every one of the
+preceding **294 passing identities** and all 243 focused identities. Report:
+`reports/runtime/slice4be-viewer-published-read/87ecb4eaf2e64f879bce5b3aba2ff404/green.json`.
+UTC **2026-09-22 02:19:15.4058741--02:46:38.0636614**. All **11 new availability
+checks** pass. Sanitized fixture facts confirm two journal entries, one Incomplete
+Close with TRACKING_UNAVAILABLE, no observations and unchanged activity bytes.
+The evaluated gap names both expected steps as Evidence unavailable, not Missing.
+Dirty borrowed Config clears both panes and disables the method while preserving
+unsaved edits and on-disk Config/training bytes. Closing that unsaved fixture and
+refreshing restores the same historical evaluation ID.
+
+Excel closes normally without intervention. Zero Application events 1000/1001/1002,
+unchanged frozen packages and unchanged running test sources are verified. The
+retry creates 42 captures. Visible review uses **39 individually reviewed earlier
+captures plus the three individually reviewed new availability captures**; every
+reviewed hash is verified. This does not claim direct review of all 42 retry images.
+The same frozen candidate and unchanged preceding capture-producing tests support
+that combined evidence; only the availability helper changed between these runs.
+The earlier COM rejections did not recur, but their root cause is not established.
+All failed attempts remain recorded.
+
+Regenerated maintenance evidence in
+`reports/runtime/guide-presentation-static-availability-retry` retains 244 components,
+5,990 procedures, 131,826 lines, 192 duplicate groups and 9/45 literal/unresolved
+dynamic calls. All 28 preceding module-size limits and 45 frozen package hashes
+hold. No source cleanup or runtime change was needed for this fixture correction.
+
 The expanded visible gate retains the focused identities and captures all three
 methods, minimum/default/larger/restored and native maximized/restored sizes,
 the saved-result viewport, invalid guide/context and an unevaluated second guide.
@@ -194,7 +221,8 @@ Evaluate, None expectations, capture-off historical evidence and same-session
 visibility loss. Fixtures must be validated before presentation assertions;
 capture/method/Refresh actions must preserve training bytes. The tests do not
 fabricate observation or evaluation records.
-The expanded visible gate, fresh-process paired preference, historical unavailable
-comparison, unreadable-policy recovery and human acceptance remain open. The
-separate full chain passed with the assisted-cleanup limitation recorded above;
-neither partial visible evidence nor that chain completes Slice 4be.
+The expanded visible gate, historical unavailable comparison and unreadable-policy
+recovery now pass. Fresh-process paired preference, human acceptance and the
+remaining D18 guide-editing/direct-curation/transfer scope remain open. The separate
+full chain passed with the assisted-cleanup limitation recorded above; these gates
+do not complete Slice 4be or approve the pending Event Detail/D8-A proposals.
