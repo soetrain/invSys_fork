@@ -57,6 +57,10 @@ function Test-GuideActionCuration($Fixture,$Other) {
         if((BoundLibrary 'Open') -cne 'DELIVERED'){throw 'Accepted Action Paths entry unavailable.'}
         Check 'GuideCuration.EntryIndependentOfRecording' ((BoundControl 'btnChooseGuideActions' 'State' '' 'frmActionPaths') -ceq 'True|True' -and (BoundControl 'lstActionPaths' 'Rows' '' 'frmActionPaths') -ceq '0')
         Check 'GuideCuration.EntryCaption' ((BoundControl 'btnChooseGuideActions' 'Label' '' 'frmActionPaths') -ceq 'Choose tracked actions')
+        foreach($size in @('Minimum','Default','Larger','Restored')){
+            Check ('GuideCuration.LibraryLayout.'+$size) ((BoundControl '' 'Fit' $size 'frmActionPaths') -ceq 'True')
+            CurateCapture ('library-'+$size.ToLowerInvariant()) 'Action Paths'
+        }
         OpenPicker
         $opened=(Pick '' 'Count') -ceq '1'
         Check 'GuideCuration.ActualEntryOpensOnePicker' $opened
@@ -183,6 +187,17 @@ function Test-GuideActionCuration($Fixture,$Other) {
             Check 'GuideCuration.InvalidInnerDigestRejectedWithoutSourceMutation' ($opened -and $first.Attempt.ActivityId -cnotin $ids -and (Pick 'lblGuideActionStatus' 'Label') -match '1 unavailable' -and (PinsRetained $activityBefore))
             Check 'GuideCuration.InvalidInnerDigestDoesNotSuppressOtherValidAction' ($opened -and $second.Attempt.ActivityId -cin $ids -and (BoundSame $savedPins (BoundPins $journalRoot)))
         } finally {CloseRecordingViewer;[IO.File]::WriteAllBytes($publication,$publicationBytes)}
+        if($saved -and $null -ne $revision){
+            OpenRecordingViewer;[void](BoundLibrary 'Open');BoundOpen;BoundSelect $revision
+        }
+        Check 'GuideCuration.PublishedReaderLoadsCuratedGuideWithoutRun' ($saved -and $null -ne $revision -and (BoundControl 'txtPublishedInstructions' 'Text').Contains([string]$guide.Name) -and (BoundControl 'btnUseGuideForRun' 'State') -ceq 'True|False')
+        if($saved -and $null -ne $revision){[void](BoundControl 'btnEditPublishedGuide' 'Click')}
+        Check 'GuideCuration.PublishedEditorRestoresCuratedStepIds' ($saved -and $null -ne $revision -and (Draft 'lstGuideSteps' 'Values') -ceq ((@($revision.Steps.StepId) -join "`n")+"`n"))
+        if($saved -and $null -ne $revision){
+            [void](Draft 'txtGuideName' 'Write' 'Reopened directly curated guide');[void](Draft 'btnSaveGuide' 'Click')
+            $third=ReadGuideExpectationRecord (Join-Path $guideRoot ($guide.ActionPathId+'.3.json'))
+        } else {$third=$null}
+        Check 'GuideCuration.PublishedRevisionRetainsEmptyRunAndOriginalBodies' ($saved -and $null -ne $third -and $third.PreviousRecordId -ceq $revision.RecordId -and $third.PreviousSha256 -ceq $revision.ContentSha256 -and @($third.SourceRun.PSObject.Properties).Count -eq 0 -and (ConvertTo-Json -InputObject @($third.Observations) -Depth 25 -Compress) -ceq (ConvertTo-Json -InputObject $observations -Depth 25 -Compress))
         Check 'GuideCuration.NoPublicationOrAuthorityRead' ((Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publishBefore -and (Run 'invSys.Operations.xlam' 'modTS_Shipments.PublishedReadAuthorityCallsForTest') -eq $authorityBefore)
         foreach($path in $sourcePins.Keys){if((Get-FileHash -LiteralPath $path).Hash -cne $sourcePins[$path] -and $path -cne $Fixture.Config){throw 'Curation changed a pre-existing source file.'}}
     } finally {CloseRecordingViewer;SelectTarget $Fixture 'config-admin'}

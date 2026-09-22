@@ -103,6 +103,13 @@ Public Function BindPublishedContext(ByVal context As String, ByVal key As Strin
     BindPublishedContext = LoadDraft()
 End Function
 
+Public Function BindSelectedActions(ByVal context As String, ByVal token As String) As Boolean
+    Dim notice As String
+    mContext = context
+    If Not modActionGuideDraft.OpenDraft(context, "", mDraftId, notice, token) Then Invalidate notice: Exit Function
+    BindSelectedActions = LoadDraft()
+End Function
+
 Public Function ValidateBinding() As Boolean
     Dim rows As String, source As String, evidence As String, notice As String
     If mDraftId = "" Then Exit Function

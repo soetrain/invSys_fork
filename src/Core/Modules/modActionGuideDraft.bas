@@ -14,6 +14,7 @@ Private mSaved As Object
 Private mExpectation As Object
 Private mPolicyVersion As Long
 Private mPublishedKey As String
+Private mCurationId As String
 
 Public Function CanEditPublished(ByVal context As String, ByVal key As String, Optional ByRef notice As String = "") As Boolean
     Dim model As Object, records As Collection, visible As Object, hash As String, version As Long
@@ -52,13 +53,21 @@ Public Function CanCreate(ByVal context As String, ByVal pathId As String) As Bo
     CanCreate = modGuideDraftSource.ReadSelected(context, pathId, header, records, visible, policyHash, notice)
 End Function
 
-Public Function OpenDraft(ByVal context As String, ByVal pathId As String, ByRef draftId As String, ByRef notice As String) As Boolean
+Public Function OpenDraft(ByVal context As String, ByVal pathId As String, ByRef draftId As String, ByRef notice As String, _
+                          Optional ByVal curationId As String = "") As Boolean
     Dim header As Object, records As Collection, visible As Object, policyHash As String, record As Object, step As Object, policyVersion As Long
+    Dim binding As String
     On Error GoTo Failed
     draftId = ""
-    If Not modGuideDraftSource.ReadSelected(context, pathId, header, records, visible, policyHash, notice, policyVersion) Then Exit Function
+    If curationId <> "" Then
+        If pathId <> "" Then Exit Function
+        If Not modCuratedGuideSource.ReadSelected(context, curationId, header, records, visible, policyHash, policyVersion, binding, notice) Then Exit Function
+    Else
+        If Not modGuideDraftSource.ReadSelected(context, pathId, header, records, visible, policyHash, notice, policyVersion) Then Exit Function
+        binding = modPathExpectation.SelectionBinding(context, pathId)
+    End If
     Discard
-    mContext = context: mPathId = pathId: mBinding = modPathExpectation.SelectionBinding(context, pathId)
+    mContext = context: mPathId = pathId: mBinding = binding: mCurationId = curationId
     mDraftId = modTrainingWire.NewId(): mPolicyHash = policyHash: Set mHeader = header
     mPolicyVersion = policyVersion
     Set mSteps = New Collection: Set mText = CreateObject("Scripting.Dictionary")
@@ -81,10 +90,16 @@ End Function
 
 Private Function Guard(ByVal context As String, ByVal draftId As String, ByRef records As Collection, _
                        ByRef visible As Object, ByRef notice As String) As Boolean
-    Dim header As Object, policyHash As String, policyVersion As Long, entry As String
+    Dim header As Object, policyHash As String, policyVersion As Long, entry As String, binding As String
     entry = "Create guide": If mPublishedKey <> "" Then entry = "Edit guide"
+    If mCurationId <> "" Then entry = "Choose tracked actions"
     notice = "Unavailable: the guide draft or captured context changed. Reopen " & entry & "."
     If mHeader Is Nothing Or draftId = "" Or draftId <> mDraftId Or context <> mContext Then Exit Function
+    If mCurationId <> "" Then
+        If Not modCuratedGuideSource.ReadSelected(context, mCurationId, header, records, visible, policyHash, policyVersion, binding, notice) Then GoTo Invalid
+        If binding <> mBinding Or policyHash <> mPolicyHash Or policyVersion <> mPolicyVersion Then GoTo Invalid
+        Guard = True: Exit Function
+    End If
     If mPublishedKey <> "" Then
         If Not modPublishedGuideDraftSource.Read(context, mPublishedKey, header, records, visible, policyHash, notice, policyVersion, mSaved) Then GoTo Invalid
         If policyHash <> mPolicyHash Or policyVersion <> mPolicyVersion Then GoTo Invalid
@@ -110,7 +125,9 @@ Public Function ReadDraft(ByVal context As String, ByVal draftId As String, ByRe
     For Each step In mSteps
         rows = rows & CStr(step("StepId")) & vbTab & CStr(step("Caption")) & vbCrLf
     Next step
-    If mPublishedKey = "" Then
+    If mCurationId <> "" Then
+        source = modCuratedGuideSource.SourceCaption(mHeader)
+    ElseIf mPublishedKey = "" Then
         source = modGuideDraftSource.SourceCaption(mHeader)
     Else
         source = modPublishedGuideDraftSource.SourceCaption(mHeader)
@@ -208,7 +225,9 @@ Public Function ReadExpectation(ByVal context As String, ByVal draftId As String
     On Error GoTo Failed
     sequenceId = "": definition = "": summary = ""
     If Not Guard(context, draftId, records, visible, notice) Then Exit Function
-    If mPublishedKey = "" Then
+    If mCurationId <> "" Then
+        sequenceId = ""
+    ElseIf mPublishedKey = "" Then
         sequenceId = CStr(mHeader("SequenceId"))
     ElseIf mHeader("SourceRun").Count > 0 Then
         sequenceId = CStr(mHeader("SourceRun")("SequenceId"))
@@ -258,7 +277,7 @@ Public Function SaveDraft(ByVal context As String, ByVal draftId As String, ByRe
         If mSaved("Version") = 2147483647 Then notice = "Guide version limit reached. Your edits remain in this draft.": Exit Function
     End If
     If mPublishedKey = "" Then
-        Set model = modGuideModel.Create(mHeader, mText, mSteps, records, visible, mPolicyVersion, mSaved, mExpectation)
+        Set model = modGuideModel.Create(mHeader, mText, mSteps, records, visible, mPolicyVersion, mSaved, mExpectation, mCurationId = "")
     Else
         Set model = modGuideRevision.Create(mSaved, mText, mSteps, mExpectation, mPolicyVersion)
     End If
@@ -275,7 +294,7 @@ End Function
 
 Private Sub Discard()
     modExpectationDraft.CloseGuide mContext, mDraftId
-    mContext = "": mPathId = "": mBinding = "": mDraftId = "": mPolicyHash = "": mPublishedKey = ""
+    mContext = "": mPathId = "": mBinding = "": mDraftId = "": mPolicyHash = "": mPublishedKey = "": mCurationId = ""
     Set mHeader = Nothing: Set mSteps = Nothing: Set mText = Nothing: Set mSaved = Nothing: mPolicyVersion = 0
     Set mExpectation = Nothing
 End Sub

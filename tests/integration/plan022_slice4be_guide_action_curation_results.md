@@ -1,8 +1,9 @@
 # Plan 022 Slice 4be.5 - direct tracked-action guide curation
 
-Status: initial isolated implementation compiles but remains failing; source-adapter
-follow-up has verified **24 PASS / 31 expected FAIL**, 55 unique typed checks.
-No GREEN, deployment or acceptance is claimed. Architecture v4.11 D18's direct tracked-action curation refinement,
+Status: corrected isolated candidate passes focused **55/55** and expanded
+integration **63/63**. Supporting regressions are in progress; deployment, human
+acceptance and full Slice 4be completion are not claimed.
+Architecture v4.11 D18's direct tracked-action curation refinement,
 Plan 022 and controls were committed together in docs `49ffb47` before testing.
 This implements the already approved non-recording authoring route; pending
 Event Detail and D8-A proposals remain unapproved.
@@ -97,3 +98,47 @@ Initial maintenance at `reports/runtime/guide-action-curation-static` records
 groups 192. All 28 preceding size limits pass. The next candidate must preserve
 all 55 focused identities, add visible editor evidence and complete supporting
 regression gates; this first candidate is retained without overwrite.
+
+The corrected candidate `deploy/validation-guide-action-curation-envelope` builds
+all five packages and passes explicit compile/Operations cold start. It retains
+all 242 compiled identities; only private `modCuratedGuideSource` differs from the
+first curation candidate. Its detached-copy adapter verifies ContentSha256 before
+validating and retaining the original body. No source envelope is mutated.
+
+Focused GREEN is **55/55**, preserving every protecting RED identity, root
+`reports/runtime/slice4be-viewer-published-read/a91cba903fa2443e9b23126adcbfb131`,
+**2026-09-22 07:07:19.2421691--07:11:03.0440874 UTC**. Eight picker/editor captures
+are directly reviewed and hashed. All controls, source notice, authored text,
+original observations and Save/Cancel remain readable at minimum/default/larger/
+restored sizes. Excel closes normally without assistance, sources and frozen
+packages remain unchanged, and the Application event audit finds no matching
+1000/1001/1002 events.
+
+Additional tests exercise four library layouts and actual published-reader/Edit/
+Save handlers for this non-recorded source. The first integration attempt reaches
+50 passing checks before a read-only picker query is rejected with `0x800AC472`;
+root `cb479e0047c74351831f0352aebeab06` retains first-call evidence. The published
+round trip is not reached. This is a harness interruption, not behavioral RED;
+no handler is replayed, runtime changed or cause inferred. Normal closure and
+unchanged sources/packages are verified separately.
+
+A fresh fixture using the existing visible-Excel harness option completes
+**63/63**, root
+`reports/runtime/slice4be-viewer-published-read/70fc6f19b65f4f7d875a5786e973302d`,
+**2026-09-22 07:17:40.3315281--07:21:23.9654934 UTC**. Every preceding focused
+identity passes. Published reading works without a selected run; Edit restores
+stable step identities, and Save creates the next immutable version with empty
+SourceRun, unchanged original bodies and exact predecessor hash. All twelve
+library/picker/editor captures are directly reviewed and hashed. The library's
+existing empty-recording unavailable notice remains visible, while Choose tracked
+actions works independently. No automatic action retry is introduced. Normal
+unassisted closure, zero matching Application events and unchanged test/runtime/
+package pins are verified by
+`reports/runtime/verify-guide-action-curation-integrated-visible.ps1`.
+
+Corrected maintenance: **249 components, 6,035 procedures, 132,490 lines**, dynamic
+calls **9/45**, duplicate groups **192**. All **28** preceding size limits pass.
+Evidence stays ignored under `reports/runtime/guide-action-curation-envelope-static`.
+The existing guide regression, fresh-process preference, Viewer, Boxing/Shipping,
+evaluation, live-role and full Release 1 chain gates must still be verified on
+this candidate. Pending D8-A and Event Detail proposals remain separate.

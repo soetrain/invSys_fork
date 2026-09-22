@@ -38,6 +38,8 @@ Private WithEvents mPublishedGuides As MSForms.CommandButton
 Private mGuideLibrary As frmActionPathLibrary
 Private WithEvents mViewActionPath As MSForms.CommandButton
 Private mView As frmActionPathView
+Private WithEvents mChooseGuideActions As MSForms.CommandButton
+Private mGuideActionPicker As frmGuideActionPicker
 
 Private Sub UserForm_Initialize()
     Dim definition As Variant, control As Object
@@ -49,9 +51,10 @@ Private Sub UserForm_Initialize()
         Array("Label", "lblPathSearch", "Search recordings", 12, 12, 130, 20, 3), _
         Array("TextBox", "txtPathSearch", "", 148, 10, 550, 24, 7), _
         Array("CommandButton", "btnPathRefresh", "Refresh", 708, 10, 92, 26, 6), _
-        Array("Label", "lblPathList", "Saved recordings - select one to validate its evidence", 12, 44, 452, 20, 7), _
-        Array("CommandButton", "btnPublishedGuides", "Published guides", 476, 40, 156, 24, 6), _
-        Array("CommandButton", "btnCreateGuide", "Create guide", 644, 40, 156, 24, 6), _
+        Array("Label", "lblPathList", "Saved recordings", 12, 44, 276, 20, 7), _
+        Array("CommandButton", "btnChooseGuideActions", "Choose tracked actions", 300, 40, 176, 24, 6), _
+        Array("CommandButton", "btnPublishedGuides", "Published guides", 486, 40, 154, 24, 6), _
+        Array("CommandButton", "btnCreateGuide", "Create guide", 650, 40, 150, 24, 6), _
         Array("ListBox", "lstActionPaths", "", 12, 68, 788, 130, 7), _
         Array("Label", "lblPathEvidence", "Observed controls / Saved result", 12, 208, 286, 20, 7), _
         Array("CommandButton", "btnViewActionPath", "View guide and run", 310, 204, 212, 26, 6), _
@@ -76,6 +79,7 @@ Private Sub UserForm_Initialize()
     Set mEvaluationStatus = Me.Controls("lblEvaluationStatus")
     Set mCreateGuide = Me.Controls("btnCreateGuide"): mCreateGuide.Enabled = False
     Set mPublishedGuides = Me.Controls("btnPublishedGuides")
+    Set mChooseGuideActions = Me.Controls("btnChooseGuideActions")
     Set mViewActionPath = Me.Controls("btnViewActionPath"): mViewActionPath.Enabled = False
     mEvaluation.MultiLine = True: mEvaluation.WordWrap = True: mEvaluation.Locked = True
     mEvaluation.ScrollBars = fmScrollBarsVertical: mEvaluationStatus.WordWrap = True
@@ -129,6 +133,9 @@ Private Sub ReadSelection()
     If mLoading Then Exit Sub
     mEvidence.Value = ""
     If Not ContextValid() Then Exit Sub
+    mChooseGuideActions.Enabled = modGuideActionPicker.CanOpen(mContext, notice)
+    mChooseGuideActions.ControlTipText = notice
+    If Not mChooseGuideActions.Enabled Then mStatus.Caption = notice
     If mPaths.ListIndex >= 0 Then selected = CStr(mPaths.List(mPaths.ListIndex, 0))
     If mSelectedId <> selected Then
         mBinding = ""
@@ -210,6 +217,7 @@ Private Sub ClearEvaluation()
 End Sub
 
 Public Sub ClearContent(ByVal notice As String)
+    CloseGuideActionPicker
     CloseActionPathView
     ClosePublishedGuides
     ClearEvaluation
@@ -220,6 +228,7 @@ Public Sub ClearContent(ByVal notice As String)
     mPaths.Clear: mEvidence.Value = "": mStatus.Caption = notice
     mSelectedId = "": mBinding = "": mSummary.Caption = "": mExpected.Enabled = False
     mCreateGuide.Enabled = False
+    mChooseGuideActions.Enabled = False
     mViewActionPath.Enabled = False
     mLoading = False
 End Sub
@@ -237,6 +246,7 @@ Private Sub mRefresh_Click()
 End Sub
 
 Private Sub mClose_Click()
+    CloseGuideActionPicker
     CloseActionPathView
     ClosePublishedGuides
     Me.Hide
@@ -244,12 +254,34 @@ End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     If CloseMode = 0 Then
+        CloseGuideActionPicker
         CloseActionPathView
         ClosePublishedGuides
         Cancel = True: Me.Hide
     Else
         ClearContent ""
     End If
+End Sub
+
+Private Sub mChooseGuideActions_Click()
+    Dim notice As String
+    If Not ContextValid() Then Exit Sub
+    If Not modGuideActionPicker.CanOpen(mContext, notice) Then mStatus.Caption = notice: Exit Sub
+    If Not mGuideActionPicker Is Nothing Then
+        If mGuideActionPicker.RefreshChoices() Then
+            If Not mGuideActionPicker.Visible Then mGuideActionPicker.Show vbModeless
+            Exit Sub
+        End If
+        CloseGuideActionPicker
+    End If
+    Set mGuideActionPicker = New frmGuideActionPicker
+    If mGuideActionPicker.BindContext(mContext, Me) Then mGuideActionPicker.Show vbModeless Else CloseGuideActionPicker
+End Sub
+
+Public Sub CloseGuideActionPicker()
+    If mGuideActionPicker Is Nothing Then Exit Sub
+    mGuideActionPicker.ReleaseSelection
+    Unload mGuideActionPicker: Set mGuideActionPicker = Nothing
 End Sub
 
 Private Sub mPublishedGuides_Click()

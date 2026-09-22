@@ -16,7 +16,7 @@ End Function
 
 Public Function Create(ByVal header As Object, ByVal text As Object, ByVal draftSteps As Collection, _
                        ByVal records As Collection, ByVal visible As Object, ByVal policyVersion As Long, _
-                       ByVal previous As Object, ByVal expectation As Object) As Object
+                       ByVal previous As Object, ByVal expectation As Object, Optional ByVal recordedSource As Boolean = True) As Object
     Dim model As Object, source As Object, field As Variant, tag As Variant, step As Object, authored As Object, record As Object
     Dim tags As New Collection, steps As New Collection, observations As New Collection, hidden As Long
     Set model = CreateObject("Scripting.Dictionary")
@@ -54,12 +54,15 @@ Public Function Create(ByVal header As Object, ByVal text As Object, ByVal draft
     Next record
     model.Add "Steps", steps: model.Add "Observations", observations
     Set source = CreateObject("Scripting.Dictionary")
-    For Each field In Array("ActionPathId", "SequenceId", "RecordId", "ContentSha256", "Lifecycle", "ReasonCode", "ActionCount", "CatalogVersion", "PackageSetVersion", "BuildIdentity")
-        source.Add CStr(field), header(field)
-    Next field
-    source.Add "JournalVersion", header("Version"): source.Add "RecordedByUserId", header("CreatedByUserId")
-    source.Add "EntryCreatedAtUTC", header("CreatedAtUTC"): source.Add "CapturePolicyVersion", header("PolicyVersion")
-    source.Add "RestrictedObservationCount", hidden: model.Add "SourceRun", source
+    If recordedSource Then
+        For Each field In Array("ActionPathId", "SequenceId", "RecordId", "ContentSha256", "Lifecycle", "ReasonCode", "ActionCount", "CatalogVersion", "PackageSetVersion", "BuildIdentity")
+            source.Add CStr(field), header(field)
+        Next field
+        source.Add "JournalVersion", header("Version"): source.Add "RecordedByUserId", header("CreatedByUserId")
+        source.Add "EntryCreatedAtUTC", header("CreatedAtUTC"): source.Add "CapturePolicyVersion", header("PolicyVersion")
+        source.Add "RestrictedObservationCount", hidden
+    End If
+    model.Add "SourceRun", source
     model.Add "ExpectedConclusion", modTrainingJson.DecodeObject(modTrainingJson.EncodeObject(expectation))
     Set Create = model
 End Function

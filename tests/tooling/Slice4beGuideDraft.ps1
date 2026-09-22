@@ -30,6 +30,10 @@ Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As
             If value = "Minimum" Then owner.Height = 550
             If value = "Default" Or value = "Restored" Then owner.Height = 630
         End If
+        If formName = "frmActionPaths" Then
+            If value = "Minimum" Then owner.Width = 720: owner.Height = 520
+            If value = "Default" Or value = "Restored" Then owner.Width = 820: owner.Height = 640
+        End If
         If formName = "frmActionPathView" Then
             If value = "Minimum" Then owner.Width = 840: owner.Height = 600
             If value = "Default" Or value = "Restored" Then owner.Width = 960: owner.Height = 680
