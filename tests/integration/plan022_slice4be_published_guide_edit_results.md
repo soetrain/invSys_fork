@@ -3,8 +3,29 @@
 Status: corrected isolated implementation passes focused **58/58** and the complete
 visible guide gate **351/351**, preserving all 305 prior checks plus 46 edit checks.
 All 52 broader captures were directly reviewed; fresh-process preference passes
-**27/27** with three reviewed captures. Role/chain regressions and
-human acceptance remain. No deployment or slice completion is claimed.
+**27/27** with three reviewed captures. Relevant role regressions retain every
+prior GREEN; the full chain passes **32/32**, live roles **48/48**, and Create
+Warehouse **15/15**. Remaining D18 work and human acceptance stay open. No
+deployment or slice completion is claimed.
+
+Full-chain evidence uses the same frozen corrected candidate and prefix
+`reports/runtime/published-guide-edit-chain`, during **2026-09-22
+06:22:24.5090280--06:30:44.5998916 UTC**. All 32 prior chain and 48 live-role
+identities are retained; all 15 Create Warehouse checks pass. The verifier
+`verify-published-guide-edit-chain.ps1` confirms terminal exit zero, all three
+tracked reports restored byte-for-byte, all 233 running-source pins unchanged,
+55 frozen-package pins unchanged and zero matching Application events.
+
+Cleanup required assistance: read-only attachment confirmed the remaining Excel
+instance's native identity and a typed workbook count of zero. A fresh guard
+rechecked process creation identity and zero workbooks before normal Quit. Its
+recovery dialog was directly reviewed; **Yes, I want to view these files later**
+was selected, captured and reviewed before confirmation. Excel then exited and
+the controller restored local settings and completed. This is assisted normal
+cleanup, not unattended closure; no forced termination or recovery deletion was
+used. Sanitized verification and capture hashes remain in ignored runtime evidence.
+Neither pending Event Detail nor D8-A architecture proposal is approved by this
+checkpoint. D13 does not require a new behavioral RED for acceptance records.
 
 The full visible retry uses the unchanged corrected candidate and report root
 `reports/runtime/slice4be-viewer-published-read/7eafdbb4722f47eabf0e5eacba52b07f`.
@@ -64,8 +85,8 @@ show four exact sources awaiting, three applied plus one awaiting, and only the
 all-four-applied result concluding, plus explicit expectation editing at each size.
 The existing diagnostic-pane activation helper retries once at Pending/Minimum;
 the capture then passes. No product failure occurs. Normal Excel closure, zero
-matching Application events and unchanged sources/packages are verified. Live roles,
-full chain and human acceptance remain pending.
+matching Application events and unchanged sources/packages are verified. The later
+live-role/full-chain evidence is recorded above; human acceptance remains pending.
 
 The corrected frozen candidate is `deploy/validation-published-guide-edit-notices`.
 All five packages build and compile. Its focused GREEN root is
