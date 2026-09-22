@@ -42,6 +42,7 @@ Relevant role regressions on the corrected frozen candidate:
 | --- | --- | --- | --- |
 | Viewer / filters / Shipping current state | 94 PASS / 0 FAIL; all prior 94 retained | `slice4be-viewer-published-read/f55f414706fc4880b6ed974073c45470` | 3 |
 | Boxing / Shipping activity and owner boundaries | 1,707 PASS / 7 known pending D8-A FAIL; all prior 1,707 GREEN retained | `slice4be-shipping-activity/9c6cbd7005fe4502ae8fffccd1defe11` | 22 |
+| Diagnostic evaluation and mixed Operations recording | 376 PASS / 0 FAIL; all prior 376 retained | `slice4be-viewer-published-read/decf781980bd431596c6208f0ee6a630` | 19 |
 
 Roots above are under `reports/runtime`. Viewer runs **2026-09-22 05:40:05.0192098--
 05:42:37.4478093 UTC**; Boxing/Shipping runs **05:43:14.8888573--06:00:29.8225029 UTC**.
@@ -57,7 +58,14 @@ for Add, Update, Remove, Hold, Return, Stage and Send. They match the pending D8
 proposal exactly and are not new regressions or evidence approving that proposal.
 `verify-published-guide-edit-regressions.ps1` audits exact identity preservation,
 failure set, source/package pins, every capture review and closure/event evidence.
-Diagnostic evaluation, live roles, full chain and human acceptance remain pending.
+Diagnostic evaluation runs **2026-09-22 06:01:10.1828270--06:21:20.8405962 UTC**.
+All 376 typed unique checks retain the prior GREEN set. The 19 reviewed captures
+show four exact sources awaiting, three applied plus one awaiting, and only the
+all-four-applied result concluding, plus explicit expectation editing at each size.
+The existing diagnostic-pane activation helper retries once at Pending/Minimum;
+the capture then passes. No product failure occurs. Normal Excel closure, zero
+matching Application events and unchanged sources/packages are verified. Live roles,
+full chain and human acceptance remain pending.
 
 The corrected frozen candidate is `deploy/validation-published-guide-edit-notices`.
 All five packages build and compile. Its focused GREEN root is
