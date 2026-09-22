@@ -1,8 +1,27 @@
 # Plan 022 Slice 4be.5 - reopen a published guide for editing
 
-Status: corrected isolated implementation passes **58/58**, including all 46 edit
-checks; ten captures directly reviewed and maintenance ratchets preserved. Broader
-regressions remain. No deployment or slice completion is claimed.
+Status: corrected isolated implementation passes focused **58/58** and the complete
+visible guide gate **351/351**, preserving all 305 prior checks plus 46 edit checks.
+All 52 broader captures were directly reviewed. Role/restart/chain regressions and
+human acceptance remain. No deployment or slice completion is claimed.
+
+The full visible retry uses the unchanged corrected candidate and report root
+`reports/runtime/slice4be-viewer-published-read/7eafdbb4722f47eabf0e5eacba52b07f`.
+UTC **2026-09-22 05:03:12.0300621--05:35:35.0440291**. All 351 typed, unique checks
+pass. The exact prior 305 identities and all 46 edit assertions are retained.
+Normal Excel closure, zero matching Application events, unchanged test sources and
+frozen packages are verified by `verify-published-guide-edit-visible-retry.ps1`.
+Every one of the 52 captures is individually reviewed and hash-verified in the
+root's `operator-image-review.json`, including all presentation sizes, scrolled
+results, unavailable/incomplete cases, editor reopening and preserved conflict.
+No first-call failure or readonly retry trace exists: the opt-in retry was not
+needed. This successful attempt does not diagnose the earlier COM interruption.
+
+After the supporting harness changes, regenerated maintenance evidence at
+`reports/runtime/published-guide-edit-harness-static` exactly retains 246 components,
+6,000 procedures, 132,040 lines, dynamic calls 9/45 and 192 duplicate groups. All
+28 prior module-size limits pass. These are acceptance-record updates, with no
+runtime or architectural change and no new product RED claim.
 
 The corrected frozen candidate is `deploy/validation-published-guide-edit-notices`.
 All five packages build and compile. Its focused GREEN root is
