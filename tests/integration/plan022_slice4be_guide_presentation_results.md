@@ -1,6 +1,6 @@
 # Plan 022 Slice 4be.5 paired Action Path presentations
 
-**D13 behavioral RED verified; runtime draft awaiting packaged GREEN.**
+**D13 RED and focused packaged GREEN verified; visible/broader acceptance open.**
 Architecture v4.11 D18's paired-presentation refinement names an additional
 Operations **View guide and run** surface. It implements the approved How-To,
 Diagnostic and Compare both views without repurposing the existing recording
@@ -41,7 +41,7 @@ it did not establish a workbook count. Zero Application events 1000/1001/1002 an
 unchanged frozen-package hashes are verified. Ignored prefix:
 `reports/runtime/guide-presentation-red`.
 
-The source draft adds primitive Core `modPathPresentation`, Operations
+The implementation adds primitive Core `modPathPresentation`, Operations
 `frmActionPathView`, and the library entry/ownership wiring in `frmActionPaths`.
 It validates the exact staged intent, current journal and guide chain without
 rebinding selection, displaying another guide's evaluation, saving preference or
@@ -55,7 +55,26 @@ added. Event Detail and every other existing component remain identical to the
 frozen guide-binding candidate. Static evidence records 244 components, 5,990
 procedures and 131,826 lines (+298); duplicate groups stay 192 and literal/unresolved
 dynamic calls stay 9/45. All 28 preceding module-size limits pass. Scanner findings
-are not deletion approval. The packaged 243-check run is in progress.
-No GREEN, visible presentation, restart
+are not deletion approval.
+
+Focused packaged GREEN passes **243/243**, retaining all 204 previous GREEN and
+all 243 RED identities, including the 39 presentation checks. Report:
+`reports/runtime/slice4be-viewer-published-read/7f306f333bb642b1b4db9111de56bea1/green.json`.
+UTC **2026-09-22 00:06:28.2073233--00:27:10.7633974**. Immediate closure is False;
+Excel then closes normally without Quit, recovery action or forced termination.
+A read-only attachment during shutdown was unavailable, not proof of an empty
+workbook collection. No recovery dialog was observed. The window has zero
+Application events 1000/1001/1002 and candidate package hashes remain unchanged.
+Ignored prefix: `reports/runtime/guide-presentation-green`.
+
+The next visible gate retains the focused identities and captures all three
+methods, minimum/default/larger/restored and native maximized/restored sizes,
+the saved-result viewport, invalid guide/context and an unevaluated second guide.
+Additional scenarios use actual missing/extra/rejected actions and explicit
+Evaluate, None expectations, capture-off historical evidence and same-session
+visibility loss. Fixtures must be validated before presentation assertions;
+capture/method/Refresh actions must preserve training bytes. The tests do not
+fabricate observation or evaluation records.
+No visible presentation, restart
 preference, capture-off/current-policy, all five comparison outcomes or full
 Release 1 gate is claimed for this draft. Those remain required before acceptance.

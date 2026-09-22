@@ -36,6 +36,8 @@ Private mEvaluationStatus As MSForms.Label
 Private WithEvents mCreateGuide As MSForms.CommandButton
 Private WithEvents mPublishedGuides As MSForms.CommandButton
 Private mGuideLibrary As frmActionPathLibrary
+Private WithEvents mViewActionPath As MSForms.CommandButton
+Private mView As frmActionPathView
 
 Private Sub UserForm_Initialize()
     Dim definition As Variant, control As Object
@@ -51,7 +53,8 @@ Private Sub UserForm_Initialize()
         Array("CommandButton", "btnPublishedGuides", "Published guides", 476, 40, 156, 24, 6), _
         Array("CommandButton", "btnCreateGuide", "Create guide", 644, 40, 156, 24, 6), _
         Array("ListBox", "lstActionPaths", "", 12, 68, 788, 130, 7), _
-        Array("Label", "lblPathEvidence", "Observed controls and outcomes / Saved diagnostic result", 12, 208, 500, 20, 7), _
+        Array("Label", "lblPathEvidence", "Observed controls / Saved result", 12, 208, 286, 20, 7), _
+        Array("CommandButton", "btnViewActionPath", "View guide and run", 310, 204, 212, 26, 6), _
         Array("CommandButton", "btnEvaluatePath", "Evaluate", 532, 204, 90, 26, 6), _
         Array("CommandButton", "btnExpectedConclusion", "Expected conclusion", 630, 204, 170, 26, 6), _
         Array("TextBox", "txtPathEvidence", "", 12, 232, 426, 250, 15), _
@@ -73,6 +76,7 @@ Private Sub UserForm_Initialize()
     Set mEvaluationStatus = Me.Controls("lblEvaluationStatus")
     Set mCreateGuide = Me.Controls("btnCreateGuide"): mCreateGuide.Enabled = False
     Set mPublishedGuides = Me.Controls("btnPublishedGuides")
+    Set mViewActionPath = Me.Controls("btnViewActionPath"): mViewActionPath.Enabled = False
     mEvaluation.MultiLine = True: mEvaluation.WordWrap = True: mEvaluation.Locked = True
     mEvaluation.ScrollBars = fmScrollBarsVertical: mEvaluationStatus.WordWrap = True
     mEvaluate.Enabled = False
@@ -134,6 +138,7 @@ Private Sub ReadSelection()
         modActionPathRead.ClearSelection mContext
     End If
     mSelectedId = selected: mExpected.Enabled = False: mEvaluate.Enabled = False: mSummary.Caption = ""
+    mViewActionPath.Enabled = False
     mCreateGuide.Enabled = False
     If selected = "" Then Exit Sub
     succeeded = modActionPathRead.ReadPath(mContext, selected, evidence, notice)
@@ -158,8 +163,10 @@ Private Sub ReadSelection()
 End Sub
 
 Public Sub RefreshExpectation()
+    Dim key As String, notice As String
     If Not ContextValid() Or mSelectedId = "" Then Exit Sub
     mSummary.Caption = modActionPathRead.ExpectationSummary(mContext, mSelectedId)
+    mViewActionPath.Enabled = (modPathPresentation.Capture(mContext, mSelectedId, key, notice) <> "")
 End Sub
 
 Private Sub mCreateGuide_Click()
@@ -203,6 +210,7 @@ Private Sub ClearEvaluation()
 End Sub
 
 Public Sub ClearContent(ByVal notice As String)
+    CloseActionPathView
     ClosePublishedGuides
     ClearEvaluation
     modExpectationEditor.CloseLibrary Me
@@ -212,6 +220,7 @@ Public Sub ClearContent(ByVal notice As String)
     mPaths.Clear: mEvidence.Value = "": mStatus.Caption = notice
     mSelectedId = "": mBinding = "": mSummary.Caption = "": mExpected.Enabled = False
     mCreateGuide.Enabled = False
+    mViewActionPath.Enabled = False
     mLoading = False
 End Sub
 
@@ -228,12 +237,14 @@ Private Sub mRefresh_Click()
 End Sub
 
 Private Sub mClose_Click()
+    CloseActionPathView
     ClosePublishedGuides
     Me.Hide
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     If CloseMode = 0 Then
+        CloseActionPathView
         ClosePublishedGuides
         Cancel = True: Me.Hide
     Else
@@ -274,6 +285,38 @@ Public Sub ClosePublishedGuides()
     If mGuideLibrary Is Nothing Then Exit Sub
     mGuideLibrary.ReleaseReader
     Unload mGuideLibrary: Set mGuideLibrary = Nothing
+End Sub
+
+Private Sub mViewActionPath_Click()
+    Dim binding As String, key As String, notice As String
+    If Not ContextValid() Then Exit Sub
+    binding = modPathPresentation.Capture(mContext, mSelectedId, key, notice)
+    If binding = "" Then mViewActionPath.Enabled = False: mStatus.Caption = notice: Exit Sub
+    If Not mView Is Nothing Then
+        If mView.MatchesPair(mContext, mSelectedId, binding) Then
+            If mView.RefreshView() Then
+                If Not mView.Visible Then mView.Show vbModeless
+                Exit Sub
+            End If
+        End If
+        CloseActionPathView
+    End If
+    Set mView = New frmActionPathView
+    If mView.BindPair(Me, mContext, mSelectedId, binding, key) Then mView.Show vbModeless Else CloseActionPathView
+End Sub
+
+Public Function ReadViewEvaluation(ByVal pathId As String, ByVal binding As String, ByRef evaluationId As String) As Boolean
+    Dim key As String, notice As String
+    evaluationId = ""
+    If mContext = "" Or mContext <> modActivity.CaptureContext() Or pathId = "" Or pathId <> mSelectedId Then Exit Function
+    If binding = "" Or binding <> modPathPresentation.Capture(mContext, pathId, key, notice) Then Exit Function
+    evaluationId = mEvaluationId: ReadViewEvaluation = True
+End Function
+
+Public Sub CloseActionPathView()
+    If mView Is Nothing Then Exit Sub
+    mView.ReleaseView
+    Unload mView: Set mView = Nothing
 End Sub
 
 Private Sub UserForm_Activate()
