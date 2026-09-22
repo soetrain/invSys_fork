@@ -122,7 +122,18 @@ initial General-tab image has unpainted controls and is **not accepted as UOM
 layout evidence**. Fresh General-tab evidence remains required. Settings now
 loads exactly 36 catalog-10 entries; earlier catalog-specific tests stay intact.
 
-Remaining broader regressions, General layout evidence, live-role/full-chain and
+Fresh visible General coverage now passes **228/228**, retaining all 225 preceding
+checks, root `c4f00c15aa664dd4817251a6edf9f382`, **2026-09-22
+12:12:38.0882399--12:15:22.0399439 UTC**. Test-only probes verify loaded Config/UOM
+lists and visible contained UOM controls, then capture the unique owned foreground
+form after repaint. Viewing the surface changes no Config or activity. All eleven
+current captures are directly reviewed and accepted, including the fully painted
+General tab; the earlier rejected image remains rejected. All instrumented
+packages compile before forms. Runtime/package hashes and static metrics remain
+unchanged; Excel closes normally without assistance and no matching Application
+errors occur. This supplementary evidence requires no runtime or contract change.
+
+Remaining broader regressions, live-role/full-chain and
 human acceptance remain open. This is a verified implementation checkpoint, not
 completion of the runtime slice or Release 1.
 These focused results do not establish comprehensive Admin or Slice 4be acceptance.

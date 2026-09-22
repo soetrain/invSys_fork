@@ -21,6 +21,18 @@ Public Function UomActivityActionForTest(ByVal action As String, ByVal value As 
     End Select
     UomActivityActionForTest = mLblStatus.Caption
 End Function
+Public Function UomSurfaceForTest() As Boolean
+    Dim control As Variant
+    mPages.Value = 0
+    Me.Repaint
+    If mLstConfig.ListCount = 0 Or mLstUoms.ListCount = 0 Then Exit Function
+    For Each control In Array(mTxtUom, mLstUoms, mBtnUomAdd, mBtnUomRemove, mBtnUomReset)
+        If Not control.Visible Or control.Left < 0 Or control.Top < 0 Then Exit Function
+        If control.Left + control.Width > mPages.Width - 12 Then Exit Function
+        If control.Top + control.Height > mPages.Height - 24 Then Exit Function
+    Next control
+    UomSurfaceForTest = True
+End Function
 '@)
     $packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('TestD5Commands').CodeModule.AddFromString(@'
 Public Function UomActivityAction(ByVal action As String, ByVal value As String) As String
@@ -29,6 +41,9 @@ End Function
 Public Function UomPublishForTest() As Boolean
     Dim report As String
     UomPublishForTest = modAdminConsole.GenerateInventorySnapshot("config-admin", "", Nothing, "", Nothing, report)
+End Function
+Public Function UomSurfaceForTest() As Boolean
+    UomSurfaceForTest = mForm.UomSurfaceForTest()
 End Function
 '@)
 }
