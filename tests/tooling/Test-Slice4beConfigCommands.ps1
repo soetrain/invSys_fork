@@ -16,6 +16,7 @@ param(
     [switch]$CheckViewerRefreshFailure,
     [switch]$CheckViewerEventDetail,
     [switch]$DetailScrollLockDiagnostic,
+    [switch]$CheckDetailScrollMovement,
     [switch]$CheckViewerEventGroups,
     [switch]$CheckViewerPublishedRead,
     [switch]$CheckViewerShippingState,
@@ -82,6 +83,9 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $CaptureEvidence -or $DetailScrollLockDiagnostic)){
+    throw 'Native scrolling checks require the isolated visible detail gate without temporary unlocking.'
+}
 if($CheckGuidePresentation){$CheckGuideEvaluation=$true}
 if($CheckGuideEvaluation){$CheckGuideExpectation=$true}
 if($GuideCaptureVisibleExcelForTest -and -not $TraceViewerStartupForTest -and (-not $GuideDraftOnly -or -not $CaptureGuideEvidence)){

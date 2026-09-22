@@ -195,6 +195,23 @@ before runtime implementation because the current normative rule explicitly says
 locked. The proposal is not yet approved; its future native-scroll RED/GREEN must
 protect actual interaction, not merely the existing font/column geometry.
 
+The opt-in native movement test now establishes focused behavioral RED on the
+unchanged locked guide-binding candidate: **42 PASS / one expected FAIL**, with
+all 41 preceding identities still passing. Report:
+`reports/runtime/slice4be-viewer-detail/f9349cebae8f48e0b6a81d017fae5e50/red.json`;
+UTC **2026-09-22 00:27:13.4997139--00:28:29.0877190**, normal closure and zero
+matching Application events. Only `EventDetail.NativeHorizontalScrollMoves` fails;
+`EventDetail.NativeScrollPreservesFieldValues` passes. No temporary unlocking is
+allowed in this gate.
+
+`Slice4beDetailScrollEvidence.ps1` compares the native scrollbar interior using
+the actual owned control/form geometry, excluding borders, arrows and the input
+point. The previously reviewed stationary pair changes zero pixels; the reviewed
+moving pair changes 3,794, including both halves. The new locked RED again changes
+zero of 8,856 inspected pixels. Images remain unmodified. This bounded detector
+protects movement together with the existing complete-text geometry checks; it
+does not replace direct image review or establish multiline reachability.
+
 Required next gates: actual visible scrolling,
 synchronized catalog/plan and reviewed Git
 status. Multiline detail rendering, broader Slice 4be and human Release 1 acceptance

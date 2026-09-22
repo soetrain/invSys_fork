@@ -443,6 +443,10 @@ public static class DetailNativeLayout {
     if($CaptureEvidence) {
         $window=[long](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailWindowForTest')
         Capture-DetailOwnedEvidence 'event-detail-default.png' $window
+        if($CheckDetailScrollMovement){
+            $scrollValuesBefore=Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldValuesForTest'
+            if($scrollValuesBefore -isnot [string] -or $scrollValuesBefore.Length -eq 0){throw 'Original field values are unavailable.'}
+        }
         $focused=Run 'invSys.Operations.xlam' 'modInventoryViewer.FocusDetailFieldsForTest'
         if($focused -isnot [bool] -or -not $focused){throw 'Actual detail list focus is unavailable.'}
         $geometry=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailGeometryForTest')
@@ -457,6 +461,14 @@ public static class DetailNativeLayout {
             [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailWindowForTest')
         }
         Capture-DetailOwnedEvidence 'event-detail-horizontal-scroll.png' $window
+        if($CheckDetailScrollMovement){
+            . (Join-Path $PSScriptRoot 'Slice4beDetailScrollEvidence.ps1')
+            $nativeGeometry=Get-Content (Join-Path $reportRoot 'detail-native-scroll-geometry.tsv') -Tail 1
+            $motion=Measure-DetailScrollMotion (Join-Path $reportRoot 'event-detail-default.png') (Join-Path $reportRoot 'event-detail-horizontal-scroll.png') $nativeGeometry
+            $motion|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'detail-scroll-motion.json')
+            Check 'EventDetail.NativeHorizontalScrollMoves' $motion.MovementObserved
+            Check 'EventDetail.NativeScrollPreservesFieldValues' ((Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldValuesForTest') -ceq $scrollValuesBefore)
+        }
         if($DetailScrollLockDiagnostic){
             $originalLock=Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldLockForTest' @($false,$false)
             if($originalLock -isnot [bool] -or -not $originalLock){throw 'Original detail lock state is not verified.'}
