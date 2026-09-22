@@ -36,6 +36,7 @@ param(
     [switch]$GuidePresentationRestartOnly,
     [switch]$CheckPublishedGuideEdit,
     [switch]$PublishedGuideEditOnly,
+    [switch]$GuideActionCurationOnly,
     [switch]$RetryActionPathViewCountForTest,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
@@ -91,6 +92,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $CaptureEvidence -or $DetailScrollLockDiagnostic)){
     throw 'Native scrolling checks require the isolated visible detail gate without temporary unlocking.'
+}
+if($GuideActionCurationOnly){
+    if($PublishedGuideEditOnly -or $CheckPublishedGuideEdit -or $CheckGuidePresentation -or $GuidePresentationRestartOnly -or $CheckGuidePresentationRestart){throw 'Direct curation uses its own focused packaged gate.'}
+    if(-not $GuideDraftOnly -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest -or $ViewerStartupPackageStateForTest -ne 'SavedCopies'){throw 'Direct curation requires the isolated compiled saved-copy guide fixture.'}
+    $CheckGuideExpectation=$true
 }
 if($PublishedGuideEditOnly){$CheckPublishedGuideEdit=$true}
 if($CheckPublishedGuideEdit){
@@ -932,7 +938,11 @@ End Function
         }
     }
     if($CheckViewerPublishedRead) {
-        if($PublishedGuideEditOnly){
+        if($GuideActionCurationOnly){
+            $step='direct tracked-action curation through packaged handlers'
+            . (Join-Path $PSScriptRoot 'Slice4beGuideActionCuration.ps1')
+            Test-GuideActionCuration $a $b
+        } elseif($PublishedGuideEditOnly){
             $step='focused published-guide edit through actual handlers'
             . (Join-Path $PSScriptRoot 'Slice4beGuideRestartFixture.ps1')
             Initialize-GuideRestartFixture $a -ForPublishedEdit

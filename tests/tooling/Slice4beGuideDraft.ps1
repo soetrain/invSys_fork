@@ -79,6 +79,17 @@ NextFitControl:
                 labels = labels & CStr(control.List(index, 0)) & vbLf
             Next index
             GuideDraftControlForTest = labels
+        Case "SelectedValues"
+            For index = 0 To control.ListCount - 1
+                If control.Selected(index) Then labels = labels & CStr(control.List(index, 0)) & vbLf
+            Next index
+            GuideDraftControlForTest = labels
+        Case "Toggle"
+            If Not owner.Visible Or Not control.Visible Or Not control.Enabled Then GuideDraftControlForTest = "DISABLED": Exit Function
+            index = CLng(value)
+            If index < 0 Or index >= control.ListCount Then GuideDraftControlForTest = "OUT OF RANGE": Exit Function
+            control.Selected(index) = Not control.Selected(index)
+            GuideDraftControlForTest = "SELECTED"
         Case "Select"
             index = CLng(value)
             If index < 0 Or index >= control.ListCount Then GuideDraftControlForTest = "OUT OF RANGE": Exit Function
