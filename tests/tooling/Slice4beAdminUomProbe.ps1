@@ -74,7 +74,9 @@ public static class UomResetDialog {
     [DllImport("user32.dll")] static extern IntPtr GetDlgItem(IntPtr h,int id);
     [DllImport("user32.dll")] static extern bool PostMessage(IntPtr h,uint msg,IntPtr w,IntPtr l);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h,out Rect r);
-    [DllImport("user32.dll")] static extern bool PrintWindow(IntPtr h,IntPtr dc,uint flags);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
     public static uint Owner(IntPtr h) { uint p; GetWindowThreadProcessId(h,out p); return p; }
     static string Text(IntPtr h) { var s=new StringBuilder(256); GetWindowText(h,s,s.Capacity); return s.ToString(); }
     static string Class(IntPtr h) { var s=new StringBuilder(128); GetClassName(h,s,s.Capacity); return s.ToString(); }
@@ -98,17 +100,22 @@ public static class UomResetDialog {
         return found;
     }
     public static bool Capture(IntPtr h,uint owner,string path) {
-        Rect r; if(!Exact(h,owner) || !GetWindowRect(h,out r) || r.R<=r.L || r.B<=r.T || r.R-r.L>1600 || r.B-r.T>1000) return false;
+        Rect r; if(!Exact(h,owner) || GetForegroundWindow()!=h || !GetWindowRect(h,out r) || r.R<=r.L || r.B<=r.T || r.R-r.L>1600 || r.B-r.T>1000) return false;
+        int left=GetSystemMetrics(76),top=GetSystemMetrics(77);
+        if(r.L<left || r.T<top || r.R>left+GetSystemMetrics(78) || r.B>top+GetSystemMetrics(79)) return false;
         using(var b=new Bitmap(r.R-r.L,r.B-r.T)) {
-            using(var g=Graphics.FromImage(b)) {
-                var dc=g.GetHdc(); bool ok;
-                try { ok=PrintWindow(h,dc,2); } finally { g.ReleaseHdc(dc); }
-                if(!ok) return false;
+            using(var g=Graphics.FromImage(b)) { g.CopyFromScreen(r.L,r.T,0,0,b.Size); }
+            if(GetForegroundWindow()!=h || !Exact(h,owner)) return false;
+            int ink=0;
+            for(int y=b.Height/4;y<b.Height*63/100;y++) for(int x=b.Width/10;x<b.Width*92/100;x++) {
+                Color c=b.GetPixel(x,y); if(c.R<220 || c.G<220 || c.B<220) ink++;
             }
+            if(ink<100) return false;
             b.Save(path,System.Drawing.Imaging.ImageFormat.Png);
         }
         return true;
     }
+    public static bool Focus(IntPtr h,uint owner) { return Exact(h,owner) && SetForegroundWindow(h); }
     public static bool Choose(IntPtr h,uint owner,bool yes) {
         return Exact(h,owner) && PostMessage(GetDlgItem(h,yes?6:7),0x00F5,IntPtr.Zero,IntPtr.Zero);
     }
@@ -123,10 +130,14 @@ public static class UomResetDialog {
             if((Get-Process -Id $owner).StartTime.ToUniversalTime().Ticks -ne $created){throw 'Generated process identity changed.'}
             $dialog=[UomResetDialog]::Find($owner)
             if($dialog -ne [IntPtr]::Zero){
-                # Give the existing modal message loop time to paint; Capture
-                # revalidates the exact owned question before reading pixels.
-                Start-Sleep -Milliseconds 300
-                $captured=[UomResetDialog]::Capture($dialog,$owner,$capture)
+                # Retry only observation of the same exact native question.
+                # Never replay Reset. Reject blank/covered/offscreen captures.
+                $captured=$false
+                for($paint=0;$paint -lt 3 -and -not $captured;$paint++){
+                    [void][UomResetDialog]::Focus($dialog,$owner)
+                    Start-Sleep -Milliseconds 300
+                    $captured=[UomResetDialog]::Capture($dialog,$owner,$capture)
+                }
                 $clicked=[UomResetDialog]::Choose($dialog,$owner,($choice -ceq 'Yes'))
                 return [pscustomobject]@{ExactQuestion=$true;Captured=$captured;RequestedChoice=$choice;ClickDelivered=$clicked}
             }

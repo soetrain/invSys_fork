@@ -97,8 +97,12 @@ Public Function CommandCompleted(ByVal record As Object) As Boolean
     code = CStr(record("OutcomeCode"))
     ' Explicit owner facts; severity and data effect are deliberately not classifiers.
     Select Case CStr(record("ControlId"))
-        Case "ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE": CommandCompleted = (code = "COMPLETED" Or code = "UNCHANGED")
-        Case "RECEIVING_CONFIRM_WRITES", "RECEIVING_WORKSHEET_CONFIRM", "DISPOSITION_CONFIRM", "SHIPPING_SEND": CommandCompleted = (code = "CONFIRMED")
+        Case "ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", _
+             "ADMIN_UOM_ADD", "ADMIN_UOM_REMOVE", "ADMIN_UOM_RESET"
+            CommandCompleted = (code = "COMPLETED" Or code = "UNCHANGED")
+        Case "RECEIVING_CONFIRM_WRITES", "RECEIVING_WORKSHEET_CONFIRM", "DISPOSITION_CONFIRM", "SHIPPING_SEND", _
+             "BOXING_MAKE", "BOXING_UNBOX"
+            CommandCompleted = (code = "CONFIRMED")
         Case "RECEIVING_ADD_SELECTED", "DISPOSITION_ADD_SELECTED", "SHIPPING_ADD", "SHIPPING_UPDATE", "SHIPPING_REMOVE", "SHIPPING_HOLD", "SHIPPING_RETURN", "SHIPPING_STAGE": CommandCompleted = (code = "STAGED")
         Case "RECEIVING_REFRESH": CommandCompleted = (code = "REFRESHED")
         Case "RECEIVING_CLEAR": CommandCompleted = (code = "CLEARED" Or code = "EMPTY")

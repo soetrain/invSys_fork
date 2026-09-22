@@ -70,6 +70,8 @@ param(
     [switch]$CheckShippingActivity,
     [switch]$CheckShippingRecording,
     [switch]$CheckBoxingActivity,
+    [switch]$CheckOwnerCommandCompletion,
+    [switch]$OwnerCommandCompletionOnly,
     [switch]$TraceBootstrapForTest,
     [switch]$TraceSettingsOpenForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
@@ -146,6 +148,10 @@ if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly' -and -not $TraceView
     }
 }
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
+if($CheckOwnerCommandCompletion -and (-not $CheckBoxingActivity -or -not $CaptureEvidence -or $CheckExpectationEditor -or $CheckExpectationCompatibility)){
+    throw 'Owner completion requires the isolated visible Boxing activity gate and its instrumented compilation.'
+}
+if($OwnerCommandCompletionOnly -and -not $CheckOwnerCommandCompletion){throw 'Focused owner completion requires its protecting gate.'}
 if($GuideDraftOnly){$CheckGuideDraft=$true}
 if($CaptureGuideEvidence){$CheckGuideLibrary=$true}
 if($CheckGuideExpectation){$CheckGuideLibrary=$true}
@@ -910,6 +916,14 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beBoxingOutcomes.ps1')
             Install-Slice4beBoxingOutcomeProbes
         }
+        if($CheckOwnerCommandCompletion){
+            . (Join-Path $PSScriptRoot 'Slice4beAdminUomProbe.ps1')
+            Install-AdminUomActivityProbe
+            . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
+            Install-RecordingEvaluationProbe
+            . (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')
+            . (Join-Path $PSScriptRoot 'Slice4beOwnerCommandCompletion.ps1')
+        }
         if($TraceViewerStartupForTest){
             . (Join-Path $PSScriptRoot 'Slice4beViewerStartup.ps1')
             Install-Slice4beViewerStartupProbe
@@ -1245,6 +1259,7 @@ finally {
     $reportName=$Phase.ToLowerInvariant()+'.json'
     if($CheckShippingRecording){$reportName='shipping-recording-'+$reportName}
     if($CheckBoxingActivity){$reportName='boxing-activity-'+$reportName}
+    if($OwnerCommandCompletionOnly){$reportName='owner-completion-'+$reportName}
     if($ViewerPublicationOnly){$reportName='diagnostic-publication-'+$reportName}
     if ($ShippingSubmissionOnly) { $reportName='diagnostic-submission-'+$reportName }
     if ($TraceBootstrapForTest) { $reportName='diagnostic-bootstrap-'+$reportName }

@@ -37,10 +37,7 @@ function Test-AdminUomActivity($Fixture,$Other) {
             Initialize-SettingsCapture
             $window=[InvSysSettingsCapture]::OwnedVisibleForm('invSys Settings',[IntPtr]$excel.Hwnd).ToInt64()
             if($window -eq 0){throw 'Owned General Settings window unavailable; not product RED.'}
-            $activation=New-Object -ComObject WScript.Shell
-            try{[void]$activation.AppActivate('invSys Settings')}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
-            Start-Sleep -Milliseconds 300
-            CaptureFormEvidence 'invSys Settings' 'admin-uom-general-loaded.png' $window
+            CaptureOwnedFormEvidence 'invSys Settings' 'admin-uom-general-loaded.png' $window
             Check 'Harness.AdminUom.GeneralSurfaceVisibleCapture' $true
             Check 'AdminUom.GeneralSurface.ReadDoesNotPerformWork' ((Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $viewConfig -and @(Get-Slice4beActivityFiles $Fixture).Count -eq $beforeView.Count)
         }

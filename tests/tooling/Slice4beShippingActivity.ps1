@@ -402,7 +402,7 @@ End Function
     $other.SaveAs((Join-Path $runRoot 'shipping-unrelated.xlsm'),52)
     $otherHash=Get-ShippingActivityHash $other.FullName
     $configHash=Get-ShippingActivityHash $fixture.Config
-    $operator=$null;$dialogJob=$null
+    $operator=$null;$dialogJob=$null;$ownerCompletionReady=$false
     $dialogStop=Join-Path $runRoot 'shipping-dialog-observer.stop'
     try {
         $other.Activate()
@@ -430,6 +430,11 @@ End Function
         $ship=Table $operator 'ShipmentsTally';$hold=Table $operator 'NotShipped'
         foreach($table in @($ship,$hold)){$column=$table.ListColumns.Add();$column.Name='Shipping Extra'}
         $operator.Save()
+        if($OwnerCommandCompletionOnly){
+            # Fresh real Boxing/recording fixtures; the full Shipping matrix
+            # remains an independent regression gate in a fresh Excel process.
+            Test-Slice4beBoxingActivity $fixture $operator $other $ship $hold
+        }else{
         $inventoryPath=Join-Path $fixture.Root ($fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
         $lastKey=''
         $sourceCounts=New-Object 'System.Collections.Generic.List[object]'
@@ -564,6 +569,8 @@ End Function
         $operator=$null # The actual close event was exercised and verified above.
         Check 'Shipping.ConfigBytesPreserved' ($configHash -ceq (Get-ShippingActivityHash $fixture.Config))
         if($CheckBoxingActivity){Test-Slice4beBoxingPublishedRead $fixture $other $script:BoxingPublicationEvidence}
+        }
+        $ownerCompletionReady=$true
     } finally {
         if($CheckShippingRecording){CloseRecordingViewer}
         if($null -ne $dialogJob){
@@ -576,7 +583,15 @@ End Function
         }
         [void](Run 'invSys.Operations.xlam' 'modTS_Shipments.ActivityShippingClose')
         if($null -ne $operator){$operator.Close($false)}
-        $other.Close($false)
+        try {
+            if($CheckOwnerCommandCompletion -and $ownerCompletionReady){
+                # Retain the existing disposable visible workbook surface. Excel
+                # accumulates empty SDI windows when repeated transient reads run
+                # with only hidden workbooks/add-ins, even without invSys loaded.
+                $other.Activate()
+                Test-OwnerCommandCompletion $fixture $script:BoxingPublicationEvidence
+            }
+        } finally {$other.Close($false)}
     }
-    Test-Slice4beShippingSubmission $module
+    if(-not $OwnerCommandCompletionOnly){Test-Slice4beShippingSubmission $module}
 }
