@@ -36,6 +36,7 @@ param(
     [switch]$GuidePresentationRestartOnly,
     [switch]$CheckPublishedGuideEdit,
     [switch]$PublishedGuideEditOnly,
+    [switch]$RetryActionPathViewCountForTest,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideCaptureSavedWorkbookForTest,
@@ -325,6 +326,16 @@ function Check([string]$Name,[bool]$Passed) {
     $results.Add([pscustomobject]@{Check=$Name;Passed=$Passed})
     Write-Output ("{0}: {1}" -f $Name, $(if($Passed){'PASS'}else{'FAIL'}))
 }
+function Complete-ResultEvidence([string]$ReportPath,[scriptblock]$Cleanup) {
+    # Preserve typed checks before fixture cleanup can encounter an external lock.
+    $results | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $ReportPath
+    try { & $Cleanup }
+    catch {
+        Check 'Harness.Exception.disposable fixture cleanup' $false
+        Write-Output 'Disposable fixture cleanup incomplete. Typed results retained; inspect the owned fixture after Excel closes.'
+    }
+    finally { $results | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $ReportPath }
+}
 function Test-LoadedPackage([string]$Name) {
     try { return ($excel.Workbooks.Item($Name).Name -ieq $Name) }
     catch { return $false }
@@ -504,6 +515,14 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
 }
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
     $name="'$Package'!$Macro"
+    $attemptLimit=1
+    # Only the exact observational getter is eligible; commands retain one call.
+    if($RetryActionPathViewCountForTest -and $Package -ceq 'invSys.Operations.xlam' -and
+       $Macro -ceq 'modInventoryViewer.GuideDraftControlForTest' -and $Values.Count -eq 4 -and
+       $Values[0] -ceq 'frmActionPathView' -and $Values[1] -ceq '' -and $Values[2] -ceq 'Count' -and $Values[3] -ceq ''){
+        $attemptLimit=4
+    }
+    for($attempt=1;$attempt -le $attemptLimit;$attempt++){
     try {
     switch($Values.Count) {
         0 { $excel.Run($name) }
@@ -515,12 +534,18 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
         6 { $excel.Run($name,$Values[0],$Values[1],$Values[2],$Values[3],$Values[4],$Values[5]) }
         default { throw 'Unsupported macro argument count' }
     }
+    if($attempt -gt 1){
+        [pscustomobject]@{Attempt=$attempt;Recovered=$true;Macro=$Macro;Form='frmActionPathView';Action='Count'}|
+            ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'readonly-count-retries.jsonl')
+    }
+    return
     } catch {
         Write-Host ('Packaged call failed: '+$Macro+'; argument count='+$Values.Count)
+        $codes=@()
+        for($errorNode=$_.Exception;$null -ne $errorNode;$errorNode=$errorNode.InnerException){$codes+=('0x{0:X8}' -f $errorNode.HResult)}
         $failurePath = Join-Path $reportRoot 'first-call-failure.json'
         if(-not (Test-Path -LiteralPath $failurePath)) {
-            $control=$null;$captured=$false;$identity='Unavailable';$codes=@()
-            for($errorNode=$_.Exception;$null -ne $errorNode;$errorNode=$errorNode.InnerException){$codes+=('0x{0:X8}' -f $errorNode.HResult)}
+            $control=$null;$captured=$false;$identity='Unavailable'
             if($Macro -ceq 'modInventoryViewer.GuideDraftControlForTest' -and $Values.Count -eq 4){
                 # Only fixed form/control/action names. Never field values or call arguments.
                 $control=[pscustomobject]@{Form=[string]$Values[0];Control=[string]$Values[1];Action=[string]$Values[2]}
@@ -539,7 +564,15 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
                 LiveExcelProcesses=@(Get-Process EXCEL -ErrorAction SilentlyContinue | Select-Object Id,StartTime)
             } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $failurePath
         }
+        if($attempt -lt $attemptLimit -and ('0x800AC472' -cin $codes -or '0x80010001' -cin $codes)){
+            $delay=250*$attempt
+            [pscustomobject]@{Attempt=$attempt;Recovered=$false;Macro=$Macro;Form='frmActionPathView';Action='Count';ExceptionHResults=$codes;DelayMs=$delay}|
+                ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'readonly-count-retries.jsonl')
+            Start-Sleep -Milliseconds $delay
+            continue
+        }
         throw
+    }
     }
 }
 function Table($Workbook,[string]$Name) {
@@ -1129,12 +1162,6 @@ finally {
             New-ItemProperty -LiteralPath ('Registry::'+$path) -Name $name -Value $saved[0] -PropertyType $saved[1] -Force | Out-Null
         }
     }
-    # Runtime credentials stay only in disposable generated authority fixtures.
-    $resolved=[IO.Path]::GetFullPath($runRoot)
-    $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')+'\'
-    if(-not $recordingFixtureTransferred -and $resolved.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -like 'invsys-config-command-*') {
-        Remove-Item -LiteralPath $resolved -Recurse -Force
-    }
     $reportName=$Phase.ToLowerInvariant()+'.json'
     if($CheckShippingRecording){$reportName='shipping-recording-'+$reportName}
     if($CheckBoxingActivity){$reportName='boxing-activity-'+$reportName}
@@ -1153,7 +1180,14 @@ finally {
     if ($ReceivingLifecycleOnly) { $reportName='lifecycle-only-'+$reportName }
     if ($LifecycleDiagnostic -ne 'None') { $reportName='diagnostic-'+$LifecycleDiagnostic.ToLowerInvariant()+'.json' }
     if($RecordingEvaluationDiagnostic){$reportName='diagnostic-evaluation-'+$reportName}
-    $results | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $reportRoot $reportName)
+    Complete-ResultEvidence (Join-Path $reportRoot $reportName) {
+        # Runtime credentials stay only in disposable generated authority fixtures.
+        $resolved=[IO.Path]::GetFullPath($runRoot)
+        $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')+'\'
+        if(-not $recordingFixtureTransferred -and $resolved.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -like 'invsys-config-command-*') {
+            Remove-Item -LiteralPath $resolved -Recurse -Force
+        }
+    }
     if($null -ne $recordingHandoff){$recordingHandoff.Dispose()}
 }
 $failed=@($results | Where-Object { -not $_.Passed }).Count

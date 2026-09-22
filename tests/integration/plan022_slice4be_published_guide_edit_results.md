@@ -32,6 +32,58 @@ presentation/availability command on this corrected candidate. It must retain al
 305 earlier identities plus the 46 edit assertions. Role regressions, fresh-process
 preference, live roles, full chain and human acceptance remain separate requirements.
 
+The first broader run is interrupted, not GREEN. Its root is
+`reports/runtime/slice4be-viewer-published-read/0e2f2a544ad64da1813dac21866c6904`.
+The console records **286 preceding passes / one harness failure**; 19 of the
+prior 305 checks and all 46 edit checks are not reached. During the retry scenario,
+the readonly `frmActionPathView//Count` probe receives `0x800AC472`; first-failure
+capture shows the exact owned form unpainted. Cause is unproven. Thirty-six normal
+captures and that separate interruption capture were individually reviewed/hashed.
+
+Cleanup calls are also rejected. A generated temporary-fixture deletion error
+escapes before the harness serializes results, and PowerShell's native error stops
+the controller before its exit record. Consequently there is **no typed green.json
+or normal controller exit record** for this attempt. Console-derived checks are
+preserved separately, never represented as the missing runtime result. The
+interruption audit verifies unchanged running sources/candidate and zero matching
+Application events from start **04:20:54.8668891 UTC** through observed closure
+**04:50:31.5152432 UTC** on 2026-09-22. The exact owned process is verified with a
+typed zero workbook count and then closed using normal Quit; this is assisted
+cleanup, without forced termination or recovery-data changes.
+
+Before retry, protect final result retention across generated-fixture cleanup
+failure with an offline harness check. This is developer-tooling repair, not a
+runtime contract change or product RED. A bounded opt-in retry may be assessed
+only for this exact readonly form-count probe, retaining first-failure evidence;
+mutating callbacks must keep single execution. Do not claim this resolves the
+unproven COM cause. The frozen candidate and focused 58/58 result remain intact.
+
+The tooling correction passes **8/8** offline result-retention checks at
+`reports/runtime/result-evidence/2f246b0e60024398bc22e2aa39031520/results.json`.
+The actual shared completion helper writes typed checks before temporary-fixture
+cleanup, records cleanup failure explicitly, and retains the final snapshot without
+logging exception detail. An initial offline assertion collector mishandled a
+PowerShell 5 JSON array; correcting that test collector is not product RED.
+
+The optional `-RetryActionPathViewCountForTest` is limited to Operations
+`modInventoryViewer.GuideDraftControlForTest` with exactly
+`frmActionPathView`, empty control, `Count`, empty value. Only observed inner
+`0x800AC472` / `0x80010001` rejections qualify, for at most four total calls and
+250/500/750 ms delays. The first failure remains recorded; attempts/recovery are
+logged separately without field content. Other forms/codes/arguments, the default
+flag-off route, action callbacks and service calls retain single execution.
+The actual shared Run function passes **38/38** offline diagnostics checks at
+`reports/runtime/form-failure-diagnostics/7a383ebe26bf4b77841d28921e558730/results.json`,
+including the original ten privacy/no-action-replay identities, recovery, exhaustion
+and excluded cases. This is bounded harness handling, not a diagnosed runtime fix.
+The broader retry must still execute every assertion on the same frozen candidate.
+
+Automatic approval review rejected manual deletion of the leftover generated
+temporary fixture with "blocked by policy" and no further reason. It remains in
+place; no alternative deletion was attempted. Excel is closed and new gates use
+fresh isolated fixtures. This does not authorize recovery-data or operational
+workbook changes.
+
 The first implementation candidate is `deploy/validation-published-guide-edit`.
 All five packaged projects compile; compiled comparison against the paired-view
 candidate changes only Core `modActionGuideDraft`, `modTrainingReadContext`,
