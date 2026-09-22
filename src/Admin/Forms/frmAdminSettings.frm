@@ -366,14 +366,8 @@ End Sub
 
 Private Sub mBtnUomAdd_Click()
     Dim report As String
-    Dim uomName As String
 
-    If Not modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", report) Then
-        ShowStatus report
-        Exit Sub
-    End If
-    uomName = UCase$(Trim$(CStr(mTxtUom.Value)))
-    If modUomSettings.AddConfiguredUom(uomName, report) Then
+    If modAdminSettingsAction.ChangeUom("ADMIN_UOM_ADD", mTxtUom.Value, True, mActivityContext, report) Then
         mTxtUom.Value = ""
         LoadConfigRows
         LoadUoms
@@ -385,16 +379,8 @@ Private Sub mBtnUomRemove_Click()
     Dim report As String
     Dim uomName As String
 
-    If mLstUoms.ListIndex < 0 Then
-        ShowStatus "Select a UOM."
-        Exit Sub
-    End If
-    If Not modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", report) Then
-        ShowStatus report
-        Exit Sub
-    End If
-    uomName = CStr(mLstUoms.List(mLstUoms.ListIndex, 0))
-    If modUomSettings.RemoveConfiguredUom(uomName, report) Then
+    If mLstUoms.ListIndex >= 0 Then uomName = CStr(mLstUoms.List(mLstUoms.ListIndex, 0))
+    If modAdminSettingsAction.ChangeUom("ADMIN_UOM_REMOVE", uomName, mLstUoms.ListIndex >= 0, mActivityContext, report) Then
         mTxtUom.Value = ""
         LoadConfigRows
         LoadUoms
@@ -405,16 +391,11 @@ End Sub
 Private Sub mBtnUomReset_Click()
     Dim report As String
 
-    If Not modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", report) Then
-        ShowStatus report
-        Exit Sub
-    End If
-    If MsgBox("Reset the warehouse UOM catalog to defaults?", vbQuestion + vbYesNo, "invSys Settings") <> vbYes Then Exit Sub
-    If modUomSettings.ResetConfiguredUoms(report) Then
+    If modAdminSettingsAction.ChangeUom("ADMIN_UOM_RESET", "", True, mActivityContext, report) Then
         LoadConfigRows
         LoadUoms
     End If
-    ShowStatus report
+    If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mLstUoms_Click()

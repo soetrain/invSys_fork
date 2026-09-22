@@ -2,10 +2,19 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 9
+Public Const CATALOG_VERSION As Long = 10
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     Dim ids As Variant
+    If version = 10 Then
+        ids = ControlIds(9)
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + 3)
+        ids(UBound(ids) - 2) = "ADMIN_UOM_ADD"
+        ids(UBound(ids) - 1) = "ADMIN_UOM_REMOVE"
+        ids(UBound(ids)) = "ADMIN_UOM_RESET"
+        ControlIds = ids
+        Exit Function
+    End If
     If version = 9 Then
         ids = ControlIds(8)
         ReDim Preserve ids(LBound(ids) To UBound(ids) + 2)
@@ -74,6 +83,17 @@ Public Function Control(ByVal controlId As String, Optional ByVal version As Lon
     record.Add "OwnerId", "CORE_CONFIGURATION"
     record.Add "Class", "Command"
     Select Case controlId
+        Case "ADMIN_UOM_ADD", "ADMIN_UOM_REMOVE", "ADMIN_UOM_RESET"
+            If version < 10 Then Exit Function
+            record.Add "Role", "Admin"
+            Select Case controlId
+                Case "ADMIN_UOM_ADD": record.Add "Caption", "Add"
+                Case "ADMIN_UOM_REMOVE": record.Add "Caption", "Remove"
+                Case "ADMIN_UOM_RESET": record.Add "Caption", "Reset"
+            End Select
+            record.Add "Surface", "Admin > Settings > Recipe UOM Catalog"
+            record.Add "Capability", "ADMIN_MAINT"
+            record.Add "CodePrefix", controlId & "_"
         Case "ADMIN_SETTINGS_SAVE_VALUE"
             record.Add "Role", "Admin"
             record.Add "Caption", "Save Value"
@@ -197,6 +217,11 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
         Case "UNCHANGED"
             record.Add "Severity", "Info": record.Add "DataEffect", "Unchanged"
             message = "Configuration already matches."
+            If Left$(controlId, 10) = "ADMIN_UOM_" Then message = "UOM catalog was not changed."
+        Case "CANCELLED"
+            If controlId <> "ADMIN_UOM_RESET" Then Exit Function
+            record.Add "Severity", "Notice": record.Add "DataEffect", "Unchanged"
+            message = "UOM catalog reset cancelled."
         Case "DENIED"
             record.Add "Severity", "Blocked": record.Add "DataEffect", "Unchanged"
             message = "The action was not authorized."

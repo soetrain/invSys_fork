@@ -6,6 +6,8 @@ param(
     [switch]$CaptureEvidence,
     [switch]$CheckActivityEvidence,
     [switch]$CheckActivityFoundation,
+    [switch]$CheckAdminUomActivity,
+    [switch]$CheckAdminUomExpectationChoice,
     [switch]$CheckTrackingSettings,
     [switch]$CheckTrackingPolicy,
     [switch]$CheckDetailProfile,
@@ -159,8 +161,15 @@ if($RecordingEvaluationDiagnostic){
     if($CheckRecordingLimits -or $CheckRecordingStorageBounds -or $CheckRecordingRestart -or $CheckExpectationEditor){throw 'Run limits, storage, restart and editor-only gates separately from evaluation diagnosis.'}
     Write-Output 'DIAGNOSTIC: evaluation fixture first; full regression gate remains required.'
 }
-if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead)){
-    throw 'Instrumented project compilation requires the published Viewer or evaluation gate.'
+if($CheckAdminUomExpectationChoice -and (-not $CompileEvaluationProbesForTest -or -not ($CheckExpectationEditor -or $CheckExpectationCompatibility))){
+    throw 'Admin UOM expectation choice requires a compiled expectation editor gate.'
+}
+if($CheckAdminUomActivity){
+    if(-not $CompileEvaluationProbesForTest -or $CheckViewerPublishedRead -or $CheckTrackingSettings -or $CheckShippingActivity -or $CheckReceivingActivity -or $CheckActivityFoundation){throw 'Admin UOM commands require their separate compiled activity gate.'}
+    $CheckActivityEvidence=$true
+}
+if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead -or $CheckAdminUomActivity)){
+    throw 'Instrumented project compilation requires a supported focused gate.'
 }
 if($TraceSettingsOpenForTest -and ($Phase -ne 'RED' -or -not $CheckTrackingSettings)) {
     throw 'Settings constructor tracing requires RED and the Settings checks; it is not acceptance GREEN.'
@@ -304,6 +313,17 @@ if ($CheckViewerEventGroups) {
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-viewer-groups/'+[guid]::NewGuid().ToString('N'))
     . (Join-Path $PSScriptRoot 'Slice4beViewerEventGroups.ps1')
     if ($CheckViewerPublication) { . (Join-Path $PSScriptRoot 'Slice4beViewerPublication.ps1') }
+}
+if($CheckAdminUomActivity){
+    $reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-uom/'+[guid]::NewGuid().ToString('N'))
+    . (Join-Path $PSScriptRoot 'Slice4beAdminUomProbe.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beAdminUomActivity.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beAdminUomTracking.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beActivityFoundation.ps1')
+}
+if($CheckAdminUomExpectationChoice){
+    . (Join-Path $PSScriptRoot 'Slice4beAdminUomProbe.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beAdminUomExpectation.ps1')
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $inputDeploy=$deploy
@@ -832,6 +852,16 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beBootstrapTrace.ps1')
         Install-Slice4beBootstrapTrace
     }
+    if($CheckAdminUomActivity -or $CheckAdminUomExpectationChoice){Install-AdminUomActivityProbe}
+    if($CheckAdminUomActivity){
+        . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
+        Install-Slice4beShippingCatalogProbe
+        . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
+        Compile-Slice4beEvaluationProbes
+        $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
+        Check 'Harness.AdminUomProbesInstalledBeforeForms' $noForms
+        if(-not $noForms){throw 'Admin UOM probes must precede all forms; not product RED.'}
+    }
     # Install the complete recording gate before any fixture/form activity.
     # Later helpers reuse these probes instead of editing active VBA projects.
     $script:PublishedReadProbeInstalled=$false
@@ -1122,6 +1152,13 @@ End Function
     $ok=[bool](Run 'invSys.Core.xlam' 'modConfig.LoadConfig' @($a.Warehouse,'S1'))
     Check 'Read.ClosedWorkbookBytesPreserved' ($ok -and $before -eq (Get-FileHash -LiteralPath $a.Config).Hash)
     if ($CheckActivityFoundation) { Test-Slice4beActivityFoundation $a $b }
+    if ($CheckAdminUomActivity) {
+        $step='Admin UOM activity through actual packaged form handlers'
+        Test-AdminUomCatalog
+        Test-AdminUomActivity $a $b
+        Test-AdminUomPublication $a
+        Test-AdminUomTracking $a
+    }
     if ($CheckShippingActivity) {
         $step='Shipping catalog and source-reference contract'
         Test-Slice4beShippingCatalog

@@ -101,6 +101,7 @@ function Test-ExpectationEditorBinding {
     # A modeless form's Visible property alone does not establish a native window.
     $previousVisibility=[bool]$excel.Visible
     $excel.Visible=$true
+    if($CheckAdminUomExpectationChoice){Test-AdminUomExpectedCancellation}
     if((RecordingControl 'Start Recording' 'Click') -cne 'DELIVERED'){throw 'Actual recorder baseline unavailable for editor binding.'}
     $action=SaveRecordedSetting '681'
     $activeSequence=[string]$action.Attempt.SequenceId

@@ -30,9 +30,11 @@ Public Function GetConfiguredUoms() As Variant
 End Function
 
 Public Function AddConfiguredUom(ByVal uomName As String, _
-                                 Optional ByRef report As String = "") As Boolean
+                                 Optional ByRef report As String = "", _
+                                 Optional ByRef outcome As String = "") As Boolean
     Dim uoms As Collection
 
+    outcome = "REJECTED"
     uomName = NormalizeUomName(uomName)
     If uomName = "" Then
         report = "Enter a UOM containing letters or numbers."
@@ -42,19 +44,22 @@ Public Function AddConfiguredUom(ByVal uomName As String, _
     Set uoms = ConfiguredUomCollection()
     If UomCollectionContains(uoms, uomName) Then
         report = uomName & " is already in the warehouse UOM catalog."
+        outcome = "UNCHANGED"
         AddConfiguredUom = True
         Exit Function
     End If
 
     uoms.Add uomName
-    AddConfiguredUom = SaveUomCollection(uoms, report)
+    AddConfiguredUom = SaveUomCollection(uoms, report, outcome)
 End Function
 
 Public Function RemoveConfiguredUom(ByVal uomName As String, _
-                                    Optional ByRef report As String = "") As Boolean
+                                    Optional ByRef report As String = "", _
+                                    Optional ByRef outcome As String = "") As Boolean
     Dim uoms As Collection
     Dim idx As Long
 
+    outcome = "REJECTED"
     uomName = NormalizeUomName(uomName)
     If uomName = "" Then
         report = "Select a UOM to remove."
@@ -69,11 +74,12 @@ Public Function RemoveConfiguredUom(ByVal uomName As String, _
         report = "The warehouse UOM catalog must contain at least one value."
         Exit Function
     End If
-    RemoveConfiguredUom = SaveUomCollection(uoms, report)
+    RemoveConfiguredUom = SaveUomCollection(uoms, report, outcome)
 End Function
 
-Public Function ResetConfiguredUoms(Optional ByRef report As String = "") As Boolean
-    ResetConfiguredUoms = SaveUomCollection(ParseUomPackedText(DEFAULT_UOMS), report)
+Public Function ResetConfiguredUoms(Optional ByRef report As String = "", _
+                                    Optional ByRef outcome As String = "") As Boolean
+    ResetConfiguredUoms = SaveUomCollection(ParseUomPackedText(DEFAULT_UOMS), report, outcome)
 End Function
 
 Public Function GetConfiguredUomsPackedText() As String
@@ -359,15 +365,16 @@ Private Function ParseUomPackedText(ByVal packedText As String) As Collection
     Set ParseUomPackedText = uoms
 End Function
 
-Private Function SaveUomCollection(ByVal uoms As Collection, ByRef report As String) As Boolean
+Private Function SaveUomCollection(ByVal uoms As Collection, ByRef report As String, ByRef outcome As String) As Boolean
     Dim packed As String
 
+    outcome = "REJECTED"
     packed = PackUomCollection(uoms)
     If packed = "" Then
         report = "The warehouse UOM catalog must contain at least one value."
         Exit Function
     End If
-    SaveUomCollection = modConfigCommands.UpdateConfigValue(CONFIG_KEY_UOM_CATALOG, packed, report)
+    SaveUomCollection = modConfigCommands.UpdateConfigValue(CONFIG_KEY_UOM_CATALOG, packed, report, outcome:=outcome)
 End Function
 
 Private Function PackUomCollection(ByVal uoms As Collection) As String
