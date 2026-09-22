@@ -21,6 +21,11 @@ function Test-GuideActionCuration($Fixture,$Other) {
     function CurateCapture([string]$Stage,[string]$Caption='Choose tracked actions') {
         if($CaptureGuideEvidence){CaptureOwnedFormByCaptionEvidence $Caption ('guide-curation-'+$Stage+'.png')}
     }
+    function CurationDigest([string]$Body) {
+        if($Body -match '[^\x00-\x7f]'){throw 'Integrity fixture must preserve the ASCII wire.'}
+        $sha=[Security.Cryptography.SHA256]::Create()
+        try{return [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Body))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+    }
     CloseRecordingViewer;SelectTarget $Fixture 'config-admin';SetRecordingPolicy $false
     $first=SaveRecordedSetting '801';$second=SaveRecordedSetting '802'
     if($first.Attempt.SequenceId -cne '' -or $second.Attempt.SequenceId -cne '' -or $first.Attempt.Ordinal -ne 0 -or $second.Attempt.Ordinal -ne 0){throw 'Actual unrecorded activity fixture failed; not curation RED.'}
@@ -187,6 +192,43 @@ function Test-GuideActionCuration($Fixture,$Other) {
             Check 'GuideCuration.InvalidInnerDigestRejectedWithoutSourceMutation' ($opened -and $first.Attempt.ActivityId -cnotin $ids -and (Pick 'lblGuideActionStatus' 'Label') -match '1 unavailable' -and (PinsRetained $activityBefore))
             Check 'GuideCuration.InvalidInnerDigestDoesNotSuppressOtherValidAction' ($opened -and $second.Attempt.ActivityId -cin $ids -and (BoundSame $savedPins (BoundPins $journalRoot)))
         } finally {CloseRecordingViewer;[IO.File]::WriteAllBytes($publication,$publicationBytes)}
+        # Preserve exact original JSON bytes except the single diagnosed member;
+        # rehash both layers so these are semantic-integrity cases, not bad hashes.
+        $originalPublication=[Text.Encoding]::UTF8.GetString($publicationBytes)
+        $originalOutcome=[IO.File]::ReadAllText((Join-Path $activityRoot ($first.Outcome.RecordId+'.json')))
+        # The publisher indexes the same completion in Lines and Outcomes.
+        # Replace both representations, without inventing a second observation.
+        if([regex]::Matches($originalPublication,[regex]::Escape($originalOutcome)).Count -ne 2){throw 'Exact original outcome must occur in both Lines and Outcomes.'}
+        $innerMarker=[regex]::Match($originalOutcome,',"ContentSha256":"([0-9a-f]{64})"\}$')
+        if(-not $innerMarker.Success){throw 'Original outcome digest missing.'}
+        $originalBody=$originalOutcome.Substring(0,$innerMarker.Index)+'}'
+        if((CurationDigest $originalBody) -cne $innerMarker.Groups[1].Value){throw 'Original outcome digest invalid.'}
+        foreach($case in @(
+            @{Field='RecordId';Value='not-a-guid';Wire='"not-a-guid"'},
+            @{Field='CatalogVersion';Value=1;Wire='1'},
+            @{Field='PackageSetVersion';Value='different-package-fixture';Wire='"different-package-fixture"'},
+            @{Field='BuildIdentity';Value='different-build-fixture';Wire='"different-build-fixture"'}
+        )){
+            try {
+                $member=[regex]::Matches($originalBody,'"'+$case.Field+'":("(?:[^"\\]|\\.)*"|[0-9]+)')
+                if($member.Count -ne 1){throw 'Source-integrity fixture member is ambiguous.'}
+                $changedBody=$originalBody.Replace($member[0].Value,'"'+$case.Field+'":'+$case.Wire)
+                $changed=$changedBody|ConvertFrom-Json
+                if($changedBody -ceq $originalBody -or $changed.($case.Field) -cne $case.Value){throw 'Source-integrity fixture did not change only its intended member.'}
+                $changedEnvelope=$changedBody.Substring(0,$changedBody.Length-1)+',"ContentSha256":"'+(CurationDigest $changedBody)+'"}'
+                $changedPublication=$originalPublication.Replace($originalOutcome,$changedEnvelope)
+                $outerMarker=[regex]::Match($changedPublication,',"ContentSha256":"[0-9a-f]{64}"\}$')
+                if(-not $outerMarker.Success){throw 'Original publication digest missing.'}
+                $outerBody=$changedPublication.Substring(0,$outerMarker.Index)+'}'
+                [IO.File]::WriteAllText($publication,$outerBody.Substring(0,$outerBody.Length-1)+',"ContentSha256":"'+(CurationDigest $outerBody)+'"}',[Text.UTF8Encoding]::new($false))
+                $valid=Run 'invSys.Core.xlam' 'modInventoryViewerData.PublishedReadFixtureValidForTest' @($publication,$Fixture.Warehouse)
+                if($valid -isnot [bool] -or -not $valid){throw 'Semantic-integrity fixture needs a valid outer publication.'}
+                OpenRecordingViewer;[void](BoundLibrary 'Open');OpenPicker
+                $ids=@((Pick 'lstGuideActions' 'Values') -split "`n"|Where-Object {$_ -cne ''})
+                Check ('GuideCuration.SourceIntegrity.'+$case.Field+'.InvalidActionUnavailable') ($first.Attempt.ActivityId -cnotin $ids -and (Pick 'lblGuideActionStatus' 'Label') -match '1 unavailable')
+                Check ('GuideCuration.SourceIntegrity.'+$case.Field+'.ValidNeighborAndSourcesRetained') ($second.Attempt.ActivityId -cin $ids -and (PinsRetained $activityBefore) -and (BoundSame $savedPins (BoundPins $journalRoot)))
+            } finally {CloseRecordingViewer;[IO.File]::WriteAllBytes($publication,$publicationBytes)}
+        }
         if($saved -and $null -ne $revision){
             OpenRecordingViewer;[void](BoundLibrary 'Open');BoundOpen;BoundSelect $revision
         }

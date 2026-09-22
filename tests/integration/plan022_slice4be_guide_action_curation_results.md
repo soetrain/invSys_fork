@@ -174,3 +174,30 @@ excluded actions/fields/codes, first-failure retention, sanitized trace identity
 and field-content exclusion. These are harness tests, not packaged runtime RED.
 The full guide regression is restarted with a fresh fixture and this explicit
 option; it must still run every original assertion against the frozen candidate.
+
+That second broader attempt reaches **286 PASS / one harness FAIL**, root
+`ec9f089ec0064a2795147869cd914904`, **2026-09-22
+07:34:57.8181759--08:00:54.6248543 UTC**. Opening the recording library receives
+inner `0x80010001`; cleanup then receives `0x800AC472`. No operator action is
+replayed, no read-only retry occurs, and the cause remains unproven. All 36
+captured images are directly reviewed and hashed. Normal unassisted closure,
+unchanged running source/package pins and zero matching Application events are
+verified. This is not a completed 351-check regression.
+
+The source-integrity extension first stops at a fixture assumption (59 PASS /
+one harness FAIL, root `37d4068bf1454883b6f70fccde842ffe`). A completed activity
+appears in both Lines and Outcomes. Correcting the fixture to change both exact
+representations and recompute inner/outer hashes changes no runtime behavior.
+
+Corrected focused RED is **67 PASS / four expected FAIL**, **71 unique typed
+checks**, root `d77014cd25d44290bd994fe27207c368`, **2026-09-22
+08:10:06.4406656--08:14:16.6259455 UTC**. The actual picker still offers an action
+with malformed result RecordId, or conflicting result CatalogVersion,
+PackageSetVersion or BuildIdentity. All four valid-neighbor/source-preservation
+checks pass, as do all prior 63 focused identities. Each fixture uses valid
+recomputed hashes and restores exact publication bytes afterward. Normal
+unassisted closure, unchanged test/runtime/package pins and zero matching
+Application events are verified before any Core fix by
+`reports/runtime/verify-guide-action-curation-integrity-red.ps1`.
+The correction will enforce existing D18 identity and release agreement in
+private Core validation; it changes no schema, controls or authority contract.
