@@ -147,7 +147,7 @@ End Function
         $hold=Table $operator 'NotShipped'
         if(-not $added -or $added -cne $held -or $hold.ListRows.Count -ne 1){throw 'Publication held shipment was not prepared by Add/Hold handlers.'}
         Check 'ViewerPublication.ShippingFixture.ActualAddAndHold' $true
-        if($CaptureEvidence){CaptureFormEvidence 'Shipping Shipments' 'publication-shipping-held.png'}
+        if($CaptureEvidence){CaptureOwnedFormByCaptionEvidence 'Shipping Shipments' 'publication-shipping-held.png'}
         [void](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublicationShippingCloseForTest')
         $operator.Save();$operator.Close($false);$operator=$null
         $bomPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.ShippingBOM.xlsb')

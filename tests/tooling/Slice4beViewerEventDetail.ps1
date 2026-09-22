@@ -1,7 +1,30 @@
 # D18 published-fixture selection through the packaged Viewer. No canonical
 # inventory rows are fabricated: only the disposable published test projection
 # receives synthetic edge cases after Admin Generate Warehouse created it.
+function Capture-DetailOwnedEvidence([string]$FileName,[long]$WindowHandle) {
+    Initialize-SettingsCapture
+    $owned=[InvSysSettingsCapture]::OwnedVisibleForm('Event Detail',[IntPtr]$excel.Hwnd).ToInt64()
+    if($owned -ne $WindowHandle){throw 'Detail input does not identify the unique owned form.'}
+    $clicked=[InvSysSettingsCapture]::ActivateByCaptionClick([IntPtr]$WindowHandle,[IntPtr]$excel.Hwnd)
+    [pscustomobject]@{Image=$FileName;OwnedCaptionClick=$clicked}|
+        ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'detail-capture-activation.jsonl')
+    if($clicked){Start-Sleep -Milliseconds 200}
+    CaptureOwnedFormEvidence 'Event Detail' $FileName $WindowHandle
+}
+
 function Test-Slice4beViewerEventDetail($Fixture,$OtherFixture) {
+    if($DetailScrollLockDiagnostic -and -not $CaptureEvidence){throw 'The lock diagnostic requires owned visible captures.'}
+    $detailHost=$null
+    try {
+    if($CaptureEvidence){
+        $detailHost=$excel.Workbooks.Add()
+        if($null -eq $detailHost){throw 'Disposable detail capture workbook is unavailable.'}
+        $excel.Visible=$true
+        $visible=$excel.Visible
+        [pscustomobject]@{VisibleType=if($null -eq $visible){'Null'}else{$visible.GetType().FullName};Visible=$visible;DisposableWorkbook=$true}|
+            ConvertTo-Json|Set-Content (Join-Path $reportRoot 'detail-capture-host.json')
+        if($visible -isnot [bool] -or -not $visible){throw 'Visible detail capture host is unavailable.'}
+    }
     SelectTarget $Fixture 'config-reader'
     $snapshot = Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Snapshot.Inventory.xlsb')
     if(-not (Test-Path -LiteralPath $snapshot)) { throw 'Admin-generated snapshot fixture is missing.' }
@@ -282,14 +305,32 @@ Public Function DetailCompleteTextForTest() As Boolean
     instance.Controls.Remove "DetailTextMeasureForTest"
     DetailCompleteTextForTest = complete
 End Function
-Public Function DetailOverflowPointForTest() As String
-    Dim instance As Object, fields As Object, widths As Variant
+Public Function FocusDetailFieldsForTest() As Boolean
+    Dim instance As Object, fields As Object
     Set instance = DetailFixtureFormForTest()
     Set fields = instance.Controls("lstEventFields")
-    widths = Split(fields.ColumnWidths, ";")
-    If Val(widths(0)) + Val(widths(1)) <= fields.Width Then Exit Function
-    DetailOverflowPointForTest = CStr(fields.Left + fields.Width - 36) & vbTab & _
-        CStr(fields.Top + fields.Height - 6) & vbTab & CStr(instance.InsideWidth) & vbTab & CStr(instance.InsideHeight)
+    fields.SetFocus
+    FocusDetailFieldsForTest = (instance.ActiveControl Is fields)
+End Function
+Public Function DetailFieldLockForTest(ByVal change As Boolean, ByVal locked As Boolean) As Boolean
+    Dim instance As Object, fields As Object
+    Set instance = DetailFixtureFormForTest()
+    If instance Is Nothing Then Err.Raise 5, , "Detail fixture is unavailable."
+    Set fields = instance.Controls("lstEventFields")
+    If change Then fields.Locked = locked
+    DetailFieldLockForTest = fields.Locked
+End Function
+Public Function DetailFieldValuesForTest() As String
+    Dim instance As Object, fields As Object, row As Long, column As Long, value As String
+    Set instance = DetailFixtureFormForTest()
+    If instance Is Nothing Then Err.Raise 5, , "Detail fixture is unavailable."
+    Set fields = instance.Controls("lstEventFields")
+    For row = 0 To fields.ListCount - 1
+        For column = 0 To fields.ColumnCount - 1
+            value = CStr(fields.List(row, column))
+            DetailFieldValuesForTest = DetailFieldValuesForTest & CStr(Len(value)) & ":" & value
+        Next column
+    Next row
 End Function
 Public Function SelectStateFixtureForTest() As Boolean
     SelectStateFixtureForTest = mInventoryViewer.SelectStateFixtureForTest()
@@ -348,24 +389,40 @@ public static class DetailNativeLayout {
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr h,uint flags);
     [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr h,out Rect r);
+    [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h,out Rect r);
     [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr h,ref Point p);
+    [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr h);
+    [DllImport("user32.dll")] static extern int GetSystemMetricsForDpi(int index,uint dpi);
     [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(Point p);
     [DllImport("user32.dll")] static extern bool SetCursorPos(int x,int y);
     [DllImport("user32.dll")] static extern uint SendInput(uint n,Input[] inputs,int size);
     static uint Owner(IntPtr h) {uint p;GetWindowThreadProcessId(h,out p);return p;}
-    public static void ScrollClick(IntPtr form,IntPtr excel,double x,double y,double width,double height) {
-        Rect r;
-        if(Owner(form)==0 || Owner(form)!=Owner(excel) || GetForegroundWindow()!=form || !GetClientRect(form,out r))
-            throw new Exception("Detail scroll requires the foreground owned form.");
-        var point=new Point {X=(int)(x*(r.Right-r.Left)/width),Y=(int)(y*(r.Bottom-r.Top)/height)};
-        if(!ClientToScreen(form,ref point))throw new Exception("Detail coordinates unavailable.");
-        var target=WindowFromPoint(point);
-        if(Owner(target)!=Owner(form) || GetAncestor(target,2)!=form)
-            throw new Exception("Detail scroll point is outside the owned form.");
-        if(!SetCursorPos(point.X,point.Y))throw new Exception("Detail cursor positioning failed.");
-        Input[] inputs={new Input {Mouse=new Mouse {Flags=2}},new Input {Mouse=new Mouse {Flags=4}}};
-        if(SendInput(2,inputs,Marshal.SizeOf(typeof(Input)))!=2)
-            throw new Exception("Detail scroll input delivery failed.");
+    public static string ScrollFieldBounds(IntPtr form,IntPtr excel,double[] bounds) {
+        Rect client,whole;var origin=new Point();
+        if(Owner(form)==0 || Owner(form)!=Owner(excel) || GetForegroundWindow()!=form ||
+            !GetClientRect(form,out client) || !GetWindowRect(form,out whole) || !ClientToScreen(form,ref origin) || bounds.Length!=6 || bounds[4]<=0 || bounds[5]<=0)
+            throw new Exception("Owned detail client geometry is unavailable.");
+        double sx=client.Right/bounds[4],sy=client.Bottom/bounds[5];
+        var rect=new Rect {Left=origin.X+(int)Math.Round(bounds[0]*sx),Top=origin.Y+(int)Math.Round(bounds[1]*sy),
+            Right=origin.X+(int)Math.Round((bounds[0]+bounds[2])*sx),Bottom=origin.Y+(int)Math.Round((bounds[1]+bounds[3])*sy)};
+        int thickness=GetSystemMetricsForDpi(3,GetDpiForWindow(form));
+        if(thickness<=0 || rect.Right-rect.Left<4*thickness || rect.Bottom-rect.Top<4*thickness ||
+            rect.Left<origin.X || rect.Top<origin.Y || rect.Right>origin.X+client.Right || rect.Bottom>origin.Y+client.Bottom)
+            throw new Exception("Detail list scrollbar geometry is unavailable.");
+        var point=new Point {X=rect.Right-2*thickness,Y=rect.Bottom-thickness/2-1};
+        if(GetAncestor(WindowFromPoint(point),2)!=form)throw new Exception("Detail scroll point is outside the owned form.");
+        if(!SetCursorPos(point.X,point.Y))throw new Exception("Detail scroll cursor positioning failed.");
+        if(GetForegroundWindow()!=form || GetAncestor(WindowFromPoint(point),2)!=form)throw new Exception("Detail scroll point became covered.");
+        Input[] down={new Input {Mouse=new Mouse {Flags=2}}},up={new Input {Mouse=new Mouse {Flags=4}}};
+        try {
+            if(SendInput(1,down,Marshal.SizeOf(typeof(Input)))!=1)throw new Exception("Detail scroll press delivery failed.");
+            System.Threading.Thread.Sleep(150);
+        } finally {
+            if(SendInput(1,up,Marshal.SizeOf(typeof(Input)))!=1)throw new Exception("Detail scroll release delivery failed.");
+        }
+        return (rect.Right-rect.Left)+"|"+(rect.Bottom-rect.Top)+"|"+thickness+"|"+(point.X-rect.Left)+"|"+(point.Y-rect.Top)+
+            "|screen="+point.X+","+point.Y+"|list="+rect.Left+","+rect.Top+","+rect.Right+","+rect.Bottom+
+            "|form="+whole.Left+","+whole.Top+","+whole.Right+","+whole.Bottom+"|dpi="+GetDpiForWindow(form);
     }
 }
 '@
@@ -380,27 +437,59 @@ public static class DetailNativeLayout {
         $complete=Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailCompleteTextForTest'
         if($complete -isnot [bool]){throw 'Native complete-text geometry probe did not return a Boolean.'}
         Check ('EventDetail.CompleteText.Native'+$name) $complete
-        if($CaptureEvidence) { CaptureFormEvidence '' ('event-detail-'+$name.ToLowerInvariant()+'.png') $window }
+        if($CaptureEvidence) { Capture-DetailOwnedEvidence ('event-detail-'+$name.ToLowerInvariant()+'.png') $window }
+    }
+    Check 'EventDetail.FilterDoesNotDropContributingLines' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFixtureFactForTest' @('EveryKey')))
+    if($CaptureEvidence) {
+        $window=[long](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailWindowForTest')
+        Capture-DetailOwnedEvidence 'event-detail-default.png' $window
+        $focused=Run 'invSys.Operations.xlam' 'modInventoryViewer.FocusDetailFieldsForTest'
+        if($focused -isnot [bool] -or -not $focused){throw 'Actual detail list focus is unavailable.'}
+        $geometry=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailGeometryForTest')
+        $fieldRows=@($geometry -split "`n" | Where-Object {$_ -like "lstEventFields`t*"})
+        if($fieldRows.Count -ne 1){throw 'Actual detail field bounds are ambiguous.'}
+        [double[]]$fieldBounds=@(($fieldRows[0] -split "`t")[1..6] | ForEach-Object {[double]::Parse($_,[Globalization.CultureInfo]::CurrentCulture)})
+        for($scroll=0;$scroll -lt 3;$scroll++){
+            [DetailNativeLayout]::ScrollFieldBounds([IntPtr]$window,[IntPtr]$excel.Hwnd,$fieldBounds)|
+                Add-Content (Join-Path $reportRoot 'detail-native-scroll-geometry.tsv')
+            Start-Sleep -Milliseconds 150
+            CaptureFormEvidence 'Event Detail' ('event-detail-scroll-input-'+$scroll+'.png') $window
+            [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailWindowForTest')
+        }
+        Capture-DetailOwnedEvidence 'event-detail-horizontal-scroll.png' $window
+        if($DetailScrollLockDiagnostic){
+            $originalLock=Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldLockForTest' @($false,$false)
+            if($originalLock -isnot [bool] -or -not $originalLock){throw 'Original detail lock state is not verified.'}
+            $originalValues=Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldValuesForTest'
+            if($originalValues -isnot [string] -or $originalValues.Length -eq 0){throw 'Original detail values are unavailable.'}
+            try {
+                $unlocked=Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldLockForTest' @($true,$false)
+                if($unlocked -isnot [bool] -or $unlocked){throw 'Disposable detail unlock was not verified.'}
+                $focused=Run 'invSys.Operations.xlam' 'modInventoryViewer.FocusDetailFieldsForTest'
+                if($focused -isnot [bool] -or -not $focused){throw 'Unlocked detail focus is unavailable.'}
+                Capture-DetailOwnedEvidence 'event-detail-unlocked-before.png' $window
+                for($scroll=0;$scroll -lt 3;$scroll++){
+                    [DetailNativeLayout]::ScrollFieldBounds([IntPtr]$window,[IntPtr]$excel.Hwnd,$fieldBounds)|
+                        Add-Content (Join-Path $reportRoot 'detail-unlocked-scroll-geometry.tsv')
+                    Start-Sleep -Milliseconds 150
+                    CaptureFormEvidence 'Event Detail' ('event-detail-unlocked-input-'+$scroll+'.png') $window
+                    [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailWindowForTest')
+                }
+                $valuesPreserved=(Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldValuesForTest') -ceq $originalValues
+                if(-not $valuesPreserved){throw 'Disposable lock diagnostic changed field values.'}
+            } finally {
+                $restoredLock=Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldLockForTest' @($true,$originalLock)
+                if($restoredLock -isnot [bool] -or $restoredLock -ne $originalLock){throw 'Original detail lock state was not restored.'}
+            }
+            [pscustomobject]@{OriginalLocked=$originalLock;TemporarilyUnlocked=$true;RestoredLocked=$restoredLock;ValuesPreserved=$valuesPreserved;RuntimeChanged=$false;VisibleMovementRequiresImageReview=$true}|
+                ConvertTo-Json|Set-Content (Join-Path $reportRoot 'detail-lock-diagnostic.json')
+            Capture-DetailOwnedEvidence 'event-detail-lock-restored.png' $window
+        }
     }
     foreach($module in @('modEventDetailSettings','modInventoryViewerData')) {
         $readCount=Run 'invSys.Core.xlam' ($module+'.DetailReadCounterForTest')
         if($readCount -isnot [int]){throw 'Detail read counter did not return an integer.'}
         Check ('EventDetail.LayoutDoesNotRead.'+$module) ($readCount -eq 0)
-    }
-    Check 'EventDetail.FilterDoesNotDropContributingLines' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFixtureFactForTest' @('EveryKey')))
-    if($CaptureEvidence) {
-        $window=[long](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailWindowForTest')
-        CaptureFormEvidence '' 'event-detail-default.png' $window
-        $point=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailOverflowPointForTest')
-        if($point -ne '') {
-            $parts=$point -split "`t"
-            if($parts.Count -ne 4){throw 'Unexpected detail scroll geometry.'}
-            for($scroll=0;$scroll -lt 3;$scroll++){
-                [DetailNativeLayout]::ScrollClick([IntPtr]$window,[IntPtr]$excel.Hwnd,[double]$parts[0],[double]$parts[1],[double]$parts[2],[double]$parts[3])
-                [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailWindowForTest')
-            }
-            CaptureFormEvidence '' 'event-detail-horizontal-scroll.png' $window
-        }
     }
     foreach($state in @(@('BOX_DESIGNED','Boxing'),@('SHIP_HELD','Shipping'))) {
         [void](Run 'invSys.Core.xlam' 'modInventoryViewerData.SetDetailStateTypeForTest' @($state[0]))
@@ -432,4 +521,10 @@ public static class DetailNativeLayout {
     $unchanged = $true
     foreach($path in $pins.Keys) { if((Get-FileHash -LiteralPath $path).Hash -ne $pins[$path]) { $unchanged=$false } }
     Check 'EventDetail.GeneratedAuthorityAndUnknownColumnBytesUnchanged' $unchanged
+    } finally {
+        if($null -ne $detailHost){
+            try {$detailHost.Close($false)}
+            finally {[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($detailHost)}
+        }
+    }
 }

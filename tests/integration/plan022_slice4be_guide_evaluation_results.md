@@ -92,6 +92,16 @@ passing full-chain gate; the preceding overflow candidate's assisted pass does
 not substitute for it. Independent paired-view RED may proceed after verified
 cleanup without converting this failed chain into a success.
 
+A focused Viewer capture rerun passes **94/94**, preserving every prior identity:
+`reports/runtime/slice4be-viewer-published-read/2cad445c92e8480e8b829b73f2991751/green.json`;
+UTC **2026-09-22 00:02:00.3581067--00:04:20.4545335**, normal closure after an
+immediate False observation, zero matching Application events. All three images
+were reviewed individually. Routing Shipping through the existing strict owned
+foreground capture produces fully painted Hold/Not Shipped feedback without a
+runtime change. The adjacent System Key/Alternative heading limitation remains.
+The analogous permission-denied/stale-session capture routes still need their
+Boxing/Shipping regression; this run validates only the publication Shipping route.
+
 **Focused behavioral RED verified, 2026-09-21: 171 PASS / 33 expected FAIL.**
 Report: `reports/runtime/slice4be-viewer-published-read/465656eddaec49998b2c6d5a80df5a49/red.json`.
 All 166 preceding guide/expectation identities pass; the saved-probe check also

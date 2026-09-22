@@ -15,6 +15,7 @@ param(
     [switch]$AdminSettingsCloseOnly,
     [switch]$CheckViewerRefreshFailure,
     [switch]$CheckViewerEventDetail,
+    [switch]$DetailScrollLockDiagnostic,
     [switch]$CheckViewerEventGroups,
     [switch]$CheckViewerPublishedRead,
     [switch]$CheckViewerShippingState,
@@ -421,6 +422,11 @@ function CaptureFormEvidence([string]$Title,[string]$FileName,[long]$WindowHandl
     Initialize-SettingsCapture
     if($WindowHandle) { [InvSysSettingsCapture]::SaveVisibleWindow([IntPtr]$WindowHandle,(Join-Path $reportRoot $FileName)) }
     else { [InvSysSettingsCapture]::Save($Title,(Join-Path $reportRoot $FileName)) }
+}
+function CaptureOwnedFormByCaptionEvidence([string]$Title,[string]$FileName) {
+    Initialize-SettingsCapture
+    $owned=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
+    CaptureOwnedFormEvidence $Title $FileName $owned
 }
 function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$WindowHandle) {
     Initialize-SettingsCapture

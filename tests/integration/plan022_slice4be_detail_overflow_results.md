@@ -177,6 +177,24 @@ lock state in finally and checks unchanged field values. It changes no runtime
 property or architectural contract. Its images require direct review; neither
 the 41 checks nor successful input delivery alone proves scrolling.
 
+The lock comparison completes at **41/41**, preserving all 34 preceding checks,
+with normal closure and zero Application events 1000/1001/1002. Report:
+`reports/runtime/slice4be-viewer-detail/13e494fd2dea4d3f8695863f76a70098/green.json`;
+UTC **2026-09-22 00:04:22.4893293--00:05:41.8372982**. Of its 12 captures, four
+comparison images were directly reviewed: `event-detail-horizontal-scroll.png`
+shows the locked list stationary at the left; `event-detail-unlocked-before.png`
+starts at the same position; `event-detail-unlocked-input-2.png` shows the right
+edge after identical input; `event-detail-lock-restored.png` retains that position
+after restoration. Typed probe results verify original/restored Locked=True and
+unchanged field values. Existing byte/read checks remain green. This identifies
+the lock property as the interaction blocker without changing runtime behavior.
+
+D18, Plan 022 and the catalog now record an explicit pending proposal to permit
+an unlocked, non-editable ListBox for selection/scrolling. Approval was requested
+before runtime implementation because the current normative rule explicitly says
+locked. The proposal is not yet approved; its future native-scroll RED/GREEN must
+protect actual interaction, not merely the existing font/column geometry.
+
 Required next gates: actual visible scrolling,
 synchronized catalog/plan and reviewed Git
 status. Multiline detail rendering, broader Slice 4be and human Release 1 acceptance

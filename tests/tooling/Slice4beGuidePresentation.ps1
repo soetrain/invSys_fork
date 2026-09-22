@@ -76,11 +76,29 @@ function Test-GuidePresentation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideS
         Check 'GuidePresentation.RefreshRetainsMethodPairAndResult' ($opened -and (ViewControl 'cboActionPathView' 'Selected') -ceq 'Diagnostic' -and (ViewControl 'lblActionPathPair' 'Label') -ceq $pair -and (ViewControl 'txtActionPathDiagnostic' 'Text') -ceq $diagnostic)
         [void](OpenView)
         Check 'GuidePresentation.RepeatedEntryReusesOneView' ($opened -and (ViewControl '' 'Count') -ceq '1')
+        Check 'GuidePresentation.ReusedInstanceRetainsUnsavedMethod' ($opened -and (ViewControl 'cboActionPathView' 'Selected') -ceq 'Diagnostic')
         Check 'GuidePresentation.OriginalLibraryEvidenceRemainsAvailable' ($opened -and (BoundControl 'txtPathEvidence' 'Text' '' 'frmActionPaths') -ceq $libraryEvidence -and (BoundControl 'txtPathEvaluation' 'Text' '' 'frmActionPaths') -ceq $libraryResult)
         [void](ViewControl 'btnCloseActionPathView' 'Click')
         Check 'GuidePresentation.CloseReleasesInstance' ($opened -and (ViewControl '' 'Count') -ceq '0')
         [void](OpenView)
         Check 'GuidePresentation.ReopenUsesSavedChoiceNotUnsavedSwitch' ($opened -and (ViewControl 'cboActionPathView' 'Selected') -ceq 'Compare both')
+        [void](ViewControl 'btnCloseActionPathView' 'Click')
+        foreach($preference in @(@('How-To','How-To'),@('Diagnostic','Diagnostic'),@('Use warehouse default',''))){
+            OpenViewSettings;SaveViewPreference $preference[0]
+            $expectedMethod=$preference[1]
+            if($preference[0] -ceq 'Use warehouse default'){
+                $effective=SettingsControl 'lblEffectiveView' 'Label'
+                if($effective -cnotmatch '^Effective view: (How-To|Diagnostic|Compare both) \(warehouse default\);'){
+                    throw 'Accepted warehouse-default preference fixture is unavailable.'
+                }
+                $expectedMethod=$Matches[1]
+            }
+            [void](SettingsControl 'btnClose' 'Click');[void](OpenView)
+            Check ('GuidePresentation.SavedPreference.'+$preference[0]) ($opened -and (ViewControl 'cboActionPathView' 'Selected') -ceq $expectedMethod)
+            [void](ViewControl 'btnCloseActionPathView' 'Click')
+        }
+        OpenViewSettings;SaveViewPreference 'Compare both'
+        [void](SettingsControl 'btnClose' 'Click');[void](OpenView)
         Check 'GuidePresentation.ViewsDoNotAppendOrRewriteTraining' (BoundSame $before (BoundPins $journalRoot))
         Check 'GuidePresentation.ViewsDoNotWriteActivityConfigOrPublish' ((PinsRetained $activityBefore) -and (ActivityPins).Count -eq $activityBefore.Count -and (Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configBefore -and (Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publishBefore)
         $guidePath=Join-Path $guideRoot ($FirstGuide.ActionPathId+'.1.json');$bytes=[IO.File]::ReadAllBytes($guidePath)
