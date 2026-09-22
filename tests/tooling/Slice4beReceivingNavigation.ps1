@@ -283,7 +283,7 @@ function Test-ReceivingNavigationRecords($Fixture,$Before,$Case,[string]$Label) 
     }
     foreach($record in $records) {
         # Catalog7-9 retain the version6 navigation definitions; all remain supported.
-        $truth=$truth -and @($record.SourceEventRefs).Count -eq 0 -and $record.CatalogVersion -in @(6,7,8,9,10)
+        $truth=$truth -and @($record.SourceEventRefs).Count -eq 0 -and $record.CatalogVersion -in @(6,7,8,9,10,11)
         $readable=$readable -and (Get-ActivityRead $record.RecordId).StartsWith('OK|')
     }
     foreach($raw in $raws) { foreach($forbidden in @('NAVIGATION-PRIVATE','ACTIVITY-PRIVATE',$Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'ListIndex','KeyCode','mLst','mTabs')) { if($raw.Contains($forbidden)) { $redacted=$false } } }

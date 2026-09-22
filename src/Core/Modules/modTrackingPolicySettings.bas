@@ -87,6 +87,6 @@ Invalid:
 End Function
 
 Public Function SavePolicy(ByVal context As String, ByVal expectedVersion As Long, _
-                           ByVal request As String, ByRef report As String) As Boolean
-    SavePolicy = modTrackingPolicyCommand.Save(context, expectedVersion, request, report)
+                           ByVal request As String, ByRef report As String, Optional ByRef outcome As String = "") As Boolean
+    SavePolicy = modTrackingPolicyCommand.Save(context, expectedVersion, request, report, outcome)
 End Function

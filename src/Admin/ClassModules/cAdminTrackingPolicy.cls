@@ -50,9 +50,10 @@ Public Sub Initialize(ByVal page As Object, ByVal context As String)
     ReloadPolicy
 End Sub
 
-Public Sub ReloadPolicy()
+Public Sub ReloadPolicy(Optional ByRef outcome As String = "")
     Dim report As String, loaded As Boolean
     loaded = modTrackingPolicySettings.ReadEditor(mContext, mVersion, mRequest, report, mSavedCatalog)
+    outcome = IIf(loaded, "REFRESHED", "FAILED")
     mSave.Enabled = loaded: mReset.Enabled = loaded
     mRows.Enabled = loaded: mCapture.Enabled = loaded: mAdminVisible.Enabled = loaded: mView.Enabled = loaded
     mCollect.Enabled = loaded: mVisible.Enabled = loaded: mSequence.Enabled = loaded
@@ -60,17 +61,19 @@ Public Sub ReloadPolicy()
     mStatus.Caption = report
 End Sub
 
-Public Sub ResetPolicy()
+Public Sub ResetPolicy(Optional ByRef outcome As String = "")
+    outcome = "REJECTED"
     If mRequest = "" Then Exit Sub
     mRequest = modTrackingPolicySettings.DefaultRequest()
     mSavedCatalog = 0
     Render
     mStatus.Caption = "Defaults staged. Save Tracking Policy to apply."
+    outcome = "STAGED"
 End Sub
 
-Public Function SavePolicy() As Boolean
+Public Function SavePolicy(Optional ByRef outcome As String = "") As Boolean
     Dim report As String
-    SavePolicy = modTrackingPolicySettings.SavePolicy(mContext, mVersion, mRequest, report)
+    SavePolicy = modTrackingPolicySettings.SavePolicy(mContext, mVersion, mRequest, report, outcome)
     If SavePolicy Then
         ReloadPolicy
         If mRequest = "" Then report = report & " Reload unavailable. Reopen Settings to verify."
@@ -109,54 +112,97 @@ Private Sub ShowSelection()
     mLoading = False
 End Sub
 
-Private Sub StageTop(ByVal field As String, ByVal value As String)
+Private Sub StageTop(ByVal field As String, ByVal value As String, Optional ByRef outcome As String = "")
     Dim staged As String
+    outcome = "REJECTED"
     If mLoading Or mRequest = "" Then Exit Sub
     staged = modTrackingPolicySettings.StageValue(mRequest, field, value)
     If staged = "" Then Exit Sub
     mRequest = staged
     mStatus.Caption = "Policy changes staged. Save Tracking Policy to apply."
+    outcome = "STAGED"
 End Sub
 
-Private Sub StageControl(ByVal field As String, ByVal value As Boolean)
+Private Sub StageControl(ByVal field As String, ByVal value As Boolean, Optional ByRef outcome As String = "")
     Dim staged As String
+    outcome = "REJECTED"
     If mLoading Or mRows.ListIndex < 0 Or mRequest = "" Then Exit Sub
     staged = modTrackingPolicySettings.StageValue(mRequest, field, CStr(value), CStr(mRows.List(mRows.ListIndex, 0)))
     If staged = "" Then Exit Sub
     mRequest = staged
     Render
     mStatus.Caption = "Policy changes staged. Save Tracking Policy to apply."
+    outcome = "STAGED"
 End Sub
 
 Private Sub mRows_Click()
-    If Not mLoading Then ShowSelection
+    PerformSettings "ADMIN_TRACKING_SELECT_CONTROL"
 End Sub
 Private Sub mCapture_Click()
-    StageTop "ViewerActionPathCaptureEnabled", CStr(CBool(mCapture.Value))
+    PerformSettings "ADMIN_TRACKING_CAPTURE"
 End Sub
 Private Sub mAdminVisible_Click()
-    StageTop "AdminViewerEventLoggingEnabled", CStr(CBool(mAdminVisible.Value))
+    PerformSettings "ADMIN_TRACKING_ADMIN_VISIBLE"
 End Sub
 Private Sub mView_Change()
-    StageTop "DefaultView", CStr(mView.Value)
+    PerformSettings "ADMIN_TRACKING_DEFAULT_VIEW"
 End Sub
 Private Sub mCollect_Click()
-    StageControl "Collect", CBool(mCollect.Value)
+    PerformSettings "ADMIN_TRACKING_COLLECT"
 End Sub
 Private Sub mVisible_Click()
-    StageControl "Visible", CBool(mVisible.Value)
+    PerformSettings "ADMIN_TRACKING_VISIBLE"
 End Sub
 Private Sub mSequence_Click()
-    StageControl "SequenceEligible", CBool(mSequence.Value)
+    PerformSettings "ADMIN_TRACKING_SEQUENCE"
 End Sub
 Private Sub mSave_Click()
-    SavePolicy
+    PerformSettings "ADMIN_TRACKING_SAVE"
 End Sub
 Private Sub mReset_Click()
-    ResetPolicy
+    PerformSettings "ADMIN_TRACKING_RESET"
 End Sub
 Private Sub mReload_Click()
-    ReloadPolicy
+    PerformSettings "ADMIN_TRACKING_RELOAD"
+End Sub
+
+Private Sub PerformSettings(ByVal controlId As String)
+    Dim activityId As String, notice As String, outcome As String
+    If mLoading Or mStatus Is Nothing Then Exit Sub
+    On Error GoTo Failed
+    If mContext = "" Or mContext <> modActivity.CaptureContext() Then
+        mStatus.Caption = "Session or warehouse changed. Reopen Settings."
+        Exit Sub
+    End If
+    activityId = modActivity.BeginAction(controlId, mContext, notice)
+    outcome = "REJECTED"
+    Select Case controlId
+        Case "ADMIN_TRACKING_SELECT_CONTROL"
+            If mRows.ListIndex >= 0 Then ShowSelection: outcome = "SELECTED"
+        Case "ADMIN_TRACKING_CAPTURE": StageTop "ViewerActionPathCaptureEnabled", CStr(CBool(mCapture.Value)), outcome
+        Case "ADMIN_TRACKING_ADMIN_VISIBLE": StageTop "AdminViewerEventLoggingEnabled", CStr(CBool(mAdminVisible.Value)), outcome
+        Case "ADMIN_TRACKING_DEFAULT_VIEW": StageTop "DefaultView", CStr(mView.Value), outcome
+        Case "ADMIN_TRACKING_COLLECT": StageControl "Collect", CBool(mCollect.Value), outcome
+        Case "ADMIN_TRACKING_VISIBLE": StageControl "Visible", CBool(mVisible.Value), outcome
+        Case "ADMIN_TRACKING_SEQUENCE": StageControl "SequenceEligible", CBool(mSequence.Value), outcome
+        Case "ADMIN_TRACKING_SAVE": SavePolicy outcome
+        Case "ADMIN_TRACKING_RESET": ResetPolicy outcome
+        Case "ADMIN_TRACKING_RELOAD": ReloadPolicy outcome
+    End Select
+Done:
+    If outcome = "COMPLETED" Then
+        ' The owner interrupted recording; never fabricate a cross-policy result.
+        notice = notice & " Any active recording was interrupted by the policy change."
+    ElseIf activityId <> "" Then
+        modActivity.FinishAction activityId, outcome, notice
+    End If
+    If notice <> "" Then mStatus.Caption = mStatus.Caption & " " & notice
+    Exit Sub
+Failed:
+    mLoading = False
+    If outcome <> "COMPLETED" Then outcome = "FAILED"
+    mStatus.Caption = "Settings action or display update failed. Reopen Settings to verify."
+    Resume Done
 End Sub
 
 Private Function AddControl(ByVal page As Object, ByVal kind As String, ByVal name As String, _

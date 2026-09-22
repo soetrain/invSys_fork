@@ -187,9 +187,7 @@ function Capture-BoxingFormEvidence([string]$Title,[string]$File,[string]$Label)
         try{
             $handle=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
             if($handle -eq 0){throw 'Requested form window unavailable.'}
-            $activation=New-Object -ComObject WScript.Shell
-            try{[void]$activation.AppActivate($Title)}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
-            CaptureFormEvidence $Title $File $handle
+            CaptureOwnedFormEvidence $Title $File $handle
             Check $Label $true
             return
         }catch{

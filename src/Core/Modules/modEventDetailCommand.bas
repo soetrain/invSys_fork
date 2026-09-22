@@ -2,13 +2,15 @@ Attribute VB_Name = "modEventDetailCommand"
 Option Explicit
 Option Private Module
 
-Public Function Save(ByVal context As String, ByVal expectedVersion As Long, ByVal request As String, ByRef report As String) As Boolean
+Public Function Save(ByVal context As String, ByVal expectedVersion As Long, ByVal request As String, ByRef report As String, Optional ByRef outcome As String = "") As Boolean
     Dim target As WarehouseTarget, model As Object, wb As Workbook, headers As ListObject, fields As ListObject
     Dim created As Collection, row As ListRow, entry As Variant, key As Variant, sheet As Worksheet
     Dim opened As Boolean, changed As Boolean, persisted As Boolean, alerts As Boolean
     Dim version As Long, headerCount As Long, fieldCount As Long, index As Long, priorRequest As String, notice As String
     On Error GoTo Failed
+    outcome = "DENIED"
     If Not modTrackingPolicyModel.AuthorizeEditor(context, target, report) Then Exit Function
+    outcome = "REJECTED"
     report = "Invalid detail profile request. No configuration was changed."
     Set model = modEventDetailModel.Decode(request)
     If model Is Nothing Or expectedVersion < 0 Then Exit Function
@@ -35,7 +37,9 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, ByV
         End If
         headerCount = headers.ListRows.Count: fieldCount = fields.ListRows.Count
     End If
+    outcome = "DENIED"
     If Not modTrackingPolicyModel.AuthorizeEditor(context, target, report) Then GoTo CleanExit
+    outcome = "FAILED"
     changed = True
     If headers Is Nothing Then
         Set headers = modEventSettingsTables.CreateTable(wb, "tblEventDetailProfiles", _
@@ -59,12 +63,14 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, ByV
     If Not wb.Saved Then Err.Raise 5
     persisted = True
     Save = True
+    outcome = "COMPLETED"
     report = "Detail profile version " & CStr(version + 1) & " saved."
 CleanExit:
     On Error Resume Next
     If opened And Not wb Is Nothing Then wb.Close SaveChanges:=False
     Exit Function
 Failed:
+    outcome = "FAILED"
     On Error Resume Next
     If changed And Not persisted Then
         If Not fields Is Nothing Then

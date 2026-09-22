@@ -157,7 +157,7 @@ function Test-Slice4beActionPathPreference($Fixture,$Other) {
         Check 'Preference.OpenDoesNotWriteConfig' ($before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
         if(@($flags | Where-Object { $_ -ceq 'False' }).Count -eq 0) { Test-ActionPathPreferenceActions $Fixture $Other }
         [void](Run 'invSys.Admin.xlam' 'TestD5Commands.PreferenceSurface')
-        if($CaptureEvidence) { Start-Sleep -Milliseconds 300; CaptureFormEvidence 'invSys Settings' 'action-path-preference.png' }
+        if($CaptureEvidence) { CaptureOwnedFormByCaptionEvidence 'invSys Settings' 'action-path-preference.png' }
     } finally { $excel.Visible = $visible }
 }
 
@@ -283,6 +283,9 @@ function Test-ActionPathPreferenceRestart($Fixture) {
     if(-not $owned[0].WaitForExit(5000)) { Stop-Process -Id $owned[0].Id; [void]$owned[0].WaitForExit(5000) }
     if(Get-Process EXCEL -ErrorAction SilentlyContinue) { throw 'Another Excel process prevents isolated restart.' }
     $script:excel = New-Object -ComObject Excel.Application
+    # Failure evidence after this intentional restart must identify the new host.
+    $script:initialExcelWindow = [long]$excel.Hwnd
+    $script:initialExcelProcessIds = @(Get-Process EXCEL -ErrorAction Stop | Select-Object -ExpandProperty Id)
     $excel.Visible=$false; $excel.DisplayAlerts=$false; $excel.EnableEvents=$false; $excel.AutomationSecurity=1
     $restartDeploy = $deploy
     if($CheckOperationsTrackingSettings) { $restartDeploy = $operationsSettingsDeploy }

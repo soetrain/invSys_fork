@@ -95,6 +95,6 @@ Public Function StageField(ByVal request As String, ByVal family As String, ByVa
     If Not validated Is Nothing Then StageField = request
 End Function
 
-Public Function SaveProfile(ByVal context As String, ByVal expectedVersion As Long, ByVal request As String, ByRef report As String) As Boolean
-    SaveProfile = modEventDetailCommand.Save(context, expectedVersion, request, report)
+Public Function SaveProfile(ByVal context As String, ByVal expectedVersion As Long, ByVal request As String, ByRef report As String, Optional ByRef outcome As String = "") As Boolean
+    SaveProfile = modEventDetailCommand.Save(context, expectedVersion, request, report, outcome)
 End Function

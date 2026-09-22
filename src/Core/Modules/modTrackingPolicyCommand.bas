@@ -3,7 +3,7 @@ Option Explicit
 Option Private Module
 
 Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
-                     ByVal request As String, ByRef report As String) As Boolean
+                     ByVal request As String, ByRef report As String, Optional ByRef outcome As String = "") As Boolean
     Dim target As WarehouseTarget, model As Object, wb As Workbook, candidate As Workbook
     Dim headers As ListObject, controls As ListObject, headerRow As ListRow, controlRow As ListRow
     Dim created As Collection, sheet As Worksheet, row As Variant, field As Variant
@@ -11,7 +11,9 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
     Dim headerCount As Long, controlCount As Long, opened As Boolean, changed As Boolean, saved As Boolean
     Dim index As Long
     On Error GoTo Failed
+    outcome = "DENIED"
     If Not modTrackingPolicyModel.AuthorizeEditor(context, target, report) Then Exit Function
+    outcome = "REJECTED"
     report = "Invalid tracking policy request. No configuration was changed."
     Set model = modTrackingPolicyModel.Decode(request)
     If model Is Nothing Or expectedVersion < 0 Then Exit Function
@@ -49,7 +51,9 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
         controlCount = controls.ListRows.Count
     End If
     ' Workbook opening/validation may run Excel callbacks. Recheck before mutation.
+    outcome = "DENIED"
     If Not modTrackingPolicyModel.AuthorizeEditor(context, target, report) Then GoTo CleanExit
+    outcome = "FAILED"
     modRecordingSession.InterruptContext context, "POLICY_CHANGED"
     changed = True
     If headers Is Nothing Then
@@ -80,12 +84,14 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
     If Not wb.Saved Then Err.Raise 5
     saved = True
     Save = True
+    outcome = "COMPLETED"
     report = "Tracking policy version " & CStr(version + 1) & " saved."
 CleanExit:
     On Error Resume Next
     If opened And Not wb Is Nothing Then wb.Close SaveChanges:=False
     Exit Function
 Failed:
+    outcome = "FAILED"
     On Error Resume Next
     If changed And Not saved Then
         If Not controls Is Nothing Then

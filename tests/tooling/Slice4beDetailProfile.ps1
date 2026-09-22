@@ -72,11 +72,15 @@ Public Function DetailTestEntries() As Long
 End Function
 Public Sub DetailTestChoose(ByVal family As String, ByVal field As String)
     Dim index As Long
+    mLoading = True
     mFamily.Value = family
+    mLoading = False
     mFamily_Change
     For index = 0 To mRows.ListCount - 1
         If mRows.List(index, 0) = field Then
+            mLoading = True
             mRows.ListIndex = index
+            mLoading = False
             mRows_Change
             Exit Sub
         End If
@@ -84,7 +88,9 @@ Public Sub DetailTestChoose(ByVal family As String, ByVal field As String)
     Err.Raise 5
 End Sub
 Public Sub DetailTestToggle(ByVal enabled As Boolean)
+    mLoading = True
     mEnabled.Value = enabled
+    mLoading = False
     mEnabled_Click
 End Sub
 Public Sub DetailTestMoveUp()
@@ -191,7 +197,7 @@ function Test-Slice4beDetailProfile($Fixture,$Other) {
             $excel.Visible=$true
             [void](Run 'invSys.Admin.xlam' 'TestD5Commands.DetailProfileSelectSection')
             Start-Sleep -Milliseconds 300
-            CaptureFormEvidence 'invSys Settings' 'detail-profile-editor.png'
+            CaptureOwnedFormByCaptionEvidence 'invSys Settings' 'detail-profile-editor.png'
         }
         finally {$excel.Visible=$wasVisible}
     }

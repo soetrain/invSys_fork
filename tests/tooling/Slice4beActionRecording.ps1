@@ -76,7 +76,9 @@ End Function
     $policy=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('cAdminTrackingPolicy').CodeModule
     $policy.AddFromString(@'
 Public Function RecordingCapturePolicyForTest(ByVal enabled As Boolean) As Boolean
+    mLoading = True
     mCapture.Value = enabled
+    mLoading = False
     mCapture_Click
     mSave_Click
     RecordingCapturePolicyForTest = (InStr(1, mStatus.Caption, " saved.", vbBinaryCompare) > 0)
@@ -170,7 +172,20 @@ End Function
         [void](RecordingControl 'Start Recording' 'Click')
         $policyRun=SaveRecordedSetting '616'
         SetRecordingPolicy $false
-        Check 'Recording.PolicyChangeClosesIncomplete' (JournalFact $policyRun.Attempt.SequenceId 'Close' 1 'Incomplete')
+        $policyClosed=@(RecordingJournal $policyRun.Attempt.SequenceId|Where-Object RecordType -CEQ 'Close')
+        $policyFacts=if($policyClosed.Count -eq 1){@($policyClosed[0].Observations)}else{@()}
+        $exactPolicyFacts=$policyFacts.Count -eq 5
+        if($exactPolicyFacts){
+            $exactPolicyFacts=$policyFacts[0].RecordId -ceq $policyRun.Attempt.RecordId -and
+                $policyFacts[1].RecordId -ceq $policyRun.Outcome.RecordId -and
+                ($policyFacts.ControlId -join '|') -ceq 'ADMIN_SETTINGS_SAVE_VALUE|ADMIN_SETTINGS_SAVE_VALUE|ADMIN_TRACKING_CAPTURE|ADMIN_TRACKING_CAPTURE|ADMIN_TRACKING_SAVE' -and
+                ($policyFacts.OutcomeCode -join '|') -ceq 'REQUESTED|COMPLETED|REQUESTED|STAGED|REQUESTED' -and
+                ($policyFacts.Ordinal -join '|') -ceq '1|1|2|2|3' -and
+                $policyFacts[2].ActivityId -ceq $policyFacts[3].ActivityId -and
+                $policyClosed[0].ReasonCode -ceq 'POLICY_CHANGED'
+        }
+        Check 'Recording.PolicyChangeClosesIncomplete' ((JournalFact $policyRun.Attempt.SequenceId 'Close' 3 'Incomplete') -and
+            (JournalChain $policyRun.Attempt.SequenceId 7) -and $exactPolicyFacts)
         CloseRecordingViewer
         SetRecordingPolicy $true
         OpenRecordingViewer

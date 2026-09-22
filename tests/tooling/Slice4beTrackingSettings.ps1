@@ -152,7 +152,7 @@ function Test-Slice4beTrackingSettingsSurface($Fixture) {
     Check 'TrackingSettings.CaptureDefaultsOff' ($flags[5] -ceq 'True')
     Check 'TrackingSettings.PersonalViewChoices' ($flags[6] -ceq 'True')
     Check 'TrackingSettings.OpenDoesNotWriteConfig' ($before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
-    if ($CaptureEvidence) { CaptureFormEvidence 'invSys Settings' 'tracking-settings-open.png' }
+    if ($CaptureEvidence) { CaptureOwnedFormByCaptionEvidence 'invSys Settings' 'tracking-settings-open.png' }
     $fits=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsLayoutFits')
     Check 'TrackingSettings.LayoutFitsContainers' $fits
     if(-not $fits){
@@ -165,7 +165,7 @@ function Test-Slice4beTrackingSettingsSurface($Fixture) {
     $selected=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('Event Tracking'))
     Check 'TrackingSettings.SelectEventTracking' $selected
     Check 'TrackingSettings.EventTrackingLayoutFitsContainers' ($selected -and [bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsLayoutFits'))
-    if ($CaptureEvidence) { CaptureFormEvidence 'invSys Settings' 'tracking-settings-page.png' }
+    if ($CaptureEvidence) { CaptureOwnedFormByCaptionEvidence 'invSys Settings' 'tracking-settings-page.png' }
     Check 'TrackingSettings.ReturnToGeneral' ([bool](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('General')))
     Check 'TrackingSettings.SwitchDoesNotWriteConfig' ($before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
     } finally { $excel.Visible=$wasVisible }

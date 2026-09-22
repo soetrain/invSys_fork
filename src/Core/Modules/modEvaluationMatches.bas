@@ -92,19 +92,31 @@ Public Function CommandCompleted(ByVal record As Object) As Boolean
     Dim definition As Object, outcome As Object, code As String
     Set definition = modActivityCatalog.Control(CStr(record("ControlId")), CLng(record("CatalogVersion")))
     If definition Is Nothing Then Exit Function
+    If CStr(record("OwnerId")) <> CStr(definition("OwnerId")) Then Exit Function
     Set outcome = modActivityCatalog.Outcome(CStr(record("ControlId")), CStr(record("OutcomeCode")))
     If outcome Is Nothing Then Exit Function
     code = CStr(record("OutcomeCode"))
     ' Explicit owner facts; severity and data effect are deliberately not classifiers.
     Select Case CStr(record("ControlId"))
         Case "ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", _
-             "ADMIN_UOM_ADD", "ADMIN_UOM_REMOVE", "ADMIN_UOM_RESET"
+             "ADMIN_UOM_ADD", "ADMIN_UOM_REMOVE", "ADMIN_UOM_RESET", _
+             "ADMIN_PATH_PREFERENCE_SAVE", "VIEWER_PATH_PREFERENCE_SAVE"
             CommandCompleted = (code = "COMPLETED" Or code = "UNCHANGED")
+        Case "ADMIN_DETAIL_SAVE": CommandCompleted = (code = "COMPLETED")
         Case "RECEIVING_CONFIRM_WRITES", "RECEIVING_WORKSHEET_CONFIRM", "DISPOSITION_CONFIRM", "SHIPPING_SEND", _
              "BOXING_MAKE", "BOXING_UNBOX"
             CommandCompleted = (code = "CONFIRMED")
         Case "RECEIVING_ADD_SELECTED", "DISPOSITION_ADD_SELECTED", "SHIPPING_ADD", "SHIPPING_UPDATE", "SHIPPING_REMOVE", "SHIPPING_HOLD", "SHIPPING_RETURN", "SHIPPING_STAGE": CommandCompleted = (code = "STAGED")
-        Case "RECEIVING_REFRESH": CommandCompleted = (code = "REFRESHED")
+        Case "ADMIN_TRACKING_CAPTURE", "ADMIN_TRACKING_ADMIN_VISIBLE", "ADMIN_TRACKING_DEFAULT_VIEW", _
+             "ADMIN_TRACKING_COLLECT", "ADMIN_TRACKING_VISIBLE", "ADMIN_TRACKING_SEQUENCE", "ADMIN_TRACKING_RESET", _
+             "ADMIN_DETAIL_SHOW_FIELD", "ADMIN_DETAIL_MOVE_UP", "ADMIN_DETAIL_MOVE_DOWN", "ADMIN_DETAIL_RESET", _
+             "ADMIN_PATH_PREFERENCE_SELECT", "ADMIN_PATH_PREFERENCE_RESET", "VIEWER_PATH_PREFERENCE_SELECT", "VIEWER_PATH_PREFERENCE_RESET"
+            CommandCompleted = (code = "STAGED")
+        Case "RECEIVING_REFRESH", "ADMIN_TRACKING_RELOAD", "ADMIN_DETAIL_RELOAD", _
+             "ADMIN_PATH_PREFERENCE_RELOAD", "VIEWER_PATH_PREFERENCE_RELOAD"
+            CommandCompleted = (code = "REFRESHED")
+        Case "ADMIN_TRACKING_SELECT_CONTROL", "ADMIN_DETAIL_SELECT_FAMILY", "ADMIN_DETAIL_SELECT_FIELD"
+            CommandCompleted = (code = "SELECTED")
         Case "RECEIVING_CLEAR": CommandCompleted = (code = "CLEARED" Or code = "EMPTY")
         Case "RECEIVING_OPEN": CommandCompleted = (code = "OPENED" Or code = "REUSED")
         Case "RECEIVING_CLOSE": CommandCompleted = (code = "CLOSED")

@@ -2,10 +2,18 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 10
+Public Const CATALOG_VERSION As Long = 11
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
-    Dim ids As Variant
+    Dim ids As Variant, added As Variant, index As Long, offset As Long
+    If version = 11 Then
+        ids = ControlIds(10): added = modSettingsActivityCodes.ControlIds()
+        offset = UBound(ids) + 1
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + UBound(added) + 1)
+        For index = LBound(added) To UBound(added): ids(offset + index) = added(index): Next index
+        ControlIds = ids
+        Exit Function
+    End If
     If version = 10 Then
         ids = ControlIds(9)
         ReDim Preserve ids(LBound(ids) To UBound(ids) + 3)
@@ -74,6 +82,10 @@ End Function
 Public Function Control(ByVal controlId As String, Optional ByVal version As Long = CATALOG_VERSION) As Object
     Dim record As Object
     If version < 1 Or version > CATALOG_VERSION Then Exit Function
+    If version >= 11 Then
+        Set record = modSettingsActivityCodes.Control(controlId)
+        If Not record Is Nothing Then Set Control = record: Exit Function
+    End If
     If version >= 8 Then
         Set record = modShippingActivityCodes.Control(controlId, version)
         If Not record Is Nothing Then Set Control = record: Exit Function
@@ -178,6 +190,11 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Dim record As Object, definition As Object, message As String
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
+    Set record = modSettingsActivityCodes.Control(controlId)
+    If Not record Is Nothing Then
+        Set Outcome = modSettingsActivityCodes.Outcome(controlId, outcomeCode)
+        Exit Function
+    End If
     If definition("Role") = "Shipping" Or definition("Role") = "Boxing" Then
         Set Outcome = modShippingActivityCodes.Outcome(controlId, outcomeCode)
         Exit Function

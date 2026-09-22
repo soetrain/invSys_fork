@@ -7,6 +7,9 @@ param(
     [switch]$CheckActivityEvidence,
     [switch]$CheckActivityFoundation,
     [switch]$CheckAdminUomActivity,
+    [switch]$CheckSettingsEditorActivity,
+    [switch]$CheckSettingsDiagnostics,
+    [switch]$SettingsSafetyOnly,
     [switch]$CheckAdminUomExpectationChoice,
     [switch]$CheckTrackingSettings,
     [switch]$CheckTrackingPolicy,
@@ -174,7 +177,13 @@ if($CheckAdminUomActivity){
     if(-not $CompileEvaluationProbesForTest -or $CheckViewerPublishedRead -or $CheckTrackingSettings -or $CheckShippingActivity -or $CheckReceivingActivity -or $CheckActivityFoundation){throw 'Admin UOM commands require their separate compiled activity gate.'}
     $CheckActivityEvidence=$true
 }
-if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead -or $CheckAdminUomActivity)){
+if($CheckSettingsDiagnostics){$CheckSettingsEditorActivity=$true}
+if($CheckSettingsEditorActivity){
+    if(-not $CompileEvaluationProbesForTest -or -not $CaptureEvidence -or $CheckAdminUomActivity -or $CheckViewerPublishedRead -or $CheckTrackingSettings -or $CheckShippingActivity -or $CheckReceivingActivity -or $CheckActivityFoundation){throw 'Settings editor observations require their separate visible compiled gate.'}
+    $CheckActivityEvidence=$true
+}
+if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
+if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead -or $CheckAdminUomActivity -or $CheckSettingsEditorActivity -or $CheckTrackingSettings)){
     throw 'Instrumented project compilation requires a supported focused gate.'
 }
 if($TraceSettingsOpenForTest -and ($Phase -ne 'RED' -or -not $CheckTrackingSettings)) {
@@ -331,6 +340,11 @@ if($CheckAdminUomExpectationChoice){
     . (Join-Path $PSScriptRoot 'Slice4beAdminUomProbe.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beAdminUomExpectation.ps1')
 }
+if($CheckSettingsEditorActivity){
+    $reportRoot=Join-Path $repo ('reports/runtime/slice4be-settings-activity/'+[guid]::NewGuid().ToString('N'))
+    . (Join-Path $PSScriptRoot 'Slice4beSettingsEditorProbe.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beSettingsEditorActivity.ps1')
+}
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $inputDeploy=$deploy
 if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly'){
@@ -392,6 +406,7 @@ public static class InvSysSettingsCapture {
     [StructLayout(LayoutKind.Sequential)] public struct Input { public uint Type; public Mouse Mouse; }
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
+    [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
@@ -409,6 +424,19 @@ public static class InvSysSettingsCapture {
     [DllImport("user32.dll",EntryPoint="GetWindowLongW")] static extern int GetWindowLong32(IntPtr window,int index);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int length);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, System.Text.StringBuilder text, int length);
+    // Window rectangles are DPI-virtualized; screen pixels and cursor targets
+    // must use the same physical coordinate space. Never change process DPI.
+    sealed class PhysicalPixels : IDisposable {
+        readonly IntPtr previous;
+        public PhysicalPixels() {
+            previous=SetThreadDpiAwarenessContext(new IntPtr(-4));
+            if(previous==IntPtr.Zero)throw new Exception("Physical capture coordinates unavailable.");
+        }
+        public void Dispose() {
+            if(SetThreadDpiAwarenessContext(previous)==IntPtr.Zero)
+                throw new Exception("Capture DPI context could not be restored.");
+        }
+    }
     public static string ForegroundIdentity(IntPtr intended) {
         IntPtr wanted=GetAncestor(intended,2), actual=GetAncestor(GetForegroundWindow(),2);
         uint wantedProcess,actualProcess;
@@ -432,6 +460,7 @@ public static class InvSysSettingsCapture {
         return count==1 ? found : IntPtr.Zero;
     }
     public static bool ActivateByCaptionClick(IntPtr form,IntPtr excel) {
+        using(var pixels=new PhysicalPixels()) {
         Rect rect;uint formProcess,excelProcess;
         GetWindowThreadProcessId(form,out formProcess);GetWindowThreadProcessId(excel,out excelProcess);
         if(formProcess==0 || formProcess!=excelProcess || !IsWindowVisible(form) || !IsWindowEnabled(form) || !GetWindowRect(form,out rect))
@@ -463,6 +492,7 @@ public static class InvSysSettingsCapture {
             if(raised && (!SetWindowPos(form,new IntPtr(-2),0,0,0,0,0x13) || IsTopmost(form)!=wasTopmost))
                 throw new Exception("Capture form topmost state could not be restored.");
         }
+        }
     }
     static bool IsTopmost(IntPtr window) {
         long style=IntPtr.Size==8 ? GetWindowLong64(window,-20).ToInt64() : GetWindowLong32(window,-20);
@@ -472,6 +502,7 @@ public static class InvSysSettingsCapture {
         SaveWindow(FindWindow(null,title),path);
     }
     public static void SaveWindow(IntPtr hwnd, string path) {
+        using(var pixels=new PhysicalPixels()) {
         Rect r;
         if(hwnd==IntPtr.Zero || !GetWindowRect(hwnd,out r)) throw new Exception("Requested form window unavailable.");
         using(var bitmap=new Bitmap(r.Right-r.Left,r.Bottom-r.Top)) {
@@ -482,19 +513,24 @@ public static class InvSysSettingsCapture {
             }
             bitmap.Save(path,System.Drawing.Imaging.ImageFormat.Png);
         }
+        }
     }
     public static void SaveVisibleWindow(IntPtr hwnd, string path) {
+        using(var pixels=new PhysicalPixels()) {
         Rect r;
         if(hwnd==IntPtr.Zero || !GetWindowRect(hwnd,out r)) throw new Exception("Requested form window unavailable.");
         SetForegroundWindow(hwnd);
         System.Threading.Thread.Sleep(200);
         if(GetAncestor(GetForegroundWindow(),2)!=GetAncestor(hwnd,2)) throw new Exception("Requested form is not in the foreground.");
+        if(!GetWindowRect(hwnd,out r)) throw new Exception("Requested form window unavailable.");
         using(var bitmap=new Bitmap(r.Right-r.Left,r.Bottom-r.Top)) {
             using(var graphics=Graphics.FromImage(bitmap)) { graphics.CopyFromScreen(r.Left,r.Top,0,0,bitmap.Size); }
             bitmap.Save(path,System.Drawing.Imaging.ImageFormat.Png);
         }
+        }
     }
     public static bool SaveOwnedForegroundForm(IntPtr owner, string[] titles, string path) {
+        using(var pixels=new PhysicalPixels()) {
         IntPtr hwnd=GetAncestor(GetForegroundWindow(),2);
         uint ownerProcess,foregroundProcess;
         GetWindowThreadProcessId(owner,out ownerProcess);GetWindowThreadProcessId(hwnd,out foregroundProcess);
@@ -507,6 +543,7 @@ public static class InvSysSettingsCapture {
             bitmap.Save(path,System.Drawing.Imaging.ImageFormat.Png);
         }
         return true;
+        }
     }
 }
 '@
@@ -702,7 +739,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($CheckGuideDraft -or $CheckOperationsGuidePresentation){
+    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -839,6 +876,10 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beActionPathPreference.ps1')
         Install-Slice4beActionPathPreferenceProbe $testModule $formCode
     }
+    if($CheckAdminSettingsClose){
+        . (Join-Path $PSScriptRoot 'Slice4beAdminSettingsClose.ps1')
+        Install-AdminSettingsDefaultCloseProbe $testModule $formCode
+    }
     if($TraceSettingsOpenForTest) {
         . (Join-Path $PSScriptRoot 'Slice4beSettingsOpenTrace.ps1')
         Install-Slice4beSettingsOpenTrace $testModule $formCode (Join-Path $reportRoot 'settings-open-stages.csv')
@@ -956,6 +997,35 @@ End Function
         Check 'Harness.RecordingProbesInstalledBeforeForms' $noForms
         if(-not $noForms){throw 'A form was already loaded during initial probe setup; not product RED.'}
     }
+    if($CheckSettingsEditorActivity){
+        . (Join-Path $PSScriptRoot 'Slice4beViewerPublishedRead.ps1')
+        Test-Slice4beViewerPublishedRead $null $null $true
+        . (Join-Path $PSScriptRoot 'Slice4beActionRecording.ps1')
+        Test-Slice4beActionRecording $null $true
+        . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
+        Install-Slice4beShippingCatalogProbe
+        Install-SettingsActivityProbe
+        if($CheckSettingsDiagnostics){
+            . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
+            Test-Slice4beRecordingReader $null $null $true
+            . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
+            Install-RecordingEvaluationProbe
+            . (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')
+            . (Join-Path $PSScriptRoot 'Slice4beSettingsDiagnostics.ps1')
+        }
+        . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
+        Compile-Slice4beEvaluationProbes
+        $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
+        Check 'Harness.SettingsEditorProbesInstalledBeforeForms' $noForms
+        if(-not $noForms){throw 'Settings probes must precede forms; not product RED.'}
+    }
+    if($CheckTrackingSettings -and $CompileEvaluationProbesForTest){
+        . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
+        Compile-Slice4beEvaluationProbes
+        $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
+        Check 'Harness.SettingsRegressionProbesInstalledBeforeForms' $noForms
+        if(-not $noForms){throw 'Settings regression probes must precede forms; not product RED.'}
+    }
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     if($GuideCaptureSavedWorkbookForTest){
@@ -995,8 +1065,7 @@ End Function
     SelectTarget $a
     if($CheckAdminSettingsClose) {
         $step='real Admin Settings close and reopen'
-        . (Join-Path $PSScriptRoot 'Slice4beAdminSettingsClose.ps1')
-        Test-AdminSettingsDefaultClose $a $testModule $formCode
+        Test-AdminSettingsDefaultClose $a
     }
     if($CheckViewerRefreshFailure) {
         $step='packaged Viewer refresh failure'
@@ -1091,7 +1160,7 @@ End Function
     if($CaptureEvidence){
         [void](Run 'invSys.Admin.xlam' 'TestD5Commands.ShowSettings')
         Start-Sleep -Milliseconds 300
-        CaptureFormEvidence 'invSys Settings' 'settings-save.png'
+        CaptureOwnedFormByCaptionEvidence 'invSys Settings' 'settings-save.png'
     }
     SelectTarget $b
     $beforeA=(Get-FileHash -LiteralPath $a.Config).Hash; $beforeB=(Get-FileHash -LiteralPath $b.Config).Hash
@@ -1173,6 +1242,10 @@ End Function
         Test-AdminUomPublication $a
         Test-AdminUomTracking $a
     }
+    if($CheckSettingsEditorActivity){
+        $step='Settings observations through actual packaged callbacks'
+        Test-SettingsEditorActivity $a $b
+    }
     if ($CheckShippingActivity) {
         $step='Shipping catalog and source-reference contract'
         Test-Slice4beShippingCatalog
@@ -1236,8 +1309,15 @@ finally {
                 [void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')
             }
         } catch {}
-        try { foreach($book in @($excel.Workbooks)){ $book.Close($false) }; $excel.Quit() } catch {}
+        $hasSettingsHostEvidence=$CheckSettingsDiagnostics -and ($null -ne (Get-Command Write-SettingsHostEvidence -ErrorAction SilentlyContinue))
+        try {
+            foreach($book in @($excel.Workbooks)){ $book.Close($false) }
+            if($hasSettingsHostEvidence){Write-SettingsHostEvidence 'BeforeQuit'}
+            $excel.Quit()
+            if($hasSettingsHostEvidence){Write-SettingsHostEvidence 'QuitReturned' $false}
+        } catch {}
         [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($excel)
+        if($hasSettingsHostEvidence){Write-SettingsHostEvidence 'FinalReleaseReturned' $false}
     }
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
     if(Test-Path -LiteralPath $settingsRoot) {
@@ -1257,6 +1337,7 @@ finally {
         }
     }
     $reportName=$Phase.ToLowerInvariant()+'.json'
+    if($SettingsSafetyOnly){$reportName='diagnostic-settings-safety-'+$reportName}
     if($CheckShippingRecording){$reportName='shipping-recording-'+$reportName}
     if($CheckBoxingActivity){$reportName='boxing-activity-'+$reportName}
     if($OwnerCommandCompletionOnly){$reportName='owner-completion-'+$reportName}

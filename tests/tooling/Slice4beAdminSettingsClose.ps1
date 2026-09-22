@@ -1,5 +1,5 @@
 # D18 Close-discard through the real modal Admin launcher/default instance.
-function Test-AdminSettingsDefaultClose($Fixture,$TestModule,$FormCode) {
+function Install-AdminSettingsDefaultCloseProbe($TestModule,$FormCode) {
     $FormCode.AddFromString(@'
 Public Function DefaultCloseStateForTest(ByVal phase As Long) As String
     If phase = 1 Then
@@ -49,6 +49,9 @@ End Sub
 '@)
     $line = $FormCode.ProcBodyLine('UserForm_Activate',0)
     $FormCode.InsertLines($line+1,'    If TestD5Commands.DriveDefaultClose(Me) Then Exit Sub')
+}
+
+function Test-AdminSettingsDefaultClose($Fixture) {
     $operator = $excel.Workbooks.Add()
     try {
         $operator.SaveAs((Join-Path $runRoot 'settings-operator.xlsm'),52)

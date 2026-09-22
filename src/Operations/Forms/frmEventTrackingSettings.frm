@@ -88,10 +88,11 @@ Public Function HasContext(ByVal context As String) As Boolean
     HasContext = (mContext <> "" And mContext = context)
 End Function
 
-Public Sub ReloadSettings()
+Public Sub ReloadSettings(Optional ByRef outcome As String = "")
     Dim choice As String, effective As String, evidence As String, report As String, request As String
     Dim version As Long, catalogVersion As Long, readable As Boolean, rows As String, line As Variant, fields As Variant, index As Long, column As Long
     readable = modActionPathPreference.ReadPreference(mContext, choice, effective, evidence, report, version, request, catalogVersion)
+    outcome = IIf(readable, "REFRESHED", "FAILED")
     mLoading = True
     mChoice.ListIndex = -1
     If choice <> "" Then mChoice.Value = choice
@@ -122,25 +123,60 @@ Public Sub ReloadSettings()
     Next line
 End Sub
 
-Public Function SaveMyPreference() As Boolean
+Public Function SaveMyPreference(Optional ByRef outcome As String = "") As Boolean
     Dim report As String
-    SaveMyPreference = modActionPathPreference.SavePreference(mContext, CStr(mChoice.Value), report)
+    SaveMyPreference = modActionPathPreference.SavePreference(mContext, CStr(mChoice.Value), report, outcome)
     If SaveMyPreference Then ReloadSettings
     mStatus.Caption = report
 End Function
 
 Private Sub mChoice_Change()
-    If mLoading Or mStatus Is Nothing Then Exit Sub
-    mStatus.Caption = "Personal choice staged. Save My Preference to apply."
+    PerformSettings "VIEWER_PATH_PREFERENCE_SELECT"
 End Sub
 Private Sub mSave_Click()
-    SaveMyPreference
+    PerformSettings "VIEWER_PATH_PREFERENCE_SAVE"
 End Sub
 Private Sub mReset_Click()
-    If mChoice.Enabled Then mChoice.ListIndex = 0
+    PerformSettings "VIEWER_PATH_PREFERENCE_RESET"
 End Sub
 Private Sub mReload_Click()
-    ReloadSettings
+    PerformSettings "VIEWER_PATH_PREFERENCE_RELOAD"
+End Sub
+
+Private Sub PerformSettings(ByVal controlId As String)
+    Dim activityId As String, notice As String, outcome As String
+    If mLoading Or mStatus Is Nothing Then Exit Sub
+    On Error GoTo Failed
+    If mContext = "" Or mContext <> modActivity.CaptureContext() Then
+        mStatus.Caption = "Session or warehouse changed. Reopen Settings."
+        Exit Sub
+    End If
+    activityId = modActivity.BeginAction(controlId, mContext, notice)
+    outcome = "REJECTED"
+    Select Case controlId
+        Case "VIEWER_PATH_PREFERENCE_SELECT"
+            If mChoice.Enabled And mChoice.ListIndex >= 0 Then
+                mStatus.Caption = "Personal choice staged. Save My Preference to apply."
+                outcome = "STAGED"
+            End If
+        Case "VIEWER_PATH_PREFERENCE_SAVE": SaveMyPreference outcome
+        Case "VIEWER_PATH_PREFERENCE_RESET"
+            If mChoice.Enabled Then
+                mLoading = True: mChoice.ListIndex = 0: mLoading = False
+                mStatus.Caption = "Warehouse default staged. Save My Preference to apply."
+                outcome = "STAGED"
+            End If
+        Case "VIEWER_PATH_PREFERENCE_RELOAD": ReloadSettings outcome
+    End Select
+Done:
+    If activityId <> "" Then modActivity.FinishAction activityId, outcome, notice
+    If notice <> "" Then mStatus.Caption = mStatus.Caption & " " & notice
+    Exit Sub
+Failed:
+    mLoading = False
+    If outcome <> "COMPLETED" And outcome <> "UNCHANGED" Then outcome = "FAILED"
+    mStatus.Caption = "Settings action or display update failed. Reopen Settings to verify."
+    Resume Done
 End Sub
 Private Sub mClose_Click()
     Unload Me

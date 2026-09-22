@@ -55,18 +55,28 @@ Failed:
     report = "Personal preference could not be read. No settings were changed."
 End Function
 
-Public Function SavePreference(ByVal context As String, ByVal choice As String, ByRef report As String) As Boolean
+Public Function SavePreference(ByVal context As String, ByVal choice As String, ByRef report As String, Optional ByRef outcome As String = "") As Boolean
     Dim target As WarehouseTarget, key As String
     On Error GoTo Failed
+    outcome = "DENIED"
     If Not PreferenceKey(context, key, target, report) Then Exit Function
+    outcome = "REJECTED"
     report = "Invalid Action Path view. No settings were changed."
     If Not ValidChoice(choice) Then Exit Function
+    If GetSetting(SETTINGS_APP, SETTINGS_SECTION, key, DEFAULT_CHOICE) = choice Then
+        outcome = "UNCHANGED": SavePreference = True
+        report = "Your Action Path preference already matches."
+        Exit Function
+    End If
+    outcome = "FAILED"
     SaveSetting SETTINGS_APP, SETTINGS_SECTION, key, choice
     If GetSetting(SETTINGS_APP, SETTINGS_SECTION, key, "") <> choice Then GoTo Failed
     SavePreference = True
+    outcome = "COMPLETED"
     report = "Your Action Path preference was saved."
     Exit Function
 Failed:
+    outcome = "FAILED"
     report = "Personal preference save could not be verified. Reload before retrying."
 End Function
 

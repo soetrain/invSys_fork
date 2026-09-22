@@ -56,26 +56,35 @@ Public Sub Initialize(ByVal page As Object, ByVal context As String)
     ReloadProfile
 End Sub
 
-Public Sub ReloadProfile()
+Public Sub ReloadProfile(Optional ByRef outcome As String = "")
     Dim report As String
     mCanEdit = modEventDetailSettings.ReadEditor(mContext, mVersion, mRequest, report)
+    outcome = IIf(mCanEdit, "REFRESHED", "FAILED")
     mSave.Enabled = mCanEdit: mReset.Enabled = mCanEdit
-    If mRequest <> "" Then Render Else mRows.Clear: mPreview.Value = ""
+    If mRequest <> "" Then
+        Render
+    Else
+        mLoading = True
+        mRows.Clear: mPreview.Value = ""
+        mLoading = False
+    End If
     ShowSelection
     mStatus.Caption = report
     mVersionLabel.Caption = "Profile version " & CStr(mVersion) & IIf(mVersion = 0, " (built-in defaults)", "")
 End Sub
 
-Public Sub ResetProfile()
+Public Sub ResetProfile(Optional ByRef outcome As String = "")
+    outcome = "REJECTED"
     If Not mCanEdit Then Exit Sub
     mRequest = modEventDetailSettings.DefaultRequest()
     Render
     mStatus.Caption = "Profile defaults staged. Save Detail Profile to apply."
+    outcome = "STAGED"
 End Sub
 
-Public Function SaveProfile() As Boolean
+Public Function SaveProfile(Optional ByRef outcome As String = "") As Boolean
     Dim report As String
-    SaveProfile = modEventDetailSettings.SaveProfile(mContext, mVersion, mRequest, report)
+    SaveProfile = modEventDetailSettings.SaveProfile(mContext, mVersion, mRequest, report, outcome)
     If SaveProfile Then ReloadProfile
     mStatus.Caption = report
 End Function
@@ -119,8 +128,9 @@ Private Sub ShowSelection()
     mLoading = False
 End Sub
 
-Private Sub StageSelected(ByVal move As Long)
+Private Sub StageSelected(ByVal move As Long, Optional ByRef outcome As String = "")
     Dim staged As String
+    outcome = "REJECTED"
     If mLoading Or Not mCanEdit Or mRows.ListIndex < 0 Then Exit Sub
     staged = modEventDetailSettings.StageField(mRequest, CStr(mFamily.Value), _
         CStr(mRows.List(mRows.ListIndex, 0)), CBool(mEnabled.Value), move)
@@ -128,29 +138,63 @@ Private Sub StageSelected(ByVal move As Long)
     mRequest = staged
     Render
     mStatus.Caption = "Profile changes staged. Save Detail Profile to apply."
+    outcome = "STAGED"
 End Sub
 
 Private Sub mFamily_Change()
-    If Not mLoading And mRequest <> "" Then Render
+    PerformSettings "ADMIN_DETAIL_SELECT_FAMILY"
 End Sub
 Private Sub mRows_Change()
-    ShowSelection
+    PerformSettings "ADMIN_DETAIL_SELECT_FIELD"
 End Sub
 Private Sub mEnabled_Click()
-    StageSelected 0
+    PerformSettings "ADMIN_DETAIL_SHOW_FIELD"
 End Sub
 Private Sub mUp_Click()
-    StageSelected -1
+    PerformSettings "ADMIN_DETAIL_MOVE_UP"
 End Sub
 Private Sub mDown_Click()
-    StageSelected 1
+    PerformSettings "ADMIN_DETAIL_MOVE_DOWN"
 End Sub
 Private Sub mSave_Click()
-    SaveProfile
+    PerformSettings "ADMIN_DETAIL_SAVE"
 End Sub
 Private Sub mReset_Click()
-    ResetProfile
+    PerformSettings "ADMIN_DETAIL_RESET"
 End Sub
 Private Sub mReload_Click()
-    ReloadProfile
+    PerformSettings "ADMIN_DETAIL_RELOAD"
+End Sub
+
+Private Sub PerformSettings(ByVal controlId As String)
+    Dim activityId As String, notice As String, outcome As String
+    If mLoading Or mStatus Is Nothing Then Exit Sub
+    On Error GoTo Failed
+    If mContext = "" Or mContext <> modActivity.CaptureContext() Then
+        mStatus.Caption = "Session or warehouse changed. Reopen Settings."
+        Exit Sub
+    End If
+    activityId = modActivity.BeginAction(controlId, mContext, notice)
+    outcome = "REJECTED"
+    Select Case controlId
+        Case "ADMIN_DETAIL_SELECT_FAMILY"
+            If mRequest <> "" Then Render: outcome = "SELECTED"
+        Case "ADMIN_DETAIL_SELECT_FIELD"
+            If mRows.ListIndex >= 0 Then ShowSelection: outcome = "SELECTED"
+        Case "ADMIN_DETAIL_SHOW_FIELD": StageSelected 0, outcome
+        Case "ADMIN_DETAIL_MOVE_UP": StageSelected -1, outcome
+        Case "ADMIN_DETAIL_MOVE_DOWN": StageSelected 1, outcome
+        Case "ADMIN_DETAIL_SAVE": SaveProfile outcome
+        Case "ADMIN_DETAIL_RESET": ResetProfile outcome
+        Case "ADMIN_DETAIL_RELOAD": ReloadProfile outcome
+    End Select
+Done:
+    If activityId <> "" Then modActivity.FinishAction activityId, outcome, notice
+    If notice <> "" Then mStatus.Caption = mStatus.Caption & " " & notice
+    Exit Sub
+Failed:
+    mLoading = False
+    If outcome <> "COMPLETED" Then outcome = "FAILED"
+    mStatus.Caption = "Settings action or display update failed. Reopen Settings to verify."
+    Resume Done
 End Sub

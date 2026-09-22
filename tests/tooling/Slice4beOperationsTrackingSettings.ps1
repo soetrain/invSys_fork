@@ -29,6 +29,9 @@ End Function
 Public Function OperationsViewerObserved() As Boolean
     If Not mInventoryViewer Is Nothing Then OperationsViewerObserved = mInventoryViewer.Visible
 End Function
+Public Function OperationsSettingsLoadedFormsForTest() As Long
+    OperationsSettingsLoadedFormsForTest = VBA.UserForms.Count
+End Function
 Public Function OperationsViewerCaptionForTest() As String
     OperationsViewerCaptionForTest = mInventoryViewer.Caption
 End Function
@@ -258,6 +261,13 @@ Public Function OpsSettingsTestWarehouseWrite(ByVal context As String) As Boolea
 End Function
 '@)
     }
+    if($CompileEvaluationProbesForTest){
+        . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
+        Compile-Slice4beEvaluationProbes -PackageNames @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam') -PackageRoot $operationsSettingsDeploy -CheckPrefix 'Harness.OperationsSettingsCompile.'
+        $noForms=[long](Run 'invSys.Operations.xlam' 'modInventoryViewer.OperationsSettingsLoadedFormsForTest') -eq 0
+        Check 'Harness.OperationsSettingsProbesInstalledBeforeForms' $noForms
+        if(-not $noForms){throw 'Operations Settings probes must precede forms; not product RED.'}
+    }
     $visible = $excel.Visible
     try {
         $excel.Visible = $true
@@ -273,8 +283,10 @@ End Function
         if($flags[0] -ceq 'True') { Check 'OpsSettings.ApprovedFormTitle' ([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.OperationsSettingsCaptionForTest') -ceq 'Event Tracking Settings') }
         if(@($flags | Where-Object { $_ -ceq 'False' }).Count -eq 0) { Test-OperationsPreferenceActions $Fixture }
         Check 'OpsSettings.ViewerOpenPreservesConfig' ($before -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
-        if($CaptureEvidence) { CaptureFormEvidence 'Viewer' 'operations-viewer-settings-entry.png' ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.OperationsViewerWindowForTest')) }
-        if($CaptureEvidence -and $flags[0] -ceq 'True') { CaptureFormEvidence 'Event Tracking Settings' 'operations-event-tracking-settings.png' ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.OperationsSettingsWindowForTest')) }
+        # Observe the existing native windows after all actual-handler checks.
+        # Capture must not dispatch another VBA Repaint/DoEvents callback.
+        if($CaptureEvidence) { CaptureOwnedFormByCaptionEvidence ('Viewer - '+$Fixture.Warehouse) 'operations-viewer-settings-entry.png' }
+        if($CaptureEvidence -and $flags[0] -ceq 'True') { CaptureOwnedFormByCaptionEvidence 'Event Tracking Settings' 'operations-event-tracking-settings.png' }
     } finally {
         [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseOperationsViewerForTest')
         $excel.Visible = $visible
@@ -378,6 +390,6 @@ public static class OpsSettingsNativeLayout {
         $maximized = [OpsSettingsNativeLayout]::IsZoomed([IntPtr]$handle)
         $name = if($command -eq 3){'Maximize'}else{'Restore'}
         Check ('OpsSettings.Native'+$name+'Fits') ($maximized -eq ($command -eq 3) -and $flags[3] -ceq 'True' -and [bool](Run 'invSys.Operations.xlam' 'modOperationsTrackingSettings.OpsTestPolicyHeaders'))
-        if($CaptureEvidence) { CaptureFormEvidence 'Event Tracking Settings' ('operations-settings-'+$name.ToLowerInvariant()+'.png') $handle }
+        if($CaptureEvidence) { CaptureOwnedFormEvidence 'Event Tracking Settings' ('operations-settings-'+$name.ToLowerInvariant()+'.png') $handle }
     }
 }

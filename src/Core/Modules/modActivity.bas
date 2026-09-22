@@ -101,9 +101,15 @@ Public Function FinishAction(ByVal activityId As String, ByVal outcomeCode As St
         GoTo CleanExit
     End If
     If outcomeCode = "COMPLETED" Or outcomeCode = "UNCHANGED" Or outcomeCode = "CONFIRMED" Or outcomeCode = "PENDING" Then
-        permitted = modRoleUiAccess.CanCurrentUserPerformCapabilityCached(definition("Capability"), ignored)
-        If Not permitted And definition("Role") = "Production" Then _
-            permitted = modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", ignored)
+        If definition.Exists("AuthorityMode") Then
+            permitted = (definition("AuthorityMode") = "SIGNED_IN_CONTEXT" And _
+                definition("OwnerId") = "CORE_PERSONAL_PREFERENCE" And _
+                modSettingsActivityCodes.PersonalControl(CStr(action("ControlId"))))
+        Else
+            permitted = modRoleUiAccess.CanCurrentUserPerformCapabilityCached(definition("Capability"), ignored)
+            If Not permitted And definition("Role") = "Production" Then _
+                permitted = modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", ignored)
+        End If
         If Not permitted Then notice = "Tracking unavailable: completion is not authorized.": GoTo CleanExit
     End If
     If action.Exists("OutcomeBody") Then

@@ -37,28 +37,42 @@ Public Function PolicyTestEntries() As Long
     PolicyTestEntries = mPolicyTestEntries
 End Function
 Public Sub PolicyTestCapture(ByVal enabled As Boolean)
+    mLoading = True
     mCapture.Value = enabled
+    mLoading = False
     mCapture_Click
 End Sub
 Public Sub PolicyTestAdminVisible(ByVal enabled As Boolean)
+    mLoading = True
     mAdminVisible.Value = enabled
+    mLoading = False
     mAdminVisible_Click
 End Sub
 Public Sub PolicyTestView(ByVal value As String)
+    mLoading = True
     mView.Value = value
+    mLoading = False
     mView_Change
 End Sub
 Public Sub PolicyTestControl(ByVal controlId As String, ByVal enabled As Boolean)
     Dim index As Long
     For index = 0 To mRows.ListCount - 1
         If mRows.List(index, 0) = controlId Then
+            mLoading = True
             mRows.ListIndex = index
+            mLoading = False
             mRows_Click
+            mLoading = True
             mCollect.Value = enabled
+            mLoading = False
             mCollect_Click
+            mLoading = True
             mVisible.Value = enabled
+            mLoading = False
             mVisible_Click
+            mLoading = True
             mSequence.Value = enabled
+            mLoading = False
             mSequence_Click
             Exit Sub
         End If
@@ -180,7 +194,7 @@ function Get-TrackingPolicyVersion($Fixture) {
 function Test-Slice4beTrackingPolicy($Fixture,$Other) {
     $request=Get-TrackingPolicyRequest
     $model=$request|ConvertFrom-Json
-    $loaded=($model.SchemaVersion -eq 1 -and $model.CatalogVersion -eq 10 -and $model.Controls.Count -eq 36)
+    $loaded=($model.SchemaVersion -eq 1 -and $model.CatalogVersion -eq 11 -and $model.Controls.Count -eq 62)
     Check 'TrackingPolicy.EditorLoaded' $loaded
     if(-not $loaded){throw 'Tracking policy editor fixture did not load.'}
     Check 'TrackingPolicy.BuiltInDefaults' (-not $model.ViewerActionPathCaptureEnabled -and $model.AdminViewerEventLoggingEnabled -and $model.DefaultView -ceq 'How-To' -and
@@ -316,7 +330,7 @@ function Test-Slice4beTrackingPolicy($Fixture,$Other) {
             [void](Run 'invSys.Admin.xlam' 'TestD5Commands.ShowSettings')
             [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('Event Tracking'))
             Start-Sleep -Milliseconds 300
-            CaptureFormEvidence 'invSys Settings' 'tracking-policy-saved.png'
+            CaptureOwnedFormByCaptionEvidence 'invSys Settings' 'tracking-policy-saved.png'
             [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('General'))
         } finally {$excel.Visible=$wasVisible}
     }

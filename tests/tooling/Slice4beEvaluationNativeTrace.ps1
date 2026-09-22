@@ -73,20 +73,23 @@ End Sub
     }
 }
 
-function Compile-Slice4beEvaluationProbes {
+function Compile-Slice4beEvaluationProbes(
+    [string[]]$PackageNames=@('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam'),
+    [string]$PackageRoot=$deploy,
+    [string]$CheckPrefix='Harness.InstrumentedCompile.') {
     $vbeVisible=$excel.VBE.MainWindow.Visible
     if($null -eq $vbeVisible){throw 'VBE visibility is unavailable.'}
     try {
-        foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam')){
+        foreach($name in $PackageNames){
             $book=$packages[$name]
-            if(-not [string]::Equals($book.FullName,(Join-Path $deploy $name),[StringComparison]::OrdinalIgnoreCase)){
+            if(-not [string]::Equals($book.FullName,(Join-Path $PackageRoot $name),[StringComparison]::OrdinalIgnoreCase)){
                 throw 'Instrumented workbook is outside the candidate package directory.'
             }
             $project=$book.VBProject
             foreach($reference in $project.References){
                 if($reference.IsBroken){throw ('Broken instrumented reference: '+$name)}
                 if($reference.Name -like 'invSys_*' -and -not [string]::Equals(
-                    (Split-Path -Parent $reference.FullPath),$deploy,[StringComparison]::OrdinalIgnoreCase)){
+                    (Split-Path -Parent $reference.FullPath),$PackageRoot,[StringComparison]::OrdinalIgnoreCase)){
                     throw 'Instrumented package reference is outside the candidate directory.'
                 }
             }
@@ -101,7 +104,7 @@ function Compile-Slice4beEvaluationProbes {
             if($null -eq $control -or $null -eq $control.Enabled -or $control.Enabled){
                 throw ('Instrumented compilation did not finish: '+$name)
             }
-            Check ('Harness.InstrumentedCompile.'+$name) $true
+            Check ($CheckPrefix+$name) $true
         }
     } finally {
         $excel.VBE.MainWindow.Visible=[bool]$vbeVisible
