@@ -163,6 +163,29 @@ no Excel instance. Report:
 `reports/runtime/form-failure-diagnostics/8a1798273fc64be7b856ea9b7895dc82/results.json`.
 This supplements diagnosis; it is not packaged product acceptance.
 
+The expanded diagnostic run records **294 PASS / one harness failure**, retaining
+all **243 focused GREEN identities**, with no reported product-check failure.
+Report: `reports/runtime/slice4be-viewer-published-read/89450cea712e432a8e0c2d9d0f1489a5/green.json`.
+UTC **2026-09-22 01:51:14.2621260--02:16:20.3924387**. Excel closes normally;
+zero matching Application events, unchanged frozen packages and unchanged running
+test sources are verified. All **39 captures were individually reviewed** and
+hash-verified. Three methods, four sizes, native maximize/restore, complete bottom
+match IDs, invalid guide/context, unevaluated version, missing/extra/rejected
+actions, None expectations, capture-off history and current visibility loss pass.
+The minimum extra-action bottom viewport exposes both complete original action
+identities. These are partial results, not a passing expanded gate.
+
+The run stops while preparing historical unavailable evidence. The fixture
+incorrectly requires a Stopped closing entry after executing a command excluded
+from sequence capture. Source review shows `modRecordingSession.Prepare` interrupts
+that case with `TRACKING_UNAVAILABLE`, and `Interrupt` writes an Incomplete Close;
+the failed run did not record which combined fixture condition differed. The test
+now requires that existing Incomplete closure, removes the later Stop attempt,
+verifies all three saved per-control policy flags and records only sanitized
+counts/Booleans before rejecting an invalid fixture. No runtime or normative
+contract changes. This is a harness correction, not product RED. Its retry and
+the final unavailable-policy cases remain pending.
+
 The expanded visible gate retains the focused identities and captures all three
 methods, minimum/default/larger/restored and native maximized/restored sizes,
 the saved-result viewport, invalid guide/context and an unevaluated second guide.
@@ -171,6 +194,7 @@ Evaluate, None expectations, capture-off historical evidence and same-session
 visibility loss. Fixtures must be validated before presentation assertions;
 capture/method/Refresh actions must preserve training bytes. The tests do not
 fabricate observation or evaluation records.
-No visible presentation, restart
-preference, capture-off/current-policy, all five comparison outcomes or full
-Release 1 gate is claimed for this draft. Those remain required before acceptance.
+The expanded visible gate, fresh-process paired preference, historical unavailable
+comparison, unreadable-policy recovery and human acceptance remain open. The
+separate full chain passed with the assisted-cleanup limitation recorded above;
+neither partial visible evidence nor that chain completes Slice 4be.

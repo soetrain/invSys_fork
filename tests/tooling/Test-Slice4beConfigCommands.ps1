@@ -31,6 +31,7 @@ param(
     [switch]$CheckGuideExpectation,
     [switch]$CheckGuideEvaluation,
     [switch]$CheckGuidePresentation,
+    [switch]$CheckGuidePresentationAvailability,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideCaptureSavedWorkbookForTest,
@@ -85,6 +86,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $CaptureEvidence -or $DetailScrollLockDiagnostic)){
     throw 'Native scrolling checks require the isolated visible detail gate without temporary unlocking.'
+}
+if($CheckGuidePresentationAvailability){
+    if(-not $CaptureGuideEvidence){throw 'Presentation availability requires the complete visible presentation gate.'}
+    $CheckGuidePresentation=$true
 }
 if($CheckGuidePresentation){$CheckGuideEvaluation=$true}
 if($CheckGuideEvaluation){$CheckGuideExpectation=$true}
@@ -704,7 +709,7 @@ Public Function RoundTrip(ByVal workbookName As String) As Boolean
 End Function
 '@)
     if ($CheckTrackingSettings) { Install-Slice4beTrackingSettingsProbe $testModule }
-    if ($CheckTrackingPolicy) {
+    if ($CheckTrackingPolicy -or $CheckGuidePresentationAvailability) {
         . (Join-Path $PSScriptRoot 'Slice4beTrackingPolicy.ps1')
         Install-Slice4beTrackingPolicyProbe $testModule $formCode
     }

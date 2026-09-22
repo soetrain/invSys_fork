@@ -23,6 +23,7 @@ Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As
             Case "Minimum": owner.Width = 760: owner.Height = 600
             Case "Default", "Restored": owner.Width = 900: owner.Height = 650
             Case "Larger": owner.Width = 1000: owner.Height = 760
+            Case "Current"
             Case Else: Err.Raise 5, , "Unknown guide layout fixture."
         End Select
         If formName = "frmActionPathExpectation" Then
@@ -65,6 +66,14 @@ NextFitControl:
         Case "Rows": GuideDraftControlForTest = CStr(control.ListCount)
         Case "Locked": GuideDraftControlForTest = CStr(control.Locked)
         Case "Selected": GuideDraftControlForTest = CStr(control.Value)
+        Case "ViewportTop", "ViewportBottom"
+            If TypeName(control) <> "TextBox" Then GuideDraftControlForTest = "NOT TEXT": Exit Function
+            If Not control.Locked Or Not control.Visible Or Not owner.Visible Then GuideDraftControlForTest = "UNAVAILABLE": Exit Function
+            control.SetFocus
+            control.SelStart = IIf(action = "ViewportBottom", Len(CStr(control.Value)), 0)
+            control.SelLength = 0
+            owner.Repaint: DoEvents
+            GuideDraftControlForTest = "DELIVERED"
         Case "Values"
             For index = 0 To control.ListCount - 1
                 labels = labels & CStr(control.List(index, 0)) & vbLf

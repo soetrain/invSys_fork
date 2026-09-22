@@ -1,6 +1,11 @@
 # D18 paired presentation; fixtures come from the existing real recording/guide handlers.
 # No new form or presentation implementation is injected by this test.
 function Test-GuidePresentation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideSource,$Observed,$FirstAction,$SecondAction) {
+    function CaptureView([string]$Stage) {
+        if(-not $CaptureGuideEvidence){return}
+        CaptureOwnedFormByCaptionEvidence 'Action Path view' ('paired-view-'+$Stage.ToLowerInvariant()+'.png')
+        Check ('GuidePresentation.VisibleCapture.'+$Stage) $true
+    }
     function ViewControl([string]$Name,[string]$Action,[string]$Value='') {
         BoundControl $Name $Action $Value 'frmActionPathView'
     }
@@ -67,9 +72,34 @@ function Test-GuidePresentation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideS
                 ($diagnosticState -split '\|')[0] -ceq $(if($method -ceq 'How-To'){'False'}else{'True'}))
             Check ('GuidePresentation.SwitchPreservesPair.'+$method) ($opened -and (ViewControl 'lblActionPathPair' 'Label') -ceq $pair -and
                 (ViewControl 'txtActionPathHowTo' 'Text') -ceq $howTo -and (ViewControl 'txtActionPathDiagnostic' 'Text') -ceq $diagnostic)
+            if($opened){CaptureView $method.Replace(' ','-')}
         }
         foreach($layout in @('Minimum','Default','Larger','Restored')){
             Check ('GuidePresentation.Layout.'+$layout) ($opened -and (ViewControl '' 'Fit' $layout) -ceq 'True')
+            if($opened){CaptureView $layout}
+        }
+        if($opened -and $CaptureGuideEvidence){
+            if(-not ('PairedViewNativeLayout' -as [type])){
+                Add-Type @'
+using System; using System.Runtime.InteropServices;
+public static class PairedViewNativeLayout {
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h,int command);
+    [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr h);
+}
+'@
+            }
+            Initialize-SettingsCapture
+            $handle=[InvSysSettingsCapture]::OwnedVisibleForm('Action Path view',[IntPtr]$excel.Hwnd)
+            foreach($command in @(3,9)){
+                [void][PairedViewNativeLayout]::ShowWindow($handle,$command)
+                Start-Sleep -Milliseconds 200
+                $stage=if($command -eq 3){'Maximized'}else{'NativeRestored'}
+                Check ('GuidePresentation.NativeLayout.'+$stage) ([PairedViewNativeLayout]::IsZoomed($handle) -eq ($command -eq 3) -and (ViewControl '' 'Fit' 'Current') -ceq 'True')
+                CaptureView $stage
+            }
+            if((ViewControl 'txtActionPathDiagnostic' 'ViewportBottom') -cne 'DELIVERED'){throw 'Locked diagnostic viewport is unavailable.'}
+            CaptureView 'SavedResultBottom'
+            [void](ViewControl 'txtActionPathDiagnostic' 'ViewportTop')
         }
         [void](ViewControl 'cboActionPathView' 'Write' 'Diagnostic')
         [void](ViewControl 'btnRefreshActionPathView' 'Click')
@@ -106,6 +136,7 @@ function Test-GuidePresentation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideS
             [IO.File]::WriteAllText($guidePath,'{}',[Text.UTF8Encoding]::new($false))
             [void](ViewControl 'btnRefreshActionPathView' 'Click')
             Check 'GuidePresentation.RefreshClearsCorruptGuideEvidence' ($opened -and (ViewControl 'txtActionPathHowTo' 'Text') -ceq '' -and (ViewControl 'txtActionPathDiagnostic' 'Text') -ceq '' -and (ViewControl 'lblActionPathViewStatus' 'Label') -match '(?i)unavailable|incomplete')
+            if($opened){CaptureView 'UnavailableGuide'}
         } finally {[IO.File]::WriteAllBytes($guidePath,$bytes)}
         [void](ViewControl 'btnCloseActionPathView' 'Click');[void](OpenView)
         [void](BoundLibrary 'Select' $GuideSource.ActionPathId)
@@ -119,9 +150,11 @@ function Test-GuidePresentation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideS
         Check 'GuidePresentation.ExplicitEntryBindsSecondGuideVersion' ($opened -and (ViewControl 'lblActionPathPair' 'Label').Contains([string]$SecondGuide.ContentSha256))
         $unevaluated=ViewControl 'txtActionPathDiagnostic' 'Text'
         Check 'GuidePresentation.NewGuideNeverBorrowsOldSavedConclusion' ($opened -and -not $unevaluated.Contains([string]$saved.EvaluationId) -and -not $unevaluated.Contains('Conclusion observed') -and $unevaluated -match '(?i)not evaluated|no .*evaluation|choose Evaluate')
+        if($opened){CaptureView 'NotEvaluated'}
         SelectTarget $Other 'config-reader'
         [void](ViewControl 'btnRefreshActionPathView' 'Click')
         Check 'GuidePresentation.ContextLossClearsRetainedContent' ($opened -and (ViewControl 'txtActionPathHowTo' 'Text') -cin @('','MISSING') -and (ViewControl 'txtActionPathDiagnostic' 'Text') -cin @('','MISSING'))
+        if($opened -and (ViewControl '' 'Count') -ceq '1'){CaptureView 'ChangedContext'}
         Check 'GuidePresentation.InvalidationsPreserveEveryTrainingByte' (BoundSame $before (BoundPins $journalRoot))
     } finally {
         CloseRecordingViewer
@@ -129,5 +162,9 @@ function Test-GuidePresentation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideS
         OpenRecordingViewer;OpenViewSettings
         SaveViewPreference $priorChoice
         CloseRecordingViewer
+    }
+    if($CaptureGuideEvidence){
+        . (Join-Path $PSScriptRoot 'Slice4beGuidePresentationScenarios.ps1')
+        Test-GuidePresentationScenarios $Fixture $FirstGuide $SecondGuide $Observed
     }
 }
