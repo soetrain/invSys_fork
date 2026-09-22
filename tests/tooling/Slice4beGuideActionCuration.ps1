@@ -32,7 +32,19 @@ function Test-GuideActionCuration($Fixture,$Other) {
     $selectedIds=@($first.Attempt.ActivityId,$second.Attempt.ActivityId)
     $groups=@($model.Groups|Where-Object {$_.Source -ceq 'Activity' -and $_.SourceId -cin $selectedIds})
     if($groups.Count -ne 2 -or @($groups|ForEach-Object Lines).Count -ne 4){throw 'Actual publication omitted the selected source bodies.'}
-    $observations=@($groups|ForEach-Object Lines)
+    $observations=@(foreach($line in ($groups|ForEach-Object Lines)){
+        $raw=[IO.File]::ReadAllText((Join-Path $activityRoot ($line.RecordId+'.json')))
+        $marker=[regex]::Match($raw,',"ContentSha256":"([0-9a-f]{64})"\}$')
+        if(-not $marker.Success){throw 'Original activity envelope lacks its existing digest.'}
+        $body=$raw.Substring(0,$marker.Index)+'}';$sha=[Security.Cryptography.SHA256]::Create()
+        try{$digest=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($body))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+        $original=$raw|ConvertFrom-Json;$record=$body|ConvertFrom-Json
+        if($digest -cne $marker.Groups[1].Value -or @($record.PSObject.Properties).Count -ne 26 -or
+           (ConvertTo-Json -InputObject $original -Depth 25 -Compress) -cne (ConvertTo-Json -InputObject $line -Depth 25 -Compress)){
+            throw 'Published activity differs from its verified original body/envelope.'
+        }
+        $record
+    })
     Check 'GuideCuration.Fixture.ActualUnrecordedActionsAndPublication' $true
     $sourcePins=BoundPins $Fixture.Root
     $activityBefore=ActivityPins;$trainingBefore=BoundPins $journalRoot
@@ -150,6 +162,27 @@ function Test-GuideActionCuration($Fixture,$Other) {
         Check 'GuideCuration.ContextLossCannotRetargetSave' ($drafted -and (Draft 'txtGuideEvidence' 'Text') -cin @('','MISSING') -and (BoundSame $savedPins (BoundPins $journalRoot)))
         CloseRecordingViewer;SelectTarget $Fixture 'config-reader';OpenRecordingViewer;[void](BoundLibrary 'Open')
         Check 'GuideCuration.ReaderCannotOpenPicker' ((BoundControl 'btnChooseGuideActions' 'State' '' 'frmActionPaths') -ceq 'True|False' -and (Pick '' 'Count') -ceq '0')
+        CloseRecordingViewer;SelectTarget $Fixture 'config-admin'
+        $publicationBytes=[IO.File]::ReadAllBytes($publication)
+        try {
+            $altered=[Text.Encoding]::UTF8.GetString($publicationBytes)|ConvertFrom-Json
+            $badGroup=@($altered.Groups|Where-Object SourceId -CEQ $first.Attempt.ActivityId)
+            $badAttempt=@($badGroup[0].Lines|Where-Object OutcomeCode -CEQ 'REQUESTED')
+            if($badGroup.Count -ne 1 -or $badAttempt.Count -ne 1){throw 'Invalid-digest fixture source is ambiguous.'}
+            $badAttempt[0].ContentSha256='0'*64
+            $altered.PSObject.Properties.Remove('ContentSha256')
+            $body=ConvertTo-Json -InputObject $altered -Depth 30 -Compress
+            if($body -match '[^\x00-\x7f]'){throw 'Diagnostic publication fixture must retain ASCII wire.'}
+            $sha=[Security.Cryptography.SHA256]::Create()
+            try{$digest=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($body))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+            [IO.File]::WriteAllText($publication,$body.Substring(0,$body.Length-1)+',"ContentSha256":"'+$digest+'"}',[Text.UTF8Encoding]::new($false))
+            $valid=Run 'invSys.Core.xlam' 'modInventoryViewerData.PublishedReadFixtureValidForTest' @($publication,$Fixture.Warehouse)
+            if($valid -isnot [bool] -or -not $valid){throw 'Outer publication fixture must remain valid.'}
+            OpenRecordingViewer;[void](BoundLibrary 'Open');OpenPicker
+            $ids=@((Pick 'lstGuideActions' 'Values') -split "`n"|Where-Object {$_ -cne ''})
+            Check 'GuideCuration.InvalidInnerDigestRejectedWithoutSourceMutation' ($opened -and $first.Attempt.ActivityId -cnotin $ids -and (Pick 'lblGuideActionStatus' 'Label') -match '1 unavailable' -and (PinsRetained $activityBefore))
+            Check 'GuideCuration.InvalidInnerDigestDoesNotSuppressOtherValidAction' ($opened -and $second.Attempt.ActivityId -cin $ids -and (BoundSame $savedPins (BoundPins $journalRoot)))
+        } finally {CloseRecordingViewer;[IO.File]::WriteAllBytes($publication,$publicationBytes)}
         Check 'GuideCuration.NoPublicationOrAuthorityRead' ((Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publishBefore -and (Run 'invSys.Operations.xlam' 'modTS_Shipments.PublishedReadAuthorityCallsForTest') -eq $authorityBefore)
         foreach($path in $sourcePins.Keys){if((Get-FileHash -LiteralPath $path).Hash -cne $sourcePins[$path] -and $path -cne $Fixture.Config){throw 'Curation changed a pre-existing source file.'}}
     } finally {CloseRecordingViewer;SelectTarget $Fixture 'config-admin'}
