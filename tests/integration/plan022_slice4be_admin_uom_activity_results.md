@@ -133,7 +133,25 @@ packages compile before forms. Runtime/package hashes and static metrics remain
 unchanged; Excel closes normally without assistance and no matching Application
 errors occur. This supplementary evidence requires no runtime or contract change.
 
-Remaining broader regressions, live-role/full-chain and
-human acceptance remain open. This is a verified implementation checkpoint, not
+The frozen candidate also passes full Release 1 chain **32/32**, live roles
+**48/48** and Create Warehouse **15/15**, **2026-09-22
+12:17:16.2931347--12:25:54.9148365 UTC**. Every preceding chain/live-role identity
+is retained; all 239 test/tool source pins and five package hashes remain intact,
+the three tracked reports are restored exactly, and no matching Application
+1000/1001/1002 events occur. Runtime source pins remain unchanged.
+
+Cleanup is **assisted normal cleanup**, not unattended success. An earlier Excel
+instance exits naturally before a read-only inspector attaches; its identity
+guard refuses the stale process. A later exact native process/creation identity
+has a typed WorkbookCount of zero, rechecked before normal Quit. The ensuing
+Document Recovery question initially selects removal; the existing **Yes, I want
+to view these files later** option is selected, captured, directly reviewed and
+confirmed. Recovery files are retained and Excel exits; no forced termination
+or operational workbook mutation occurs. `verify-admin-uom-chain.ps1` validates
+the result and both recovery captures. Process IDs/handles in ignored helpers
+are stale after this run and must not be reused.
+
+Remaining supporting regressions and human acceptance remain open. This is a
+verified implementation checkpoint, not
 completion of the runtime slice or Release 1.
 These focused results do not establish comprehensive Admin or Slice 4be acceptance.
