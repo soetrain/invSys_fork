@@ -79,6 +79,40 @@ All 30 captures are retained, but this record does not claim review of every ima
 The retry adds only safe control/action and fixed-stage diagnostics, with no field
 values or automatic replay of potentially mutating handlers.
 
+The retry records **255 PASS / one harness failure**, with all 204 preceding
+guide-binding checks and 233 of the 243 focused presentation-gate identities
+reached; ten focused identities are not reached. Report:
+`reports/runtime/slice4be-viewer-published-read/929b4fb5db254eb4b10b8bfcb8eca8cd/green.json`.
+UTC **2026-09-22 00:47:11.7973820--01:00:51.9635954**. It stops after the saved
+Diagnostic preference check, before the scenario-stage diagnostics execute.
+Excel rejects the generic form-control probe and cleanup receives `0x800AC472`.
+Normal closure, zero matching Application events and unchanged packages are
+verified. All **25 captures were individually reviewed**: 15 prerequisite guide
+screens and ten paired mode/layout/result-viewport screens. Controls fit; the
+focused diagnostic bottom viewport exposes both complete matched identities.
+This partial evidence does not establish a passing visible gate or a root cause.
+
+The next harness records fixed form/control/action names and exception HRESULTs
+at the shared call boundary. On failure it may copy pixels only from an already
+foreground form owned by the original Excel window and with a whitelisted invSys
+caption. It neither changes focus nor replays the failed call, and never logs field
+values. The C# helper compiles; an invalid owner is rejected without writing an
+image. A new `-CheckGuidePresentationAvailability` extension installs the existing
+Admin tracking-policy probes before forms open. Its real disabled-control
+recording must produce unavailable expected steps rather than missing steps; a
+dirty disposable Config workbook must clear the paired content without saving it.
+These are tests of existing D18 behavior, pending execution, not runtime changes.
+
+The independent frozen-candidate Viewer/filter/Shipping-state regression passes
+**94/94**, preserving every preceding identity, with immediate normal Excel
+closure and zero matching Application events. Report:
+`reports/runtime/slice4be-viewer-published-read/a29afdad31e44708ba4d2d70bdfad299/green.json`.
+UTC **2026-09-22 01:04:17.2554733--01:06:36.9101127**. All three captures were
+individually reviewed: Shipping's held-row feedback is painted, contributing-line
+labels and filter controls are readable. The known adjacent Shipping headings and
+pending Event Detail horizontal-scrolling defect remain; this gate does not close
+either issue. Boxing/Shipping, evaluation and full-chain gates remain separate.
+
 The expanded visible gate retains the focused identities and captures all three
 methods, minimum/default/larger/restored and native maximized/restored sizes,
 the saved-result viewport, invalid guide/context and an unevaluated second guide.
