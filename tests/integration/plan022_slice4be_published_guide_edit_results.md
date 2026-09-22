@@ -2,7 +2,8 @@
 
 Status: corrected isolated implementation passes focused **58/58** and the complete
 visible guide gate **351/351**, preserving all 305 prior checks plus 46 edit checks.
-All 52 broader captures were directly reviewed. Role/restart/chain regressions and
+All 52 broader captures were directly reviewed; fresh-process preference passes
+**27/27** with three reviewed captures. Role/chain regressions and
 human acceptance remain. No deployment or slice completion is claimed.
 
 The full visible retry uses the unchanged corrected candidate and report root
@@ -22,6 +23,18 @@ After the supporting harness changes, regenerated maintenance evidence at
 6,000 procedures, 132,040 lines, dynamic calls 9/45 and 192 duplicate groups. All
 28 prior module-size limits pass. These are acceptance-record updates, with no
 runtime or architectural change and no new product RED claim.
+
+Fresh-process preference validation on this same candidate passes **27/27** at
+`reports/runtime/slice4be-viewer-published-read/ad220eef446e40bbabeae5885c443a2f`.
+UTC **2026-09-22 05:36:26.4660945--05:39:06.7599580**. Its four actual-handler
+fixture checks and fifteen restart checks prove normal closure of the original
+Excel process followed by a different verified process. Operations with Core/Domain,
+without Admin, restores saved Compare both despite an unsaved How-To switch.
+Opening creates no automatic pair or conclusion; explicit selection retains the
+exact guide/run and shows Not evaluated. All three restart captures were individually
+reviewed and hashed. Config/training/probe bytes, test sources and frozen packages
+remain unchanged; final closure is normal with zero matching Application events.
+`verify-published-guide-edit-restart.ps1` audits this focused supplementary gate.
 
 The corrected frozen candidate is `deploy/validation-published-guide-edit-notices`.
 All five packages build and compile. Its focused GREEN root is
