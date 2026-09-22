@@ -238,3 +238,25 @@ future dispatch. Microsoft documents Ready as a read-only Boolean property:
 <https://learn.microsoft.com/en-us/office/vba/api/excel.application.ready>.
 No runtime/package changes. The full guide gate is restarted with this explicit
 option and fresh fixtures against the integrity candidate; its result is pending.
+
+The complete guide regression now passes **351/351**, retaining every prior
+identity and all 46 published-edit checks, root
+`ba5c5a4f5f3d4b2da6def3918080719e`, **2026-09-22
+08:29:44.5889308--09:03:58.6378337 UTC**. All **52** current captures are directly
+reviewed and hashed, including native maximize/restore, both presentations and
+comparison, saved-result scrolling, missing/extra/rejected/no-conclusion cases,
+capture-off/restriction/unavailable evidence and published editing/conflict.
+Normal unassisted closure, unchanged running test/runtime/package pins and zero
+matching Application events are verified by
+`reports/runtime/verify-guide-action-curation-integrity-full-ready.ps1`.
+
+The readiness trace has 1,339 property samples for 1,332 dispatches. One bounded
+wait observes five Busy and two unavailable samples, then Ready on sample eight;
+all other dispatches proceed after their first Ready sample. No macro call fails,
+no observational retry is used and no operator action is replayed. This proves
+the guard waited before dispatch in this run; it does not establish the cause
+of earlier interruptions or prove a prevented failure. The initial final-audit
+assumption that every sample was Ready is corrected from the retained trace,
+without rerunning or altering the successful runtime evidence.
+Fresh-process preference, Viewer, Boxing/Shipping, evaluation and the full Release
+1 chain remain required on this candidate and are now running serially.
