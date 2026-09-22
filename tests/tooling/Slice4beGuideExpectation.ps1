@@ -1,5 +1,6 @@
 # D18 explicit guide intent through the shared real expectation editor.
 function Test-GuideExpectation($Fixture,$Other) {
+    . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
     function GuideExpectationControl([string]$Name,[string]$Action,[string]$Value='', [string]$Form='frmActionPathExpectation') {
         [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($Form,$Name,$Action,$Value))
     }
@@ -35,33 +36,14 @@ function Test-GuideExpectation($Fixture,$Other) {
         foreach($path in $Before.Keys){if(-not $After.ContainsKey($path) -or $Before[$path] -cne $After[$path]){return $false}}
         return $true
     }
-    function ReadGuideExpectationRecord([string]$Path) {
-        if(-not (Test-Path -LiteralPath $Path -PathType Leaf)){return $null}
-        try {
-            $text=[IO.File]::ReadAllText($Path);$length=(Get-Item -LiteralPath $Path).Length
-            if($text -match '[^\x00-\x7f]' -or $length -ne $text.Length -or $length -gt 1048576){return $null}
-            $value=$text|ConvertFrom-Json
-            $match=[regex]::Match($text,',"ContentSha256":"([0-9a-f]{64})"\}$')
-            if(-not $match.Success -or $value.RecordKind -cne 'Guide' -or $value.SchemaVersion -ne 1 -or @($value.PSObject.Properties).Count -ne 24){return $null}
-            $body=$text.Substring(0,$match.Index)+'}';$sha=[Security.Cryptography.SHA256]::Create()
-            try{$hash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($body))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
-            if($value.ContentSha256 -cne $hash){return $null}
-            return $value
-        } catch {return $null}
-    }
+
     function OpenAuthoredGuide {
         if([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Open','')) -cne 'DELIVERED'){throw 'Existing recording library cannot open; not guide-expectation RED.'}
         if([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Select',$source.ActionPathId)) -cne 'SELECTED'){throw 'Existing source cannot be selected; not guide-expectation RED.'}
         if((GuideExpectationControl 'btnCreateGuide' 'Click' '' 'frmActionPaths') -cne 'DELIVERED' -or (GuideAuthor '' 'Count') -cne '1'){throw 'Existing author fixture cannot open; not guide-expectation RED.'}
         [void](GuideAuthor 'txtGuideName' 'Write' 'Guide with an authored conclusion')
     }
-    function SaveGuideExpectationVisibility([bool]$Visible) {
-        try {
-            [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
-            $result=Run 'invSys.Admin.xlam' 'TestD5Commands.PublishedReadVisibilityForTest' @($Visible)
-            if($result -isnot [bool] -or -not $result){throw 'Actual visibility command fixture failed; not expectation RED.'}
-        } finally {[void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')}
-    }
+
     CloseRecordingViewer
     SelectTarget $Fixture 'config-admin'
     SetRecordingPolicy $true

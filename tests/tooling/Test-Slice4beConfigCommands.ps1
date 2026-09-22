@@ -34,6 +34,8 @@ param(
     [switch]$CheckGuidePresentationAvailability,
     [switch]$CheckGuidePresentationRestart,
     [switch]$GuidePresentationRestartOnly,
+    [switch]$CheckPublishedGuideEdit,
+    [switch]$PublishedGuideEditOnly,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideCaptureSavedWorkbookForTest,
@@ -88,6 +90,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $CaptureEvidence -or $DetailScrollLockDiagnostic)){
     throw 'Native scrolling checks require the isolated visible detail gate without temporary unlocking.'
+}
+if($PublishedGuideEditOnly){$CheckPublishedGuideEdit=$true}
+if($CheckPublishedGuideEdit){
+    if($GuidePresentationRestartOnly -or $CheckGuidePresentationRestart){throw 'Published guide editing and preference restart use separate gates.'}
+    $CheckGuidePresentation=$true
 }
 if($GuidePresentationRestartOnly){
     if($CheckGuidePresentationAvailability){throw 'The focused restart gate is separate from the availability regression gate.'}
@@ -892,7 +899,13 @@ End Function
         }
     }
     if($CheckViewerPublishedRead) {
-        if($GuidePresentationRestartOnly){
+        if($PublishedGuideEditOnly){
+            $step='focused published-guide edit through actual handlers'
+            . (Join-Path $PSScriptRoot 'Slice4beGuideRestartFixture.ps1')
+            Initialize-GuideRestartFixture $a -ForPublishedEdit
+            . (Join-Path $PSScriptRoot 'Slice4bePublishedGuideEdit.ps1')
+            Test-PublishedGuideEditFocused $a $b $guidePresentationRestartFixture
+        } elseif($GuidePresentationRestartOnly){
             $step='actual guide and observed-run fixtures for paired preference restart'
             . (Join-Path $PSScriptRoot 'Slice4beGuideRestartFixture.ps1')
             Initialize-GuideRestartFixture $a

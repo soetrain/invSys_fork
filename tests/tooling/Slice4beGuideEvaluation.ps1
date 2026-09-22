@@ -1,37 +1,16 @@
 # D18: an explicitly selected observed run never comes from a guide's source run.
 # Call after the existing guide-expectation fixture saved both immutable versions.
 function Test-GuideEvaluation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideSource) {
+    . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
     function CaptureBoundForm([string]$Caption,[string]$FileName) {
         if(-not $CaptureGuideEvidence){return}
         Initialize-SettingsCapture
         $owned=[InvSysSettingsCapture]::OwnedVisibleForm($Caption,[IntPtr]$excel.Hwnd).ToInt64()
         CaptureOwnedFormEvidence $Caption $FileName $owned
     }
-    function BoundControl([string]$Name,[string]$Action,[string]$Value='', [string]$Form='frmActionPathLibrary') {
-        [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($Form,$Name,$Action,$Value))
-    }
-    function BoundLibrary([string]$Action,[string]$Value='') {
-        [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @($Action,$Value))
-    }
-    function BoundOpen {[void](BoundControl 'btnPublishedGuides' 'Click' '' 'frmActionPaths')}
-    function BoundSelect($Guide) {
-        $key=[string]$Guide.ActionPathId+'|'+[string]$Guide.Version+'|'+[string]$Guide.ContentSha256
-        $keys=@((BoundControl 'lstPublishedGuides' 'Values') -split "`n"|Where-Object {$_ -cne ''})
-        $index=[Array]::IndexOf($keys,$key)
-        if($index -lt 0){throw 'Accepted exact-version reader fixture is unavailable; not guide-binding RED.'}
-        if((BoundControl 'lstPublishedGuides' 'Select' ([string]$index)) -cne 'SELECTED'){throw 'Accepted guide selection fixture failed.'}
-    }
+
     function BoundSummary {BoundControl 'lblExpectationSummary' 'Label' '' 'frmActionPaths'}
-    function BoundPins([string]$Root) {
-        $pins=@{}
-        if(Test-Path -LiteralPath $Root){foreach($file in Get-ChildItem -LiteralPath $Root -Recurse -File){$pins[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash}}
-        return $pins
-    }
-    function BoundSame($Before,$After) {
-        if($Before.Count -ne $After.Count){return $false}
-        foreach($path in $Before.Keys){if(-not $After.ContainsKey($path) -or $Before[$path] -cne $After[$path]){return $false}}
-        return $true
-    }
+
     function BoundResults {
         if(Test-Path -LiteralPath $evaluationRoot){Get-ChildItem -LiteralPath $evaluationRoot -File -Filter '*.json'}
     }
@@ -189,6 +168,10 @@ function Test-GuideEvaluation($Fixture,$Other,$FirstGuide,$SecondGuide,$GuideSou
         if($CheckGuidePresentation){
             . (Join-Path $PSScriptRoot 'Slice4beGuidePresentation.ps1')
             Test-GuidePresentation $Fixture $Other $FirstGuide $SecondGuide $GuideSource $observed $observedFirst $observedSecond
+        }
+        if($CheckPublishedGuideEdit){
+            . (Join-Path $PSScriptRoot 'Slice4bePublishedGuideEdit.ps1')
+            Test-PublishedGuideEdit $Fixture $Other $FirstGuide $SecondGuide $observed
         }
     } finally {
         CloseRecordingViewer

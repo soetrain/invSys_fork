@@ -1,6 +1,6 @@
 # Focused restart setup through already accepted packaged controls. It complements
 # the preserved full regression gate; it does not replace that evidence.
-function Initialize-GuideRestartFixture($Fixture) {
+function Initialize-GuideRestartFixture($Fixture,[switch]$ForPublishedEdit) {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     function FixtureControl([string]$Form,[string]$Name,[string]$Action,[string]$Value='') {
         [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($Form,$Name,$Action,$Value))
@@ -33,6 +33,18 @@ function Initialize-GuideRestartFixture($Fixture) {
     if((FixtureControl 'frmActionPaths' 'btnCreateGuide' 'Click') -cne 'DELIVERED'){throw 'Actual Create guide unavailable.'}
     [void](FixtureControl 'frmActionPathGuide' 'txtGuideName' 'Write' 'Preference restart guide')
     [void](FixtureControl 'frmActionPathGuide' 'txtGuideInstructions' 'Write' 'Authored instructions stay separate from observed actions.')
+    if($ForPublishedEdit){
+        [void](FixtureControl 'frmActionPathGuide' 'btnGuideExpectedConclusion' 'Click')
+        foreach($retry in @('True','False')){
+            [void](FixtureControl 'frmActionPathExpectation' 'cboExpectedControl' 'Write' 'ADMIN_SETTINGS_SAVE_VALUE')
+            [void](FixtureControl 'frmActionPathExpectation' 'cboExpectedOutcome' 'Write' 'COMPLETED')
+            [void](FixtureControl 'frmActionPathExpectation' 'chkExpectedRetry' 'Check' $retry)
+            if((FixtureControl 'frmActionPathExpectation' 'btnAddExpectedStep' 'Click') -cne 'DELIVERED'){throw 'Actual expected-step fixture unavailable.'}
+        }
+        [void](FixtureControl 'frmActionPathExpectation' 'cboTerminalStep' 'Select' '1')
+        [void](FixtureControl 'frmActionPathExpectation' 'cboTerminalKind' 'Write' 'CommandCompleted')
+        if((FixtureControl 'frmActionPathExpectation' 'btnUseExpectation' 'Click') -cne 'DELIVERED'){throw 'Actual guide expectation use unavailable.'}
+    }
     $guideRoot=Join-Path $journalRoot 'Guides'
     $before=@();if(Test-Path -LiteralPath $guideRoot){$before=@(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json'|ForEach-Object FullName)}
     if((FixtureControl 'frmActionPathGuide' 'btnSaveGuide' 'Click') -cne 'DELIVERED'){throw 'Actual Save guide unavailable.'}
@@ -46,13 +58,31 @@ function Initialize-GuideRestartFixture($Fixture) {
     if($guide.ContentSha256 -cne $hash -or $guide.RecordKind -cne 'Guide' -or $guide.Version -ne 1 -or
        $guide.SourceRun.ActionPathId -cne $source.ActionPathId -or $guide.SourceRun.ContentSha256 -cne $source.ContentSha256 -or
        $guide.ActionPathId -ceq $source.ActionPathId -or @($guide.Steps).Count -ne 2 -or
-       $guide.ExpectedConclusion.TerminalKind -cne 'None' -or @($guide.Observations).Count -ne 4){throw 'Actual saved guide provenance fixture invalid.'}
+       @($guide.Observations).Count -ne 4){throw 'Actual saved guide provenance fixture invalid.'}
+    $expectedKind=if($ForPublishedEdit){'CommandCompleted'}else{'None'}
+    if($guide.ExpectedConclusion.TerminalKind -cne $expectedKind){throw 'Actual guide expectation fixture invalid.'}
     Check 'GuidePresentation.RestartFixture.ActualGuideSaveRetainsExactSource' $true
+    $firstGuide=$guide
+    if($ForPublishedEdit){
+        . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
+        if(@($guide.ExpectedConclusion.Steps).Count -ne 2){throw 'Actual first guide must contain two authored expected steps.'}
+        [void](FixtureControl 'frmActionPathGuide' 'btnGuideExpectedConclusion' 'Click')
+        [void](FixtureControl 'frmActionPathExpectation' 'lstExpectedSteps' 'Select' '0')
+        [void](FixtureControl 'frmActionPathExpectation' 'btnRemoveExpectedStep' 'Click')
+        [void](FixtureControl 'frmActionPathExpectation' 'cboTerminalStep' 'Select' '0')
+        [void](FixtureControl 'frmActionPathExpectation' 'cboTerminalKind' 'Write' 'CommandCompleted')
+        [void](FixtureControl 'frmActionPathExpectation' 'btnUseExpectation' 'Click')
+        [void](FixtureControl 'frmActionPathGuide' 'btnSaveGuide' 'Click')
+        $guide=ReadGuideExpectationRecord (Join-Path $guideRoot ($firstGuide.ActionPathId+'.2.json'))
+        if($null -eq $guide -or $guide.PreviousRecordId -cne $firstGuide.RecordId -or $guide.PreviousSha256 -cne $firstGuide.ContentSha256 -or
+           @($guide.ExpectedConclusion.Steps).Count -ne 1 -or $guide.ExpectedConclusion.Steps[0].StepId -cne $firstGuide.ExpectedConclusion.Steps[1].StepId -or @($guide.Steps).Count -ne 2){throw 'Actual second guide fixture invalid.'}
+        Check 'GuideEditFixture.ActualSecondVersionRetainsPredecessorAndExplicitIntent' $true
+    }
     [void](FixtureControl 'frmActionPathGuide' 'btnCancelGuide' 'Click')
     CloseRecordingViewer;OpenRecordingViewer
     $observed=FixtureRecording '703' '704'
     if($observed.ActionPathId -ceq $source.ActionPathId){throw 'Restart observed run must be separate from the guide source.'}
     Check 'GuidePresentation.RestartFixture.ActualDifferentObservedJournalValid' $true
     CloseRecordingViewer
-    $script:guidePresentationRestartFixture=[pscustomobject]@{Fixture=$Fixture;Guide=$guide;Observed=$observed}
+    $script:guidePresentationRestartFixture=[pscustomobject]@{Fixture=$Fixture;FirstGuide=$firstGuide;Guide=$guide;Observed=$observed}
 }
