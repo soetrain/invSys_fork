@@ -128,6 +128,18 @@ RED. Existing packaged assertions and visible captures validate it proportionall
 The pending D8-A, known heading adjacency, detail scrolling, evaluation, full chain
 and paired visible acceptance are not waived.
 
+The frozen candidate's evaluation regression passes **376/376**, preserving every
+preceding GREEN identity. Report:
+`reports/runtime/slice4be-viewer-published-read/ee6e9f0dfb6f4431873a89bf992083af/green.json`.
+UTC **2026-09-22 01:23:39.6976019--01:42:11.5430183**. Excel closes immediately
+and normally, with zero Application events 1000/1001/1002. All **19 captures were
+individually reviewed** and their hashes verified: pending and partial publication
+retain Awaiting states, only the fully applied case shows Conclusion observed,
+and the expectation editor keeps its controls reachable at minimum/default/large
+sizes. The ordered editor distinguishes Pending without retries from Completed
+with retries and shows the explicit conclusion selection. This regression does not
+substitute for the pending paired visible gate or full Release 1 chain.
+
 The shared failure-boundary privacy/replay test passes **10/10 offline checks**:
 `tests/tooling/Test-Slice4beFormFailureDiagnostics.ps1`. Entered field content is
 absent, fixed control identity and inner COM code are retained, unrelated command
