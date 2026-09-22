@@ -151,7 +151,23 @@ or operational workbook mutation occurs. `verify-admin-uom-chain.ps1` validates
 the result and both recovery captures. Process IDs/handles in ignored helpers
 are stale after this run and must not be reused.
 
-Remaining supporting regressions and human acceptance remain open. This is a
+The same frozen candidate retains three further supporting gates on 2026-09-22:
+
+| Gate | Result / retained prior GREEN checks | Report identity | Reviewed captures |
+| --- | --- | --- | --- |
+| Direct curation / native layouts | 77/77 | `f0f763bfd964477887652b2e59c4a3ac` | 18 |
+| Saved preference / new Excel process | 27/27 | `6b9f16f9ff694f68a971ec6d53e62c35` | 3 |
+| Published Viewer / filters / Shipping state | 94/94 | `62264356052c46a0acb07cfc523cf119` | 3 |
+
+Each gate preserves every preceding check identity and runtime/test/package
+hash, closes Excel normally without assistance, and has no matching Application
+1000/1001/1002 errors. Restart closes during the runner's bounded exit grace
+period; it does not require intervention. All 24 captures are directly reviewed
+and hashed. The ignored `verify-admin-uom-supporting-gate.ps1` verifies terminal
+results, prior GREEN identities, source/package pins, image hashes and native
+error audit. These runs span 12:26:45.8821751--12:36:45.8071131 UTC.
+
+Full-guide, Operations comparison, Boxing/Shipping and human acceptance remain open. This is a
 verified implementation checkpoint, not
 completion of the runtime slice or Release 1.
 These focused results do not establish comprehensive Admin or Slice 4be acceptance.
