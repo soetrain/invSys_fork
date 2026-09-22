@@ -140,6 +140,21 @@ sizes. The ordered editor distinguishes Pending without retries from Completed
 with retries and shows the explicit conclusion selection. This regression does not
 substitute for the pending paired visible gate or full Release 1 chain.
 
+The paired candidate's full Release 1 chain passes **32/32**, ordered live roles
+**48/48**, and Create Warehouse **15/15**, preserving all preceding chain/live
+GREEN identities. Ignored prefix: `reports/runtime/guide-presentation-chain`.
+UTC **2026-09-22 01:42:15.0432027--01:51:10.6342477**. The chain includes actual
+captured-workbook Receiving and Shipping, two consecutive Production batches,
+versioned Boxing, processor application, final balances, restart/reconciliation,
+runtime extraction and static checks. The three tracked generated reports were
+restored byte-for-byte; zero Application events 1000/1001/1002 and all 45 frozen
+package hashes are verified. Cleanup was **assisted**: read-only native-owner
+inspection established an integer workbook count of zero, then normal Quit was
+requested. The actual recovery prompt and selected **Yes, I want to view these
+files later** option were individually reviewed before confirmation. No forced
+termination or recovery-file deletion occurred. This passing chain does not imply
+unattended clean shutdown, paired visible acceptance, human UAT or Slice 4be completion.
+
 The shared failure-boundary privacy/replay test passes **10/10 offline checks**:
 `tests/tooling/Test-Slice4beFormFailureDiagnostics.ps1`. Entered field content is
 absent, fixed control identity and inner COM code are retained, unrelated command
