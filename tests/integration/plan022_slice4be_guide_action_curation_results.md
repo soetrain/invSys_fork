@@ -218,3 +218,23 @@ matching Application events are verified by
 Maintenance has **249 components, 6,035 procedures, 132,492 lines**, dynamic calls
 **9/45**, duplicate groups **192**, with all **28** preceding size limits passing.
 User-file pins are preserved. Supporting regression gates still remain.
+
+The opt-in harness readiness guard has offline **15 PASS / 17 expected FAIL**
+before implementation at `reports/runtime/ready-before-dispatch/6381f50fa7964db6a76da65f2f587a0a`,
+then **32/32 GREEN** at `b9bbba062b42476dae07d493a0254545`. The protecting test
+loads the actual Run function and exercises read-before-dispatch ordering, eight
+read bound, unavailable/False/type handling, flag-off behavior, single action
+execution even on dispatch rejection, and field-value exclusion from traces.
+The previous **78/78** diagnostics also remain GREEN at
+`reports/runtime/form-failure-diagnostics/fe920567b4464fe7b53dc90e803aa216`.
+
+`-WaitForExcelReadyForTest` samples the read-only Application.Ready property before
+the first macro dispatch, at most eight times with 250 ms gaps. Only typed True
+permits dispatch; unsupported types or exhaustion stop before the action. The
+existing exact observational retries are unchanged; commands are never replayed.
+`readiness-before-dispatch.jsonl` contains only fixed macro name, attempt and
+status. This does not prove the cause of previous interruptions or guarantee a
+future dispatch. Microsoft documents Ready as a read-only Boolean property:
+<https://learn.microsoft.com/en-us/office/vba/api/excel.application.ready>.
+No runtime/package changes. The full guide gate is restarted with this explicit
+option and fresh fixtures against the integrity candidate; its result is pending.

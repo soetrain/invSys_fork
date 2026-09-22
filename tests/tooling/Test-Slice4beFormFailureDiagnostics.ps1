@@ -15,6 +15,7 @@ Invoke-Expression $definition.Extent.Text
 $CheckGuidePresentation=$false
 $RetryActionPathViewCountForTest=$true
 $RetryGuideObservationForTest=$false
+$WaitForExcelReadyForTest=$false
 $initialExcelProcessIds=@();$initialExcelWindow=0
 $canary='unlogged field content '+[guid]::NewGuid().ToString('N')
 $checks=[Collections.Generic.List[object]]::new()

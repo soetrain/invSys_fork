@@ -39,6 +39,7 @@ param(
     [switch]$GuideActionCurationOnly,
     [switch]$RetryActionPathViewCountForTest,
     [switch]$RetryGuideObservationForTest,
+    [switch]$WaitForExcelReadyForTest,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideCaptureSavedWorkbookForTest,
@@ -520,8 +521,23 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
         }
     }
 }
+function Wait-ExcelReadyForTest([string]$Macro) {
+    # Read-only readiness sampling precedes dispatch. No command is replayed.
+    for($readAttempt=1;$readAttempt -le 8;$readAttempt++){
+        $ready=$null
+        try {$ready=$excel.Ready} catch {$ready=$null}
+        $status=if($null -eq $ready){'Unavailable'}elseif($ready -isnot [bool]){'Invalid'}elseif($ready){'Ready'}else{'Busy'}
+        [pscustomobject]@{Macro=$Macro;ReadAttempt=$readAttempt;Status=$status}|
+            ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'readiness-before-dispatch.jsonl')
+        if($status -ceq 'Ready'){return}
+        if($status -ceq 'Invalid'){throw 'Excel readiness returned an unsupported type; macro was not dispatched.'}
+        if($readAttempt -lt 8){Start-Sleep -Milliseconds 250}
+    }
+    throw 'Excel readiness remained unavailable or busy; macro was not dispatched.'
+}
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
     $name="'$Package'!$Macro"
+    if($WaitForExcelReadyForTest){Wait-ExcelReadyForTest $Macro}
     $attemptLimit=1
     $retryLog='readonly-count-retries.jsonl'
     # Only the exact observational getter is eligible; commands retain one call.
