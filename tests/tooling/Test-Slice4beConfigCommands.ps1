@@ -40,6 +40,7 @@ param(
     [switch]$RetryActionPathViewCountForTest,
     [switch]$RetryGuideObservationForTest,
     [switch]$WaitForExcelReadyForTest,
+    [ValidateRange(1,120)][int]$ExcelReadyReadLimitForTest = 8,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideCaptureSavedWorkbookForTest,
@@ -57,6 +58,7 @@ param(
     [switch]$CheckEvaluationContracts,
     [switch]$CheckExpectationCompatibility,
     [switch]$CheckEvaluationVisualEvidence,
+    [switch]$CheckOperationsGuidePresentation,
     [switch]$RecordingEvaluationDiagnostic,
     [Alias('CompileViewerProbesForTest')][switch]$CompileEvaluationProbesForTest,
     [switch]$CheckExpectationEditor,
@@ -147,6 +149,10 @@ if($CaptureGuideEvidence){$CheckGuideLibrary=$true}
 if($CheckGuideExpectation){$CheckGuideLibrary=$true}
 if($CheckGuideLibrary){$CheckGuideSave=$true}
 if($CheckGuideSave){$CheckGuideDraft=$true}
+if($CheckOperationsGuidePresentation){
+    if(-not $CompileEvaluationProbesForTest -or $GuideDraftOnly -or $CheckGuideDraft -or $CaptureGuideEvidence){throw 'Operations guide comparison requires the separate compiled evaluation gate.'}
+    $CheckEvaluationVisualEvidence=$true
+}
 if($CheckEvaluationVisualEvidence){$CheckExpectationCompatibility=$true}
 if($RecordingEvaluationDiagnostic){
     if($Phase -ne 'RED' -or -not $CheckExpectationCompatibility){throw 'Evaluation isolation requires RED and the full evaluation contract probes; it is not regression acceptance.'}
@@ -523,7 +529,7 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
 }
 function Wait-ExcelReadyForTest([string]$Macro) {
     # Read-only readiness sampling precedes dispatch. No command is replayed.
-    for($readAttempt=1;$readAttempt -le 8;$readAttempt++){
+    for($readAttempt=1;$readAttempt -le $ExcelReadyReadLimitForTest;$readAttempt++){
         $ready=$null
         try {$ready=$excel.Ready} catch {$ready=$null}
         $status=if($null -eq $ready){'Unavailable'}elseif($ready -isnot [bool]){'Invalid'}elseif($ready){'Ready'}else{'Busy'}
@@ -531,7 +537,7 @@ function Wait-ExcelReadyForTest([string]$Macro) {
             ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'readiness-before-dispatch.jsonl')
         if($status -ceq 'Ready'){return}
         if($status -ceq 'Invalid'){throw 'Excel readiness returned an unsupported type; macro was not dispatched.'}
-        if($readAttempt -lt 8){Start-Sleep -Milliseconds 250}
+        if($readAttempt -lt $ExcelReadyReadLimitForTest){Start-Sleep -Milliseconds 250}
     }
     throw 'Excel readiness remained unavailable or busy; macro was not dispatched.'
 }
@@ -670,7 +676,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($CheckGuideDraft){
+    if($CheckGuideDraft -or $CheckOperationsGuidePresentation){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -844,7 +850,7 @@ End Function
                 . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
                 Test-Slice4beRecordingReader $null $null $true
             }
-            if($CheckGuideDraft){
+            if($CheckGuideDraft -or $CheckOperationsGuidePresentation){
                 . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
                 Install-GuideDraftProbe
             }

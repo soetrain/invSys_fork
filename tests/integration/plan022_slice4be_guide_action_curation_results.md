@@ -345,3 +345,64 @@ This fills existing D18 coverage; no behavioral RED is fabricated and no runtime
 fix, control change or new architectural contract is introduced. The preceding
 build/compile/static and complete supporting gates apply to the same package
 hashes; the extension only changes its isolated focused test route.
+
+### Operations guide comparison coverage (verified)
+
+The new test route authors and explicitly pairs an immutable guide with the
+real Receiving recording, then checks How-To, Diagnostic and Compare both at
+pending, partial and fully applied publication. It retains the existing 376
+evaluator assertions and adds 45 comparison assertions through the existing
+packaged form handlers. The generated author receives an explicit
+ACTION_PATH_MAINT fixture grant; ordinary Viewer permissions do not change.
+The guide and observed recording are explicitly selected separately, even though
+this fixture uses the recording from which the guide was authored. The existing
+351-check guide gate retains the distinct-source/observed-run proof.
+
+The first run, root `c88663be25874bfda5e5af349ddeac46`, is **incomplete: 242 PASS
+and one harness failure**, 2026-09-22 10:19:28.0441952--10:31:03.0723888 UTC.
+The eight-sample readiness guard exhausts before a guide call dispatches during
+Partial; a subsequent cleanup guard also exhausts. The first exception is not
+independently retained, so its full context is not inferred from the final
+cleanup message. All running source pins remain unchanged, Excel closes normally
+without assistance within the bounded wait, and no matching Application events
+occur. Nine Pending captures are directly reviewed and hashed; five other
+captures are not claimed reviewed. This is neither product RED nor acceptance.
+Evidence: `reports/runtime/operations-guide-presentation-*` and that root's
+`readiness-before-dispatch.jsonl` / `operator-image-review.json`.
+
+The test-only readiness limit is now selectable from 1 through 120 samples,
+default eight, with the unchanged 250 ms interval. The comparison retry explicitly
+uses 40. Actual-Run offline RED is **37 PASS / 7 expected FAIL**, root
+`39b9a1ce80c14d8086d3df14548c1a4e`; GREEN is **44/44**, root
+`f7baa9f1dbd848c5bf9dc251adf6fa18`. All 32 prior readiness identities remain;
+late readiness, bounded exhaustion and a failed single dispatch are covered.
+Existing privacy/replay diagnostics remain **78/78**. Sampling never replays a
+command and logs no argument values. No runtime or architectural contract changes.
+Evidence: `reports/runtime/extended-readiness-{red,green,diagnostics-green}.log`
+and `extended-readiness-verification.json`.
+
+Regenerated maintenance remains **249 components / 6,035 procedures / 132,492
+lines / dynamic calls 9 literal and 45 unresolved / 192 duplicate candidates**;
+all 28 prior module limits and unrelated documentation pins pass. Evidence:
+`reports/runtime/operations-guide-presentation-static-verification.json`.
+The fresh extended-readiness packaged run passes **421/421**, retaining every
+one of the 376 preceding evaluator identities and adding exactly 45 Operations
+comparison checks. Root `957e171a8fa6454cb7994f6e857166d7`, **2026-09-22
+10:34:24.4223736--11:06:16.3335952 UTC**. All **31** captures are directly reviewed
+and hashed. The guide keeps its original authored instructions while the explicit
+run/result shows Awaiting with zero, then three, applied source events, and
+Concluded only when all four exact events are applied. Viewing, switching and
+refresh preserve activity/training/config/publication bytes and authority-call
+counters; the separate Evaluate action alone creates each saved result.
+
+Excel closes normally without assistance within the bounded closure wait; all
+test/runtime source pins and five frozen package hashes remain unchanged, with
+zero matching Application events. All **1,377** readiness samples are Ready on
+their first read. The 40-sample option is exercised by the offline tests, but this
+live run does not prove the cause or recovery timing of the earlier exhaustion.
+Verification: `reports/runtime/verify-operations-guide-presentation-extended-ready.ps1`
+and `operations-guide-presentation-extended-ready-{verification,readiness-verification}.json`.
+No runtime change or repeated full-chain run was needed for this test extension;
+the preceding compiled packages, static limits, live roles and full-chain evidence
+apply to the same frozen hashes. Comprehensive control coverage, training transfer,
+unapproved decisions and human acceptance remain open.

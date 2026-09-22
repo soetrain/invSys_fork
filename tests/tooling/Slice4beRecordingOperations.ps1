@@ -229,6 +229,8 @@ End Function
         $pathId=[string]$closed[0].ActionPathId
         $eventsPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Snapshot.Events.json')
         $stages=if($CheckRecordingEvaluation){@('Pending','Partial','Applied')}else{@('Pending','Applied')}
+        $operationsGuide=$null
+        if($CheckOperationsGuidePresentation){. (Join-Path $PSScriptRoot 'Slice4beOperationsGuidePresentation.ps1')}
         $totalProcessed=0
         foreach($stage in $stages){
             if($stage -ne 'Pending'){
@@ -275,6 +277,7 @@ End Function
                 . (Join-Path $PSScriptRoot 'Slice4beEvaluationVisualEvidence.ps1')
                 Test-EvaluationVisualEvidence $stage
             }
+            if($CheckOperationsGuidePresentation){Test-OperationsGuidePresentation $stage ([ref]$operationsGuide)}
             ObserveRecordingOther ($stage+'Viewer')
             if($CaptureEvidence){CaptureFormEvidence 'Action Paths' ('recording-operations-'+$stage.ToLowerInvariant()+'.png')}
         }

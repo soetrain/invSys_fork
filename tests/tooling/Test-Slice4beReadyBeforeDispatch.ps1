@@ -26,10 +26,14 @@ foreach($case in @(
     @{Name='UnavailableBounded';Plan=@('Unavailable');Reads=8;Dispatches=0;Throws=$true;Flag=$true},
     @{Name='InvalidTypeStops';Plan=@('Invalid');Reads=1;Dispatches=0;Throws=$true;Flag=$true},
     @{Name='DispatchFailureNotReplayed';Plan=@('Ready');Reads=1;Dispatches=1;Throws=$true;Flag=$true;RunThrows=$true},
-    @{Name='FlagOff';Plan=@('False');Reads=0;Dispatches=1;Throws=$false;Flag=$false}
+    @{Name='FlagOff';Plan=@('False');Reads=0;Dispatches=1;Throws=$false;Flag=$false},
+    @{Name='ExtendedLateReady';Plan=(@('False')*9+@('Ready'));Reads=10;Dispatches=1;Throws=$false;Flag=$true;Limit=40},
+    @{Name='ExtendedBounded';Plan=@('False');Reads=40;Dispatches=0;Throws=$true;Flag=$true;Limit=40},
+    @{Name='ExtendedDispatchFailureNotReplayed';Plan=(@('Unavailable')*9+@('Ready'));Reads=10;Dispatches=1;Throws=$true;Flag=$true;Limit=40;RunThrows=$true}
 )){
     $reportRoot=Join-Path $root $case.Name;New-Item -ItemType Directory -Path $reportRoot|Out-Null
     $WaitForExcelReadyForTest=$case.Flag
+    $ExcelReadyReadLimitForTest=if($case.ContainsKey('Limit')){$case.Limit}else{8}
     $excel=[pscustomobject]@{Reads=0;Calls=0;ReadsAtDispatch=-1;Plan=$case.Plan;RunThrows=($case.ContainsKey('RunThrows') -and $case.RunThrows)}
     $excel|Add-Member -MemberType ScriptProperty -Name Ready -Value {
         $index=[Math]::Min($this.Reads,$this.Plan.Count-1);$this.Reads++
