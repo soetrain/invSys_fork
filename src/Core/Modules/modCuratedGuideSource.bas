@@ -88,7 +88,8 @@ Private Function ValidateAction(ByVal target As WarehouseTarget, ByVal group As 
     Next envelope
     If requested Is Nothing Then Exit Function
     For Each record In records
-        For Each field In Array("ControlId", "UserId", "StationId", "SequenceId", "Ordinal", "PolicyVersion")
+        For Each field In Array("ControlId", "UserId", "StationId", "SequenceId", "Ordinal", "PolicyVersion", _
+                               "CatalogVersion", "PackageSetVersion", "BuildIdentity")
             If record(field) <> requested(field) Then Exit Function
         Next field
     Next record
@@ -110,6 +111,7 @@ Private Function VerifiedBody(ByVal target As WarehouseTarget, ByVal envelope As
     record.Remove "ContentSha256"
     body = modTrainingJson.EncodeObject(record)
     If modTrainingWire.Sha256(body) <> hash Then Exit Function
+    If Not modTrainingWire.ValidId(CStr(record("RecordId"))) Then Exit Function
     If Not modActivityStore.ValidBody(target, CStr(record("RecordId")), body) Then Exit Function
     Set VerifiedBody = record
 Invalid:

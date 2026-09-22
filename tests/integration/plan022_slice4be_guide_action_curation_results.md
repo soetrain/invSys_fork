@@ -201,3 +201,20 @@ Application events are verified before any Core fix by
 `reports/runtime/verify-guide-action-curation-integrity-red.ps1`.
 The correction will enforce existing D18 identity and release agreement in
 private Core validation; it changes no schema, controls or authority contract.
+
+The new isolated candidate `deploy/validation-guide-action-curation-integrity`
+builds all five packages and passes explicit compile/cold start. All 242 compiled
+component identities remain; only private `modCuratedGuideSource` changes. It
+validates original RecordId as a GUID and requires attempt/result catalog,
+package-set and build agreement before offering the action.
+
+Focused GREEN is **71/71**, preserving every RED identity, root
+`dbe2029e5d2f4188a588112e3640dcaf`, **2026-09-22
+08:21:49.0523985--08:25:59.6998582 UTC**. All twelve library/picker/editor captures
+are directly reviewed and hashed at default/minimum/larger/restored sizes.
+Normal unassisted closure, unchanged running sources/frozen candidates and zero
+matching Application events are verified by
+`reports/runtime/verify-guide-action-curation-integrity-green.ps1`.
+Maintenance has **249 components, 6,035 procedures, 132,492 lines**, dynamic calls
+**9/45**, duplicate groups **192**, with all **28** preceding size limits passing.
+User-file pins are preserved. Supporting regression gates still remain.
