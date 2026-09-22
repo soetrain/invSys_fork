@@ -21,7 +21,7 @@ Public Function ListGuides(ByVal context As String, ByVal search As String, ByRe
             If Not ParseVersion(CStr(parts(1)), version) Then GoTo BadEntry
             Set model = modGuideStore.ReadChain(target, CStr(parts(0)), version)
             If model Is Nothing Then GoTo BadEntry
-            tags = TagsText(model)
+            tags = modGuideModel.TagsText(model)
             If search = "" Or InStr(1, CStr(model("Name")) & " " & tags & " " & CStr(model("ActionPathId")), search, vbTextCompare) > 0 Then
                 line = CStr(model("ActionPathId")) & "|" & CStr(version) & "|" & CStr(model("ContentSha256")) & vbTab & _
                     ListText(CStr(model("Name"))) & vbTab & "Version " & CStr(version) & " - " & ListText(tags)
@@ -70,7 +70,7 @@ Public Function ReadGuide(ByVal context As String, ByVal key As String, ByRef in
     If CStr(model("ContentSha256")) <> CStr(parts(2)) Then Exit Function
     Set visible = modEvaluationMatches.PolicyControls(policy, False)
     instructions = "Authored instruction" & vbCrLf & CStr(model("Name")) & vbCrLf & _
-        "Tags: " & TagsText(model) & vbCrLf & CStr(model("Instructions")) & vbCrLf
+        "Tags: " & modGuideModel.TagsText(model) & vbCrLf & CStr(model("Instructions")) & vbCrLf
     For Each step In model("Steps")
         position = position + 1
         instructions = instructions & vbCrLf & CStr(position) & ". "
@@ -115,14 +115,6 @@ Private Function ParseVersion(ByVal text As String, ByRef version As Long) As Bo
     version = CLng(text)
     ParseVersion = (version > 0 And CStr(version) = text)
 Invalid:
-End Function
-
-Private Function TagsText(ByVal model As Object) As String
-    Dim tag As Variant
-    For Each tag In model("Tags")
-        If TagsText <> "" Then TagsText = TagsText & ", "
-        TagsText = TagsText & CStr(tag)
-    Next tag
 End Function
 
 Private Function ListText(ByVal text As String) As String

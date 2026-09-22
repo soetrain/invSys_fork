@@ -6,6 +6,14 @@ Private Const FIELDS As String = "SchemaVersion|RecordKind|ActionPathId|Version|
 Private Const SOURCE_FIELDS As String = "ActionPathId|SequenceId|JournalVersion|RecordId|ContentSha256|RecordedByUserId|EntryCreatedAtUTC|Lifecycle|ReasonCode|ActionCount|CapturePolicyVersion|CatalogVersion|PackageSetVersion|BuildIdentity|RestrictedObservationCount"
 
 ' Build authored content separately from unchanged original activity bodies.
+Public Function TagsText(ByVal model As Object) As String
+    Dim tag As Variant
+    For Each tag In model("Tags")
+        If TagsText <> "" Then TagsText = TagsText & ", "
+        TagsText = TagsText & CStr(tag)
+    Next tag
+End Function
+
 Public Function Create(ByVal header As Object, ByVal text As Object, ByVal draftSteps As Collection, _
                        ByVal records As Collection, ByVal visible As Object, ByVal policyVersion As Long, _
                        ByVal previous As Object, ByVal expectation As Object) As Object

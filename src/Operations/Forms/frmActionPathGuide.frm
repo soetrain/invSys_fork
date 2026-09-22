@@ -16,6 +16,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private mContext As String
+Private mPublished As Boolean
 Private mDraftId As String
 Private mLoading As Boolean
 Private mResizeReady As Boolean
@@ -95,6 +96,13 @@ Public Function BindContext(ByVal context As String, ByVal pathId As String) As 
     BindContext = LoadDraft()
 End Function
 
+Public Function BindPublishedContext(ByVal context As String, ByVal key As String) As Boolean
+    Dim notice As String
+    mContext = context: mPublished = True
+    If Not modActionGuideDraft.OpenPublishedDraft(context, key, mDraftId, notice) Then Invalidate notice: Exit Function
+    BindPublishedContext = LoadDraft()
+End Function
+
 Public Function ValidateBinding() As Boolean
     Dim rows As String, source As String, evidence As String, notice As String
     If mDraftId = "" Then Exit Function
@@ -104,9 +112,14 @@ End Function
 
 Private Function LoadDraft() As Boolean
     Dim rows As String, source As String, evidence As String, notice As String, selected As String, row As Variant, fields As Variant
+    Dim field As Variant, value As String, fieldNotice As String
     selected = SelectedStep()
     If Not modActionGuideDraft.ReadDraft(mContext, mDraftId, rows, source, evidence, notice) Then Invalidate notice: Exit Function
     mLoading = True: mSteps.Clear
+    For Each field In Array("Name", "Tags", "Instructions")
+        If Not modActionGuideDraft.ReadText(mContext, mDraftId, CStr(field), "", value, fieldNotice) Then Invalidate fieldNotice: Exit Function
+        Me.Controls("txtGuide" & CStr(field)).Value = value
+    Next field
     For Each row In Split(rows, vbCrLf)
         If CStr(row) <> "" Then
             fields = Split(CStr(row), vbTab)
@@ -241,8 +254,10 @@ Private Sub UserForm_Activate()
 End Sub
 
 Private Sub UserForm_Layout()
+    Dim entry As String
     If mContext <> "" Then
-        If mContext <> modActivity.CaptureContext() Then Invalidate "Unavailable: the session or warehouse changed. Reopen Create guide."
+        entry = "Create guide": If mPublished Then entry = "Edit guide"
+        If mContext <> modActivity.CaptureContext() Then Invalidate "Unavailable: the session or warehouse changed. Reopen " & entry & "."
     End If
     If Not mLayout Is Nothing Then mLayout.ApplyAnchoredLayout
 End Sub

@@ -37,9 +37,14 @@ function Test-PublishedGuideEdit($Fixture,$Other,$FirstGuide,$SecondGuide,$Obser
         $present=(BoundControl 'btnEditPublishedGuide' 'State') -ceq 'True|True'
         Check 'GuideEdit.PermittedEntryWithoutObservedRun' ($present -and (BoundControl 'btnUseGuideForRun' 'State') -ceq 'True|False')
         Check 'GuideEdit.ApprovedCaption' ((BoundControl 'btnEditPublishedGuide' 'Label') -ceq 'Edit guide')
+        foreach($layout in @('Minimum','Default','Larger','Restored')){
+            Check ('GuideEdit.ReaderLayout.'+$layout) ((BoundControl '' 'Fit' $layout) -ceq 'True')
+            EditCapture ('reader-'+$layout.ToLowerInvariant()) 'Published guides'
+        }
         $opened=(EditSelected) -ceq 'DELIVERED' -and (EditControl '' 'Count') -ceq '1'
         Check 'GuideEdit.ActualHandlerOpensExistingGuideEditor' $opened
         Check 'GuideEdit.ReopenRestoresSavedName' ($opened -and (EditControl 'txtGuideName' 'Text') -ceq $SecondGuide.Name)
+        Check 'GuideEdit.ReopenRetainsDraftNotice' ($opened -and (EditControl 'lblGuideStatus' 'Label') -match '^Draft only\.')
         $ids=(@($SecondGuide.Steps.StepId) -join "`n")+"`n"
         Check 'GuideEdit.ReopenRestoresOriginalAuthoredStepIds' ($opened -and (EditControl 'lstGuideSteps' 'Values') -ceq $ids)
         $source=EditControl 'lblGuideSource' 'Label'
@@ -120,6 +125,8 @@ function Test-PublishedGuideEdit($Fixture,$Other,$FirstGuide,$SecondGuide,$Obser
             SaveGuideExpectationVisibility $false
             [void](EditControl 'btnSaveGuide' 'Click')
             Check 'GuideEdit.CurrentPolicyLossClearsDraftWithoutDroppingHiddenContent' ($opened -and (EditControl 'txtGuideEvidence' 'Text') -cin @('','MISSING') -and (BoundSame $published (BoundPins $journalRoot)))
+            [void](BoundControl 'btnRefreshGuides' 'Click')
+            Check 'GuideEdit.RestrictedEntryHasReason' ((BoundControl 'btnEditPublishedGuide' 'State') -ceq 'True|False' -and (BoundControl 'lblPublishedGuideStatus' 'Label') -match '(?i)Hidden by policy: editing')
         } finally {CloseRecordingViewer;SaveGuideExpectationVisibility $true}
         OpenRecordingViewer;[void](BoundLibrary 'Open');BoundOpen;EditExact $FirstGuide
         $authPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Auth.xlsb')
@@ -153,6 +160,7 @@ function Test-PublishedGuideEdit($Fixture,$Other,$FirstGuide,$SecondGuide,$Obser
         CloseRecordingViewer;SelectTarget $Fixture 'config-reader';OpenRecordingViewer
         [void](BoundLibrary 'Open');[void](BoundLibrary 'Select' $Observed.ActionPathId);BoundOpen;BoundSelect $FirstGuide
         Check 'GuideEdit.ReaderCannotOpenEdit' ((BoundControl 'btnEditPublishedGuide' 'State') -ceq 'True|False' -and (EditSelected) -ceq 'DISABLED' -and (EditControl '' 'Count') -ceq '0')
+        Check 'GuideEdit.DeniedEntryHasReason' ((BoundControl 'lblPublishedGuideStatus' 'Label') -match 'ACTION_PATH_MAINT')
         Check 'GuideEdit.ReaderRetainsPublishedReadAndUseAccess' ((BoundControl 'txtPublishedInstructions' 'Text').Contains([string]$FirstGuide.Name) -and (BoundControl 'btnUseGuideForRun' 'Click') -ceq 'DELIVERED')
         Check 'GuideEdit.AllPriorSourceAndGuideFilesRemainIdentical' (PriorFilesPreserved $before)
         Check 'GuideEdit.NoEvaluationOrBusinessPublication' ((BoundSame $resultsBefore (BoundPins (Join-Path $journalRoot 'Evaluations'))) -and (Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publicationBefore)

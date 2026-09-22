@@ -5,10 +5,12 @@ Private mEditor As frmActionPathGuide
 Private mLibrary As frmActionPaths
 Private mContext As String
 Private mPathId As String
+Private mPublishedReader As frmActionPathLibrary
+Private mPublishedKey As String
 
 Public Sub OpenForRun(ByVal context As String, ByVal pathId As String, ByVal library As frmActionPaths)
     If Not mEditor Is Nothing Then
-        If mContext = context And mPathId = pathId And mEditor.Visible Then
+        If mPublishedReader Is Nothing And mContext = context And mPathId = pathId And mEditor.Visible Then
             If mEditor.ValidateBinding() Then Exit Sub
         End If
         CloseEditor
@@ -17,6 +19,33 @@ Public Sub OpenForRun(ByVal context As String, ByVal pathId As String, ByVal lib
     Set mEditor = New frmActionPathGuide
     Set mLibrary = library: mContext = context: mPathId = pathId
     If mEditor.BindContext(context, pathId) Then mEditor.Show vbModeless Else CloseEditor
+End Sub
+
+Public Sub OpenForPublishedGuide(ByVal context As String, ByVal key As String, ByVal reader As frmActionPathLibrary)
+    If Not mEditor Is Nothing Then
+        If mPublishedReader Is reader Then
+            If mContext = context And mPublishedKey = key And mEditor.Visible Then
+                If mEditor.ValidateBinding() Then Exit Sub
+            End If
+        End If
+        CloseEditor
+    End If
+    If Not modActionGuideDraft.CanEditPublished(context, key) Then Exit Sub
+    Set mEditor = New frmActionPathGuide
+    Set mPublishedReader = reader: mContext = context: mPublishedKey = key
+    If mEditor.BindPublishedContext(context, key) Then mEditor.Show vbModeless Else CloseEditor
+End Sub
+
+Public Sub ValidatePublishedSelection(ByVal reader As frmActionPathLibrary, ByVal key As String)
+    If mPublishedReader Is Nothing Then Exit Sub
+    If mPublishedReader Is reader Then
+        If key <> mPublishedKey Then CloseEditor
+    End If
+End Sub
+
+Public Sub ClosePublishedReader(ByVal reader As frmActionPathLibrary)
+    If mPublishedReader Is Nothing Then Exit Sub
+    If mPublishedReader Is reader Then CloseEditor
 End Sub
 
 Public Sub CancelEditor(ByVal editor As frmActionPathGuide)
@@ -30,10 +59,10 @@ Public Sub CloseLibrary(ByVal library As frmActionPaths)
 End Sub
 
 Private Sub CloseEditor()
-    Set mLibrary = Nothing
+    Set mLibrary = Nothing: Set mPublishedReader = Nothing
     If Not mEditor Is Nothing Then
         mEditor.ReleaseDraft
         Unload mEditor: Set mEditor = Nothing
     End If
-    mContext = "": mPathId = ""
+    mContext = "": mPathId = "": mPublishedKey = ""
 End Sub

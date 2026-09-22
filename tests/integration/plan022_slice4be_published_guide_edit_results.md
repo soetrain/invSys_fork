@@ -1,7 +1,83 @@
 # Plan 022 Slice 4be.5 - reopen a published guide for editing
 
-Status: focused behavioral RED verified; implementation pending. No runtime
-implementation, deployment, visible acceptance or completion is claimed.
+Status: corrected isolated implementation passes **58/58**, including all 46 edit
+checks; ten captures directly reviewed and maintenance ratchets preserved. Broader
+regressions remain. No deployment or slice completion is claimed.
+
+The corrected frozen candidate is `deploy/validation-published-guide-edit-notices`.
+All five packages build and compile. Its focused GREEN root is
+`reports/runtime/slice4be-viewer-published-read/7180111da8114ccea7c38f99807be709`;
+UTC **2026-09-22 04:16:55.8737671--04:20:38.6757838**. All 58 notice-RED identities
+pass, including the original 51 and seven added notice/reader checks. Normal
+closure, zero matching Application events and unchanged candidate/test sources are
+verified. All ten `guide-edit-*.png` captures were individually reviewed and hashed:
+four reader sizes, four editor sizes, reopened version and retained conflict.
+The draft notice is visible again; the reader's existing status sits below
+provenance and appends Core's explicit edit restriction reason. No new form size
+or authority contract was introduced.
+
+`reports/runtime/verify-published-guide-edit-notices-green.ps1` audits that result.
+`reports/runtime/verify-published-guide-edit-notices-candidate.ps1` verifies the
+compiled scope, all 28 prior oversized-module limits and 55 frozen package hashes.
+The seven changed compiled components are the first candidate's five below plus
+Core `modGuideLibraryRead` and `modGuideModel`; the same two new Core helpers remain.
+The reviewed tag formatter is shared in private Core `modGuideModel`, with no
+object-valued cross-XLAM API. Regenerated evidence in
+`reports/runtime/published-guide-edit-notices-static` has 246 components, 6,000
+procedures, 132,040 lines, unchanged literal/unresolved dynamic calls 9/45 and
+duplicate groups **192**. No unrelated scanner candidate was removed.
+
+The broader visible gate adds `-CheckPublishedGuideEdit` to the preceding complete
+presentation/availability command on this corrected candidate. It must retain all
+305 earlier identities plus the 46 edit assertions. Role regressions, fresh-process
+preference, live roles, full chain and human acceptance remain separate requirements.
+
+The first implementation candidate is `deploy/validation-published-guide-edit`.
+All five packaged projects compile; compiled comparison against the paired-view
+candidate changes only Core `modActionGuideDraft`, `modTrainingReadContext`,
+Operations `modGuideEditor`, `frmActionPathGuide`, `frmActionPathLibrary`, and adds
+Core `modGuideRevision` and `modPublishedGuideDraftSource`. The separate dirty
+Event Detail measurement work is preserved and unchanged from that prior package.
+
+The same focused command below, with GREEN and this candidate, plus
+`-CaptureGuideEvidence`, gives **51/51**, preserving all original RED identities.
+Report `reports/runtime/slice4be-viewer-published-read/3b442bd54c8d4a14ad4d6239cbc57947/green.json`;
+UTC **2026-09-22 04:06:13.6910316--04:09:53.1199024**. Excel closes normally,
+zero matching Application events and unchanged running test sources/candidate are
+verified. `reports/runtime/verify-published-guide-edit-green.ps1` audits this
+checkpoint. All six `guide-edit-*.png` captures were individually reviewed and
+hash-recorded in that report's `visible-review.json`.
+
+The four editor sizes, reopened version and explicit conflict are readable.
+Review also finds a blank normal draft-status label after restored fields are
+loaded. This is not accepted merely because the original 39 edit assertions pass.
+The next test-only extension adds protection for that notice, disabled editing
+reasons under current visibility/capability, and four Published guides sizes.
+Expected behavioral RED is the missing normal draft and denial notices; existing
+51 results must remain. It runs against this frozen first candidate before fixes.
+Core/Operations notice projection and the existing form load are affected; no
+architectural change is needed because D18 already requires draft semantics and
+an unavailability reason without hidden-content deletion.
+
+That follow-up is verified **55 PASS / three expected notice FAIL**, preserving
+all 51 initial GREEN identities and adding four passing reader layouts. Root
+`reports/runtime/slice4be-viewer-published-read/43d454a2e7794f49890da81ba7a2cc94`;
+UTC **2026-09-22 04:11:07.8353728--04:14:42.2343890**. Only
+`GuideEdit.ReopenRetainsDraftNotice`, `GuideEdit.RestrictedEntryHasReason` and
+`GuideEdit.DeniedEntryHasReason` fail. Normal closure, zero matching Application
+events and unchanged candidate/test sources are verified before notice fixes.
+The reader status will sit beneath provenance, retaining its existing read notice
+and appending the Core-provided editing reason. Existing minimum/default sizes
+and all field/action controls remain. The protecting helper remains the same.
+
+Initial regenerated static evidence is under
+`reports/runtime/published-guide-edit-static`: 246 components, 6,001 procedures,
+132,047 lines, literal/unresolved Application.Run 9/45, duplicate groups **193**.
+The increase from 192 is the newly duplicated `TagsText` in Core guide reader
+and published-draft source. Both bodies and callers were reviewed; consolidate
+that shared formatter and rerun maintenance evidence before acceptance. No other
+scanner candidate is authorized for deletion. Broad packaged regressions, live
+roles and full Release 1 chain remain required on the final changed candidate.
 
 Architecture v4.11 D18's **published-guide editing refinement** governs this
 discovered entry under the approved semantic-inheritance rule. It was recorded

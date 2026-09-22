@@ -30,6 +30,7 @@ Private mSource As MSForms.Label
 Private mStatus As MSForms.Label
 Private mObserved As MSForms.Label
 Private WithEvents mUse As MSForms.CommandButton
+Private WithEvents mEdit As MSForms.CommandButton
 Private mObservedId As String
 Private mObservedBinding As String
 
@@ -43,14 +44,15 @@ Private Sub UserForm_Initialize()
         Array("TextBox", "txtGuideSearch", "", 170, 10, 600, 24, 7), _
         Array("CommandButton", "btnRefreshGuides", "Refresh", 782, 10, 98, 26, 6), _
         Array("ListBox", "lstPublishedGuides", "", 12, 46, 868, 116, 7), _
-        Array("Label", "lblPublishedGuideSource", "", 12, 172, 868, 82, 7), _
+        Array("Label", "lblPublishedGuideSource", "", 12, 172, 868, 60, 7), _
+        Array("Label", "lblPublishedGuideStatus", "", 12, 236, 868, 24, 7), _
         Array("Label", "lblPublishedAuthored", "Authored instructions - reviewed guide order", 12, 264, 350, 20, 3), _
         Array("Label", "lblPublishedObserved", "Observed controls - original source order", 452, 264, 428, 20, 7), _
         Array("TextBox", "txtPublishedInstructions", "", 12, 292, 426, 238, 11), _
         Array("TextBox", "txtPublishedObservations", "", 452, 292, 428, 238, 15), _
         Array("Label", "lblGuideObservedRun", "", 12, 542, 650, 36, 13), _
         Array("CommandButton", "btnUseGuideForRun", "Use for selected run", 674, 546, 206, 28, 12), _
-        Array("Label", "lblPublishedGuideStatus", "", 12, 582, 752, 32, 13), _
+        Array("CommandButton", "btnEditPublishedGuide", "Edit guide", 614, 588, 150, 26, 12), _
         Array("CommandButton", "btnCloseGuides", "Close", 782, 588, 98, 26, 12))
         Set control = Me.Controls.Add("Forms." & definition(0) & ".1", CStr(definition(1)), True)
         control.Move definition(3), definition(4), definition(5), definition(6)
@@ -63,7 +65,8 @@ Private Sub UserForm_Initialize()
     Set mInstructions = Me.Controls("txtPublishedInstructions"): Set mObservations = Me.Controls("txtPublishedObservations")
     Set mSource = Me.Controls("lblPublishedGuideSource"): Set mStatus = Me.Controls("lblPublishedGuideStatus")
     Set mObserved = Me.Controls("lblGuideObservedRun"): Set mUse = Me.Controls("btnUseGuideForRun")
-    mUse.Enabled = False
+    Set mEdit = Me.Controls("btnEditPublishedGuide")
+    mUse.Enabled = False: mEdit.Enabled = False
     mGuides.ColumnCount = 3: mGuides.BoundColumn = 1
     mGuides.ColumnWidths = "0 pt;400 pt;420 pt": mGuides.IntegralHeight = False
     For Each definition In Array("txtPublishedInstructions", "txtPublishedObservations")
@@ -99,11 +102,12 @@ Private Function ContextValid() As Boolean
 End Function
 
 Public Sub ValidateSelection()
-    Dim instructions As String, observations As String, provenance As String, notice As String, key As String
+    Dim instructions As String, observations As String, provenance As String, notice As String, key As String, editNotice As String
     If mLoading Then Exit Sub
     If Not ContextValid() Then Exit Sub
     If mGuides.ListIndex < 0 Then ClearSelection "Select a published guide version.": Exit Sub
     key = CStr(mGuides.Value)
+    modGuideEditor.ValidatePublishedSelection Me, key
     If Not modGuideLibraryRead.ReadGuide(mContext, key, instructions, observations, provenance, notice) Then
         ClearSelection notice
         Exit Sub
@@ -112,11 +116,14 @@ Public Sub ValidateSelection()
     If CStr(mGuides.Value) <> key Then Exit Sub
     mInstructions.Value = instructions: mObservations.Value = observations
     mSource.Caption = provenance: mStatus.Caption = notice
+    mEdit.Enabled = modActionGuideDraft.CanEditPublished(mContext, key, editNotice)
+    If Not mEdit.Enabled Then modGuideEditor.ClosePublishedReader Me
     mUse.Enabled = False
     If Not mOwner Is Nothing And mObservedId <> "" Then
         mUse.Enabled = mOwner.ObservedRunMatches(mObservedId, mObservedBinding)
         If Not mUse.Enabled Then mStatus.Caption = "The selected recording changed. Reopen Published guides from the intended recording."
     End If
+    If editNotice <> "" Then mStatus.Caption = mStatus.Caption & vbCrLf & editNotice
 End Sub
 
 Private Sub RefreshGuides()
@@ -139,7 +146,7 @@ Private Sub RefreshGuides()
     Next row
 Done:
     mLoading = False: mStatus.Caption = notice
-    If mGuides.ListIndex >= 0 Then ValidateSelection
+    If mGuides.ListIndex >= 0 Then ValidateSelection Else modGuideEditor.ClosePublishedReader Me
     Exit Sub
 Failed:
     mLoading = False
@@ -147,15 +154,23 @@ Failed:
 End Sub
 
 Private Sub ClearSelection(ByVal notice As String)
-    mUse.Enabled = False
+    mUse.Enabled = False: mEdit.Enabled = False
+    If Not mLoading Then modGuideEditor.ClosePublishedReader Me
     mInstructions.Value = "": mObservations.Value = "": mSource.Caption = "": mStatus.Caption = notice
 End Sub
 
 Public Sub ReleaseReader()
+    modGuideEditor.ClosePublishedReader Me
     mObservedId = "": mObservedBinding = "": mObserved.Caption = ""
     Set mOwner = Nothing: mContext = ""
     mLoading = True: mGuides.Clear: mSearch.Value = "": mLoading = False
     ClearSelection ""
+End Sub
+
+Private Sub mEdit_Click()
+    ValidateSelection
+    If Not mEdit.Enabled Or mGuides.ListIndex < 0 Then Exit Sub
+    modGuideEditor.OpenForPublishedGuide mContext, CStr(mGuides.Value), Me
 End Sub
 
 Private Sub mUse_Click()
