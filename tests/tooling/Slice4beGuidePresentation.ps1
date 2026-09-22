@@ -167,4 +167,8 @@ public static class PairedViewNativeLayout {
         . (Join-Path $PSScriptRoot 'Slice4beGuidePresentationScenarios.ps1')
         Test-GuidePresentationScenarios $Fixture $FirstGuide $SecondGuide $Observed
     }
+    if($CheckGuidePresentationRestart){
+        # Retain credentials only in memory; restart runs after all parent cleanup.
+        $script:guidePresentationRestartFixture=[pscustomobject]@{Fixture=$Fixture;Guide=$FirstGuide;Observed=$Observed}
+    }
 }

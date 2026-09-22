@@ -32,6 +32,8 @@ param(
     [switch]$CheckGuideEvaluation,
     [switch]$CheckGuidePresentation,
     [switch]$CheckGuidePresentationAvailability,
+    [switch]$CheckGuidePresentationRestart,
+    [switch]$GuidePresentationRestartOnly,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideCaptureSavedWorkbookForTest,
@@ -86,6 +88,16 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $CaptureEvidence -or $DetailScrollLockDiagnostic)){
     throw 'Native scrolling checks require the isolated visible detail gate without temporary unlocking.'
+}
+if($GuidePresentationRestartOnly){
+    if($CheckGuidePresentationAvailability){throw 'The focused restart gate is separate from the availability regression gate.'}
+    $CheckGuidePresentationRestart=$true
+}
+if($CheckGuidePresentationRestart){
+    if(-not $GuideDraftOnly -or $ViewerStartupPackageStateForTest -ne 'SavedCopies' -or $GuideCaptureSavedWorkbookForTest){
+        throw 'Paired preference restart requires the isolated saved-copy guide gate without a retained capture workbook.'
+    }
+    $CheckGuidePresentation=$true
 }
 if($CheckGuidePresentationAvailability){
     if(-not $CaptureGuideEvidence){throw 'Presentation availability requires the complete visible presentation gate.'}
@@ -291,6 +303,7 @@ if ($CheckOperationsTrackingSettings) {
 }
 $results = [Collections.Generic.List[object]]::new()
 $excel = $null
+$guidePresentationRestartFixture = $null
 $step = 'startup'
 $settingsRoot = 'HKCU:\Software\VB and VBA Program Settings\invSys'
 $registryBefore = @{}
@@ -879,6 +892,11 @@ End Function
         }
     }
     if($CheckViewerPublishedRead) {
+        if($GuidePresentationRestartOnly){
+            $step='actual guide and observed-run fixtures for paired preference restart'
+            . (Join-Path $PSScriptRoot 'Slice4beGuideRestartFixture.ps1')
+            Initialize-GuideRestartFixture $a
+        } else {
         $step='packaged Viewer persisted publication read'
         Test-Slice4beViewerPublishedRead $a $b
         if($CheckActionRecording -and -not $TraceViewerStartupForTest) {
@@ -900,6 +918,7 @@ End Function
             $step='packaged Viewer Shipping current-state presentation'
             . (Join-Path $PSScriptRoot 'Slice4beViewerShippingState.ps1')
             Test-Slice4beViewerShippingState $a
+        }
         }
     }
     if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail -and -not $CheckViewerEventGroups -and -not $CheckViewerPublishedRead) {
@@ -1051,6 +1070,12 @@ End Function
         $step = 'personal preference Excel restart'
         Test-ActionPathPreferenceRestart $b
     }
+    }
+    if($CheckGuidePresentationRestart){
+        $step='paired preference through fresh Operations-only Excel'
+        if($null -eq $guidePresentationRestartFixture){throw 'Actual guide/run restart fixture was not established.'}
+        . (Join-Path $PSScriptRoot 'Slice4beGuidePresentationRestart.ps1')
+        Test-GuidePresentationRestart $guidePresentationRestartFixture
     }
 }
 catch {

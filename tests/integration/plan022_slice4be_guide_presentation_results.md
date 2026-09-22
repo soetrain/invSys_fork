@@ -226,3 +226,59 @@ recovery now pass. Fresh-process paired preference, human acceptance and the
 remaining D18 guide-editing/direct-curation/transfer scope remain open. The separate
 full chain passed with the assisted-cleanup limitation recorded above; these gates
 do not complete Slice 4be or approve the pending Event Detail/D8-A proposals.
+
+The first paired-preference restart attempt records **297 PASS / one harness
+failure**, preserving all **294 preceding passing identities**. Report:
+`reports/runtime/slice4be-viewer-published-read/184c512cafa142fb91c987cb15351267/green.json`.
+UTC **2026-09-22 02:55:32.2927393--03:20:22.4379223**. The three new pre-restart
+checks prove Save My Preference through Operations, initial Compare both and an
+unsaved How-To switch. Its How-To image was directly reviewed and hash-recorded;
+the other 39 images from this attempt are retained without claiming a new direct
+review. Exact guide and different observed recording provenance remain visible.
+
+The harness then attempts to hash writable saved probe XLAMs while Excel holds
+them open, producing a sharing violation before the restart. Normal final cleanup
+closes Excel without intervention. Zero matching Application events and unchanged
+running test sources are verified. No fresh-session result or behavioral RED is
+claimed. The correction moves probe hashes after verified normal process exit,
+before read-only reopening. No runtime or architectural behavior changes.
+
+The retry uses `-GuidePresentationRestartOnly` with the same compiled saved-copy
+candidate. Its focused fixture uses actual Admin publication, Viewer recording,
+Admin Save Value, Create guide and Save guide handlers, validates the immutable
+source/guide hashes, then records a different observed run. It retains the original
+regression evidence rather than treating a small focused gate as its replacement.
+The restart helper exercises actual Operations Settings and view handlers, normal
+owned-instance closure, a different native Excel process, Operations without Admin,
+explicit re-pairing, absence of automatic conclusions and Config/training byte
+preservation. Credentials remain in memory and the main harness restores local
+settings. No new runtime fix is justified by the first attempt's harness failure.
+
+The focused retry passes **27/27**: five instrumented package compiles, three
+startup/isolation checks, four actual-handler fixture checks and all **15 restart
+checks**. Report:
+`reports/runtime/slice4be-viewer-published-read/21d7b8f118ed4186a010a4dbe7baba9a/green.json`.
+UTC **2026-09-22 03:25:13.7245882--03:27:49.0766017**. The original owned Excel
+instance has a verified integer workbook count of zero before normal Quit and
+exits without intervention. A different native Excel process loads only Core,
+Inventory Domain, Designs Domain and Operations. Actual Operations Settings
+restores Compare both as the saved personal/effective choice. The library starts
+without an inferred guide/run pair or result. After explicit exact-guide and
+different observed-run selection, the view restores Compare both rather than the
+unsaved How-To choice, preserves provenance, and displays Not evaluated.
+
+Config and every training file remain byte-identical throughout the preference,
+view and restart actions. Saved probe packages remain unchanged. Final Excel
+closure is normal; zero matching Application events and unchanged running test
+sources/candidate hashes are verified. All **three focused captures were directly
+reviewed and hash-verified**: unsaved How-To, fresh-session Operations Settings,
+and restored Compare both with separate instructions/observations and no conclusion.
+All 45 frozen package hashes and unrelated-document pins hold. Existing runtime
+maintenance metrics remain applicable because no VBA/form/Ribbon source changed.
+
+This is regression evidence for the existing approved D18 persistence contract,
+not a new behavioral RED/GREEN implementation. The separate full visible 305/305
+and preceding 294 identities retained in the failed broad attempt remain evidence;
+27 focused checks do not replace those gates. Fresh-process paired preference is
+now verified on this isolated candidate. Human acceptance, published-guide editing,
+direct curation, transfer and broader D18/Release 1 completion remain open.
