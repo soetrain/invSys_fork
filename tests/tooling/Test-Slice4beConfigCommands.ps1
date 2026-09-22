@@ -504,7 +504,7 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
             if($CheckGuidePresentation -and ('InvSysSettingsCapture' -as [type])){
                 try {
                     $identity=[InvSysSettingsCapture]::ForegroundIdentity([IntPtr]$initialExcelWindow)
-                    $captured=[InvSysSettingsCapture]::SaveOwnedForegroundForm([IntPtr]$initialExcelWindow,@('Action Path view','Action Paths','Published guides','Operations Settings'),(Join-Path $reportRoot 'first-control-failure.png'))
+                    $captured=[InvSysSettingsCapture]::SaveOwnedForegroundForm([IntPtr]$initialExcelWindow,@('Action Path view','Action Paths','Published guides','Event Tracking Settings'),(Join-Path $reportRoot 'first-control-failure.png'))
                 } catch {$captured=$false}
             }
             [pscustomobject]@{
