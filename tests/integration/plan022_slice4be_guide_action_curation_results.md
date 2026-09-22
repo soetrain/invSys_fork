@@ -310,3 +310,38 @@ action. Normal unassisted Excel closure, unchanged test/package pins and zero
 matching Application events are verified by
 `reports/runtime/verify-guide-action-curation-integrity-regressions.ps1 -Gates evaluation`.
 The full Release 1 chain starts only after this completed verification.
+
+Full Release 1 chain is **32/32**, live-role **48/48** and Create Warehouse
+**15/15**, **2026-09-22 09:53:26.2209967--10:02:51.8506590 UTC**. Every preceding
+chain/live-role identity is retained. The five frozen packages and **234** running
+test/tool sources stay unchanged; all three tracked result files are restored
+byte-for-byte. No matching Application 1000/1001/1002 events occur. Evidence is
+`reports/runtime/guide-action-curation-integrity-chain-*`, verified by
+`reports/runtime/verify-guide-action-curation-integrity-chain.ps1` before the
+subsequent native-layout test-source extension.
+
+Cleanup is **assisted**, not unattended: read-only inspection confirms one idle
+instance has no workbooks and it exits without a Quit request. A later instance,
+created during the isolated run, also has a typed zero workbook count and is
+bound by exact native owner, process creation time and observed parent ID before
+normal Quit. The Document Recovery dialog is inspected; **Yes, I want to view
+these files later** is selected, captured, directly verified and confirmed.
+Recovery files remain, no process is forcibly terminated and no workbook is
+saved or modified by cleanup. The later instance's parent has already exited;
+the evidence does not establish the cause of that recovery instance. The runner
+then exits zero and Excel is closed. This does not prove unattended cleanup,
+comprehensive control coverage, transfer or human acceptance.
+
+The test-only native-layout extension passes **77/77**, preserving all **71**
+preceding focused identities and adding six actual maximize/restore checks for
+Action Paths, Choose tracked actions and Action Path guide. Root
+`8e78bad1e2d445be8d4f60278b71b389`, **2026-09-22
+10:04:18.7527167--10:08:41.7413401 UTC**. All **18** current captures are directly
+reviewed and hashed; maximized captures are reviewed at original resolution.
+Runtime sources and frozen XLAMs are unchanged. Excel closes normally without
+assistance after the runner's bounded closure wait, and there are zero matching
+Application events. Verification is `reports/runtime/verify-curation-native-layout.ps1`.
+This fills existing D18 coverage; no behavioral RED is fabricated and no runtime
+fix, control change or new architectural contract is introduced. The preceding
+build/compile/static and complete supporting gates apply to the same package
+hashes; the extension only changes its isolated focused test route.

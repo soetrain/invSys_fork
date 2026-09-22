@@ -21,6 +21,28 @@ function Test-GuideActionCuration($Fixture,$Other) {
     function CurateCapture([string]$Stage,[string]$Caption='Choose tracked actions') {
         if($CaptureGuideEvidence){CaptureOwnedFormByCaptionEvidence $Caption ('guide-curation-'+$Stage+'.png')}
     }
+    function CurateNativeLayout([string]$Form,[string]$Caption,[string]$Stage) {
+        if(-not $CaptureGuideEvidence){return}
+        if(-not ('CurationNativeLayout' -as [type])){
+            Add-Type @"
+using System; using System.Runtime.InteropServices;
+public static class CurationNativeLayout {
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h,int command);
+    [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr h);
+}
+"@
+        }
+        Initialize-SettingsCapture
+        $handle=[InvSysSettingsCapture]::OwnedVisibleForm($Caption,[IntPtr]$excel.Hwnd)
+        if($handle -eq [IntPtr]::Zero){throw 'Native curation layout needs the exact owned visible form.'}
+        foreach($command in @(3,9)){
+            [void][CurationNativeLayout]::ShowWindow($handle,$command)
+            Start-Sleep -Milliseconds 200
+            $size=if($command -eq 3){'Maximized'}else{'NativeRestored'}
+            Check ('GuideCuration.'+$Stage+'NativeLayout.'+$size) ([CurationNativeLayout]::IsZoomed($handle) -eq ($command -eq 3) -and (BoundControl '' 'Fit' 'Current' $Form) -ceq 'True')
+            CurateCapture ($Stage.ToLowerInvariant()+'-'+$size.ToLowerInvariant()) $Caption
+        }
+    }
     function CurationDigest([string]$Body) {
         if($Body -match '[^\x00-\x7f]'){throw 'Integrity fixture must preserve the ASCII wire.'}
         $sha=[Security.Cryptography.SHA256]::Create()
@@ -66,6 +88,7 @@ function Test-GuideActionCuration($Fixture,$Other) {
             Check ('GuideCuration.LibraryLayout.'+$size) ((BoundControl '' 'Fit' $size 'frmActionPaths') -ceq 'True')
             CurateCapture ('library-'+$size.ToLowerInvariant()) 'Action Paths'
         }
+        CurateNativeLayout 'frmActionPaths' 'Action Paths' 'Library'
         OpenPicker
         $opened=(Pick '' 'Count') -ceq '1'
         Check 'GuideCuration.ActualEntryOpensOnePicker' $opened
@@ -87,6 +110,7 @@ function Test-GuideActionCuration($Fixture,$Other) {
             Check ('GuideCuration.PickerLayout.'+$size) ($opened -and (Pick '' 'Fit' $size) -ceq 'True')
             if($opened){CurateCapture ('picker-'+$size.ToLowerInvariant())}
         }
+        if($opened){CurateNativeLayout 'frmGuideActionPicker' 'Choose tracked actions' 'Picker'}
         [void](Pick 'btnCreateSelectedGuide' 'Click')
         $drafted=(Draft '' 'Count') -ceq '1'
         Check 'GuideCuration.CreateUsesExistingGuideEditor' ($opened -and $drafted)
@@ -109,6 +133,7 @@ function Test-GuideActionCuration($Fixture,$Other) {
             Check ('GuideCuration.EditorLayout.'+$size) ($drafted -and (Draft '' 'Fit' $size) -ceq 'True')
             if($drafted){CurateCapture ('editor-'+$size.ToLowerInvariant()) 'Action Path guide'}
         }
+        if($drafted){CurateNativeLayout 'frmActionPathGuide' 'Action Path guide' 'Editor'}
         [void](Draft 'btnSaveGuide' 'Click')
         $files=@();if(Test-Path -LiteralPath $guideRoot){$files=@(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.1.json')}
         $guide=$null;if($files.Count -eq 1){$guide=ReadGuideExpectationRecord $files[0].FullName}
