@@ -151,23 +151,41 @@ or operational workbook mutation occurs. `verify-admin-uom-chain.ps1` validates
 the result and both recovery captures. Process IDs/handles in ignored helpers
 are stale after this run and must not be reused.
 
-The same frozen candidate retains three further supporting gates on 2026-09-22:
+The same frozen candidate retains these further supporting gates on 2026-09-22:
 
 | Gate | Result / retained prior GREEN checks | Report identity | Reviewed captures |
 | --- | --- | --- | --- |
 | Direct curation / native layouts | 77/77 | `f0f763bfd964477887652b2e59c4a3ac` | 18 |
 | Saved preference / new Excel process | 27/27 | `6b9f16f9ff694f68a971ec6d53e62c35` | 3 |
 | Published Viewer / filters / Shipping state | 94/94 | `62264356052c46a0acb07cfc523cf119` | 3 |
+| Complete guide / published editing / paired views | 351/351 | `dc4ef408d2c04a55bf959530c26fe78f` | 52 |
+| Actual Operations task / How-To and Diagnostic comparison | 421/421 | `9688f6745c744fe0bc8877d2fe3f4d8d` | 31 |
+| Boxing / Shipping / publication / tracking failures | 1,707 PASS; seven known D8-A FAIL | `83c97dad83664baf8d818a3b87aeb145` | 22 |
 
 Each gate preserves every preceding check identity and runtime/test/package
 hash, closes Excel normally without assistance, and has no matching Application
-1000/1001/1002 errors. Restart closes during the runner's bounded exit grace
-period; it does not require intervention. All 24 captures are directly reviewed
+1000/1001/1002 errors. Restart, full guide and Boxing close during the runner's
+bounded exit grace period; none requires intervention. All 129 captures are directly reviewed
 and hashed. The ignored `verify-admin-uom-supporting-gate.ps1` verifies terminal
 results, prior GREEN identities, source/package pins, image hashes and native
-error audit. These runs span 12:26:45.8821751--12:36:45.8071131 UTC.
+error audit. These runs span 12:26:45.8821751--14:02:43.0988626 UTC. The comparison
+retains the pending/partial/applied source distinctions, exact guide/run binding,
+old schema compatibility, corrupted-result rejection and current policy checks.
+Its immutable original records, unrelated workbooks and unknown columns remain
+protected; a view choice neither performs work nor creates conclusion evidence.
 
-Full-guide, Operations comparison, Boxing/Shipping and human acceptance remain open. This is a
-verified implementation checkpoint, not
-completion of the runtime slice or Release 1.
-These focused results do not establish comprehensive Admin or Slice 4be acceptance.
+Boxing reproduces exactly the seven
+`Shipping.Access.AuthUnavailable.<Add|Update|Remove|Hold|Return|Stage|Send>.MissingFileNotRecreated`
+failures. They remain failures under the unapproved D8-A decision; no prior GREEN
+regresses. A verifier invoked before the terminal pointer existed could not run;
+the final verification above succeeds after natural process exit. No cleanup
+intervention or source correction is made for that premature audit invocation.
+
+The required baseline regression sequence is verified, not full Slice 4be or
+Release 1 acceptance. Subsequent source review finds the explicit diagnostic
+command-completion map missing Admin UOM and Boxing controls. Architecture,
+Plan and controls now specify their existing positive owner outcomes; actual-
+handler/editor/Evaluate RED is the next gate before correcting Core. The new
+26-control Settings observation group remains specified but unimplemented.
+Comprehensive coverage, transfer, the unapproved decisions and human acceptance
+remain open. These results do not claim those outcomes.
