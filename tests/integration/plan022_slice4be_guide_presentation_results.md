@@ -67,7 +67,19 @@ workbook collection. No recovery dialog was observed. The window has zero
 Application events 1000/1001/1002 and candidate package hashes remain unchanged.
 Ignored prefix: `reports/runtime/guide-presentation-green`.
 
-The next visible gate retains the focused identities and captures all three
+The first expanded visible attempt records **272 PASS / one harness failure**,
+retaining all 243 focused GREEN identities. Report:
+`reports/runtime/slice4be-viewer-published-read/82eb2938896f4672b19d829575181433/green.json`.
+UTC **2026-09-22 00:28:30.1907260--00:45:53.2125133**. Excel closes normally;
+zero Application events 1000/1001/1002 and unchanged frozen candidate hashes are
+verified. After the missing-step scenario, Excel rejects a four-argument generic
+control probe; cleanup also receives `0x800AC472`. The original harness does not
+identify which control/action failed. This is not product RED or visible GREEN.
+All 30 captures are retained, but this record does not claim review of every image.
+The retry adds only safe control/action and fixed-stage diagnostics, with no field
+values or automatic replay of potentially mutating handlers.
+
+The expanded visible gate retains the focused identities and captures all three
 methods, minimum/default/larger/restored and native maximized/restored sizes,
 the saved-result viewport, invalid guide/context and an unevaluated second guide.
 Additional scenarios use actual missing/extra/rejected actions and explicit
