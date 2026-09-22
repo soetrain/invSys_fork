@@ -36,6 +36,29 @@ reviewed and hashed. Config/training/probe bytes, test sources and frozen packag
 remain unchanged; final closure is normal with zero matching Application events.
 `verify-published-guide-edit-restart.ps1` audits this focused supplementary gate.
 
+Relevant role regressions on the corrected frozen candidate:
+
+| Gate | Result | Report root | Directly reviewed captures |
+| --- | --- | --- | --- |
+| Viewer / filters / Shipping current state | 94 PASS / 0 FAIL; all prior 94 retained | `slice4be-viewer-published-read/f55f414706fc4880b6ed974073c45470` | 3 |
+| Boxing / Shipping activity and owner boundaries | 1,707 PASS / 7 known pending D8-A FAIL; all prior 1,707 GREEN retained | `slice4be-shipping-activity/9c6cbd7005fe4502ae8fffccd1defe11` | 22 |
+
+Roots above are under `reports/runtime`. Viewer runs **2026-09-22 05:40:05.0192098--
+05:42:37.4478093 UTC**; Boxing/Shipping runs **05:43:14.8888573--06:00:29.8225029 UTC**.
+Both close Excel normally without intervention, preserve running sources and frozen
+packages, and have zero matching Application events. Boxing finishes assertions at
+05:56:58 UTC, then takes roughly three and a half minutes to exit normally; the next
+gate waits for that exit. All current captures are individually reviewed and hashed.
+Known Event Detail long-field scrolling limitations remain separately open; these
+captures do not establish that pending acceptance.
+
+The only seven failures are `Shipping.Access.AuthUnavailable.<Action>.MissingFileNotRecreated`
+for Add, Update, Remove, Hold, Return, Stage and Send. They match the pending D8-A
+proposal exactly and are not new regressions or evidence approving that proposal.
+`verify-published-guide-edit-regressions.ps1` audits exact identity preservation,
+failure set, source/package pins, every capture review and closure/event evidence.
+Diagnostic evaluation, live roles, full chain and human acceptance remain pending.
+
 The corrected frozen candidate is `deploy/validation-published-guide-edit-notices`.
 All five packages build and compile. Its focused GREEN root is
 `reports/runtime/slice4be-viewer-published-read/7180111da8114ccea7c38f99807be709`;
