@@ -38,6 +38,7 @@ param(
     [switch]$PublishedGuideEditOnly,
     [switch]$GuideActionCurationOnly,
     [switch]$RetryActionPathViewCountForTest,
+    [switch]$RetryGuideObservationForTest,
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideCaptureSavedWorkbookForTest,
@@ -522,11 +523,21 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
     $name="'$Package'!$Macro"
     $attemptLimit=1
+    $retryLog='readonly-count-retries.jsonl'
     # Only the exact observational getter is eligible; commands retain one call.
     if($RetryActionPathViewCountForTest -and $Package -ceq 'invSys.Operations.xlam' -and
        $Macro -ceq 'modInventoryViewer.GuideDraftControlForTest' -and $Values.Count -eq 4 -and
        $Values[0] -ceq 'frmActionPathView' -and $Values[1] -ceq '' -and $Values[2] -ceq 'Count' -and $Values[3] -ceq ''){
         $attemptLimit=4
+    }
+    # These two probe branches only inspect existing forms/list values. They do
+    # not activate forms, invoke handlers, alter selection or read business data.
+    if($RetryGuideObservationForTest -and $Package -ceq 'invSys.Operations.xlam' -and
+       $Macro -ceq 'modInventoryViewer.GuideDraftControlForTest' -and $Values.Count -eq 4 -and $Values[3] -ceq '' -and
+       (($Values[0] -ceq 'frmActionPathGuide' -and $Values[1] -ceq '' -and $Values[2] -ceq 'Count') -or
+        ($Values[0] -ceq 'frmGuideActionPicker' -and $Values[1] -ceq 'lstGuideActions' -and $Values[2] -ceq 'Values'))){
+        $attemptLimit=4
+        $retryLog='readonly-observation-retries.jsonl'
     }
     for($attempt=1;$attempt -le $attemptLimit;$attempt++){
     try {
@@ -541,8 +552,8 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
         default { throw 'Unsupported macro argument count' }
     }
     if($attempt -gt 1){
-        [pscustomobject]@{Attempt=$attempt;Recovered=$true;Macro=$Macro;Form='frmActionPathView';Action='Count'}|
-            ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'readonly-count-retries.jsonl')
+        [pscustomobject]@{Attempt=$attempt;Recovered=$true;Macro=$Macro;Form=$Values[0];Action=$Values[2]}|
+            ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot $retryLog)
     }
     return
     } catch {
@@ -572,8 +583,8 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
         }
         if($attempt -lt $attemptLimit -and ('0x800AC472' -cin $codes -or '0x80010001' -cin $codes)){
             $delay=250*$attempt
-            [pscustomobject]@{Attempt=$attempt;Recovered=$false;Macro=$Macro;Form='frmActionPathView';Action='Count';ExceptionHResults=$codes;DelayMs=$delay}|
-                ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'readonly-count-retries.jsonl')
+            [pscustomobject]@{Attempt=$attempt;Recovered=$false;Macro=$Macro;Form=$Values[0];Action=$Values[2];ExceptionHResults=$codes;DelayMs=$delay}|
+                ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot $retryLog)
             Start-Sleep -Milliseconds $delay
             continue
         }

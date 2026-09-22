@@ -142,3 +142,35 @@ Evidence stays ignored under `reports/runtime/guide-action-curation-envelope-sta
 The existing guide regression, fresh-process preference, Viewer, Boxing/Shipping,
 evaluation, live-role and full Release 1 chain gates must still be verified on
 this candidate. Pending D8-A and Event Detail proposals remain separate.
+
+The first broader 351-check attempt is interrupted after **137 PASS / one harness
+FAIL**, root `55b3481960b940c786693ab35cd04d75`, **2026-09-22
+07:23:19.3800958--07:30:49.5751172 UTC**. The read-only probe
+`frmActionPathGuide / empty control / Count / empty value` receives inner
+`0x800AC472`. First-call evidence records the foreground as a terminal, without
+an owned-form capture; this establishes the observed state, not the rejection's
+cause. Three prior Save/library captures are directly reviewed and hashed. No
+product assertion fails before interruption. Normal unassisted closure, unchanged
+running source/runtime/package pins and zero matching Application events are
+verified. This attempt is not a completed broader regression.
+
+The existing opt-in read retry is extended through a separate
+`-RetryGuideObservationForTest` switch for exactly two observational probe calls:
+`frmActionPathGuide / empty / Count / empty`, and
+`frmGuideActionPicker / lstGuideActions / Values / empty`. Both probe branches
+only inspect already-loaded forms/control values. Only inner `0x800AC472` or
+`0x80010001` qualify, with four total attempts and 250/500/750 ms delays. First
+failure remains recorded; sanitized `readonly-observation-retries.jsonl` states
+each attempt and recovery. Click, selection, toggle, write, other controls/codes/
+arguments and the default flag-off path retain one execution. No runtime or
+frozen package changes, automatic business retry or causal diagnosis is implied.
+
+The actual shared Run function has offline protecting **70 PASS / 8 expected
+FAIL** at `reports/runtime/form-failure-diagnostics/105cc73c7922423e85adda389c0fad98`,
+then **78/78 GREEN** at
+`reports/runtime/form-failure-diagnostics/4b9af27246824f26a7397d5649fa6f68`.
+All prior 38 identities remain. New checks protect recovery, exact exhaustion,
+excluded actions/fields/codes, first-failure retention, sanitized trace identity
+and field-content exclusion. These are harness tests, not packaged runtime RED.
+The full guide regression is restarted with a fresh fixture and this explicit
+option; it must still run every original assertion against the frozen candidate.

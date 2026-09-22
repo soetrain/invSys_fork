@@ -14,6 +14,7 @@ if($null -eq $definition){throw 'Shared Run boundary missing.'}
 Invoke-Expression $definition.Extent.Text
 $CheckGuidePresentation=$false
 $RetryActionPathViewCountForTest=$true
+$RetryGuideObservationForTest=$false
 $initialExcelProcessIds=@();$initialExcelWindow=0
 $canary='unlogged field content '+[guid]::NewGuid().ToString('N')
 $checks=[Collections.Generic.List[object]]::new()
@@ -50,11 +51,22 @@ foreach($case in @(
     @{Name='CountUnlistedCode';Failures=9;Code='80004005';Form='frmActionPathView';Control='';Action='Count';Value='';Flag=$true;Calls=1;Throws=$true;RetryLines=0},
     @{Name='CountOtherForm';Failures=9;Code='800AC472';Form='frmActionPathLibrary';Control='';Action='Count';Value='';Flag=$true;Calls=1;Throws=$true;RetryLines=0},
     @{Name='CountWithFieldContent';Failures=9;Code='800AC472';Form='frmActionPathView';Control='';Action='Count';Value=$canary;Flag=$true;Calls=1;Throws=$true;RetryLines=0},
-    @{Name='CountFlagOff';Failures=9;Code='800AC472';Form='frmActionPathView';Control='';Action='Count';Value='';Flag=$false;Calls=1;Throws=$true;RetryLines=0}
+    @{Name='CountFlagOff';Failures=9;Code='800AC472';Form='frmActionPathView';Control='';Action='Count';Value='';Flag=$false;Calls=1;Throws=$true;RetryLines=0},
+    @{Name='DraftCountRecovered';Failures=1;Code='800AC472';Form='frmActionPathGuide';Control='';Action='Count';Value='';Flag=$false;Observation=$true;Calls=2;Throws=$false;RetryLines=2},
+    @{Name='PickerValuesRecovered';Failures=1;Code='800AC472';Form='frmGuideActionPicker';Control='lstGuideActions';Action='Values';Value='';Flag=$false;Observation=$true;Calls=2;Throws=$false;RetryLines=2},
+    @{Name='DraftCountRejectedRecovered';Failures=1;Code='80010001';Form='frmActionPathGuide';Control='';Action='Count';Value='';Flag=$false;Observation=$true;Calls=2;Throws=$false;RetryLines=2},
+    @{Name='DraftCountBounded';Failures=9;Code='800AC472';Form='frmActionPathGuide';Control='';Action='Count';Value='';Flag=$false;Observation=$true;Calls=4;Throws=$true;RetryLines=3},
+    @{Name='DraftClickSingle';Failures=9;Code='800AC472';Form='frmActionPathGuide';Control='btnSaveGuide';Action='Click';Value='';Flag=$false;Observation=$true;Calls=1;Throws=$true;RetryLines=0},
+    @{Name='PickerToggleSingle';Failures=9;Code='800AC472';Form='frmGuideActionPicker';Control='lstGuideActions';Action='Toggle';Value='0';Flag=$false;Observation=$true;Calls=1;Throws=$true;RetryLines=0},
+    @{Name='PickerWrongControlSingle';Failures=9;Code='800AC472';Form='frmGuideActionPicker';Control='unexpected';Action='Values';Value='';Flag=$false;Observation=$true;Calls=1;Throws=$true;RetryLines=0},
+    @{Name='DraftCountFieldSingle';Failures=9;Code='800AC472';Form='frmActionPathGuide';Control='';Action='Count';Value=$canary;Flag=$false;Observation=$true;Calls=1;Throws=$true;RetryLines=0},
+    @{Name='DraftCountOtherCodeSingle';Failures=9;Code='80004005';Form='frmActionPathGuide';Control='';Action='Count';Value='';Flag=$false;Observation=$true;Calls=1;Throws=$true;RetryLines=0},
+    @{Name='DraftCountFlagOff';Failures=9;Code='800AC472';Form='frmActionPathGuide';Control='';Action='Count';Value='';Flag=$false;Observation=$false;Calls=1;Throws=$true;RetryLines=0}
 )){
     $reportRoot=Join-Path $root $case.Name
     New-Item -ItemType Directory -Path $reportRoot|Out-Null
     $RetryActionPathViewCountForTest=$case.Flag
+    $RetryGuideObservationForTest=$case.ContainsKey('Observation') -and $case.Observation
     $excel=[pscustomobject]@{Calls=0;Failures=$case.Failures;Code=$case.Code}
     $excel|Add-Member -MemberType ScriptMethod -Name Run -Value {
         param($macro,$first,$second,$third,$fourth)
@@ -67,12 +79,14 @@ foreach($case in @(
     Check ($case.Name+'.ExactAttemptBound') ($excel.Calls -eq $case.Calls -and $thrown -eq $case.Throws -and ($thrown -or $value -ceq '1'))
     $firstText=Get-Content (Join-Path $reportRoot 'first-call-failure.json') -Raw
     $first=$firstText|ConvertFrom-Json
-    Check ($case.Name+'.FirstFailureRetained') ($first.FormControl.Action -ceq 'Count' -and ('0x'+$case.Code) -cin $first.ExceptionHResults)
+    Check ($case.Name+'.FirstFailureRetained') ($first.FormControl.Form -ceq $case.Form -and $first.FormControl.Control -ceq $case.Control -and $first.FormControl.Action -ceq $case.Action -and ('0x'+$case.Code) -cin $first.ExceptionHResults)
     $retryPath=Join-Path $reportRoot 'readonly-count-retries.jsonl'
+    if($RetryGuideObservationForTest){$retryPath=Join-Path $reportRoot 'readonly-observation-retries.jsonl'}
     $retryText='';$retries=@()
     if(Test-Path -LiteralPath $retryPath){$retryText=Get-Content -LiteralPath $retryPath -Raw;$retries=@(Get-Content -LiteralPath $retryPath|ForEach-Object {$_|ConvertFrom-Json})}
     $trace=$retries.Count -eq $case.RetryLines
     if(-not $thrown){$trace=$trace -and $retries[-1].Recovered -is [bool] -and $retries[-1].Recovered}
+    foreach($retry in $retries){$trace=$trace -and $retry.Form -ceq $case.Form -and $retry.Action -ceq $case.Action}
     Check ($case.Name+'.RetryTraceMatchesOutcome') $trace
     Check ($case.Name+'.FieldContentExcluded') (-not $firstText.Contains($canary) -and -not $retryText.Contains($canary))
 }
