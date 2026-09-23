@@ -389,6 +389,44 @@ change or complete regression acceptance is claimed. Evidence:
 strict failure `settings-diagnostic-resume0923-regression-boxing-strict-verification.log`;
 report root `reports/runtime/slice4be-shipping-activity/d8a7c7ff7f68419db64c371a973b3c2a`.
 
+### Comparison attempt on restored desktop, 2026-09-23 UTC
+
+The frozen candidate's comparison run ends at **177 PASS / 8 FAIL across 185
+checks**, leaving 237 of the preceding 421 checks unreached. Seven preceding
+GREEN checks fail and one harness exception is added; this is not comparison
+acceptance. `Recording.PolicyChangeClosesIncomplete` passes through the actual
+policy handler. The failures are:
+
+- `PublishedRead.AuthorityActivityAndRestoredProjectionBytesUnchanged` and
+  `RecordingRead.JournalAndActivityBytesPreserved`;
+- all five Pending diagnostic-library captures (Minimum, Default, Larger,
+  Restored and Sources), because the requested form is not in the foreground;
+- the packaged Viewer recording lifecycle exception: `0x800AC472` while reading
+  `frmActionPathView/txtActionPathHowTo/State` through the existing probe.
+
+One How-To capture is directly reviewed and accepted for its readable identity,
+authored instructions and explicit separation from an observed conclusion. It
+does not replace the missing diagnostic or comparison images. Read-only desktop
+checks at 21:10 and 21:12 UTC succeed; the earlier Windows error 5 remains
+unexplained. The current foreground and COM failures do not establish its cause.
+
+Source inspection finds deliberate visibility-policy saves inside the byte-
+preservation checks. Those saves now generate `ADMIN_TRACKING_SAVE` observations,
+so the unchanged-directory expectation needs a focused investigation. Do not
+discard either failure or broadly permit extra files: retain every original hash
+and account for only exact observations from explicitly bracketed real saves.
+The diagnostic-library capture still uses legacy title activation, while the
+paired view uses owned-caption activation and succeeds on its second attempt.
+These are bounded follow-up leads, not proved root causes for all failures.
+
+The run spans 20:54:37--21:14:59 UTC. Excel closes without assistance after a
+delay. The 21:16:26 UTC audit finds Excel absent, zero matching Application
+failure events, unchanged 299 runtime/189 test/five package hashes, and the one
+reviewed image hash. No runtime or package change is made. Preserve the failed
+attempt and diagnose a specific cause before another broad comparison run.
+Evidence: `reports/runtime/settings-diagnostic-resume0923-regression-comparison-attempt-verification.json`;
+report root `reports/runtime/slice4be-viewer-published-read/0074551798a24a1587f4f179b90cc47a`.
+
 ## Observation maintenance review
 
 The follow-up source inventory is 250 components, 6,045 procedures and 132,881
