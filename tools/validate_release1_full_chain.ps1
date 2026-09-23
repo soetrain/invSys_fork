@@ -225,6 +225,54 @@ function Get-TableValue {
     return $ListObject.DataBodyRange.Cells.Item($RowIndex, $columnIndex).Value2
 }
 
+function Test-NoRowHeaders {
+    param([object[]]$Workbooks)
+
+    foreach ($workbook in $Workbooks) {
+        $worksheets = $null
+        try {
+            $worksheets = $workbook.Worksheets
+            for ($sheetIndex = 1; $sheetIndex -le $worksheets.Count; $sheetIndex++) {
+                $worksheet = $null
+                $tables = $null
+                try {
+                    $worksheet = $worksheets.Item($sheetIndex)
+                    $tables = $worksheet.ListObjects
+                    for ($tableIndex = 1; $tableIndex -le $tables.Count; $tableIndex++) {
+                        $table = $null
+                        $columns = $null
+                        try {
+                            $table = $tables.Item($tableIndex)
+                            $columns = $table.ListColumns
+                            for ($columnIndex = 1; $columnIndex -le $columns.Count; $columnIndex++) {
+                                $column = $null
+                                try {
+                                    $column = $columns.Item($columnIndex)
+                                    if ([string]::Equals(([string]$column.Name).Trim(), "ROW",
+                                            [StringComparison]::OrdinalIgnoreCase)) {
+                                        return $false
+                                    }
+                                } finally {
+                                    if ($null -ne $column) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($column) }
+                                }
+                            }
+                        } finally {
+                            if ($null -ne $columns) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($columns) }
+                            if ($null -ne $table) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($table) }
+                        }
+                    }
+                } finally {
+                    if ($null -ne $tables) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($tables) }
+                    if ($null -ne $worksheet) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($worksheet) }
+                }
+            }
+        } finally {
+            if ($null -ne $worksheets) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($worksheets) }
+        }
+    }
+    return $true
+}
+
 function Invoke-AdminEntryGate {
     $entryRoot = Join-Path $tempRoot "admin-entry"
     $warehouseRoot = Join-Path $entryRoot "warehouse"
@@ -498,16 +546,7 @@ function Invoke-RestartReconciliation {
         Add-Result "HeaderPersistence" $customPreserved `
             "After restart, an end-user column/value survived snapshot refresh and read-model rebuild."
 
-        $noRowHeaders = $true
-        foreach ($workbook in @($inventoryWorkbook) + $openOperatorBooks) {
-            foreach ($worksheet in $workbook.Worksheets) {
-                foreach ($table in $worksheet.ListObjects) {
-                    if ((Get-ColumnIndex -ListObject $table -Header "ROW") -gt 0) {
-                        $noRowHeaders = $false
-                    }
-                }
-            }
-        }
+        $noRowHeaders = Test-NoRowHeaders -Workbooks (@($inventoryWorkbook) + $openOperatorBooks)
         Add-Result "NoRowHeaders" $noRowHeaders `
             "Canonical and reopened operator runtime tables contain no managed ROW header."
 

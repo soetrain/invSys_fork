@@ -539,6 +539,17 @@ receipts confirm their recorded counts: two events in each prior chain retry/
 trace, zero in the other nine. No prior behavioral result changes. Pending
 comparison and guide verifiers now use explicit local-time bounds.
 
+The subsequent [restart header-scan correction](plan022_slice4be_shutdown_header_results.md)
+passes all 12 original focused checks and eight header-compatibility checks with
+normal closure and zero Application failures. The next full-chain attempt fails
+earlier at projection rebuilding: 5 PASS/one chain exception, 32 PASS/one live-role
+exception, 15/15 Create Warehouse; 27/16 prior checks are unreached. It records an
+ntdll.dll/c0000028 crash and Office mismatch before the corrected restart stage.
+Recovered saved test workbooks are closed with assistance; settings and three
+tracked reports are restored. Runtime/package pins and static metrics remain
+unchanged. This is a verified tooling correction and an unresolved earlier gate,
+not full-chain or Slice 4be acceptance. The linked record preserves exact receipts.
+
 Evidence: `reports/runtime/settings-diagnostic-chain-passive-behavior-verification.json`,
 `settings-diagnostic-chain-passive-event-facts.json`, retained lifecycle trace,
 and `settings-diagnostic-corrected-local-time-event-audit.json`. No runtime or
