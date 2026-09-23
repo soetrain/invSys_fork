@@ -334,7 +334,7 @@ for the still-required visible packaged rerun. Windows documents the
 [DPI virtualization of GetWindowRect](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect)
 and [scoped thread-context restoration](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setthreaddpiawarenesscontext).
 
-## Observation maintenance review
+## Resumed desktop and broader regression evidence
 
 ### Resumed desktop check, 2026-09-23 UTC
 
@@ -357,7 +357,39 @@ gates remain valid; this attempt adds no broader acceptance. Evidence:
 `reports/runtime/settings-diagnostic-capture-regression-boxing-attempt-verification.json`;
 report root `reports/runtime/slice4be-shipping-activity/a8c172b9928a43a7905885c659a74530`.
 
-### Recorded static results
+### Complete broader behavior on restored desktop, 2026-09-23 UTC
+
+A later disposable foreground calibration passes all three cases with directly
+reviewed readable images and normal closure:
+`reports/runtime/capture-foreground-calibration/5cb186c203944fe089dede1af95b5fa6`.
+The fresh broader run then completes **1,707 PASS / 7 FAIL across 1,714 checks**,
+preserving every prior check identity and every prior GREEN. The seven failures
+are exactly the pending D8-A missing-Auth recreation cases; no new behavioral
+failure is present. All five instrumented projects compile. All **22 images**
+are directly reviewed and accepted for their scoped captures, including the
+previously misframed older-policy UNBOX case. Event Detail field/outcome images
+do not close its separate native-scrolling or multiline reachability requirements.
+
+The run starts at 20:28:50 UTC and reports its completed behavioral result before
+the wrapper's 20:52:06 terminal record. The test host remains in process teardown.
+Native inspection finds its original Excel process with no windows, exit code 0
+but an unsignaled process handle; this is not verified process closure. The exact
+completed test host is terminated after identity and completed-report checks.
+A later guarded Excel cleanup check finds Excel already gone, so no Excel
+termination is issued. No post-Quit COM attachment or additional Quit is used.
+The strict verifier fails on unavailable normal closure; that failure is retained.
+
+The separate **behavior-only** audit at 20:54:30 UTC verifies all 1,707 earlier
+GREEN identities, seven unchanged failures, 22 image hashes, 299 runtime and 189
+test hashes, five frozen package hashes, zero matching Application failure events
+through the audit, and Excel absence. It explicitly records host termination,
+`CleanShutdownAccepted=False` and `FullSliceAccepted=False`. No package/runtime
+change or complete regression acceptance is claimed. Evidence:
+`reports/runtime/settings-diagnostic-resume0923-regression-boxing-behavior-verification.json`;
+strict failure `settings-diagnostic-resume0923-regression-boxing-strict-verification.log`;
+report root `reports/runtime/slice4be-shipping-activity/d8a7c7ff7f68419db64c371a973b3c2a`.
+
+## Observation maintenance review
 
 The follow-up source inventory is 250 components, 6,045 procedures and 132,881
 lines before the terminal map: one bounded Core vocabulary module, nine procedures and 326 lines above
