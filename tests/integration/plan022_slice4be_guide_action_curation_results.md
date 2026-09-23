@@ -1,12 +1,34 @@
 # Plan 022 Slice 4be.5 - direct tracked-action guide curation
 
-Status: corrected isolated candidate passes focused **55/55** and expanded
-integration **63/63**. Supporting regressions are in progress; deployment, human
-acceptance and full Slice 4be completion are not claimed.
+Status: the current Settings-diagnostic candidate passes **77/77** curation
+checks with **18** directly reviewed captures and normal closure. Earlier focused
+55/55 and expanded 63/63 results remain below. Deployment, human acceptance and
+full Slice 4be completion are not claimed.
 Architecture v4.11 D18's direct tracked-action curation refinement,
 Plan 022 and controls were committed together in docs `49ffb47` before testing.
 This implements the already approved non-recording authoring route; pending
 Event Detail and D8-A proposals remain unapproved.
+
+Current-candidate verification, **2026-09-23 23:34:15--23:39:45 UTC**:
+`deploy/validation-settings-diagnostic` retains all 77 preceding check identities.
+All five instrumented projects compile before the actual handlers execute.
+Direct review accepts all six sizing states of the library, picker and editor.
+The library images show the fixture's explicit unavailable-recording state and
+reachable direct-curation entry; they do not prove a populated recording library.
+The picker shows two selected published actions; the editor separates authored
+instructions/order from original observations and execution evidence. Controls
+remain visible through minimum/default/larger/restored and native maximize/restore.
+Source preservation, immutable revisions, parent closure, sign-out, permission/
+policy/target loss and malformed-source isolation checks pass.
+
+Excel closes immediately without assistance. The 23:39:51 UTC audit finds zero
+Application failures; 299 runtime/195 test/five package hashes are unchanged.
+Root: `reports/runtime/slice4be-viewer-published-read/5ef27faf08dd4ca7a8c78dcde636261b`.
+Exact independent receipt:
+`reports/runtime/settings-diagnostic-fixed-regression-curation-verification.json`.
+This is a candidate regression result, not a new behavioral contract or human
+comparison acceptance. Remaining restart/Viewer/guide and comparison gates retain
+their separately recorded status.
 
 Protecting test: `tests/tooling/Slice4beGuideActionCuration.ps1`, invoked by the
 existing packaged configuration controller with `-GuideActionCurationOnly`.

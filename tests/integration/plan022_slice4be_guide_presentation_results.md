@@ -1,6 +1,57 @@
 # Plan 022 Slice 4be.5 paired Action Path presentations
 
 **D13 RED and focused packaged GREEN verified; visible/broader acceptance open.**
+
+## Current Settings-diagnostic candidate restart attempt
+
+On 2026-09-23, the frozen `deploy/validation-settings-diagnostic` restart gate
+records **25 PASS / two harness failures**, with two preceding checks unreached.
+The five instrumented compiles, original-process closure, distinct fresh Excel,
+saved Operations preference, exact explicit guide/run pairing, absence of an
+inferred evaluation, and Operations-only dependency checks pass. The final
+`modInventoryViewer.CloseInventoryViewerForTest` dispatch fails with 0x800A03EC
+(macro unavailable/disabled); disposable fixture cleanup also fails. The training/
+Config preservation and saved-probe-package checks are not reached. Preserve the
+earlier candidate's 27/27 result as historical evidence, not proof of this attempt.
+
+Two of three planned captures are accepted: the unsaved pre-restart How-To view
+and restored Operations settings. The restored Compare capture is **rejected**:
+an Excel insufficient-memory dialog obscures it. An additional failure capture
+shows the same dialog and is diagnostic only. A prolonged pairing/capture interval
+precedes failure; individual call timing and its cause are not yet isolated.
+
+Read-only native facts from the failed Excel process show **9,991 current / 10,000
+peak GDI objects**, with the machine's configured GDI quota **10,000**; USER objects
+are 9,875 against a configured 10,000 quota. Native enumeration finds **301 XLMAIN**
+windows, although later recovery COM inspection reports zero workbooks and zero
+workbook windows. The process reached its GDI quota. Which runtime or harness path
+creates/retains the windows is unresolved; do not infer it from the memory dialog
+alone or increase system quotas as a substitute for diagnosis. Microsoft documents
+the separate [per-process GDI quota](https://learn.microsoft.com/en-us/windows/win32/sysinfo/gdi-objects).
+
+Under standing user authorization, the exact memory dialog is acknowledged and
+Quit is requested on the identified empty test instance. It remains alive and
+is then terminated after zero workbooks/windows are verified. This is assisted
+recovery, **not normal shutdown**. The harness executes its original settings
+restoration before terminal exit; the later recovery preserves the post-harness
+settings snapshot. Independent equivalence to the original pre-test settings is
+not proven. The partially cleaned generated fixture is preserved; no operational
+workbook is changed. The 23:55:42 UTC audit records zero Application events, which
+does not override the visible error or assisted recovery. All 299 runtime/195
+test/five frozen package hashes remain unchanged.
+
+Root: `reports/runtime/slice4be-viewer-published-read/4d9d2c76d9f14bba9afc3b815f3f2e3f`.
+Receipts under `reports/runtime/`:
+`settings-diagnostic-fixed-regression-restart-attempt-verification.json`,
+`paired-restart-memory-resource-facts.json`, `paired-restart-gui-quotas.json`,
+`paired-restart-window-counts.json`, `paired-restart-recovery-workbook-facts.json`,
+and `paired-restart-assisted-closure.json`. All remain ignored local evidence.
+No broad restart/comparison retry until focused resource observations localize
+growth across fresh-session pairing, rendering, and foreground capture. No runtime
+or architectural change has been made in response to this finding.
+
+## Original paired-presentation contract and evidence
+
 Architecture v4.11 D18's paired-presentation refinement names an additional
 Operations **View guide and run** surface. It implements the approved How-To,
 Diagnostic and Compare both views without repurposing the existing recording

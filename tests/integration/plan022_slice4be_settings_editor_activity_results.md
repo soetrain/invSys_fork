@@ -11,6 +11,17 @@ Release 1 acceptance. Diagnostic mapping passes 780/780, and the compiled legacy
 Settings regression passes 202/202 with ten accepted captures. Broader role,
 comparison and release gates remain pending. The large diagnostic run's assisted
 cleanup remains explicit. D8-A and Event Detail unlocking remain unapproved.
+The later current-candidate chain gate is verified at 32/48/15, and direct guide
+curation at 77/77 with 18 reviewed captures and normal closure. Other workstreams
+and the recorded comparison failure remain open. See the remaining acceptance
+checklist and [curation record](plan022_slice4be_guide_action_curation_results.md)
+for exact scope and receipts.
+The current-candidate presentation restart attempt later records 25 PASS/two
+harness failures, two prior checks unreached. Its final Compare capture shows
+Excel resource exhaustion; native GDI peak reaches the configured 10,000 quota.
+Empty test Excel needs assisted termination. The [presentation record](plan022_slice4be_guide_presentation_results.md)
+retains resource counts, rejected image, exact scope and restoration limitations.
+This does not invalidate the separately verified chain and curation gates.
 
 ## Observation RED and first GREEN
 
