@@ -102,6 +102,43 @@ runtime/package bytes are unchanged. The focused 12 prior check identities and
 eight compatibility checks are independently verified. Full-chain and full-slice
 acceptance remain false.
 
+## Projection boundary control
+
+`Test-Slice4beShutdownControl.ps1 -Case RestartProjectionReplay` reuses the actual
+restart loader/cleanup and extracts the live validator's exact projection-delete
+block and helpers. Only a new copy of the failed generated warehouse is changed.
+The first three calibration attempts stop at a fixture precondition: the saved
+warehouse retains its pending trigger and six log/applied rows, but both
+projection tables are present. These are fixture failures, not product RED.
+Roots are `824f73fb592d4a3a9c301c24ae642b29`,
+`955dca5d806d4df8a00792d0c7cbf58b`, and
+`abadd558c0094f5d8de6f0a89d6346a9` under
+`reports/runtime/slice4be-shutdown-control/`. All restore settings and close
+normally with zero Application failures. Added sanitized stack/line evidence
+identifies the precondition failure without recording row values or credentials.
+
+After recreating the original deletion on the copy, root
+`6248968ddfac470594907614703db211` passes **6/6**: missing-projection precondition,
+both rebuilt tables, exactly one applied/log append, exact EventID/System_Key,
+processed status, and replay without duplicate authority records. The same
+packaged processor returns normally in this fresh session. This narrows the
+failure but does not reproduce the preceding live role actions or prove their
+full-chain context safe. No runtime fix or product RED/GREEN is claimed.
+
+The control's strict lifecycle result is **FAIL**: Excel remains through the
+210-second post-Quit observation and exits after the worker ends. No assistance
+is used. A delayed audit at 23:21:50 UTC confirms Excel closed and zero Application
+failure events. Settings and all five package hashes are preserved. Source
+verification confirms all 299 runtime hashes unchanged, the diagnostic script as
+the only change among 252 tooling files, and 252 successful PowerShell parses.
+Receipts: `projection-replay-delayed-event-audit.json` and
+`projection-replay-source-verification.json` under `reports/runtime/`.
+
+Next isolate the processor boundary after the exact preceding role handlers in
+one Excel session, with a diagnostic phase cut before later chain stages. Do not
+repeat the unchanged broad chain or infer the earlier crash's cause from this
+fresh-session success.
+
 The [remaining acceptance checklist](plan022_slice4be_remaining_acceptance.md)
 continues to govern comprehensive coverage and all other gates. This correction
 does not resolve the Applied comparison label-read failure or approve pending

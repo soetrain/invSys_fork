@@ -1,7 +1,7 @@
 # Diagnostic controls for the Release 1 shutdown failure, not slice acceptance.
 [CmdletBinding()]
 param(
-    [ValidateSet('Empty','Packages','TablesCollected','Restart','RestartCollected','RestartConfigured','RestartSnapshot','RestartRefreshed','RestartCustomHeader','RestartHeaders','RestartRead')][string]$Case='Empty',
+    [ValidateSet('Empty','Packages','TablesCollected','Restart','RestartCollected','RestartConfigured','RestartSnapshot','RestartRefreshed','RestartCustomHeader','RestartHeaders','RestartRead','RestartProjectionReplay')][string]$Case='Empty',
     [string]$RepoRoot='.',
     [string]$DeployRoot='deploy/validation-settings-diagnostic',
     [switch]$Worker,
@@ -25,6 +25,9 @@ public static class ShutdownControlOwner {
     $excel=$null;$books=[Collections.Generic.List[object]]::new();$failed=$false
     if($Case.StartsWith('Restart',[StringComparison]::Ordinal)){
         $receipt=Join-Path $repo 'reports/runtime/settings-diagnostic-chain-passive-phase6_live_role_workflow_results.md'
+        if($Case -ceq 'RestartProjectionReplay'){
+            $receipt=Join-Path $repo 'reports/runtime/settings-diagnostic-header-release-chain-phase6_live_role_workflow_results.md'
+        }
         $body=Get-Content -LiteralPath $receipt -Raw
         $match=[regex]::Match($body,'(?m)^- Runtime root override:\s*(.+?)\s*$')
         if(-not $match.Success){throw 'Generated live fixture reference unavailable.'}
@@ -44,6 +47,15 @@ public static class ShutdownControlOwner {
         foreach($definition in $functions){
             $text=$definition.Extent.Text
             if($definition.Name -ceq 'Invoke-RestartReconciliation'){
+                if($Case -ceq 'RestartProjectionReplay'){
+                    # Retain the actual restart loader and cleanup; replace only its
+                    # reconciliation assertions with a narrow failed-fixture replay.
+                    $begin='$receiveBook = @($operatorBooks | Where-Object { $_.Name -like "*.Receiving.Operator.xlsb" })[0]'
+                    $beginAt=$text.IndexOf($begin,[StringComparison]::Ordinal)
+                    $endMatch=[regex]::Match($text,'(?m)^    }\r?\n    finally \{')
+                    if($beginAt -lt 0 -or -not $endMatch.Success -or $endMatch.Index -le $beginAt){throw 'Projection control anchors differ.'}
+                    $text=$text.Substring(0,$beginAt)+'Invoke-ProjectionReplayControl $localExcel $packageMap $inventoryWorkbook $runtimeRoot $warehouseId'+"`r`n"+$text.Substring($endMatch.Index)
+                }
                 $created='$localExcel = New-Object -ComObject Excel.Application'
                 $quit='try { $localExcel.Quit() } catch {}'
                 if([regex]::Matches($text,[regex]::Escape($created)).Count -ne 1 -or [regex]::Matches($text,[regex]::Escape($quit)).Count -ne 1){throw 'Original lifecycle anchors differ.'}
@@ -89,6 +101,81 @@ public static class ShutdownControlOwner {
             $process=Get-Process -Id $owner
             Write-Json 'created.json' ([pscustomobject]@{ProcessId=$owner;CreatedUTC=$process.StartTime.ToUniversalTime().ToString('o');UTC=[DateTimeOffset]::UtcNow.ToString('o')})
         }
+        function Invoke-ProjectionReplayControl($Application,$Packages,$Inventory,$Runtime,$Warehouse){
+            $receivingPaths=@(Get-ChildItem -LiteralPath $Runtime -Filter 'invSys.Inbox.Receiving.*.xlsb')
+            if($receivingPaths.Count -ne 1){throw 'Expected one generated Receiving inbox.'}
+            $inboxBook=$Application.Workbooks.Open($receivingPaths[0].FullName)
+            try {
+                $inbox=Get-ListObject -Workbook $inboxBook -TableName 'tblInboxReceive'
+                $eventRow=0
+                for($row=1;$row -le (Get-TableRowCount $inbox);$row++){
+                    $candidate=[string](Get-TableValue $inbox $row 'EventID')
+                    if($candidate.StartsWith('EVT-PROJECTION-RECOVERY-',[StringComparison]::Ordinal)){
+                        if($eventRow -gt 0){throw 'Ambiguous generated recovery event.'}
+                        $eventRow=$row
+                    }
+                }
+                if($eventRow -eq 0){throw 'Generated recovery event unavailable.'}
+                $eventId=[string](Get-TableValue $inbox $eventRow 'EventID')
+                $systemKey=[string](Get-TableValue $inbox $eventRow 'System_Key')
+                $status=[string](Get-TableValue $inbox $eventRow 'Status')
+                $log=Get-ListObject -Workbook $Inventory -TableName 'tblInventoryLog'
+                $applied=Get-ListObject -Workbook $Inventory -TableName 'tblAppliedEvents'
+                $beforeLog=Get-TableRowCount $log
+                $beforeApplied=Get-TableRowCount $applied
+                $sku=Get-ListObject -Workbook $Inventory -TableName 'tblSkuBalance'
+                $location=Get-ListObject -Workbook $Inventory -TableName 'tblLocationBalance'
+                Write-Json 'projection-fixture-state.json' ([pscustomobject]@{TriggerNew=($status -ceq 'NEW');TriggerProcessed=($status -ceq 'PROCESSED');SkuProjectionPresent=($null -ne $sku);LocationProjectionPresent=($null -ne $location);LogRows=$beforeLog;AppliedRows=$beforeApplied})
+                if($status -cne 'NEW'){throw 'Failed-fixture trigger is not pending.'}
+                # The recovered disk fixture contains projections but retains the
+                # pending trigger. Recreate the original deletion on this copy,
+                # using the exact live-validator block and its two real helpers.
+                $livePath=Join-Path $repo 'tools/validate_phase6_live_role_workflows.ps1'
+                $liveTokens=$null;$liveErrors=$null
+                $liveAst=[Management.Automation.Language.Parser]::ParseFile($livePath,[ref]$liveTokens,[ref]$liveErrors)
+                if($liveErrors.Count){throw 'Live validator does not parse.'}
+                foreach($helperName in @('Get-WorksheetSafe','Get-ListObjectSafe')){
+                    $helper=$liveAst.Find({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq $helperName},$false)
+                    if($null -eq $helper){throw 'Live projection helper unavailable.'}
+                    . ([scriptblock]::Create($helper.Extent.Text))
+                }
+                $liveText=Get-Content -LiteralPath $livePath -Raw
+                $startAnchor='$wsSkuBalance = Get-WorksheetSafe -Workbook $wbInventoryRuntime -WorksheetName "SkuBalance"'
+                $endAnchor='$projectionDeleteOk = '
+                $deleteStart=$liveText.IndexOf($startAnchor,[StringComparison]::Ordinal)
+                $deleteEnd=$liveText.IndexOf($endAnchor,$deleteStart,[StringComparison]::Ordinal)
+                if($deleteStart -lt 0 -or $deleteEnd -le $deleteStart){throw 'Live deletion anchors differ.'}
+                $wbInventoryRuntime=$Inventory
+                . ([scriptblock]::Create($liveText.Substring($deleteStart,$deleteEnd-$deleteStart)))
+                $sku=Get-ListObject -Workbook $Inventory -TableName 'tblSkuBalance'
+                $location=Get-ListObject -Workbook $Inventory -TableName 'tblLocationBalance'
+                Add-Result 'ProjectionFixture.PendingAndMissing' ($null -eq $sku -and $null -eq $location) 'Exact live deletion recreates missing projections beside the pending trigger on a copied fixture.'
+                if($null -ne $sku -or $null -ne $location){throw 'Projection deletion precondition failed.'}
+                Write-Json 'projection-dispatch.json' ([pscustomobject]@{UTC=[DateTimeOffset]::UtcNow.ToString('o');PendingTrigger=$true;MissingProjections=$true})
+                $report=[string](Run-WorkbookMacro -Excel $Application -WorkbookName $Packages['invSys.Core.xlam'].Name -MacroName 'modProcessor.RunBatchReportForAutomation' -Arguments @($Warehouse,500))
+                Write-Json 'projection-return.json' ([pscustomobject]@{UTC=[DateTimeOffset]::UtcNow.ToString('o');Returned=$true})
+                $sku=Get-ListObject -Workbook $Inventory -TableName 'tblSkuBalance'
+                $location=Get-ListObject -Workbook $Inventory -TableName 'tblLocationBalance'
+                Add-Result 'ProjectionRecovery.Rebuilt' ($null -ne $sku -and $null -ne $location) 'Both missing projections rebuilt through packaged processor.'
+                $afterLog=Get-TableRowCount $log
+                $afterApplied=Get-TableRowCount $applied
+                Add-Result 'ProjectionRecovery.OneApplied' ($report -match '^Processed=1;' -and $afterLog -eq $beforeLog+1 -and $afterApplied -eq $beforeApplied+1) 'One pending event adds exactly one log and applied record.'
+                $matches=0;$exact=$false
+                for($row=1;$row -le $afterLog;$row++){
+                    if([string](Get-TableValue $log $row 'EventID') -ceq $eventId){
+                        $matches++
+                        $exact=[string](Get-TableValue $log $row 'System_Key') -ceq $systemKey
+                    }
+                }
+                Add-Result 'ProjectionRecovery.ExactIdentity' ($matches -eq 1 -and $exact -and [string](Get-TableValue $inbox $eventRow 'System_Key') -ceq $systemKey) 'Exact trigger EventID and System_Key retained.'
+                Add-Result 'ProjectionRecovery.Processed' ([string](Get-TableValue $inbox $eventRow 'Status') -ceq 'PROCESSED') 'Exact trigger reaches processed status.'
+                $replay=[string](Run-WorkbookMacro -Excel $Application -WorkbookName $Packages['invSys.Core.xlam'].Name -MacroName 'modProcessor.RunBatchReportForAutomation' -Arguments @($Warehouse,500))
+                Add-Result 'ProjectionRecovery.Replay' ($replay -match '^Processed=0;' -and (Get-TableRowCount $log) -eq $afterLog -and (Get-TableRowCount $applied) -eq $afterApplied) 'Replay creates no duplicate authority records.'
+            } finally {
+                try{$inboxBook.Close($false)}catch{}
+                Release-ComObject $inboxBook
+            }
+        }
         $deployPath=$deploy;$results=[Collections.Generic.List[object]]::new()
         try {
             Invoke-RestartReconciliation -LiveResultText ('- Runtime root override: '+$clone)
@@ -101,7 +188,8 @@ public static class ShutdownControlOwner {
             }
         } catch {
             $failed=$true
-            Write-Json 'worker-failure.json' ([pscustomobject]@{Type=$_.Exception.GetBaseException().GetType().FullName;HResult=('0x{0:X8}' -f $_.Exception.GetBaseException().HResult)})
+            Write-Json 'restart-checks.json' @($results|Select-Object Check,Passed)
+            Write-Json 'worker-failure.json' ([pscustomobject]@{Type=$_.Exception.GetBaseException().GetType().FullName;HResult=('0x{0:X8}' -f $_.Exception.GetBaseException().HResult);Line=$_.InvocationInfo.ScriptLineNumber;Stack=$_.ScriptStackTrace})
         }
     } else {
     try {

@@ -36,6 +36,12 @@ changed by these tests. Exact receipts and failed attempts are recorded in
 
 ## Decisions and execution limits
 
+A fresh-session projection control passes 6/6 processor/identity/replay checks,
+but does not reproduce the preceding role sequence. Excel exits only after its
+worker ends; strict lifecycle acceptance fails despite zero delayed Application
+events. The earlier full-chain crash remains unresolved. Retain that distinction
+when preparing a same-session phase-cut reproduction.
+
 - **Pending D8-A:** ordinary Auth reads must not create/repair authority, while
   explicit authorized setup retains provisioning. The proposal is not effective
   until the user approves and Architecture, Plan 022 and controls record it.
