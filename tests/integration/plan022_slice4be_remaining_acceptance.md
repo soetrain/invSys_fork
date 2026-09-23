@@ -32,15 +32,15 @@ changed by these tests. Exact receipts and failed attempts are recorded in
 | Broader Boxing/Shipping | Current candidate retains all 1,707 prior passes and seven pending D8-A failures across 1,714 checks; all 22 captures reviewed and source/package hashes preserved. The completed test host needed teardown cleanup; strict closure verification fails. | Preserve behavioral evidence and resolve clean shutdown without repeating unchanged successful behavior merely to obtain another report. The seven D8-A failures remain failures. |
 | Comparison | Follow-up attempt: 333 PASS / one harness exception, 96 prior checks unreached; 23 reviewed images, delayed unassisted closure, no Application failures and unchanged hashes. Both preservation failures and all 15 diagnostic-library captures pass. Pending and Partial paired views pass. Earlier failed attempts remain retained. | Isolate the new 0x800AC472 Applied pair-label read before another broad retry. Applied paired views and later expectation checks remain unverified. Earlier candidate's 421/421 and 31 images remain historical evidence. |
 | Curation/restart/Viewer/guide | Earlier candidates: 77/27/94/351 checks respectively. | Verify on final applicable candidate; preserve exact prior check identities and required visible evidence. |
-| Full chain/live roles/Create Warehouse | Restart scan correction passes 12 original checks and 8 header-compatibility checks with normal closure and zero Application failures. Subsequent full chain fails earlier at projection rebuilding: chain 5 PASS/1 exception, live roles 32 PASS/1 exception, Create Warehouse 15/15; 27/16 prior checks unreached. Original Excel crashes in ntdll.dll (c0000028). Settings/reports restored, runtime/packages unchanged; recovered saved fixtures closed with assistance. | Isolate projection deletion/rebuild on generated fixtures before another broad retry. Preserve prior passive 32/48/15 behavioral evidence and failed shutdown audit. See [focused correction and failed retry](plan022_slice4be_shutdown_header_results.md). |
+| Full chain/live roles/Create Warehouse | Verified current candidate: 32/48/15 passes, exact prior identities, normal unassisted closure, zero delayed Application failures, settings/three reports restored, 299 runtime/253 tooling/five package hashes preserved. Preceded by a 35/35 same-session projection control and 12/8 restart/header checks. | Preserve; repeat only after a relevant change or new concern. Earlier combase.dll/ntdll.dll failures remain recorded and unexplained. See [focused correction and full-chain evidence](plan022_slice4be_shutdown_header_results.md). This does not close other workstreams or human acceptance. |
 
 ## Decisions and execution limits
 
-A fresh-session projection control passes 6/6 processor/identity/replay checks,
-but does not reproduce the preceding role sequence. Excel exits only after its
-worker ends; strict lifecycle acceptance fails despite zero delayed Application
-events. The earlier full-chain crash remains unresolved. Retain that distinction
-when preparing a same-session phase-cut reproduction.
+A fresh-session projection control retains its 6/6 behavior and failed strict
+worker-lifetime closure result. A later same-session control passes 35/35 and
+the complete current-candidate chain passes 32/48/15 with normal closure. Earlier
+crashes remain unexplained; preserve all attempts without invalidating the scope
+of the later verified result.
 
 - **Pending D8-A:** ordinary Auth reads must not create/repair authority, while
   explicit authorized setup retains provisioning. The proposal is not effective

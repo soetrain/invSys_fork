@@ -549,6 +549,13 @@ Recovered saved test workbooks are closed with assistance; settings and three
 tracked reports are restored. Runtime/package pins and static metrics remain
 unchanged. This is a verified tooling correction and an unresolved earlier gate,
 not full-chain or Slice 4be acceptance. The linked record preserves exact receipts.
+The later same-session control retains 35/35 ordered prior checks and closes
+normally. One subsequent complete chain passes 32/48/15 with all prior identities,
+normal unassisted closure and zero delayed Application failures. The 23:34:07 UTC
+verification preserves 299 runtime/253 tooling/five package hashes and restoration
+of settings/three reports. This verifies the frozen candidate's chain gate while
+retaining earlier unexplained crashes. Full Slice 4be acceptance remains open;
+the linked shutdown-header record contains both outcomes and exact receipts.
 
 Evidence: `reports/runtime/settings-diagnostic-chain-passive-behavior-verification.json`,
 `settings-diagnostic-chain-passive-event-facts.json`, retained lifecycle trace,

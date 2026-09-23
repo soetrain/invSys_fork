@@ -2,9 +2,10 @@
 
 Last verified: 2026-09-23 UTC. This repairs Release 1 verification tooling under
 the existing Architecture v4.11 contract; it changes no runtime or XLAM behavior.
-Focused shutdown and header compatibility pass. The full-chain retry fails
-earlier in projection rebuilding, before the corrected restart stage. Slice 4be
-remains incomplete.
+Focused shutdown and header compatibility pass. An initial full-chain retry
+fails earlier in projection rebuilding; a subsequent same-session control and
+full chain pass with normal closure. The earlier crash remains unexplained and
+preserved below. Slice 4be remains incomplete.
 
 ## Reproduced failure and isolation
 
@@ -138,6 +139,35 @@ Next isolate the processor boundary after the exact preceding role handlers in
 one Excel session, with a diagnostic phase cut before later chain stages. Do not
 repeat the unchanged broad chain or infer the earlier crash's cause from this
 fresh-session success.
+
+## Same-session control and full-chain confirmation
+
+`Test-Slice4beProjectionLiveControl.ps1` extracts the actual ordered live-role
+generator and retains the preceding Receiving/Production handler sequence through
+projection recovery. It cuts later stages, redirects its report to ignored
+evidence, redacts row details, and generates the synthetic fixture credential
+only in memory. No runtime/package implementation changes. Root
+`reports/runtime/projection-live-control/5892044845554763bbd156cefc344971`
+passes **35/35**, preserving the exact ordered prefix of the earlier 48-check
+live-role GREEN. The processor returns, all four projection assertions pass,
+Excel closes without assistance, and settings/report/package checks pass with
+zero Application failures. This does not reproduce or explain the earlier crash.
+
+On that new focused evidence, one complete chain verification runs **2026-09-23
+23:28:23--23:33:45 UTC**. It passes **32/32 chain, 48/48 live roles, and 15/15
+Create Warehouse**, retaining every prior check identity without duplicates.
+The corrected restart scan and all later chain stages are reached. The delayed
+audit at **23:34:07 UTC** confirms zero Application failures and normal unassisted
+closure. All 299 runtime, 253 tooling and five package hashes remain unchanged;
+local settings and all three tracked reports are restored. The 253 PowerShell
+files parse. The current frozen candidate's chain gate is now verified; this
+does not establish comprehensive Slice 4be or human acceptance, nor prove the
+cause of the preserved prior crash.
+
+Exact prefix: `reports/runtime/settings-diagnostic-projection-checked-chain`;
+independent receipt suffix `-verification.json`. The focused root additionally
+contains `scope-verification.json`. No further unchanged full-chain rerun is
+needed until a relevant implementation change or new concern justifies one.
 
 The [remaining acceptance checklist](plan022_slice4be_remaining_acceptance.md)
 continues to govern comprehensive coverage and all other gates. This correction
