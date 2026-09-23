@@ -336,6 +336,29 @@ and [scoped thread-context restoration](https://learn.microsoft.com/en-us/window
 
 ## Observation maintenance review
 
+### Resumed desktop check, 2026-09-23 UTC
+
+Input-desktop access is available at 02:10:48 UTC. The disposable foreground
+calibration completes all three cases (`hidden-first`, `visible`,
+`hidden-restored`) with Captured results, directly reviewed readable images,
+normal Quit and verified process closure. Its report and image review are under
+`reports/runtime/capture-foreground-calibration/3c3b3b534b344599a55a1960c5ee6f7d`.
+This establishes capture calibration only, not packaged product acceptance.
+
+The following fresh broader Boxing/Shipping run stops at **17 PASS / 1 harness
+FAIL**, after all five instrumented package compiles pass. No product image is
+produced: caption activation fails with `Capture focus cursor positioning failed`.
+A new desktop check at 02:13:01 UTC returns NULL/error 5. The reason desktop
+access changed is unknown; do not infer an application regression or repeat
+visible runs without restored access. Excel closes immediately without assistance.
+The 02:14:11 UTC audit preserves 299 runtime files, 189 test files and five package
+hashes, with zero matching Application failure events. The unchanged accepted
+gates remain valid; this attempt adds no broader acceptance. Evidence:
+`reports/runtime/settings-diagnostic-capture-regression-boxing-attempt-verification.json`;
+report root `reports/runtime/slice4be-shipping-activity/a8c172b9928a43a7905885c659a74530`.
+
+### Recorded static results
+
 The follow-up source inventory is 250 components, 6,045 procedures and 132,881
 lines before the terminal map: one bounded Core vocabulary module, nine procedures and 326 lines above
 the accepted owner-completion baseline. Literal/unresolved Application.Run counts
