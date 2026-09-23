@@ -195,7 +195,9 @@ End Function
     $policy=$packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('cAdminTrackingPolicy').CodeModule
     $policy.AddFromString(@'
 Public Function PublishedReadVisibilityForTest(ByVal enabled As Boolean) As Boolean
+    mLoading = True
     mAdminVisible.Value = enabled
+    mLoading = False
     mAdminVisible_Click
     mSave_Click
     PublishedReadVisibilityForTest = (InStr(1, mStatus.Caption, " saved.", vbBinaryCompare) > 0)
@@ -216,6 +218,7 @@ End Function
     $script:PublishedReadProbeInstalled=$true
     }
     if($InstallOnly -or $RecordingEvaluationDiagnostic){return}
+    . (Join-Path $PSScriptRoot 'Slice4beVisibilitySavePins.ps1')
     function ReadAct([string]$Action,[string]$Expected='') {[bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @($Action,$Expected))}
     function ReadDetail([string]$Caption,[string]$Expected) {[bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadDetailForTest' @($Caption,$Expected))}
     function WriteReadFixture([string]$Body) {
@@ -312,13 +315,13 @@ End Function
         # Change current visibility through the actual Admin controls after
         # publication. Reading must obey that policy without republishing history.
         foreach($visible in @($false,$true)) {
+            Check ('PublishedRead.BeforePolicySave.ReadsPreserveAllBytes.'+$visible) (Test-Slice4beReadPins $pins $Fixture.Root)
             SelectTarget $Fixture 'config-admin'
             try {
                 [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
                 if(-not [bool](Run 'invSys.Admin.xlam' 'TestD5Commands.PublishedReadVisibilityForTest' @($visible))) {throw 'Actual Admin visibility handler did not save the fixture policy.'}
             } finally {[void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')}
-            # Only the intentional fixture policy change advances this pin.
-            $pins[$Fixture.Config]=(Get-FileHash -LiteralPath $Fixture.Config).Hash
+            Check ('PublishedRead.PolicySave.OnlyExactAuthorizedWrites.'+$visible) (Update-Slice4beVisibilitySavePins $pins $Fixture.Root $Fixture)
             SelectTarget $Fixture 'config-reader'
             [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.OpenInventoryViewer')
             [void](ReadAct 'Events')
@@ -344,8 +347,5 @@ End Function
             if($ViewerStartupSavedWorkbookForTest){Close-Slice4beViewerStartupWorkbook}
         } else {[void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')}
     }
-    $unchanged=$true
-    foreach($pin in $pins.Keys){if((Get-FileHash -LiteralPath $pin).Hash -cne $pins[$pin]){$unchanged=$false}}
-    $unchanged=$unchanged -and @((Get-ChildItem -LiteralPath $Fixture.Root -Recurse -File)).Count -eq $pins.Count
-    Check 'PublishedRead.AuthorityActivityAndRestoredProjectionBytesUnchanged' $unchanged
+    Check 'PublishedRead.AuthorityActivityAndRestoredProjectionBytesUnchanged' (Test-Slice4beReadPins $pins $Fixture.Root)
 }

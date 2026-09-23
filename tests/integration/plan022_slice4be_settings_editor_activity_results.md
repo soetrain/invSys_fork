@@ -427,6 +427,50 @@ attempt and diagnose a specific cause before another broad comparison run.
 Evidence: `reports/runtime/settings-diagnostic-resume0923-regression-comparison-attempt-verification.json`;
 report root `reports/runtime/slice4be-viewer-published-read/0074551798a24a1587f4f179b90cc47a`.
 
+### Focused reader fixture correction, 2026-09-23 UTC
+
+Both preservation failures are resolved in the focused compiled reader gate:
+**124/124 PASS**, retaining all 116 preceding Viewer/recording/reader identities
+and adding eight checks around the four deliberate visibility-policy saves.
+The original two check IDs remain and pass. Each read-only interval preserves
+the exact file set and hashes. Each real save permits only its Config write
+(where Config is in the guarded scope) and one integrity-checked, unsequenced
+`ADMIN_TRACKING_SAVE_REQUESTED` observation from the expected owner and context.
+Any other addition, change or deletion fails. Newly permitted records are pinned
+and remain protected during subsequent reads; the whole directory is never
+indiscriminately repinned. The visibility probe suppresses programmatic checkbox
+events before invoking its real callback once, as D18 requires.
+
+The shared guard calibration passes **74/74** across warehouse and Training
+scopes, including unexpected files, original-file edits/deletions, wrong
+control/context/sequence, missing observations and damaged integrity hashes.
+Its first run had one incorrect calibration expectation: a Config-only change
+is outside a Training-only snapshot. That failed calibration is retained at
+`reports/runtime/visibility-save-pins/33aeeda77b0042c8aa0e8fd78cf7e8df`;
+the corrected result is `visibility-save-pins/a87cba7fc9dc42cebff9912b9b39e434`.
+This is harness failure/correction evidence, not a new product behavioral RED.
+No runtime, package or architectural contract changes.
+
+The focused run spans 21:22:47--21:32:14 UTC. All five instrumented projects
+compile, and the minimum/default/larger/restored Viewer and recording-library
+layout assertions pass. Excel closes without assistance after a delay. The
+21:32:30 audit verifies zero matching Application failure events, 299 runtime/
+191 test/five package hashes and all preceding focused check identities. All
+191 PowerShell test files parse. Regenerated static evidence retains 250
+components, 6,045 procedures, 132,893 lines, 9/45 dynamic calls and 193 duplicate
+groups; all three schemas and 28 existing module-size limits pass.
+
+Evidence: `reports/runtime/settings-diagnostic-readonly-policy-r1-verification.json`,
+`reports/runtime/readonly-policy-static-verification.json`; packaged report root
+`reports/runtime/slice4be-viewer-published-read/c2c9669e26994984b6f00f9352578990`.
+The initial runner was rejected before Excel startup because it omitted the
+explicit published-Viewer switch required by compile preflight; that attempt is
+retained under `settings-diagnostic-readonly-policy`, and is not a test RED.
+
+The full comparison remains unaccepted. Its earlier five diagnostic capture
+failures and `0x800AC472` form-state failure are not exercised by this narrower
+reader correction; no new visible comparison acceptance is claimed.
+
 ## Observation maintenance review
 
 The follow-up source inventory is 250 components, 6,045 procedures and 132,881

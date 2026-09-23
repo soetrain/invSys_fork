@@ -73,6 +73,7 @@ End Function
     $script:RecordingReaderProbeInstalled=$true
     }
     if($InstallOnly){return}
+    . (Join-Path $PSScriptRoot 'Slice4beVisibilitySavePins.ps1')
     function Library([string]$Action,[string]$Value='') {
         [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @($Action,$Value))
     }
@@ -82,12 +83,14 @@ End Function
         (Library 'Status')+"`n"+(Library 'Evidence')
     }
     function SaveVisibility([bool]$Visible) {
+        Check ('RecordingRead.BeforePolicySave.ReadsPreserveAllBytes.'+$Visible) (Test-Slice4beReadPins $trainingPins (Join-Path $Fixture.Root 'Training'))
         try {
             [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
             if(-not [bool](Run 'invSys.Admin.xlam' 'TestD5Commands.PublishedReadVisibilityForTest' @($Visible))) {
                 throw 'Actual Admin visibility policy save failed; not reader RED.'
             }
         } finally { [void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings') }
+        Check ('RecordingRead.PolicySave.OnlyExactAuthorizedWrites.'+$Visible) (Update-Slice4beVisibilitySavePins $trainingPins (Join-Path $Fixture.Root 'Training') $Fixture)
     }
     SelectTarget $Fixture 'config-admin'
     SetRecordingPolicy $true
@@ -214,9 +217,7 @@ End Function
         $text=(Library 'Status')+"`n"+(Library 'Evidence')
         Check 'RecordingRead.SignOutClearsCapturedEvidence' ((Library 'Count') -ceq '1' -and $text -match '(?i)(session|sign.in|context|unavailable)' -and -not $text.Contains($first.Attempt.ActivityId))
         Check 'RecordingRead.ReadsNeverPublishOrReadShippingAuthority' ([long](Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publishBefore -and [long](Run 'invSys.Operations.xlam' 'modTS_Shipments.PublishedReadAuthorityCallsForTest') -eq $shippingBefore)
-        $unchanged=$trainingPins.Count -eq @(Get-ChildItem -LiteralPath (Join-Path $Fixture.Root 'Training') -Recurse -File).Count
-        foreach($file in $trainingPins.Keys){if((Get-FileHash -LiteralPath $file).Hash -cne $trainingPins[$file]){$unchanged=$false}}
-        Check 'RecordingRead.JournalAndActivityBytesPreserved' $unchanged
+        Check 'RecordingRead.JournalAndActivityBytesPreserved' (Test-Slice4beReadPins $trainingPins (Join-Path $Fixture.Root 'Training'))
     } finally {
         foreach($file in $bytes.Keys){[IO.File]::WriteAllBytes($file,$bytes[$file])}
         CloseRecordingViewer
