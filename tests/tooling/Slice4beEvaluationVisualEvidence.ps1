@@ -3,20 +3,9 @@
 function Capture-EvaluationLibrary([string]$Stage,[string]$View,[string]$Title) {
     try {
         Initialize-SettingsCapture
-        for($attempt=1;$attempt -le 3;$attempt++){
-            try {
-                $handle=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
-                if($handle -eq 0){throw 'Requested form window unavailable.'}
-                $activation=New-Object -ComObject WScript.Shell
-                try {[void]$activation.AppActivate($Title)}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
-                CaptureFormEvidence $Title ('evaluation-'+$Stage.ToLowerInvariant()+'-'+$View.ToLowerInvariant()+'.png') $handle
-                break
-            } catch {
-                if($_.Exception.GetBaseException().Message -cne 'Requested form is not in the foreground.' -or $attempt -eq 3){throw}
-                Write-Output ('Diagnostic pane activation retry: '+$Stage+'/'+$View+'; attempt '+($attempt+1))
-                Start-Sleep -Milliseconds 300
-            }
-        }
+        $handle=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
+        if($handle -eq 0){throw 'Requested form window unavailable.'}
+        CaptureOwnedFormEvidence $Title ('evaluation-'+$Stage.ToLowerInvariant()+'-'+$View.ToLowerInvariant()+'.png') $handle
         Check ('EvaluationVisual.'+$Stage+'.Capture.'+$View) $true
     } catch {
         $message=$_.Exception.GetBaseException().Message

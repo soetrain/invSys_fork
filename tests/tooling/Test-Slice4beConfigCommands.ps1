@@ -615,12 +615,13 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
        $Values[0] -ceq 'frmActionPathView' -and $Values[1] -ceq '' -and $Values[2] -ceq 'Count' -and $Values[3] -ceq ''){
         $attemptLimit=4
     }
-    # These two probe branches only inspect existing forms/list values. They do
+    # These probe branches only inspect existing forms/list values. They do
     # not activate forms, invoke handlers, alter selection or read business data.
     if($RetryGuideObservationForTest -and $Package -ceq 'invSys.Operations.xlam' -and
        $Macro -ceq 'modInventoryViewer.GuideDraftControlForTest' -and $Values.Count -eq 4 -and $Values[3] -ceq '' -and
        (($Values[0] -ceq 'frmActionPathGuide' -and $Values[1] -ceq '' -and $Values[2] -ceq 'Count') -or
-        ($Values[0] -ceq 'frmGuideActionPicker' -and $Values[1] -ceq 'lstGuideActions' -and $Values[2] -ceq 'Values'))){
+        ($Values[0] -ceq 'frmGuideActionPicker' -and $Values[1] -ceq 'lstGuideActions' -and $Values[2] -ceq 'Values') -or
+        ($Values[0] -ceq 'frmActionPathView' -and $Values[1] -cin @('txtActionPathHowTo','txtActionPathDiagnostic') -and $Values[2] -ceq 'State'))){
         $attemptLimit=4
         $retryLog='readonly-observation-retries.jsonl'
     }

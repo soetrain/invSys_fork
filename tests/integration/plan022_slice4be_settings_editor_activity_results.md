@@ -471,6 +471,48 @@ The full comparison remains unaccepted. Its earlier five diagnostic capture
 failures and `0x800AC472` form-state failure are not exercised by this narrower
 reader correction; no new visible comparison acceptance is claimed.
 
+### Comparison capture and transport follow-up, 2026-09-23 UTC
+
+The corrected comparison attempt records **333 PASS / one harness exception**;
+96 preceding checks remain unreached. Every reached preceding identity passes.
+Both original byte-preservation checks and all 15 Pending/Partial/Applied library
+captures pass. All Pending and Partial paired-view checks pass, including exact
+source references, no premature conclusion, refresh and byte preservation.
+The 23 available images are directly reviewed: five library views and four
+paired views each for Pending and Partial, plus five Applied library views.
+Partial remains Awaiting with three Applied sources and one Awaiting; Applied
+shows Conclusion observed with all four sources Applied.
+
+The remaining failure is `0x800AC472` reading
+`frmActionPathView/lblActionPathPair/Label` after opening the Applied paired view.
+The earlier How-To State read succeeds, but no transport retry is exercised
+there. This does not prove that the broader COM problem is resolved. Applied
+paired captures and the remaining expectation checks are unavailable. The
+strict comparison verifier rejects the incomplete check set. Preserve this
+attempt and isolate the COM failure before another broad comparison retry.
+
+Two harness changes precede this run. Diagnostic-library captures now use the
+existing owned-form capture helper, retaining foreground, ownership and DPI
+checks. The dispatcher permits its existing bounded transport retries for only
+the two read-only paired text-box State probes. The protecting dispatcher
+calibration records 31 PASS / five expected FAIL before this change and 36/36
+afterward; it tests transient recovery, exhaustion, non-replayed commands,
+unknown controls, wrong package, other errors and disabled retries. This is
+harness calibration RED/GREEN, not a new product behavioral RED. Evidence:
+`reports/runtime/guide-state-retry/3fb58a11a6c44642b37f288faf69f007/red.json` and
+`reports/runtime/guide-state-retry/f7e3d72bf7904f58b5b25692bad063b0/green.json`.
+
+The run spans 21:37:02--22:08:57 UTC. Excel closes without assistance after a
+delay. The 22:09:59 audit verifies zero matching Application failure events,
+299 runtime/192 test/five package hashes, and all reviewed image hashes.
+Regenerated static evidence retains 250 components, 6,045 procedures, 132,893
+lines, 9/45 dynamic calls and 193 duplicate groups; three schemas, 28 existing
+size limits and parsing of all 192 PowerShell scripts pass. No runtime or
+architectural contract changes; comparison and full-slice acceptance remain open.
+Evidence: `reports/runtime/settings-diagnostic-fixed-regression-comparison-attempt-verification.json`,
+`reports/runtime/comparison-harness-static-verification.json`; packaged report
+root `reports/runtime/slice4be-viewer-published-read/1f026328b51f49e081c147589d4c6bca`.
+
 ## Observation maintenance review
 
 The follow-up source inventory is 250 components, 6,045 procedures and 132,881
