@@ -513,6 +513,37 @@ Evidence: `reports/runtime/settings-diagnostic-fixed-regression-comparison-attem
 `reports/runtime/comparison-harness-static-verification.json`; packaged report
 root `reports/runtime/slice4be-viewer-published-read/1f026328b51f49e081c147589d4c6bca`.
 
+### Passive full-chain control, 2026-09-23 UTC
+
+The passive control retains **32/32 chain, 48/48 live-role and 15/15 Create
+Warehouse** checks, preserving every prior identity. The run spans
+22:13:05--22:24:37 UTC. All three tracked reports and pre-test local settings are
+restored; Excel is absent. The 22:27:24 audit verifies 299 runtime/250 tooling/
+five package hashes. **Clean shutdown still fails:** Application event 1000
+records the original restart-stage Excel process crashing in `combase.dll` with
+`c0000005` at 22:18:49; event 1001 records `OFFICE_MODULE_VERSION_MISMATCH` at
+22:18:57. The stage had recorded zero workbooks before its original Quit.
+
+This control makes no external COM reattachment or additional Quit after stage
+Quit. Their absence does not prevent the failure, so the prior correlation does
+not establish them as a necessary cause. A later Excel instance remains until
+the user confirms Excel is fully closed. The harness's generic cleanup waits for
+any Excel process; this delays final restoration. The guarded cleanup receipt
+has **Targets=[]**: no process was terminated by the guard. Do not repeat the
+broad chain unchanged; isolate the restart shutdown fault with a bounded control.
+
+The strict verifier correctly rejects this run using local-time Windows event
+query bounds. An interim query using UTC DateTime values misses the same events
+on this host. Corrected local-time re-audits of the eleven earlier timed candidate
+receipts confirm their recorded counts: two events in each prior chain retry/
+trace, zero in the other nine. No prior behavioral result changes. Pending
+comparison and guide verifiers now use explicit local-time bounds.
+
+Evidence: `reports/runtime/settings-diagnostic-chain-passive-behavior-verification.json`,
+`settings-diagnostic-chain-passive-event-facts.json`, retained lifecycle trace,
+and `settings-diagnostic-corrected-local-time-event-audit.json`. No runtime or
+architectural contract changes; clean release acceptance remains open.
+
 ## Observation maintenance review
 
 The follow-up source inventory is 250 components, 6,045 procedures and 132,881
