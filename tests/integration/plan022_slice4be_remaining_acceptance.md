@@ -34,7 +34,9 @@ changed by these tests. Exact receipts and failed attempts are recorded in
 | Curation | Current candidate 77/77; all prior identities, 18 reviewed captures, five instrumented compiles, normal immediate closure, zero Application failures and unchanged hashes. | Preserve; library captures establish layout/direct-curation entry with unavailable recordings, not populated-library acceptance. |
 | Presentation restart | New `validation-guide-layout-normalized` candidate: 40/40 retains all 36 preceding identities and adds four-size bounds/non-overlap checks after the focused unchanged-size layout RED. Zero redundant refreshes, two real-resize validations, five compiles, normal closure, preserved bytes and zero Application failures. Exactly one of 243 compiled components changes. Latest capture-disabled selected-view observation is 6.879 seconds. Earlier add-in-only, overlay and desktop failures remain recorded. | Obtain unobscured current captures and complete applicable regressions. Full responsiveness, native visible acceptance and add-in-only behavior remain unaccepted. See [layout correction](plan022_slice4be_layout_stability_results.md) and [earlier resource evidence](plan022_slice4be_gui_resource_results.md). |
 | Viewer/guide | Earlier candidates: 94/351 checks respectively. | Verify on final applicable candidate; preserve exact prior identities and required visible evidence. Prepared current expected totals are 98/355 after reader-boundary additions. |
-| Full chain/live roles/Create Warehouse | New layout candidate: 32/48/15 passes with exact prior identities, normal unassisted closure, zero delayed Application failures, settings/three reports restored and five package/260 tooling hashes preserved. Earlier frozen-candidate chain and projection/header controls remain recorded separately. | Preserve; repeat only after a relevant change or new concern. Earlier crashes remain unexplained. See [layout-candidate chain evidence](plan022_slice4be_layout_stability_results.md) and [earlier projection/header evidence](plan022_slice4be_shutdown_header_results.md). Other workstreams and human acceptance remain open. |
+| Production completion boundary | `validation-production-quiet-boundary`: packaged 50 PASS/two expected FAIL RED, GREEN 52/52, original audit 14/14, five explicit compiles. Only mProduction differs among 243 compiled components. Both batches enter the primitive bridge with the captured workbook name and restore UI state. | Preserve this existing-contract correction. See [boundary evidence](plan022_production_quiet_boundary_results.md). Broader Production activity coverage remains open. |
+| Reusable Production palette | The focused reusable gate fails one aggregate check on both the boundary candidate and its predecessor: EightPaletteRows=False. All 67 Boolean observations match; reusable and Chai completion envelopes report OK. | Preserve the accepted eight-row requirement. Measure default/minimum, expanded and restored palette geometry before correcting it; IntegralHeight setup order is an unconfirmed hypothesis. No unchanged broad retry. See [candidate/control evidence](plan022_production_quiet_boundary_results.md). |
+| Full chain/live roles/Create Warehouse | Production boundary candidate: 32/48/15 passes with exact prior identities, normal unassisted closure, zero Application failures, settings/three reports restored and five package/263 tooling hashes preserved. Earlier layout/frozen candidate gates retain their scope. | Preserve; repeat only after a relevant change or new concern. Earlier crashes remain unexplained. See [current chain evidence](plan022_production_quiet_boundary_results.md), [layout candidate](plan022_slice4be_layout_stability_results.md) and [earlier projection/header evidence](plan022_slice4be_shutdown_header_results.md). Other workstreams and human acceptance remain open. |
 
 ## Decisions and execution limits
 
@@ -42,10 +44,16 @@ The subsequent [CRLF build correction](plan022_crlf_build_regions_results.md)
 passes 12/12 and produces 243 compiled components identical to the validated
 layout candidate. Its regression audit also finds a pre-existing D12 Production
 boundary failure (13/14, reproduced on the predecessor): completion passes a
-Workbook to Core `BeginQuietUi` instead of the existing primitive bridge. Add a
-packaged completion-boundary RED before correcting it; the passing chain does not
-waive the architectural requirement. This is a discovered Release 1 blocker,
+Workbook to Core `BeginQuietUi` instead of the existing primitive bridge. A
+packaged completion-boundary RED was required before correction; the passing chain
+did not waive the architectural requirement. This was a discovered Release 1 blocker,
 not an approved contract exception.
+The subsequent [Production boundary correction](plan022_production_quiet_boundary_results.md)
+has a packaged two-batch RED (50 PASS/two expected FAIL), GREEN 52/52, original
+audit 14/14 and five explicit compiles. Both completions use the captured-name
+bridge and restore UI state; only mProduction differs among 243 compiled
+components. Current-candidate regression gates remain recorded separately in
+that evidence file. This restores D12 without changing its contract.
 
 A fresh-session projection control retains its 6/6 behavior and failed strict
 worker-lifetime closure result. A later same-session control passes 35/35 and

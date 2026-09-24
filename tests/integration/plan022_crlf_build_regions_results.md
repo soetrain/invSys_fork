@@ -57,3 +57,5 @@ behavioral chain does not waive this rule. Before correction, protect the actual
 packaged completion/form-action path with a focused boundary check; preserve
 captured-workbook binding and the existing quiet-state restoration behavior.
 No Production implementation change is included in this tooling correction.
+The subsequent [Production boundary correction](plan022_production_quiet_boundary_results.md)
+records the required packaged RED/GREEN and its own candidate regression gates.

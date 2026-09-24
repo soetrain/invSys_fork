@@ -4,7 +4,9 @@ param(
     [string]$RepoRoot = ".",
 
     [Parameter(Mandatory = $false)]
-    [string]$DeployRoot = "deploy/current"
+    [string]$DeployRoot = "deploy/current",
+
+    [switch]$CheckProductionQuietBoundary
 )
 
 Set-StrictMode -Version Latest
@@ -1107,6 +1109,11 @@ try {
         $workbookMap[$fileName] = $wb
     }
 
+    if ($CheckProductionQuietBoundary) {
+        . (Join-Path $repo 'tests/tooling/ProductionQuietBoundaryProbe.ps1')
+        Install-ProductionQuietBoundaryProbe -Excel $excel -Packages $workbookMap -PackageRoot $deployPath
+    }
+
     $currentStep = "Set core runtime override"
     [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap["invSys.Core.xlam"].Name -MacroName "modRuntimeWorkbooks.SetCoreDataRootOverride" -Arguments @($runtimeRoot))
     Add-ResultRow -Rows $resultRows -Check "Core.RuntimeRootOverride" -Passed $true -Detail $runtimeRoot
@@ -1763,10 +1770,19 @@ try {
     $currentStep = "Run two consecutive Production batches through form actions"
     $wbProd = Resolve-WorkbookSafe -Excel $excel -WorkbookName $prodWorkbookName
     Restore-LiveRuntimeContext -Excel $excel -WorkbookMap $workbookMap -RuntimeRoot $runtimeRoot -WarehouseId $warehouseId -StationId $stationId -UserId $resolvedUserId -Pin $testPin
+    if ($CheckProductionQuietBoundary) {
+        [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap['invSys.Core.xlam'].Name -MacroName 'TestProductionQuietProbe.Configure' -Arguments @([string]$wbProd.Name))
+    }
     $productionFormActionReport = [string](Invoke-WorkbookMacroWithDismiss -Excel $excel -WorkbookName $workbookMap["invSys.Operations.xlam"].Name -MacroName "mProduction.ProductionFormTwoBatchActionReportForTest" -Arguments @($wbProd, "SKU-SUGAR", "Sugar Bin", 2, "LB", "BIN-A", 8, $wbReceive) -DismissSeconds 60)
     $productionFormActionOk = $productionFormActionReport.StartsWith("OK|Batches=2|") `
         -and $productionFormActionReport.Contains("BoundWorkbook=$([string]$wbProd.Name)")
     Add-ResultRow -Rows $resultRows -Check "Production.FormActions.TwoConsecutiveBatches.CapturedWorkbook" -Passed $productionFormActionOk -Detail $productionFormActionReport
+    if ($CheckProductionQuietBoundary) {
+        foreach ($fact in @('Completions','PrimitiveEntries','CapturedBinding','QuietStateRestored')) {
+            $value = [long](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap['invSys.Core.xlam'].Name -MacroName 'TestProductionQuietProbe.ResultCount' -Arguments @($fact))
+            Add-ResultRow -Rows $resultRows -Check ('Production.FormActions.QuietBoundary.' + $fact) -Passed ($productionFormActionOk -and $value -eq 2) -Detail ('Expected=2; Actual=' + $value)
+        }
+    }
 }
 catch {
     Add-ResultRow -Rows $resultRows -Check "Harness.Exception" -Passed $false -Detail ("Step=" + $currentStep + "; " + $_.Exception.Message)

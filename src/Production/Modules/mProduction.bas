@@ -2860,7 +2860,7 @@ Public Function CompleteProductionRunAfterCheckInForOutput(ByVal outputRowNumber
 
     completionStep = "executing the typed Production completion service"
     Dim completionResult As cProductionCompletionResult
-    modUiQuiet.BeginQuietUi wsProd.Parent
+    modOperationsPrimitiveBridge.BeginQuietUiForWorkbook wsProd.Parent.Name
     quietStarted = True
     Set completionResult = modProductionCompletionService.ExecuteProductionSession( _
         wsProd.Parent, productionSession, errNotes)
