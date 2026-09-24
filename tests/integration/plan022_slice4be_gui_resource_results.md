@@ -2,7 +2,10 @@
 
 Last verified: 2026-09-24 UTC. Architecture v4.11 D18 and the R1 operator
 deployment model govern this investigation. No runtime/XLAM change or new
-architecture decision is made. The add-in-only failure remains a failure.
+architecture decision is made in this investigation. The later
+[paired-view layout correction](plan022_slice4be_layout_stability_results.md)
+continues the latency diagnosis with a focused runtime change. The add-in-only
+failure remains a failure.
 
 The preceding restart attempt reached the configured 10,000 GDI quota and
 301 native XLMAIN windows. Its rejected image, incomplete checks and assisted

@@ -1,10 +1,12 @@
 # Isolated restart diagnostic. Retain original settings in memory through closure.
 [CmdletBinding()]
-param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-settings-diagnostic',[switch]$SavedWorkbook)
+param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-settings-diagnostic',[switch]$SavedWorkbook,[switch]$TraceViewCalls,[switch]$CheckLayoutStability,[switch]$SkipCapture,[ValidateSet('RED','GREEN')][string]$Phase='GREEN')
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated resource diagnostic.'}
+if($TraceViewCalls -and -not $SavedWorkbook){throw 'View-call tracing requires the saved-workbook control.'}
+if($CheckLayoutStability -and -not $TraceViewCalls){throw 'Layout stability requires the instrumented handler trace.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beGuideResourceTrace.ps1')
 $root=Join-Path $repo ('reports/runtime/guide-resource-diagnostic/'+[guid]::NewGuid().ToString('N'))
@@ -19,12 +21,15 @@ if($packages.Count -ne 5){throw 'Expected five candidate packages.'}
 $worker=$null
 try {
     $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+(Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1')+'"'),
-        '-RepoRoot',('"'+$repo+'"'),'-DeployRoot',('"'+$DeployRoot+'"'),'-Phase','GREEN',
+        '-RepoRoot',('"'+$repo+'"'),'-DeployRoot',('"'+$DeployRoot+'"'),'-Phase',$Phase,
         '-GuideDraftOnly','-GuidePresentationRestartOnly','-TraceGuideResourcesForTest',
-        '-CaptureGuideEvidence','-GuideCaptureVisibleExcelForTest','-CheckViewerPublishedRead',
+        '-GuideCaptureVisibleExcelForTest','-CheckViewerPublishedRead',
         '-CompileEvaluationProbesForTest','-ViewerStartupPackageStateForTest','SavedCopies',
         '-WaitForExcelReadyForTest','-ExcelReadyReadLimitForTest','40')
     if($SavedWorkbook){$arguments+='-GuideResourceSavedWorkbookForTest'}
+    if(-not $SkipCapture){$arguments+='-CaptureGuideEvidence'}
+    if($TraceViewCalls){$arguments+='-TraceGuideViewCallsForTest'}
+    if($CheckLayoutStability){$arguments+='-CheckGuideLayoutStabilityForTest'}
     $worker=Start-Process powershell.exe -ArgumentList $arguments -WindowStyle Hidden -PassThru -WorkingDirectory $repo -RedirectStandardOutput (Join-Path $root 'worker.stdout.log') -RedirectStandardError (Join-Path $root 'worker.stderr.log')
     $null=$worker.Handle
     while(-not $worker.HasExited){

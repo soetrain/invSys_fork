@@ -7,6 +7,7 @@ Set-StrictMode -Version Latest
 # Imported capture helpers leave packaged guide diagnostics disabled here.
 $GuideCaptureVisibleExcelForTest=$false
 $GuideCaptureSavedWorkbookForTest=$false
+$TraceGuideResourcesForTest=$false
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Excel must be closed before disposable capture calibration.'}
 $reportRoot=Join-Path $repo ('reports/runtime/capture-foreground-calibration/'+[guid]::NewGuid().ToString('N'))

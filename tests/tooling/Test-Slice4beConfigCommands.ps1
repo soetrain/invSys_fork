@@ -40,6 +40,8 @@ param(
     [switch]$CheckGuidePresentationRestart,
     [switch]$GuidePresentationRestartOnly,
     [switch]$TraceGuideResourcesForTest,
+    [switch]$TraceGuideViewCallsForTest,
+    [switch]$CheckGuideLayoutStabilityForTest,
     [switch]$GuideResourceSavedWorkbookForTest,
     [switch]$CheckPublishedGuideEdit,
     [switch]$PublishedGuideEditOnly,
@@ -108,6 +110,8 @@ if($TraceGuideResourcesForTest){
     . (Join-Path $PSScriptRoot 'Slice4beGuideResourceTrace.ps1')
 }
 if($GuideResourceSavedWorkbookForTest -and -not $TraceGuideResourcesForTest){throw 'Saved-workbook resource control requires tracing.'}
+if($TraceGuideViewCallsForTest -and -not $GuideResourceSavedWorkbookForTest){throw 'View-call tracing requires the saved-workbook resource control.'}
+if($CheckGuideLayoutStabilityForTest -and -not $TraceGuideViewCallsForTest){throw 'Layout stability requires the instrumented handler trace.'}
 if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $CaptureEvidence -or $DetailScrollLockDiagnostic)){
     throw 'Native scrolling checks require the isolated visible detail gate without temporary unlocking.'
 }
@@ -137,8 +141,8 @@ if($CheckGuidePresentationAvailability){
 }
 if($CheckGuidePresentation){$CheckGuideEvaluation=$true}
 if($CheckGuideEvaluation){$CheckGuideExpectation=$true}
-if($GuideCaptureVisibleExcelForTest -and -not $TraceViewerStartupForTest -and (-not $GuideDraftOnly -or -not $CaptureGuideEvidence)){
-    throw 'Visible-Excel diagnosis requires Viewer startup tracing or GuideDraftOnly and CaptureGuideEvidence.'
+if($GuideCaptureVisibleExcelForTest -and -not $TraceViewerStartupForTest -and (-not $GuideDraftOnly -or (-not $CaptureGuideEvidence -and -not $TraceGuideResourcesForTest))){
+    throw 'Visible-Excel diagnosis requires Viewer startup tracing, or GuideDraftOnly with capture/resource tracing.'
 }
 if($TraceViewerStartupForTest -and ($Phase -ne 'RED' -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest)){
     throw 'Viewer startup tracing requires RED and the published-Viewer fixture with instrumented compilation.'
@@ -627,6 +631,7 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
     try {
     $name="'$Package'!$Macro"
     if($WaitForExcelReadyForTest){Wait-ExcelReadyForTest $Macro}
+    if($TraceGuideViewCallsForTest){Write-GuideResourceMark ('Ready|'+$resourceBoundary)}
     $attemptLimit=1
     $retryLog='readonly-count-retries.jsonl'
     # Only the exact observational getter is eligible; commands retain one call.
@@ -992,6 +997,10 @@ End Function
         if($TraceViewerStartupForTest){
             . (Join-Path $PSScriptRoot 'Slice4beViewerStartup.ps1')
             Install-Slice4beViewerStartupProbe
+        }
+        if($TraceGuideViewCallsForTest){
+            . (Join-Path $PSScriptRoot 'Slice4beGuideViewTrace.ps1')
+            Install-Slice4beGuideViewTrace
         }
         if($CompileEvaluationProbesForTest -or $CheckShippingRecording){
             . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')

@@ -185,6 +185,16 @@ public static class InvSysPairedRestartOwner {
     Check 'GuidePresentation.Restart.NoAutomaticPairOrConclusion' ((RestartControl 'frmActionPaths' 'btnViewActionPath' 'State') -ceq 'True|False' -and (RestartControl 'frmActionPaths' 'txtPathEvaluation' 'Text') -ceq '')
     RestartPair
     Check 'GuidePresentation.Restart.PairedViewRestoresSavedNotUnsavedChoice' ((RestartControl 'frmActionPathView' 'cboActionPathView' 'Selected') -ceq 'Compare both')
+    if($CheckGuideLayoutStabilityForTest){
+        $same=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideLayoutStabilityForTest' @($false))
+        Check 'GuidePresentation.Layout.UnchangedDimensionsDoNotRepeatReads' ($same -ceq '0')
+        $resized=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideLayoutStabilityForTest' @($true))
+        Check 'GuidePresentation.Layout.ChangedDimensionsStillRevalidate' ($resized -match '^\d+$' -and [int]$resized -ge 2)
+        [pscustomobject]@{SameGeometryRefreshes=$same;ChangedGeometryRefreshes=$resized}|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'layout-stability.json')
+        foreach($size in @('Minimum','Default','Larger','Restored')){
+            Check ('GuidePresentation.Layout.ControlsFit.'+$size) ((RestartControl 'frmActionPathView' '' 'Fit' $size) -ceq 'True')
+        }
+    }
     $pair=RestartControl 'frmActionPathView' 'lblActionPathPair' 'Label'
     Check 'GuidePresentation.Restart.ExplicitPairRetainsExactGuideAndObservedRun' ($pair.Contains([string]$guide.ActionPathId) -and $pair.Contains([string]$guide.ContentSha256) -and $pair.Contains([string]$observed.ActionPathId))
     $diagnostic=RestartControl 'frmActionPathView' 'txtActionPathDiagnostic' 'Text'

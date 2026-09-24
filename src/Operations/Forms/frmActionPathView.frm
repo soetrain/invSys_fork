@@ -18,6 +18,7 @@ Option Explicit
 Private mOwner As frmActionPaths
 Private mContext As String, mPathId As String, mBinding As String, mKey As String
 Private mLoading As Boolean, mLayingOut As Boolean, mResizeReady As Boolean
+Private mLayoutWidth As Single, mLayoutHeight As Single
 Private mLayout As cOperationsAnchorManager
 Private WithEvents mMethod As MSForms.ComboBox
 Private WithEvents mRefresh As MSForms.CommandButton
@@ -109,6 +110,7 @@ Private Sub ApplyLayout()
     Me.Controls("lblActionPathHowTo").Move 12, 166, mHowTo.Width, 20
     mDiagnostic.Move IIf(both, 24 + half, 12), 194, IIf(both, half, width), height - 290
     Me.Controls("lblActionPathDiagnostic").Move mDiagnostic.Left, 166, mDiagnostic.Width, 20
+    mLayoutWidth = Me.InsideWidth: mLayoutHeight = Me.InsideHeight
 Done:
     mLayingOut = False
 End Sub
@@ -140,6 +142,8 @@ End Sub
 
 Private Sub UserForm_Layout()
     If mLoading Or mLayingOut Then Exit Sub
+    ' Control updates can queue Layout again without an operator resize.
+    If Me.InsideWidth = mLayoutWidth And Me.InsideHeight = mLayoutHeight Then Exit Sub
     If mBinding <> "" Then RefreshView
     ApplyLayout
 End Sub
