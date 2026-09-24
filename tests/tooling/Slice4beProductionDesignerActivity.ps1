@@ -31,7 +31,7 @@ function Test-ProductionDesignerActivity($Fixture,$Other) {
         if($paired){
             $linked=$first[0].ActivityId -cne '' -and $first[0].ActivityId -ceq $last[0].ActivityId -and $first[0].RecordId -cne $last[0].RecordId
             $severity=switch($Outcome){'REJECTED'{'Warning'} 'DENIED'{'Blocked'} default{'Info'}}
-            $effect=$first[0].DataEffect -ceq 'Unknown' -and $last[0].DataEffect -ceq 'Unchanged' -and $last[0].EventCode -ceq ($Id+'_'+$Outcome) -and $last[0].Severity -ceq $severity -and $last[0].CatalogVersion -eq 12
+            $effect=$first[0].DataEffect -ceq 'Unknown' -and $last[0].DataEffect -ceq 'Unchanged' -and $last[0].EventCode -ceq ($Id+'_'+$Outcome) -and $last[0].Severity -ceq $severity -and $last[0].CatalogVersion -eq 13
         }
         Check ($Case+'.LinkedDistinctRecords') $linked
         Check ($Case+'.LocalOnlyOutcome') $effect

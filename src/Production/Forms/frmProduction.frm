@@ -153,6 +153,7 @@ Private mRecipeOutputRegulations As Collection
 Private mSelectedProcessRequirementIndex As Long
 Private mSelectedProcessOutputIndex As Long
 Private mReusableActionTestInProgress As Boolean
+Private mDesignerActionInProgress As Boolean
 Private mReusableTestSourceId As String
 Private mReusableTestSinkId As String
 Private mReusableTestRecipeId As String
@@ -6278,27 +6279,41 @@ Private Sub AddNumericReusableField(ByVal record As Object, ByVal fieldName As S
     If Trim$(textValue) <> "" And IsNumeric(textValue) Then record(fieldName) = CDbl(textValue)
 End Sub
 
-Private Function SubmitProcessAction(ByVal eventType As String, _
-                                     Optional ByVal payloadJson As String = "") As Boolean
-    Dim report As String
-    Dim quietStarted As Boolean
-
+Private Function SubmitDesignerAction(ByVal processDesigner As Boolean, ByVal eventType As String, _
+                                     Optional ByVal payloadJson As String = "", _
+                                     Optional ByVal facts As cProductionLifecycleFacts = Nothing) As Boolean
+    Dim report As String, designer As String, identity As String, version As String
+    Dim quietStarted As Boolean, completed As Boolean
     On Error GoTo Failed
+    designer = IIf(processDesigner, "Process", "Recipe")
+    If processDesigner Then
+        identity = Trim$(mTxtProcessId.Text): version = Trim$(mTxtProcessVersion.Text)
+    Else
+        identity = Trim$(mTxtReusableRecipeId.Text): version = Trim$(mTxtReusableRecipeVersion.Text)
+    End If
     If Not mOperatorWorkbook Is Nothing Then
         modOperationsPrimitiveBridge.BeginQuietUiForWorkbook mOperatorWorkbook.Name
         quietStarted = True
     End If
-    ShowPersistencePending "Applying Process lifecycle action to warehouse storage..."
-    SubmitProcessAction = modProductionReusableDesigns.SubmitReusableDesignEvent( _
-        eventType, Trim$(mTxtProcessId.Text), Trim$(mTxtProcessVersion.Text), _
-        payloadJson, "Production Process Designer", report)
+    ShowPersistencePending "Applying " & designer & " lifecycle action to warehouse storage..."
+    If Not facts Is Nothing Then
+        If Not DesignerContextIsCurrent() Then Err.Raise 5, , "Context changed. Reopen Production before submitting."
+    End If
+    completed = modProductionReusableDesigns.SubmitReusableDesignEvent( _
+        eventType, identity, version, payloadJson, "Production " & designer & " Designer", report, facts)
     If quietStarted Then modUiQuiet.EndQuietUi
+    quietStarted = False
+    If Not facts Is Nothing Then
+        If Not DesignerContextIsCurrent() Then Err.Raise 5, , "Context changed. Reopen Production before refreshing."
+    End If
     RefreshReusableDesignLists
     ShowStatus report
+    SubmitDesignerAction = completed
+    If completed And Not facts Is Nothing Then facts.OutcomeCode = "CONFIRMED"
     Exit Function
 Failed:
     If quietStarted Then modUiQuiet.EndQuietUi
-    ShowStatus "Process action failed: " & Err.Description
+    ShowStatus designer & " action failed: " & Err.Description
 End Function
 
 Private Sub ClearRecipeDraft(Optional ByVal createIdentity As Boolean = True)
@@ -7211,29 +7226,6 @@ Private Function BuildRecipePayload() As String
     BuildRecipePayload = modProductionJson.BuildJsonArray(records)
 End Function
 
-Private Function SubmitRecipeAction(ByVal eventType As String, _
-                                    Optional ByVal payloadJson As String = "") As Boolean
-    Dim report As String
-    Dim quietStarted As Boolean
-
-    On Error GoTo Failed
-    If Not mOperatorWorkbook Is Nothing Then
-        modOperationsPrimitiveBridge.BeginQuietUiForWorkbook mOperatorWorkbook.Name
-        quietStarted = True
-    End If
-    ShowPersistencePending "Applying Recipe lifecycle action to warehouse storage..."
-    SubmitRecipeAction = modProductionReusableDesigns.SubmitReusableDesignEvent( _
-        eventType, Trim$(mTxtReusableRecipeId.Text), Trim$(mTxtReusableRecipeVersion.Text), _
-        payloadJson, "Production Recipe Designer", report)
-    If quietStarted Then modUiQuiet.EndQuietUi
-    RefreshReusableDesignLists
-    ShowStatus report
-    Exit Function
-Failed:
-    If quietStarted Then modUiQuiet.EndQuietUi
-    ShowStatus "Recipe action failed: " & Err.Description
-End Function
-
 Private Sub SelectReusableAssignmentProcess()
     Dim idx As Long
     Dim records As Collection
@@ -7426,7 +7418,7 @@ Private Function SaveReusableAssignments() As Boolean
         ShowStatus report
         Exit Function
     End If
-    SaveReusableAssignments = SubmitProcessAction("PROCESS_SAVE", BuildProcessPayload())
+    SaveReusableAssignments = SubmitDesignerAction(True, "PROCESS_SAVE", BuildProcessPayload())
     If SaveReusableAssignments Then
         ShowStatus "Acceptable alternatives saved as Process " & sourceId & _
                    " version " & mTxtProcessVersion.Text & "."
@@ -10384,28 +10376,15 @@ Private Sub mBtnProcessValidate_Click()
 End Sub
 
 Private Sub mBtnProcessSave_Click()
-    Dim report As String
-    If Not ValidateProcessDraft(report) Then
-        ShowStatus report
-        Exit Sub
-    End If
-    SubmitProcessAction "PROCESS_SAVE", BuildProcessPayload()
+    DesignerDraftAction True, "SAVE"
 End Sub
 
 Private Sub mBtnProcessRelease_Click()
-    If Not mReusableActionTestInProgress Then
-        If MsgBox("Release this immutable Process version?", vbQuestion Or vbYesNo Or vbDefaultButton2, _
-                  "Process Designer") <> vbYes Then Exit Sub
-    End If
-    SubmitProcessAction "PROCESS_RELEASE"
+    DesignerDraftAction True, "RELEASE"
 End Sub
 
 Private Sub mBtnProcessObsolete_Click()
-    If Not mReusableActionTestInProgress Then
-        If MsgBox("Obsolete this Process version?", vbExclamation Or vbYesNo Or vbDefaultButton2, _
-                  "Process Designer") <> vbYes Then Exit Sub
-    End If
-    SubmitProcessAction "PROCESS_OBSOLETE"
+    DesignerDraftAction True, "OBSOLETE"
 End Sub
 
 Private Sub mBtnProcessClear_Click()
@@ -10426,20 +10405,26 @@ End Function
 Private Sub DesignerDraftAction(ByVal processDesigner As Boolean, ByVal action As String)
     Dim designer As String, activityId As String, notice As String, report As String, outcome As String
     Dim permitted As Boolean, valid As Boolean, errorNumber As Long, errorSource As String, errorText As String
+    Dim facts As cProductionLifecycleFacts, references As String
     On Error GoTo Failed
-    If mLoading Then Exit Sub
+    If mLoading Or mDesignerActionInProgress Then Exit Sub
     report = "Session, warehouse, or captured workbook changed. Reopen Production before editing the draft."
     If Not DesignerContextIsCurrent() Then ShowStatus report: Exit Sub
+    mDesignerActionInProgress = True
     designer = IIf(processDesigner, "Process", "Recipe")
     activityId = modActivity.BeginAction("PRODUCTION_" & UCase$(designer) & "_" & action, mActivityContext, notice)
-    If Not DesignerContextIsCurrent() Then ShowStatus report: Exit Sub
+    If Not DesignerContextIsCurrent() Then GoTo Done
     permitted = modRoleUiAccess.CanCurrentUserPerformCapabilityCached("PROD_POST", report)
     If Not permitted Then permitted = modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", report)
     If Not permitted Then
         outcome = "DENIED": report = "Production permission is required; the draft was not changed."
         GoTo Done
     End If
-    If action = "VALIDATE" Then
+    If action = "SAVE" Or action = "RELEASE" Or action = "OBSOLETE" Then
+        Set facts = New cProductionLifecycleFacts: facts.OutcomeCode = "FAILED"
+        ExecuteDesignerLifecycle processDesigner, action, facts, report
+        outcome = facts.OutcomeCode
+    ElseIf action = "VALIDATE" Then
         If processDesigner Then
             valid = ValidateProcessDraft(report)
         Else
@@ -10455,7 +10440,12 @@ Private Sub DesignerDraftAction(ByVal processDesigner As Boolean, ByVal action A
     End If
 Done:
     On Error GoTo 0
-    If activityId <> "" Then modActivity.FinishAction activityId, outcome, notice
+    references = "[]"
+    If activityId <> "" Then
+        If Not facts Is Nothing Then references = modActivity.DesignsSourceReferences(activityId, facts.EventId, facts.SubmissionState)
+        modActivity.FinishAction activityId, outcome, notice, references
+    End If
+    mDesignerActionInProgress = False
     If notice <> "" Then report = report & " " & notice
     ShowStatus report
     If errorNumber <> 0 Then Err.Raise errorNumber, errorSource, errorText
@@ -10464,6 +10454,34 @@ Failed:
     errorNumber = Err.Number: errorSource = Err.Source: errorText = Err.Description
     outcome = "FAILED": report = "The designer draft action failed. Verify its current state before retrying."
     Resume Done
+End Sub
+
+Private Sub ExecuteDesignerLifecycle(ByVal processDesigner As Boolean, ByVal action As String, _
+                                      ByVal facts As cProductionLifecycleFacts, ByRef report As String)
+    Dim valid As Boolean, payload As String, designer As String, prompt As String, icon As VbMsgBoxStyle
+    designer = IIf(processDesigner, "Process", "Recipe")
+    If action = "SAVE" Or (Not processDesigner And action = "RELEASE") Then
+        If processDesigner Then
+            valid = ValidateProcessDraft(report)
+        Else
+            EnsureRecipeDraftIdentity
+            valid = ValidateRecipeDraft(report, action = "RELEASE")
+        End If
+        If Not valid Then facts.OutcomeCode = "REJECTED": Exit Sub
+    End If
+    If action <> "SAVE" And Not mReusableActionTestInProgress Then
+        prompt = "Release this immutable " & designer & " version?": icon = vbQuestion
+        If action = "OBSOLETE" Then prompt = "Obsolete this " & designer & " version?": icon = vbExclamation
+        If MsgBox(prompt, icon Or vbYesNo Or vbDefaultButton2, designer & " Designer") <> vbYes Then
+            facts.OutcomeCode = "CANCELLED": report = "Design lifecycle action cancelled.": Exit Sub
+        End If
+    End If
+    If Not DesignerContextIsCurrent() Then report = "Context changed. Reopen Production before submitting.": Exit Sub
+    If action = "SAVE" Then
+        If processDesigner Then payload = BuildProcessPayload() Else payload = BuildRecipePayload()
+    End If
+    SubmitDesignerAction processDesigner, UCase$(designer) & "_" & action, payload, facts
+    report = mTxtStatus.Text
 End Sub
 
 Private Sub mBtnProcessWorksheetCreate_Click()
@@ -10586,7 +10604,7 @@ Private Sub mBtnProcessWorksheetRetrieve_Click()
             failureDetails = report
             GoTo NextImport
         End If
-        If SubmitProcessAction("PROCESS_SAVE", CStr(importRecord("Payload"))) Then
+        If SubmitDesignerAction(True, "PROCESS_SAVE", CStr(importRecord("Payload"))) Then
             If modProductionProcessWorksheet.DeleteProcessWorksheetTable( _
                     mOperatorWorkbook, CStr(importRecord("TableName")), deleteReport) Then
                 succeeded = succeeded + 1
@@ -10917,35 +10935,15 @@ Private Sub mBtnRecipeValidate_Click()
 End Sub
 
 Private Sub mBtnRecipeSave_Click()
-    Dim report As String
-    EnsureRecipeDraftIdentity
-    If Not ValidateRecipeDraft(report, False) Then
-        ShowStatus report
-        Exit Sub
-    End If
-    SubmitRecipeAction "RECIPE_SAVE", BuildRecipePayload()
+    DesignerDraftAction False, "SAVE"
 End Sub
 
 Private Sub mBtnRecipeRelease_Click()
-    Dim report As String
-    EnsureRecipeDraftIdentity
-    If Not ValidateRecipeDraft(report, True) Then
-        ShowStatus report
-        Exit Sub
-    End If
-    If Not mReusableActionTestInProgress Then
-        If MsgBox("Release this immutable Recipe version?", vbQuestion Or vbYesNo Or vbDefaultButton2, _
-                  "Recipe Designer") <> vbYes Then Exit Sub
-    End If
-    SubmitRecipeAction "RECIPE_RELEASE"
+    DesignerDraftAction False, "RELEASE"
 End Sub
 
 Private Sub mBtnRecipeObsolete_Click()
-    If Not mReusableActionTestInProgress Then
-        If MsgBox("Obsolete this Recipe version?", vbExclamation Or vbYesNo Or vbDefaultButton2, _
-                  "Recipe Designer") <> vbYes Then Exit Sub
-    End If
-    SubmitRecipeAction "RECIPE_OBSOLETE"
+    DesignerDraftAction False, "OBSOLETE"
 End Sub
 
 Private Sub mBtnRecipeClear_Click()

@@ -71,7 +71,7 @@ and three reviewed images. This closes scoped automated multiline visibility, no
 broader Slice4be acceptance.
 
 The reviewed [Production form census](../../../invSys_docs/0%20plan%20docs/xlam_invSys/invSys-Production-Tracking-Coverage-v1.md)
-accounts for 68 constructed buttons (seven registered tracking IDs, 61 pending),
+accounts for 68 constructed buttons (thirteen registered tracking IDs, 55 pending),
 14 unconstructed legacy buttons and 34 non-button handlers requiring explicit
 reachability/semantic classification. It reconciles all 82 button constructions
 and declarations. This closes a source-accounting gap for that form; it does not
@@ -85,9 +85,29 @@ compiles, cold start, layout8/8+7/7, unchanged static metrics and current-candid
 chain/live-role/Create Warehouse32/48/15 pass. This closes the discovered heading
 defect; human and full-workflow visual acceptance remain open.
 
+The subsequent [Production lifecycle checkpoint](plan022_slice4be_production_lifecycle_results.md)
+registers the six Save Draft/Release/Obsolete handlers in catalog13: focused
+RED139 PASS/155 expected FAIL becomes294/294 on `validation-production-lifecycle`.
+Exact Designs references, pre-write denial/rejection, prior68 definitions and stale
+target/session guards pass. Closed-workbook fixture failure is preserved and
+unaccepted. Native cancellation, uncertain/pending outcomes, tracking-off/failure,
+re-entrancy, original recording/publication, Designs conclusions in both methods
+and visible evidence remain open. No earlier gate automatically accepts this candidate.
+
+Lifecycle candidate smoke86/86 and headless Settings202/202 pass. Full-chain and
+reusable acceptance are open: two chain attempts and the unchanged header
+predecessor each stop with RPC800706BE at inventory projection rebuild (chain5/1,
+live32/1, Create Warehouse15/15). Recovery Excel termination is recorded; settings
+and reports restore. Reusable Production stops before its67 observations. Cursor
+error5 returned, so the new candidate has no accepted native captures. The failure
+cause and possible Group Policy contribution remain unproven.
+The earlier draft controls' original recording/publication/diagnostic regression
+also retains390/390 with delayed normal unassisted closure and restored settings.
+It does not establish the new lifecycle controls' Action Paths or native visibility.
+
 | Workstream | Verified foundation | Required to close |
 |---|---|---|
-| 4be.1 Comprehensive control coverage | Catalog 12 and 68 registered controls; packaged Receiving, Shipping, Boxing, Settings and UOM evidence plus the first six Production draft handlers. Positive Recipe validation uses an actual released Process (244/244); both designer captures are reviewed. | Account for every reachable Operations/Admin action or explicit exclusion. Finish the six draft controls' remaining visible evidence and applicable regressions, then remaining Process/Recipe workflows. Finish shared session/target, inventory-management, remaining role navigation and Admin maintenance coverage through actual callbacks and owner facts. Reconcile carrier authority with D5 before changing it. |
+| 4be.1 Comprehensive control coverage | Catalog13 and74 registered controls; packaged Receiving, Shipping, Boxing, Settings and UOM evidence plus six Production draft and six partially tested lifecycle handlers. Positive Recipe validation uses an actual released Process (244/244); both designer captures are reviewed. Lifecycle focused294/294 protects exact references and context guards. | Account for every reachable Operations/Admin action or explicit exclusion. Finish both Production families' remaining acceptance and the other55 constructed button actions. Complete shared session/target, inventory-management, remaining role navigation and Admin maintenance coverage through actual callbacks and owner facts. Reconcile carrier authority with D5 before changing it. |
 | 4be.2 Settings and profiles | Dedicated Event Tracking surfaces, policies/profiles, personal views and Operations access without Admin. Settings diagnostic candidate: 780 focused behavioral checks, 202 Settings regression checks. | Finish remaining General/lifecycle/navigation observations, preserve restart/isolation and context guards, and close the focused shutdown limitation. Treat Windows-user connection preferences separately from warehouse Config authority. |
 | 4be.3 Comprehensive Events | Published projection, paging/filtering, contributing lines, selected detail and policy-aware reads have recorded tests. Event Detail now has 88/88 focused GREEN and 14 reviewed principal captures, including complete multiline scrolling. | Retain complete family/control coverage as 4be.1 expands. Finish broader candidate gates and human acceptance. Preserve read-only authority and all prior Viewer identities. |
 | 4be.4 Recording and conclusions | Immutable recordings, correlation, interruption and explicit diagnostic owner-outcome mappings have focused evidence. The current comparison attempt's strengthened PolicyChangeClosesIncomplete assertion passes. | Exercise the complete required Operations/Admin coverage, including Production, and complete current-candidate comparison acceptance. No staging or submission may imply saved settings or Domain application. |

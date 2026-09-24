@@ -953,7 +953,9 @@ Public Function QueueDesignEventCurrent(ByVal eventType As String, _
                                         Optional ByVal perfRunId As String = "", _
                                         Optional ByVal migrationSourceId As String = "", _
                                         Optional ByVal eventIdOverride As String = "", _
-                                        Optional ByVal createdAtUtc As Date = 0) As Boolean
+                                        Optional ByVal createdAtUtc As Date = 0, _
+                                        Optional ByRef writeAttemptedOut As Boolean = False) As Boolean
+    writeAttemptedOut = False
     Dim targetInboxWb As Workbook
     Dim resolvedUser As String
     Dim capability As String
@@ -976,27 +978,10 @@ Public Function QueueDesignEventCurrent(ByVal eventType As String, _
     End If
     If Trim$(eventIdOverride) <> "" Then eventIdOut = Trim$(eventIdOverride)
 
-    QueueDesignEventCurrent = QueueEventCore(eventType, _
-                                            target.WarehouseId, _
-                                            target.StationId, _
-                                            resolvedUser, _
-                                            "", _
-                                            0, _
-                                            "", _
-                                            noteVal, _
-                                            payloadJson, _
-                                            migrationSourceId, _
-                                            "", _
-                                            "", _
-                                            createdAtUtc, _
-                                            targetInboxWb, _
-                                            eventIdOut, _
-                                            errorMessage, _
-                                            perfRunId, _
-                                            True, _
-                                            False, _
-                                            designId, _
-                                            designVersion)
+    QueueDesignEventCurrent = QueueEventCore(eventType, target.WarehouseId, target.StationId, resolvedUser, _
+                                            "", 0, "", noteVal, payloadJson, migrationSourceId, "", "", _
+                                            createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId, _
+                                            True, False, designId, designVersion, writeAttemptedOut:=writeAttemptedOut)
 End Function
 
 Public Function BuildPayloadJson(ParamArray items() As Variant) As String

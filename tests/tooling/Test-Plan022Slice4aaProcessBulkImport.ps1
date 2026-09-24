@@ -51,7 +51,7 @@ $checks = @(
     [pscustomobject]@{ Name = "Worksheet.MultiAreaSelection"; Pass =
         $worksheet -match 'FindSelectedProcessWorksheetTables' -and
         $worksheet -match 'selectedRange\.Areas' -and
-        $form -match 'SubmitProcessAction\("PROCESS_SAVE"' },
+        $form -match 'SubmitDesignerAction\(True, "PROCESS_SAVE"' },
     [pscustomobject]@{ Name = "Packaged.PublicOperatorBoundary"; Pass =
         $validator -match 'RunProcessWorksheetBulkImportContractTest' -and
         $validator -match 'TextSafeIds=True' -and

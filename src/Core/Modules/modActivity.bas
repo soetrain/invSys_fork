@@ -141,12 +141,26 @@ End Function
 ' Serialization only: callers supply owner-observed identities and submission facts.
 Public Function InventorySourceReferences(ByVal activityId As String, ByVal eventIds As String, _
                                           ByVal submissionState As String) As String
+    InventorySourceReferences = CapturedSourceReferences(activityId, eventIds, submissionState, False)
+End Function
+
+Public Function DesignsSourceReferences(ByVal activityId As String, ByVal eventId As String, _
+                                        ByVal submissionState As String) As String
+    DesignsSourceReferences = CapturedSourceReferences(activityId, eventId, submissionState, True)
+End Function
+
+Private Function CapturedSourceReferences(ByVal activityId As String, ByVal eventIds As String, _
+                                          ByVal submissionState As String, ByVal designs As Boolean) As String
     Dim target As WarehouseTarget
     On Error GoTo Unavailable
     If mActions Is Nothing Then Exit Function
     If Not mActions.Exists(activityId) Then Exit Function
     Set target = mActions(activityId)("Target")
-    InventorySourceReferences = modActivityReferences.Inventory(target.WarehouseId, eventIds, submissionState)
+    If designs Then
+        CapturedSourceReferences = modActivityReferences.Designs(target.WarehouseId, eventIds, submissionState)
+    Else
+        CapturedSourceReferences = modActivityReferences.Inventory(target.WarehouseId, eventIds, submissionState)
+    End If
 Unavailable:
 End Function
 

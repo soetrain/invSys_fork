@@ -16,8 +16,9 @@ End Function
 Public Function Valid(ByVal warehouseId As String, ByVal controlId As String, _
                       ByVal outcomeCode As String, ByVal references As Collection) As Boolean
     Dim reference As Variant, field As Variant, seen As Object, key As String
-    Dim shipping As Object, outcome As Object, sourceControl As Boolean
+    Dim shipping As Object, outcome As Object, sourceControl As Boolean, sourceKind As String
     On Error GoTo Invalid
+    sourceKind = "Inventory"
     sourceControl = (controlId = "RECEIVING_CONFIRM_WRITES" Or controlId = "DISPOSITION_CONFIRM" Or _
                      controlId = "RECEIVING_WORKSHEET_CONFIRM")
     Set shipping = modShippingActivityCodes.Control(controlId)
@@ -26,8 +27,14 @@ Public Function Valid(ByVal warehouseId As String, ByVal controlId As String, _
         If outcome Is Nothing Then Exit Function
         sourceControl = modShippingActivityCodes.HasInventorySources(controlId)
     End If
+    Set outcome = modProductionLifecycleCodes.Control(controlId)
+    If Not outcome Is Nothing Then
+        Set outcome = modProductionLifecycleCodes.Outcome(controlId, outcomeCode)
+        If outcome Is Nothing Then Exit Function
+        sourceControl = True: sourceKind = "Designs"
+    End If
     If Not sourceControl Or outcomeCode = "REQUESTED" Or outcomeCode = "DENIED" Or _
-       outcomeCode = "REJECTED" Or outcomeCode = "STAGED" Then
+       outcomeCode = "REJECTED" Or outcomeCode = "STAGED" Or (sourceKind = "Designs" And outcomeCode = "CANCELLED") Then
         Valid = (references.Count = 0)
         Exit Function
     End If
@@ -43,7 +50,7 @@ Public Function Valid(ByVal warehouseId As String, ByVal controlId As String, _
             If Not reference.Exists(field) Then Exit Function
             If VarType(reference(field)) <> vbString Then Exit Function
         Next field
-        If reference("WarehouseId") <> warehouseId Or reference("SourceKind") <> "Inventory" Then Exit Function
+        If reference("WarehouseId") <> warehouseId Or reference("SourceKind") <> sourceKind Then Exit Function
         key = reference("EventId")
         If Not ValidIdentity(key) Or seen.Exists(key) Then Exit Function
         seen.Add key, True
@@ -68,6 +75,16 @@ End Function
 
 Public Function Inventory(ByVal warehouseId As String, ByVal eventIds As String, _
                           ByVal submissionState As String) As String
+    Inventory = SourceReferences(warehouseId, "Inventory", eventIds, submissionState)
+End Function
+
+Public Function Designs(ByVal warehouseId As String, ByVal eventId As String, _
+                        ByVal submissionState As String) As String
+    Designs = SourceReferences(warehouseId, "Designs", eventId, submissionState)
+End Function
+
+Private Function SourceReferences(ByVal warehouseId As String, ByVal sourceKind As String, _
+                                  ByVal eventIds As String, ByVal submissionState As String) As String
     Dim references As New Collection, reference As Object, id As Variant
     On Error GoTo Invalid
     If eventIds <> "" Then
@@ -75,13 +92,13 @@ Public Function Inventory(ByVal warehouseId As String, ByVal eventIds As String,
             If Not ValidIdentity(CStr(id)) Then Exit Function
             Set reference = CreateObject("Scripting.Dictionary")
             reference.Add "WarehouseId", warehouseId
-            reference.Add "SourceKind", "Inventory"
+            reference.Add "SourceKind", sourceKind
             reference.Add "EventId", CStr(id)
             reference.Add "SubmissionState", submissionState
             references.Add reference
         Next id
     End If
-    Inventory = Encode(references)
+    SourceReferences = Encode(references)
 Invalid:
 End Function
 

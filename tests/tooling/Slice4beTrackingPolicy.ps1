@@ -194,7 +194,7 @@ function Get-TrackingPolicyVersion($Fixture) {
 function Test-Slice4beTrackingPolicy($Fixture,$Other) {
     $request=Get-TrackingPolicyRequest
     $model=$request|ConvertFrom-Json
-    $loaded=($model.SchemaVersion -eq 1 -and $model.CatalogVersion -eq 12 -and $model.Controls.Count -eq 68)
+    $loaded=($model.SchemaVersion -eq 1 -and $model.CatalogVersion -eq 13 -and $model.Controls.Count -eq 74)
     Check 'TrackingPolicy.EditorLoaded' $loaded
     if(-not $loaded){throw 'Tracking policy editor fixture did not load.'}
     Check 'TrackingPolicy.BuiltInDefaults' (-not $model.ViewerActionPathCaptureEnabled -and $model.AdminViewerEventLoggingEnabled -and $model.DefaultView -ceq 'How-To' -and

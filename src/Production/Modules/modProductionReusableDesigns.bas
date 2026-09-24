@@ -6,7 +6,8 @@ Public Function SubmitReusableDesignEvent(ByVal eventType As String, _
                                           ByVal definitionVersion As String, _
                                           Optional ByVal payloadJson As String = "", _
                                           Optional ByVal noteText As String = "", _
-                                          Optional ByRef report As String = "") As Boolean
+                                          Optional ByRef report As String = "", _
+                                          Optional ByVal facts As cProductionLifecycleFacts = Nothing) As Boolean
     On Error GoTo Failed
 
     Dim eventId As String
@@ -16,21 +17,25 @@ Public Function SubmitReusableDesignEvent(ByVal eventType As String, _
     Dim warehouseId As String
     Dim expectedStatus As String
     Dim actualStatus As String
+    Dim submitted As Boolean, writeAttempted As Boolean
 
     eventType = UCase$(Trim$(eventType))
     definitionId = Trim$(definitionId)
     definitionVersion = Trim$(definitionVersion)
     If definitionId = "" Or definitionVersion = "" Then
         report = "Definition ID and version are required."
+        If Not facts Is Nothing Then facts.OutcomeCode = "REJECTED"
         Exit Function
     End If
     If Not IsReusableLifecycleEvent(eventType) Then
         report = "Unsupported reusable design event: " & eventType
         Exit Function
     End If
-    If Not modRoleEventWriter.QueueDesignEventCurrent( _
+    submitted = modRoleEventWriter.QueueDesignEventCurrent( _
             eventType, definitionId, definitionVersion, payloadJson, noteText, _
-            "", eventId, queueError) Then
+            "", eventId, queueError, writeAttemptedOut:=writeAttempted)
+    If Not facts Is Nothing Then facts.ObserveSubmission eventId, submitted, writeAttempted
+    If Not submitted Then
         report = "Event was not queued: " & queueError
         Exit Function
     End If
@@ -54,6 +59,7 @@ Public Function SubmitReusableDesignEvent(ByVal eventType As String, _
     Exit Function
 
 Failed:
+    If Not facts Is Nothing Then facts.ObserveSubmission eventId, submitted, writeAttempted
     report = "Reusable design action failed: " & Err.Description
 End Function
 

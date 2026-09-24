@@ -70,7 +70,7 @@ function AssertSettingsPair($Fixture,[string[]]$Before,$Case,[string]$Sequence,[
     if($facts){
         $facts=$attempts[0].DataEffect -ceq 'Unknown' -and $outcomes[0].DataEffect -ceq $effect -and
             @($attempts[0].SourceEventRefs).Count -eq 0 -and @($outcomes[0].SourceEventRefs).Count -eq 0 -and
-            $outcomes[0].CatalogVersion -eq 12 -and $outcomes[0].EventCode -ceq ($Case.Id+'_'+$Case.Outcome)
+            $outcomes[0].CatalogVersion -eq 13 -and $outcomes[0].EventCode -ceq ($Case.Id+'_'+$Case.Outcome)
     }
     Check ('SettingsActivity.'+$Label+'.ExplicitOwnerFacts') $facts
     $metadata=$paired

@@ -9,6 +9,7 @@ param(
     [switch]$CheckActivityFoundation,
     [switch]$CheckAdminUomActivity,
     [switch]$CheckProductionDesignerActivity,
+    [switch]$CheckProductionLifecycle,
     [switch]$CheckProductionDesignerPaths,
     [switch]$CaptureProductionDesignerPaths,
     [switch]$CheckSettingsEditorActivity,
@@ -198,6 +199,7 @@ if($CheckSettingsEditorActivity){
     $CheckActivityEvidence=$true
 }
 if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
+if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
 if($CheckProductionDesignerActivity){
     if(-not $CompileEvaluationProbesForTest -or $CheckViewerPublishedRead -or $CheckSettingsEditorActivity -or $CheckAdminUomActivity -or $CheckShippingActivity -or $CheckReceivingActivity -or $CheckTrackingSettings){throw 'Production designer observations require their separate compiled gate.'}
     $CheckActivityEvidence=$true
@@ -1106,6 +1108,10 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
         Install-Slice4beShippingCatalogProbe
         Install-ProductionDesignerProbe
+        if($CheckProductionLifecycle){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
+            Install-ProductionLifecycleProbe
+        }
         if($CheckProductionDesignerPaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
             Install-ProductionPathsProbe
@@ -1362,7 +1368,8 @@ End Function
     if ($CheckActivityFoundation) { Test-Slice4beActivityFoundation $a $b }
     if($CheckProductionDesignerActivity){
         $step='Production designer observations through actual packaged handlers'
-        Test-ProductionDesignerActivity $a $b
+        if($CheckProductionLifecycle){Test-ProductionLifecycle $a $b}
+        else {Test-ProductionDesignerActivity $a $b}
     }
     if ($CheckAdminUomActivity) {
         $step='Admin UOM activity through actual packaged form handlers'
