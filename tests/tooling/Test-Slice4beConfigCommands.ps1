@@ -434,6 +434,8 @@ function Initialize-SettingsCapture {
     Add-Type -ReferencedAssemblies System.Drawing @'
 using System; using System.Drawing; using System.Runtime.InteropServices;
 public static class InvSysSettingsCapture {
+    static readonly System.Collections.Generic.List<string> captionFacts=new System.Collections.Generic.List<string>();
+    public static string[] CaptionFacts() { return captionFacts.ToArray(); }
     public delegate bool WindowCallback(IntPtr hwnd, IntPtr state);
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] public struct Point { public int X,Y; }
@@ -452,6 +454,8 @@ public static class InvSysSettingsCapture {
     [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hwnd);
     [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(Point point);
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(Point point,uint flags);
+    [DllImport("user32.dll")] static extern bool GetCursorPos(out Point point);
     [DllImport("user32.dll")] static extern bool SetCursorPos(int x,int y);
     [DllImport("user32.dll")] static extern uint SendInput(uint count,Input[] inputs,int size);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr window,IntPtr after,int x,int y,int width,int height,uint flags);
@@ -459,6 +463,32 @@ public static class InvSysSettingsCapture {
     [DllImport("user32.dll",EntryPoint="GetWindowLongW")] static extern int GetWindowLong32(IntPtr window,int index);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int length);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, System.Text.StringBuilder text, int length);
+    [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr hwnd,int attribute,out int value,int size);
+    [DllImport("user32.dll")] static extern uint GetGuiResources(IntPtr process,uint flags);
+    static string WindowFact(IntPtr window) {
+        uint process;GetWindowThreadProcessId(window,out process);
+        var kind=new System.Text.StringBuilder(128);GetClassName(window,kind,kind.Capacity);
+        Rect bounds;bool haveBounds=GetWindowRect(window,out bounds);int cloaked;
+        int result=DwmGetWindowAttribute(window,14,out cloaked,4);
+        return window.ToInt64()+"|"+process+"|"+kind+"|Visible="+IsWindowVisible(window)+"|Enabled="+IsWindowEnabled(window)+
+            "|Minimized="+IsIconic(window)+"|Bounds="+haveBounds+","+bounds.Left+","+bounds.Top+","+bounds.Right+","+bounds.Bottom+
+            "|Topmost="+IsTopmost(window)+"|Cloaked="+cloaked+"|DwmResult="+result;
+    }
+    static void RecordCaptionFailure(IntPtr form) {
+        // Identifiers, classes, geometry and counts only: never titles or content.
+        captionFacts.Add("FailureForm|"+WindowFact(form));
+        captionFacts.Add("Foreground|"+WindowFact(GetForegroundWindow()));
+        uint process;GetWindowThreadProcessId(form,out process);int owned=0,visible=0,order=0;
+        EnumWindows((window,state)=>{
+            uint current;GetWindowThreadProcessId(window,out current);
+            if(current==process){owned++;if(IsWindowVisible(window))visible++;}
+            if(IsWindowVisible(window) && order++<8)captionFacts.Add("ZOrder|"+(order-1)+"|"+WindowFact(window));
+            return true;
+        },IntPtr.Zero);
+        captionFacts.Add("OwnedWindows|"+owned+"|Visible="+visible);
+        if(process!=0)using(var owner=System.Diagnostics.Process.GetProcessById((int)process))
+            captionFacts.Add("Resources|Handles="+owner.HandleCount+"|Gdi="+GetGuiResources(owner.Handle,0)+"|User="+GetGuiResources(owner.Handle,1));
+    }
     // Window rectangles are DPI-virtualized; screen pixels and cursor targets
     // must use the same physical coordinate space. Never change process DPI.
     sealed class PhysicalPixels : IDisposable {
@@ -496,6 +526,7 @@ public static class InvSysSettingsCapture {
     }
     public static bool ActivateByCaptionClick(IntPtr form,IntPtr excel) {
         using(var pixels=new PhysicalPixels()) {
+        captionFacts.Clear();captionFacts.Add("BeforeRaise|"+WindowFact(form));
         Rect rect;uint formProcess,excelProcess;
         GetWindowThreadProcessId(form,out formProcess);GetWindowThreadProcessId(excel,out excelProcess);
         if(formProcess==0 || formProcess!=excelProcess || !IsWindowVisible(form) || !IsWindowEnabled(form) || !GetWindowRect(form,out rect))
@@ -507,11 +538,19 @@ public static class InvSysSettingsCapture {
                 if(!SetWindowPos(form,new IntPtr(-1),0,0,0,0,0x13))throw new Exception("Owned capture form could not be raised.");
                 raised=true;
             }
+            captionFacts.Add("AfterRaise|"+WindowFact(form));
             foreach(int offset in new int[] {36,(rect.Right-rect.Left)/3,(rect.Right-rect.Left)/2}) {
                 var point=new Point {X=rect.Left+offset,Y=rect.Top+15};
+                bool onMonitor=MonitorFromPoint(point,0)!=IntPtr.Zero;
+                captionFacts.Add("Candidate|"+point.X+","+point.Y+"|OnMonitor="+onMonitor);
+                if(!onMonitor)continue;
                 var target=WindowFromPoint(point);uint targetProcess;GetWindowThreadProcessId(target,out targetProcess);
+                captionFacts.Add("Hit|"+point.X+","+point.Y+"|"+WindowFact(target)+"|Root="+GetAncestor(target,2).ToInt64());
                 if(targetProcess!=formProcess || GetAncestor(target,2)!=form)continue;
                 if(!SetCursorPos(point.X,point.Y))throw new Exception("Capture focus cursor positioning failed.");
+                Point actualCursor;
+                if(!GetCursorPos(out actualCursor) || actualCursor.X!=point.X || actualCursor.Y!=point.Y)
+                    throw new Exception("Capture focus cursor did not reach the verified owned point.");
                 if(GetAncestor(WindowFromPoint(point),2)!=form)throw new Exception("Capture focus point became covered.");
                 Input[] down={new Input {Mouse=new Mouse {Flags=2}}},up={new Input {Mouse=new Mouse {Flags=4}}};
                 try {
@@ -522,6 +561,7 @@ public static class InvSysSettingsCapture {
                 for(int wait=0;wait<10 && GetAncestor(GetForegroundWindow(),2)!=form;wait++)System.Threading.Thread.Sleep(50);
                 return true;
             }
+            try {RecordCaptionFailure(form);} catch(Exception failure) {captionFacts.Add("DiagnosticUnavailable|"+failure.GetType().Name);}
             throw new Exception("No uncovered owned form caption point is available.");
         } finally {
             if(raised && (!SetWindowPos(form,new IntPtr(-2),0,0,0,0,0x13) || IsTopmost(form)!=wasTopmost))
@@ -615,7 +655,7 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
             # Read-only failure facts: no captions, workbook values or input fallback.
             $bounds=New-Object InvSysSettingsCapture+Rect
             $haveBounds=[InvSysSettingsCapture]::GetWindowRect([IntPtr]$WindowHandle,[ref]$bounds)
-            [pscustomobject]@{Image=$FileName;Attempt=$attempt;Identity=[InvSysSettingsCapture]::ForegroundIdentity([IntPtr]$WindowHandle);BoundsAvailable=$haveBounds;CallerDpiBounds=$bounds;Enabled=[InvSysSettingsCapture]::IsWindowEnabled([IntPtr]$WindowHandle);Minimized=[InvSysSettingsCapture]::IsIconic([IntPtr]$WindowHandle)}|
+            [pscustomobject]@{Image=$FileName;Attempt=$attempt;Identity=[InvSysSettingsCapture]::ForegroundIdentity([IntPtr]$WindowHandle);BoundsAvailable=$haveBounds;CallerDpiBounds=$bounds;Enabled=[InvSysSettingsCapture]::IsWindowEnabled([IntPtr]$WindowHandle);Minimized=[InvSysSettingsCapture]::IsIconic([IntPtr]$WindowHandle);PhysicalCaptionFacts=[InvSysSettingsCapture]::CaptionFacts()}|
                 ConvertTo-Json -Compress -Depth 3|Add-Content (Join-Path $reportRoot 'capture-caption-failure.jsonl')
             throw
         }

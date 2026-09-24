@@ -31,6 +31,14 @@ Multiline and the other requirements below remain open. See
 
 Authority: Architecture v4.11 D18 and Plan 022's six-sub-slice acceptance table.
 The maintained controls catalog remains the control-level acceptance record.
+The subsequent [caption lifecycle investigation](plan022_slice4be_capture_lifecycle_results.md)
+corrects an offscreen-input helper defect and passes eight disposable cases.
+The full diagnostic remains 1632 PASS / one failure: SetWindowPos succeeds but
+does not raise the on-screen, non-cloaked Shipping form; all caption hits belong
+to VS Code, with only 816 GDI objects at failure. Assisted host/Excel cleanup is
+recorded. This narrows the capture failure without closing it. Source review also
+finds a literal-escape decoding risk requiring packaged RED as part of original-value
+and multiline acceptance; no runtime behavior is changed by the diagnosis.
 Existing passing results retain their recorded candidate and scope; they do not
 prove a newer candidate or an untested control family.
 
