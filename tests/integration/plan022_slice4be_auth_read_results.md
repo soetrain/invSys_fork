@@ -5,6 +5,16 @@ before this implementation. D2's credential-authorized station transition and
 D8's cache/processor rules remain binding. This record does not claim full
 Slice 4be or Release 1 acceptance.
 
+Subsequent same-candidate Boxing probe reconciliation passes focused **50/50**
+after **49 PASS / one expected probe FAIL**. The isolated submission route passes
+**794/794** with normal closure. The complete corrected route reaches **1632 PASS /
+one repeated caption-capture exception**, with all seven Auth-recreation checks
+and both corrected read-only assertions passing; 82 checks remain unreached.
+Sixteen images are reviewed. Only disposable Excel termination is required before
+the original host writes its terminal report and restores settings; normal closure
+is not accepted. Packages/tooling remain pinned, with zero Application failures.
+See [probe/capture follow-up](plan022_slice4be_detail_overflow_results.md).
+
 ## Protecting packaged tests
 
 `Test-Slice4beAuthReadOnly.ps1` drives the existing packaged-caller harness and

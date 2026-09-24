@@ -356,8 +356,15 @@ Public Function DetailStateFactForTest(ByVal expectedFamily As String, ByVal che
 Failed:
 End Function
 '@)
+    # Exercise the same generic read-only probe used by the broader Boxing gate
+    # against a real Viewer-opened Detail form, alongside native input checks.
+    . (Join-Path $PSScriptRoot 'Slice4beBoxingPublishedRead.ps1')
+    Install-Slice4beBoxingPublishedReadProbe
+    . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
+    Compile-Slice4beEvaluationProbes
     [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.OpenInventoryViewer')
     Check 'EventDetail.PublishedFixtureSelectedThroughViewer' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SelectDetailFixtureForTest'))
+    Check 'EventDetail.BoxingProbeRecognizesReadOnlyFields' ((Run 'invSys.Operations.xlam' 'modInventoryViewer.BoxingDetailForTest' @('ReadOnly')) -ceq 'True')
     foreach($fact in @('Visible','SourceIdentity','EveryKey','SafeFields','UnknownZone')) {
         Check ('EventDetail.'+$fact) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFixtureFactForTest' @($fact)))
     }

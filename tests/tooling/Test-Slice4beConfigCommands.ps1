@@ -264,7 +264,9 @@ if ($CheckActivityEvidence) {
 }
 if ($CheckActivityFoundation -and -not $CheckActivityEvidence) { throw 'Foundation checks require activity evidence mode.' }
 if ($CheckShippingActivity -and (-not $CheckActivityFoundation -or $CheckReceivingActivity)) { throw 'Shipping activity requires the foundation and a separate run from Receiving.' }
-if ($CheckShippingRecording -and (-not $CheckShippingActivity -or $ShippingSubmissionOnly)) { throw 'Shipping recording requires the complete Shipping activity route.' }
+# Boxing needs the recording probes installed before its forms, including the
+# existing submission-only diagnostic. That route does not claim recording coverage.
+if ($CheckShippingRecording -and (-not $CheckShippingActivity -or ($ShippingSubmissionOnly -and (-not $CheckBoxingActivity -or $CheckOwnerCommandCompletion)))) { throw 'Shipping recording requires the complete Shipping activity route.' }
 if ($ShippingSubmissionOnly -and -not $CheckShippingActivity) { throw 'Shipping submission-only discovery requires Shipping activity mode.' }
 if ($TraceBootstrapForTest -and -not $CheckShippingActivity -and -not $RecordingEvaluationDiagnostic) {
     throw 'Bootstrap tracing requires the isolated Shipping or evaluation diagnostic route.'

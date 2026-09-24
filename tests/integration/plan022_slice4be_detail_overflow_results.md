@@ -1,5 +1,70 @@
 # Plan 022 Slice 4be Event Detail horizontal overflow
 
+## Boxing probe reconciliation, 2026-09-24
+
+The broader D8-A run exposed two stale Make/Unbox `ReadOnlyFields` assertions:
+their shared probe equated read-only cells with `mFields.Locked=True`. Approved
+D18 instead requires non-editable ListBox cells with selection/scrolling permitted.
+The probe now checks the actual ListBox type and `Not mFields.Locked`. No runtime,
+form handler or package changes. Both broader check identities are retained.
+
+The focused Viewer/Detail gate now installs that same Boxing probe before opening
+Detail through the actual Viewer handler. Before reconciliation it records
+**49 PASS / one expected probe FAIL**; afterward **50/50**. All 44 preceding
+checks remain and pass, including native scrolling, typing/value preservation,
+captured context and source bytes; five instrumented compiles are added. This
+is test-contract reconciliation evidence, not a newly introduced product RED.
+
+Frozen candidate: `deploy/validation-auth-read-separated`. RED report:
+`reports/runtime/slice4be-viewer-detail/f9df336decba4a21b69a04c1a7dfccc8/red.json`;
+GREEN report: `reports/runtime/slice4be-viewer-detail/2183d0160a1d4b48a3bb44f342a4ae43/green.json`.
+Both runs close normally and restore settings, with unchanged packages/tooling
+during each run and zero Application events 1000/1001/1002. Four principal GREEN
+images are directly reviewed: default, scrolled, maximized and restored. The
+scrolled image exposes the complete Coverage ending. Receipt:
+`reports/runtime/reconciled-boxing-detail-verification.json`.
+
+The disposable foreground calibration passes hidden-first, visible and
+hidden-restored cases and closes normally (`capture-foreground-calibration/a4402c86bd4546488f857502739b2d21`
+under runtime). This does not resolve the earlier long-run caption failure or
+establish sustained capture access. The existing submission-only route now admits
+Boxing's required probes while still rejecting incomplete standalone recording
+and owner-completion combinations before Excel starts. Default full-route behavior
+is unchanged. This diagnostic routing changes no product contract and needs no
+manufactured product RED.
+
+The isolated route passes **794/794**, including **all 82 previously unreached
+checks**, five instrumented compiles and seven directly reviewed captures. The
+previously failing unavailable-store Make capture succeeds; Make/Unbox both show
+successful owner outcomes with separate tracking notices. Older-policy notices
+and valid disabled-policy behavior are visible. Normal delayed Excel/host closure,
+restored settings, preserved packages/tooling and zero Application events
+1000/1001/1002. Report:
+`reports/runtime/slice4be-shipping-activity/27b3133c979c43c0bfe71eb7d25bf891/diagnostic-submission-boxing-activity-shipping-recording-green.json`;
+receipt: `reports/runtime/boxing-submission-isolation-verification.json`.
+The complete corrected Shipping/Boxing route subsequently reaches **1632 PASS /
+one capture exception**, with 82 previous checks unreached. Both reconciled
+Make/Unbox read-only assertions and all seven D8-A Auth-recreation checks pass.
+The same `boxing.tracking.unavailablestore.make.png` caption failure reproduces:
+the owned form is enabled/non-minimized, but foreground is VS Code and the helper
+finds no uncovered caption point. Sixteen captures are directly reviewed. The
+isolated result does not replace full recording coverage or explain this failure.
+The original controller writes the terminal report after termination of only the
+disposable Excel process; the test host is not terminated. It restores settings,
+preserves all five packages/217 tooling pins and records zero Application events
+1000/1001/1002. Normal shutdown is not accepted. Exactly 1625 prior GREENs are
+retained; the other seven passes are the corrected Auth assertions. Report directory:
+`reports/runtime/slice4be-shipping-activity/c527145cf74349daa227962018d7ae5b`.
+UTC **19:02:03--19:23:22**; receipt:
+`reports/runtime/d8-auth-read-reconciled-regression-boxing-verification.json`.
+The later read-only window inspection occurred after failure cleanup had removed
+Excel's windows, so it does not establish the caption failure's cause. Capture
+diagnostics must observe physical hit-test targets, z-order/cloaking and resources
+at the failure point before another full retry. Do not replay the business action.
+Runtime maintenance metrics remain unchanged; three schemas validate in
+`reports/runtime/reconciled-boxing-detail-static`; all 277 PowerShell files parse.
+Multiline remains open.
+
 ## Approved scrolling implementation, 2026-09-24
 
 The user explicitly approved the D18 read-only ListBox amendment on 2026-09-24;

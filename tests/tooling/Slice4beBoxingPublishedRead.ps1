@@ -25,7 +25,9 @@ Public Function BoxingDetailForTest(ByVal action As String, ByVal caption As Str
                 End If
             Next index
             If action = "Absent" Then BoxingDetailForTest = CStr(Not found)
-        Case "ReadOnly": BoxingDetailForTest = CStr(mFields.Locked)
+        ' Approved D18: ListBox cells are non-editable; unlocking permits only
+        ' selection/scrolling. Native typing/value preservation is tested separately.
+        Case "ReadOnly": BoxingDetailForTest = CStr(TypeName(mFields) = "ListBox" And Not mFields.Locked)
         Case "Close": mClose_Click: BoxingDetailForTest = "CLOSED"
     End Select
 End Function
