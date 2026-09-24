@@ -10368,8 +10368,7 @@ Private Sub mBtnProcessRefresh_Click()
 End Sub
 
 Private Sub mBtnProcessNew_Click()
-    ClearProcessDraft True
-    ShowStatus "New Process draft started."
+    DesignerDraftAction True, "NEW"
 End Sub
 
 Private Sub mBtnProcessLoad_Click()
@@ -10381,9 +10380,7 @@ Private Sub mBtnProcessReuse_Click()
 End Sub
 
 Private Sub mBtnProcessValidate_Click()
-    Dim report As String
-    Call ValidateProcessDraft(report)
-    ShowStatus report
+    DesignerDraftAction True, "VALIDATE"
 End Sub
 
 Private Sub mBtnProcessSave_Click()
@@ -10412,8 +10409,61 @@ Private Sub mBtnProcessObsolete_Click()
 End Sub
 
 Private Sub mBtnProcessClear_Click()
-    ClearProcessDraft True
-    ShowStatus "Process Designer cleared."
+    DesignerDraftAction True, "CLEAR"
+End Sub
+
+Private Function DesignerContextIsCurrent() As Boolean
+    Dim candidate As Workbook
+    On Error GoTo Invalid
+    If mActivityContext = "" Or mActivityContext <> modActivity.CaptureContext() Then Exit Function
+    If mOperatorWorkbook Is Nothing Then Exit Function
+    For Each candidate In Application.Workbooks
+        If candidate Is mOperatorWorkbook Then DesignerContextIsCurrent = True: Exit Function
+    Next candidate
+Invalid:
+End Function
+
+Private Sub DesignerDraftAction(ByVal processDesigner As Boolean, ByVal action As String)
+    Dim designer As String, activityId As String, notice As String, report As String, outcome As String
+    Dim permitted As Boolean, valid As Boolean, errorNumber As Long, errorSource As String, errorText As String
+    On Error GoTo Failed
+    If mLoading Then Exit Sub
+    report = "Session, warehouse, or captured workbook changed. Reopen Production before editing the draft."
+    If Not DesignerContextIsCurrent() Then ShowStatus report: Exit Sub
+    designer = IIf(processDesigner, "Process", "Recipe")
+    activityId = modActivity.BeginAction("PRODUCTION_" & UCase$(designer) & "_" & action, mActivityContext, notice)
+    If Not DesignerContextIsCurrent() Then ShowStatus report: Exit Sub
+    permitted = modRoleUiAccess.CanCurrentUserPerformCapabilityCached("PROD_POST", report)
+    If Not permitted Then permitted = modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", report)
+    If Not permitted Then
+        outcome = "DENIED": report = "Production permission is required; the draft was not changed."
+        GoTo Done
+    End If
+    If action = "VALIDATE" Then
+        If processDesigner Then
+            valid = ValidateProcessDraft(report)
+        Else
+            EnsureRecipeDraftIdentity
+            valid = ValidateRecipeDraft(report, True)
+        End If
+        outcome = IIf(valid, "VALIDATED", "REJECTED")
+    Else
+        If processDesigner Then ClearProcessDraft True Else ClearRecipeDraft True
+        outcome = "STAGED"
+        report = designer & " Designer cleared."
+        If action = "NEW" Then report = "New " & designer & " draft started."
+    End If
+Done:
+    On Error GoTo 0
+    If activityId <> "" Then modActivity.FinishAction activityId, outcome, notice
+    If notice <> "" Then report = report & " " & notice
+    ShowStatus report
+    If errorNumber <> 0 Then Err.Raise errorNumber, errorSource, errorText
+    Exit Sub
+Failed:
+    errorNumber = Err.Number: errorSource = Err.Source: errorText = Err.Description
+    outcome = "FAILED": report = "The designer draft action failed. Verify its current state before retrying."
+    Resume Done
 End Sub
 
 Private Sub mBtnProcessWorksheetCreate_Click()
@@ -10804,8 +10854,7 @@ Private Sub mBtnRecipeRefresh_Click()
 End Sub
 
 Private Sub mBtnRecipeNew_Click()
-    ClearRecipeDraft True
-    ShowStatus "New Recipe draft started."
+    DesignerDraftAction False, "NEW"
 End Sub
 
 Private Sub mBtnRecipeLoad_Click()
@@ -10864,10 +10913,7 @@ Private Sub mBtnRecipeAutoOrder_Click()
 End Sub
 
 Private Sub mBtnRecipeValidate_Click()
-    Dim report As String
-    EnsureRecipeDraftIdentity
-    Call ValidateRecipeDraft(report, True)
-    ShowStatus report
+    DesignerDraftAction False, "VALIDATE"
 End Sub
 
 Private Sub mBtnRecipeSave_Click()
@@ -10903,8 +10949,7 @@ Private Sub mBtnRecipeObsolete_Click()
 End Sub
 
 Private Sub mBtnRecipeClear_Click()
-    ClearRecipeDraft True
-    ShowStatus "Recipe Designer cleared."
+    DesignerDraftAction False, "CLEAR"
 End Sub
 
 Private Sub mCmbConnectionFromNode_Change()

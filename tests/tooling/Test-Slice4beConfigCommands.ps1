@@ -7,6 +7,7 @@ param(
     [switch]$CheckActivityEvidence,
     [switch]$CheckActivityFoundation,
     [switch]$CheckAdminUomActivity,
+    [switch]$CheckProductionDesignerActivity,
     [switch]$CheckSettingsEditorActivity,
     [switch]$CheckSettingsDiagnostics,
     [switch]$SettingsSafetyOnly,
@@ -194,7 +195,11 @@ if($CheckSettingsEditorActivity){
     $CheckActivityEvidence=$true
 }
 if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
-if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead -or $CheckAdminUomActivity -or $CheckSettingsEditorActivity -or $CheckTrackingSettings)){
+if($CheckProductionDesignerActivity){
+    if(-not $CompileEvaluationProbesForTest -or $CheckViewerPublishedRead -or $CheckSettingsEditorActivity -or $CheckAdminUomActivity -or $CheckShippingActivity -or $CheckReceivingActivity -or $CheckTrackingSettings){throw 'Production designer observations require their separate compiled gate.'}
+    $CheckActivityEvidence=$true
+}
+if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead -or $CheckAdminUomActivity -or $CheckSettingsEditorActivity -or $CheckTrackingSettings -or $CheckProductionDesignerActivity)){
     throw 'Instrumented project compilation requires a supported focused gate.'
 }
 if($TraceSettingsOpenForTest -and ($Phase -ne 'RED' -or -not $CheckTrackingSettings)) {
@@ -355,6 +360,12 @@ if($CheckSettingsEditorActivity){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-settings-activity/'+[guid]::NewGuid().ToString('N'))
     . (Join-Path $PSScriptRoot 'Slice4beSettingsEditorProbe.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beSettingsEditorActivity.ps1')
+}
+if($CheckProductionDesignerActivity){
+    $reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-designer/'+[guid]::NewGuid().ToString('N'))
+    Write-Output ('Production designer report: '+$reportRoot)
+    . (Join-Path $PSScriptRoot 'Slice4beProductionDesignerProbe.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beProductionDesignerActivity.ps1')
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $inputDeploy=$deploy
@@ -1030,6 +1041,13 @@ End Function
         Check 'Harness.RecordingProbesInstalledBeforeForms' $noForms
         if(-not $noForms){throw 'A form was already loaded during initial probe setup; not product RED.'}
     }
+    if($CheckProductionDesignerActivity){
+        . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
+        Install-Slice4beShippingCatalogProbe
+        Install-ProductionDesignerProbe
+        . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
+        Compile-Slice4beEvaluationProbes
+    }
     if($CheckSettingsEditorActivity){
         . (Join-Path $PSScriptRoot 'Slice4beViewerPublishedRead.ps1')
         Test-Slice4beViewerPublishedRead $null $null $true
@@ -1268,6 +1286,10 @@ End Function
     $ok=[bool](Run 'invSys.Core.xlam' 'modConfig.LoadConfig' @($a.Warehouse,'S1'))
     Check 'Read.ClosedWorkbookBytesPreserved' ($ok -and $before -eq (Get-FileHash -LiteralPath $a.Config).Hash)
     if ($CheckActivityFoundation) { Test-Slice4beActivityFoundation $a $b }
+    if($CheckProductionDesignerActivity){
+        $step='Production designer observations through actual packaged handlers'
+        Test-ProductionDesignerActivity $a $b
+    }
     if ($CheckAdminUomActivity) {
         $step='Admin UOM activity through actual packaged form handlers'
         Test-AdminUomCatalog
