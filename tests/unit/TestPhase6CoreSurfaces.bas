@@ -1912,17 +1912,14 @@ CleanFail:
     Resume CleanExit
 End Function
 
-Public Function TestLoadAuth_AutoBootstrapsCanonicalWorkbook() As Long
+Public Function TestLoadAuth_RequiresExistingExplicitlyProvisionedAuthority() As Long
     Dim rootPath As String
     Dim configPath As String
     Dim authPath As String
     Dim wbCfg As Workbook
     Dim wbAuth As Workbook
-    Dim openedCfgForVerify As Boolean
-    Dim openedAuthForVerify As Boolean
-    Dim loWh As ListObject
-    Dim loSt As ListObject
     Dim loUsers As ListObject
+    Dim report As String
 
     rootPath = BuildRuntimeTestRoot("phase6_auth_load")
     configPath = rootPath & "\WH63.invSys.Config.xlsb"
@@ -1930,44 +1927,31 @@ Public Function TestLoadAuth_AutoBootstrapsCanonicalWorkbook() As Long
 
     On Error GoTo CleanFail
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
+    Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime("WH63", "S3", rootPath, report)
+    If wbCfg Is Nothing Then GoTo CleanExit
     If Not modConfig.LoadConfig("WH63", "S3") Then GoTo CleanExit
-    If Not modAuth.LoadAuth("WH63") Then GoTo CleanExit
-
+    If modAuth.LoadAuth("WH63") Then GoTo CleanExit
     If Len(Dir$(configPath)) = 0 Then GoTo CleanExit
-    If Len(Dir$(authPath)) = 0 Then GoTo CleanExit
+    If Len(Dir$(authPath)) <> 0 Or modAuth.IsAuthLoaded() Then GoTo CleanExit
 
-    Set wbCfg = FindWorkbookByFullPathForTest(configPath)
-    If wbCfg Is Nothing Then
-        Set wbCfg = Application.Workbooks.Open(configPath)
-        openedCfgForVerify = Not wbCfg Is Nothing
-    End If
-    Set wbAuth = FindWorkbookByFullPathForTest(authPath)
-    If wbAuth Is Nothing Then
-        Set wbAuth = Application.Workbooks.Open(authPath)
-        openedAuthForVerify = Not wbAuth Is Nothing
-    End If
-    If wbCfg Is Nothing Or wbAuth Is Nothing Then GoTo CleanExit
-
-    Set loWh = wbCfg.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
-    Set loSt = wbCfg.Worksheets("StationConfig").ListObjects("tblStationConfig")
+    ' D8-A: creation belongs to explicit provisioning, never ordinary LoadAuth.
+    Set wbAuth = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime("WH63", "svc_processor", rootPath, report)
+    If wbAuth Is Nothing Then GoTo CleanExit
+    If Not modAuth.LoadAuth("WH63") Then GoTo CleanExit
     Set loUsers = wbAuth.Worksheets("Users").ListObjects("tblUsers")
     If modConfig.IsLoaded() _
        And modAuth.IsAuthLoaded() _
        And StrComp(modConfig.GetResolvedWorkbookName(), "WH63.invSys.Config.xlsb", vbTextCompare) = 0 _
        And StrComp(modAuth.GetResolvedAuthWorkbookName(), "WH63.invSys.Auth.xlsb", vbTextCompare) = 0 _
-       And Not loWh Is Nothing _
-       And Not loSt Is Nothing _
        And Not loUsers Is Nothing _
-       And StrComp(CStr(GetTableValue(loWh, 1, "WarehouseId")), "WH63", vbTextCompare) = 0 _
-       And StrComp(CStr(GetTableValue(loSt, 1, "StationId")), "S3", vbTextCompare) = 0 _
        And FindUserRow(loUsers, "svc_processor") > 0 Then
-        TestLoadAuth_AutoBootstrapsCanonicalWorkbook = 1
+        TestLoadAuth_RequiresExistingExplicitlyProvisionedAuthority = 1
     End If
 
 CleanExit:
     modRuntimeWorkbooks.ClearCoreDataRootOverride
-    If openedAuthForVerify Then CloseWorkbookIfOpen wbAuth
-    If openedCfgForVerify Then CloseWorkbookIfOpen wbCfg
+    CloseWorkbookIfOpen wbAuth
+    CloseWorkbookIfOpen wbCfg
     DeleteRuntimeRoot rootPath
     Exit Function
 CleanFail:

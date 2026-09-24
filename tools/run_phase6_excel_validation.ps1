@@ -611,7 +611,7 @@ try {
         "TestPhase6CoreSurfaces.TestAdminConfigEditor_UpdatesCanonicalTypedValueAndProtectsIdentity",
         "TestPhase6CoreSurfaces.TestEnsureStationBootstrap_CreatesLocalConfigAndInbox",
         "TestPhase6CoreSurfaces.TestLoadConfig_QuarantinesContaminatedConfigSheet",
-        "TestPhase6CoreSurfaces.TestLoadAuth_AutoBootstrapsCanonicalWorkbook",
+        "TestPhase6CoreSurfaces.TestLoadAuth_RequiresExistingExplicitlyProvisionedAuthority",
         "TestPhase6CoreSurfaces.TestLoadAuth_BootstrapGrantsCurrentOperatorCapabilities",
         "TestPhase6CoreSurfaces.TestResolveInventoryWorkbookBridge_PrefersCanonicalWorkbookOverOperatorSurface",
         "TestPhase6CoreSurfaces.TestEnsureInventoryManagementSurface_RemovesDomainArtifacts",

@@ -4,6 +4,7 @@ param(
     [string]$DeployRoot = 'deploy/current',
     [ValidateSet('RED','GREEN')][string]$Phase = 'GREEN',
     [switch]$CaptureEvidence,
+    [switch]$CheckAuthReadOnly,
     [switch]$CheckActivityEvidence,
     [switch]$CheckActivityFoundation,
     [switch]$CheckAdminUomActivity,
@@ -203,7 +204,7 @@ if($CheckProductionDesignerActivity){
 }
 if($CheckProductionDesignerPaths -and -not $CheckProductionDesignerActivity){throw 'Production paths require the designer gate.'}
 if($CaptureProductionDesignerPaths -and -not $CheckProductionDesignerPaths){throw 'Production captures require the path gate.'}
-if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead -or $CheckAdminUomActivity -or $CheckSettingsEditorActivity -or $CheckTrackingSettings -or $CheckProductionDesignerActivity)){
+if($CompileEvaluationProbesForTest -and -not ($CheckAuthReadOnly -or $RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead -or $CheckAdminUomActivity -or $CheckSettingsEditorActivity -or $CheckTrackingSettings -or $CheckProductionDesignerActivity)){
     throw 'Instrumented project compilation requires a supported focused gate.'
 }
 if($TraceSettingsOpenForTest -and ($Phase -ne 'RED' -or -not $CheckTrackingSettings)) {
@@ -370,6 +371,12 @@ if($CheckProductionDesignerActivity){
     Write-Output ('Production designer report: '+$reportRoot)
     . (Join-Path $PSScriptRoot 'Slice4beProductionDesignerProbe.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beProductionDesignerActivity.ps1')
+}
+if($CheckAuthReadOnly){
+    if(-not $CompileEvaluationProbesForTest -or $CheckActivityEvidence -or $CheckTrackingSettings -or $CheckViewerPublishedRead -or $CheckViewerEventDetail -or $CheckViewerEventGroups -or $CheckViewerRefreshFailure -or $CheckAdminSettingsClose){throw 'Auth reads require the separate compiled Core/caller gate.'}
+    $reportRoot=Join-Path $repo ('reports/runtime/slice4be-auth-read/'+[guid]::NewGuid().ToString('N'))
+    Write-Output ('Auth read report: '+$reportRoot)
+    . (Join-Path $PSScriptRoot 'Slice4beAuthReadOnly.ps1')
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $inputDeploy=$deploy
@@ -1093,6 +1100,11 @@ End Function
         Check 'Harness.SettingsRegressionProbesInstalledBeforeForms' $noForms
         if(-not $noForms){throw 'Settings regression probes must precede forms; not product RED.'}
     }
+    if($CheckAuthReadOnly){
+        Install-Slice4beAuthReadProbe
+        . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
+        Compile-Slice4beEvaluationProbes
+    }
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     if($GuideCaptureSavedWorkbookForTest){
@@ -1130,6 +1142,10 @@ End Function
         [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     }
     SelectTarget $a
+    if($CheckAuthReadOnly){
+        $step='packaged ordinary Auth reads and explicit provisioning'
+        Test-Slice4beAuthReadOnly $a $b
+    }
     if($CheckAdminSettingsClose) {
         $step='real Admin Settings close and reopen'
         Test-AdminSettingsDefaultClose $a

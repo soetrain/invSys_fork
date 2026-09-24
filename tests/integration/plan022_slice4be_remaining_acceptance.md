@@ -10,7 +10,15 @@ earlier error5 cause remains unproven. Approved single-line scrolling passes
 owner 460/460 and full-chain/live-role/Create Warehouse 32/48/15, with normal
 unassisted closure. Owner visual review rejects seven captures as clean acceptance.
 Production subsequently passes 390/390 with ten reviewed images and normal closure.
-D8-A implementation, multiline and the other requirements below remain open.
+D8-A is subsequently implemented on `validation-auth-read-separated`: focused
+RED 60 PASS / 22 expected FAIL becomes GREEN 82/82; the updated unit passes 1/1
+and full-chain/live-role/Create Warehouse retain 32/48/15. Five package compiles
+pass; only Core/modAuth changes. Broader Shipping/Boxing reaches 1630 PASS / three
+FAIL: all seven Auth-recreation checks pass, but two obsolete lock assertions and
+a caption-capture exception remain; 82 previous checks are unreached. Sixteen
+images are reviewed; host/Excel cleanup is assisted and settings are restored.
+Multiline and the other requirements below remain open. See
+[D8-A evidence](plan022_slice4be_auth_read_results.md).
 
 Authority: Architecture v4.11 D18 and Plan 022's six-sub-slice acceptance table.
 The maintained controls catalog remains the control-level acceptance record.
@@ -47,14 +55,14 @@ Exact Settings receipts and failed attempts are recorded in
 | Settings regression | Corrected Production-caption candidate: 202/202 retains exact prior checks; ten accepted images, immediate unassisted closure, restored settings and unchanged five package/211 test hashes. All captures succeed without elevation. | Preserve; repeat only for a relevant change or new concern. Earlier error5 cause remains unproven. |
 | Owner-command regression | Approved Detail candidate: 460/460 retains every prior identity; normal delayed unassisted closure, restored settings, unchanged packages/tooling, zero Application failures. All 23 images reviewed: 16 clean, four with a taskbar overlay, three incorrect dialog crops. | Preserve behavioral GREEN. Correct the seven limited/rejected captures through focused evidence work; do not infer clean visual acceptance from the automated capture predicates. Earlier 23 accepted images retain their historical scope. |
 | Admin UOM regression | 228/228; 11 accepted images; normal unassisted closure. | Preserve; repeat only for a relevant change or new concern. |
-| Broader Boxing/Shipping | Current candidate retains all 1,707 prior passes and seven pending D8-A failures across 1,714 checks; all 22 captures reviewed and source/package hashes preserved. The completed test host needed teardown cleanup; strict closure verification fails. | Preserve behavioral evidence and resolve clean shutdown without repeating unchanged successful behavior merely to obtain another report. The seven D8-A failures remain failures. |
+| Broader Boxing/Shipping | D8-A candidate: 1630 PASS / three FAIL, 82 previous checks unreached; 1623 preceding GREENs retained and all seven Auth-recreation checks now pass. Two obsolete Locked=True assertions and one owned-caption capture exception fail. Sixteen images reviewed, packages/tooling preserved, settings restored after host/Excel termination. | Reconcile the probe with approved D18, isolate capture failure and obtain terminal broader GREEN/clean shutdown. Historical 1707 PASS / seven Auth FAIL and 22 captures retain their earlier candidate scope. |
 | Comparison | Follow-up attempt: 333 PASS / one harness exception, 96 prior checks unreached; 23 reviewed images, delayed unassisted closure, no Application failures and unchanged hashes. Both preservation failures and all 15 diagnostic-library captures pass. Pending and Partial paired views pass. Earlier failed attempts remain retained. | Isolate the new 0x800AC472 Applied pair-label read before another broad retry. Applied paired views and later expectation checks remain unverified. Earlier candidate's 421/421 and 31 images remain historical evidence. |
 | Curation | Current candidate 77/77; all prior identities, 18 reviewed captures, five instrumented compiles, normal immediate closure, zero Application failures and unchanged hashes. | Preserve; library captures establish layout/direct-curation entry with unavailable recordings, not populated-library acceptance. |
 | Presentation restart | New `validation-guide-layout-normalized` candidate: 40/40 retains all 36 preceding identities and adds four-size bounds/non-overlap checks after the focused unchanged-size layout RED. Zero redundant refreshes, two real-resize validations, five compiles, normal closure, preserved bytes and zero Application failures. Exactly one of 243 compiled components changes. Latest capture-disabled selected-view observation is 6.879 seconds. Earlier add-in-only, overlay and desktop failures remain recorded. | Obtain unobscured current captures and complete applicable regressions. Full responsiveness, native visible acceptance and add-in-only behavior remain unaccepted. See [layout correction](plan022_slice4be_layout_stability_results.md) and [earlier resource evidence](plan022_slice4be_gui_resource_results.md). |
 | Viewer/guide | Approved Detail candidate Viewer: 98/98 retains all 94 historical identities and existing reader-boundary additions; three reviewed images, normal immediate closure, restored settings and unchanged packages. Earlier guide candidate: 351 checks. | Preserve Viewer evidence; verify guide on final applicable candidate with expected 355 checks after reader-boundary additions. |
 | Production completion boundary | `validation-production-quiet-boundary`: packaged 50 PASS/two expected FAIL RED, GREEN 52/52, original audit 14/14, five explicit compiles. Only mProduction differs among 243 compiled components. Both batches enter the primitive bridge with the captured workbook name and restore UI state. | Preserve this existing-contract correction. See [boundary evidence](plan022_production_quiet_boundary_results.md). Broader Production activity coverage remains open. |
 | Reusable Production palette | `validation-production-palette`: focused RED 7 PASS/four expected FAIL; GREEN 11/11 restores the requested 96-point height with all-page bounds/overlap preserved. Broader reusable gate passes, retaining 67 Boolean observations; only EightPaletteRows changes False to True. A separately tested fixture text-format fix passes 12/12 after 4 PASS/eight expected FAIL. | Preserve the accepted predicate and restored behavior; native visible evidence remains open. Desktop preflight still returns error5. The existing reusable harness's cleanup does not prove normal shutdown. See [palette/fixture evidence](plan022_production_palette_results.md) and [preceding baseline failure](plan022_production_quiet_boundary_results.md). |
-| Full chain/live roles/Create Warehouse | Approved Detail candidate: 32/48/15 passes with exact prior identities, normal unassisted closure, zero Application failures, settings/three reports restored and five package/273 tooling hashes preserved. Earlier candidates retain their scope. | Preserve; repeat only after a relevant change or new concern. Earlier crashes remain unexplained. See [current Detail evidence](plan022_slice4be_detail_overflow_results.md). Other workstreams and human acceptance remain open. |
+| Full chain/live roles/Create Warehouse | D8-A candidate: 32/48/15 passes with exact prior identities, normal unassisted closure, zero Application failures, settings/three reports restored and five package/275 tooling hashes preserved. Earlier candidates retain their scope. | Preserve; repeat only after a relevant change or new concern. Earlier crashes remain unexplained. See [D8-A evidence](plan022_slice4be_auth_read_results.md). Other workstreams and human acceptance remain open. |
 
 ## Decisions and execution limits
 
@@ -81,9 +89,12 @@ of the later verified result.
 
 - **D8-A approved 2026-09-24:** ordinary Auth reads must not create/repair
   authority; explicit authorized setup retains provisioning. Architecture,
-  Plan 022 and controls record the effective decision. Focused Core packaged RED,
-  implementation, GREEN and broader acceptance remain pending; the seven
-  existing Shipping failures remain failures.
+  Plan 022 and controls record the effective decision. Focused Core packaged RED
+  is 60 PASS / 22 expected FAIL, followed by 82/82 GREEN; implementation preserves
+  explicit provisioning and the D2 credential-authorized station transition.
+  Current candidate chain/live-role/Create Warehouse pass 32/48/15. All seven
+  Shipping Auth-recreation checks now pass in a partial broader run; two obsolete
+  lock assertions, capture failure and assisted cleanup prevent broader GREEN.
 - **Event Detail approved 2026-09-24:** allow Locked=False only for
   selection/scrolling in a non-editable ListBox. Preserve unrelated user edits;
   fresh native-scroll RED is 43 PASS / one expected movement FAIL, followed by

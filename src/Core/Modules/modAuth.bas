@@ -46,22 +46,19 @@ Public Function LoadAuth(Optional ByVal whId As String = "") As Boolean
     Set preOpen = CaptureOpenWorkbookPathsAuth()
     Set wb = ResolveAuthWorkbook(whId)
     If wb Is Nothing Then
-        AddValidationIssue "ERROR", "AUTH_MISSING", "No open auth workbook found."
+        AddValidationIssue "ERROR", "AUTH_MISSING", "No existing Auth workbook is available for the current warehouse context."
         GoTo FailSoft
     End If
     openedTransient = Not WorkbookWasAlreadyOpenAuth(preOpen, wb)
     If openedTransient Then
         HideWorkbookWindowsAuth wb
-        wb.Saved = True
     End If
     mAuthWorkbook = wb.Name
 
     schemaWasPresent = modRuntimeWorkbooks.RuntimeWorkbookSchemaPresentForRead(wb, "AUTH")
     If Not schemaWasPresent Then
-        If Not EnsureAuthSchema(wb, whId, modConfig.GetString("ProcessorServiceUserId", "svc_processor"), , False) Then
-            AddValidationIssue "ERROR", "AUTH_SELF_HEAL_FAILED", "Failed to create/repair auth tables."
-            GoTo FailSoft
-        End If
+        AddValidationIssue "ERROR", "AUTH_SCHEMA_INVALID", "Auth workbook has missing required tables or columns."
+        GoTo FailSoft
     End If
 
     Set loUsers = FindListObjectByName(wb, "tblUsers")
@@ -96,7 +93,7 @@ FailLoad:
     Resume FailSoft
 
 CleanExit:
-    CloseTransientAuthAfterLoad wb, openedTransient, Not schemaWasPresent
+    CloseTransientAuthAfterLoad wb, openedTransient
 End Function
 
 Public Function EnsureAuthSchema(Optional ByVal targetWb As Workbook = Nothing, _
@@ -1240,44 +1237,28 @@ Private Sub LogDecision(ByVal requestId As String, _
 End Sub
 
 Private Function ResolveAuthWorkbook(ByVal whId As String) As Workbook
-    Dim wb As Workbook
-    Dim bootstrapReport As String
-    Dim bootstrapWh As String
-
-    bootstrapWh = whId
-    If bootstrapWh = "" Then bootstrapWh = modConfig.GetString("WarehouseId", "")
-
-    Set ResolveAuthWorkbook = modRuntimeWorkbooks.OpenOrCreateAuthWorkbookRuntime(bootstrapWh, modConfig.GetString("ProcessorServiceUserId", "svc_processor"), "", bootstrapReport)
-    If Not ResolveAuthWorkbook Is Nothing Then Exit Function
-
-    For Each wb In Application.Workbooks
-        If IsAuthWorkbookName(wb.Name) Then
-            If whId = "" Or InStr(1, wb.Name, whId, vbTextCompare) > 0 Then
-                Set ResolveAuthWorkbook = wb
-                Exit Function
-            End If
-        End If
-    Next wb
-
-    If whId <> "" Then
-        For Each wb In Application.Workbooks
-            If WorkbookHasListObject(wb, "tblUsers") And WorkbookHasListObject(wb, "tblCapabilities") Then
-                If WorkbookHasAuthScope(wb, whId) Then
-                    Set ResolveAuthWorkbook = wb
-                    Exit Function
-                End If
-            End If
-        Next wb
+    Dim target As WarehouseTarget, path As String, root As String, selectedWh As String
+    whId = SafeTrim(whId)
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        selectedWh = SafeTrim(target.WarehouseId)
+        path = SafeTrim(target.AuthPath)
+    Else
+        ' Bootstrap and headless processing bind Core explicitly before a UI
+        ' target exists. Require the matching validated Config; never discover
+        ' authority from an arbitrary open workbook or a default runtime root.
+        root = modRuntimeWorkbooks.GetCoreDataRootOverride()
+        If root = "" Or Not modConfig.IsLoaded() Then Exit Function
+        selectedWh = SafeTrim(modConfig.GetWarehouseId())
+        path = modConfig.NormalizeFolderPathForRuntime(root, True) & selectedWh & ".invSys.Auth.xlsb"
     End If
-
-    For Each wb In Application.Workbooks
-        If WorkbookHasListObject(wb, "tblUsers") And WorkbookHasListObject(wb, "tblCapabilities") Then
-            Set ResolveAuthWorkbook = wb
-            Exit Function
-        End If
-    Next wb
-
-    Set ResolveAuthWorkbook = modRuntimeWorkbooks.OpenFirstRuntimeAuthWorkbook(bootstrapReport)
+    If selectedWh = "" Or path = "" Then Exit Function
+    If whId <> "" And StrComp(whId, selectedWh, vbTextCompare) <> 0 Then Exit Function
+    Set ResolveAuthWorkbook = FindOpenWorkbookByFullNameAuth(path)
+    If Not ResolveAuthWorkbook Is Nothing Then Exit Function
+    If Len(Dir$(path, vbNormal Or vbReadOnly Or vbHidden Or vbSystem)) = 0 Then Exit Function
+    Set ResolveAuthWorkbook = Application.Workbooks.Open(Filename:=path, UpdateLinks:=0, _
+        ReadOnly:=True, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
 End Function
 
 Private Function CaptureOpenWorkbookPathsAuth() As Object
@@ -1313,16 +1294,11 @@ Private Sub HideWorkbookWindowsAuth(ByVal wb As Workbook)
 End Sub
 
 Private Sub CloseTransientAuthAfterLoad(ByVal wb As Workbook, _
-                                        ByVal openedTransient As Boolean, _
-                                        Optional ByVal saveRepairs As Boolean = True)
+                                        ByVal openedTransient As Boolean)
     If Not openedTransient Then Exit Sub
     If wb Is Nothing Then Exit Sub
 
     On Error Resume Next
-    If Not saveRepairs Then wb.Saved = True
-    If saveRepairs And Not wb.ReadOnly Then
-        If wb.Saved = False Then wb.Save
-    End If
     wb.Close SaveChanges:=False
     On Error GoTo 0
 End Sub
@@ -1344,14 +1320,6 @@ Private Function ResolveAuthWorkbookForSetup(ByVal authWorkbookPath As String, _
     If ResolveAuthWorkbookForSetup Is Nothing Then
         Set ResolveAuthWorkbookForSetup = OpenOrCreateWorkbookByPathAuth(resolvedPath, report, openedForSetup)
     End If
-End Function
-
-Private Function IsAuthWorkbookName(ByVal wbName As String) As Boolean
-    Dim n As String
-    n = LCase$(wbName)
-    IsAuthWorkbookName = (n Like "wh*.invsys.auth.xlsb") Or _
-                         (n Like "wh*.invsys.auth.xlsx") Or _
-                         (n Like "wh*.invsys.auth.xlsm")
 End Function
 
 Private Function EnsureAuthTables(ByVal wb As Workbook) As Boolean
@@ -1626,27 +1594,6 @@ Private Function GetColumnIndex(ByVal lo As ListObject, ByVal columnName As Stri
     For i = 1 To lo.ListColumns.Count
         If StrComp(lo.ListColumns(i).Name, columnName, vbTextCompare) = 0 Then
             GetColumnIndex = i
-            Exit Function
-        End If
-    Next i
-End Function
-
-Private Function WorkbookHasListObject(ByVal wb As Workbook, ByVal tableName As String) As Boolean
-    WorkbookHasListObject = Not (FindListObjectByName(wb, tableName) Is Nothing)
-End Function
-
-Private Function WorkbookHasAuthScope(ByVal wb As Workbook, ByVal whId As String) As Boolean
-    Dim lo As ListObject
-    Dim i As Long
-    Dim scopeVal As String
-
-    Set lo = FindListObjectByName(wb, "tblCapabilities")
-    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
-
-    For i = 1 To lo.ListRows.Count
-        scopeVal = SafeTrim(GetCellByColumn(lo, i, "WarehouseId"))
-        If StrComp(scopeVal, whId, vbTextCompare) = 0 Or scopeVal = "*" Then
-            WorkbookHasAuthScope = True
             Exit Function
         End If
     Next i
