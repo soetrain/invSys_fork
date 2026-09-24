@@ -78,12 +78,15 @@ the complete current-candidate chain passes 32/48/15 with normal closure. Earlie
 crashes remain unexplained; preserve all attempts without invalidating the scope
 of the later verified result.
 
-- **Pending D8-A:** ordinary Auth reads must not create/repair authority, while
-  explicit authorized setup retains provisioning. The proposal is not effective
-  until the user approves and Architecture, Plan 022 and controls record it.
-- **Pending Event Detail:** allow Locked=False only for selection/scrolling in a
-  non-editable ListBox. Preserve current Locked=True and unrelated user edits
-  until approval; native-scroll RED already exists.
+- **D8-A approved 2026-09-24:** ordinary Auth reads must not create/repair
+  authority; explicit authorized setup retains provisioning. Architecture,
+  Plan 022 and controls record the effective decision. Focused Core packaged RED,
+  implementation, GREEN and broader acceptance remain pending; the seven
+  existing Shipping failures remain failures.
+- **Event Detail approved 2026-09-24:** allow Locked=False only for
+  selection/scrolling in a non-editable ListBox. Preserve unrelated user edits;
+  native-scroll RED is 42 PASS / one expected movement FAIL. Implementation,
+  GREEN, native visible acceptance and separate multiline readability remain open.
 - **Carrier authority:** Windows-user persistence conflicts with D5's warehouse
   Config authority. No hybrid, implied UOM permission, or silent migration.
 - Guide transfer details are still a proposal. D18 already requires export/import;
