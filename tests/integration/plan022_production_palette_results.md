@@ -96,10 +96,70 @@ Receipt: `reports/runtime/production-palette-chain-verification.json`; the three
 `production-palette-chain-*.md` copies retain the gate details. No full Slice 4be
 acceptance is inferred from this bounded correction.
 
-## Visible acceptance limit
+## Earlier visible acceptance limit
 
 The 02:35:20 UTC read-only desktop preflight still fails GetCursorPos with Win32
 error5 (`reports/runtime/production-palette-desktop-facts.json`). No capture is
 attempted. The restored height and automated EightPaletteRows predicate are not
 substitutes for native visible evidence. Broader Slice 4be coverage and acceptance
 remain open in the [remaining checklist](plan022_slice4be_remaining_acceptance.md).
+
+## Guarded capture and focused shutdown checkpoint
+
+Last verified: 2026-09-24 UTC, 21:55:12--21:56:17. The frozen current candidate
+is `deploy/validation-detail-multiline-labels`; no runtime source or package is
+changed for this checkpoint. The optional CaptureEvidence path uses the existing
+owned-window capture helper after the original launcher/reuse and geometry probes.
+Unsaved instrumentation places eight explicitly labelled display-only rows in the
+existing palette. These are not inventory entities or inputs to business actions.
+
+The predecessor `validation-production-quiet-boundary` records **12 PASS/four
+expected FAIL**, including shutdown, at
+`reports/runtime/production-palette/fb932e5d6c6a4531a3dd5f91f014ec52`.
+The four failures remain the minimum/default/restored height and factory-height
+checks. Current-candidate GREEN is **16/16** at
+`reports/runtime/production-palette/495a545ed9224aacb9749671ea9c618f`.
+All 11 preceding identities are retained; four captured size checks and one
+normal-shutdown check are added. Both runs compile the same four instrumented
+dependencies, restore settings, preserve package bytes and close normally.
+
+All four GREEN images are reviewed: minimum, default, native maximize and
+restored each show eight complete palette rows. The predecessor default image
+also shows eight short fixture rows: the height RED must not be described as
+proof of a clipped eighth row. The requested 96-point height remains independently
+protected. The images also expose a clipped **Committed / Used** Inventory Check
+heading; the maximized frame has a small File Explorer tooltip over the lower
+status area. Neither obstructs the palette. This is scoped palette visibility,
+not whole-form visual or human acceptance; the heading needs a separate focused
+header test before correction.
+
+Normal closure has separate test-first evidence. Before changing cleanup,
+`193f0899a05f478594e9d56bc8e110fe` passes the 11 original checks but fails the new
+shutdown assertion: its exact owned Excel process required termination. The
+isolated fixture cleanup now invokes the actual Production Close handler, checks
+every workbook against its disposable roots, closes fixture workbooks before
+add-ins without saving, releases COM references and allows delayed normal exit.
+`12e1a51df94e426a938844770d238e29` passes **12/12**. Final captured RED and GREEN
+also record no termination request. This correction is restricted to the palette
+probe; broader reusable and other launcher cleanup claims remain unchanged.
+
+Earlier attempts remain preserved: `ee7330aa1cf941c480ae3f0cddc337fc` has six PASS,
+four expected height failures and one error5 capture failure, with the final
+launcher check unreached; `a58e5861e1cb4dee8dcc742766d368c4` passes 11 checks but
+does not prove normal closure. Neither is relabelled as successful capture.
+Cursor access later returned without policy edits. Read-only selected policy
+values do not establish the error5 cause; local machine inactivity is zero,
+selected RDP limits are absent and the screen-saver activation preference alone
+does not establish locking behavior or the RDP client's configuration.
+
+The final captured interval has zero Application failure events. Frozen candidate
+hashes and unrelated user documents match their earlier pins. Private verification
+and reviewed image hashes: `reports/runtime/production-palette-visible-verification.json`.
+Static maintenance is regenerated at `reports/runtime/production-palette-visible-static`:
+251 components, 6050 procedures, 133033 lines, nine literal/45 unresolved dynamic
+calls, 191 duplicate groups and all 28 size limits are unchanged. Three schemas
+and all 279 PowerShell parses pass; the matching `-verification.json` records them.
+The preceding five-package build, full-chain 32/32, live-role 48/48,
+Create Warehouse 15/15 and Viewer 98/98 retain their exact scope in
+[multiline evidence](plan022_slice4be_multiline_results.md). The smoke gate's 86/86
+behavior is preserved, but its earlier unassisted-shutdown claim is corrected there.

@@ -139,9 +139,14 @@ failures. Final report: `slice4be-viewer-published-read/40fe65ef603e48fcba2bba29
 receipt `reports/runtime/detail-multiline-viewer-visible-verification.json`.
 
 Packaged XLAM smoke passes **86/86**, retaining the exact preceding 86 check
-identities, UTC21:38:45--21:39:06. Excel closes normally; local settings and the
+identities, UTC21:38:45--21:39:06. Excel is closed; local settings and the
 tracked report are restored, package hashes are unchanged and Application
 failures are zero. Receipt: `reports/runtime/detail-multiline-packaged-verification.json`.
+Subsequent cleanup-source review corrects that receipt's `NormalClosure` claim:
+the smoke helper can terminate its owned Excel process after a one-second wait,
+and this run did not record whether that branch executed. Unassisted smoke
+shutdown is therefore unproven. The separate focused, Viewer and full-chain
+closure evidence is unaffected; their controllers have no automatic termination.
 
 Current-candidate Release1 chain passes **32/32**, live-role **48/48**, and
 Create Warehouse **15/15**, retaining every previous identity. UTC21:16:16--21:21:48,

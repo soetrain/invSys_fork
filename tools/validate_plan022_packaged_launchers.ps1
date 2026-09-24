@@ -9,7 +9,8 @@ param(
     [string]$WorkbookState = "NoEligible",
     [switch]$ProductionRunOnly,
     [switch]$ProductionEditExportOnly,
-    [switch]$ProductionPaletteProbe
+    [switch]$ProductionPaletteProbe,
+    [switch]$ProductionPaletteCapture
 )
 
 Set-StrictMode -Version Latest
@@ -501,6 +502,9 @@ if ($ProductionRunOnly -and $ProductionEditExportOnly) {
 }
 if ($ProductionPaletteProbe -and ($WorkbookState -ne 'NoEligible' -or $CallbackFilter -ne 'Production')) {
     throw 'ProductionPaletteProbe requires the isolated NoEligible Production launcher gate.'
+}
+if ($ProductionPaletteCapture -and -not $ProductionPaletteProbe) {
+    throw 'ProductionPaletteCapture requires ProductionPaletteProbe.'
 }
 $packageNames = @(
     "invSys.Core.xlam",
@@ -1032,6 +1036,9 @@ try {
                 $observedText += " || PRODUCTION_RUN_LIST_LAYOUT=" + $productionRunListLayoutReport
                 if ($ProductionPaletteProbe) {
                     Add-ProductionPaletteEvidence -Report $productionRunListLayoutReport -Rows $evidence -OutputPath $outputPath
+                    if ($ProductionPaletteCapture) {
+                        Invoke-ProductionPaletteCapture -Excel $excel -Rows $evidence -OutputPath $outputPath -RepoRoot $repo
+                    }
                 }
                 if ($WorkbookState -eq "ProductionReusable") {
                     [IO.File]::WriteAllText($progressPath, "invoke Production EA whole-unit handler")
@@ -1593,6 +1600,11 @@ finally {
     $reportPath = Join-Path $outputPath $reportFile
     [IO.File]::WriteAllLines($reportPath, $reportLines)
 
+    $paletteBooksClosed=$false
+    if ($ProductionPaletteProbe -and $null -ne $excel) {
+        try { $paletteBooksClosed=Close-ProductionPaletteFixture -Excel $excel -RuntimeRoot $runtimeRoot -PackageRoot $deployPath }
+        catch { $paletteBooksClosed=$false }
+    }
     foreach ($wb in $opened) {
         try { $wb.Close($false) } catch {}
         Release-ComObject $wb
@@ -1601,12 +1613,26 @@ finally {
         try { $excel.Quit() } catch {}
         Release-ComObject $excel
     }
+    $cleanupTerminationRequested=$false
+    if ($ProductionPaletteProbe) {
+        $excel=$null;$packages.Clear();$opened.Clear()
+        $configWb=$null;$authWb=$null;$packageWb=$null;$wb=$null
+        [GC]::Collect();[GC]::WaitForPendingFinalizers();[GC]::Collect()
+    }
     if ($excelProcessId -gt 0) {
         Start-Sleep -Milliseconds 500
         $ownedExcelProcess = Get-Process -Id $excelProcessId -ErrorAction SilentlyContinue
+        if ($ProductionPaletteProbe -and $null -ne $ownedExcelProcess -and $ownedExcelProcess.ProcessName -eq 'EXCEL') {
+            if ($ownedExcelProcess.WaitForExit(30000)) { $ownedExcelProcess=$null }
+        }
         if ($null -ne $ownedExcelProcess -and $ownedExcelProcess.ProcessName -eq "EXCEL") {
+            $cleanupTerminationRequested=$true
             Stop-Process -Id $excelProcessId -Force
         }
+    }
+    if ($ProductionPaletteProbe) {
+        [pscustomobject]@{FixtureClosedBeforeQuit=$paletteBooksClosed;TerminationRequested=$cleanupTerminationRequested;NormalExitObserved=($paletteBooksClosed -and -not $cleanupTerminationRequested -and $excelProcessId -gt 0)}|
+            ConvertTo-Json|Set-Content (Join-Path $outputPath 'palette-cleanup-observation.json')
     }
 
     $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())

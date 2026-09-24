@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-production-quiet-boundary',
-      [ValidateSet('RED','GREEN')][string]$Phase='GREEN')
+      [ValidateSet('RED','GREEN')][string]$Phase='GREEN',[switch]$CaptureEvidence)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before the isolated palette gate.'}
@@ -18,14 +18,21 @@ foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Des
 $started=[DateTimeOffset]::UtcNow.ToString('o');$result=1
 Write-Output ('Palette '+$Phase+': '+$root)
 try {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools/validate_plan022_packaged_launchers.ps1') -RepoRoot $repo -DeployRoot $packages.Substring($repo.Length+1) -OutputDirectory $root.Substring($repo.Length+1) -CallbackFilter Production -WorkbookState NoEligible -ProductionPaletteProbe *> (Join-Path $root 'worker.log')
+    $captureArguments=@()
+    if($CaptureEvidence){$captureArguments+= '-ProductionPaletteCapture'}
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools/validate_plan022_packaged_launchers.ps1') -RepoRoot $repo -DeployRoot $packages.Substring($repo.Length+1) -OutputDirectory $root.Substring($repo.Length+1) -CallbackFilter Production -WorkbookState NoEligible -ProductionPaletteProbe @captureArguments *> (Join-Path $root 'worker.log')
     $result=$LASTEXITCODE
 } finally {
     Wait-RecordingCleanup -Creator $null -Worker $null
     $restored=Restore-InvSysTestSettingsSnapshot $settings
     $preserved=@($pins|Where-Object {(Get-FileHash -LiteralPath $_.File).Hash -cne $_.Hash}).Count -eq 0
-    [pscustomobject]@{Phase=$Phase;ExitCode=$result;StartUTC=$started;EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExcelClosed=$true;SettingsRestored=$restored;PackagesPreserved=$preserved;NormalUnassistedClosureProven=$false;CleanupScope='Existing launcher harness may terminate its owned process after Quit.'}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
+    $cleanup=Get-Content (Join-Path $root 'palette-cleanup-observation.json') -Raw|ConvertFrom-Json
+    $normal=$cleanup.NormalExitObserved -and -not $cleanup.TerminationRequested
+    [pscustomobject]@{Check='Production.Palette.NormalUnassistedExit';Passed=$normal}|ConvertTo-Json|Set-Content (Join-Path $root 'shutdown-check.json')
+    if(-not $normal){$result=1}
+    [pscustomobject]@{Phase=$Phase;ExitCode=$result;StartUTC=$started;EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExcelClosed=$true;SettingsRestored=$restored;PackagesPreserved=$preserved;NormalUnassistedClosureProven=$normal}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
     if(-not $restored -or -not $preserved){throw 'Palette gate preservation failed.'}
 }
+Write-Output ('Production.Palette.NormalUnassistedExit: '+$(if($normal){'PASS'}else{'FAIL'}))
 Write-Output ('Palette terminal: '+$result)
 exit $result

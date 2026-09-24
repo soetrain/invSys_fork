@@ -4,6 +4,38 @@ function Install-ProductionPaletteProbe {
     param($Excel,[hashtable]$Packages,[string]$PackageRoot)
     $form=$Packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmProduction').CodeModule
     $form.AddFromString(@'
+Public Sub TestPaletteCloseForTest()
+    mBtnClose_Click
+End Sub
+Public Function TestPaletteVisibleForTest(ByVal size As String) As String
+    Dim previousLoading As Boolean, row As Long, geometry As String
+    previousLoading = mLoading
+    On Error GoTo Failed
+    mLoading = True
+    Select Case size
+        Case "Minimum", "Default", "Restored"
+            geometry = TestLayoutGeometryReportForSize(PRODUCTION_DEFAULT_WIDTH, PRODUCTION_DEFAULT_HEIGHT, 3)
+        Case "NativeMaximize"
+            geometry = TestCurrentLayoutGeometryReport(3)
+        Case Else: Err.Raise 5, , "Unknown palette capture size."
+    End Select
+    mPages.Value = 3: mPages.Pages(3).ScrollTop = 0
+    ' Display-only calibration rows, never inventory entities or workflow input.
+    mLstRunPalette.Clear
+    For row = 1 To 8
+        mLstRunPalette.AddItem ""
+        mLstRunPalette.List(row - 1, 2) = "Visible palette row " & CStr(row)
+        mLstRunPalette.List(row - 1, 4) = "Display-only fixture"
+    Next row
+    mLstRunPalette.ListIndex = -1: mLstRunPalette.TopIndex = 0
+    TestPaletteVisibleForTest = "Rows=" & CStr(mLstRunPalette.ListCount) & _
+        "|TopIndex=" & CStr(mLstRunPalette.TopIndex) & "|Geometry=" & CStr(Left$(geometry, 3) = "OK|")
+    mLoading = previousLoading
+    Exit Function
+Failed:
+    mLoading = previousLoading
+    Err.Raise Err.Number, , Err.Description
+End Function
 Private Function TestPaletteMeasurements() As String
     Dim originalWidth As Double, originalHeight As Double
     Dim dimensions As Variant, names As Variant, i As Long
@@ -33,6 +65,26 @@ Private Function TestPaletteMeasurements() As String
     TestPaletteMeasurements = result
 End Function
 '@)
+    $module=$Packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('mProduction').CodeModule
+    $module.AddFromString(@'
+Public Function PaletteVisibleForTest(ByVal size As String) As String
+    If Not frmProduction.Visible Then Err.Raise 5, , "The launcher-owned Production form is not visible."
+    PaletteVisibleForTest = frmProduction.TestPaletteVisibleForTest(size)
+End Function
+Public Function PaletteCaptionForTest() As String
+    If Not frmProduction.Visible Then Err.Raise 5, , "The launcher-owned Production form is not visible."
+    PaletteCaptionForTest = frmProduction.Caption
+End Function
+Public Sub ClosePaletteForTest()
+    Dim instance As Object
+    For Each instance In VBA.UserForms
+        If TypeName(instance) = "frmProduction" Then
+            instance.TestPaletteCloseForTest
+            Exit Sub
+        End If
+    Next instance
+End Sub
+'@)
     $name='TestRunListResponsiveLayoutReportForSize'
     $start=$form.ProcStartLine($name,0);$count=$form.ProcCountLines($name,0)
     $body=$form.Lines($start,$count)
@@ -57,6 +109,61 @@ End Function
             Write-Output ('PALETTE_PROBE_COMPILE_PASS '+$name)
         }
     } finally {$Excel.VBE.MainWindow.Visible=$visible}
+}
+
+function Close-ProductionPaletteFixture {
+    param($Excel,[string]$RuntimeRoot,[string]$PackageRoot)
+    [void](Run-WorkbookMacro -Excel $Excel -WorkbookName 'invSys.Operations.xlam' -MacroName 'mProduction.ClosePaletteForTest')
+    $books=@($Excel.Workbooks)
+    foreach($book in $books){
+        $path=[IO.Path]::GetFullPath([string]$book.FullName)
+        $fixture=$path.StartsWith([IO.Path]::GetFullPath($RuntimeRoot).TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)
+        $package=[bool]$book.IsAddin -and $path.StartsWith([IO.Path]::GetFullPath($PackageRoot).TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)
+        if(-not ($fixture -or $package)){throw 'Palette cleanup found a workbook outside its isolated roots.'}
+    }
+    $Excel.EnableEvents=$false;$Excel.DisplayAlerts=$false
+    foreach($book in @($books|Sort-Object {[bool]$_.IsAddin})){$book.Close($false)}
+    $empty=[int]$Excel.Workbooks.Count -eq 0
+    foreach($book in $books){[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($book)}
+    return $empty
+}
+
+function Invoke-ProductionPaletteCapture {
+    param($Excel,$Rows,[string]$OutputPath,[string]$RepoRoot)
+    # Reuse the calibrated ownership, physical-pixel and foreground checks.
+    $reportRoot=$OutputPath
+    $GuideCaptureVisibleExcelForTest=$false;$GuideCaptureSavedWorkbookForTest=$false;$TraceGuideResourcesForTest=$false
+    $tokens=$null;$parseErrors=$null
+    $tree=[Management.Automation.Language.Parser]::ParseFile((Join-Path $RepoRoot 'tests/tooling/Test-Slice4beConfigCommands.ps1'),[ref]$tokens,[ref]$parseErrors)
+    if($parseErrors.Count){throw 'Capture helper source does not parse.'}
+    foreach($name in @('Initialize-SettingsCapture','CaptureFormEvidence','CaptureOwnedFormEvidence')){
+        $definition=$tree.Find({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq $name},$true)
+        if($null -eq $definition){throw 'Calibrated capture helper is missing.'}
+        . ([scriptblock]::Create($definition.Extent.Text))
+    }
+    Initialize-SettingsCapture
+    if(-not ('ProductionPaletteNative' -as [type])){
+        Add-Type @'
+using System;using System.Runtime.InteropServices;
+public static class ProductionPaletteNative {
+ [DllImport("user32.dll")]public static extern bool ShowWindow(IntPtr window,int command);
+ [DllImport("user32.dll")]public static extern bool IsZoomed(IntPtr window);
+}
+'@
+    }
+    $title=[string](Run-WorkbookMacro -Excel $Excel -WorkbookName 'invSys.Operations.xlam' -MacroName 'mProduction.PaletteCaptionForTest')
+    $window=[InvSysSettingsCapture]::OwnedVisibleForm($title,[IntPtr]$Excel.Hwnd)
+    if($window -eq [IntPtr]::Zero){throw 'Unique launcher-owned palette form is unavailable.'}
+    foreach($size in @('Minimum','Default','NativeMaximize','Restored')){
+        if($size -eq 'NativeMaximize'){[void][ProductionPaletteNative]::ShowWindow($window,3)}
+        elseif($size -eq 'Restored'){[void][ProductionPaletteNative]::ShowWindow($window,9)}
+        $report=[string](Run-WorkbookMacro -Excel $Excel -WorkbookName 'invSys.Operations.xlam' -MacroName 'mProduction.PaletteVisibleForTest' -Arguments @($size))
+        $passed=$report -ceq 'Rows=8|TopIndex=0|Geometry=True'
+        if($size -eq 'NativeMaximize'){$passed=$passed -and [ProductionPaletteNative]::IsZoomed($window)}
+        if($size -eq 'Restored'){$passed=$passed -and -not [ProductionPaletteNative]::IsZoomed($window)}
+        CaptureOwnedFormEvidence $title ('production-palette-'+$size.ToLowerInvariant()+'.png') $window.ToInt64()
+        Add-Evidence -Rows $Rows -Callback ('Production.Palette.Visible.'+$size) -Expected 'The real launcher form contains eight display-only rows with valid geometry; complete row visibility requires image review.' -Passed $passed -Observed $report
+    }
 }
 
 function Add-ProductionPaletteEvidence {
