@@ -8,6 +8,13 @@ The maintained controls catalog remains the control-level acceptance record.
 Existing passing results retain their recorded candidate and scope; they do not
 prove a newer candidate or an untested control family.
 
+The reviewed [Production form census](../../../invSys_docs/0%20plan%20docs/xlam_invSys/invSys-Production-Tracking-Coverage-v1.md)
+accounts for 68 constructed buttons (seven registered tracking IDs, 61 pending),
+14 unconstructed legacy buttons and 34 non-button handlers requiring explicit
+reachability/semantic classification. It reconciles all 82 button constructions
+and declarations. This closes a source-accounting gap for that form; it does not
+implement pending tracking or establish complete Operations/Admin coverage.
+
 | Workstream | Verified foundation | Required to close |
 |---|---|---|
 | 4be.1 Comprehensive control coverage | Catalog 12 and 68 registered controls; packaged Receiving, Shipping, Boxing, Settings and UOM evidence plus the first six Production draft handlers. Positive Recipe validation uses an actual released Process (244/244); both designer captures are reviewed. | Account for every reachable Operations/Admin action or explicit exclusion. Finish the six draft controls' remaining visible evidence and applicable regressions, then remaining Process/Recipe workflows. Finish shared session/target, inventory-management, remaining role navigation and Admin maintenance coverage through actual callbacks and owner facts. Reconcile carrier authority with D5 before changing it. |
