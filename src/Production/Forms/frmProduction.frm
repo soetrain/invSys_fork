@@ -2033,10 +2033,10 @@ Private Function AddList(ByVal parent As Object, ByVal name As String, ByVal lef
         .Left = leftVal
         .Top = topVal
         .Width = widthVal
+        .IntegralHeight = False
         .Height = heightVal
         .ColumnCount = columns
         .ColumnWidths = widths
-        .IntegralHeight = False
     End With
 End Function
 

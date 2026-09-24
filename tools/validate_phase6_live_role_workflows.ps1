@@ -792,6 +792,8 @@ function New-AuthWorkbook {
     $loUsers = Add-Table -Worksheet $wsUsers -TableName "tblUsers" -Headers @(
         "UserId", "DisplayName", "PinHash", "Status", "ValidFrom", "ValidTo"
     ) -Rows @()
+    # Keep generated fixture hashes opaque across row insertion and save/reopen.
+    $loUsers.ListColumns.Item('PinHash').Range.EntireColumn.NumberFormat = '@'
     Clear-ListObjectRows $loUsers
     foreach ($userId in $resolvedUserIds) {
         Add-ListObjectRow -ListObject $loUsers -Values @{

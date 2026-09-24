@@ -8,7 +8,8 @@ param(
     [ValidateSet("NoEligible", "ConfigActive", "SavedEligible", "UnrelatedActive", "CapturedClosed", "ReceivingDurability", "ReceivingFormClosed", "ShippingLayout", "ProductionReusable")]
     [string]$WorkbookState = "NoEligible",
     [switch]$ProductionRunOnly,
-    [switch]$ProductionEditExportOnly
+    [switch]$ProductionEditExportOnly,
+    [switch]$ProductionPaletteProbe
 )
 
 Set-StrictMode -Version Latest
@@ -498,6 +499,9 @@ if ($ProductionEditExportOnly -and
 if ($ProductionRunOnly -and $ProductionEditExportOnly) {
     throw "ProductionRunOnly and ProductionEditExportOnly are mutually exclusive."
 }
+if ($ProductionPaletteProbe -and ($WorkbookState -ne 'NoEligible' -or $CallbackFilter -ne 'Production')) {
+    throw 'ProductionPaletteProbe requires the isolated NoEligible Production launcher gate.'
+}
 $packageNames = @(
     "invSys.Core.xlam",
     "invSys.Inventory.Domain.xlam",
@@ -560,6 +564,10 @@ try {
         $opened.Add($packageWb) | Out-Null
         $packages[$packageName] = $packageWb
     }
+    if ($ProductionPaletteProbe) {
+        . (Join-Path $repo 'tests/tooling/ProductionPaletteProbe.ps1')
+        Install-ProductionPaletteProbe -Excel $excel -Packages $packages -PackageRoot $deployPath
+    }
 
     $coreName = [string]$packages["invSys.Core.xlam"].Name
     $operationsName = [string]$packages["invSys.Operations.xlam"].Name
@@ -597,6 +605,11 @@ try {
 
     $currentStep = "validate signed-in fixture before callbacks"
     if (-not $signInResult.StartsWith('OK|')) {
+        $safeStatus = 'UNCLASSIFIED'
+        if ($signInResult -match '^FAIL\|(-?\d+)$') { $safeStatus = $Matches[1] }
+        elseif ($signInResult -match '^FAIL\|NO_TARGET\|') { $safeStatus = 'NO_TARGET' }
+        elseif ($signInResult -match '^FAIL\|ERROR\|') { $safeStatus = 'ERROR' }
+        $setupEvidence.Add('SignInFailureStatus=' + $safeStatus) | Out-Null
         throw "Fixture sign-in failed before any packaged workflow callback."
     }
 
@@ -1017,6 +1030,9 @@ try {
                     $productionRunListLayoutReport -match '(?:^|\|)GeometryHealthy=True(?:\||$)'
                 $workflowControlPassed = $workflowControlPassed -and $productionRunListLayoutPassed
                 $observedText += " || PRODUCTION_RUN_LIST_LAYOUT=" + $productionRunListLayoutReport
+                if ($ProductionPaletteProbe) {
+                    Add-ProductionPaletteEvidence -Report $productionRunListLayoutReport -Rows $evidence -OutputPath $outputPath
+                }
                 if ($WorkbookState -eq "ProductionReusable") {
                     [IO.File]::WriteAllText($progressPath, "invoke Production EA whole-unit handler")
                     $productionEaWholeUnitReport = [string](Run-WorkbookMacro -Excel $excel `

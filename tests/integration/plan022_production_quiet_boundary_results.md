@@ -94,6 +94,9 @@ default/minimum, expanded and restored sizes and protect its declared height and
 non-overlap. A source-only hypothesis is `frmProduction.AddList` assigning Height
 before disabling IntegralHeight, allowing MSForms to round the requested height.
 That cause is **not confirmed** and no palette implementation change is included.
+The subsequent [focused palette correction](plan022_production_palette_results.md)
+confirms setup-order rounding, restores the declared height and records the
+broader reusable GREEN on its own candidate; the preceding failed attempts remain.
 
 All 299 original runtime pins remain accounted for: only the prior Action Path
 layout guard and this mProduction correction differ. All three five-package sets
