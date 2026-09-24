@@ -83,3 +83,14 @@ of the later verified result.
   not product RED. Require a changed precondition, fix or new evidence before retry.
 - Revalidate approval, desktop/process state and the candidate before dependent
   work. Do not interpret automatic continuation as architecture approval.
+
+Latest desktop checkpoint (03:05:30 UTC, 2026-09-24): cursor access succeeds and
+the blank-form capture calibration passes all three cases without elevation.
+The current palette candidate's presentation retry stops earlier at Create guide
+fixture dispatch (10 PASS/one harness exception); no product screenshots or
+restart/layout acceptance follow. Both attempts close Excel normally. Earlier
+error5 remains unexplained; the user uses console and RDP, so session switching
+is a hypothesis only. Inspect that exact fixture boundary before another broad
+retry. The [layout evidence](plan022_slice4be_layout_stability_results.md) records
+the preserved attempts and verification receipt; this supersedes only the stale
+desktop-access observation in the ledger, not any product acceptance status.

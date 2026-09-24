@@ -125,3 +125,40 @@ required. The broader
 [Slice 4be checklist](plan022_slice4be_remaining_acceptance.md)
 and the earlier [resource investigation](plan022_slice4be_gui_resource_results.md)
 retain their existing failures and scope.
+
+## Desktop access recheck, 2026-09-24 UTC
+
+At 03:01:20 UTC, GetCursorPos succeeds with error zero; the thread and input
+desktop are both Default on WinSta0. The test shell and Excel both run at Medium
+integrity without elevation. The user reports using both the physical console
+and RDP. Session switching is a hypothesis, not a proven cause of earlier error5.
+No Windows permission, elevation, desktop ACL or application change was made.
+Microsoft documents the current-input-desktop and window-station access
+requirements for [GetCursorPos](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getcursorpos).
+
+Changed desktop access justifies one attempt on the current palette candidate.
+Controller `guide-resource-diagnostic/ce214dc1673f4660b83d42812cd201ce`, report
+`slice4be-viewer-published-read/1b8abd874a3940a4a54dcdbca9d6e15d`, records **10 PASS /
+one harness exception**, 03:02:34--03:03:45 UTC. Five instrumented projects compile
+and actual publication/source-journal fixtures pass, then Create guide dispatch
+is unavailable during Initialize-GuideRestartFixture. Restart/layout/capture checks
+are unreached. This is neither meaningful product RED nor visible acceptance.
+Excel closes without assistance; settings and five package bytes are preserved.
+Do not repeat the broad attempt unchanged; inspect the exact Create guide return
+and its captured context/control state before designing a focused regression.
+
+The independent existing `Test-Slice4beCaptureForeground.ps1` calibration then
+captures **all three cases** (hidden-first, visible, hidden-restored),
+03:04:30--03:04:35 UTC, using only a blank workbook and disposable form. All three
+images were individually inspected: the fixture is readable and unobscured.
+Excel closes normally without termination. This proves current capture access
+without elevation; it does not prove sustained access or invSys visible acceptance.
+Report: `capture-foreground-calibration/41584aa806624030b24630a7e888a297`.
+
+Receipt `reports/runtime/desktop-access-restored-verification.json` verifies zero
+Application 1000/1001/1002 events at 03:05:30 UTC, closed Excel, unchanged candidate
+packages and only the three previously recorded changes among 299 runtime pins.
+No runtime, test helper, contract or accepted test predicate changes in this check.
+Keep one desktop connection active during visible tests and recheck input access
+after connection changes. Permanent resolution of the intermittent error remains
+unproven; administrator access is not required by the successful calibration.
