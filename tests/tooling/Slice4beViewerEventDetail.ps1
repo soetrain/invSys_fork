@@ -31,11 +31,22 @@ function Test-Slice4beViewerEventDetail($Fixture,$OtherFixture) {
     $manager = $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modInventoryViewer').CodeModule
     $manager.AddFromString(@'
 Public Function DetailOriginalTextForTest(ByVal index As Long) As String
+    Dim line As Long
     Select Case index
         Case 0: DetailOriginalTextForTest = "Literal \n \r \t \\ \q end\"
-        Case 1: DetailOriginalTextForTest = "First" & vbCrLf & "Second" & vbLf & "Third" & vbCr & "Fourth" & vbTab & ChrW$(937)
+        Case 1: DetailOriginalTextForTest = "First" & vbCrLf & "Second" & vbLf & "Third" & vbCr & "Fourth & final" & vbTab & ChrW$(937)
         Case 2: DetailOriginalTextForTest = "Actual" & vbCrLf & "Literal \\n and path\recipes\new end\"
     End Select
+    If index = 2 Then
+        For line = 1 To 28
+            DetailOriginalTextForTest = DetailOriginalTextForTest & vbCrLf & "Multiline line " & CStr(line)
+        Next line
+        DetailOriginalTextForTest = DetailOriginalTextForTest & vbCrLf & "Last & final " & String$(180, "W") & " END"
+    End If
+End Function
+Public Function DetailMultilineLocationForTest(ByVal index As Long) As String
+    DetailMultilineLocationForTest = "DOCK"
+    If index = 1 Then DetailMultilineLocationForTest = "First bin" & vbLf & "Second & bin"
 End Function
 Public Function PrepareDetailProjectionForTest(ByVal workbookName As String) As Boolean
     Dim wb As Workbook, ws As Worksheet, lo As ListObject, found As ListObject, column As ListColumn, record As ListRow
@@ -58,7 +69,7 @@ Public Function PrepareDetailProjectionForTest(ByVal workbookName As String) As 
     stamp = DateAdd("n", -5, Now)
     For i = 0 To 2
         Set record = found.ListRows.Add
-        values = Array("EVT-DETAIL-COMPLETE", "RECEIVE", CDbl(stamp), CDbl(stamp), "S1", "detail-fixture", keys(i), "SKU-DETAIL", i + 2, "DOCK", "GOOD", _
+        values = Array("EVT-DETAIL-COMPLETE", "RECEIVE", CDbl(stamp), CDbl(stamp), "S1", "detail-fixture", keys(i), "SKU-DETAIL", i + 2, DetailMultilineLocationForTest(i), "GOOD", _
             "Reference=DETAIL-REF;Item=" & DetailOriginalTextForTest(i) & ";UOM=" & units(i) & ";UnapprovedField=DO-NOT-DISPLAY", "DO-NOT-DISPLAY")
         For j = 0 To UBound(headers)
             record.Range.Cells(1, found.ListColumns(CStr(headers(j))).Index).Value2 = values(j)
@@ -284,7 +295,13 @@ Public Function DetailActionForTest(ByVal action As String) As Boolean
             DoEvents
             For Each control In instance.Controls
                 If control.Visible Then
-                    If control.Left < 0 Or control.Top < 0 Or control.Left + control.Width > instance.InsideWidth + 1 Or control.Top + control.Height > instance.InsideHeight + 1 Then Exit Function
+                    If control.Left < 0 Or control.Top < 0 Then Exit Function
+                    If control.Parent Is instance Then
+                        If control.Left + control.Width > instance.InsideWidth + 1 Or control.Top + control.Height > instance.InsideHeight + 1 Then Exit Function
+                    Else
+                        ' UserForm.Controls includes nested labels: validate their own scroll container.
+                        If control.Left + control.Width > control.Parent.ScrollWidth Or control.Top + control.Height > control.Parent.ScrollHeight Then Exit Function
+                    End If
                 End If
             Next control
         Case Else: Exit Function
@@ -386,6 +403,8 @@ End Function
     # against a real Viewer-opened Detail form, alongside native input checks.
     . (Join-Path $PSScriptRoot 'Slice4beBoxingPublishedRead.ps1')
     Install-Slice4beBoxingPublishedReadProbe
+    . (Join-Path $PSScriptRoot 'Slice4beDetailMultiline.ps1')
+    Install-Slice4beDetailMultilineProbe
     . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
     Compile-Slice4beEvaluationProbes
     [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.OpenInventoryViewer')
@@ -545,6 +564,7 @@ public static class DetailNativeLayout {
             Capture-DetailOwnedEvidence 'event-detail-lock-restored.png' $window
         }
     }
+    Test-Slice4beDetailMultiline 'Operations'
     foreach($module in @('modEventDetailSettings','modInventoryViewerData')) {
         $readCount=Run 'invSys.Core.xlam' ($module+'.DetailReadCounterForTest')
         if($readCount -isnot [int]){throw 'Detail read counter did not return an integer.'}
@@ -565,13 +585,27 @@ public static class DetailNativeLayout {
     foreach($case in @(@(0,'LiteralEscapes'),@(1,'ActualLineBreaksAndTab'),@(2,'MixedText'))){
         Check ('EventDetail.OriginalText.Admin.'+$case[1]) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailOriginalTextMatchesForTest' @($case[0])))
     }
+    Test-Slice4beDetailMultiline 'Admin'
     Check 'EventDetail.ProfileFixtureSavedByAuthorizedCoreCommand' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SaveDetailFixtureProfileForTest'))
     $pins[$Fixture.Config]=(Get-FileHash -LiteralPath $Fixture.Config).Hash
     Check 'EventDetail.ProfileChangeWaitsForExplicitRefresh' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailProfileStateForTest' @(0,$true)))
     [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailActionForTest' @('Refresh'))
     Check 'EventDetail.RefreshAppliesSavedVisibilityOrderAndVersion' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailProfileStateForTest' @(1,$false,$true)))
+    if(-not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SelectDetailMultilineLineForTest')){throw 'Published multiline line unavailable.'}
+    Check 'EventDetail.Multiline.VisibleBeforeProfileHide' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailMultilineFactForTest' @('Content',2)))
+    if(-not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SetDetailMultilineProfileForTest' @($true,1))){throw 'Authorized hidden-field profile fixture failed.'}
+    $pins[$Fixture.Config]=(Get-FileHash -LiteralPath $Fixture.Config).Hash
+    [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailActionForTest' @('Refresh'))
+    if(-not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SelectDetailMultilineLineForTest')){throw 'Profile-hidden line unavailable.'}
+    Check 'EventDetail.Multiline.ProfileHiddenFieldExcluded' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailMultilineFactForTest' @('Empty')))
+    if(-not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SetDetailMultilineProfileForTest' @($false,2))){throw 'Authorized restored-field profile fixture failed.'}
+    $pins[$Fixture.Config]=(Get-FileHash -LiteralPath $Fixture.Config).Hash
+    [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailActionForTest' @('Refresh'))
+    if(-not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SelectDetailMultilineLineForTest')){throw 'Restored multiline line unavailable.'}
+    Check 'EventDetail.Multiline.VisibleBeforeSignOut' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailMultilineFactForTest' @('Content',2)))
     [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
     Check 'EventDetail.SignOutResizeInvalidatesContent' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailActionForTest' @('ResizeAfterSignOut')))
+    Check 'EventDetail.Multiline.SignOutClearsPreview' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailMultilineFactForTest' @('Invalidated')))
     Check 'EventDetail.RepeatedInvalidatedResizeRemainsSafe' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailActionForTest' @('ResizeAgainAfterSignOut')))
     [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseDetailFixtureForTest')
     SelectTarget $Fixture
@@ -579,6 +613,15 @@ public static class DetailNativeLayout {
     Check 'EventDetail.ReopenedForSignOutLineCheck' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SelectDetailFixtureForTest'))
     [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
     Check 'EventDetail.SignedOutLineSelectionInvalidatesContent' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailActionForTest' @('Invalidated')))
+    [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseDetailFixtureForTest')
+    SelectTarget $Fixture
+    [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.OpenInventoryViewer')
+    if(-not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SelectDetailFixtureForTest') -or
+       -not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SelectDetailMultilineLineForTest')){throw 'Target-change multiline fixture unavailable.'}
+    Check 'EventDetail.Multiline.VisibleBeforeTargetChange' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailMultilineFactForTest' @('Content',2)))
+    SelectTarget $OtherFixture 'config-reader'
+    Check 'EventDetail.Multiline.TargetChangeInvalidatesExistingDetail' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailActionForTest' @('Invalidated')))
+    Check 'EventDetail.Multiline.TargetChangeClearsPreview' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailMultilineFactForTest' @('Invalidated')))
     [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseDetailFixtureForTest')
     $unchanged = $true
     foreach($path in $pins.Keys) { if((Get-FileHash -LiteralPath $path).Hash -ne $pins[$path]) { $unchanged=$false } }
