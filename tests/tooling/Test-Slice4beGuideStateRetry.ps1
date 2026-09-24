@@ -14,7 +14,8 @@ $definition=$ast.Find({param($node) $node -is [Management.Automation.Language.Fu
 if($null -eq $definition){throw 'Actual dispatcher missing.'}
 . ([scriptblock]::Create($definition.Extent.Text))
 $WaitForExcelReadyForTest=$false;$RetryActionPathViewCountForTest=$true
-$CheckGuidePresentation=$false;$initialExcelProcessIds=@()
+$TraceGuideResourcesForTest=$false;$TraceGuideViewCallsForTest=$false
+$CheckGuidePresentation=$false;$CheckProductionDesignerPaths=$false;$initialExcelProcessIds=@()
 $rows=[Collections.Generic.List[object]]::new()
 function Check([string]$Name,[bool]$Passed){$rows.Add([pscustomobject]@{Check=$Name;Passed=$Passed});Write-Output ($Name+': '+$(if($Passed){'PASS'}else{'FAIL'}))}
 $cases=@(

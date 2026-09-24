@@ -293,7 +293,7 @@ Public Function DetailCompleteTextForTest() As Boolean
     measure.Font.Name = fields.Font.Name: measure.Font.Size = fields.Font.Size
     measure.Font.Bold = fields.Font.Bold: measure.Font.Italic = fields.Font.Italic
     measure.WordWrap = False: measure.AutoSize = True
-    complete = fields.Locked
+    complete = True
     For row = 0 To fields.ListCount - 1
         For column = 0 To 1
             measure.Caption = CStr(fields.List(row, column))
@@ -387,6 +387,10 @@ public static class DetailNativeLayout {
     [StructLayout(LayoutKind.Sequential)] public struct Input { public uint Type; public Mouse Mouse; }
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h,out uint p);
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    public static void RequireOwnedForeground(IntPtr form,IntPtr excel) {
+        if(Owner(form)==0 || Owner(form)!=Owner(excel) || GetForegroundWindow()!=form)
+            throw new Exception("Detail keyboard input requires the owned foreground form.");
+    }
     [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr h,uint flags);
     [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr h,out Rect r);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h,out Rect r);
@@ -468,6 +472,13 @@ public static class DetailNativeLayout {
             $motion|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'detail-scroll-motion.json')
             Check 'EventDetail.NativeHorizontalScrollMoves' $motion.MovementObserved
             Check 'EventDetail.NativeScrollPreservesFieldValues' ((Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldValuesForTest') -ceq $scrollValuesBefore)
+            $focused=Run 'invSys.Operations.xlam' 'modInventoryViewer.FocusDetailFieldsForTest'
+            if($focused -isnot [bool] -or -not $focused){throw 'Detail typing target is not the fields list.'}
+            [DetailNativeLayout]::RequireOwnedForeground([IntPtr]$window,[IntPtr]$excel.Hwnd)
+            Add-Type -AssemblyName System.Windows.Forms
+            [System.Windows.Forms.SendKeys]::SendWait('xyz{BACKSPACE}{DELETE}')
+            [DetailNativeLayout]::RequireOwnedForeground([IntPtr]$window,[IntPtr]$excel.Hwnd)
+            Check 'EventDetail.NativeTypingCannotEditFieldValues' ((Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldValuesForTest') -ceq $scrollValuesBefore)
         }
         if($DetailScrollLockDiagnostic){
             $originalLock=Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFieldLockForTest' @($false,$false)

@@ -13,6 +13,7 @@ $definition=$tree.Find({param($node) $node -is [Management.Automation.Language.F
 if($null -eq $definition){throw 'Shared Run boundary missing.'}
 Invoke-Expression $definition.Extent.Text
 $CheckGuidePresentation=$false
+$CheckProductionDesignerPaths=$false;$TraceGuideResourcesForTest=$false;$TraceGuideViewCallsForTest=$false
 $RetryActionPathViewCountForTest=$true
 $RetryGuideObservationForTest=$false
 $WaitForExcelReadyForTest=$false
@@ -20,7 +21,7 @@ $initialExcelProcessIds=@();$initialExcelWindow=0
 $canary='unlogged field content '+[guid]::NewGuid().ToString('N')
 $checks=[Collections.Generic.List[object]]::new()
 function Check([string]$Name,[bool]$Passed){$checks.Add([pscustomobject]@{Check=$Name;Passed=$Passed});Write-Output ($Name+': '+$Passed)}
-foreach($kind in @('Control','Other')){
+foreach($kind in @('Control','Expectation','Other')){
     $reportRoot=Join-Path $root $kind
     New-Item -ItemType Directory -Path $reportRoot|Out-Null
     $excel=[pscustomobject]@{Calls=0}
@@ -33,6 +34,8 @@ foreach($kind in @('Control','Other')){
     try {
         if($kind -ceq 'Control'){
             [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @('frmActionPathView','btnCloseActionPathView','Click',$canary))
+        } elseif($kind -ceq 'Expectation'){
+            [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingExpectationForTest' @('frmActionPaths','btnEvaluatePath','Click',$canary))
         } else {[void](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('BatchSize',$canary))}
     } catch {$thrown=$true}
     $text=Get-Content (Join-Path $reportRoot 'first-call-failure.json') -Raw
@@ -43,6 +46,8 @@ foreach($kind in @('Control','Other')){
     Check ($kind+'.NoCaptureRequested') (-not $record.OwnedForegroundCapture -and @((Get-ChildItem -LiteralPath $reportRoot -File -Filter '*.png')).Count -eq 0)
     if($kind -ceq 'Control'){
         Check 'Control.FixedIdentityRetained' ($record.FormControl.Form -ceq 'frmActionPathView' -and $record.FormControl.Control -ceq 'btnCloseActionPathView' -and $record.FormControl.Action -ceq 'Click')
+    } elseif($kind -ceq 'Expectation'){
+        Check 'Expectation.FixedIdentityRetained' ($record.FormControl.Form -ceq 'frmActionPaths' -and $record.FormControl.Control -ceq 'btnEvaluatePath' -and $record.FormControl.Action -ceq 'Click')
     } else {Check 'Other.ArgumentsExcluded' ($null -eq $record.FormControl -and -not $text.Contains('BatchSize'))}
 }
 foreach($case in @(

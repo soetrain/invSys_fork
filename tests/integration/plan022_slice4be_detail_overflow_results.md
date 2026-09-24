@@ -1,5 +1,96 @@
 # Plan 022 Slice 4be Event Detail horizontal overflow
 
+## Approved scrolling implementation, 2026-09-24
+
+The user explicitly approved the D18 read-only ListBox amendment on 2026-09-24;
+Architecture v4.11, Plan 022 and controls record that decision. Historical pending
+wording below describes earlier checkpoints and does not reopen approval.
+
+Fresh focused RED on frozen `validation-production-diagnostics` completes
+**43 PASS / one expected FAIL**. Only `EventDetail.NativeHorizontalScrollMoves`
+fails; all previous 43 identities remain and a new native typing check passes.
+Report: `reports/runtime/slice4be-viewer-detail/ee46ed5683934737a9ccd76e2f3edc68/red.json`.
+UTC: **16:42:31--16:43:55**. Reviewed before/after images show zero changed
+scrollbar-interior pixels: native input reaches the locked list but cannot move it.
+
+The implementation changes only `lstEventFields.Locked` to False, preserving
+the pre-existing uncommitted font-measurement helper verbatim. This permits native
+selection/scrolling; the ListBox has no field-edit or workflow handler. The geometry
+probe now tests text capacity independently of the superseded lock requirement.
+The new owned-foreground keyboard probe types letters, Backspace and Delete into
+the actual focused fields list and compares every original caption/value exactly.
+No temporary test unlocking is enabled in either run.
+
+The pending 18-line helper belongs to this same overflow correction, as its
+earlier RED/GREEN below demonstrates. It is included unchanged with the approved
+lock change so the committed form reproduces the tested candidate. Its previous
+classification as unrelated applied while other workstreams were active; this
+does not absorb the unrelated handoff067 or critique023 document changes.
+
+Candidate `deploy/validation-approved-detail-scroll` builds and passes all five
+packaged compiles and Operations cold start. Comparison with the Production
+diagnostic candidate retains 244 components and changes only
+`invSys.Operations.xlam/frmEventDetail`. Focused GREEN is **44/44**, retaining all
+RED identities, including native movement, non-editability, profile/context,
+read counters, exact contributing lines and authority/unknown-column bytes.
+Report: `reports/runtime/slice4be-viewer-detail/9fe62bcdc0094b419c09629dba03abbf/green.json`.
+UTC: **16:45:29--16:46:55**. Default, horizontal-scroll, maximized and restored
+captures were individually reviewed: the scrollbar reaches the right edge and
+the Coverage value's previously clipped ending is readable. Four-size geometry
+checks retain complete single-line text capacity. This is scoped single-line
+evidence, not complete multiline acceptance.
+
+Both runs close Excel without assistance, restore local settings and preserve
+all five package and tooling hashes; the combined interval has zero Excel
+Application events 1000/1001/1002. Private receipts use the
+`reports/runtime/approved-detail-scroll-` prefix. Broader candidate regression,
+static maintenance, full-chain and live-role gates are recorded separately as
+they complete. Accepted deployment is unchanged; Slice 4be remains incomplete.
+
+Regenerated static metrics match the preceding candidate exactly: 251 components,
+6,050 procedures, 133,025 source lines, nine literal and 45 unresolved dynamic
+calls, 193 duplicate-body groups and 28 unchanged oversized-module limits. The
+source layout contracts pass 8/8 and 7/7. The first layout invocation stopped
+before testing because its default RepoRoot parameter evaluated to an empty
+path; rerunning with explicit `-RepoRoot .` passes. Preserve that harness error
+separately; it is not product RED.
+
+The independent Viewer/filter/Shipping-state regression passes **98/98**, retaining
+all 94 historical identities plus the existing reader-boundary additions. Report:
+`slice4be-viewer-published-read/36b62502483849da8b6827df5578e4a6/green.json`
+under runtime. All three captures are individually reviewed. Excel closes
+immediately without assistance; settings are restored and the five frozen packages
+remain unchanged. The native-command dispatcher calibration passes 36/36 after
+initializing its stale trace flags (the initial 7 PASS / 29 fixture FAIL is retained).
+Those fixture corrections and failure-only capture diagnostics change no product
+behavior or command-retry policy.
+
+Owner-command regression passes **460/460**, retaining every preceding identity,
+with five instrumented compiles, normal delayed unassisted closure, restored
+settings, preserved package/tooling hashes and zero Application failure events.
+Report: `slice4be-shipping-activity/adcee7ce375a41edafc1a3e28ba59061/owner-completion-boxing-activity-shipping-recording-green.json`.
+All 23 images were individually reviewed: 16 are clean, four have a taskbar
+preview over the lower form, and three reset-confirmation captures are small
+Settings crops rather than the intended dialogs. The latter seven are not clean
+visual acceptance. Behavioral capture checks do not replace this image review.
+
+The current candidate full chain passes **32/32**, live-role workflows **48/48**
+and Create Warehouse **15/15**, retaining the exact preceding check identities.
+UTC **17:18:30--17:23:41**, 2026-09-24. Excel closes without assistance; settings
+and all three tracked reports are restored. Five package hashes and 273 tooling
+hashes are preserved, with zero Application events 1000/1001/1002. Receipt:
+`reports/runtime/approved-detail-scroll-chain-verification.json`. This does not
+resolve earlier crashes or complete multiline, D8-A, Production capture or human
+acceptance requirements.
+
+The subsequent scoped Production capture gate also completes **390/390** with
+all prior identities, five instrumented compiles, ten individually reviewed images,
+normal delayed unassisted closure, restored settings, preserved packages and zero
+Application failures. See [Production path evidence](plan022_slice4be_production_paths_results.md)
+for the two preserved partial attempts and tested readiness coordination change.
+
+## Earlier evidence
+
 **Focused RED: 37 PASS / four expected FAIL; behavioral GREEN: 41/41,
 2026-09-21. Visible scrolling and full-chain acceptance remain open.**
 Report:

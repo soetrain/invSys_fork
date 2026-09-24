@@ -10,7 +10,7 @@ $pins=@(Get-ChildItem -LiteralPath $DeployRoot -Filter '*.xlam' -File|ForEach-Ob
 if($pins.Count -ne 5){throw 'Five packages required.'}
 $start=[DateTimeOffset]::UtcNow;$code=1
 Write-Output ('Controller: '+$controller)
-$flags=@();if($CheckPaths){$flags+='-CheckProductionDesignerPaths'}
+$flags=@('-WaitForExcelReadyForTest','-ExcelReadyReadLimitForTest','40');if($CheckPaths){$flags+='-CheckProductionDesignerPaths'}
 if($CapturePaths){if(-not $CheckPaths){throw 'Path capture requires the path gate.'};$flags+='-CaptureProductionDesignerPaths'}
 try {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CompileEvaluationProbesForTest @flags *> (Join-Path $controller 'worker.log')

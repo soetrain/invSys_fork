@@ -5,6 +5,72 @@ governs the same six Production draft controls and their explicit local-command
 terminal mappings. No saved or Domain-applied design conclusion follows from
 local STAGED/VALIDATED observations with empty source references.
 
+## Approved Event Detail candidate: visible continuation
+
+The 2026-09-24 run on `validation-approved-detail-scroll` reaches **379 PASS /
+one capture-harness exception**, with 11 preceding checks unreached. It retains
+all reached prior GREEN checks and supplies nine individually reviewed images:
+both designers, both published event details, positive/rejected Process and
+Recipe conclusions, and the Process missing-Domain-evidence conclusion.
+The Recipe missing-Domain-evidence capture fails because no uncovered owned
+form-caption point is available; it is not Windows error5 and its cause is unproven.
+Report: `slice4be-production-designer/acd46fd3cd8844d9b1c0e97044a27c30/green.json`;
+controller `b8c171108d4a4142911de3b55ad558bb` under `reports/runtime`.
+UTC **16:47:18--16:55:40**. Excel closes without assistance after waiting;
+settings and packages are preserved. This partial attempt is not GREEN.
+
+The existing blank-form calibration subsequently captures all three visibility
+cases. A read-only capture-failure diagnostic now records window identities,
+caller-DPI bounds and enabled/minimized flags, without captions or workbook data.
+It changes no activation rule, input target or capture acceptance. Parsing and
+the repeated three-case calibration pass; the latter report is
+`capture-foreground-calibration/42f1e6bf35d74c90ab181dc6c290c02e` under runtime.
+The failed attempt is retained before a single capture-enabled retry.
+
+That retry records **340 PASS / one harness exception**, with 50 preceding
+checks unreached. Controller `480ea0e230e04854b1ca96cf22865635`, report
+`slice4be-production-designer/9fcdc6180b124840b1418dacc861495d/green.json`, UTC
+**16:57:10--17:01:08**. Excel rejects the shared RecordingExpectationForTest
+boundary with **0x800AC472** after the Process Clear expectation-editor check.
+The original log does not distinguish the Evaluate click from the following
+status/value reads; do not infer which failed or replay a possibly executed command.
+Excel closes without assistance and settings/packages are preserved. Further
+broad Production retries stop pending focused boundary diagnosis. Failure
+diagnostics now record fixed expectation form/control/action names without field
+values and can capture only an already-owned allowlisted foreground form.
+No retry policy, input target, runtime contract or acceptance result is changed.
+
+The focused coordination audit finds that the Production controller omitted the
+existing bounded pre-dispatch Excel readiness observation used by the passing
+Viewer and owner controllers. It now enables that same 40-read limit; commands
+still dispatch once and are never replayed. The standalone actual-dispatcher
+calibration initializes its missing fixture context flags and passes **44/44**,
+including busy/unavailable bounds, redaction and failure-without-replay cases.
+Report: `ready-before-dispatch/ccff00f4999a4b23853eeab4b3639478/results.json`.
+This is a harness coordination correction, not proof of the earlier exception's
+root cause or a product behavior change. A subsequent capture-enabled run uses
+controller `67960ea6bc4944cdbf47c18e7a34a133`; its result is recorded only after
+terminal closure and evidence review.
+
+That run completes **390/390 GREEN**, retaining every previous identity, with
+five instrumented compiles and all ten images individually reviewed: Process
+and Recipe designers, both published Details, and both positive, rejected and
+missing-Domain-evidence diagnostic conclusions. Normal delayed Excel closure,
+settings restoration and five package hashes pass. All 273 tooling hashes were
+verified before the later standalone diagnostic-fixture update. UTC
+**17:25:28--17:34:03**, with zero Application events 1000/1001/1002. Report:
+`slice4be-production-designer/54878f9a2b874b10878c6d4b1f6a0491/green.json`.
+Private receipt: `reports/runtime/approved-detail-scroll-production-ready-verification.json`.
+This establishes the scoped visible Production gate on the approved Detail
+candidate; it does not prove the cause of either earlier harness failure.
+
+The final offline failure-diagnostic calibration passes **83/83**, retaining
+the existing 78 identities and adding five expectation-handler checks for exact
+fixed identity, entered-field exclusion, original error retention,
+no capture request and one dispatch without replay. This fixture-only extension
+occurs after the packaged gate and changes no runtime/package. Full Production
+control coverage and Slice 4be acceptance remain open.
+
 ## Valid Recipe validation
 
 The fixture enables Designs through the actual Admin Save Value handler, then

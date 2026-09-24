@@ -601,7 +601,15 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
         $activation=New-Object -ComObject WScript.Shell
         $activated=$null
         try{$activated=$activation.AppActivate($Title)}finally{[void][Runtime.InteropServices.Marshal]::ReleaseComObject($activation)}
-        $clicked=[InvSysSettingsCapture]::ActivateByCaptionClick([IntPtr]$WindowHandle,[IntPtr]$excel.Hwnd)
+        try {$clicked=[InvSysSettingsCapture]::ActivateByCaptionClick([IntPtr]$WindowHandle,[IntPtr]$excel.Hwnd)}
+        catch {
+            # Read-only failure facts: no captions, workbook values or input fallback.
+            $bounds=New-Object InvSysSettingsCapture+Rect
+            $haveBounds=[InvSysSettingsCapture]::GetWindowRect([IntPtr]$WindowHandle,[ref]$bounds)
+            [pscustomobject]@{Image=$FileName;Attempt=$attempt;Identity=[InvSysSettingsCapture]::ForegroundIdentity([IntPtr]$WindowHandle);BoundsAvailable=$haveBounds;CallerDpiBounds=$bounds;Enabled=[InvSysSettingsCapture]::IsWindowEnabled([IntPtr]$WindowHandle);Minimized=[InvSysSettingsCapture]::IsIconic([IntPtr]$WindowHandle)}|
+                ConvertTo-Json -Compress -Depth 3|Add-Content (Join-Path $reportRoot 'capture-caption-failure.jsonl')
+            throw
+        }
         [pscustomobject]@{Image=$FileName;Attempt=$attempt;OwnedCaptionClick=$clicked}|
             ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'capture-owned-caption.jsonl')
         if($clicked){Start-Sleep -Milliseconds 200}
@@ -689,12 +697,12 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
         $failurePath = Join-Path $reportRoot 'first-call-failure.json'
         if(-not (Test-Path -LiteralPath $failurePath)) {
             $control=$null;$captured=$false;$identity='Unavailable'
-            if($Macro -ceq 'modInventoryViewer.GuideDraftControlForTest' -and $Values.Count -eq 4){
+            if($Macro -cin @('modInventoryViewer.GuideDraftControlForTest','modInventoryViewer.RecordingExpectationForTest') -and $Values.Count -eq 4){
                 # Only fixed form/control/action names. Never field values or call arguments.
                 $control=[pscustomobject]@{Form=[string]$Values[0];Control=[string]$Values[1];Action=[string]$Values[2]}
                 Write-Host ('Failed form action: '+$control.Form+'/'+$control.Control+'/'+$control.Action)
             }
-            if($CheckGuidePresentation -and ('InvSysSettingsCapture' -as [type])){
+            if(($CheckGuidePresentation -or $CheckProductionDesignerPaths) -and ('InvSysSettingsCapture' -as [type])){
                 try {
                     $identity=[InvSysSettingsCapture]::ForegroundIdentity([IntPtr]$initialExcelWindow)
                     $captured=[InvSysSettingsCapture]::SaveOwnedForegroundForm([IntPtr]$initialExcelWindow,@('Action Path view','Action Paths','Published guides','Event Tracking Settings'),(Join-Path $reportRoot 'first-control-failure.png'))

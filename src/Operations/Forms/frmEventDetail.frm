@@ -35,7 +35,7 @@ Private Sub UserForm_Initialize()
     mLines.ColumnCount = 1
     MakeControl "Label", "lblDetailFields", "Permitted event and selected-line fields", 12, 188, 788, 20, 7
     Set mFields = MakeControl("ListBox", "lstEventFields", "", 12, 212, 788, 306, 15)
-    mFields.ColumnCount = 2: mFields.ColumnWidths = "195 pt;565 pt": mFields.Locked = True
+    mFields.ColumnCount = 2: mFields.ColumnWidths = "195 pt;565 pt": mFields.Locked = False
     Set mStatus = MakeControl("Label", "lblDetailStatus", "Read-only published evidence. No workflow action is executed.", 12, 530, 680, 42, 13)
     Set mClose = MakeControl("CommandButton", "btnClose", "Close", 714, 570, 86, 28, 12)
 End Sub
@@ -67,6 +67,24 @@ Public Sub RefreshFields()
             mFields.List(mFields.ListCount - 1, 1) = CStr(fields(index, 1))
         End If
     Next index
+    FitFieldColumns
+End Sub
+
+Private Sub FitFieldColumns()
+    Dim measure As MSForms.Label, widths As Variant, row As Long, column As Long
+    widths = Array(195!, 565!)
+    Set measure = Me.Controls.Add("Forms.Label.1", "lblMeasureFieldText", False)
+    measure.Font.Name = mFields.Font.Name: measure.Font.Size = mFields.Font.Size
+    measure.Font.Bold = mFields.Font.Bold: measure.Font.Italic = mFields.Font.Italic
+    measure.WordWrap = False: measure.AutoSize = True
+    For row = 0 To mFields.ListCount - 1
+        For column = 0 To 1
+            measure.Caption = CStr(mFields.List(row, column))
+            If measure.Width + 8 > widths(column) Then widths(column) = measure.Width + 8
+        Next column
+    Next row
+    Me.Controls.Remove "lblMeasureFieldText"
+    mFields.ColumnWidths = CStr(widths(0)) & " pt;" & CStr(widths(1)) & " pt"
 End Sub
 
 Public Sub ClearContent(ByVal notice As String)

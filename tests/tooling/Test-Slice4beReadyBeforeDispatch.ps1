@@ -14,6 +14,7 @@ foreach($name in @('Wait-ExcelReadyForTest','Run')){
     if($null -ne $definition){Invoke-Expression $definition.Extent.Text}elseif($name -ceq 'Run'){throw 'Actual Run boundary missing.'}
 }
 $CheckGuidePresentation=$false;$RetryActionPathViewCountForTest=$false;$RetryGuideObservationForTest=$false
+$CheckProductionDesignerPaths=$false;$TraceGuideResourcesForTest=$false;$TraceGuideViewCallsForTest=$false
 $initialExcelProcessIds=@();$initialExcelWindow=0
 $checks=[Collections.Generic.List[object]]::new()
 function Check([string]$Name,[bool]$Passed){$checks.Add([pscustomobject]@{Check=$Name;Passed=$Passed});Write-Output ($Name+': '+$Passed)}
