@@ -163,3 +163,7 @@ The preceding five-package build, full-chain 32/32, live-role 48/48,
 Create Warehouse 15/15 and Viewer 98/98 retain their exact scope in
 [multiline evidence](plan022_slice4be_multiline_results.md). The smoke gate's 86/86
 behavior is preserved, but its earlier unassisted-shutdown claim is corrected there.
+
+The subsequently protected [header correction](plan022_production_header_results.md)
+resolves the clipped Committed / Used heading, retaining all16 focused checks
+and adding four caption-fit checks, with four clean reviewed captures.

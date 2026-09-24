@@ -36,6 +36,23 @@ Failed:
     mLoading = previousLoading
     Err.Raise Err.Number, , Err.Description
 End Function
+Private Function TestCommittedHeaderFit() As String
+    Dim actual As MSForms.Label, measure As MSForms.Label, fits As Boolean
+    Set actual = mPages.Pages(3).Controls("hdrManagerCheck8")
+    Set measure = mPages.Pages(3).Controls.Add("Forms.Label.1", "headerFitProbe", False)
+    With measure
+        .Font.Name = actual.Font.Name: .Font.Size = actual.Font.Size
+        .Font.Bold = actual.Font.Bold: .Font.Italic = actual.Font.Italic
+        .WordWrap = actual.WordWrap: .Width = actual.Width
+        .Caption = actual.Caption: .AutoSize = True
+    End With
+    fits = (actual.Caption = "Committed / Used" And actual.Visible And _
+            measure.Width <= actual.Width + 0.1 And measure.Height <= actual.Height + 0.1)
+    TestCommittedHeaderFit = CStr(fits) & ",Available=" & Format$(actual.Width, "0.00") & _
+        "x" & Format$(actual.Height, "0.00") & ",Required=" & Format$(measure.Width, "0.00") & _
+        "x" & Format$(measure.Height, "0.00")
+    mPages.Pages(3).Controls.Remove "headerFitProbe"
+End Function
 Private Function TestPaletteMeasurements() As String
     Dim originalWidth As Double, originalHeight As Double
     Dim dimensions As Variant, names As Variant, i As Long
@@ -50,7 +67,8 @@ Private Function TestPaletteMeasurements() As String
     For i = 0 To 3
         geometry = TestLayoutGeometryReportForSize(CDbl(dimensions(i)(0)), CDbl(dimensions(i)(1)), 3)
         result = result & "|Palette" & names(i) & "Height=" & Format$(mLstRunPalette.Height, "0.000") & _
-                 "|Palette" & names(i) & "Geometry=" & CStr(Left$(geometry, 3) = "OK|")
+                 "|Palette" & names(i) & "Geometry=" & CStr(Left$(geometry, 3) = "OK|") & _
+                 "|Header" & names(i) & "Fit=" & TestCommittedHeaderFit()
     Next i
     ' Supplemental cause measurement: call the real factory on a temporary
     ' control, then assign the same height after IntegralHeight is already off.
@@ -170,14 +188,16 @@ function Add-ProductionPaletteEvidence {
     param([string]$Report,$Rows,[string]$OutputPath)
     $values=@{}
     foreach($part in $Report.Split('|')){
-        if($part -match '^(Palette(?:Minimum|Default|Expanded|Restored)(?:Height|Geometry)|FactoryHeight|ReassignedHeight)=(.+)$'){$values[$Matches[1]]=$Matches[2]}
+        if($part -match '^(Palette(?:Minimum|Default|Expanded|Restored)(?:Height|Geometry)|Header(?:Minimum|Default|Expanded|Restored)Fit|FactoryHeight|ReassignedHeight)=(.+)$'){$values[$Matches[1]]=$Matches[2]}
     }
-    if($values.Count -ne 10){throw 'Palette measurement fields missing; not behavioral RED.'}
+    if($values.Count -ne 14){throw 'Palette/header measurement fields missing; not behavioral RED.'}
     $values|ConvertTo-Json|Set-Content (Join-Path $OutputPath 'palette-geometry.json')
     foreach($size in @('Minimum','Default','Expanded','Restored')){
         $height=[double]::Parse($values['Palette'+$size+'Height'],[Globalization.CultureInfo]::InvariantCulture)
         Add-Evidence -Rows $Rows -Callback ('Production.Palette.'+$size+'.EightRows') -Expected 'Preserve the accepted palette height of at least 90 points.' -Passed ($height -ge 90) -Observed ('Height='+$height)
         Add-Evidence -Rows $Rows -Callback ('Production.Palette.'+$size+'.Geometry') -Expected 'Run List controls fit without interactive overlap.' -Passed ($values['Palette'+$size+'Geometry'] -ceq 'True') -Observed $values['Palette'+$size+'Geometry']
+        $fit=$values['Header'+$size+'Fit']
+        Add-Evidence -Rows $Rows -Callback ('Production.CommittedHeader.'+$size+'.CaptionFit') -Expected 'The complete unchanged Committed / Used heading fits its actual label using the same MSForms font and wrapping.' -Passed ($fit.StartsWith('True,')) -Observed $fit
     }
     foreach($key in @('FactoryHeight','ReassignedHeight')){
         $height=[double]::Parse($values[$key],[Globalization.CultureInfo]::InvariantCulture)
