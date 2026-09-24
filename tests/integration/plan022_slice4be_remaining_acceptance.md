@@ -3,6 +3,14 @@
 Last reviewed: 2026-09-24 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
+Execution status: **blocked**, verified 2026-09-24 05:30:40 UTC. Desktop input
+still returns GetCursorPos error 5 and UOI_IO=False after three consecutive goal
+turns; no Excel worker remains live. Required visible/owner/full-chain gates need
+restored input. The written D8-A and Event Detail scrolling amendments still
+require an explicit user decision. Independent Production coverage accounting is
+complete at its declared source scope. The full objective, remaining implementation
+and acceptance requirements below remain intact; no completion is claimed.
+
 Authority: Architecture v4.11 D18 and Plan 022's six-sub-slice acceptance table.
 The maintained controls catalog remains the control-level acceptance record.
 Existing passing results retain their recorded candidate and scope; they do not
