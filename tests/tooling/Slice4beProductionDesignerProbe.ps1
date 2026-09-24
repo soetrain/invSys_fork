@@ -70,6 +70,65 @@ Public Function DesignerCaptionForTest(ByVal designer As String, ByVal action As
         End Select
     End If
 End Function
+Public Function DesignerReleasedProcessForTest(ByVal fixtureName As String) As String
+    Dim identity As String, version As String, stage As String, row As Long
+    On Error GoTo Failed
+    stage = "NEW"
+    mBtnProcessNew_Click
+    identity = mTxtProcessId.Text: version = mTxtProcessVersion.Text
+    If identity = "" Or FindIdentityListRow(mLstProcesses, identity, version) >= 0 Then GoTo Failed
+    mTxtProcessName.Text = fixtureName
+    mTxtProcessOutputId.Text = "A01"
+    mTxtProcessOutputName.Text = fixtureName
+    mTxtProcessOutputItemCode.Text = "RECIPE-FIXTURE"
+    mTxtProcessOutputQty.Text = "1"
+    RefreshProcessOutputUomCatalog "EA"
+    mBtnProcessOutputAdd_Click
+    If mLstProcessOutputs.ListCount <> 1 Then GoTo Failed
+    stage = "SAVE"
+    mBtnProcessSave_Click
+    row = FindIdentityListRow(mLstProcesses, identity, version)
+    If row < 0 Then GoTo Failed
+    If CStr(mLstProcesses.List(row, 4)) <> "DRAFT" Then GoTo Failed
+    stage = "RELEASE"
+    mReusableActionTestInProgress = True
+    mBtnProcessRelease_Click
+    mReusableActionTestInProgress = False
+    row = FindIdentityListRow(mLstReleasedProcesses, identity, version)
+    If row < 0 Then GoTo Failed
+    If CStr(mLstReleasedProcesses.List(row, 4)) <> "RELEASED" Then GoTo Failed
+    DesignerReleasedProcessForTest = "READY|" & identity & "|" & version
+    Exit Function
+Failed:
+    mReusableActionTestInProgress = False
+    DesignerReleasedProcessForTest = "FIXTURE_FAILED|" & stage & "|" & CStr(Err.Number)
+End Function
+Public Sub DesignerRefreshForTest()
+    mBtnRecipeRefresh_Click
+End Sub
+Public Function DesignerReleasedRecipeForTest(ByVal identity As String, ByVal version As String, ByVal fixtureName As String) As Boolean
+    Dim row As Long, records As Collection, report As String, record As Object, hasOutput As Boolean, released As Boolean
+    ClearRecipeDraft True
+    mTxtReusableRecipeName.Text = fixtureName
+    row = FindIdentityListRow(mLstReleasedProcesses, identity, version)
+    ShowStatus "FIXTURE_RECIPE_ROW"
+    If row < 0 Then Exit Function
+    mLstReleasedProcesses.ListIndex = row
+    mBtnRecipeAddProcess_Click
+    ShowStatus "FIXTURE_RECIPE_NODE"
+    If mLstRecipeNodes.ListCount <> 1 Then Exit Function
+    Set records = ProcessRecordsForRecipeNode(0, report)
+    ShowStatus "FIXTURE_RECIPE_RECORDS"
+    If records Is Nothing Then Exit Function
+    For Each record In records
+        If modProductionReusableDesigns.ReusableRecordText(record, "RecordType") = "OUTPUT" Then hasOutput = True
+        If modProductionReusableDesigns.ReusableRecordText(record, "RecordType") = "PROCESS" Then
+            released = (modProductionReusableDesigns.ReusableRecordText(record, "Status") = "RELEASED")
+        End If
+    Next record
+    ShowStatus "FIXTURE_RECIPE_OUTPUT_STATUS"
+    DesignerReleasedRecipeForTest = hasOutput And released
+End Function
 '@)
     $module=$project.VBComponents.Add(1);$module.Name='TestProductionDesigner'
     $module.CodeModule.AddFromString(@'
@@ -97,6 +156,20 @@ Public Sub ValidProcess()
 End Sub
 Public Function Caption(ByVal designer As String, ByVal action As String) As String
     Caption = mForm.DesignerCaptionForTest(designer, action)
+End Function
+Public Function ReleasedProcess(ByVal fixtureName As String) As String
+    ReleasedProcess = mForm.DesignerReleasedProcessForTest(fixtureName)
+End Function
+Public Function ReleasedRecipe(ByVal identity As String, ByVal version As String, ByVal fixtureName As String) As Boolean
+    ReleasedRecipe = mForm.DesignerReleasedRecipeForTest(identity, version, fixtureName)
+End Function
+Public Sub RefreshDesigners()
+    mForm.DesignerRefreshForTest
+End Sub
+Public Function RecipeFixtureStatus() As String
+    Dim status As String
+    status = mForm.TestStatusText()
+    If Left$(status, 15) = "FIXTURE_RECIPE_" Then RecipeFixtureStatus = status Else RecipeFixtureStatus = "UNAVAILABLE"
 End Function
 '@)
     $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('TestShippingCatalog').CodeModule.AddFromString(@'

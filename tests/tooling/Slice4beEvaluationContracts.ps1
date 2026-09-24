@@ -5,7 +5,7 @@ function Select-EvaluationRun([string]$Id) {
     [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Select',$Id))
 }
 
-function Set-EvaluationDraft($Steps,[int]$Terminal,[string]$Kind,[string]$Form='frmActionPaths') {
+function Set-EvaluationDraft($Steps,[int]$Terminal,[string]$Kind,[string]$Form='frmActionPaths',[switch]$StopAtMissingChoice) {
     $entry=if($Form -eq 'frmInventoryViewer'){'btnRecordingExpectation'}else{'btnExpectedConclusion'}
     $ok=(ExpectationControl $entry 'Click' '' $Form) -ceq 'DELIVERED'
     # Remove a captured/default draft through the real editor, without changing
@@ -21,6 +21,10 @@ function Set-EvaluationDraft($Steps,[int]$Terminal,[string]$Kind,[string]$Form='
     foreach($step in $Steps){
         $control=ExpectationControl 'cboExpectedControl' 'Select' $step[0]
         $outcome=ExpectationControl 'cboExpectedOutcome' 'Select' $step[1]
+        if($StopAtMissingChoice -and ($control -cne 'DELIVERED' -or $outcome -cne 'DELIVERED')){
+            [void](ExpectationControl 'btnCancelExpectation' 'Click')
+            return $false
+        }
         $retry=ExpectationControl 'chkExpectedRetry' 'Boolean' $step[2]
         $add=ExpectationControl 'btnAddExpectedStep' 'Click'
         $ok=$ok -and $control -ceq 'DELIVERED' -and $outcome -ceq 'DELIVERED' -and $retry -ceq 'DELIVERED' -and $add -ceq 'DELIVERED'

@@ -145,11 +145,14 @@ remain unexplained; this gate does not establish full Slice 4be acceptance.
 
 ## Remaining acceptance
 
-The positive Recipe Validate path still needs its real released-Process fixture
-and actual-handler observation proof. Recording, published Viewer, guide and
-diagnostic integration for these controls require their own tests; no terminal
-owner fact is fabricated from local staging. Native Production designer evidence
-is not established by these headless checks. This is a verified partial checkpoint,
+The subsequent [Production path integration](plan022_slice4be_production_paths_results.md)
+adds a real released-Process fixture and proves positive Recipe Validate at
+244/244, retaining all 234 preceding checks without runtime changes.
+Its later diagnostic candidate passes 390/390 through original recording,
+publication, Viewer selection and expectation/Evaluate handlers after eight
+expected RED failures. Two native designer captures are reviewed; remaining
+Detail/diagnostic captures and owner/full-chain regressions await desktop input.
+Guide integration and broader acceptance remain open. This is a partial checkpoint,
 not complete acceptance of the six controls or Slice 4be.
 The earlier 780 Settings diagnostic checks retain their previous
 candidate scope; they have not been rerun here.

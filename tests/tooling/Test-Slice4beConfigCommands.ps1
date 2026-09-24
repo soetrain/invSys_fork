@@ -8,6 +8,8 @@ param(
     [switch]$CheckActivityFoundation,
     [switch]$CheckAdminUomActivity,
     [switch]$CheckProductionDesignerActivity,
+    [switch]$CheckProductionDesignerPaths,
+    [switch]$CaptureProductionDesignerPaths,
     [switch]$CheckSettingsEditorActivity,
     [switch]$CheckSettingsDiagnostics,
     [switch]$SettingsSafetyOnly,
@@ -199,6 +201,8 @@ if($CheckProductionDesignerActivity){
     if(-not $CompileEvaluationProbesForTest -or $CheckViewerPublishedRead -or $CheckSettingsEditorActivity -or $CheckAdminUomActivity -or $CheckShippingActivity -or $CheckReceivingActivity -or $CheckTrackingSettings){throw 'Production designer observations require their separate compiled gate.'}
     $CheckActivityEvidence=$true
 }
+if($CheckProductionDesignerPaths -and -not $CheckProductionDesignerActivity){throw 'Production paths require the designer gate.'}
+if($CaptureProductionDesignerPaths -and -not $CheckProductionDesignerPaths){throw 'Production captures require the path gate.'}
 if($CompileEvaluationProbesForTest -and -not ($RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead -or $CheckAdminUomActivity -or $CheckSettingsEditorActivity -or $CheckTrackingSettings -or $CheckProductionDesignerActivity)){
     throw 'Instrumented project compilation requires a supported focused gate.'
 }
@@ -1045,6 +1049,10 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
         Install-Slice4beShippingCatalogProbe
         Install-ProductionDesignerProbe
+        if($CheckProductionDesignerPaths){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
+            Install-ProductionPathsProbe
+        }
         . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
         Compile-Slice4beEvaluationProbes
     }

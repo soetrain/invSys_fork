@@ -5,19 +5,19 @@ function Test-ProductionDesignerActivity($Fixture,$Other) {
         Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$method) $Values
     }
     function Files { @(Get-Slice4beActivityFiles $Fixture) }
-    function Pair([string[]]$Before,[string]$Id,[string]$Outcome,[string]$Case,[string]$Actor='config-producer') {
-        $raw=@(Files|Where-Object {$_ -cnotin $Before}|ForEach-Object {[IO.File]::ReadAllText($_)})
+    function Pair([string[]]$Before,[string]$Id,[string]$Outcome,[string]$Case,[string]$Actor='config-producer',$ObservedFixture=$Fixture) {
+        $raw=@(Get-Slice4beActivityFiles $ObservedFixture|Where-Object {$_ -cnotin $Before}|ForEach-Object {[IO.File]::ReadAllText($_)})
         $rows=@($raw|ForEach-Object {$_|ConvertFrom-Json})
         $first=@($rows|Where-Object OutcomeCode -CEQ 'REQUESTED');$last=@($rows|Where-Object OutcomeCode -CEQ $Outcome)
         $paired=$rows.Count -eq 2 -and $first.Count -eq 1 -and $last.Count -eq 1
         Check ($Case+'.AttemptAndOutcome') $paired
         $context=$paired;$safe=$paired;$integrity=$paired
         foreach($r in $rows){
-            $context=$context -and $r.ControlId -ceq $Id -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1'
+            $context=$context -and $r.ControlId -ceq $Id -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $ObservedFixture.Warehouse -and $r.StationId -ceq 'S1'
             $safe=$safe -and @($r.SourceEventRefs).Count -eq 0
         }
         foreach($text in $raw){
-            foreach($forbidden in @($canary,$Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'mBtn','PinHash')){if($text.Contains($forbidden)){$safe=$false}}
+            foreach($forbidden in @($canary,$ObservedFixture.Secret,(CredentialHash $ObservedFixture.Secret),$ObservedFixture.Root,'mBtn','PinHash')){if($text.Contains($forbidden)){$safe=$false}}
             $match=[regex]::Match($text,',"ContentSha256":"([a-f0-9]{64})"\}$')
             if(-not $match.Success){$integrity=$false;continue}
             $sha=[Security.Cryptography.SHA256]::Create()
@@ -118,6 +118,8 @@ function Test-ProductionDesignerActivity($Fixture,$Other) {
         Check 'ProductionDesigner.UnknownWorkbookColumnAndSavedBytesPreserved' ((Get-FileHash -LiteralPath $path).Hash -ceq $workbookPin)
         $same=$true;foreach($file in $pins.Keys){$same=$same -and (Get-FileHash -LiteralPath $file).Hash -ceq $pins[$file]}
         Check 'ProductionDesigner.SavedAuthorityPreserved' $same
+        . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeActivity.ps1')
+        Test-ProductionRecipeActivity $Other $canary
     } finally {
         [void](Probe 'Close')
         if($null -ne $book){$book.Close($false)}
