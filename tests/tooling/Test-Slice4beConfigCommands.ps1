@@ -39,6 +39,8 @@ param(
     [switch]$CheckGuidePresentationAvailability,
     [switch]$CheckGuidePresentationRestart,
     [switch]$GuidePresentationRestartOnly,
+    [switch]$TraceGuideResourcesForTest,
+    [switch]$GuideResourceSavedWorkbookForTest,
     [switch]$CheckPublishedGuideEdit,
     [switch]$PublishedGuideEditOnly,
     [switch]$GuideActionCurationOnly,
@@ -101,6 +103,11 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($TraceGuideResourcesForTest){
+    if(-not $GuidePresentationRestartOnly){throw 'Resource tracing requires the isolated restart diagnostic.'}
+    . (Join-Path $PSScriptRoot 'Slice4beGuideResourceTrace.ps1')
+}
+if($GuideResourceSavedWorkbookForTest -and -not $TraceGuideResourcesForTest){throw 'Saved-workbook resource control requires tracing.'}
 if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $CaptureEvidence -or $DetailScrollLockDiagnostic)){
     throw 'Native scrolling checks require the isolated visible detail gate without temporary unlocking.'
 }
@@ -560,6 +567,8 @@ function CaptureOwnedFormByCaptionEvidence([string]$Title,[string]$FileName) {
     CaptureOwnedFormEvidence $Title $FileName $owned
 }
 function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$WindowHandle) {
+    if($TraceGuideResourcesForTest){Write-GuideResourceMark ('CaptureBefore|'+$FileName)}
+    try {
     Initialize-SettingsCapture
     for($attempt=1;$attempt -le 3;$attempt++){
         $owned=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
@@ -589,6 +598,9 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
             Start-Sleep -Milliseconds 300
         }
     }
+    } finally {
+        if($TraceGuideResourcesForTest){Write-GuideResourceMark ('CaptureAfter|'+$FileName)}
+    }
 }
 function Wait-ExcelReadyForTest([string]$Macro) {
     # Read-only readiness sampling precedes dispatch. No command is replayed.
@@ -605,6 +617,14 @@ function Wait-ExcelReadyForTest([string]$Macro) {
     throw 'Excel readiness remained unavailable or busy; macro was not dispatched.'
 }
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
+    $resourceBoundary=$Macro
+    if($TraceGuideResourcesForTest){
+        if($Macro -ceq 'modInventoryViewer.GuideDraftControlForTest' -and $Values.Count -eq 4){
+            $resourceBoundary+='|'+$Values[0]+'|'+$Values[1]+'|'+$Values[2]
+        }
+        Write-GuideResourceMark ('Before|'+$resourceBoundary)
+    }
+    try {
     $name="'$Package'!$Macro"
     if($WaitForExcelReadyForTest){Wait-ExcelReadyForTest $Macro}
     $attemptLimit=1
@@ -676,6 +696,9 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
         }
         throw
     }
+    }
+    } finally {
+        if($TraceGuideResourcesForTest){Write-GuideResourceMark ('After|'+$resourceBoundary)}
     }
 }
 function Table($Workbook,[string]$Name) {

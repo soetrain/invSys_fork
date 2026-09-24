@@ -2,7 +2,20 @@
 # Only generated fixtures and saved disposable probe copies are used. No kill,
 # authority repair, credential serialization, evaluation or preference shortcut.
 function Test-GuidePresentationRestart($State) {
+    . (Join-Path $PSScriptRoot 'Slice4bePreferenceSavePins.ps1')
     $fixture=$State.Fixture;$guide=$State.Guide;$observed=$State.Observed
+    $resourceWorkbook=$null;$resourceWorkbookPath='';$resourceWorkbookHash=''
+    if($GuideResourceSavedWorkbookForTest){
+        $resourceWorkbookPath=Join-Path $runRoot 'paired-restart-operator.xlsm'
+        if(Test-Path -LiteralPath $resourceWorkbookPath){throw 'Preserve existing saved-workbook fixture.'}
+        $resourceWorkbook=$excel.Workbooks.Add()
+        $resourceWorkbook.SaveAs($resourceWorkbookPath,52)
+        $resourceWorkbook.Close($false)
+        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($resourceWorkbook)
+        $resourceWorkbookHash=(Get-FileHash -LiteralPath $resourceWorkbookPath).Hash
+        $resourceWorkbook=$excel.Workbooks.Open($resourceWorkbookPath,0,$false)
+        Check 'GuidePresentation.Resource.SavedWorkbookInitiallyReopened' ($resourceWorkbook.Saved -is [bool] -and $resourceWorkbook.Saved -and $resourceWorkbook.FullName -ceq $resourceWorkbookPath)
+    }
     function RestartControl([string]$Form,[string]$Name,[string]$Action,[string]$Value='') {
         [string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($Form,$Name,$Action,$Value))
     }
@@ -40,6 +53,18 @@ function Test-GuidePresentationRestart($State) {
         foreach($key in $Before.Keys){if(-not $After.ContainsKey($key) -or $Before[$key] -cne $After[$key]){return $false}}
         return $true
     }
+    function RestartObserveBytes([string]$Stage) {
+        if(-not $GuideResourceSavedWorkbookForTest){return}
+        $current=RestartPins
+        $names=@($before.Keys)+@($current.Keys)|Sort-Object -Unique
+        $changes=@(foreach($path in $names){
+            if(-not $before.ContainsKey($path) -or -not $current.ContainsKey($path) -or $before[$path] -cne $current[$path]){
+                [pscustomobject]@{Area=if($path -ceq $fixture.Config){'Config'}else{'Training'};File=[IO.Path]::GetFileName($path);Before=$before[$path];After=$current[$path]}
+            }
+        })
+        [pscustomobject]@{Stage=$Stage;UTC=[DateTimeOffset]::UtcNow.ToString('o');BeforeCount=$before.Count;AfterCount=$current.Count;Equal=(RestartSame $before $current);Changes=$changes}|
+            ConvertTo-Json -Depth 4 -Compress|Add-Content (Join-Path $reportRoot 'restart-byte-checkpoints.jsonl')
+    }
     function RestartCapture([string]$Caption,[string]$Name) {
         if($CaptureGuideEvidence){CaptureOwnedFormByCaptionEvidence $Caption ('paired-restart-'+$Name+'.png')}
     }
@@ -55,11 +80,19 @@ public static class InvSysPairedRestartOwner {
     SelectTarget $fixture 'config-reader'
     RestartViewer;RestartSettings
     $before=RestartPins
-    $saved=(RestartControl 'frmEventTrackingSettings' 'cmbPreferredActionPathView' 'Write' 'Compare both') -ceq 'DELIVERED' -and
+    RestartObserveBytes 'Baseline'
+    $selected=(RestartControl 'frmEventTrackingSettings' 'cmbPreferredActionPathView' 'Write' 'Compare both') -ceq 'DELIVERED'
+    Check 'GuidePresentation.Restart.BeforePreferenceSave.ReadsPreserveAllBytes' (RestartSame $before (RestartPins))
+    $saved=$selected -and
         (RestartControl 'frmEventTrackingSettings' 'btnSaveMyPreference' 'Click') -ceq 'DELIVERED' -and
         (RestartControl 'frmEventTrackingSettings' 'lblPreferenceStatus' 'Label') -ceq 'Your Action Path preference was saved.'
     Check 'GuidePresentation.Restart.PreferenceSavedThroughOperationsHandler' $saved
+    RestartObserveBytes 'PreferenceSaved'
     if(-not $saved){return}
+    $exactSave=Update-Slice4bePreferenceSavePins $before (RestartPins) $fixture
+    Check 'GuidePresentation.Restart.PreferenceSave.OnlyExactObservations' $exactSave
+    if(-not $exactSave){throw 'Preference save changed files beyond its exact correlated observations.'}
+    RestartObserveBytes 'AfterValidatedPreferenceSave'
     [void](RestartControl 'frmEventTrackingSettings' 'btnClose' 'Click')
     if((RestartLibrary 'Open') -cne 'DELIVERED'){throw 'Actual recording library entry unavailable.'}
     RestartPair
@@ -70,6 +103,7 @@ public static class InvSysPairedRestartOwner {
     RestartCapture 'Action Path view' 'unsaved-how-to'
     [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')
     [void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')
+    RestartObserveBytes 'OriginalViewsClosed'
     [uint32]$ownerId=0
     [void][InvSysPairedRestartOwner]::GetWindowThreadProcessId([IntPtr]$excel.Hwnd,[ref]$ownerId)
     $owners=@(Get-Process EXCEL -ErrorAction Stop)
@@ -86,6 +120,11 @@ public static class InvSysPairedRestartOwner {
     }
     $count=$excel.Workbooks.Count
     if($count -isnot [int] -or $count -ne 0){throw 'Restart requires verified empty owned Excel.'}
+    if($GuideResourceSavedWorkbookForTest){
+        # The preceding close loop already released this same COM wrapper.
+        $resourceWorkbook=$null
+        Check 'GuidePresentation.Resource.InitialWorkbookBytesPreserved' ((Get-FileHash -LiteralPath $resourceWorkbookPath).Hash -ceq $resourceWorkbookHash)
+    }
     Check 'GuidePresentation.Restart.OwnedWorkbooksClosedNormally' $true
     $excel.Quit()
     # Release retained instrumentation references only after normal close/Quit.
@@ -101,12 +140,20 @@ public static class InvSysPairedRestartOwner {
     $script:excel=$null
     [GC]::Collect();[GC]::WaitForPendingFinalizers();[GC]::Collect()
     $deadline=[DateTime]::UtcNow.AddMinutes(10)
-    while(-not $original.HasExited -and [DateTime]::UtcNow -lt $deadline){
+    while([DateTime]::UtcNow -lt $deadline){
+        $remaining=@(Get-Process EXCEL -ErrorAction SilentlyContinue)
+        if($GuideResourceSavedWorkbookForTest){
+            [pscustomobject]@{UTC=[DateTimeOffset]::UtcNow.ToString('o');OriginalExited=$original.HasExited;EnumeratedCount=$remaining.Count;OnlyOriginal=@($remaining|Where-Object Id -NE $ownerId).Count -eq 0}|
+                ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'restart-exit-observations.jsonl')
+        }
+        if($original.HasExited -and $remaining.Count -eq 0){break}
+        if(@($remaining|Where-Object Id -NE $ownerId).Count){throw 'Another Excel process exists; restart was not attempted.'}
         Write-Output 'Paired restart: awaiting normal exit of verified empty owned Excel; no termination.'
-        [void]$original.WaitForExit(30000)
+        if($original.HasExited){Start-Sleep -Milliseconds 250}else{[void]$original.WaitForExit(1000)}
     }
     if(-not $original.HasExited -or (Get-Process EXCEL -ErrorAction SilentlyContinue)){throw 'Normal Excel closure not established; restart was not attempted.'}
     Check 'GuidePresentation.Restart.OriginalProcessExitedNormally' $true
+    RestartObserveBytes 'OriginalProcessExited'
     # Excel holds writable probe XLAMs open. Hash only after verified closure,
     # before the fresh session opens the same saved copies read-only.
     $copies=@{}
@@ -123,8 +170,13 @@ public static class InvSysPairedRestartOwner {
     foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam')){
         $script:packages[$name]=$excel.Workbooks.Open((Join-Path $deploy $name),0,$true)
     }
+    if($GuideResourceSavedWorkbookForTest){
+        $resourceWorkbook=$excel.Workbooks.Open($resourceWorkbookPath,0,$false)
+        Check 'GuidePresentation.Resource.SameSavedWorkbookReopenedInFreshSession' ($resourceWorkbook.Saved -is [bool] -and $resourceWorkbook.Saved -and $resourceWorkbook.FullName -ceq $resourceWorkbookPath)
+    }
     SelectTarget $fixture 'config-reader'
     RestartViewer;RestartSettings
+    RestartObserveBytes 'FreshTargetViewerSettings'
     Check 'GuidePresentation.Restart.OperationsSettingsRestoresSavedChoice' ((RestartControl 'frmEventTrackingSettings' 'cmbPreferredActionPathView' 'Selected') -ceq 'Compare both')
     Check 'GuidePresentation.Restart.SettingsEffectiveViewMatches' ((RestartControl 'frmEventTrackingSettings' 'lblEffectiveView' 'Label') -match '^Effective view: Compare both')
     RestartCapture 'Event Tracking Settings' 'saved-settings'
@@ -139,9 +191,16 @@ public static class InvSysPairedRestartOwner {
     Check 'GuidePresentation.Restart.ReopenNeverInfersSavedEvaluation' ($diagnostic -match '(?i)not evaluated|no .*evaluation|choose Evaluate' -and -not $diagnostic.Contains('Conclusion observed'))
     Check 'GuidePresentation.Restart.OperationsOnlyWithoutAdminDependency' (-not (Test-LoadedPackage 'invSys.Admin.xlam'))
     RestartCapture 'Action Path view' 'restored-compare'
+    RestartObserveBytes 'RestoredCompareCaptured'
     [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.CloseInventoryViewerForTest')
     Check 'GuidePresentation.Restart.PreferenceAndViewsPreserveAllTrainingAndConfigBytes' (RestartSame $before (RestartPins))
     $unchanged=$true
     foreach($name in $copies.Keys){if((Get-FileHash -LiteralPath (Join-Path $deploy $name)).Hash -cne $copies[$name]){$unchanged=$false}}
     Check 'GuidePresentation.Restart.SavedProbePackagesUnchanged' $unchanged
+    if($GuideResourceSavedWorkbookForTest){
+        Check 'GuidePresentation.Resource.CapturedWorkbookStillSaved' ($resourceWorkbook.Saved -is [bool] -and $resourceWorkbook.Saved -and $resourceWorkbook.FullName -ceq $resourceWorkbookPath)
+        $resourceWorkbook.Close($false)
+        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($resourceWorkbook);$resourceWorkbook=$null
+        Check 'GuidePresentation.Resource.FinalWorkbookBytesPreserved' ((Get-FileHash -LiteralPath $resourceWorkbookPath).Hash -ceq $resourceWorkbookHash)
+    }
 }

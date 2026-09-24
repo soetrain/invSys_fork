@@ -2,6 +2,19 @@
 
 **D13 RED and focused packaged GREEN verified; visible/broader acceptance open.**
 
+The subsequent [GUI resource diagnosis](plan022_slice4be_gui_resource_results.md)
+reproduces native-window retention in an Excel-only XLAM control. Saved-workbook
+packaged attempts reach all 32 checks with normal closure, retaining one obsolete
+preservation failure caused by the two required preference-save observations.
+Three captures from the first completed saved-host attempt are directly reviewed.
+The exact-observation guard calibration passes 32/32. The final saved-workbook
+control passes 34/34, retains all 27 preceding identities, closes normally,
+restores settings, and preserves runtime/package hashes with zero delayed
+Application events. Current captures remain partial evidence because a Task
+Manager thumbnail overlaps the lower-right control area. An 84.485-second
+selected-view observation remains a responsiveness concern. No runtime fix,
+complete visible acceptance or waiver of the add-in-only stress failure.
+
 ## Current Settings-diagnostic candidate restart attempt
 
 On 2026-09-23, the frozen `deploy/validation-settings-diagnostic` restart gate
