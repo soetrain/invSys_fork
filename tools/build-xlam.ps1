@@ -128,8 +128,8 @@ function Remove-VbaTestOnlyRegions {
 
     $beginMarker = "'@TestOnlyBegin"
     $endMarker = "'@TestOnlyEnd"
-    $beginCount = ([regex]::Matches($SourceText, "(?im)^[ \t]*" + [regex]::Escape($beginMarker) + "[ \t]*$")).Count
-    $endCount = ([regex]::Matches($SourceText, "(?im)^[ \t]*" + [regex]::Escape($endMarker) + "[ \t]*$")).Count
+    $beginCount = ([regex]::Matches($SourceText, "(?im)^[ \t]*" + [regex]::Escape($beginMarker) + "[ \t]*\r?$")).Count
+    $endCount = ([regex]::Matches($SourceText, "(?im)^[ \t]*" + [regex]::Escape($endMarker) + "[ \t]*\r?$")).Count
     if ($beginCount -ne $endCount) {
         throw "Unbalanced VBA test-only markers in ${SourcePath}: begin=$beginCount end=$endCount"
     }
@@ -141,7 +141,7 @@ function Remove-VbaTestOnlyRegions {
         "[ \t]*\r?\n.*?^[ \t]*" + [regex]::Escape($endMarker) +
         "[ \t]*(?:\r?\n|$)"
     $stripped = [regex]::Replace($SourceText, $regionPattern, "")
-    if ($stripped -match "(?im)^[ \t]*(')?@TestOnly(Begin|End)[ \t]*$") {
+    if ($stripped -match "(?im)^[ \t]*(')?@TestOnly(Begin|End)[ \t]*\r?$") {
         throw "VBA test-only marker remained after stripping ${SourcePath}."
     }
     return $stripped

@@ -47,8 +47,9 @@ source fails the builder's test-marker count regex, retaining test-only regions,
 and the archive omits the uncommitted Event Detail measurement already present in
 the frozen package. The working source's mixed line endings do trigger stripping.
 This is a build-input calibration finding, not an accepted Production change.
-The rejected candidate remains `deploy/validation-guide-layout`; the CRLF marker
-count defect needs its own protecting tooling test before a builder correction.
+The rejected candidate remains `deploy/validation-guide-layout`; the subsequent
+[test-first builder correction](plan022_crlf_build_regions_results.md) protects
+CRLF marker handling independently of this runtime change.
 
 The corrected isolated source copy preserves the verified working bytes, including
 the frozen Event Detail behavior, without editing or committing the user's file.

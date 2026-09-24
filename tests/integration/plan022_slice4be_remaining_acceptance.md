@@ -38,6 +38,15 @@ changed by these tests. Exact receipts and failed attempts are recorded in
 
 ## Decisions and execution limits
 
+The subsequent [CRLF build correction](plan022_crlf_build_regions_results.md)
+passes 12/12 and produces 243 compiled components identical to the validated
+layout candidate. Its regression audit also finds a pre-existing D12 Production
+boundary failure (13/14, reproduced on the predecessor): completion passes a
+Workbook to Core `BeginQuietUi` instead of the existing primitive bridge. Add a
+packaged completion-boundary RED before correcting it; the passing chain does not
+waive the architectural requirement. This is a discovered Release 1 blocker,
+not an approved contract exception.
+
 A fresh-session projection control retains its 6/6 behavior and failed strict
 worker-lifetime closure result. A later same-session control passes 35/35 and
 the complete current-candidate chain passes 32/48/15 with normal closure. Earlier
