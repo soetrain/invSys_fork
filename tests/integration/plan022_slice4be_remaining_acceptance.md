@@ -42,6 +42,21 @@ and multiline acceptance; no runtime behavior is changed by the diagnosis.
 Existing passing results retain their recorded candidate and scope; they do not
 prove a newer candidate or an untested control family.
 
+The subsequent [original-text correction](plan022_slice4be_original_text_results.md)
+restores the existing D18 decoder contract on `validation-detail-original-text`:
+packaged RED 52 PASS / four expected FAIL becomes GREEN 56/56 through Operations
+and Admin, retaining the previous 50. Viewer regression retains 98/98. Seven
+images are reviewed across those two GREEN gates; both close normally and restore
+settings. Five compiles and comparison of 244 components isolate the Viewer form
+change. The unchanged-candidate chain retry passes 32/48/15 with exact previous
+identities, normal closure, restored settings/reports and no Application failures.
+The first attempt stops with an Excel/ntdll crash (chain 5 PASS / one harness
+FAIL, live-role 32 PASS / one harness FAIL, Create Warehouse 15/15); verified
+recovery-process termination allows the original controller to restore settings.
+Its cause remains unproven and the failed attempt remains recorded.
+Complete multiline rendering still requires separate acceptance; correct
+retained values alone do not establish their complete visual reachability.
+
 The reviewed [Production form census](../../../invSys_docs/0%20plan%20docs/xlam_invSys/invSys-Production-Tracking-Coverage-v1.md)
 accounts for 68 constructed buttons (seven registered tracking IDs, 61 pending),
 14 unconstructed legacy buttons and 34 non-button handlers requiring explicit

@@ -30,6 +30,13 @@ function Test-Slice4beViewerEventDetail($Fixture,$OtherFixture) {
     if(-not (Test-Path -LiteralPath $snapshot)) { throw 'Admin-generated snapshot fixture is missing.' }
     $manager = $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modInventoryViewer').CodeModule
     $manager.AddFromString(@'
+Public Function DetailOriginalTextForTest(ByVal index As Long) As String
+    Select Case index
+        Case 0: DetailOriginalTextForTest = "Literal \n \r \t \\ \q end\"
+        Case 1: DetailOriginalTextForTest = "First" & vbCrLf & "Second" & vbLf & "Third" & vbCr & "Fourth" & vbTab & ChrW$(937)
+        Case 2: DetailOriginalTextForTest = "Actual" & vbCrLf & "Literal \\n and path\recipes\new end\"
+    End Select
+End Function
 Public Function PrepareDetailProjectionForTest(ByVal workbookName As String) As Boolean
     Dim wb As Workbook, ws As Worksheet, lo As ListObject, found As ListObject, column As ListColumn, record As ListRow
     Dim headers As Variant, values As Variant, keys As Variant, units As Variant, i As Long, j As Long, stamp As Date
@@ -52,10 +59,11 @@ Public Function PrepareDetailProjectionForTest(ByVal workbookName As String) As 
     For i = 0 To 2
         Set record = found.ListRows.Add
         values = Array("EVT-DETAIL-COMPLETE", "RECEIVE", CDbl(stamp), CDbl(stamp), "S1", "detail-fixture", keys(i), "SKU-DETAIL", i + 2, "DOCK", "GOOD", _
-            "Reference=DETAIL-REF;Item=Detail fixture;UOM=" & units(i) & ";UnapprovedField=DO-NOT-DISPLAY", "DO-NOT-DISPLAY")
+            "Reference=DETAIL-REF;Item=" & DetailOriginalTextForTest(i) & ";UOM=" & units(i) & ";UnapprovedField=DO-NOT-DISPLAY", "DO-NOT-DISPLAY")
         For j = 0 To UBound(headers)
             record.Range.Cells(1, found.ListColumns(CStr(headers(j))).Index).Value2 = values(j)
         Next j
+        If CStr(record.Range.Cells(1, found.ListColumns("Note").Index).Value2) <> CStr(values(11)) Then Exit Function
     Next i
     PrepareDetailProjectionForTest = (found.ListRows.Count = 3 And found.ListColumns("User detail sentinel").DataBodyRange.Cells(1, 1).Value2 = "DO-NOT-DISPLAY")
 End Function
@@ -203,6 +211,24 @@ Public Function DetailLineValuesForTest() As Boolean
     Next i
     DetailLineValuesForTest = (seen.Count = 3 And seen.Exists("SYS-DETAIL-A|2|EA") And seen.Exists("SYS-DETAIL-A|3|LB") And seen.Exists("SYS-DETAIL-B|4|EA"))
 Failed:
+End Function
+Public Function DetailOriginalTextMatchesForTest(ByVal fixtureIndex As Long) As Boolean
+    Dim instance As Object, lines As Object, fields As Object, i As Long, j As Long, quantity As String, item As String
+    Set instance = DetailFixtureFormForTest()
+    If instance Is Nothing Then Err.Raise 5, , "Actual Viewer detail form is unavailable."
+    Set lines = instance.Controls("lstEventLines"): Set fields = instance.Controls("lstEventFields")
+    For i = 0 To lines.ListCount - 1
+        lines.ListIndex = i: quantity = "": item = ""
+        For j = 0 To fields.ListCount - 1
+            If fields.List(j, 0) = "Quantity" Then quantity = CStr(fields.List(j, 1))
+            If fields.List(j, 0) = "Item name" Then item = CStr(fields.List(j, 1))
+        Next j
+        If quantity = CStr(fixtureIndex + 2) Then
+            DetailOriginalTextMatchesForTest = (StrComp(item, DetailOriginalTextForTest(fixtureIndex), vbBinaryCompare) = 0)
+            Exit Function
+        End If
+    Next i
+    Err.Raise 5, , "Published contributing-line fixture is missing."
 End Function
 Public Function DetailProfileStateForTest(ByVal expectedVersion As Long, ByVal quantityVisible As Boolean, Optional ByVal reordered As Boolean = False) As Boolean
     Dim instance As Object, fields As Object, i As Long, quantity As Boolean, itemCode As Long, itemName As Long
@@ -369,6 +395,9 @@ End Function
         Check ('EventDetail.'+$fact) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailFixtureFactForTest' @($fact)))
     }
     Check 'EventDetail.DefaultProfileForNonAdmin' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailProfileStateForTest' @(0,$true)))
+    foreach($case in @(@(0,'LiteralEscapes'),@(1,'ActualLineBreaksAndTab'),@(2,'MixedText'))){
+        Check ('EventDetail.OriginalText.Operations.'+$case[1]) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailOriginalTextMatchesForTest' @($case[0])))
+    }
     foreach($module in @('modEventDetailSettings','modInventoryViewerData')) { [void](Run 'invSys.Core.xlam' ($module+'.DetailReadCounterForTest') @($true)) }
     Check 'EventDetail.UnlikeUnitsAndRepeatedLineValuesRetained' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailLineValuesForTest'))
     foreach($module in @('modEventDetailSettings','modInventoryViewerData')) { Check ('EventDetail.SelectionDoesNotRead.'+$module) ([long](Run 'invSys.Core.xlam' ($module+'.DetailReadCounterForTest')) -eq 0) }
@@ -533,6 +562,9 @@ public static class DetailNativeLayout {
     SelectTarget $Fixture
     [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.OpenInventoryViewer')
     Check 'EventDetail.AdminProjectionSelected' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SelectDetailFixtureForTest'))
+    foreach($case in @(@(0,'LiteralEscapes'),@(1,'ActualLineBreaksAndTab'),@(2,'MixedText'))){
+        Check ('EventDetail.OriginalText.Admin.'+$case[1]) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailOriginalTextMatchesForTest' @($case[0])))
+    }
     Check 'EventDetail.ProfileFixtureSavedByAuthorizedCoreCommand' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.SaveDetailFixtureProfileForTest'))
     $pins[$Fixture.Config]=(Get-FileHash -LiteralPath $Fixture.Config).Hash
     Check 'EventDetail.ProfileChangeWaitsForExplicitRefresh' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.DetailProfileStateForTest' @(0,$true)))

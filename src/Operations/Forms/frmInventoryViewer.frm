@@ -838,11 +838,25 @@ Private Function TrimViewerRows(ByVal sourceRows As Variant, ByVal rowCount As L
 End Function
 
 Private Function ViewerUnescape(ByVal valueIn As String) As String
-    valueIn = Replace(valueIn, "\n", vbLf)
-    valueIn = Replace(valueIn, "\r", vbCr)
-    valueIn = Replace(valueIn, "\t", vbTab)
-    valueIn = Replace(valueIn, "\\", "\")
-    ViewerUnescape = valueIn
+    Dim position As Long, current As String, decoded As String
+    position = 1
+    Do While position <= Len(valueIn)
+        current = Mid$(valueIn, position, 1)
+        If current = "\" And position < Len(valueIn) Then
+            ' Decode once: an escaped backslash must not start another escape.
+            Select Case Mid$(valueIn, position + 1, 1)
+                Case "n": current = vbLf
+                Case "r": current = vbCr
+                Case "t": current = vbTab
+                Case "\": current = "\"
+                Case Else: current = current & Mid$(valueIn, position + 1, 1)
+            End Select
+            position = position + 1
+        End If
+        decoded = decoded & current
+        position = position + 1
+    Loop
+    ViewerUnescape = decoded
 End Function
 
 Private Function AddLabel(ByVal controlName As String, _
