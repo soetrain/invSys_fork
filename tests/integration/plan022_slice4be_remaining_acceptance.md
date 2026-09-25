@@ -10,7 +10,10 @@ all24 original owning actions, recorded order, publication and Viewer detail IDs
 The final evaluator source correction is not built/GREEN. At01:37 UTC Windows still
 enumerates the terminated test Excel process; assisted recovery and final settings
 restoration remain pending in the retained outer controller. Do not start another
-Excel gate before cleanup/restoration is verified. Static/layout evidence passes;
+Excel gate before cleanup/restoration is verified. Subsequent recovery at01:45 UTC
+verifies settings restored and packages preserved in the original controller;
+Windows still retains the exited process, and a host restart is requested. No new
+Excel gate is started. Static/layout evidence passes;
 compile, GREEN, regressions, native cancellation and both presentations remain open.
 This checkpoint supersedes none of the candidate-specific acceptance limits below.
 
@@ -83,8 +86,12 @@ broader Slice4be acceptance.
 
 The reviewed [Production form census](../../../invSys_docs/0%20plan%20docs/xlam_invSys/invSys-Production-Tracking-Coverage-v1.md)
 accounts for 68 constructed buttons (thirteen registered tracking IDs, 55 pending),
-14 unconstructed legacy buttons and 34 non-button handlers requiring explicit
-reachability/semantic classification. It reconciles all 82 button constructions
+14 unconstructed legacy buttons and34 non-button handlers. The subsequent source
+review accounts for all34 exact handler identities and distinguishes editor clearing,
+mirrored selections, hidden-list cascades, in-memory Actual Output/Batch Note changes
+and staging-allocation clearing in the non-reusable location branch. Observation
+IDs, semantic commit boundaries and packaged acceptance remain unimplemented.
+The audit reconciles all82 button constructions
 and declarations. This closes a source-accounting gap for that form; it does not
 implement pending tracking or establish complete Operations/Admin coverage.
 

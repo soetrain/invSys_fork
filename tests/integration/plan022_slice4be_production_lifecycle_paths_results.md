@@ -1,6 +1,7 @@
 # Slice 4be Production lifecycle recording and diagnostics
 
-Status: RED checkpoint; candidate build blocked by Windows cleanup, 2026-09-25 UTC.
+Status: RED checkpoint; settings recovered, candidate build awaits host recovery,
+2026-09-25 UTC.
 Architecture v4.11 D5/D18 and Plan022 govern
 this work. This record does not accept Slice4be or Release1, replace the preceding
 615 lifecycle checks, or waive visible, presentation, regression and full-chain gates.
@@ -90,6 +91,26 @@ from the worker's terminal output. Private recovery receipts accompany the contr
 The unstarted build waiter is stopped so that no build begins unattended when the
 Windows process finally disappears. Resume the build explicitly after the original
 controller verifies restoration and package preservation.
+
+Subsequent recovery at01:45:23 UTC resolves the settings/controller risk. A
+disposable controller first proves that a temporary process-local Get-Process
+wrapper can exclude HasExited=True objects while preserving in-memory state.
+PowerShell's supported Enter-PSHostProcess/Debug-Runspace then reaches the original
+controller's wait loop. The same temporary wrapper keeps live processes visible,
+reports zero live Excel processes and lets the unchanged restoration/comparison
+logic finish. Its closure.json verifies **SettingsRestored=True** and
+**PackagesPreserved=True**. The controller and debugger exit. No settings values
+or credentials are exported; the wrapper changes no repository script or global
+Windows setting. ExitCode=-1 reflects the earlier worker termination; ExcelClosed
+in this recovered receipt means no live Excel process, not normal unassisted
+shutdown or disappearance of the retained Windows process entry.
+
+Windows still enumerates that exited Excel process with its cleanup thread. The
+ordinary build/test workflow remains paused pending host recovery; a host restart
+is requested from the user after restoration is verified. No new Excel is started.
+Private receipts: `test-exited-controller-recovery-result.json` and
+`production-paths-controller-recovery.json` under reports/runtime. This supersedes
+the earlier pending-settings state, not the recorded assisted-cleanup limitation.
 
 The final source correction is not yet built or GREEN. The intermediate package
 proves the D5 preservation cases; it deliberately retains the old evaluator for RED.
