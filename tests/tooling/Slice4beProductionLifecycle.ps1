@@ -91,10 +91,18 @@ Public Function LifecycleNotice() As String
     LifecycleNotice = mForm.TestStatusText()
 End Function
 '@)
+    . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleFailures.ps1')
+    Install-ProductionLifecycleFailureProbe
 }
 
 function Test-ProductionLifecycle($Fixture,$Other) {
-    function Probe([string]$method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$method) $Values}
+    function Probe([string]$method,[object[]]$Values=@()){
+        if($method -cnotmatch '^[A-Za-z]+$'){throw 'Unexpected lifecycle adapter identifier.'}
+        # Boundary identifiers only: no arguments, draft text, credentials or paths.
+        [pscustomobject]@{UTC=[DateTimeOffset]::UtcNow.ToString('o');Method=$method}|
+            ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'lifecycle-boundaries.jsonl')
+        Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$method) $Values
+    }
     function SourceRows([bool]$AllowMissing=$false) {
         $wire=[string](Run 'invSys.Designs.Domain.xlam' 'modDesignsBridgeApi.ReadDesignsQueryBridgeResult' @('PUBLICATION_EVENTS',$Fixture.Warehouse,$Fixture.Root))
         $lines=@($wire -split '\r?\n')
@@ -195,6 +203,12 @@ function Test-ProductionLifecycle($Fixture,$Other) {
                 Check ($case+'.ExplicitPrewriteObservation') $valid
             }}
         }
+        [void](Probe 'CloseDesigner');SelectTarget $Fixture 'config-producer';[void](Probe 'OpenDesigner' @($book.Name))
+        . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleFailures.ps1')
+        Test-ProductionLifecycleFailures $Fixture $book $sheet $canary
+        . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleSafety.ps1')
+        Test-ProductionLifecycleClosedWorkbook $Fixture $Other $canary $decoy
+        Test-ProductionLifecycleSafety $Fixture $book $sheet $canary
         foreach($change in @('Target','Session')){
             [void](Probe 'CloseDesigner');SelectTarget $Fixture 'config-producer';[void](Probe 'OpenDesigner' @($book.Name))
             if($change -ceq 'Target'){SelectTarget $Other 'config-producer'}

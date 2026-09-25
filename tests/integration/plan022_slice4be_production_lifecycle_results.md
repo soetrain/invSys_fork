@@ -1,7 +1,7 @@
 # Production lifecycle observation checkpoint
 
-Last verified: 2026-09-24 UTC. Slice4be.1 under Architecture v4.11 D18,
-Plan022 and controls1.249. **Partial implementation; not Slice4be acceptance.**
+Last verified: 2026-09-25 UTC. Slice4be.1 under Architecture v4.11 D18,
+Plan022 and the maintained controls catalog. **Partial acceptance; not Slice4be completion.**
 
 ## Contract and implementation
 
@@ -54,7 +54,68 @@ settings. Its attempted native dismissal was not verified. These are harness
 failures, not meaningful RED or normal-shutdown evidence. Closed-workbook coverage
 requires a corrected independent test; it is not silently treated as passing.
 
-## Maintenance and remaining acceptance
+## Subsequent packaged failure and safety tests
+
+This extension changes test tooling only, under the existing D18 lifecycle contract.
+Runtime source and both frozen package sets remain unchanged. Unsaved instrumentation
+injects a failure at one real boundary; it never replaces a form handler, writer,
+processor or activity record. Each failed queue is isolated beneath the disposable
+fixture so a later case cannot silently process it.
+
+All six handlers now exercise four owner-failure boundaries: before the write
+attempt (FAILED, no unused source ID), after the actual append but before acknowledgment
+(FAILED, exact Unknown reference), after acknowledged submission but before processing
+(PENDING, exact Submitted reference), and after actual processing but before refresh
+(PENDING, exact Submitted reference). The last case deliberately proves that an applied
+source does not imply that the user command finished. Activity remains Unknown effect,
+with no entered values, paths or raw injected error text.
+
+The failure extension records **RED211 PASS/275 expected FAIL -> GREEN486/486**,
+retaining all294 preceding identities and adding192 assertions for24 failure cases.
+Both runs have five instrumented compiles, normal unassisted closure, restored
+settings, unchanged packages and zero Excel Application failures. Private receipt:
+`reports/runtime/production-lifecycle-fault-verification.json`.
+
+The further safety extension reaches **RED316 PASS/299 expected FAIL -> GREEN615/615**,
+retaining all486 preceding identities. Both final runs have no harness failure,
+five instrumented compiles, normal delayed unassisted closure, restored settings,
+unchanged package/test bytes and zero Excel Application failures. It covers
+tracking-off, unavailable activity storage, nested actual-handler
+invocation and closed captured workbooks. Original tracking policy is restored;
+prior activity bytes and unknown workbook columns remain protected. Re-entrancy is
+observed at the real writer, so duplicate submissions are explicit failures instead
+of requiring a readable publication after an already-failed nested command.
+
+Final RED: UTC00:01:28--00:06:20 September25,
+`slice4be-production-designer/c4a8ba88cf1f4b89b9e4840221ea1371/red.json`.
+Final GREEN: UTC00:06:37--00:12:12,
+`slice4be-production-designer/3adbf45b4da744c6bd4bbfbc22b10f4d/green.json`.
+Controllers are `production-lifecycle-controller/c0f1a59131c4452cb8210183f718314f`
+and `production-lifecycle-controller/dbc26d6b84a1411fbaeaf82129959f12` under
+reports/runtime. Receipt: `production-lifecycle-safety-verification.json`.
+The615 checks do not establish either new lifecycle Action Path method or native
+confirmation/cancellation. These remain separate acceptance requirements.
+
+Three intermediate attempts are retained as invalid/incomplete evidence: the first
+queries publication after the predecessor's duplicate action and encounters an
+unavailable source; the next hashes an open Excel file with incompatible sharing;
+the third stops in VBA80010007 and requires verified disposable Excel termination.
+The original controller restores settings in all three. The corrected closed-book
+fixture pins saved bytes before reopening and activates a surviving decoy window
+before constructing the form. Only the captured workbook closes; the form's host
+window survives, and the decoy must never replace the binding. The final predecessor
+reaches all six closed-book actions without that dialog. These fixture corrections
+do not establish a broader cause for Excel/RPC or desktop failures.
+
+Final static evidence regenerates after the fixture corrections at
+`reports/runtime/production-lifecycle-safety-final-static`:
+all six metrics remain exactly unchanged, three report schemas pass, and282 tooling
+PowerShell files parse. All28 module caps hold with the **existing** Plan022 +45-line
+draft-control exception for frmProduction (11700 +45 ceiling; current11743). No new
+exception or package rebuild is introduced. Earlier build/layout/regression records
+retain their exact frozen-package scope; failed chain/reusable gates stay open.
+
+## Maintenance and prior package evidence
 
 All five packages build and compile, including cold-start Operations dependency
 resolution. Layout gates pass8/8 and7/7. The first layout invocation omitted the
@@ -117,13 +178,21 @@ UTC23:05:44--23:06:11. Settings restore and Excel closes under the existing
 potentially assisted cleanup helper. Its67 prior Boolean observations are not
 re-established. Do not substitute focused294/294 or smoke86/86 for either gate.
 
-The read-only desktop probe at23:07:30 again returns cursor error5; no native
-capture is accepted for this candidate. Group Policy and the earlier desktop
-failure's cause remain unproven. The user has been asked whether both desktops
-are unlocked. No policy or permission setting was changed.
+Read-only cursor probes, including23:42:36 UTC September24, still return error5;
+no native capture is accepted for this candidate. The user suggests Group Policy
+as a possibility and reports no changes there. A scoped read-only registry check
+finds machine inactivity timeout0 and no configured usual user screensaver-policy
+or machine/user RDP timeout-policy values. This does not establish the full effective
+policy or whether either desktop is unlocked. No Windows policy or permission setting
+was changed; the cause remains unproven. At00:09:10 UTC September25, the current
+session reports Active while UOI_IO for the automation desktop is False. The
+query and read-only input-desktop open succeed; both observed desktop names are
+Default. This confirms a current input-availability problem without proving a
+lock, policy cause or need for elevation. Cursor access still returns error5 at
+00:19:18 UTC. The user was asked to confirm the host
+desktop is visible inside unminimized RDP with the client unlocked.
 
-Pending: native cancellation; pending/uncertain/error owner routes; tracking-off,
-tracking failure and re-entrancy; closed captured workbook; original recordings,
+Pending: native cancellation; original recordings,
 published Events and both How-To/Diagnostic methods; complete Designs applied,
 awaiting and incomplete evidence; visible operator acceptance. The failed regression
 and chain gates above remain open. The

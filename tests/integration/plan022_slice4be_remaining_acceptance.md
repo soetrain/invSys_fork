@@ -1,6 +1,6 @@
 # Slice 4be remaining acceptance checklist
 
-Last reviewed: 2026-09-24 UTC. **Incomplete.** This is an evidence index for the
+Last reviewed: 2026-09-25 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
 Execution status: **resumed**, 2026-09-24. The user approved D8-A and Event Detail
@@ -89,10 +89,15 @@ The subsequent [Production lifecycle checkpoint](plan022_slice4be_production_lif
 registers the six Save Draft/Release/Obsolete handlers in catalog13: focused
 RED139 PASS/155 expected FAIL becomes294/294 on `validation-production-lifecycle`.
 Exact Designs references, pre-write denial/rejection, prior68 definitions and stale
-target/session guards pass. Closed-workbook fixture failure is preserved and
-unaccepted. Native cancellation, uncertain/pending outcomes, tracking-off/failure,
-re-entrancy, original recording/publication, Designs conclusions in both methods
-and visible evidence remain open. No earlier gate automatically accepts this candidate.
+target/session guards pass. The subsequent test-only extension reaches615/615 after
+316 PASS/299 expected RED failures, retaining all294/486 prior identities. Four
+owner-failure boundaries per handler, tracking-off/unavailable storage, re-entrancy
+and corrected closed-workbook guards now pass. Both final runs compile five packages,
+close normally after a delay, restore settings and preserve package/test bytes with
+zero Application failures. Earlier fixture failures remain recorded, including one
+assisted VBA80010007 recovery. Native cancellation, original recording/publication,
+Designs conclusions in both methods and visible evidence remain open. No earlier
+gate automatically accepts this candidate.
 
 Lifecycle candidate smoke86/86 and headless Settings202/202 pass. Full-chain and
 reusable acceptance are open: two chain attempts and the unchanged header
@@ -107,7 +112,7 @@ It does not establish the new lifecycle controls' Action Paths or native visibil
 
 | Workstream | Verified foundation | Required to close |
 |---|---|---|
-| 4be.1 Comprehensive control coverage | Catalog13 and74 registered controls; packaged Receiving, Shipping, Boxing, Settings and UOM evidence plus six Production draft and six partially tested lifecycle handlers. Positive Recipe validation uses an actual released Process (244/244); both designer captures are reviewed. Lifecycle focused294/294 protects exact references and context guards. | Account for every reachable Operations/Admin action or explicit exclusion. Finish both Production families' remaining acceptance and the other55 constructed button actions. Complete shared session/target, inventory-management, remaining role navigation and Admin maintenance coverage through actual callbacks and owner facts. Reconcile carrier authority with D5 before changing it. |
+| 4be.1 Comprehensive control coverage | Catalog13 and74 registered controls; packaged Receiving, Shipping, Boxing, Settings and UOM evidence plus six Production draft and six partially tested lifecycle handlers. Positive Recipe validation uses an actual released Process (244/244); both designer captures are reviewed. Lifecycle focused615/615 protects exact references, uncertain/pending outcomes, policy, nested actions and context guards. | Account for every reachable Operations/Admin action or explicit exclusion. Finish both Production families' remaining acceptance and the other55 constructed button actions. Complete shared session/target, inventory-management, remaining role navigation and Admin maintenance coverage through actual callbacks and owner facts. Reconcile carrier authority with D5 before changing it. |
 | 4be.2 Settings and profiles | Dedicated Event Tracking surfaces, policies/profiles, personal views and Operations access without Admin. Settings diagnostic candidate: 780 focused behavioral checks, 202 Settings regression checks. | Finish remaining General/lifecycle/navigation observations, preserve restart/isolation and context guards, and close the focused shutdown limitation. Treat Windows-user connection preferences separately from warehouse Config authority. |
 | 4be.3 Comprehensive Events | Published projection, paging/filtering, contributing lines, selected detail and policy-aware reads have recorded tests. Event Detail now has 88/88 focused GREEN and 14 reviewed principal captures, including complete multiline scrolling. | Retain complete family/control coverage as 4be.1 expands. Finish broader candidate gates and human acceptance. Preserve read-only authority and all prior Viewer identities. |
 | 4be.4 Recording and conclusions | Immutable recordings, correlation, interruption and explicit diagnostic owner-outcome mappings have focused evidence. The current comparison attempt's strengthened PolicyChangeClosesIncomplete assertion passes. | Exercise the complete required Operations/Admin coverage, including Production, and complete current-candidate comparison acceptance. No staging or submission may imply saved settings or Domain application. |
@@ -123,6 +128,7 @@ Exact Settings receipts and failed attempts are recorded in
 
 | Gate | Current evidence | Remaining action |
 |---|---|---|
+| Production lifecycle observations | Unchanged lifecycle candidate:615/615 after316 PASS/299 expected RED failures, retaining294/486; five instrumented compiles, normal delayed closure, restored settings and package/test bytes, zero Application failures. Covers owner failures, tracking-off/unavailable storage, re-entrancy and closed captured workbook. | Native cancellation, original recording/publication, both Action Path methods and complete Designs applied/awaiting/incomplete evidence; broader candidate/human acceptance. Earlier invalid fixture attempts remain recorded. |
 | Production draft observations | Approved Detail candidate: 390/390 retains every prior identity, with five instrumented compiles, ten reviewed images, normal delayed unassisted closure, restored settings, unchanged packages and zero Application failures. Earlier RED and incomplete attempts remain preserved. | Scoped six-control path/visible gate is GREEN; remaining comprehensive Production coverage is open. See [path evidence](plan022_slice4be_production_paths_results.md). Earlier desktop and harness failure causes remain unproven. |
 | Focused Settings observations/diagnostics | 780/780 behavior, 54 reviewed images; shutdown limitation remains. | Resolve closure without reclassifying behavioral success as clean shutdown. |
 | Settings regression | Corrected Production-caption candidate: 202/202 retains exact prior checks; ten accepted images, immediate unassisted closure, restored settings and unchanged five package/211 test hashes. All captures succeed without elevation. | Preserve; repeat only for a relevant change or new concern. Earlier error5 cause remains unproven. |
