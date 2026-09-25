@@ -11,6 +11,8 @@ param(
     [switch]$CheckProductionDesignerActivity,
     [switch]$CheckProductionLifecycle,
     [switch]$CheckProductionLifecyclePaths,
+    [switch]$CheckProductionLifecycleNative,
+    [switch]$CheckProductionLifecyclePresentation,
     [switch]$CheckProductionDesignerPaths,
     [switch]$CaptureProductionDesignerPaths,
     [switch]$CheckSettingsEditorActivity,
@@ -202,6 +204,8 @@ if($CheckSettingsEditorActivity){
 if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
 if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
 if($CheckProductionLifecyclePaths -and -not $CheckProductionLifecycle){throw 'Lifecycle paths require the lifecycle adapters.'}
+if(($CheckProductionLifecycleNative -or $CheckProductionLifecyclePresentation) -and (-not $CheckProductionLifecycle -or -not $CaptureEvidence)){throw 'Native lifecycle and presentation checks require the compiled lifecycle adapters and visible evidence.'}
+if(($CheckProductionLifecyclePaths -and ($CheckProductionLifecycleNative -or $CheckProductionLifecyclePresentation)) -or ($CheckProductionLifecycleNative -and $CheckProductionLifecyclePresentation)){throw 'Run lifecycle extensions separately.'}
 if($CheckProductionDesignerActivity){
     if(-not $CompileEvaluationProbesForTest -or $CheckViewerPublishedRead -or $CheckSettingsEditorActivity -or $CheckAdminUomActivity -or $CheckShippingActivity -or $CheckReceivingActivity -or $CheckTrackingSettings){throw 'Production designer observations require their separate compiled gate.'}
     $CheckActivityEvidence=$true
@@ -375,6 +379,8 @@ if($CheckSettingsEditorActivity){
 if($CheckProductionDesignerActivity){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-designer/'+[guid]::NewGuid().ToString('N'))
     if($CheckProductionLifecyclePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-paths/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionLifecycleNative){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-native/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionLifecyclePresentation){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-presentation/'+[guid]::NewGuid().ToString('N'))}
     Write-Output ('Production designer report: '+$reportRoot)
     . (Join-Path $PSScriptRoot 'Slice4beProductionDesignerProbe.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beProductionDesignerActivity.ps1')
@@ -1115,13 +1121,21 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
             Install-ProductionLifecycleProbe
         }
-        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths){
+        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation){
             . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
             Install-ProductionPathsProbe
         }
         if($CheckProductionLifecyclePaths){
             . (Join-Path $PSScriptRoot 'Slice4beDesignsSourceEvidence.ps1')
             Install-DesignsSourceEvidenceProbe
+        }
+        if($CheckProductionLifecycleNative){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleNative.ps1')
+            Install-ProductionLifecycleNativeProbe
+        }
+        if($CheckProductionLifecyclePresentation){
+            . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
+            Install-GuideDraftProbe
         }
         . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
         Compile-Slice4beEvaluationProbes
@@ -1379,6 +1393,11 @@ End Function
             Test-DesignsSourceEvidence
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecyclePaths.ps1')
             Test-ProductionLifecyclePaths $a
+        }
+        elseif($CheckProductionLifecycleNative){Test-ProductionLifecycleNative $a}
+        elseif($CheckProductionLifecyclePresentation){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionLifecyclePresentation.ps1')
+            Test-ProductionLifecyclePresentation $a
         }
         elseif($CheckProductionLifecycle){Test-ProductionLifecycle $a $b}
         else {Test-ProductionDesignerActivity $a $b}

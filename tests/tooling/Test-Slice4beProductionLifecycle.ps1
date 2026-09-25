@@ -1,10 +1,11 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-production-header',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$ActionPaths)
+param([string]$DeployRoot='deploy/validation-production-header',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$ActionPaths,[switch]$NativeCancellation,[switch]$Presentation)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+if(($ActionPaths -and ($NativeCancellation -or $Presentation)) -or ($NativeCancellation -and $Presentation)){throw 'Run lifecycle extensions separately.'}
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before the isolated lifecycle gate.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $snapshot=Get-InvSysTestSettingsSnapshot
-$family=if($ActionPaths){'production-lifecycle-paths-controller'}else{'production-lifecycle-controller'}
+$family=if($ActionPaths){'production-lifecycle-paths-controller'}elseif($NativeCancellation){'production-lifecycle-native-controller'}elseif($Presentation){'production-lifecycle-presentation-controller'}else{'production-lifecycle-controller'}
 $controller=Join-Path ('reports/runtime/'+$family) ([guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $controller|Out-Null
 $pins=@(Get-ChildItem -LiteralPath $DeployRoot -Filter '*.xlam' -File|ForEach-Object {[pscustomobject]@{File=$_.FullName;Hash=(Get-FileHash -LiteralPath $_.FullName).Hash}})
@@ -14,6 +15,8 @@ $start=[DateTimeOffset]::UtcNow;$code=1
 Write-Output ('Lifecycle controller: '+$controller)
 try {
     $extra=@();if($ActionPaths){$extra+='-CheckProductionLifecyclePaths'}
+    if($NativeCancellation){$extra+=@('-CheckProductionLifecycleNative','-CaptureEvidence')}
+    if($Presentation){$extra+=@('-CheckProductionLifecyclePresentation','-CaptureEvidence')}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CheckProductionLifecycle -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @extra *> (Join-Path $controller 'worker.log')
     $code=$LASTEXITCODE
 } finally {

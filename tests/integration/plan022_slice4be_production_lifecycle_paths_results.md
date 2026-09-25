@@ -1,7 +1,7 @@
 # Slice 4be Production lifecycle recording and diagnostics
 
-Status: RED checkpoint; settings recovered, candidate build awaits host recovery,
-2026-09-25 UTC.
+Status: packaged functional GREEN708/708; assisted controller cleanup,
+current-candidate regressions and visible extensions pending, 2026-09-25 UTC.
 Architecture v4.11 D5/D18 and Plan022 govern
 this work. This record does not accept Slice4be or Release1, replace the preceding
 615 lifecycle checks, or waive visible, presentation, regression and full-chain gates.
@@ -76,7 +76,69 @@ conclusions. All24 original action pairs, published identities, editor delivery,
 matched occurrences and read-only preservation checks pass. The five protecting
 test files remain pinned for the candidate GREEN replay.
 
-## Shutdown and candidate status
+## Final candidate GREEN and remaining gates
+
+The previous retained process disappears before02:06 UTC without an agent-requested
+restart. Desktop cursor access succeeds. The five final packages are built in
+`deploy/validation-production-paths`; Operations cold start and all five compile
+checks pass. Comparison of246 compiled components with the lifecycle predecessor
+finds exactly four changed Core modules: `modConfig`, `modProcessor`,
+`modEvaluationMatches`, and `modEvaluationSources`; no component is added.
+
+The unchanged protecting gate now records **708 PASS/0 FAIL**,708 unique checks,
+zero harness failures and the exact RED check set. All40 expected RED failures
+are corrected. The five protecting test hashes remain unchanged through the GREEN
+result. Both ordered six-action conclusions, all24 original action pairs, original
+publication/detail identities, saved Designs evidence and read-only preservation
+pass. Controller:
+`reports/runtime/production-lifecycle-paths-controller/21b2eeea63354e18a4d8973e03c96b31`.
+Result:
+`reports/runtime/slice4be-production-lifecycle-paths/df9129b233fd490b977db6aff397facf/green.json`.
+Verification: `reports/runtime/production-paths-green-verification.json`.
+
+This functional GREEN does not establish normal shutdown. After the last lifecycle
+checks at02:42:46 UTC, cleanup delays the remaining general checks and terminal
+output until about02:47:53. Windows then marks Excel exited while retaining one
+kernel-busy cleanup thread and65024 handles. No Excel termination is requested in
+this run. The completed PowerShell worker remains in COM teardown and is terminated
+only after verifying the saved708-check result, five package hashes and no live
+Excel. The previously proven temporary process-local Get-Process filter excludes
+HasExited entries, preserves live processes, and lets the original controller's
+unchanged restoration/comparison finish. Its02:52:53 closure verifies settings
+restored and all packages preserved; ExitCode=-1 records worker termination.
+Controller and debugger exit. ExcelClosed in that receipt means no live Excel,
+not disappearance of the retained Windows entry. No settings values are exported,
+and the repository cleanup guard is unchanged.
+
+Read-only resource samples show growing Section/Event handle counts during the
+long gate while GDI/USER counts remain broadly steady. At cleanup, user-code CPU
+time largely stops increasing while kernel CPU time continues. Application and
+Display event queries find no corresponding failure through02:47:53. These facts
+do not prove a graphics-driver, RDP, Group Policy or application root cause.
+Private receipts: `production-paths-green-recovery.json`,
+`production-paths-resources.jsonl`, `production-paths-handle-types.jsonl`,
+`production-paths-cleanup-cpu.jsonl`, and `production-paths-application-events.json`.
+Ordinary Excel gates remain blocked until the retained entry disappears.
+
+After verifying the original five GREEN pins, test-only extensions add isolated
+`-NativeCancellation` and `-Presentation` routes. The first invokes all four real
+Release/Obsolete handlers, declines only their exact owned native questions, and
+checks CANCELLED facts, source/draft preservation and captured-workbook identity.
+The second records two independent six-action series, authors a guide from one,
+explicitly evaluates the other, and checks How-To/Diagnostic/Compare both with
+original identities and immutable evidence. These extensions are prepared and
+parsed, **not yet packaged-tested or visually accepted**. No runtime or normative
+behavior is changed by these additions.
+
+Refreshed maintenance evidence in `reports/runtime/production-paths-visible-static`
+retains253 components,6058 procedures,133166 lines,9 literal/45 unresolved dynamic
+calls,191 duplicate groups and28 existing caps. All three generated evidence schemas
+and289 PowerShell parses pass. Earlier15 source-layout checks
+remain applicable because no runtime/form source changes follow the final build.
+Native captures, paired-view captures,615 lifecycle/390 draft/202 Settings/86 smoke,
+full-chain/live-role and reusable current-candidate regressions remain required.
+
+## Historical RED cleanup qualification
 
 All708 unique results are saved with zero harness failures and unchanged protecting
 test hashes. This does **not** establish normal shutdown: the worker reaches its
@@ -112,8 +174,8 @@ Private receipts: `test-exited-controller-recovery-result.json` and
 `production-paths-controller-recovery.json` under reports/runtime. This supersedes
 the earlier pending-settings state, not the recorded assisted-cleanup limitation.
 
-The final source correction is not yet built or GREEN. The intermediate package
-proves the D5 preservation cases; it deliberately retains the old evaluator for RED.
+At that RED checkpoint, the final source correction was not built or GREEN. The
+intermediate package proves D5 preservation and retains the old evaluator for RED.
 Do not label either package as the final candidate. A read-only cursor probe briefly
 succeeds at01:10 UTC, then returns error5 again at01:29; no new native capture is
 accepted, and Group Policy remains an unproven hypothesis. No Windows policy changes
@@ -128,7 +190,5 @@ Receipts: `production-paths-static-verification.json`, `production-paths-red-ver
 and `production-paths-test-pins.json` under reports/runtime. Static evidence cannot
 replace compile, packaged GREEN, regressions or visible acceptance.
 
-Pending: final package build/compile, evaluator GREEN, current-candidate lifecycle/
-draft/Settings/smoke/full-chain/reusable regressions, How-To/Diagnostic comparison,
-native cancellation and visible operator acceptance. Release1 and Slice4be remain
-incomplete.
+The subsequent final-candidate section above supersedes those build/GREEN blockers
+and identifies the current remaining gates. Release1 and Slice4be remain incomplete.

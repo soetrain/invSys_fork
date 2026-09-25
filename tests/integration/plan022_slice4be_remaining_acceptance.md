@@ -4,17 +4,18 @@ Last reviewed: 2026-09-25 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
 Latest [lifecycle Action Path checkpoint](plan022_slice4be_production_lifecycle_paths_results.md)
-records668 PASS/40 expected evaluator FAIL across708 checks. Its intermediate
-package corrects an existing D5 processor read breach and preserves Config policy,
-all24 original owning actions, recorded order, publication and Viewer detail IDs.
-The final evaluator source correction is not built/GREEN. At01:37 UTC Windows still
-enumerates the terminated test Excel process; assisted recovery and final settings
-restoration remain pending in the retained outer controller. Do not start another
-Excel gate before cleanup/restoration is verified. Subsequent recovery at01:45 UTC
-verifies settings restored and packages preserved in the original controller;
-Windows still retains the exited process, and a host restart is requested. No new
-Excel gate is started. Static/layout evidence passes;
-compile, GREEN, regressions, native cancellation and both presentations remain open.
+advances668 PASS/40 expected evaluator FAIL to **708/708 functional GREEN** on
+`validation-production-paths`, retaining the exact check set and five protecting
+test hashes. Five builds/compiles and Operations cold start pass; compiled comparison
+isolates four Core modules. Config policy, all24 original action pairs, publication/
+detail identities, command versus Designs conclusions and read-only preservation
+pass. Cleanup remains qualified: Windows marks Excel exited but retains a kernel-busy
+process entry. Completed-worker termination and tested process-local controller
+recovery restore settings and preserve all packages at02:52 UTC. No Excel termination
+is requested in this GREEN run. Do not start another Excel gate until the retained
+entry disappears. New isolated native-cancellation and distinct-source/observed-run
+presentation tests are prepared but unrun. Current-candidate615/390/202/86, full-chain/
+live-role and reusable regressions, normal shutdown and visible acceptance remain.
 This checkpoint supersedes none of the candidate-specific acceptance limits below.
 
 Execution status: **resumed**, 2026-09-24. The user approved D8-A and Event Detail
