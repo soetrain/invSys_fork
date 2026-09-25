@@ -10,7 +10,12 @@ function Test-ProductionLifecyclePresentation($Fixture) {
         $stream=[IO.File]::Open($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite)
         try{(Get-FileHash -InputStream $stream).Hash}finally{$stream.Dispose()}
     }
-    function RequireDelivery([string]$Result) {if($Result -cne 'DELIVERED'){throw 'Existing packaged action fixture is unavailable; inspect prerequisites before claiming RED.'}}
+    function RequireDelivery([string]$Result) {
+        if($Result -ceq 'DELIVERED'){return}
+        $kind=if($Result -cin @('DISABLED','MISSING','OUT OF RANGE','NOT FOUND','SELECTED')){$Result}else{'OTHER'}
+        [pscustomobject]@{CallerLine=$MyInvocation.ScriptLineNumber;ResultClass=$kind}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $reportRoot 'presentation-fixture-failure.json')
+        throw 'Existing packaged action fixture is unavailable; inspect prerequisites before claiming RED.'
+    }
     function RecordSeries([string]$Label,[ref]$Recorded) {
         $ready=[string](Probe 'LifecyclePrepare' @($canary))
         if($ready -cnotmatch '^READY\|([^|]+)\|([^|]+)$'){throw 'Owning Process prerequisite unavailable.'}
@@ -61,6 +66,9 @@ function Test-ProductionLifecyclePresentation($Fixture) {
         Check 'LifecyclePresentation.UnknownOperatorColumnPreserved' ($sheet.Cells.Item(1,1).Value2 -ceq 'Operator Extra' -and $sheet.Cells.Item(2,1).Value2 -ceq $canary)
         [void](Probe 'CloseDesigner');CloseRecordingViewer;SelectTarget $Fixture
         if(-not [bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest')){throw 'Actual Admin publication unavailable.'}
+        $authorAllowed=Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-admin',$Fixture.Warehouse,'S1')
+        Check 'LifecyclePresentation.Setup.AuthorHasExplicitMaintenanceCapability' ($authorAllowed -is [bool] -and $authorAllowed)
+        if($authorAllowed -isnot [bool] -or -not $authorAllowed){throw 'Explicit guide-author fixture capability unavailable; not behavioral RED.'}
         OpenRecordingViewer
         RequireDelivery (BoundLibrary 'Open')
         if((BoundLibrary 'Select' $source.Journal.ActionPathId) -cne 'SELECTED'){throw 'Guide source selection unavailable.'}
@@ -90,6 +98,8 @@ function Test-ProductionLifecyclePresentation($Fixture) {
         Check 'LifecyclePresentation.SavedGuideHasExplicitSixStepIntent' ($guide.ExpectedConclusion.TerminalKind -ceq 'SourceEventsApplied' -and @($guide.ExpectedConclusion.Steps).Count -eq 6)
         Check 'LifecyclePresentation.GuideRetainsExactDifferentSource' ($guide.SourceRun.ActionPathId -ceq $source.Journal.ActionPathId -and $guide.SourceRun.RecordId -ceq $source.Journal.RecordId -and $guide.SourceRun.ContentSha256 -ceq $source.Journal.ContentSha256 -and ($guide.Steps.SourceActivityId -join '|') -ceq ($source.Terminals.ActivityId -join '|'))
         CloseRecordingViewer;SelectTarget $Fixture 'config-reader';OpenRecordingViewer
+        $readerAllowed=Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-reader',$Fixture.Warehouse,'S1')
+        Check 'LifecyclePresentation.ReaderHasNoMaintenanceCapability' ($readerAllowed -is [bool] -and -not $readerAllowed)
         RequireDelivery (BoundLibrary 'Open')
         if((BoundLibrary 'Select' $observed.Journal.ActionPathId) -cne 'SELECTED'){throw 'Separate observed run unavailable.'}
         BoundOpen;BoundSelect $guide

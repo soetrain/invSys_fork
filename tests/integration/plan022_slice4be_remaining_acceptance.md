@@ -12,10 +12,18 @@ detail identities, command versus Designs conclusions and read-only preservation
 pass. Cleanup remains qualified: Windows marks Excel exited but retains a kernel-busy
 process entry. Completed-worker termination and tested process-local controller
 recovery restore settings and preserve all packages at02:52 UTC. No Excel termination
-is requested in this GREEN run. Do not start another Excel gate until the retained
-entry disappears. New isolated native-cancellation and distinct-source/observed-run
-presentation tests are prepared but unrun. Current-candidate615/390/202/86, full-chain/
-live-role and reusable regressions, normal shutdown and visible acceptance remain.
+is requested in this GREEN run. The retained entry disappears before03:15 without an
+agent-requested restart. [Native and paired lifecycle gates](plan022_slice4be_production_lifecycle_visible_results.md)
+then pass94/94 and84/84 with nine reviewed principal images, normal closure, restored
+settings and preserved packages. Rejected native captures have developer DPI RED6/2
+to GREEN8/8 before replay; an initial56/1 presentation fixture lacks author capability
+and is not behavioral RED. Current-candidate lifecycle retains615/615 with the exact
+prior identities, normal closure and settings/package preservation. Smoke also passes
+86/86 with normal closure. The current full chain reproduces the projection-rebuild
+crash: chain5/1, live roles32/1, Create Warehouse15/15. Recovery-process termination
+allows settings/packages/reports restoration; this is not GREEN. The390/202 and
+reusable regressions, chain recovery and broader visible/human/NAS acceptance remain. These smaller
+gates' normal closure does not erase the long708-check assisted-cleanup limitation.
 This checkpoint supersedes none of the candidate-specific acceptance limits below.
 
 Execution status: **resumed**, 2026-09-24. The user approved D8-A and Event Detail

@@ -1,7 +1,7 @@
 # Slice 4be Production lifecycle recording and diagnostics
 
-Status: packaged functional GREEN708/708; assisted controller cleanup,
-current-candidate regressions and visible extensions pending, 2026-09-25 UTC.
+Status: functional GREEN708/708 with assisted controller cleanup; subsequent
+native/paired visible gates pass, broader regressions pending, 2026-09-25 UTC.
 Architecture v4.11 D5/D18 and Plan022 govern
 this work. This record does not accept Slice4be or Release1, replace the preceding
 615 lifecycle checks, or waive visible, presentation, regression and full-chain gates.
@@ -118,7 +118,7 @@ do not prove a graphics-driver, RDP, Group Policy or application root cause.
 Private receipts: `production-paths-green-recovery.json`,
 `production-paths-resources.jsonl`, `production-paths-handle-types.jsonl`,
 `production-paths-cleanup-cpu.jsonl`, and `production-paths-application-events.json`.
-Ordinary Excel gates remain blocked until the retained entry disappears.
+The retained entry disappears before03:15, allowing ordinary Excel gates to resume.
 
 After verifying the original five GREEN pins, test-only extensions add isolated
 `-NativeCancellation` and `-Presentation` routes. The first invokes all four real
@@ -126,16 +126,17 @@ Release/Obsolete handlers, declines only their exact owned native questions, and
 checks CANCELLED facts, source/draft preservation and captured-workbook identity.
 The second records two independent six-action series, authors a guide from one,
 explicitly evaluates the other, and checks How-To/Diagnostic/Compare both with
-original identities and immutable evidence. These extensions are prepared and
-parsed, **not yet packaged-tested or visually accepted**. No runtime or normative
-behavior is changed by these additions.
+original identities and immutable evidence. These extensions subsequently pass
+native94/94 and paired84/84 with nine reviewed principal images and normal closure;
+see [visible lifecycle evidence](plan022_slice4be_production_lifecycle_visible_results.md).
+No runtime or normative behavior is changed by these additions.
 
 Refreshed maintenance evidence in `reports/runtime/production-paths-visible-static`
 retains253 components,6058 procedures,133166 lines,9 literal/45 unresolved dynamic
 calls,191 duplicate groups and28 existing caps. All three generated evidence schemas
 and289 PowerShell parses pass. Earlier15 source-layout checks
 remain applicable because no runtime/form source changes follow the final build.
-Native captures, paired-view captures,615 lifecycle/390 draft/202 Settings/86 smoke,
+The lifecycle regression subsequently retains615/615;390 draft/202 Settings/86 smoke,
 full-chain/live-role and reusable current-candidate regressions remain required.
 
 ## Historical RED cleanup qualification

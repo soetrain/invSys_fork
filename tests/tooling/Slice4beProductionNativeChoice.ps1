@@ -29,6 +29,18 @@ public static class ProductionCancelDialog {
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
+    [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+    sealed class PhysicalPixels : IDisposable {
+        readonly IntPtr previous;
+        public PhysicalPixels() {
+            previous=SetThreadDpiAwarenessContext(new IntPtr(-4));
+            if(previous==IntPtr.Zero)throw new Exception("Physical capture coordinates unavailable.");
+        }
+        public void Dispose() {
+            if(SetThreadDpiAwarenessContext(previous)==IntPtr.Zero)
+                throw new Exception("Capture DPI context could not be restored.");
+        }
+    }
     public static uint Owner(IntPtr h) { uint p; GetWindowThreadProcessId(h,out p); return p; }
     static string Text(IntPtr h) { var s=new StringBuilder(256); GetWindowText(h,s,s.Capacity); return s.ToString(); }
     static string Class(IntPtr h) { var s=new StringBuilder(128); GetClassName(h,s,s.Capacity); return s.ToString(); }
@@ -54,6 +66,8 @@ public static class ProductionCancelDialog {
         return (SendMessage(h,0x0400,IntPtr.Zero,IntPtr.Zero).ToInt64() & 0xffff)==7;
     }
     public static bool Capture(IntPtr h,uint owner,string title,string prompt,string path) {
+        // Match window bounds to CopyFromScreen pixels without changing process DPI.
+        using(var pixels=new PhysicalPixels()) {
         Rect r;
         if(!Exact(h,owner,title,prompt) || GetForegroundWindow()!=h || !GetWindowRect(h,out r) ||
            r.R<=r.L || r.B<=r.T || r.R-r.L>1600 || r.B-r.T>1000) return false;
@@ -71,6 +85,7 @@ public static class ProductionCancelDialog {
             b.Save(path,System.Drawing.Imaging.ImageFormat.Png);
         }
         return true;
+        }
     }
     public static bool Focus(IntPtr h,uint owner,string title,string prompt) {
         return Exact(h,owner,title,prompt) && SetForegroundWindow(h);
