@@ -3,6 +3,17 @@
 Last reviewed: 2026-09-25 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
+Latest [lifecycle Action Path checkpoint](plan022_slice4be_production_lifecycle_paths_results.md)
+records668 PASS/40 expected evaluator FAIL across708 checks. Its intermediate
+package corrects an existing D5 processor read breach and preserves Config policy,
+all24 original owning actions, recorded order, publication and Viewer detail IDs.
+The final evaluator source correction is not built/GREEN. At01:37 UTC Windows still
+enumerates the terminated test Excel process; assisted recovery and final settings
+restoration remain pending in the retained outer controller. Do not start another
+Excel gate before cleanup/restoration is verified. Static/layout evidence passes;
+compile, GREEN, regressions, native cancellation and both presentations remain open.
+This checkpoint supersedes none of the candidate-specific acceptance limits below.
+
 Execution status: **resumed**, 2026-09-24. The user approved D8-A and Event Detail
 scrolling, and desktop input/capture succeeds after host settings changed; the
 earlier error5 cause remains unproven. Approved single-line scrolling passes

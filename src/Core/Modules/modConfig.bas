@@ -131,7 +131,7 @@ CleanExit:
     CloseTransientConfigAfterLoad wb, openedTransient, False
 End Function
 
-Private Function ResolveExistingConfigForRead(ByVal warehouseId As String) As Workbook
+Public Function ResolveExistingConfigForRead(ByVal warehouseId As String) As Workbook
     Dim target As WarehouseTarget, wb As Workbook, matched As Workbook
     Dim path As String, root As String, candidatePath As String
     Set target = modNasConnection.GetCurrentTarget()

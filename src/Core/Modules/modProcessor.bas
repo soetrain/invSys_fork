@@ -798,16 +798,15 @@ Private Sub AddConfiguredInboxTargets(ByVal targets As Collection, ByVal seen As
     Dim pathReceive As String
     Dim pathShip As String
     Dim pathProd As String
-    Dim report As String
+    Dim openPaths As Object
     Dim openedCfg As Boolean
     Dim rowIndex As Long
 
-    Set wbCfg = FindOpenWorkbookByNameProcessor(modConfig.GetString("WarehouseId", warehouseId) & ".invSys.Config.xlsb")
-    If wbCfg Is Nothing Then
-        Set wbCfg = modRuntimeWorkbooks.OpenOrCreateConfigWorkbookRuntime(warehouseId, "", "", report)
-        openedCfg = Not wbCfg Is Nothing
-    End If
+    ' Core-local read: provisioning must not repair Config or discard policy sheets.
+    Set openPaths = CaptureOpenWorkbookPathsProcessor()
+    Set wbCfg = modConfig.ResolveExistingConfigForRead(warehouseId)
     If wbCfg Is Nothing Then Exit Sub
+    openedCfg = Not WorkbookWasAlreadyOpenProcessor(openPaths, wbCfg)
 
     Set loSt = FindListObjectByNameProcessor(wbCfg, "tblStationConfig")
     If loSt Is Nothing Then GoTo CleanExit
@@ -1277,17 +1276,6 @@ Private Function IsProductionInboxWorkbookName(ByVal wbName As String) As Boolea
     IsProductionInboxWorkbookName = (n Like "invsys.inbox.production.*.xlsb") Or _
                                     (n Like "invsys.inbox.production.*.xlsx") Or _
                                     (n Like "invsys.inbox.production.*.xlsm")
-End Function
-
-Private Function FindOpenWorkbookByNameProcessor(ByVal workbookName As String) As Workbook
-    Dim wb As Workbook
-
-    For Each wb In Application.Workbooks
-        If StrComp(wb.Name, workbookName, vbTextCompare) = 0 Then
-            Set FindOpenWorkbookByNameProcessor = wb
-            Exit Function
-        End If
-    Next wb
 End Function
 
 Private Function FindOpenWorkbookByPathProcessor(ByVal fullPath As String) As Workbook

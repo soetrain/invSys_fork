@@ -4,7 +4,7 @@ Option Private Module
 
 Public Sub Retain(ByVal result As Object, ByVal terminal As Object, ByVal publication As Object)
     Dim reference As Variant, evidence As Object, group As Object, source As Object, keys As Collection
-    Dim groups As Object, coverage As Object
+    Dim groups As Object, coverage As Object, kind As String, available As Boolean
     Set groups = CreateObject("Scripting.Dictionary"): Set coverage = CreateObject("Scripting.Dictionary")
     If Not publication Is Nothing Then
         For Each group In publication("Groups"): groups.Add CStr(group("Source")) & vbTab & CStr(group("SourceId")), group: Next group
@@ -16,12 +16,14 @@ Public Sub Retain(ByVal result As Object, ByVal terminal As Object, ByVal public
         evidence.Add "EventId", reference("EventId"): evidence.Add "SubmissionState", reference("SubmissionState")
         evidence.Add "OwnerStatus", "Unavailable": evidence.Add "LineCount", 0&: evidence.Add "LinesSha256", ""
         Set keys = New Collection: evidence.Add "SystemKeys", keys
-        If reference("WarehouseId") = result("WarehouseId") And reference("SourceKind") = "Inventory" Then
-            If groups.Exists("Inventory" & vbTab & CStr(reference("EventId"))) Then
-                Set group = groups("Inventory" & vbTab & CStr(reference("EventId")))
-                If AppliedInventory(group, CStr(result("WarehouseId")), evidence) Then evidence("OwnerStatus") = "Applied"
-            ElseIf coverage.Exists("Inventory") And reference("SubmissionState") = "Submitted" Then
-                Set source = coverage("Inventory")
+        kind = CStr(reference("SourceKind")): available = (kind = "Inventory")
+        If kind = "Designs" And coverage.Exists(kind) Then available = (coverage(kind)("Availability") = "Available")
+        If reference("WarehouseId") = result("WarehouseId") And available Then
+            If groups.Exists(kind & vbTab & CStr(reference("EventId"))) Then
+                Set group = groups(kind & vbTab & CStr(reference("EventId")))
+                If AppliedSource(group, CStr(result("WarehouseId")), evidence) Then evidence("OwnerStatus") = "Applied"
+            ElseIf coverage.Exists(kind) And reference("SubmissionState") = "Submitted" Then
+                Set source = coverage(kind)
                 If source("Availability") = "Available" Then
                     If source("OmittedGroups") = 0 And source("OmittedLines") = 0 Then evidence("OwnerStatus") = "Awaiting"
                 End If
@@ -47,28 +49,44 @@ Public Sub Assess(ByVal result As Object)
     End If
 End Sub
 
-Private Function AppliedInventory(ByVal group As Object, ByVal warehouseId As String, ByVal evidence As Object) As Boolean
-    Dim line As Object, index As Long, wrapper As Object, keys As New Collection
+Private Function AppliedSource(ByVal group As Object, ByVal warehouseId As String, ByVal evidence As Object) As Boolean
+    Dim line As Object, index As Long, wrapper As Object, keys As New Collection, designs As Boolean
     On Error GoTo Unavailable
-    If group("Source") <> "Inventory" Or group("SourceKind") <> "Business event" Then Exit Function
+    If group("Source") <> evidence("SourceKind") Or group("SourceKind") <> "Business event" Then Exit Function
+    designs = (group("Source") = "Designs")
     If group("Lines").Count = 0 Or group("Outcomes").Count <> group("Lines").Count Then Exit Function
     For Each line In group("Lines")
         index = index + 1
         If VarType(line("EventID")) <> vbString Or line("EventID") <> group("SourceId") Then Exit Function
-        If VarType(line("System_Key")) <> vbString Or line("System_Key") = "" Then Exit Function
+        If designs Then
+            If VarType(line("WarehouseId")) <> vbString Or line("WarehouseId") <> warehouseId Then Exit Function
+            If Not PositiveSequence(line("AppliedSeq")) Then Exit Function
+        Else
+            If VarType(line("System_Key")) <> vbString Or line("System_Key") = "" Then Exit Function
+            keys.Add CStr(line("System_Key"))
+        End If
         If VarType(line("AppliedAtUTC")) <> vbString Or line("AppliedAtUTC") = "" Then Exit Function
         If line.Exists("WarehouseId") Then
             If line("WarehouseId") <> warehouseId Then Exit Function
         End If
         If modTrainingJson.EncodeObject(line) <> modTrainingJson.EncodeObject(group("Outcomes")(index)) Then Exit Function
-        keys.Add CStr(line("System_Key"))
     Next line
     Set wrapper = CreateObject("Scripting.Dictionary"): wrapper.Add "Lines", group("Lines")
     evidence("LinesSha256") = modTrainingWire.Sha256(modTrainingJson.EncodeObject(wrapper))
     If Not modEvaluationModel.IsHash(CStr(evidence("LinesSha256"))) Then Exit Function
     evidence("LineCount") = group("Lines").Count: Set evidence("SystemKeys") = keys
-    AppliedInventory = True
+    AppliedSource = True
 Unavailable:
+End Function
+
+Private Function PositiveSequence(ByVal value As Variant) As Boolean
+    If VarType(value) = vbString Then
+        ' Published Designs fields are text; reject signs, decimals and exponents.
+        If value = "" Or value Like "*[!0-9]*" Then Exit Function
+        PositiveSequence = (Replace$(value, "0", "") <> "")
+    ElseIf modEvaluationModel.IsInteger(value) Then
+        PositiveSequence = (value > 0)
+    End If
 End Function
 
 Public Function ValidSavedSources(ByVal sources As Collection, ByVal warehouseId As String) As Boolean
@@ -89,7 +107,12 @@ Public Function ValidSavedSources(ByVal sources As Collection, ByVal warehouseId
         If Not modEvaluationModel.IsInteger(source("LineCount")) Or source("LineCount") < 0 Then Exit Function
         If TypeName(source("SystemKeys")) <> "Collection" Then Exit Function
         If source("OwnerStatus") = "Applied" Then
-            If source("SourceKind") <> "Inventory" Or source("LineCount") = 0 Or source("SystemKeys").Count <> source("LineCount") Then Exit Function
+            If source("LineCount") = 0 Then Exit Function
+            If source("SourceKind") = "Designs" Then
+                If source("SystemKeys").Count <> 0 Then Exit Function
+            ElseIf source("SystemKeys").Count <> source("LineCount") Then
+                Exit Function
+            End If
             If Not modEvaluationModel.IsHash(CStr(source("LinesSha256"))) Then Exit Function
             For Each value In source("SystemKeys")
                 If VarType(value) <> vbString Or value = "" Then Exit Function
