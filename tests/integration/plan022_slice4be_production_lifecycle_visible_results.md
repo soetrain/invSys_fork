@@ -119,7 +119,15 @@ controller and sanitized counts:
 `reports/runtime/production-paths-regression/chain-d41a7ecb67fb47ed95ae3c80afa029a3`.
 Investigate this specific boundary before another unchanged full-chain run.
 
-Current-candidate390 draft/202 Settings/reusable regressions, full-chain recovery,
+The Settings regression also finishes **202 PASS / 0 FAIL**, including five
+instrumented package compiles. Controller
+`reports/runtime/production-paths-regression/settings-14c148069081439683b8237dce8b5e67`
+records exit0 at03:53:15 UTC on2026-09-25, Excel closed, settings restored and
+packages preserved. Its worker log retains the named checks; the count and closure
+receipt is `reports/runtime/production-paths-settings-regression-verification.json`.
+This previously pending result was reconciled on2026-09-28 without another run.
+
+Current-candidate390 draft/reusable regressions, full-chain recovery,
 broader control coverage and human/NAS acceptance remain pending.
 These scoped images do not accept the complete workflow or Release1.
 The prior long708-check run's assisted cleanup remains recorded independently;

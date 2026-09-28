@@ -1,6 +1,6 @@
 # Slice 4be remaining acceptance checklist
 
-Last reviewed: 2026-09-25 UTC. **Incomplete.** This is an evidence index for the
+Last reviewed: 2026-09-28 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
 Latest [lifecycle Action Path checkpoint](plan022_slice4be_production_lifecycle_paths_results.md)
@@ -21,10 +21,22 @@ and is not behavioral RED. Current-candidate lifecycle retains615/615 with the e
 prior identities, normal closure and settings/package preservation. Smoke also passes
 86/86 with normal closure. The current full chain reproduces the projection-rebuild
 crash: chain5/1, live roles32/1, Create Warehouse15/15. Recovery-process termination
-allows settings/packages/reports restoration; this is not GREEN. The390/202 and
+allows settings/packages/reports restoration; this is not GREEN. The Settings
+regression subsequently finishes202/202 with five instrumented compiles, exit0,
+Excel closed and settings/package preservation. The390 draft and
 reusable regressions, chain recovery and broader visible/human/NAS acceptance remain. These smaller
 gates' normal closure does not erase the long708-check assisted-cleanup limitation.
 This checkpoint supersedes none of the candidate-specific acceptance limits below.
+
+**Execution arrangement, 2026-09-28:** The user will arrange an unlocked desktop
+for screen-dependent work. A controlled RDP disconnect reproduces140 error5
+samples, followed by39 successful samples after reconnect. A separate direct-monitor
+probe passes60/60 access checks over five minutes; it does not encounter a lock and
+does not prove unattended availability. The user reports that the protection state
+requires Windows sign-in. Coordinate visible gates with the user; do not repeat
+lock-setting changes or reinterpret access failures as product RED. The recurring
+`invSys.StationUpdate` task is disabled by the user and independently verified;
+do not silently re-enable it. The goal is usage-limited, not complete.
 
 Execution status: **resumed**, 2026-09-24. The user approved D8-A and Event Detail
 scrolling, and desktop input/capture succeeds after host settings changed; the
