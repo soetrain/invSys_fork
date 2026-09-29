@@ -1,4 +1,4 @@
-# Slice 4be Process component observations — protecting RED pending
+# Slice 4be Process component observations — packaged RED established
 
 Last verified:2026-09-29 UTC. **Incomplete; runtime implementation has not started.**
 Architecture v4.11 D18, Plan022 and controls specify the ten requirement/output
@@ -12,7 +12,39 @@ Update identity/fallback/append behavior, ACTUAL and whole-UOM validation, outpu
 yield defaults, no-selection Remove reset, regulation removal, movement/ordinals,
 captured context, authorization, loading/nesting, disabled/unavailable tracking,
 partial-write failure uncertainty, redaction and saved authority/custom columns.
-These are test intentions; they are not yet passing evidence.
+The complete protecting RED below now exercises this coverage; GREEN remains pending.
+
+## Protecting RED
+
+After the user's explicit resume, the unchanged extent candidate completes
+**180 PASS / 615 FAIL**,795 unique checks, five instrumented compiles and no harness
+failure. All preceding179 passing identities remain; the corrected ACTUAL fixture
+adds its missing preservation pass without removing an assertion. Controller
+`production-component-controller/e7c1a894fba24da9819d087037f89014`, result
+`slice4be-production-components/25881ef627e344ac9d12a0542c3d319f/red.json`,
+22:52:01--22:54:28 UTC2026-09-29. Excel closes unassisted; local settings and all
+five frozen package hashes are preserved. Workbook bytes/custom columns and saved
+authority checks pass. No component runtime implementation precedes this RED.
+
+Failures establish absent catalog16/action pairs/terminal facts, missing current-
+context/permission/loading/nested guards and missing partial-failure cleanup.
+Actual Up/Down also reproduces requirement80020005 and output80070057 after the
+populated row fields move but before selection/ordinal completion. The shared
+helper iterates declared columns, including unpopulated requirement slots and
+unsupported output slots. Its seven/ten owned-field movement needs repair under
+the existing D18 preservation requirement; this is not a new saved-state contract.
+
+Calibration before this RED: VBE normalizes `.Text` to `.text`, so the unique
+partial-write anchor now compares case-insensitively. Two complete diagnostic
+runs produce179/616 with identical795 check names/results: controller95e307fc3f2f43839debd8067c4bf63b
+and0e0675a0bd0448f99c2b7b6405a3088d; results246d7845465f420eb8c865d734d3af8e
+anda1b37fb0eff342fc8d2a47a56fe7b070. The additional ACTUAL failure is fixture-only:
+a no-argument procedure followed by a colon is interpreted as a VBA label.
+Explicit `Call` statements restore setup. Boolean-only calibration now proves
+both editors and written records have ACTUAL mode and empty quantity fields.
+The adapter fails explicitly if that prerequisite is absent. No entered values
+are written to calibration reports. Both diagnostic runs close unassisted and
+preserve settings/packages; neither supersedes the corrected RED above.
 
 ## Rejected fixture attempts
 
@@ -40,7 +72,7 @@ values, screenshots or package binaries are committed. The gate is opt-in and
 does not change the default ConfigCommands route. PowerShell parsing and diff
 checks are static tooling checks, not substitutes for packaged RED/GREEN.
 
-## Pause and next action
+## Desktop condition and next action
 
 Desktop cursor error5 first recurs at **22:34:46.392 UTC /15:34:46.392 Pacific**,
 after the second controller already closed Excel. Last successful desktop sample:
@@ -49,11 +81,15 @@ the user's explicit stop condition; no lock cause or idle timeout is established
 The finite observer was stopped. Onset receipt:
 `reports/runtime/desktop-lockout-onset-20260929-153446.json`.
 
-After explicit resume, repair/calibrate the partial-write probe insertion, verify
-the corrected snapshot against the frozen candidate, then obtain a complete
-packaged behavioral RED before any component runtime changes. Output movement
-still needs direct proof: its existing helper loops over the declared12 columns,
-while the owning output record uses ten fields; do not infer or implement a fix
-from the snapshot failure alone. Preserve all existing assertions and accepted
-UOM/Settings/lifecycle behavior. The separate native full-chain/reuse failures
-remain unresolved; no current release acceptance or deployment is claimed.
+The user subsequently resumes work after reporting that the RDP-client display
+timeout is set to Never. The new observer starts22:45:27 UTC; desktop checks pass
+through this RED. This does not prove a lock-policy fix. Stop again on actual
+desktop error5, preserving its first timestamp and last successful sample.
+
+Next implement the approved catalog16 metadata/evaluator and typed Operations
+owner/handler guards, restore busy/loading after failure, and preserve seven/ten
+component fields during movement without growing the oversized form. Then build,
+compile, obtain GREEN with all795 identities, and prove published paired paths,
+relevant regressions, layout/static and current Release1 chain/reuse. The separate
+native full-chain/reuse failures remain unresolved. No release acceptance or
+operational deployment is claimed.

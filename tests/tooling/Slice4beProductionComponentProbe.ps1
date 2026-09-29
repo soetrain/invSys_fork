@@ -6,7 +6,8 @@ function Install-ProductionComponentProbe {
     foreach($pair in @(@('WriteRequirementEditorToList','mTxtRequirementId'),@('WriteOutputEditorToList','mTxtProcessOutputId'))){
         $start=$form.ProcStartLine($pair[0],0);$body=[string]$form.Lines($start,$form.ProcCountLines($pair[0],0))
         $lines=$body -split '\r?\n';$needle='.List(idx, 0) = Trim$('+$pair[1]+'.Text)'
-        $hits=@(for($i=0;$i -lt $lines.Count;$i++){if($lines[$i].Trim() -ceq $needle){$i}})
+        # VBE normalizes identifier casing (Text becomes text); VBA is case-insensitive.
+        $hits=@(for($i=0;$i -lt $lines.Count;$i++){if($lines[$i].Trim() -ieq $needle){$i}})
         if($hits.Count -ne 1){throw 'Partial-write probe anchor unavailable; not product RED.'}
         $form.InsertLines($start+$hits[0]+1,'        If mComponentFailAfterWriteForTest Then mComponentFailAfterWriteForTest = False: Err.Raise 5432, , "Synthetic component write interruption"')
     }
@@ -102,7 +103,8 @@ Public Sub ComponentStageForTest(ByVal kind As String, ByVal canary As String, B
         Case "Actual"
             SelectComboText mCmbRequirementQtyMode, "Variable -- determined at Check In"
             SelectComboText mCmbProcessOutputQtyMode, "Variable -- determined by Actual Output"
-            ApplyRequirementQtyMode: ApplyOutputQtyMode
+            Call ApplyRequirementQtyMode
+            Call ApplyOutputQtyMode
     End Select
     mLoading = prior
 End Sub

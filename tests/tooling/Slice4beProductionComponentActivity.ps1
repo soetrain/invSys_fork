@@ -85,6 +85,9 @@ function Test-ProductionComponentActivity($Fixture,$Other) {
             }
             Check ($label+'.ActualLocalRows') $local
             Check ($label+'.NoHandlerError') (-not $notice.StartsWith('HANDLER_ERROR|'))
+            if($notice -cmatch '^HANDLER_ERROR\|(-?[0-9]+)$'){
+                [pscustomobject]@{Case=$label;ErrorNumber=[long]$Matches[1]}|ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'component-handler-errors.jsonl')
+            }
             $editor=([string](Probe 'ComponentEditor' @($kind))).Split("`t");$aux=([string](Probe 'ComponentAux' @($kind))).Split('|')
             if($action -in @('ADD','REMOVE')){Check ($label+'.ExistingEditorReset') ($editor[1] -ceq '' -and $editor[0] -ne '')}
             if($action -ceq 'UPDATE'){Check ($label+'.ExistingEditorRetained') ($editor[1] -ceq (' '+$canary+'EDIT '))}
@@ -109,10 +112,16 @@ function Test-ProductionComponentActivity($Fixture,$Other) {
             Check ('Components.'+$kind+'.PartialFailure.GuardsRestored') ([bool](Probe 'ComponentFailureRestored'))
             Pair $before $kind 'ADD' 'FAILED' ('Components.'+$kind+'.PartialFailure')
             foreach($mode in @('Append','Fallback','IdentityLookup','Actual')){
-                Stage $kind $mode;$before=@(Files);[void](Probe 'ComponentAct' @($kind,'UPDATE'));$rows=@(Rows $kind)
+                Stage $kind $mode;$before=@(Files)
+                $stagedEditor=([string](Probe 'ComponentEditor' @($kind))).Split("`t")
+                if($mode -ceq 'Actual' -and ($stagedEditor[-1] -cne 'ACTUAL' -or $stagedEditor[2] -cne '' -or $stagedEditor[3] -cne '' -or $stagedEditor[4] -cne '')){throw 'ACTUAL component editor setup unavailable; not product RED.'}
+                $notice=[string](Probe 'ComponentAct' @($kind,'UPDATE'));$rows=@(Rows $kind)
                 $index=if($mode -ceq 'Append'){3}else{1}
                 $valid=$rows.Count -eq $(if($mode -ceq 'Append'){4}else{3}) -and $rows[$index].Split("`t")[1] -ceq ($canary+'EDIT')
                 if($mode -ceq 'Actual'){$fields=$rows[$index].Split("`t");$start=if($kind -ceq 'REQUIREMENT'){2}else{5};$valid=$valid -and $fields[$start] -ceq '' -and $fields[$start+1] -ceq '' -and $fields[$start+2] -ceq '' -and $fields[-1] -ceq 'ACTUAL'}
+                if($mode -ceq 'Actual'){
+                    [pscustomobject]@{Kind=$kind;EditorActual=($stagedEditor[-1] -ceq 'ACTUAL');EditorQuantityEmpty=($stagedEditor[2] -ceq '');EditorPercentEmpty=($stagedEditor[3] -ceq '');EditorBasisEmpty=($stagedEditor[4] -ceq '');RowCountThree=($rows.Count -eq 3);RowNameMatches=($fields[1] -ceq ($canary+'EDIT'));RowQuantityEmpty=($fields[$start] -ceq '');RowPercentEmpty=($fields[$start+1] -ceq '');RowBasisEmpty=($fields[$start+2] -ceq '');RowActual=($fields[-1] -ceq 'ACTUAL');NoHandlerError=(-not $notice.StartsWith('HANDLER_ERROR|'))}|ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'component-actual-calibration.jsonl')
+                }
                 Check ('Components.'+$kind+'.Update.'+$mode+'.ExistingSemantics') $valid
                 Pair $before $kind 'UPDATE' 'STAGED' ('Components.'+$kind+'.Update.'+$mode)
             }

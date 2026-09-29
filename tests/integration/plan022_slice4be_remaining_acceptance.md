@@ -3,12 +3,12 @@
 Last reviewed: 2026-09-29 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
-**Paused at the user's desktop-error stop condition,2026-09-29:** cursor error5
-recurs15:34:46 Pacific (22:34:46 UTC), after the disposable component controller
-had closed Excel and restored settings/packages. Component contract16 is specified
-but runtime is unchanged; two fixture failures do not establish D13 RED. See
-[component test continuation](plan022_slice4be_production_component_results.md).
-Do not resume tests or implementation without user resume.
+**Resumed at the user's instruction,2026-09-29:** corrected component adapters
+establish packaged RED180/615,795 unique checks, five compiles, no harness failure,
+normal closure and preserved settings/packages. Runtime remains unchanged at this
+checkpoint; catalog16 implementation and GREEN are next. See
+[component evidence](plan022_slice4be_production_component_results.md).
+Desktop monitoring resumes with successful samples; stop again on actual error5.
 
 **Current extent-candidate checkpoint:** combined visible UOM264/264 and the actual
 public-launcher UOM lifecycle61/61 pass with normal unassisted closure, five
@@ -23,8 +23,8 @@ Earlier failed diagnostics below are historical; these passes do not explain the
 native crashes or establish the current full chain/reusable Production gate.
 Runtime Production coverage is19/68 constructed controls, with49 remaining.
 Architecture D18 now specifies the ten requirement/output editor controls for
-catalog16 under approved semantic inheritance; implementation is pending D13
-packaged-handler RED. No operational deployment or Release1 acceptance is claimed.
+catalog16 under approved semantic inheritance; protecting packaged RED is now
+established. No operational deployment or Release1 acceptance is claimed.
 
 **Earlier UOM observation/extent checkpoint:** Catalog15 registers `PRODUCTION_UOM_EDIT`;
 focused actual-handler RED98/134 becomes232/232 on the observation candidate.
