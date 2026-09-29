@@ -13,8 +13,16 @@ cold start pass with exactly five changed/added components. Dynamic-call and
 duplicate counts do not grow; all28 module limits are retained or reduced.
 Instruction recording/publication and paired views pass105/105 with six reviewed
 principal images, preserved original identities, canonical/workbook bytes, normal
-closure and zero Excel Application errors. Current-candidate regressions remain
-pending. Prior candidate evidence below keeps its original scope; the full
+closure and zero Excel Application errors. Current-candidate chain32/32, live
+roles48/48, Create Warehouse15/15, Settings202/202, draft390/390 and lifecycle615/615
+retain exact prior identities, normal closure and preservation. Packaged layout
+geometry/native actions and complete captures pass after capture-tool RED5/2 to
+GREEN7/7; package bytes stay fixed. Settings observations449/1 expose a stale
+historical fixture. Corrected-fixture467/467 retains all450 prior identities with
+eight reviewed captures; both runs require assisted cleanup. Normal Settings
+shutdown remains open and needs a bounded diagnostic, not unchanged full retries.
+Other regressions remain pending. Prior candidate
+evidence below keeps its original scope; the full
 Production native failure remains open. The form census now has18 registered
 buttons and50 still needing exact observation contracts/implementation.
 

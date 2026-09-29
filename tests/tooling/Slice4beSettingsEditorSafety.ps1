@@ -152,17 +152,29 @@ function Test-SettingsOlderPolicy($Fixture) {
         $controls=Table $book 'tblEventTrackingControls'
         $header=$headers.ListRows.Item($headers.ListRows.Count)
         $version=[int]$header.Range.Cells.Item(1,$headers.ListColumns.Item('PolicyVersion').Index).Value2
+        $catalogVersion=[int]$header.Range.Cells.Item(1,$headers.ListColumns.Item('CatalogVersion').Index).Value2
         $header.Range.Cells.Item(1,$headers.ListColumns.Item('CatalogVersion').Index).Value2=10.0
-        $newIds=@((SettingsActivityCases).Id)+@('ADMIN_TRACKING_SAVE')
+        # A catalog-10 fixture must exclude every later control, including
+        # Production additions made after the original Settings catalog gate.
+        $oldIds=@(([string](Run 'invSys.Core.xlam' 'TestSettingsOwnerState.CatalogIds' @(10))).Split("`n")|Where-Object {$_ -ne ''})
+        $currentIds=@(([string](Run 'invSys.Core.xlam' 'TestSettingsOwnerState.CatalogIds' @($catalogVersion))).Split("`n")|Where-Object {$_ -ne ''})
+        $newIds=@($currentIds|Where-Object {$_ -cnotin $oldIds})
         $removed=0
         for($index=$controls.ListRows.Count;$index -ge 1;$index--){
             $row=$controls.ListRows.Item($index)
             if([int]$row.Range.Cells.Item(1,$controls.ListColumns.Item('PolicyVersion').Index).Value2 -eq $version -and
                 [string]$row.Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2 -cin $newIds){$row.Delete();$removed++}
         }
+        $remaining=@(foreach($row in $controls.ListRows){
+            if([int]$row.Range.Cells.Item(1,$controls.ListColumns.Item('PolicyVersion').Index).Value2 -eq $version){
+                [string]$row.Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2
+            }
+        })
         $book.Save();$book.Close($false);$book=$null
         $config=(Get-FileHash -LiteralPath $Fixture.Config).Hash
-        Check 'SettingsActivity.OlderPolicy.ExactCatalogTenFixture' ($removed -eq 26 -and
+        Check 'SettingsActivity.OlderPolicy.ExactCatalogTenFixture' ($oldIds.Count -eq 36 -and
+            $removed -eq $newIds.Count -and $removed -ge 26 -and $remaining.Count -eq 36 -and
+            @($remaining|Select-Object -Unique).Count -eq 36 -and @($oldIds|Where-Object {$_ -cnotin $remaining}).Count -eq 0 -and
             [string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Policy' @('ADMIN_SETTINGS_SAVE_VALUE')) -ceq ('True|True|True|'+$version))
         foreach($id in $newIds){Check ('SettingsActivity.OlderPolicy.Excludes.'+$id) (
             [string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Policy' @($id)) -ceq 'False|False|False|0')}

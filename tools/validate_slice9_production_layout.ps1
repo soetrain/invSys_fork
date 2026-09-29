@@ -48,6 +48,8 @@ public static class Slice9NativeWindow {
     [DllImport("user32.dll", SetLastError=true)]
     public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
     [DllImport("user32.dll", SetLastError=true)]
+    public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+    [DllImport("user32.dll", SetLastError=true)]
     public static extern bool GetClientRect(IntPtr hwnd, out RECT rect);
     [DllImport("user32.dll", SetLastError=true)]
     public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
@@ -110,42 +112,53 @@ function Wait-ForLayoutWindow {
 
 function Save-WindowScreenshot {
     param([IntPtr]$Handle, [string]$Path)
-    $rect = New-Object Slice9NativeWindow+RECT
-    if (-not [Slice9NativeWindow]::GetWindowRect($Handle, [ref]$rect)) {
-        throw "Could not read the Production form window bounds."
+    # PrintWindow renders physical pixels. Keep bounds and fallback capture in
+    # the same coordinate space, then restore the geometry validator's context.
+    $previousDpi = [Slice9NativeWindow]::SetThreadDpiAwarenessContext([IntPtr](-4))
+    if ($previousDpi -eq [IntPtr]::Zero) {
+        throw "Physical capture context unavailable."
     }
-    $width = $rect.Right - $rect.Left
-    $height = $rect.Bottom - $rect.Top
-    if ($width -le 0 -or $height -le 0) {
-        throw "Production form window bounds were invalid: ${width}x${height}."
-    }
-
-    [void][Slice9NativeWindow]::ShowWindow($Handle, 9)
-    [void][Slice9NativeWindow]::SetForegroundWindow($Handle)
-    Start-Sleep -Milliseconds 150
-    $bitmap = New-Object Drawing.Bitmap($width, $height)
-    $graphics = [Drawing.Graphics]::FromImage($bitmap)
-    $captured = $false
     try {
-        $hdc = $graphics.GetHdc()
+        $rect = New-Object Slice9NativeWindow+RECT
+        if (-not [Slice9NativeWindow]::GetWindowRect($Handle, [ref]$rect)) {
+            throw "Could not read the Production form window bounds."
+        }
+        $width = $rect.Right - $rect.Left
+        $height = $rect.Bottom - $rect.Top
+        if ($width -le 0 -or $height -le 0) {
+            throw "Production form window bounds were invalid: ${width}x${height}."
+        }
+
+        [void][Slice9NativeWindow]::ShowWindow($Handle, 9)
+        [void][Slice9NativeWindow]::SetForegroundWindow($Handle)
+        Start-Sleep -Milliseconds 150
+        $bitmap = New-Object Drawing.Bitmap($width, $height)
+        $graphics = [Drawing.Graphics]::FromImage($bitmap)
+        $captured = $false
         try {
-            $captured = [Slice9NativeWindow]::PrintWindow($Handle, $hdc, 2)
+            $hdc = $graphics.GetHdc()
+            try {
+                $captured = [Slice9NativeWindow]::PrintWindow($Handle, $hdc, 2)
+            }
+            finally {
+                $graphics.ReleaseHdc($hdc)
+            }
+            if (-not $captured) {
+                $graphics.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bitmap.Size)
+            }
         }
         finally {
-            $graphics.ReleaseHdc($hdc)
+            $graphics.Dispose()
         }
-        if (-not $captured) {
-            $graphics.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bitmap.Size)
+        try {
+            $bitmap.Save($Path, [Drawing.Imaging.ImageFormat]::Png)
+        }
+        finally {
+            $bitmap.Dispose()
         }
     }
     finally {
-        $graphics.Dispose()
-    }
-    try {
-        $bitmap.Save($Path, [Drawing.Imaging.ImageFormat]::Png)
-    }
-    finally {
-        $bitmap.Dispose()
+        [void][Slice9NativeWindow]::SetThreadDpiAwarenessContext($previousDpi)
     }
 }
 
