@@ -9,6 +9,7 @@ param(
     [switch]$CheckActivityFoundation,
     [switch]$CheckAdminUomActivity,
     [switch]$CheckProductionDesignerActivity,
+    [switch]$CheckProductionUomStaging,
     [switch]$CheckProductionInstructions,
     [switch]$CheckProductionInstructionPaths,
     [switch]$CheckProductionLifecycle,
@@ -204,6 +205,7 @@ if($CheckSettingsEditorActivity){
     $CheckActivityEvidence=$true
 }
 if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
+if($CheckProductionUomStaging -and (-not $CheckProductionDesignerActivity -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'UOM staging preservation requires its separate compiled Production handler gate.'}
 if($CheckProductionInstructions -and (-not $CheckProductionDesignerActivity -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Instruction checks require their separate compiled Production designer gate.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
 if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
@@ -382,6 +384,7 @@ if($CheckSettingsEditorActivity){
 }
 if($CheckProductionDesignerActivity){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-designer/'+[guid]::NewGuid().ToString('N'))
+    if($CheckProductionUomStaging){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-staging/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructions){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instructions/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructionPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instruction-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionLifecyclePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-paths/'+[guid]::NewGuid().ToString('N'))}
@@ -1123,6 +1126,10 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
         Install-Slice4beShippingCatalogProbe
         Install-ProductionDesignerProbe
+        if($CheckProductionUomStaging){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionUomStaging.ps1')
+            Install-ProductionUomStagingProbe
+        }
         if($CheckProductionInstructions){
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionProbe.ps1')
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionActivity.ps1')
@@ -1404,6 +1411,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
             Test-ProductionInstructionPaths $a
         }
+        elseif($CheckProductionUomStaging){Test-ProductionUomStaging $a}
         elseif($CheckProductionInstructions){Test-ProductionInstructionActivity $a $b}
         elseif($CheckProductionLifecyclePaths){
             Test-DesignsSourceEvidence
