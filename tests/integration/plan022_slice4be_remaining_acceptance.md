@@ -23,8 +23,10 @@ and a reviewed terminal REUSED capture; Settings passes202/202, and packaged lay
 passes with complete reviewed images. Captured-workbook public-launcher close/reopen
 passes1/1 but uses forced cleanup; it does not establish normal shutdown or resolve
 the failed visible combined guard. Instructions411/411 retains exact prior checks,
-normal closure and preservation on the extent candidate. Remaining regressions
-and release gates stay open.
+normal closure and preservation on the extent candidate. Instruction paths105/105
+also retain exact identities, normal closure and six reviewed principal images.
+Draft/Action Paths390/390 also retain exact identities, normal unassisted closure
+and settings/packages. Remaining regressions and release gates stay open.
 
 **UOM staging correction, release gate still open:** The user-approved reuse
 workflow has [focused RED60/18 -> GREEN78/78](plan022_slice4be_production_uom_staging_results.md)

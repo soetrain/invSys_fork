@@ -136,7 +136,24 @@ Excel Application event. Controller: `production-instruction-controller/f92a5868
 result: `slice4be-production-instructions/24874fd7a68b4bfc907684d45bc2f475/green.json`;
 verification: `production-uom-extent-instructions-verification.json`.
 
-Applicable instruction paths, draft/lifecycle, Settings-observation and native regressions must run
+Instruction paths also pass105/105 with exact prior identities, six reviewed
+principal images, normal unassisted closure, preservation and no Excel Application
+event. The detail image selects REQUESTED; the paired conclusion shows all five
+STAGED outcomes and CommandCompleted without asserting Domain application.
+Controller: `production-instruction-controller/3f25713a2a0a4361bc706ce27db8cf8d`;
+result/images: `slice4be-production-instruction-paths/e476b7d9e64a40a9a8783f34b5c14bf4`;
+verification: `production-uom-extent-instruction-paths-verification.json`.
+
+The draft/Action Path regression passes390/390, retaining exact prior identities,
+normal unassisted closure, settings/packages and zero Excel Application events.
+The controller finishes about61 seconds after the final report without
+intervention; a post-report observation confirms Excel has exited. Controller:
+`production-uom-extent-regression/draft-eab58816d05d4229b76588e88860e644`;
+inner controller: `production-designer-controller/0afa3cd3559b4d53af212ad3e9fc7452`;
+result: `slice4be-production-designer/f9d77d39b8be4fd2bfea52da7d353c5a/green.json`;
+verification: `production-uom-extent-draft-verification.json`.
+
+Applicable lifecycle, Settings-observation and native regressions must run
 on the final candidate. The preceding candidate's full-chain/native c0000028
 blocker remains unresolved. No package promotion or Release1 acceptance is claimed.
 
