@@ -9,6 +9,8 @@ param(
     [switch]$CheckActivityFoundation,
     [switch]$CheckAdminUomActivity,
     [switch]$CheckProductionDesignerActivity,
+    [switch]$CheckProductionInstructions,
+    [switch]$CheckProductionInstructionPaths,
     [switch]$CheckProductionLifecycle,
     [switch]$CheckProductionLifecyclePaths,
     [switch]$CheckProductionLifecycleNative,
@@ -202,6 +204,8 @@ if($CheckSettingsEditorActivity){
     $CheckActivityEvidence=$true
 }
 if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
+if($CheckProductionInstructions -and (-not $CheckProductionDesignerActivity -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Instruction checks require their separate compiled Production designer gate.'}
+if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
 if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
 if($CheckProductionLifecyclePaths -and -not $CheckProductionLifecycle){throw 'Lifecycle paths require the lifecycle adapters.'}
 if(($CheckProductionLifecycleNative -or $CheckProductionLifecyclePresentation) -and (-not $CheckProductionLifecycle -or -not $CaptureEvidence)){throw 'Native lifecycle and presentation checks require the compiled lifecycle adapters and visible evidence.'}
@@ -378,6 +382,8 @@ if($CheckSettingsEditorActivity){
 }
 if($CheckProductionDesignerActivity){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-designer/'+[guid]::NewGuid().ToString('N'))
+    if($CheckProductionInstructions){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instructions/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionInstructionPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instruction-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionLifecyclePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionLifecycleNative){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-native/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionLifecyclePresentation){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-presentation/'+[guid]::NewGuid().ToString('N'))}
@@ -851,7 +857,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation){
+    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -1117,11 +1123,16 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
         Install-Slice4beShippingCatalogProbe
         Install-ProductionDesignerProbe
+        if($CheckProductionInstructions){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionProbe.ps1')
+            . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionActivity.ps1')
+            Install-ProductionInstructionProbe
+        }
         if($CheckProductionLifecycle){
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
             Install-ProductionLifecycleProbe
         }
-        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation){
+        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
             Install-ProductionPathsProbe
         }
@@ -1133,7 +1144,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleNative.ps1')
             Install-ProductionLifecycleNativeProbe
         }
-        if($CheckProductionLifecyclePresentation){
+        if($CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths){
             . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
             Install-GuideDraftProbe
         }
@@ -1389,7 +1400,12 @@ End Function
     if ($CheckActivityFoundation) { Test-Slice4beActivityFoundation $a $b }
     if($CheckProductionDesignerActivity){
         $step='Production designer observations through actual packaged handlers'
-        if($CheckProductionLifecyclePaths){
+        if($CheckProductionInstructionPaths){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
+            Test-ProductionInstructionPaths $a
+        }
+        elseif($CheckProductionInstructions){Test-ProductionInstructionActivity $a $b}
+        elseif($CheckProductionLifecyclePaths){
             Test-DesignsSourceEvidence
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecyclePaths.ps1')
             Test-ProductionLifecyclePaths $a

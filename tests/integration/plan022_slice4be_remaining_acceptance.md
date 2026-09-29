@@ -3,6 +3,21 @@
 Last reviewed: 2026-09-29 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
+**Instruction coverage checkpoint,2026-09-29:** Five discovered Process Designer
+instruction controls now have the D18 catalog14 contract and typed packaged
+handlers. [Focused evidence](plan022_slice4be_production_instruction_results.md)
+advances105 PASS/306 behavioral FAIL to411/411, retaining exact identities, saved
+authority, unknown columns, normal closure and settings/package preservation.
+The new candidate is `validation-production-instructions-typed`; five compiles and
+cold start pass with exactly five changed/added components. Dynamic-call and
+duplicate counts do not grow; all28 module limits are retained or reduced.
+Instruction recording/publication and paired views pass105/105 with six reviewed
+principal images, preserved original identities, canonical/workbook bytes, normal
+closure and zero Excel Application errors. Current-candidate regressions remain
+pending. Prior candidate evidence below keeps its original scope; the full
+Production native failure remains open. The form census now has18 registered
+buttons and50 still needing exact observation contracts/implementation.
+
 **Batch-boundary diagnostic,2026-09-29:** [Traced and untraced controls](plan022_slice4be_production_batch_boundary_results.md)
 pass the same7/7 checks on the unchanged candidate;31 calibrated fixed markers
 show all three launches and the scale calculation returning. Both controllers

@@ -10392,14 +10392,7 @@ Private Sub mBtnProcessClear_Click()
 End Sub
 
 Private Function DesignerContextIsCurrent() As Boolean
-    Dim candidate As Workbook
-    On Error GoTo Invalid
-    If mActivityContext = "" Or mActivityContext <> modActivity.CaptureContext() Then Exit Function
-    If mOperatorWorkbook Is Nothing Then Exit Function
-    For Each candidate In Application.Workbooks
-        If candidate Is mOperatorWorkbook Then DesignerContextIsCurrent = True: Exit Function
-    Next candidate
-Invalid:
+    DesignerContextIsCurrent = modProductionDesignerActions.ContextIsCurrent(mActivityContext, mOperatorWorkbook)
 End Function
 
 Private Sub DesignerDraftAction(ByVal processDesigner As Boolean, ByVal action As String)
@@ -10843,27 +10836,30 @@ Private Sub mLstProcessInstructions_Click()
 End Sub
 
 Private Sub mBtnProcessInstructionAdd_Click()
-    If Trim$(mTxtProcessInstruction.Text) = "" Then Exit Sub
-    mLstProcessInstructions.AddItem CStr(mLstProcessInstructions.ListCount + 1)
-    mLstProcessInstructions.List(mLstProcessInstructions.ListCount - 1, 1) = Trim$(mTxtProcessInstruction.Text)
+    DesignerInstructionAction InstructionAdd
 End Sub
 
 Private Sub mBtnProcessInstructionUpdate_Click()
-    If mLstProcessInstructions.ListIndex >= 0 Then _
-        mLstProcessInstructions.List(mLstProcessInstructions.ListIndex, 1) = Trim$(mTxtProcessInstruction.Text)
+    DesignerInstructionAction InstructionUpdate
 End Sub
 
 Private Sub mBtnProcessInstructionRemove_Click()
-    RemoveSelectedListRow mLstProcessInstructions
-    RenumberInstructionOrdinals
+    DesignerInstructionAction InstructionRemove
 End Sub
 
 Private Sub mBtnProcessInstructionUp_Click()
-    MoveSelectedListRow mLstProcessInstructions, -1
+    DesignerInstructionAction InstructionUp
 End Sub
 
 Private Sub mBtnProcessInstructionDown_Click()
-    MoveSelectedListRow mLstProcessInstructions, 1
+    DesignerInstructionAction InstructionDown
+End Sub
+
+Private Sub DesignerInstructionAction(ByVal action As ProductionInstructionAction)
+    Dim report As String
+    report = modProductionDesignerActions.EditInstruction(action, mActivityContext, mOperatorWorkbook, _
+        mLstProcessInstructions, mTxtProcessInstruction, mLoading, mDesignerActionInProgress)
+    If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mBtnRecipeRefresh_Click()
