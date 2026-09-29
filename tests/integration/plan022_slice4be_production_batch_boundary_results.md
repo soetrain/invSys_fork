@@ -101,8 +101,7 @@ references after Quit and application release/GC. Excel remains alive after two
 seconds, then exits without termination after those references are released.
 No packages or saved workbook are involved. This proves a harness reference-lifetime
 mechanism on this host, not the cause of the Production crash or Settings retention.
-Next: bounded cleanup testing through the actual packaged callback, preserving
-the existing assertions and independently checking process exit.
+Subsequent packaged cleanup controls below retain this distinction.
 
 - Final calibration: `reports/runtime/native-exception-calibration/337246656f1f4ee6b6e1caa8c4eb9158`.
 - Trace placement: `reports/runtime/production-batch-trace-placement/3486fb84cb9a49478ce340c024bde556`.
@@ -111,6 +110,44 @@ the existing assertions and independently checking process exit.
 - Filtered generation: `reports/runtime/production-batch-boundary/47e1fcea86044debac00f07004715ea5`.
 - Filtered observed run: `reports/runtime/production-batch-boundary/f96a29127e2e4372948ca4f2dcbfe6c8` (19:09:00--19:13:41 UTC).
 - Blank-workbook reference calibration: `reports/runtime/excel-reference-release/6c22f8e0e0f5459090d267197c1d351f`.
+
+## Automation cleanup controls: no packaged repair
+
+`IsolatedAutomationCleanup.ps1` is restricted to completed isolated workers that
+own every supplied COM reference. It traverses script variables and collections,
+deduplicates aliases, handles cycles/multidimensional arrays, skips already released
+references and reports counts only. The disposable blank-workbook calibration
+passes8/8, including ordinary process exit without termination. Expanded cases
+first exposed unsupported two-dimensional indexing and a released RCW; these are
+tool calibration failures, not invSys behavioral RED.
+
+`-ReleaseAutomationForTest` runs after the original workflow report and Quit,
+then observes exit for30 seconds before the unchanged termination fallback. The
+optional `-ClearErrorReferencesForTest` clears only the disposable worker's error
+records after assertions/reporting. It never suppresses workflow errors. Generated
+validation reverses these declared insertions and preserves every original
+statement. Exceptions in the diagnostic step produce sanitized type/code/line
+metadata and still reach the original cleanup fallback.
+
+| Packaged scoped control | Workflow | Cleanup result |
+|---|---|---|
+| Initial helper / matrix correction |7/7 in each attempt |No release receipt; explicit assisted cleanup. Original worker error transport truncated. |
+| Sanitized failure receipt |7/7,55 trace entries |Released RCW encountered while collecting variables; automatic fallback termination. |
+| Released-reference correction |7/7,55 trace entries |Zero live references found,12 already released references and5 already released variables; still alive after30 seconds, automatic termination. |
+| Post-report error-record control |7/7,55 trace entries |Same reference counts;33 error records cleared; still alive after30 seconds, automatic termination. |
+
+All retain settings, five frozen packages and the original validator. The last
+three retain zero Excel Application events. No cleanup control establishes normal
+packaged shutdown or repairs the cold native crash. Do not promote either cleanup
+variant into the ordinary validator on these results. All303 PowerShell scripts
+parse; runtime VBA/source packages remain unchanged. Continue independent coverage
+with these release gates explicitly open rather than repeating these comparisons.
+
+- Final cleanup calibration: `reports/runtime/isolated-automation-cleanup/f22bd80633fd4d0d92a9024ab8759ab4`.
+- Initial scoped attempts: `reports/runtime/production-batch-boundary/77cfa5e07d704128ae29f5a0d8c94320` and `479a333a4bf947838b2f7c6d26124786`.
+- Sanitized failure: `reports/runtime/production-batch-boundary/febd43f45a4e4c099b0148edc35e0d58`.
+- Corrected reference control: `reports/runtime/production-batch-boundary/b5a92fe7f6154a76ad2e016cc3158aec` (19:25:07--19:26:01 UTC).
+- Error-record control: `reports/runtime/production-batch-boundary/0120112c573b492cb17d580e6e8724cb` (19:27:19--19:28:13 UTC).
 
 ## Earlier scoped boundary evidence
 

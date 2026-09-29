@@ -2,12 +2,13 @@
 [CmdletBinding()]
 param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-production-paths',
       [string]$PackagePinsPath='reports/runtime/production-lifecycle-native-controller/65e8e27585ca47289cf27e87e147e83e/package-pins.json',
-      [switch]$TraceBoundaries,[switch]$StandardRunFlow,[switch]$CompileOnly,[switch]$NativeExceptions,[switch]$NativeFaultsOnly,[switch]$GenerateOnly)
+      [switch]$TraceBoundaries,[switch]$StandardRunFlow,[switch]$CompileOnly,[switch]$NativeExceptions,[switch]$NativeFaultsOnly,[switch]$ReleaseAutomationForTest,[switch]$ClearErrorReferencesForTest,[switch]$GenerateOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if($StandardRunFlow -and -not ($TraceBoundaries -or $CompileOnly -or $NativeExceptions)){throw 'Standard-flow diagnosis requires an explicit observer/control.'}
 if($CompileOnly -and ($TraceBoundaries -or -not $StandardRunFlow)){throw 'VBE preparation control requires standard flow without tracing.'}
 if($NativeExceptions -and ($TraceBoundaries -or $CompileOnly -or -not $StandardRunFlow)){throw 'Native observation requires standard flow without VBE preparation.'}
 if($NativeFaultsOnly -and -not $NativeExceptions){throw 'Native filtering requires the native observer.'}
+if($ClearErrorReferencesForTest -and -not $ReleaseAutomationForTest){throw 'Post-report error-reference control requires explicit automation cleanup diagnosis.'}
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before the isolated diagnostic.'}
 $deploy=(Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
@@ -65,6 +66,34 @@ if($TraceBoundaries){
 '@
     $source=Replace-Once $source $anchor ($arm+"`r`n"+$anchor)
 }
+if($ReleaseAutomationForTest){
+    $releaseAnchor='    $cleanupTerminationRequested=$false'
+    $releaseInstall=@'
+    . (Join-Path $repo 'tests/tooling/IsolatedAutomationCleanup.ps1')
+    $releasedReferences=$null;$releaseFailure=$null
+    $clearedErrorRecords=0
+    $normalExit=$false
+    try {
+        $releasedReferences=Release-IsolatedAutomationVariables -Variables (Get-Variable -Scope Script)
+        [GC]::Collect();[GC]::WaitForPendingFinalizers();[GC]::Collect()
+        if($excelProcessId -gt 0){
+            $releaseOwner=Get-Process -Id $excelProcessId -ErrorAction SilentlyContinue
+            $normalExit=($null -eq $releaseOwner)
+            if($null -ne $releaseOwner){$normalExit=$releaseOwner.WaitForExit(30000)}
+        }
+    } catch {
+        $failureId=[string]$_.FullyQualifiedErrorId
+        if($failureId -cnotmatch '^[A-Za-z0-9.,_]+$'){$failureId='Unclassified'}
+        $releaseFailure=[pscustomobject]@{ErrorId=$failureId;ExceptionType=$_.Exception.GetType().Name;HResult=$_.Exception.HResult;Line=$_.InvocationInfo.ScriptLineNumber}
+    }
+    [pscustomobject]@{References=$releasedReferences;Failure=$releaseFailure;ExitedAfterRelease=$normalExit;ObservationSeconds=30;ClearedErrorRecords=$clearedErrorRecords}|ConvertTo-Json|Set-Content (Join-Path $outputPath 'automation-release.json')
+'@
+    if($ClearErrorReferencesForTest){
+        $releaseInstall=$releaseInstall.Replace('        [GC]::Collect();[GC]::WaitForPendingFinalizers();[GC]::Collect()',
+            '        $clearedErrorRecords=$Error.Count;$Error.Clear()'+"`r`n"+'        [GC]::Collect();[GC]::WaitForPendingFinalizers();[GC]::Collect()')
+    }
+    $source=Replace-Once $source $releaseAnchor ($releaseInstall+"`r`n"+$releaseAnchor)
+}
 $anchor='                $observedText += " || PRODUCTION_BATCH_SCALE=" + $workflowControlReport'
 $cutAnchor=$anchor
 $cut=@'
@@ -97,6 +126,7 @@ if(-not $StandardRunFlow){$restoredSource=$restoredSource.Replace($cut,$cutAncho
 if($TraceBoundaries -or $CompileOnly){$restoredSource=$restoredSource.Replace($install+"`r`n",'')}
 if($TraceBoundaries){$restoredSource=$restoredSource.Replace($arm+"`r`n",'')}
 if($NativeExceptions){$restoredSource=$restoredSource.Replace($nativeInstall+"`r`n",'')}
+if($ReleaseAutomationForTest){$restoredSource=$restoredSource.Replace($releaseInstall+"`r`n",'')}
 $statementsPreserved=($restoredSource -replace "`r`n","`n") -ceq ($originalSource -replace "`r`n","`n")
 if(-not $statementsPreserved){throw 'Diagnostic changed undeclared standard-validator statements.'}
 $generated=Join-Path $root $(if($StandardRunFlow){'standard-run-validator.ps1'}else{'scoped-validator.ps1'})
@@ -104,7 +134,7 @@ $generated=Join-Path $root $(if($StandardRunFlow){'standard-run-validator.ps1'}e
 $tokens=$null;$errors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($generated,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'Diagnostic does not parse.'}
-[pscustomobject]@{StandardRunFlow=[bool]$StandardRunFlow;TraceBoundaries=[bool]$TraceBoundaries;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;OriginalStatementsPreserved=$statementsPreserved;ParseErrors=$errors.Count;GenerationOpenedExcel=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'generation.json')
+[pscustomobject]@{StandardRunFlow=[bool]$StandardRunFlow;TraceBoundaries=[bool]$TraceBoundaries;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;ReleaseAutomationForTest=[bool]$ReleaseAutomationForTest;ClearErrorReferencesForTest=[bool]$ClearErrorReferencesForTest;OriginalStatementsPreserved=$statementsPreserved;ParseErrors=$errors.Count;GenerationOpenedExcel=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'generation.json')
 if($GenerateOnly){Write-Output 'Diagnostic generation calibrated; no runtime invoked.';return}
 if($NativeExceptions){
     @('NativeExceptionObserver.cs','Test-ProductionBatchBoundary.ps1')|ForEach-Object {
@@ -166,7 +196,12 @@ if($NativeExceptions){
     $nativeStates=@($nativeEvents|Where-Object {$_.PSObject.Properties['State']}|ForEach-Object State)
     $nativeValid=('Ready' -cin $nativeStates -and ('Exited' -cin $nativeStates -or 'Detached' -cin $nativeStates) -and @($nativeEvents|Where-Object {$_.PSObject.Properties['Win32Error'] -and $_.Win32Error -ne 0}).Count -eq 0)
 }
-$result=[pscustomobject]@{TraceBoundaries=[bool]$TraceBoundaries;StandardRunFlow=[bool]$StandardRunFlow;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;NativeObserverValid=$nativeValid;OriginalStatementsPreserved=$statementsPreserved;PassedChecks=$checks.Count-$failed;FailedChecks=$failed;Checks=$checks;CutReached=$cutReached;TraceAllowlistValid=$traceValid;TraceEntries=$stages.Count;ExcelApplicationEvents=$events.Count;FinalCleanup=$cleanup;DiagnosticPassed=($code -eq 0 -and $scopeSatisfied -and $failed -eq 0 -and $traceValid -and $nativeValid -and $events.Count -eq 0);FullProductionAccepted=$false}
+$releaseValid=$true
+if($ReleaseAutomationForTest){
+    $released=Get-Content (Join-Path $root 'automation-release.json') -Raw|ConvertFrom-Json
+    $releaseValid=($released.ExitedAfterRelease -and $null -eq $released.Failure -and $null -ne $released.References -and $released.References.ReleaseFailures -eq 0 -and $null -ne $cleanup -and -not $cleanup.TerminationRequested)
+}
+$result=[pscustomobject]@{TraceBoundaries=[bool]$TraceBoundaries;StandardRunFlow=[bool]$StandardRunFlow;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;NativeObserverValid=$nativeValid;ReleaseAutomationForTest=[bool]$ReleaseAutomationForTest;ClearErrorReferencesForTest=[bool]$ClearErrorReferencesForTest;AutomationReleaseValid=$releaseValid;OriginalStatementsPreserved=$statementsPreserved;PassedChecks=$checks.Count-$failed;FailedChecks=$failed;Checks=$checks;CutReached=$cutReached;TraceAllowlistValid=$traceValid;TraceEntries=$stages.Count;ExcelApplicationEvents=$events.Count;FinalCleanup=$cleanup;DiagnosticPassed=($code -eq 0 -and $scopeSatisfied -and $failed -eq 0 -and $traceValid -and $nativeValid -and $releaseValid -and $events.Count -eq 0);FullProductionAccepted=$false}
 $result|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $root 'result.json')
 $result|Select-Object TraceBoundaries,StandardRunFlow,CompileOnly,OriginalStatementsPreserved,PassedChecks,FailedChecks,CutReached,TraceAllowlistValid,TraceEntries,ExcelApplicationEvents,FinalCleanup,DiagnosticPassed|ConvertTo-Json -Depth 4
 if(-not $result.DiagnosticPassed){exit 1}
