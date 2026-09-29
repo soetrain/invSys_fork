@@ -3,7 +3,30 @@
 Last reviewed: 2026-09-29 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
-**UOM observation/extent checkpoint:** Catalog15 registers `PRODUCTION_UOM_EDIT`;
+**Paused at the user's desktop-error stop condition,2026-09-29:** cursor error5
+recurs15:34:46 Pacific (22:34:46 UTC), after the disposable component controller
+had closed Excel and restored settings/packages. Component contract16 is specified
+but runtime is unchanged; two fixture failures do not establish D13 RED. See
+[component test continuation](plan022_slice4be_production_component_results.md).
+Do not resume tests or implementation without user resume.
+
+**Current extent-candidate checkpoint:** combined visible UOM264/264 and the actual
+public-launcher UOM lifecycle61/61 pass with normal unassisted closure, five
+instrumented compiles per gate, preserved settings/packages and reviewed principal
+images. The retained-form fixture now constructs with a separate workbook active
+before explicit target binding; every original refusal assertion remains. Settings
+observations468/468 retain all467 prior identities plus the catalog15 UOM exclusion
+check, eight reviewed captures and unassisted closure about118 seconds after the
+report. No Excel Application error event occurs in these runs. See
+[current UOM evidence](plan022_slice4be_production_uom_activity_results.md).
+Earlier failed diagnostics below are historical; these passes do not explain the
+native crashes or establish the current full chain/reusable Production gate.
+Runtime Production coverage is19/68 constructed controls, with49 remaining.
+Architecture D18 now specifies the ten requirement/output editor controls for
+catalog16 under approved semantic inheritance; implementation is pending D13
+packaged-handler RED. No operational deployment or Release1 acceptance is claimed.
+
+**Earlier UOM observation/extent checkpoint:** Catalog15 registers `PRODUCTION_UOM_EDIT`;
 focused actual-handler RED98/134 becomes232/232 on the observation candidate.
 Its path gate passes84/84 but needs a verified disposable delete-dialog confirmation,
 so unattended acceptance remains open. A new blank-row test exposes table-extent

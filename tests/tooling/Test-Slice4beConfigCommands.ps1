@@ -15,6 +15,7 @@ param(
     [switch]$CheckProductionUomPublicClose,
     [switch]$CheckProductionUomPaths,
     [switch]$CheckProductionInstructions,
+    [switch]$CheckProductionComponents,
     [switch]$CheckProductionInstructionPaths,
     [switch]$CheckProductionLifecycle,
     [switch]$CheckProductionLifecyclePaths,
@@ -215,6 +216,7 @@ if($UomAdapterDiagnostic -and (-not $CheckProductionUomActivity -or -not $Captur
 if($CheckProductionUomPublicClose -and (-not $CheckProductionUomActivity -or -not $CaptureEvidence -or $CheckProductionUomPaths -or $UomAdapterDiagnostic)){throw 'Public close requires the separate visible UOM activity fixture.'}
 if($CheckProductionUomPaths -and (-not $CheckProductionUomStaging -or -not $CaptureEvidence -or $CheckProductionUomActivity)){throw 'UOM paths require the separate staging adapters and visible evidence.'}
 if($CheckProductionInstructions -and (-not $CheckProductionDesignerActivity -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Instruction checks require their separate compiled Production designer gate.'}
+if($CheckProductionComponents -and (-not $CheckProductionDesignerActivity -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Component checks require their separate compiled Production designer gate.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
 if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
 if($CheckProductionLifecyclePaths -and -not $CheckProductionLifecycle){throw 'Lifecycle paths require the lifecycle adapters.'}
@@ -394,6 +396,7 @@ if($CheckProductionDesignerActivity){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-designer/'+[guid]::NewGuid().ToString('N'))
     if($CheckProductionUomStaging){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-staging/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructions){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instructions/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionComponents){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-components/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructionPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instruction-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomPublicClose){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-public-close/'+[guid]::NewGuid().ToString('N'))}
@@ -1154,6 +1157,11 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionActivity.ps1')
             Install-ProductionInstructionProbe
         }
+        if($CheckProductionComponents){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionComponentProbe.ps1')
+            . (Join-Path $PSScriptRoot 'Slice4beProductionComponentActivity.ps1')
+            Install-ProductionComponentProbe
+        }
         if($CheckProductionLifecycle){
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
             Install-ProductionLifecycleProbe
@@ -1434,6 +1442,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
             Test-ProductionInstructionPaths $a -Uom
         }
+        elseif($CheckProductionComponents){Test-ProductionComponentActivity $a $b}
         elseif($CheckProductionUomPublicClose){Test-ProductionUomPublicClose $a}
         elseif($CheckProductionUomStaging){
             Test-ProductionUomStaging $a
