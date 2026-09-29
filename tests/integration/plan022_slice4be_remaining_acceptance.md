@@ -12,7 +12,10 @@ static limits and three schemas pass. Publication/paired paths pass142/142,
 retaining all140 prior checks with normal closure, two calibrated selected-field
 checks and six reviewed principal images including the exact STAGED terminal.
 Current-candidate layout, Settings202/202, Instructions411/411, instruction
-paths105/105 and UOM paths84/84 pass with unassisted closure and preservation;
+paths105/105 and UOM paths84/84 pass with preservation and unassisted final closure;
+Settings' internal preference-restart shutdown remains unobserved because its
+helper can force termination without recording the branch. Do not infer all-host
+normal closure from202/202, including earlier gates using that helper. The
 remaining regressions and full release/native gates remain open. See
 [component evidence](plan022_slice4be_production_component_results.md).
 Desktop monitoring resumes with successful samples; stop again on actual error5.

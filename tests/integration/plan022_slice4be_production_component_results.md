@@ -94,10 +94,16 @@ report are preserved, with zero Excel Application events. Receipt
 Settings passes **202/202**, retaining the exact preceding check identities.
 Controller `production-components-regression/settings-b010a4a7db3b48eda4b1944952ef14e1`,
 result `slice4be-tracking-settings/86488955e5384bf3b394669942e8460e/green.json`,
-23:21:13--23:24:59 UTC. Five instrumented compiles, unassisted closure, settings/
-package preservation and zero Excel Application events are verified. Receipt
+23:21:13--23:24:59 UTC. Five instrumented compiles, unassisted final-host closure,
+settings/package preservation and zero Excel Application events are verified. Receipt
 `production-components-settings-verification.json`. The current-envelope version/
 count assertions advance to16/90; historical catalog definitions remain unchanged.
+Qualification discovered in the final harness review: the internal preference
+restart can invoke Stop-Process after five seconds without recording its branch
+(`Slice4beActionPathPreference.ps1`, `Test-ActionPathPreferenceRestart`). Its
+shutdown is unobserved; the202 behavioral passes do not prove every host closed
+unassisted. The same limitation applies to earlier Settings results using this
+helper. Record that branch before claiming complete normal restart/shutdown.
 
 Instructions passes **411/411**, retaining every preceding check identity.
 Controller `production-instruction-controller/eb6c581c2bc740698edba8a66293a2cf`,
