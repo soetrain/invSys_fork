@@ -12,6 +12,7 @@ param(
     [switch]$CheckProductionUomStaging,
     [switch]$CheckProductionUomActivity,
     [switch]$UomAdapterDiagnostic,
+    [switch]$CheckProductionUomPublicClose,
     [switch]$CheckProductionUomPaths,
     [switch]$CheckProductionInstructions,
     [switch]$CheckProductionInstructionPaths,
@@ -211,6 +212,7 @@ if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'R
 if($CheckProductionUomStaging -and (-not $CheckProductionDesignerActivity -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'UOM staging preservation requires its separate compiled Production handler gate.'}
 if($CheckProductionUomActivity -and -not $CheckProductionUomStaging){throw 'UOM activity requires its packaged staging gate.'}
 if($UomAdapterDiagnostic -and (-not $CheckProductionUomActivity -or -not $CaptureEvidence -or $CheckProductionUomPaths -or $Phase -cne 'RED')){throw 'Adapter diagnosis requires the combined visible UOM activity gate in diagnostic RED.'}
+if($CheckProductionUomPublicClose -and (-not $CheckProductionUomActivity -or -not $CaptureEvidence -or $CheckProductionUomPaths -or $UomAdapterDiagnostic)){throw 'Public close requires the separate visible UOM activity fixture.'}
 if($CheckProductionUomPaths -and (-not $CheckProductionUomStaging -or -not $CaptureEvidence -or $CheckProductionUomActivity)){throw 'UOM paths require the separate staging adapters and visible evidence.'}
 if($CheckProductionInstructions -and (-not $CheckProductionDesignerActivity -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Instruction checks require their separate compiled Production designer gate.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
@@ -394,6 +396,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionInstructions){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instructions/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructionPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instruction-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-paths/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionUomPublicClose){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-public-close/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionLifecyclePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionLifecycleNative){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-native/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionLifecyclePresentation){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-presentation/'+[guid]::NewGuid().ToString('N'))}
@@ -1141,6 +1144,10 @@ End Function
                 . (Join-Path $PSScriptRoot 'Slice4beProductionUomActivity.ps1')
                 Install-ProductionUomActivityProbe
             }
+            if($CheckProductionUomPublicClose){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionUomPublicClose.ps1')
+                Install-ProductionUomPublicCloseProbe
+            }
         }
         if($CheckProductionInstructions){
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionProbe.ps1')
@@ -1427,6 +1434,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
             Test-ProductionInstructionPaths $a -Uom
         }
+        elseif($CheckProductionUomPublicClose){Test-ProductionUomPublicClose $a}
         elseif($CheckProductionUomStaging){
             Test-ProductionUomStaging $a
             if($CheckProductionUomActivity){Test-ProductionUomActivity $a $b}

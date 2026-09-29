@@ -147,7 +147,11 @@ function Test-ProductionUomActivity($Fixture,$Other) {
         foreach($mode in @('DENIED','FAILED','Busy','Loading','Target','Session','SignedOut','ClosedWorkbook')){
             SelectTarget $Fixture $(if($mode -ceq 'DENIED'){'config-reader'}else{'config-producer'})
             if($UomAdapterDiagnostic){[void](Probe 'UomAdapterTraceCaseForTest' @($mode))}
-            $book=$excel.Workbooks.Add();[void](Probe 'OpenDesigner' @($book.Name))
+            $book=$excel.Workbooks.Add()
+            # Keep the deliberately retained test form alive independently of
+            # its binding; the real launcher-owned form has its own close gate.
+            if($mode -ceq 'ClosedWorkbook'){$decoy.Activate()}
+            [void](Probe 'OpenDesigner' @($book.Name))
             if($mode -ceq 'FAILED'){[void](Probe 'UomProtect' @($book.Name))}
             if($mode -ceq 'Target'){SelectTarget $Other 'config-producer'}
             if($mode -ceq 'Session'){SelectTarget $Fixture 'config-producer'}

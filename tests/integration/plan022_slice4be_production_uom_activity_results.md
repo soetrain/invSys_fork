@@ -2,6 +2,12 @@
 
 Last verified: 2026-09-29 UTC. **Focused observation GREEN; broader acceptance open.**
 
+**Current visible gate:** the controlled retained-form fixture correction below
+completes264/264 on the unchanged extent candidate, with normal unassisted closure.
+The separate real public-launcher UOM lifecycle completes61/61. Earlier failed
+diagnostics remain historical evidence; neither result explains the native crashes
+or establishes full Release1 acceptance.
+
 Architecture v4.11 D18 catalog15 registers the existing **Edit UOM Catalog on
 Sheet** handler as `PRODUCTION_UOM_EDIT`, owned by `PRODUCTION_UOM_STAGING`.
 The typed Operations adapter rechecks current captured context and existing
@@ -201,9 +207,10 @@ Durable controller/result:
 Its `uom-adapter-entry.txt` contains only sequence, fixed case/stage and numeric
 error fields. Verification: `production-uom-extent-adapter-diagnostic-verification.json`.
 D18 requires closed binding refusal without replacement-context attribution;
-the actual launcher-owned close/reopen lifecycle still needs a focused UOM proof
-before any decision about the failed retained-instance message oracle. Keep the
-failure open; do not treat diagnostic instrumentation as an accepted runtime change.
+at this checkpoint the actual launcher-owned close/reopen lifecycle still needed
+a focused UOM proof before any decision about the failed retained-instance message
+oracle. The later proof and controlled fixture correction are below; diagnostic
+instrumentation itself is not an accepted runtime change.
 
 Native cancellation94/94 retains every prior identity, four reviewed principal
 dialog images, normal unassisted closure, settings/packages and zero Excel
@@ -218,6 +225,59 @@ after one second and does not report whether that branch ran; normal automatic
 shutdown is unobserved. Controller:
 `production-uom-extent-regression/smoke-c3f670085f624961bdb4412c219ee7be`;
 verification: `production-uom-extent-smoke-verification.json`.
+
+## Actual public-launcher UOM lifecycle
+
+The separate visible public-launcher gate passes **61/61**:19 focused checks and
+all42 shared identities, five instrumented compiles, normal unassisted closure,
+preserved settings/packages and zero Excel Application1000/1001 events. Three
+principal images are reviewed. The test invokes `mProduction.BtnOpenProductionForm`,
+attaches its adapter to the sole actual loaded Production form, and exercises the
+existing Edit handler while a different workbook is active. The local operator
+root is explicitly isolated beneath the disposable run directory.
+
+Closing the captured owner disposes the launcher-owned form and creates no UOM
+action. Reopening through the same public launcher reuses the saved owner and
+retains its draft edits and unknown column. Edit records the exact REQUESTED/REUSED
+pair with saved authority Unchanged, no source-event application, no implicit save
+and the approved retained-draft/no-reload notice. The unrelated workbook, original
+activity records and saved catalog authority remain unchanged.
+
+Controller: `production-uom-staging-controller/3b45a518ead84ca7ad949dee6a34d045`;
+result/images: `slice4be-production-uom-public-close/46ce6a3f027f476db4dae3f295ccc39e`
+(21:59:19--22:00:52 UTC). Verification:
+`production-uom-extent-public-close-verification.json`.
+This supplements the retained-instance guard; it does not replace or relax its
+refusal assertion. It verifies existing D12/D18 lifecycle and approved draft
+preservation, with no runtime or architectural contract change and no manufactured
+product RED. The adapters exist only in unsaved test package copies.
+
+## Retained-form fixture correction
+
+For the ClosedWorkbook case only, activate the existing unrelated decoy before
+constructing the test form, then explicitly bind that form to the target workbook
+and close the target as before. This separates construction context from captured
+binding so the fixture can exercise a retained form. The actual public launcher
+has its own disposed-form lifecycle, protected above. No handler, refusal text,
+assertion, outcome classification or packaged runtime source changes.
+
+The combined visible gate now passes **264/264**, retaining every preceding264
+check identity, including the original closed-workbook refusal and no-redirected-
+activity assertions. It uses no diagnostic instrumentation, Debug/Reset or cleanup
+assistance. All five instrumented projects compile; Excel closes normally,
+settings/packages are preserved, two principal staging images are reviewed and
+zero Excel Application1000/1001 events occur. This controlled result supports the
+fixture-lifetime explanation for the dispatch failure, but does not establish an
+Excel internals root cause or explain the independent native crashes. It is a test
+fixture correction, not a product behavior change or a new product RED/GREEN claim.
+
+Controller: `production-uom-staging-controller/fbec7d27fa174e50ab8307189dfab6ca`;
+result/images: `slice4be-production-uom-staging/1296e98a767c471dbdd004b053e618cb`
+(22:02:24--22:06:37 UTC). Verification:
+`production-uom-extent-visible-host-verification.json`.
+All306 PowerShell files under tools/tests/tooling parse without errors. Runtime
+source and frozen packages are unchanged; the existing extent build/static metrics
+remain applicable. Diff checks pass and unrelated documentation edits remain intact.
 
 The Settings-observation regression must run
 on the final candidate. The preceding candidate's full-chain/native c0000028
