@@ -12,7 +12,22 @@ Application failures hold. Earlier crashes remain unexplained and retained;
 the latest chain result is GREEN. No runtime contract changes. Static metrics and
 all28 caps remain unchanged;3 schemas and291 PowerShell parses pass. The user
 explicitly requests pausing the goal if desktop error5 returns. Current-candidate
-draft/reusable regressions and broader Slice4be acceptance remain pending.
+reusable Production aggregate subsequently passes with all67 prior Boolean values,
+preservation; normal closure is unproved because the validator's automatic
+termination fallback was unobserved. Its `-ProductionRunOnly` scope excludes
+the separate full restart/export gate. Draft/path regression retains390/390 exact
+prior identities, five compiles, normal unassisted closure and preservation, with
+zero Excel Application failures. The subsequent full reusable/restart attempt
+stops0/1 at the batch-scale adapter with RPC0x800706BE and an Excel ntdll.dll
+0xc0000028 crash, before its full-only steps. Settings/packages restore and desktop
+probes remain accessible; this is not error5 or normal closure. The exact internal
+boundary and cause remain unproved; obtain finer fixed-stage evidence before
+another unchanged full retry. Full restart/export and broader Slice4be acceptance
+remain pending. Tooling-only cleanup receipts have focused9/18 RED to27/27 GREEN
+through the actual cleanup blocks, preserving all nine termination decisions.
+They do not retroactively prove shutdown for the earlier run. No new images are
+claimed for these regressions. See
+[continuation evidence](plan022_slice4be_production_lifecycle_visible_results.md).
 
 Latest [lifecycle Action Path checkpoint](plan022_slice4be_production_lifecycle_paths_results.md)
 advances668 PASS/40 expected evaluator FAIL to **708/708 functional GREEN** on

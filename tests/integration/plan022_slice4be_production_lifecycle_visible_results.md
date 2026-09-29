@@ -133,7 +133,78 @@ Create Warehouse32/48/15 on2026-09-29, retaining exact prior identities with nor
 unassisted closure, preservation and zero Excel Application failures. Earlier
 crashes remain unexplained; their failed attempts and assisted cleanup are retained.
 
-Current-candidate390 draft/reusable regressions,
+The same candidate's reusable Production aggregate gate passes on2026-09-29
+at16:22:36--16:26:55 UTC. All67 Boolean observations match the accepted baseline
+exactly. This is one aggregate assertion, not67 independent tests. Excel is closed
+and settings and existing reports are restored, all
+five package hashes are preserved, and the Application audit finds zero Excel
+failures. The run uses `-ProductionRunOnly`, so it does not re-establish the separate
+full restart/export gate or human visual acceptance. Private controller:
+`reports/runtime/production-paths-regression/reusable-f6165257f9f44279af72076c0f382b39`;
+receipt: `reports/runtime/production-paths-reusable-verification-20260929.json`.
+Correction: this receipt initially claimed normal unassisted closure. Source
+review finds an automatic Stop-Process fallback in the validator's ordinary final
+cleanup and its restart cleanup; the older receipt does not record whether it ran.
+Normal closure is therefore **unproved**, not inferred from ExcelClosed=True or
+the lack of manual intervention. The corrected receipt retains behavior and
+preservation and explicitly withdraws the unsupported shutdown claim.
+
+The draft/path regression subsequently passes390/390, preserving every prior
+check identity and passing five instrumented compiles. The run finishes at
+16:35:52 UTC with normal unassisted closure, restored settings and preserved
+packages; the Application audit finds zero matching Excel failures. Capture is
+disabled for this behavioral regression, so the ten earlier reviewed draft images
+retain their original candidate scope. Private result:
+`reports/runtime/slice4be-production-designer/556cee0ba8634be0bde14d9c16aee001/green.json`;
+controller: `reports/runtime/production-paths-regression/draft-705dfc68530c4d9388ea768fafa336f6`;
+receipt: `reports/runtime/production-paths-draft-verification-20260929.json`.
+
+The full reusable Production/restart gate is subsequently attempted without reduced
+flags. It stops0 PASS/one harness failure at
+`mProduction.RunProductionBatchScaleContractTest`, RPC0x800706BE. Windows records
+one Application Error in ntdll.dll, exception0xc0000028, and its paired Error
+Reporting event. This is before the full-only workflow and restart branches;
+those steps are unreached. The earlier focused67-observation GREEN is retained,
+but it cannot replace this full gate. The controller exits1 at16:36:36 UTC,
+restores settings and preserves all packages; Excel is gone without manual
+termination. The automatic fallback was unobserved. A native crash is not normal
+closure or meaningful product RED.
+Desktop access probes continue passing, so no desktop error5 is recorded for this
+attempt. Private controller:
+`reports/runtime/production-paths-regression/reusablefull-c6bcf3b25a5e4e17b127fdbaa737a983`;
+receipt: `reports/runtime/production-paths-full-reusable-verification-20260929.json`.
+
+Source review shows that the named batch-scale adapter first calls the public
+launcher again, then reads form visibility, then invokes the typed form test.
+The existing progress marker cannot distinguish those boundaries. Earlier
+[provenance](plan022_slice4be_production_provenance_diagnostics.md) and
+[native execute-fault investigations](plan022_slice4be_production_exit_and_execute_results.md)
+already record similar faults and successful instrumented controls on prior
+candidates; do not repeat their compilation, delay, relocation or broad observer
+experiments as presumed fixes. No current runtime repair or cause is established.
+Require finer fixed-stage evidence before another unchanged full retry.
+
+The resulting tooling-only correction adds value-free restart/final receipts
+without changing the existing wait or termination decisions. The focused test
+executes both actual cleanup blocks with synthetic process outcomes:9 PASS/18
+expected missing-evidence FAIL becomes27/27. It covers natural absence, requested
+termination, a different process, unknown PID and the palette wait-to-exit route.
+All nine existing termination decisions are retained; receipts contain only the
+fixed stage and two Booleans, with no process IDs, paths or values. This is harness
+evidence RED/GREEN, not an invSys runtime repair. No new live closure or full-gate
+acceptance follows from this offline calibration. Test:
+`tests/tooling/Test-LauncherCleanupEvidence.ps1`; private RED/GREEN roots under
+`reports/runtime/launcher-cleanup-evidence/` are
+`d8df3f2ca1db484aa94158a1bbf11d8d` and `528c43d500b04590ae4d0d07c9cdc83b`.
+
+Refreshed maintenance evidence in `reports/runtime/launcher-cleanup-evidence-static`
+retains253 components/6058 procedures/133166 lines,9 literal/45 unresolved dynamic
+calls,191 duplicate groups and the exact28 previous size limits. All three schemas
+and292 PowerShell parses pass. Both unrelated user files and all five package hashes
+are preserved. No VBA/form source changes require a rebuild or new layout evidence
+for this tooling-only correction. Evidence links and diffs pass review.
+
+Full reusable Production restart/export,
 broader control coverage and human/NAS acceptance remain pending.
 These scoped images do not accept the complete workflow or Release1.
 The prior long708-check run's assisted cleanup remains recorded independently;

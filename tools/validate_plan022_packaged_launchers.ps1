@@ -1412,13 +1412,17 @@ try {
         try { $excel.Quit() } catch {}
         Release-ComObject $excel
         $excel = $null
+        $restartTerminationRequested = $false
         if ($excelProcessId -gt 0) {
             Start-Sleep -Milliseconds 750
             $firstProcess = Get-Process -Id $excelProcessId -ErrorAction SilentlyContinue
             if ($null -ne $firstProcess -and $firstProcess.ProcessName -eq "EXCEL") {
+                $restartTerminationRequested = $true
                 Stop-Process -Id $excelProcessId -Force
             }
         }
+        [pscustomobject]@{Stage='Restart';ProcessIdAvailable=($excelProcessId -gt 0);TerminationRequested=$restartTerminationRequested} |
+            ConvertTo-Json | Set-Content -LiteralPath (Join-Path $outputPath 'restart-cleanup-observation.json')
 
         $opened = New-Object 'System.Collections.Generic.List[object]'
         $packages = @{}
@@ -1630,6 +1634,8 @@ finally {
             Stop-Process -Id $excelProcessId -Force
         }
     }
+    [pscustomobject]@{Stage='Final';ProcessIdAvailable=($excelProcessId -gt 0);TerminationRequested=$cleanupTerminationRequested} |
+        ConvertTo-Json | Set-Content -LiteralPath (Join-Path $outputPath 'final-cleanup-observation.json')
     if ($ProductionPaletteProbe) {
         [pscustomobject]@{FixtureClosedBeforeQuit=$paletteBooksClosed;TerminationRequested=$cleanupTerminationRequested;NormalExitObserved=($paletteBooksClosed -and -not $cleanupTerminationRequested -and $excelProcessId -gt 0)}|
             ConvertTo-Json|Set-Content (Join-Path $outputPath 'palette-cleanup-observation.json')

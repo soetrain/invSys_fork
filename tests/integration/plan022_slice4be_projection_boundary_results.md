@@ -78,7 +78,15 @@ require new product geometry or screenshots for this diagnostic checkpoint.
 
 Preserve the earlier failed chain and its assisted cleanup: its cause remains
 unresolved. These later successful gates establish current-candidate acceptance
-for their scope, not a root-cause fix. Current-candidate draft/reusable Production regression and the broader
+for their scope, not a root-cause fix. The subsequent reusable Production aggregate
+gate retains all67 Boolean observations and preservation, but its automatic cleanup
+was unobserved and normal shutdown is unproved; its exact
+scope is recorded in [lifecycle continuation evidence](plan022_slice4be_production_lifecycle_visible_results.md).
+The current-candidate draft regression also retains390/390 with five instrumented
+compiles, normal unassisted closure, preservation and zero Excel Application
+failures. The subsequent full reusable/restart attempt fails at the batch-scale
+adapter with a native crash before its full-only steps; see the continuation
+evidence above. Full reusable Production restart/export and the broader
 Slice4be/control/visible/human/NAS requirements remain open in the
 [acceptance index](plan022_slice4be_remaining_acceptance.md).
 
