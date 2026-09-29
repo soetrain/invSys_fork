@@ -3,6 +3,20 @@
 Last reviewed: 2026-09-29 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
+**UOM observation/extent checkpoint:** Catalog15 registers `PRODUCTION_UOM_EDIT`;
+focused actual-handler RED98/134 becomes232/232 on the observation candidate.
+Its path gate passes84/84 but needs a verified disposable delete-dialog confirmation,
+so unattended acceptance remains open. A new blank-row test exposes table-extent
+loss; the corrected `validation-production-uom-extent` reaches separate visible
+RED96/14 ->110/110 GREEN with normal closure, exact check identities, preserved
+settings/packages, five compiles and static caps retained. However, the combined
+visible suite stops255/1 at the closed-workbook adapter call, showing80010007; after
+diagnostic Debug/Reset, Excel faults in oleaut32/c0000005 and recovery needs
+termination. This is distinct from desktop error5. A controlled visibility
+comparison is pending. Neither earlier path evidence nor old chain evidence
+establishes current full acceptance. See [UOM observations](plan022_slice4be_production_uom_activity_results.md)
+and [extent preservation](plan022_slice4be_production_uom_staging_results.md).
+
 **UOM staging correction, release gate still open:** The user-approved reuse
 workflow has [focused RED60/18 -> GREEN78/78](plan022_slice4be_production_uom_staging_results.md)
 and a second visible78/78 on `validation-production-uom-staging`. Managed headers

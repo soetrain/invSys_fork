@@ -3,17 +3,22 @@ Option Explicit
 
 Private Const SHEET_NAME As String = "invSys UOM Catalog"
 Private Const TABLE_NAME As String = "tblInvSysUomCatalog"
+Private Const EXTENT_NAME As String = "_invSysUomDraftExtent"
+Private Const EXTENT_OWNER As String = "invSys.UomDraftExtent.v1"
 
 Public Function SendUomCatalogToWorksheet(ByVal wb As Workbook, _
-                                          Optional ByRef report As String = "") As Boolean
+                                          Optional ByRef report As String = "", _
+                                          Optional ByRef outcome As String = "") As Boolean
     Dim ws As Worksheet
     Dim lo As ListObject
     Dim rows As Variant
     Dim headers As Variant
     Dim rowCount As Long
     Dim stage As Range, indexes() As Long, otherSheet As Worksheet, otherTable As ListObject
+    Dim marker As Name
 
     On Error GoTo Failed
+    outcome = "REJECTED"
     If wb Is Nothing Then
         report = "Production has no captured workbook for the UOM Catalog."
         Exit Function
@@ -30,6 +35,9 @@ Public Function SendUomCatalogToWorksheet(ByVal wb As Workbook, _
             End If
         Next otherTable
     Next otherSheet
+    If Not ws Is Nothing Then
+        If Not ReadStagingExtent(ws, marker, stage) Then GoTo InvalidStage
+    End If
     If Not lo Is Nothing Then
         If Not StagingColumns(lo.HeaderRowRange, indexes) Then GoTo InvalidStage
         GoTo Reused
@@ -37,7 +45,7 @@ Public Function SendUomCatalogToWorksheet(ByVal wb As Workbook, _
     If Not ws Is Nothing Then
         If Application.WorksheetFunction.CountA(ws.UsedRange) > 0 Then
             If ws.ListObjects.Count <> 0 Then GoTo InvalidStage
-            Set stage = FindStagingRegion(ws)
+            If stage Is Nothing Then Set stage = FindStagingRegion(ws)
             If stage Is Nothing Then GoTo InvalidStage
             Set lo = ws.ListObjects.Add(xlSrcRange, stage, , xlYes)
             lo.Name = TABLE_NAME
@@ -64,18 +72,57 @@ Public Function SendUomCatalogToWorksheet(ByVal wb As Workbook, _
     lo.TableStyle = "TableStyleMedium2"
     ws.Columns("A:G").AutoFit
     SendUomCatalogToWorksheet = True
+    outcome = "OPENED"
     report = "UOM Catalog table sent to the captured workbook. Edit the table, select it, then Retrieve UOM Catalog."
     Exit Function
 Reused:
     SendUomCatalogToWorksheet = True
+    outcome = "REUSED"
     report = "UOM Catalog draft reopened in the captured workbook. Existing edits retained; saved catalog not reloaded."
     Exit Function
 InvalidStage:
     report = "The UOM staging headers or ownership are ambiguous. No cells were changed."
     Exit Function
 Failed:
+    outcome = "FAILED"
     report = "The UOM workbench could not be opened. Verify the staging worksheet before retrying."
 End Function
+
+' The successful Retrieve boundary retains the full local extent across unlisting.
+' A foreign, broken or off-sheet marker is ambiguity, never a fallback hint.
+Private Function ReadStagingExtent(ByVal ws As Worksheet, ByRef marker As Name, _
+                                   ByRef stage As Range) As Boolean
+    Dim candidate As Name, localName As String, indexes() As Long
+    On Error GoTo InvalidMarker
+    For Each candidate In ws.Names
+        localName = Mid$(candidate.Name, InStrRev(candidate.Name, "!") + 1)
+        If StrComp(localName, EXTENT_NAME, vbTextCompare) = 0 Then
+            If Not marker Is Nothing Then Exit Function
+            Set marker = candidate
+        End If
+    Next candidate
+    If marker Is Nothing Then ReadStagingExtent = True: Exit Function
+    If marker.Visible Or marker.Comment <> EXTENT_OWNER Then Exit Function
+    Set stage = marker.RefersToRange
+    If Not stage.Parent Is ws Then Exit Function
+    If stage.Areas.Count <> 1 Then Exit Function
+    If Not StagingColumns(stage.Rows(1), indexes) Then Exit Function
+    ReadStagingExtent = True
+InvalidMarker:
+End Function
+
+Private Sub RememberStagingExtent(ByVal lo As ListObject, ByVal marker As Name)
+    Dim sheetPrefix As String, reference As String
+    sheetPrefix = "'" & Replace(lo.Parent.Name, "'", "''") & "'!"
+    reference = "=" & sheetPrefix & lo.Range.Address(True, True, xlA1)
+    If marker Is Nothing Then
+        Set marker = lo.Parent.Names.Add(Name:=sheetPrefix & EXTENT_NAME, _
+                                        RefersTo:=reference, Visible:=False)
+        marker.Comment = EXTENT_OWNER
+    Else
+        marker.RefersTo = reference
+    End If
+End Sub
 
 Private Function StagingHeaders() As Variant
     StagingHeaders = Array("UOM", "Dimension", "Base UOM", "Units Per Base UOM", "Convertible", "Enabled", "Notes")
@@ -137,6 +184,7 @@ Public Function RetrieveUomCatalogFromWorksheet(ByVal wb As Workbook, _
     Dim lo As ListObject
     Dim values As Variant
     Dim indexes() As Long, row As Long, field As Long
+    Dim marker As Name, stage As Range
     outcome = "REJECTED"
 
     If wb Is Nothing Then
@@ -162,6 +210,10 @@ Public Function RetrieveUomCatalogFromWorksheet(ByVal wb As Workbook, _
         report = "The UOM staging table requires one of each managed header. No cells were changed."
         Exit Function
     End If
+    If Not ReadStagingExtent(lo.Parent, marker, stage) Then
+        report = "The UOM staging extent has ambiguous ownership or headers. No cells or catalog values were changed."
+        Exit Function
+    End If
     ReDim values(1 To lo.ListRows.Count, 1 To 7)
     For row = 1 To lo.ListRows.Count
         For field = 1 To 7
@@ -169,6 +221,7 @@ Public Function RetrieveUomCatalogFromWorksheet(ByVal wb As Workbook, _
         Next field
     Next row
     If Not modUomSettings.PublishUomCatalogRows(values, report, outcome) Then Exit Function
+    RememberStagingExtent lo, marker
     lo.Unlist
     report = report & " The staging table was retrieved and removed."
     RetrieveUomCatalogFromWorksheet = True

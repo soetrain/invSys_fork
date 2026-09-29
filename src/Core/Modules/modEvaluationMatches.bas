@@ -98,6 +98,7 @@ Public Function CommandCompleted(ByVal record As Object) As Boolean
     code = CStr(record("OutcomeCode"))
     ' Explicit owner facts; severity and data effect are deliberately not classifiers.
     Select Case CStr(record("ControlId"))
+        Case "PRODUCTION_UOM_EDIT": CommandCompleted = (code = "OPENED" Or code = "REUSED")
         Case "ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", _
              "ADMIN_UOM_ADD", "ADMIN_UOM_REMOVE", "ADMIN_UOM_RESET", _
              "ADMIN_PATH_PREFERENCE_SAVE", "VIEWER_PATH_PREFERENCE_SAVE"

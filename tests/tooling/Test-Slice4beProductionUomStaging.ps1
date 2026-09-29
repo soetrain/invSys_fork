@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-production-instructions-typed',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CaptureEvidence)
+param([string]$DeployRoot='deploy/validation-production-instructions-typed',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CaptureEvidence,[switch]$CheckActivity,[switch]$ActionPaths)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated UOM staging validation.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
@@ -13,6 +13,8 @@ $start=[DateTimeOffset]::UtcNow;$code=1
 Write-Output ('UOM staging controller: '+$root)
 try {
     $captureArguments=@();if($CaptureEvidence){$captureArguments=@('-CaptureEvidence')}
+    if($CheckActivity){$captureArguments+=@('-CheckProductionUomActivity')}
+    if($ActionPaths){$captureArguments+=@('-CheckProductionUomPaths');if(-not $CaptureEvidence){$captureArguments+=@('-CaptureEvidence')}}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CheckProductionUomStaging -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @captureArguments *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
 } finally {

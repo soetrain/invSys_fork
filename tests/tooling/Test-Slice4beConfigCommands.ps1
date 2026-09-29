@@ -10,6 +10,8 @@ param(
     [switch]$CheckAdminUomActivity,
     [switch]$CheckProductionDesignerActivity,
     [switch]$CheckProductionUomStaging,
+    [switch]$CheckProductionUomActivity,
+    [switch]$CheckProductionUomPaths,
     [switch]$CheckProductionInstructions,
     [switch]$CheckProductionInstructionPaths,
     [switch]$CheckProductionLifecycle,
@@ -206,6 +208,8 @@ if($CheckSettingsEditorActivity){
 }
 if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
 if($CheckProductionUomStaging -and (-not $CheckProductionDesignerActivity -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'UOM staging preservation requires its separate compiled Production handler gate.'}
+if($CheckProductionUomActivity -and -not $CheckProductionUomStaging){throw 'UOM activity requires its packaged staging gate.'}
+if($CheckProductionUomPaths -and (-not $CheckProductionUomStaging -or -not $CaptureEvidence -or $CheckProductionUomActivity)){throw 'UOM paths require the separate staging adapters and visible evidence.'}
 if($CheckProductionInstructions -and (-not $CheckProductionDesignerActivity -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Instruction checks require their separate compiled Production designer gate.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
 if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
@@ -387,6 +391,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionUomStaging){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-staging/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructions){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instructions/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructionPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instruction-paths/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionUomPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionLifecyclePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionLifecycleNative){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-native/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionLifecyclePresentation){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-lifecycle-presentation/'+[guid]::NewGuid().ToString('N'))}
@@ -860,7 +865,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths){
+    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -954,7 +959,8 @@ Public Function D5UomRoundTrip(ByVal workbookName As String) As Boolean
     Set prior = mOperatorWorkbook
     Set mOperatorWorkbook = Application.Workbooks(workbookName)
     version = modConfig.GetLong("UomConversionCatalogVersion", 1)
-    mBtnUomCatalogSend_Click
+    ' Prepare the Retrieve fixture independently; Edit has its own actual-handler gate.
+    If Not modProductionUomCatalog.SendUomCatalogToWorksheet(mOperatorWorkbook) Then GoTo Done
     Set lo = mOperatorWorkbook.Worksheets("invSys UOM Catalog").ListObjects("tblInvSysUomCatalog")
     lo.DataBodyRange.Cells(3, 6).Value2 = Not CBool(lo.DataBodyRange.Cells(3, 6).Value2)
     lo.Parent.Activate
@@ -1129,6 +1135,10 @@ End Function
         if($CheckProductionUomStaging){
             . (Join-Path $PSScriptRoot 'Slice4beProductionUomStaging.ps1')
             Install-ProductionUomStagingProbe
+            if($CheckProductionUomActivity){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionUomActivity.ps1')
+                Install-ProductionUomActivityProbe
+            }
         }
         if($CheckProductionInstructions){
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionProbe.ps1')
@@ -1139,7 +1149,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
             Install-ProductionLifecycleProbe
         }
-        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths){
+        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
             Install-ProductionPathsProbe
         }
@@ -1151,7 +1161,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleNative.ps1')
             Install-ProductionLifecycleNativeProbe
         }
-        if($CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths){
+        if($CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths){
             . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
             Install-GuideDraftProbe
         }
@@ -1411,7 +1421,14 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
             Test-ProductionInstructionPaths $a
         }
-        elseif($CheckProductionUomStaging){Test-ProductionUomStaging $a}
+        elseif($CheckProductionUomPaths){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
+            Test-ProductionInstructionPaths $a -Uom
+        }
+        elseif($CheckProductionUomStaging){
+            Test-ProductionUomStaging $a
+            if($CheckProductionUomActivity){Test-ProductionUomActivity $a $b}
+        }
         elseif($CheckProductionInstructions){Test-ProductionInstructionActivity $a $b}
         elseif($CheckProductionLifecyclePaths){
             Test-DesignsSourceEvidence

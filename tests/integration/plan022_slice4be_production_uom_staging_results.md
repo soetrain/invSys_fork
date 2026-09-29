@@ -1,6 +1,46 @@
 # Slice 4be UOM staging preservation
 
 Last verified:2026-09-29 UTC. **Focused GREEN; Release1 acceptance incomplete.**
+
+**Follow-up extent defect:** The later catalog15 candidate
+`validation-production-uom-activity` passes84 checks but fails reopening a draft
+with an internal blank row. Cells remain unchanged while `CurrentRegion` truncates
+table membership above the gap. This exposes a missing preservation assertion,
+not a regression in the preceding78 checks. Expanded tests reach **96 PASS/14
+behavioral FAIL**, including save/reopen and conflicting, off-sheet or broken
+extent-marker refusal. One intervening fixture attempt hashes an open workbook
+and fails with a file-sharing error; that harness failure is excluded from RED.
+The checksum now runs after closing the disposable workbook.
+
+Architecture/Plan/controls commit `8c3c87d` clarifies the already-approved complete
+draft preservation: retain an owned hidden worksheet-local range name at successful
+Retrieve, validate ownership and headers before reuse/publication, and never infer
+a shorter extent from a blank-row gap. Metadata is staging only; it neither saves
+the operator workbook nor becomes catalog authority. Runtime correction is in
+isolated `validation-production-uom-extent`; five builds/compiles and cold loading
+pass, with exactly one of249 compiled components changed relative to the activity
+candidate. The separate visible gate advances96/14 to **110/110 GREEN**, preserving
+all110 exact identities and every preceding78 GREEN. Five instrumented compiles,
+normal unassisted closure, package/settings preservation and zero Excel Application
+events in its window are verified. The draft and complete reuse-status images are
+reviewed; images remain ignored. This does not close the separate combined-suite
+closed-workbook automation failure or broader release gates.
+
+Current static evidence:256 components/6073 procedures/133570 lines;9 literal and45
+unresolved dynamic calls,191 duplicate groups, no growth in28 existing module caps.
+All three schemas validate. Final regression acceptance remains pending.
+
+Extent RED controller/result: `production-uom-staging-controller/8729c533bd5e4d4ea579b509aa3468aa`;
+`slice4be-production-uom-staging/dc8af7409bf440fc847320b967655ac0/red.json`.
+Build/source comparison: `production-uom-extent-build`. All paths are under ignored
+`reports/runtime/`. [UOM observation evidence](plan022_slice4be_production_uom_activity_results.md)
+records the separate catalog15 work and its path-run qualification.
+Visible GREEN controller/result: `production-uom-staging-controller/878a1039734f4bf1a6c77db392943191`;
+`slice4be-production-uom-staging/52213a197ea1430596d893549d058578/green.json`
+(20:51:43--20:53:54 UTC). Exact check comparison:
+`production-uom-extent-focused-verification.json`; static: `production-uom-extent-static`.
+
+The following78-check checkpoint describes the preceding preservation candidate:
 The approved correction in `validation-production-uom-staging` advances the
 expanded actual-handler gate from **60 PASS/18 FAIL to78/78**, preserving all54
 original identities and every earlier GREEN. A separate visible run also passes

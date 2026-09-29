@@ -10775,11 +10775,8 @@ End Sub
 
 Private Sub mBtnUomCatalogSend_Click()
     Dim report As String
-    If Not modProductionUomCatalog.SendUomCatalogToWorksheet(mOperatorWorkbook, report) Then
-        ShowStatus "UOM Catalog export failed: " & report
-        Exit Sub
-    End If
-    ShowStatus report
+    report = modProductionUomAction.OpenWorkbench(mOperatorWorkbook, mActivityContext, mLoading, mDesignerActionInProgress)
+    If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mBtnUomCatalogRetrieve_Click()

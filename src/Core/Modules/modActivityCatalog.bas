@@ -2,10 +2,17 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 14
+Public Const CATALOG_VERSION As Long = 15
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     Dim ids As Variant, added As Variant, index As Long, offset As Long
+    If version = 15 Then
+        ids = ControlIds(14)
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + 1)
+        ids(UBound(ids)) = "PRODUCTION_UOM_EDIT"
+        ControlIds = ids
+        Exit Function
+    End If
     If version = 14 Then
         ids = ControlIds(13): added = modProductionInstructionCodes.ControlIds()
         offset = UBound(ids) + 1
@@ -106,6 +113,10 @@ End Function
 Public Function Control(ByVal controlId As String, Optional ByVal version As Long = CATALOG_VERSION) As Object
     Dim record As Object
     If version < 1 Or version > CATALOG_VERSION Then Exit Function
+    If version >= 15 Then
+        Set record = modProductionUomCodes.Control(controlId)
+        If Not record Is Nothing Then Set Control = record: Exit Function
+    End If
     If version >= 14 Then
         Set record = modProductionInstructionCodes.Control(controlId)
         If Not record Is Nothing Then Set Control = record: Exit Function
@@ -226,6 +237,10 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Dim record As Object, definition As Object, message As String
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
+    If definition("OwnerId") = "PRODUCTION_UOM_STAGING" Then
+        Set Outcome = modProductionUomCodes.Outcome(outcomeCode)
+        Exit Function
+    End If
     If definition("OwnerId") = "PRODUCTION_DESIGN_LIFECYCLE" Then
         Set Outcome = modProductionLifecycleCodes.Outcome(controlId, outcomeCode)
         Exit Function

@@ -109,7 +109,8 @@ function Test-ProductionUomStaging($Fixture) {
 
 function Test-ProductionUomHeaderAndReopen($Fixture) {
     SelectTarget $Fixture 'config-producer'
-    foreach($case in @('Retrieve','Reopen','MissingHeader','DuplicateHeader','UnownedSheet')){
+    foreach($case in @('Retrieve','RetrieveGap','RetrieveGapSaved','Reopen','MissingHeader','DuplicateHeader','UnownedSheet','MarkerCollision','MarkerWrongSheet','MarkerBroken')){
+        $savedPin=$null
         $book=$excel.Workbooks.Add()
         $canary='LOCALUOM'+[guid]::NewGuid().ToString('N')
         try {
@@ -135,23 +136,39 @@ function Test-ProductionUomHeaderAndReopen($Fixture) {
             $sheet.Range('K1').Value2=$canary
             $table.ListColumns.Item('UOM').Name=' uom '
             $table.ListColumns.Item('Dimension').Name=' DIMENSION '
+            if($case -like 'RetrieveGap*'){
+                # Blank rows are valid staging. Preserve the complete table extent
+                # through actual Retrieve/unlist and Edit, not only cell values.
+                $blank=$table.ListRows.Add(2)
+                $blank.Range.ClearContents()
+            }
             $range=$table.Range
             $address=$range.Address()
             $beforeCells=$range.Formula|ConvertTo-Json -Compress -Depth 5
             $version=[long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('UomConversionCatalogVersion',1))
             $configPin=(Get-FileHash -LiteralPath $Fixture.Config).Hash
-            if($case -eq 'Retrieve'){
+            if($case -eq 'Retrieve' -or $case -like 'RetrieveGap*'){
                 $sheet.Activate();$table.DataBodyRange.Cells.Item(1,1).Select()
                 $result=[string](Run 'invSys.Operations.xlam' 'TestProductionDesigner.RetrieveUom')
-                Check 'UomStaging.Retrieve.NormalizedHeadersAndExtraColumns' ($result -notlike '*failed*' -and $result -notlike 'HANDLER_ERROR*' -and $sheet.ListObjects.Count -eq 0)
-                Check 'UomStaging.Retrieve.PublishesOneVersion' ([long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('UomConversionCatalogVersion',1)) -eq $version+1)
-                Check 'UomStaging.Retrieve.AllStagingCellsPreserved' (($sheet.Range($address).Formula|ConvertTo-Json -Compress -Depth 5) -ceq $beforeCells)
-                Check 'UomStaging.Retrieve.UnrelatedCellPreserved' ([string]$sheet.Range('K1').Value2 -ceq $canary)
+                Check "UomStaging.$case.NormalizedHeadersAndExtraColumns" ($result -notlike '*failed*' -and $result -notlike 'HANDLER_ERROR*' -and $sheet.ListObjects.Count -eq 0)
+                Check "UomStaging.$case.PublishesOneVersion" ([long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('UomConversionCatalogVersion',1)) -eq $version+1)
+                Check "UomStaging.$case.AllStagingCellsPreserved" (($sheet.Range($address).Formula|ConvertTo-Json -Compress -Depth 5) -ceq $beforeCells)
+                Check "UomStaging.$case.UnrelatedCellPreserved" ([string]$sheet.Range('K1').Value2 -ceq $canary)
                 if($sheet.ListObjects.Count -eq 0){
+                    if($case -eq 'RetrieveGapSaved'){
+                        [void](Run 'invSys.Operations.xlam' 'TestProductionDesigner.CloseDesigner')
+                        $savedPath=Join-Path $runRoot 'uom-gap-draft.xlsb'
+                        $book.SaveAs($savedPath,50);$book.Close($false)
+                        $savedPin=(Get-FileHash -LiteralPath $savedPath).Hash
+                        $book=$excel.Workbooks.Open($savedPath,0,$false)
+                        $sheet=$book.Worksheets.Item('invSys UOM Catalog')
+                        [void](Run 'invSys.Operations.xlam' 'TestProductionDesigner.OpenDesigner' @($book.Name))
+                    }
                     $result=[string](Run 'invSys.Operations.xlam' 'TestProductionDesigner.SendUom')
                     $reopened=$sheet.ListObjects.Count -eq 1 -and ($sheet.Range($address).Formula|ConvertTo-Json -Compress -Depth 5) -ceq $beforeCells
                 } else {$reopened=$false}
-                Check 'UomStaging.Retrieve.ThenEditRetainsDraft' $reopened
+                Check "UomStaging.$case.ThenEditRetainsDraft" $reopened
+                Check "UomStaging.$case.ThenEditRestoresCompleteExtent" ($sheet.ListObjects.Count -eq 1 -and $sheet.ListObjects.Item(1).Range.Address() -ceq $address)
             } elseif($case -eq 'Reopen'){
                 # Unlisting is the successful Retrieve postcondition; isolate reopen
                 # even while the independent retrieval assertion remains RED.
@@ -166,6 +183,13 @@ function Test-ProductionUomHeaderAndReopen($Fixture) {
                 if($case -eq 'MissingHeader'){$table.ListColumns.Item('Notes').Name='Local Notes'}
                 if($case -eq 'DuplicateHeader'){$extra.Name='UOM'}
                 if($case -eq 'UnownedSheet'){$table.Unlist();$sheet.Range('A4').Value2='Local material'}
+                if($case -like 'Marker*'){
+                    $marker=$sheet.Names.Add("'invSys UOM Catalog'!_invSysUomDraftExtent","='invSys UOM Catalog'!"+$address,$false)
+                    $marker.Comment=if($case -eq 'MarkerCollision'){'Operator-owned name'}else{'invSys.UomDraftExtent.v1'}
+                    if($case -eq 'MarkerWrongSheet'){$marker.RefersTo="='"+$book.Worksheets.Item(1).Name+"'!"+$address}
+                    if($case -eq 'MarkerBroken'){$marker.RefersTo='=#REF!'}
+                    $markerPin=[string]$marker.RefersTo+'|'+[string]$marker.Comment+'|'+[string]$marker.Visible
+                }
                 $beforeCells=$sheet.UsedRange.Formula|ConvertTo-Json -Compress -Depth 5
                 $tables=$sheet.ListObjects.Count
                 if($case -ne 'UnownedSheet'){
@@ -178,10 +202,16 @@ function Test-ProductionUomHeaderAndReopen($Fixture) {
                 Check "UomStaging.$case.SendRejected" ($result -like '*failed*' -and $result -notlike 'HANDLER_ERROR*')
                 Check "UomStaging.$case.SendPreservesCells" (($sheet.UsedRange.Formula|ConvertTo-Json -Compress -Depth 5) -ceq $beforeCells -and $sheet.ListObjects.Count -eq $tables)
                 Check "UomStaging.$case.ConfigBytesPreserved" ((Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configPin)
+                if($case -like 'Marker*'){
+                    Check "UomStaging.$case.MarkerPreserved" (([string]$marker.RefersTo+'|'+[string]$marker.Comment+'|'+[string]$marker.Visible) -ceq $markerPin)
+                }
             }
         } finally {
             try{[void](Run 'invSys.Operations.xlam' 'TestProductionDesigner.CloseDesigner')}catch{}
             $book.Close($false)
+        }
+        if($case -eq 'RetrieveGapSaved' -and $null -ne $savedPin){
+            Check 'UomStaging.RetrieveGapSaved.NoImplicitSave' ((Get-FileHash -LiteralPath $savedPath).Hash -ceq $savedPin)
         }
     }
 }
