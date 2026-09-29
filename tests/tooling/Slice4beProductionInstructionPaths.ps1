@@ -95,7 +95,18 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom) {
             $id=[string]$record.ActivityId
             PathCheck ('InstructionPaths.Detail.'+$record.ControlId+$(if($Uom){'.'+$record.Ordinal}else{''})) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('SelectSource',$id)) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadDetailForTest' @('Source event / activity ID',$id)))
         }
-        if($Uom){[void](ExpectationControl 'lstEventLines' 'Index' '1' 'frmEventDetail')}
+        if($Uom){
+            # Published contributing lines are not ordered by outcome. Select
+            # the exact terminal record, rather than assuming it is row two.
+            $detailGroup=@($publication.Groups|Where-Object {$_.Source -ceq 'Activity' -and $_.SourceId -ceq $observed.Terminals[-1].ActivityId})
+            if($detailGroup.Count -ne 1){throw 'Exact UOM detail group unavailable.'}
+            $terminalIndex=-1
+            for($lineIndex=0;$lineIndex -lt $detailGroup[0].Lines.Count;$lineIndex++){
+                if($detailGroup[0].Lines[$lineIndex].RecordId -ceq $observed.Terminals[-1].RecordId){$terminalIndex=$lineIndex;break}
+            }
+            if($terminalIndex -lt 0){throw 'Exact UOM terminal detail line unavailable.'}
+            [void](ExpectationControl 'lstEventLines' 'Index' ([string]$terminalIndex) 'frmEventDetail')
+        }
         CaptureOwnedFormEvidence 'Event Detail' ($imagePrefix+'-event-detail.png') ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedDetailLabelForTest' @('Window','')))
         Delivered (BoundLibrary 'Open')
         if((BoundLibrary 'Select' $observed.Journal.ActionPathId) -cne 'SELECTED'){throw 'Observed run unavailable.'}

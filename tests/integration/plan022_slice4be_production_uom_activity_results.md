@@ -32,6 +32,28 @@ case-insensitive source and literal hashes, not XLAM container bytes.
 
 ## Action Path evidence and qualification
 
+On the final `validation-production-uom-extent` candidate, the corrected disposable
+reset now completes **84/84 unassisted**, with the exact preceding84 identities,
+normal closure, settings/package preservation and zero Excel Application events.
+Six principal images from that run are reviewed. Its fixed-row terminal capture
+still selects REQUESTED because contributing-line order varies. The capture fixture
+now resolves the exact terminal RecordId within its published group; the resulting
+rerun again passes84/84 unassisted and the reviewed Event Detail image selects
+REUSED, Info/Unchanged, with the retained-draft/no-reload explanation. This is a
+fixture correction, not a runtime or normative contract change; no manufactured
+product RED is claimed for selecting the intended capture line.
+
+Current unassisted controller/result:
+`production-uom-staging-controller/fea9b5f7c6eb45d2a1720168459a6182`;
+`slice4be-production-uom-paths/fd10b376c43e48e6bd6d32f96387cba8/green.json`.
+Exact-terminal capture controller/result:
+`production-uom-staging-controller/76985050ea7a41d7bc69fe58808d8cbc`;
+`slice4be-production-uom-paths/00411c0aa42e4c9688fa0b584f4bd0fb/green.json`.
+Comparisons: `production-uom-extent-path-verification.json` and
+`production-uom-extent-path-final-verification.json`.
+
+The earlier assisted run below is retained as qualified historical evidence:
+
 Independent guide-source and observed recordings pass **84/84** through actual
 Admin publication, Viewer selection, guide authoring, reader pairing, evaluation
 and How-To/Diagnostic/Compare both views. Exact original activity/journal identities
@@ -55,6 +77,22 @@ caps grows; Production form shrinks11739 to11736 lines. Three schemas validate a
 
 ## Remaining gates
 
+Current-candidate Settings regression passes **202/202**, retaining every preceding
+identity, normal closure, settings/packages and zero Excel Application events.
+Packaged Production layout passes three sizes/five pages and native window actions;
+minimum and expanded images are reviewed, and default is byte-identical to minimum.
+The actual packaged Production captured-workbook close/reopen workflow passes1/1,
+preserving the unrelated workbook and creating one intended role workbook, with
+settings/packages preserved and no Excel Application event. Its cleanup receipt
+records forced termination: this validator waits only500ms outside palette-probe
+mode. It is workflow evidence, not proof of normal process shutdown or a repair
+of the separate combined form-test failure.
+
+- Settings controller/result: `production-uom-extent-regression/settings-53a3d9dcd4854a6ba9b983b7a8f98c53`; `slice4be-tracking-settings/d4d2a8b4a82946709c86f7467de68314/green.json`.
+- Settings comparison: `production-uom-extent-settings-verification.json`.
+- Layout: `production-uom-extent-regression/layout-2efeb4ba2ffc4c50a05524892ed605f8`.
+- Captured close: `production-uom-extent-regression/capturedclosed-96e8b26ac59d46cf8192aae98e467fcb`; inspect `captured-closed/final-cleanup-observation.json` for the qualification.
+
 The first combined visible run on `validation-production-uom-extent` stops at
 **255 PASS/1 harness failure**, before completing the closed-workbook guard and
 optional-tracking tail. Of the110 preservation-suite identities,107 have passed;
@@ -73,8 +111,17 @@ Failed visible controller/result:
 `slice4be-production-uom-staging/d29842ba571541f788c60f04fe74d756/green.json`.
 The controller contains sanitized dialog-location, reset and cleanup receipts.
 Separate visible staging validation now completes110/110 with exact identities,
-normal closure and preservation; a controlled comparison with capture disabled
-is in progress. The larger visible guard failure remains open.
+normal closure and preservation. The controlled comparison with capture disabled
+completes **264/264**, including the closed-workbook and optional-tracking tail,
+all earlier232 GREEN identities, normal closure and zero Excel Application events.
+It uses the unchanged candidate and skips no checks; its diagnostic phase is RED,
+not a fresh behavioral RED baseline. The contrast narrows investigation but does
+not prove a visibility-related root cause or repair the failed visible path.
+The larger visible guard failure remains open.
+
+Comparison controller/result: `production-uom-staging-controller/c74a18a9e47746a7a228f86fefcf31c9`;
+`slice4be-production-uom-staging/774c6e429e8b4de3bd5e89f327ab21a5/red.json`
+(20:54:13--20:57:15 UTC). Verification: `production-uom-extent-hidden-verification.json`.
 
 The additional blank-row preservation test exposes a separate defect: Retrieve
 retains cells but Edit recreates a shortened table above the blank row. Initial
@@ -83,7 +130,13 @@ under the approved reuse decision reaches separate visible110/110 on
 `validation-production-uom-extent`, following expanded RED96/14.
 See [staging evidence](plan022_slice4be_production_uom_staging_results.md).
 
-Applicable instruction, draft/lifecycle, Settings and native regressions must run
+The final candidate's Instructions regression passes411/411, retaining the exact
+prior check identities with normal closure, preserved settings/packages and no
+Excel Application event. Controller: `production-instruction-controller/f92a5868d7304b6cb06802152dc00b89`;
+result: `slice4be-production-instructions/24874fd7a68b4bfc907684d45bc2f475/green.json`;
+verification: `production-uom-extent-instructions-verification.json`.
+
+Applicable instruction paths, draft/lifecycle, Settings-observation and native regressions must run
 on the final candidate. The preceding candidate's full-chain/native c0000028
 blocker remains unresolved. No package promotion or Release1 acceptance is claimed.
 

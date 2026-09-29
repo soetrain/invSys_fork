@@ -12,10 +12,19 @@ RED96/14 ->110/110 GREEN with normal closure, exact check identities, preserved
 settings/packages, five compiles and static caps retained. However, the combined
 visible suite stops255/1 at the closed-workbook adapter call, showing80010007; after
 diagnostic Debug/Reset, Excel faults in oleaut32/c0000005 and recovery needs
-termination. This is distinct from desktop error5. A controlled visibility
-comparison is pending. Neither earlier path evidence nor old chain evidence
+termination. This is distinct from desktop error5. The unchanged candidate's
+capture-disabled comparison passes264/264 with all earlier232 identities, normal
+closure and no Excel Application event; this does not repair the visible failure.
+Neither earlier path evidence nor old chain evidence
 establishes current full acceptance. See [UOM observations](plan022_slice4be_production_uom_activity_results.md)
 and [extent preservation](plan022_slice4be_production_uom_staging_results.md).
+Current extent-candidate paths now pass84/84 unassisted with exact original checks
+and a reviewed terminal REUSED capture; Settings passes202/202, and packaged layout
+passes with complete reviewed images. Captured-workbook public-launcher close/reopen
+passes1/1 but uses forced cleanup; it does not establish normal shutdown or resolve
+the failed visible combined guard. Instructions411/411 retains exact prior checks,
+normal closure and preservation on the extent candidate. Remaining regressions
+and release gates stay open.
 
 **UOM staging correction, release gate still open:** The user-approved reuse
 workflow has [focused RED60/18 -> GREEN78/78](plan022_slice4be_production_uom_staging_results.md)
