@@ -1,7 +1,9 @@
 # Same-session diagnostic cut of the actual ordered live validator; not full R1.
 [CmdletBinding()]
 param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-settings-diagnostic',
-      [ValidateSet('BeforeProjection','AfterProjection')][string]$Cut='AfterProjection')
+      [ValidateSet('BeforeProjection','AfterProjection')][string]$Cut='AfterProjection',
+      [string]$PackagePinsPath='reports/runtime/settings-diagnostic-package-pins.json',
+      [switch]$TraceBoundaries)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
@@ -62,19 +64,42 @@ foreach($pair in @(
     @('try { $excel.Quit() } catch {}',"Write-ControlMark 'OriginalQuitReturned'"))) {
     if($source.Contains($pair[0])){$source=$source.Replace($pair[0],$pair[0]+"`r`n"+$pair[1])}
 }
+if($TraceBoundaries){
+    $installAnchor='$currentStep = "Set core runtime override"'
+    $armAnchor='$currentStep = "Delete and rebuild canonical inventory projections"'
+    foreach($anchor in @($installAnchor,$armAnchor)){
+        if([regex]::Matches($source,[regex]::Escape($anchor)).Count -ne 1){throw 'Trace installation anchor differs.'}
+    }
+    $install=@'
+. (Join-Path $repo 'tests/tooling/ProjectionBoundaryTrace.ps1')
+Install-ProjectionBoundaryTrace -Excel $excel -Packages $workbookMap -PackageRoot $deployPath
+'@
+    $arm=@'
+foreach($tracePackage in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam')){
+    [void](Run-WorkbookMacro -Excel $excel -WorkbookName $workbookMap[$tracePackage].Name -MacroName 'TestProjectionTrace.Arm' -Arguments @((Join-Path $PSScriptRoot 'projection-stages.txt')))
+}
+'@
+    $source=$source.Replace($installAnchor,$install+"`r`n"+$installAnchor)
+    $source=$source.Replace($armAnchor,$armAnchor+"`r`n"+$arm)
+}
 [IO.File]::WriteAllText($generated,$source,[Text.UTF8Encoding]::new($false))
 $tokens=$null;$errors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($generated,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'Generated diagnostic does not parse.'}
 $deploy=(Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
-$pins=Get-Content (Join-Path $repo 'reports/runtime/settings-diagnostic-package-pins.json') -Raw|ConvertFrom-Json
+$rawPins=Get-Content (Join-Path $repo $PackagePinsPath) -Raw|ConvertFrom-Json
+$pins=@(foreach($pin in $rawPins){
+    $name=if($pin.PSObject.Properties['Package']){$pin.Package}else{Split-Path -Leaf $pin.File}
+    [pscustomobject]@{Package=$name;Hash=$pin.Hash}
+})
+if($pins.Count -ne 5 -or @($pins.Package|Sort-Object -Unique).Count -ne 5){throw 'Five distinct package pins required.'}
 foreach($pin in $pins){if((Get-FileHash -LiteralPath (Join-Path $deploy $pin.Package)).Hash -cne $pin.Hash){throw 'Candidate package differs.'}}
 $tracked=Join-Path $repo 'tests/unit/phase6_live_role_workflow_results.md'
 $trackedHash=(Get-FileHash -LiteralPath $tracked).Hash
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $settings=Get-InvSysTestSettingsSnapshot
 $child=$null;$restored=$false;$start=[DateTimeOffset]::UtcNow
-[pscustomobject]@{Cut=$Cut;StartUTC=$start.ToString('o');GeneratedHash=(Get-FileHash -LiteralPath $generated).Hash;ChainHash=(Get-FileHash -LiteralPath $chain).Hash;LiveHash=(Get-FileHash -LiteralPath (Join-Path $repo 'tools/validate_phase6_live_role_workflows.ps1')).Hash;FullChainAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'start.json')
+[pscustomobject]@{Cut=$Cut;TraceBoundaries=[bool]$TraceBoundaries;StartUTC=$start.ToString('o');GeneratedHash=(Get-FileHash -LiteralPath $generated).Hash;ChainHash=(Get-FileHash -LiteralPath $chain).Hash;LiveHash=(Get-FileHash -LiteralPath (Join-Path $repo 'tools/validate_phase6_live_role_workflows.ps1')).Hash;PackagePinsHash=(Get-FileHash -LiteralPath (Join-Path $repo $PackagePinsPath)).Hash;FullChainAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'start.json')
 try {
     $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$generated+'"'),'-RepoRoot',('"'+$repo+'"'),'-DeployRoot',('"'+$DeployRoot+'"'))
     $child=Start-Process powershell.exe -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $root 'worker.stdout.log') -RedirectStandardError (Join-Path $root 'worker.stderr.log')

@@ -1,7 +1,18 @@
 # Slice 4be remaining acceptance checklist
 
-Last reviewed: 2026-09-28 UTC. **Incomplete.** This is an evidence index for the
+Last reviewed: 2026-09-29 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
+
+**Current chain checkpoint,2026-09-29:** The
+[projection-boundary diagnostic](plan022_slice4be_projection_boundary_results.md)
+passes traced and untraced35/35. The unchanged candidate then passes chain32/32,
+live roles48/48 and Create Warehouse15/15, retaining every previous identity.
+Normal unassisted closure, settings/package/report preservation and zero Excel
+Application failures hold. Earlier crashes remain unexplained and retained;
+the latest chain result is GREEN. No runtime contract changes. Static metrics and
+all28 caps remain unchanged;3 schemas and291 PowerShell parses pass. The user
+explicitly requests pausing the goal if desktop error5 returns. Current-candidate
+draft/reusable regressions and broader Slice4be acceptance remain pending.
 
 Latest [lifecycle Action Path checkpoint](plan022_slice4be_production_lifecycle_paths_results.md)
 advances668 PASS/40 expected evaluator FAIL to **708/708 functional GREEN** on

@@ -127,7 +127,13 @@ packages preserved. Its worker log retains the named checks; the count and closu
 receipt is `reports/runtime/production-paths-settings-regression-verification.json`.
 This previously pending result was reconciled on2026-09-28 without another run.
 
-Current-candidate390 draft/reusable regressions, full-chain recovery,
+The subsequent [projection-boundary diagnostic](plan022_slice4be_projection_boundary_results.md)
+passes traced/untraced35/35 and the unchanged candidate's full chain/live roles/
+Create Warehouse32/48/15 on2026-09-29, retaining exact prior identities with normal
+unassisted closure, preservation and zero Excel Application failures. Earlier
+crashes remain unexplained; their failed attempts and assisted cleanup are retained.
+
+Current-candidate390 draft/reusable regressions,
 broader control coverage and human/NAS acceptance remain pending.
 These scoped images do not accept the complete workflow or Release1.
 The prior long708-check run's assisted cleanup remains recorded independently;
