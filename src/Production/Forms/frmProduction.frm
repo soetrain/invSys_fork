@@ -5780,13 +5780,13 @@ Private Function CloneReusableRecord(ByVal source As Object) As Object
     Set CloneReusableRecord = target
 End Function
 
-Private Sub WriteRequirementEditorToList(ByVal updateExisting As Boolean)
+Private Function WriteRequirementEditorToList(ByVal updateExisting As Boolean) As Boolean
     Dim idx As Long
     Dim wasLoading As Boolean
 
     idx = mLstProcessRequirements.ListIndex
     If updateExisting And Trim$(mTxtRequirementId.Text) <> "" Then
-        idx = FindProcessComponentEditorRow( _
+        idx = modProductionComponentLists.FindEditorRow( _
             mLstProcessRequirements, Trim$(mTxtRequirementId.Text))
     End If
     If updateExisting And idx < 0 Then
@@ -5807,21 +5807,21 @@ Private Sub WriteRequirementEditorToList(ByVal updateExisting As Boolean)
     If Trim$(mTxtRequirementId.Text) = "" Or Trim$(mTxtRequirementName.Text) = "" Or _
        Trim$(mTxtRequirementUom.Text) = "" Then
         ShowStatus "A requirement needs ID, name, and UOM."
-        Exit Sub
+        Exit Function
     End If
     If RequirementQtyMode() <> "ACTUAL" And Not PositiveTextValue(mTxtRequirementQty.Text) And Not PositiveTextValue(mTxtRequirementPercent.Text) Then
         ShowStatus "A requirement needs a positive quantity or percentage."
-        Exit Sub
+        Exit Function
     End If
     If RequirementQtyMode() <> "ACTUAL" And PositiveTextValue(mTxtRequirementPercent.Text) _
        And Not PositiveTextValue(mTxtRequirementYieldBasis.Text) Then
         ShowStatus "A percentage requirement needs a positive batch basis quantity."
-        Exit Sub
+        Exit Function
     End If
     If Not ValidateWholeQuantityForUom(mTxtRequirementQty.Text, _
-            mTxtRequirementUom.Text, "Requirement quantity") Then Exit Sub
+            mTxtRequirementUom.Text, "Requirement quantity") Then Exit Function
     If Not ValidateWholeQuantityForUom(mTxtRequirementYieldBasis.Text, _
-            mTxtRequirementUom.Text, "Requirement batch basis") Then Exit Sub
+            mTxtRequirementUom.Text, "Requirement batch basis") Then Exit Function
     If Not updateExisting Or idx < 0 Then
         mLstProcessRequirements.AddItem ""
         idx = mLstProcessRequirements.ListCount - 1
@@ -5842,9 +5842,10 @@ Private Sub WriteRequirementEditorToList(ByVal updateExisting As Boolean)
     mSelectedProcessRequirementIndex = idx
     If Not updateExisting Then ClearRequirementEditor
     ShowStatus "Requirement staged in the Process draft."
-End Sub
+    WriteRequirementEditorToList = True
+End Function
 
-Private Sub WriteOutputEditorToList(ByVal updateExisting As Boolean)
+Private Function WriteOutputEditorToList(ByVal updateExisting As Boolean) As Boolean
     Dim idx As Long
     Dim priorQty As String
     Dim priorPercent As String
@@ -5853,7 +5854,7 @@ Private Sub WriteOutputEditorToList(ByVal updateExisting As Boolean)
 
     idx = mLstProcessOutputs.ListIndex
     If updateExisting And Trim$(mTxtProcessOutputId.Text) <> "" Then
-        idx = FindProcessComponentEditorRow( _
+        idx = modProductionComponentLists.FindEditorRow( _
             mLstProcessOutputs, Trim$(mTxtProcessOutputId.Text))
     End If
     If updateExisting And idx < 0 Then
@@ -5887,25 +5888,25 @@ Private Sub WriteOutputEditorToList(ByVal updateExisting As Boolean)
     If Trim$(mTxtProcessOutputId.Text) = "" Or Trim$(mTxtProcessOutputName.Text) = "" Or _
        Trim$(mTxtProcessOutputItemCode.Text) = "" Or ComboText(mCmbProcessOutputUom) = "" Then
         ShowStatus "An output needs its generated identity, name, and UOM."
-        Exit Sub
+        Exit Function
     End If
     If Not OutputUomIsCatalogValue(ComboText(mCmbProcessOutputUom)) Then
         ShowStatus "Select an output UOM from the Recipe UOM Catalog."
-        Exit Sub
+        Exit Function
     End If
     If OutputQtyMode() <> "ACTUAL" And Not PositiveTextValue(mTxtProcessOutputQty.Text) And Not PositiveTextValue(mTxtProcessOutputPercent.Text) Then
         ShowStatus "An output needs a positive quantity or percentage."
-        Exit Sub
+        Exit Function
     End If
     If OutputQtyMode() <> "ACTUAL" And PositiveTextValue(mTxtProcessOutputPercent.Text) _
        And Not PositiveTextValue(mTxtProcessOutputYieldBasis.Text) Then
         ShowStatus "A percentage output needs a positive yield basis."
-        Exit Sub
+        Exit Function
     End If
     If Not ValidateWholeQuantityForUom(mTxtProcessOutputQty.Text, _
-            ComboText(mCmbProcessOutputUom), "Output quantity") Then Exit Sub
+            ComboText(mCmbProcessOutputUom), "Output quantity") Then Exit Function
     If Not ValidateWholeQuantityForUom(mTxtProcessOutputYieldBasis.Text, _
-            ComboText(mCmbProcessOutputUom), "Output yield basis") Then Exit Sub
+            ComboText(mCmbProcessOutputUom), "Output yield basis") Then Exit Function
     If Not updateExisting Or idx < 0 Then
         mLstProcessOutputs.AddItem ""
         idx = mLstProcessOutputs.ListCount - 1
@@ -5929,23 +5930,7 @@ Private Sub WriteOutputEditorToList(ByVal updateExisting As Boolean)
     mSelectedProcessOutputIndex = idx
     If Not updateExisting Then ClearOutputEditor
     ShowStatus "Output staged in the Process draft."
-End Sub
-
-Private Function FindProcessComponentEditorRow(ByVal listControl As MSForms.ListBox, _
-                                               ByVal componentId As String) As Long
-    Dim rowIndex As Long
-
-    FindProcessComponentEditorRow = -1
-    If listControl Is Nothing Then Exit Function
-    componentId = UCase$(Trim$(componentId))
-    If componentId = "" Then Exit Function
-    For rowIndex = 0 To listControl.ListCount - 1
-        If StrComp(UCase$(Trim$(NzStr(listControl.List(rowIndex, 0)))), _
-                   componentId, vbTextCompare) = 0 Then
-            FindProcessComponentEditorRow = rowIndex
-            Exit Function
-        End If
-    Next rowIndex
+    WriteOutputEditorToList = True
 End Function
 
 Private Sub NormalizeOutputYieldEditorDefaults()
@@ -6099,36 +6084,8 @@ Private Function ValidateWholeQuantityForUom(ByVal quantityText As String, _
     ValidateWholeQuantityForUom = True
 End Function
 
-Private Sub RemoveSelectedListRow(ByVal listControl As MSForms.ListBox)
-    If listControl Is Nothing Then Exit Sub
-    If listControl.ListIndex >= 0 Then listControl.RemoveItem listControl.ListIndex
-End Sub
-
 Private Sub MoveSelectedListRow(ByVal listControl As MSForms.ListBox, ByVal direction As Long)
-    Dim sourceIndex As Long
-    Dim targetIndex As Long
-    Dim columnIndex As Long
-    Dim tempValue As Variant
-
-    If listControl Is Nothing Then Exit Sub
-    sourceIndex = listControl.ListIndex
-    targetIndex = sourceIndex + direction
-    If sourceIndex < 0 Or targetIndex < 0 Or targetIndex >= listControl.ListCount Then Exit Sub
-    For columnIndex = 0 To listControl.ColumnCount - 1
-        tempValue = listControl.List(sourceIndex, columnIndex)
-        listControl.List(sourceIndex, columnIndex) = listControl.List(targetIndex, columnIndex)
-        listControl.List(targetIndex, columnIndex) = tempValue
-    Next columnIndex
-    listControl.ListIndex = targetIndex
-    RenumberInstructionOrdinals
-End Sub
-
-Private Sub RenumberInstructionOrdinals()
-    Dim i As Long
-    If mLstProcessInstructions Is Nothing Then Exit Sub
-    For i = 0 To mLstProcessInstructions.ListCount - 1
-        mLstProcessInstructions.List(i, 0) = CStr(i + 1)
-    Next i
+    Call modProductionComponentLists.MoveRow(listControl, direction, mLstProcessInstructions)
 End Sub
 
 Private Function ValidateProcessDraft(ByRef report As String) As Boolean
@@ -10649,25 +10606,23 @@ Private Sub mLstProcessRequirements_Click()
 End Sub
 
 Private Sub mBtnProcessRequirementAdd_Click()
-    WriteRequirementEditorToList False
+    DesignerComponentAction ComponentRequirement, ComponentAdd
 End Sub
 
 Private Sub mBtnProcessRequirementUpdate_Click()
-    WriteRequirementEditorToList True
+    DesignerComponentAction ComponentRequirement, ComponentUpdate
 End Sub
 
 Private Sub mBtnProcessRequirementRemove_Click()
-    RemoveSelectedListRow mLstProcessRequirements
-    mSelectedProcessRequirementIndex = -1
-    ClearRequirementEditor
+    DesignerComponentAction ComponentRequirement, ComponentRemove
 End Sub
 
 Private Sub mBtnProcessRequirementUp_Click()
-    MoveSelectedListRow mLstProcessRequirements, -1
+    DesignerComponentAction ComponentRequirement, ComponentUp
 End Sub
 
 Private Sub mBtnProcessRequirementDown_Click()
-    MoveSelectedListRow mLstProcessRequirements, 1
+    DesignerComponentAction ComponentRequirement, ComponentDown
 End Sub
 
 Private Sub mLstProcessOutputs_Click()
@@ -10802,30 +10757,74 @@ Private Sub RemoveRecipeOutputRegulation(ByVal nodeId As String, ByVal outputId 
 End Sub
 
 Private Sub mBtnProcessOutputAdd_Click()
-    WriteOutputEditorToList False
+    DesignerComponentAction ComponentOutput, ComponentAdd
 End Sub
 
 Private Sub mBtnProcessOutputUpdate_Click()
-    WriteOutputEditorToList True
+    DesignerComponentAction ComponentOutput, ComponentUpdate
 End Sub
 
 Private Sub mBtnProcessOutputRemove_Click()
-    If mLstProcessOutputs.ListIndex >= 0 And Not mProcessOutputRegulations Is Nothing Then
-        If mProcessOutputRegulations.Exists(NzStr(mLstProcessOutputs.List(mLstProcessOutputs.ListIndex, 0))) Then _
-            mProcessOutputRegulations.Remove NzStr(mLstProcessOutputs.List(mLstProcessOutputs.ListIndex, 0))
-    End If
-    RemoveSelectedListRow mLstProcessOutputs
-    mSelectedProcessOutputIndex = -1
-    ClearOutputEditor
+    DesignerComponentAction ComponentOutput, ComponentRemove
 End Sub
 
 Private Sub mBtnProcessOutputUp_Click()
-    MoveSelectedListRow mLstProcessOutputs, -1
+    DesignerComponentAction ComponentOutput, ComponentUp
 End Sub
 
 Private Sub mBtnProcessOutputDown_Click()
-    MoveSelectedListRow mLstProcessOutputs, 1
+    DesignerComponentAction ComponentOutput, ComponentDown
 End Sub
+
+Private Sub DesignerComponentAction(ByVal kind As ProductionComponentKind, ByVal action As ProductionComponentAction)
+    Dim report As String
+    report = modProductionComponentActions.EditComponent(Me, kind, action, mActivityContext, _
+        mOperatorWorkbook, mLoading, mDesignerActionInProgress)
+    If report <> "" Then ShowStatus report
+End Sub
+
+Public Function ApplyComponentEdit(ByVal kind As ProductionComponentKind, ByVal action As ProductionComponentAction, _
+                                   ByRef report As String) As Boolean
+    Dim rows As MSForms.ListBox, selected As Long, fields As Long
+    If Not mDesignerActionInProgress Then Exit Function
+    report = "The component edit requires a valid selection; saved definitions were not changed."
+    If action = ComponentAdd Or action = ComponentUpdate Then
+        If kind = ComponentRequirement Then
+            ApplyComponentEdit = WriteRequirementEditorToList(action = ComponentUpdate)
+        Else
+            ApplyComponentEdit = WriteOutputEditorToList(action = ComponentUpdate)
+        End If
+        report = mTxtStatus.Text
+        Exit Function
+    End If
+    If kind = ComponentRequirement Then
+        Set rows = mLstProcessRequirements: fields = 7
+    Else
+        Set rows = mLstProcessOutputs: fields = 10
+    End If
+    selected = rows.ListIndex
+    Select Case action
+        Case ComponentRemove
+            If selected >= 0 Then
+                If kind = ComponentOutput And Not mProcessOutputRegulations Is Nothing Then
+                    If mProcessOutputRegulations.Exists(NzStr(rows.List(selected, 0))) Then _
+                        mProcessOutputRegulations.Remove NzStr(rows.List(selected, 0))
+                End If
+                rows.RemoveItem selected
+                ApplyComponentEdit = True
+            End If
+            If kind = ComponentRequirement Then
+                mSelectedProcessRequirementIndex = -1
+                ClearRequirementEditor
+            Else
+                mSelectedProcessOutputIndex = -1
+                ClearOutputEditor
+            End If
+        Case ComponentUp, ComponentDown
+            ApplyComponentEdit = modProductionComponentLists.MoveRow(rows, _
+                IIf(action = ComponentUp, -1, 1), mLstProcessInstructions, fields)
+    End Select
+End Function
 
 Private Sub mLstProcessInstructions_Click()
     If mLstProcessInstructions.ListIndex >= 0 Then _

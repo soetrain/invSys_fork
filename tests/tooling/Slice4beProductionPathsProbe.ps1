@@ -21,6 +21,24 @@ Public Function Present(ByVal pageIndex As Long) As Double
     Present = mForm.DesignerPresentForTest(pageIndex)
 End Function
 '@)
+    $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modInventoryViewer').CodeModule.AddFromString(@'
+Public Function PublishedSelectedFieldForTest(ByVal caption As String, ByVal expected As String) As Boolean
+    Dim instance As Object, fields As MSForms.ListBox, index As Long
+    For Each instance In VBA.UserForms
+        If TypeName(instance) = "frmEventDetail" Then
+            If Not instance.Visible Then Exit Function
+            Set fields = instance.Controls("lstEventFields")
+            For index = 0 To fields.ListCount - 1
+                If CStr(fields.List(index, 0)) = caption Then
+                    PublishedSelectedFieldForTest = (CStr(fields.List(index, 1)) = expected)
+                    Exit Function
+                End If
+            Next index
+            Exit Function
+        End If
+    Next instance
+End Function
+'@)
     $loaded=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest')
     Check 'Harness.ProductionPathsProbesInstalledBeforeForms' ($loaded -eq 0)
     if($loaded -ne 0){throw 'Path adapters must precede all forms.'}

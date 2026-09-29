@@ -100,7 +100,7 @@ function Test-ProductionLifecycleNative($Fixture) {
         if($pair){
             $linked=$attempt[0].ActivityId -cne '' -and $attempt[0].ActivityId -ceq $cancel[0].ActivityId -and $attempt[0].RecordId -cne $cancel[0].RecordId
             $facts=$attempt[0].DataEffect -ceq 'Unknown' -and $cancel[0].DataEffect -ceq 'Unchanged' -and $cancel[0].Severity -ceq 'Notice' -and $cancel[0].EventCode -ceq ($id+'_CANCELLED')
-            foreach($row in $rows){$facts=$facts -and $row.ControlId -ceq $id -and $row.OwnerId -ceq 'PRODUCTION_DESIGN_LIFECYCLE' -and $row.UserId -ceq 'config-producer' -and $row.WarehouseId -ceq $Fixture.Warehouse -and $row.CatalogVersion -eq 15 -and @($row.SourceEventRefs).Count -eq 0}
+            foreach($row in $rows){$facts=$facts -and $row.ControlId -ceq $id -and $row.OwnerId -ceq 'PRODUCTION_DESIGN_LIFECYCLE' -and $row.UserId -ceq 'config-producer' -and $row.WarehouseId -ceq $Fixture.Warehouse -and $row.CatalogVersion -eq 16 -and @($row.SourceEventRefs).Count -eq 0}
         }
         foreach($text in $raw){foreach($value in @($canary,$Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'mBtn','PayloadJson')){if($text.Contains($value)){$safe=$false}}}
         Check ($label+'.DistinctCorrelatedRecords') $linked

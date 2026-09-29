@@ -3,14 +3,20 @@
 Last reviewed: 2026-09-29 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
-**Resumed at the user's instruction,2026-09-29:** corrected component adapters
-establish packaged RED180/615,795 unique checks, five compiles, no harness failure,
-normal closure and preserved settings/packages. Runtime remains unchanged at this
-checkpoint; catalog16 implementation and GREEN are next. See
+**Current component checkpoint,2026-09-29:** corrected adapters establish packaged
+RED180/615, then GREEN795/795 with exact identities, five compiles, normal closure,
+preserved settings/packages and two reviewed principal images. Catalog16 is built
+in unpromoted `validation-production-components`; current registration29/68,39
+pending. Five builds/compiles/cold load, the six intended compiled-source changes,
+static limits and three schemas pass. Publication/paired paths pass142/142,
+retaining all140 prior checks with normal closure, two calibrated selected-field
+checks and six reviewed principal images including the exact STAGED terminal.
+Current-candidate layout, Settings202/202 and Instructions411/411 pass with unassisted closure and
+preservation; remaining regressions and full release/native gates remain open. See
 [component evidence](plan022_slice4be_production_component_results.md).
 Desktop monitoring resumes with successful samples; stop again on actual error5.
 
-**Current extent-candidate checkpoint:** combined visible UOM264/264 and the actual
+**Preceding extent-candidate checkpoint:** combined visible UOM264/264 and the actual
 public-launcher UOM lifecycle61/61 pass with normal unassisted closure, five
 instrumented compiles per gate, preserved settings/packages and reviewed principal
 images. The retained-form fixture now constructs with a separate workbook active
@@ -21,10 +27,11 @@ report. No Excel Application error event occurs in these runs. See
 [current UOM evidence](plan022_slice4be_production_uom_activity_results.md).
 Earlier failed diagnostics below are historical; these passes do not explain the
 native crashes or establish the current full chain/reusable Production gate.
-Runtime Production coverage is19/68 constructed controls, with49 remaining.
+Production coverage at that preceding checkpoint is19/68,49 remaining.
 Architecture D18 now specifies the ten requirement/output editor controls for
-catalog16 under approved semantic inheritance; protecting packaged RED is now
-established. No operational deployment or Release1 acceptance is claimed.
+catalog16 under approved semantic inheritance; the current component checkpoint
+above supersedes its implementation status. No operational deployment or Release1
+acceptance is claimed.
 
 **Earlier UOM observation/extent checkpoint:** Catalog15 registers `PRODUCTION_UOM_EDIT`;
 focused actual-handler RED98/134 becomes232/232 on the observation candidate.
@@ -296,7 +303,7 @@ It does not establish the new lifecycle controls' Action Paths or native visibil
 
 | Workstream | Verified foundation | Required to close |
 |---|---|---|
-| 4be.1 Comprehensive control coverage | Catalog13 and74 registered controls; packaged Receiving, Shipping, Boxing, Settings and UOM evidence plus six Production draft and six partially tested lifecycle handlers. Positive Recipe validation uses an actual released Process (244/244); both designer captures are reviewed. Lifecycle focused615/615 protects exact references, uncertain/pending outcomes, policy, nested actions and context guards. | Account for every reachable Operations/Admin action or explicit exclusion. Finish both Production families' remaining acceptance and the other55 constructed button actions. Complete shared session/target, inventory-management, remaining role navigation and Admin maintenance coverage through actual callbacks and owner facts. Reconcile carrier authority with D5 before changing it. |
+| 4be.1 Comprehensive control coverage | Catalog16 and90 registered controls; Production registration29/68 with focused component795/795 and paired paths142/142 on the current unpromoted candidate. Earlier packaged Receiving, Shipping, Boxing, Settings, UOM, draft and lifecycle evidence retains its candidate-specific scope; lifecycle615/615 protects exact references, uncertain/pending outcomes, policy, nested actions and context guards. | Account for every reachable Operations/Admin action or explicit exclusion. Finish the registered Production families' remaining acceptance and the other39 constructed button actions. Complete shared session/target, inventory-management, remaining role navigation and Admin maintenance coverage through actual callbacks and owner facts. Reconcile carrier authority with D5 before changing it. |
 | 4be.2 Settings and profiles | Dedicated Event Tracking surfaces, policies/profiles, personal views and Operations access without Admin. Settings diagnostic candidate: 780 focused behavioral checks, 202 Settings regression checks. | Finish remaining General/lifecycle/navigation observations, preserve restart/isolation and context guards, and close the focused shutdown limitation. Treat Windows-user connection preferences separately from warehouse Config authority. |
 | 4be.3 Comprehensive Events | Published projection, paging/filtering, contributing lines, selected detail and policy-aware reads have recorded tests. Event Detail now has 88/88 focused GREEN and 14 reviewed principal captures, including complete multiline scrolling. | Retain complete family/control coverage as 4be.1 expands. Finish broader candidate gates and human acceptance. Preserve read-only authority and all prior Viewer identities. |
 | 4be.4 Recording and conclusions | Immutable recordings, correlation, interruption and explicit diagnostic owner-outcome mappings have focused evidence. The current comparison attempt's strengthened PolicyChangeClosesIncomplete assertion passes. | Exercise the complete required Operations/Admin coverage, including Production, and complete current-candidate comparison acceptance. No staging or submission may imply saved settings or Domain application. |

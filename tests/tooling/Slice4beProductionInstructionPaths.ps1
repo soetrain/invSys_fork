@@ -1,5 +1,6 @@
 # Original instruction handlers supply separate guide provenance and observed runs.
-function Test-ProductionInstructionPaths($Fixture,[switch]$Uom) {
+function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Components) {
+    if($Uom -and $Components){throw 'Select one Production path family.'}
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
@@ -10,11 +11,16 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom) {
     function Expected([string]$Name,[string]$Action,[string]$Value=''){BoundControl $Name $Action $Value 'frmActionPathExpectation'}
     function PathCheck([string]$Name,[bool]$Passed){
         if($Uom){$Name=$Name.Replace('InstructionPaths.','UomPaths.').Replace('Five','Two')}
+        if($Components){$Name=$Name.Replace('InstructionPaths.','ComponentPaths.').Replace('Five','Ten')}
         Check $Name $Passed
     }
-    function ActionId([string]$Action){if($Uom){'PRODUCTION_UOM_EDIT'}else{'PRODUCTION_PROCESS_INSTRUCTION_'+$Action}}
+    function ActionId([string]$Action){if($Uom){'PRODUCTION_UOM_EDIT'}elseif($Components){'PRODUCTION_PROCESS_'+$Action}else{'PRODUCTION_PROCESS_INSTRUCTION_'+$Action}}
     function ActionOutcome([string]$Action){if($Uom){if($Action -ceq 'OPEN'){'OPENED'}else{'REUSED'}}else{'STAGED'}}
-    function Instruction([string]$Action){if($Uom){$Action+' the UOM workbench; retain existing edits and verify that the saved catalog is unchanged.'}else{$Action+' the local instruction and verify the staged outcome.'}}
+    function Instruction([string]$Action){
+        if($Uom){$Action+' the UOM workbench; retain existing edits and verify that the saved catalog is unchanged.'}
+        elseif($Components){$Action.Replace('_',' ')+' in the local Process draft; for UPDATE, select the added row first. Verify the staged outcome.'}
+        else{$Action+' the local instruction and verify the staged outcome.'}
+    }
     function SavedHash([string]$Path){
         $stream=[IO.File]::Open($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite)
         try{(Get-FileHash -InputStream $stream).Hash}finally{$stream.Dispose()}
@@ -34,7 +40,8 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom) {
                 $excel.DisplayAlerts=$false
                 foreach($stageSheet in @($book.Worksheets)){if($stageSheet.Name -ceq 'invSys UOM Catalog'){$stageSheet.Delete()}}
             }finally{$excel.DisplayAlerts=$priorAlerts}
-        }else{[void](Probe 'InstructionStage' @($canary,1,(' '+$canary+'4 ')))}
+        }elseif($Components){[void](Probe 'ComponentStage' @('REQUIREMENT',$canary,'Valid'))}
+        else{[void](Probe 'InstructionStage' @($canary,1,(' '+$canary+'4 ')))}
         $prior=@(if(Test-Path $journalRoot){Get-ChildItem $journalRoot -File -Filter '*.json'|ForEach-Object FullName})
         Delivered (RecordingControl 'Start Recording' 'Click')
         $starts=@(Get-ChildItem $journalRoot -File -Filter '*.json'|Where-Object {$_.FullName -cnotin $prior}|ForEach-Object {Get-Content $_.FullName -Raw|ConvertFrom-Json}|Where-Object RecordType -CEQ 'Start')
@@ -42,7 +49,12 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom) {
         $original=@();$terminals=@();$ordinal=0
         foreach($action in $actions){
             $ordinal++;$before=@(Get-Slice4beActivityFiles $Fixture);$decoy.Activate()
-            if($Uom){[void](Probe 'SendUom')}else{[void](Probe 'InstructionAct' @($action))}
+            if($Uom){[void](Probe 'SendUom')}
+            elseif($Components){
+                $parts=$action.Split('_')
+                if($parts[1] -ceq 'UPDATE'){[void](Probe 'ComponentSelectAdded' @($parts[0],$canary))}
+                [void](Probe 'ComponentAct' @($parts[0],$parts[1]))
+            }else{[void](Probe 'InstructionAct' @($action))}
             $rows=@(Get-Slice4beActivityFiles $Fixture|Where-Object {$_ -cnotin $before}|ForEach-Object {Get-Content $_ -Raw|ConvertFrom-Json})
             $attempt=@($rows|Where-Object OutcomeCode -CEQ 'REQUESTED');$terminal=@($rows|Where-Object OutcomeCode -CEQ (ActionOutcome $action))
             $valid=$rows.Count -eq 2 -and $attempt.Count -eq 1 -and $terminal.Count -eq 1
@@ -60,8 +72,9 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom) {
         $Recorded.Value=[pscustomobject]@{Journal=$closed[0];Terminals=$terminals;Original=$original}
     }
     $actions=if($Uom){@('OPEN','REOPEN')}else{@('ADD','UPDATE','UP','DOWN','REMOVE')}
+    if($Components){$actions=@('REQUIREMENT_ADD','REQUIREMENT_UPDATE','REQUIREMENT_UP','REQUIREMENT_DOWN','REQUIREMENT_REMOVE','OUTPUT_ADD','OUTPUT_UPDATE','OUTPUT_UP','OUTPUT_DOWN','OUTPUT_REMOVE')}
     $canary='PATH'+[guid]::NewGuid().ToString('N');$book=$null;$decoy=$null
-    $imagePrefix=if($Uom){'uom'}else{'instruction'}
+    $imagePrefix=if($Uom){'uom'}elseif($Components){'component'}else{'instruction'}
     try {
         SelectTarget $Fixture
         $allowed=Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-admin',$Fixture.Warehouse,'S1')
@@ -95,17 +108,29 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom) {
             $id=[string]$record.ActivityId
             PathCheck ('InstructionPaths.Detail.'+$record.ControlId+$(if($Uom){'.'+$record.Ordinal}else{''})) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('SelectSource',$id)) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadDetailForTest' @('Source event / activity ID',$id)))
         }
-        if($Uom){
+        if($Uom -or $Components){
             # Published contributing lines are not ordered by outcome. Select
             # the exact terminal record, rather than assuming it is row two.
             $detailGroup=@($publication.Groups|Where-Object {$_.Source -ceq 'Activity' -and $_.SourceId -ceq $observed.Terminals[-1].ActivityId})
-            if($detailGroup.Count -ne 1){throw 'Exact UOM detail group unavailable.'}
+            if($detailGroup.Count -ne 1){throw 'Exact terminal detail group unavailable.'}
             $terminalIndex=-1
             for($lineIndex=0;$lineIndex -lt $detailGroup[0].Lines.Count;$lineIndex++){
                 if($detailGroup[0].Lines[$lineIndex].RecordId -ceq $observed.Terminals[-1].RecordId){$terminalIndex=$lineIndex;break}
             }
-            if($terminalIndex -lt 0){throw 'Exact UOM terminal detail line unavailable.'}
-            [void](ExpectationControl 'lstEventLines' 'Index' ([string]$terminalIndex) 'frmEventDetail')
+            if($terminalIndex -lt 0){throw 'Exact terminal detail line unavailable.'}
+            if($Components){
+                $requestedIndex=-1
+                for($lineIndex=0;$lineIndex -lt $detailGroup[0].Lines.Count;$lineIndex++){
+                    if($detailGroup[0].Lines[$lineIndex].OutcomeCode -ceq 'REQUESTED'){$requestedIndex=$lineIndex;break}
+                }
+                if($requestedIndex -lt 0){throw 'Exact requested detail line unavailable.'}
+                Delivered (ExpectationControl 'lstEventLines' 'Index' ([string]$requestedIndex) 'frmEventDetail')
+                PathCheck 'InstructionPaths.Detail.RequestedObservationMatchesVisibleSelection' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome','REQUESTED')) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Data effect','Unknown')) -and -not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome','STAGED')))
+            }
+            Delivered (ExpectationControl 'lstEventLines' 'Index' ([string]$terminalIndex) 'frmEventDetail')
+            if($Components){
+                PathCheck 'InstructionPaths.Detail.ExactTerminalOutcomeAndEffect' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome','STAGED')) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Data effect','Unchanged')))
+            }
         }
         CaptureOwnedFormEvidence 'Event Detail' ($imagePrefix+'-event-detail.png') ([long](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedDetailLabelForTest' @('Window','')))
         Delivered (BoundLibrary 'Open')
@@ -123,8 +148,8 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom) {
         if((BoundLibrary 'Select' $source.Journal.ActionPathId) -cne 'SELECTED'){throw 'Guide source selection unavailable.'}
         Delivered (BoundControl 'btnCreateGuide' 'Click' '' 'frmActionPaths')
         PathCheck 'InstructionPaths.FiveObservedGuideSteps' ((Author 'lstGuideSteps' 'Rows') -ceq [string]$actions.Count)
-        Delivered (Author 'txtGuideName' 'Write' $(if($Uom){'Open and reuse the UOM draft'}else{'Edit Process instructions'}))
-        Delivered (Author 'txtGuideInstructions' 'Write' $(if($Uom){'Open the UOM workbench and reuse the existing local draft without publishing the catalog.'}else{'Edit the local instruction draft, then validate before saving the Process.'}))
+        Delivered (Author 'txtGuideName' 'Write' $(if($Uom){'Open and reuse the UOM draft'}elseif($Components){'Edit Process requirements and outputs'}else{'Edit Process instructions'}))
+        Delivered (Author 'txtGuideInstructions' 'Write' $(if($Uom){'Open the UOM workbench and reuse the existing local draft without publishing the catalog.'}elseif($Components){'Add, select and update, move up/down, then remove a requirement and an output. Validate before saving the Process.'}else{'Edit the local instruction draft, then validate before saving the Process.'}))
         for($i=0;$i -lt $actions.Count;$i++){
             if((Author 'lstGuideSteps' 'Select' ([string]$i)) -cne 'SELECTED'){throw 'Guide step unavailable.'}
             Delivered (Author 'txtGuideStepInstruction' 'Write' (Instruction $actions[$i]))

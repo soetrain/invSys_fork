@@ -178,6 +178,20 @@ End Function
 Public Function ComponentFailureRestoredForTest() As Boolean
     ComponentFailureRestoredForTest = mComponentFailureRestoredForTest
 End Function
+Public Sub ComponentSelectAddedForTest(ByVal kind As String, ByVal canary As String)
+    Dim rows As MSForms.ListBox, prior As Boolean
+    Set rows = ComponentListForTest(kind)
+    prior = mLoading: mLoading = True
+    rows.ListIndex = rows.ListCount - 1
+    mLoading = prior
+    If kind = "REQUIREMENT" Then
+        Call mLstProcessRequirements_Click
+        mTxtRequirementName.Text = canary & "UPDATED"
+    Else
+        Call mLstProcessOutputs_Click
+        mTxtProcessOutputName.Text = canary & "UPDATED"
+    End If
+End Sub
 Public Function ComponentCaptionForTest(ByVal kind As String, ByVal action As String) As String
     Select Case kind & "_" & action
         Case "REQUIREMENT_ADD": ComponentCaptionForTest = mBtnProcessRequirementAdd.Caption
@@ -221,6 +235,9 @@ End Function
 Public Function ComponentFailureRestored() As Boolean
     ComponentFailureRestored = mForm.ComponentFailureRestoredForTest()
 End Function
+Public Sub ComponentSelectAdded(ByVal kind As String, ByVal canary As String)
+    mForm.ComponentSelectAddedForTest kind, canary
+End Sub
 Public Function ComponentCaption(ByVal kind As String, ByVal action As String) As String
     ComponentCaption = mForm.ComponentCaptionForTest(kind, action)
 End Function
