@@ -11,6 +11,7 @@ param(
     [switch]$CheckProductionDesignerActivity,
     [switch]$CheckProductionUomStaging,
     [switch]$CheckProductionUomActivity,
+    [switch]$UomAdapterDiagnostic,
     [switch]$CheckProductionUomPaths,
     [switch]$CheckProductionInstructions,
     [switch]$CheckProductionInstructionPaths,
@@ -209,6 +210,7 @@ if($CheckSettingsEditorActivity){
 if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
 if($CheckProductionUomStaging -and (-not $CheckProductionDesignerActivity -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'UOM staging preservation requires its separate compiled Production handler gate.'}
 if($CheckProductionUomActivity -and -not $CheckProductionUomStaging){throw 'UOM activity requires its packaged staging gate.'}
+if($UomAdapterDiagnostic -and (-not $CheckProductionUomActivity -or -not $CaptureEvidence -or $CheckProductionUomPaths -or $Phase -cne 'RED')){throw 'Adapter diagnosis requires the combined visible UOM activity gate in diagnostic RED.'}
 if($CheckProductionUomPaths -and (-not $CheckProductionUomStaging -or -not $CaptureEvidence -or $CheckProductionUomActivity)){throw 'UOM paths require the separate staging adapters and visible evidence.'}
 if($CheckProductionInstructions -and (-not $CheckProductionDesignerActivity -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Instruction checks require their separate compiled Production designer gate.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}

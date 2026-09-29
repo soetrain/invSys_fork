@@ -1,6 +1,7 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-production-instructions-typed',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CaptureEvidence,[switch]$CheckActivity,[switch]$ActionPaths)
+param([string]$DeployRoot='deploy/validation-production-instructions-typed',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CaptureEvidence,[switch]$CheckActivity,[switch]$ActionPaths,[switch]$UomAdapterDiagnostic)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+if($UomAdapterDiagnostic -and (-not $CheckActivity -or -not $CaptureEvidence -or $ActionPaths -or $Phase -cne 'RED')){throw 'Adapter diagnosis requires the combined visible UOM activity gate in diagnostic RED.'}
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated UOM staging validation.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $snapshot=Get-InvSysTestSettingsSnapshot
@@ -14,6 +15,7 @@ Write-Output ('UOM staging controller: '+$root)
 try {
     $captureArguments=@();if($CaptureEvidence){$captureArguments=@('-CaptureEvidence')}
     if($CheckActivity){$captureArguments+=@('-CheckProductionUomActivity')}
+    if($UomAdapterDiagnostic){$captureArguments+=@('-UomAdapterDiagnostic')}
     if($ActionPaths){$captureArguments+=@('-CheckProductionUomPaths');if(-not $CaptureEvidence){$captureArguments+=@('-CaptureEvidence')}}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CheckProductionUomStaging -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @captureArguments *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
@@ -21,7 +23,7 @@ try {
     Wait-RecordingCleanup -Creator $null -Worker $null
     $restored=Restore-InvSysTestSettingsSnapshot $snapshot
     $same=@($pins|Where-Object {(Get-FileHash -LiteralPath $_.File).Hash -cne $_.Hash}).Count -eq 0
-    [pscustomobject]@{Phase=$Phase;StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=$true;ReleaseAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
+    [pscustomobject]@{Phase=$Phase;UomAdapterDiagnostic=[bool]$UomAdapterDiagnostic;StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=$true;ReleaseAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
     if(-not $restored -or -not $same){throw 'UOM staging preservation failed.'}
 }
 Get-Content (Join-Path $root 'worker.log') -Tail 6

@@ -1,7 +1,7 @@
 # Existing captured-workbook/unknown-column contract through the actual Send handler.
 function Install-ProductionUomStagingProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
-    $project.VBComponents.Item('frmProduction').CodeModule.AddFromString(@'
+    $formAdapter=@'
 Public Function UomSendForTest() As String
     On Error GoTo Failed
     mBtnUomCatalogSend_Click
@@ -22,8 +22,12 @@ Public Sub ShowUomForTest()
     mPages.Value = 5
     Me.Show vbModeless
 End Sub
-'@)
-    $project.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString(@'
+'@
+    if($UomAdapterDiagnostic){
+        $formAdapter=$formAdapter.Replace('    mBtnUomCatalogSend_Click',"    TestProductionDesigner.UomAdapterEnteredFormForTest`r`n    mBtnUomCatalogSend_Click`r`n    TestProductionDesigner.UomAdapterHandlerReturnedForTest")
+    }
+    $project.VBComponents.Item('frmProduction').CodeModule.AddFromString($formAdapter)
+    $moduleAdapter=@'
 Public Function SendUom() As String
     SendUom = mForm.UomSendForTest()
 End Function
@@ -33,7 +37,58 @@ End Function
 Public Sub ShowUom()
     mForm.ShowUomForTest
 End Sub
-'@)
+'@
+    if($UomAdapterDiagnostic){
+        $diagnosticCall=@'
+    On Error GoTo Failed
+    mUomAdapterEntered = False: mUomAdapterError = 0
+    WriteUomAdapterTraceForTest "AdapterEntered"
+    SendUom = mForm.UomSendForTest()
+    WriteUomAdapterTraceForTest "AdapterReturned"
+    Exit Function
+Failed:
+    mUomAdapterError = Err.Number
+    WriteUomAdapterTraceForTest "AdapterFailed", mUomAdapterError
+    SendUom = "ADAPTER_ERROR|" & CStr(mUomAdapterError)
+'@
+        $moduleAdapter=$moduleAdapter.Replace('    SendUom = mForm.UomSendForTest()', $diagnosticCall)
+        $project.VBComponents.Item('TestProductionDesigner').CodeModule.InsertLines(1,"Private mUomAdapterEntered As Boolean`r`nPrivate mUomAdapterError As Long`r`nPrivate mUomTracePath As String`r`nPrivate mUomTraceCase As String`r`nPrivate mUomTraceSequence As Long")
+        $moduleAdapter+=[Environment]::NewLine+@'
+Public Sub UomAdapterEnteredFormForTest()
+    mUomAdapterEntered = True
+    WriteUomAdapterTraceForTest "FormEntered"
+End Sub
+Public Sub UomAdapterHandlerReturnedForTest()
+    WriteUomAdapterTraceForTest "HandlerReturned"
+End Sub
+Public Sub UomAdapterTraceInitForTest(ByVal diagnosticPath As String)
+    mUomTracePath = diagnosticPath: mUomTraceCase = "Activity"
+    WriteUomAdapterTraceForTest "Initialized"
+End Sub
+Public Sub UomAdapterTraceCaseForTest(ByVal diagnosticCase As String)
+    Select Case diagnosticCase
+        Case "MissingFormCalibration", "Activity", "DENIED", "FAILED", "Busy", "Loading", "Target", "Session", "SignedOut", "ClosedWorkbook"
+            mUomTraceCase = diagnosticCase
+        Case Else
+            Err.Raise 5, , "Unsupported fixed UOM diagnostic case."
+    End Select
+    WriteUomAdapterTraceForTest "CaseSelected"
+End Sub
+Private Sub WriteUomAdapterTraceForTest(ByVal stage As String, Optional ByVal errorNumber As Long = 0)
+    Dim handle As Integer
+    If mUomTracePath = "" Then Exit Sub
+    mUomTraceSequence = mUomTraceSequence + 1
+    handle = FreeFile
+    Open mUomTracePath For Append As #handle
+    Print #handle, CStr(mUomTraceSequence) & "|" & mUomTraceCase & "|" & stage & "|" & CStr(errorNumber)
+    Close #handle
+End Sub
+Public Function UomAdapterStateForTest() As String
+    UomAdapterStateForTest = CStr(mUomAdapterEntered) & "|" & CStr(mUomAdapterError)
+End Function
+'@
+    }
+    $project.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString($moduleAdapter)
 }
 
 function Test-ProductionUomStaging($Fixture) {

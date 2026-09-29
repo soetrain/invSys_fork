@@ -26,7 +26,19 @@ the failed visible combined guard. Instructions411/411 retains exact prior check
 normal closure and preservation on the extent candidate. Instruction paths105/105
 also retain exact identities, normal closure and six reviewed principal images.
 Draft/Action Paths390/390 also retain exact identities, normal unassisted closure
-and settings/packages. Remaining regressions and release gates stay open.
+and settings/packages. Lifecycle615/615 retains exact identities and normal closure.
+A test-only visible adapter diagnostic reproduces the closed-workbook failure at
+262/1 without Debug/Reset: original Excel is listed at failure, then exits during
+cleanup; a child needs termination. This does not prove a native crash.
+The durable extension completes271/2 with normal closure and preserved settings/packages:
+adapter entry is followed by80010007 before the form-entry marker, while no
+redirected activity occurs. The actual launcher-owned UOM close/reopen lifecycle
+needs a focused proof before deciding whether the retained-instance message oracle
+needs correction. The failed gate stays open. Remaining
+regressions and release gates stay open. Native cancellation94/94 retains exact
+identities, normal closure, preservation and four reviewed principal dialog images.
+Packaged smoke86/86 retains prior identities and preservation; its harness can
+force termination, so normal automatic shutdown remains unobserved.
 
 **UOM staging correction, release gate still open:** The user-approved reuse
 workflow has [focused RED60/18 -> GREEN78/78](plan022_slice4be_production_uom_staging_results.md)

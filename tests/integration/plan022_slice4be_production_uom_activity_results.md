@@ -153,7 +153,73 @@ inner controller: `production-designer-controller/0afa3cd3559b4d53af212ad3e9fc74
 result: `slice4be-production-designer/f9d77d39b8be4fd2bfea52da7d353c5a/green.json`;
 verification: `production-uom-extent-draft-verification.json`.
 
-Applicable lifecycle, Settings-observation and native regressions must run
+Lifecycle615/615 retains every prior identity, normal unassisted closure,
+settings/packages and zero Excel Application events. Controller:
+`production-uom-extent-regression/lifecycle-5edeabaa0854497ea3e9af8756b355c8`;
+inner controller: `production-lifecycle-controller/33df59218b79475786666e0cb429b06b`;
+result: `slice4be-production-designer/bf3a78b6db1f4c5285a73533dca7309f/green.json`;
+verification: `production-uom-extent-lifecycle-verification.json`.
+
+An opt-in UOM adapter diagnostic repeats the visible closed-workbook failure
+without Debug/Reset intervention:262 PASS/1 harness failure. It calibrates a
+missing test form as error91 with no form entry or activity, then records form
+entry and zero adapter error for DENIED, FAILED, Target, Session and SignedOut.
+The closed-workbook Send call fails with transport envelopes80131501/80020009;
+the first failure receipt still lists the original Excel and a new child. The
+original later exits during harness cleanup; the child prevents restoration until
+terminated. This does not prove a native crash. No closed-workbook state receipt
+is returned, so the probe cannot establish whether the form was entered. No Excel
+Application1000/1001 event was observed during the checked window. Settings and
+all five packages are restored; this is qualified diagnostic evidence, not GREEN.
+
+Diagnostic controller/result: `production-uom-staging-controller/7497bb331a724613a8d15aeca234eabd`;
+`slice4be-production-uom-staging/53bf0c953eb64aacae8ed58d9d5436bc/red.json`.
+Inspect its allowlisted `uom-adapter-diagnostic.jsonl`, first-call failure facts
+and controller `assisted-cleanup.json`. The diagnostic switch requires visible
+activity checks and RED; attempting acceptance GREEN is rejected before Excel work.
+It changes only unsaved test adapters, preserves the refusal assertions and logs
+fixed case names, Boolean entry and numeric errors. A durable fixed-marker
+extension addresses that evidence gap because the original instance is unavailable
+after cleanup.
+
+The durable diagnostic completes271 PASS/2 FAIL with normal unassisted closure,
+all264 preceding check identities retained, five instrumented compiles, preserved
+settings/packages and no Excel Application1000/1001 event. The failures are
+`UomActivity.Guard.ClosedWorkbook.RefusalVisible` and the additional diagnostic
+form-entry assertion. Fixed trace49--51 records ClosedWorkbook case selection,
+adapter entry, then AdapterFailed -2147418105 (80010007), with no intervening
+form-entry marker. No redirected activity is created. The call fails at the
+retained-form dispatch boundary; this does not establish why that reference is
+unavailable or prove a runtime repair. Subsequent fresh-form tracking-off and
+unavailable-store cases pass. Their trace lines retain the previous case label
+in this run; only49--51 are the closed-workbook attempt. The test-only label reset
+is corrected for future diagnostics, without repeating the gate for that label.
+
+Durable controller/result:
+`production-uom-staging-controller/7851d87d119c4415abccbed62f800a50`;
+`slice4be-production-uom-staging/da9f2da09f724d1a802103c380fdb2a8/red.json`.
+Its `uom-adapter-entry.txt` contains only sequence, fixed case/stage and numeric
+error fields. Verification: `production-uom-extent-adapter-diagnostic-verification.json`.
+D18 requires closed binding refusal without replacement-context attribution;
+the actual launcher-owned close/reopen lifecycle still needs a focused UOM proof
+before any decision about the failed retained-instance message oracle. Keep the
+failure open; do not treat diagnostic instrumentation as an accepted runtime change.
+
+Native cancellation94/94 retains every prior identity, four reviewed principal
+dialog images, normal unassisted closure, settings/packages and zero Excel
+Application events. Controller:
+`production-uom-extent-regression/native-9be0bdcf7ada4efdaaa548ed567a6902`;
+result/images: `slice4be-production-lifecycle-native/0af64587bc3f4ca7a08c4c3e5a398224`;
+verification: `production-uom-extent-native-verification.json`.
+
+Packaged smoke86/86 retains every prior identity, settings/packages and the
+tracked report, with no Excel Application event. Its harness can force termination
+after one second and does not report whether that branch ran; normal automatic
+shutdown is unobserved. Controller:
+`production-uom-extent-regression/smoke-c3f670085f624961bdb4412c219ee7be`;
+verification: `production-uom-extent-smoke-verification.json`.
+
+The Settings-observation regression must run
 on the final candidate. The preceding candidate's full-chain/native c0000028
 blocker remains unresolved. No package promotion or Release1 acceptance is claimed.
 

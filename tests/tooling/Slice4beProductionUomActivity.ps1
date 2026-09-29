@@ -43,6 +43,13 @@ End Function
 
 function Test-ProductionUomActivity($Fixture,$Other) {
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
+    function AdapterDiagnostic([string]$Case) {
+        $state=[string](Probe 'UomAdapterStateForTest')
+        if($state -cnotmatch '^(True|False)\|(-?[0-9]+)$'){throw 'Invalid fixed UOM adapter diagnostic.'}
+        $entry=[pscustomobject]@{Case=$Case;UTC=[DateTimeOffset]::UtcNow.ToString('o');FormEntered=$Matches[1] -ceq 'True';AdapterError=[long]$Matches[2]}
+        $entry|ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'uom-adapter-diagnostic.jsonl')
+        return $entry
+    }
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function SetPolicy([bool]$Enabled){
         SelectTarget $Fixture
@@ -89,6 +96,19 @@ function Test-ProductionUomActivity($Fixture,$Other) {
     }
     $canary='UOMACTIVITY'+[guid]::NewGuid().ToString('N');$book=$null;$decoy=$null
     SetPolicy $true
+    if($UomAdapterDiagnostic){
+        # Staging's finally block has closed its test form. Calibrate the numeric
+        # diagnostic against that absent form without dispatching a control.
+        $tracePath=Join-Path $reportRoot 'uom-adapter-entry.txt'
+        [void](Probe 'UomAdapterTraceInitForTest' @($tracePath))
+        [void](Probe 'UomAdapterTraceCaseForTest' @('MissingFormCalibration'))
+        $before=@(Files);$calibration=[string](Probe 'SendUom');$state=AdapterDiagnostic 'MissingFormCalibration'
+        Check 'UomAdapterDiagnostic.MissingFormCaptured' ($calibration -ceq 'ADAPTER_ERROR|91' -and -not $state.FormEntered -and $state.AdapterError -eq 91)
+        Check 'UomAdapterDiagnostic.CalibrationIsNotAction' (@(Files).Count -eq $before.Count)
+        $trace=Get-Content -LiteralPath $tracePath
+        Check 'UomAdapterDiagnostic.DurableMissingFormCaptured' (@($trace|Where-Object{$_ -cmatch '^\d+\|MissingFormCalibration\|AdapterFailed\|91$'}).Count -eq 1 -and @($trace|Where-Object{$_ -cmatch '\|MissingFormCalibration\|FormEntered\|'}).Count -eq 0)
+        [void](Probe 'UomAdapterTraceCaseForTest' @('Activity'))
+    }
     $old=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(14))).Split("`n")|Where-Object{$_})
     $new=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(15))).Split("`n")|Where-Object{$_})
     Check 'UomActivity.Catalog15Extends14' ($old.Count -eq 79 -and $new.Count -eq 80 -and @($old|Where-Object{$_ -cnotin $new}).Count -eq 0 -and @($new|Sort-Object -Unique).Count -eq 80)
@@ -126,6 +146,7 @@ function Test-ProductionUomActivity($Fixture,$Other) {
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         foreach($mode in @('DENIED','FAILED','Busy','Loading','Target','Session','SignedOut','ClosedWorkbook')){
             SelectTarget $Fixture $(if($mode -ceq 'DENIED'){'config-reader'}else{'config-producer'})
+            if($UomAdapterDiagnostic){[void](Probe 'UomAdapterTraceCaseForTest' @($mode))}
             $book=$excel.Workbooks.Add();[void](Probe 'OpenDesigner' @($book.Name))
             if($mode -ceq 'FAILED'){[void](Probe 'UomProtect' @($book.Name))}
             if($mode -ceq 'Target'){SelectTarget $Other 'config-producer'}
@@ -134,12 +155,17 @@ function Test-ProductionUomActivity($Fixture,$Other) {
             if($mode -ceq 'ClosedWorkbook'){$book.Close($false);$book=$null}
             $before=@(Files);$otherBefore=@(Get-Slice4beActivityFiles $Other)
             $notice=if($mode -in @('Busy','Loading')){[string](Probe 'UomSuppressed' @($mode))}else{[string](Probe 'SendUom')}
+            if($UomAdapterDiagnostic -and $mode -notin @('Busy','Loading')){
+                $state=AdapterDiagnostic $mode
+                Check ('UomAdapterDiagnostic.'+$mode+'.FormEnteredWithoutAdapterError') ($state.FormEntered -and $state.AdapterError -eq 0)
+            }
             if($mode -in @('DENIED','FAILED')){Pair $before $mode ('UomActivity.'+$mode) $(if($mode -ceq 'DENIED'){'config-reader'}else{'config-producer'})}
             else {Check ('UomActivity.Guard.'+$mode+'.NoRedirectedActivity') (@(Files).Count -eq $before.Count -and @(Get-Slice4beActivityFiles $Other).Count -eq $otherBefore.Count)}
             if($null -ne $book){Check ('UomActivity.Guard.'+$mode+'.NoStagingMutation') ($book.Worksheets.Count -eq 1)}
             if($mode -in @('Target','Session','SignedOut','ClosedWorkbook')){Check ('UomActivity.Guard.'+$mode+'.RefusalVisible') ($notice.StartsWith('Session, warehouse, or captured workbook changed.') -and $notice.Contains('Reopen Production'))}
             [void](Probe 'CloseDesigner');if($null -ne $book){$book.Close($false);$book=$null}
         }
+        if($UomAdapterDiagnostic){[void](Probe 'UomAdapterTraceCaseForTest' @('Activity'))}
         SetPolicy $false
         $book=$excel.Workbooks.Add();[void](Probe 'OpenDesigner' @($book.Name));$before=@(Files);$notice=[string](Probe 'SendUom')
         Check 'UomActivity.TrackingOff.ActionContinues' ($book.Worksheets.Count -eq 2 -and @(Files).Count -eq $before.Count)
