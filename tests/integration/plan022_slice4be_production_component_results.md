@@ -106,6 +106,25 @@ result `slice4be-production-instructions/1937d6597ab948ceb2ccc8915fb6a76f/green.
 package preservation and zero Excel Application events are verified. Receipt
 `production-components-instructions-verification.json`.
 
+The separate instruction Action Path gate retains **105/105**. Controller
+`production-instruction-controller/95035503c63e4b2fbf0da997891bec59`, result
+`slice4be-production-instruction-paths/2efd02d934ec4dd4bc4ea7a2234f73b1/green.json`,
+23:28:07--23:32:24 UTC. All six principal captures are reviewed, including the
+visible five-step conclusion and its explicit absence of a Domain-application
+claim. Five compiles, exact preceding check identities, normal unassisted closure,
+settings/package preservation and zero Excel Application events hold. Receipt
+`production-components-instruction-paths-verification.json`.
+
+UOM Action Paths retains **84/84**. Controller
+`production-uom-staging-controller/74439a933ef8434392451519c59bdbd1`, result
+`slice4be-production-uom-paths/e1fee5bcbc584410bd4416504a99a75f/green.json`,
+23:32:35--23:36:18 UTC. Five compiles, exact prior identities, normal unassisted
+closure, settings/package preservation and zero Excel Application events hold.
+All six principal images are reviewed, including exact REUSED detail and the
+two-step conclusion. Receipt `production-components-uom-paths-verification.json`.
+Combined UOM/public-launcher, draft, lifecycle/native cancellation, Settings
+observations, smoke and broader release gates remain pending on this candidate.
+
 ## Protecting RED
 
 After the user's explicit resume, the unchanged extent candidate completes
