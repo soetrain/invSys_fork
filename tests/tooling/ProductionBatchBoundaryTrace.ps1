@@ -79,7 +79,8 @@ End Sub
 '@
 }
 function Install-ProductionBatchTrace {
-    param($Excel,[hashtable]$Packages,[string]$PackageRoot)
+    param($Excel,[hashtable]$Packages,[string]$PackageRoot,[switch]$CompileOnly)
+    if(-not $CompileOnly){
     $project=$Packages['invSys.Operations.xlam'].VBProject
     $sources=@{}
     foreach($name in @('mProduction','frmProduction')){
@@ -94,6 +95,7 @@ function Install-ProductionBatchTrace {
         $module=$project.VBComponents.Item($group.Name).CodeModule
         foreach($edit in $group.Group|Sort-Object Line -Descending){$module.InsertLines($edit.Line,$edit.Code)}
     }
+    }
     $visible=$Excel.VBE.MainWindow.Visible
     try {
         foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam')){
@@ -106,9 +108,11 @@ function Install-ProductionBatchTrace {
             foreach($component in $target.VBComponents){if($component.Type -eq 1){$component.CodeModule.CodePane.Show();break}}
             $command=$Excel.VBE.CommandBars.FindControl(1,578)
             if($null -eq $command){throw 'Trace compile command unavailable.'}
-            if($command.Enabled){$command.Execute()}
+            $executed=[bool]$command.Enabled
+            if($executed){$command.Execute()}
             if($Excel.VBE.CommandBars.FindControl(1,578).Enabled){throw 'Trace compile incomplete; not product RED.'}
             Write-Output ('BATCH_TRACE_COMPILE_PASS '+$name)
+            Write-Output ('BATCH_COMPILE_EXECUTED '+$name+' '+$executed)
         }
     } finally {$Excel.VBE.MainWindow.Visible=$visible}
 }

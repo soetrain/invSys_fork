@@ -104,6 +104,9 @@ Current-candidate regression checkpoint:
 | Production lifecycle |615/615|Exact prior identities, five compiles and normal unassisted closure. |
 | Packaged Production layout |PASS|Three sizes x five pages, native minimize/restore/maximize/restore and three complete reviewed captures after capture-tool correction. |
 | Settings command observations |467/467, qualified|All450 prior identities plus17 historical exclusions; eight reviewed captures. Assisted cleanup; normal shutdown remains open. |
+| Native lifecycle cancellation |94/94|Exact prior identities; four complete reviewed question captures and normal unassisted closure. |
+| Packaged smoke |86/86|Exact prior identities; automatic termination is possible but unobserved, so normal exit is not established. |
+| Reusable Production run-only |0 PASS/1 harness failure|RPC/native failure at the batch-scale adapter; no termination requested, no reusable result. |
 
 These controllers restore settings and all five package hashes, retain tracked
 report bytes, and have zero Excel Application events. Chain runs17:41:14--17:46:16
@@ -144,6 +147,21 @@ Refreshed maintenance retains255 components,6065 procedures,133334 lines,
 size caps. Three schemas and300 PowerShell parses pass. This follow-up changes
 developer capture and fixture construction only; all runtime packages stay fixed.
 
+Native cancellation runs18:31:38--18:33:29 UTC and smoke18:33:48--18:34:07 UTC.
+Both restore settings/packages with zero Excel Application events; smoke also
+restores its tracked report. Native closure is unassisted. Smoke's validator can
+Stop-Process after its wait and emits no termination receipt, so do not infer
+normal closure from its controller's ExcelClosed field.
+
+Reusable run-only fails18:34:41--18:35:05 UTC at
+`mProduction.RunProductionBatchScaleContractTest`, with RPC0x800706BE and Excel
+ntdll.dll exception0xc0000028 (offset0000000000012d2f). Its receipt explicitly
+records TerminationRequested=False. Settings/packages restore; no desktop error5
+occurs. This matches the earlier native signature but does not prove the cause
+or preserve the prior67 reusable observations on this candidate. Both run-only
+and full Production/restart remain open. Do not repeat unchanged broad runs or
+infer a repair from passing shortened diagnostics; trace the failing standard flow.
+
 - Expanded RED controller: `reports/runtime/production-instruction-controller/1efdc1da85fb4757bd4d3cbce1867f88`.
 - Expanded RED results: `reports/runtime/slice4be-production-instructions/02a0cd3f2f18464192acafa7392a63d2/red.json`.
 - Expanded GREEN controller and five package pins: `reports/runtime/production-instruction-controller/babcce28be534358ba247e93d1c044df`.
@@ -173,9 +191,15 @@ developer capture and fixture construction only; all runtime packages stay fixed
 - Corrected Settings results and eight captures: `reports/runtime/slice4be-settings-activity/9f58e277a36c4556ae579aaab3390a0c`.
 - Corrected Settings verification: `reports/runtime/production-instructions-settingsactivity-verification.json`.
 - Refreshed maintenance and verification: `reports/runtime/production-instructions-validation-static` and `reports/runtime/production-instructions-validation-static-verification.json`.
+- Native controller: `reports/runtime/production-instructions-regression/native-a5196f84527e48af984d78353b7dfe42`.
+- Native results/four question captures: `reports/runtime/slice4be-production-lifecycle-native/e8376b936b4e4e7abd7512b9cd6277b4`.
+- Native verification: `reports/runtime/production-instructions-native-verification.json`.
+- Smoke controller: `reports/runtime/production-instructions-regression/smoke-141d94d73e2948338c1004b6412ce0d6`.
+- Smoke verification: `reports/runtime/production-instructions-smoke-verification.json`.
+- Reusable attempt: `reports/runtime/production-instructions-regression/reusable-5c174e72a164412b90d24240462c11a3`.
+- Reusable failure verification: `reports/runtime/production-instructions-reusable-attempt-verification.json`.
 
-Current-candidate native lifecycle cancellation, normal Settings shutdown,
-packaged smoke and reusable Production gates remain pending. The earlier
+Normal Settings shutdown and reusable Production gates remain pending. The earlier
 full Production native failure remains independently open. This focused checkpoint
 does not accept the five controls, comprehensive Slice4be, Release1, human or NAS
 acceptance. The user requires the goal to stop if desktop Windows error5 recurs;

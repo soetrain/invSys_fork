@@ -21,6 +21,17 @@ GREEN7/7; package bytes stay fixed. Settings observations449/1 expose a stale
 historical fixture. Corrected-fixture467/467 retains all450 prior identities with
 eight reviewed captures; both runs require assisted cleanup. Normal Settings
 shutdown remains open and needs a bounded diagnostic, not unchanged full retries.
+Native cancellation94/94 retains four complete reviewed captures and normal
+closure; smoke86/86 retains prior identities but its automatic cleanup is unobserved.
+Current-candidate reusable run-only fails at batch scale with the earlier RPC/native
+signature and TerminationRequested=False. Prior67 reusable observations are not
+re-established. Trace the failed standard flow; avoid unchanged broad retries.
+The [standard-flow controls](plan022_slice4be_production_batch_boundary_results.md)
+subsequently pass with tracing/VBE preparation and with VBE preparation alone;
+all four compile commands execute in the latter. Both request automatic cleanup.
+The read-only compile gate does not save compiled packages. A separate saved-compile
+candidate with an unmodified cold validator is the next experiment; no repair,
+normal shutdown or full acceptance is inferred.
 Other regressions remain pending. Prior candidate
 evidence below keeps its original scope; the full
 Production native failure remains open. The form census now has18 registered

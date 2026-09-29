@@ -1,9 +1,11 @@
-# Scoped diagnostic of the standard launcher sequence through batch scale only.
+# Calibrated batch-boundary diagnostic; optionally retains the standard run flow.
 [CmdletBinding()]
 param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-production-paths',
       [string]$PackagePinsPath='reports/runtime/production-lifecycle-native-controller/65e8e27585ca47289cf27e87e147e83e/package-pins.json',
-      [switch]$TraceBoundaries)
+      [switch]$TraceBoundaries,[switch]$StandardRunFlow,[switch]$CompileOnly,[switch]$GenerateOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+if($StandardRunFlow -and -not ($TraceBoundaries -or $CompileOnly)){throw 'Standard-flow diagnosis requires tracing or the VBE preparation control.'}
+if($CompileOnly -and ($TraceBoundaries -or -not $StandardRunFlow)){throw 'VBE preparation control requires standard flow without tracing.'}
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before the isolated diagnostic.'}
 $deploy=(Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
@@ -20,18 +22,22 @@ Write-Output ('Diagnostic: '+$root)
 $validator=Join-Path $repo 'tools/validate_plan022_packaged_launchers.ps1'
 $validatorHash=(Get-FileHash -LiteralPath $validator).Hash
 $source=[IO.File]::ReadAllText($validator)
+$originalSource=$source
 function Replace-Once([string]$Text,[string]$Anchor,[string]$Replacement){
     $pattern='(?m)^'+[regex]::Escape($Anchor)+'\r?$'
     if([regex]::Matches($Text,$pattern).Count -ne 1){throw 'Diagnostic harness anchor missing/ambiguous.'}
     [regex]::Replace($Text,$pattern,[Text.RegularExpressions.MatchEvaluator]{param($match) $Replacement})
 }
-if($TraceBoundaries){
+if($TraceBoundaries -or $CompileOnly){
     $anchor='    $coreName = [string]$packages["invSys.Core.xlam"].Name'
     $install=@'
     . (Join-Path $repo 'tests/tooling/ProductionBatchBoundaryTrace.ps1')
     Install-ProductionBatchTrace -Excel $excel -Packages $packages -PackageRoot $deployPath
 '@
+    if($CompileOnly){$install+=' -CompileOnly'}
     $source=Replace-Once $source $anchor ($install+"`r`n"+$anchor)
+}
+if($TraceBoundaries){
     $anchor='    $currentStep = "invoke packaged callbacks for state $WorkbookState"'
     $arm=@'
     $tracePath=Join-Path $outputPath 'stages.txt'
@@ -42,6 +48,7 @@ if($TraceBoundaries){
     $source=Replace-Once $source $anchor ($arm+"`r`n"+$anchor)
 }
 $anchor='                $observedText += " || PRODUCTION_BATCH_SCALE=" + $workflowControlReport'
+$cutAnchor=$anchor
 $cut=@'
                 $localPaths=@($newWorkbookPaths|Where-Object {[IO.Path]::GetFullPath($_).StartsWith([IO.Path]::GetFullPath($operatorRoot),[StringComparison]::OrdinalIgnoreCase)})
                 [pscustomobject]@{NewWorkbookCount=$newWorkbooks.Count;NewPathCount=$newWorkbookPaths.Count;StationLocalCount=$localPaths.Count;SecondNewWorkbookCount=$secondNewWorkbooks.Count}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $outputPath 'workbook-counts.json')
@@ -59,20 +66,33 @@ $cut=@'
                 [IO.File]::WriteAllText((Join-Path $outputPath 'cut-reached.txt'),'AfterBatchScale')
                 return
 '@
-$source=Replace-Once $source $anchor $cut
+if(-not $StandardRunFlow){$source=Replace-Once $source $anchor $cut}
 $anchor='        $observed = ([string]$row.Observed).Replace("|", "/")'
+$redactionAnchor=$anchor
 $source=Replace-Once $source $anchor '        $observed = "Details omitted"'
-$source=$source.Replace('# Plan 022 Slice 4x Packaged Reusable Production Evidence','# Scoped Production batch-boundary diagnostic; not full reusable acceptance')
-$generated=Join-Path $root 'scoped-validator.ps1'
+$heading='# Production batch-boundary diagnostic; not full reusable acceptance'
+$source=$source.Replace('# Plan 022 Slice 4x Packaged Reusable Production Evidence',$heading)
+# Reverse only the declared diagnostic insertions/redaction. Every original
+# statement, including all standard workflow assertions and cleanup, must remain.
+$restoredSource=$source.Replace('        $observed = "Details omitted"',$redactionAnchor).Replace($heading,'# Plan 022 Slice 4x Packaged Reusable Production Evidence')
+if(-not $StandardRunFlow){$restoredSource=$restoredSource.Replace($cut,$cutAnchor)}
+if($TraceBoundaries -or $CompileOnly){$restoredSource=$restoredSource.Replace($install+"`r`n",'')}
+if($TraceBoundaries){$restoredSource=$restoredSource.Replace($arm+"`r`n",'')}
+$statementsPreserved=($restoredSource -replace "`r`n","`n") -ceq ($originalSource -replace "`r`n","`n")
+if(-not $statementsPreserved){throw 'Diagnostic changed undeclared standard-validator statements.'}
+$generated=Join-Path $root $(if($StandardRunFlow){'standard-run-validator.ps1'}else{'scoped-validator.ps1'})
 [IO.File]::WriteAllText($generated,$source,[Text.UTF8Encoding]::new($false))
 $tokens=$null;$errors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($generated,[ref]$tokens,[ref]$errors)
-if($errors.Count){throw 'Scoped diagnostic does not parse.'}
+if($errors.Count){throw 'Diagnostic does not parse.'}
+[pscustomobject]@{StandardRunFlow=[bool]$StandardRunFlow;TraceBoundaries=[bool]$TraceBoundaries;CompileOnly=[bool]$CompileOnly;OriginalStatementsPreserved=$statementsPreserved;ParseErrors=$errors.Count;GenerationOpenedExcel=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'generation.json')
+if($GenerateOnly){Write-Output 'Diagnostic generation calibrated; no runtime invoked.';return}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $settings=Get-InvSysTestSettingsSnapshot
 $restored=$false;$code=1;$start=[DateTimeOffset]::UtcNow
 try {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $generated -RepoRoot $repo -DeployRoot $DeployRoot -OutputDirectory ($root.Substring($repo.Length+1)) -CallbackFilter Production -WorkbookState ProductionReusable *> (Join-Path $root 'worker.log')
+    $flowArguments=@();if($StandardRunFlow){$flowArguments+='-ProductionRunOnly'}
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $generated -RepoRoot $repo -DeployRoot $DeployRoot -OutputDirectory ($root.Substring($repo.Length+1)) -CallbackFilter Production -WorkbookState ProductionReusable @flowArguments *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
 } finally {
     Wait-RecordingCleanup -Creator $null -Worker $null
@@ -103,7 +123,8 @@ if($TraceBoundaries){
     $traceValid=$stages.Count -gt 1 -and @($stages|Where-Object {$_ -cnotin $allow}).Count -eq 0
 }
 $failed=@($checks|Where-Object {-not $_.Passed}).Count
-$result=[pscustomobject]@{TraceBoundaries=[bool]$TraceBoundaries;PassedChecks=$checks.Count-$failed;FailedChecks=$failed;Checks=$checks;CutReached=$cutReached;TraceAllowlistValid=$traceValid;TraceEntries=$stages.Count;ExcelApplicationEvents=$events.Count;FinalCleanup=$cleanup;DiagnosticPassed=($code -eq 0 -and $cutReached -and $checks.Count -eq 7 -and $failed -eq 0 -and $traceValid -and $events.Count -eq 0);FullProductionAccepted=$false}
+$scopeSatisfied=if($StandardRunFlow){-not $cutReached -and $checks.Count -eq 1}else{$cutReached -and $checks.Count -eq 7}
+$result=[pscustomobject]@{TraceBoundaries=[bool]$TraceBoundaries;StandardRunFlow=[bool]$StandardRunFlow;CompileOnly=[bool]$CompileOnly;OriginalStatementsPreserved=$statementsPreserved;PassedChecks=$checks.Count-$failed;FailedChecks=$failed;Checks=$checks;CutReached=$cutReached;TraceAllowlistValid=$traceValid;TraceEntries=$stages.Count;ExcelApplicationEvents=$events.Count;FinalCleanup=$cleanup;DiagnosticPassed=($code -eq 0 -and $scopeSatisfied -and $failed -eq 0 -and $traceValid -and $events.Count -eq 0);FullProductionAccepted=$false}
 $result|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $root 'result.json')
-$result|Select-Object TraceBoundaries,PassedChecks,FailedChecks,CutReached,TraceAllowlistValid,TraceEntries,ExcelApplicationEvents,FinalCleanup,DiagnosticPassed|ConvertTo-Json -Depth 4
+$result|Select-Object TraceBoundaries,StandardRunFlow,CompileOnly,OriginalStatementsPreserved,PassedChecks,FailedChecks,CutReached,TraceAllowlistValid,TraceEntries,ExcelApplicationEvents,FinalCleanup,DiagnosticPassed|ConvertTo-Json -Depth 4
 if(-not $result.DiagnosticPassed){exit 1}

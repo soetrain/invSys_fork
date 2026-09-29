@@ -10,7 +10,45 @@ with RPC0x800706BE and ntdll.dll0xc0000028. That adapter re-enters the public
 launcher, reads the form's visibility, then calls the typed scale test. Its single
 progress marker did not distinguish those operations.
 
-## Calibrated boundary evidence
+## Current instruction candidate: standard-flow comparison
+
+The frozen `validation-production-instructions-typed` candidate fails the
+unmodified standard run-only gate at the same batch-scale boundary: RPC0x800706BE,
+Excel ntdll.dll0xc0000028, and no requested termination. The earlier67 reusable
+observations are not re-established by that failed execution.
+
+`Test-ProductionBatchBoundary.ps1 -StandardRunFlow` retains the complete standard
+run-only validator instead of cutting after scale. It requires either
+`-TraceBoundaries` or the separate `-CompileOnly` VBE preparation control.
+Generation reverses declared insertions/redaction and verifies every original
+validator statement is preserved; both modes parse before Excel starts.
+`-GenerateOnly` calibrates this without invoking Excel. The existing31-stage
+placement/redaction calibration retains70/70.
+
+| Standard run-only control | Result | Limitation |
+|---|---|---|
+| Tracing and VBE preparation |1 aggregate PASS;139 allowed markers; original55-entry boundary sequence retained exactly. |Four in-memory compiles; automatic final termination requested. |
+| VBE preparation without tracing |1 aggregate PASS; zero trace entries; all four compile commands execute. |Automatic final termination requested. |
+
+Both preserve the original validator, settings and all five frozen packages and
+record zero Excel Application events. These diagnostic passes neither repair the
+cold failure nor establish normal shutdown or full/restart acceptance. VBE
+preparation and compilation remain possible influences; causation is unproven.
+`Test-PackagedVbaCompile.ps1` opens packages read-only and closes without saving:
+its compile gate verifies compilability, not a persisted compiled artifact. Next:
+a separate built, saved compiled candidate exercised by the unmodified cold
+standard validator. No runtime behavior or Architecture v4.11 contract changes.
+
+- Cold failure: `reports/runtime/production-instructions-reusable-attempt-verification.json`.
+- Placement calibration: `reports/runtime/production-batch-trace-placement/bbf4ff2b8ebb4e8eb0b84d01ee51327e`.
+- Traced standard generation: `reports/runtime/production-batch-boundary/bf6cd95b28144b2bba6b5d445f9651ba`.
+- Scoped generation retained: `reports/runtime/production-batch-boundary/66defd7c93214e5eb37718b2ed4cb2a9`.
+- VBE-only generation: `reports/runtime/production-batch-boundary/61ee7f92b1b74771820d96f33730a275`.
+- Traced standard execution: `reports/runtime/production-batch-boundary/d01d9b1b41394f60bb6eaa28290e2c82` (18:39:19--18:43:46 UTC).
+- VBE-only execution: `reports/runtime/production-batch-boundary/2884dd7554454dc38a9adce47843ca69` (18:46:00--18:49:33 UTC).
+- Each execution retains generation, closure, result and final-cleanup receipts.
+
+## Earlier scoped boundary evidence
 
 `ProductionBatchBoundaryTrace.ps1` inserts31 fixed markers in unsaved Operations
 memory, across that adapter, `BtnOpenProductionForm`, `ShowProductionForm` and
