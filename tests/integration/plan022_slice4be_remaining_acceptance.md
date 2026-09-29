@@ -3,6 +3,18 @@
 Last reviewed: 2026-09-29 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
+**Batch-boundary diagnostic,2026-09-29:** [Traced and untraced controls](plan022_slice4be_production_batch_boundary_results.md)
+pass the same7/7 checks on the unchanged candidate;31 calibrated fixed markers
+show all three launches and the scale calculation returning. Both controllers
+preserve settings/packages and report zero Excel Application failures, but both
+request automatic final termination. These scoped passes neither establish normal
+shutdown nor replace full Production/restart. The preceding native crash remains
+unexplained. Offline marker calibration passes70/70; no runtime contract changes.
+The subsequent full standard run stops0/1 at the same adapter with RPC/native
+failure, before full-only steps; its cleanup receipt confirms no termination
+request. Settings/packages restore. Stop unchanged broad retries; evidence from
+the failing execution remains required. Full Production/restart remains open.
+
 **Current chain checkpoint,2026-09-29:** The
 [projection-boundary diagnostic](plan022_slice4be_projection_boundary_results.md)
 passes traced and untraced35/35. The unchanged candidate then passes chain32/32,
