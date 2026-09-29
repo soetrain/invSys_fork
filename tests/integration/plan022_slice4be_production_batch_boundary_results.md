@@ -62,6 +62,56 @@ adding VBE preparation, retries or sleeps as runtime workarounds.
 - Saved-compile build: `reports/runtime/production-instructions-persisted-build/verification.json` (18:52:36--18:53:18 UTC).
 - Saved-compile cold failure: `reports/runtime/production-instructions-persisted-cold-verification.json` (18:53:52--18:54:14 UTC).
 
+## Native exception observation
+
+`NativeExceptionObserver.cs` attaches only to the owned disposable process selected
+by the diagnostic. It writes exception codes, first-chance status, allowlisted
+module names and relative offsets. Unknown modules are redacted. It does not write
+memory dumps, exception parameters, debug strings, absolute addresses or paths.
+It handles the initial attach breakpoint and otherwise preserves ordinary exception
+dispatch; detach does not kill the target. The implementation follows Microsoft's
+[debug attach](https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-debugactiveprocess)
+and [exception continuation](https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-continuedebugevent)
+contracts. Attach changes timing and is diagnostic only.
+
+The disposable-process calibration passes34/34: known first-chance delivery,
+continued target handling, module-offset resolution, redaction, normal exit,
+non-killing detach and declared filtering. The optional `-NativeFaultsOnly` mode
+omits three observed first-chance codes only (`E06D7363`, `40080201`, `00000005`);
+every second-chance exception and all other codes remain observable. The last of
+these is a raised exception code, not a failed desktop-access API result.
+Two initial compiler-setup failures are harness preparation, not product RED.
+Existing trace placement retains70/70; all301 PowerShell scripts parse.
+
+The first native-observed standard run passes1 aggregate workflow check with no
+VBE preparation or source instrumentation, no cut and all original validator
+statements retained. It records368 first-chance exceptions, no second-chance or
+`C0000028` exception, and zero Excel Application events. Final cleanup still
+requests termination. The original validator, settings and five package hashes
+remain preserved. This does not reproduce the cold crash or prove normal shutdown;
+explicit VBE preparation is not necessary for this diagnostic pass. The filtered
+comparison also passes1 aggregate check, with three first-chance `80010108`
+records and no second-chance/native fatal exception. It preserves all original
+statements, validator/settings/package hashes and zero Excel Application events,
+but again requests final termination. Neither observer mode reproduces the cold
+failure. Do not repeat these passing diagnostic variants as evidence of a repair.
+
+Separately, a disposable blank-workbook calibration retains five child COM
+references after Quit and application release/GC. Excel remains alive after two
+seconds, then exits without termination after those references are released.
+No packages or saved workbook are involved. This proves a harness reference-lifetime
+mechanism on this host, not the cause of the Production crash or Settings retention.
+Next: bounded cleanup testing through the actual packaged callback, preserving
+the existing assertions and independently checking process exit.
+
+- Final calibration: `reports/runtime/native-exception-calibration/337246656f1f4ee6b6e1caa8c4eb9158`.
+- Trace placement: `reports/runtime/production-batch-trace-placement/3486fb84cb9a49478ce340c024bde556`.
+- Native generation: `reports/runtime/production-batch-boundary/2adbe728aa7a4c3993b1ce3e91d0a57b`.
+- Native observed run: `reports/runtime/production-batch-boundary/c4910cec7d9947b9977590cc66828ae6` (19:03:39--19:08:36 UTC).
+- Filtered generation: `reports/runtime/production-batch-boundary/47e1fcea86044debac00f07004715ea5`.
+- Filtered observed run: `reports/runtime/production-batch-boundary/f96a29127e2e4372948ca4f2dcbfe6c8` (19:09:00--19:13:41 UTC).
+- Blank-workbook reference calibration: `reports/runtime/excel-reference-release/6c22f8e0e0f5459090d267197c1d351f`.
+
 ## Earlier scoped boundary evidence
 
 `ProductionBatchBoundaryTrace.ps1` inserts31 fixed markers in unsaved Operations
