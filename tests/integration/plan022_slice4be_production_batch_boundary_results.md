@@ -35,9 +35,21 @@ record zero Excel Application events. These diagnostic passes neither repair the
 cold failure nor establish normal shutdown or full/restart acceptance. VBE
 preparation and compilation remain possible influences; causation is unproven.
 `Test-PackagedVbaCompile.ps1` opens packages read-only and closes without saving:
-its compile gate verifies compilability, not a persisted compiled artifact. Next:
-a separate built, saved compiled candidate exercised by the unmodified cold
-standard validator. No runtime behavior or Architecture v4.11 contract changes.
+its compile gate verifies compilability, not a persisted compiled artifact.
+A separate saved-compile experiment also fails; saving compilation is not an
+established repair. No runtime behavior or Architecture v4.11 contract changes.
+
+The isolated `validation-production-instructions-persisted` experiment builds,
+compiles and saves all five packages. All248 component source hashes match the
+frozen typed candidate exactly; all five package byte hashes change. The original
+candidate, runtime source, compile tool and settings remain preserved. Its cold,
+unmodified run-only validator fails0 PASS/1 HARNESS at the initial
+`mProduction.BtnOpenProductionForm` invocation, before batch scale, with
+Excel ntdll.dll0xc0000028 at offset0000000000012d2f. No HRESULT is recorded for
+this attempt. Final cleanup requests no termination; this is a native crash,
+not normal shutdown or a behavioral RED. Do not promote the experimental set.
+The cause remains unresolved; continue a bounded native/COM investigation without
+adding VBE preparation, retries or sleeps as runtime workarounds.
 
 - Cold failure: `reports/runtime/production-instructions-reusable-attempt-verification.json`.
 - Placement calibration: `reports/runtime/production-batch-trace-placement/bbf4ff2b8ebb4e8eb0b84d01ee51327e`.
@@ -47,6 +59,8 @@ standard validator. No runtime behavior or Architecture v4.11 contract changes.
 - Traced standard execution: `reports/runtime/production-batch-boundary/d01d9b1b41394f60bb6eaa28290e2c82` (18:39:19--18:43:46 UTC).
 - VBE-only execution: `reports/runtime/production-batch-boundary/2884dd7554454dc38a9adce47843ca69` (18:46:00--18:49:33 UTC).
 - Each execution retains generation, closure, result and final-cleanup receipts.
+- Saved-compile build: `reports/runtime/production-instructions-persisted-build/verification.json` (18:52:36--18:53:18 UTC).
+- Saved-compile cold failure: `reports/runtime/production-instructions-persisted-cold-verification.json` (18:53:52--18:54:14 UTC).
 
 ## Earlier scoped boundary evidence
 

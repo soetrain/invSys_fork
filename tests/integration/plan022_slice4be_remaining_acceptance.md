@@ -30,8 +30,11 @@ The [standard-flow controls](plan022_slice4be_production_batch_boundary_results.
 subsequently pass with tracing/VBE preparation and with VBE preparation alone;
 all four compile commands execute in the latter. Both request automatic cleanup.
 The read-only compile gate does not save compiled packages. A separate saved-compile
-candidate with an unmodified cold validator is the next experiment; no repair,
-normal shutdown or full acceptance is inferred.
+candidate preserves all248 exact component source hashes but its unmodified cold
+validator also crashes, now at the initial Production launcher with the same native
+signature and no termination request. Saving compilation is not an established
+repair; do not promote that experimental set. Native/COM diagnosis remains open;
+normal shutdown and full acceptance are not established.
 Other regressions remain pending. Prior candidate
 evidence below keeps its original scope; the full
 Production native failure remains open. The form census now has18 registered
