@@ -5,6 +5,18 @@ unchanged. This is diagnostic tooling for the native failure recorded in
 [lifecycle continuation evidence](plan022_slice4be_production_lifecycle_visible_results.md),
 not an invSys runtime repair or complete Production/Release1 acceptance.
 
+**Later boundary observation,2026-09-29 20:02 UTC:** The isolated
+`validation-production-uom-staging` candidate changes only Operations
+`modProductionUomCatalog` among248 compiled components. Its full-chain run passes
+projection recovery and two Production batches, then fails at **Run Shipping
+BtnShipmentsSent** with RPC0x800706BE and the same ntdll c0000028/offset12d2f
+signature. Chain5/1, live roles40/1, Create Warehouse15/15; the recovery process
+required assisted termination before settings/package/report restoration. This
+extends the observed boundaries; it does not establish a common cause or implicate
+the UOM correction. Do not infer that the native failure is confined to the batch
+adapter or rerun the unchanged chain as a repair. Exact evidence is linked in
+[UOM preservation results](plan022_slice4be_production_uom_staging_results.md).
+
 The failed full gate stopped at `mProduction.RunProductionBatchScaleContractTest`
 with RPC0x800706BE and ntdll.dll0xc0000028. That adapter re-enters the public
 launcher, reads the form's visibility, then calls the typed scale test. Its single

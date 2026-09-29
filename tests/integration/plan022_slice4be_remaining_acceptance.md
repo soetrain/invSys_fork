@@ -3,12 +3,15 @@
 Last reviewed: 2026-09-29 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
-**Discovered UOM staging preservation blocker:** Actual repeated Send produces
-[49 PASS/5 behavioral FAIL](plan022_slice4be_production_uom_staging_results.md)
-for unknown columns, values/formula/order and an unrelated worksheet note. The
-existing header-extension requirement remains binding. A proposed reuse/open
-workflow is pending approval in Architecture; no runtime correction or new
-tracking control is implemented yet.
+**UOM staging correction, release gate still open:** The user-approved reuse
+workflow has [focused RED60/18 -> GREEN78/78](plan022_slice4be_production_uom_staging_results.md)
+and a second visible78/78 on `validation-production-uom-staging`. Managed headers
+are resolved by name; unknown columns/formulas and draft edits are retained.
+Build/compile/layout/static gates pass; no tracking control is added. This
+candidate's full chain fails5/1, live roles40/1 at Shipping Sent with the existing
+native c0000028 signature. Recovery cleanup required assistance; settings/packages
+and tracked reports were restored. Do not carry the earlier candidate's32/32
+chain forward as current-candidate acceptance.
 
 **Instruction coverage checkpoint,2026-09-29:** Five discovered Process Designer
 instruction controls now have the D18 catalog14 contract and typed packaged

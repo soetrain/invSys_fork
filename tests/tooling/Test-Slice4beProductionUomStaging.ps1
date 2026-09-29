@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-production-instructions-typed',[ValidateSet('RED','GREEN')][string]$Phase='RED')
+param([string]$DeployRoot='deploy/validation-production-instructions-typed',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CaptureEvidence)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated UOM staging validation.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
@@ -12,7 +12,8 @@ $pins|ConvertTo-Json|Set-Content (Join-Path $root 'package-pins.json')
 $start=[DateTimeOffset]::UtcNow;$code=1
 Write-Output ('UOM staging controller: '+$root)
 try {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CheckProductionUomStaging -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 *> (Join-Path $root 'worker.log')
+    $captureArguments=@();if($CaptureEvidence){$captureArguments=@('-CaptureEvidence')}
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CheckProductionUomStaging -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @captureArguments *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
 } finally {
     Wait-RecordingCleanup -Creator $null -Worker $null

@@ -10,11 +10,29 @@ Public Function UomSendForTest() As String
 Failed:
     UomSendForTest = "HANDLER_ERROR|" & CStr(Err.Number)
 End Function
+Public Function UomRetrieveForTest() As String
+    On Error GoTo Failed
+    mBtnUomCatalogRetrieve_Click
+    UomRetrieveForTest = mTxtStatus.Text
+    Exit Function
+Failed:
+    UomRetrieveForTest = "HANDLER_ERROR|" & CStr(Err.Number)
+End Function
+Public Sub ShowUomForTest()
+    mPages.Value = 5
+    Me.Show vbModeless
+End Sub
 '@)
     $project.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString(@'
 Public Function SendUom() As String
     SendUom = mForm.UomSendForTest()
 End Function
+Public Function RetrieveUom() As String
+    RetrieveUom = mForm.UomRetrieveForTest()
+End Function
+Public Sub ShowUom()
+    mForm.ShowUomForTest
+End Sub
 '@)
 }
 
@@ -48,12 +66,13 @@ function Test-ProductionUomStaging($Fixture) {
         $formula=$table.ListColumns.Add(3);$formula.Name='Operator Formula'
         $formula.DataBodyRange.FormulaR1C1='=ROW()'
         $sheet.Range('K1').Value2=$canary
+        (Column $table 'Notes').DataBodyRange.Cells.Item(1,1).Value2=$canary
         $customIndex=$custom.Index;$formulaIndex=$formula.Index
         $formulaText=[string]$formula.DataBodyRange.Cells.Item(1,1).FormulaR1C1
         $decoyCount=$decoy.Worksheets.Count
         $decoy.Activate()
         $repeat=[string](Run 'invSys.Operations.xlam' 'TestProductionDesigner.SendUom')
-        Check 'UomStaging.Repeat.ActualHandlerSucceeds' ($repeat -notlike 'HANDLER_ERROR*' -and $repeat.Contains('sent to the captured workbook'))
+        Check 'UomStaging.Repeat.ActualHandlerSucceeds' ($repeat -notlike 'HANDLER_ERROR*' -and $repeat -notlike '*failed*' -and $repeat.Contains('captured workbook'))
         $table=$sheet.ListObjects.Item('tblInvSysUomCatalog')
         $custom=Column $table 'Operator Custom';$formula=Column $table 'Operator Formula'
         Check 'UomStaging.Repeat.UnknownColumnsRetained' ($null -ne $custom -and $null -ne $formula)
@@ -67,14 +86,102 @@ function Test-ProductionUomStaging($Fixture) {
         Check 'UomStaging.Repeat.UnknownColumnOrderRetained' ($null -ne $custom -and $null -ne $formula -and $custom.Index -eq $customIndex -and $formula.Index -eq $formulaIndex)
         Check 'UomStaging.Repeat.UnrelatedWorksheetCellRetained' ([string]$sheet.Range('K1').Value2 -ceq $canary)
         Check 'UomStaging.Repeat.ManagedCatalogRowsRetained' ($table.ListRows.Count -eq $rowCount -and $null -ne (Column $table 'UOM') -and $null -ne (Column $table 'Notes'))
+        Check 'UomStaging.Repeat.ManagedDraftEditRetained' ([string](Column $table 'Notes').DataBodyRange.Cells.Item(1,1).Value2 -ceq $canary)
         $decoyUnchanged=$decoy.Worksheets.Count -eq $decoyCount
         foreach($otherSheet in $decoy.Worksheets){$decoyUnchanged=$decoyUnchanged -and [string]$otherSheet.Name -cne 'invSys UOM Catalog'}
         Check 'UomStaging.Repeat.UsesCapturedWorkbook' $decoyUnchanged
         Check 'UomStaging.ConfigBytesPreserved' ((Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configPin)
+        if($CaptureEvidence){
+            $excel.Visible=$true;$book.Activate();$sheet.Activate()
+            Initialize-SettingsCapture
+            [InvSysSettingsCapture]::SaveVisibleWindow([IntPtr]$excel.Hwnd,(Join-Path $reportRoot 'uom-draft-preserved.png'))
+            [void](Run 'invSys.Operations.xlam' 'TestProductionDesigner.ShowUom')
+            CaptureOwnedFormByCaptionEvidence 'Production' 'uom-draft-reused-status.png'
+        }
     } finally {
         try{[void](Run 'invSys.Operations.xlam' 'TestProductionDesigner.CloseDesigner')}catch{}
         if($null -ne $decoy){$decoy.Close($false)}
         if($null -ne $book){$book.Close($false)}
     }
     Check 'UomStaging.NoImplicitWorkbookSave' ((Get-FileHash -LiteralPath $bookPath).Hash -ceq $workbookPin)
+    Test-ProductionUomHeaderAndReopen $Fixture
+}
+
+function Test-ProductionUomHeaderAndReopen($Fixture) {
+    SelectTarget $Fixture 'config-producer'
+    foreach($case in @('Retrieve','Reopen','MissingHeader','DuplicateHeader','UnownedSheet')){
+        $book=$excel.Workbooks.Add()
+        $canary='LOCALUOM'+[guid]::NewGuid().ToString('N')
+        try {
+            [void](Run 'invSys.Operations.xlam' 'TestProductionDesigner.OpenDesigner' @($book.Name))
+            [void](Run 'invSys.Operations.xlam' 'TestProductionDesigner.SendUom')
+            $sheet=$book.Worksheets.Item('invSys UOM Catalog')
+            $table=$sheet.ListObjects.Item('tblInvSysUomCatalog')
+            $extra=$table.ListColumns.Add(2);$extra.Name='Operator Custom';$extra.DataBodyRange.Value2=$canary
+            $formula=$table.ListColumns.Add(3);$formula.Name='Operator Formula';$formula.DataBodyRange.FormulaR1C1='=ROW()'
+            $notes=$table.ListColumns.Item('Notes');$notes.DataBodyRange.Cells.Item(1,1).Value2=$canary
+            # Notes are local; toggle a published field so the version assertion
+            # proves a real catalog change rather than a no-op publication.
+            $enabled=$table.ListColumns.Item('Enabled').DataBodyRange.Cells.Item(3,1)
+            $enabled.Formula=if([bool]$enabled.Value2){'=FALSE()'}else{'=TRUE()'}
+            $dimension=$table.ListColumns.Item('Dimension')
+            $dimensionValues=$dimension.DataBodyRange.Value2
+            $noteValues=$notes.DataBodyRange.Value2
+            $dimension.Name='Temporary swap';$notes.Name='Dimension';$dimension.Name='Notes'
+            for($row=1;$row -le $table.ListRows.Count;$row++){
+                $dimension.DataBodyRange.Cells.Item($row,1).Value2=[string]$noteValues.GetValue($row,1)
+                $notes.DataBodyRange.Cells.Item($row,1).Value2=[string]$dimensionValues.GetValue($row,1)
+            }
+            $sheet.Range('K1').Value2=$canary
+            $table.ListColumns.Item('UOM').Name=' uom '
+            $table.ListColumns.Item('Dimension').Name=' DIMENSION '
+            $range=$table.Range
+            $address=$range.Address()
+            $beforeCells=$range.Formula|ConvertTo-Json -Compress -Depth 5
+            $version=[long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('UomConversionCatalogVersion',1))
+            $configPin=(Get-FileHash -LiteralPath $Fixture.Config).Hash
+            if($case -eq 'Retrieve'){
+                $sheet.Activate();$table.DataBodyRange.Cells.Item(1,1).Select()
+                $result=[string](Run 'invSys.Operations.xlam' 'TestProductionDesigner.RetrieveUom')
+                Check 'UomStaging.Retrieve.NormalizedHeadersAndExtraColumns' ($result -notlike '*failed*' -and $result -notlike 'HANDLER_ERROR*' -and $sheet.ListObjects.Count -eq 0)
+                Check 'UomStaging.Retrieve.PublishesOneVersion' ([long](Run 'invSys.Core.xlam' 'modConfig.GetLong' @('UomConversionCatalogVersion',1)) -eq $version+1)
+                Check 'UomStaging.Retrieve.AllStagingCellsPreserved' (($sheet.Range($address).Formula|ConvertTo-Json -Compress -Depth 5) -ceq $beforeCells)
+                Check 'UomStaging.Retrieve.UnrelatedCellPreserved' ([string]$sheet.Range('K1').Value2 -ceq $canary)
+                if($sheet.ListObjects.Count -eq 0){
+                    $result=[string](Run 'invSys.Operations.xlam' 'TestProductionDesigner.SendUom')
+                    $reopened=$sheet.ListObjects.Count -eq 1 -and ($sheet.Range($address).Formula|ConvertTo-Json -Compress -Depth 5) -ceq $beforeCells
+                } else {$reopened=$false}
+                Check 'UomStaging.Retrieve.ThenEditRetainsDraft' $reopened
+            } elseif($case -eq 'Reopen'){
+                # Unlisting is the successful Retrieve postcondition; isolate reopen
+                # even while the independent retrieval assertion remains RED.
+                $table.Unlist()
+                $result=[string](Run 'invSys.Operations.xlam' 'TestProductionDesigner.SendUom')
+                Check 'UomStaging.Reopen.ActualHandlerSucceeds' ($result -notlike '*failed*' -and $result -notlike 'HANDLER_ERROR*' -and $sheet.ListObjects.Count -eq 1)
+                Check 'UomStaging.Reopen.AllStagingCellsPreserved' (($sheet.Range($address).Formula|ConvertTo-Json -Compress -Depth 5) -ceq $beforeCells)
+                Check 'UomStaging.Reopen.OriginalExtentRetained' ($sheet.ListObjects.Count -eq 1 -and $sheet.ListObjects.Item(1).Range.Address() -ceq $address)
+                Check 'UomStaging.Reopen.UnrelatedCellPreserved' ([string]$sheet.Range('K1').Value2 -ceq $canary)
+                Check 'UomStaging.Reopen.ConfigBytesPreserved' ((Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configPin)
+            } else {
+                if($case -eq 'MissingHeader'){$table.ListColumns.Item('Notes').Name='Local Notes'}
+                if($case -eq 'DuplicateHeader'){$extra.Name='UOM'}
+                if($case -eq 'UnownedSheet'){$table.Unlist();$sheet.Range('A4').Value2='Local material'}
+                $beforeCells=$sheet.UsedRange.Formula|ConvertTo-Json -Compress -Depth 5
+                $tables=$sheet.ListObjects.Count
+                if($case -ne 'UnownedSheet'){
+                    $sheet.Activate();$table.DataBodyRange.Cells.Item(1,1).Select()
+                    $result=[string](Run 'invSys.Operations.xlam' 'TestProductionDesigner.RetrieveUom')
+                    Check "UomStaging.$case.RetrieveRejected" ($result -like '*failed*' -and $result -notlike 'HANDLER_ERROR*')
+                    Check "UomStaging.$case.RetrievePreservesStagingAndConfig" (($sheet.UsedRange.Formula|ConvertTo-Json -Compress -Depth 5) -ceq $beforeCells -and $sheet.ListObjects.Count -eq $tables -and (Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configPin)
+                }
+                $result=[string](Run 'invSys.Operations.xlam' 'TestProductionDesigner.SendUom')
+                Check "UomStaging.$case.SendRejected" ($result -like '*failed*' -and $result -notlike 'HANDLER_ERROR*')
+                Check "UomStaging.$case.SendPreservesCells" (($sheet.UsedRange.Formula|ConvertTo-Json -Compress -Depth 5) -ceq $beforeCells -and $sheet.ListObjects.Count -eq $tables)
+                Check "UomStaging.$case.ConfigBytesPreserved" ((Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configPin)
+            }
+        } finally {
+            try{[void](Run 'invSys.Operations.xlam' 'TestProductionDesigner.CloseDesigner')}catch{}
+            $book.Close($false)
+        }
+    }
 }
