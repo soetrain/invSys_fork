@@ -279,9 +279,28 @@ All306 PowerShell files under tools/tests/tooling parse without errors. Runtime
 source and frozen packages are unchanged; the existing extent build/static metrics
 remain applicable. Diff checks pass and unrelated documentation edits remain intact.
 
-The Settings-observation regression must run
-on the final candidate. The preceding candidate's full-chain/native c0000028
-blocker remains unresolved. No package promotion or Release1 acceptance is claimed.
+## Final-candidate Settings-observation regression
+
+The unchanged extent candidate passes **468/468**, retaining all467 preceding
+identities and adding `SettingsActivity.OlderPolicy.Excludes.PRODUCTION_UOM_EDIT`
+through the existing catalog-driven fixture. Five instrumented projects compile;
+all eight captures are reviewed, settings/packages are preserved and zero Excel
+Application1000/1001 events occur. Excel remains hidden after the report, then exits
+without assistance about118 seconds later. The controller only waits; no forced
+termination, Debug/Reset or shutdown mutation occurs. This observed unassisted
+closure qualifies this run, without erasing the earlier candidate's assisted runs
+or establishing a root cause for delayed exit.
+
+Controller: `production-uom-extent-regression/settingsactivity-29e5a1847a504d43a2234dc0e4b6b69a`
+(22:07:02--22:19:54 UTC); result/images:
+`slice4be-settings-activity/240b194151c1424586ee74fd11c7c83c`.
+Verification: `production-uom-extent-settings-activity-verification.json`.
+The controller's `post-report-process.json`, `bounded-close-observation.json` and
+`closure.json` distinguish the wait from assisted cleanup.
+
+The preceding candidate's full-chain/native c0000028 blocker remains unresolved.
+No package promotion or Release1 acceptance is claimed. Further broad chain/reuse
+runs require a specific changed hypothesis; do not repeat unchanged failing gates.
 
 ## Traceability
 
