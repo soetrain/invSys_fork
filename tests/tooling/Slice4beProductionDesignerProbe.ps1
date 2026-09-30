@@ -114,7 +114,9 @@ Public Function DesignerReleasedRecipeForTest(ByVal identity As String, ByVal ve
     ShowStatus "FIXTURE_RECIPE_ROW"
     If row < 0 Then Exit Function
     mLstReleasedProcesses.ListIndex = row
-    mBtnRecipeAddProcess_Click
+    ' Programmatic prerequisite, not an observed user action in a live recording.
+    ' The dedicated structure gate protects the actual Add Process Click handler.
+    If Not AddSelectedReleasedProcessToRecipe() Then Exit Function
     ShowStatus "FIXTURE_RECIPE_NODE"
     If mLstRecipeNodes.ListCount <> 1 Then Exit Function
     Set records = ProcessRecordsForRecipeNode(0, report)

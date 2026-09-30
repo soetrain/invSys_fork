@@ -167,6 +167,63 @@ Five compiles, preservation, unassisted closure and zero Excel Application failu
 pass. Three principal captures show initial open, owner closure and existing-draft
 reuse after reopening through the packaged launcher.
 
+UOM Action Paths retains **84/84** exact prior checks. Controller
+`production-uom-staging-controller/3c6ac8b07b3249d3a44b9a17405cd45c`,
+06:06:58.9019881--06:11:08.6881297 UTC; result
+`slice4be-production-uom-paths/a76def82fa364a9e8bd2d1f8835a16f6`.
+Five compiles, preservation, unassisted closure and zero Excel Application failures
+pass. Six reviewed principal captures retain Open/Reopen guide intent, distinct
+observed recording, OPENED/REUSED matches, zero extra actions and unchanged catalog.
+
+The first draft/path regression is incomplete: **285 PASS/2 FAIL**, expected390.
+Controller `production-recipe-structure-regression/draft-820107e3baab463fac3d5bc590135cb1`
+and inner `production-designer-controller/e792d8b32a104762b1020c502fb7bb84` record
+06:11:45.1716523--06:14:44.8661074 UTC; result
+`slice4be-production-designer/579583f9b3ea4133b975160863fd03e3`.
+Recipe Validate's activity pair passes, but its exact recording ordinal fails and
+the gate stops. The disposable `DesignerReleasedRecipeForTest` prerequisite clicks
+the newly tracked Add Process command inside the eight-action recording, consuming
+an extra ordinal. Correct the prerequisite to call the existing local node helper;
+retain all eight actual tested handlers and all390 expected check identities.
+This is fixture contamination, not behavioral RED. Preservation, normal closure
+and the following12second application audit pass with zero Excel failures;
+desktop access remained healthy. The runtime candidate is unchanged.
+
+With only that disposable prerequisite corrected, draft/diagnostic paths retain
+**390/390** exact prior checks. Outer controller
+`production-recipe-structure-regression/draft-0bf43cf098f74cf6a7847cae97519304`,
+06:15:55.0282651--06:24:03.9146802 UTC; inner
+`production-designer-controller/e494241dae1543fdb4e94bea516f5650`; result
+`slice4be-production-designer/a0e72aa4384d4422a5f96f58f74a4056`.
+Five instrumented compiles, preservation, unassisted closure and zero Excel
+Application failures pass. Exact Validate ordinal and original eight-action order
+pass; no expected outcome, count or identity was weakened.
+
+Lifecycle retains **615/615** exact prior checks. Outer controller
+`production-recipe-structure-regression/lifecycle-cfadb77408a54b898a0fa07e1f446aef`,
+06:24:47.8035447--06:30:17.7601089 UTC; inner
+`production-lifecycle-controller/3be67af71dd642b5b1670cb7f9c602c3`; result
+`slice4be-production-designer/c49236e6c28040b2970adcd84fb51ce6`.
+Five compiles, preservation, unassisted closure and zero Excel Application failures
+pass across the full outer interval. The same corrected disposable prerequisite
+retains all lifecycle assertions; no runtime or candidate package changed.
+
+Native cancellation retains **94/94** exact prior checks. Outer controller
+`production-recipe-structure-regression/native-f33f434ff50c4dcd8a0599da48e764c2`,
+06:30:55.3703576--06:32:47.3819957 UTC; inner
+`production-lifecycle-native-controller/056fd85280464b82ba87a1fd9b5b4142`; result
+`slice4be-production-lifecycle-native/e550110413974db3a1385ee2a03e7e72`.
+Five compiles, preservation, unassisted closure and zero Excel Application failures
+pass across the outer interval. Four reviewed captures show the actual Process/
+Recipe Release/Obsolete dialogs with No focused; assertions protect cancellation.
+
+Layout matches the prior geometry report exactly: **three sizes by five pages**,
+zero out-of-bounds/overlap violations and all five native window checks pass.
+Controller `production-recipe-structure-regression/layout-ee2033a692a14db289d629360fb07704`,
+06:33:15.0199745--06:33:29.6933893 UTC, preserves settings/packages and exits through
+the ordinary Quit-only path with zero Excel Application failures. All three
+captures are reviewed; requested minimum900x700 retains the1110x800 accepted floor.
+
 Architecture v4.11 D18, Plan022, controls1.288 and coverage1.31 specified five
 existing Recipe structure observations in docs commit da7bab7 before runtime
 edits. The RED runtime was cd2edc0, frozen catalog17 candidate
@@ -238,7 +295,18 @@ the isolated candidate, preserving the catalog17 baseline. Require recording/pub
 Compare, compile, layout, static limits, live roles, full Release1 chain, reusable
 Production and visible evidence before completing this bounded group.
 
-Still outstanding on this candidate: UOM paths,
-draft diagnostics, lifecycle, native cancellation, layout and separate reusable
-run-only. Completed evidence above retains its specific scope; no full Slice4be
-or Release1 acceptance is claimed.
+Separate reusable run-only is **not GREEN**. Controller
+`production-recipe-structure-regression/reusable-0f95e993a01f4ce1a77c8f8ee1e23464`,
+06:33:56.2025757--06:34:39.8018808 UTC, records zero aggregate PASS and one harness
+failure at `mProduction.RunReusableProductionRunActionContractTest`, HRESULT
+0x800706BE. Application1000 at06:34:35.1229859 UTC records Excel/ntdll.dll,
+c0000028, offset0000000000012d2f; Application1001 follows. The previous67 Boolean
+observations are not re-established by this attempt. Settings/packages restore
+and Excel is closed because of a native crash, not normal shutdown. A secondary
+post-crash `IsAddin` property error prevents ordinary cleanup receipts from being
+written. Desktop probes remain successful: this is not desktop error5.
+The earlier full reusable171-observation GREEN retains its scope and does not
+explain this failure. Preserve this occurrence with the earlier unresolved native
+signature; do not treat unchanged retries or prior passing observer variants as
+a repair. All other required bounded regression gates above pass. Slice4be and
+Release1 acceptance remain incomplete.
