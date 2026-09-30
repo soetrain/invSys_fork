@@ -723,6 +723,49 @@ shows matches4-10 and zero extras. The first three matches and conclusion text
 are outside that viewport; assertions establish all ten matches and local-only
 completion. This capture limitation is not represented as full visible acceptance.
 
+## Process instruction regression GREEN
+
+Instruction editing retains411/411 exact prior checks,
+2026-09-30,23:33:50.1726670 through23:36:23.0382241 UTC. Controller
+`reports/runtime/production-instruction-controller/62a172f1d57345f4b95f0588bd3f905e`;
+result `reports/runtime/slice4be-production-instructions/e955028ebaef4130b7c442292b49a598/green.json`.
+Existing local edits, guard/permission behavior, optional tracking, saved
+authority and unknown workbook values/bytes remain protected. Five compiles,
+normal cleanup, settings/package preservation and delayed Excel audit pass.
+Cleanup waited for the remaining owned process and completed normally without
+additional shutdown intervention. No runtime/package change, focused capture or
+human acceptance is claimed for this gate.
+
+Instruction paired paths retain105/105 exact prior checks,
+23:36:38.6792889 through23:41:46.3638710 UTC. Controller
+`reports/runtime/production-instruction-controller/108106f111de454488498a4d72379f72`;
+result `reports/runtime/slice4be-production-instruction-paths/8fcef0ce3fa84b48b067d63ef99f0d66/green.json`.
+Separate five-action recordings retain original pairs through publication,
+exact Event Detail, authored intent and independent-reader evaluation. All five
+STAGED steps match with zero extras and a local-only conclusion. Five compiles,
+normal cleanup, settings/package preservation, saved authority, immutable prior
+records/journals, unknown workbook values/bytes and delayed audit pass.
+Six principal images are reviewed and hashed in `visible-review.json`, of which
+five are usable. Selected Remove is REQUESTED/Info/Unknown; Compare displays the
+authored guide and its scrolled conclusion shows all five matches. The standalone
+How-To image is blank and explicitly excluded from visible evidence. Its cause is
+not established; automated view checks do not substitute for the missing capture.
+A single bounded repeat addresses this visible-evidence gap below, retaining
+this original result and image rather than rewriting them as full acceptance.
+
+The bounded capture recheck retains105/105 exact prior checks,
+23:42:33.8941555 through23:47:12.5694417 UTC. Controller
+`reports/runtime/production-instruction-controller/cf2c8c7484af47d6ae511896cc3fb646`;
+result `reports/runtime/slice4be-production-instruction-paths/877bfdf0ed8241e29c081a1e5720087e/green.json`.
+Five compiles, normal cleanup, settings/package preservation and delayed audit
+pass again without runtime or harness edits. All six principal captures are
+directly reviewed and hashed in `visible-review.json`; standalone How-To displays
+all five instructions, Diagnostic/Compare retain the same pair, and the scrolled
+conclusion shows five STAGED matches, zero extras and no Domain application claim.
+This supplies usable standalone evidence without changing the original blank
+capture's exclusion. The first blank capture's cause remains undetermined; this
+recheck is not a rendering repair or human acceptance.
+
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
@@ -731,7 +774,7 @@ chain32/live48/Create15, full reusable171/replay37, Close/query312, Settings202,
 Settings activity497 (494 retained plus three exclusions), lifecycle615,
 draft/paths390, native cancellation94, Regulation696/paths102, design reads621/paths114
 and Recipe structure786/released55/paths109, Recipe ordering463/paths93,
-components795/paths142.
+components795/paths142, instructions411/paths105 (bounded visible recheck105 passed).
 Complete the remaining shared-observation regressions on the frozen candidate.
 SourceEventsApplied must use every exact owning published Designs reference;
 queue acknowledgment and
