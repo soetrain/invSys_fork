@@ -6,9 +6,11 @@ existing contract, not a new scope, architecture decision, or percentage estimat
 **Recipe structure,2026-09-30:** normative catalog18 refinement precedes runtime
 changes. The new packaged actual-handler gate reproduces182 PASS/604 FAIL across
 786 unique checks:599 missing tracking/guard facts and five existing Update
-behavior failures requiring an explicit decision. Architecture v4.11 proposes
-writing a stable snapshot of the seven validated editor values; approval is
-pending. The final diagnostic confirms correct inputs before Update, one nested
+behavior failures. The user approved writing a stable snapshot of the seven
+validated editor values; docs82bd41a records the normative approval before
+runtime edits. Supplemental released-Process RED52/3 across55 unique checks
+reproduces lost quantity/percentage changes while preserving routing and authority.
+The original synthetic diagnostic confirms correct inputs before Update, one nested
 selection callback, three cleared routing fields and retained old quantity/
 percentage. Five instrumented compiles, preservation, normal closure and zero
 Excel Application failures pass. Runtime remains unchanged; no new candidate or

@@ -18,6 +18,7 @@ param(
     [switch]$CheckProductionComponents,
     [switch]$CheckProductionRecipeOrder,
     [switch]$CheckProductionRecipeStructure,
+    [switch]$CheckProductionRecipeStructureReleasedData,
     [switch]$CheckProductionRecipeOrderPaths,
     [switch]$CheckProductionComponentPaths,
     [switch]$CheckProductionInstructionPaths,
@@ -224,6 +225,7 @@ if($CheckProductionComponents -and (-not $CheckProductionDesignerActivity -or $C
 if($CheckProductionRecipeOrder -and (-not $CheckProductionDesignerActivity -or $CheckProductionComponents -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Recipe ordering requires its separate compiled Production designer gate.'}
 if($CheckProductionRecipeOrderPaths -and (-not $CheckProductionRecipeOrder -or -not $CaptureEvidence)){throw 'Recipe ordering paths require compiled ordering adapters and visible evidence.'}
 if($CheckProductionRecipeStructure -and (-not $CheckProductionDesignerActivity -or $CheckProductionRecipeOrder -or $CheckProductionComponents -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Recipe structure requires its separate compiled Production designer gate.'}
+if($CheckProductionRecipeStructureReleasedData -and -not $CheckProductionRecipeStructure){throw 'Released-data structure checks require the compiled structure adapters.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
 if($CheckProductionComponentPaths -and (-not $CheckProductionComponents -or -not $CaptureEvidence)){throw 'Component paths require the compiled component adapters and visible evidence.'}
 if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
@@ -407,6 +409,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionComponents){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-components/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeOrder){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-order/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeStructure){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-structure/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionRecipeStructureReleasedData){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-structure-released/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeOrderPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-order-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructionPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instruction-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-paths/'+[guid]::NewGuid().ToString('N'))}
@@ -1177,6 +1180,10 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeStructureProbe.ps1')
             . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeStructureActivity.ps1')
             Install-ProductionRecipeStructureProbe
+            if($CheckProductionRecipeStructureReleasedData){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeStructureReleased.ps1')
+                Install-ProductionRecipeStructureReleasedProbe
+            }
         }
         if($CheckProductionRecipeOrder){
             . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeOrderProbe.ps1')
@@ -1473,6 +1480,7 @@ End Function
         }
         elseif($CheckProductionComponents){Test-ProductionComponentActivity $a $b}
         elseif($CheckProductionRecipeOrder){Test-ProductionRecipeOrderActivity $a $b}
+        elseif($CheckProductionRecipeStructureReleasedData){Test-ProductionRecipeStructureReleased $a}
         elseif($CheckProductionRecipeStructure){Test-ProductionRecipeStructureActivity $a $b}
         elseif($CheckProductionUomPublicClose){Test-ProductionUomPublicClose $a}
         elseif($CheckProductionUomStaging){
