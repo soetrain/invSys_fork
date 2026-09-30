@@ -285,6 +285,16 @@ extras; Compare both and the scrolled conclusion visibly exclude Domain applicat
 This establishes the gate for this execution but does not diagnose or repair
 the earlier foreground-capture failure. No runtime, test or package change.
 
+Draft/designer regression retains 390/390 exact prior ordered checks, including
+the separate Action Path diagnostic checks, with five instrumented compiles,
+preservation, normal closure and zero delayed Excel Application failures.
+The outer interval is 2026-09-30 12:12:48.4840790--12:21:26.7589579 UTC.
+Outer controller: `reports/runtime/production-regulation-regression/draft-d50106c4b43646eb88e3aa70f9a718f9`;
+inner controller: `reports/runtime/production-designer-controller/a4c9064fedad40568b4399bd714f390f`;
+result: `reports/runtime/slice4be-production-designer/219c14986f6d4b6193397371b31a0ea9/green.json`.
+This gate does not request new screenshots; no new visual or human acceptance
+is claimed. Runtime, tests and frozen packages remain unchanged.
+
 ## Remaining work
 
 The remaining focused regressions and run-only reusable gate remain pending on
