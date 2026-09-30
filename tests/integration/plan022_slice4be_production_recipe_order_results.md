@@ -64,6 +64,26 @@ Application failures. Ordinary controller
 02:45:17--02:45:40 UTC. See [cleanup evidence](plan022_slice4be_automation_cleanup_results.md)
 for both qualified attempts and the two-constant harness correction.
 
+Full reusable Production retains **2 aggregate PASS** and the exact **171 Boolean
+observations** (166 distinct pairs), including workbench/export/restart behavior.
+Controller `production-recipe-order-regression/reusablefull-521c69c6acc04ed5b37603f53a8ecb15`,
+02:46:03--02:53:25 UTC, compares against the prior ordinary catalog16 GREEN.
+Restart/final exit unassisted after2513/2549ms, with zero release failures, preserved
+settings/five packages and no Excel Application failures.
+The separate run-only route retains its aggregate PASS and the exact67 Boolean
+observations, with unassisted final exit after2636ms and the same preservation/
+zero-failure audit. Controller
+`production-recipe-order-regression/reusable-77bada6d0fee4981a39a298927db3730`,
+02:53:56--02:59:13 UTC.
+
+Settings retains **202/202** checks in their exact prior order. Controller
+`production-recipe-order-regression/settings-3bda66be7ea54deba1d22596101429e5`,
+result `slice4be-tracking-settings/a8317c607a694910aa0bea2b91d1932b`, records
+02:59:49--03:03:43 UTC, five compiles, preservation and zero Excel Application
+failures. Preference restart exits unassisted within its unchanged five-second
+bound, releasing all ten completed-host references without errors; final exit is
+also unassisted. Remaining activity regressions are still pending.
+
 Initial paired evidence: controller
 `production-recipe-order-controller/93ca5ad60df548ec98b6bf87af1c7cd6`, result
 `slice4be-production-recipe-order-paths/fe4ef6a12dd246f5b5d5115e785214a6`,
@@ -119,6 +139,6 @@ the actual handler while its outer action is active. Initial controller
 `slice4be-production-recipe-order/1b4220800f1d4fc6adacd73244f0c977` are under runtime
 reports; settings/packages restore and no Excel host remains.
 
-Next: complete the remaining current regressions and reusable
-behavior and visible evidence. Registration is32/68 on the unpromoted candidate,
+Next: complete the remaining activity regressions and visible evidence.
+Registration is32/68 on the unpromoted candidate,
 36 pending; Slice4be and Release1 acceptance remain incomplete.

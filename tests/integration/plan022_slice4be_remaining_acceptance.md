@@ -13,8 +13,13 @@ retain exact prior checks, five compiles, preservation and normal closure; six
 paired captures are reviewed. Layout, full chain32/32, live roles48/48 and Create
 Warehouse15/15 pass with exact prior checks, preservation and normal closure.
 Smoke86/86 retains normal closure after a calibrated test-only30-second exit bound;
-the earlier one-second assisted result remains qualified. Remaining regressions,
-reusable and broader acceptance are still required. See [Recipe ordering evidence](plan022_slice4be_production_recipe_order_results.md).
+the earlier one-second assisted result remains qualified. Full reusable retains
+both aggregate checks and all 171 Boolean observations; run-only retains its
+aggregate and all 67 observations, with unassisted exits and preservation.
+Settings retains202/202 with exact prior checks, five compiles, unassisted restart/
+final exit, preserved settings/packages and zero Excel Application failures.
+Remaining activity regressions and broader acceptance are still required.
+See [Recipe ordering evidence](plan022_slice4be_production_recipe_order_results.md).
 Earlier catalog16 records below retain their original candidate scope.
 
 **Later cleanup correction:** Smoke86/86 now exits both hosts unassisted after
