@@ -295,7 +295,7 @@ the isolated candidate, preserving the catalog17 baseline. Require recording/pub
 Compare, compile, layout, static limits, live roles, full Release1 chain, reusable
 Production and visible evidence before completing this bounded group.
 
-Separate reusable run-only is **not GREEN**. Controller
+The earlier separate reusable run-only attempt is **not GREEN**. Controller
 `production-recipe-structure-regression/reusable-0f95e993a01f4ce1a77c8f8ee1e23464`,
 06:33:56.2025757--06:34:39.8018808 UTC, records zero aggregate PASS and one harness
 failure at `mProduction.RunReusableProductionRunActionContractTest`, HRESULT
@@ -316,3 +316,15 @@ unassisted closure, preservation and zero Excel Application failures. It capture
 no fatal exception or stack; its redacted report does not independently compare
 the67 Boolean observations. This does not repair or replace the unobserved
 run-only failure. See [native diagnostic calibration and result](plan022_slice4be_production_batch_boundary_results.md#recipe-structure-candidate-fault-stack-diagnostic-calibration).
+
+After the failed-host cleanup harness correction, an unobserved standard run-only
+execution retains its aggregate and all67 prior Boolean observations in exact
+order,06:52:45.0267790--06:58:45.7021887 UTC. Controller:
+`production-recipe-structure-regression/reusable-25e3f0ba041d4964b42cda948ce7a1c1`.
+Completed closure, zero release failures, unassisted exit after2616ms, no requested
+termination, settings/package preservation and zero Excel Application failures
+pass. See [cleanup calibration and exact evidence](plan022_slice4be_automation_cleanup_results.md#recipe-structure-candidate-failed-host-cleanup-receipts).
+Every listed automated gate now has a passing current-candidate execution, but
+the earlier intermittent native failure remains unresolved. Catalog17 stays
+frozen for comparison; no operational promotion, human acceptance or complete
+Slice4be/Release1 acceptance is claimed.

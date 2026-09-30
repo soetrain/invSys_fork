@@ -39,6 +39,21 @@ function Close-ReusableLoadedPackages {
     [pscustomobject]@{ClosedPackages=$reverse.Count;ReverseOrder=$true}
 }
 
+function Invoke-ReusableWorkbookClosure {
+    param($Excel,[string]$RuntimeRoot,[hashtable]$Packages,[string[]]$PackageNames,[string]$PackageRoot)
+    $workbooks=$null;$loadedPackages=$null;$failure=$null;$stage='Workbooks'
+    try {
+        $workbooks=Close-ReusableFixtureWorkbooks -Excel $Excel -RuntimeRoot $RuntimeRoot
+        $stage='Packages'
+        $loadedPackages=Close-ReusableLoadedPackages -Packages $Packages -PackageNames $PackageNames -PackageRoot $PackageRoot
+    } catch {
+        # A dead COM host must not erase the workflow failure or skip final
+        # release bookkeeping. Never emit exception messages or runtime paths.
+        $failure=[pscustomobject]@{Stage=$stage;ExceptionType=$_.Exception.GetType().Name;HResult=$_.Exception.GetBaseException().HResult}
+    }
+    [pscustomobject]@{Workbooks=$workbooks;Packages=$loadedPackages;Completed=($null -eq $failure);Failure=$failure}
+}
+
 function Wait-ReusableAutomationExit {
     param([int]$ProcessId,[System.Management.Automation.PSVariable[]]$Variables)
     if($ProcessId -le 0){throw 'Reusable cleanup has no owned process identity.'}

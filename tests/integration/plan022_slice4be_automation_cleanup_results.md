@@ -7,6 +7,61 @@ The later catalog17 timing comparison below also changes no runtime code or XLAM
 All runtime paths below are
 under ignored `reports/runtime/`; only sanitized findings are committed.
 
+## Recipe structure candidate: failed-host cleanup receipts
+
+The unobserved run-only attempt at06:33:56--06:34:39 UTC crashes at
+`mProduction.RunReusableProductionRunActionContractTest`, with RPC0x800706BE and
+Excel/ntdll c0000028. Afterwards, reading a missing `IsAddin` property escapes
+the validator's finally block before workbook closure, final reference release
+and final cleanup receipts are written. This secondary harness defect does not
+explain the native crash. Exact failure evidence remains in
+[structure results](plan022_slice4be_production_recipe_structure_results.md).
+
+`Test-ReusableFailedHostCleanup.ps1` executes the actual final cleanup block
+against disposable host doubles: missing workbook metadata, missing package
+metadata, and a successful empty host. It opens no Excel process. Before the
+correction,7 checks pass and14 fail; afterwards21/21 pass with the same identities.
+The tests require the original workflow failure to remain intact, a truthful
+redacted closure state, an explicit failing cleanup row, and continued Quit,
+reference-release and final-receipt bookkeeping. These are harness calibration
+results, not product behavioral RED/GREEN. Exact roots:
+`reusable-failed-host-calibration/357efb5cbfe848d0812cf21189230cea` and
+`reusable-failed-host-calibration/8b100521a8424b5e8648119d915c4d64`.
+
+The ordinary validator now writes `Completed=False` and only the failure stage,
+exception type and HRESULT if owned workbook/package closure fails. It retains
+the original workflow evidence and adds `HARNESS_CLEANUP` as a failed check, so a
+cleanup failure cannot become a passing result. It continues the existing
+best-effort closure, reference release and cleanup receipts; ownership validation
+is unchanged. Successful closure still clears owned references as before.
+A receipt that a process is absent is not proof of normal exit after a crash.
+Application-event evidence and the primary workflow result remain required.
+
+The existing live ownership/closure calibration retains7/7, including whole-set
+validation before closing anything, foreign fixture preservation, unassisted exit
+and no forced termination: `reusable-cleanup-calibration/5a1012fafaca47b3834e623c8f2e35ca`.
+The native-observer generator retains12/12 against the changed validator:
+`native-attach-calibration/789c057889d2403d98f43c09eadcc8bf`.
+No runtime VBA, package, control contract or Windows policy changes.
+
+The standard run-only gate with no debugger, tracing or VBE preparation retains
+one aggregate and all67 prior Boolean observations in exact order:
+`production-recipe-structure-regression/reusable-25e3f0ba041d4964b42cda948ce7a1c1`,
+06:52:45.0267790--06:58:45.7021887 UTC. The new closure receipt reports
+Completed=True, no failure, three fixture workbooks and four loaded packages
+closed. Final release has zero failures, waits2616ms for unassisted exit, and
+requests no termination. Settings and all five package hashes are preserved;
+the full interval plus12-second Application audit finds zero Excel failures.
+Desktop probes record no error5. This verifies the final-cleanup path with the
+real packaged workflow; it neither reproduces nor repairs the earlier native
+crash. No unchanged broad retry is claimed as a repair.
+
+Refreshed `production-failed-host-cleanup-static` retains265 components,6093
+procedures,134045 lines,9 literal/45 unresolved dynamic calls,191 duplicate groups
+and all28 exact size caps. Three schemas and321 PowerShell parses pass. The
+existing candidate's compile/layout evidence retains its original scope; no
+runtime rebuild is warranted by this harness-only change.
+
 ## Smoke shutdown deadline on the catalog17 candidate
 
 The ordinary smoke gate retains86/86 but its Final host exceeds1000ms and requests

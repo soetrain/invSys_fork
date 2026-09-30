@@ -76,6 +76,13 @@ groups and all28 exact size caps. Three schemas and320 PowerShell parses pass.
 No runtime/form source changes, package rebuild or new layout claim is involved.
 Unrelated user-document byte hashes remain unchanged.
 
+The later standard run-only execution, after a failed-host cleanup harness
+correction, retains the original aggregate and67 exact prior Boolean observations
+without a debugger. It closes unassisted and records no Application failures.
+This does not explain the intermittent native crash or turn the preceding
+observer-assisted result into repair evidence; see
+[failed-host cleanup results](plan022_slice4be_automation_cleanup_results.md#recipe-structure-candidate-failed-host-cleanup-receipts).
+
 ## Earlier component-candidate controls
 
 **Current component-candidate observation,2026-09-30 UTC:** The unchanged standard

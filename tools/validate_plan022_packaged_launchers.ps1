@@ -1621,11 +1621,15 @@ finally {
         catch { $paletteBooksClosed=$false }
     }
     if ($WorkbookState -eq 'ProductionReusable' -and -not $ProductionPaletteProbe -and $null -ne $excel) {
-        $finalBooksClosed=Close-ReusableFixtureWorkbooks -Excel $excel -RuntimeRoot $runtimeRoot
-        $finalPackagesClosed=Close-ReusableLoadedPackages -Packages $packages -PackageNames $packageNames -PackageRoot $deployPath
-        [pscustomobject]@{Workbooks=$finalBooksClosed;Packages=$finalPackagesClosed}|ConvertTo-Json -Depth 3|
+        $finalWorkbookClosure=Invoke-ReusableWorkbookClosure -Excel $excel -RuntimeRoot $runtimeRoot -Packages $packages -PackageNames $packageNames -PackageRoot $deployPath
+        $finalWorkbookClosure|ConvertTo-Json -Depth 3|
             Set-Content (Join-Path $outputPath 'final-workbook-closure.json')
-        $opened.Clear();$packages.Clear()
+        if ($finalWorkbookClosure.Completed) {
+            $opened.Clear();$packages.Clear()
+        } else {
+            Add-Evidence -Rows $evidence -Callback 'HARNESS_CLEANUP' -Expected 'Isolated reusable closure completes.' -Passed $false -Observed 'Closure failed; sanitized receipt retained.'
+            [IO.File]::AppendAllText($reportPath, "| HARNESS_CLEANUP | RED | Isolated reusable closure completes. | Closure failed; sanitized receipt retained. |`r`n")
+        }
     }
     foreach ($wb in $opened) {
         try { $wb.Close($false) } catch {}
