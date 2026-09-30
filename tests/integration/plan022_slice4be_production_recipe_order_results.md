@@ -1,6 +1,6 @@
 # Slice 4be Recipe ordering observations
 
-Last verified:2026-09-30 UTC. **Final candidate focused GREEN; acceptance pending.**
+Last verified:2026-09-30 UTC. **Bounded automated gates GREEN; user acceptance pending.**
 Architecture v4.11 D18, Plan022, controls1.281 and coverage1.24 specify the three
 Recipe Designer ordering observations under approved semantic inheritance, committed
 as docs61f1c79 before runtime changes. This preserves the existing local ordering
@@ -133,7 +133,36 @@ result `slice4be-production-uom-paths/c1ac7b679d124fcb842a5a367e12cb73`, records
 03:39:10--03:43:00 UTC. Six principal captures show the exact REUSED detail,
 distinct authored guide and observed run, OPENED then REUSED matches, no additional
 actions and the explicit absence of a Domain-application assertion.
-Draft diagnostics, lifecycle and native cancellation regressions remain pending.
+Draft diagnostics retains **390/390**, exact prior checks and five compiles, with
+delayed unassisted closure, preservation and zero Excel Application failures.
+Outer controller `production-recipe-order-regression/draft-9eab54693aff4fbeb8e77fa1e844113e`,
+inner `production-designer-controller/cb65d76bf4754d60b7334421d3a7bf33`, result
+`slice4be-production-designer/11c4c0cb74444d2d9daf0a66e3d5fe59`, records
+03:43:20--03:51:18 UTC. The inner verification receipt audits the full outer
+interval and both preservation receipts. No new principal captures were requested.
+Production lifecycle retains **615/615**, exact prior checks and five compiles,
+with normal unassisted closure, preservation and zero Excel Application failures.
+Outer controller `production-recipe-order-regression/lifecycle-7ee25b2247504c00b179e21e89e97838`,
+inner `production-lifecycle-controller/545e6612d20f47cebb588d1ff74a8694`, result
+`slice4be-production-designer/84ec65036c9f4865ab1b5386f19b07e4`, records
+03:51:41--03:57:05 UTC. The inner verification receipt audits the full outer
+interval and both preservation receipts. No new principal captures were requested.
+Native cancellation retains **94/94**, exact prior checks, five compiles, normal
+unassisted closure, preservation and zero Excel Application failures. Outer
+controller `production-recipe-order-regression/native-be4e4fcd43284252a2ea69fe18059996`,
+inner `production-lifecycle-native-controller/04f8f465e29a4ad2aad9749128a0d702`,
+result `slice4be-production-lifecycle-native/5e20c0d2ed1545a280b369e2e81567e6`,
+records03:57:30--03:59:21 UTC. Four reviewed captures show the real Process/Recipe
+Release/Obsolete confirmations with No selected; packaged assertions protect
+cancellation effects. The verification audits the outer interval and both
+preservation receipts.
+
+This completes the bounded Recipe-ordering candidate's automated regression set.
+No runtime-source or candidate-package changes followed the frozen final build. Screenshots are agent
+reviews, not human acceptance; comprehensive tracking, guide transfer and human/
+NAS acceptance remain open. No new desktop error5 occurred during these gates.
+The current passes do not explain earlier native Excel crashes or prove that
+the display-setting change prevents future locks.
 
 Initial paired evidence: controller
 `production-recipe-order-controller/93ca5ad60df548ec98b6bf87af1c7cd6`, result
@@ -190,6 +219,7 @@ the actual handler while its outer action is active. Initial controller
 `slice4be-production-recipe-order/1b4220800f1d4fc6adacd73244f0c977` are under runtime
 reports; settings/packages restore and no Excel host remains.
 
-Next: complete the remaining activity regressions and visible evidence.
+Next: specify the next uncovered Production control group under D18 before its
+packaged-handler RED; retain this frozen candidate as the current GREEN baseline.
 Registration is32/68 on the unpromoted candidate,
 36 pending; Slice4be and Release1 acceptance remain incomplete.

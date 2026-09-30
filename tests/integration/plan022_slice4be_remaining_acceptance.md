@@ -29,7 +29,12 @@ Instruction paths retain105/105 with the same gates and six reviewed captures.
 Combined UOM264/264, public Close/reopen61/61 and UOM paths84/84 retain exact prior
 checks, five compiles per gate, normal closure, preservation and zero Excel
 Application failures; two/three/six principal captures are reviewed respectively.
-Draft diagnostics, lifecycle, native cancellation and broader acceptance remain required.
+Draft diagnostics390/390, lifecycle615/615 and native cancellation94/94 retain
+exact prior checks, five compiles per gate, unassisted closure, preservation and
+zero Excel Application failures; four native-dialog captures are reviewed.
+The bounded Recipe-ordering automated gates are GREEN. Comprehensive coverage,
+guide transfer and human/NAS acceptance remain open; these passes do not explain
+earlier native crashes or establish a fix for desktop locking.
 See [Recipe ordering evidence](plan022_slice4be_production_recipe_order_results.md).
 Earlier catalog16 records below retain their original candidate scope.
 
