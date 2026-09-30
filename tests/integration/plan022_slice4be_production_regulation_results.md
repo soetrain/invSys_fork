@@ -230,6 +230,22 @@ all ten matched identity pairs. The conclusion heading and matches1-3 are above
 that viewport; exact text assertions protect the full local-only conclusion.
 This is agent review, not human acceptance. No runtime or package changes.
 
+Instruction regressions retain 411/411 focused and 105/105 paired-path checks,
+with exact prior ordered identities, five compiles each, preservation, normal
+closure and zero delayed Excel Application failures. Controller roots are under
+`reports/runtime/production-instruction-controller/`; intervals are September30 UTC.
+
+| Gate | Controller | UTC interval | Result root under `reports/runtime/` |
+|---|---|---|---|
+| Focused 411/411 | `009b1975b166449382c28b2c83c7a37d` | 11:47:43.5194618--11:50:22.9155603 | `slice4be-production-instructions/8382f6d58bd74dc2a3c75b36c3d360aa` |
+| Paired paths 105/105 | `5496d25bbe794ef7bf09fbbfedc74cd5` | 11:50:32.4392691--11:55:16.5714591 | `slice4be-production-instruction-paths/91290b803d244953b0d096ac6f15df1b` |
+
+Six principal captures are directly reviewed and hashed in `visible-review.json`.
+Selected Remove/REQUESTED detail shows Info/Unknown. How-To presents all five
+instructions, and the separate observed run matches five STAGED actions with
+zero extras. The scrolled comparison visibly excludes a Domain-application claim.
+This is agent review, not human acceptance; runtime and packages remain unchanged.
+
 ## Remaining work
 
 The remaining focused regressions and run-only reusable gate remain pending on
