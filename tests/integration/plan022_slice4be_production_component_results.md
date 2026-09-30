@@ -6,6 +6,13 @@ unassisted; the existing Settings restart consumer retains202/202 and both norma
 exits. Original calibration8/8 and expanded nested-expired-reference calibration9/9
 protect the repaired helper. Earlier assisted/failed records below retain their
 scope. See [cleanup evidence](plan022_slice4be_automation_cleanup_results.md).
+The ordinary full reusable workbench/export/restart gate now retains2 aggregate
+assertions and the exact171 Boolean observations with unassisted restart/final
+exit, preserved settings/packages and zero Excel Application failures. Its cleanup
+uses verified fixture ownership, reverse package closure and a bounded exit wait;
+the earlier assisted records below remain historical, not current shutdown status.
+Ordinary run-only also retains its aggregate and exact67 Boolean observations with
+unassisted final exit, preservation and zero Excel Application failures.
 Unless dated otherwise, gate times below are on2026-09-29 UTC; the Settings
 cleanup continuation explicitly crosses into2026-09-30.
 Architecture v4.11 D18, Plan022 and controls specify the ten requirement/output

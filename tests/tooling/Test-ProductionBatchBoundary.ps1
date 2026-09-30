@@ -2,13 +2,16 @@
 [CmdletBinding()]
 param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-production-paths',
       [string]$PackagePinsPath='reports/runtime/production-lifecycle-native-controller/65e8e27585ca47289cf27e87e147e83e/package-pins.json',
-      [switch]$TraceBoundaries,[switch]$StandardRunFlow,[switch]$CompileOnly,[switch]$NativeExceptions,[switch]$NativeFaultsOnly,[switch]$ReleaseAutomationForTest,[switch]$ClearErrorReferencesForTest,[switch]$GenerateOnly)
+      [ValidateRange(0,30000)][int]$ReleaseObservationMilliseconds=30000,
+      [switch]$TraceBoundaries,[switch]$StandardRunFlow,[switch]$CompileOnly,[switch]$NativeExceptions,[switch]$NativeFaultsOnly,[switch]$ReleaseAutomationForTest,[switch]$ClearErrorReferencesForTest,[switch]$CloseOperatorFirstForTest,[switch]$ObserveShutdownForTest,[switch]$CloseOwnedWorkbooksForTest,[switch]$ReverseOpenedCloseForTest,[switch]$GenerateOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
-if($StandardRunFlow -and -not ($TraceBoundaries -or $CompileOnly -or $NativeExceptions)){throw 'Standard-flow diagnosis requires an explicit observer/control.'}
+if($StandardRunFlow -and -not ($TraceBoundaries -or $CompileOnly -or $NativeExceptions -or $ReleaseAutomationForTest -or $CloseOperatorFirstForTest -or $ObserveShutdownForTest -or $CloseOwnedWorkbooksForTest -or $ReverseOpenedCloseForTest)){throw 'Standard-flow diagnosis requires an explicit observer/control.'}
+if($CloseOperatorFirstForTest -and -not $StandardRunFlow){throw 'Operator-first cleanup requires the completed standard flow.'}
 if($CompileOnly -and ($TraceBoundaries -or -not $StandardRunFlow)){throw 'VBE preparation control requires standard flow without tracing.'}
 if($NativeExceptions -and ($TraceBoundaries -or $CompileOnly -or -not $StandardRunFlow)){throw 'Native observation requires standard flow without VBE preparation.'}
 if($NativeFaultsOnly -and -not $NativeExceptions){throw 'Native filtering requires the native observer.'}
 if($ClearErrorReferencesForTest -and -not $ReleaseAutomationForTest){throw 'Post-report error-reference control requires explicit automation cleanup diagnosis.'}
+if($ReleaseObservationMilliseconds -ne 30000 -and -not $ReleaseAutomationForTest){throw 'Release wait control requires automation release diagnosis.'}
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before the isolated diagnostic.'}
 $deploy=(Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
@@ -66,6 +69,95 @@ if($TraceBoundaries){
 '@
     $source=Replace-Once $source $anchor ($arm+"`r`n"+$anchor)
 }
+if($CloseOwnedWorkbooksForTest){
+    $ownedCloseInstall=@'
+    $ownedCloseFailure=$null;$ownedCloseCount=0;$ownedCloseBefore=-1;$ownedCloseAfter=-1
+    $ownedCloseBooks=@()
+    try {
+        $ownedCloseRuntime=[IO.Path]::GetFullPath($runtimeRoot).TrimEnd('\')+'\'
+        $ownedClosePackages=[IO.Path]::GetFullPath($deployPath).TrimEnd('\')+'\'
+        if(-not $ownedCloseRuntime.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase) -or
+            (Split-Path -Leaf $runtimeRoot) -notlike 'invsys-plan022-launcher-red-*'){throw 'Disposable runtime ownership failed.'}
+        $ownedCloseBooks=@($excel.Workbooks)
+        $ownedCloseBefore=$ownedCloseBooks.Count
+        foreach($ownedCloseBook in $ownedCloseBooks){
+            $ownedClosePath=[IO.Path]::GetFullPath([string]$ownedCloseBook.FullName)
+            $ownedCloseFixture=$ownedClosePath.StartsWith($ownedCloseRuntime,[StringComparison]::OrdinalIgnoreCase)
+            $ownedClosePackage=[bool]$ownedCloseBook.IsAddin -and $ownedClosePath.StartsWith($ownedClosePackages,[StringComparison]::OrdinalIgnoreCase)
+            if(-not ($ownedCloseFixture -or $ownedClosePackage)){throw 'Workbook outside isolated roots.'}
+        }
+        foreach($ownedCloseBook in @($ownedCloseBooks|Sort-Object {[bool]$_.IsAddin})){
+            $ownedCloseBook.Close($false);$ownedCloseCount++
+        }
+        $ownedCloseAfter=[int]$excel.Workbooks.Count
+    }catch{
+        $ownedCloseFailure=[pscustomobject]@{ExceptionType=$_.Exception.GetType().Name;HResult=$_.Exception.GetBaseException().HResult;Line=$_.InvocationInfo.ScriptLineNumber}
+    }finally{
+        foreach($ownedCloseBook in $ownedCloseBooks){Release-ComObject $ownedCloseBook}
+        $ownedCloseBook=$null;$ownedCloseBooks=@()
+    }
+    [pscustomobject]@{WorkbooksBefore=$ownedCloseBefore;CloseReturned=$ownedCloseCount;WorkbooksAfter=$ownedCloseAfter;Failure=$ownedCloseFailure}|
+        ConvertTo-Json|Set-Content (Join-Path $outputPath 'owned-workbook-cleanup.json')
+'@
+    $source=Replace-Once $source '    foreach ($wb in $opened) {' ($ownedCloseInstall+"`r`n"+'    foreach ($wb in $opened) {')
+}
+if($ObserveShutdownForTest){
+    $shutdownInit=@'
+    $shutdownState=[ordered]@{WorkbooksBeforeClose=-1;WorkbooksBeforeQuit=-1;EnableEventsBeforeQuit=$null;CloseReturned=0;CloseFailures=@();QuitReturned=$false;QuitFailure=$null;ReadFailures=@()}
+    try{$shutdownState.WorkbooksBeforeClose=[int]$excel.Workbooks.Count}catch{$shutdownState.ReadFailures+= $_.Exception.GetBaseException().HResult}
+'@
+    $shutdownBeforeQuit=@'
+    try{$shutdownState.WorkbooksBeforeQuit=[int]$excel.Workbooks.Count;$shutdownState.EnableEventsBeforeQuit=[bool]$excel.EnableEvents}catch{$shutdownState.ReadFailures+= $_.Exception.GetBaseException().HResult}
+'@
+    $shutdownWrite="    `$shutdownState|ConvertTo-Json|Set-Content (Join-Path `$outputPath 'shutdown-observation.json')"
+    $shutdownCloseOriginal='        try { $wb.Close($false) } catch {}'
+    $shutdownCloseObserved='        $shutdownCloseKind="FixtureOrUnavailable";try{$shutdownCloseName=[string]$wb.Name;if($shutdownCloseName -cin $packageNames){$shutdownCloseKind=$shutdownCloseName}}catch{};try { $wb.Close($false);$shutdownState.CloseReturned++ } catch { $shutdownState.CloseFailures+= [pscustomobject]@{Package=$shutdownCloseKind;HResult=$_.Exception.GetBaseException().HResult} }'
+    $shutdownQuitOriginal='        try { $excel.Quit() } catch {}'
+    $shutdownQuitObserved='        try { $excel.Quit();$shutdownState.QuitReturned=$true } catch { $shutdownState.QuitFailure=$_.Exception.GetBaseException().HResult }'
+    $source=Replace-Once $source '    $paletteBooksClosed=$false' ($shutdownInit+"`r`n"+'    $paletteBooksClosed=$false')
+    $source=Replace-Once $source $shutdownCloseOriginal $shutdownCloseObserved
+    $shutdownQuitPattern='(?m)(^    if \(\$null -ne \$excel\) \{\r?\n)'+[regex]::Escape($shutdownQuitOriginal)+'\r?$'
+    if([regex]::Matches($source,$shutdownQuitPattern).Count -ne 1){throw 'Final Quit observation anchor missing/ambiguous.'}
+    $source=[regex]::Replace($source,$shutdownQuitPattern,[Text.RegularExpressions.MatchEvaluator]{param($match) $match.Groups[1].Value+$shutdownQuitObserved})
+    $source=Replace-Once $source '    if ($null -ne $excel) {' ($shutdownBeforeQuit+"`r`n"+'    if ($null -ne $excel) {')
+    $source=Replace-Once $source '    $cleanupTerminationRequested=$false' ($shutdownWrite+"`r`n"+'    $cleanupTerminationRequested=$false')
+}
+if($CloseOperatorFirstForTest){
+    $operatorCloseAnchor='    foreach ($wb in $opened) {'
+    $operatorCloseInstall=@'
+    $operatorCloseFailure=$null;$operatorCloseMatches=0;$operatorClosed=$false;$operatorCountReduced=$false
+    $operatorEventsEnabled=$false
+    try {
+        $ownedRuntime=[IO.Path]::GetFullPath($runtimeRoot).TrimEnd('\')+'\'
+        $ownedOperators=[IO.Path]::GetFullPath($operatorRoot).TrimEnd('\')+'\'
+        $ownedOperator=[IO.Path]::GetFullPath($productionOperatorPath)
+        if(-not $ownedRuntime.StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase) -or
+            (Split-Path -Leaf $runtimeRoot) -notlike 'invsys-plan022-launcher-red-*' -or
+            -not $ownedOperators.StartsWith($ownedRuntime,[StringComparison]::OrdinalIgnoreCase) -or
+            -not $ownedOperator.StartsWith($ownedOperators,[StringComparison]::OrdinalIgnoreCase)){
+            throw 'Disposable operator ownership failed.'
+        }
+        $operatorEventsEnabled=[bool]$excel.EnableEvents
+        $operatorCountBefore=[int]$excel.Workbooks.Count
+        for($operatorIndex=[int]$excel.Workbooks.Count;$operatorIndex -ge 1;$operatorIndex--){
+            $operatorCloseBook=$excel.Workbooks.Item($operatorIndex)
+            try {
+                if([IO.Path]::GetFullPath([string]$operatorCloseBook.FullName).Equals($ownedOperator,[StringComparison]::OrdinalIgnoreCase)){
+                    $operatorCloseMatches++
+                    $operatorCloseBook.Close($false)
+                    $operatorClosed=$true
+                }
+            }finally{Release-ComObject $operatorCloseBook;$operatorCloseBook=$null}
+        }
+        $operatorCountReduced=([int]$excel.Workbooks.Count -eq ($operatorCountBefore-1))
+    }catch{
+        $operatorCloseFailure=[pscustomobject]@{ExceptionType=$_.Exception.GetType().Name;HResult=$_.Exception.HResult;Line=$_.InvocationInfo.ScriptLineNumber}
+    }
+    [pscustomobject]@{MatchingOwnedWorkbooks=$operatorCloseMatches;EnableEvents=$operatorEventsEnabled;CloseReturned=$operatorClosed;WorkbookCountReducedByOne=$operatorCountReduced;Failure=$operatorCloseFailure}|
+        ConvertTo-Json|Set-Content (Join-Path $outputPath 'operator-first-cleanup.json')
+'@
+    $source=Replace-Once $source $operatorCloseAnchor ($operatorCloseInstall+"`r`n"+$operatorCloseAnchor)
+}
 if($ReleaseAutomationForTest){
     $releaseAnchor='    $cleanupTerminationRequested=$false'
     $releaseInstall=@'
@@ -73,26 +165,43 @@ if($ReleaseAutomationForTest){
     $releasedReferences=$null;$releaseFailure=$null
     $clearedErrorRecords=0
     $normalExit=$false
+    $releaseWaitElapsed=0;$releaseWaitStartUTC=$null;$releaseWaitEndUTC=$null
     try {
         $releasedReferences=Release-IsolatedAutomationVariables -Variables (Get-Variable -Scope Script)
         [GC]::Collect();[GC]::WaitForPendingFinalizers();[GC]::Collect()
         if($excelProcessId -gt 0){
             $releaseOwner=Get-Process -Id $excelProcessId -ErrorAction SilentlyContinue
             $normalExit=($null -eq $releaseOwner)
-            if($null -ne $releaseOwner){$normalExit=$releaseOwner.WaitForExit(30000)}
+            if($null -ne $releaseOwner){
+                $releaseWaitStartUTC=[DateTimeOffset]::UtcNow.ToString('o')
+                $releaseWaitClock=[Diagnostics.Stopwatch]::StartNew()
+                $normalExit=$releaseOwner.WaitForExit(30000)
+                $releaseWaitClock.Stop();$releaseWaitElapsed=$releaseWaitClock.ElapsedMilliseconds
+                $releaseWaitEndUTC=[DateTimeOffset]::UtcNow.ToString('o')
+            }
         }
     } catch {
         $failureId=[string]$_.FullyQualifiedErrorId
         if($failureId -cnotmatch '^[A-Za-z0-9.,_]+$'){$failureId='Unclassified'}
         $releaseFailure=[pscustomobject]@{ErrorId=$failureId;ExceptionType=$_.Exception.GetType().Name;HResult=$_.Exception.HResult;Line=$_.InvocationInfo.ScriptLineNumber}
     }
-    [pscustomobject]@{References=$releasedReferences;Failure=$releaseFailure;ExitedAfterRelease=$normalExit;ObservationSeconds=30;ClearedErrorRecords=$clearedErrorRecords}|ConvertTo-Json|Set-Content (Join-Path $outputPath 'automation-release.json')
+    [pscustomobject]@{References=$releasedReferences;Failure=$releaseFailure;ExitedAfterRelease=$normalExit;ObservationSeconds=30;WaitElapsedMilliseconds=$releaseWaitElapsed;WaitStartUTC=$releaseWaitStartUTC;WaitEndUTC=$releaseWaitEndUTC;ClearedErrorRecords=$clearedErrorRecords}|ConvertTo-Json|Set-Content (Join-Path $outputPath 'automation-release.json')
 '@
     if($ClearErrorReferencesForTest){
         $releaseInstall=$releaseInstall.Replace('        [GC]::Collect();[GC]::WaitForPendingFinalizers();[GC]::Collect()',
             '        $clearedErrorRecords=$Error.Count;$Error.Clear()'+"`r`n"+'        [GC]::Collect();[GC]::WaitForPendingFinalizers();[GC]::Collect()')
     }
+    $releaseInstall=$releaseInstall.Replace('WaitForExit(30000)',('WaitForExit('+$ReleaseObservationMilliseconds+')')).Replace('ObservationSeconds=30;',('ObservationSeconds='+([string]($ReleaseObservationMilliseconds/1000))+';'))
     $source=Replace-Once $source $releaseAnchor ($releaseInstall+"`r`n"+$releaseAnchor)
+}
+if($ReverseOpenedCloseForTest){
+    $reverseCloseOriginal='    foreach ($wb in $opened) {'
+    $reverseCloseReplacement=@'
+    $reverseCloseBooks=$opened.ToArray()
+    [array]::Reverse($reverseCloseBooks)
+    foreach ($wb in $reverseCloseBooks) {
+'@
+    $source=Replace-Once $source $reverseCloseOriginal $reverseCloseReplacement
 }
 $anchor='                $observedText += " || PRODUCTION_BATCH_SCALE=" + $workflowControlReport'
 $cutAnchor=$anchor
@@ -127,6 +236,12 @@ if($TraceBoundaries -or $CompileOnly){$restoredSource=$restoredSource.Replace($i
 if($TraceBoundaries){$restoredSource=$restoredSource.Replace($arm+"`r`n",'')}
 if($NativeExceptions){$restoredSource=$restoredSource.Replace($nativeInstall+"`r`n",'')}
 if($ReleaseAutomationForTest){$restoredSource=$restoredSource.Replace($releaseInstall+"`r`n",'')}
+if($CloseOperatorFirstForTest){$restoredSource=$restoredSource.Replace($operatorCloseInstall+"`r`n",'')}
+if($CloseOwnedWorkbooksForTest){$restoredSource=$restoredSource.Replace($ownedCloseInstall+"`r`n",'')}
+if($ReverseOpenedCloseForTest){$restoredSource=$restoredSource.Replace($reverseCloseReplacement,$reverseCloseOriginal)}
+if($ObserveShutdownForTest){
+    $restoredSource=$restoredSource.Replace($shutdownInit+"`r`n",'').Replace($shutdownBeforeQuit+"`r`n",'').Replace($shutdownWrite+"`r`n",'').Replace($shutdownCloseObserved,$shutdownCloseOriginal).Replace($shutdownQuitObserved,$shutdownQuitOriginal)
+}
 $statementsPreserved=($restoredSource -replace "`r`n","`n") -ceq ($originalSource -replace "`r`n","`n")
 if(-not $statementsPreserved){throw 'Diagnostic changed undeclared standard-validator statements.'}
 $generated=Join-Path $root $(if($StandardRunFlow){'standard-run-validator.ps1'}else{'scoped-validator.ps1'})
@@ -134,7 +249,7 @@ $generated=Join-Path $root $(if($StandardRunFlow){'standard-run-validator.ps1'}e
 $tokens=$null;$errors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($generated,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'Diagnostic does not parse.'}
-[pscustomobject]@{StandardRunFlow=[bool]$StandardRunFlow;TraceBoundaries=[bool]$TraceBoundaries;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;ReleaseAutomationForTest=[bool]$ReleaseAutomationForTest;ClearErrorReferencesForTest=[bool]$ClearErrorReferencesForTest;OriginalStatementsPreserved=$statementsPreserved;ParseErrors=$errors.Count;GenerationOpenedExcel=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'generation.json')
+[pscustomobject]@{StandardRunFlow=[bool]$StandardRunFlow;TraceBoundaries=[bool]$TraceBoundaries;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;ReleaseAutomationForTest=[bool]$ReleaseAutomationForTest;ReleaseObservationMilliseconds=$ReleaseObservationMilliseconds;ClearErrorReferencesForTest=[bool]$ClearErrorReferencesForTest;CloseOperatorFirstForTest=[bool]$CloseOperatorFirstForTest;ObserveShutdownForTest=[bool]$ObserveShutdownForTest;CloseOwnedWorkbooksForTest=[bool]$CloseOwnedWorkbooksForTest;ReverseOpenedCloseForTest=[bool]$ReverseOpenedCloseForTest;OriginalStatementsPreserved=$statementsPreserved;ParseErrors=$errors.Count;GenerationOpenedExcel=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'generation.json')
 if($GenerateOnly){Write-Output 'Diagnostic generation calibrated; no runtime invoked.';return}
 if($NativeExceptions){
     @('NativeExceptionObserver.cs','Test-ProductionBatchBoundary.ps1')|ForEach-Object {
@@ -199,9 +314,20 @@ if($NativeExceptions){
 $releaseValid=$true
 if($ReleaseAutomationForTest){
     $released=Get-Content (Join-Path $root 'automation-release.json') -Raw|ConvertFrom-Json
-    $releaseValid=($released.ExitedAfterRelease -and $null -eq $released.Failure -and $null -ne $released.References -and $released.References.ReleaseFailures -eq 0 -and $null -ne $cleanup -and -not $cleanup.TerminationRequested)
+    $releaseValid=(($released.ExitedAfterRelease -or $ReleaseObservationMilliseconds -eq 0) -and $null -eq $released.Failure -and $null -ne $released.References -and $released.References.ReleaseFailures -eq 0 -and $null -ne $cleanup -and $cleanup.ProcessIdAvailable -and -not $cleanup.TerminationRequested)
 }
-$result=[pscustomobject]@{TraceBoundaries=[bool]$TraceBoundaries;StandardRunFlow=[bool]$StandardRunFlow;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;NativeObserverValid=$nativeValid;ReleaseAutomationForTest=[bool]$ReleaseAutomationForTest;ClearErrorReferencesForTest=[bool]$ClearErrorReferencesForTest;AutomationReleaseValid=$releaseValid;OriginalStatementsPreserved=$statementsPreserved;PassedChecks=$checks.Count-$failed;FailedChecks=$failed;Checks=$checks;CutReached=$cutReached;TraceAllowlistValid=$traceValid;TraceEntries=$stages.Count;ExcelApplicationEvents=$events.Count;FinalCleanup=$cleanup;DiagnosticPassed=($code -eq 0 -and $scopeSatisfied -and $failed -eq 0 -and $traceValid -and $nativeValid -and $releaseValid -and $events.Count -eq 0);FullProductionAccepted=$false}
+$operatorCloseValid=$true
+if($CloseOperatorFirstForTest){
+    $operatorReceipt=Get-Content (Join-Path $root 'operator-first-cleanup.json') -Raw|ConvertFrom-Json
+    $operatorCloseValid=($operatorReceipt.MatchingOwnedWorkbooks -eq 1 -and $operatorReceipt.EnableEvents -and $operatorReceipt.CloseReturned -and $operatorReceipt.WorkbookCountReducedByOne -and $null -eq $operatorReceipt.Failure -and $null -ne $cleanup -and -not $cleanup.TerminationRequested)
+}
+$ownedCloseValid=$true
+if($CloseOwnedWorkbooksForTest){
+    $ownedReceipt=Get-Content (Join-Path $root 'owned-workbook-cleanup.json') -Raw|ConvertFrom-Json
+    $ownedCloseValid=($ownedReceipt.WorkbooksBefore -gt 0 -and $ownedReceipt.CloseReturned -eq $ownedReceipt.WorkbooksBefore -and $ownedReceipt.WorkbooksAfter -eq 0 -and $null -eq $ownedReceipt.Failure -and $null -ne $cleanup -and $cleanup.ProcessIdAvailable -and -not $cleanup.TerminationRequested)
+}
+$reverseCloseValid=(-not $ReverseOpenedCloseForTest -or ($null -ne $cleanup -and $cleanup.ProcessIdAvailable -and -not $cleanup.TerminationRequested))
+$result=[pscustomobject]@{TraceBoundaries=[bool]$TraceBoundaries;StandardRunFlow=[bool]$StandardRunFlow;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;NativeObserverValid=$nativeValid;ReleaseAutomationForTest=[bool]$ReleaseAutomationForTest;ReleaseObservationMilliseconds=$ReleaseObservationMilliseconds;ClearErrorReferencesForTest=[bool]$ClearErrorReferencesForTest;AutomationReleaseValid=$releaseValid;CloseOperatorFirstForTest=[bool]$CloseOperatorFirstForTest;ObserveShutdownForTest=[bool]$ObserveShutdownForTest;CloseOwnedWorkbooksForTest=[bool]$CloseOwnedWorkbooksForTest;ReverseOpenedCloseForTest=[bool]$ReverseOpenedCloseForTest;OperatorFirstCleanupValid=$operatorCloseValid;OwnedWorkbooksCleanupValid=$ownedCloseValid;ReverseOpenedCleanupValid=$reverseCloseValid;OriginalStatementsPreserved=$statementsPreserved;PassedChecks=$checks.Count-$failed;FailedChecks=$failed;Checks=$checks;CutReached=$cutReached;TraceAllowlistValid=$traceValid;TraceEntries=$stages.Count;ExcelApplicationEvents=$events.Count;FinalCleanup=$cleanup;DiagnosticPassed=($code -eq 0 -and $scopeSatisfied -and $failed -eq 0 -and $traceValid -and $nativeValid -and $releaseValid -and $operatorCloseValid -and $ownedCloseValid -and $reverseCloseValid -and $events.Count -eq 0);FullProductionAccepted=$false}
 $result|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $root 'result.json')
 $result|Select-Object TraceBoundaries,StandardRunFlow,CompileOnly,OriginalStatementsPreserved,PassedChecks,FailedChecks,CutReached,TraceAllowlistValid,TraceEntries,ExcelApplicationEvents,FinalCleanup,DiagnosticPassed|ConvertTo-Json -Depth 4
 if(-not $result.DiagnosticPassed){exit 1}

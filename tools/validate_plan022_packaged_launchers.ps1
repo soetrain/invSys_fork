@@ -311,6 +311,9 @@ $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 $deployPath = (Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
 $helperSource = Join-Path $repo "tools/validate_phase6_live_role_workflows.ps1"
 Import-LiveValidationHelpers -ScriptPath $helperSource
+if ($WorkbookState -eq 'ProductionReusable' -and -not $ProductionPaletteProbe) {
+    . (Join-Path $repo 'tests/tooling/ProductionReusableCleanup.ps1')
+}
 
 $outputPath = Join-Path $repo $OutputDirectory
 New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
@@ -1409,9 +1412,17 @@ try {
             catch {}
             Release-ComObject $restartWb
         }
+        if (-not $ProductionPaletteProbe) {
+            $restartPackagesClosed=Close-ReusableLoadedPackages -Packages $packages -PackageNames $packageNames -PackageRoot $deployPath
+            $restartPackagesClosed|ConvertTo-Json|Set-Content (Join-Path $outputPath 'restart-package-closure.json')
+        }
         try { $excel.Quit() } catch {}
         Release-ComObject $excel
         $excel = $null
+        if (-not $ProductionPaletteProbe) {
+            $restartRelease=Wait-ReusableAutomationExit -ProcessId $excelProcessId -Variables (Get-Variable -Scope Script)
+            $restartRelease|ConvertTo-Json -Depth 4|Set-Content (Join-Path $outputPath 'restart-release.json')
+        }
         $restartTerminationRequested = $false
         if ($excelProcessId -gt 0) {
             Start-Sleep -Milliseconds 750
@@ -1609,6 +1620,13 @@ finally {
         try { $paletteBooksClosed=Close-ProductionPaletteFixture -Excel $excel -RuntimeRoot $runtimeRoot -PackageRoot $deployPath }
         catch { $paletteBooksClosed=$false }
     }
+    if ($WorkbookState -eq 'ProductionReusable' -and -not $ProductionPaletteProbe -and $null -ne $excel) {
+        $finalBooksClosed=Close-ReusableFixtureWorkbooks -Excel $excel -RuntimeRoot $runtimeRoot
+        $finalPackagesClosed=Close-ReusableLoadedPackages -Packages $packages -PackageNames $packageNames -PackageRoot $deployPath
+        [pscustomobject]@{Workbooks=$finalBooksClosed;Packages=$finalPackagesClosed}|ConvertTo-Json -Depth 3|
+            Set-Content (Join-Path $outputPath 'final-workbook-closure.json')
+        $opened.Clear();$packages.Clear()
+    }
     foreach ($wb in $opened) {
         try { $wb.Close($false) } catch {}
         Release-ComObject $wb
@@ -1618,6 +1636,10 @@ finally {
         Release-ComObject $excel
     }
     $cleanupTerminationRequested=$false
+    if ($WorkbookState -eq 'ProductionReusable' -and -not $ProductionPaletteProbe) {
+        $finalRelease=Wait-ReusableAutomationExit -ProcessId $excelProcessId -Variables (Get-Variable -Scope Script)
+        $finalRelease|ConvertTo-Json -Depth 4|Set-Content (Join-Path $outputPath 'final-release.json')
+    }
     if ($ProductionPaletteProbe) {
         $excel=$null;$packages.Clear();$opened.Clear()
         $configWb=$null;$authWb=$null;$packageWb=$null;$wb=$null

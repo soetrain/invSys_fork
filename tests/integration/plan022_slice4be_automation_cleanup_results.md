@@ -81,3 +81,111 @@ retains every original validator statement and the1000ms wait; only completed-ho
 release/metadata are inserted (`packaged-smoke-cleanup-workflow-preservation.json`).
 Normal reusable Production shutdown, earlier native crashes, comprehensive
 coverage, guide transfer and human/NAS acceptance remain separate open requirements.
+
+## Reusable Production comparison
+
+The repaired helper alone does not resolve reusable Production shutdown. A cold
+standard run-only diagnostic preserves every original workflow statement and
+passes its aggregate without VBE preparation, tracing or a native debugger.
+After Quit it finds no live references to release (twelve already released
+references and five already released variables), with no helper failure. Excel
+remains alive for the30-second observation and requires the original termination
+fallback. Settings, five frozen packages and the original validator are preserved;
+zero Excel Application events occur. Root
+`production-batch-boundary/620289cb150b475db2a4d4d33e30f1fa`,
+01:13:32--01:18:08 UTC. This diagnostic's redacted aggregate is not a new67-value
+comparison. See [boundary evidence](plan022_slice4be_production_batch_boundary_results.md).
+
+An independent cold standard run-only control closes the exact captured disposable
+operator workbook before the add-ins, using ordinary Workbook.Close. Events are
+enabled, exactly one owned workbook matches and the workbook count decreases by
+one. The workflow aggregate passes, but final cleanup still requests termination.
+Thus workbook-first closure alone is not a sufficient repair. The diagnostic
+neither changes the default validator nor unloads forms through an injected macro.
+All original workflow statements, settings and five packages remain preserved;
+zero Excel Application events occur. Root
+`production-batch-boundary/74240f34fafd442f80b3e156fce9f714`,
+01:20:13--01:24:22 UTC; fixed result `operator-first-cleanup.json`.
+Generation-only calibration `production-batch-boundary/817e077ff6cc4bae9e45264cd0714379`
+and the execution's generation receipt both preserve original statements and parse.
+No runtime, permission, authority or architectural change follows from this control.
+
+Subsequent untraced, cold scoped comparisons retain the same seven launcher/scale
+checks, original workflow statements, settings and five packages. Every comparison
+records zero Excel Application events. All roots below are under
+`production-batch-boundary/`; none is a full reusable acceptance run.
+
+| Diagnostic root | New observation/control | Shutdown result |
+|---|---|---|
+| `7f8a41814a134033abcfea77c2aaf56f` | Observe existing close calls: three workbooks remain before Quit; three close calls return and four fail; Quit returns. | Forced. |
+| `107ca6a08c2e4cc1a41c7825e383a228` | Validate every workbook against isolated roots before closing any; all three owned fixture workbooks close, leaving zero before Quit. | Forced; the same add-in close failure remains. |
+| `f35ac1f629dd44788f796565dabf1474` | Allowlisted package attribution identifies `invSys.Core.xlam` with HRESULT0x800A03EC; three old fixture references report0x80010108. | Forced. |
+| `1dfacd71d24544f0b5e01fbb673c02bc` | Close the existing opened list in reverse order after the owned workbooks. All four package closes now return; only the old fixture-reference errors remain. | Forced within the original500ms allowance. |
+| `ebf63b1acb874066a1e2f27d59cc9988` | Add the completed-host reference helper/GC after those closures. It finds zero live references,19 already released references and five already released variables, with no release failure. | Unassisted within the diagnostic30-second observation; this alone does not validate the default500ms allowance. |
+
+Observers write counts, flags, allowlisted package names and HRESULTs only.
+Original swallowed close errors remain swallowed by the diagnostic; the observer
+does not turn them into workflow failures. The owned-workbook control validates
+all paths before closing any workbook and never disables events. Reverse closure
+changes only declared post-report cleanup order, and generation reverses that
+change when checking original-source preservation. Native-crash causation remains
+unresolved; these are cleanup controls, not a native runtime repair.
+
+The no-extra-wait control `1b3e1b96506b45749617aa518c242b3b` retains7/7 but still
+requests termination after the original500ms allowance; do not count the preceding
+30-second control as a500ms pass. The complete cold standard run-only control
+`e1b86f46ad1d4bdaa63ea677c72831e4` then passes its aggregate and exits unassisted
+after an observed **2514ms** wait (01:37:38.521--01:37:41.040 UTC). It closes all
+three workbooks and all four packages, preserves original statements/settings/five
+packages and records zero Excel Application events. Run interval
+01:33:28--01:37:41 UTC. This supports a bounded test-harness exit wait; no runtime
+latency or native-crash repair is asserted.
+
+`Test-ProductionReusableCleanup.ps1` passes **7/7** in
+`reusable-cleanup-calibration/eb8dd5cb8ae041d5845a247bf571e139`. A saved workbook
+outside the expected runtime causes refusal before either workbook closes. The
+owned workbook remains open and the outside fixture's sentinel value is unchanged.
+After explicitly closing that separately owned calibration fixture, normal owned
+closure and process exit pass without forced termination or release failure.
+
+## Ordinary reusable validator
+
+The ordinary `ProductionReusable` route now closes its remaining owned fixture
+workbooks before add-ins, closes the four add-ins in reverse dependency order,
+releases completed-host references and waits for exit with a30-second upper bound.
+The internal restart preserves its existing workbook-save loop and applies the
+same package closure/release/wait. The existing750/500ms fallback checks and
+termination receipts remain after the bounded wait. Other workbook-state modes
+and the separate palette diagnostic keep their existing cleanup paths.
+
+The change inserts22 lines into the validator and removes no original statement;
+`production-reusable-cleanup-workflow-preservation.json` verifies exact restoration
+and unchanged runtime source. New helper `ProductionReusableCleanup.ps1` writes
+fixed counts/exit flags/times and bounded failure metadata only. There is no
+architectural contract change or new product behavioral RED claim.
+
+The full ordinary workbench/export/restart gate passes **2 aggregate assertions**
+and preserves the exact ordered **171 Boolean observations /166 distinct pairs**
+from the assisted baseline, including all67 run-only observations. Both hosts exit
+unassisted, with no termination request or reference-release failure: restart waits
+**541ms**, final exit **2465ms**. Settings and five packages remain preserved;
+zero Excel Application1000/1001/1002 failures are found. Controller
+`production-components-regression/reusablefull-6c2580352bb541dd94207a159b6da7dc`,
+01:39:04--01:45:32 UTC; receipt
+`production-components-reusable-full-cleanup-verification.json`.
+
+The ordinary run-only route also passes its aggregate with all **67 prior Boolean
+observations in the exact same order**. Final exit is unassisted after a2657ms
+wait, with no release failure or termination request. Settings/five packages are
+preserved and zero Excel Application failures occur. Controller
+`production-components-regression/reusable-e2c93ba3f4d1482abf6235cbadb2c153`,
+01:46:21--01:50:34 UTC; receipt
+`production-components-reusable-run-cleanup-verification.json`.
+
+Fresh `production-reusable-cleanup-static` retains259 components,6078 procedures,
+133764 lines,9 literal/45 unresolved dynamic calls and191 duplicate groups. All28
+module caps are identical, all three generated schemas pass and all312 PowerShell
+files parse. The frozen runtime source/packages have no changes, so prior build,
+compile, layout, full-chain, live-role and visible evidence retains its scope.
+Earlier native crashes remain unexplained; comprehensive coverage, guide transfer
+and human/NAS acceptance remain open.

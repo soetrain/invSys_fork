@@ -1,6 +1,6 @@
 # Slice 4be Production batch-boundary diagnostic
 
-Last verified: 2026-09-29 UTC. Architecture v4.11 D12/D13/D18 and Plan022 remain
+Last verified: 2026-09-30 UTC. Architecture v4.11 D12/D13/D18 and Plan022 remain
 unchanged. This is diagnostic tooling for the native failure recorded in
 [lifecycle continuation evidence](plan022_slice4be_production_lifecycle_visible_results.md),
 not an invSys runtime repair or complete Production/Release1 acceptance.
@@ -15,6 +15,29 @@ both full-gate shutdowns explicitly request termination. These scoped GREENs do
 not explain earlier native crashes or establish normal reusable shutdown. Exact
 controllers, receipts and qualifications are in
 [component evidence](plan022_slice4be_production_component_results.md).
+
+**Later cleanup outcome:** The bounded closure/release comparisons lead to an
+ordinary-validator correction. The full reusable gate now preserves both aggregate
+assertions and the exact171 Boolean observations with unassisted restart/final
+exit, settings/package preservation and zero Excel Application failures. This
+supersedes the earlier assisted shutdown status, not the unresolved native cause.
+See [cleanup evidence](plan022_slice4be_automation_cleanup_results.md) for each
+control, the failed500ms comparison and the measured exit times.
+
+**Cold standard-flow reference-release control,2026-09-30:** The repaired isolated
+helper is also tested without tracing, VBE preparation or a native debugger.
+`-StandardRunFlow -ReleaseAutomationForTest` preserves every original statement
+and completes the one standard run-only aggregate PASS. After the original Quit,
+it finds zero live references, twelve already-released references and five
+already-released variables, with no release failure. Excel remains alive after
+the diagnostic30-second observation and the unchanged final fallback terminates
+it. Settings, all five component-candidate packages and the original validator
+are preserved; zero Excel Application events occur. This does not establish
+normal reusable shutdown. Generation calibration:
+`reports/runtime/production-batch-boundary/0c6e33e4b8d6436e8f90694fbea0e671`;
+execution `620289cb150b475db2a4d4d33e30f1fa` in that same parent,
+01:13:32--01:18:08 UTC. The diagnostic report redacts observations, so its single
+aggregate must not be presented as a new comparison of the67 Boolean values.
 
 **Later boundary observation,2026-09-29 20:02 UTC:** The isolated
 `validation-production-uom-staging` candidate changes only Operations
@@ -41,8 +64,9 @@ Excel ntdll.dll0xc0000028, and no requested termination. The earlier67 reusable
 observations are not re-established by that failed execution.
 
 `Test-ProductionBatchBoundary.ps1 -StandardRunFlow` retains the complete standard
-run-only validator instead of cutting after scale. It requires either
-`-TraceBoundaries` or the separate `-CompileOnly` VBE preparation control.
+run-only validator instead of cutting after scale. Initially it required either
+`-TraceBoundaries` or the separate `-CompileOnly` VBE preparation control; later
+explicit native-observer and post-report cleanup controls are also supported.
 Generation reverses declared insertions/redaction and verifies every original
 validator statement is preserved; both modes parse before Excel starts.
 `-GenerateOnly` calibrates this without invoking Excel. The existing31-stage

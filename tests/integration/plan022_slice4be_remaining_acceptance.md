@@ -8,7 +8,13 @@ releasing completed-host references through the repaired isolated helper. Origin
 calibration8/8, nested-expired calibration9/9 and Settings202/202 pass; Settings
 also retains unassisted internal/final exit. Package/settings/report preservation
 and zero Excel Application events hold. Earlier assisted records remain qualified.
-Normal reusable shutdown remains open; see
+The ordinary full reusable gate now retains2 aggregate assertions and the exact171
+Boolean observations with unassisted restart/final exit, preserved settings/packages
+and zero Excel Application failures. Earlier assisted records below retain their
+historical scope. Normal shutdown is established for that full gate; broader
+acceptance remains incomplete. Ordinary run-only also retains its aggregate and
+exact67 Boolean observations with unassisted exit, preservation and zero Excel
+Application failures. See
 [cleanup evidence](plan022_slice4be_automation_cleanup_results.md).
 
 **Current component checkpoint,2026-09-29:** corrected adapters establish packaged
