@@ -139,6 +139,7 @@ Application1000/1001/1002 audits find zero Excel failures.
 | Ordinary full reusable Production | Two aggregates and all171 prior ordered boolean observations pass | `reusablefull-300b8da304b040e7a6764a57b75cba1b` | 10:49:41.6915279--10:58:01.1642066 |
 | Packaged smoke | Exact86 prior checks pass | `smoke-71dd9816d894493e972cfad2f9cf9a59` | 10:58:22.1110436--10:58:44.6051153 |
 | Production layout | Exact prior geometry at three sizes/five pages; zero bounds/overlap violations | `layout-b4f12a8c7e3445feb6995753e1ee0663` | 10:59:07.2226206--10:59:21.8566631 |
+| Full Release1 chain/live roles/Create Warehouse | Exact32/48/15 prior checks pass | `chain-4af55c8b76fd470f88df4ea61da2fb67` | 10:59:46.0281049--11:04:55.9037997 |
 
 Full reusable Production uses the ordinary uninstrumented launcher gate, not the
 native-observer diagnostic. Both restart and final Excel exits are unassisted,
@@ -154,10 +155,14 @@ release failures; shutdown root:
 All three layout captures are directly reviewed with hashes in the controller's
 `visible-review.json`; minimum clamping, footer reachability and scrolling retain
 the accepted geometry. Agent review is not human acceptance.
+The ordinary full chain retains the normative phase order, live-role and warehouse
+creation results, normal closure and all prior check identities. No repeat or
+native observer is needed for this catalog20 execution; the earlier native
+failures remain retained without a repair claim.
 
 ## Remaining work
 
-The remaining focused regressions, live-role/full-chain checks and run-only
-reusable gate remain pending on this final candidate. Catalog19 remains unchanged
+The remaining focused regressions and run-only reusable gate remain pending on
+this final candidate. Catalog19 remains unchanged
 and unpromoted. Its ordinary full reusable native failure remains unresolved; see
 [designer read evidence](plan022_slice4be_production_design_read_results.md).
