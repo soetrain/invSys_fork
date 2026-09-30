@@ -375,13 +375,76 @@ this candidate,21:24:51.4711739 through21:28:59.3442753 UTC. Controller:
 `reports/runtime/production-close-paths-controller/587ad91882424be0bc1b63998216a00f`;
 result `reports/runtime/slice4be-production-close-paths/d1c5fd3095524b0cbe6875304c035631/green.json`.
 Five compiles, normal cleanup, package/settings preservation and delayed audit
-pass. The broader regression set remains pending on this candidate.
+pass. Further scoped regressions follow.
+
+## Scoped regression progress
+
+The same `validation-process-worksheet-activity-03` packages retain:
+
+- Packaged smoke86/86 in exact prior order,21:29:46.9850404 through21:30:08.8498235
+  UTC. Controller: `reports/runtime/process-worksheet-activity-regression/smoke-6eee0876b82a435aaea78ef84cdcaa54`.
+  Initial and final shutdown facts in
+  `reports/runtime/packaged-smoke-closure/e7835111f54a4371a3bd44f8b38138d2`
+  prove unassisted exits with no termination requested. Packages, settings and
+  tracked report bytes are preserved; the delayed Excel audit is clean.
+- Layout's exact prior report: three requested sizes, five pages, zero overlaps
+  or out-of-bounds controls and passing native window actions,21:30:57.7529481
+  through21:31:12.5000012 UTC. Controller:
+  `reports/runtime/process-worksheet-activity-regression/layout-8a14c261a69641bd855d8f2b2f00c91a`.
+  Normal cleanup, package/settings preservation and delayed audit pass. Three
+  reviewed captures show empty Run List layouts, not populated workflow acceptance.
+  The minimum request remains clamped to the same1110x800 actual size as before.
+- Ordered full chain32/32, live roles48/48 and warehouse creation15/15, all in exact
+  prior order,21:31:44.8780854 through21:36:57.2754022 UTC. Controller:
+  `reports/runtime/process-worksheet-activity-regression/chain-eaef72bd22cb42f0ba87140ce1a0067a`.
+  The normative creation/seed/Receiving/Production/Boxing/Shipping/restart sequence
+  completes. Normal cleanup, package/settings and tracked-report restoration,
+  and the delayed Excel audit pass.
+
+Full reusable/restart and remaining shared observation regressions are still open.
+No runtime edit, rebuild, deployment promotion or human acceptance accompanies
+these regression runs.
+
+### Excluded full-reusable attempt and bounded diagnosis
+
+The first uninstrumented full-reusable attempt fails before reusable assertions:
+controller `reports/runtime/production-restart-diagnostic/de95d3fa46e14415bd5df54401101a47`,
+21:37:31.5556553 through21:37:54.9514544 UTC. The original initial
+`mProduction.RunProductionBatchScaleContractTest` callback returns RPC0x800706BE;
+Windows records Excel `ntdll.dll/c0000028` at21:37:50.4828873 UTC
+(14:37:50.483 Pacific), plus its error-reporting event. This matches the earlier
+picker candidate's initial failure signature/location; root cause is unresolved.
+The two HARNESS/HARNESS_CLEANUP rows are failures, not behavioral D13 RED or release
+acceptance. Excel exits through the crash; final workbook closure is incomplete.
+No termination is requested. Parent settings, packages and original validator are
+preserved. This is not a desktop error5.
+
+A disposable diagnostic retains the original setup and initial callbacks, then
+stops immediately after batch scale. Generation proves original statements intact,
+credentials inherited only in memory and no parse errors. It first attaches the
+existing redacted NativeExceptionObserver before initial Excel visibility, then
+runs separately without an observer:
+
+- `reports/runtime/initial-batchscale-diagnostic/6cf31b1e54de44b78be83385bc7f71bd`,
+  21:40:31.6362474 through21:40:54.5446317 UTC: batch scale passes; observer reaches
+  Attached/Ready/Exited0 with no captured fault.
+- `reports/runtime/initial-batchscale-diagnostic/2ec9102a07b9461eba90e417b9e84c75`,
+  21:41:43.3089437 through21:42:05.8498794 UTC: fresh unobserved batch scale passes.
+
+Both diagnostics close normally, preserve settings/packages/validator and have
+zero delayed Excel Application failures. Neither runs the full reusable workflow
+or changes runtime source; neither establishes a crash repair or full acceptance.
+After those bounded comparisons, one full uninstrumented validation with independent
+restart replay is running in controller
+`reports/runtime/production-restart-diagnostic/cf56200b22f44bdaa683c4b15bf2f131`.
+Its result remains unverified; the failed first attempt stays excluded.
 
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
-regressions plus independent paths139. Complete the remaining relevant layout/live-role/full-chain/
-reusable and shared-observation regressions on the frozen candidate. SourceEventsApplied
+regressions plus independent paths139, Close paths90, smoke86, layout and full
+chain32/live48/Create15. Complete full reusable/restart and the remaining
+shared-observation regressions on the frozen candidate. SourceEventsApplied
 must use every exact owning published Designs reference; queue acknowledgment and
 CommandCompleted remain distinct from applied evidence. No package promotion or
 human acceptance is implied by focused595, worksheet107, picker115 or paths139.
@@ -392,5 +455,5 @@ effect, not claim restoration. D15 still prohibits removal before confirmed
 Designs draft save. The normative observation section explicitly distinguishes
 these cases without changing the existing save algorithm.
 
-Remaining layout/live-role/full-chain/reusable and shared-observation regressions and their visible
+Remaining reusable/restart and shared-observation regressions and their visible
 operator evidence remain outstanding. No promotion or Slice4be completion is claimed.
