@@ -616,13 +616,59 @@ normal closure and delayed audit pass. Six principal captures are reviewed and
 hashed in `visible-review.json`; selected Load/PRESENTED remains Info/Unchanged,
 and the scrolled comparison shows all five matches and the local-only conclusion.
 
+## Recipe structure regression GREEN
+
+Recipe structure retains786/786 exact prior checks,
+2026-09-30,23:02:32.6843099 through23:05:59.3018715 UTC. Controller
+`reports/runtime/production-recipe-structure-controller/5db51a54a62445798dce08619c4e3091`;
+result `reports/runtime/slice4be-production-recipe-structure/21ab47a9d9d3427cb6fe655e00d555f5/green.json`.
+Five compiles, captured-context/permission and optional-tracking checks, saved
+authority, prior activity and unknown workbook values remain protected. All five
+frozen package hashes, restored settings, normal cleanup and the delayed Excel
+Application audit pass. Two principal captures are reviewed and hashed in
+`visible-review.json`: Add Process creates a local Recipe node from the selected
+released Process, and Connect retains its original connection-staged status.
+No runtime, package or contract changes accompany this regression. Images do not
+establish Domain application or human acceptance.
+
+Released-data regression retains55/55 exact prior checks,
+23:06:30.3769936 through23:08:16.2269253 UTC. Controller
+`reports/runtime/production-recipe-structure-controller/9bdb0f40392840e7b04933a415c81590`;
+result `reports/runtime/slice4be-production-recipe-structure-released/0712ee27f35749daad5fb02dfc3991ac/green.json`.
+The actual Update handler writes all seven validated fields against released
+Process records, including changed quantity/percentage, and preserves routing,
+UOM, nodes, instructions, saved Domain authority and unknown workbook columns/bytes.
+Five compiles, normal closure, settings/package preservation and delayed audit
+pass. The populated released-data capture is reviewed and hashed: edited required
+quantity4/percentage75/LB and the original staged status are visible. Output Flow
+still shows produced quantity5/yield100; the field assertions, rather than this
+image alone, establish the changed local connection row. No application or human
+acceptance is inferred.
+
+Structure paired paths retain109/109 exact prior checks,
+23:08:46.9957171 through23:14:26.5324083 UTC. Controller
+`reports/runtime/production-recipe-structure-controller/98bf6fb1445844028c57e63906c74a1d`;
+result `reports/runtime/slice4be-production-recipe-structure-paths/9c3729c9b2764f598cbfa2f11d7b5b70/green.json`.
+Separate five-action recordings reach the expected local draft, retain original
+REQUESTED/STAGED pairs through Admin publication and exact Event Detail, and
+support explicit guide intent and an independent reader's comparison. All five
+steps match in order with zero extras. CommandCompleted concludes locally;
+SourceEventsApplied remains incomplete without owning application evidence.
+Five compiles, immutable records/journals, saved authority, unknown workbook
+values/bytes, normal closure, settings/package preservation and delayed audit pass.
+Six principal images are reviewed and hashed in `visible-review.json`. Selected
+Remove Process remains STAGED/Info/Unchanged; the scrolled comparison states that
+Domain application is not asserted. The Recipe form retains the original Add
+status after Remove; that old notice is not used as proof of the final draft.
+
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
 regressions plus independent paths139, Close paths90, smoke86, layout and full
 chain32/live48/Create15, full reusable171/replay37, Close/query312, Settings202,
 Settings activity497 (494 retained plus three exclusions), lifecycle615,
-draft/paths390, native cancellation94, Regulation696/paths102 and design reads621/paths114.
+draft/paths390, native cancellation94, Regulation696/paths102, design reads621/paths114
+and Recipe structure786/released55/paths109.
 Complete the remaining shared-observation regressions on the frozen candidate.
 SourceEventsApplied must use every exact owning published Designs reference;
 queue acknowledgment and
