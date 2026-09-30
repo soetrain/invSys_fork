@@ -97,3 +97,89 @@ an unchanged repeat as a repair. Trace the initial public callback into the
 query/resolver/schema/save boundary next; retain its real owner behavior until
 the protecting evidence identifies the correction. Close runtime implementation,
 independent Action Paths and the remaining acceptance gates are still pending.
+
+## Supplying-call evidence (2026-09-30 UTC)
+
+Test-only61aa9c4 observes fixed procedure tags and Saved/ReadOnly booleans in the
+unsaved Core project around the real public launcher. Its first harness attempt
+stops before behavior at a case-sensitive VBIDE identifier match; this is not
+product RED (`production-close-controller/8f8c773fe2014b60b653e3dff02019f7`).
+Case-insensitive matching retains unique anchors. The subsequent run gives the
+same232 ordered checks,94 PASS/138 FAIL, five compiles and42 prior GREEN checks,
+normal closure/preservation and zero delayed Excel Application failures:
+14:01:29.5668347--14:04:27.2354102 UTC, controller
+`reports/runtime/production-close-controller/4a1459ecc49a481c82aa60b754528955`,
+result `reports/runtime/slice4be-production-close/e1686754a4114bf984a7905cf25bd164/red.json`.
+That run's trace was mistakenly stored under the disposable fixture root and
+removed by normal cleanup. It is not retained supplying-call evidence.
+
+Test-only0e6840e corrects the report destination. The unchanged frozen candidate
+again yields94 PASS/138 FAIL, retaining232 checks and all42 prior checks, with
+five compiles, normal closure, package/settings preservation and zero delayed
+Excel Application failures:
+14:05:07.2190753--14:08:06.9203764 UTC. Controller:
+`reports/runtime/production-close-controller/dd9eba7fd43b4a99a5958daaa2c85c42`;
+result `reports/runtime/slice4be-production-close/7242c356545a4d9c9325126ae66177a0/red.json`.
+Its retained `close-public-inventory-trace.tsv` has this exact sequence:
+Picker.Query -> Resolver.Enter -> OpenOrCreate.Enter ->
+Schema.Before(Saved=True,ReadOnly=False) -> Schema.Unprotect ->
+Schema.After(Saved=False,ReadOnly=False) -> Save.Before(False,False) ->
+Save.After(True,False). No add-column, blank-row deletion, ROW-header deletion,
+or projection-rebuild tag occurs in this bounded trace. These are observed
+boundaries, not a claim that all possible internal changes were instrumented.
+
+This identifies the supplying read path and an actual schema-unprotect/save
+sequence during initial launch. Static ownership is
+`frmProduction.EnsureRunInventoryCache` ->
+`mProduction.LoadProductionRunInventoryPickerItems` ->
+`modInventoryDomainBridge.ListInventoryPickerItemsBridge` ->
+`ResolveInventoryWorkbookBridge` -> `OpenOrCreateCanonicalInventoryWorkbookLocal`
+-> `EnsureInventorySchemaLocal` / `EnsureWorksheetEditableLocal` -> save.
+The existing D3 read-only contract therefore requires a query-specific resolution
+and lifetime correction, not a Close workaround or a new write permission.
+Normative/docs1db3949 clarify this before runtime changes. Supplemental seeded
+query preservation/result tests are the immediate test-first step. Runtime still
+matches0b72dff; catalog21/Close and whole-release acceptance remain pending.
+
+Supplemental test39b3144 adds65 checks for four seeded Core query bridges:
+nonempty exact Domain results, byte preservation, transient cleanup, implicit
+and explicitly supplied dirty callers, protected sheets/custom values and missing
+stores. Its initial run fails in setup before any supplemental check and misses
+the final three shared checks (91 PASS/139 FAIL,230 total); it is not product RED.
+Controller `reports/runtime/production-close-controller/fc7863ee2d8945888808321975dd696f`,
+result `reports/runtime/slice4be-production-close/3794ec7b4c81488babc6f1fb869abd68/red.json`,
+14:08:19.8936258--14:11:32.9334456 UTC. Five compiles pass, closure is normal,
+settings/packages are preserved and the delayed Excel Application audit is zero.
+The setup exception is a workbook-open failure; its exact failing statement was
+not retained. Do not infer a product cause from this failure.
+
+Test79f0194 restores the original target after supplemental tests. Test8e720eb
+uses the existing second Admin-generated fixture after all Close preservation
+checks, seeds it explicitly, and adds fixed setup-stage metadata. This avoids
+requiring another Generate call in the active public-form session. It does not
+claim to diagnose that failed Generate/setup path or change runtime behavior.
+
+The revised fixture repeats the setup exception at the copied reference-workbook
+open, before supplemental checks:91 PASS/139 FAIL,14:12:41.6309900--14:15:48.0555926
+UTC. Controller `reports/runtime/production-close-controller/00da7a0624254706a6b093b590936fa0`;
+result `reports/runtime/slice4be-production-close/576a69eeab3c44b79929d8e44fd785e9/red.json`.
+`inventory-query-setup.jsonl` proves Seed finishes with the real source open;
+the source then closes, reopens, accepts fixture setup and saves successfully.
+The last stage is BeforeReferenceOpen. No new query assertion is reached. Five
+compiles, normal closure/preservation and zero delayed Excel failures hold.
+The exact reason Excel rejects the copied reference is unresolved, not a runtime
+defect attribution. Teste5e034a instead captures the four expected Domain results
+in memory from the seeded source before closing it. The pristine file copy remains
+only a byte baseline/restore source; no second Excel reference workbook is needed.
+
+The continued fixture calibration, valid80-case query RED and isolated Core
+candidate are recorded in `plan022_slice4be_inventory_query_results.md`. The
+query correction does not implement or accept catalog21/Production Close.
+
+That candidate now passes all80 query cases and the public authority-preservation
+assertion, retaining232 Close checks plus80 supplemental checks:175 PASS/137
+expected missing-Close failures. Five compiles, static ratchets, smoke86, normal
+closure/preservation and four reviewed images pass. The initial-launch write is
+resolved in focused evidence; broader Core regressions remain pending before
+Close implementation. Exact roots, native-fixture exclusions and counts are in
+the linked query record; this does not claim Close or whole-release acceptance.

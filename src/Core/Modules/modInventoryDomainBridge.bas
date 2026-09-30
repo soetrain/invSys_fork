@@ -196,8 +196,7 @@ End Function
 Public Function GetInventoryOnHandQtyBridge(ByVal sku As String, _
                                             Optional ByVal inventoryWb As Workbook = Nothing) As Double
     On Error GoTo CleanFail
-    If inventoryWb Is Nothing Then Set inventoryWb = ResolveInventoryWorkbookBridge("")
-    GetInventoryOnHandQtyBridge = CDbl(RunInventoryDomainMacro2( _
+    GetInventoryOnHandQtyBridge = CDbl(RunInventoryQueryReadOnlyLocal( _
         "modInventoryBridgeApi.GetOnHandQtyBridgeResult", sku, inventoryWb))
 CleanFail:
 End Function
@@ -205,8 +204,7 @@ End Function
 Public Function GetInventoryLocationBalancesBridge(ByVal sku As String, _
                                                    Optional ByVal inventoryWb As Workbook = Nothing) As Variant
     On Error GoTo CleanFail
-    If inventoryWb Is Nothing Then Set inventoryWb = ResolveInventoryWorkbookBridge("")
-    GetInventoryLocationBalancesBridge = RunInventoryDomainMacro2( _
+    GetInventoryLocationBalancesBridge = RunInventoryQueryReadOnlyLocal( _
         "modInventoryBridgeApi.GetLocationBalancesBridgeResult", sku, inventoryWb)
 CleanFail:
 End Function
@@ -214,11 +212,39 @@ End Function
 Public Function ListInventoryPickerItemsBridge(Optional ByVal filterText As String = "", _
                                                Optional ByVal inventoryWb As Workbook = Nothing) As Variant
     On Error GoTo CleanFail
-    If inventoryWb Is Nothing Then Set inventoryWb = ResolveInventoryWorkbookBridge("")
-    If inventoryWb Is Nothing Then Exit Function
-    ListInventoryPickerItemsBridge = RunInventoryDomainMacro2( _
+    ListInventoryPickerItemsBridge = RunInventoryQueryReadOnlyLocal( _
         "modInventoryBridgeApi.ListInventoryPickerItemsBridgeResult", filterText, inventoryWb)
 CleanFail:
+End Function
+
+Private Function RunInventoryQueryReadOnlyLocal(ByVal macroName As String, ByVal queryValue As Variant, _
+                                                ByVal suppliedWorkbook As Workbook) As Variant
+    On Error GoTo CleanExit
+    Dim wb As Workbook
+    Dim targetPath As String
+    Dim openedTransient As Boolean
+
+    Set wb = suppliedWorkbook
+    If wb Is Nothing Then
+        targetPath = BuildCanonicalInventoryPathLocal("")
+        If targetPath = "" Then Exit Function
+        Set wb = FindOpenWorkbookByFullNameLocal(targetPath)
+        If wb Is Nothing Then
+            If Not FileExistsLocal(targetPath) Then Exit Function
+            Set wb = Application.Workbooks.Open(Filename:=targetPath, UpdateLinks:=0, _
+                                                ReadOnly:=True, Notify:=False, AddToMru:=False, _
+                                                IgnoreReadOnlyRecommended:=True)
+            If wb Is Nothing Then Exit Function
+            openedTransient = True
+            HideInventoryBridgeWorkbookWindows wb
+        End If
+    End If
+
+    ' UI queries never enter schema ensure/create/save or borrow another target.
+    RunInventoryQueryReadOnlyLocal = RunInventoryDomainMacro2(macroName, queryValue, wb)
+CleanExit:
+    On Error Resume Next
+    If openedTransient Then wb.Close SaveChanges:=False
 End Function
 
 Public Function RebuildInventoryProjectionsBridge(ByVal inventoryWb As Workbook, _
@@ -265,9 +291,7 @@ End Function
 Public Function ListAvailableInventoryEntitiesBridge(Optional ByVal filterText As String = "", _
                                                      Optional ByVal inventoryWb As Workbook = Nothing) As Variant
     On Error GoTo CleanFail
-    If inventoryWb Is Nothing Then Set inventoryWb = ResolveInventoryWorkbookBridge("")
-    If inventoryWb Is Nothing Then Exit Function
-    ListAvailableInventoryEntitiesBridge = RunInventoryDomainMacro2( _
+    ListAvailableInventoryEntitiesBridge = RunInventoryQueryReadOnlyLocal( _
         "modInventoryBridgeApi.ListAvailableInventoryEntitiesBridgeResult", filterText, inventoryWb)
 CleanFail:
 End Function
