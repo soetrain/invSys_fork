@@ -12,6 +12,7 @@ param(
     [switch]$CheckProductionClose,
     [switch]$CheckProcessWorksheetHeaders,
     [switch]$CheckProcessWorksheetPicker,
+    [switch]$CheckProcessWorksheetActivity,
     [switch]$CheckProductionClosePaths,
     [switch]$CheckInventoryQueryReadOnly,
     [switch]$InventoryQueriesOnly,
@@ -230,6 +231,7 @@ if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'R
 if($InventoryQueriesOnly -and -not $CheckInventoryQueryReadOnly){throw 'Query-only diagnosis requires the supplemental query gate.'}
 if($CheckInventoryQueryReadOnly -and -not $CheckProductionClose){throw 'Inventory query preservation supplements the compiled public Production Close gate.'}
 if($CheckProcessWorksheetPicker -and -not $CheckProcessWorksheetHeaders){throw 'Process picker checks require the compiled worksheet fixture adapters.'}
+if($CheckProcessWorksheetActivity -and (-not $CheckProcessWorksheetHeaders -or $CheckProcessWorksheetPicker)){throw 'Worksheet observations require their separate compiled worksheet fixture gate.'}
 if($CheckProductionClosePaths -and (-not $CheckProductionClose -or $CheckInventoryQueryReadOnly -or $InventoryQueriesOnly)){throw 'Close paths require a separate compiled Close gate.'}
 if($CheckProcessWorksheetHeaders -and (-not $CheckProductionDesignerActivity -or -not $CaptureEvidence -or $CheckProductionClose -or $CheckProductionUomStaging -or $CheckProductionInstructions -or $CheckProductionComponents -or $CheckProductionRecipeOrder -or $CheckProductionRecipeStructure -or $CheckProductionDesignReads -or $CheckProductionRegulation -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Process worksheet headers require their separate visible compiled handler gate.'}
 if($CheckProductionClose -and (-not $CheckProductionDesignerActivity -or -not $CaptureEvidence -or $CheckProductionUomStaging -or $CheckProductionInstructions -or $CheckProductionComponents -or $CheckProductionRecipeOrder -or $CheckProductionRecipeStructure -or $CheckProductionDesignReads -or $CheckProductionRegulation -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Production Close requires its separate visible compiled handler gate.'}
@@ -434,6 +436,7 @@ if($CheckProductionDesignerActivity){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-designer/'+[guid]::NewGuid().ToString('N'))
     if($CheckProcessWorksheetHeaders){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-process-worksheet-headers/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProcessWorksheetPicker){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-process-worksheet-picker/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProcessWorksheetActivity){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-process-worksheet-activity/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionClose){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-close/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionClosePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-close-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomStaging){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-staging/'+[guid]::NewGuid().ToString('N'))}
@@ -1195,6 +1198,10 @@ End Function
         if($CheckProcessWorksheetHeaders){
             . (Join-Path $PSScriptRoot 'Slice4beProcessWorksheetHeaders.ps1')
             Install-ProcessWorksheetHeadersProbe
+            if($CheckProcessWorksheetActivity){
+                . (Join-Path $PSScriptRoot 'Slice4beProcessWorksheetActivity.ps1')
+                Install-ProcessWorksheetActivityProbe
+            }
             if($CheckProcessWorksheetPicker){
                 . (Join-Path $PSScriptRoot 'Slice4beProcessWorksheetPicker.ps1')
                 Install-ProcessWorksheetPickerProbe
@@ -1541,6 +1548,7 @@ End Function
     if($CheckProductionDesignerActivity){
         $step='Production designer observations through actual packaged handlers'
         if($CheckProcessWorksheetPicker){Test-ProcessWorksheetPicker $a}
+        elseif($CheckProcessWorksheetActivity){Test-ProcessWorksheetActivity $a}
         elseif($CheckProcessWorksheetHeaders){Test-ProcessWorksheetHeaders $a}
         elseif($CheckProductionInstructionPaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
