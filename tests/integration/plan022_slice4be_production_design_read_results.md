@@ -174,6 +174,47 @@ retains267 components/6097 procedures/134205 lines,9 literal/45 unresolved calls
 190 duplicate candidates, all28 exact size caps, three schemas and325 valid
 PowerShell parses. The one-line choice addition causes no metric regression.
 
+## Full-chain native failure
+
+The first final-candidate full-chain attempt fails:5 PASS/one failure at chain
+level,32 PASS/one harness interruption in live roles, Create Warehouse15/15.
+Controller `reports/runtime/production-design-read-regression/chain-a52c405562f64f198c0097f247b538d0`,
+07:59:45.9643321--08:03:50.0419373 UTC. After the Production completion checks and
+projection deletion pass, `modProcessor.RunBatchReportForAutomation` fails during
+canonical inventory projection rebuild with RPC800706BE. Application1000 at
+08:01:24.4009183 UTC records Excel16.0.20326.20158,ntdll.dll,c0000028,offset12d2f;
+Application1001 follows at08:01:31.0933499 UTC. This matches the earlier native
+signature at other boundaries; it does not establish a shared cause or a new
+catalog regression.
+
+Windows starts Excel in `/restore` mode after the crash. Its exact identity and
+creation time are verified before closing that recovery instance to release the
+pending cleanup. Settings, five candidate packages and tracked reports restore.
+Closure is assisted, not normal. Desktop cursor/input-desktop/capture probes remain
+healthy; this is not desktop error5. The focused621 and paired114 GREEN evidence
+retains its scope, while full-chain acceptance is failed. A contemporaneous frozen
+catalog18 comparison passes32/32 chain,48/48 live roles and15/15 Create Warehouse,
+retaining exact prior checks, unassisted closure, preservation and zero Application
+failures. Controller `reports/runtime/production-recipe-structure-regression/chain-1b62615ff22e4ec3ba8570ea457d720a`,
+08:04:38.2287814--08:09:41.6601144 UTC. The unchanged catalog19 repeat passes the
+same32/48/15 exact prior checks, unassisted closure, preservation and zero Excel
+Application failures,08:09:57.9157602--08:15:02.4671438 UTC. Controller
+`reports/runtime/production-design-read-regression/chain-f26ddb53ea89463c82e4b032ae964b8d`.
+This re-establishes one passing chain execution on the final artifact; the earlier
+failure stays recorded. Neither the comparison nor passing repeat establishes a
+native cause or repair. No runtime change is made for this crash.
+
+## Other final-candidate regressions
+
+Packaged smoke retains86/86 exact catalog18 checks,
+08:16:02.7013638--08:16:25.0862839 UTC. Controller
+`reports/runtime/production-design-read-regression/smoke-3cbe155ed15b4f818fab0bbf458fd3c9`;
+shutdown receipts `reports/runtime/packaged-smoke-closure/caeb5878a9204b578a5391270398b98a`.
+Initial and Final shutdown are unassisted with zero termination requests/release
+failures. Settings, five packages and tracked report bytes restore, with zero
+Excel Application failures. Layout and the remaining focused/reusable/Settings
+regression gates are still pending on the final candidate.
+
 ## Remaining work
 
 The typed owner/catalog implementation and exact621 focused GREEN are recorded.
