@@ -1,7 +1,8 @@
 # Slice 4be Process worksheet picker header alignment
 
-Last verified: 2026-09-30 UTC. Focused115 GREEN, build/compile and static pass;
-regression gates remain pending. No new tracking registration or release acceptance.
+Last verified: 2026-09-30 UTC. Focused115 GREEN, build/compile/static, smoke86,
+layout, chain32/live48/Create15, worksheet107 and Close/query312 pass. Full
+reusable/restart remains unresolved. No new tracking registration or acceptance.
 
 ## Governing contract and test
 
@@ -77,4 +78,58 @@ Application1001 follows. Normal workbook closure was not completed. Settings and
 packages were restored/preserved, no process termination requested, Excel absent
 afterward. This matches a previously observed native failure signature, but does
 not establish its cause or a repair. Desktop probes stayed healthy, zero error5.
-One unchanged isolated rerun is pending; no successful regression claim yet.
+Unchanged rerun controller
+`reports/runtime/process-worksheet-picker-regression/reusablefull-563e5e0d518d4f2bb34ef213bd13a004`,
+18:08:14.7979385–18:19:44.7329397 UTC, is also excluded. The main-workflow aggregate
+passes with the exact first162 prior boolean observations, but the remaining nine
+restart observations are absent. Restart fails at mProduction.RunReusableProductionRestartActionContractTest,
+HRESULT0x80020009; final closure fails. First-session normal exit is proven in2586ms,
+with zero reference-release failures. Final host disappears and a separate recovery
+Excel process opens a recovery copy of this run's disposable operator fixture.
+No matching Application1000/1001/1002 event was found through12 seconds after the
+controller finally closed; do not
+infer a second native-crash cause from the COM exception alone. After verifying
+PID/start identity, recovery directory and this fixture's identity, that one book
+was closed without saving and Excel Quit requested at18:19:41.8379338 UTC. No forced
+termination; the controller then restores settings and verifies package pins.
+This assisted cleanup is not GREEN. Full reusable/restart remains unresolved;
+independent gates may proceed, but this correction's full gate set is incomplete.
+
+## Passing independent regression gates
+
+All paths below are under `reports/runtime/process-worksheet-picker-regression/`
+unless specified. These gates use the same frozen candidate, preserve package and
+settings pins, restore any tracked runtime reports, close normally without
+assistance, and have zero delayed Excel Application1000/1001/1002 events.
+
+- Smoke `smoke-d5d402903113428785af8d85ee015e80`,18:20:13.6261717–18:20:34.0704333 UTC:
+  **86/86**, exact prior check identities; normal shutdown evidence
+  `reports/runtime/packaged-smoke-closure/2726c55ef46d4932b6701beea9e1f164`.
+- Layout `layout-6b97fb47632243ee8167f09e8c1b0920`,18:21:15.2430285–18:21:29.8792958 UTC:
+  exact prior geometry over three sizes/five pages, no bounds/overlap violations.
+  Three directly reviewed, hashed captures show empty Run List geometry; they do
+  not establish populated-workflow or human acceptance.
+- Chain `chain-c14802fb90d84c56bad9afb61794301a`,18:22:18.1621949–18:27:29.9798211 UTC:
+  **chain32/live48/Create15**, all exact prior ordered checks retained.
+- Worksheet headers controller
+  `reports/runtime/process-worksheet-headers-controller/98034027e6d8425cbc59527306c944a4`,
+  result `reports/runtime/slice4be-process-worksheet-headers/0e744171009042d7bb075a0de3d2f9d9/green.json`,
+  18:27:57.3143323–18:29:36.7484749 UTC: **107/107** exact prior ordered checks and
+  five instrumented compiles. Three captures directly reviewed: retained custom
+  values and actual missing-name rejection status for custom/normalized cases.
+  The normalized-header worksheet image is blank Excel chrome and excluded.
+- Close/query controller
+  `reports/runtime/production-close-controller/371b78b392e24114b067608c37d62542`,
+  result `reports/runtime/slice4be-production-close/f8d5acb4fa49483bb12fa308bffe6a26/green.json`,
+  18:30:01.4805109–18:33:29.8571002 UTC: **312/312**, exact latest prior sequence
+  including all80 inventory-query preservation checks and five instrumented
+  compiles. Four captures directly reviewed/hashed: button/native images show
+  pre-dismissal surfaces, public reopen shows the real form, and Settings shows
+  successful save with unavailable-tracking notice. Assertions prove dismissal;
+  these are not post-dismissal captures or human acceptance.
+
+Next unresolved gate: diagnose reusable restart with fixed phase labels around
+recipe load and the two retained-table Retrieve operations, plus native process
+exit evidence. Preserve disposable fixture context for a targeted replay. Do not
+use another unchanged full rerun as a diagnosis or claim a crash repair from a
+passing retry. Existing accepted frozen baselines remain available and unmodified.
