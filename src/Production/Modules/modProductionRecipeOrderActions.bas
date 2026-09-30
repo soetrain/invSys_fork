@@ -54,8 +54,8 @@ Public Sub OrderNodes(ByVal nodes As MSForms.ListBox, ByVal connections As MSFor
     For pass = 1 To nodes.ListCount * nodes.ListCount
         changed = False
         For i = 0 To connections.ListCount - 1
-            fromIndex = NodeIndex(nodes, ListText(connections.List(i, 0)))
-            toIndex = NodeIndex(nodes, ListText(connections.List(i, 2)))
+            fromIndex = modProductionRecipeLists.NodeIndex(nodes, modProductionRecipeLists.ListText(connections.List(i, 0)))
+            toIndex = modProductionRecipeLists.NodeIndex(nodes, modProductionRecipeLists.ListText(connections.List(i, 2)))
             If fromIndex >= toIndex And fromIndex >= 0 And toIndex >= 0 Then
                 nodes.ListIndex = fromIndex
                 Call modProductionComponentLists.MoveRow(nodes, -1, instructions)
@@ -65,17 +65,3 @@ Public Sub OrderNodes(ByVal nodes As MSForms.ListBox, ByVal connections As MSFor
         If Not changed Then Exit For
     Next pass
 End Sub
-
-Private Function NodeIndex(ByVal nodes As MSForms.ListBox, ByVal nodeId As String) As Long
-    Dim i As Long
-    NodeIndex = -1
-    For i = 0 To nodes.ListCount - 1
-        If StrComp(ListText(nodes.List(i, 0)), nodeId, vbTextCompare) = 0 Then NodeIndex = i: Exit Function
-    Next i
-End Function
-
-Private Function ListText(ByVal value As Variant) As String
-    If Not IsError(value) Then
-        If Not IsNull(value) And Not IsEmpty(value) Then ListText = CStr(value)
-    End If
-End Function

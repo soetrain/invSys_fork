@@ -149,7 +149,7 @@ function Test-ProductionLifecycle($Fixture,$Other) {
                 $refs=@($outcome[0].SourceEventRefs)
                 $exact=$source.Count -eq 1 -and $refs.Count -eq 1 -and $refs[0].EventId -ceq $source[0].EventID -and $refs[0].WarehouseId -ceq $Fixture.Warehouse -and $refs[0].SourceKind -ceq 'Designs' -and $refs[0].SubmissionState -ceq 'Submitted' -and @($attempt[0].SourceEventRefs).Count -eq 0
                 $linked=$attempt[0].ActivityId -cne '' -and $attempt[0].ActivityId -ceq $outcome[0].ActivityId -and $attempt[0].RecordId -cne $outcome[0].RecordId
-                foreach($row in $rows){$unknown=$unknown -and $row.DataEffect -ceq 'Unknown' -and $row.ControlId -ceq $id -and $row.OwnerId -ceq 'PRODUCTION_DESIGN_LIFECYCLE' -and $row.UserId -ceq 'config-producer' -and $row.CatalogVersion -eq 17}
+                foreach($row in $rows){$unknown=$unknown -and $row.DataEffect -ceq 'Unknown' -and $row.ControlId -ceq $id -and $row.OwnerId -ceq 'PRODUCTION_DESIGN_LIFECYCLE' -and $row.UserId -ceq 'config-producer' -and $row.CatalogVersion -eq 18}
             }
             foreach($text in $raw){foreach($value in @($canary,$Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'mBtn','PayloadJson')){if($text.Contains($value)){$safe=$false}}}
             Check ($case+'.ExactDesignsReference') $exact

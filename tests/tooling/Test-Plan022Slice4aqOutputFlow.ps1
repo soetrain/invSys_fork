@@ -49,8 +49,8 @@ $checks = @(
         $ordering -match 'owner.ApplyRecipeOrderAction\(action, report\)' -and
         $form -match 'Public Function ApplyRecipeOrderAction[\s\S]{0,1600}If action = RecipeOrderAuto Then\s+RefreshRecipeConnectionDisplay' },
     [pscustomobject]@{ Name = "Form.HiddenGraphIdentityPreserved"; Pass =
-        $form -match '\.List\(idx, 2\) = ConnectionTargetNodeId\(\)' -and
-        $form -match '\.List\(idx, 3\) = ConnectionRequirementId\(\)' -and
+        $form -match 'fields = Array\(ComboText\(mCmbConnectionFromNode\), ConnectionOutputId\(\), _\s+ConnectionTargetNodeId\(\), ConnectionRequirementId\(\), _\s+Trim\$\(mTxtConnectionQty.Text\), Trim\$\(mTxtConnectionPercent.Text\), ComboText\(mCmbConnectionUom\)\)' -and
+        $form -match 'For column = 0 To 6: \.List\(idx, column\) = fields\(column\): Next column' -and
         $form -match 'ToRequirementId' },
     [pscustomobject]@{ Name = "PublicAction.ExercisesOutputFlow"; Pass =
         $form -match '\|RecipeOutputFirstRouting=' -and

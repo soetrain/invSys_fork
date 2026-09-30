@@ -13,8 +13,16 @@ reproduces lost quantity/percentage changes while preserving routing and authori
 The original synthetic diagnostic confirms correct inputs before Update, one nested
 selection callback, three cleared routing fields and retained old quantity/
 percentage. Five instrumented compiles, preservation, normal closure and zero
-Excel Application failures pass. Runtime remains unchanged; no new candidate or
-registration increase is claimed. See `plan022_slice4be_production_recipe_structure_results.md`.
+Excel Application failures pass. The isolated candidate now implements the
+approved correction and observations: released-data GREEN55/55 retains exact
+RED identities, five compiles, preservation, normal closure and a reviewed capture.
+Five builds/compiles/cold load and static limits pass. The full structure retry
+passes786/786 with exact RED identities, five compiles, preservation, unassisted
+closure and zero Excel Application failures. Paired paths passes109/109 with five
+compiles, preservation, normal closure, zero Excel Application failures and six
+reviewed captures. Broad regressions remain pending; the prior incomplete run and its unresolved cleanup cause are
+retained. See
+`plan022_slice4be_production_recipe_structure_results.md`.
 
 **Recipe ordering candidate,2026-09-30:** catalog17 adds Move Up, Move Down and
 Auto Order under the prior normative refinement. Registration32/68,36 pending;

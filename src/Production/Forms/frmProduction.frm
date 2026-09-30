@@ -6401,65 +6401,29 @@ Private Function ProcessNameForIdentity(ByVal processId As String, ByVal process
 NoRows:
 End Function
 
-Private Sub AddSelectedReleasedProcessToRecipe()
-    Dim idx As Long
-    Dim rowIndex As Long
+Private Function AddSelectedReleasedProcessToRecipe() As Boolean
     Dim nodeId As String
-
-    idx = mLstReleasedProcesses.ListIndex
-    If idx < 0 Then
+    If mLstReleasedProcesses.ListIndex < 0 Then
         ShowStatus "Select a released Process first."
-        Exit Sub
+        Exit Function
     End If
-    nodeId = NextRecipeNodeId()
-    mLstRecipeNodes.AddItem nodeId
-    rowIndex = mLstRecipeNodes.ListCount - 1
-    mLstRecipeNodes.List(rowIndex, 1) = NzStr(mLstReleasedProcesses.List(idx, 0))
-    mLstRecipeNodes.List(rowIndex, 2) = NzStr(mLstReleasedProcesses.List(idx, 1))
-    mLstRecipeNodes.List(rowIndex, 3) = NzStr(mLstReleasedProcesses.List(idx, 2))
-    mLstRecipeNodes.List(rowIndex, 4) = CStr(rowIndex + 1)
-    mLstRecipeNodes.ListIndex = rowIndex
+    nodeId = modProductionRecipeLists.AddNode(mLstRecipeNodes, mLstReleasedProcesses)
     RefreshConnectionNodeCombos
     ShowStatus "Added released Process as Recipe node " & nodeId & "."
-End Sub
-
-Private Function NextRecipeNodeId() As String
-    Dim candidate As Long
-    candidate = mLstRecipeNodes.ListCount + 1
-    Do While RecipeNodeIndex("N" & CStr(candidate)) >= 0
-        candidate = candidate + 1
-    Loop
-    NextRecipeNodeId = "N" & CStr(candidate)
+    AddSelectedReleasedProcessToRecipe = True
 End Function
 
 Private Function RecipeNodeIndex(ByVal nodeId As String) As Long
-    Dim i As Long
-    RecipeNodeIndex = -1
-    For i = 0 To mLstRecipeNodes.ListCount - 1
-        If StrComp(NzStr(mLstRecipeNodes.List(i, 0)), nodeId, vbTextCompare) = 0 Then
-            RecipeNodeIndex = i
-            Exit Function
-        End If
-    Next i
+    RecipeNodeIndex = modProductionRecipeLists.NodeIndex(mLstRecipeNodes, nodeId)
 End Function
 
-Private Sub RemoveSelectedRecipeNode()
-    Dim nodeId As String
-    Dim i As Long
-
-    If mLstRecipeNodes.ListIndex < 0 Then Exit Sub
-    nodeId = NzStr(mLstRecipeNodes.List(mLstRecipeNodes.ListIndex, 0))
-    For i = mLstRecipeConnections.ListCount - 1 To 0 Step -1
-        If StrComp(NzStr(mLstRecipeConnections.List(i, 0)), nodeId, vbTextCompare) = 0 _
-           Or StrComp(NzStr(mLstRecipeConnections.List(i, 2)), nodeId, vbTextCompare) = 0 Then
-            mLstRecipeConnections.RemoveItem i
-        End If
-    Next i
-    mLstRecipeNodes.RemoveItem mLstRecipeNodes.ListIndex
+Private Function RemoveSelectedRecipeNode() As Boolean
+    If Not modProductionRecipeLists.RemoveNode(mLstRecipeNodes, mLstRecipeConnections) Then Exit Function
     RenumberRecipeExecutionOrder
     RefreshConnectionNodeCombos
     RefreshRecipeConnectionDisplay
-End Sub
+    RemoveSelectedRecipeNode = True
+End Function
 
 Private Sub RenumberRecipeExecutionOrder()
     Dim i As Long
@@ -6930,54 +6894,56 @@ Private Function ConnectionRequirementId() As String
         mCmbConnectionToNode.List(mCmbConnectionToNode.ListIndex, 1)))
 End Function
 
-Private Sub WriteConnectionEditorToList(ByVal updateExisting As Boolean)
+Private Function WriteConnectionEditorToList(ByVal updateExisting As Boolean) As Boolean
     Dim idx As Long
     Dim ignoreIndex As Long
+    Dim fields As Variant, column As Long, wasLoading As Boolean
 
     If ComboText(mCmbConnectionFromNode) = "" Or ConnectionOutputId() = "" Or _
        ConnectionTargetNodeId() = "" Or ConnectionRequirementId() = "" Then
         ShowStatus "Select an output and one compatible Feeds Process target."
-        Exit Sub
+        Exit Function
     End If
     If StrComp(ComboText(mCmbConnectionFromNode), ConnectionTargetNodeId(), vbTextCompare) = 0 Then
         ShowStatus "A Process output cannot connect back to the same Recipe node."
-        Exit Sub
+        Exit Function
     End If
     If Not PositiveTextValue(mTxtConnectionQty.Text) And Not PositiveTextValue(mTxtConnectionPercent.Text) Then
         ShowStatus "A connection needs a positive quantity or percentage."
-        Exit Sub
+        Exit Function
     End If
     If ComboText(mCmbConnectionUom) = "" Then
         ShowStatus "Select a connection UOM from the Recipe UOM Catalog."
-        Exit Sub
+        Exit Function
     End If
     If Not ValidateWholeQuantityForUom(mTxtConnectionQty.Text, _
-            ComboText(mCmbConnectionUom), "Connection quantity") Then Exit Sub
+            ComboText(mCmbConnectionUom), "Connection quantity") Then Exit Function
     idx = mLstRecipeConnections.ListIndex
     ignoreIndex = -1
     If updateExisting Then ignoreIndex = idx
     If RecipeRequirementAlreadyConnected(ConnectionTargetNodeId(), _
             ConnectionRequirementId(), ignoreIndex) Then
         ShowStatus "That Feeds Process input is already supplied by another output."
-        Exit Sub
+        Exit Function
     End If
+    fields = Array(ComboText(mCmbConnectionFromNode), ConnectionOutputId(), _
+                   ConnectionTargetNodeId(), ConnectionRequirementId(), _
+                   Trim$(mTxtConnectionQty.Text), Trim$(mTxtConnectionPercent.Text), ComboText(mCmbConnectionUom))
+    wasLoading = mLoading: mLoading = True
     If Not updateExisting Or idx < 0 Then
         mLstRecipeConnections.AddItem ""
         idx = mLstRecipeConnections.ListCount - 1
     End If
     With mLstRecipeConnections
-        .List(idx, 0) = ComboText(mCmbConnectionFromNode)
-        .List(idx, 1) = ConnectionOutputId()
-        .List(idx, 2) = ConnectionTargetNodeId()
-        .List(idx, 3) = ConnectionRequirementId()
-        .List(idx, 4) = Trim$(mTxtConnectionQty.Text)
-        .List(idx, 5) = Trim$(mTxtConnectionPercent.Text)
-        .List(idx, 6) = ComboText(mCmbConnectionUom)
+        For column = 0 To 6: .List(idx, column) = fields(column): Next column
         .ListIndex = idx
     End With
+    mLoading = wasLoading
+    LoadConnectionEditorFromIndex idx
     RefreshRecipeConnectionDisplay idx
     ShowStatus "Recipe connection staged."
-End Sub
+    WriteConnectionEditorToList = True
+End Function
 
 Private Function ValidateRecipeDraft(ByRef report As String, _
                                      Optional ByVal requireResolved As Boolean = False) As Boolean
@@ -10868,39 +10834,49 @@ Private Sub mBtnRecipeLoad_Click()
 End Sub
 
 Private Sub mBtnRecipeAddProcess_Click()
-    AddSelectedReleasedProcessToRecipe
+    DesignerRecipeStructureAction RecipeAddProcess
 End Sub
 
 Private Sub mBtnRecipeRemoveProcess_Click()
-    RemoveSelectedRecipeNode
+    DesignerRecipeStructureAction RecipeRemoveProcess
 End Sub
 
 Private Sub mBtnRecipeConnect_Click()
-    WriteConnectionEditorToList False
+    DesignerRecipeStructureAction RecipeConnect
 End Sub
 
 Private Sub mBtnRecipeUpdateConnection_Click()
-    WriteConnectionEditorToList True
+    DesignerRecipeStructureAction RecipeUpdateConnection
 End Sub
 
 Private Sub mBtnRecipeDisconnect_Click()
-    Dim idx As Long
-    Dim displayIndex As Long
-
-    displayIndex = mLstRecipeConnectionDisplay.ListIndex
-    If displayIndex >= 0 Then
-        idx = CLng(Val(NzStr(mLstRecipeConnectionDisplay.List(displayIndex, 7))))
-    Else
-        idx = -1
-    End If
-    If idx < 0 Then idx = mLstRecipeConnections.ListIndex
-    If idx < 0 Or idx >= mLstRecipeConnections.ListCount Then Exit Sub
-    mLstRecipeConnections.RemoveItem idx
-    RefreshRecipeConnectionDisplay
-    ClearConnectionEditor
-    RefreshConnectionNodeCombos
-    ShowStatus "Recipe connection removed."
+    DesignerRecipeStructureAction RecipeDisconnect
 End Sub
+
+Private Sub DesignerRecipeStructureAction(ByVal action As ProductionRecipeStructureAction)
+    Dim report As String
+    report = modRecipeStructureActions.EditStructure(Me, action, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress)
+    If report <> "" Then ShowStatus report
+End Sub
+
+Public Function ApplyRecipeStructureAction(ByVal action As ProductionRecipeStructureAction) As Boolean
+    Dim idx As Long
+    Select Case action
+        Case RecipeAddProcess: ApplyRecipeStructureAction = AddSelectedReleasedProcessToRecipe()
+        Case RecipeRemoveProcess: ApplyRecipeStructureAction = RemoveSelectedRecipeNode()
+        Case RecipeConnect: ApplyRecipeStructureAction = WriteConnectionEditorToList(False)
+        Case RecipeUpdateConnection: ApplyRecipeStructureAction = WriteConnectionEditorToList(True)
+        Case RecipeDisconnect
+            idx = modProductionRecipeLists.ConnectionIndex(mLstRecipeConnectionDisplay, mLstRecipeConnections)
+            If idx < 0 Then Exit Function
+            mLstRecipeConnections.RemoveItem idx
+            RefreshRecipeConnectionDisplay
+            ClearConnectionEditor
+            RefreshConnectionNodeCombos
+            ShowStatus "Recipe connection removed."
+            ApplyRecipeStructureAction = True
+    End Select
+End Function
 
 Private Sub mBtnRecipeMoveUp_Click()
     DesignerRecipeOrderAction RecipeOrderUp
@@ -10973,6 +10949,8 @@ End Sub
 
 Private Sub mLstRecipeConnections_Click()
     Dim idx As Long
+    ' Load the completed selected row after an owned connection write, not midway through it.
+    If mLoading And mDesignerActionInProgress Then Exit Sub
     idx = mLstRecipeConnections.ListIndex
     LoadConnectionEditorFromIndex idx
 End Sub

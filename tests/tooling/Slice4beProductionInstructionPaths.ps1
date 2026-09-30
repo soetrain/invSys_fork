@@ -1,6 +1,6 @@
 # Original instruction handlers supply separate guide provenance and observed runs.
-function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Components,[switch]$RecipeOrder) {
-    if(([int][bool]$Uom+[int][bool]$Components+[int][bool]$RecipeOrder) -gt 1){throw 'Select one Production path family.'}
+function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Components,[switch]$RecipeOrder,[switch]$RecipeStructure) {
+    if(([int][bool]$Uom+[int][bool]$Components+[int][bool]$RecipeOrder+[int][bool]$RecipeStructure) -gt 1){throw 'Select one Production path family.'}
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
@@ -13,13 +13,23 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         if($Uom){$Name=$Name.Replace('InstructionPaths.','UomPaths.').Replace('Five','Two')}
         if($Components){$Name=$Name.Replace('InstructionPaths.','ComponentPaths.').Replace('Five','Ten')}
         if($RecipeOrder){$Name=$Name.Replace('InstructionPaths.','RecipeOrderPaths.').Replace('Five','Three')}
+        if($RecipeStructure){$Name=$Name.Replace('InstructionPaths.','RecipeStructurePaths.')}
         Check $Name $Passed
     }
-    function ActionId([string]$Action){if($Uom){'PRODUCTION_UOM_EDIT'}elseif($Components){'PRODUCTION_PROCESS_'+$Action}elseif($RecipeOrder){if($Action -ceq 'AUTO'){'PRODUCTION_RECIPE_AUTO_ORDER'}else{'PRODUCTION_RECIPE_MOVE_'+$Action}}else{'PRODUCTION_PROCESS_INSTRUCTION_'+$Action}}
+    function ActionId([string]$Action){if($Uom){'PRODUCTION_UOM_EDIT'}elseif($Components){'PRODUCTION_PROCESS_'+$Action}elseif($RecipeStructure){'PRODUCTION_RECIPE_'+$Action}elseif($RecipeOrder){if($Action -ceq 'AUTO'){'PRODUCTION_RECIPE_AUTO_ORDER'}else{'PRODUCTION_RECIPE_MOVE_'+$Action}}else{'PRODUCTION_PROCESS_INSTRUCTION_'+$Action}}
     function ActionOutcome([string]$Action){if($Uom){if($Action -ceq 'OPEN'){'OPENED'}else{'REUSED'}}else{'STAGED'}}
     function Instruction([string]$Action){
         if($Uom){$Action+' the UOM workbench; retain existing edits and verify that the saved catalog is unchanged.'}
         elseif($Components){$Action.Replace('_',' ')+' in the local Process draft; for UPDATE, select the added row first. Verify the staged outcome.'}
+        elseif($RecipeStructure){
+            switch($Action){
+                'DISCONNECT'{'Select the connected source output and click Disconnect. Verify the local connection is removed.'}
+                'CONNECT'{'Select the source Process output and its compatible Feeds Process target, then click Connect.'}
+                'UPDATE_CONNECTION'{'With that connection selected, edit Required Qty and Required %, click Update and verify both values.'}
+                'ADD_PROCESS'{'Select a released Process and click Add Process. Verify the new local Recipe node is selected.'}
+                'REMOVE_PROCESS'{'Click Remove Process to remove the newly added node. Inspect the remaining draft before validation and Save.'}
+            }
+        }
         elseif($RecipeOrder){
             switch($Action){
                 'UP'{'Select a recipe node and click Move Up. Verify its local order; saved definitions remain unchanged.'}
@@ -50,6 +60,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
             }finally{$excel.DisplayAlerts=$priorAlerts}
         }elseif($Components){[void](Probe 'ComponentStage' @('REQUIREMENT',$canary,'Valid'))}
         elseif($RecipeOrder){[void](Probe 'OrderStage' @($canary,'Unordered'))}
+        elseif($RecipeStructure){[void](Probe 'StructurePathReset')}
         else{[void](Probe 'InstructionStage' @($canary,1,(' '+$canary+'4 ')))}
         $prior=@(if(Test-Path $journalRoot){Get-ChildItem $journalRoot -File -Filter '*.json'|ForEach-Object FullName})
         Delivered (RecordingControl 'Start Recording' 'Click')
@@ -64,6 +75,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
                 if($parts[1] -ceq 'UPDATE'){[void](Probe 'ComponentSelectAdded' @($parts[0],$canary))}
                 [void](Probe 'ComponentAct' @($parts[0],$parts[1]))
             }elseif($RecipeOrder){[void](Probe 'OrderAct' @($action))}
+            elseif($RecipeStructure){[void](Probe 'StructurePathInput' @($action));[void](Probe 'StructureAct' @($action))}
             else{[void](Probe 'InstructionAct' @($action))}
             $rows=@(Get-Slice4beActivityFiles $Fixture|Where-Object {$_ -cnotin $before}|ForEach-Object {Get-Content $_ -Raw|ConvertFrom-Json})
             $attempt=@($rows|Where-Object OutcomeCode -CEQ 'REQUESTED');$terminal=@($rows|Where-Object OutcomeCode -CEQ (ActionOutcome $action))
@@ -74,6 +86,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
             $original+=@($attempt[0],$terminal[0]);$terminals+=$terminal[0]
         }
         Delivered (RecordingControl 'Stop Recording' 'Click')
+        if($RecipeStructure){PathCheck ('InstructionPaths.'+$Label+'.SeriesReachesExpectedLocalDraft') ([bool](Probe 'StructurePathResult'))}
         $closed=@(RecordingJournal $starts[0].SequenceId|Where-Object RecordType -CEQ 'Close')
         $valid=$closed.Count -eq 1 -and $closed[0].Lifecycle -ceq 'Stopped' -and $closed[0].ActionCount -eq $actions.Count -and (JournalChain $starts[0].SequenceId ($actions.Count*2+2))
         if($valid){$valid=($closed[0].Observations.RecordId -join '|') -ceq ($original.RecordId -join '|')}
@@ -84,8 +97,9 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
     $actions=if($Uom){@('OPEN','REOPEN')}else{@('ADD','UPDATE','UP','DOWN','REMOVE')}
     if($Components){$actions=@('REQUIREMENT_ADD','REQUIREMENT_UPDATE','REQUIREMENT_UP','REQUIREMENT_DOWN','REQUIREMENT_REMOVE','OUTPUT_ADD','OUTPUT_UPDATE','OUTPUT_UP','OUTPUT_DOWN','OUTPUT_REMOVE')}
     if($RecipeOrder){$actions=@('UP','DOWN','AUTO')}
+    if($RecipeStructure){$actions=@('DISCONNECT','CONNECT','UPDATE_CONNECTION','ADD_PROCESS','REMOVE_PROCESS')}
     $canary='PATH'+[guid]::NewGuid().ToString('N');$book=$null;$decoy=$null
-    $imagePrefix=if($Uom){'uom'}elseif($Components){'component'}elseif($RecipeOrder){'recipe-order'}else{'instruction'}
+    $imagePrefix=if($Uom){'uom'}elseif($Components){'component'}elseif($RecipeOrder){'recipe-order'}elseif($RecipeStructure){'recipe-structure'}else{'instruction'}
     try {
         SelectTarget $Fixture
         $allowed=Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-admin',$Fixture.Warehouse,'S1')
@@ -97,12 +111,16 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         $path=Join-Path $runRoot 'instruction-path-operator.xlsb';$book.SaveAs($path,50);$book.Close($false)
         $workbookPin=SavedHash $path;$book=$excel.Workbooks.Open($path,0,$false);$sheet=$book.Worksheets.Item(1)
         $decoy=$excel.Workbooks.Add();[void](Probe 'OpenDesigner' @($book.Name))
+        if($RecipeStructure){
+            if([string](Probe 'StructureReleasedSetup') -cne 'READY' -or -not [bool](Probe 'StructureReleasedNodes')){throw 'Released Process path fixture unavailable; not behavioral RED.'}
+            [void](Probe 'StructurePathRemember')
+        }
         $authorityPins=@{}
         # Publication owns snapshot projections; canonical files remain byte-pinned.
         foreach($file in Get-ChildItem $Fixture.Root -Recurse -File|Where-Object {$_.Extension -in '.xlsb','.xlsm' -and $_.Name -notlike '*.Snapshot.*' -and -not $_.Name.StartsWith('~$')}){$authorityPins[$file.FullName]=SavedHash $file.FullName}
         $source=$null;$observed=$null;RecordSeries 'GuideSource' ([ref]$source);RecordSeries 'ObservedRun' ([ref]$observed)
         PathCheck 'InstructionPaths.DistinctGuideAndObservedRuns' ($source.Journal.ActionPathId -cne $observed.Journal.ActionPathId -and @($source.Terminals|Where-Object {$_.ActivityId -cin $observed.Terminals.ActivityId}).Count -eq 0)
-        $window=[long](Probe 'Present' @($(if($Uom){5}elseif($RecipeOrder){1}else{0})));CaptureOwnedFormEvidence 'Production' ($imagePrefix+'-editor.png') $window
+        $window=[long](Probe 'Present' @($(if($Uom){5}elseif($RecipeOrder -or $RecipeStructure){1}else{0})));CaptureOwnedFormEvidence 'Production' ($imagePrefix+'-editor.png') $window
         $activityPins=ActivityPins;$journalPins=BoundPins $journalRoot
         [void](Probe 'CloseDesigner');CloseRecordingViewer;SelectTarget $Fixture
         $published=[bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest')
@@ -119,7 +137,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
             $id=[string]$record.ActivityId
             PathCheck ('InstructionPaths.Detail.'+$record.ControlId+$(if($Uom){'.'+$record.Ordinal}else{''})) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('SelectSource',$id)) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadDetailForTest' @('Source event / activity ID',$id)))
         }
-        if($Uom -or $Components -or $RecipeOrder){
+        if($Uom -or $Components -or $RecipeOrder -or $RecipeStructure){
             # Published contributing lines are not ordered by outcome. Select
             # the exact terminal record, rather than assuming it is row two.
             $detailGroup=@($publication.Groups|Where-Object {$_.Source -ceq 'Activity' -and $_.SourceId -ceq $observed.Terminals[-1].ActivityId})
@@ -129,7 +147,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
                 if($detailGroup[0].Lines[$lineIndex].RecordId -ceq $observed.Terminals[-1].RecordId){$terminalIndex=$lineIndex;break}
             }
             if($terminalIndex -lt 0){throw 'Exact terminal detail line unavailable.'}
-            if($Components -or $RecipeOrder){
+            if($Components -or $RecipeOrder -or $RecipeStructure){
                 $requestedIndex=-1
                 for($lineIndex=0;$lineIndex -lt $detailGroup[0].Lines.Count;$lineIndex++){
                     if($detailGroup[0].Lines[$lineIndex].OutcomeCode -ceq 'REQUESTED'){$requestedIndex=$lineIndex;break}
@@ -139,7 +157,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
                 PathCheck 'InstructionPaths.Detail.RequestedObservationMatchesVisibleSelection' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome','REQUESTED')) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Data effect','Unknown')) -and -not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome','STAGED')))
             }
             Delivered (ExpectationControl 'lstEventLines' 'Index' ([string]$terminalIndex) 'frmEventDetail')
-            if($Components -or $RecipeOrder){
+            if($Components -or $RecipeOrder -or $RecipeStructure){
                 PathCheck 'InstructionPaths.Detail.ExactTerminalOutcomeAndEffect' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome','STAGED')) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Data effect','Unchanged')))
             }
         }
@@ -159,8 +177,8 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         if((BoundLibrary 'Select' $source.Journal.ActionPathId) -cne 'SELECTED'){throw 'Guide source selection unavailable.'}
         Delivered (BoundControl 'btnCreateGuide' 'Click' '' 'frmActionPaths')
         PathCheck 'InstructionPaths.FiveObservedGuideSteps' ((Author 'lstGuideSteps' 'Rows') -ceq [string]$actions.Count)
-        Delivered (Author 'txtGuideName' 'Write' $(if($Uom){'Open and reuse the UOM draft'}elseif($Components){'Edit Process requirements and outputs'}elseif($RecipeOrder){'Order a local Recipe draft'}else{'Edit Process instructions'}))
-        Delivered (Author 'txtGuideInstructions' 'Write' $(if($Uom){'Open the UOM workbench and reuse the existing local draft without publishing the catalog.'}elseif($Components){'Add, select and update, move up/down, then remove a requirement and an output. Validate before saving the Process.'}elseif($RecipeOrder){'Move the selected recipe node up, down, then apply Auto Order. Inspect the local draft before validation and Save.'}else{'Edit the local instruction draft, then validate before saving the Process.'}))
+        Delivered (Author 'txtGuideName' 'Write' $(if($Uom){'Open and reuse the UOM draft'}elseif($Components){'Edit Process requirements and outputs'}elseif($RecipeOrder){'Order a local Recipe draft'}elseif($RecipeStructure){'Edit local Recipe connections and nodes'}else{'Edit Process instructions'}))
+        Delivered (Author 'txtGuideInstructions' 'Write' $(if($Uom){'Open the UOM workbench and reuse the existing local draft without publishing the catalog.'}elseif($Components){'Add, select and update, move up/down, then remove a requirement and an output. Validate before saving the Process.'}elseif($RecipeOrder){'Move the selected recipe node up, down, then apply Auto Order. Inspect the local draft before validation and Save.'}elseif($RecipeStructure){'Disconnect and reconnect the source output, update its required quantities, then add and remove a local Recipe node. Inspect and validate before Save.'}else{'Edit the local instruction draft, then validate before saving the Process.'}))
         for($i=0;$i -lt $actions.Count;$i++){
             if((Author 'lstGuideSteps' 'Select' ([string]$i)) -cne 'SELECTED'){throw 'Guide step unavailable.'}
             Delivered (Author 'txtGuideStepInstruction' 'Write' (Instruction $actions[$i]))
