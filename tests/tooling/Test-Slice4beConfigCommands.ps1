@@ -1547,7 +1547,7 @@ End Function
         }
         elseif($CheckProductionClose){
             Test-ProductionCloseActivity $a $b
-            if($CheckInventoryQueryReadOnly){try{Test-InventoryQueryReadOnly}finally{SelectTarget $a}}
+            if($CheckInventoryQueryReadOnly){try{Test-InventoryQueryReadOnly $b}finally{SelectTarget $a}}
         }
         elseif($CheckProductionRegulation){Test-ProductionRegulationActivity $a $b}
         elseif($CheckProductionDesignReads){Test-ProductionDesignReadActivity $a $b}

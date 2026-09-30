@@ -63,10 +63,7 @@ End Function
 '@)
 }
 
-function Test-InventoryQueryReadOnly {
-    $fixture=NewFixture 'inventory-query-read-only';SelectTarget $fixture
-    $seed=[string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($fixture.Warehouse,'S1','config-admin'))
-    if(-not $seed.StartsWith('OK|')){throw 'Admin Seed query fixture unavailable; not product RED.'}
+function Test-InventoryQueryReadOnly($Fixture) {
     $path=Join-Path $fixture.Root ($fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
     $referencePath=Join-Path $fixture.Root 'query-reference.xlsb'
     $held=Join-Path $fixture.Root 'query-source.held'
@@ -74,6 +71,14 @@ function Test-InventoryQueryReadOnly {
     foreach($target in @($path,$referencePath,$held)){
         if(-not [IO.Path]::GetFullPath($target).StartsWith($root,[StringComparison]::OrdinalIgnoreCase)){throw 'Query fixture path escaped owned root.'}
     }
+    function SetupStage([string]$Stage){
+        [pscustomobject]@{Stage=$Stage;SourceExists=(Test-Path -LiteralPath $path);SourceOpenCount=@($excel.Workbooks|Where-Object{$_.FullName -ceq $path}).Count}|ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'inventory-query-setup.jsonl')
+    }
+    SetupStage 'BeforeSeed'
+    SelectTarget $fixture
+    $seed=[string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($fixture.Warehouse,'S1','config-admin'))
+    if(-not $seed.StartsWith('OK|')){throw 'Admin Seed query fixture unavailable; not product RED.'}
+    SetupStage 'AfterSeed'
     function OpenTargets {@($excel.Workbooks|Where-Object{$_.FullName -ceq $path})}
     function CloseTargets {foreach($target in @(OpenTargets)){$target.Close($false)}}
     function HashTarget {(Get-FileHash -LiteralPath $path).Hash}
@@ -83,6 +88,7 @@ function Test-InventoryQueryReadOnly {
     CloseTargets
     $reference=$null;$source=$null
     try {
+        SetupStage 'BeforeSourceOpen'
         $source=$excel.Workbooks.Open($path,0,$false)
         $entities=Table $source 'tblInventoryEntities'
         if($null -eq $entities.DataBodyRange -or $entities.ListRows.Count -eq 0){throw 'Nonempty Admin-seeded inventory required.'}
@@ -91,7 +97,9 @@ function Test-InventoryQueryReadOnly {
         $source.Save();$source.Close($false);$source=$null
         Copy-Item -LiteralPath $path -Destination $referencePath
         $pin=HashTarget
+        SetupStage 'BeforeReferenceOpen'
         $reference=$excel.Workbooks.Open($referencePath,0,$true)
+        SetupStage 'ReferenceOpened'
         SelectTarget $fixture 'config-producer'
         foreach($kind in @('Quantity','Locations','Picker','Entities')){
             $result=Query $kind
