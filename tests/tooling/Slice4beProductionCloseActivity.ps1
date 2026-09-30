@@ -210,7 +210,10 @@ function Test-ProductionClosePublic($Fixture,[string]$Canary) {
     $excel.EnableEvents=$true
     $eventsAtEntry=[bool]$excel.EnableEvents
     try{
+        [void](Run 'invSys.Core.xlam' 'modInventoryDomainBridge.CloseTraceStartForTest')
         [void](Run 'invSys.Operations.xlam' 'mProduction.BtnOpenProductionForm')
+        $trace=[string](Run 'invSys.Core.xlam' 'modInventoryDomainBridge.CloseTraceReadForTest')
+        $trace|Set-Content (Join-Path $runRoot 'close-public-inventory-trace.tsv')
         AuthorityCheckpoint 'AfterPublicInitialLaunch'
         $name=[string](Probe 'CloseBindPublicForTest');$book=$excel.Workbooks.Item($name);$path=$book.FullName
         $owned=[IO.Path]::GetFullPath($path).StartsWith([IO.Path]::GetFullPath($operatorRoot).TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)

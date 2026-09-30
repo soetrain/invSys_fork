@@ -1,5 +1,6 @@
 # Unsaved adapters expose existing form actions; no dismissal handler is replaced.
 function Install-ProductionCloseProbe {
+    Install-ProductionCloseInventoryTrace
     $project=$packages['invSys.Operations.xlam'].VBProject
     $owner=$project.VBComponents.Item('mProduction').CodeModule
     $start=$owner.ProcStartLine('HandleProductionOperatorWorkbookClosing',0)
@@ -83,6 +84,55 @@ Public Function CloseCanProduceForTest() As Boolean
     CloseCanProduceForTest = modRoleUiAccess.CanCurrentUserPerformCapability("PROD_POST")
 End Function
 '@)
+}
+
+function Install-ProductionCloseInventoryTrace {
+    # Fixed procedure tags and workbook state only; never persist arguments,
+    # paths, cell values, schema issue text, or exception payloads.
+    $module=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modInventoryDomainBridge').CodeModule
+    $module.InsertLines($module.CountOfDeclarationLines+1,"Private mCloseTraceEnabled As Boolean`r`nPrivate mCloseTraceRows As String`r`nPrivate mCloseTraceCount As Long")
+    $module.AddFromString(@'
+Public Sub CloseTraceStartForTest()
+    mCloseTraceRows = ""
+    mCloseTraceCount = 0
+    mCloseTraceEnabled = True
+End Sub
+Public Function CloseTraceReadForTest() As String
+    mCloseTraceEnabled = False
+    CloseTraceReadForTest = mCloseTraceRows
+End Function
+Private Sub CloseTraceForTest(ByVal tag As String, Optional ByVal wb As Workbook = Nothing)
+    If Not mCloseTraceEnabled Then Exit Sub
+    mCloseTraceCount = mCloseTraceCount + 1
+    If mCloseTraceCount > 200 Then Exit Sub
+    mCloseTraceRows = mCloseTraceRows & CStr(mCloseTraceCount) & vbTab & tag
+    If Not wb Is Nothing Then mCloseTraceRows = mCloseTraceRows & vbTab & CStr(wb.Saved) & vbTab & CStr(wb.ReadOnly)
+    mCloseTraceRows = mCloseTraceRows & vbLf
+End Sub
+'@)
+    function Insert-Trace([string]$Procedure,[string]$Anchor,[string]$Tag,[string]$Workbook='', [switch]$After){
+        $start=$module.ProcStartLine($Procedure,0);$count=$module.ProcCountLines($Procedure,0)
+        $lines=$module.Lines($start,$count) -split '\r?\n'
+        # VBIDE normalizes identifier casing across the project.
+        $matches=@(for($i=0;$i -lt $lines.Count;$i++){if($lines[$i].Trim() -eq $Anchor){$start+$i}})
+        if($matches.Count -ne 1){throw ('Unique Inventory trace boundary unavailable: '+$Procedure+'/'+$Tag)}
+        $call='    CloseTraceForTest "'+$Tag+'"'
+        if($Workbook){$call+=', '+$Workbook}
+        $module.InsertLines($matches[0]+[int][bool]$After,$call)
+    }
+    Insert-Trace 'ListInventoryPickerItemsBridge' 'On Error GoTo CleanFail' 'Picker.Query' -After
+    Insert-Trace 'ListAvailableInventoryEntitiesBridge' 'On Error GoTo CleanFail' 'Entities.Query' -After
+    Insert-Trace 'ResolveInventoryWorkbookBridge' 'Set ResolveInventoryWorkbookBridge = OpenOrCreateCanonicalInventoryWorkbookLocal(warehouseId, report)' 'Resolver.Enter'
+    Insert-Trace 'OpenOrCreateCanonicalInventoryWorkbookLocal' 'Set wb = FindOpenCanonicalInventoryWorkbookByWarehouseLocal(warehouseId)' 'OpenOrCreate.Enter'
+    Insert-Trace 'EnsureInventorySchemaLocal' 'Set issues = New Collection' 'Schema.Before' 'wb'
+    Insert-Trace 'EnsureInventorySchemaLocal' 'report = JoinIssuesLocal(issues)' 'Schema.After' 'wb'
+    Insert-Trace 'EnsureListColumnLocal' 'lo.ListColumns.Add lo.ListColumns.Count + 1' 'Schema.AddColumn'
+    Insert-Trace 'RemoveBlankSeedRowLocal' 'lo.ListRows(1).Delete' 'Schema.DeleteBlankRow'
+    Insert-Trace 'RemoveProhibitedRowHeadersLocal' 'lo.ListColumns(columnIndex).Delete' 'Schema.DeleteRowHeader'
+    Insert-Trace 'EnsureWorksheetEditableLocal' 'ws.Unprotect' 'Schema.Unprotect'
+    Insert-Trace 'OpenOrCreateCanonicalInventoryWorkbookLocal' 'If wasCreated Or Not wb.Saved Then wb.Save' 'Save.Before' 'wb'
+    Insert-Trace 'OpenOrCreateCanonicalInventoryWorkbookLocal' 'If wasCreated Or Not wb.Saved Then wb.Save' 'Save.After' 'wb' -After
+    Insert-Trace 'RebuildInventoryProjectionsBridge' 'On Error GoTo FailRebuild' 'Projection.Rebuild' -After
 }
 
 function Close-ProductionNativeFixture {
