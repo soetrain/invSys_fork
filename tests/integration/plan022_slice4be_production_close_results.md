@@ -122,6 +122,47 @@ regression it shares with regulation; no evaluator/runtime change was needed.
 
 Next: complete the relevant post-change regression matrix.
 
+## Post-change regression checkpoint
+
+Packaged smoke retains86/86 exact prior checks,16:09:36.7592578--16:09:59.5811267
+UTC, controller `reports/runtime/production-close-regression/smoke-492c8383586e46fba49b9b739fe9aa14`.
+Initial/final unassisted process exit and zero reference-release failures are
+verified in `reports/runtime/packaged-smoke-closure/c08671eef6854cddb61d74ef3c5334ef`.
+Settings, packages and the tracked smoke report are restored/preserved, Excel is
+closed and the delayed Excel Application audit is zero.
+
+Layout retains the exact accepted three-size/five-page geometry report,
+16:10:17.6324363--16:10:32.4467488 UTC, controller
+`reports/runtime/production-close-regression/layout-d8fb059daf004257b55e81e135093661`.
+There are no bounds/overlap violations; closure, settings/package preservation
+and delayed Excel audit pass. Three captures were directly reviewed and hashed
+in `visible-review.json`: blank Run List and reachable footer Close/scrolling.
+These blank layout captures do not establish populated workflow acceptance.
+
+The ordered Release1 chain retains32/32, live-role workflows48/48 and warehouse
+creation15/15 in exact prior order,16:11:02.7449719--16:16:25.5996579 UTC. Controller:
+`reports/runtime/production-close-regression/chain-74968a16480c4265945e53830267dcb8`.
+Normal completion/cleanup, package/settings preservation, tracked-report
+restoration and zero delayed Excel Application failures are verified.
+
+Full reusable Production retains both aggregate checks and all171 observations
+in exact prior order,16:16:54.9345510--16:25:28.4205236 UTC. Controller:
+`reports/runtime/production-close-regression/reusablefull-39a93fffc4674bc3b5aea8fb6d8a836b`.
+Restart and final shutdown are unassisted, with zero reference-release failures
+and no termination request. Final workbook/package closure and reverse package
+order pass; settings/packages are preserved and the delayed Excel audit is zero.
+This unchanged candidate passes the full reusable gate; it does not establish a
+repair for historical native failures documented in the preceding query record.
+
+The remaining relevant gates are current-catalog
+Settings/Settings activity, designer lifecycle, Draft/Action Paths and native
+cancellation. These cover the changed form teardown, catalog extension and
+evaluator dispatch. The shared regulation path regression above protects the
+changed repeated-control test branch. The unchanged259 compiled components and
+previous component-specific gates remain frozen evidence; no claim is made that
+every earlier component suite was rerun on catalog21. Final comprehensive Slice4be
+coverage and visible user acceptance remain separate outstanding requirements.
+
 Architecture v4.11's Production Close clarification, Plan022 and controls1.324
 were committed as documentation5da0371 before tests2dc77af. Catalog21 reserves
 PRODUCTION_CLOSE under D18 semantic inheritance. It observes existing button/native
