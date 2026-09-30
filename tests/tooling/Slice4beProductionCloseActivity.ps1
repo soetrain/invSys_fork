@@ -115,7 +115,11 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
                 $cfg.Save()
             }finally{$cfg.Close($false)}
             Check 'ProductionClose.OlderPolicy.ExistingControlStillReadable' (([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Policy' @('PRODUCTION_OUTPUT_REGULATION_APPLY'))).StartsWith('True|True|'))
-            OpenPrivate;$before=@(Files);[void](Probe 'CloseButtonForTest')
+            OpenPrivate;$before=@(Files)
+            # An older valid policy cannot enable the new control. The existing
+            # reader reports that absence as unavailable, so acknowledge its notice.
+            $olderNotice=Invoke-ProductionCloseWithNotice 'Button'
+            $olderNotice|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'older-policy-notice-observation.json')
             Check 'ProductionClose.OlderPolicy.NoImplicitEnablement' ((Dismissed) -and @(Files).Count -eq $before.Count)
             [void](Probe 'CloseForgetForTest')
         }finally{[IO.File]::WriteAllBytes($Fixture.Config,$configBytes)}

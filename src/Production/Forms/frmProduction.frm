@@ -313,6 +313,10 @@ Private Sub UserForm_Terminate()
     Set mRunItemCodeByKey = Nothing
 End Sub
 
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    If CloseMode = vbFormControlMenu Then modProductionCloseActions.CloseForm Me, mOperatorWorkbook, mActivityContext, True
+End Sub
+
 Public Sub SetOperatorWorkbook(ByVal wb As Workbook)
     If IsUsableWorkbook(wb) Then
         Set mOperatorWorkbook = wb
@@ -11677,5 +11681,5 @@ Private Sub mBtnManagerPrint_Click()
 End Sub
 
 Private Sub mBtnClose_Click()
-    Unload Me
+    modProductionCloseActions.CloseForm Me, mOperatorWorkbook, mActivityContext
 End Sub

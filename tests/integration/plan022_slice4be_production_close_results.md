@@ -1,7 +1,82 @@
 # Slice 4be Production Close observations
 
-Last verified: 2026-09-30 UTC. Runtime is unchanged; focused RED diagnosis is open.
-No deployment promotion, completed control coverage or human acceptance.
+Last verified: 2026-09-30 UTC. Catalog21 Close focused GREEN312/312 and static
+limits pass. Close-specific Action Paths and broader regressions remain open.
+No deployment promotion, comprehensive control coverage or human acceptance.
+
+## Current focused candidate
+
+Architecture/Plan/controls documentationfb8edd3 records the bounded four-line
+native event exception before implementation. The verified query candidate is
+the pre-Close baseline:175 PASS/137 expected missing-Close failures across312
+ordered checks, including80 query checks and42 prior command/activity checks.
+All five frozen baseline package hashes were rechecked before runtime changes.
+
+`deploy/validation-production-close-observations` adds Core `modProductionCloseCodes`
+and Operations `modProductionCloseActions`, and changes only `modActivityCatalog`,
+`modEvaluationMatches` and `frmProduction` among existing compiled components.
+The other259 components retain normalized code and string-literal hashes; the
+compiled set has264 components. Catalog21 adds one ID while preserving all105
+catalog20 definitions. Production coverage is45/68 constructed buttons, with23
+buttons unregistered and30 nonbutton handlers pending coverage review. Registration is not final
+acceptance of this control or of Slice4be.
+
+The form delegates its existing button and native QueryClose to the typed
+Operations helper. Context checks affect attribution only; stale context or lost
+permission cannot prevent dismissal. Button completion follows Unload; native
+completion follows Hide before uncancelled teardown. Only CLOSED concludes
+CommandCompleted, with empty source references and no business-application claim.
+Optional tracking notices remain visible after the form disappears.
+
+Build/explicit compile/cold-start dependency checks pass for the five packages,
+15:31:24.4649701--15:32:01.9987393 UTC, with frozen-query packages/settings
+preserved, Excel closed and zero delayed Excel Application failures. Evidence:
+`reports/runtime/production-close-build`, including `source-comparison.json`.
+
+The first run finishes312/312 but is **assisted, not acceptance GREEN**:
+15:32:19.7001581--15:39:59.3710845 UTC; controller
+`reports/runtime/production-close-controller/edb8d1148f9c4c0bb3df808fefd33000`,
+result `reports/runtime/slice4be-production-close/d2fd12db22ea4ddb8a2c1793a6d3f088/green.json`.
+The older-policy fixture expected dismissal/no implicit enablement but lacked
+an observer for the existing policy reader's unavailable-control notice.
+Read-only owned-window inspection confirms the exact fixed notice. Its sole OK
+uses IDCANCEL, which the first conservative IDOK-only inspection does not accept;
+no dismissal occurs in that inspection. The owned single-OK acknowledgement is
+posted at15:37:59.8278262 UTC. No VBA End/Reset, process termination, policy change
+or runtime workaround is used. Subsequent cleanup is normal, settings/packages
+are preserved and the delayed Application audit is zero. The notice is required
+behavior, not desktop error5 or a native-crash repair.
+
+The test-only correction uses the existing owned-process notice observer for
+that older-policy case and retains all312 assertion identities. It writes only
+dismissal/notice booleans. The unchanged candidate then passes a clean312/312,
+15:40:24.8233394--15:43:59.3805904 UTC; controller
+`reports/runtime/production-close-controller/bb949ed0772447259429970108281a3c`,
+result `reports/runtime/slice4be-production-close/e02d6392f2f24d488272faeff4337e15/green.json`.
+`focused-comparison.json` proves the exact ordered pre-implementation312 checks;
+all80 query checks,42 prior checks and five compiles pass. Closure is unassisted,
+settings/packages are preserved and the delayed Excel audit is zero.
+`older-policy-notice-observation.json` records both booleans True. Public launch,
+Close/reopen, workbook-shutdown exclusion and authority-byte preservation pass.
+
+Four images are directly reviewed and hashed in `visible-review.json`: Close and
+native X remain reachable in the blank designer, public reopening retains the
+fixture owner, and Settings distinguishes saved configuration from unavailable
+optional tracking. Images show pre-dismissal/reopened views; actual disposal is
+established by handler/window assertions, not a screenshot or human acceptance.
+
+Static evidence `reports/runtime/production-close-static`:271 components,
+6113 procedures,134463 lines,9 literal/45 unresolved Application.Run calls,
+190 duplicate-body candidates,28 oversized modules,three valid schemas and336
+parsed PowerShell files. `PRODUCTION-CLOSE-NATIVE-HOOK-01` permits only the exact
+four form lines (11,681 to11,685); the other27 oversized limits do not grow.
+Current-record expectations in twelve regression fixtures advance from20 to21;
+the current Tracking Policy editor count advances105 to106. Explicit historical
+catalog/older-policy assertions remain unchanged. These expectation updates do
+not claim that the broader suites have run on this candidate.
+
+Next: separate original Close recordings, guide publication, actual How-To,
+Diagnostic and Compare views, then the relevant post-change regression matrix.
 
 Architecture v4.11's Production Close clarification, Plan022 and controls1.324
 were committed as documentation5da0371 before tests2dc77af. Catalog21 reserves

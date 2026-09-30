@@ -143,6 +143,7 @@ Public Function CommandCompleted(ByVal record As Object) As Boolean
         Case "RECEIVING_CLEAR": CommandCompleted = (code = "CLEARED" Or code = "EMPTY")
         Case "RECEIVING_OPEN": CommandCompleted = (code = "OPENED" Or code = "REUSED")
         Case "RECEIVING_CLOSE": CommandCompleted = (code = "CLOSED")
+        Case "PRODUCTION_CLOSE": CommandCompleted = (code = "CLOSED")
         Case Else
             If definition("Class") = "Navigation" And definition("OwnerId") = "RECEIVING_NAVIGATION" Then CommandCompleted = (code = "SELECTED")
     End Select

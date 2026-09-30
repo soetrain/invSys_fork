@@ -204,9 +204,10 @@ mode was not rerun; its shared action contract ran in full mode. This is the D13
 relevant regression set for the bounded query correction, not a replacement for
 the new catalog21/Close or final comprehensive Slice4be acceptance matrix.
 
-The query correction is verified and may serve as the frozen pre-Close baseline.
-Production Close observations and their independent How-To/Diagnostic/Compare
-evidence remain unimplemented/unaccepted. No package promotion is authorized by
-this result.
+The query correction is verified and serves as the frozen pre-Close baseline.
+Close observations were unimplemented at this baseline; subsequent implementation
+and its outstanding independent How-To/Diagnostic/Compare acceptance are tracked
+in `plan022_slice4be_production_close_results.md`. No package promotion is
+authorized by this query result.
 No transport-exception or historical native-crash repair is asserted by the
 Domain Empty-result test.
