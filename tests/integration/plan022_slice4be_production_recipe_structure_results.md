@@ -128,6 +128,45 @@ Five compiles, preservation, unassisted closure and zero Excel Application failu
 pass. Six principal captures show separate authored/observed runs and all three
 matched steps with zero additional actions; Domain application is not asserted.
 
+Component Action Paths retains **142/142** exact prior checks. Controller
+`production-component-controller/3d247bb367154a878a97812875acd12c`,
+05:45:01.1439589--05:50:46.9999502 UTC; result
+`slice4be-production-components/9d431d1fd83440e9841e03ac4b2d7f0d`.
+Five compiles, preservation, unassisted closure and zero Excel Application failures
+pass. Six reviewed principal captures retain the ten-step guide, distinct observed
+recording, exact selected STAGED/Unchanged detail and zero additional actions.
+
+Instruction edits retain **411/411** exact prior checks. Controller
+`production-instruction-controller/ded4c00c2b64433eac41062a52377a84`,
+05:51:33.4850811--05:54:07.4772860 UTC; result
+`slice4be-production-instructions/16c7b1d2350d4820b4c0a877fa8b0807`.
+Five instrumented compiles, settings/package preservation, unassisted closure and
+zero Excel Application failures pass.
+
+Instruction Action Paths retains **105/105** exact prior checks. Controller
+`production-instruction-controller/ab990eb5738e4b9b8bc1c8df94eb4363`,
+05:54:40.7522793--05:59:18.6028310 UTC; result
+`slice4be-production-instruction-paths/9f165de2cf814365b31579a63bee2eac`.
+Five compiles, preservation, delayed unassisted closure and zero Excel Application
+failures pass. Six reviewed principal captures distinguish REQUESTED/Unknown from
+STAGED, retain all three views and match all five steps with zero extra actions.
+
+Combined visible UOM staging/activity retains **264/264** exact prior checks.
+Controller `production-uom-staging-controller/39c46170a82144b6a8eb17306de0df82`,
+05:59:59.5307117--06:04:20.9602019 UTC; result
+`slice4be-production-uom-staging/585a3c5c80e2435d90c9ffe3e6e699af`.
+Five compiles, preservation, unassisted closure and zero Excel Application failures
+pass. Both principal captures retain custom columns/local content and the explicit
+existing-draft-reopened, saved-catalog-not-reloaded status.
+
+UOM public Close/reopen retains **61/61** exact prior checks. Controller
+`production-uom-staging-controller/d8d92d32a0cd4a69b8f45e96a25dd688`,
+06:04:48.8999884--06:06:21.7960052 UTC; result
+`slice4be-production-uom-public-close/8f9715477ea44eab8f9b472b3a1798a2`.
+Five compiles, preservation, unassisted closure and zero Excel Application failures
+pass. Three principal captures show initial open, owner closure and existing-draft
+reuse after reopening through the packaged launcher.
+
 Architecture v4.11 D18, Plan022, controls1.288 and coverage1.31 specified five
 existing Recipe structure observations in docs commit da7bab7 before runtime
 edits. The RED runtime was cd2edc0, frozen catalog17 candidate
@@ -199,8 +238,7 @@ the isolated candidate, preserving the catalog17 baseline. Require recording/pub
 Compare, compile, layout, static limits, live roles, full Release1 chain, reusable
 Production and visible evidence before completing this bounded group.
 
-Still outstanding on this candidate: component paths,
-instructions and their paths, UOM combined/public-close/paths,
+Still outstanding on this candidate: UOM paths,
 draft diagnostics, lifecycle, native cancellation, layout and separate reusable
 run-only. Completed evidence above retains its specific scope; no full Slice4be
 or Release1 acceptance is claimed.
