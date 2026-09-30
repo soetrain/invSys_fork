@@ -523,13 +523,54 @@ change is used. Settings/packages restore, Excel closes, and the delayed
 Application1000/1001/1002 audit is clean. No desktop error5 is observed. This
 establishes these regression gates, not deployment promotion or human acceptance.
 
+## Production lifecycle regression GREEN
+
+The unchanged worksheet candidate retains615/615 exact ordered lifecycle checks,
+2026-09-30,22:23:25.3762313 through22:29:27.7743770 UTC. Outer controller
+`reports/runtime/process-worksheet-activity-regression/lifecycle-7a753ab4f08e410ba8d1314844ae3c47`;
+inner `reports/runtime/production-lifecycle-controller/67747839709543f3962030d9928905b1`;
+result `reports/runtime/slice4be-production-designer/8cdc858926114f3c8b46ca25bba6cd33/green.json`.
+Five compiles, current-owner event correlation, guarded submissions, uncertain
+failure facts, optional tracking, reentry suppression, prior records and unknown
+columns retain their protecting checks. Both controllers confirm normal cleanup
+and preservation; all five frozen package hashes are rechecked. The delayed
+Excel Application audit is clean. No runtime edit or human acceptance is claimed.
+
+Draft/Action Paths retains390/390 exact prior checks,
+22:29:54.0641636 through22:38:46.5576510 UTC. Outer controller
+`reports/runtime/process-worksheet-activity-regression/draft-a476a62a264d41278f31e577cf511e42`;
+inner `reports/runtime/production-designer-controller/c246540cc5b9410a8488be874b1bb36a`;
+result `reports/runtime/slice4be-production-designer/24c2e6893e384fa19825150853a08386/green.json`.
+The original eight-action recording, exact owner matches, explicit authored
+intent and local-only terminal classification pass. REQUESTED/rejected outcomes
+and absent Domain evidence do not establish application or completion. Prior
+activity/journals, saved authority and unknown workbook columns are preserved.
+Five compiles, normal closure, package/settings preservation and the delayed
+Excel Application audit pass. No runtime or package changes accompany this gate.
+
+Native cancellation retains94/94 exact prior checks,
+22:39:23.7178279 through22:41:14.8561910 UTC. Outer controller
+`reports/runtime/process-worksheet-activity-regression/native-a0382739c0ac456582041e1760ff484c`;
+inner `reports/runtime/production-lifecycle-native-controller/53897cf634d641dbab3678220cc43b5d`;
+result `reports/runtime/slice4be-production-lifecycle-native/afcb537af3bf406188962cb8e831a214/green.json`.
+The four original Process/Recipe Release/Obsolete dialogs default to No; actual
+native No delivery preserves local drafts, owner source, captured workbook and
+unknown values, producing only correlated REQUESTED/CANCELLED records without
+source references. Five compiles, preservation, normal closure and delayed audit
+pass. Five images are reviewed and hashed in `visible-review.json`: four original
+questions and the separate Settings owner-save/tracking-unavailable message.
+Images precede cancellation; native-input and state assertions prove its result.
+No desktop error5, runtime change, promotion or human acceptance is claimed.
+
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
 regressions plus independent paths139, Close paths90, smoke86, layout and full
-chain32/live48/Create15, full reusable171/replay37, Close/query312, Settings202
-and Settings activity497 (494 retained plus three exclusions). Complete the remaining
-shared-observation regressions on the frozen candidate. SourceEventsApplied
+chain32/live48/Create15, full reusable171/replay37, Close/query312, Settings202,
+Settings activity497 (494 retained plus three exclusions), lifecycle615 and
+draft/paths390 and native cancellation94.
+Complete the remaining shared-observation regressions on the frozen candidate.
+SourceEventsApplied
 must use every exact owning published Designs reference; queue acknowledgment and
 CommandCompleted remain distinct from applied evidence. No package promotion or
 human acceptance is implied by focused595, worksheet107, picker115 or paths139.
