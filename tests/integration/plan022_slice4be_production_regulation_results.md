@@ -197,6 +197,22 @@ readable; the separate observed run matches five STAGED actions with zero extras
 The scrolled conclusion explicitly states that Domain application is not asserted.
 Agent review is not human acceptance; no runtime or package change was needed.
 
+Recipe ordering regressions retain 463/463 focused and 93/93 paired-path checks,
+with exact prior ordered identities, five compiles each, preservation, normal
+closure and zero delayed Excel Application failures. Controller roots are under
+`reports/runtime/production-recipe-order-controller/`; intervals are September30 UTC.
+
+| Gate | Controller | UTC interval | Result root under `reports/runtime/` |
+|---|---|---|---|
+| Focused 463/463 | `7907566dad204d0d9697f39e16168ef3` | 11:30:30.4492520--11:33:22.1782285 | `slice4be-production-recipe-order/cca361f418624980a9d29790f0a0ceca` |
+| Paired paths 93/93 | `f268c9bbba9247d388ba99fa150ba639` | 11:33:30.7917875--11:37:58.1109595 | `slice4be-production-recipe-order-paths/fa07f7bd0e374ab4b85ce32ac9d2cb86` |
+
+Six principal captures are directly reviewed and hashed in the path result's
+`visible-review.json`. Auto Order/STAGED detail remains Info/Unchanged; How-To
+shows three instructions, and the separate observed run matches all three STAGED
+steps with zero extras. The visible conclusion does not assert Domain application.
+This is agent review, not human acceptance; runtime and frozen packages are unchanged.
+
 ## Remaining work
 
 The remaining focused regressions and run-only reusable gate remain pending on
