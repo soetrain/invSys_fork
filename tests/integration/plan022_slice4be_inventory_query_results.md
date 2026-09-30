@@ -133,6 +133,21 @@ shutdown evidence `reports/runtime/packaged-smoke-closure/72c0b7e003cb4ae9820611
 Initial/final shutdown is unassisted, no termination is requested, settings,
 packages and the tracked report are preserved, and the delayed Excel audit is zero.
 
-Full Release1 chain/live roles, reusable Production, applicable remaining
-regressions and layout remain pending. No transport-exception or historical
-native-crash repair is asserted by the Domain Empty-result test.
+Full Release1 chain retains32/32, live roles48/48 and Create Warehouse15/15 in
+exact prior Detail-candidate order,14:49:33.5238605--14:54:40.5219691 UTC.
+Controller `reports/runtime/inventory-query-regression/chain-e62bd93bea7844c7aa0584d2f3d8d85d`
+retains the three reports before restoring tracked originals. The worker and
+Quit-only controller finish without intervention; settings/packages/reports are
+preserved and the delayed Excel Application audit is zero. No promotion is implied.
+
+Packaged Production layout retains the exact prior geometry report across three
+sizes and five pages,14:55:14.3757816--14:55:28.9529096 UTC. Controller:
+`reports/runtime/inventory-query-regression/layout-08d3e4f5cb5d4c4e9ec6b160909e2cdf`.
+Settings/packages are preserved, closure is normal and the delayed Excel audit is
+zero. Three captured Run List views are directly reviewed and hashed in
+`visible-review.json`: sections, scrolling and the Close footer remain reachable.
+These blank fixture images do not establish a populated Production run.
+
+Reusable Production and applicable remaining regressions remain pending.
+No transport-exception or historical native-crash repair is asserted by the
+Domain Empty-result test.
