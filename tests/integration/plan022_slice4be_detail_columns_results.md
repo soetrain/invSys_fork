@@ -77,9 +77,16 @@ normal Initial/Final shutdown evidence is in
 Settings/packages/tracked report are preserved, no termination is requested and
 the delayed Application audit finds zero Excel failures.
 
+The ordinary full Release1 chain retains32/32, live-role workflows48/48 and
+Create Warehouse15/15 exact prior checks,13:12:21.5262598--13:17:31.4512828 UTC.
+Controller: `reports/runtime/detail-columns-regression/chain-f4001aeafad34e75b6edfd4bf7c7dfc0`.
+All three reports are preserved in that root before their tracked originals are
+restored. Settings/packages are preserved, closure is normal and the delayed
+Application audit finds zero Excel failures. This is isolated candidate evidence,
+not operational promotion or NAS acceptance.
+
 ## Remaining gates
 
-Complete Settings activity and Release1
-chain/live-role regressions for the isolated candidate. Preserve all earlier
+Complete Settings activity for the isolated candidate. Preserve all earlier
 regulation evidence and unrelated user changes. Human/NAS acceptance and remaining
 comprehensive control coverage remain open.
