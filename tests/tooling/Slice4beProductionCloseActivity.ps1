@@ -4,6 +4,14 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function Hash([string]$Path){$stream=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $stream).Hash}finally{$stream.Dispose()}}
+    function InventoryPartHashes {
+        Add-Type -AssemblyName System.IO.Compression
+        $stream=[IO.File]::Open($inventoryPath,'Open','Read','ReadWrite')
+        $archive=[IO.Compression.ZipArchive]::new($stream,[IO.Compression.ZipArchiveMode]::Read,$false)
+        $parts=@{}
+        try{foreach($entry in $archive.Entries){$part=$entry.Open();try{$parts[$entry.FullName]=(Get-FileHash -InputStream $part).Hash}finally{$part.Dispose()}}}finally{$archive.Dispose()}
+        return $parts
+    }
     function AuthorityCheckpoint([string]$Stage){
         $index=0
         foreach($file in @($pins.Keys|Sort-Object)){
@@ -12,6 +20,10 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
             $authorityTrace.Add([pscustomobject]@{Stage=$Stage;Index=$index;Kind=$kind;ExpectedHash=$pins[$file];ActualHash=$actual;Preserved=$actual -ceq $pins[$file]})
         }
         $authorityTrace|ConvertTo-Json -Depth 4|Set-Content (Join-Path $reportRoot 'close-authority-checkpoints.json')
+        $parts=InventoryPartHashes
+        $changed=@($parts.Keys|Where-Object{-not $inventoryParts.ContainsKey($_) -or $parts[$_] -cne $inventoryParts[$_]}|Sort-Object)
+        $inventoryTrace.Add([pscustomobject]@{Stage=$Stage;ChangedParts=$changed;RemovedParts=@($inventoryParts.Keys|Where-Object{-not $parts.ContainsKey($_)}|Sort-Object)})
+        $inventoryTrace|ConvertTo-Json -Depth 5|Set-Content (Join-Path $reportRoot 'close-inventory-part-checkpoints.json')
     }
     function SetPolicy([bool]$Enabled){
         SelectTarget $Fixture
@@ -60,6 +72,9 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
     }
     $canary='CLOSE'+[guid]::NewGuid().ToString('N');$book=$null;$decoy=$null;$publicBook=$null;$pins=@{};$recordPins=@{}
     $authorityTrace=[Collections.Generic.List[object]]::new()
+    $inventoryTrace=[Collections.Generic.List[object]]::new()
+    $inventoryPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
+    $inventoryParts=InventoryPartHashes
     SetPolicy $true
     try {
         $old=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(20))).Split([char]10)|Where-Object{$_})
@@ -186,13 +201,17 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
 
 function Test-ProductionClosePublic($Fixture,[string]$Canary) {
     function Probe([string]$Method){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method)}
-    $operatorRoot=Join-Path $runRoot 'close-public-operators';$book=$null
+    $operatorRoot=Join-Path $runRoot 'close-public-operators';$book=$null;$priorEvents=[bool]$excel.EnableEvents
     if(-not [IO.Path]::GetFullPath($operatorRoot).StartsWith([IO.Path]::GetFullPath($runRoot).TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Public operator root escaped fixture.'}
     if(-not [bool](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @($operatorRoot))){throw 'Isolated public root unavailable.'}
     [void](Run 'invSys.Operations.xlam' 'modOperationsInit.Auto_Open')
+    # The common fixture intentionally disables Excel events. This public native
+    # lifecycle case must enable real WorkbookBeforeClose dispatch explicitly.
+    $excel.EnableEvents=$true
     $eventsAtEntry=[bool]$excel.EnableEvents
     try{
         [void](Run 'invSys.Operations.xlam' 'mProduction.BtnOpenProductionForm')
+        AuthorityCheckpoint 'AfterPublicInitialLaunch'
         $name=[string](Probe 'CloseBindPublicForTest');$book=$excel.Workbooks.Item($name);$path=$book.FullName
         $owned=[IO.Path]::GetFullPath($path).StartsWith([IO.Path]::GetFullPath($operatorRoot).TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)
         Check 'ProductionClose.Public.IsolatedOwner' $owned
@@ -201,11 +220,14 @@ function Test-ProductionClosePublic($Fixture,[string]$Canary) {
         $sheet=$book.Worksheets.Item('invSys UOM Catalog');$table=$sheet.ListObjects.Item('tblInvSysUomCatalog')
         $extra=$table.ListColumns.Add();$extra.Name='Operator Annotation';$extra.DataBodyRange.Value2=$Canary
         $table.ListColumns.Item('Notes').DataBodyRange.Cells.Item(1,1).Value2=$Canary;$book.Save()
+        AuthorityCheckpoint 'AfterPublicWorkbenchSetup'
         $before=@(Get-Slice4beActivityFiles $Fixture)
         [void](Probe 'CloseButtonForTest');Check 'ProductionClose.Public.ButtonDisposes' ([long](Probe 'CloseLoadedFormsForTest') -eq 0)
         # Pair is defined by the caller and verifies this real public form as well.
         Pair $before 'ProductionClose.Public.Button';[void](Probe 'CloseForgetForTest')
+        AuthorityCheckpoint 'AfterPublicButtonDismissal'
         [void](Run 'invSys.Operations.xlam' 'mProduction.BtnOpenProductionForm')
+        AuthorityCheckpoint 'AfterPublicReopen'
         $name=[string](Probe 'CloseBindPublicForTest');$reopened=$excel.Workbooks.Item($name)
         $retained=$reopened.Worksheets.Item('invSys UOM Catalog').ListObjects.Item('tblInvSysUomCatalog')
         Check 'ProductionClose.Public.ReopensSameOwnerWithUnknownValues' ($reopened -eq $book -and $reopened.FullName -ceq $path -and $retained.ListColumns.Item('Operator Annotation').DataBodyRange.Cells.Item(1,1).Value2 -ceq $Canary -and $retained.ListColumns.Item('Notes').DataBodyRange.Cells.Item(1,1).Value2 -ceq $Canary)
@@ -218,5 +240,5 @@ function Test-ProductionClosePublic($Fixture,[string]$Canary) {
         Check 'ProductionClose.Public.WorkbookShutdownDisposes' ([long](Probe 'CloseLoadedFormsForTest') -eq 0)
         Check 'ProductionClose.Public.WorkbookShutdownNotUserClose' (@(Get-Slice4beActivityFiles $Fixture).Count -eq $before.Count)
         [void](Probe 'CloseForgetForTest')
-    }finally{[void](Probe 'CloseDesigner');if($null -ne $book){$book.Close($false)}}
+    }finally{[void](Probe 'CloseDesigner');if($null -ne $book){$book.Close($false)};$excel.EnableEvents=$priorEvents}
 }
