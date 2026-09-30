@@ -39,10 +39,10 @@ Public Sub Initialize(ByVal page As Object, ByVal context As String)
     Set mVersionLabel = modAdminSettingsControls.AddControl(page, "Label", "lblDetailVersion", "", 350, 46, 332, 22)
     modAdminSettingsControls.AddControl page, "Label", "lblDetailRequired", _
         "Required identity, outcome, source, time and safety context remain visible.", 12, 74, 320, 38
-    modAdminSettingsControls.AddControl page, "Label", "lblDetailColumns", "Field                               Show       Order       Required", 12, 112, 320, 16
     Set mRows = modAdminSettingsControls.AddControl(page, "ListBox", "lstDetailFields", "", 12, 130, 320, 222)
     mRows.ColumnCount = 5
     mRows.ColumnWidths = "0 pt;175 pt;35 pt;40 pt;55 pt"
+    AddFieldHeadings page
     Set mEnabled = modAdminSettingsControls.AddControl(page, "CheckBox", "chkDetailEnabled", "Show selected field", 12, 362, 300, 22)
     Set mUp = modAdminSettingsControls.AddControl(page, "CommandButton", "btnDetailMoveUp", "Move Up", 12, 392, 86, 26)
     Set mDown = modAdminSettingsControls.AddControl(page, "CommandButton", "btnDetailMoveDown", "Move Down", 110, 392, 86, 26)
@@ -54,6 +54,18 @@ Public Sub Initialize(ByVal page As Object, ByVal context As String)
     Set mReload = modAdminSettingsControls.AddControl(page, "CommandButton", "btnReloadDetailProfile", "Reload", 326, 426, 86, 28)
     Set mStatus = modAdminSettingsControls.AddControl(page, "Label", "lblDetailProfileStatus", "", 12, 468, 670, 40)
     ReloadProfile
+End Sub
+
+Private Sub AddFieldHeadings(ByVal page As Object)
+    Dim widths As Variant, captions As Variant, index As Long, x As Single
+    widths = Split(mRows.ColumnWidths, ";")
+    captions = Array("Field", "Show", "Order", "Required")
+    x = mRows.Left
+    For index = 0 To 3
+        modAdminSettingsControls.AddControl page, "Label", "lblDetailColumn" & CStr(index + 1), _
+            CStr(captions(index)), x, 112, CSng(Val(widths(index + 1))), 16
+        x = x + CSng(Val(widths(index + 1)))
+    Next index
 End Sub
 
 Public Sub ReloadProfile(Optional ByRef outcome As String = "")
