@@ -1,9 +1,10 @@
 # Offline generation calibration. No Excel, credentials, or business values are emitted.
 [CmdletBinding()]
-param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-process-worksheet-picker',[Parameter(Mandatory=$true)][string]$PackagePinsPath)
+param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-process-worksheet-picker',[Parameter(Mandatory=$true)][string]$PackagePinsPath,[switch]$UnobservedReplay)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
-$output=@(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-ProductionRestartDiagnostic.ps1') -RepoRoot $repo -DeployRoot $DeployRoot -PackagePinsPath $PackagePinsPath -GenerateOnly)
+$extra=@();if($UnobservedReplay){$extra=@('-UnobservedReplay')}
+$output=@(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-ProductionRestartDiagnostic.ps1') -RepoRoot $repo -DeployRoot $DeployRoot -PackagePinsPath $PackagePinsPath -GenerateOnly @extra)
 if($LASTEXITCODE -ne 0){throw 'Diagnostic generation failed; no product RED.'}
 $roots=@($output|Where-Object{$_ -like 'Restart diagnostic: *'})
 if($roots.Count -ne 1){throw 'Diagnostic root unavailable.'}
@@ -15,8 +16,13 @@ $restart=$source.IndexOf('$currentStep = "restart reusable Production in a clean
 $attach=$source.IndexOf('$restartObserver=Start-Process',[StringComparison]::Ordinal)
 $trace=$source.IndexOf('Install-ProductionRestartTrace -Excel',[StringComparison]::Ordinal)
 $callback=$source.IndexOf('$restartCapture = Invoke-PackagedCallback',[StringComparison]::Ordinal)
-$checks.Add([pscustomobject]@{Check='Observer.AttachesOnlyToFreshRestart';Passed=($restart -ge 0 -and $attach -gt $restart -and $attach -lt $trace -and [regex]::Matches($source,[regex]::Escape('$restartObserver=Start-Process')).Count -eq 1)})
-$checks.Add([pscustomobject]@{Check='Trace.AfterPackagesBeforeCallback';Passed=($trace -gt $attach -and $callback -gt $trace)})
+if($UnobservedReplay){
+    $checks.Add([pscustomobject]@{Check='Unobserved.NoDebugger';Passed=($attach -eq -1 -and -not $generation.ObserverOnlyAtFreshRestart)})
+    $checks.Add([pscustomobject]@{Check='Unobserved.NoVbeTrace';Passed=($trace -eq -1 -and -not $generation.TraceOnlyAtFreshRestart)})
+}else{
+    $checks.Add([pscustomobject]@{Check='Observer.AttachesOnlyToFreshRestart';Passed=($restart -ge 0 -and $attach -gt $restart -and $attach -lt $trace -and [regex]::Matches($source,[regex]::Escape('$restartObserver=Start-Process')).Count -eq 1)})
+    $checks.Add([pscustomobject]@{Check='Trace.AfterPackagesBeforeCallback';Passed=($trace -gt $attach -and $callback -gt $trace)})
+}
 $checks.Add([pscustomobject]@{Check='Generation.OriginalWorkflowPreserved';Passed=($generation.OriginalStatementsPreserved -and $generation.ParseErrors -eq 0 -and -not $generation.GenerationOpenedExcel)})
 $checks.Add([pscustomobject]@{Check='Credentials.InheritedOnlyInMemory';Passed=($generation.CredentialInheritedOnlyInMemory -and $source.Contains('$testPin = $RestartDiagnosticPin'))})
 . (Join-Path $PSScriptRoot 'ProductionRestartTrace.ps1')

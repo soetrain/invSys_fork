@@ -164,3 +164,62 @@ tables, close normally, then exercise the nine restart observations without VBE
 tracing. Compare native-only observation with an unobserved control as needed;
 do not replace the full171 acceptance gate with this smaller diagnostic. Preserve
 all frozen baselines and do not issue another undifferentiated full rerun.
+
+## Uninstrumented full workflow and targeted replay
+
+The picker prerequisite's scoped gate set completes on 2026-09-30 UTC. A fresh
+disposable fixture passes the full uninstrumented reusable workflow, followed by
+a separate uninstrumented restart replay. This supersedes the unresolved gate
+status above; the earlier failures remain excluded and their cause is unproven.
+No production source, package or architectural contract changes in this follow-up.
+D13 product RED is not manufactured for this diagnostic tooling.
+
+Two smaller attempts against the previously retained fixture stop at sign-in,
+before worksheet work. The fixture uses a random credential held only in its
+creator's memory. Re-evaluating its setup expression produces a different value;
+the numeric Auth rejection is not desktop error5 or product RED. Both attempts
+close normally, restore settings and preserve packages; delayed Excel audits are
+clear. Evidence under `reports/runtime/production-restart-replay/`:
+`4a4df065246a4644b8d086d45c9b03e6`,19:02:00.1000754–19:02:11.0747331 UTC, and
+`457871c81c07441dacc536e6396a0ee2`,19:02:50.2525499–19:03:00.9925190 UTC.
+Do not repeat this approach or persist the credential to enable replay.
+
+The corrected creator passes its same random credential to the replay tool as an
+in-process SecureString; it is never serialized, logged or passed on a command
+line. Replay checks the exact disposable-root boundary and five frozen package
+pins, runs the actual public workbench handler to recreate two outstanding tables,
+then closes normally and invokes the actual restart handler in another process.
+This is fresh owner-generated staging, not a pristine snapshot of an earlier run.
+
+Generation calibration remains10/10 for observed mode
+(`production-restart-diagnostic/fb9077d035094d0c96a3dc68af72e6fc`) and passes10/10
+for unobserved mode (`114616ec1b9642d08f75e54a43abffdb` under the same parent).
+Unobserved generation preserves original workflow statements and inserts no
+debugger attachment or VBE trace. Replay's ownership/pin/dispatcher/redaction
+calibration passes without opening Excel:
+`production-restart-replay/4fa3b18c788e478bb574cd69c14bd32f`.
+All345 PowerShell files parse. These paths are under `reports/runtime/`.
+
+Live controller `production-restart-diagnostic/0bba8416f0794d89bd8382e5082fb6c1`,
+19:04:41.4262833–19:13:37.5572090 UTC, passes two full-workflow aggregates and
+**all171 observations in exact prior order**, compared with the completed header
+candidate. Original workflow statements remain intact; no debugger or VBE
+instrumentation runs. Initial/restart normal exits take2951/2381ms, with zero
+release failures and no termination. Final fixture books and all four packages close
+normally. The subsequent targeted replay
+`production-restart-replay/31b7005b0d45405ea429f836ddaae5a4`,
+19:12:43.2250580–19:13:37.5231706 UTC, passes **37/37 exact checks**, including
+the public workbench actions, exact released recipe, captured workbook, two table
+rediscovery/retrievals and no new workbook. Its two sessions exit normally in
+2521/2387ms with no release failures or forced termination. Controller and replay
+verification.json records preserve these distinctions.
+
+All package, settings, helper and original-validator pins hold; delayed Excel
+Application1000/1001/1002 audits report zero failures. Desktop probes remain
+healthy. The smaller replay supplements the full171 gate and does not replace it.
+Together with the focused115, build/compile, unchanged static ratchets, smoke86,
+layout, chain32/live48/Create15, worksheet107, Close/query312 and reviewed captures
+above, this completes the isolated picker correction's gates. It proves neither
+a native-crash repair nor human/full Release1 acceptance. No candidate promotion
+or new tracking registration. Next specify and test the three worksheet actions'
+local versus Designs-submission observations under D18, including partial results.

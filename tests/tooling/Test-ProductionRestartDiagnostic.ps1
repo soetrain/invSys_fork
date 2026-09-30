@@ -1,7 +1,7 @@
 # Test-only fresh-process restart trace; preserved fixtures are never release evidence.
 [CmdletBinding()]
 param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-process-worksheet-picker',
-      [Parameter(Mandatory=$true)][string]$PackagePinsPath,[switch]$GenerateOnly)
+      [Parameter(Mandatory=$true)][string]$PackagePinsPath,[switch]$GenerateOnly,[switch]$UnobservedReplay)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated restart diagnosis.'}
@@ -61,7 +61,7 @@ $observe=@'
             Start-Sleep -Milliseconds 100
         }
 '@
-Replace-RestartDiagnosticAnchor '        $excel.Visible = $true' ($observe+"`r`n"+'        $excel.Visible = $true')
+if(-not $UnobservedReplay){Replace-RestartDiagnosticAnchor '        $excel.Visible = $true' ($observe+"`r`n"+'        $excel.Visible = $true')}
 $trace=@'
         . (Join-Path $repo 'tests/tooling/ProductionRestartTrace.ps1')
         Install-ProductionRestartTrace -Excel $excel -Packages $packages -PackageRoot $deployPath
@@ -72,7 +72,7 @@ $trace=@'
         [pscustomobject]@{UnknownLabelRejected=$true;ArmTransportPassed=$true;LoadedProjectsCompiled=4}|ConvertTo-Json|Set-Content (Join-Path $outputPath 'trace-calibration.json')
 '@
 $anchor='        $coreName = [string]$packages["invSys.Core.xlam"].Name'
-Replace-RestartDiagnosticAnchor $anchor ($trace+"`r`n"+$anchor)
+if(-not $UnobservedReplay){Replace-RestartDiagnosticAnchor $anchor ($trace+"`r`n"+$anchor)}
 $stop=@'
     if($null -ne $restartObserver){
         [IO.File]::WriteAllText((Join-Path $restartNativeRoot 'stop'),'Stop')
@@ -98,17 +98,23 @@ $credentialLiterals=@($generatedAst.FindAll({param($n)$n -is [Management.Automat
 if($credentialLiterals.Count){throw 'Generated diagnostic must not persist fixture credentials.'}
 $generated=Join-Path $diagnosticRoot 'restart-validator.ps1'
 [IO.File]::WriteAllText($generated,$source,[Text.UTF8Encoding]::new($false))
-[pscustomobject]@{OriginalStatementsPreserved=$same;ObserverOnlyAtFreshRestart=$true;TraceOnlyAtFreshRestart=$true;CredentialInheritedOnlyInMemory=$true;RetainsExistingDisposableRuntime=$true;GenerationOpenedExcel=$false;ParseErrors=0;FullAcceptance=$false}|ConvertTo-Json|Set-Content (Join-Path $diagnosticRoot 'generation.json')
+[pscustomobject]@{OriginalStatementsPreserved=$same;ObserverOnlyAtFreshRestart=(-not $UnobservedReplay);TraceOnlyAtFreshRestart=(-not $UnobservedReplay);UnobservedReplay=[bool]$UnobservedReplay;CredentialInheritedOnlyInMemory=$true;RetainsExistingDisposableRuntime=$true;GenerationOpenedExcel=$false;ParseErrors=0;FullAcceptance=$false}|ConvertTo-Json|Set-Content (Join-Path $diagnosticRoot 'generation.json')
 if($GenerateOnly){return}
 $nativeSource=Join-Path $PSScriptRoot 'NativeExceptionObserver.cs'
 $compiler=New-Object CodeDom.Compiler.CompilerParameters -Property @{CompilerOptions='/platform:x64';GenerateExecutable=$true;OutputAssembly=(Join-Path $diagnosticRoot 'NativeExceptionObserver.exe')}
 [void]$compiler.ReferencedAssemblies.Add('System.dll')
-Add-Type -Path $nativeSource -CompilerParameters $compiler
+if(-not $UnobservedReplay){Add-Type -Path $nativeSource -CompilerParameters $compiler}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $settings=Get-InvSysTestSettingsSnapshot;$start=[DateTimeOffset]::UtcNow;$code=1
 try {
     & $generated -RepoRoot $repo -DeployRoot $DeployRoot -OutputDirectory ($diagnosticRoot.Substring($repo.Length+1)) -CallbackFilter Production -WorkbookState ProductionReusable *> (Join-Path $diagnosticRoot 'worker.log')
     $code=$LASTEXITCODE
+    if($UnobservedReplay -and $code -eq 0){
+        $code=1
+        $replayCredential=ConvertTo-SecureString $RestartDiagnosticPin -AsPlainText -Force
+        & (Join-Path $PSScriptRoot 'Test-ProductionRestartReplay.ps1') -FixtureContextPath (Join-Path ($diagnosticRoot.Substring($repo.Length+1)) 'fixture-context.json') -PackagePinsPath $PackagePinsPath -DeployRoot $DeployRoot -FixtureCredential $replayCredential
+        $code=0
+    }
 } finally {
     Wait-RecordingCleanup -Creator $null -Worker $null
     $settingsRestored=Restore-InvSysTestSettingsSnapshot $settings
