@@ -1,7 +1,7 @@
 # Slice 4be Production Close observations
 
 Last verified: 2026-09-30 UTC. Catalog21 Close focused GREEN312/312, separate
-Action Paths90/90 and static limits pass. Broader regressions remain open.
+Action Paths90/90, static limits and all nine scoped regression gates pass.
 No deployment promotion, comprehensive control coverage or human acceptance.
 
 ## Current focused candidate
@@ -120,7 +120,9 @@ result `reports/runtime/slice4be-production-regulation-paths/b0956f083a4f472aaaf
 The Close extension therefore preserves the repeated-control ordered-intent
 regression it shares with regulation; no evaluator/runtime change was needed.
 
-Next: complete the relevant post-change regression matrix.
+The relevant post-change regression matrix is complete below. Next work remains
+the unregistered controls and unresolved coverage in the maintained Production
+audit; this bounded Close checkpoint does not complete Slice4be.
 
 ## Post-change regression checkpoint
 
@@ -154,9 +156,63 @@ order pass; settings/packages are preserved and the delayed Excel audit is zero.
 This unchanged candidate passes the full reusable gate; it does not establish a
 repair for historical native failures documented in the preceding query record.
 
-The remaining relevant gates are current-catalog
-Settings/Settings activity, designer lifecycle, Draft/Action Paths and native
-cancellation. These cover the changed form teardown, catalog extension and
+Current-catalog Settings retains202/202 exact prior checks and five compiles,
+16:27:26.9931983--16:31:29.0828106 UTC. Controller:
+`reports/runtime/production-close-regression/settings-6e62bd01623049bcbe87dda613d30291`;
+result `reports/runtime/slice4be-tracking-settings/d92f3551aabe4ebeb33441c73a04b749/green.json`.
+All three presentation choices, saved preference restart, cancelled policy saves,
+detail-profile controls and Operations permission/context guards pass. Restart
+is unassisted with all ten COM references released and zero release failures;
+normal cleanup, settings/package preservation and delayed Excel audit pass.
+
+Settings activity passes494/494 and five compiles,
+16:32:05.3466192--16:47:00.5331041 UTC. Controller:
+`reports/runtime/production-close-regression/settingsactivity-d7848b87ebc24dd8b1d8c11c289157d2`;
+result `reports/runtime/slice4be-settings-activity/205b4493db064638a961874d9d301c2a/green.json`.
+All493 prior checks retain exact relative order; the sole added identity is
+`SettingsActivity.OlderPolicy.Excludes.PRODUCTION_CLOSE`. The existing catalog
+enumeration supplies this extra protection; no test/runtime change was needed.
+The isolated evidence verifier requires that exact addition instead of accepting
+arbitrary extra checks. Eight captures were directly reviewed and hashed in
+`visible-review.json`: tracking/detail/personal/Operations settings, denied reload,
+failed profile read and separate owner-save/tracking-unavailable feedback.
+
+After all assertions, Excel remained alive without a main window before exiting
+normally at the recorded controller completion. Read-only process observations
+and the live controller handle established ongoing cleanup; no quit retry,
+termination, debugger attachment or runtime change was used. Settings/packages
+are preserved, Excel is closed and the delayed Application audit is zero.
+This was not desktop error5 or proof of a native-crash repair.
+
+Designer lifecycle retains615/615 exact ordered prior checks and five compiles,
+16:47:43.0788613--16:53:35.4181309 UTC. Outer controller:
+`reports/runtime/production-close-regression/lifecycle-854df2b4440f410a983bc47d18d5d797`;
+inner `reports/runtime/production-lifecycle-controller/f3e76e28d8f940518ad30b82b43bcb8e`;
+result `reports/runtime/slice4be-production-designer/b79a698ca5ec47f79f01afd0feff8075/green.json`.
+Normal cleanup, settings/package preservation and zero delayed Excel failures
+pass. Owner correlation, no inferred application/rollback, optional tracking,
+captured-context guards and unknown-column preservation retain their prior checks.
+
+Draft/Action Paths retains390/390 exact ordered prior checks and five compiles,
+16:54:13.7920889--17:02:47.6162636 UTC. Outer controller:
+`reports/runtime/production-close-regression/draft-4e5300e7da4f41ed9f11da1affb89527`;
+inner `reports/runtime/production-designer-controller/a46cbe6d6229480487a2f894f8b2bc9f`;
+result `reports/runtime/slice4be-production-designer/dc0914d6b91d476099b550bd5da28a07/green.json`.
+The eight-action recording, original order, owner matches, explicit intent,
+terminal classification and saved-authority preservation retain prior coverage.
+Cleanup is normal, settings/packages are preserved and delayed Excel audit is zero.
+
+Native cancellation retains94/94 exact ordered prior checks and five compiles,
+17:03:25.9082446--17:05:20.9133651 UTC. Outer controller:
+`reports/runtime/production-close-regression/native-957bae579fe048c083a71f06c6241faf`;
+inner `reports/runtime/production-lifecycle-native-controller/a65d9f0a080549cf936a6ce0eaf31183`;
+result `reports/runtime/slice4be-production-lifecycle-native/a0aa448352374443ace2a5f54a686a26/green.json`.
+Normal cleanup, settings/package preservation and zero delayed Excel failures
+pass. Five captures are directly reviewed and hashed: four original confirmation
+dialogs with No focused, plus Settings save feedback. Dialog images precede the
+cancellation; the actual native-input assertions establish the cancelled outcome.
+
+All nine scoped post-change gates now pass. They cover the changed form teardown, catalog extension and
 evaluator dispatch. The shared regulation path regression above protects the
 changed repeated-control test branch. The unchanged259 compiled components and
 previous component-specific gates remain frozen evidence; no claim is made that
