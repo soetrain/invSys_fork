@@ -18,6 +18,7 @@ param(
     [switch]$CheckProductionComponents,
     [switch]$CheckProductionRecipeOrder,
     [switch]$CheckProductionRecipeStructure,
+    [switch]$CheckProductionDesignReads,
     [switch]$CheckProductionRecipeStructureReleasedData,
     [switch]$CheckProductionRecipeStructurePaths,
     [switch]$CheckProductionRecipeOrderPaths,
@@ -228,6 +229,7 @@ if($CheckProductionRecipeOrderPaths -and (-not $CheckProductionRecipeOrder -or -
 if($CheckProductionRecipeStructure -and (-not $CheckProductionDesignerActivity -or $CheckProductionRecipeOrder -or $CheckProductionComponents -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Recipe structure requires its separate compiled Production designer gate.'}
 if($CheckProductionRecipeStructureReleasedData -and -not $CheckProductionRecipeStructure){throw 'Released-data structure checks require the compiled structure adapters.'}
 if($CheckProductionRecipeStructurePaths -and (-not $CheckProductionRecipeStructure -or $CheckProductionRecipeStructureReleasedData -or -not $CaptureEvidence)){throw 'Structure paths require compiled adapters and visible evidence in a separate gate.'}
+if($CheckProductionDesignReads -and (-not $CheckProductionDesignerActivity -or $CheckProductionRecipeStructure -or $CheckProductionRecipeOrder -or $CheckProductionComponents -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Designer read checks require a separate compiled designer gate.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
 if($CheckProductionComponentPaths -and (-not $CheckProductionComponents -or -not $CaptureEvidence)){throw 'Component paths require the compiled component adapters and visible evidence.'}
 if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
@@ -411,6 +413,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionComponents){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-components/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeOrder){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-order/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeStructure){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-structure/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionDesignReads){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-design-reads/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeStructureReleasedData){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-structure-released/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeStructurePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-structure-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeOrderPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-order-paths/'+[guid]::NewGuid().ToString('N'))}
@@ -1179,6 +1182,11 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionComponentActivity.ps1')
             Install-ProductionComponentProbe
         }
+        if($CheckProductionDesignReads){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionDesignReadProbe.ps1')
+            . (Join-Path $PSScriptRoot 'Slice4beProductionDesignReadActivity.ps1')
+            Install-ProductionDesignReadProbe
+        }
         if($CheckProductionRecipeStructure){
             . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeStructureProbe.ps1')
             . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeStructureActivity.ps1')
@@ -1485,6 +1493,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
             Test-ProductionInstructionPaths $a -RecipeOrder
         }
+        elseif($CheckProductionDesignReads){Test-ProductionDesignReadActivity $a $b}
         elseif($CheckProductionComponents){Test-ProductionComponentActivity $a $b}
         elseif($CheckProductionRecipeOrder){Test-ProductionRecipeOrderActivity $a $b}
         elseif($CheckProductionRecipeStructurePaths){
