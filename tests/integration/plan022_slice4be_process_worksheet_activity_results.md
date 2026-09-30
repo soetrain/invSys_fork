@@ -491,11 +491,44 @@ calls,190 duplicate-body groups and28 non-growing oversized caps. All three
 schemas and347 PowerShell parses pass. No runtime source change, deployment,
 native-crash repair, desktop-error5 or human-acceptance claim accompanies this work.
 
+## Settings regression GREEN on catalog22
+
+Settings retains202/202 exact prior checks and five compiles,
+2026-09-30,22:03:24.7362664 through22:07:29.0830101 UTC. Controller
+`reports/runtime/process-worksheet-activity-regression/settings-97fb0ea590864012a0fe727e021a7d31`;
+result `reports/runtime/slice4be-tracking-settings/1f7571b0dd894279ac8deeabf29458be/green.json`.
+The109-control editor, cancelled-save preservation, version checks, all three
+presentation choices, saved-preference restart and Operations without Admin pass.
+Restart releases all ten COM references with zero failures and exits unassisted.
+Normal final closure, settings/package preservation and delayed Excel audit pass.
+
+Settings activity completes497/497 with five compiles,
+22:07:53.1855691 through22:22:32.7469702 UTC. Controller
+`reports/runtime/process-worksheet-activity-regression/settingsactivity-39af05a7d7dd4dfab1b94b950016e5df`;
+result `reports/runtime/slice4be-settings-activity/588ff66082c44bf0b5b1710c2f6823d0/green.json`.
+All494 prior checks retain their relative order. The only additions are
+`SettingsActivity.OlderPolicy.Excludes.PRODUCTION_PROCESS_WORKSHEET_SEND`,
+`SettingsActivity.OlderPolicy.Excludes.PRODUCTION_PROCESS_WORKSHEET_ADD_ITEM` and
+`SettingsActivity.OlderPolicy.Excludes.PRODUCTION_PROCESS_WORKSHEET_RETRIEVE`.
+The existing catalog enumeration supplies these checks; the isolated verifier
+requires precisely this addition set instead of accepting arbitrary extra checks.
+
+Eight captures are directly reviewed and hashed in the result's
+`visible-review.json`: tracking, detail, personal and Operations preferences,
+denied reload, failed profile read, and separate owner-save/tracking-unavailable
+feedback. They distinguish staged choices from effective saved choices. After
+assertions finish, Excel remains alive without a main window, then exits normally
+before the controller completes. No extra Quit, termination, debugger or runtime
+change is used. Settings/packages restore, Excel closes, and the delayed
+Application1000/1001/1002 audit is clean. No desktop error5 is observed. This
+establishes these regression gates, not deployment promotion or human acceptance.
+
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
 regressions plus independent paths139, Close paths90, smoke86, layout and full
-chain32/live48/Create15 and full reusable171/replay37. Complete the remaining
+chain32/live48/Create15, full reusable171/replay37, Close/query312, Settings202
+and Settings activity497 (494 retained plus three exclusions). Complete the remaining
 shared-observation regressions on the frozen candidate. SourceEventsApplied
 must use every exact owning published Designs reference; queue acknowledgment and
 CommandCompleted remain distinct from applied evidence. No package promotion or
