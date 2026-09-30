@@ -562,16 +562,70 @@ questions and the separate Settings owner-save/tracking-unavailable message.
 Images precede cancellation; native-input and state assertions prove its result.
 No desktop error5, runtime change, promotion or human acceptance is claimed.
 
+## Regulation regression GREEN
+
+Regulation retains696/696 exact prior checks,
+2026-09-30,22:41:59.0055678 through22:45:16.2641689 UTC. Controller
+`reports/runtime/production-regulation-controller/bdd8a07200784ee1a3ccb622cd705caa`;
+result `reports/runtime/slice4be-production-regulation/50c93044d24a49d19d8d82f255ccbc2c/green.json`.
+Both Process defaults and Recipe overrides retain local editing, validation,
+partial-failure, captured-context, permission and optional-tracking checks.
+Five compiles, saved-authority/unknown-column/prior-record preservation, package
+pins, settings restoration, normal closure and delayed Excel audit pass. Two
+principal captures are reviewed and hashed in `visible-review.json`: Process
+Apply remains local staged regulation, and Recipe Clear retains its original
+cleared status. No runtime, package or contract change accompanies this gate.
+
+Regulation paired paths retain102/102 exact prior checks,
+22:45:49.7292902 through22:50:50.4017103 UTC. Controller
+`reports/runtime/production-regulation-controller/85c8ef2b7f6e41b786f7fa30652c7ec4`;
+result `reports/runtime/slice4be-production-regulation-paths/2468e9365be44aa0951dc5e9e238b325/green.json`.
+Separate four-action recordings retain original REQUESTED/STAGED pairs through
+Admin publication, exact Event Detail, authored expectations, independent pairing
+and How-To/Diagnostic/Compare. All four steps match in order with zero extras;
+CommandCompleted concludes without asserting Domain application. SourceEventsApplied
+remains incomplete for these local actions. Original activity/journals, saved
+authority and unknown workbook columns/bytes remain unchanged. Five compiles,
+normal closure, settings/package preservation and delayed Excel audit pass.
+Six principal images are reviewed and hashed in `visible-review.json`; the
+scrolled conclusion explicitly shows all four matches and no application claim.
+
+## Designer load/refresh regression GREEN
+
+Designer reads retain621/621 exact prior checks,
+2026-09-30,22:51:35.6763402 through22:54:47.9699304 UTC. Controller
+`reports/runtime/production-design-read-controller/ccad9f82f6d949d19a2387725a366b0c`;
+result `reports/runtime/slice4be-production-design-reads/1409f8347c6f480fb1be940495c5faa1/green.json`.
+Process Refresh/View/Reuse and Recipe Refresh/Load retain their existing local
+draft behavior, malformed/unavailable-read handling, partial-failure facts,
+permission/context guards and optional-tracking assertions. Prior records,
+saved authority and unknown workbook values remain protected. Five compiles,
+normal cleanup, settings/package preservation and delayed Excel audit pass.
+No runtime/package changes or broader acceptance claim accompany this regression.
+
+Designer-read paired paths retain114/114 exact prior checks,
+22:55:22.0243887 through23:01:44.8881610 UTC. Controller
+`reports/runtime/production-design-read-controller/c32e812cd09e4f80bf4a1b17049b8294`;
+result `reports/runtime/slice4be-production-design-read-paths/fed0ed1170c54ab8a116c02f0d6ef99e/green.json`.
+Separate five-action recordings preserve their original pairs through Admin
+publication, exact Event Detail, explicit guide intent and independent evaluation.
+How-To, Diagnostic and Compare retain the same immutable evidence. All five
+REFRESHED/PRESENTED/STAGED steps match in order, zero extras; the conclusion is
+local command completion, not Domain application. Five compiles, preservation,
+normal closure and delayed audit pass. Six principal captures are reviewed and
+hashed in `visible-review.json`; selected Load/PRESENTED remains Info/Unchanged,
+and the scrolled comparison shows all five matches and the local-only conclusion.
+
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
 regressions plus independent paths139, Close paths90, smoke86, layout and full
 chain32/live48/Create15, full reusable171/replay37, Close/query312, Settings202,
-Settings activity497 (494 retained plus three exclusions), lifecycle615 and
-draft/paths390 and native cancellation94.
+Settings activity497 (494 retained plus three exclusions), lifecycle615,
+draft/paths390, native cancellation94, Regulation696/paths102 and design reads621/paths114.
 Complete the remaining shared-observation regressions on the frozen candidate.
-SourceEventsApplied
-must use every exact owning published Designs reference; queue acknowledgment and
+SourceEventsApplied must use every exact owning published Designs reference;
+queue acknowledgment and
 CommandCompleted remain distinct from applied evidence. No package promotion or
 human acceptance is implied by focused595, worksheet107, picker115 or paths139.
 The current DeleteProcessWorksheetTable performs lo.Delete before wb.Save. A
