@@ -401,7 +401,7 @@ The same `validation-process-worksheet-activity-03` packages retain:
   completes. Normal cleanup, package/settings and tracked-report restoration,
   and the delayed Excel audit pass.
 
-Full reusable/restart and remaining shared observation regressions are still open.
+Full reusable/restart is verified below; remaining shared observation regressions are open.
 No runtime edit, rebuild, deployment promotion or human acceptance accompanies
 these regression runs.
 
@@ -435,15 +435,30 @@ Both diagnostics close normally, preserve settings/packages/validator and have
 zero delayed Excel Application failures. Neither runs the full reusable workflow
 or changes runtime source; neither establishes a crash repair or full acceptance.
 After those bounded comparisons, one full uninstrumented validation with independent
-restart replay is running in controller
+restart replay completes in controller
 `reports/runtime/production-restart-diagnostic/cf56200b22f44bdaa683c4b15bf2f131`.
-Its result remains unverified; the failed first attempt stays excluded.
+It passes both aggregates and retains all171 Boolean observations in exact prior
+order,21:42:29.4928306 through21:53:31.6611378 UTC. Generation preserves original
+workflow statements and inherits the creator credential only in memory; no
+debugger or VBA instrumentation is installed. Initial/restart-process shutdowns
+are normal, with2613/2542ms release waits and no termination requests. Package,
+settings, validator and helper hashes are preserved; the delayed Excel audit is clean.
+
+The independent replay at
+`reports/runtime/production-restart-replay/eecfe96c873340e189a42ec0f67ca0c1`
+retains all37 prior checks in order,21:52:05.6462167 through21:53:31.6243568 UTC.
+It reuses the same creator credential through an in-memory SecureString and uses
+the public workbench/restart probes to recreate two draft tables from the retained
+final fixture state. It does not claim a pristine pre-restart fixture. Both replay
+processes close normally, preserve settings/packages and have no delayed Excel
+events. The successful full/replay observations satisfy this regression checkpoint;
+the first failed attempt stays excluded and no native-crash repair is claimed.
 
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
 regressions plus independent paths139, Close paths90, smoke86, layout and full
-chain32/live48/Create15. Complete full reusable/restart and the remaining
+chain32/live48/Create15 and full reusable171/replay37. Complete the remaining
 shared-observation regressions on the frozen candidate. SourceEventsApplied
 must use every exact owning published Designs reference; queue acknowledgment and
 CommandCompleted remain distinct from applied evidence. No package promotion or
@@ -455,5 +470,5 @@ effect, not claim restoration. D15 still prohibits removal before confirmed
 Designs draft save. The normative observation section explicitly distinguishes
 these cases without changing the existing save algorithm.
 
-Remaining reusable/restart and shared-observation regressions and their visible
+Remaining shared-observation regressions and their visible
 operator evidence remain outstanding. No promotion or Slice4be completion is claimed.
