@@ -246,6 +246,45 @@ instructions, and the separate observed run matches five STAGED actions with
 zero extras. The scrolled comparison visibly excludes a Domain-application claim.
 This is agent review, not human acceptance; runtime and packages remain unchanged.
 
+UOM staging retains 264/264 checks and public Close retains 61/61, with exact
+prior ordered identities, five compiles each, preservation, normal closure and
+zero delayed Excel Application failures. Controller roots are under
+`reports/runtime/production-uom-staging-controller/`; intervals are September30 UTC.
+
+| Gate | Controller | UTC interval | Result root under `reports/runtime/` |
+|---|---|---|---|
+| Staging/activity 264/264 | `9fbe651e107249318c77c58e6e91852f` | 11:55:25.8822203--11:59:49.8496079 | `slice4be-production-uom-staging/8b4f4c8a744c4e0f91d90140b7329c74` |
+| Public Close 61/61 | `cbd85b5df24140289e41ac0b1fde8db9` | 12:00:00.7084811--12:01:34.6437975 | `slice4be-production-uom-public-close/9ffb48e6e1144ecdb7a3ee9730d9a520` |
+
+Two staging and three public-Close captures are directly reviewed and hashed in
+their result roots. The workbench preserves operator columns/neighboring cells;
+the visible reopen status says existing edits are retained and the saved catalog
+is not reloaded. Public Close disposes the form and permits the approved reopen.
+
+The first UOM paired-path attempt is incomplete:77 PASS/one harness failure,
+12:01:45.4866113--12:06:53.9723721 UTC, controller
+`ac00a9b3d1344f0eb1bffb16b83918ce`, result
+`reports/runtime/slice4be-production-uom-paths/c1bc3ff8ed14468aad389b9c7c40d8a8/green.json`.
+Compare both passes its method/evidence assertions, then visible capture fails
+because the requested form is not foreground. All three bounded capture attempts
+observe a different form in the same Excel process; the exact cause is unresolved.
+Seven trailing preservation/header checks do not run. This is not behavioral RED
+or a completed GREEN gate. Four available principal images show correct REUSED
+detail, two guide steps and OPENED/REUSED diagnostic matches with zero extras;
+the Compare both/conclusion captures are unavailable. Five compiles, controller
+settings/package restoration, normal closure and zero delayed Excel Application
+failures pass. Desktop probes report no error5.
+
+The unchanged repeat passes84/84,12:08:00.6013895--12:12:23.5965572 UTC,
+controller `da2a1a21643340188d3b16776dbb075c`, result
+`reports/runtime/slice4be-production-uom-paths/2e79dbe9b16046c0bfeb32d6fa9d2ad0/green.json`.
+All84 prior ordered identities, five compiles, preservation, normal closure and
+zero delayed Excel Application failures pass. All six principal images are
+directly reviewed and hashed: OPENED/REUSED match the two instructions with zero
+extras; Compare both and the scrolled conclusion visibly exclude Domain application.
+This establishes the gate for this execution but does not diagnose or repair
+the earlier foreground-capture failure. No runtime, test or package change.
+
 ## Remaining work
 
 The remaining focused regressions and run-only reusable gate remain pending on
