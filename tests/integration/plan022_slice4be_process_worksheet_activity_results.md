@@ -49,14 +49,82 @@ The three changed/new PowerShell test files parse; all347 PowerShell files parse
 Generated fixture/report/image data remains ignored. This is meaningful initial
 RED, not a compile/setup failure or an acceptance claim.
 
+## Extended partial-result and guard RED
+
+Controller `reports/runtime/process-worksheet-activity-controller/5e5d13b95ab2498dbb4322400e20d706`,
+result `reports/runtime/slice4be-process-worksheet-activity/8c2df34b83594a73aedab379eea2d2d7/red.json`,
+2026-09-30,19:29:22.9170273–19:33:04.8811071 UTC:
+**119 PASS / 214 expected FAIL / 333 checks**. Every original220 check retains its
+exact result and relative order, including all42 shared GREEN. Five compiles,
+package/settings preservation, normal closure and delayed Excel audit pass.
+
+Three faults are injected only into the unsaved fixture package, with each fault
+verified to occur exactly once. The real handlers and real Designs queue writes
+still execute. UncertainSecond suppresses the second actual write's acknowledgment:
+one table remains, with exact owner states Submitted/Unknown. RemoveSecond returns
+failure before the second removal: one table remains, with Submitted/Submitted.
+SaveSecond follows the real second lo.Delete, then takes the existing failure
+return before wb.Save: no tables remain in memory, the workbook is unsaved, and
+both references are Submitted. This simulates a save refusal; no real disk fault
+is claimed. The tests do not fabricate identities, parse report text or use
+unhandled Domain Err.Raise/VBE interruption. Later processing may catch up the
+earlier queued event; each action's expected references still come only from its
+own submission returns. Missing FAILED pairs account for24 new failures.
+
+The32 other new failures prove current worksheet/save guards are absent for all
+three actions under Loading, Nested, changed Session and changed Target, and for
+Send/Add while SignedOut. Retrieve submits in the first four contexts; signed-out
+Retrieve does not submit. Inventory business state remains exact. These are
+behavioral failures under D18, not compile or setup failures. No runtime fix yet.
+
+## Closed-workbook fixture calibration — unresolved in the full sequence
+
+Broader capability/policy tests and form-draft preservation checks are written,
+but the full sequence has not reached valid completion. Do not count those test
+definitions or partial output as additional accepted coverage.
+
+- Excluded controller `80ed43dbd7464c2c96f1cd26a229604a` under the same controller
+  parent,19:36:50.9240298–19:43:57.1351238 UTC, stops at
+  TestProductionDesigner.WorksheetActivityGuard after workbook closure. The owned
+  Excel host shows a VBA automation dialog,0x80010007, with Continue disabled.
+  VBE End/Reset is not used. After verifying the exact owned PID/start identity,
+  only that disposable host is forcibly terminated at19:43:43.6633634 UTC so the
+  live controller can restore settings. The subsequent RPC error and harness
+  failure are not product RED. Package/settings restoration and delayed audit
+  pass, but assisted termination excludes the attempt.
+- Isolated `-ClosedDiagnostic` controller `0e95014cd1c547b488fbc29e99b5a1a9`,
+  19:46:46.9664771–19:48:03.0987213 UTC, result
+  `reports/runtime/slice4be-process-worksheet-activity/33dc04141f654c84aff029a08438f634`,
+  shows the actual form before closing its captured workbook. An outer adapter
+  trap prevents an unavailable form reference from becoming an unhandled VBE
+  error. The form adapter is entered and returns normally, outer error0, workbook
+  bytes preserved and no activity. Shared42 and five compiles pass; normal
+  closure, preservation and delayed audit pass. This is diagnostic-only, not a
+  full guard gate or proof of a causal repair.
+- Excluded controller `a16832f3a7c3457c9dbf6a493297d435`,
+  19:49:03.5524662–19:52:45.0175255 UTC, uses the visible-form setup in the longer
+  sequence. The first closed-workbook guard cannot enter its form adapter. The
+  defensive entry assertion stops the test as a fixture failure. It closes
+  normally without another dialog or forced termination; helper/package/settings
+  pins and delayed audit pass. This does not establish that the actual operator
+  handler failed, or that the form remained reachable after workbook closure.
+
+All three delayed Application1000/1001/1002 audits have zero Excel events.
+Desktop probes remain healthy, with no error5. The HRESULT/fixture failure must
+not be confused with the user's conditional desktop-error5 stop instruction.
+No native-crash repair is claimed. All347 PowerShell files parse.
+
 ## Next required work
 
-Before runtime implementation, extend this actual-handler baseline for partial
-multi-table outcomes, failed removal/save, uncertain submission acknowledgment,
-exact per-event Submitted/Unknown references, context/capability/loading/nested
-guards, tracking disabled/unavailable and older-policy behavior. Preserve all220
-check identities and every passing baseline assertion. Do not treat this initial
-happy/rejected-path RED as comprehensive protection of those untested cases.
+Before runtime implementation, calibrate the closed-workbook case against actual
+operator visibility, workbook lifetime and form-entry evidence after the longer
+sequence. Distinguish an already-dismissed surface from an available handler;
+do not force a disconnected private form reference or count inability to enter it
+as behavioral RED. Use fixed boundary facts and a targeted diagnostic, not another
+unchanged full rerun. Then run the written capability-loss, optional-tracking and
+older-policy cases to completion. Preserve all333 check identities and every
+passing assertion; retain the original220 sequence as a subset. Full closed-binding,
+form-draft, capability and policy protection remains unproven.
 The current DeleteProcessWorksheetTable performs lo.Delete before wb.Save. A
 post-confirmation workbook-save failure can leave a local deletion in memory;
 the failure observation must retain the confirmed Designs reference and Unknown

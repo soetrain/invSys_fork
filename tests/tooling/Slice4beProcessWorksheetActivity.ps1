@@ -23,17 +23,76 @@ Public Function WorksheetActivityCaptionForTest(ByVal action As String) As Strin
         Case "RETRIEVE": WorksheetActivityCaptionForTest = mBtnProcessWorksheetRetrieve.Caption
     End Select
 End Function
+Public Function WorksheetActivityGuardForTest(ByVal action As String, ByVal guard As String) As Boolean
+    Dim priorLoading As Boolean, priorBusy As Boolean
+    TestProductionDesigner.WorksheetGuardEnteredForTest = True
+    priorLoading = mLoading: priorBusy = mDesignerActionInProgress
+    On Error GoTo Restore
+    If guard = "Loading" Then mLoading = True
+    If guard = "Nested" Then mDesignerActionInProgress = True
+    WorksheetActivityActForTest action
+    WorksheetActivityGuardForTest = True
+Restore:
+    mLoading = priorLoading: mDesignerActionInProgress = priorBusy
+End Function
+Public Function WorksheetActivityNoticeForTest() As Boolean
+    WorksheetActivityNoticeForTest = (InStr(1, mTxtStatus.Text, "Tracking unavailable", vbTextCompare) > 0)
+End Function
 '@)
     $module=$project.VBComponents.Item('TestProductionDesigner').CodeModule
     $module.InsertLines(1,'Private mWorksheetSubmissionFacts As String')
+    $module.InsertLines(1,"Public WorksheetGuardEnteredForTest As Boolean`r`nPrivate mWorksheetGuardError As Long")
+    $module.InsertLines(1,"Private mWorksheetFault As String`r`nPrivate mWorksheetQueueCount As Long`r`nPrivate mWorksheetDeleteCount As Long`r`nPrivate mWorksheetFaultHits As Long")
     $module.AddFromString(@'
 Public Sub WorksheetActivityStage(ByVal value As String)
     mForm.WorksheetActivityStageForTest value
 End Sub
 Public Sub WorksheetActivityAct(ByVal action As String)
     mWorksheetSubmissionFacts = ""
+    mWorksheetQueueCount = 0: mWorksheetDeleteCount = 0: mWorksheetFaultHits = 0
     mForm.WorksheetActivityActForTest action
 End Sub
+Public Function WorksheetActivityGuard(ByVal action As String, ByVal guard As String) As Boolean
+    On Error GoTo Failed
+    mWorksheetSubmissionFacts = ""
+    WorksheetGuardEnteredForTest = False: mWorksheetGuardError = 0
+    WorksheetActivityGuard = mForm.WorksheetActivityGuardForTest(action, guard)
+    Exit Function
+Failed:
+    mWorksheetGuardError = Err.Number
+End Function
+Public Function WorksheetGuardStatusForTest() As String
+    WorksheetGuardStatusForTest = CStr(WorksheetGuardEnteredForTest) & "|" & CStr(mWorksheetGuardError)
+End Function
+Public Sub WorksheetSafeCloseForTest()
+    On Error Resume Next
+    Unload mForm: Set mForm = Nothing
+End Sub
+Public Function WorksheetActivityNotice() As Boolean
+    WorksheetActivityNotice = mForm.WorksheetActivityNoticeForTest()
+End Function
+Public Sub WorksheetFaultForTest(ByVal mode As String)
+    mWorksheetFault = mode
+End Sub
+Public Function WorksheetFaultHitsForTest() As Long
+    WorksheetFaultHitsForTest = mWorksheetFaultHits
+End Function
+Public Function WorksheetUncertainAckForTest() As Boolean
+    mWorksheetQueueCount = mWorksheetQueueCount + 1
+    If mWorksheetFault = "UncertainSecond" And mWorksheetQueueCount = 2 Then
+        WorksheetUncertainAckForTest = True
+        mWorksheetFaultHits = mWorksheetFaultHits + 1
+    End If
+End Function
+Public Function WorksheetRemovalFailureForTest(ByVal afterDelete As Boolean) As Boolean
+    If Not afterDelete Then mWorksheetDeleteCount = mWorksheetDeleteCount + 1
+    If mWorksheetDeleteCount <> 2 Then Exit Function
+    If (mWorksheetFault = "RemoveSecond" And Not afterDelete) Or _
+       (mWorksheetFault = "SaveSecond" And afterDelete) Then
+        WorksheetRemovalFailureForTest = True
+        mWorksheetFaultHits = mWorksheetFaultHits + 1
+    End If
+End Function
 Public Function WorksheetActivityCaption(ByVal action As String) As String
     WorksheetActivityCaption = mForm.WorksheetActivityCaptionForTest(action)
 End Function
@@ -75,6 +134,19 @@ End Function
     $anchors=@(for($i=0;$i -lt $lines.Count;$i++){if($lines[$i].Trim() -ceq 'If Not facts Is Nothing Then facts.ObserveSubmission eventId, submitted, writeAttempted'){$start+$i}})
     if($anchors.Count -ne 2){throw 'Actual submission observation boundary unavailable; not product RED.'}
     $owner.InsertLines($anchors[0]+1,'    TestProductionDesigner.WorksheetObserveSubmissionForTest eventId, submitted, writeAttempted')
+    # The actual write occurs first. Simulate loss of its acknowledgment, not a
+    # fabricated event or an unhandled Domain Err.Raise/VBE interruption.
+    $owner.InsertLines($anchors[0],'    If TestProductionDesigner.WorksheetUncertainAckForTest() Then submitted = False')
+    $owner=$project.VBComponents.Item('modProductionProcessWorksheet').CodeModule
+    $start=$owner.ProcStartLine('DeleteProcessWorksheetTable',0);$count=$owner.ProcCountLines('DeleteProcessWorksheetTable',0)
+    $lines=$owner.Lines($start,$count) -split '\r?\n'
+    $before=@(for($i=0;$i -lt $lines.Count;$i++){if($lines[$i].Trim() -ceq 'Set lo = FindProcessTableByName(wb, tableName)'){$start+$i}})
+    $after=@(for($i=0;$i -lt $lines.Count;$i++){if($lines[$i].Trim() -ceq 'wb.Save'){$start+$i}})
+    if($before.Count -ne 1 -or $after.Count -ne 1){throw 'Actual removal boundaries unavailable; not product RED.'}
+    # Use the existing failure return at two separate stages. SaveSecond reaches
+    # real lo.Delete, then simulates a save refusal; no real disk fault is claimed.
+    $owner.InsertLines($after[0],'    If TestProductionDesigner.WorksheetRemovalFailureForTest(True) Then GoTo Failed')
+    $owner.InsertLines($before[0],'    If TestProductionDesigner.WorksheetRemovalFailureForTest(False) Then GoTo Failed')
     $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('TestShippingCatalog').CodeModule.AddFromString(@'
 Public Function WorksheetPolicyForTest(ByVal enabled As Boolean) As Boolean
     Dim context As String, version As Long, request As String, report As String
@@ -86,10 +158,16 @@ End Function
 Public Function WorksheetTerminalForTest(ByVal wire As String) As Boolean
     WorksheetTerminalForTest = modEvaluationMatches.CommandCompleted(modTrainingJson.DecodeObject(wire))
 End Function
+Public Function WorksheetCanProduceForTest() As Boolean
+    Dim produce As Boolean, maintain As Boolean
+    produce = modRoleUiAccess.CanCurrentUserPerformCapability("PROD_POST")
+    maintain = modRoleUiAccess.CanCurrentUserPerformCapability("ADMIN_MAINT")
+    WorksheetCanProduceForTest = produce Or maintain
+End Function
 '@)
 }
 
-function Test-ProcessWorksheetActivity($Fixture) {
+function Test-ProcessWorksheetActivity($Fixture,$Other) {
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function Hash([string]$Path){$stream=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $stream).Hash}finally{$stream.Dispose()}}
@@ -127,7 +205,7 @@ function Test-ProcessWorksheetActivity($Fixture) {
         Check ($Label+'.ActualOwnerSubmissionCount') ($observed.Count -eq $SourceCount)
         if($paired){
             $linked=$attempt[0].ActivityId -cne '' -and $attempt[0].ActivityId -ceq $result[0].ActivityId -and $attempt[0].RecordId -cne $result[0].RecordId
-            $severity=if($Outcome -ceq 'REJECTED'){'Warning'}else{'Info'};$dataEffect=if($Outcome -ceq 'CONFIRMED'){'Unknown'}else{'Unchanged'}
+            $severity=switch($Outcome){'REJECTED'{'Warning'} 'DENIED'{'Blocked'} 'FAILED'{'Error'} default{'Info'}};$dataEffect=if($Outcome -in @('CONFIRMED','FAILED')){'Unknown'}else{'Unchanged'}
             $effect=$attempt[0].EventCode -ceq ($id+'_REQUESTED') -and $attempt[0].Severity -ceq 'Info' -and $attempt[0].DataEffect -ceq 'Unknown' -and $result[0].EventCode -ceq ($id+'_'+$Outcome) -and $result[0].Severity -ceq $severity -and $result[0].DataEffect -ceq $dataEffect
             $actual=@($result[0].SourceEventRefs|ForEach-Object{$_.EventId+'|'+$_.SubmissionState})
             $sources=@($attempt[0].SourceEventRefs).Count -eq 0 -and $actual.Count -eq $SourceCount -and ($actual -join "`n") -ceq ($observed -join "`n")
@@ -150,6 +228,22 @@ function Test-ProcessWorksheetActivity($Fixture) {
     $pins=@{};foreach($file in Get-ChildItem -LiteralPath $Fixture.Root -File -Filter '*.xlsb'){$pins[$file.FullName]=Hash $file.FullName}
     $inventoryBefore=InventoryState
     try{
+        if($ProcessWorksheetClosedDiagnostic){
+            $book=$excel.Workbooks.Add();$closedPath=Join-Path $runRoot 'closed-diagnostic.xlsb';$book.SaveAs($closedPath,50)
+            $decoy=$excel.Workbooks.Add()
+            [void](Probe 'OpenDesigner' @($book.Name));[void](Probe 'WorksheetActivityStage' @($canary));[void](Probe 'WorksheetActivityAct' @('SEND'))
+            $book.Save();[void](Probe 'WorksheetHeadersShow')
+            $before=@(Files);$disk=Hash $closedPath
+            Write-Output 'Closed diagnostic: visible form prepared; closing captured workbook.'
+            $book.Close($false);$book=$null
+            Write-Output 'Closed diagnostic: captured workbook closed; invoking guarded adapter.'
+            $returned=[bool](Probe 'WorksheetActivityGuard' @('SEND','ClosedWorkbook'))
+            $status=([string](Probe 'WorksheetGuardStatusForTest')).Split('|')
+            [pscustomobject]@{HandlerEntered=($status[0] -ceq 'True');Returned=$returned;AdapterError=[long]$status[1];WorkbookBytesPreserved=((Hash $closedPath) -ceq $disk);NoActivity=(@(Files).Count -eq $before.Count);DiagnosticOnly=$true}|
+                ConvertTo-Json|Set-Content (Join-Path $reportRoot 'closed-boundary-diagnostic.json')
+            [void](Probe 'WorksheetSafeCloseForTest')
+            return
+        }
         $old=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(21))).Split([char]10)|Where-Object{$_})
         $new=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(22))).Split([char]10)|Where-Object{$_})
         $ids=@('SEND','ADD_ITEM','RETRIEVE')|ForEach-Object{'PRODUCTION_PROCESS_WORKSHEET_'+$_}
@@ -192,6 +286,137 @@ function Test-ProcessWorksheetActivity($Fixture) {
         Check 'ProcessWorksheet.InventoryBusinessStatePreserved' ((InventoryState) -ceq $inventoryBefore)
         Check 'ProcessWorksheet.AuthConfigBytesPreserved' (@($pins.Keys|Where-Object{($_ -like '*.Auth.xlsb' -or $_ -like '*.Config.xlsb') -and (Hash $_) -cne $pins[$_]}).Count -eq 0)
         [void](Probe 'WorksheetHeadersShow');CaptureOwnedFormByCaptionEvidence 'Production' 'process-worksheet-actual-retrieve.png'
+        # Each failure still exercises real submissions/imports. All exact source
+        # identities are taken from the owner return, including catch-up runs.
+        foreach($fault in @('UncertainSecond','RemoveSecond','SaveSecond')){
+            [void](Probe 'CloseDesigner');$book.Close($false);$book=$excel.Workbooks.Add()
+            $book.SaveAs((Join-Path $runRoot ($fault+'.xlsb')),50)
+            [void](Probe 'OpenDesigner' @($book.Name));[void](Probe 'WorksheetFaultForTest' @(''))
+            for($i=0;$i -lt 2;$i++){[void](Probe 'WorksheetActivityStage' @($canary));[void](Probe 'WorksheetActivityAct' @('SEND'))}
+            if(-not [bool](Probe 'WorksheetActivitySelect' @($book.Name,1,2,$true))){throw 'Partial retrieval fixture unavailable.'}
+            [void](Probe 'WorksheetFaultForTest' @($fault));$before=@(Files);[void](Probe 'WorksheetActivityAct' @('RETRIEVE'))
+            Check ('ProcessWorksheet.Partial.'+$fault+'.InjectedOnce') ([long](Probe 'WorksheetFaultHitsForTest') -eq 1)
+            $expectedTables=if($fault -ceq 'SaveSecond'){0}else{1}
+            Check ('ProcessWorksheet.Partial.'+$fault+'.ActualPartialTableState') (@(Tables).Count -eq $expectedTables)
+            if($fault -ceq 'SaveSecond'){Check 'ProcessWorksheet.Partial.SaveSecond.UnsavedDeletionRetained' (-not $book.Saved)}
+            $observed=@(([string](Probe 'WorksheetSubmissionFactsForTest')).Split([char]10)|Where-Object{$_})
+            $states=@($observed|ForEach-Object{($_ -split '\|')[1]})
+            $expectedStates=if($fault -ceq 'UncertainSecond'){'Submitted|Unknown'}else{'Submitted|Submitted'}
+            Check ('ProcessWorksheet.Partial.'+$fault+'.ActualSubmissionStates') (($states -join '|') -ceq $expectedStates)
+            Pair $before 'RETRIEVE' 'FAILED' ('ProcessWorksheet.Partial.'+$fault) 2
+            [void](Probe 'WorksheetFaultForTest' @(''))
+        }
+        [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
+        foreach($guard in @('Loading','Nested','Session','Target','SignedOut','ClosedWorkbook')){
+            foreach($action in @('SEND','ADD_ITEM','RETRIEVE')){
+                SelectTarget $Fixture 'config-producer'
+                $book=$excel.Workbooks.Add();$guardPath=Join-Path $runRoot ('guard-'+$guard+'-'+$action+'.xlsb');$book.SaveAs($guardPath,50)
+                [void](Probe 'OpenDesigner' @($book.Name));[void](Probe 'WorksheetActivityStage' @($canary));[void](Probe 'WorksheetActivityAct' @('SEND'))
+                if(-not [bool](Probe 'WorksheetActivitySelect' @($book.Name,1,1,$true))){throw 'Guard fixture unavailable.'}
+                $book.Save();$table=@(Tables)[0];$tableName=[string]$table.Name;$cells=$table.Range.Formula|ConvertTo-Json -Depth 6 -Compress;$diskPin=Hash $guardPath
+                $draft=[string](Probe 'State' @('Process'))
+                if($guard -ceq 'Session'){SelectTarget $Fixture 'config-producer'}
+                if($guard -ceq 'Target'){SelectTarget $Other 'config-producer'}
+                if($guard -ceq 'SignedOut'){[void](Run 'invSys.Core.xlam' 'modAuth.SignOut')}
+                if($guard -ceq 'ClosedWorkbook'){[void](Probe 'WorksheetHeadersShow');$book.Close($false);$book=$null}
+                $before=@(Files);$otherBefore=@(Get-Slice4beActivityFiles $Other)
+                $returned=[bool](Probe 'WorksheetActivityGuard' @($action,$guard))
+                $entry=([string](Probe 'WorksheetGuardStatusForTest')).Split('|')
+                if($entry[0] -cne 'True'){throw 'Guard fixture did not enter the form adapter; not product RED.'}
+                $same=$true
+                if($null -ne $book){
+                    $remaining=@(Tables);$same=$remaining.Count -eq 1
+                    if($same){$same=[string]$remaining[0].Name -ceq $tableName -and ($remaining[0].Range.Formula|ConvertTo-Json -Depth 6 -Compress) -ceq $cells}
+                }
+                $label='ProcessWorksheet.Guard.'+$guard+'.'+$action
+                Check ($label+'.NoUnhandledError') $returned
+                Check ($label+'.ActualHandlerEntered') ($entry[0] -ceq 'True' -and [long]$entry[1] -eq 0)
+                if($guard -cne 'ClosedWorkbook'){Check ($label+'.WorksheetUnchanged') $same}
+                Check ($label+'.FormDraftUnchanged') ([string](Probe 'State' @('Process')) -ceq $draft)
+                Check ($label+'.NoWorkbookSave') ((Hash $guardPath) -ceq $diskPin)
+                Check ($label+'.NoSubmission') ([string](Probe 'WorksheetSubmissionFactsForTest') -ceq '')
+                Check ($label+'.NoActivityOrRetarget') (@(Files).Count -eq $before.Count -and @(Get-Slice4beActivityFiles $Other).Count -eq $otherBefore.Count)
+                [void](Probe 'CloseDesigner');if($null -ne $book){$book.Close($false)};$book=$null
+            }
+        }
+        SelectTarget $Fixture 'config-producer'
+        Check 'ProcessWorksheet.Extended.InventoryBusinessStatePreserved' ((InventoryState) -ceq $inventoryBefore)
+        # Lose capability without replacing the captured session. Auth bytes stay
+        # only in memory for restoration; no credential material is emitted.
+        foreach($action in @('SEND','ADD_ITEM','RETRIEVE')){
+            SelectTarget $Fixture 'config-producer';$book=$excel.Workbooks.Add()
+            $deniedPath=Join-Path $runRoot ('denied-'+$action+'.xlsb');$book.SaveAs($deniedPath,50)
+            [void](Probe 'OpenDesigner' @($book.Name));[void](Probe 'WorksheetActivityStage' @($canary));[void](Probe 'WorksheetActivityAct' @('SEND'))
+            if(-not [bool](Probe 'WorksheetActivitySelect' @($book.Name,1,1,$true))){throw 'Permission fixture unavailable.'}
+            $book.Save();$table=@(Tables)[0];$cells=$table.Range.Formula|ConvertTo-Json -Depth 6 -Compress;$draft=[string](Probe 'State' @('Process'));$diskPin=Hash $deniedPath
+            $context=[string](Run 'invSys.Core.xlam' 'modActivity.CaptureContext')
+            if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.WorksheetCanProduceForTest')){throw 'Initial capability unavailable.'}
+            $authPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Auth.xlsb');$authBytes=[IO.File]::ReadAllBytes($authPath)
+            try{
+                $auth=$excel.Workbooks.Open($authPath,0,$false)
+                try{
+                    $caps=Table $auth 'tblCapabilities';$changed=0
+                    foreach($row in $caps.ListRows){if($row.Range.Cells.Item(1,$caps.ListColumns.Item('UserId').Index).Value2 -ceq 'config-producer' -and $row.Range.Cells.Item(1,$caps.ListColumns.Item('Capability').Index).Value2 -ceq 'PROD_POST'){$row.Range.Cells.Item(1,$caps.ListColumns.Item('Status').Index).Value2='Inactive';$changed++}}
+                    if($changed -ne 1){throw 'Unique capability fixture required.'};$auth.Save()
+                }finally{$auth.Close($false)}
+                $lost=-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.WorksheetCanProduceForTest')
+                $sameContext=$context -ceq [string](Run 'invSys.Core.xlam' 'modActivity.CaptureContext')
+                Check ('ProcessWorksheet.Denied.'+$action+'.ActualLossSameContext') ($lost -and $sameContext)
+                if(-not($lost -and $sameContext)){throw 'Permission loss not isolated from context loss.'}
+                $before=@(Files);[void](Probe 'WorksheetActivityAct' @($action))
+                $remaining=@(Tables);$same=$remaining.Count -eq 1
+                if($same){$same=($remaining[0].Range.Formula|ConvertTo-Json -Depth 6 -Compress) -ceq $cells}
+                Check ('ProcessWorksheet.Denied.'+$action+'.WorksheetAndDraftUnchanged') ($same -and [string](Probe 'State' @('Process')) -ceq $draft)
+                Check ('ProcessWorksheet.Denied.'+$action+'.NoWorkbookSave') ((Hash $deniedPath) -ceq $diskPin)
+                Pair $before $action 'DENIED' ('ProcessWorksheet.Denied.'+$action)
+            }finally{[IO.File]::WriteAllBytes($authPath,$authBytes);[void](Probe 'CloseDesigner');$book.Close($false);$book=$null;SelectTarget $Fixture 'config-producer'}
+        }
+        $recordPins=@{};foreach($file in Files){$recordPins[$file]=Hash $file}
+        $configBytes=[IO.File]::ReadAllBytes($Fixture.Config)
+        foreach($mode in @('Off','Older','Unavailable')){
+            $blocked=Join-Path (Join-Path $Fixture.Root 'Training\Activity') $Fixture.Warehouse;$held=$blocked+'-worksheet-held';$moved=$false
+            foreach($pathCheck in @($blocked,$held)){if(-not [IO.Path]::GetFullPath($pathCheck).StartsWith([IO.Path]::GetFullPath($Fixture.Root).TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Tracking fixture escaped owned runtime.'}}
+            if(Test-Path -LiteralPath $held){throw 'Preserve existing held fixture.'}
+            try{
+                if($mode -ceq 'Off'){
+                    SelectTarget $Fixture
+                    if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.WorksheetPolicyForTest' @($false))){throw 'Tracking-off fixture unavailable.'}
+                }
+                if($mode -ceq 'Older'){
+                    $cfg=$excel.Workbooks.Open($Fixture.Config,0,$false)
+                    try{
+                        (Table $cfg 'tblEventTrackingPolicies').ListColumns.Item('CatalogVersion').DataBodyRange.Value2=21.0
+                        $controls=Table $cfg 'tblEventTrackingControls'
+                        for($i=$controls.ListRows.Count;$i -ge 1;$i--){if($controls.ListRows.Item($i).Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2 -cin $ids){$controls.ListRows.Item($i).Delete()}}
+                        $cfg.Save()
+                    }finally{$cfg.Close($false)}
+                }
+                SelectTarget $Fixture 'config-producer'
+                if($mode -ceq 'Older'){Check 'ProcessWorksheet.OlderPolicy.ExistingControlReadable' (([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Policy' @('PRODUCTION_CLOSE'))).StartsWith('True|True|'))}
+                if($mode -ceq 'Unavailable'){
+                    if(Test-Path -LiteralPath $blocked){Move-Item -LiteralPath $blocked -Destination $held;$moved=$true}
+                    [IO.File]::WriteAllText($blocked,'Blocked disposable worksheet activity path')
+                }
+                foreach($action in @('SEND','ADD_ITEM','RETRIEVE')){
+                    $book=$excel.Workbooks.Add();$book.SaveAs((Join-Path $runRoot ($mode+'-'+$action+'.xlsb')),50)
+                    [void](Probe 'OpenDesigner' @($book.Name));[void](Probe 'WorksheetActivityStage' @($canary));[void](Probe 'WorksheetActivityAct' @('SEND'))
+                    if(-not [bool](Probe 'WorksheetActivitySelect' @($book.Name,1,1,$true))){throw 'Optional tracking fixture unavailable.'}
+                    $columns=@(Tables)[0].ListColumns.Count;$before=@(Files);[void](Probe 'WorksheetActivityAct' @($action))
+                    $remaining=@(Tables);$worked=switch($action){'SEND'{$remaining.Count -eq 2} 'ADD_ITEM'{$remaining.Count -eq 1 -and $remaining[0].ListColumns.Count -eq $columns+2} 'RETRIEVE'{$remaining.Count -eq 0}}
+                    Check ('ProcessWorksheet.Tracking.'+$mode+'.'+$action+'.ActionAndSaveContinue') ($worked -and $book.Saved)
+                    Check ('ProcessWorksheet.Tracking.'+$mode+'.'+$action+'.NoActivity') (@(Files).Count -eq $before.Count)
+                    if($mode -ceq 'Unavailable'){Check ('ProcessWorksheet.Tracking.'+$mode+'.'+$action+'.NoticeVisible') ([bool](Probe 'WorksheetActivityNotice'))}
+                    [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
+                }
+            }finally{
+                if($mode -ceq 'Unavailable' -and (Test-Path -LiteralPath $blocked -PathType Leaf)){Remove-Item -LiteralPath $blocked}
+                if($moved){Move-Item -LiteralPath $held -Destination $blocked}
+                [IO.File]::WriteAllBytes($Fixture.Config,$configBytes);SelectTarget $Fixture 'config-producer'
+            }
+        }
+        Check 'ProcessWorksheet.PriorActivityImmutable' (@($recordPins.Keys|Where-Object{(Hash $_) -cne $recordPins[$_]}).Count -eq 0)
+        Check 'ProcessWorksheet.Final.InventoryBusinessStatePreserved' ((InventoryState) -ceq $inventoryBefore)
+        Check 'ProcessWorksheet.Final.AuthConfigBytesPreserved' (@($pins.Keys|Where-Object{($_ -like '*.Auth.xlsb' -or $_ -like '*.Config.xlsb') -and (Hash $_) -cne $pins[$_]}).Count -eq 0)
     }finally{
         try{[void](Probe 'CloseDesigner')}catch{}
         if($null -ne $decoy){$decoy.Close($false)}

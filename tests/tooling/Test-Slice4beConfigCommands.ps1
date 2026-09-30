@@ -13,6 +13,7 @@ param(
     [switch]$CheckProcessWorksheetHeaders,
     [switch]$CheckProcessWorksheetPicker,
     [switch]$CheckProcessWorksheetActivity,
+    [switch]$ProcessWorksheetClosedDiagnostic,
     [switch]$CheckProductionClosePaths,
     [switch]$CheckInventoryQueryReadOnly,
     [switch]$InventoryQueriesOnly,
@@ -232,6 +233,7 @@ if($InventoryQueriesOnly -and -not $CheckInventoryQueryReadOnly){throw 'Query-on
 if($CheckInventoryQueryReadOnly -and -not $CheckProductionClose){throw 'Inventory query preservation supplements the compiled public Production Close gate.'}
 if($CheckProcessWorksheetPicker -and -not $CheckProcessWorksheetHeaders){throw 'Process picker checks require the compiled worksheet fixture adapters.'}
 if($CheckProcessWorksheetActivity -and (-not $CheckProcessWorksheetHeaders -or $CheckProcessWorksheetPicker)){throw 'Worksheet observations require their separate compiled worksheet fixture gate.'}
+if($ProcessWorksheetClosedDiagnostic -and -not $CheckProcessWorksheetActivity){throw 'Closed diagnostic requires worksheet activity fixtures.'}
 if($CheckProductionClosePaths -and (-not $CheckProductionClose -or $CheckInventoryQueryReadOnly -or $InventoryQueriesOnly)){throw 'Close paths require a separate compiled Close gate.'}
 if($CheckProcessWorksheetHeaders -and (-not $CheckProductionDesignerActivity -or -not $CaptureEvidence -or $CheckProductionClose -or $CheckProductionUomStaging -or $CheckProductionInstructions -or $CheckProductionComponents -or $CheckProductionRecipeOrder -or $CheckProductionRecipeStructure -or $CheckProductionDesignReads -or $CheckProductionRegulation -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Process worksheet headers require their separate visible compiled handler gate.'}
 if($CheckProductionClose -and (-not $CheckProductionDesignerActivity -or -not $CaptureEvidence -or $CheckProductionUomStaging -or $CheckProductionInstructions -or $CheckProductionComponents -or $CheckProductionRecipeOrder -or $CheckProductionRecipeStructure -or $CheckProductionDesignReads -or $CheckProductionRegulation -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Production Close requires its separate visible compiled handler gate.'}
@@ -1548,7 +1550,7 @@ End Function
     if($CheckProductionDesignerActivity){
         $step='Production designer observations through actual packaged handlers'
         if($CheckProcessWorksheetPicker){Test-ProcessWorksheetPicker $a}
-        elseif($CheckProcessWorksheetActivity){Test-ProcessWorksheetActivity $a}
+        elseif($CheckProcessWorksheetActivity){Test-ProcessWorksheetActivity $a $b}
         elseif($CheckProcessWorksheetHeaders){Test-ProcessWorksheetHeaders $a}
         elseif($CheckProductionInstructionPaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
