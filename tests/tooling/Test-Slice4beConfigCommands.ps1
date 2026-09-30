@@ -17,6 +17,7 @@ param(
     [switch]$CheckProductionInstructions,
     [switch]$CheckProductionComponents,
     [switch]$CheckProductionRecipeOrder,
+    [switch]$CheckProductionRecipeOrderPaths,
     [switch]$CheckProductionComponentPaths,
     [switch]$CheckProductionInstructionPaths,
     [switch]$CheckProductionLifecycle,
@@ -220,6 +221,7 @@ if($CheckProductionUomPaths -and (-not $CheckProductionUomStaging -or -not $Capt
 if($CheckProductionInstructions -and (-not $CheckProductionDesignerActivity -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Instruction checks require their separate compiled Production designer gate.'}
 if($CheckProductionComponents -and (-not $CheckProductionDesignerActivity -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Component checks require their separate compiled Production designer gate.'}
 if($CheckProductionRecipeOrder -and (-not $CheckProductionDesignerActivity -or $CheckProductionComponents -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Recipe ordering requires its separate compiled Production designer gate.'}
+if($CheckProductionRecipeOrderPaths -and (-not $CheckProductionRecipeOrder -or -not $CaptureEvidence)){throw 'Recipe ordering paths require compiled ordering adapters and visible evidence.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
 if($CheckProductionComponentPaths -and (-not $CheckProductionComponents -or -not $CaptureEvidence)){throw 'Component paths require the compiled component adapters and visible evidence.'}
 if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
@@ -402,6 +404,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionInstructions){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instructions/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionComponents){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-components/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeOrder){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-order/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionRecipeOrderPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-order-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructionPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instruction-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomPublicClose){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-public-close/'+[guid]::NewGuid().ToString('N'))}
@@ -878,7 +881,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths){
+    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -1176,7 +1179,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
             Install-ProductionLifecycleProbe
         }
-        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths){
+        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
             Install-ProductionPathsProbe
         }
@@ -1188,7 +1191,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleNative.ps1')
             Install-ProductionLifecycleNativeProbe
         }
-        if($CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths){
+        if($CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths){
             . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
             Install-GuideDraftProbe
         }
@@ -1455,6 +1458,10 @@ End Function
         elseif($CheckProductionComponentPaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
             Test-ProductionInstructionPaths $a -Components
+        }
+        elseif($CheckProductionRecipeOrderPaths){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
+            Test-ProductionInstructionPaths $a -RecipeOrder
         }
         elseif($CheckProductionComponents){Test-ProductionComponentActivity $a $b}
         elseif($CheckProductionRecipeOrder){Test-ProductionRecipeOrderActivity $a $b}

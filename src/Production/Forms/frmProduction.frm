@@ -6084,10 +6084,6 @@ Private Function ValidateWholeQuantityForUom(ByVal quantityText As String, _
     ValidateWholeQuantityForUom = True
 End Function
 
-Private Sub MoveSelectedListRow(ByVal listControl As MSForms.ListBox, ByVal direction As Long)
-    Call modProductionComponentLists.MoveRow(listControl, direction, mLstProcessInstructions)
-End Sub
-
 Private Function ValidateProcessDraft(ByRef report As String) As Boolean
     Dim i As Long
     Dim usedComponentIds As Object
@@ -10907,20 +10903,38 @@ Private Sub mBtnRecipeDisconnect_Click()
 End Sub
 
 Private Sub mBtnRecipeMoveUp_Click()
-    MoveSelectedListRow mLstRecipeNodes, -1
-    RenumberRecipeExecutionOrder
-    RefreshConnectionNodeCombos
+    DesignerRecipeOrderAction RecipeOrderUp
 End Sub
 
 Private Sub mBtnRecipeMoveDown_Click()
-    MoveSelectedListRow mLstRecipeNodes, 1
-    RenumberRecipeExecutionOrder
-    RefreshConnectionNodeCombos
+    DesignerRecipeOrderAction RecipeOrderDown
 End Sub
 
 Private Sub mBtnRecipeAutoOrder_Click()
-    AutoOrderRecipeNodes
+    DesignerRecipeOrderAction RecipeOrderAuto
 End Sub
+
+Private Sub DesignerRecipeOrderAction(ByVal action As ProductionRecipeOrderAction)
+    Dim report As String
+    report = modProductionRecipeOrderActions.EditOrder(Me, action, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress)
+    If report <> "" Then ShowStatus report
+End Sub
+
+Public Function ApplyRecipeOrderAction(ByVal action As ProductionRecipeOrderAction, ByRef report As String) As Boolean
+    Select Case action
+        Case RecipeOrderUp: ApplyRecipeOrderAction = modProductionComponentLists.MoveRow(mLstRecipeNodes, -1, mLstProcessInstructions)
+        Case RecipeOrderDown: ApplyRecipeOrderAction = modProductionComponentLists.MoveRow(mLstRecipeNodes, 1, mLstProcessInstructions)
+        Case RecipeOrderAuto: modProductionRecipeOrderActions.OrderNodes mLstRecipeNodes, mLstRecipeConnections, mLstProcessInstructions
+        Case Else: Exit Function
+    End Select
+    RenumberRecipeExecutionOrder
+    RefreshConnectionNodeCombos
+    If action = RecipeOrderAuto Then
+        RefreshRecipeConnectionDisplay
+        ApplyRecipeOrderAction = RecipeGraphIsAcyclic()
+        If ApplyRecipeOrderAction Then report = "Recipe execution order updated." Else report = "Auto Order cannot resolve a circular dependency."
+    End If
+End Function
 
 Private Sub mBtnRecipeValidate_Click()
     DesignerDraftAction False, "VALIDATE"
@@ -10998,36 +11012,6 @@ Private Sub LoadConnectionEditorFromIndex(ByVal idx As Long)
     mTxtConnectionQty.Text = NzStr(mLstRecipeConnections.List(idx, 4))
     mTxtConnectionPercent.Text = NzStr(mLstRecipeConnections.List(idx, 5))
     RefreshConnectionUomCatalog NzStr(mLstRecipeConnections.List(idx, 6))
-End Sub
-
-Private Sub AutoOrderRecipeNodes()
-    Dim pass As Long
-    Dim i As Long
-    Dim fromIndex As Long
-    Dim toIndex As Long
-    Dim changed As Boolean
-
-    For pass = 1 To mLstRecipeNodes.ListCount * mLstRecipeNodes.ListCount
-        changed = False
-        For i = 0 To mLstRecipeConnections.ListCount - 1
-            fromIndex = RecipeNodeIndex(NzStr(mLstRecipeConnections.List(i, 0)))
-            toIndex = RecipeNodeIndex(NzStr(mLstRecipeConnections.List(i, 2)))
-            If fromIndex >= toIndex And fromIndex >= 0 And toIndex >= 0 Then
-                mLstRecipeNodes.ListIndex = fromIndex
-                MoveSelectedListRow mLstRecipeNodes, -1
-                changed = True
-            End If
-        Next i
-        If Not changed Then Exit For
-    Next pass
-    RenumberRecipeExecutionOrder
-    RefreshConnectionNodeCombos
-    RefreshRecipeConnectionDisplay
-    If RecipeGraphIsAcyclic() Then
-        ShowStatus "Recipe execution order updated."
-    Else
-        ShowStatus "Auto Order cannot resolve a circular dependency."
-    End If
 End Sub
 
 Private Sub mLstBuilderRecipes_Click()

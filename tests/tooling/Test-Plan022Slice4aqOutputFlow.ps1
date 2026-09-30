@@ -12,6 +12,7 @@ function Read-Text([string]$Path) {
 }
 
 $form = Read-Text (Join-Path $repo "src\Production\Forms\frmProduction.frm")
+$ordering = Read-Text (Join-Path $repo "src\Production\Modules\modProductionRecipeOrderActions.bas")
 $validator = Read-Text (Join-Path $repo "tools\validate_plan022_packaged_launchers.ps1")
 $spec = Read-Text (Join-Path $docs "0 plan docs\xlam_invSys\invSys-Design-v4.11.md")
 $plan = Read-Text (Join-Path $docs "expert guidance docs\022 Deployed Operations Launcher and NAS Runtime Stabilization Plan.md")
@@ -43,7 +44,10 @@ $checks = @(
         $form -match 'Private Function BuildRecipeStageMap\(\) As Object' -and
         $form -match 'targetStage = sourceStage \+ 1' -and
         $form -match 'Stage " & CStr' -and
-        $form -match 'Private Sub AutoOrderRecipeNodes\(\)[\s\S]{0,1400}RefreshRecipeConnectionDisplay' },
+        $form -match 'Private Sub mBtnRecipeAutoOrder_Click\(\)\s+DesignerRecipeOrderAction RecipeOrderAuto\s+End Sub' -and
+        $form -match 'Private Sub DesignerRecipeOrderAction[\s\S]{0,400}modProductionRecipeOrderActions.EditOrder\(Me, action,' -and
+        $ordering -match 'owner.ApplyRecipeOrderAction\(action, report\)' -and
+        $form -match 'Public Function ApplyRecipeOrderAction[\s\S]{0,1600}If action = RecipeOrderAuto Then\s+RefreshRecipeConnectionDisplay' },
     [pscustomobject]@{ Name = "Form.HiddenGraphIdentityPreserved"; Pass =
         $form -match '\.List\(idx, 2\) = ConnectionTargetNodeId\(\)' -and
         $form -match '\.List\(idx, 3\) = ConnectionRequirementId\(\)' -and

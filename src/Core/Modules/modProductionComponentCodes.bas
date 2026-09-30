@@ -38,29 +38,7 @@ Public Function Control(ByVal id As String) As Object
 End Function
 
 Public Function Outcome(ByVal id As String, ByVal code As String) As Object
-    Dim definition As Object, record As Object, severity As String, effect As String
-    Dim message As String, nextStep As String
-    Set definition = Control(id)
-    If definition Is Nothing Then Exit Function
-    severity = "Info": effect = "Unchanged"
-    Select Case code
-        Case "REQUESTED": effect = "Unknown": message = "Process component edit requested."
-        Case "STAGED"
-            message = "Process components changed locally; saved definitions were not changed."
-            nextStep = "Validate the process draft before using the owning Save command."
-        Case "REJECTED"
-            severity = "Warning": message = "The component edit requires valid input or selection; saved definitions were not changed."
-            nextStep = "Review the current editor and selection before retrying."
-        Case "DENIED"
-            severity = "Blocked": message = "Production permission is required; the draft was not changed."
-        Case "FAILED"
-            severity = "Error": effect = "Unknown"
-            message = "The component edit failed; inspect the current draft before retrying."
-        Case Else: Exit Function
-    End Select
-    Set record = CreateObject("Scripting.Dictionary")
-    record.Add "EventCode", id & "_" & code: record.Add "OutcomeCode", code
-    record.Add "Severity", severity: record.Add "DataEffect", effect
-    record.Add "UserMessage", message: record.Add "NextStep", nextStep
-    Set Outcome = record
+    Dim definition As Object
+    Set definition = modProductionComponentCodes.Control(id)
+    If Not definition Is Nothing Then Set Outcome = modProductionLocalEditCodes.Outcome(id, code)
 End Function

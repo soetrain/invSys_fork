@@ -3,6 +3,17 @@
 Last reviewed: 2026-09-30 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
+**Recipe ordering candidate,2026-09-30:** catalog17 adds Move Up, Move Down and
+Auto Order under the prior normative refinement. Registration32/68,36 pending;
+actual-handler RED146/317 becomes463/463 on the final unpromoted candidate. Five
+builds/compiles/cold load, static limits, preservation and two principal captures
+pass. Dynamic9/45 and191 duplicate groups remain unchanged after consolidating
+outcome construction. Final paired paths93/93 and component regression795/795
+retain exact prior checks, five compiles, preservation and normal closure; six
+paired captures are reviewed. Remaining regressions/layout/full chain/reusable
+and broader acceptance are still required. See [Recipe ordering evidence](plan022_slice4be_production_recipe_order_results.md).
+Earlier catalog16 records below retain their original candidate scope.
+
 **Later cleanup correction:** Smoke86/86 now exits both hosts unassisted after
 releasing completed-host references through the repaired isolated helper. Original
 calibration8/8, nested-expired calibration9/9 and Settings202/202 pass; Settings
