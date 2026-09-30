@@ -319,9 +319,26 @@ zero failures, settings/packages are preserved, final closure is normal and
 the delayed Application audit finds zero Excel failures. This gate requests no
 new screenshots and does not establish human acceptance.
 
+Settings activity passes 493/493, retaining all491 prior checks in exact relative
+order plus exactly the two older-policy exclusions for the regulation controls.
+Five compiles, settings/package preservation, normal unassisted closure and zero
+delayed Excel Application failures pass. The controller waits for cleanup without
+terminating Excel. Interval:2026-09-30 12:34:45.8333478--12:49:43.5484912 UTC;
+controller `reports/runtime/production-regulation-regression/settingsactivity-5a4d23e0d3a841ed9099ea9904cc5bc5`;
+result `reports/runtime/slice4be-settings-activity/8dc50d83baff448eb3e79dcd3e48e7a2/green.json`.
+Eight images are directly reviewed and hashed. Staged and effective preferences
+remain distinct; denied reload clears the editor, failed profile reads explicitly
+use built-in display defaults, and successful saves report tracking unavailability
+separately. This is agent review, not full visual or human acceptance.
+
+Visual follow-up discovered in that review: Event Detail Show/Order/Required
+headings appear left of their corresponding list values. Compare the existing
+geometry and protect alignment with a focused layout test before any repair;
+no runtime change or causal claim is made by this evidence checkpoint.
+
 ## Remaining work
 
-The remaining focused regressions and run-only reusable gate remain pending on
+The run-only reusable gate and the noted visual follow-up remain pending on
 this final candidate. Catalog19 remains unchanged
 and unpromoted. Its ordinary full reusable native failure remains unresolved; see
 [designer read evidence](plan022_slice4be_production_design_read_results.md).
