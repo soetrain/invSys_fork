@@ -7,21 +7,9 @@ Private Const FIRST_TABLE_TOP_ROW As Long = 1
 Private Const TABLE_HEADER_OFFSET As Long = 5
 Private Const TABLE_GAP_ROWS As Long = 6
 
-Private Const COL_RECORD_TYPE As Long = 1
-Private Const COL_ID As Long = 2
-Private Const COL_NAME As Long = 3
-Private Const COL_QTY As Long = 4
-Private Const COL_PERCENT As Long = 5
-Private Const COL_BASIS_QTY As Long = 6
-Private Const COL_UOM As Long = 7
-Private Const COL_DESIGN_ID As Long = 8
-Private Const COL_DESIGN_VERSION As Long = 9
-Private Const COL_INSTRUCTION As Long = 10
-Private Const COL_REQUIREMENT_ID As Long = 11
-Private Const COL_QTY_MODE As Long = 12
-Private Const COL_OUTPUT_SKU As Long = 13
-Private Const COL_ACCEPTABLE_ITEM As Long = 14
-Private Const COL_ACCEPTED_SKU As Long = 15
+' Initial construction only; runtime fields resolve through normalized headers.
+Private Const INITIAL_ACCEPTABLE_ITEM_COLUMN As Long = 14
+Private Const INITIAL_ACCEPTED_SKU_COLUMN As Long = 15
 Private Const FIRST_ALTERNATIVE_PAIR As Long = 1
 Private Const DEFAULT_ALTERNATIVE_PAIRS As Long = 4
 
@@ -202,21 +190,21 @@ Public Function ReadProcessDraftFromWorksheet(ByVal wb As Workbook, _
         Exit Function
     End If
     For rowIndex = 1 To lo.ListRows.Count
-        recordType = UCase$(Trim$(WorksheetValue(lo, rowIndex, COL_RECORD_TYPE)))
+        recordType = UCase$(Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Record Type")))
         If Not WorksheetRowHasBusinessData(lo, rowIndex) Then GoTo ContinueRow
-        rowId = UCase$(Trim$(WorksheetValue(lo, rowIndex, COL_ID)))
-        rowName = Trim$(WorksheetValue(lo, rowIndex, COL_NAME))
-        acceptedSku = Trim$(WorksheetValueByHeader(lo, rowIndex, "Accepted SKU 1"))
-        acceptableItem = Trim$(WorksheetValueByHeader(lo, rowIndex, "Acceptable Managed Item 1"))
-        outputSku = Trim$(WorksheetValueByHeader(lo, rowIndex, "Output SKU"))
-        requirementId = UCase$(Trim$(WorksheetValue(lo, rowIndex, COL_REQUIREMENT_ID)))
-        uom = UCase$(Trim$(WorksheetValue(lo, rowIndex, COL_UOM)))
-        instructionText = Trim$(WorksheetValue(lo, rowIndex, COL_INSTRUCTION))
-        qtyMode = UCase$(Trim$(WorksheetValue(lo, rowIndex, COL_QTY_MODE)))
+        rowId = UCase$(Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "ID")))
+        rowName = Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Name"))
+        acceptedSku = Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Accepted SKU 1"))
+        acceptableItem = Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Acceptable Managed Item 1"))
+        outputSku = Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Output SKU"))
+        requirementId = UCase$(Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Requirement ID")))
+        uom = UCase$(Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "UOM")))
+        instructionText = Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Instruction"))
+        qtyMode = UCase$(Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Qty Mode")))
         If qtyMode = "" Then qtyMode = "FIXED"
-        hasQty = TryPositiveWorksheetNumber(WorksheetValue(lo, rowIndex, COL_QTY), qty)
-        hasPercent = TryPositiveWorksheetNumber(WorksheetValue(lo, rowIndex, COL_PERCENT), percentValue)
-        Call TryPositiveWorksheetNumber(WorksheetValue(lo, rowIndex, COL_BASIS_QTY), basisQty)
+        hasQty = TryPositiveWorksheetNumber(modProcessWorksheetColumns.Text(lo, rowIndex, "Qty"), qty)
+        hasPercent = TryPositiveWorksheetNumber(modProcessWorksheetColumns.Text(lo, rowIndex, "Percent"), percentValue)
+        Call TryPositiveWorksheetNumber(modProcessWorksheetColumns.Text(lo, rowIndex, "Basis Qty"), basisQty)
 
         Select Case recordType
             Case "INPUT", "REQUIREMENT"
@@ -580,13 +568,13 @@ Public Function ProcessManagedItemPairNumber(ByVal target As Range) As Long
     On Error GoTo 0
     If Not IsInvSysProcessTable(lo) Then Exit Function
     On Error Resume Next
-    Set recordTypeColumn = lo.ListColumns("Record Type")
+    Set recordTypeColumn = modProcessWorksheetColumns.Field(lo, "Record Type")
     On Error GoTo 0
     If recordTypeColumn Is Nothing Or target.Row <= lo.HeaderRowRange.Row Then Exit Function
     For pairNumber = FIRST_ALTERNATIVE_PAIR To AlternativePairCount(lo)
         Set targetColumn = Nothing
         On Error Resume Next
-        Set targetColumn = lo.ListColumns("Acceptable Managed Item " & CStr(pairNumber))
+        Set targetColumn = modProcessWorksheetColumns.Field(lo, "Acceptable Managed Item " & CStr(pairNumber))
         On Error GoTo 0
         If Not targetColumn Is Nothing Then
             If target.Column = targetColumn.Range.Column Then Exit For
@@ -644,30 +632,30 @@ Public Function PopulateFormulationExampleForTest(ByVal wb As Workbook, _
         uoms = Array("LB", "LB", "LB", "LB")
     End If
     For rowIndex = 1 To 4
-        lo.DataBodyRange.Cells(rowIndex, COL_RECORD_TYPE).Value2 = "INPUT"
-        lo.DataBodyRange.Cells(rowIndex, COL_NAME).Value2 = names(rowIndex - 1)
-        lo.DataBodyRange.Cells(rowIndex, COL_QTY).Value2 = quantities(rowIndex - 1)
-        lo.DataBodyRange.Cells(rowIndex, COL_UOM).Value2 = uoms(rowIndex - 1)
+        modProcessWorksheetColumns.Cell(lo, rowIndex, "Record Type").Value2 = "INPUT"
+        modProcessWorksheetColumns.Cell(lo, rowIndex, "Name").Value2 = names(rowIndex - 1)
+        modProcessWorksheetColumns.Cell(lo, rowIndex, "Qty").Value2 = quantities(rowIndex - 1)
+        modProcessWorksheetColumns.Cell(lo, rowIndex, "UOM").Value2 = uoms(rowIndex - 1)
     Next rowIndex
-    lo.DataBodyRange.Cells(7, COL_RECORD_TYPE).Value2 = "OUTPUT"
+    modProcessWorksheetColumns.Cell(lo, 7, "Record Type").Value2 = "OUTPUT"
     If mixedUom Then
-        lo.DataBodyRange.Cells(7, COL_NAME).Value2 = "64oz Classic Chai"
-        lo.DataBodyRange.Cells(7, COL_OUTPUT_SKU).Value2 = "SKU-CHAI-64OZ"
-        lo.DataBodyRange.Cells(7, COL_QTY).Value2 = 1#
-        lo.DataBodyRange.Cells(7, COL_UOM).Value2 = "EA"
-        lo.DataBodyRange.Cells(1, AlternativeItemColumnIndex(1)).Value2 = "Chai Concentrate"
-        lo.DataBodyRange.Cells(1, AlternativeSkuColumnIndex(1)).Value2 = "SKU-CHAI-CONCENTRATE"
-        lo.DataBodyRange.Cells(2, AlternativeItemColumnIndex(1)).Value2 = "64oz Empty Bottle"
-        lo.DataBodyRange.Cells(2, AlternativeSkuColumnIndex(1)).Value2 = "SKU-BOTTLE-64OZ"
-        lo.DataBodyRange.Cells(3, AlternativeItemColumnIndex(1)).Value2 = "48mm Bottle Cap"
-        lo.DataBodyRange.Cells(3, AlternativeSkuColumnIndex(1)).Value2 = "SKU-CAP-48MM"
+        modProcessWorksheetColumns.Cell(lo, 7, "Name").Value2 = "64oz Classic Chai"
+        modProcessWorksheetColumns.Cell(lo, 7, "Output SKU").Value2 = "SKU-CHAI-64OZ"
+        modProcessWorksheetColumns.Cell(lo, 7, "Qty").Value2 = 1#
+        modProcessWorksheetColumns.Cell(lo, 7, "UOM").Value2 = "EA"
+        modProcessWorksheetColumns.Cell(lo, 1, "Acceptable Managed Item " & CStr(1)).Value2 = "Chai Concentrate"
+        modProcessWorksheetColumns.Cell(lo, 1, "Accepted SKU " & CStr(1)).Value2 = "SKU-CHAI-CONCENTRATE"
+        modProcessWorksheetColumns.Cell(lo, 2, "Acceptable Managed Item " & CStr(1)).Value2 = "64oz Empty Bottle"
+        modProcessWorksheetColumns.Cell(lo, 2, "Accepted SKU " & CStr(1)).Value2 = "SKU-BOTTLE-64OZ"
+        modProcessWorksheetColumns.Cell(lo, 3, "Acceptable Managed Item " & CStr(1)).Value2 = "48mm Bottle Cap"
+        modProcessWorksheetColumns.Cell(lo, 3, "Accepted SKU " & CStr(1)).Value2 = "SKU-CAP-48MM"
     Else
-        lo.DataBodyRange.Cells(7, COL_NAME).Value2 = "Finished Formula"
-        lo.DataBodyRange.Cells(7, COL_OUTPUT_SKU).Value2 = "SKU-FINISHED"
-        lo.DataBodyRange.Cells(7, COL_QTY).Value2 = 611.2
-        lo.DataBodyRange.Cells(7, COL_UOM).Value2 = "LB"
-        lo.DataBodyRange.Cells(1, AlternativeItemColumnIndex(1)).Value2 = "Sugar Stock"
-        lo.DataBodyRange.Cells(1, AlternativeSkuColumnIndex(1)).Value2 = "SKU-SUGAR"
+        modProcessWorksheetColumns.Cell(lo, 7, "Name").Value2 = "Finished Formula"
+        modProcessWorksheetColumns.Cell(lo, 7, "Output SKU").Value2 = "SKU-FINISHED"
+        modProcessWorksheetColumns.Cell(lo, 7, "Qty").Value2 = 611.2
+        modProcessWorksheetColumns.Cell(lo, 7, "UOM").Value2 = "LB"
+        modProcessWorksheetColumns.Cell(lo, 1, "Acceptable Managed Item " & CStr(1)).Value2 = "Sugar Stock"
+        modProcessWorksheetColumns.Cell(lo, 1, "Accepted SKU " & CStr(1)).Value2 = "SKU-SUGAR"
     End If
     ApplyProcessWorksheetManagedColumns lo
     Application.Calculate
@@ -690,14 +678,14 @@ Public Function ReadFormulaEvidenceForTest(ByVal wb As Workbook, _
         Exit Function
     End If
     For rowIndex = 1 To 4
-        totalPercent = totalPercent + CDbl(lo.DataBodyRange.Cells(rowIndex, COL_PERCENT).Value2)
+        totalPercent = totalPercent + CDbl(modProcessWorksheetColumns.Cell(lo, rowIndex, "Percent").Value2)
     Next rowIndex
     ReadFormulaEvidenceForTest = "OK|Basis=" & _
-        Format$(CDbl(lo.DataBodyRange.Cells(1, COL_BASIS_QTY).Value2), "0.0") & _
-        "|Sugar=" & Format$(CDbl(lo.DataBodyRange.Cells(1, COL_PERCENT).Value2), "0.0") & _
-        "|Flour=" & Format$(CDbl(lo.DataBodyRange.Cells(2, COL_PERCENT).Value2), "0.0") & _
-        "|BakingPowder=" & Format$(CDbl(lo.DataBodyRange.Cells(3, COL_PERCENT).Value2), "0.0") & _
-        "|Water=" & Format$(CDbl(lo.DataBodyRange.Cells(4, COL_PERCENT).Value2), "0.0") & _
+        Format$(CDbl(modProcessWorksheetColumns.Cell(lo, 1, "Basis Qty").Value2), "0.0") & _
+        "|Sugar=" & Format$(CDbl(modProcessWorksheetColumns.Cell(lo, 1, "Percent").Value2), "0.0") & _
+        "|Flour=" & Format$(CDbl(modProcessWorksheetColumns.Cell(lo, 2, "Percent").Value2), "0.0") & _
+        "|BakingPowder=" & Format$(CDbl(modProcessWorksheetColumns.Cell(lo, 3, "Percent").Value2), "0.0") & _
+        "|Water=" & Format$(CDbl(modProcessWorksheetColumns.Cell(lo, 4, "Percent").Value2), "0.0") & _
         "|Total=" & Format$(totalPercent, "0.0")
 End Function
 
@@ -872,27 +860,25 @@ Private Sub WriteWorksheetRecord(ByVal lo As ListObject, ByVal rowIndex As Long,
                                  ByVal record As Object)
     Dim pairNumber As Long
 
-    With lo.DataBodyRange
-        .Cells(rowIndex, COL_RECORD_TYPE).Value2 = record("RecordType")
-        .Cells(rowIndex, COL_ID).Value2 = record("Id")
-        .Cells(rowIndex, COL_NAME).Value2 = record("Name")
-        .Cells(rowIndex, COL_QTY).Value2 = record("Qty")
-        .Cells(rowIndex, COL_PERCENT).Value2 = record("Percent")
-        .Cells(rowIndex, COL_BASIS_QTY).Value2 = record("BasisQty")
-        .Cells(rowIndex, COL_UOM).Value2 = record("UOM")
-        .Cells(rowIndex, COL_DESIGN_ID).Value2 = record("DesignId")
-        .Cells(rowIndex, COL_DESIGN_VERSION).Value2 = record("DesignVersion")
-        .Cells(rowIndex, COL_INSTRUCTION).Value2 = record("Instruction")
-        .Cells(rowIndex, COL_REQUIREMENT_ID).Value2 = record("RequirementId")
-        .Cells(rowIndex, COL_QTY_MODE).Value2 = record("QtyMode")
-        .Cells(rowIndex, COL_OUTPUT_SKU).Value2 = DictionaryText(record, "OutputSku")
-        For pairNumber = FIRST_ALTERNATIVE_PAIR To AlternativePairCount(lo)
-            .Cells(rowIndex, AlternativeItemColumnIndex(pairNumber)).Value2 = _
-                DictionaryText(record, "AcceptableItem" & CStr(pairNumber))
-            .Cells(rowIndex, AlternativeSkuColumnIndex(pairNumber)).Value2 = _
-                DictionaryText(record, "AcceptedSku" & CStr(pairNumber))
-        Next pairNumber
-    End With
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Record Type").Value2 = record("RecordType")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "ID").Value2 = record("Id")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Name").Value2 = record("Name")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Qty").Value2 = record("Qty")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Percent").Value2 = record("Percent")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Basis Qty").Value2 = record("BasisQty")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "UOM").Value2 = record("UOM")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Design ID").Value2 = record("DesignId")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Design Version").Value2 = record("DesignVersion")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Instruction").Value2 = record("Instruction")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Requirement ID").Value2 = record("RequirementId")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Qty Mode").Value2 = record("QtyMode")
+    modProcessWorksheetColumns.Cell(lo, rowIndex, "Output SKU").Value2 = DictionaryText(record, "OutputSku")
+    For pairNumber = FIRST_ALTERNATIVE_PAIR To AlternativePairCount(lo)
+        modProcessWorksheetColumns.Cell(lo, rowIndex, "Acceptable Managed Item " & CStr(pairNumber)).Value2 = _
+            DictionaryText(record, "AcceptableItem" & CStr(pairNumber))
+        modProcessWorksheetColumns.Cell(lo, rowIndex, "Accepted SKU " & CStr(pairNumber)).Value2 = _
+            DictionaryText(record, "AcceptedSku" & CStr(pairNumber))
+    Next pairNumber
 End Sub
 
 Private Sub ApplyProcessWorksheetManagedColumns(ByVal lo As ListObject)
@@ -919,23 +905,23 @@ Private Sub ApplyProcessWorksheetManagedColumns(ByVal lo As ListObject)
     processIdCell = lo.Parent.Cells(lo.HeaderRowRange.Row - TABLE_HEADER_OFFSET + 1, 5).Address(True, True)
     processVersionCell = lo.Parent.Cells(lo.HeaderRowRange.Row - TABLE_HEADER_OFFSET + 1, 8).Address(True, True)
 
-    lo.ListColumns("Requirement ID").DataBodyRange.NumberFormat = "General"
-    lo.ListColumns("Design ID").DataBodyRange.NumberFormat = "General"
-    lo.ListColumns("Basis Qty").DataBodyRange.Formula = _
+    modProcessWorksheetColumns.Field(lo, "Requirement ID").DataBodyRange.NumberFormat = "General"
+    modProcessWorksheetColumns.Field(lo, "Design ID").DataBodyRange.NumberFormat = "General"
+    modProcessWorksheetColumns.SetFormula lo, "Basis Qty", _
         "=IF(AND(UPPER([@[Record Type]])=""INPUT"",UPPER([@[Qty Mode]])<>""ACTUAL""),IFERROR(SUMIFS([Qty],[Record Type],""INPUT"",[UOM],[@UOM]),""""),"""")"
-    lo.ListColumns("Percent").DataBodyRange.Formula = _
+    modProcessWorksheetColumns.SetFormula lo, "Percent", _
         "=IF(AND(UPPER([@[Record Type]])=""INPUT"",UPPER([@[Qty Mode]])<>""ACTUAL""),IFERROR([@Qty]/[@[Basis Qty]]*100,""""),"""")"
-    lo.ListColumns("Design ID").DataBodyRange.Formula = _
+    modProcessWorksheetColumns.SetFormula lo, "Design ID", _
         "=IF(AND(UPPER([@[Record Type]])=""OUTPUT"",[@ID]<>""""),""D-""&" & processIdCell & "&""-""&[@ID],"""")"
-    lo.ListColumns("Design Version").DataBodyRange.Formula = _
+    modProcessWorksheetColumns.SetFormula lo, "Design Version", _
         "=IF(UPPER([@[Record Type]])=""OUTPUT""," & processVersionCell & ","""")"
 
     For rowIndex = 1 To lo.ListRows.Count
-        recordType = UCase$(Trim$(WorksheetValue(lo, rowIndex, COL_RECORD_TYPE)))
+        recordType = UCase$(Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Record Type")))
         If recordType = "INPUT" Or recordType = "REQUIREMENT" Then
-            lo.DataBodyRange.Cells(rowIndex, COL_REQUIREMENT_ID).Formula = "=[@ID]"
+            modProcessWorksheetColumns.Cell(lo, rowIndex, "Requirement ID").Formula = modProcessWorksheetColumns.FormulaText(lo, "=[@ID]")
         ElseIf recordType <> "ALTERNATIVE" Then
-            lo.DataBodyRange.Cells(rowIndex, COL_REQUIREMENT_ID).ClearContents
+            modProcessWorksheetColumns.Cell(lo, rowIndex, "Requirement ID").ClearContents
         End If
     Next rowIndex
 CleanExit:
@@ -948,7 +934,7 @@ End Sub
 
 Private Sub ApplyQtyModeValidation(ByVal lo As ListObject)
     If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Sub
-    With lo.ListColumns("Qty Mode").DataBodyRange.Validation
+    With modProcessWorksheetColumns.Field(lo, "Qty Mode").DataBodyRange.Validation
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
              Operator:=xlBetween, Formula1:="FIXED,ACTUAL"
@@ -962,7 +948,7 @@ End Sub
 
 Private Sub ApplyRecordTypeValidation(ByVal lo As ListObject)
     If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Sub
-    With lo.ListColumns("Record Type").DataBodyRange.Validation
+    With modProcessWorksheetColumns.Field(lo, "Record Type").DataBodyRange.Validation
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
              Operator:=xlBetween, Formula1:="INPUT,OUTPUT,INSTRUCTION,ALTERNATIVE"
@@ -979,10 +965,10 @@ Private Sub ApplyProcessWorksheetTextIdentityFormats(ByVal lo As ListObject)
 
     If lo Is Nothing Then Exit Sub
     If Not lo.DataBodyRange Is Nothing Then
-        lo.ListColumns("ID").DataBodyRange.NumberFormat = "@"
-        lo.ListColumns("Output SKU").DataBodyRange.NumberFormat = "@"
+        modProcessWorksheetColumns.Field(lo, "ID").DataBodyRange.NumberFormat = "@"
+        modProcessWorksheetColumns.Field(lo, "Output SKU").DataBodyRange.NumberFormat = "@"
         For pairNumber = FIRST_ALTERNATIVE_PAIR To AlternativePairCount(lo)
-            lo.ListColumns("Accepted SKU " & CStr(pairNumber)).DataBodyRange.NumberFormat = "@"
+            modProcessWorksheetColumns.Field(lo, "Accepted SKU " & CStr(pairNumber)).DataBodyRange.NumberFormat = "@"
         Next pairNumber
     End If
     lo.Parent.Cells(lo.HeaderRowRange.Row - TABLE_HEADER_OFFSET + 1, 5).NumberFormat = "@"
@@ -994,7 +980,7 @@ Private Sub ApplyProcessWorksheetUomValidation(ByVal lo As ListObject)
     If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Sub
     catalogText = Replace$(modUomSettings.GetConfiguredUomsPackedText(), "|", ",")
     If catalogText = "" Then Exit Sub
-    With lo.ListColumns("UOM").DataBodyRange.Validation
+    With modProcessWorksheetColumns.Field(lo, "UOM").DataBodyRange.Validation
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
              Operator:=xlBetween, Formula1:=catalogText
@@ -1017,8 +1003,8 @@ Private Sub EnsureWorksheetRowIds(ByVal lo As ListObject)
     usedRowIds.CompareMode = vbTextCompare
     Set rowsNeedingIds = CreateObject("Scripting.Dictionary")
     For rowIndex = 1 To lo.ListRows.Count
-        recordType = UCase$(Trim$(WorksheetValue(lo, rowIndex, COL_RECORD_TYPE)))
-        rowId = UCase$(Trim$(WorksheetValue(lo, rowIndex, COL_ID)))
+        recordType = UCase$(Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Record Type")))
+        rowId = UCase$(Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "ID")))
         Select Case recordType
             Case "INPUT", "REQUIREMENT", "OUTPUT", "INSTRUCTION"
                 If mProduction.IsBase36Identifier(rowId) _
@@ -1032,8 +1018,8 @@ Private Sub EnsureWorksheetRowIds(ByVal lo As ListObject)
     For rowIndex = 1 To lo.ListRows.Count
         If rowsNeedingIds.Exists(CStr(rowIndex)) Then
             rowId = NextIdFromDictionary(usedRowIds)
-            lo.DataBodyRange.Cells(rowIndex, COL_ID).NumberFormat = "@"
-            lo.DataBodyRange.Cells(rowIndex, COL_ID).Value2 = rowId
+            modProcessWorksheetColumns.Cell(lo, rowIndex, "ID").NumberFormat = "@"
+            modProcessWorksheetColumns.Cell(lo, rowIndex, "ID").Value2 = rowId
             usedRowIds.Add rowId, True
         End If
     Next rowIndex
@@ -1070,14 +1056,14 @@ Private Sub FormatProcessWorksheet(ByVal ws As Worksheet, ByVal lo As ListObject
     ws.Columns("H:I").ColumnWidth = 16
     ws.Columns("J").ColumnWidth = 48
     ws.Columns("K").ColumnWidth = 14
-    lo.ListColumns("Output SKU").Range.EntireColumn.Hidden = True
+    modProcessWorksheetColumns.Field(lo, "Output SKU").Range.EntireColumn.Hidden = True
     For pairNumber = FIRST_ALTERNATIVE_PAIR To AlternativePairCount(lo)
-        lo.ListColumns("Acceptable Managed Item " & CStr(pairNumber)).Range.ColumnWidth = 28
-        lo.ListColumns("Accepted SKU " & CStr(pairNumber)).Range.EntireColumn.Hidden = True
+        modProcessWorksheetColumns.Field(lo, "Acceptable Managed Item " & CStr(pairNumber)).Range.ColumnWidth = 28
+        modProcessWorksheetColumns.Field(lo, "Accepted SKU " & CStr(pairNumber)).Range.EntireColumn.Hidden = True
     Next pairNumber
-    lo.ListColumns("Qty").DataBodyRange.NumberFormat = "0.########"
-    lo.ListColumns("Percent").DataBodyRange.NumberFormat = "0.0\%"
-    lo.ListColumns("Basis Qty").DataBodyRange.NumberFormat = "0.########"
+    modProcessWorksheetColumns.Field(lo, "Qty").DataBodyRange.NumberFormat = "0.########"
+    modProcessWorksheetColumns.Field(lo, "Percent").DataBodyRange.NumberFormat = "0.0\%"
+    modProcessWorksheetColumns.Field(lo, "Basis Qty").DataBodyRange.NumberFormat = "0.########"
     lo.Range.VerticalAlignment = xlTop
 End Sub
 
@@ -1204,11 +1190,11 @@ Private Function ProcessIdFromTableName(ByVal tableName As String) As String
 End Function
 
 Private Function AlternativeItemColumnIndex(ByVal pairNumber As Long) As Long
-    AlternativeItemColumnIndex = COL_ACCEPTABLE_ITEM + ((pairNumber - 1) * 2)
+    AlternativeItemColumnIndex = INITIAL_ACCEPTABLE_ITEM_COLUMN + ((pairNumber - 1) * 2)
 End Function
 
 Private Function AlternativeSkuColumnIndex(ByVal pairNumber As Long) As Long
-    AlternativeSkuColumnIndex = COL_ACCEPTED_SKU + ((pairNumber - 1) * 2)
+    AlternativeSkuColumnIndex = INITIAL_ACCEPTED_SKU_COLUMN + ((pairNumber - 1) * 2)
 End Function
 
 Private Function AlternativePairCount(ByVal lo As ListObject) As Long
@@ -1220,7 +1206,7 @@ Private Function AlternativePairCount(ByVal lo As ListObject) As Long
         On Error Resume Next
         Err.Clear
         Set col = Nothing
-        Set col = lo.ListColumns("Acceptable Managed Item " & CStr(pairNumber))
+        Set col = modProcessWorksheetColumns.Field(lo, "Acceptable Managed Item " & CStr(pairNumber))
         On Error GoTo 0
         If col Is Nothing Then Exit For
         AlternativePairCount = pairNumber
@@ -1246,18 +1232,6 @@ Private Function DictionaryText(ByVal record As Object, ByVal keyName As String)
     If record Is Nothing Then Exit Function
     If Not record.Exists(keyName) Then Exit Function
     DictionaryText = CellText(record(keyName))
-End Function
-
-Private Function WorksheetValueByHeader(ByVal lo As ListObject, _
-                                        ByVal rowIndex As Long, _
-                                        ByVal headerName As String) As String
-    Dim columnIndex As Long
-
-    On Error Resume Next
-    columnIndex = lo.ListColumns(headerName).Index
-    On Error GoTo 0
-    If columnIndex <= 0 Then Exit Function
-    WorksheetValueByHeader = WorksheetValue(lo, rowIndex, columnIndex)
 End Function
 
 Private Function IsConfiguredProcessUom(ByVal uom As String) As Boolean
@@ -1287,9 +1261,9 @@ Private Sub AppendWorksheetAlternativeRecords(ByVal lo As ListObject, _
     Dim record As Object
 
     For pairNumber = FIRST_ALTERNATIVE_PAIR To AlternativePairCount(lo)
-        acceptedSku = Trim$(WorksheetValueByHeader(lo, rowIndex, _
+        acceptedSku = Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, _
             "Accepted SKU " & CStr(pairNumber)))
-        acceptableItem = Trim$(WorksheetValueByHeader(lo, rowIndex, _
+        acceptableItem = Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, _
             "Acceptable Managed Item " & CStr(pairNumber)))
         If acceptedSku <> "" Then
             Set record = NewWorksheetRecord("ALTERNATIVE")
@@ -1301,25 +1275,20 @@ Private Sub AppendWorksheetAlternativeRecords(ByVal lo As ListObject, _
     Next pairNumber
 End Sub
 
-Private Function WorksheetValue(ByVal lo As ListObject, ByVal rowIndex As Long, _
-                                ByVal columnIndex As Long) As String
-    WorksheetValue = CellText(lo.DataBodyRange.Cells(rowIndex, columnIndex).Value2)
-End Function
-
 Private Function WorksheetRowHasBusinessData(ByVal lo As ListObject, _
                                              ByVal rowIndex As Long) As Boolean
     Dim pairNumber As Long
 
     WorksheetRowHasBusinessData = _
-        (Trim$(WorksheetValue(lo, rowIndex, COL_NAME)) <> "") Or _
-        (Trim$(WorksheetValue(lo, rowIndex, COL_QTY)) <> "") Or _
-        (Trim$(WorksheetValue(lo, rowIndex, COL_UOM)) <> "") Or _
-        (Trim$(WorksheetValue(lo, rowIndex, COL_INSTRUCTION)) <> "")
+        (Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Name")) <> "") Or _
+        (Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Qty")) <> "") Or _
+        (Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "UOM")) <> "") Or _
+        (Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, "Instruction")) <> "")
     If WorksheetRowHasBusinessData Then Exit Function
     For pairNumber = FIRST_ALTERNATIVE_PAIR To AlternativePairCount(lo)
-        If Trim$(WorksheetValueByHeader(lo, rowIndex, _
+        If Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, _
                 "Acceptable Managed Item " & CStr(pairNumber))) <> "" _
-           Or Trim$(WorksheetValueByHeader(lo, rowIndex, _
+           Or Trim$(modProcessWorksheetColumns.Text(lo, rowIndex, _
                 "Accepted SKU " & CStr(pairNumber))) <> "" Then
             WorksheetRowHasBusinessData = True
             Exit Function

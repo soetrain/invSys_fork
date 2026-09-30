@@ -1,7 +1,8 @@
 # Slice 4be Process worksheet header preservation
 
-Last verified: 2026-09-30 UTC. Focused RED established; isolated correction is
-under validation. No worksheet tracking registration or release acceptance.
+Last verified: 2026-09-30 UTC. Focused107 GREEN, packaged build/compile and static
+ratchets pass; broader relevant regressions are running. No worksheet tracking
+registration or release acceptance.
 
 ## Governing contract
 
@@ -66,7 +67,36 @@ Compiled-source comparison:264 prior components,265 current; one changed and one
 added Operations component,263 exact unchanged. Settings/frozen Close candidate
 preserved, normal shutdown and zero delayed Excel Application failures.
 
-Pending: exact focused GREEN and visible captures, static ratchets, packaged smoke,
-full Release1 chain/live roles/Create Warehouse, layout, full reusable Production
-and Close regression on this candidate. Existing Close evidence remains frozen;
-no broader coverage or native-crash repair is claimed.
+## Focused GREEN and static evidence
+
+Controller `reports/runtime/process-worksheet-headers-controller/497de0e5ea8349f0889fef2cb58792ac`;
+result `reports/runtime/slice4be-process-worksheet-headers/82b1c1a9f15a426daea54fc98a676ed1/green.json`.
+17:28:41.1123142–17:30:27.4853877 UTC: **107/107**, exact RED check order and all42
+prior shared GREEN checks retained. Five instrumented compiles, package/settings
+preservation, normal unassisted shutdown and zero delayed Excel Application
+failures pass. Three directly reviewed images show retained custom values and the
+actual rejection status on both custom-column and normalized-header cases.
+The normalized-header worksheet image shows blank Excel chrome and is excluded;
+its formula restoration is proven by assertions, not that image. No claim of
+every-case visual coverage or human acceptance.
+
+Earlier candidate controller8e1d7fce71f040b183e83b16aaf10baa reaches79 passes but
+fails in screenshot setup with DISP_E_BADINDEX; it is excluded as GREEN. The test
+now resolves/displays the disposable workbook window through a typed VBA adapter,
+creating a window if absent. This changes no runtime handler or persisted package.
+The completed rerun above replaces that incomplete gate.
+
+Static evidence `reports/runtime/process-worksheet-headers-static`:272 components,
+6116 procedures,134480 lines,9 literal/45 unresolved Application.Run,190 duplicate
+body candidates,28 oversized modules. All existing oversized caps are non-growing;
+the worksheet module shrinks1362 to1331 lines. Three report schemas and338
+PowerShell parses pass. No dynamic-call or duplicate-body regression/exception.
+
+Pending relevant gates: packaged smoke, full Release1 chain/live roles/Create
+Warehouse, layout, full reusable Production and Close/query regression on this
+candidate. Full reusable specifically protects worksheet roundtrip/mixed-UOM/
+multi-selection/item-search/restart plus the accepted execution behavior affected
+by the worksheet call paths. Close/query protects captured/public launcher and
+read-only authority behavior. Core, Domains, Admin, form/Ribbon and observation
+catalog source hashes are unchanged; their other completed gates remain frozen
+evidence, not rerun claims. No native-crash repair or comprehensive Slice4be coverage.

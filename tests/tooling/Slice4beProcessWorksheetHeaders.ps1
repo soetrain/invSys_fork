@@ -135,6 +135,21 @@ End Function
 Public Sub WorksheetHeadersShow()
     mForm.WorksheetHeadersShowForTest
 End Sub
+Public Function WorksheetHeadersShowSheet() As Boolean
+    Dim wb As Workbook, window As Window
+    On Error GoTo Failed
+    Set wb = mHeaderTable.Parent.Parent
+    If wb.Windows.Count = 0 Then Set window = wb.NewWindow Else Set window = wb.Windows(1)
+    window.Visible = True
+    Application.Visible = True
+    Application.ScreenUpdating = True
+    wb.Activate
+    mHeaderTable.Parent.Activate
+    mHeaderTable.DataBodyRange.Cells(1, 1).Select
+    DoEvents
+    WorksheetHeadersShowSheet = (Application.ActiveWorkbook Is wb)
+Failed:
+End Function
 Public Function WorksheetHeadersState(ByVal checkName As String) As Boolean
     Dim column As ListColumn, requirement As ListColumn, rowIndex As Long
     On Error GoTo Failed
@@ -211,7 +226,7 @@ function Test-ProcessWorksheetHeaders($Fixture) {
             }
             Check ('ProcessHeaders.'+$case+'.NoImplicitSave') ((Hash $path) -ceq $diskPin)
             if($CaptureEvidence -and $case -in @('CustomValue','NormalizedRequirement')){
-                $excel.ScreenUpdating=$true;$excel.Visible=$true;$book.Windows.Item(1).Visible=$true;$book.Activate();$book.Worksheets.Item('invSys Process Editor').Activate()
+                if(-not [bool](Probe 'WorksheetHeadersShowSheet')){throw 'Disposable Process worksheet window unavailable for capture; not product RED.'}
                 Start-Sleep -Milliseconds 400
                 Initialize-SettingsCapture
                 [InvSysSettingsCapture]::SaveVisibleWindow([IntPtr]$excel.Hwnd,(Join-Path $reportRoot ('process-headers-'+$case+'.png')))
