@@ -372,6 +372,27 @@ reviewed and hashed; each shows No selected. Cancellation preserves authority
 and its original classification. These are agent-reviewed synthetic fixtures,
 not human acceptance.
 
+Settings retains202/202 exact ordered prior checks,
+09:43:44.7055954--09:47:45.3272286 UTC. Controller
+`reports/runtime/production-design-read-regression/settings-dd37a5f356b542be834ee8f5f6f666e7`;
+result `reports/runtime/slice4be-tracking-settings/687b8d2eb75347d28ce1a6bd7b6d731b`.
+Five compiles, preservation, unassisted preference restart and final exit, and
+zero delayed Application failures pass. Restart releases all ten completed-host
+references without failure and requests no termination. This is the existing
+packaged Settings regression, not new visible or human acceptance.
+
+Settings activity passes491/491,
+09:48:10.3665783--10:02:50.7752921 UTC. Controller
+`reports/runtime/production-design-read-regression/settingsactivity-1958600a62da41ce8d35b39e3f5da1b7`;
+result `reports/runtime/slice4be-settings-activity/67e470541fef406d85f11f988c040f8b`.
+All486 prior checks remain in order; exactly five new older-policy exclusions
+cover PROCESS_REFRESH/LOAD/REUSE and RECIPE_REFRESH/LOAD. Five compiles,
+preservation, delayed unassisted exit and zero delayed Application failures pass.
+Eight captures are directly reviewed and hashed: staged versus effective
+preferences, policy/detail controls, denied access, unavailable profile fallback
+and visible optional-tracking failure feedback. This establishes neither a native
+crash repair nor human acceptance.
+
 ## Remaining work
 
 The typed owner/catalog implementation and exact621 focused GREEN are recorded.
