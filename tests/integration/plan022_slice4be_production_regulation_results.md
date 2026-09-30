@@ -295,6 +295,21 @@ result: `reports/runtime/slice4be-production-designer/219c14986f6d4b6193397371b3
 This gate does not request new screenshots; no new visual or human acceptance
 is claimed. Runtime, tests and frozen packages remain unchanged.
 
+Lifecycle retains 615/615 and native cancellation retains 94/94 exact prior
+ordered checks. Each has five instrumented compiles, preserved settings/packages,
+normal closure and zero delayed Excel Application failures. September30 UTC:
+
+| Gate | Outer controller under `reports/runtime/production-regulation-regression/` | Inner controller under `reports/runtime/` | UTC interval | Result under `reports/runtime/` |
+|---|---|---|---|---|
+| Lifecycle 615/615 | `lifecycle-5aca55ecf47c432c83866ae729f8606f` | `production-lifecycle-controller/9cc2902cabd6442e9f3756364c314467` | 12:21:47.7456484--12:27:44.5793061 | `slice4be-production-designer/5699a3aeb0784e7ba6fff1e0c34f9cd4/green.json` |
+| Native cancellation 94/94 | `native-afa48f07d58141478fc18eef1b00049c` | `production-lifecycle-native-controller/a6f06147b25047bdae56a661c555a086` | 12:27:58.1278385--12:29:54.7206625 | `slice4be-production-lifecycle-native/4ce129198f81433a895c1b4592283282/green.json` |
+
+The native result has five directly reviewed images and a hashed review receipt.
+All four Process/Recipe Release/Obsolete questions are readable with No focused.
+The Settings image explicitly reports saved configuration and unavailable
+tracking. This is agent review, not human acceptance or native-crash repair.
+Runtime, tests and frozen packages remain unchanged.
+
 ## Remaining work
 
 The remaining focused regressions and run-only reusable gate remain pending on
