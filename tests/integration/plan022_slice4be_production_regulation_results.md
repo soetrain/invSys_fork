@@ -127,9 +127,37 @@ zero extra observations and "Command completed; Domain application not asserted"
 This is agent-visible evidence, not human acceptance. Runtime source is3559e2d;
 the paired-test correction did not change or rebuild the frozen packages.
 
+## Final-candidate regressions
+
+All roots below are under `reports/runtime/production-regulation-regression/`.
+These executions use the same five frozen catalog20 package hashes. Settings
+restore, tracked reports restore where applicable, and delayed
+Application1000/1001/1002 audits find zero Excel failures.
+
+| Gate | Result | Controller | UTC interval |
+|---|---|---|---|
+| Ordinary full reusable Production | Two aggregates and all171 prior ordered boolean observations pass | `reusablefull-300b8da304b040e7a6764a57b75cba1b` | 10:49:41.6915279--10:58:01.1642066 |
+| Packaged smoke | Exact86 prior checks pass | `smoke-71dd9816d894493e972cfad2f9cf9a59` | 10:58:22.1110436--10:58:44.6051153 |
+| Production layout | Exact prior geometry at three sizes/five pages; zero bounds/overlap violations | `layout-b4f12a8c7e3445feb6995753e1ee0663` | 10:59:07.2226206--10:59:21.8566631 |
+
+Full reusable Production uses the ordinary uninstrumented launcher gate, not the
+native-observer diagnostic. Both restart and final Excel exits are unassisted,
+with zero release failures or termination requests. Restart closes four packages
+in reverse order; final closure completes three workbooks/four packages with none
+remaining. All171 observations retain the prior full GREEN identities and order.
+This establishes the current candidate's ordinary gate; it does not diagnose or
+repair the earlier intermittent native failure.
+
+Smoke retains normal Initial/Final exits, no termination requests and zero
+release failures; shutdown root:
+`reports/runtime/packaged-smoke-closure/4448f3661f214f4eaf5009a804690ed1`.
+All three layout captures are directly reviewed with hashes in the controller's
+`visible-review.json`; minimum clamping, footer reachability and scrolling retain
+the accepted geometry. Agent review is not human acceptance.
+
 ## Remaining work
 
-The established packaged/layout/live-role/full-chain/reusable regressions remain
-pending on this final candidate. Catalog19 remains unchanged
+The remaining focused regressions, live-role/full-chain checks and run-only
+reusable gate remain pending on this final candidate. Catalog19 remains unchanged
 and unpromoted. Its ordinary full reusable native failure remains unresolved; see
 [designer read evidence](plan022_slice4be_production_design_read_results.md).
