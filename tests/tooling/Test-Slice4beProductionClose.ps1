@@ -1,10 +1,12 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-detail-columns',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CheckInventoryQueryReadOnly,[switch]$InventoryQueriesOnly)
+param([string]$DeployRoot='deploy/validation-production-close-observations',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CheckInventoryQueryReadOnly,[switch]$InventoryQueriesOnly,[switch]$ActionPaths)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated Production dismissal validation.'}
+if($ActionPaths -and ($CheckInventoryQueryReadOnly -or $InventoryQueriesOnly)){throw 'Close paths and query preservation run in separate gates.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $settings=Get-InvSysTestSettingsSnapshot
-$root=Join-Path 'reports/runtime/production-close-controller' ([guid]::NewGuid().ToString('N'))
+$family=if($ActionPaths){'production-close-paths-controller'}else{'production-close-controller'}
+$root=Join-Path ('reports/runtime/'+$family) ([guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root|Out-Null
 $pins=@(Get-ChildItem -LiteralPath $DeployRoot -File -Filter '*.xlam'|ForEach-Object{[pscustomobject]@{File=$_.FullName;Hash=(Get-FileHash $_.FullName).Hash}})
 if($pins.Count -ne 5){throw 'Five packages required.'}
@@ -14,6 +16,7 @@ Write-Output ('Production Close controller: '+$root)
 try {
     $extra=@();if($CheckInventoryQueryReadOnly){$extra+='-CheckInventoryQueryReadOnly'}
     if($InventoryQueriesOnly){$extra+='-InventoryQueriesOnly'}
+    if($ActionPaths){$extra+='-CheckProductionClosePaths'}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CheckProductionClose -CaptureEvidence -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @extra *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
 } finally {

@@ -1,6 +1,6 @@
 # Original instruction handlers supply separate guide provenance and observed runs.
-function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Components,[switch]$RecipeOrder,[switch]$RecipeStructure,[switch]$DesignReads,[switch]$Regulation) {
-    if(([int][bool]$Uom+[int][bool]$Components+[int][bool]$RecipeOrder+[int][bool]$RecipeStructure+[int][bool]$DesignReads+[int][bool]$Regulation) -gt 1){throw 'Select one Production path family.'}
+function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Components,[switch]$RecipeOrder,[switch]$RecipeStructure,[switch]$DesignReads,[switch]$Regulation,[switch]$CloseActions) {
+    if(([int][bool]$Uom+[int][bool]$Components+[int][bool]$RecipeOrder+[int][bool]$RecipeStructure+[int][bool]$DesignReads+[int][bool]$Regulation+[int][bool]$CloseActions) -gt 1){throw 'Select one Production path family.'}
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
@@ -16,12 +16,17 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         if($RecipeStructure){$Name=$Name.Replace('InstructionPaths.','RecipeStructurePaths.')}
         if($DesignReads){$Name=$Name.Replace('InstructionPaths.','DesignReadPaths.')}
         if($Regulation){$Name=$Name.Replace('InstructionPaths.','RegulationPaths.').Replace('Five','Four')}
+        if($CloseActions){$Name=$Name.Replace('InstructionPaths.','ClosePaths.').Replace('Five','Two')}
         Check $Name $Passed
     }
-    function ActionId([string]$Action){if($Regulation){'PRODUCTION_OUTPUT_REGULATION_'+$Action.Split('_')[1]}elseif($DesignReads){'PRODUCTION_'+$Action}elseif($Uom){'PRODUCTION_UOM_EDIT'}elseif($Components){'PRODUCTION_PROCESS_'+$Action}elseif($RecipeStructure){'PRODUCTION_RECIPE_'+$Action}elseif($RecipeOrder){if($Action -ceq 'AUTO'){'PRODUCTION_RECIPE_AUTO_ORDER'}else{'PRODUCTION_RECIPE_MOVE_'+$Action}}else{'PRODUCTION_PROCESS_INSTRUCTION_'+$Action}}
-    function ActionOutcome([string]$Action){if($DesignReads){if($Action.EndsWith('REFRESH')){'REFRESHED'}elseif($Action -ceq 'PROCESS_REUSE'){'STAGED'}else{'PRESENTED'}}elseif($Uom){if($Action -ceq 'OPEN'){'OPENED'}else{'REUSED'}}else{'STAGED'}}
+    function ActionId([string]$Action){if($CloseActions){'PRODUCTION_CLOSE'}elseif($Regulation){'PRODUCTION_OUTPUT_REGULATION_'+$Action.Split('_')[1]}elseif($DesignReads){'PRODUCTION_'+$Action}elseif($Uom){'PRODUCTION_UOM_EDIT'}elseif($Components){'PRODUCTION_PROCESS_'+$Action}elseif($RecipeStructure){'PRODUCTION_RECIPE_'+$Action}elseif($RecipeOrder){if($Action -ceq 'AUTO'){'PRODUCTION_RECIPE_AUTO_ORDER'}else{'PRODUCTION_RECIPE_MOVE_'+$Action}}else{'PRODUCTION_PROCESS_INSTRUCTION_'+$Action}}
+    function ActionOutcome([string]$Action){if($CloseActions){'CLOSED'}elseif($DesignReads){if($Action.EndsWith('REFRESH')){'REFRESHED'}elseif($Action -ceq 'PROCESS_REUSE'){'STAGED'}else{'PRESENTED'}}elseif($Uom){if($Action -ceq 'OPEN'){'OPENED'}else{'REUSED'}}else{'STAGED'}}
     function Instruction([string]$Action){
-        if($Regulation){
+        if($CloseActions){
+            if($Action -ceq 'Button'){'Open Production and click Close. Verify dismissal; this does not save, post or apply inventory changes.'}
+            else{'Reopen Production and click its window X. Verify dismissal; workbook staging remains unchanged.'}
+        }
+        elseif($Regulation){
             $scope=$Action.Split('_')[0];$command=if($Action.EndsWith('APPLY')){'Apply Regulation'}else{'Clear Override'}
             'In Production Settings, choose '+$scope+' scope and select the output. '+$(if($Action.EndsWith('APPLY')){'Enable regulation and enter a floor of 2 and ceiling of 8. '}else{''})+'Click '+$command+' and inspect the local draft; saved definitions remain unchanged.'
         }
@@ -78,7 +83,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         elseif($Components){[void](Probe 'ComponentStage' @('REQUIREMENT',$canary,'Valid'))}
         elseif($RecipeOrder){[void](Probe 'OrderStage' @($canary,'Unordered'))}
         elseif($RecipeStructure){[void](Probe 'StructurePathReset')}
-        else{[void](Probe 'InstructionStage' @($canary,1,(' '+$canary+'4 ')))}
+        elseif(-not $CloseActions){[void](Probe 'InstructionStage' @($canary,1,(' '+$canary+'4 ')))}
         $prior=@(if(Test-Path $journalRoot){Get-ChildItem $journalRoot -File -Filter '*.json'|ForEach-Object FullName})
         Delivered (RecordingControl 'Start Recording' 'Click')
         $starts=@(Get-ChildItem $journalRoot -File -Filter '*.json'|Where-Object {$_.FullName -cnotin $prior}|ForEach-Object {Get-Content $_.FullName -Raw|ConvertFrom-Json}|Where-Object RecordType -CEQ 'Start')
@@ -86,7 +91,14 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         $original=@();$terminals=@();$ordinal=0
         foreach($action in $actions){
             $ordinal++;$before=@(Get-Slice4beActivityFiles $Fixture);$decoy.Activate()
-            if($Regulation){[void](Probe 'RegulationPathInput' @($action));[void](Probe 'RegulationAct' @($action.Split('_')[1]))}
+            if($CloseActions){
+                [void](Probe 'OpenDesigner' @($book.Name));[void](Probe 'CloseShowForTest')
+                $decoy.Activate();$dismissed=$true
+                if($action -ceq 'Native'){$dismissed=Close-ProductionNativeFixture}else{[void](Probe 'CloseButtonForTest')}
+                PathCheck ('InstructionPaths.'+$Label+'.'+$action+'.ActualDismissal') ($dismissed -and [long](Probe 'CloseLoadedFormsForTest') -eq 0)
+                [void](Probe 'CloseForgetForTest')
+            }
+            elseif($Regulation){[void](Probe 'RegulationPathInput' @($action));[void](Probe 'RegulationAct' @($action.Split('_')[1]))}
             elseif($DesignReads){[void](Probe 'ReadPathInput' @($action));[void](Probe 'ReadAct' @($action))}
             elseif($Uom){[void](Probe 'SendUom')}
             elseif($Components){
@@ -101,7 +113,10 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
             $valid=$rows.Count -eq 2 -and $attempt.Count -eq 1 -and $terminal.Count -eq 1
             if($valid){$valid=$terminal[0].ControlId -ceq (ActionId $action) -and $attempt[0].ActivityId -ceq $terminal[0].ActivityId -and $terminal[0].SequenceId -ceq $starts[0].SequenceId -and $terminal[0].Ordinal -eq $ordinal -and @($terminal[0].SourceEventRefs).Count -eq 0}
             PathCheck ('InstructionPaths.'+$Label+'.'+$action+'.OriginalHandlerPair') $valid
-            if(-not $valid){throw 'Original instruction recording incomplete; retain behavioral failures.'}
+            if(-not $valid){
+                if($CloseActions){Delivered (RecordingControl 'Stop Recording' 'Click');return}
+                throw 'Original instruction recording incomplete; retain behavioral failures.'
+            }
             $original+=@($attempt[0],$terminal[0]);$terminals+=$terminal[0]
         }
         Delivered (RecordingControl 'Stop Recording' 'Click')
@@ -121,8 +136,9 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
     if($RecipeStructure){$actions=@('DISCONNECT','CONNECT','UPDATE_CONNECTION','ADD_PROCESS','REMOVE_PROCESS')}
     if($DesignReads){$actions=@('PROCESS_REFRESH','PROCESS_LOAD','PROCESS_REUSE','RECIPE_REFRESH','RECIPE_LOAD')}
     if($Regulation){$actions=@('PROCESS_APPLY','PROCESS_CLEAR','RECIPE_APPLY','RECIPE_CLEAR')}
+    if($CloseActions){$actions=@('Button','Native')}
     $canary='PATH'+[guid]::NewGuid().ToString('N');$book=$null;$decoy=$null
-    $imagePrefix=if($Regulation){'regulation'}elseif($DesignReads){'design-read'}elseif($Uom){'uom'}elseif($Components){'component'}elseif($RecipeOrder){'recipe-order'}elseif($RecipeStructure){'recipe-structure'}else{'instruction'}
+    $imagePrefix=if($CloseActions){'close'}elseif($Regulation){'regulation'}elseif($DesignReads){'design-read'}elseif($Uom){'uom'}elseif($Components){'component'}elseif($RecipeOrder){'recipe-order'}elseif($RecipeStructure){'recipe-structure'}else{'instruction'}
     try {
         SelectTarget $Fixture
         $allowed=Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-admin',$Fixture.Warehouse,'S1')
@@ -147,8 +163,12 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         $authorityPins=@{}
         # Publication owns snapshot projections; canonical files remain byte-pinned.
         foreach($file in Get-ChildItem $Fixture.Root -Recurse -File|Where-Object {$_.Extension -in '.xlsb','.xlsm' -and $_.Name -notlike '*.Snapshot.*' -and -not $_.Name.StartsWith('~$')}){$authorityPins[$file.FullName]=SavedHash $file.FullName}
-        $source=$null;$observed=$null;RecordSeries 'GuideSource' ([ref]$source);RecordSeries 'ObservedRun' ([ref]$observed)
+        $source=$null;$observed=$null;RecordSeries 'GuideSource' ([ref]$source)
+        if($CloseActions -and $null -eq $source){return}
+        RecordSeries 'ObservedRun' ([ref]$observed)
+        if($CloseActions -and $null -eq $observed){return}
         PathCheck 'InstructionPaths.DistinctGuideAndObservedRuns' ($source.Journal.ActionPathId -cne $observed.Journal.ActionPathId -and @($source.Terminals|Where-Object {$_.ActivityId -cin $observed.Terminals.ActivityId}).Count -eq 0)
+        if($CloseActions){[void](Probe 'OpenDesigner' @($book.Name))}
         $window=[long](Probe 'Present' @($(if($Uom -or $Regulation){5}elseif($RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation){1}else{0})));CaptureOwnedFormEvidence 'Production' ($imagePrefix+'-editor.png') $window
         $activityPins=ActivityPins;$journalPins=BoundPins $journalRoot
         [void](Probe 'CloseDesigner');CloseRecordingViewer;SelectTarget $Fixture
@@ -164,9 +184,9 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         }
         foreach($record in $observed.Terminals){
             $id=[string]$record.ActivityId
-            PathCheck ('InstructionPaths.Detail.'+$record.ControlId+$(if($Uom -or $Regulation){'.'+$record.Ordinal}else{''})) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('SelectSource',$id)) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadDetailForTest' @('Source event / activity ID',$id)))
+            PathCheck ('InstructionPaths.Detail.'+$record.ControlId+$(if($Uom -or $Regulation -or $CloseActions){'.'+$record.Ordinal}else{''})) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('SelectSource',$id)) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadDetailForTest' @('Source event / activity ID',$id)))
         }
-        if($Uom -or $Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation){
+        if($Uom -or $Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation -or $CloseActions){
             # Published contributing lines are not ordered by outcome. Select
             # the exact terminal record, rather than assuming it is row two.
             $detailGroup=@($publication.Groups|Where-Object {$_.Source -ceq 'Activity' -and $_.SourceId -ceq $observed.Terminals[-1].ActivityId})
@@ -176,7 +196,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
                 if($detailGroup[0].Lines[$lineIndex].RecordId -ceq $observed.Terminals[-1].RecordId){$terminalIndex=$lineIndex;break}
             }
             if($terminalIndex -lt 0){throw 'Exact terminal detail line unavailable.'}
-            if($Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation){
+            if($Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation -or $CloseActions){
                 $requestedIndex=-1
                 for($lineIndex=0;$lineIndex -lt $detailGroup[0].Lines.Count;$lineIndex++){
                     if($detailGroup[0].Lines[$lineIndex].OutcomeCode -ceq 'REQUESTED'){$requestedIndex=$lineIndex;break}
@@ -186,7 +206,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
                 PathCheck 'InstructionPaths.Detail.RequestedObservationMatchesVisibleSelection' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome','REQUESTED')) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Data effect','Unknown')) -and -not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome',(ActionOutcome $actions[-1]))))
             }
             Delivered (ExpectationControl 'lstEventLines' 'Index' ([string]$terminalIndex) 'frmEventDetail')
-            if($Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation){
+            if($Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation -or $CloseActions){
                 PathCheck 'InstructionPaths.Detail.ExactTerminalOutcomeAndEffect' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome',(ActionOutcome $actions[-1]))) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Data effect','Unchanged')))
             }
         }
@@ -206,9 +226,9 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         }
         foreach($kind in @('CommandCompleted','SourceEventsApplied')){
             $steps=@(,@((ActionId $actions[-1]),(ActionOutcome $actions[-1]),'True'));$terminal=0
-            if($Regulation){
-                # Apply/Clear repeat in two scopes; observations deliberately
-                # contain no selected scope. Explicit ordered intent identifies
+            if($Regulation -or $CloseActions){
+                # Repeated controls carry no scope or button/native distinction.
+                # Explicit ordered intent identifies
                 # the final occurrence without changing first-match semantics.
                 $steps=@(foreach($action in $actions){,@((ActionId $action),(ActionOutcome $action),'True')})
                 $terminal=$actions.Count-1
@@ -220,14 +240,14 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
             $fresh=@(EvaluationFiles|Where-Object {$_.FullName -cnotin $before});if($fresh.Count -ne 1){throw 'Actual evaluation unavailable.'}
             $result=Get-Content $fresh[0].FullName -Raw|ConvertFrom-Json
             $valid=if($kind -ceq 'CommandCompleted'){$result.ResultState -ceq 'Concluded' -and 'COMMAND_COMPLETED' -cin @($result.ReasonCodes)}else{$result.ResultState -ceq 'Incomplete' -and 'SOURCE_UNAVAILABLE' -cin @($result.ReasonCodes)}
-            if($Regulation){$valid=$valid -and @($result.Matches).Count -eq 4 -and @($result.ExtraActivityIds).Count -eq 0 -and ($result.Matches.ActivityId -join '|') -ceq ($observed.Terminals.ActivityId -join '|')}
+            if($Regulation -or $CloseActions){$valid=$valid -and @($result.Matches).Count -eq $actions.Count -and @($result.ExtraActivityIds).Count -eq 0 -and ($result.Matches.ActivityId -join '|') -ceq ($observed.Terminals.ActivityId -join '|')}
             PathCheck ('InstructionPaths.ExactTerminal.'+$kind) ($valid -and $result.JournalRecordId -ceq $observed.Journal.RecordId -and $result.Matches[-1].ActivityId -ceq $observed.Terminals[-1].ActivityId)
         }
         if((BoundLibrary 'Select' $source.Journal.ActionPathId) -cne 'SELECTED'){throw 'Guide source selection unavailable.'}
         Delivered (BoundControl 'btnCreateGuide' 'Click' '' 'frmActionPaths')
         PathCheck 'InstructionPaths.FiveObservedGuideSteps' ((Author 'lstGuideSteps' 'Rows') -ceq [string]$actions.Count)
-        Delivered (Author 'txtGuideName' 'Write' $(if($Regulation){'Stage and clear output regulation'}elseif($DesignReads){'Refresh and load local designer views'}elseif($Uom){'Open and reuse the UOM draft'}elseif($Components){'Edit Process requirements and outputs'}elseif($RecipeOrder){'Order a local Recipe draft'}elseif($RecipeStructure){'Edit local Recipe connections and nodes'}else{'Edit Process instructions'}))
-        Delivered (Author 'txtGuideInstructions' 'Write' $(if($Regulation){'Apply then clear regulation on the selected Process output and Recipe node output. Inspect the resulting local draft; this sequence does not save, release, validate or apply inventory changes.'}elseif($DesignReads){'Refresh and view a Process, prepare its next editable draft, then refresh and load a Recipe. These local completions do not validate definitions, prove source availability, reserve versions or apply inventory changes.'}elseif($Uom){'Open the UOM workbench and reuse the existing local draft without publishing the catalog.'}elseif($Components){'Add, select and update, move up/down, then remove a requirement and an output. Validate before saving the Process.'}elseif($RecipeOrder){'Move the selected recipe node up, down, then apply Auto Order. Inspect the local draft before validation and Save.'}elseif($RecipeStructure){'Disconnect and reconnect the source output, update its required quantities, then add and remove a local Recipe node. Inspect and validate before Save.'}else{'Edit the local instruction draft, then validate before saving the Process.'}))
+        Delivered (Author 'txtGuideName' 'Write' $(if($CloseActions){'Dismiss Production through its Close controls'}elseif($Regulation){'Stage and clear output regulation'}elseif($DesignReads){'Refresh and load local designer views'}elseif($Uom){'Open and reuse the UOM draft'}elseif($Components){'Edit Process requirements and outputs'}elseif($RecipeOrder){'Order a local Recipe draft'}elseif($RecipeStructure){'Edit local Recipe connections and nodes'}else{'Edit Process instructions'}))
+        Delivered (Author 'txtGuideInstructions' 'Write' $(if($CloseActions){'Demonstrate the Close button and window X in separate openings. The diagnostic proves two dismissals; observations do not distinguish the gesture or assert saved work or Domain application.'}elseif($Regulation){'Apply then clear regulation on the selected Process output and Recipe node output. Inspect the resulting local draft; this sequence does not save, release, validate or apply inventory changes.'}elseif($DesignReads){'Refresh and view a Process, prepare its next editable draft, then refresh and load a Recipe. These local completions do not validate definitions, prove source availability, reserve versions or apply inventory changes.'}elseif($Uom){'Open the UOM workbench and reuse the existing local draft without publishing the catalog.'}elseif($Components){'Add, select and update, move up/down, then remove a requirement and an output. Validate before saving the Process.'}elseif($RecipeOrder){'Move the selected recipe node up, down, then apply Auto Order. Inspect the local draft before validation and Save.'}elseif($RecipeStructure){'Disconnect and reconnect the source output, update its required quantities, then add and remove a local Recipe node. Inspect and validate before Save.'}else{'Edit the local instruction draft, then validate before saving the Process.'}))
         for($i=0;$i -lt $actions.Count;$i++){
             if((Author 'lstGuideSteps' 'Select' ([string]$i)) -cne 'SELECTED'){throw 'Guide step unavailable.'}
             Delivered (Author 'txtGuideStepInstruction' 'Write' (Instruction $actions[$i]))

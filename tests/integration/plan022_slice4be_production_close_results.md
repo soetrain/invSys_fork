@@ -1,7 +1,7 @@
 # Slice 4be Production Close observations
 
-Last verified: 2026-09-30 UTC. Catalog21 Close focused GREEN312/312 and static
-limits pass. Close-specific Action Paths and broader regressions remain open.
+Last verified: 2026-09-30 UTC. Catalog21 Close focused GREEN312/312, separate
+Action Paths90/90 and static limits pass. Broader regressions remain open.
 No deployment promotion, comprehensive control coverage or human acceptance.
 
 ## Current focused candidate
@@ -75,8 +75,52 @@ the current Tracking Policy editor count advances105 to106. Explicit historical
 catalog/older-policy assertions remain unchanged. These expectation updates do
 not claim that the broader suites have run on this candidate.
 
-Next: separate original Close recordings, guide publication, actual How-To,
-Diagnostic and Compare views, then the relevant post-change regression matrix.
+## Independent Close recordings and Action Paths
+
+The existing shared packaged path harness now accepts a bounded Close family.
+It invokes the actual button and owned native window close in separate openings,
+with a decoy active workbook, then repeats those actions in an independent observed
+recording. Both gestures intentionally use the same approved control ID: the guide
+teaches each gesture, while the diagnostic proves two dismissals without inferring
+which gesture produced an event. No runtime or contract change accompanies this test.
+
+Frozen pre-Close query packages produce45 PASS/1 meaningful FAIL across46 checks:
+`ClosePaths.GuideSource.Button.OriginalHandlerPair`. Actual button dismissal and
+all42 prior checks pass. Missing observations end the recording cleanly; this is
+not a harness exception or compile failure. RED runs15:52:37.4978163--15:54:08.8245548
+UTC, controller `reports/runtime/production-close-paths-controller/0a6eead4011a4be7bab2304e2ab38c8a`,
+result `reports/runtime/slice4be-production-close-paths/b61b3dcb852542198e513ef065ab7cae/red.json`.
+
+The unchanged Close candidate passes90/90,15:54:48.6935537--15:59:29.1823799 UTC,
+controller `reports/runtime/production-close-paths-controller/65475a06dec248b2a3c4a217aa95c0c6`,
+result `reports/runtime/slice4be-production-close-paths/39f37cf7751342a6a8b15800ae081919/green.json`.
+All46 RED identities retain relative order; all42 prior GREEN checks and five
+instrumented compiles pass. Both runs preserve packages/settings, close normally
+without assistance and have zero delayed Excel Application failures.
+
+The GREEN protects original record pairs and journal order, independent source
+and observed recordings, publication, actual guide creation/save, explicit ordered
+expectations, reader access without guide-maintenance permission, Event Detail,
+How-To, Diagnostic and Compare. CLOSED establishes CommandCompleted only;
+SourceEventsApplied remains incomplete with SOURCE_UNAVAILABLE. Mode switching
+preserves evidence, authority bytes, workbook custom values and prior records.
+
+Seven images were directly reviewed and hashed in `visible-review.json`: event
+detail, How-To, Diagnostic, Compare, conclusion, reopened blank editor and Settings.
+The two ordered matches and dismissal-only conclusion are visible. The blank
+editor is not populated Production acceptance; Settings separates saved
+configuration from unavailable optional tracking. Images remain ignored runtime
+artifacts. These automated observations do not constitute human acceptance.
+
+The shared harness retains the existing regulation paths102/102 in exact prior
+order on the Close candidate,16:03:47.2896046--16:09:01.9816856 UTC. Five compiles,
+normal cleanup, settings/package preservation and the delayed Excel audit pass.
+Controller `reports/runtime/production-regulation-controller/a4752200aaa6419aa665734c61297d1b`;
+result `reports/runtime/slice4be-production-regulation-paths/b0956f083a4f472aaaf8c44d818fc6fe/green.json`.
+The Close extension therefore preserves the repeated-control ordered-intent
+regression it shares with regulation; no evaluator/runtime change was needed.
+
+Next: complete the relevant post-change regression matrix.
 
 Architecture v4.11's Production Close clarification, Plan022 and controls1.324
 were committed as documentation5da0371 before tests2dc77af. Catalog21 reserves
