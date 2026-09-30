@@ -44,7 +44,7 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
         $paired=$rows.Count -eq 2 -and $attempt.Count -eq 1 -and $closed.Count -eq 1
         $linked=$false;$facts=$paired;$safe=$paired;$integrity=$paired;$terminal=$false
         foreach($row in $rows){
-            $facts=$facts -and $row.ControlId -ceq 'PRODUCTION_CLOSE' -and $row.OwnerId -ceq 'PRODUCTION_WORKFLOW' -and $row.UserId -ceq 'config-producer' -and $row.WarehouseId -ceq $Fixture.Warehouse -and $row.StationId -ceq 'S1' -and $row.CatalogVersion -eq 21 -and @($row.SourceEventRefs).Count -eq 0
+            $facts=$facts -and $row.ControlId -ceq 'PRODUCTION_CLOSE' -and $row.OwnerId -ceq 'PRODUCTION_WORKFLOW' -and $row.UserId -ceq 'config-producer' -and $row.WarehouseId -ceq $Fixture.Warehouse -and $row.StationId -ceq 'S1' -and $row.CatalogVersion -eq 22 -and @($row.SourceEventRefs).Count -eq 0
         }
         foreach($text in $raw){
             $decoded=($text|ConvertFrom-Json)|ConvertTo-Json -Depth 25 -Compress
@@ -111,7 +111,9 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
             try{
                 (Table $cfg 'tblEventTrackingPolicies').ListColumns.Item('CatalogVersion').DataBodyRange.Value2=20.0
                 $controls=Table $cfg 'tblEventTrackingControls'
-                for($i=$controls.ListRows.Count;$i -ge 1;$i--){if($controls.ListRows.Item($i).Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2 -ceq 'PRODUCTION_CLOSE'){$controls.ListRows.Item($i).Delete()}}
+                # A historical profile contains exactly its historical catalog,
+                # including when the current package adds controls after Close.
+                for($i=$controls.ListRows.Count;$i -ge 1;$i--){if($controls.ListRows.Item($i).Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2 -cnotin $old){$controls.ListRows.Item($i).Delete()}}
                 $cfg.Save()
             }finally{$cfg.Close($false)}
             Check 'ProductionClose.OlderPolicy.ExistingControlStillReadable' (([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Policy' @('PRODUCTION_OUTPUT_REGULATION_APPLY'))).StartsWith('True|True|'))

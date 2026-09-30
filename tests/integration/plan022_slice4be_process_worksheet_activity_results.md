@@ -454,6 +454,43 @@ processes close normally, preserve settings/packages and have no delayed Excel
 events. The successful full/replay observations satisfy this regression checkpoint;
 the first failed attempt stays excluded and no native-crash repair is claimed.
 
+## Current-catalog regression fixture maintenance
+
+The first Close/query rerun retains all312 identities but has307 PASS/5 FAIL,
+2026-09-30,21:54:59.5450574 through21:58:29.8264812 UTC. Controller
+`reports/runtime/production-close-controller/c4be577d190f4e5eb8c98675dad03dd0`;
+result `reports/runtime/slice4be-production-close/ebadd12df483479fb348c69a60943ae9/green.json`.
+Four current-record assertions still require catalog21. The declared catalog20
+policy fixture removes only Close, retaining the three catalog22 controls; the
+existing policy validator correctly rejects that inconsistent fixture. These
+are stale test expectations, not behavioral RED or a reason to change runtime.
+Five compiles, normal cleanup, settings/package preservation and delayed audit
+pass. The failed run stays excluded from acceptance.
+
+Under the already approved catalog22 contract, current-record expectations in
+Close and twelve other regression fixtures advance21 to22; the current Settings
+editor expects109 controls instead of106. The Close historical fixture now keeps
+exactly its version20 IDs. Explicit historical definition/terminal tests remain
+unchanged. Check identities and other assertions are retained. This is test
+maintenance, with no runtime/package or normative contract change; the affected
+broader suites still require their own packaged GREEN evidence.
+
+The unchanged candidate then passes312/312 in the same order as the prior gate,
+21:59:22.4312537 through22:02:58.3687809 UTC. Controller
+`reports/runtime/production-close-controller/1aa0bde812fd4eeb8e9d878bf2e8a3dd`;
+result `reports/runtime/slice4be-production-close/2d1ca0d80b6a41c49d967f7cc7cb1ee9/green.json`.
+Five compiles, all80 query checks, all42 shared checks, preserved settings/packages,
+normal closure and zero delayed Excel Application failures pass. Four images are
+directly reviewed and hashed in `visible-review.json`: pre-dismissal button/native
+views, public reopening and separate saved-configuration/tracking-unavailable
+feedback. Disposal is established by the actual-handler/window checks, not images.
+
+Regenerated `reports/runtime/process-worksheet-regression-static` retains277
+components,6137 procedures,134745 lines,9 literal/45 unresolved Application.Run
+calls,190 duplicate-body groups and28 non-growing oversized caps. All three
+schemas and347 PowerShell parses pass. No runtime source change, deployment,
+native-crash repair, desktop-error5 or human-acceptance claim accompanies this work.
+
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115

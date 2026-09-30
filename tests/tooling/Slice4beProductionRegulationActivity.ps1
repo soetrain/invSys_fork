@@ -40,7 +40,7 @@ function Test-ProductionRegulationActivity($Fixture,$Other) {
         $context=$paired;$redacted=$paired;$integrity=$paired;$linked=$false;$facts=$false;$terminal=$false
         $control='PRODUCTION_OUTPUT_REGULATION_'+$Action
         foreach($r in $records){
-            $context=$context -and $r.ControlId -ceq $control -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 21
+            $context=$context -and $r.ControlId -ceq $control -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 22
             $redacted=$redacted -and @($r.SourceEventRefs).Count -eq 0
         }
         foreach($value in $raw){
