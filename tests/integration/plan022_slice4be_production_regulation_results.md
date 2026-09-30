@@ -40,11 +40,77 @@ catalog20 is absent; they require all103 prior definitions to remain exact when
 that catalog exists. Missing compilation, a broken fixture or an unavailable
 workbook is not counted as this behavioral RED.
 
+## Focused implementation checkpoint
+
+Catalog20 registers105 global controls and44/68 constructed Production controls;
+24 remain unregistered. Typed Operations guards precede the unchanged local
+editing algorithms. Core supplies fixed, versioned control/outcome facts and
+recognizes only STAGED as local command completion. No canonical mutation or
+rollback is asserted. Three existing regulation storage helpers move intact into
+the typed module; the form shrinks from11685 to11681 lines.
+
+The first candidate `deploy/validation-production-regulation` records695 PASS/
+one redaction-check failure,10:29:00.3510432--10:32:25.0971451 UTC, controller
+`reports/runtime/production-regulation-controller/126ab042b28f42f0a3d3e66557d973e2`.
+Result: `reports/runtime/slice4be-production-regulation/7f563c11398d4b85b060fab724437db9/green.json`.
+The failed identity is `Regulation.CLEAR.Recipe.Success.NoEnteredDataOrSources`.
+Disposable raw records were deleted by normal cleanup, so the exact matching
+field cannot be recovered. All behavior/preservation checks pass; this attempt
+is retained as failed evidence.
+
+The test's unstructured substring predicate demonstrably confuses short business
+IDs with generated identifiers, hashes and timestamps, and misses JSON-escaped
+sensitive text. A separate deterministic calibration records6 PASS/4 FAIL then
+10/10 GREEN, under `reports/runtime/production-regulation-redaction/`:
+RED `3c77c0db3d6b44ed949a0b9f4c6f6c90`, GREEN `c41ad2db6b51480fb24bd9af7ff22c4d`.
+The corrected predicate decodes JSON and checks nested values. Only named
+technical fields with complete valid syntax are exempt from short-ID substring
+matching; sensitive canaries remain forbidden everywhere. Actual identity values,
+identities in messages/guidance, nested leaks and escaped sensitive text fail.
+No runtime record format changes to accommodate the test.
+
+Final candidate: `deploy/validation-production-regulation-final`. Build evidence
+`reports/runtime/production-regulation-final-build`,10:34:12.2421732--10:34:50.6839940
+UTC, records five builds/compiles, Operations cold load,262 compiled components,
+and changes only to the five intended components. Settings/frozen packages are
+preserved; normal exit and delayed Application1000/1001/1002 audit pass.
+
+Focused GREEN:696/696,10:35:00.0213553--10:38:29.4134107 UTC. Controller
+`reports/runtime/production-regulation-controller/32dd4debc7d64d31b973b507e6e58a2f`;
+result `reports/runtime/slice4be-production-regulation/0c66683fd7ab46d8b5a9070ae1d34ada/green.json`.
+All696 ordered RED check identities remain. Five instrumented compiles,
+saved-authority/workbook/custom-column/prior-activity preservation, settings and
+five package pins pass; Excel exits unassisted with zero delayed Application
+failures. Two directly reviewed principal captures show Process Apply and Recipe
+Clear on Production Settings, with original status wording. Their hashed review
+receipt is `visible-review.json` in the result root. Agent review is not human
+acceptance; images and runtime records remain ignored.
+
+Static evidence: `reports/runtime/production-regulation-static`,269 components,
+6107 procedures,134347 lines. Literal/unresolved Application.Run remain9/45,
+duplicate-body candidates remain190; all28 oversized-module caps do not grow.
+Three schemas and330 PowerShell parses pass. No dead code is removed.
+
+## Paired-path test correction
+
+The first paired run records100 PASS/two test-assertion failures across102 checks,
+10:38:41.0837532--10:43:33.0649978 UTC. Controller
+`reports/runtime/production-regulation-controller/ee677e719a454adaa52b15ff14261c56`;
+result `reports/runtime/slice4be-production-regulation-paths/d6ec8e554fb545689825fce1a1c09c5c/green.json`.
+The single-step terminal assertions incorrectly expect the final Clear action,
+although Clear/STAGED appears twice. Read-only inspection before fixture cleanup
+confirms the existing evaluator correctly selects the first eligible occurrence,
+ordinal2, leaving three extras: CommandCompleted concludes, SourceEventsApplied
+remains incomplete/SOURCE_UNAVAILABLE. This is a test defect, not product RED.
+The corrected gate authors all four expected steps and selects the fourth as
+terminal; it requires all four exact observed identities and zero extras. No
+runtime/evaluation contract changes. The separate four-step guide evaluation and
+all three presentation methods already pass in this first execution. The full
+corrected gate remains pending at this checkpoint.
+
 ## Remaining work
 
-Implement the specified observations and guards while preserving the tested local
-algorithms; retain all696 identities for focused GREEN. Build a separate frozen
-candidate, then complete paired paths, visible review and required regressions.
-Catalog19 remains unchanged and unpromoted. Its ordinary full reusable native
-failure remains unresolved; see
+Paired paths and the established packaged/layout/live-role/full-chain/reusable
+regressions remain pending on this final candidate. Catalog19 remains unchanged
+and unpromoted. Its ordinary full reusable native failure remains unresolved; see
 [designer read evidence](plan022_slice4be_production_design_read_results.md).

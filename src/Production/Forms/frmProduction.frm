@@ -1280,16 +1280,7 @@ Private Sub AddOutputRegulationListRow(ByVal outputId As String, ByVal outputNam
 End Sub
 
 Private Function FindRecipeOutputRegulation(ByVal nodeId As String, ByVal outputId As String) As Object
-    Dim rawRecord As Variant, record As Object
-    If mRecipeOutputRegulations Is Nothing Then Exit Function
-    For Each rawRecord In mRecipeOutputRegulations
-        Set record = rawRecord
-        If StrComp(modProductionReusableDesigns.ReusableRecordText(record, "ProcessNodeId"), nodeId, vbTextCompare) = 0 _
-           And StrComp(modProductionReusableDesigns.ReusableRecordText(record, "OutputId"), outputId, vbTextCompare) = 0 Then
-            Set FindRecipeOutputRegulation = record
-            Exit Function
-        End If
-    Next rawRecord
+    Set FindRecipeOutputRegulation = modProductionRegulationActions.FindRecipe(mRecipeOutputRegulations, nodeId, outputId)
 End Function
 
 Private Function ProcessOutputRegulationValue(ByVal outputId As String, ByVal valueIndex As Long) As String
@@ -1303,11 +1294,7 @@ End Function
 
 Private Sub SetProcessOutputRegulation(ByVal outputId As String, ByVal enabled As Boolean, _
                                        ByVal floorText As String, ByVal ceilingText As String)
-    If mProcessOutputRegulations Is Nothing Then
-        Set mProcessOutputRegulations = CreateObject("Scripting.Dictionary")
-        mProcessOutputRegulations.CompareMode = vbTextCompare
-    End If
-    mProcessOutputRegulations(outputId) = Array(CStr(enabled), Trim$(floorText), Trim$(ceilingText))
+    modProductionRegulationActions.SetProcess mProcessOutputRegulations, outputId, enabled, floorText, ceilingText
 End Sub
 
 Private Function ReusableRecordBoolean(ByVal record As Object, ByVal keyName As String) As Boolean
@@ -10619,23 +10606,27 @@ Private Sub mLstOutputRegulations_Click()
 End Sub
 
 Private Sub mBtnOutputRegulationApply_Click()
+    OutputRegulationAction True
+End Sub
+
+Public Function ApplyOutputRegulation(ByRef report As String) As Boolean
     Dim idx As Long, sourceRow As Long, record As Object
     idx = mLstOutputRegulations.ListIndex
     If idx < 0 Then
-        ShowStatus "Select an output to regulate."
-        Exit Sub
+        report = "Select an output to regulate."
+        Exit Function
     End If
     If mChkOutputRegulated.Value Then
         If Not PositiveTextValue(mTxtOutputRegulationFloor.Text) _
            Or Not PositiveTextValue(mTxtOutputRegulationCeiling.Text) _
            Or CDbl(mTxtOutputRegulationFloor.Text) > CDbl(mTxtOutputRegulationCeiling.Text) Then
-            ShowStatus "Enabled output regulation requires positive floor and ceiling with floor not above ceiling."
-            Exit Sub
+            report = "Enabled output regulation requires positive floor and ceiling with floor not above ceiling."
+            Exit Function
         End If
         If Not ValidateWholeQuantityForUom(mTxtOutputRegulationFloor.Text, _
-                NzStr(mLstOutputRegulations.List(idx, 2)), "Output regulation floor") Then Exit Sub
+                NzStr(mLstOutputRegulations.List(idx, 2)), "Output regulation floor") Then Exit Function
         If Not ValidateWholeQuantityForUom(mTxtOutputRegulationCeiling.Text, _
-                NzStr(mLstOutputRegulations.List(idx, 2)), "Output regulation ceiling") Then Exit Sub
+                NzStr(mLstOutputRegulations.List(idx, 2)), "Output regulation ceiling") Then Exit Function
     End If
     If OutputRegulationRecipeScope() Then
         Set record = NewReusableRecord("OUTPUT_REGULATION")
@@ -10655,13 +10646,18 @@ Private Sub mBtnOutputRegulationApply_Click()
             CBool(mChkOutputRegulated.Value), mTxtOutputRegulationFloor.Text, mTxtOutputRegulationCeiling.Text
     End If
     RefreshOutputRegulationSettings
-    ShowStatus "Output regulation staged in the versioned " & IIf(OutputRegulationRecipeScope(), "Recipe override.", "Process default.")
-End Sub
+    report = "Output regulation staged in the versioned " & IIf(OutputRegulationRecipeScope(), "Recipe override.", "Process default.")
+    ApplyOutputRegulation = True
+End Function
 
 Private Sub mBtnOutputRegulationClear_Click()
+    OutputRegulationAction False
+End Sub
+
+Public Function ClearOutputRegulation(ByRef report As String) As Boolean
     Dim idx As Long, sourceRow As Long
     idx = mLstOutputRegulations.ListIndex
-    If idx < 0 Then Exit Sub
+    If idx < 0 Then Exit Function
     If OutputRegulationRecipeScope() Then
         RemoveRecipeOutputRegulation NzStr(mLstOutputRegulations.List(idx, 6)), NzStr(mLstOutputRegulations.List(idx, 0))
     Else
@@ -10669,7 +10665,15 @@ Private Sub mBtnOutputRegulationClear_Click()
         SetProcessOutputRegulation NzStr(mLstProcessOutputs.List(sourceRow, 0)), False, "", ""
     End If
     RefreshOutputRegulationSettings
-    ShowStatus "Output regulation cleared."
+    report = "Output regulation cleared."
+    ClearOutputRegulation = True
+End Function
+
+Private Sub OutputRegulationAction(ByVal applyRegulation As Boolean)
+    Dim report As String
+    report = modProductionRegulationActions.Stage(Me, applyRegulation, mActivityContext, _
+        mOperatorWorkbook, mLoading, mDesignerActionInProgress)
+    If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mBtnUomCatalogSend_Click()
@@ -10689,15 +10693,7 @@ Private Sub mBtnUomCatalogRetrieve_Click()
 End Sub
 
 Private Sub RemoveRecipeOutputRegulation(ByVal nodeId As String, ByVal outputId As String)
-    Dim i As Long, record As Object
-    If mRecipeOutputRegulations Is Nothing Then Exit Sub
-    For i = mRecipeOutputRegulations.Count To 1 Step -1
-        Set record = mRecipeOutputRegulations(i)
-        If StrComp(modProductionReusableDesigns.ReusableRecordText(record, "ProcessNodeId"), nodeId, vbTextCompare) = 0 _
-           And StrComp(modProductionReusableDesigns.ReusableRecordText(record, "OutputId"), outputId, vbTextCompare) = 0 Then
-            mRecipeOutputRegulations.Remove i
-        End If
-    Next i
+    modProductionRegulationActions.RemoveRecipe mRecipeOutputRegulations, nodeId, outputId
 End Sub
 
 Private Sub mBtnProcessOutputAdd_Click()

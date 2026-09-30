@@ -101,6 +101,7 @@ Public Function CommandCompleted(ByVal record As Object) As Boolean
         Case "PRODUCTION_PROCESS_REFRESH", "PRODUCTION_RECIPE_REFRESH": CommandCompleted = (code = "REFRESHED")
         Case "PRODUCTION_PROCESS_LOAD", "PRODUCTION_RECIPE_LOAD": CommandCompleted = (code = "PRESENTED")
         Case "PRODUCTION_PROCESS_REUSE": CommandCompleted = (code = "STAGED")
+        Case "PRODUCTION_OUTPUT_REGULATION_APPLY", "PRODUCTION_OUTPUT_REGULATION_CLEAR": CommandCompleted = (code = "STAGED")
         Case "PRODUCTION_UOM_EDIT": CommandCompleted = (code = "OPENED" Or code = "REUSED")
         Case "ADMIN_SETTINGS_SAVE_VALUE", "PRODUCTION_UOM_RETRIEVE", _
              "ADMIN_UOM_ADD", "ADMIN_UOM_REMOVE", "ADMIN_UOM_RESET", _

@@ -14,7 +14,7 @@ function Test-ProductionDesignReadActivity($Fixture,$Other) {
         $context=$paired;$redacted=$paired;$integrity=$paired;$linked=$false;$facts=$false;$terminal=$false
         $control='PRODUCTION_'+$Action
         foreach($r in $records){
-            $context=$context -and $r.ControlId -ceq $control -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 19
+            $context=$context -and $r.ControlId -ceq $control -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 20
             $redacted=$redacted -and @($r.SourceEventRefs).Count -eq 0
         }
         foreach($value in $raw){

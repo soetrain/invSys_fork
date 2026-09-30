@@ -3,7 +3,16 @@
 Last reviewed: 2026-09-30 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
-**Current designer read candidate,2026-09-30:** catalog19 registers103 global
+**Current output-regulation candidate,2026-09-30:** catalog20 registers105 global
+controls and44/68 constructed Production controls;24 remain unregistered.
+The unpromoted `validation-production-regulation-final` candidate has focused
+RED168/528 -> GREEN696/696 with exact ordered identities, five builds/compiles,
+static limits, preservation, normal closure, zero delayed Excel failures and two
+reviewed Production Settings captures. Paired paths and required regressions
+remain pending; see [regulation evidence](plan022_slice4be_production_regulation_results.md).
+The native failure below remains unresolved and is not repaired by tracking.
+
+**Previous designer read candidate,2026-09-30:** catalog19 registers103 global
 controls and42/68 constructed Production controls;26 remain unregistered.
 The frozen, unpromoted `validation-production-design-reads-final` candidate has
 focused621/621 and paired-path114/114 GREEN with test-first provenance, builds,

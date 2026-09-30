@@ -1,4 +1,30 @@
 # Actual operator handlers; fixture values remain in memory and checks are fixed metadata.
+function Test-RegulationRecordRedacted([string]$Raw,[string[]]$Sensitive,[string[]]$Identities) {
+    $record=$Raw|ConvertFrom-Json
+    $decoded=$record|ConvertTo-Json -Depth 30 -Compress
+    foreach($value in $Sensitive){
+        $encoded=ConvertTo-Json -InputObject $value -Compress
+        if($decoded.Contains($value) -or $decoded.Contains($encoded.Substring(1,$encoded.Length-2))){return $false}
+    }
+    function SafeValue($Value,[string]$Name=''){
+        if($null -eq $Value){return $true}
+        if($Value -is [string]){
+            # Three-character business identities can occur inside unrelated
+            # generated identifiers, hashes or fractional timestamps. Exempt
+            # only these named fields with their complete technical syntax.
+            if($Name -cin @('RecordId','ActivityId','SequenceId') -and $Value -cmatch '^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$'){return $true}
+            if($Name -ceq 'ContentSha256' -and $Value -cmatch '^[a-f0-9]{64}$'){return $true}
+            if($Name -ceq 'OccurredAtUTC' -and $Value -cmatch '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$'){return $true}
+            foreach($identity in $Identities){if($Value.Contains($identity)){return $false}}
+        }elseif($Value -is [Collections.IEnumerable]){
+            foreach($item in $Value){if(-not (SafeValue $item)){return $false}}
+        }elseif($Value -is [pscustomobject]){
+            foreach($property in $Value.PSObject.Properties){if(-not (SafeValue $property.Value $property.Name)){return $false}}
+        }
+        return $true
+    }
+    return (SafeValue $record)
+}
 function Test-ProductionRegulationActivity($Fixture,$Other) {
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
@@ -18,10 +44,7 @@ function Test-ProductionRegulationActivity($Fixture,$Other) {
             $redacted=$redacted -and @($r.SourceEventRefs).Count -eq 0
         }
         foreach($value in $raw){
-            foreach($secret in @($canary,$processId,$Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'NODE1','A01','mBtn','PinHash')){
-                $encoded=ConvertTo-Json -InputObject $secret -Compress
-                if($value.Contains($secret) -or $value.Contains($encoded.Substring(1,$encoded.Length-2))){$redacted=$false}
-            }
+            $redacted=$redacted -and (Test-RegulationRecordRedacted $value @($canary,$Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'mBtn','PinHash') @($processId,'NODE1','A01'))
             $match=[regex]::Match($value,',"ContentSha256":"([a-f0-9]{64})"\}$')
             if(-not $match.Success){$integrity=$false;continue}
             $sha=[Security.Cryptography.SHA256]::Create()
