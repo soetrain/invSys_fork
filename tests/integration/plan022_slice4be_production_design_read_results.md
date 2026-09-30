@@ -257,6 +257,22 @@ Diagnostic and Compare both preserve the same evidence. Agent review is not
 human acceptance. These are regressions of the existing approved contract;
 recording their evidence introduces no runtime change or new D13 RED requirement.
 
+Recipe ordering retains463/463 exact ordered prior checks,
+08:47:16.5157945--08:50:04.0774911 UTC. Controller
+`reports/runtime/production-recipe-order-controller/63974673d0174c12af28a6076dfff2d3`;
+result `reports/runtime/slice4be-production-recipe-order/501654cb9b8247438d02bf346776e185`.
+Five compiles, settings/package and workbook preservation, normal closure and the
+delayed Application-failure audit pass.
+
+Recipe ordering paths retain93/93 exact ordered prior checks,
+08:50:28.3635972--08:54:50.1447007 UTC. Controller
+`reports/runtime/production-recipe-order-controller/ce86abc56cc74db5b1d9f3b4629a7bc5`;
+result `reports/runtime/slice4be-production-recipe-order-paths/0375164c2dbc4a34a513ab06f7769630`.
+Five compiles, preservation, normal closure and zero delayed Application failures
+pass. All six principal captures are directly reviewed and hashed: three guide
+steps match the separate observed run, with zero extra actions and a local-only
+conclusion. Agent review does not establish human acceptance.
+
 ## Remaining work
 
 The typed owner/catalog implementation and exact621 focused GREEN are recorded.
