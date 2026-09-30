@@ -160,6 +160,24 @@ creation results, normal closure and all prior check identities. No repeat or
 native observer is needed for this catalog20 execution; the earlier native
 failures remain retained without a repair claim.
 
+Designer read regressions on the same catalog20 packages retain621/621 focused
+checks and114/114 paired-path checks, with exact prior ordered identities, five
+instrumented compiles each, preserved settings/packages/authority/workbook bytes,
+normal closure and zero delayed Excel Application failures. Controller roots:
+
+- `reports/runtime/production-design-read-controller/ecdfe475563b4f6ab986fbce35e30ff4`,
+  11:05:24.0031181--11:08:43.0900451 UTC; result
+  `reports/runtime/slice4be-production-design-reads/624b803e36864619b8605592fd9f5e48/green.json`.
+- `reports/runtime/production-design-read-controller/f58a7984cdc84d0e8e74170ff208c229`,
+  11:09:12.9208814--11:15:45.4737167 UTC; result
+  `reports/runtime/slice4be-production-design-read-paths/271427243fee4d94925f4555814c090e/green.json`.
+
+Six principal path captures are directly reviewed, with hashes in the result's
+`visible-review.json`: Load/PRESENTED detail remains Info/Unchanged; all five
+instructions and matched REFRESHED/PRESENTED/STAGED steps are visible, with zero
+extras and an explicitly local conclusion. This remains agent review, not human
+acceptance. No runtime edits or package rebuilds were needed.
+
 ## Remaining work
 
 The remaining focused regressions and run-only reusable gate remain pending on
