@@ -332,9 +332,12 @@ use built-in display defaults, and successful saves report tracking unavailabili
 separately. This is agent review, not full visual or human acceptance.
 
 Visual follow-up discovered in that review: Event Detail Show/Order/Required
-headings appear left of their corresponding list values. Compare the existing
-geometry and protect alignment with a focused layout test before any repair;
-no runtime change or causal claim is made by this evidence checkpoint.
+headings appear left of their corresponding list values. The separate bounded
+correction subsequently records focused222/18 RED ->240/240 GREEN, packaged smoke86,
+chain32/live-role48/Create15 and Settings activity493, with preserved prior checks,
+five compiles, static limits, reviewed images and normal closure. See
+[Detail heading evidence](plan022_slice4be_detail_columns_results.md). The frozen
+regulation candidate is unchanged; its original images retain the observed defect.
 
 Run-only reusable Production retains the prior aggregate and all67 exact ordered
 boolean observations,2026-09-30 12:50:17.8442077--12:56:33.0813667 UTC. Controller:
@@ -348,7 +351,8 @@ it does not diagnose the historical intermittent native failure.
 
 ## Remaining work
 
-The noted visual follow-up, comprehensive remaining control coverage and human/
-NAS acceptance remain pending. The candidate is not promoted. Catalog19 remains unchanged
+The visual follow-up is complete on the separate Detail candidate; comprehensive
+remaining control coverage and human/NAS acceptance remain pending. The candidate
+is not promoted. Catalog19 remains unchanged
 and unpromoted. Its ordinary full reusable native failure remains unresolved; see
 [designer read evidence](plan022_slice4be_production_design_read_results.md).

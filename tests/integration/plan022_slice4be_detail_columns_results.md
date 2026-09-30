@@ -1,6 +1,6 @@
 # Slice 4be Admin Event Detail heading alignment
 
-Last verified:2026-09-30 UTC. Focused RED/GREEN verified; broader gates pending.
+Last verified:2026-09-30 UTC. All planned automated gates for this correction pass.
 No deployment promotion or human acceptance.
 
 Architecture v4.11's 4be.2 heading-alignment clarification, Plan022 and controls
@@ -47,7 +47,8 @@ Isolated candidate: `deploy/validation-detail-columns`; build evidence:
 for all five packages,13:05:21.6767902--13:06:09.3091323 UTC, with preserved Settings
 and frozen candidates. All262 compiled components retain identity; only the Admin
 `cAdminEventDetail` normalized code differs. The other261 components retain both
-normalized code and string-literal hashes. This is not a completed GREEN claim.
+normalized code and string-literal hashes. Build evidence alone is not acceptance;
+the focused and regression results follow.
 
 ## Focused GREEN and maintenance
 
@@ -85,8 +86,26 @@ restored. Settings/packages are preserved, closure is normal and the delayed
 Application audit finds zero Excel failures. This is isolated candidate evidence,
 not operational promotion or NAS acceptance.
 
-## Remaining gates
+Settings activity retains493/493 exact prior ordered checks with five instrumented
+compiles,2026-09-30 13:17:50.3106791--13:32:37.4004321 UTC. Controller:
+`reports/runtime/detail-columns-regression/settingsactivity-87a7b15173f0487496659dbfdb7a69df`;
+result: `reports/runtime/slice4be-settings-activity/0182da5acecc497fb27897843e47b1e5/green.json`.
+Settings/packages are preserved, the Quit-only worker and waiting controller close
+Excel without intervention, and the delayed Application audit finds zero Excel
+failures. Eight images are directly reviewed and hashed in `visible-review.json`:
+corrected headings remain readable; staged/effective preferences remain distinct;
+denied reload clears the editor; failed profile reads use explicit built-in display
+defaults; successful saves report unavailable optional tracking separately.
 
-Complete Settings activity for the isolated candidate. Preserve all earlier
-regulation evidence and unrelated user changes. Human/NAS acceptance and remaining
-comprehensive control coverage remain open.
+The planned matrix is complete for this bounded Admin layout correction. Source
+comparison establishes that the other261 compiled components are unchanged from
+the fully regressed regulation candidate. Its focused Production and reusable
+evidence remains preserved; this Admin-only correction does not claim to diagnose
+the historical intermittent native crash or complete every control's coverage.
+
+## Remaining Release1 work
+
+Human/NAS acceptance and comprehensive remaining control coverage remain open.
+Production Close is now specified in Architecture v4.11 before test/runtime work
+(documentation5da0371); its focused packaged RED is the next implementation gate.
+No operational promotion, new catalog registration or human acceptance is claimed.
