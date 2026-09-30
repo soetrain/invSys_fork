@@ -234,6 +234,29 @@ Settings, all five packages and tracked reports restore; desktop probes remain
 healthy. None of the171 prior full reusable observations is re-established.
 The remaining focused/reusable/Settings gates remain pending on this artifact.
 
+Recipe structure retains786/786 exact ordered prior checks,
+08:34:34.9339329--08:38:06.1732296 UTC. Controller
+`reports/runtime/production-recipe-structure-controller/350d26a7273e4dc1b1a123001832d162`;
+result `reports/runtime/slice4be-production-recipe-structure/307c6ab22a7a42d483f1a06c075f3db5`.
+The released-data gate retains55/55 exact ordered prior checks,
+08:38:26.7320997--08:40:14.6563485 UTC. Controller
+`reports/runtime/production-recipe-structure-controller/daf225eaaac64680877da7f606b356bf`;
+result `reports/runtime/slice4be-production-recipe-structure-released/7aff974d3f5749cfa25804a45cda468b`.
+Both preserve five compiled packages, settings, workbook bytes and unknown columns,
+close normally and pass the delayed Excel Application-failure audit.
+
+Recipe structure paths retain109/109 exact ordered prior checks,
+08:40:48.3455079--08:46:44.9087978 UTC. Controller
+`reports/runtime/production-recipe-structure-controller/d579480700414f6fb5ac05a5735e0268`;
+result `reports/runtime/slice4be-production-recipe-structure-paths/c3da19cbdcc3413487244f284ddbb1fc`.
+Five compiles, preservation, unassisted closure and the delayed Application audit
+pass. Six principal captures are directly viewed and hashed. The five authored
+steps match a separate observed run with zero additional actions; the scrolled
+conclusion explicitly limits success to local command completion. How-To,
+Diagnostic and Compare both preserve the same evidence. Agent review is not
+human acceptance. These are regressions of the existing approved contract;
+recording their evidence introduces no runtime change or new D13 RED requirement.
+
 ## Remaining work
 
 The typed owner/catalog implementation and exact621 focused GREEN are recorded.
