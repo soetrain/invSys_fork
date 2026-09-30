@@ -4,6 +4,15 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function Hash([string]$Path){$stream=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $stream).Hash}finally{$stream.Dispose()}}
+    function AuthorityCheckpoint([string]$Stage){
+        $index=0
+        foreach($file in @($pins.Keys|Sort-Object)){
+            $index++;$kind=switch -Regex ([IO.Path]::GetFileName($file)){'\.Config\.'{'Config';break} '\.Auth\.'{'Auth';break} '\.Inventory\.'{'Inventory';break} '\.Designs\.'{'Designs';break} default{'Other generated workbook'}}
+            $actual=Hash $file
+            $authorityTrace.Add([pscustomobject]@{Stage=$Stage;Index=$index;Kind=$kind;ExpectedHash=$pins[$file];ActualHash=$actual;Preserved=$actual -ceq $pins[$file]})
+        }
+        $authorityTrace|ConvertTo-Json -Depth 4|Set-Content (Join-Path $reportRoot 'close-authority-checkpoints.json')
+    }
     function SetPolicy([bool]$Enabled){
         SelectTarget $Fixture
         if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ClosePolicyForTest' @($Enabled))){throw 'Authorized Close policy fixture unavailable; not product RED.'}
@@ -50,6 +59,7 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
         Check ($Label+'.OnlyDismissalConcludes') $terminal
     }
     $canary='CLOSE'+[guid]::NewGuid().ToString('N');$book=$null;$decoy=$null;$publicBook=$null;$pins=@{};$recordPins=@{}
+    $authorityTrace=[Collections.Generic.List[object]]::new()
     SetPolicy $true
     try {
         $old=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(20))).Split([char]10)|Where-Object{$_})
@@ -143,10 +153,12 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
             Check 'ProductionClose.PermissionLoss.DismissalAllowed' (Dismissed);Pair $before 'ProductionClose.PermissionLoss'
             [void](Probe 'CloseForgetForTest')
         }finally{[IO.File]::WriteAllBytes($authPath,$authBytes);SelectTarget $Fixture 'config-producer'}
+        AuthorityCheckpoint 'AfterPermissionRestoration'
         SetPolicy $false;$pins[$Fixture.Config]=Hash $Fixture.Config
         OpenPrivate;$before=@(Files);[void](Probe 'CloseButtonForTest')
         Check 'ProductionClose.TrackingOff.DismissalWithoutRecords' ((Dismissed) -and @(Files).Count -eq $before.Count);[void](Probe 'CloseForgetForTest')
         SetPolicy $true;$pins[$Fixture.Config]=Hash $Fixture.Config
+        AuthorityCheckpoint 'AfterPolicyCommands'
         $blocked=Join-Path (Join-Path $Fixture.Root 'Training\Activity') $Fixture.Warehouse;$held=$blocked+'-close-held'
         foreach($item in @($blocked,$held)){if(-not [IO.Path]::GetFullPath($item).StartsWith([IO.Path]::GetFullPath($Fixture.Root).TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Tracking fault escaped fixture.'}}
         if(Test-Path -LiteralPath $held){throw 'Preserve existing held fixture.'}
@@ -162,7 +174,9 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
             Check ('ProductionClose.Unavailable.'+$mode+'.NoFallbackActivity') (@(Files).Count -eq $before.Count)
             [void](Probe 'CloseForgetForTest')
         }
+        AuthorityCheckpoint 'BeforePublicLauncher'
         Test-ProductionClosePublic $Fixture $canary
+        AuthorityCheckpoint 'AfterPublicLauncher'
         Check 'ProductionClose.SavedOperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
         Check 'ProductionClose.DecoyPreserved' ($decoy.Worksheets.Count -eq 1 -and $decoy.Worksheets.Item(1).Range('A1').Value2 -ceq $canary)
         $same=$true;foreach($file in $pins.Keys){$same=$same -and (Hash $file) -ceq $pins[$file]};Check 'ProductionClose.SavedAuthorityPreserved' $same
@@ -176,6 +190,7 @@ function Test-ProductionClosePublic($Fixture,[string]$Canary) {
     if(-not [IO.Path]::GetFullPath($operatorRoot).StartsWith([IO.Path]::GetFullPath($runRoot).TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Public operator root escaped fixture.'}
     if(-not [bool](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @($operatorRoot))){throw 'Isolated public root unavailable.'}
     [void](Run 'invSys.Operations.xlam' 'modOperationsInit.Auto_Open')
+    $eventsAtEntry=[bool]$excel.EnableEvents
     try{
         [void](Run 'invSys.Operations.xlam' 'mProduction.BtnOpenProductionForm')
         $name=[string](Probe 'CloseBindPublicForTest');$book=$excel.Workbooks.Item($name);$path=$book.FullName
@@ -195,7 +210,11 @@ function Test-ProductionClosePublic($Fixture,[string]$Canary) {
         $retained=$reopened.Worksheets.Item('invSys UOM Catalog').ListObjects.Item('tblInvSysUomCatalog')
         Check 'ProductionClose.Public.ReopensSameOwnerWithUnknownValues' ($reopened -eq $book -and $reopened.FullName -ceq $path -and $retained.ListColumns.Item('Operator Annotation').DataBodyRange.Cells.Item(1,1).Value2 -ceq $Canary -and $retained.ListColumns.Item('Notes').DataBodyRange.Cells.Item(1,1).Value2 -ceq $Canary)
         CaptureOwnedFormByCaptionEvidence 'Production' 'production-close-public-reopened.png'
+        $eventsBeforeClose=[bool]$excel.EnableEvents
+        $bound=[bool](Run 'invSys.Operations.xlam' 'mProduction.CloseBindingForTest' @($book.Name))
+        $entries=[long](Probe 'CloseWorkbookEntryCountForTest')
         $before=@(Get-Slice4beActivityFiles $Fixture);$book.Close($false);$book=$null
+        [pscustomobject]@{EventsAtEntry=$eventsAtEntry;EventsBeforeClose=$eventsBeforeClose;OwnerBoundBeforeClose=$bound;WorkbookCloseEntries=([long](Probe 'CloseWorkbookEntryCountForTest')-$entries);LoadedFormsAfterClose=[long](Probe 'CloseLoadedFormsForTest')}|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'close-public-lifetime.json')
         Check 'ProductionClose.Public.WorkbookShutdownDisposes' ([long](Probe 'CloseLoadedFormsForTest') -eq 0)
         Check 'ProductionClose.Public.WorkbookShutdownNotUserClose' (@(Get-Slice4beActivityFiles $Fixture).Count -eq $before.Count)
         [void](Probe 'CloseForgetForTest')

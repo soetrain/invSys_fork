@@ -1,6 +1,19 @@
 # Unsaved adapters expose existing form actions; no dismissal handler is replaced.
 function Install-ProductionCloseProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
+    $owner=$project.VBComponents.Item('mProduction').CodeModule
+    $start=$owner.ProcStartLine('HandleProductionOperatorWorkbookClosing',0)
+    $count=$owner.ProcCountLines('HandleProductionOperatorWorkbookClosing',0)
+    $lines=$owner.Lines($start,$count) -split '\r?\n'
+    $entry=@(for($i=0;$i -lt $lines.Count;$i++){if($lines[$i].Trim() -ceq 'If operatorWb Is Nothing Then Exit Sub'){$start+$i}})
+    if($entry.Count -ne 1){throw 'Unique workbook-close observation boundary unavailable.'}
+    $owner.InsertLines($entry[0],'    TestProductionDesigner.CloseWorkbookEntriesForTest = TestProductionDesigner.CloseWorkbookEntriesForTest + 1')
+    $owner.AddFromString(@'
+Public Function CloseBindingForTest(ByVal workbookName As String) As Boolean
+    On Error Resume Next
+    If Not mProductionOperatorWorkbook Is Nothing Then CloseBindingForTest = (mProductionOperatorWorkbook Is Application.Workbooks(workbookName))
+End Function
+'@)
     $project.VBComponents.Item('frmProduction').CodeModule.AddFromString(@'
 Public Sub CloseButtonForTest()
     mBtnClose_Click
@@ -16,7 +29,11 @@ Public Sub ClosePrepareWorkbenchForTest()
     mBtnUomCatalogSend_Click
 End Sub
 '@)
+    $project.VBComponents.Item('TestProductionDesigner').CodeModule.InsertLines(1,'Public CloseWorkbookEntriesForTest As Long')
     $project.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString(@'
+Public Function CloseWorkbookEntryCountForTest() As Long
+    CloseWorkbookEntryCountForTest = CloseWorkbookEntriesForTest
+End Function
 Public Function CloseLoadedFormsForTest() As Long
     Dim loaded As Object
     For Each loaded In VBA.UserForms
