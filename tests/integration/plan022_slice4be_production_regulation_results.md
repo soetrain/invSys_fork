@@ -310,6 +310,15 @@ The Settings image explicitly reports saved configuration and unavailable
 tracking. This is agent review, not human acceptance or native-crash repair.
 Runtime, tests and frozen packages remain unchanged.
 
+Settings retains 202/202 exact prior ordered checks and five instrumented compiles,
+2026-09-30 12:30:21.7877413--12:34:25.8472714 UTC. Controller:
+`reports/runtime/production-regulation-regression/settings-49449ed5bfc44cffba783798d5f23ecf`;
+result: `reports/runtime/slice4be-tracking-settings/afef75845a8547efaf41d9aee85e2d0c/green.json`.
+The preference restart is unassisted, all ten unique COM references release with
+zero failures, settings/packages are preserved, final closure is normal and
+the delayed Application audit finds zero Excel failures. This gate requests no
+new screenshots and does not establish human acceptance.
+
 ## Remaining work
 
 The remaining focused regressions and run-only reusable gate remain pending on
