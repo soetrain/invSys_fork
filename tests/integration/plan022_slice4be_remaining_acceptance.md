@@ -18,7 +18,15 @@ both aggregate checks and all 171 Boolean observations; run-only retains its
 aggregate and all 67 observations, with unassisted exits and preservation.
 Settings retains202/202 with exact prior checks, five compiles, unassisted restart/
 final exit, preserved settings/packages and zero Excel Application failures.
-Remaining activity regressions and broader acceptance are still required.
+Settings activity481/481 retains all478 prior checks plus three catalog17
+older-policy exclusions, five compiles, eight reviewed captures, preservation and
+delayed unassisted closure with zero Excel Application failures. Component paths
+retain142/142, exact prior checks, five compiles, six reviewed principal captures,
+normal closure, preservation and zero Excel Application failures.
+Instruction editing retains411/411 with exact prior checks, five compiles,
+normal closure, preservation and zero Excel Application failures.
+Instruction paths retain105/105 with the same gates and six reviewed captures.
+Remaining Production activity regressions and broader acceptance are still required.
 See [Recipe ordering evidence](plan022_slice4be_production_recipe_order_results.md).
 Earlier catalog16 records below retain their original candidate scope.
 

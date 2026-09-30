@@ -82,7 +82,39 @@ result `slice4be-tracking-settings/a8317c607a694910aa0bea2b91d1932b`, records
 02:59:49--03:03:43 UTC, five compiles, preservation and zero Excel Application
 failures. Preference restart exits unassisted within its unchanged five-second
 bound, releasing all ten completed-host references without errors; final exit is
-also unassisted. Remaining activity regressions are still pending.
+also unassisted.
+
+Settings activity retains all478 prior checks in order and adds exactly the three
+catalog17 older-policy exclusion checks: **481/481 GREEN**. Controller
+`production-recipe-order-regression/settingsactivity-e2c6e37a6fc14a2da135b001293efe4b`,
+result `slice4be-settings-activity/4f3ae16428d34881bfc73e66770391fa`, records
+03:04:37--03:18:32 UTC, five compiles, eight reviewed principal captures, delayed
+unassisted closure, preserved settings/packages and zero Excel Application failures.
+Captures distinguish staged and effective preferences, denied reload, identified
+built-in display defaults and successful owner writes when optional tracking is
+unavailable. These are agent-reviewed evidence, not human acceptance.
+Component Action Paths retains **142/142** with the exact prior check order.
+Controller `production-component-controller/b69ed6c244514013973726edf6e9b4d1`,
+result `slice4be-production-components/08b4c9e017844b86b11c311f73c86442`, records
+03:18:54--03:24:23 UTC, five compiles, normal closure, preserved settings/packages
+and zero Excel Application failures. All six principal captures are reviewed:
+the selected STAGED detail distinguishes local changes from saved authority, and
+How-To/Diagnostic/Compare retain the exact guide and independent observed run.
+The scrolled conclusion matches ten actions with no additional observed actions.
+Instruction editing retains **411/411** in the exact prior order, with five
+compiles, normal closure, preserved settings/packages and zero Excel Application
+failures. Controller `production-instruction-controller/357a2e7cef8d4269afce3df0d59049dc`,
+result `slice4be-production-instructions/aa8edb764ebf4702b1ce80e57d03a248`, records
+03:24:42--03:27:15 UTC. No new principal captures were requested by that gate.
+Instruction Action Paths retains **105/105**, exact prior checks, five compiles,
+normal closure, preservation and zero Excel Application failures. Controller
+`production-instruction-controller/24d26dd2082c4c63b763674905363db0`, result
+`slice4be-production-instruction-paths/b3dbd2811d0b451cba9e6457ba4b8352`, records
+03:27:31--03:32:13 UTC. Six principal captures are reviewed: selected REQUESTED
+detail reports Unknown effect; the separately scrolled diagnostic conclusion
+matches all five actions, reports no additional actions and does not assert Domain
+application. Authored guide and independent observed run remain distinct.
+Remaining Production activity regressions are still pending.
 
 Initial paired evidence: controller
 `production-recipe-order-controller/93ca5ad60df548ec98b6bf87af1c7cd6`, result
