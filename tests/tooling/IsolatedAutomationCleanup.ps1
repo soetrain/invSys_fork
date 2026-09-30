@@ -10,17 +10,21 @@ function Release-IsolatedAutomationReferences {
         try{$pending.Push($root)}
         catch [Runtime.InteropServices.InvalidComObjectException]{$alreadyReleased++}
     }
-    $visited=[Collections.Generic.List[object]]::new()
+    $visited=[Runtime.Serialization.ObjectIDGenerator]::new()
     $com=[Collections.Generic.List[object]]::new()
     while($pending.Count -gt 0){
-        $value=$pending.Pop()
-        if($null -eq $value){continue}
-        $isCom=[Runtime.InteropServices.Marshal]::IsComObject($value)
-        if(-not $isCom -and $value -isnot [Collections.IDictionary] -and $value -isnot [Collections.IList]){continue}
-        $known=$false
-        foreach($item in $visited){if([object]::ReferenceEquals($item,$value)){$known=$true;break}}
-        if($known){continue}
-        $visited.Add($value)
+        try{
+            $value=$pending.Pop()
+            if($null -eq $value){continue}
+            $isCom=[Runtime.InteropServices.Marshal]::IsComObject($value)
+            if(-not $isCom -and $value -isnot [Collections.IDictionary] -and $value -isnot [Collections.IList]){continue}
+        }catch [Runtime.InteropServices.InvalidComObjectException]{$alreadyReleased++;continue}
+        # Keep identity comparison inside .NET; PowerShell's two-object binding
+        # can fail when either stored reference is an already-released wrapper.
+        $firstVisit=$false
+        try{[void]$visited.GetId($value,[ref]$firstVisit)}
+        catch [Runtime.InteropServices.InvalidComObjectException]{$alreadyReleased++;continue}
+        if(-not $firstVisit){continue}
         if($isCom){$com.Add($value);continue}
         if($value -is [Collections.IDictionary]){
             foreach($key in $value.Keys){

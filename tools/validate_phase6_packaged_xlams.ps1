@@ -260,6 +260,25 @@ function Close-PackagedValidationSession {
     $Excel.Quit()
     Release-ComObject $Excel
     $owned = Get-Process -Id $ownedProcessId -ErrorAction SilentlyContinue
+    # Every old workbook is closed and Quit has returned; no replacement host
+    # exists yet. Release only this isolated worker's completed-host references.
+    . (Join-Path $repo 'tests/tooling/IsolatedAutomationCleanup.ps1')
+    try {
+        $completedHostVariables = @(Get-Variable -Scope Script) + @(Get-Variable -Scope Local)
+        Release-IsolatedAutomationVariables -Variables $completedHostVariables |
+            ConvertTo-Json | Set-Content -LiteralPath (Join-Path $closureRoot ($Phase + '-references.json'))
+    } catch {
+        [pscustomobject]@{
+            Stage=$Phase
+            ExceptionType=$_.Exception.GetType().Name
+            HResult=$_.Exception.HResult
+            File=(Split-Path -Leaf $_.InvocationInfo.ScriptName)
+            Line=$_.InvocationInfo.ScriptLineNumber
+        } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $closureRoot ($Phase + '-reference-failure.json'))
+        throw
+    }
+    $completedHostVariables = $null
+    [GC]::Collect(); [GC]::WaitForPendingFinalizers()
     # Only this HWND-identified process, after a real zero-workbook check.
     $waitStarted = [DateTimeOffset]::UtcNow
     $exitedNaturally = $null -eq $owned -or $owned.WaitForExit(1000)

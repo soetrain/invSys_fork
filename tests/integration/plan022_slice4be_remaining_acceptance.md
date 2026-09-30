@@ -3,6 +3,14 @@
 Last reviewed: 2026-09-30 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
+**Later cleanup correction:** Smoke86/86 now exits both hosts unassisted after
+releasing completed-host references through the repaired isolated helper. Original
+calibration8/8, nested-expired calibration9/9 and Settings202/202 pass; Settings
+also retains unassisted internal/final exit. Package/settings/report preservation
+and zero Excel Application events hold. Earlier assisted records remain qualified.
+Normal reusable shutdown remains open; see
+[cleanup evidence](plan022_slice4be_automation_cleanup_results.md).
+
 **Current component checkpoint,2026-09-29:** corrected adapters establish packaged
 RED180/615, then GREEN795/795 with exact identities, five compiles, normal closure,
 preserved settings/packages and two reviewed principal images. Catalog16 is built

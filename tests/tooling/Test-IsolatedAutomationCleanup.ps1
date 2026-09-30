@@ -1,11 +1,12 @@
 [CmdletBinding()]
-param([string]$RepoRoot='.')
+param([string]$RepoRoot='.',[switch]$IncludeExpiredNestedReferences)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before blank automation calibration.'}
 . (Join-Path $PSScriptRoot 'IsolatedAutomationCleanup.ps1')
 $root=Join-Path $repo ('reports/runtime/isolated-automation-cleanup/'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root|Out-Null
+Write-Output ('Evidence: '+$root)
 Add-Type @'
 using System; using System.Runtime.InteropServices;
 public static class CleanupCalibrationOwner {
@@ -33,6 +34,17 @@ try {
     $cycle.Matrix=$matrix
     $cycle.Self=$cycle
     $references.Add($cycle)
+    if($IncludeExpiredNestedReferences){
+        # Smoke retains closed/released peer workbooks inside its collections.
+        # Exercise that shape separately from the expired application variable.
+        $expiredBook=$books.Add()
+        $retired=@{List=[Collections.Generic.List[object]]::new();Map=@{Closed=$expiredBook}}
+        $retired.List.Add($expiredBook)
+        $references.Add($retired)
+        $expiredBook.Close($false)
+        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($expiredBook)
+        $expiredBook=$null
+    }
     $book.Close($false);$excel.Quit()
     $expiredApplication=$excel
     [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($excel);$excel=$null
@@ -40,9 +52,13 @@ try {
     $retained=-not $ownedProcess.WaitForExit(2000)
     $checks.Add([pscustomobject]@{Check='Baseline.ReferenceRetentionReproduced';Passed=$retained})
     $release=Release-IsolatedAutomationVariables -Variables (Get-Variable -Scope Script)
-    $checks.Add([pscustomobject]@{Check='Cleanup.UniqueReferencesDespiteAliasesAndCycles';Passed=($release.UniqueComReferences -eq 5)})
+    $expectedReferences=if($IncludeExpiredNestedReferences){6}else{5}
+    $checks.Add([pscustomobject]@{Check='Cleanup.UniqueReferencesDespiteAliasesAndCycles';Passed=($release.UniqueComReferences -eq $expectedReferences)})
     $checks.Add([pscustomobject]@{Check='Cleanup.NoReleaseFailures';Passed=($release.ReleaseFailures -eq 0)})
     $checks.Add([pscustomobject]@{Check='Cleanup.AlreadyReleasedReferenceSkipped';Passed=(($release.AlreadyReleasedVariables+$release.AlreadyReleased) -ge 1)})
+    if($IncludeExpiredNestedReferences){
+        $checks.Add([pscustomobject]@{Check='Cleanup.ExpiredNestedReferencesSkipped';Passed=($release.AlreadyReleased -ge 1)})
+    }
     [GC]::Collect();[GC]::WaitForPendingFinalizers();[GC]::Collect()
     $checks.Add([pscustomobject]@{Check='Cleanup.NormalProcessExit';Passed=$ownedProcess.WaitForExit(10000)})
     $again=Release-IsolatedAutomationVariables -Variables (Get-Variable -Scope Script)

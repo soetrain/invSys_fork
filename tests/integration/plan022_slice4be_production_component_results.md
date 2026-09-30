@@ -1,6 +1,11 @@
 # Slice 4be Process component observations — focused RED/GREEN
 
 Last verified:2026-09-30 UTC. **Focused GREEN; release acceptance incomplete.**
+Follow-up test cleanup: packaged smoke now retains86/86 with both hosts exiting
+unassisted; the existing Settings restart consumer retains202/202 and both normal
+exits. Original calibration8/8 and expanded nested-expired-reference calibration9/9
+protect the repaired helper. Earlier assisted/failed records below retain their
+scope. See [cleanup evidence](plan022_slice4be_automation_cleanup_results.md).
 Unless dated otherwise, gate times below are on2026-09-29 UTC; the Settings
 cleanup continuation explicitly crosses into2026-09-30.
 Architecture v4.11 D18, Plan022 and controls specify the ten requirement/output
@@ -287,7 +292,7 @@ and no Excel Application failure event occurs. Both restart and final receipts
 record **TerminationRequested=True**. Receipt
 `production-components-reusable-full-verification.json`. Workflow/restart GREEN
 does not prove normal shutdown, explain earlier native crashes or supply human
-visual acceptance. Normal cleanup, comprehensive control coverage, guide transfer
+visual acceptance. Normal reusable cleanup, comprehensive control coverage, guide transfer
 and broader comparison/human/NAS acceptance remain open.
 
 ## Protecting RED
