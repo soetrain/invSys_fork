@@ -1594,9 +1594,9 @@ Private Function ProcessAlternativePairNumber(ByVal lo As ListObject, _
     If lo Is Nothing Or targetCell Is Nothing Then Exit Function
     prefix = "Acceptable Managed Item "
     On Error Resume Next
-    columnName = lo.ListColumns(targetCell.Column - lo.Range.Column + 1).Name
+    columnName = Trim$(lo.ListColumns(targetCell.Column - lo.Range.Column + 1).Name)
     On Error GoTo 0
-    If Left$(columnName, Len(prefix)) <> prefix Then Exit Function
+    If StrComp(Left$(columnName, Len(prefix)), prefix, vbTextCompare) <> 0 Then Exit Function
     If IsNumeric(Mid$(columnName, Len(prefix) + 1)) Then _
         ProcessAlternativePairNumber = CLng(Mid$(columnName, Len(prefix) + 1))
 End Function

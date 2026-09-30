@@ -1,7 +1,7 @@
 # Slice 4be Process worksheet picker header alignment
 
-Last verified: 2026-09-30 UTC. Focused behavioral RED established; correction and
-candidate gates pending. No new tracking registration or release acceptance.
+Last verified: 2026-09-30 UTC. Focused115 GREEN, build/compile and static pass;
+regression gates remain pending. No new tracking registration or release acceptance.
 
 ## Governing contract and test
 
@@ -40,3 +40,41 @@ five failures above establish the protecting RED before Core edits.
 The captured picker shows a populated actual item selection before commit; the
 item/SKU mismatch is proven by assertions, not a post-commit screenshot. No claim
 of human acceptance or comprehensive Slice4be completion.
+
+## Candidate and focused GREEN
+
+Only Core `cDynItemSearch.ProcessAlternativePairNumber` changes: trim the actual
+header and compare its prefix with vbTextCompare. No module/procedure/line growth,
+new bridge, identity allocation or ownership/save change.
+Candidate `deploy/validation-process-worksheet-picker`; build record
+`reports/runtime/process-worksheet-picker-build`,18:03:32.3325656–18:04:10.7948007 UTC.
+Five compiles and Operations cold start pass. Compiled-source comparison finds
+only cDynItemSearch changed among265 components;264 are exactly unchanged.
+Frozen worksheet-header candidate/settings preserved, normal cleanup and delayed
+Excel Application audit pass.
+
+GREEN controller `reports/runtime/process-worksheet-picker-controller/fdc4c379abe54795a3a4cf8bffbca9b3`;
+result `reports/runtime/slice4be-process-worksheet-picker/467da303e9e1453086791d9f553aa915/green.json`.
+18:04:30.2768494–18:06:07.7087906 UTC: **115/115**, exact RED check sequence and
+all42 prior shared GREEN checks. Five instrumented compiles, preservation, normal
+unassisted cleanup and delayed Excel Application audit pass. The actual populated
+picker capture was directly reviewed; it is a pre-commit surface, not visual proof
+of the worksheet outcome. Automated assertions prove the latter.
+
+Static `reports/runtime/process-worksheet-picker-static`:272 components,6116
+procedures,134480 lines,9 literal/45 unresolved Application.Run,190 duplicate
+body candidates and28 non-growing oversized caps. All baseline metrics unchanged;
+three schemas and340 PowerShell parses pass, no exception added.
+
+## Regression status
+
+First full reusable controller
+`reports/runtime/process-worksheet-picker-regression/reusablefull-320f6c4899ab4ba290a20d9fbb6b9de9`,
+18:06:41.2076434–18:07:07.5249073 UTC, is excluded: HARNESS/HARNESS_CLEANUP RED,
+RPC HRESULT0x800706BE at mProduction.RunProductionBatchScaleContractTest.
+Application1000 at18:07:01.9175659 UTC records ntdll.dll/c0000028/offset12d2f;
+Application1001 follows. Normal workbook closure was not completed. Settings and
+packages were restored/preserved, no process termination requested, Excel absent
+afterward. This matches a previously observed native failure signature, but does
+not establish its cause or a repair. Desktop probes stayed healthy, zero error5.
+One unchanged isolated rerun is pending; no successful regression claim yet.
