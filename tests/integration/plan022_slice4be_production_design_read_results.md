@@ -309,6 +309,37 @@ scrolled diagnostic conclusion shows all five expected STAGED matches, zero
 extra actions and no Domain-application claim. All three presentations preserve
 the evidence. Agent review does not establish human acceptance.
 
+UOM workbench activity retains264/264 exact ordered prior checks,
+09:14:35.1507809--09:18:57.6185531 UTC. Controller
+`reports/runtime/production-uom-staging-controller/900d0bc26f6a44df8555b9da00345bd9`;
+result `reports/runtime/slice4be-production-uom-staging/c5cac929364843ce8809cd2471838576`.
+Five compiles, preservation, unassisted closure and zero delayed Application
+failures pass. The two principal UOM captures are directly reviewed and hashed:
+the draft/custom columns remain and the status explicitly confirms retained
+edits without reloading the saved catalog. Invalid-header, tracking-failure,
+busy/loading, captured-context and authority-preservation guards pass.
+
+Public UOM Close/reopen retains61/61 exact ordered prior checks,
+09:19:19.6856045--09:20:54.2342154 UTC. Controller
+`reports/runtime/production-uom-staging-controller/fb0a46cea98c4bd5b9aaa122ea394e7c`;
+result `reports/runtime/slice4be-production-uom-public-close/4eb9884966f94e5bb3cf2d5caa93fc0a`.
+Five compiles, preservation, unassisted closure and zero delayed Application
+failures pass. Three principal captures are directly reviewed and hashed: the
+public form opens, closing its owner preserves the unrelated workbook, and
+reopening retains the draft without reloading saved catalog authority. Agent
+review is not human acceptance.
+
+UOM Action Paths retains84/84 exact ordered prior checks,
+09:21:41.0200181--09:26:08.5441172 UTC. Controller
+`reports/runtime/production-uom-staging-controller/0916391b45994a97ab7af8dcf307e534`;
+result `reports/runtime/slice4be-production-uom-paths/214fc7f0a71349e6aeb5b8c4e5e7800b`.
+Five compiles, preservation, unassisted closure and zero delayed Application
+failures pass. Six principal captures are directly reviewed and hashed: the
+selected REUSED detail explains retained edits, and the separate observed run
+matches OPENED then REUSED with zero extra actions. How-To, Diagnostic and
+Compare both retain the same evidence and explicitly limit the conclusion to
+command completion without asserting Domain application.
+
 ## Remaining work
 
 The typed owner/catalog implementation and exact621 focused GREEN are recorded.
