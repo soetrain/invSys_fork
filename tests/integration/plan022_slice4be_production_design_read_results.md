@@ -273,6 +273,24 @@ pass. All six principal captures are directly reviewed and hashed: three guide
 steps match the separate observed run, with zero extra actions and a local-only
 conclusion. Agent review does not establish human acceptance.
 
+Component editing retains795/795 exact ordered prior checks,
+08:55:11.6363507--08:58:26.5732408 UTC. Controller
+`reports/runtime/production-component-controller/57c5fb306138410492360a9e32a77925`;
+result `reports/runtime/slice4be-production-components/1f6f10867b3743d48337ed9509ea4c4c`.
+Five compiles, settings/package preservation, unchanged workbook bytes/unknown
+columns, unassisted closure and zero delayed Application failures pass.
+
+Component paths retain142/142 exact ordered prior checks,
+08:59:13.0237917--09:05:02.1162688 UTC. Controller
+`reports/runtime/production-component-controller/97ee0b2e25db4da784a9aa9e5eb3bd46`;
+result `reports/runtime/slice4be-production-components/474b7f530dd84864a9f4970a0b98cd09`.
+Five compiles, preservation, unassisted closure and zero delayed Application
+failures pass. All six principal captures are directly reviewed and hashed.
+How-To visibly retains all ten instructions; the scrolled diagnostic tail shows
+the later matched steps and zero extra actions. Automated checks retain all ten
+matches and the local-only conclusion. This is regression evidence and agent
+review, not complete operator acceptance.
+
 ## Remaining work
 
 The typed owner/catalog implementation and exact621 focused GREEN are recorded.
