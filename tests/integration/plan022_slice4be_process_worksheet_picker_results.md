@@ -128,8 +128,39 @@ assistance, and have zero delayed Excel Application1000/1001/1002 events.
   successful save with unavailable-tracking notice. Assertions prove dismissal;
   these are not post-dismissal captures or human acceptance.
 
-Next unresolved gate: diagnose reusable restart with fixed phase labels around
-recipe load and the two retained-table Retrieve operations, plus native process
-exit evidence. Preserve disposable fixture context for a targeted replay. Do not
-use another unchanged full rerun as a diagnosis or claim a crash repair from a
-passing retry. Existing accepted frozen baselines remain available and unmodified.
+## Fresh-process restart diagnostic
+
+The test-only diagnostic changes no production source, packaged code or normative
+behavior. D13 product RED is not claimed for this tooling. Offline generation
+calibration10/10 proves original workflow statements retained, observer/trace
+placement only in the fresh restart, unchanged original VBA lines, fixed-label
+redaction and no logger call intercepting error-handler Err reads. Calibration:
+`reports/runtime/production-restart-diagnostic/af6aca6fd2a14792b83d49c09b0f24b9/calibration.json`.
+All343 PowerShell files parse. The existing native observer implementation is
+unchanged. The generated validator inherits its existing fixture credential in
+memory; it does not copy the literal into generated source or replay metadata.
+
+Diagnostic `reports/runtime/production-restart-diagnostic/d1b55669fc0d4632a818611b0014e82d`,
+18:43:50.4702355–18:51:59.5509317 UTC, passes two aggregates and the exact171 prior
+boolean observations. Only the fresh restart is observed/instrumented; all four
+loaded projects compile. The trace transport rejects an unknown label, emits16
+allowlisted entries, and reaches both Retrieve returns and Result.Success.
+Faults-only native observation is Attached/Ready/Exited with no relevant fault,
+observer exit0 and owned Excel exit00000000. First-session normal exit takes22ms;
+final exit2418ms, no reference-release failures or forced termination. Final
+workbooks and four packages close normally. Package/settings/helper/validator
+pins and the delayed Excel Application audit pass. Desktop probes remain healthy.
+
+The existing disposable runtime is retained for a targeted follow-up. Its ignored
+fixture-context.json contains identifiers and an operator-relative path, not
+credentials. It describes final state, which may contain restart mutations; it is
+not a pristine checkpoint. No Auth copy or runtime data dump is created.
+
+This proves an observed restart can complete, not a cold-run repair. The earlier
+unobserved failures remain unresolved and the picker prerequisite is not complete.
+Next use the retained fixture and actual public
+`mProduction.RunProcessWorksheetWorkbenchContractTest` to recreate its two draft
+tables, close normally, then exercise the nine restart observations without VBE
+tracing. Compare native-only observation with an unobserved control as needed;
+do not replace the full171 acceptance gate with this smaller diagnostic. Preserve
+all frozen baselines and do not issue another undifferentiated full rerun.
