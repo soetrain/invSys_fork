@@ -1,8 +1,8 @@
 # Slice 4be Inventory query ownership correction
 
 Last verified:2026-09-30 UTC. Focused query/public-launch GREEN, static, smoke,
-chain/live roles, layout, full reusable Production and lifecycle pass;
-remaining applicable Production gates are in progress. No release acceptance, promotion or
+chain/live roles, layout, full reusable Production, lifecycle and draft/paths pass.
+The bounded query correction completes its relevant gates. No release acceptance, promotion or
 native-crash repair is claimed.
 
 ## Contract and supplying path
@@ -168,7 +168,45 @@ The gate completes without intervention, settings/packages are preserved,
 Excel is closed and the delayed Application audit is zero. The inner
 `verification.json` records the outer interval and ordered comparison.
 
-Applicable remaining Production regressions, beginning with the390-check draft
-and Action Path gate, remain pending. Production Close is still unimplemented.
+Draft/Action Path regression retains390/390 exact ordered prior checks and five
+instrumented compiles,15:18:23.9794502--15:26:51.2111741 UTC. Outer controller:
+`reports/runtime/inventory-query-regression/draft-cad61d5c48bf4758baa8d135073bfb39`;
+inner controller `reports/runtime/production-designer-controller/40aad1713db1424dacb58588bc5d5344`;
+result `reports/runtime/slice4be-production-designer/8cb2e2dda3ae425ab0712935ace5d18e/green.json`.
+Closure is unassisted, settings/packages are preserved and the delayed Excel
+Application audit is zero. Published paths, actual Viewer source selection,
+expectation-editor diagnostics and immutable source/publication checks pass.
+
+## Regression scope and completion boundary
+
+Only Core `modInventoryDomainBridge` differs among262 compiled components.
+The80 focused cases cover all four changed query bridges with nonempty results,
+cold/borrowed/supplied workbook ownership, missing sources and existing Empty
+failure envelopes. The public Production launch/close/reopen test protects the
+observed authority-write defect through its real callback and handlers.
+The full reusable gate reaches `mProduction.LoadProductionRunInventoryPickerItems`,
+`modProductionReusableRun` inventory reads and the Process worksheet's shared
+`cDynItemSearch.LoadProcessManagedInventoryItems` route. Its actual bulk-import
+picker reports PickerOpened/PickerInventoryRows=True; the output-picker handler
+reports OutputPickerOpened/OutputPickerCommitted=True. ExactInputKeys,
+DistinctOutputKeys and Restarted remain True. The separate Workbench ItemSearch
+flag only checks target eligibility; it is not substituted for those actual
+picker assertions. Full mode invokes the same reusable run action contract used
+by RunOnly, plus lifecycle, worksheet and clean-process restart cases.
+
+Smoke, chain/live roles/Create Warehouse, layout, full reusable, lifecycle and
+draft/paths therefore cover the affected public consumers and shared recording
+flows in addition to the focused query contract. Prior component-specific editor,
+Admin settings and native-cancellation suites retain their frozen evidence;
+they were not rerun or claimed as new-candidate results because their implementations
+are unchanged and no additional failure implicates them. The separate RunOnly
+mode was not rerun; its shared action contract ran in full mode. This is the D13
+relevant regression set for the bounded query correction, not a replacement for
+the new catalog21/Close or final comprehensive Slice4be acceptance matrix.
+
+The query correction is verified and may serve as the frozen pre-Close baseline.
+Production Close observations and their independent How-To/Diagnostic/Compare
+evidence remain unimplemented/unaccepted. No package promotion is authorized by
+this result.
 No transport-exception or historical native-crash repair is asserted by the
 Domain Empty-result test.

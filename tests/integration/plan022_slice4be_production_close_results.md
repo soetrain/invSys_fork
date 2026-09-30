@@ -180,6 +180,10 @@ That candidate now passes all80 query cases and the public authority-preservatio
 assertion, retaining232 Close checks plus80 supplemental checks:175 PASS/137
 expected missing-Close failures. Five compiles, static ratchets, smoke86, normal
 closure/preservation and four reviewed images pass. The initial-launch write is
-resolved in focused evidence; broader Core regressions remain pending before
-Close implementation. Exact roots, native-fixture exclusions and counts are in
+resolved in focused evidence. The relevant query regressions now also pass:
+chain32/live48/Create15, three-size/five-page layout, full reusable171 observations,
+lifecycle615 and draft/paths390, with exact prior checks, normal closure and
+preservation. The query record documents the changed-call-site coverage and
+the suites retained as frozen evidence rather than rerun. Close test-first work
+may resume from this baseline. Exact roots, native-fixture exclusions and counts are in
 the linked query record; this does not claim Close or whole-release acceptance.
