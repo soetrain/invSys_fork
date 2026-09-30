@@ -15,7 +15,6 @@ End Function
 Private Sub ObserveQueryForTest(ByVal wb As Workbook)
     mQuerySeenForTest = True
     If Not wb Is Nothing Then mQueryReadOnlyForTest = wb.ReadOnly
-    If mQueryFailForTest Then Err.Raise vbObjectError + 2851, , "Disposable query failure fixture."
 End Sub
 '@)
     foreach($procedure in @('GetOnHandQtyBridgeResult','GetLocationBalancesBridgeResult','ListInventoryPickerItemsBridgeResult','ListAvailableInventoryEntitiesBridgeResult')){
@@ -23,7 +22,9 @@ End Sub
         $lines=$domain.Lines($start,$count) -split '\r?\n'
         $anchors=@(for($i=0;$i -lt $lines.Count;$i++){if($lines[$i] -match ('^\s*'+[regex]::Escape($procedure)+'\s*=')){$start+$i}})
         if($anchors.Count -ne 1){throw 'Unique Domain query observation boundary unavailable.'}
-        $domain.InsertLines($anchors[0],'    ObserveQueryForTest inventoryWb')
+        # The declared Domain query failure envelope is Empty (or zero for
+        # quantity), not an unhandled cross-project VBA exception dialog.
+        $domain.InsertLines($anchors[0],"    ObserveQueryForTest inventoryWb`r`n    If mQueryFailForTest Then Exit Function")
     }
     $module=$packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1)
     $module.Name='TestInventoryQueryReadOnly'
@@ -31,6 +32,26 @@ End Sub
 Option Explicit
 Private mExpected(0 To 3) As Variant
 Private mQuerySku As String
+Public Function StageDirtyForTest(ByVal workbookName As String) As Boolean
+    Dim wb As Workbook, lo As ListObject, added As ListColumn
+    Set wb = Application.Workbooks(workbookName)
+    Set lo = wb.Worksheets("InventoryEntities").ListObjects("tblInventoryEntities")
+    lo.Parent.Unprotect
+    Set added = lo.ListColumns.Add
+    added.Name = "Operator Annotation"
+    added.DataBodyRange.Cells(1, 1).Value2 = "Unsaved query fixture value"
+    lo.Parent.Protect
+    StageDirtyForTest = Not wb.Saved And DirtyPreservedForTest(workbookName)
+End Function
+Public Function DirtyPreservedForTest(ByVal workbookName As String) As Boolean
+    On Error GoTo CleanFail
+    Dim wb As Workbook, lo As ListObject
+    Set wb = Application.Workbooks(workbookName)
+    Set lo = wb.Worksheets("InventoryEntities").ListObjects("tblInventoryEntities")
+    DirtyPreservedForTest = lo.Parent.ProtectContents And _
+        CStr(lo.ListColumns("Operator Annotation").DataBodyRange.Cells(1, 1).Value2) = "Unsaved query fixture value"
+CleanFail:
+End Function
 Public Sub CaptureForTest(ByVal referenceName As String)
     Dim reference As Workbook, entities As ListObject
     Set reference = Application.Workbooks(referenceName)
@@ -159,19 +180,19 @@ function Test-InventoryQueryReadOnly($Fixture) {
         }
         foreach($mode in @('Implicit','Supplied')){
             foreach($kind in @('Quantity','Locations','Picker','Entities')){
+                SetupStage ('Before'+$mode+$kind+'Open')
                 $source=$excel.Workbooks.Open($path,0,$false)
-                $entities=Table $source 'tblInventoryEntities';$entities.Parent.Unprotect()
-                $custom=$entities.ListColumns.Add();$custom.Name='Operator Annotation'
-                $entities.ListColumns.Item('Operator Annotation').DataBodyRange.Cells.Item(1,1).Value2='Unsaved query fixture value'
-                $entities.Parent.Protect()
+                SetupStage ('After'+$mode+$kind+'Open')
+                if(-not [bool](Run 'invSys.Core.xlam' 'TestInventoryQueryReadOnly.StageDirtyForTest' @($source.Name))){throw 'Typed dirty caller fixture not established.'}
                 if($source.Saved){throw 'Dirty caller fixture was not staged.'}
                 $supplied='';if($mode -ceq 'Supplied'){$supplied=$source.Name}
                 $result=Query $kind $supplied
+                SetupStage ('After'+$mode+$kind+'Query')
                 $prefix='InventoryRead.'+$mode+'.'+$kind
                 Check ($prefix+'.NonemptyExactResults') ($result -ceq 'True|True')
                 Check ($prefix+'.CallerStillOpen') (@(OpenTargets).Count -eq 1)
                 Check ($prefix+'.DirtyStatePreserved') (-not [bool]$source.Saved)
-                Check ($prefix+'.ProtectionAndCustomValuePreserved') ($entities.Parent.ProtectContents -and $entities.ListColumns.Item('Operator Annotation').DataBodyRange.Cells.Item(1,1).Value2 -ceq 'Unsaved query fixture value')
+                Check ($prefix+'.ProtectionAndCustomValuePreserved') ([bool](Run 'invSys.Core.xlam' 'TestInventoryQueryReadOnly.DirtyPreservedForTest' @($source.Name)))
                 Check ($prefix+'.SavedBytesPreserved') ((HashTarget) -ceq $pin)
                 $source.Close($false);$source=$null
                 Copy-Item -LiteralPath $referencePath -Destination $path -Force
@@ -199,13 +220,10 @@ function Test-InventoryQueryReadOnly($Fixture) {
         CloseTargets
         Copy-Item -LiteralPath $referencePath -Destination $path -Force
         $source=$excel.Workbooks.Open($path,0,$false)
-        $entities=Table $source 'tblInventoryEntities';$entities.Parent.Unprotect()
-        $custom=$entities.ListColumns.Add();$custom.Name='Operator Annotation'
-        $entities.ListColumns.Item('Operator Annotation').DataBodyRange.Cells.Item(1,1).Value2='Unsaved query fixture value'
-        $entities.Parent.Protect()
+        if(-not [bool](Run 'invSys.Core.xlam' 'TestInventoryQueryReadOnly.StageDirtyForTest' @($source.Name))){throw 'Typed failed-query caller fixture not established.'}
         $result=Query 'Picker' $source.Name $true $true
         Check 'InventoryRead.Failure.Supplied.EmptyResult' ($result -ceq 'True')
-        Check 'InventoryRead.Failure.Supplied.DirtyProtectedCallerPreserved' (@(OpenTargets).Count -eq 1 -and -not $source.Saved -and $entities.Parent.ProtectContents -and $entities.ListColumns.Item('Operator Annotation').DataBodyRange.Cells.Item(1,1).Value2 -ceq 'Unsaved query fixture value')
+        Check 'InventoryRead.Failure.Supplied.DirtyProtectedCallerPreserved' (@(OpenTargets).Count -eq 1 -and -not $source.Saved -and [bool](Run 'invSys.Core.xlam' 'TestInventoryQueryReadOnly.DirtyPreservedForTest' @($source.Name)))
         Check 'InventoryRead.Failure.Supplied.SavedBytesPreserved' ((HashTarget) -ceq $pin)
         $source.Close($false);$source=$null
         Check 'InventoryRead.ReferencePreserved' ((Get-FileHash -LiteralPath $referencePath).Hash -ceq $pin)
