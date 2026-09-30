@@ -13,9 +13,17 @@ retaining all140 prior checks with normal closure, two calibrated selected-field
 checks and six reviewed principal images including the exact STAGED terminal.
 Current-candidate layout, Settings202/202, Instructions411/411, instruction
 paths105/105 and UOM paths84/84 pass with preservation and unassisted final closure;
-Settings' internal preference-restart shutdown remains unobserved because its
-helper can force termination without recording the branch. Do not infer all-host
-normal closure from202/202, including earlier gates using that helper. The
+Combined visible UOM264/264 and actual public UOM61/61 also retain every preceding
+check, five compiles, normal closure/preservation and two/three reviewed captures.
+Draft/diagnostic paths390/390 also retains exact identities, five compiles,
+delayed normal closure and preservation; it requests no new principal captures.
+Settings' instrumented baseline retains202/202 but confirms forced internal-restart
+cleanup. An opt-in comparison and then the corrected ordinary route each retain
+202/202 and release10 completed-host COM references with no failures. Internal
+restart exits unassisted within the unchanged wait; final-host exit is also
+unassisted. This fixes that test harness boundary;
+earlier assisted/unobserved records retain their scope, and native chain/reusable
+failures remain unexplained. The
 remaining regressions and full release/native gates remain open. See
 [component evidence](plan022_slice4be_production_component_results.md).
 Desktop monitoring resumes with successful samples; stop again on actual error5.

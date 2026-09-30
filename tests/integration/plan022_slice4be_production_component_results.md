@@ -1,6 +1,8 @@
 # Slice 4be Process component observations — focused RED/GREEN
 
-Last verified:2026-09-29 UTC. **Focused GREEN; release acceptance incomplete.**
+Last verified:2026-09-30 UTC. **Focused GREEN; release acceptance incomplete.**
+Unless dated otherwise, gate times below are on2026-09-29 UTC; the Settings
+cleanup continuation explicitly crosses into2026-09-30.
 Architecture v4.11 D18, Plan022 and controls specify the ten requirement/output
 Add/Update/Remove/Up/Down controls under approved semantic inheritance, committed
 in documentation4dbbf76 before implementation. Catalog16 is now built in the
@@ -105,6 +107,52 @@ shutdown is unobserved; the202 behavioral passes do not prove every host closed
 unassisted. The same limitation applies to earlier Settings results using this
 helper. Record that branch before claiming complete normal restart/shutdown.
 
+The follow-up observation retains **202/202** with all prior check identities,
+five compiles, preservation, normal final-host exit and zero Excel Application
+events. Controller `production-components-regression/settings-590d8fc9a9254c1db12bf2f5463f20fc`,
+result `slice4be-tracking-settings/d82b873509a34b6ca637c1b24c25eb0c/green.json`,
+23:46:25--23:50:14 UTC. Its new `preference-restart-closure.json` confirms
+**UnassistedExit=False, TerminationRequested=True, ExitObserved=True**, observed
+23:49:36 UTC after the original five-second wait. This establishes assisted
+internal cleanup for this run; it does not infer the branch taken by old runs.
+Receipt `production-components-settings-restart-observation.json`.
+
+This diagnostic tooling records fixed booleans/times only, preserves original
+workflow statements and changes no runtime contract or package. Parsing/diff and
+the complete202 regression validate it; no product RED is claimed. An initial
+opt-in `ReleasePreferenceReferencesForTest` control released the completed old
+host's owned COM references before the unchanged wait. That comparison was
+restricted to the isolated preference gate, leaving ordinary runs unchanged.
+Its result below tests a harness hypothesis, not a native runtime repair.
+
+The opt-in comparison retains **202/202** and every preceding identity. Controller
+`production-components-regression/settings-5542f965391b4a9782ecdbe47855196f`, result
+`slice4be-tracking-settings/fe5b71b2167e4561a11126dbc3afa52a/green.json`,
+2026-09-29 23:59:23--2026-09-30 00:03:14 UTC. It releases10 owned COM references,
+with zero release failures; the old host exits unassisted within the unchanged
+wait, with no termination request. Final-host closure is also unassisted; five
+compiles, settings/package preservation and zero Excel Application events hold.
+Receipt `production-components-settings-reference-control.json`. This supports
+retained automation references at this specific test boundary; it does not fix
+or explain the separate native chain/reusable failures.
+
+The completed-host cleanup is now the ordinary helper path, with the opt-in
+driver switch removed. Original workflow statements and the existing cleanup
+helper's implementation are unchanged; only its completed-host scope comment is
+clarified. Proof: `preference-restart-default-preservation.json`. The ordinary
+route separately retains **202/202** and exact prior identities: controller
+`production-components-regression/settings-344e70d9107f4d06be726852170939c8`, result
+`slice4be-tracking-settings/0a0e512b5736471fa16bbf92bc1ca7af/green.json`,
+2026-09-30 00:03:54--00:08:11 UTC. It again releases10 references with zero release
+failures; internal restart and final-host exit are both unassisted. Five compiles,
+settings/package preservation and zero Excel Application events hold. Receipt
+`production-components-settings-default-closure-verification.json`. The metadata
+schema check permits only fixed counts/times/exit flags. All310 PowerShell scripts
+parse, both repository diff checks pass, and runtime source remains identical to
+115b616. This closes the observed Settings test cleanup limitation for the current
+route; earlier assisted/unobserved runs retain their qualifications, and no native
+chain/reusable repair is claimed.
+
 Instructions passes **411/411**, retaining every preceding check identity.
 Controller `production-instruction-controller/eb6c581c2bc740698edba8a66293a2cf`,
 result `slice4be-production-instructions/1937d6597ab948ceb2ccc8915fb6a76f/green.json`,
@@ -128,8 +176,30 @@ UOM Action Paths retains **84/84**. Controller
 closure, settings/package preservation and zero Excel Application events hold.
 All six principal images are reviewed, including exact REUSED detail and the
 two-step conclusion. Receipt `production-components-uom-paths-verification.json`.
-Combined UOM/public-launcher, draft, lifecycle/native cancellation, Settings
-observations, smoke and broader release gates remain pending on this candidate.
+Combined visible UOM retains **264/264**, including every preceding check identity.
+Controller `production-uom-staging-controller/073cd6cf38684bfd9bc97af9233e0b96`,
+result `slice4be-production-uom-staging/ea8ea79197b04279907f7a36a347a92f/green.json`,
+23:39:54--23:44:15 UTC. Five compiles, normal unassisted closure, settings/package
+preservation and zero Excel Application events hold; both principal captures are
+reviewed. Receipt `production-components-uom-visible-verification.json`.
+The actual public UOM launcher retains **61/61**,19 focused plus42 shared checks.
+Controller `production-uom-staging-controller/f86756630a2547c9b502cd34e76dc831`,
+result `slice4be-production-uom-public-close/9e0cd0c5912640dbb871a6295db2db32/green.json`,
+23:44:32--23:46:05 UTC. Five compiles, normal unassisted closure, settings/package
+preservation, zero Excel Application events and all preceding identities hold.
+Three principal captures are reviewed; receipt
+`production-components-uom-public-verification.json`. The real owner close and
+packaged reopen preserve the draft/custom column and exact REUSED outcome.
+Draft and diagnostic paths retain **390/390**, with all preceding check identities.
+Controller `production-components-regression/draft-848b383d24f840ea834794503bd9a710`,
+inner `production-designer-controller/1e455f1a4f1141529ff4ac55e66df2fe`, result
+`slice4be-production-designer/77c3ea58dc654e9bb16059eec5043d3d/green.json`,
+23:51:13--23:59:15 UTC. Five compiles, delayed normal unassisted closure, settings/
+package preservation and zero Excel Application events hold. Receipt
+`production-components-draft-verification.json`. This regression requests no new
+principal captures; older visible evidence retains its original candidate scope.
+Lifecycle/native cancellation, Settings observations, smoke and broader release
+gates remain pending on this candidate.
 
 ## Protecting RED
 

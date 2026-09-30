@@ -1,5 +1,7 @@
-# Only for a completed, isolated automation worker that owns every supplied COM
-# reference. Never use against an interactive/operational Excel instance.
+# Only for a completed Excel host owned by an isolated automation worker that
+# owns every supplied COM reference. At restart, close all old workbooks and Quit
+# before release; create the replacement afterward. Never use against an
+# interactive/operational Excel instance.
 function Release-IsolatedAutomationReferences {
     param([object[]]$Roots)
     $pending=[Collections.Generic.Stack[object]]::new()

@@ -280,7 +280,35 @@ function Test-ActionPathPreferenceRestart($Fixture) {
     $script:excel = $null
     $script:packages = @{}
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
-    if(-not $owned[0].WaitForExit(5000)) { Stop-Process -Id $owned[0].Id; [void]$owned[0].WaitForExit(5000) }
+    # The prior host has zero workbooks, Quit has returned, and no replacement
+    # exists yet. Only this isolated worker's completed-host references apply.
+    . (Join-Path $PSScriptRoot 'IsolatedAutomationCleanup.ps1')
+    $completedHostVariables=@(Get-Variable -Scope Script)+@(Get-Variable -Scope Local)
+    Release-IsolatedAutomationVariables -Variables $completedHostVariables |
+        ConvertTo-Json | Set-Content -LiteralPath (Join-Path $reportRoot 'preference-restart-reference-release.json')
+    $completedHostVariables=$null
+    [GC]::Collect(); [GC]::WaitForPendingFinalizers()
+    $restartWaitStarted=[DateTimeOffset]::UtcNow
+    $restartExitedNaturally=$owned[0].WaitForExit(5000)
+    $restartTerminationRequested=$false
+    try {
+        if(-not $restartExitedNaturally) {
+            $restartTerminationRequested=$true
+            Stop-Process -Id $owned[0].Id
+            [void]$owned[0].WaitForExit(5000)
+        }
+    } finally {
+        # Fixed cleanup facts only; no process identity, settings or fixture data.
+        [pscustomobject]@{
+            Stage='PreferenceRestart'
+            WaitStartedUTC=$restartWaitStarted.ToString('o')
+            ObservedUTC=[DateTimeOffset]::UtcNow.ToString('o')
+            WaitMilliseconds=5000
+            UnassistedExit=$restartExitedNaturally
+            TerminationRequested=$restartTerminationRequested
+            ExitObserved=$owned[0].HasExited
+        }|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $reportRoot 'preference-restart-closure.json')
+    }
     if(Get-Process EXCEL -ErrorAction SilentlyContinue) { throw 'Another Excel process prevents isolated restart.' }
     $script:excel = New-Object -ComObject Excel.Application
     # Failure evidence after this intentional restart must identify the new host.
