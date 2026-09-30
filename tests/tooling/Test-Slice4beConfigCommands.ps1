@@ -19,6 +19,7 @@ param(
     [switch]$CheckProductionRecipeOrder,
     [switch]$CheckProductionRecipeStructure,
     [switch]$CheckProductionDesignReads,
+    [switch]$CheckProductionDesignReadPaths,
     [switch]$CheckProductionRecipeStructureReleasedData,
     [switch]$CheckProductionRecipeStructurePaths,
     [switch]$CheckProductionRecipeOrderPaths,
@@ -230,6 +231,7 @@ if($CheckProductionRecipeStructure -and (-not $CheckProductionDesignerActivity -
 if($CheckProductionRecipeStructureReleasedData -and -not $CheckProductionRecipeStructure){throw 'Released-data structure checks require the compiled structure adapters.'}
 if($CheckProductionRecipeStructurePaths -and (-not $CheckProductionRecipeStructure -or $CheckProductionRecipeStructureReleasedData -or -not $CaptureEvidence)){throw 'Structure paths require compiled adapters and visible evidence in a separate gate.'}
 if($CheckProductionDesignReads -and (-not $CheckProductionDesignerActivity -or $CheckProductionRecipeStructure -or $CheckProductionRecipeOrder -or $CheckProductionComponents -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Designer read checks require a separate compiled designer gate.'}
+if($CheckProductionDesignReadPaths -and (-not $CheckProductionDesignReads -or -not $CaptureEvidence)){throw 'Designer read paths require compiled adapters and visible evidence in a separate gate.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
 if($CheckProductionComponentPaths -and (-not $CheckProductionComponents -or -not $CaptureEvidence)){throw 'Component paths require the compiled component adapters and visible evidence.'}
 if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
@@ -414,6 +416,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionRecipeOrder){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-order/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeStructure){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-structure/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionDesignReads){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-design-reads/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionDesignReadPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-design-read-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeStructureReleasedData){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-structure-released/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeStructurePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-structure-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRecipeOrderPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-order-paths/'+[guid]::NewGuid().ToString('N'))}
@@ -893,7 +896,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths){
+    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -1186,6 +1189,10 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionDesignReadProbe.ps1')
             . (Join-Path $PSScriptRoot 'Slice4beProductionDesignReadActivity.ps1')
             Install-ProductionDesignReadProbe
+            if($CheckProductionDesignReadPaths){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionDesignReadPaths.ps1')
+                Install-ProductionDesignReadPathProbe
+            }
         }
         if($CheckProductionRecipeStructure){
             . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeStructureProbe.ps1')
@@ -1209,7 +1216,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
             Install-ProductionLifecycleProbe
         }
-        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths){
+        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
             Install-ProductionPathsProbe
         }
@@ -1221,7 +1228,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleNative.ps1')
             Install-ProductionLifecycleNativeProbe
         }
-        if($CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths){
+        if($CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths){
             . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
             Install-GuideDraftProbe
         }
@@ -1492,6 +1499,10 @@ End Function
         elseif($CheckProductionRecipeOrderPaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
             Test-ProductionInstructionPaths $a -RecipeOrder
+        }
+        elseif($CheckProductionDesignReadPaths){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
+            Test-ProductionInstructionPaths $a -DesignReads
         }
         elseif($CheckProductionDesignReads){Test-ProductionDesignReadActivity $a $b}
         elseif($CheckProductionComponents){Test-ProductionComponentActivity $a $b}

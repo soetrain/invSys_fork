@@ -1,10 +1,12 @@
 # Slice 4be Production designer load/refresh observations
 
 Last verified:2026-09-30 UTC. Architecture v4.11 D18 discovered-control refinement
-was committed as documentation `e3adb72` before test/runtime work. Catalog19 is
-specified, not implemented: Process Refresh, View Process, Edit as New Version,
-Recipe Refresh and Load. Current runtime remains catalog18/98 global IDs and37/68
-constructed Production controls. No operational promotion or acceptance is claimed.
+was committed as documentation `e3adb72` before test/runtime work. The isolated
+`deploy/validation-production-design-reads` candidate implements catalog19:
+Process Refresh, View Process, Edit as New Version, Recipe Refresh and Load.
+It registers103 global IDs and42/68 constructed Production controls;26 remain
+unregistered. Catalog18 and17 comparison packages remain frozen. Registration and
+focused GREEN do not establish operational promotion or user acceptance.
 
 The contract observes local REFRESHED/PRESENTED/STAGED completion only. It preserves
 existing empty-on-read-failure behavior, parser acceptance of empty record arrays,
@@ -53,6 +55,26 @@ Refreshed `reports/runtime/production-design-read-red-static` retains265 compone
 groups and all28 exact size caps. Three schemas and324 PowerShell parses pass.
 Runtime source is unchanged and unrelated user-document byte hashes are preserved.
 
+## Focused packaged GREEN
+
+The exact621 ordered RED identities pass621/621 on catalog19,
+07:35:02.8027679--07:38:23.2365139 UTC. Controller
+`reports/runtime/production-design-read-controller/90779516512c4f07b400c107f964157c`,
+result `reports/runtime/slice4be-production-design-reads/365e59a3cf2e4fb390365bbcb0c4e11e/green.json`.
+Five instrumented compiles, settings/five-package preservation, unassisted closure
+and zero Excel Application1000/1001/1002 events over the interval plus12 seconds
+pass. Controller source snapshots preserve the exact focused test implementation.
+No desktop error5 is observed.
+
+The candidate build/compile/cold-load is retained in
+`reports/runtime/production-design-read-build`,07:34:22.5029870--07:35:00.7978035 UTC.
+Compiled components increase258 to260: three changed and two new owners. Only
+Core's catalog/evaluation matching and Operations' form delegation change;
+new typed action/catalog owners contain the orchestration and fixed vocabulary.
+The form decreases11697 to11685 lines, within its existing cap. Existing loaders
+and selection conversion semantics are preserved. Settings and the frozen
+catalog18 packages are unchanged; normal closure and the Application audit pass.
+
 ## Earlier preliminary attempts
 
 These are retained with their actual limits, not combined into the focused RED:
@@ -74,11 +96,49 @@ These are retained with their actual limits, not combined into the focused RED:
 Controller names in this subsection are under
 `reports/runtime/production-design-read-controller/`.
 
+Static evidence `reports/runtime/production-design-read-static` records267 components,
+6097 procedures and134205 lines. The two bounded owners account for the added
+implementation; all28 oversized-module ratchets do not grow, the form shrinks,
+dynamic calls remain9 literal/45 unresolved and duplicate candidates decrease191
+to190. Three schemas and325 PowerShell parses pass. This is the pre-editor-fix
+checkpoint; regenerate after any further runtime change.
+
+## Recording/editor integration finding
+
+The first separate paired-path attempt records85 PASS/two real missing-outcome
+choice failures, followed by one harness interruption. Both original five-action
+recordings, expected local drafts, publication and Event Detail pass. Core's
+`modExpectationDraft.Choices` fixed list omits PRESENTED, so the actual Expected
+Conclusion editor cannot choose either load control's positive outcome. This
+contradicts the already specified D18 guide/diagnostic contract; adding the term
+to that catalog-filtered choice list is implementation of the existing contract.
+
+Controller `production-design-read-controller/19ceb4401d7b4e4ab038120cb6c316f2`,
+result `slice4be-production-design-read-paths/34f5d66fdb624cdf9cd552287df37fd9`,
+07:38:32.1688770--07:43:36.5623085 UTC (both roots under `reports/runtime/`).
+Attempting to write the absent value into the dropdown raises visible VBA380.
+An identity-verified owned-fixture termination releases the blocked worker;
+settings and five packages restore, and the Application audit has zero Excel
+failures. Closure is assisted, not normal. This is not desktop error5 or the
+historical native c0000028 failure.
+
+The clean actual-editor RED completes90 PASS/two expected failures across92 unique
+checks,07:43:55.0168104--07:47:07.6118497 UTC. Only
+`DesignReadPaths.ExpectedOutcome.PROCESS_LOAD` and `.RECIPE_LOAD` fail; Refresh
+and Reuse choices pass. Five instrumented compiles, settings/five-package
+preservation, unassisted closure and zero Excel Application failures pass.
+Controller `production-design-read-controller/aa295fcacd924ab8a785a5862b0d73a0`,
+result `slice4be-production-design-read-paths/e765f030ec6647d586e23d135feacaf8/red.json`
+(both under `reports/runtime/`). The test cancels and returns on missing choices;
+it never writes an unsupported dropdown value. Source snapshots/pins are retained.
+`modExpectationDraft.Choices` is unchanged at this RED checkpoint. Next add
+PRESENTED to its catalog-filtered fixed list, build a distinct candidate, retain
+these92 checks in the full path GREEN and rerun621 focused checks plus regressions.
+
 ## Remaining work
 
-Implement the specified typed Operations owner, Core catalog/outcome/matching
-entries and thin actual-handler delegation, preserving the current form size cap
-and load algorithms. Require the exact621 focused checks GREEN, separate original
+The typed owner/catalog implementation and exact621 focused GREEN are recorded.
+Require separate original
 recording/publication/How-To/Diagnostic/Compare evidence, all established packaged
 regressions and visible captures. Preserve catalog18 and catalog17 comparisons.
 The earlier intermittent native Excel failure remains an independent open finding;

@@ -14,7 +14,7 @@ function Test-ProductionInstructionActivity($Fixture,$Other) {
         $id='PRODUCTION_PROCESS_INSTRUCTION_'+$Action
         $context=$paired;$redacted=$paired;$integrity=$paired;$linked=$false;$effect=$false
         foreach($r in $records){
-            $context=$context -and $r.ControlId -ceq $id -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 18
+            $context=$context -and $r.ControlId -ceq $id -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 19
             $redacted=$redacted -and @($r.SourceEventRefs).Count -eq 0
         }
         foreach($value in $raw){

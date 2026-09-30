@@ -64,7 +64,7 @@ function Test-ProductionUomActivity($Fixture,$Other) {
         Check ($Case+'.Pair') $paired
         $context=$paired;$redacted=$paired;$integrity=$paired;$linked=$false;$owner=$false;$completion=$false
         foreach($record in $records){
-            $context=$context -and $record.ControlId -ceq 'PRODUCTION_UOM_EDIT' -and $record.OwnerId -ceq 'PRODUCTION_UOM_STAGING' -and $record.UserId -ceq $Actor -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.StationId -ceq 'S1' -and $record.CatalogVersion -eq 18
+            $context=$context -and $record.ControlId -ceq 'PRODUCTION_UOM_EDIT' -and $record.OwnerId -ceq 'PRODUCTION_UOM_STAGING' -and $record.UserId -ceq $Actor -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.StationId -ceq 'S1' -and $record.CatalogVersion -eq 19
             $redacted=$redacted -and @($record.SourceEventRefs).Count -eq 0
         }
         foreach($value in $raw){

@@ -20,7 +20,7 @@ function Test-ProductionRecipeOrderActivity($Fixture,$Other) {
         $paired=$records.Count -eq 2 -and $first.Count -eq 1 -and $last.Count -eq 1
         $control=Id $Action;$context=$paired;$redacted=$paired;$integrity=$paired;$linked=$false;$facts=$false;$terminal=$false
         foreach($r in $records){
-            $context=$context -and $r.ControlId -ceq $control -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 18
+            $context=$context -and $r.ControlId -ceq $control -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 19
             $redacted=$redacted -and @($r.SourceEventRefs).Count -eq 0
         }
         foreach($value in $raw){

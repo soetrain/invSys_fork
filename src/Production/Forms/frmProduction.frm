@@ -2141,7 +2141,7 @@ Private Sub RefreshRecipeLists()
     RefreshReusableDesignLists
 End Sub
 
-Private Sub RefreshReusableDesignLists()
+Public Sub RefreshReusableDesignLists()
     Dim processes As Variant
     Dim releasedProcesses As Variant
     Dim recipes As Variant
@@ -5530,21 +5530,10 @@ Private Sub RefreshOutputDesignIdentity(Optional ByVal forceGenerated As Boolean
         mTxtProcessOutputItemCode.Text = designId
 End Sub
 
-Private Sub LoadSelectedProcessDefinition(ByVal reuseAsNewVersion As Boolean)
-    Dim idx As Long
-
-    idx = mLstProcesses.ListIndex
-    If idx < 0 Then
-        ShowStatus "Select a saved Process first."
-        Exit Sub
-    End If
-    LoadProcessDefinitionIntoDesigner NzStr(mLstProcesses.List(idx, 0)), _
-        NzStr(mLstProcesses.List(idx, 1)), reuseAsNewVersion
-End Sub
-
-Private Function LoadProcessDefinitionIntoDesigner(ByVal processId As String, _
+Public Function LoadProcessDefinitionIntoDesigner(ByVal processId As String, _
                                                    ByVal processVersion As String, _
-                                                   ByVal reuseAsNewVersion As Boolean) As Boolean
+                                                   ByVal reuseAsNewVersion As Boolean, _
+                                                   Optional ByRef loadReport As String = "") As Boolean
     Dim jsonText As String
     Dim parseReport As String
     Dim records As Collection
@@ -5555,6 +5544,7 @@ Private Function LoadProcessDefinitionIntoDesigner(ByVal processId As String, _
     Set records = modProductionReusableDesigns.ParseReusableDefinitionRecords(jsonText, parseReport)
     If records Is Nothing Then
         ShowStatus "Process load failed: " & parseReport
+        loadReport = mTxtStatus.Text
         Exit Function
     End If
     ClearProcessDraft False
@@ -5587,6 +5577,7 @@ Private Function LoadProcessDefinitionIntoDesigner(ByVal processId As String, _
             ". Choose Edit as New Version before saving changes, or Send Process to Sheet."
     End If
     NormalizeProcessComponentIdentities
+    loadReport = mTxtStatus.Text
     LoadProcessDefinitionIntoDesigner = True
 End Function
 
@@ -6322,19 +6313,9 @@ Private Sub ClearConnectionEditor()
     RefreshConnectionUomCatalog
 End Sub
 
-Private Sub LoadSelectedRecipeDefinition()
-    Dim idx As Long
-    idx = mLstRecipes.ListIndex
-    If idx < 0 Then
-        ShowStatus "Select a saved Recipe first."
-        Exit Sub
-    End If
-    LoadRecipeDefinitionIntoDesigner NzStr(mLstRecipes.List(idx, 0)), _
-        NzStr(mLstRecipes.List(idx, 1))
-End Sub
-
-Private Function LoadRecipeDefinitionIntoDesigner(ByVal recipeId As String, _
-                                                  ByVal recipeVersion As String) As Boolean
+Public Function LoadRecipeDefinitionIntoDesigner(ByVal recipeId As String, _
+                                                  ByVal recipeVersion As String, _
+                                                  Optional ByRef loadReport As String = "") As Boolean
     Dim jsonText As String
     Dim parseReport As String
     Dim records As Collection
@@ -6345,6 +6326,7 @@ Private Function LoadRecipeDefinitionIntoDesigner(ByVal recipeId As String, _
     Set records = modProductionReusableDesigns.ParseReusableDefinitionRecords(jsonText, parseReport)
     If records Is Nothing Then
         ShowStatus "Recipe load failed: " & parseReport
+        loadReport = mTxtStatus.Text
         Exit Function
     End If
     ClearRecipeDraft False
@@ -6381,6 +6363,7 @@ Private Function LoadRecipeDefinitionIntoDesigner(ByVal recipeId As String, _
     RefreshRecipeConnectionDisplay
     RefreshOutputRegulationSettings
     ShowStatus "Loaded Recipe " & recipeId & " version " & recipeVersion & "."
+    loadReport = mTxtStatus.Text
     LoadRecipeDefinitionIntoDesigner = True
 End Function
 
@@ -10274,8 +10257,7 @@ Private Sub mLstProcesses_Click()
 End Sub
 
 Private Sub mBtnProcessRefresh_Click()
-    RefreshReusableDesignLists
-    ShowStatus "Process Designer refreshed."
+    DesignerReadAction DesignReadProcessRefresh
 End Sub
 
 Private Sub mBtnProcessNew_Click()
@@ -10283,11 +10265,11 @@ Private Sub mBtnProcessNew_Click()
 End Sub
 
 Private Sub mBtnProcessLoad_Click()
-    LoadSelectedProcessDefinition False
+    DesignerReadAction DesignReadProcessLoad
 End Sub
 
 Private Sub mBtnProcessReuse_Click()
-    LoadSelectedProcessDefinition True
+    DesignerReadAction DesignReadProcessReuse
 End Sub
 
 Private Sub mBtnProcessValidate_Click()
@@ -10821,8 +10803,7 @@ Private Sub DesignerInstructionAction(ByVal action As ProductionInstructionActio
 End Sub
 
 Private Sub mBtnRecipeRefresh_Click()
-    RefreshReusableDesignLists
-    ShowStatus "Recipe Designer refreshed."
+    DesignerReadAction DesignReadRecipeRefresh
 End Sub
 
 Private Sub mBtnRecipeNew_Click()
@@ -10830,7 +10811,14 @@ Private Sub mBtnRecipeNew_Click()
 End Sub
 
 Private Sub mBtnRecipeLoad_Click()
-    LoadSelectedRecipeDefinition
+    DesignerReadAction DesignReadRecipeLoad
+End Sub
+
+Private Sub DesignerReadAction(ByVal action As ProductionDesignReadAction)
+    Dim report As String
+    report = modProductionDesignReadActions.ReadDesigner(Me, action, mLstProcesses, mLstRecipes, _
+        mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress)
+    If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mBtnRecipeAddProcess_Click()
