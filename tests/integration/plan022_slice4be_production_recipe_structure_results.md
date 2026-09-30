@@ -110,6 +110,24 @@ Personal preference restart releases10 completed-host references without errors;
 internal and final Excel exit are unassisted. Settings/packages remain intact and
 the following12second application audit records zero Excel failures.
 
+Settings activity passes **486/486**, retaining all481 prior check identities in
+order plus exactly five catalog18 older-policy exclusions. Controller
+`production-recipe-structure-regression/settingsactivity-c9f48a7218d14acc9f3db15bcf3d3486`,
+05:23:44.6732790--05:37:59.1764676 UTC; result
+`slice4be-settings-activity/134860f7cd3541f0accd9c3104d903fd`.
+Five instrumented compiles, eight reviewed captures, delayed unassisted closure,
+settings/package preservation and zero Excel Application failures pass. Captures
+retain staged/effective preference distinctions, visible reload refusal and
+non-blocking tracking failure notices; no Debug/Reset or termination was issued.
+
+Recipe-order Action Paths retains **93/93** exact prior checks. Controller
+`production-recipe-order-controller/c7a229da16b2489689d8b9e0f3021572`,
+05:38:57.9037109--05:43:26.9120996 UTC; result
+`slice4be-production-recipe-order-paths/299bf1a1b1d34f01984d30ac24f93f15`.
+Five compiles, preservation, unassisted closure and zero Excel Application failures
+pass. Six principal captures show separate authored/observed runs and all three
+matched steps with zero additional actions; Domain application is not asserted.
+
 Architecture v4.11 D18, Plan022, controls1.288 and coverage1.31 specified five
 existing Recipe structure observations in docs commit da7bab7 before runtime
 edits. The RED runtime was cd2edc0, frozen catalog17 candidate
@@ -181,8 +199,8 @@ the isolated candidate, preserving the catalog17 baseline. Require recording/pub
 Compare, compile, layout, static limits, live roles, full Release1 chain, reusable
 Production and visible evidence before completing this bounded group.
 
-Still outstanding on this candidate: Settings activity, Recipe-order paths,
-component paths, instructions and their paths, UOM combined/public-close/paths,
+Still outstanding on this candidate: component paths,
+instructions and their paths, UOM combined/public-close/paths,
 draft diagnostics, lifecycle, native cancellation, layout and separate reusable
 run-only. Completed evidence above retains its specific scope; no full Slice4be
 or Release1 acceptance is claimed.
