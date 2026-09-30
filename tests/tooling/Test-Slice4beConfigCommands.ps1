@@ -16,6 +16,7 @@ param(
     [switch]$CheckProductionUomPaths,
     [switch]$CheckProductionInstructions,
     [switch]$CheckProductionComponents,
+    [switch]$CheckProductionRecipeOrder,
     [switch]$CheckProductionComponentPaths,
     [switch]$CheckProductionInstructionPaths,
     [switch]$CheckProductionLifecycle,
@@ -218,6 +219,7 @@ if($CheckProductionUomPublicClose -and (-not $CheckProductionUomActivity -or -no
 if($CheckProductionUomPaths -and (-not $CheckProductionUomStaging -or -not $CaptureEvidence -or $CheckProductionUomActivity)){throw 'UOM paths require the separate staging adapters and visible evidence.'}
 if($CheckProductionInstructions -and (-not $CheckProductionDesignerActivity -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Instruction checks require their separate compiled Production designer gate.'}
 if($CheckProductionComponents -and (-not $CheckProductionDesignerActivity -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Component checks require their separate compiled Production designer gate.'}
+if($CheckProductionRecipeOrder -and (-not $CheckProductionDesignerActivity -or $CheckProductionComponents -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Recipe ordering requires its separate compiled Production designer gate.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
 if($CheckProductionComponentPaths -and (-not $CheckProductionComponents -or -not $CaptureEvidence)){throw 'Component paths require the compiled component adapters and visible evidence.'}
 if($CheckProductionLifecycle -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignerPaths)){throw 'Lifecycle checks require the separate compiled Production designer gate.'}
@@ -399,6 +401,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionUomStaging){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-staging/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructions){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instructions/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionComponents){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-components/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionRecipeOrder){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-order/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructionPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instruction-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomPublicClose){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-public-close/'+[guid]::NewGuid().ToString('N'))}
@@ -1164,6 +1167,11 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionComponentActivity.ps1')
             Install-ProductionComponentProbe
         }
+        if($CheckProductionRecipeOrder){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeOrderProbe.ps1')
+            . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeOrderActivity.ps1')
+            Install-ProductionRecipeOrderProbe
+        }
         if($CheckProductionLifecycle){
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
             Install-ProductionLifecycleProbe
@@ -1449,6 +1457,7 @@ End Function
             Test-ProductionInstructionPaths $a -Components
         }
         elseif($CheckProductionComponents){Test-ProductionComponentActivity $a $b}
+        elseif($CheckProductionRecipeOrder){Test-ProductionRecipeOrderActivity $a $b}
         elseif($CheckProductionUomPublicClose){Test-ProductionUomPublicClose $a}
         elseif($CheckProductionUomStaging){
             Test-ProductionUomStaging $a
