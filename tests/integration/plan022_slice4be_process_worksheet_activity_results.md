@@ -692,6 +692,37 @@ captures are reviewed and hashed in `visible-review.json`; Auto Order remains
 STAGED/Info/Unchanged, and the scrolled comparison explicitly excludes a Domain
 application claim. No runtime/package changes or human acceptance are implied.
 
+## Process component regression GREEN
+
+Component editing retains795/795 exact prior checks,
+2026-09-30,23:23:42.7044613 through23:26:59.6233227 UTC. Controller
+`reports/runtime/production-component-controller/76e6d67291bb47d0b10fd6557782587d`;
+result `reports/runtime/slice4be-production-components/db51a9d6aaa747b2bccd909c928391ff/green.json`.
+Requirement/output editing, partial-failure uncertainty, captured-context and
+permission guards, optional tracking and prior-record preservation retain their
+protecting assertions. Five compiles, normal cleanup, saved authority, unknown
+workbook values/bytes, settings/package preservation and delayed Excel audit pass.
+Two principal captures are reviewed and hashed in `visible-review.json`: local
+requirement/output quantity and basis edits are visible alongside the explicit
+unchanged-saved-definitions status. No runtime/package/contract changes or human
+acceptance accompany this regression.
+
+Component paired paths retain142/142 exact prior checks,
+23:27:29.3820554 through23:33:20.7072768 UTC. Controller
+`reports/runtime/production-component-controller/bdbaf550b78e4b9f812b09867e30566c`;
+result `reports/runtime/slice4be-production-components/94428c02c49646f0850f46e3f0e58490/green.json`.
+Separate ten-action recordings retain original pairs through publication, exact
+Event Detail, explicit guide intent and independent evaluation. All ten STAGED
+steps match with zero extras; CommandCompleted concludes locally and empty source
+references cannot prove SourceEventsApplied. Five compiles, normal cleanup,
+preservation of saved authority, prior records/journals, unknown workbook values
+and bytes, settings/package pins and delayed audit pass. Six principal images
+are reviewed and hashed in `visible-review.json`: the guide shows all ten actions,
+Output Remove remains STAGED/Info/Unchanged, and the scrolled lower comparison
+shows matches4-10 and zero extras. The first three matches and conclusion text
+are outside that viewport; assertions establish all ten matches and local-only
+completion. This capture limitation is not represented as full visible acceptance.
+
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
@@ -699,7 +730,8 @@ regressions plus independent paths139, Close paths90, smoke86, layout and full
 chain32/live48/Create15, full reusable171/replay37, Close/query312, Settings202,
 Settings activity497 (494 retained plus three exclusions), lifecycle615,
 draft/paths390, native cancellation94, Regulation696/paths102, design reads621/paths114
-and Recipe structure786/released55/paths109, Recipe ordering463/paths93.
+and Recipe structure786/released55/paths109, Recipe ordering463/paths93,
+components795/paths142.
 Complete the remaining shared-observation regressions on the frozen candidate.
 SourceEventsApplied must use every exact owning published Designs reference;
 queue acknowledgment and
