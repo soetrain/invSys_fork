@@ -393,11 +393,23 @@ preferences, policy/detail controls, denied access, unavailable profile fallback
 and visible optional-tracking failure feedback. This establishes neither a native
 crash repair nor human acceptance.
 
+Ordinary reusable run-only retains its aggregate and all67 exact prior Boolean
+observations,10:03:13.9566173--10:09:20.3869196 UTC. Controller
+`reports/runtime/production-design-read-regression/reusable-6c3977aaa79f466598ccc5ee023bf562`.
+The final closure receipt completes three workbook and four package closes;
+reference release has no failures and process exit is unassisted in2684ms.
+Settings/packages restore, no termination is requested and the delayed Application
+audit has zero Excel failures. This does not substitute for the failed ordinary
+full reusable gate or explain its earlier native failure.
+
 ## Remaining work
 
 The typed owner/catalog implementation and exact621 focused GREEN are recorded.
 The corrected final candidate has complete paired-path and visible evidence.
-The final artifact retains621/621; complete all established packaged regressions.
+The final artifact retains621/621 and the listed regressions, except the ordinary
+full reusable gate, which remains failed/unresolved. Its observed diagnostic
+passes two aggregates but does not replace the exact171-observation acceptance
+comparison. Do not repeat unchanged passing observer runs as evidence of repair.
 Preserve catalog18 and catalog17 comparisons.
 The earlier intermittent native Excel failure remains an independent open finding;
 this group must not claim to repair it. Slice4be/Release1 acceptance remains open.
