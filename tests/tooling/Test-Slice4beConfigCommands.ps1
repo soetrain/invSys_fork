@@ -9,6 +9,7 @@ param(
     [switch]$CheckActivityFoundation,
     [switch]$CheckAdminUomActivity,
     [switch]$CheckProductionDesignerActivity,
+    [switch]$CheckProductionClose,
     [switch]$CheckProductionUomStaging,
     [switch]$CheckProductionUomActivity,
     [switch]$UomAdapterDiagnostic,
@@ -221,6 +222,7 @@ if($CheckSettingsEditorActivity){
     $CheckActivityEvidence=$true
 }
 if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
+if($CheckProductionClose -and (-not $CheckProductionDesignerActivity -or -not $CaptureEvidence -or $CheckProductionUomStaging -or $CheckProductionInstructions -or $CheckProductionComponents -or $CheckProductionRecipeOrder -or $CheckProductionRecipeStructure -or $CheckProductionDesignReads -or $CheckProductionRegulation -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Production Close requires its separate visible compiled handler gate.'}
 if($CheckProductionUomStaging -and (-not $CheckProductionDesignerActivity -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'UOM staging preservation requires its separate compiled Production handler gate.'}
 if($CheckProductionUomActivity -and -not $CheckProductionUomStaging){throw 'UOM activity requires its packaged staging gate.'}
 if($UomAdapterDiagnostic -and (-not $CheckProductionUomActivity -or -not $CaptureEvidence -or $CheckProductionUomPaths -or $Phase -cne 'RED')){throw 'Adapter diagnosis requires the combined visible UOM activity gate in diagnostic RED.'}
@@ -420,6 +422,7 @@ if($CheckSettingsEditorActivity){
 }
 if($CheckProductionDesignerActivity){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-designer/'+[guid]::NewGuid().ToString('N'))
+    if($CheckProductionClose){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-close/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomStaging){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-staging/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructions){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instructions/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionComponents){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-components/'+[guid]::NewGuid().ToString('N'))}
@@ -1176,6 +1179,11 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
         Install-Slice4beShippingCatalogProbe
         Install-ProductionDesignerProbe
+        if($CheckProductionClose){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionCloseProbe.ps1')
+            . (Join-Path $PSScriptRoot 'Slice4beProductionCloseActivity.ps1')
+            Install-ProductionCloseProbe
+        }
         if($CheckProductionUomStaging){
             . (Join-Path $PSScriptRoot 'Slice4beProductionUomStaging.ps1')
             Install-ProductionUomStagingProbe
@@ -1531,6 +1539,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
             Test-ProductionInstructionPaths $a -Regulation
         }
+        elseif($CheckProductionClose){Test-ProductionCloseActivity $a $b}
         elseif($CheckProductionRegulation){Test-ProductionRegulationActivity $a $b}
         elseif($CheckProductionDesignReads){Test-ProductionDesignReadActivity $a $b}
         elseif($CheckProductionComponents){Test-ProductionComponentActivity $a $b}
