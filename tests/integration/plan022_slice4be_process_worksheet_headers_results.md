@@ -1,8 +1,10 @@
 # Slice 4be Process worksheet header preservation
 
-Last verified: 2026-09-30 UTC. Focused107 GREEN, packaged build/compile and static
-ratchets pass; broader relevant regressions are running. No worksheet tracking
-registration or release acceptance.
+Last verified: 2026-09-30 UTC. Operations worksheet maintenance/retrieval completes
+its scoped gates: focused107, build/compile/static, reusable171, smoke86,
+chain32/live48/Create15, layout and Close/query312. A separately discovered Core
+picker normalization case remains to be tested before worksheet tracking.
+No worksheet tracking registration or release acceptance.
 
 ## Governing contract
 
@@ -92,11 +94,52 @@ body candidates,28 oversized modules. All existing oversized caps are non-growin
 the worksheet module shrinks1362 to1331 lines. Three report schemas and338
 PowerShell parses pass. No dynamic-call or duplicate-body regression/exception.
 
-Pending relevant gates: packaged smoke, full Release1 chain/live roles/Create
-Warehouse, layout, full reusable Production and Close/query regression on this
-candidate. Full reusable specifically protects worksheet roundtrip/mixed-UOM/
+The scoped regression gates below are complete. Full reusable specifically protects worksheet roundtrip/mixed-UOM/
 multi-selection/item-search/restart plus the accepted execution behavior affected
 by the worksheet call paths. Close/query protects captured/public launcher and
 read-only authority behavior. Core, Domains, Admin, form/Ribbon and observation
 catalog source hashes are unchanged; their other completed gates remain frozen
 evidence, not rerun claims. No native-crash repair or comprehensive Slice4be coverage.
+
+## Completed regressions on the frozen candidate
+
+All roots below are under `reports/runtime/process-worksheet-headers-regression/`.
+
+- `reusablefull-37d487963887409d9583325486c6e0d9`,17:31:09.8184249–
+  17:39:53.5897909 UTC: both aggregates and171 boolean observations retain exact
+  prior identity/order. Restart2677ms/final2502ms exit normally, zero reference
+  release failures, no termination requested; four packages close in reverse
+  order. Settings/packages preserved and zero delayed Excel Application failures.
+- `smoke-1c9d102d48984a70a6282c879ebdfcf2`,17:40:20.3250785–
+  17:40:42.9367915 UTC:86/86 exact prior checks, normal unassisted closure,
+  settings/packages/tracked report preserved, zero delayed Excel failures.
+  Shutdown receipt `reports/runtime/packaged-smoke-closure/b249f4f4a5284f8aa33bfe9989094455`.
+- `layout-b15abea396814c9086b54182abe64bf7`,17:41:06.7421789–
+  17:41:21.2669173 UTC: exact prior three-size/five-page geometry, no bounds or
+  overlap violations, normal cleanup/preservation and zero delayed Excel failures.
+  Three blank Run List screenshots are directly reviewed and hash-recorded;
+  this is layout evidence, not populated workflow acceptance.
+- `chain-8a920d82d928427f9c24c20bd051cf8a`,17:41:54.8462404–
+  17:47:16.1659205 UTC: chain32/live-role48/Create Warehouse15 retain exact prior
+  checks/order. Packages/settings/tracked reports preserved, normal cleanup and
+  zero delayed Excel Application failures.
+- Close/query controller `reports/runtime/production-close-controller/fa47fc65a8ff4803b297ec11e5c77c49`,
+  result `reports/runtime/slice4be-production-close/121ef07e9c564b55b54ab3380003ec07/green.json`,
+  17:47:39.2600580–17:51:13.5173942 UTC:312/312 exact prior ordered checks,
+  including42 shared checks and80 query checks; five compiles, normal cleanup,
+  preservation and zero delayed Excel failures. Four captures reviewed: the two
+  pre-dismissal surfaces, public reopened form and Settings notice. Assertions
+  prove dismissal and source preservation; these images alone do not.
+
+## Next discovered prerequisite: Core picker headers
+
+Read-only source audit finds `cDynItemSearch.ProcessAlternativePairNumber` uses
+a case-sensitive, untrimmed prefix comparison. `CommitSelection` first updates
+the selected item label, then uses that pair number to locate its Accepted SKU
+column. A normalized numbered header can therefore leave the paired SKU unchanged.
+This is a source-predicted label/SKU mismatch, not runtime-proven RED. There is no
+pair1 fallback in this path; the initial conversational inference was corrected.
+D4 owns the shared Core picker; D14/D15 require matching the selected managed
+pair by normalized name. The next focused test must exercise the real packaged
+picker commit, preserve other pairs/custom columns/captured workbook and check
+the exact selected item/SKU pair. No Core picker implementation changed here.
