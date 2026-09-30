@@ -340,6 +340,38 @@ matches OPENED then REUSED with zero extra actions. How-To, Diagnostic and
 Compare both retain the same evidence and explicitly limit the conclusion to
 command completion without asserting Domain application.
 
+Designer drafts and diagnostic paths retain390/390 exact ordered prior checks,
+09:26:30.3460244--09:34:54.8837926 UTC. Outer controller
+`reports/runtime/production-design-read-regression/draft-08bb4e68c4654f608195100fa3eb9e6c`;
+inner `reports/runtime/production-designer-controller/843a6c74d59c4a4e945c50b21f81a8ef`;
+result `reports/runtime/slice4be-production-designer/34ab25358cdc4f9fbe52a26d832fa14a`.
+Five compiles, settings/package/workbook/unknown-column preservation, unassisted
+closure and zero delayed Application failures pass. This gate retains separate
+request, rejection and completion classifications and refuses unsupported Domain
+application conclusions. No new capture or human acceptance is claimed.
+
+Lifecycle retains615/615 exact ordered prior checks,
+09:35:15.5406982--09:41:03.4027093 UTC. Outer controller
+`reports/runtime/production-design-read-regression/lifecycle-80f6b742cab7407b97c071d7c8b4ee21`;
+inner `reports/runtime/production-lifecycle-controller/3efa63f231744f4f8ada93028189a6fb`;
+result `reports/runtime/slice4be-production-designer/c4af23e186c34bdbbed4348e9ad719fc`.
+Five compiles, settings/package/workbook/unknown-column preservation, unassisted
+closure and zero delayed Application failures pass. Fault outcomes preserve the
+distinction between requested, appended and applied evidence without invented
+rollback; loading, reentry, stale session/warehouse and closed-workbook guards
+retain their prior assertions.
+
+Native cancellation retains94/94 exact ordered prior checks,
+09:41:29.5111889--09:43:23.8414401 UTC. Outer controller
+`reports/runtime/production-design-read-regression/native-95eec684b1a344be931c32b0795dfbb8`;
+inner `reports/runtime/production-lifecycle-native-controller/9f2280ee1eb14f72a3d514c395510ffb`;
+result `reports/runtime/slice4be-production-lifecycle-native/eca26da6f7074fbab5626fa492937508`.
+Five compiles, preservation, unassisted closure and zero delayed Application
+failures pass. Four native Release/Obsolete confirmation captures are directly
+reviewed and hashed; each shows No selected. Cancellation preserves authority
+and its original classification. These are agent-reviewed synthetic fixtures,
+not human acceptance.
+
 ## Remaining work
 
 The typed owner/catalog implementation and exact621 focused GREEN are recorded.

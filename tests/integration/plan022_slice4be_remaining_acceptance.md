@@ -3,6 +3,18 @@
 Last reviewed: 2026-09-30 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
+**Current designer read candidate,2026-09-30:** catalog19 registers103 global
+controls and42/68 constructed Production controls;26 remain unregistered.
+The frozen, unpromoted `validation-production-design-reads-final` candidate has
+focused621/621 and paired-path114/114 GREEN with test-first provenance, builds,
+compiles, static/layout evidence and the completed regressions recorded in
+[designer read evidence](plan022_slice4be_production_design_read_results.md).
+The first full-chain execution and ordinary full reusable execution hit an
+unresolved native Excel failure. A passing chain repeat and observed full-flow
+diagnostic do not establish a repair. Remaining regressions, broader control
+coverage and human/NAS acceptance stay open; historical checkpoints below do
+not establish acceptance of this current artifact.
+
 **Recipe structure,2026-09-30:** normative catalog18 refinement precedes runtime
 changes. The new packaged actual-handler gate reproduces182 PASS/604 FAIL across
 786 unique checks:599 missing tracking/guard facts and five existing Update
