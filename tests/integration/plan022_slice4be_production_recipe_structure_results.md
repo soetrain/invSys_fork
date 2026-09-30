@@ -310,3 +310,9 @@ explain this failure. Preserve this occurrence with the earlier unresolved nativ
 signature; do not treat unchanged retries or prior passing observer variants as
 a repair. All other required bounded regression gates above pass. Slice4be and
 Release1 acceptance remain incomplete.
+
+A bounded late-attached native diagnostic subsequently passes its aggregate with
+unassisted closure, preservation and zero Excel Application failures. It captures
+no fatal exception or stack; its redacted report does not independently compare
+the67 Boolean observations. This does not repair or replace the unobserved
+run-only failure. See [native diagnostic calibration and result](plan022_slice4be_production_batch_boundary_results.md#recipe-structure-candidate-fault-stack-diagnostic-calibration).

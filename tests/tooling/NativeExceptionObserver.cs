@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Collections.Generic;
 
 public static class NativeExceptionObserver
 {
@@ -27,6 +28,28 @@ public static class NativeExceptionObserver
     [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
     [DllImport("kernel32.dll")] private static extern void RaiseException(uint code, uint flags, uint count, IntPtr args);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern void OutputDebugString(string value);
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenThread(uint access, bool inherit, uint id);
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern bool GetThreadContext(IntPtr thread, IntPtr context);
+    [DllImport("dbghelp.dll", CharSet = CharSet.Ansi, SetLastError = true)] private static extern bool SymInitialize(IntPtr process, string searchPath, bool invade);
+    [DllImport("dbghelp.dll")] private static extern bool SymCleanup(IntPtr process);
+    [DllImport("dbghelp.dll")] private static extern uint SymSetOptions(uint options);
+    [DllImport("dbghelp.dll")] private static extern IntPtr SymFunctionTableAccess64(IntPtr process, ulong address);
+    [DllImport("dbghelp.dll")] private static extern ulong SymGetModuleBase64(IntPtr process, ulong address);
+    private delegate IntPtr FunctionTableAccess(IntPtr process, ulong address);
+    private delegate ulong ModuleBaseAccess(IntPtr process, ulong address);
+    [DllImport("dbghelp.dll")] private static extern bool StackWalk64(uint machine, IntPtr process, IntPtr thread,
+        ref StackFrame frame, IntPtr context, IntPtr readMemory, FunctionTableAccess functionTable, ModuleBaseAccess moduleBase, IntPtr translate);
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Address64 { public ulong Offset; public ushort Segment; public uint Mode; }
+    // x64 STACKFRAME64 is 264 bytes, including the current 112-byte KDHELP64.
+    // Unused return/argument/kernel fields remain internal and are never serialized.
+    [StructLayout(LayoutKind.Explicit, Size = 264)]
+    private struct StackFrame
+    {
+        [FieldOffset(0)] public Address64 PC;
+        [FieldOffset(32)] public Address64 Frame;
+        [FieldOffset(48)] public Address64 Stack;
+    }
 
     private static readonly string[] AllowedModules = {
         "ntdll.dll", "kernelbase.dll", "kernel32.dll", "excel.exe", "vbe7.dll",
@@ -72,6 +95,89 @@ public static class NativeExceptionObserver
             "\",\"FirstChance\":" + (data.FirstChance != 0 ? "true" : "false") +
             ",\"Module\":\"" + module + "\",\"Offset\":\"" + offset + "\"}");
         log.Flush();
+    }
+
+    private static string SafeFrame(Process target, ulong address, int index)
+    {
+        string module = "unknown", offset = "unavailable";
+        foreach (ProcessModule item in target.Modules)
+        {
+            ulong start = (ulong)item.BaseAddress.ToInt64();
+            if (address < start || address - start >= (ulong)item.ModuleMemorySize) continue;
+            string name = item.ModuleName.ToLowerInvariant();
+            module = Array.IndexOf(AllowedModules, name) >= 0 ? name : "other";
+            if (module != "other") offset = (address - start).ToString("X");
+            break;
+        }
+        return "{\"Index\":" + index + ",\"Module\":\"" + module + "\",\"Offset\":\"" + offset + "\"}";
+    }
+
+    private static void WriteFaultStack(string root, DebugEvent data)
+    {
+        // Only the observed fatal code, second-chance faults and the disposable
+        // calibration exception. No routine first-chance stack surveillance.
+        if (data.FirstChance != 0 && data.ExceptionCode != 0xC0000028 && data.ExceptionCode != 0xE042BEEF) return;
+        List<string> frames = new List<string>();
+        string state = "Unavailable";
+        int error = 0;
+        IntPtr allocation = IntPtr.Zero, thread = IntPtr.Zero;
+        try
+        {
+            using (Process target = Process.GetProcessById((int)data.ProcessId))
+            {
+                thread = OpenThread(0x0008, false, data.ThreadId); // THREAD_GET_CONTEXT
+                if (thread == IntPtr.Zero) { error = Marshal.GetLastWin32Error(); }
+                else
+                {
+                    // CONTEXT_AMD64: 1232 bytes with 16-byte alignment. The debug
+                    // event already suspends this thread; no context is written back.
+                    allocation = Marshal.AllocHGlobal(1248);
+                    IntPtr context = new IntPtr((allocation.ToInt64() + 15) & ~15L);
+                    Marshal.Copy(new byte[1232], 0, context, 1232);
+                    Marshal.WriteInt32(context, 48, 0x10000B); // CONTEXT_FULL
+                    if (!GetThreadContext(thread, context)) error = Marshal.GetLastWin32Error();
+                    else
+                    {
+                        // Deferred loading, ignore symbol-path environment, no prompts.
+                        // No symbol server or symbol/parameter names are requested.
+                        SymSetOptions(0x00000004 | 0x00000200 | 0x00001000 | 0x00080000);
+                        if (!SymInitialize(target.Handle, "", true)) error = Marshal.GetLastWin32Error();
+                        else
+                        {
+                            try
+                            {
+                                StackFrame frame = new StackFrame();
+                                frame.PC.Offset = (ulong)Marshal.ReadInt64(context, 248);
+                                frame.Frame.Offset = (ulong)Marshal.ReadInt64(context, 160);
+                                frame.Stack.Offset = (ulong)Marshal.ReadInt64(context, 152);
+                                frame.PC.Mode = frame.Frame.Mode = frame.Stack.Mode = 3;
+                                ulong lastPC = 0, lastSP = 0;
+                                for (int i = 0; i < 32; i++)
+                                {
+                                    if (!StackWalk64(0x8664, target.Handle, thread, ref frame, context, IntPtr.Zero,
+                                        SymFunctionTableAccess64, SymGetModuleBase64, IntPtr.Zero)) break;
+                                    if (frame.PC.Offset == 0 || (frame.PC.Offset == lastPC && frame.Stack.Offset == lastSP)) break;
+                                    frames.Add(SafeFrame(target, frame.PC.Offset, frames.Count));
+                                    lastPC = frame.PC.Offset; lastSP = frame.Stack.Offset;
+                                }
+                                if (frames.Count > 0) state = "Captured";
+                            }
+                            finally { SymCleanup(target.Handle); }
+                        }
+                    }
+                }
+            }
+        }
+        catch { state = "Unavailable"; frames.Clear(); } // No exception payload.
+        finally
+        {
+            if (thread != IntPtr.Zero) CloseHandle(thread);
+            if (allocation != IntPtr.Zero) Marshal.FreeHGlobal(allocation);
+        }
+        File.AppendAllText(Path.Combine(root, "native-stacks.jsonl"),
+            "{\"UTC\":\"" + DateTime.UtcNow.ToString("o") + "\",\"Code\":\"" + data.ExceptionCode.ToString("X8") +
+            "\",\"FirstChance\":" + (data.FirstChance != 0 ? "true" : "false") + ",\"State\":\"" + state +
+            "\",\"Win32Error\":" + error + ",\"Frames\":[" + String.Join(",", frames.ToArray()) + "]}" + Environment.NewLine);
     }
 
     private static int Observe(uint processId, string root, int seconds, bool faultsOnly)
@@ -122,6 +228,7 @@ public static class NativeExceptionObserver
                             bool filtered = faultsOnly && data.FirstChance != 0 &&
                                 (data.ExceptionCode == 0xE06D7363 || data.ExceptionCode == 0x40080201 || data.ExceptionCode == 5);
                             if (!filtered) WriteException(log, data);
+                            WriteFaultStack(root, data);
                             disposition = 0x80010001; // Preserve ordinary exception handling.
                         }
                     }

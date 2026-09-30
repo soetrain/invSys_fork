@@ -5,6 +5,79 @@ unchanged. This is diagnostic tooling for the native failure recorded in
 [lifecycle continuation evidence](plan022_slice4be_production_lifecycle_visible_results.md),
 not an invSys runtime repair or complete Production/Release1 acceptance.
 
+## Recipe structure candidate: fault-stack diagnostic calibration
+
+The unobserved run-only gate at06:33:56--06:34:39 UTC again fails at
+`mProduction.RunReusableProductionRunActionContractTest` with RPC0x800706BE and
+Excel/ntdll c0000028/offset12d2f. See
+[structure evidence](plan022_slice4be_production_recipe_structure_results.md).
+The earlier full reusable GREEN does not explain this failure. Post-crash cleanup
+also fails while reading `IsAddin`; absence of its final receipts is not successful
+cleanup. Desktop probes remain healthy during this failure.
+
+The existing external native observer now captures at most32 redacted stack frames
+for c0000028, second-chance exceptions and its disposable calibration exception.
+It records only allowlisted module names and relative offsets; other modules and
+unmapped frames have unavailable offsets. No absolute addresses, arguments,
+symbols, paths, debug strings, process/thread identifiers or memory dumps are
+written. Routine filtered first-chance exceptions do not trigger stack capture.
+The stopped thread's context is read, never written, and ordinary exception
+handling and non-killing detach remain unchanged. Runtime packages are unchanged.
+
+Microsoft identifies c0000028 as an invalid stack encountered during unwind;
+that classification does not identify the invSys root cause. The observer uses
+the documented x64 context and stack-walking interface:
+[status reference](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55),
+[StackWalk64](https://learn.microsoft.com/en-us/windows/win32/api/dbghelp/nf-dbghelp-stackwalk64),
+[x64 CONTEXT](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-context).
+
+Test-first tool calibration, not product behavioral RED/GREEN:
+
+- Stack capture:34 existing checks pass and nine new checks fail before the
+  implementation;43/43 pass afterwards, including ordinary exception handling,
+  detach, exact output fields, bounded frames and redaction. Roots:
+  `reports/runtime/native-exception-calibration/4d2a57656cbe4ab1b6c667640b9dd5ad`
+  and `reports/runtime/native-exception-calibration/ceae8593b5b24a38aa595fcc9af01fb7`.
+- Late attachment:9 PASS/3 FAIL before implementation becomes12/12. Both default
+  early attachment and explicit `-NativeBeforeRun` placement preserve every
+  original validator statement, parse without opening Excel, install one observer
+  and avoid VBE preparation. Roots:
+  `reports/runtime/native-attach-calibration/bdfdcbe08de34ea5b5fcb3b21044ca78`
+  and `reports/runtime/native-attach-calibration/be45a80ef12e4d3187c9c8ce30e0b915`.
+
+`-NativeBeforeRun` requires the native observer and attaches immediately before
+the reusable run-action macro, after setup and the batch-scale test. The default
+early attachment remains available for explicit comparison. An observed pass
+cannot establish repair of an unobserved failure; debugger attachment can affect
+timing and exception handling. Architecture v4.11, Plan022 behavioral contracts
+and the controls catalog's acceptance boundary are unchanged.
+
+The late-attached `-NativeFaultsOnly` run on the frozen structure candidate passes
+one aggregate,06:42:55.4224300--06:49:03.2034177 UTC. Controller:
+`reports/runtime/production-batch-boundary/9ee73cf343ec4f18b3105ca7c40e5511`.
+The observer is ready at06:43:22.6703796 UTC and observes normal process exit at
+06:49:02.4369841 UTC. There is no c0000028 or second-chance exception and no stack
+file is produced. One handled first-chance000006BA appears during shutdown; it
+does not become a second-chance failure. The Application audit records zero Excel
+1000/1001/1002 events. Settings, all five candidate hashes and the original
+validator are preserved. Closure receipts confirm three fixture workbooks and
+four loaded packages closed, zero release failures, unassisted exit and no
+termination request. Desktop probes record no error5.
+
+This report deliberately redacts Boolean details, so it does not independently
+re-establish the67 prior observed values. It establishes only its original
+aggregate assertion under late native observation. No failed native stack was
+captured and no cause or repair is established. The ordinary failed run remains
+open; do not repeat this unchanged control as proof of repair.
+
+Refreshed `reports/runtime/production-native-stack-static` retains265 components,
+6093 procedures,134045 lines,9 literal/45 unresolved dynamic calls,191 duplicate
+groups and all28 exact size caps. Three schemas and320 PowerShell parses pass.
+No runtime/form source changes, package rebuild or new layout claim is involved.
+Unrelated user-document byte hashes remain unchanged.
+
+## Earlier component-candidate controls
+
 **Current component-candidate observation,2026-09-30 UTC:** The unchanged standard
 run-only gate now passes its aggregate and retains all67 prior Boolean values;
 the full workbench/export/restart gate passes both aggregates with171 observations

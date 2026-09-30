@@ -47,6 +47,28 @@ foreach($mode in @('Exit','Detach','FaultsOnly')){
         $checks.Add([pscustomobject]@{Check="$mode.NoPayloadOrPaths";Passed=($raw -notmatch 'SENTINEL|[A-Za-z]:\\|ExceptionAddress|Parameters|ProcessId|ThreadId')})
         $allowed=@('UTC','State','Win32Error','Code','FirstChance','Module','Offset')
         $checks.Add([pscustomobject]@{Check="$mode.ExactMetadataSchema";Passed=(@($events|ForEach-Object {$_.PSObject.Properties.Name}|Where-Object {$_ -cnotin $allowed}).Count -eq 0)})
+        $stackPath=Join-Path $case 'native-stacks.jsonl';$stackRaw='';$stacks=@()
+        if(Test-Path $stackPath){
+            $stackRaw=[IO.File]::ReadAllText($stackPath)
+            $stacks=@($stackRaw -split '\r?\n'|Where-Object {$_}|ForEach-Object {$_|ConvertFrom-Json})
+        }
+        $known=@($stacks|Where-Object Code -CEQ 'E042BEEF')
+        $walked=$known.Count -eq 1
+        if($walked){$walked=$known[0].State -ceq 'Captured' -and $known[0].FirstChance -and @($known[0].Frames).Count -ge 2 -and @($known[0].Frames).Count -le 32}
+        $checks.Add([pscustomobject]@{Check="$mode.KnownFaultStack";Passed=$walked})
+        $stackSchema=$stacks.Count -gt 0 -and @($stacks|ForEach-Object {$_.PSObject.Properties.Name}|Where-Object {$_ -cnotin @('UTC','Code','FirstChance','State','Win32Error','Frames')}).Count -eq 0
+        $frameSchema=$walked -and @($known[0].Frames|ForEach-Object {$_.PSObject.Properties.Name}|Where-Object {$_ -cnotin @('Index','Module','Offset')}).Count -eq 0
+        $checks.Add([pscustomobject]@{Check="$mode.ExactStackSchema";Passed=($stackSchema -and $frameSchema)})
+        $safe=$walked -and $stackRaw -notmatch 'SENTINEL|[A-Za-z]:\\|Address|Parameters|ProcessId|ThreadId|NativeExceptionObserver|\.pdb'
+        if($safe){
+            $modules=@('ntdll.dll','kernelbase.dll','kernel32.dll','excel.exe','vbe7.dll','fm20.dll','oleaut32.dll','ole32.dll','combase.dll','rpcrt4.dll','mso.dll','mso20win32client.dll','user32.dll','win32u.dll','ucrtbase.dll','msvcrt.dll','clr.dll','mscoreei.dll','shlwapi.dll','other','unknown')
+            $frames=@($known[0].Frames)
+            for($i=0;$i -lt $frames.Count;$i++){
+                $safe=$safe -and $frames[$i].Index -eq $i -and $frames[$i].Module -cin $modules
+                $safe=$safe -and $(if($frames[$i].Module -cin @('other','unknown')){$frames[$i].Offset -ceq 'unavailable'}else{$frames[$i].Offset -cmatch '^[0-9A-F]{1,8}$'})
+            }
+        }
+        $checks.Add([pscustomobject]@{Check="$mode.StackRedactionAndBounds";Passed=$safe})
     } finally {
         [IO.File]::WriteAllText((Join-Path $case 'stop'),'Stop')
         [IO.File]::WriteAllText((Join-Path $case 'target-exit'),'Exit')
