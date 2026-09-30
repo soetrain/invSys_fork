@@ -213,6 +213,23 @@ shows three instructions, and the separate observed run matches all three STAGED
 steps with zero extras. The visible conclusion does not assert Domain application.
 This is agent review, not human acceptance; runtime and frozen packages are unchanged.
 
+Component regressions retain 795/795 focused and 142/142 paired-path checks,
+with exact prior ordered identities, five compiles each, preservation, normal
+closure and zero delayed Excel Application failures. Controller roots are under
+`reports/runtime/production-component-controller/`; intervals are September30 UTC.
+
+| Gate | Controller | UTC interval | Result root under `reports/runtime/` |
+|---|---|---|---|
+| Focused 795/795 | `28a05cdac7a641cc9e4b64af19a5e202` | 11:38:08.6320910--11:41:29.1662136 | `slice4be-production-components/d4e1f399add84cbbbddf76358cb04101` |
+| Paired paths 142/142 | `3a405317b651484fb9b463f90e811a6f` | 11:41:37.9542385--11:47:35.2561154 | `slice4be-production-components/5efefea76d7040c698e448bcd28bcf39` |
+
+Six principal captures are directly reviewed and hashed in `visible-review.json`.
+Output Remove/STAGED detail remains Info/Unchanged; all ten authored instructions
+are readable. The final diagnostic viewport shows matches4-10, zero extras and
+all ten matched identity pairs. The conclusion heading and matches1-3 are above
+that viewport; exact text assertions protect the full local-only conclusion.
+This is agent review, not human acceptance. No runtime or package changes.
+
 ## Remaining work
 
 The remaining focused regressions and run-only reusable gate remain pending on
