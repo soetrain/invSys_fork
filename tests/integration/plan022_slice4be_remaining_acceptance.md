@@ -3,6 +3,17 @@
 Last reviewed: 2026-09-30 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
+**Recipe structure,2026-09-30:** normative catalog18 refinement precedes runtime
+changes. The new packaged actual-handler gate reproduces182 PASS/604 FAIL across
+786 unique checks:599 missing tracking/guard facts and five existing Update
+behavior failures requiring an explicit decision. Architecture v4.11 proposes
+writing a stable snapshot of the seven validated editor values; approval is
+pending. The final diagnostic confirms correct inputs before Update, one nested
+selection callback, three cleared routing fields and retained old quantity/
+percentage. Five instrumented compiles, preservation, normal closure and zero
+Excel Application failures pass. Runtime remains unchanged; no new candidate or
+registration increase is claimed. See `plan022_slice4be_production_recipe_structure_results.md`.
+
 **Recipe ordering candidate,2026-09-30:** catalog17 adds Move Up, Move Down and
 Auto Order under the prior normative refinement. Registration32/68,36 pending;
 actual-handler RED146/317 becomes463/463 on the final unpromoted candidate. Five
