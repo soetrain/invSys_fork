@@ -40,6 +40,7 @@ param(
     [switch]$CheckTrackingSettings,
     [switch]$CheckTrackingPolicy,
     [switch]$CheckDetailProfile,
+    [switch]$CheckDetailColumns,
     [switch]$CheckActionPathPreference,
     [switch]$CheckOperationsTrackingSettings,
     [switch]$CheckAdminSettingsClose,
@@ -373,6 +374,11 @@ if ($CheckTrackingSettings) {
 if ($CheckTrackingPolicy -and -not $CheckTrackingSettings) { throw 'Tracking policy checks require the Settings route.' }
 if ($CheckDetailProfile -and -not $CheckTrackingSettings) { throw 'Detail profile checks require the Settings route.' }
 if ($CheckDetailProfile -and -not $CheckTrackingPolicy) { throw 'Detail profile checks retain the tracking policy baseline and cancellation observer.' }
+if ($CheckDetailColumns) {
+    if (-not $CheckDetailProfile -or -not $CompileEvaluationProbesForTest) { throw 'Detail column geometry requires the compiled Settings/profile route.' }
+    . (Join-Path $PSScriptRoot 'Slice4beDetailColumns.ps1')
+    $reportRoot = Join-Path $repo ('reports/runtime/slice4be-detail-columns/'+[guid]::NewGuid().ToString('N'))
+}
 if ($CheckActionPathPreference -and -not $CheckDetailProfile) { throw 'Preference checks retain the detail and policy baseline.' }
 if ($CheckOperationsTrackingSettings -and -not $CheckActionPathPreference) { throw 'Operations Settings checks retain the full personal preference baseline.' }
 if ($CheckViewerRefreshFailure) {
@@ -1035,6 +1041,7 @@ End Function
     if ($CheckDetailProfile) {
         . (Join-Path $PSScriptRoot 'Slice4beDetailProfile.ps1')
         Install-Slice4beDetailProfileProbe $testModule $formCode
+        if ($CheckDetailColumns) { Install-DetailColumnsProbe $testModule $formCode }
     }
     if ($CheckActionPathPreference) {
         . (Join-Path $PSScriptRoot 'Slice4beActionPathPreference.ps1')
@@ -1402,6 +1409,7 @@ End Function
         Test-Slice4beTrackingSettingsSurface $a
         if ($CheckTrackingPolicy) { Test-Slice4beTrackingPolicy $a $b }
         if ($CheckDetailProfile) { Test-Slice4beDetailProfile $a $b }
+        if ($CheckDetailColumns) { Test-DetailColumns $a }
         if ($CheckActionPathPreference) { Test-Slice4beActionPathPreference $a $b }
     }
     if ($CheckActivityEvidence) { $activityBefore = @(Get-Slice4beActivityFiles $a) }
