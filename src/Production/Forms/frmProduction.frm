@@ -10370,155 +10370,69 @@ Private Sub ExecuteDesignerLifecycle(ByVal processDesigner As Boolean, ByVal act
 End Sub
 
 Private Sub mBtnProcessWorksheetCreate_Click()
-    Dim report As String
-    Dim existingRow As Long
-    Dim tableName As String
-
-    On Error GoTo Failed
-    If mOperatorWorkbook Is Nothing Then
-        ShowStatus "The captured Production operator workbook is unavailable."
-        Exit Sub
-    End If
-
-    If Trim$(mTxtProcessId.Text) = "" Then _
-        mTxtProcessId.Text = NextProcessDraftBase36Id()
-    If Trim$(mTxtProcessVersion.Text) = "" Then mTxtProcessVersion.Text = "1"
-    existingRow = FindIdentityListRow(mLstProcesses, _
-        Trim$(mTxtProcessId.Text), Trim$(mTxtProcessVersion.Text))
-    If existingRow >= 0 Then
-        SetEditableProcessDraftVersion _
-            modProductionReusableDesigns.NextReusableDefinitionVersion( _
-                Trim$(mTxtProcessId.Text), True)
-    End If
-    If modProductionProcessWorksheet.SendProcessDraftToWorksheet( _
-        mOperatorWorkbook, Trim$(mTxtProcessId.Text), Trim$(mTxtProcessVersion.Text), _
-        Trim$(mTxtProcessName.Text), Trim$(mTxtProcessDescription.Text), _
-        BuildProcessPayload(), tableName, report) Then
-        ClearProcessDraft True
-    End If
-    ShowStatus report
-    Exit Sub
-Failed:
-    ShowStatus "Process worksheet creation failed: " & Err.Description
+    ProcessWorksheetCommand modProductionWorksheetActions.WorksheetSend
 End Sub
 
 Private Sub mBtnProcessWorksheetAddAlternative_Click()
-    Dim report As String
-
-    If mOperatorWorkbook Is Nothing Then
-        ShowStatus "The captured Production operator workbook is unavailable."
-        Exit Sub
-    End If
-    Call modProductionProcessWorksheet.AddAcceptableItemPairToSelectedTable( _
-        mOperatorWorkbook, report)
-    ShowStatus report
+    ProcessWorksheetCommand modProductionWorksheetActions.WorksheetAddItem
 End Sub
 
 Private Sub mBtnProcessWorksheetRetrieve_Click()
-    Dim report As String
-    Dim deleteReport As String
-    Dim processId As String
-    Dim processVersion As String
-    Dim processName As String
-    Dim description As String
-    Dim payloadJson As String
-    Dim oldProcessId As String
-    Dim oldProcessVersion As String
-    Dim oldProcessName As String
-    Dim oldDescription As String
-    Dim oldPayload As String
-    Dim validationReport As String
-    Dim tableName As String
-    Dim tableNames As Collection
-    Dim imports As New Collection
-    Dim importRecord As Object
-    Dim tableNameValue As Variant
-    Dim succeeded As Long
-    Dim failed As Long
-    Dim summary As String
-    Dim failureDetails As String
-
-    On Error GoTo Failed
-    If mOperatorWorkbook Is Nothing Then
-        ShowStatus "The captured Production operator workbook is unavailable."
-        Exit Sub
-    End If
-    Set tableNames = modProductionProcessWorksheet.FindSelectedProcessWorksheetTables( _
-        mOperatorWorkbook, report)
-    If tableNames Is Nothing Or tableNames.Count = 0 Then
-        ShowStatus report
-        Exit Sub
-    End If
-
-    oldProcessId = Trim$(mTxtProcessId.Text)
-    oldProcessVersion = Trim$(mTxtProcessVersion.Text)
-    oldProcessName = Trim$(mTxtProcessName.Text)
-    oldDescription = Trim$(mTxtProcessDescription.Text)
-    oldPayload = BuildProcessPayload()
-    ' Validate every selected table before the first Designs Domain write.
-    For Each tableNameValue In tableNames
-        tableName = CStr(tableNameValue)
-        If Not modProductionProcessWorksheet.ReadProcessDraftFromWorksheet( _
-            mOperatorWorkbook, tableName, processId, processVersion, _
-            processName, description, payloadJson, report) Then GoTo ValidationFailed
-        If Not LoadProcessPayloadIntoDesigner(processId, processVersion, processName, _
-                                               description, payloadJson, report) Then
-            report = "Process worksheet retrieval failed: " & report
-            GoTo ValidationFailed
-        End If
-        If Not ValidateProcessDraft(validationReport) Then
-            report = "Process worksheet retrieval failed: " & validationReport
-            GoTo ValidationFailed
-        End If
-        Set importRecord = CreateObject("Scripting.Dictionary")
-        importRecord.CompareMode = vbTextCompare
-        importRecord("TableName") = tableName
-        importRecord("ProcessId") = processId
-        importRecord("ProcessVersion") = processVersion
-        importRecord("ProcessName") = processName
-        importRecord("Description") = description
-        importRecord("Payload") = payloadJson
-        imports.Add importRecord
-    Next tableNameValue
-
-    For Each importRecord In imports
-        If Not LoadProcessPayloadIntoDesigner(CStr(importRecord("ProcessId")), _
-                CStr(importRecord("ProcessVersion")), CStr(importRecord("ProcessName")), _
-                CStr(importRecord("Description")), CStr(importRecord("Payload")), report) Then
-            failed = failed + 1
-            failureDetails = report
-            GoTo NextImport
-        End If
-        If SubmitDesignerAction(True, "PROCESS_SAVE", CStr(importRecord("Payload"))) Then
-            If modProductionProcessWorksheet.DeleteProcessWorksheetTable( _
-                    mOperatorWorkbook, CStr(importRecord("TableName")), deleteReport) Then
-                succeeded = succeeded + 1
-            Else
-                failed = failed + 1
-                failureDetails = deleteReport
-            End If
-        Else
-            failed = failed + 1
-            failureDetails = TestStatusText()
-        End If
-NextImport:
-    Next importRecord
-    summary = "Retrieved " & CStr(succeeded) & " selected Process table(s) as DRAFT"
-    If failed > 0 Then summary = summary & "; " & CStr(failed) & " table(s) remain"
-    summary = summary & "."
-    If failureDetails <> "" Then summary = summary & " " & failureDetails
-    ShowStatus summary
-    Exit Sub
-
-ValidationFailed:
-    Call LoadProcessPayloadIntoDesigner(oldProcessId, oldProcessVersion, _
-        oldProcessName, oldDescription, oldPayload, validationReport)
-    ShowStatus CStr(tableName) & ": " & report & _
-        " No selected table was saved or removed."
-    Exit Sub
-Failed:
-    ShowStatus "Process worksheet retrieval failed: " & Err.Description
+    ProcessWorksheetCommand modProductionWorksheetActions.WorksheetRetrieve
 End Sub
+
+Private Sub ProcessWorksheetCommand(ByVal command As ProductionWorksheetCommand)
+    Dim report As String
+    report = modProductionWorksheetActions.Execute(Me, mOperatorWorkbook, mActivityContext, command, mLoading, mDesignerActionInProgress)
+    If report <> "" Then ShowStatus report
+End Sub
+
+' Typed Operations-local form access; worksheet coordination owns the guard.
+Public Function CaptureProcessWorksheetDraft() As cProductionWorksheetDraft
+    Dim draft As New cProductionWorksheetDraft
+    draft.ProcessId = Trim$(mTxtProcessId.Text): draft.ProcessVersion = Trim$(mTxtProcessVersion.Text)
+    draft.ProcessName = Trim$(mTxtProcessName.Text): draft.Description = Trim$(mTxtProcessDescription.Text)
+    draft.Payload = BuildProcessPayload()
+    Set CaptureProcessWorksheetDraft = draft
+End Function
+
+Public Function LoadProcessWorksheetDraft(ByVal draft As cProductionWorksheetDraft, ByRef report As String) As Boolean
+    LoadProcessWorksheetDraft = LoadProcessPayloadIntoDesigner(draft.ProcessId, draft.ProcessVersion, _
+                                   draft.ProcessName, draft.Description, draft.Payload, report)
+End Function
+
+Public Function ValidateProcessWorksheetDraft(ByRef report As String) As Boolean
+    ValidateProcessWorksheetDraft = ValidateProcessDraft(report)
+End Function
+
+Public Function SubmitProcessWorksheetDraft(ByVal draft As cProductionWorksheetDraft, _
+                                            ByVal facts As cProductionLifecycleFacts) As Boolean
+    SubmitProcessWorksheetDraft = SubmitDesignerAction(True, "PROCESS_SAVE", draft.Payload, facts)
+End Function
+
+Public Function SendProcessWorksheetDraft(ByVal action As cProductionWorksheetAction, _
+                                          ByRef report As String, ByRef rejected As Boolean) As Boolean
+    Dim existingRow As Long, tableName As String, identity As String, version As String
+    identity = Trim$(mTxtProcessId.Text)
+    If identity = "" Then identity = NextProcessDraftBase36Id()
+    If Not action.CanContinue(report) Then Exit Function
+    mTxtProcessId.Text = identity
+    If Trim$(mTxtProcessVersion.Text) = "" Then mTxtProcessVersion.Text = "1"
+    existingRow = FindIdentityListRow(mLstProcesses, Trim$(mTxtProcessId.Text), Trim$(mTxtProcessVersion.Text))
+    If existingRow >= 0 Then
+        version = modProductionReusableDesigns.NextReusableDefinitionVersion(Trim$(mTxtProcessId.Text), True)
+        If Not action.CanContinue(report) Then Exit Function
+        SetEditableProcessDraftVersion version
+    End If
+    If Not action.CanContinue(report) Then Exit Function
+    If modProductionProcessWorksheet.SendProcessDraftToWorksheet(action.OperatorWorkbook, _
+            Trim$(mTxtProcessId.Text), Trim$(mTxtProcessVersion.Text), Trim$(mTxtProcessName.Text), _
+            Trim$(mTxtProcessDescription.Text), BuildProcessPayload(), tableName, report, rejected) Then
+        If Not action.CanContinue(report) Then Exit Function
+        ClearProcessDraft True
+        SendProcessWorksheetDraft = True
+    End If
+End Function
 
 Private Sub mLstProcessRequirements_Click()
     Dim idx As Long

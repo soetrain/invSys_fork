@@ -3,8 +3,8 @@
 Authority: Architecture v4.11 D18's Process worksheet discovered-control
 refinement, committed in docs `ba3c206` before these tests; Plan022 and Controls
 1.346 synchronized. D14/D15 retain local-save/import behavior and authority.
-Catalog22's Core definitions and validators are implemented and focused GREEN;
-Operations observations and full acceptance remain pending. The original frozen baseline is
+Catalog22's Core and Operations observations are implemented and focused595 GREEN;
+broader regression/Action Path acceptance remains pending. The original frozen baseline is
 `deploy/validation-process-worksheet-picker`, whose scoped gates are complete in
 `plan022_slice4be_process_worksheet_picker_results.md`.
 
@@ -225,17 +225,113 @@ no new observations. Production's observed-button coverage remains45/68 until th
 handlers and required recording/Action Path gates pass. No release acceptance,
 promotion, or completed worksheet slice is claimed.
 
+## Operations focused GREEN and closure-test mapping
+
+Frozen candidate: `deploy/validation-process-worksheet-activity-03`.
+Controller `60dfa8b42ffd41ad8e601a5ac281781b`, result
+`d9f95fbea535463bb9f05d5fe32d5fcb`, under the same activity controller/result parents,
+runs2026-09-30,20:52:59.7781547 through21:01:41.0444761 UTC: **595/595 GREEN**.
+All574 non-closure checks from broadRED591 retain exact identities and relative
+order; Core188 and all42 shared checks pass. The595 total also includes the
+three new Recipe Order metadata checks and the18 stable closure assertions below.
+Five instrumented compiles, normal focused closure, package/settings preservation
+and delayed Application1000/1001/1002 audit pass with zero Excel events.
+`verification.json` in the controller records the subset, closure mapping, compiled
+change scope and capture hash. No desktop error5 occurs.
+
+The implementation adds typed `cProductionWorksheetAction`,
+`cProductionWorksheetDraft` and `modProductionWorksheetActions` in Operations.
+The actual three click handlers delegate to guarded coordination. Initial stale/
+loading/nested/permission loss cannot edit, save or submit. Every subsequent read,
+submission and removal boundary rechecks the captured context; post-queue sign-out
+stops before a second queue call or removal/save. The existing public owning
+Process save supplies typed per-event facts, including mixed Submitted/Unknown
+states. The class serializes each through Core with the captured warehouse,
+retains earlier references on partial failure, and makes optional tracking failure
+visible without blocking authorized work. All-before-write validation, draft
+restoration on rejection, deterministic imports and existing status/save behavior
+remain. Unexpected Add service errors retain their original propagation behavior.
+Known worksheet validation refusals are distinguished from exceptions through
+optional local service outputs. No canonical schema or authority changes.
+
+Build evidence: `reports/runtime/process-worksheet-activity-build-03` records
+five compiles, Operations cold start, preservation and zero delayed Excel events.
+Of270 compiled components,264 remain unchanged against the final Core candidate;
+only the form, worksheet service and column helper change, plus the three new
+typed components. Static evidence `reports/runtime/process-worksheet-activity-static-03`
+has277 components/6137 procedures/134745 lines,9 literal and45 unresolved
+Application.Run sites,190 duplicate-body groups and28 non-growing oversized caps.
+All three schemas validate. The form shrinks11685 to11599 lines and worksheet
+service1331 to1325; no new size exception. Existing identity-formatting behavior
+moves to the column helper. The populated Process form capture is reviewed:
+three DRAFT entries, mixed-UOM rows and successful two-table retrieval are visible.
+It does not establish Event Detail/Action Path or human acceptance.
+
+Two implementation failures remain explicit:
+
+- The first candidate (`validation-process-worksheet-activity`, build record
+  `process-worksheet-activity-build`) fails Operations compile at the moved
+  formatting call: the existing local alternativePairCount hides the function
+  of the same name. Renaming the local count fixes the ambiguity. Compile failure
+  is not D13 RED; the prior591 behavioral baseline remains authoritative.
+- Candidate02 (`validation-process-worksheet-activity-02`) compiles but returns
+  531 PASS/64 FAIL/595 in controller `48b04458cab6488da58b64741ea62c7e`, result
+  `45d47578c0044ba8b02c4d8efae28dbf`,20:43:07.9628185 through20:50:28.6361682 UTC.
+  The reviewed form reports missing definition JSON; valid retrieval never reaches
+  its owner. Worksheet reader outputs passed directly to class members do not
+  populate the snapshot. Candidate03 retains outputs in local strings and assigns
+  the snapshot explicitly. Only modProductionWorksheetActions changes between
+  the compiled02 and03 packages. Failed02 closes normally, preserves packages/
+  settings and has zero delayed Excel events; its capture is failure evidence.
+  Neither failed candidate is acceptance or a native-crash repair.
+
+The provisional594 total assumed one native lifetime. Candidate02 exposes595
+because closed Send remains visible, whereas the final run dismisses it.
+The test now emits six invariant checks for each closed-book action, with fixed
+metadata preserving the actual branch. This replaces17 prior branch-dependent
+assertions with18 stable assertions without weakening their protected behaviors:
+
+| Prior assertion(s) | Stable assertion/evidence |
+|---|---|
+| NativeSurfaceDismissed; visible-before/closed-book/decoy fixture facts | SurfaceLifetimeEstablished plus measured VisibleAfter/HandlerInvoked; a dismissed branch never invokes a disconnected reference |
+| NoUnhandledError, ActualHandlerEntered, FormDraftUnchanged | UserActionProtected requires all three when the form remains visible; metadata records each fact; dismissed surfaces are explicitly marked not invoked |
+| BindingGuardRejectsClosedBook (previously dismissed Send only) | BindingGuardRejectsClosedBook now runs for all three actions |
+| NoWorkbookSave, NoSubmission, NoActivityOrRetarget | Same assertions for all three, with activity counts captured before workbook closure so internal shutdown is covered too |
+
+Final native facts: Send is dismissed and not invoked; Add/Retrieve remain visible,
+enter their handlers normally, return error0 and preserve drafts. No prior
+non-closure check disappears or changes order. The test never substitutes a
+disconnected-object exception for an actual user-handler result.
+
+The existing worksheet-header regression also passes exact107/107 on this candidate:
+controller `reports/runtime/process-worksheet-headers-controller/e667ec75af14439d8d8bea89a004aaf6`,
+result `reports/runtime/slice4be-process-worksheet-headers/faf3c1810c304048848adf470acf60ac/green.json`,
+21:03:53.0900220 through21:06:43.0529513 UTC. All previous107 identities/order,
+five compiles, package/settings preservation, normal cleanup and delayed audit
+pass. Normalized/custom columns, mixed-UOM imports, confirmed-only removal and
+unchanged Auth/Config and Inventory business state remain protected.
+
+The picker regression retains its exact115 prior checks on the same candidate:
+controller `reports/runtime/process-worksheet-picker-controller/7a14c9f42d61468e8017ab29426b6a2d`,
+result `reports/runtime/slice4be-process-worksheet-picker/e4a3bbcae0114dcb91e2dd1691077691/green.json`,
+21:07:43.1911562 through21:09:37.5695177 UTC. Five compiles, package/settings
+preservation, normal cleanup and delayed Excel audit pass. Package hashes were
+also rechecked after closure. No human acceptance or deployment promotion.
+
+Catalog22 defines109 controls and the three actual worksheet buttons now produce
+their observations, bringing observed Production buttons to48/68. Twenty buttons
+and30 nonbutton handlers still need coverage review. This is a focused implementation
+checkpoint; the independent Action Path and full scoped release gates remain open.
+
 ## Next required work
 
-The closure fixture is calibrated and the capability/optional-tracking/older-policy
-cases have completed with meaningful RED. Preserve all441 check identities and
-every passing assertion, including the original333 and220 ordered subsets.
-Core outcome/reference coverage and after-queue context-loss RED are now established.
-Implement the Operations owner observations and guards, preserving all591 checks
-plus the three Recipe Order metadata assertions. Keep existing oversized modules
-non-growing by extracting typed worksheet coordination. Do not infer after-yield
-protection merely from initial guards or confuse queue acknowledgment with applied
-Designs evidence.
+Preserve the595 focused checks, documented closure mapping and exact107/115
+regressions. Complete independent recording/publication/Event Detail and How-To/Diagnostic/Compare proof
+for all three controls, then the remaining relevant layout/live-role/full-chain/
+reusable and shared-observation regressions on the frozen candidate. SourceEventsApplied
+must use every exact owning published Designs reference; queue acknowledgment and
+CommandCompleted remain distinct from applied evidence. No package promotion or
+human acceptance is implied by focused595, worksheet107 and picker115.
 The current DeleteProcessWorksheetTable performs lo.Delete before wb.Save. A
 post-confirmation workbook-save failure can leave a local deletion in memory;
 the failure observation must retain the confirmed Designs reference and Unknown
@@ -243,9 +339,6 @@ effect, not claim restoration. D15 still prohibits removal before confirmed
 Designs draft save. The normative observation section explicitly distinguishes
 these cases without changing the existing save algorithm.
 
-Implement typed Operations owner observations without growing existing
-oversized modules or changing the worksheet algorithm. Full GREEN, packaged build,
-compile, static ratchets, independent recording/publication/Event Detail and
-How-To/Diagnostic/Compare evidence, layout/live-role/full-chain/reusable regressions
-and visible operator evidence remain outstanding. No promotion or Slice4be
-completion is claimed.
+Independent recording/publication/Event Detail and How-To/Diagnostic/Compare,
+remaining layout/live-role/full-chain/reusable regressions and their visible
+operator evidence remain outstanding. No promotion or Slice4be completion is claimed.

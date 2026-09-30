@@ -398,30 +398,33 @@ function Test-ProcessWorksheetActivity($Fixture,$Other) {
                     $closedBoundary.DiagnosticOnly=$true
                     $closedBoundary|ConvertTo-Json|Set-Content (Join-Path $reportRoot ('closed-sequence-'+$action+'.json'))
                     if(-not $closedBoundary.VisibleBefore -or $closedBoundary.CapturedBookStillOpen -or -not $closedBoundary.DecoyStillOpen){throw 'Closed-workbook operator fixture unavailable; not product RED.'}
-                    if(-not $closedBoundary.VisibleAfter){
-                        # Workbook shutdown can dismiss the native form. Its
-                        # disconnected reference is not an operator callback.
-                        $label='ProcessWorksheet.ClosedDismissal.'+$action
-                        Check ($label+'.NativeSurfaceDismissed') (-not $closedBoundary.VisibleAfter)
-                        Check ($label+'.BindingGuardRejectsClosedBook') (-not [bool](Probe 'WorksheetBindingIsCurrentForTest'))
-                        Check ($label+'.NoWorkbookSave') ((Hash $guardPath) -ceq $diskPin)
-                        Check ($label+'.NoSubmission') ([string](Probe 'WorksheetSubmissionFactsForTest') -ceq '')
-                        Check ($label+'.NoActivityOrRetarget') (@(Files).Count -eq $before.Count -and @(Get-Slice4beActivityFiles $Other).Count -eq $otherBefore.Count)
-                        $closedBoundary.HandlerInvoked=$false
+                    $closedBoundary.HandlerInvoked=[bool]$closedBoundary.VisibleAfter
+                    $protected=-not $closedBoundary.VisibleAfter
+                    if($closedBoundary.VisibleAfter){
+                        $returned=[bool](Probe 'WorksheetActivityGuard' @($action,$guard))
+                        $entry=([string](Probe 'WorksheetGuardStatusForTest')).Split('|')
+                        $closedBoundary.HandlerEntered=($entry[0] -ceq 'True');$closedBoundary.Returned=$returned;$closedBoundary.AdapterError=[long]$entry[1]
                         $closedBoundary|ConvertTo-Json|Set-Content (Join-Path $reportRoot ('closed-sequence-'+$action+'.json'))
-                        [void](Probe 'WorksheetSafeCloseForTest')
-                        continue
+                        if($entry[0] -cne 'True'){throw 'Visible closed-book fixture did not enter the handler; not product RED.'}
+                        $closedBoundary.DraftPreserved=([string](Probe 'State' @('Process')) -ceq $draft)
+                        $protected=$returned -and [long]$entry[1] -eq 0 -and $closedBoundary.DraftPreserved
                     }
+                    # Stable assertions cover both measured native lifetimes.
+                    # A dismissed surface is never reported as a handler call.
+                    $label='ProcessWorksheet.ClosedBoundary.'+$action
+                    Check ($label+'.SurfaceLifetimeEstablished') ($closedBoundary.VisibleBefore -and -not $closedBoundary.CapturedBookStillOpen -and $closedBoundary.DecoyStillOpen -and $closedBoundary.WorkbooksBefore -eq $closedBoundary.WorkbooksAfter+1)
+                    Check ($label+'.UserActionProtected') $protected
+                    Check ($label+'.BindingGuardRejectsClosedBook') (-not [bool](Probe 'WorksheetBindingIsCurrentForTest'))
+                    Check ($label+'.NoWorkbookSave') ((Hash $guardPath) -ceq $diskPin)
+                    Check ($label+'.NoSubmission') ([string](Probe 'WorksheetSubmissionFactsForTest') -ceq '')
+                    Check ($label+'.NoActivityOrRetarget') (@(Files).Count -eq $before.Count -and @(Get-Slice4beActivityFiles $Other).Count -eq $otherBefore.Count)
+                    $closedBoundary|ConvertTo-Json|Set-Content (Join-Path $reportRoot ('closed-sequence-'+$action+'.json'))
+                    [void](Probe 'WorksheetSafeCloseForTest')
+                    continue
                 }
                 $before=@(Files);$otherBefore=@(Get-Slice4beActivityFiles $Other)
                 $returned=[bool](Probe 'WorksheetActivityGuard' @($action,$guard))
                 $entry=([string](Probe 'WorksheetGuardStatusForTest')).Split('|')
-                if($null -ne $closedBoundary){
-                    $closedBoundary.HandlerInvoked=$true
-                    $closedBoundary.HandlerEntered=($entry[0] -ceq 'True');$closedBoundary.Returned=$returned;$closedBoundary.AdapterError=[long]$entry[1]
-                    $closedBoundary.VisibleAfterCall=([InvSysSettingsCapture]::OwnedVisibleForm('Production',[IntPtr]$excel.Hwnd) -ne [IntPtr]::Zero)
-                    $closedBoundary|ConvertTo-Json|Set-Content (Join-Path $reportRoot ('closed-sequence-'+$action+'.json'))
-                }
                 if($entry[0] -cne 'True'){throw 'Guard fixture did not enter the form adapter; not product RED.'}
                 $same=$true
                 if($null -ne $book){
@@ -431,12 +434,12 @@ function Test-ProcessWorksheetActivity($Fixture,$Other) {
                 $label='ProcessWorksheet.Guard.'+$guard+'.'+$action
                 Check ($label+'.NoUnhandledError') $returned
                 Check ($label+'.ActualHandlerEntered') ($entry[0] -ceq 'True' -and [long]$entry[1] -eq 0)
-                if($guard -cne 'ClosedWorkbook'){Check ($label+'.WorksheetUnchanged') $same}
+                Check ($label+'.WorksheetUnchanged') $same
                 Check ($label+'.FormDraftUnchanged') ([string](Probe 'State' @('Process')) -ceq $draft)
                 Check ($label+'.NoWorkbookSave') ((Hash $guardPath) -ceq $diskPin)
                 Check ($label+'.NoSubmission') ([string](Probe 'WorksheetSubmissionFactsForTest') -ceq '')
                 Check ($label+'.NoActivityOrRetarget') (@(Files).Count -eq $before.Count -and @(Get-Slice4beActivityFiles $Other).Count -eq $otherBefore.Count)
-                if($guard -ceq 'ClosedWorkbook'){[void](Probe 'WorksheetSafeCloseForTest')}else{[void](Probe 'CloseDesigner')};if($null -ne $book){$book.Close($false)};$book=$null
+                [void](Probe 'CloseDesigner');if($null -ne $book){$book.Close($false)};$book=$null
             }
         }
         SelectTarget $Fixture 'config-producer'

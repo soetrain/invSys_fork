@@ -46,3 +46,17 @@ End Function
 Public Sub SetFormula(ByVal table As ListObject, ByVal header As String, ByVal canonical As String)
     Field(table, header).DataBodyRange.Formula = FormulaText(table, canonical)
 End Sub
+
+Public Sub ApplyTextIdentityFormats(ByVal table As ListObject, ByVal firstPair As Long, _
+                                    ByVal pairCount As Long, ByVal headerOffset As Long)
+    Dim pairNumber As Long
+    If table Is Nothing Then Exit Sub
+    If Not table.DataBodyRange Is Nothing Then
+        Field(table, "ID").DataBodyRange.NumberFormat = "@"
+        Field(table, "Output SKU").DataBodyRange.NumberFormat = "@"
+        For pairNumber = firstPair To pairCount
+            Field(table, "Accepted SKU " & CStr(pairNumber)).DataBodyRange.NumberFormat = "@"
+        Next pairNumber
+    End If
+    table.Parent.Cells(table.HeaderRowRange.Row - headerOffset + 1, 5).NumberFormat = "@"
+End Sub

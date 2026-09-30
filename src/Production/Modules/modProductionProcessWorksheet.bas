@@ -22,7 +22,8 @@ Public Function SendProcessDraftToWorksheet(ByVal wb As Workbook, _
                                             ByVal description As String, _
                                             ByVal payloadJson As String, _
                                             ByRef tableName As String, _
-                                            ByRef report As String) As Boolean
+                                            ByRef report As String, _
+                                            Optional ByRef validationRejected As Boolean = False) As Boolean
     Dim ws As Worksheet
     Dim lo As ListObject
     Dim rows As Collection
@@ -32,9 +33,10 @@ Public Function SendProcessDraftToWorksheet(ByVal wb As Workbook, _
     Dim record As Object
     Dim tableTopRow As Long
     Dim tableHeaderRow As Long
-    Dim alternativePairCount As Long
+    Dim initialPairCount As Long
 
     On Error GoTo Failed
+    validationRejected = True
     If wb Is Nothing Then
         report = "The captured Production operator workbook is unavailable."
         Exit Function
@@ -54,12 +56,13 @@ Public Function SendProcessDraftToWorksheet(ByVal wb As Workbook, _
     If rows Is Nothing Then Exit Function
     AddWorksheetTemplateRows rows
     rowCount = rows.Count
-    alternativePairCount = WorksheetAlternativePairCountForRows(rows)
+    initialPairCount = WorksheetAlternativePairCountForRows(rows)
     If rowCount = 0 Then
         report = "The Process worksheet could not create an editable row set."
         Exit Function
     End If
 
+    validationRejected = False
     Set ws = EnsureProcessEditorSheet(wb)
     tableTopRow = NextProcessTableTopRow(ws)
     tableHeaderRow = tableTopRow + TABLE_HEADER_OFFSET
@@ -76,14 +79,14 @@ Public Function SendProcessDraftToWorksheet(ByVal wb As Workbook, _
     ws.Cells(tableTopRow + 3, 1).Value2 = _
         "FIXED INPUT quantities calculate by UOM. ACTUAL inputs/outputs stay blank until Check In/Actual Output; do not enter a planned Qty."
 
-    WriteWorksheetHeaders ws, tableHeaderRow, alternativePairCount
+    WriteWorksheetHeaders ws, tableHeaderRow, initialPairCount
     Set tableRange = ws.Range(ws.Cells(tableHeaderRow, 1), _
                               ws.Cells(tableHeaderRow + rowCount, _
-                                  AlternativeSkuColumnIndex(alternativePairCount)))
+                                  AlternativeSkuColumnIndex(initialPairCount)))
     Set lo = ws.ListObjects.Add(xlSrcRange, tableRange, , xlYes)
     tableName = BuildUniqueProcessTableName(wb, processId)
     lo.Name = tableName
-    ApplyProcessWorksheetTextIdentityFormats lo
+    modProcessWorksheetColumns.ApplyTextIdentityFormats lo, FIRST_ALTERNATIVE_PAIR, AlternativePairCount(lo), TABLE_HEADER_OFFSET
 
     rowIndex = 1
     For Each record In rows
@@ -101,6 +104,7 @@ Public Function SendProcessDraftToWorksheet(ByVal wb As Workbook, _
     Exit Function
 
 Failed:
+    validationRejected = False
     report = "Process worksheet creation failed: " & Err.Description
 End Function
 
@@ -111,7 +115,8 @@ Public Function ReadProcessDraftFromWorksheet(ByVal wb As Workbook, _
                                               ByRef processName As String, _
                                               ByRef description As String, _
                                               ByRef payloadJson As String, _
-                                              ByRef report As String) As Boolean
+                                              ByRef report As String, _
+                                              Optional ByRef validationRejected As Boolean = False) As Boolean
     Dim lo As ListObject
     Dim records As New Collection
     Dim record As Object
@@ -144,6 +149,7 @@ Public Function ReadProcessDraftFromWorksheet(ByVal wb As Workbook, _
     Dim inputPercentTotal As Double
 
     On Error GoTo Failed
+    validationRejected = True
     If wb Is Nothing Then
         report = "The captured Production operator workbook is unavailable."
         Exit Function
@@ -359,9 +365,11 @@ ContinueRow:
         " input(s), " & CStr(outputRowCount) & " output(s), and " & _
         CStr(instructionOrdinal) & " instruction(s)."
     ReadProcessDraftFromWorksheet = True
+    validationRejected = False
     Exit Function
 
 Failed:
+    validationRejected = False
     report = "Process worksheet retrieval failed: " & Err.Description
 End Function
 
@@ -897,7 +905,7 @@ Private Sub ApplyProcessWorksheetManagedColumns(ByVal lo As ListObject)
     Application.EnableEvents = False
     priorAutoFill = Application.AutoCorrect.AutoFillFormulasInLists
     Application.AutoCorrect.AutoFillFormulasInLists = True
-    ApplyProcessWorksheetTextIdentityFormats lo
+    modProcessWorksheetColumns.ApplyTextIdentityFormats lo, FIRST_ALTERNATIVE_PAIR, AlternativePairCount(lo), TABLE_HEADER_OFFSET
     ApplyRecordTypeValidation lo
     ApplyQtyModeValidation lo
     ApplyProcessWorksheetUomValidation lo
@@ -958,20 +966,6 @@ Private Sub ApplyRecordTypeValidation(ByVal lo As ListObject)
         .ErrorTitle = "Choose a Process record type"
         .ErrorMessage = "Select INPUT, OUTPUT, INSTRUCTION, or ALTERNATIVE."
     End With
-End Sub
-
-Private Sub ApplyProcessWorksheetTextIdentityFormats(ByVal lo As ListObject)
-    Dim pairNumber As Long
-
-    If lo Is Nothing Then Exit Sub
-    If Not lo.DataBodyRange Is Nothing Then
-        modProcessWorksheetColumns.Field(lo, "ID").DataBodyRange.NumberFormat = "@"
-        modProcessWorksheetColumns.Field(lo, "Output SKU").DataBodyRange.NumberFormat = "@"
-        For pairNumber = FIRST_ALTERNATIVE_PAIR To AlternativePairCount(lo)
-            modProcessWorksheetColumns.Field(lo, "Accepted SKU " & CStr(pairNumber)).DataBodyRange.NumberFormat = "@"
-        Next pairNumber
-    End If
-    lo.Parent.Cells(lo.HeaderRowRange.Row - TABLE_HEADER_OFFSET + 1, 5).NumberFormat = "@"
 End Sub
 
 Private Sub ApplyProcessWorksheetUomValidation(ByVal lo As ListObject)
