@@ -26,7 +26,10 @@ normal closure, preservation and zero Excel Application failures.
 Instruction editing retains411/411 with exact prior checks, five compiles,
 normal closure, preservation and zero Excel Application failures.
 Instruction paths retain105/105 with the same gates and six reviewed captures.
-Remaining Production activity regressions and broader acceptance are still required.
+Combined UOM264/264, public Close/reopen61/61 and UOM paths84/84 retain exact prior
+checks, five compiles per gate, normal closure, preservation and zero Excel
+Application failures; two/three/six principal captures are reviewed respectively.
+Draft diagnostics, lifecycle, native cancellation and broader acceptance remain required.
 See [Recipe ordering evidence](plan022_slice4be_production_recipe_order_results.md).
 Earlier catalog16 records below retain their original candidate scope.
 

@@ -114,7 +114,26 @@ normal closure, preservation and zero Excel Application failures. Controller
 detail reports Unknown effect; the separately scrolled diagnostic conclusion
 matches all five actions, reports no additional actions and does not assert Domain
 application. Authored guide and independent observed run remain distinct.
-Remaining Production activity regressions are still pending.
+Combined visible UOM retains **264/264**, exact prior checks, five compiles,
+normal closure, preserved settings/packages and zero Excel Application failures.
+Controller `production-uom-staging-controller/fb962543e3c44deb928b22a07beb29b7`,
+result `slice4be-production-uom-staging/1bb6056d388f496984983189d8bd50f2`, records
+03:32:38--03:36:56 UTC. Both principal captures show draft/custom-column reuse and
+the explicit retained-edits/saved-catalog-not-reloaded status.
+The separate actual public Close/reopen route retains **61/61** and the same
+compile, preservation, normal-exit and zero-failure gates. Controller
+`production-uom-staging-controller/0b3a6cfed4134f17898c45d67947f356`, result
+`slice4be-production-uom-public-close/c4d7715bc25d43388e3eccd638bc2be5`, records
+03:37:16--03:38:50 UTC. Three principal captures show open, owner closed/form
+disposed, then fresh public reopen preserving the existing UOM draft.
+UOM Action Paths retains **84/84**, exact prior checks, five compiles, normal
+closure, preserved settings/packages and zero Excel Application failures.
+Controller `production-uom-staging-controller/6834148286a849febd306079333f8c86`,
+result `slice4be-production-uom-paths/c1ac7b679d124fcb842a5a367e12cb73`, records
+03:39:10--03:43:00 UTC. Six principal captures show the exact REUSED detail,
+distinct authored guide and observed run, OPENED then REUSED matches, no additional
+actions and the explicit absence of a Domain-application assertion.
+Draft diagnostics, lifecycle and native cancellation regressions remain pending.
 
 Initial paired evidence: controller
 `production-recipe-order-controller/93ca5ad60df548ec98b6bf87af1c7cd6`, result
