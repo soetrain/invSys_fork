@@ -4,8 +4,10 @@ Last verified:2026-09-30 UTC. **Approved correction implemented in an isolated
 candidate; focused786/786 and released-data55/55 GREEN. Broader acceptance remains incomplete.**
 
 Unpromoted `deploy/validation-production-recipe-structure` implements the approved
-seven-field connection snapshot and catalog18 structure observations. Five builds,
-five compiles and Operations cold load pass; the frozen catalog17 baseline remains
+seven-field connection snapshot and catalog18 structure observations.
+The candidate registers37/68 constructed Production controls,31 still unregistered;
+the fully regressed baseline remains catalog17 until broader gates complete.
+Five builds, five compiles and Operations cold load pass; the frozen catalog17 baseline remains
 unchanged. Compiled scope is five changed existing components and three new typed
 helpers. The released-data RED52/3 becomes55/55 with exact ordered check identities,
 five instrumented compiles, settings/package preservation, normal unassisted Excel
@@ -59,6 +61,54 @@ reviewed; the scrolled conclusion matches all five actions, no additional action
 and explicitly no Domain-application assertion. Following Add/Remove, the editor
 capture retains existing refresh/status behavior; it does not prove stored edge
 values, which are protected by the separate state assertions.
+
+Recipe ordering regression retains **463/463**, every prior ordered check identity,
+five compiles, preservation, unassisted closure and zero Excel Application failures.
+Controller `production-recipe-order-controller/da9eda7dc1d445a89c4f9ea325e94805`,
+04:57:25.4990419--05:00:14.1232102 UTC; result
+`slice4be-production-recipe-order/07516c9aee9e4dd19fe3a6b0c6e00935`.
+Two principal captures retain Auto Order's updated graph and the injected Down
+failure's partial order with inspect-before-retry status, without promising rollback.
+
+Full Release1 chain retains **32/32**, live roles **48/48** and Create Warehouse
+**15/15**, all with exact prior ordered check identities. Controller
+`production-recipe-structure-regression/chain-5444fb6d19a94b1fbdeb7696e415bd55`,
+05:00:52.4047405--05:05:53.5669584 UTC, records unassisted closure, restored settings,
+unchanged packages and restored tracked reports. The following12second application
+audit finds zero Excel failures. Read-only window inspection preceded normal exit;
+no dialog acknowledgement, Debug/Reset or termination was issued. This remains
+automated regression evidence, not human/NAS acceptance.
+
+Full reusable Production retains **2 aggregate PASS and all171 Boolean observations**
+(166 distinct pairs) in exact prior order. Controller
+`production-recipe-structure-regression/reusablefull-bbac3f3fe31541d4a32245b0fe60550c`,
+05:06:17.5680121--05:14:11.4988683 UTC, protects worksheet import, lifecycle,
+reusable runs, fork/convergence, round-trip/export and clean-process restart.
+Restart/final exit are unassisted after2534/2431ms, with zero reference-release
+failures or termination requests. Settings/packages remain intact and the
+following12second application audit finds zero Excel failures.
+
+Packaged smoke retains **86/86** exact prior checks. Controller
+`production-recipe-structure-regression/smoke-31570245a64c42888102a801bea814ae`,
+05:14:34.6927241--05:14:56.6704270 UTC, records normal unassisted Initial/Final
+exit, zero reference-release failures/termination requests, preserved settings,
+packages and tracked report, and zero Excel Application failures.
+
+Component edits retain **795/795**, exact prior check identities, five instrumented
+compiles, preservation, unassisted closure and zero Excel Application failures.
+Controller `production-component-controller/2b080f3a499644f48d2a3a1ede5abd7b`,
+05:15:18.0960376--05:18:33.1809928 UTC; result
+`slice4be-production-components/00bf5a18a2e6469ca96807d3401a1e1a`.
+Both principal captures retain local requirement/output edits and the explicit
+saved-definitions-unchanged status.
+
+Settings retains **202/202** exact prior checks and five compiles. Controller
+`production-recipe-structure-regression/settings-226ffd7046e04e0ea52404ee0c79e11d`,
+05:19:05.5288394--05:23:03.1798695 UTC; result
+`slice4be-tracking-settings/93270902114942d59586eb22acb706dd`.
+Personal preference restart releases10 completed-host references without errors;
+internal and final Excel exit are unassisted. Settings/packages remain intact and
+the following12second application audit records zero Excel failures.
 
 Architecture v4.11 D18, Plan022, controls1.288 and coverage1.31 specified five
 existing Recipe structure observations in docs commit da7bab7 before runtime
@@ -130,3 +180,9 @@ Next: complete all required regressions on
 the isolated candidate, preserving the catalog17 baseline. Require recording/publication/How-To/Diagnostic/
 Compare, compile, layout, static limits, live roles, full Release1 chain, reusable
 Production and visible evidence before completing this bounded group.
+
+Still outstanding on this candidate: Settings activity, Recipe-order paths,
+component paths, instructions and their paths, UOM combined/public-close/paths,
+draft diagnostics, lifecycle, native cancellation, layout and separate reusable
+run-only. Completed evidence above retains its specific scope; no full Slice4be
+or Release1 acceptance is claimed.
