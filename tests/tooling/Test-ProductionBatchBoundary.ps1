@@ -3,6 +3,7 @@
 param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-production-paths',
       [string]$PackagePinsPath='reports/runtime/production-lifecycle-native-controller/65e8e27585ca47289cf27e87e147e83e/package-pins.json',
       [ValidateRange(0,30000)][int]$ReleaseObservationMilliseconds=30000,
+      [switch]$FullProductionFlow,
       [switch]$TraceBoundaries,[switch]$StandardRunFlow,[switch]$CompileOnly,[switch]$NativeExceptions,[switch]$NativeFaultsOnly,[switch]$NativeBeforeRun,[switch]$ReleaseAutomationForTest,[switch]$ClearErrorReferencesForTest,[switch]$CloseOperatorFirstForTest,[switch]$ObserveShutdownForTest,[switch]$CloseOwnedWorkbooksForTest,[switch]$ReverseOpenedCloseForTest,[switch]$GenerateOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if($StandardRunFlow -and -not ($TraceBoundaries -or $CompileOnly -or $NativeExceptions -or $ReleaseAutomationForTest -or $CloseOperatorFirstForTest -or $ObserveShutdownForTest -or $CloseOwnedWorkbooksForTest -or $ReverseOpenedCloseForTest)){throw 'Standard-flow diagnosis requires an explicit observer/control.'}
@@ -10,6 +11,7 @@ if($CloseOperatorFirstForTest -and -not $StandardRunFlow){throw 'Operator-first 
 if($CompileOnly -and ($TraceBoundaries -or -not $StandardRunFlow)){throw 'VBE preparation control requires standard flow without tracing.'}
 if($NativeExceptions -and ($TraceBoundaries -or $CompileOnly -or -not $StandardRunFlow)){throw 'Native observation requires standard flow without VBE preparation.'}
 if($NativeBeforeRun -and -not $NativeExceptions){throw 'Late attach requires the native observer.'}
+if($FullProductionFlow -and (-not $StandardRunFlow -or -not $NativeExceptions -or $NativeBeforeRun)){throw 'Full Production diagnosis requires early native observation of the standard flow.'}
 if($NativeFaultsOnly -and -not $NativeExceptions){throw 'Native filtering requires the native observer.'}
 if($ClearErrorReferencesForTest -and -not $ReleaseAutomationForTest){throw 'Post-report error-reference control requires explicit automation cleanup diagnosis.'}
 if($ReleaseObservationMilliseconds -ne 30000 -and -not $ReleaseAutomationForTest){throw 'Release wait control requires automation release diagnosis.'}
@@ -251,7 +253,9 @@ $generated=Join-Path $root $(if($StandardRunFlow){'standard-run-validator.ps1'}e
 $tokens=$null;$errors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($generated,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'Diagnostic does not parse.'}
-[pscustomobject]@{StandardRunFlow=[bool]$StandardRunFlow;TraceBoundaries=[bool]$TraceBoundaries;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;NativeBeforeRun=[bool]$NativeBeforeRun;ReleaseAutomationForTest=[bool]$ReleaseAutomationForTest;ReleaseObservationMilliseconds=$ReleaseObservationMilliseconds;ClearErrorReferencesForTest=[bool]$ClearErrorReferencesForTest;CloseOperatorFirstForTest=[bool]$CloseOperatorFirstForTest;ObserveShutdownForTest=[bool]$ObserveShutdownForTest;CloseOwnedWorkbooksForTest=[bool]$CloseOwnedWorkbooksForTest;ReverseOpenedCloseForTest=[bool]$ReverseOpenedCloseForTest;OriginalStatementsPreserved=$statementsPreserved;ParseErrors=$errors.Count;GenerationOpenedExcel=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'generation.json')
+$flowArguments=@();if($StandardRunFlow -and -not $FullProductionFlow){$flowArguments+='-ProductionRunOnly'}
+$expectedChecks=if($FullProductionFlow){2}elseif($StandardRunFlow){1}else{7}
+[pscustomobject]@{StandardRunFlow=[bool]$StandardRunFlow;FullProductionFlow=[bool]$FullProductionFlow;ExpectedChecks=$expectedChecks;TraceBoundaries=[bool]$TraceBoundaries;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;NativeBeforeRun=[bool]$NativeBeforeRun;ReleaseAutomationForTest=[bool]$ReleaseAutomationForTest;ReleaseObservationMilliseconds=$ReleaseObservationMilliseconds;ClearErrorReferencesForTest=[bool]$ClearErrorReferencesForTest;CloseOperatorFirstForTest=[bool]$CloseOperatorFirstForTest;ObserveShutdownForTest=[bool]$ObserveShutdownForTest;CloseOwnedWorkbooksForTest=[bool]$CloseOwnedWorkbooksForTest;ReverseOpenedCloseForTest=[bool]$ReverseOpenedCloseForTest;OriginalStatementsPreserved=$statementsPreserved;ParseErrors=$errors.Count;GenerationOpenedExcel=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'generation.json')
 if($GenerateOnly){Write-Output 'Diagnostic generation calibrated; no runtime invoked.';return}
 if($NativeExceptions){
     @('NativeExceptionObserver.cs','Test-ProductionBatchBoundary.ps1')|ForEach-Object {
@@ -265,7 +269,6 @@ if($NativeExceptions){
 $settings=Get-InvSysTestSettingsSnapshot
 $restored=$false;$code=1;$nativeStopped=$true;$start=[DateTimeOffset]::UtcNow
 try {
-    $flowArguments=@();if($StandardRunFlow){$flowArguments+='-ProductionRunOnly'}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $generated -RepoRoot $repo -DeployRoot $DeployRoot -OutputDirectory ($root.Substring($repo.Length+1)) -CallbackFilter Production -WorkbookState ProductionReusable @flowArguments *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
 } finally {
@@ -306,7 +309,7 @@ if($TraceBoundaries){
     $traceValid=$stages.Count -gt 1 -and @($stages|Where-Object {$_ -cnotin $allow}).Count -eq 0
 }
 $failed=@($checks|Where-Object {-not $_.Passed}).Count
-$scopeSatisfied=if($StandardRunFlow){-not $cutReached -and $checks.Count -eq 1}else{$cutReached -and $checks.Count -eq 7}
+$scopeSatisfied=($checks.Count -eq $expectedChecks -and ($cutReached -eq (-not $StandardRunFlow)))
 $nativeValid=$true
 if($NativeExceptions){
     $nativeEvents=@(Get-Content (Join-Path $root 'native-events.jsonl')|ForEach-Object {$_|ConvertFrom-Json})
@@ -329,7 +332,7 @@ if($CloseOwnedWorkbooksForTest){
     $ownedCloseValid=($ownedReceipt.WorkbooksBefore -gt 0 -and $ownedReceipt.CloseReturned -eq $ownedReceipt.WorkbooksBefore -and $ownedReceipt.WorkbooksAfter -eq 0 -and $null -eq $ownedReceipt.Failure -and $null -ne $cleanup -and $cleanup.ProcessIdAvailable -and -not $cleanup.TerminationRequested)
 }
 $reverseCloseValid=(-not $ReverseOpenedCloseForTest -or ($null -ne $cleanup -and $cleanup.ProcessIdAvailable -and -not $cleanup.TerminationRequested))
-$result=[pscustomobject]@{TraceBoundaries=[bool]$TraceBoundaries;StandardRunFlow=[bool]$StandardRunFlow;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;NativeBeforeRun=[bool]$NativeBeforeRun;NativeObserverValid=$nativeValid;ReleaseAutomationForTest=[bool]$ReleaseAutomationForTest;ReleaseObservationMilliseconds=$ReleaseObservationMilliseconds;ClearErrorReferencesForTest=[bool]$ClearErrorReferencesForTest;AutomationReleaseValid=$releaseValid;CloseOperatorFirstForTest=[bool]$CloseOperatorFirstForTest;ObserveShutdownForTest=[bool]$ObserveShutdownForTest;CloseOwnedWorkbooksForTest=[bool]$CloseOwnedWorkbooksForTest;ReverseOpenedCloseForTest=[bool]$ReverseOpenedCloseForTest;OperatorFirstCleanupValid=$operatorCloseValid;OwnedWorkbooksCleanupValid=$ownedCloseValid;ReverseOpenedCleanupValid=$reverseCloseValid;OriginalStatementsPreserved=$statementsPreserved;PassedChecks=$checks.Count-$failed;FailedChecks=$failed;Checks=$checks;CutReached=$cutReached;TraceAllowlistValid=$traceValid;TraceEntries=$stages.Count;ExcelApplicationEvents=$events.Count;FinalCleanup=$cleanup;DiagnosticPassed=($code -eq 0 -and $scopeSatisfied -and $failed -eq 0 -and $traceValid -and $nativeValid -and $releaseValid -and $operatorCloseValid -and $ownedCloseValid -and $reverseCloseValid -and $events.Count -eq 0);FullProductionAccepted=$false}
+$result=[pscustomobject]@{TraceBoundaries=[bool]$TraceBoundaries;StandardRunFlow=[bool]$StandardRunFlow;FullProductionFlow=[bool]$FullProductionFlow;ExpectedChecks=$expectedChecks;CompileOnly=[bool]$CompileOnly;NativeExceptions=[bool]$NativeExceptions;NativeFaultsOnly=[bool]$NativeFaultsOnly;NativeBeforeRun=[bool]$NativeBeforeRun;NativeObserverValid=$nativeValid;ReleaseAutomationForTest=[bool]$ReleaseAutomationForTest;ReleaseObservationMilliseconds=$ReleaseObservationMilliseconds;ClearErrorReferencesForTest=[bool]$ClearErrorReferencesForTest;AutomationReleaseValid=$releaseValid;CloseOperatorFirstForTest=[bool]$CloseOperatorFirstForTest;ObserveShutdownForTest=[bool]$ObserveShutdownForTest;CloseOwnedWorkbooksForTest=[bool]$CloseOwnedWorkbooksForTest;ReverseOpenedCloseForTest=[bool]$ReverseOpenedCloseForTest;OperatorFirstCleanupValid=$operatorCloseValid;OwnedWorkbooksCleanupValid=$ownedCloseValid;ReverseOpenedCleanupValid=$reverseCloseValid;OriginalStatementsPreserved=$statementsPreserved;PassedChecks=$checks.Count-$failed;FailedChecks=$failed;Checks=$checks;CutReached=$cutReached;TraceAllowlistValid=$traceValid;TraceEntries=$stages.Count;ExcelApplicationEvents=$events.Count;FinalCleanup=$cleanup;DiagnosticPassed=($code -eq 0 -and $scopeSatisfied -and $failed -eq 0 -and $traceValid -and $nativeValid -and $releaseValid -and $operatorCloseValid -and $ownedCloseValid -and $reverseCloseValid -and $events.Count -eq 0);FullProductionAccepted=$false}
 $result|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $root 'result.json')
 $result|Select-Object TraceBoundaries,StandardRunFlow,CompileOnly,OriginalStatementsPreserved,PassedChecks,FailedChecks,CutReached,TraceAllowlistValid,TraceEntries,ExcelApplicationEvents,FinalCleanup,DiagnosticPassed|ConvertTo-Json -Depth 4
 if(-not $result.DiagnosticPassed){exit 1}

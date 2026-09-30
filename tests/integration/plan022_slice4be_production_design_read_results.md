@@ -212,8 +212,27 @@ Packaged smoke retains86/86 exact catalog18 checks,
 shutdown receipts `reports/runtime/packaged-smoke-closure/caeb5878a9204b578a5391270398b98a`.
 Initial and Final shutdown are unassisted with zero termination requests/release
 failures. Settings, five packages and tracked report bytes restore, with zero
-Excel Application failures. Layout and the remaining focused/reusable/Settings
-regression gates are still pending on the final candidate.
+Excel Application failures.
+
+Layout retains the exact prior geometry report across three sizes and five pages,
+with no bounds or overlap violations, 08:18:19.3351277--08:18:34.0628981 UTC.
+Controller `reports/runtime/production-design-read-regression/layout-b12bbb13a04e4cf8a2546abf7d282a87`.
+All three captures were directly viewed and hashed; this is agent review, not
+human acceptance. Preservation, closure and zero Application failures pass.
+
+The full reusable gate then fails before its first aggregate: zero PASS/two
+failures, HARNESS and HARNESS_CLEANUP. Controller
+`reports/runtime/production-design-read-regression/reusablefull-ac423501016448a99bfea4b1da2ac33f`,
+08:18:35.2408792--08:18:59.6740063 UTC. Setup succeeds; the batch-scale adapter
+`mProduction.RunProductionBatchScaleContractTest` fails with RPC800706BE.
+Application1000 at08:18:54.8055061 UTC records Excel16.0.20326.20158,
+ntdll.dll,c0000028,offset12d2f; Application1001 follows at08:18:58.9356309 UTC.
+Workbook cleanup cannot inspect the failed host and correctly records an incomplete
+closure receipt plus HARNESS_CLEANUP. Reference release still completes and the
+process is absent, with no termination requested. This is not normal shutdown.
+Settings, all five packages and tracked reports restore; desktop probes remain
+healthy. None of the171 prior full reusable observations is re-established.
+The remaining focused/reusable/Settings gates remain pending on this artifact.
 
 ## Remaining work
 

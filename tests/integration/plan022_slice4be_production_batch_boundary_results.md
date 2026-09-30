@@ -5,6 +5,54 @@ unchanged. This is diagnostic tooling for the native failure recorded in
 [lifecycle continuation evidence](plan022_slice4be_production_lifecycle_visible_results.md),
 not an invSys runtime repair or complete Production/Release1 acceptance.
 
+## Designer read candidate: full-flow observation
+
+The final catalog19 candidate fails the ordinary full reusable gate at its first
+batch-scale call with RPC800706BE and the retained ntdll/c0000028/offset12d2f
+signature. See [designer read evidence](plan022_slice4be_production_design_read_results.md).
+The existing native diagnostic forced `-ProductionRunOnly`, omitting full-only
+workflows and restart. A bounded tooling extension adds `-FullProductionFlow`
+with early native observation, preserving every standard validator statement and
+requiring both original aggregate results. The short control retains its exact
+argument selection. No runtime package or architectural contract changes.
+
+Offline calibration records19 PASS/two expected failures before implementation,
+then21/21 with the same identities. It executes the helper's actual argument
+selection and verifies the original full flow, both required aggregates, the
+unchanged short control, observer placement, original statements and no VBE
+preparation. Roots under `reports/runtime/native-attach-calibration/`:
+`9c047e1ef3834cd6803229dbfb684306` (RED) and
+`5bf210e40bd142bf8c8d324e79444e5a` (final GREEN). No Excel is opened by calibration.
+
+The observer covers the initial Excel process, including the failing batch-scale
+boundary; it does not reattach to the restarted process. The full validator and
+Application audit still cover restart. Redacted stack handling is unchanged.
+An observed pass cannot establish a native repair or replace the ordinary failed
+execution.
+
+The observed full flow passes both aggregates,08:25:49.1094946--08:34:12.6444525
+UTC, with zero Excel Application failures. Root:
+`reports/runtime/production-batch-boundary/d90653b4ed3b4fa5a953eccb6aef44c9`.
+The initial observer is ready at08:25:51.6475630 UTC and observes process exit
+at08:33:45.7337990 UTC. There is no c0000028 or second-chance exception and no
+stack file; one handled first-chance000006BA occurs during shutdown. Restart
+closes four packages and exits unassisted; final closure completes three fixture
+workbooks/four packages and exits unassisted. Both release receipts have zero
+failures and neither cleanup requests termination. Settings, five package pins
+and the original validator remain unchanged. Desktop probes have no error5.
+
+This redacted diagnostic retains the original two aggregate assertions; it does
+not independently compare the171 original Boolean observations. No failed stack,
+native cause or repair is established. The ordinary failed full gate remains
+open. Continue independent regressions rather than repeat this unchanged observed
+control as repair evidence.
+
+Refreshed `reports/runtime/production-full-native-static` preserves267 components,
+6097 procedures,134205 lines,9 literal/45 unresolved dynamic calls,190 duplicate
+candidates and all28 exact size caps. Three schemas and325 PowerShell parses pass.
+Runtime source and frozen packages are unchanged; existing compile/layout evidence
+retains its scope. The extension introduces no build or form-layout change.
+
 ## Recipe structure candidate: fault-stack diagnostic calibration
 
 The unobserved run-only gate at06:33:56--06:34:39 UTC again fails at
