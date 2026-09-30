@@ -291,6 +291,24 @@ the later matched steps and zero extra actions. Automated checks retain all ten
 matches and the local-only conclusion. This is regression evidence and agent
 review, not complete operator acceptance.
 
+Instruction editing retains411/411 exact ordered prior checks,
+09:06:16.0111741--09:08:51.7015538 UTC. Controller
+`reports/runtime/production-instruction-controller/a3b66147c2634a4984e248cfc31f9a6a`;
+result `reports/runtime/slice4be-production-instructions/9e4e622125904baa99fe76310a973da8`.
+Five compiles, settings/package preservation, unchanged workbook bytes/unknown
+columns, unassisted closure and zero delayed Application failures pass.
+
+Instruction paths retain105/105 exact ordered prior checks,
+09:09:14.1746815--09:14:08.9887831 UTC. Controller
+`reports/runtime/production-instruction-controller/f250c437c50a43afb453eab7d82e9b41`;
+result `reports/runtime/slice4be-production-instruction-paths/420e8233227c40b5a212ad06bcb321f0`.
+Five compiles, preservation, unassisted closure and zero delayed Application
+failures pass. Six principal captures are directly reviewed and hashed. The
+detail capture selects REQUESTED/Unknown, with STAGED separately linked; the
+scrolled diagnostic conclusion shows all five expected STAGED matches, zero
+extra actions and no Domain-application claim. All three presentations preserve
+the evidence. Agent review does not establish human acceptance.
+
 ## Remaining work
 
 The typed owner/catalog implementation and exact621 focused GREEN are recorded.
