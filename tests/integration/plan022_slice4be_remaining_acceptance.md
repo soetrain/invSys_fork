@@ -10,8 +10,11 @@ builds/compiles/cold load, static limits, preservation and two principal capture
 pass. Dynamic9/45 and191 duplicate groups remain unchanged after consolidating
 outcome construction. Final paired paths93/93 and component regression795/795
 retain exact prior checks, five compiles, preservation and normal closure; six
-paired captures are reviewed. Remaining regressions/layout/full chain/reusable
-and broader acceptance are still required. See [Recipe ordering evidence](plan022_slice4be_production_recipe_order_results.md).
+paired captures are reviewed. Layout, full chain32/32, live roles48/48 and Create
+Warehouse15/15 pass with exact prior checks, preservation and normal closure.
+Smoke86/86 retains normal closure after a calibrated test-only30-second exit bound;
+the earlier one-second assisted result remains qualified. Remaining regressions,
+reusable and broader acceptance are still required. See [Recipe ordering evidence](plan022_slice4be_production_recipe_order_results.md).
 Earlier catalog16 records below retain their original candidate scope.
 
 **Later cleanup correction:** Smoke86/86 now exits both hosts unassisted after

@@ -2,8 +2,41 @@
 
 Last verified:2026-09-30 UTC. This is test-harness work under unchanged Architecture
 v4.11/Plan022, not an invSys runtime repair or product behavioral RED. The five
-catalog16 packages and VBA source remain unchanged. All runtime paths below are
+catalog16 packages and VBA source were unchanged at the original checkpoint.
+The later catalog17 timing comparison below also changes no runtime code or XLAMs.
+All runtime paths below are
 under ignored `reports/runtime/`; only sanitized findings are committed.
+
+## Smoke shutdown deadline on the catalog17 candidate
+
+The ordinary smoke gate retains86/86 but its Final host exceeds1000ms and requests
+termination: `production-recipe-order-regression/smoke-50b1bc571fe042f386f9b91969adf20c`,
+02:42:13--02:42:34 UTC; shutdown root
+`packaged-smoke-closure/c0848cb9486c4abf812d6ec6fded1ac2`. Initial exits normally,
+both phases release19 references with zero failures, settings/packages/report
+restore, and zero Excel Application1000/1001/1002 events occur. This is an assisted
+cleanup result, not product RED or proof of a native crash.
+
+A disposable validator copy changes only the wait and reported deadline to30000ms.
+It retains86/86 and both hosts exit unassisted; Final requires2323ms. Controller
+`production-recipe-order-regression/smoke-e0544173c25f496aa4fdb31a4d69d13b`,
+02:44:09--02:44:31 UTC; shutdown root
+`packaged-smoke-closure/3c73c10c8954447c98ed09327bd48647`. Generation receipt
+`production-recipe-order-smoke-wait/generation.json` proves reversing those two
+constants reproduces the original validator; its source hash was verified intact
+after this comparison and before the ordinary change. All prior assertions and
+owned-workbook/process guards remain; no other behavior is changed.
+
+The ordinary validator now uses the same30-second bound. It again retains86/86,
+all prior check names, settings/five packages/tracked report and zero Application
+failure events. Initial/Final exit unassisted, with Final observed after2315ms:
+`production-recipe-order-regression/smoke-86beb00f94b84131abd7d7aa9fe95da9`,
+02:45:17--02:45:40 UTC; shutdown root
+`packaged-smoke-closure/b0609a0ac3ac4d3d8d734128acb3ced0`. Both phases release19
+references with no failures; ordinary source matches the calibrated comparison.
+Each controller has a strict `verification.json`. Earlier1000ms evidence keeps
+its original deadline and result. This measured timing correction does not explain
+the older native crashes or complete Slice4be acceptance.
 
 ## Defect and protecting calibration
 

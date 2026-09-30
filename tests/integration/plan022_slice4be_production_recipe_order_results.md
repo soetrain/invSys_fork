@@ -44,6 +44,26 @@ order, protecting the shared outcome-builder refactor. Controller
 02:27:47--02:30:59 UTC, five compiles, normal closure, settings/package preservation
 and zero Excel Application failures. Both principal component images are reviewed.
 
+Final-candidate layout matches the preceding geometry report exactly: three sizes
+by five pages, no out-of-bounds controls or interactive overlaps, and successful
+minimize/restore/maximize/content-fill/restore checks. Controller
+`production-recipe-order-regression/layout-7ee2a8fc88094b0bb85439c1f798b6c6`,
+02:36:25--02:36:39 UTC, preserves settings/packages and exits normally with no
+termination path or Excel Application failures. All three captures are reviewed.
+
+Full chain **32/32**, live roles **48/48** and Create Warehouse **15/15** retain
+the exact prior check order on this candidate. Controller
+`production-recipe-order-regression/chain-7ff73baedf34452fb23ab3d60698073c`,
+02:36:59--02:41:55 UTC, records normal closure, restored settings/packages/three
+tracked reports and zero Excel Application failures. Smoke retains **86/86**,
+but the first run's Final shutdown exceeds1000ms and is assisted. A bounded wait
+comparison observes normal exit after2323ms; the corrected ordinary30-second
+wait then retains86/86 with unassisted Initial/Final exit, preservation and no
+Application failures. Ordinary controller
+`production-recipe-order-regression/smoke-86beb00f94b84131abd7d7aa9fe95da9`,
+02:45:17--02:45:40 UTC. See [cleanup evidence](plan022_slice4be_automation_cleanup_results.md)
+for both qualified attempts and the two-constant harness correction.
+
 Initial paired evidence: controller
 `production-recipe-order-controller/93ca5ad60df548ec98b6bf87af1c7cd6`, result
 `slice4be-production-recipe-order-paths/fe4ef6a12dd246f5b5d5115e785214a6`,
@@ -99,6 +119,6 @@ the actual handler while its outer action is active. Initial controller
 `slice4be-production-recipe-order/1b4220800f1d4fc6adacd73244f0c977` are under runtime
 reports; settings/packages restore and no Excel host remains.
 
-Next: complete layout and the remaining current regressions/full chain/reusable
+Next: complete the remaining current regressions and reusable
 behavior and visible evidence. Registration is32/68 on the unpromoted candidate,
 36 pending; Slice4be and Release1 acceptance remain incomplete.

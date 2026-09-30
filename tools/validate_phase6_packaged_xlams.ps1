@@ -281,7 +281,7 @@ function Close-PackagedValidationSession {
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
     # Only this HWND-identified process, after a real zero-workbook check.
     $waitStarted = [DateTimeOffset]::UtcNow
-    $exitedNaturally = $null -eq $owned -or $owned.WaitForExit(1000)
+    $exitedNaturally = $null -eq $owned -or $owned.WaitForExit(30000)
     $terminationRequested = $false
     try {
         if (-not $exitedNaturally) {
@@ -294,7 +294,7 @@ function Close-PackagedValidationSession {
             Stage = $Phase
             WaitStartedUTC = $waitStarted.ToString('o')
             ObservedUTC = [DateTimeOffset]::UtcNow.ToString('o')
-            WaitMilliseconds = 1000
+            WaitMilliseconds = 30000
             UnassistedExit = $exitedNaturally
             TerminationRequested = $terminationRequested
             ExitObserved = $null -eq $owned -or $owned.HasExited
