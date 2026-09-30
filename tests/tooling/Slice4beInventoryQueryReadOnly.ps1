@@ -5,21 +5,29 @@ function Install-InventoryQueryReadOnlyProbe {
     $module.Name='TestInventoryQueryReadOnly'
     $module.CodeModule.AddFromString(@'
 Option Explicit
-Public Function ReadForTest(ByVal query As String, ByVal referenceName As String, ByVal suppliedName As String, ByVal missing As Boolean) As String
-    Dim reference As Workbook, supplied As Workbook, entities As ListObject
-    Dim expected As Variant, actual As Variant, sku As String, macro As String
+Private mExpected(0 To 3) As Variant
+Private mQuerySku As String
+Public Sub CaptureForTest(ByVal referenceName As String)
+    Dim reference As Workbook, entities As ListObject
     Set reference = Application.Workbooks(referenceName)
     Set entities = reference.Worksheets("InventoryEntities").ListObjects("tblInventoryEntities")
-    sku = CStr(entities.DataBodyRange.Cells(1, entities.ListColumns("SKU").Index).Value2)
+    mQuerySku = CStr(entities.DataBodyRange.Cells(1, entities.ListColumns("SKU").Index).Value2)
+    mExpected(0) = Application.Run("'invSys.Inventory.Domain.xlam'!modInventoryBridgeApi.GetOnHandQtyBridgeResult", mQuerySku, reference)
+    mExpected(1) = Application.Run("'invSys.Inventory.Domain.xlam'!modInventoryBridgeApi.GetLocationBalancesBridgeResult", mQuerySku, reference)
+    mExpected(2) = Application.Run("'invSys.Inventory.Domain.xlam'!modInventoryBridgeApi.ListInventoryPickerItemsBridgeResult", "", reference)
+    mExpected(3) = Application.Run("'invSys.Inventory.Domain.xlam'!modInventoryBridgeApi.ListAvailableInventoryEntitiesBridgeResult", "", reference)
+End Sub
+Public Function ReadForTest(ByVal query As String, ByVal suppliedName As String, ByVal missing As Boolean) As String
+    Dim supplied As Workbook, expected As Variant, actual As Variant, sku As String
     If suppliedName <> "" Then Set supplied = Application.Workbooks(suppliedName)
+    sku = mQuerySku
     Select Case query
-        Case "Quantity": macro = "GetOnHandQtyBridgeResult"
-        Case "Locations": macro = "GetLocationBalancesBridgeResult"
-        Case "Picker": macro = "ListInventoryPickerItemsBridgeResult": sku = ""
-        Case "Entities": macro = "ListAvailableInventoryEntitiesBridgeResult": sku = ""
+        Case "Quantity": expected = mExpected(0)
+        Case "Locations": expected = mExpected(1)
+        Case "Picker": expected = mExpected(2): sku = ""
+        Case "Entities": expected = mExpected(3): sku = ""
         Case Else: Err.Raise 5, , "Unknown fixture query."
     End Select
-    expected = Application.Run("'invSys.Inventory.Domain.xlam'!modInventoryBridgeApi." & macro, sku, reference)
     Select Case query
         Case "Quantity": actual = modInventoryDomainBridge.GetInventoryOnHandQtyBridge(sku, supplied)
         Case "Locations": actual = modInventoryDomainBridge.GetInventoryLocationBalancesBridge(sku, supplied)
@@ -83,10 +91,10 @@ function Test-InventoryQueryReadOnly($Fixture) {
     function CloseTargets {foreach($target in @(OpenTargets)){$target.Close($false)}}
     function HashTarget {(Get-FileHash -LiteralPath $path).Hash}
     function Query([string]$Kind,[string]$Supplied='', [bool]$Missing=$false){
-        [string](Run 'invSys.Core.xlam' 'TestInventoryQueryReadOnly.ReadForTest' @($Kind,$reference.Name,$Supplied,$Missing))
+        [string](Run 'invSys.Core.xlam' 'TestInventoryQueryReadOnly.ReadForTest' @($Kind,$Supplied,$Missing))
     }
     CloseTargets
-    $reference=$null;$source=$null
+    $source=$null
     try {
         SetupStage 'BeforeSourceOpen'
         $source=$excel.Workbooks.Open($path,0,$false)
@@ -94,12 +102,12 @@ function Test-InventoryQueryReadOnly($Fixture) {
         if($null -eq $entities.DataBodyRange -or $entities.ListRows.Count -eq 0){throw 'Nonempty Admin-seeded inventory required.'}
         $custom=$entities.ListColumns.Add();$custom.Name='Operator Annotation';$custom.DataBodyRange.Value2='Query fixture custom value'
         $entities.Parent.Protect()
-        $source.Save();$source.Close($false);$source=$null
+        $source.Save()
+        [void](Run 'invSys.Core.xlam' 'TestInventoryQueryReadOnly.CaptureForTest' @($source.Name))
+        $source.Close($false);$source=$null
         Copy-Item -LiteralPath $path -Destination $referencePath
         $pin=HashTarget
-        SetupStage 'BeforeReferenceOpen'
-        $reference=$excel.Workbooks.Open($referencePath,0,$true)
-        SetupStage 'ReferenceOpened'
+        SetupStage 'ExpectedQueriesCaptured'
         SelectTarget $fixture 'config-producer'
         foreach($kind in @('Quantity','Locations','Picker','Entities')){
             $result=Query $kind
@@ -143,6 +151,6 @@ function Test-InventoryQueryReadOnly($Fixture) {
                 Move-Item -LiteralPath $held -Destination $path
             }
         }
-        Check 'InventoryRead.ReferencePreserved' ((Get-FileHash -LiteralPath $referencePath).Hash -ceq $pin -and $reference.Saved -and $reference.ReadOnly)
-    }finally{if($null -ne $source){$source.Close($false)};CloseTargets;if($null -ne $reference){$reference.Close($false)}}
+        Check 'InventoryRead.ReferencePreserved' ((Get-FileHash -LiteralPath $referencePath).Hash -ceq $pin)
+    }finally{if($null -ne $source){$source.Close($false)};CloseTargets}
 }
