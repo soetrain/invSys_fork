@@ -661,6 +661,37 @@ Remove Process remains STAGED/Info/Unchanged; the scrolled comparison states tha
 Domain application is not asserted. The Recipe form retains the original Add
 status after Remove; that old notice is not used as proof of the final draft.
 
+## Recipe ordering regression GREEN
+
+Recipe ordering retains463/463 exact prior checks,
+2026-09-30,23:14:59.7114925 through23:17:48.4480919 UTC. Controller
+`reports/runtime/production-recipe-order-controller/7330293af92e4b748841453f32341a81`;
+result `reports/runtime/slice4be-production-recipe-order/cd7ba1f807b8408e84a2ff14ced5df27/green.json`.
+Existing row order, fields following node identity, renumbering, selection,
+connections/instructions, no-movement/refusal, partial failures, guards and
+optional-tracking cases retain their assertions. Five compiles, saved authority,
+prior activity, unknown columns, normal cleanup, settings/package preservation
+and delayed Excel audit pass. Two captures are reviewed and hashed in
+`visible-review.json`: Auto Order shows the reordered nodes and original updated
+status; Move Down shows the moved selection but retains the earlier injected
+failure notice. That second image is row-layout evidence only, not a current
+success notice. Actual-handler row/event assertions establish the result.
+
+Ordering paired paths retain93/93 exact prior checks,
+23:18:17.1798904 through23:22:39.9108759 UTC. Controller
+`reports/runtime/production-recipe-order-controller/b2fdb5ced1e74421b331733af711bb00`;
+result `reports/runtime/slice4be-production-recipe-order-paths/0fa9ce8159dc4d429ea996abeff62bb9/green.json`.
+Separate three-action recordings retain original pairs through Admin publication,
+exact Event Detail, explicit guide intent and independent-reader evaluation.
+How-To, Diagnostic and Compare use the same immutable evidence. All three STAGED
+steps match in order with zero extras; CommandCompleted concludes locally, while
+empty source references cannot establish SourceEventsApplied. Five compiles,
+normal cleanup, settings/package preservation, prior records/journals, saved
+authority, unknown workbook values/bytes and delayed audit pass. Six principal
+captures are reviewed and hashed in `visible-review.json`; Auto Order remains
+STAGED/Info/Unchanged, and the scrolled comparison explicitly excludes a Domain
+application claim. No runtime/package changes or human acceptance are implied.
+
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
@@ -668,7 +699,7 @@ regressions plus independent paths139, Close paths90, smoke86, layout and full
 chain32/live48/Create15, full reusable171/replay37, Close/query312, Settings202,
 Settings activity497 (494 retained plus three exclusions), lifecycle615,
 draft/paths390, native cancellation94, Regulation696/paths102, design reads621/paths114
-and Recipe structure786/released55/paths109.
+and Recipe structure786/released55/paths109, Recipe ordering463/paths93.
 Complete the remaining shared-observation regressions on the frozen candidate.
 SourceEventsApplied must use every exact owning published Designs reference;
 queue acknowledgment and
