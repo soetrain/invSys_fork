@@ -11,6 +11,7 @@ param(
     [switch]$CheckProductionDesignerActivity,
     [switch]$CheckProductionClose,
     [switch]$CheckInventoryQueryReadOnly,
+    [switch]$InventoryQueriesOnly,
     [switch]$CheckProductionUomStaging,
     [switch]$CheckProductionUomActivity,
     [switch]$UomAdapterDiagnostic,
@@ -223,6 +224,7 @@ if($CheckSettingsEditorActivity){
     $CheckActivityEvidence=$true
 }
 if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
+if($InventoryQueriesOnly -and -not $CheckInventoryQueryReadOnly){throw 'Query-only diagnosis requires the supplemental query gate.'}
 if($CheckInventoryQueryReadOnly -and -not $CheckProductionClose){throw 'Inventory query preservation supplements the compiled public Production Close gate.'}
 if($CheckProductionClose -and (-not $CheckProductionDesignerActivity -or -not $CaptureEvidence -or $CheckProductionUomStaging -or $CheckProductionInstructions -or $CheckProductionComponents -or $CheckProductionRecipeOrder -or $CheckProductionRecipeStructure -or $CheckProductionDesignReads -or $CheckProductionRegulation -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'Production Close requires its separate visible compiled handler gate.'}
 if($CheckProductionUomStaging -and (-not $CheckProductionDesignerActivity -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths)){throw 'UOM staging preservation requires its separate compiled Production handler gate.'}
@@ -1546,7 +1548,7 @@ End Function
             Test-ProductionInstructionPaths $a -Regulation
         }
         elseif($CheckProductionClose){
-            Test-ProductionCloseActivity $a $b
+            if(-not $InventoryQueriesOnly){Test-ProductionCloseActivity $a $b}
             if($CheckInventoryQueryReadOnly){try{Test-InventoryQueryReadOnly $b}finally{SelectTarget $a}}
         }
         elseif($CheckProductionRegulation){Test-ProductionRegulationActivity $a $b}

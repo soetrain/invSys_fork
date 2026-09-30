@@ -1,6 +1,30 @@
 # Supplemental D3 checks use only Admin-generated/seeded disposable inventory.
 # Compare row values in memory; emit booleans only, never values or credentials.
 function Install-InventoryQueryReadOnlyProbe {
+    $domain=$packages['invSys.Inventory.Domain.xlam'].VBProject.VBComponents.Item('modInventoryBridgeApi').CodeModule
+    $domain.InsertLines($domain.CountOfDeclarationLines+1,"Private mQuerySeenForTest As Boolean`r`nPrivate mQueryReadOnlyForTest As Boolean`r`nPrivate mQueryFailForTest As Boolean")
+    $domain.AddFromString(@'
+Public Sub ResetQueryObservationForTest(ByVal failQuery As Boolean)
+    mQuerySeenForTest = False
+    mQueryReadOnlyForTest = False
+    mQueryFailForTest = failQuery
+End Sub
+Public Function QueryObservationForTest() As String
+    QueryObservationForTest = CStr(mQuerySeenForTest) & "|" & CStr(mQueryReadOnlyForTest)
+End Function
+Private Sub ObserveQueryForTest(ByVal wb As Workbook)
+    mQuerySeenForTest = True
+    If Not wb Is Nothing Then mQueryReadOnlyForTest = wb.ReadOnly
+    If mQueryFailForTest Then Err.Raise vbObjectError + 2851, , "Disposable query failure fixture."
+End Sub
+'@)
+    foreach($procedure in @('GetOnHandQtyBridgeResult','GetLocationBalancesBridgeResult','ListInventoryPickerItemsBridgeResult','ListAvailableInventoryEntitiesBridgeResult')){
+        $start=$domain.ProcStartLine($procedure,0);$count=$domain.ProcCountLines($procedure,0)
+        $lines=$domain.Lines($start,$count) -split '\r?\n'
+        $anchors=@(for($i=0;$i -lt $lines.Count;$i++){if($lines[$i] -match ('^\s*'+[regex]::Escape($procedure)+'\s*=')){$start+$i}})
+        if($anchors.Count -ne 1){throw 'Unique Domain query observation boundary unavailable.'}
+        $domain.InsertLines($anchors[0],'    ObserveQueryForTest inventoryWb')
+    }
     $module=$packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1)
     $module.Name='TestInventoryQueryReadOnly'
     $module.CodeModule.AddFromString(@'
@@ -80,7 +104,17 @@ function Test-InventoryQueryReadOnly($Fixture) {
         if(-not [IO.Path]::GetFullPath($target).StartsWith($root,[StringComparison]::OrdinalIgnoreCase)){throw 'Query fixture path escaped owned root.'}
     }
     function SetupStage([string]$Stage){
-        [pscustomobject]@{Stage=$Stage;SourceExists=(Test-Path -LiteralPath $path);SourceOpenCount=@($excel.Workbooks|Where-Object{$_.FullName -ceq $path}).Count}|ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'inventory-query-setup.jsonl')
+        $size=0;$entries=0;$valid=$false
+        if(Test-Path -LiteralPath $path){
+            $size=(Get-Item -LiteralPath $path).Length
+            Add-Type -AssemblyName System.IO.Compression
+            $stream=[IO.File]::Open($path,'Open','Read','ReadWrite');$zip=$null
+            try{$zip=[IO.Compression.ZipArchive]::new($stream,[IO.Compression.ZipArchiveMode]::Read,$false);$entries=$zip.Entries.Count;$valid=$true}finally{if($null -ne $zip){$zip.Dispose()}else{$stream.Dispose()}}
+        }
+        $opened=@($excel.Workbooks|Where-Object{$_.FullName -ceq $path})
+        $format=0;$readOnly=$null;$saved=$null
+        if($opened.Count -eq 1){$format=$opened[0].FileFormat;$readOnly=$opened[0].ReadOnly;$saved=$opened[0].Saved}
+        [pscustomobject]@{Stage=$Stage;SourceExists=(Test-Path -LiteralPath $path);SourceOpenCount=$opened.Count;Bytes=$size;ZipValid=$valid;Entries=$entries;OpenFormat=$format;OpenReadOnly=$readOnly;OpenSaved=$saved}|ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'inventory-query-setup.jsonl')
     }
     SetupStage 'BeforeSeed'
     SelectTarget $fixture
@@ -89,10 +123,15 @@ function Test-InventoryQueryReadOnly($Fixture) {
     SetupStage 'AfterSeed'
     function OpenTargets {@($excel.Workbooks|Where-Object{$_.FullName -ceq $path})}
     function CloseTargets {foreach($target in @(OpenTargets)){$target.Close($false)}}
-    function HashTarget {(Get-FileHash -LiteralPath $path).Hash}
-    function Query([string]$Kind,[string]$Supplied='', [bool]$Missing=$false){
+    function HashTarget {
+        $stream=[IO.File]::Open($path,'Open','Read','ReadWrite')
+        try{(Get-FileHash -InputStream $stream).Hash}finally{$stream.Dispose()}
+    }
+    function Query([string]$Kind,[string]$Supplied='', [bool]$Missing=$false,[bool]$FailQuery=$false){
+        [void](Run 'invSys.Inventory.Domain.xlam' 'modInventoryBridgeApi.ResetQueryObservationForTest' @($FailQuery))
         [string](Run 'invSys.Core.xlam' 'TestInventoryQueryReadOnly.ReadForTest' @($Kind,$Supplied,$Missing))
     }
+    function QueryState {[string](Run 'invSys.Inventory.Domain.xlam' 'modInventoryBridgeApi.QueryObservationForTest')}
     CloseTargets
     $source=$null
     try {
@@ -100,9 +139,6 @@ function Test-InventoryQueryReadOnly($Fixture) {
         $source=$excel.Workbooks.Open($path,0,$false)
         $entities=Table $source 'tblInventoryEntities'
         if($null -eq $entities.DataBodyRange -or $entities.ListRows.Count -eq 0){throw 'Nonempty Admin-seeded inventory required.'}
-        $custom=$entities.ListColumns.Add();$custom.Name='Operator Annotation';$custom.DataBodyRange.Value2='Query fixture custom value'
-        $entities.Parent.Protect()
-        $source.Save()
         [void](Run 'invSys.Core.xlam' 'TestInventoryQueryReadOnly.CaptureForTest' @($source.Name))
         $source.Close($false);$source=$null
         Copy-Item -LiteralPath $path -Destination $referencePath
@@ -110,8 +146,10 @@ function Test-InventoryQueryReadOnly($Fixture) {
         SetupStage 'ExpectedQueriesCaptured'
         SelectTarget $fixture 'config-producer'
         foreach($kind in @('Quantity','Locations','Picker','Entities')){
+            SetupStage ('BeforeCold'+$kind)
             $result=Query $kind
             Check ('InventoryRead.Cold.'+$kind+'.NonemptyExactResults') ($result -ceq 'True|True')
+            Check ('InventoryRead.Cold.'+$kind+'.SourceReadOnly') ((QueryState) -ceq 'True|True')
             Check ('InventoryRead.Cold.'+$kind+'.BytesPreserved') ((HashTarget) -ceq $pin)
             Check ('InventoryRead.Cold.'+$kind+'.TransientClosed') (@(OpenTargets).Count -eq 0)
             CloseTargets
@@ -123,6 +161,7 @@ function Test-InventoryQueryReadOnly($Fixture) {
             foreach($kind in @('Quantity','Locations','Picker','Entities')){
                 $source=$excel.Workbooks.Open($path,0,$false)
                 $entities=Table $source 'tblInventoryEntities';$entities.Parent.Unprotect()
+                $custom=$entities.ListColumns.Add();$custom.Name='Operator Annotation'
                 $entities.ListColumns.Item('Operator Annotation').DataBodyRange.Cells.Item(1,1).Value2='Unsaved query fixture value'
                 $entities.Parent.Protect()
                 if($source.Saved){throw 'Dirty caller fixture was not staged.'}
@@ -143,6 +182,7 @@ function Test-InventoryQueryReadOnly($Fixture) {
             try{
                 $result=Query $kind '' $true
                 Check ('InventoryRead.Missing.'+$kind+'.ExistingEmptyResult') ($result -ceq 'True')
+                Check ('InventoryRead.Missing.'+$kind+'.NoDomainQuery') ((QueryState) -ceq 'False|False')
                 Check ('InventoryRead.Missing.'+$kind+'.NoStoreCreated') (-not(Test-Path -LiteralPath $path))
                 Check ('InventoryRead.Missing.'+$kind+'.NoWorkbookLeftOpen') (@(OpenTargets).Count -eq 0)
             }finally{
@@ -151,6 +191,23 @@ function Test-InventoryQueryReadOnly($Fixture) {
                 Move-Item -LiteralPath $held -Destination $path
             }
         }
+        $result=Query 'Picker' '' $true $true
+        Check 'InventoryRead.Failure.Cold.EmptyResult' ($result -ceq 'True')
+        Check 'InventoryRead.Failure.Cold.SourceReadOnly' ((QueryState) -ceq 'True|True')
+        Check 'InventoryRead.Failure.Cold.BytesPreserved' ((HashTarget) -ceq $pin)
+        Check 'InventoryRead.Failure.Cold.TransientClosed' (@(OpenTargets).Count -eq 0)
+        CloseTargets
+        Copy-Item -LiteralPath $referencePath -Destination $path -Force
+        $source=$excel.Workbooks.Open($path,0,$false)
+        $entities=Table $source 'tblInventoryEntities';$entities.Parent.Unprotect()
+        $custom=$entities.ListColumns.Add();$custom.Name='Operator Annotation'
+        $entities.ListColumns.Item('Operator Annotation').DataBodyRange.Cells.Item(1,1).Value2='Unsaved query fixture value'
+        $entities.Parent.Protect()
+        $result=Query 'Picker' $source.Name $true $true
+        Check 'InventoryRead.Failure.Supplied.EmptyResult' ($result -ceq 'True')
+        Check 'InventoryRead.Failure.Supplied.DirtyProtectedCallerPreserved' (@(OpenTargets).Count -eq 1 -and -not $source.Saved -and $entities.Parent.ProtectContents -and $entities.ListColumns.Item('Operator Annotation').DataBodyRange.Cells.Item(1,1).Value2 -ceq 'Unsaved query fixture value')
+        Check 'InventoryRead.Failure.Supplied.SavedBytesPreserved' ((HashTarget) -ceq $pin)
+        $source.Close($false);$source=$null
         Check 'InventoryRead.ReferencePreserved' ((Get-FileHash -LiteralPath $referencePath).Hash -ceq $pin)
-    }finally{if($null -ne $source){$source.Close($false)};CloseTargets}
+    }finally{[void](Run 'invSys.Inventory.Domain.xlam' 'modInventoryBridgeApi.ResetQueryObservationForTest' @($false));if($null -ne $source){$source.Close($false)};CloseTargets}
 }

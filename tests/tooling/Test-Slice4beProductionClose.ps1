@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-detail-columns',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CheckInventoryQueryReadOnly)
+param([string]$DeployRoot='deploy/validation-detail-columns',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CheckInventoryQueryReadOnly,[switch]$InventoryQueriesOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated Production dismissal validation.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
@@ -13,6 +13,7 @@ $start=[DateTimeOffset]::UtcNow;$code=1
 Write-Output ('Production Close controller: '+$root)
 try {
     $extra=@();if($CheckInventoryQueryReadOnly){$extra+='-CheckInventoryQueryReadOnly'}
+    if($InventoryQueriesOnly){$extra+='-InventoryQueriesOnly'}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CheckProductionClose -CaptureEvidence -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @extra *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
 } finally {
