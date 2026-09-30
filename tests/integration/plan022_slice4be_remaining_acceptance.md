@@ -1,6 +1,6 @@
 # Slice 4be remaining acceptance checklist
 
-Last reviewed: 2026-09-29 UTC. **Incomplete.** This is an evidence index for the
+Last reviewed: 2026-09-30 UTC. **Incomplete.** This is an evidence index for the
 existing contract, not a new scope, architecture decision, or percentage estimate.
 
 **Current component checkpoint,2026-09-29:** corrected adapters establish packaged
@@ -23,8 +23,24 @@ cleanup. An opt-in comparison and then the corrected ordinary route each retain
 restart exits unassisted within the unchanged wait; final-host exit is also
 unassisted. This fixes that test harness boundary;
 earlier assisted/unobserved records retain their scope, and native chain/reusable
-failures remain unexplained. The
-remaining regressions and full release/native gates remain open. See
+failures remain unexplained. Lifecycle615/615 and native cancellation94/94 now
+retain exact prior identities, five compiles, unassisted closure, preservation and
+zero Excel Application failure events. Four native-dialog captures are reviewed.
+Settings observations pass478/478, retaining all468 preceding identities plus ten
+catalog16 older-policy exclusions. Five compiles, eight reviewed captures, delayed
+unassisted closure, preservation and zero Excel Application events hold.
+Smoke retains86/86 and preservation, but explicit receipts confirm forced Initial
+and Final shutdown. A reference-release experiment stops74/1 at a harness cleanup
+error and is removed; it is not product RED. Current-candidate full chain32/32,
+live roles48/48 and Create Warehouse15/15 retain exact prior identities, unassisted
+closure, settings/packages/reports and zero Excel Application events. Earlier
+native failures remain unexplained. Reusable run-only passes its aggregate and
+retains all67 Boolean observations with preservation and zero Excel Application
+events, but final cleanup requests termination. The full reusable workbench/export/
+restart gate subsequently passes2 aggregate assertions with171 Boolean observations
+(166 distinct pairs), retaining all67 run-only values. Settings/packages are
+preserved with zero Excel Application events; restart and final cleanup both
+request termination. Normal shutdown and broader acceptance remain open. See
 [component evidence](plan022_slice4be_production_component_results.md).
 Desktop monitoring resumes with successful samples; stop again on actual error5.
 

@@ -201,6 +201,9 @@ function Test-VbComponentPresence {
 $repo = (Resolve-Path $RepoRoot).Path
 $deployPath = Join-Path $repo $DeployRoot
 $resultPath = Join-Path $repo "tests/unit/phase6_packaged_xlam_results.md"
+$closureRoot = Join-Path $repo ("reports/runtime/packaged-smoke-closure/" + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $closureRoot | Out-Null
+Write-Output ("Packaged shutdown evidence: " + $closureRoot)
 
 function ConvertTo-SafePackagedEvidenceText {
     param([AllowNull()][string]$Text)
@@ -258,7 +261,26 @@ function Close-PackagedValidationSession {
     Release-ComObject $Excel
     $owned = Get-Process -Id $ownedProcessId -ErrorAction SilentlyContinue
     # Only this HWND-identified process, after a real zero-workbook check.
-    if ($null -ne $owned -and -not $owned.WaitForExit(1000)) { Stop-Process -Id $ownedProcessId }
+    $waitStarted = [DateTimeOffset]::UtcNow
+    $exitedNaturally = $null -eq $owned -or $owned.WaitForExit(1000)
+    $terminationRequested = $false
+    try {
+        if (-not $exitedNaturally) {
+            $terminationRequested = $true
+            Stop-Process -Id $ownedProcessId
+        }
+    } finally {
+        # Fixed cleanup facts only; no process identity, paths or fixture values.
+        [pscustomobject]@{
+            Stage = $Phase
+            WaitStartedUTC = $waitStarted.ToString('o')
+            ObservedUTC = [DateTimeOffset]::UtcNow.ToString('o')
+            WaitMilliseconds = 1000
+            UnassistedExit = $exitedNaturally
+            TerminationRequested = $terminationRequested
+            ExitObserved = $null -eq $owned -or $owned.HasExited
+        } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $closureRoot ($Phase + '.json'))
+    }
 }
 
 $openOrder = @(

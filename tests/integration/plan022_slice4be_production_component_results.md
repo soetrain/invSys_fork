@@ -198,8 +198,97 @@ inner `production-designer-controller/1e455f1a4f1141529ff4ac55e66df2fe`, result
 package preservation and zero Excel Application events hold. Receipt
 `production-components-draft-verification.json`. This regression requests no new
 principal captures; older visible evidence retains its original candidate scope.
-Lifecycle/native cancellation, Settings observations, smoke and broader release
-gates remain pending on this candidate.
+Lifecycle retains **615/615**, with every preceding check identity. Controller
+`production-components-regression/lifecycle-2ac19aa757aa4576838552a7e870dc66`,
+inner `production-lifecycle-controller/c6cb067e413e4fb08e7cfb1bc5542dba`, result
+`slice4be-production-designer/9d079a57a0674bf4bff9f6db11a60cf2/green.json`,
+00:14:02--00:19:19 UTC2026-09-30. Five compiles, unassisted closure, settings/package
+preservation and zero Excel Application events hold. Receipt
+`production-components-lifecycle-verification.json`. No new principal captures
+are requested by this regression.
+
+Native cancellation retains **94/94**, with every preceding identity. Controller
+`production-components-regression/native-63ac0f0565da4989bee014625c2c8fc4`, inner
+`production-lifecycle-native-controller/cb72c7cf1a964dc68194142df26dcbcb`, result
+`slice4be-production-lifecycle-native/aab5ac34dd0b4ad1aa4114ff4be0b7ba/green.json`,
+00:19:27--00:21:20 UTC2026-09-30. All four principal native-dialog captures are
+reviewed: Process/Recipe Release and Obsolete show their actual questions and No
+default. Five compiles, unassisted closure, settings/package preservation and zero
+Excel Application events hold. Receipt `production-components-native-verification.json`.
+Settings observations pass **478/478**, retaining all468 preceding identities and
+adding exactly the ten catalog16 component exclusions under an older policy.
+Controller `production-components-regression/settingsactivity-b2e26bd202fb4358a68843b83f8f74e1`,
+result `slice4be-settings-activity/7388f1195820496e869c9d8c3bc76daf/green.json`,
+00:21:33--00:35:04 UTC2026-09-30. Five compiles, preserved settings/packages and
+zero Excel Application events hold. Excel exits unassisted about122 seconds after
+the report; the controller only waits. All eight captures are reviewed, including
+failed-profile read, denied reload and visible tracking-unavailable feedback.
+Receipt `production-components-settings-activity-verification.json`. This is the
+Settings handler/observation gate; separate publication/paired-view evidence
+retains its recorded scope.
+
+Packaged smoke retains **86/86** with exact prior identities, settings/packages
+and the tracked report preserved, and zero Excel Application events. Controller
+`production-components-regression/smoke-46bbf224c98e47aa809dc9100711423c`,
+00:35:14--00:35:33 UTC2026-09-30. The validator now records fixed shutdown facts in
+ignored `packaged-smoke-closure/acbdfa109eef4e02ac31155552f40199`: both Initial and
+Final sessions require termination after the original1000ms wait. This establishes
+assisted cleanup, not normal exit; earlier unobserved runs remain qualified.
+Receipt `production-components-smoke-baseline-verification.json`. The added
+metadata contains only phase/times/exit flags; original workflow statements and
+wait behavior are preserved. This is diagnostic test tooling, not product RED.
+
+A completed-host reference-release experiment is **not adopted**. Controller
+`production-components-regression/smoke-e40be0cb50f344928b796d5e602cb1ef`,
+00:36:20--00:37:46 UTC2026-09-30, stops at74 passing checks and one cleanup failure
+after confirming zero initial workbooks. A disconnected-COM exception occurs;
+the subsequent Final cleanup reports an unavailable HWND. The precise original
+failure line is not established. The verified owned Excel process requires
+termination; settings, packages and the tracked report are restored, with no
+Excel Application failure event. Receipt
+`production-components-smoke-cleanup-experiment-verification.json`. The release
+insertion is removed; only the tested shutdown-observation change remains. Do not
+blindly transplant the Settings cleanup into this distinct harness or classify
+this incomplete attempt as behavioral RED.
+
+The current-candidate full Release1 chain passes **32/32**, live roles **48/48**,
+and Create Warehouse **15/15**, each with exact prior check identities. Controller
+`production-components-regression/chain-181a34ad4ffa429bb44207edc653406b`,
+00:38:34--00:43:50 UTC2026-09-30. The ordered Receiving/Production/Boxing/Shipping
+workflow, restart/reconciliation, five-package runtime evidence and static retired-
+path ratchet complete. Excel exits unassisted; settings, all five packages and all
+three tracked reports are preserved. No Excel Application failure event occurs.
+Receipt `production-components-chain-verification.json`. The older native crashes
+remain unexplained; a current chain pass is not a root-cause repair. Reusable
+Production, normal smoke shutdown and broader comprehensive acceptance remain open.
+
+The separate cold reusable **run-only** gate passes its one aggregate assertion
+and retains all67 prior Boolean names/values exactly. These are67 observations,
+not67 independent tests. Controller
+`production-components-regression/reusable-78d4c10c874e47a498198bc2f5f208cb`,
+00:44:30--00:48:38 UTC2026-09-30; report
+`reusable/production-reusable-production.md` within it. Settings/packages are
+preserved and no Excel Application failure event occurs. The final cleanup receipt
+explicitly records **TerminationRequested=True**, so normal shutdown remains open.
+Receipt `production-components-reusable-verification.json`. The earlier cold
+native failures remain unexplained; this gate omits the full workbench/export/
+restart branches and does not establish their acceptance.
+
+The subsequent **full reusable** gate passes both aggregate assertions, including
+the clean-process restart, with171 Boolean observations (166 distinct name/value
+pairs). All67 run-only values are present unchanged; these counts are observations,
+not171 independent assertions. Controller
+`production-components-regression/reusablefull-421d43a492064e3abcf4c6e72af2c083`,
+00:49:33--00:55:32 UTC2026-09-30; report
+`reusable/production-reusable-production.md`. The full workbench, released Process
+edit/export, bulk import, output picker, reusable lifecycle/run, fork/convergence,
+worksheet round-trip and restart branches execute. Settings/packages are preserved
+and no Excel Application failure event occurs. Both restart and final receipts
+record **TerminationRequested=True**. Receipt
+`production-components-reusable-full-verification.json`. Workflow/restart GREEN
+does not prove normal shutdown, explain earlier native crashes or supply human
+visual acceptance. Normal cleanup, comprehensive control coverage, guide transfer
+and broader comparison/human/NAS acceptance remain open.
 
 ## Protecting RED
 

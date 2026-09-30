@@ -5,6 +5,17 @@ unchanged. This is diagnostic tooling for the native failure recorded in
 [lifecycle continuation evidence](plan022_slice4be_production_lifecycle_visible_results.md),
 not an invSys runtime repair or complete Production/Release1 acceptance.
 
+**Current component-candidate observation,2026-09-30 UTC:** The unchanged standard
+run-only gate now passes its aggregate and retains all67 prior Boolean values;
+the full workbench/export/restart gate passes both aggregates with171 observations
+(166 distinct pairs), including all67 run-only values. Full chain/live roles/Create
+Warehouse also passes32/48/15 with unassisted closure. All preserve settings/packages
+and record zero Excel Application failures. Reusable run-only final cleanup and
+both full-gate shutdowns explicitly request termination. These scoped GREENs do
+not explain earlier native crashes or establish normal reusable shutdown. Exact
+controllers, receipts and qualifications are in
+[component evidence](plan022_slice4be_production_component_results.md).
+
 **Later boundary observation,2026-09-29 20:02 UTC:** The isolated
 `validation-production-uom-staging` candidate changes only Operations
 `modProductionUomCatalog` among248 compiled components. Its full-chain run passes
