@@ -13,6 +13,7 @@ param(
     [switch]$CheckProcessWorksheetHeaders,
     [switch]$CheckProcessWorksheetPicker,
     [switch]$CheckProcessWorksheetActivity,
+    [switch]$CheckProcessWorksheetPaths,
     [switch]$ProcessWorksheetClosedDiagnostic,
     [switch]$ProcessWorksheetCatalogOnly,
     [switch]$CheckProductionClosePaths,
@@ -234,6 +235,7 @@ if($InventoryQueriesOnly -and -not $CheckInventoryQueryReadOnly){throw 'Query-on
 if($CheckInventoryQueryReadOnly -and -not $CheckProductionClose){throw 'Inventory query preservation supplements the compiled public Production Close gate.'}
 if($CheckProcessWorksheetPicker -and -not $CheckProcessWorksheetHeaders){throw 'Process picker checks require the compiled worksheet fixture adapters.'}
 if($CheckProcessWorksheetActivity -and (-not $CheckProcessWorksheetHeaders -or $CheckProcessWorksheetPicker)){throw 'Worksheet observations require their separate compiled worksheet fixture gate.'}
+if($CheckProcessWorksheetPaths -and (-not $CheckProcessWorksheetActivity -or $ProcessWorksheetClosedDiagnostic -or $ProcessWorksheetCatalogOnly)){throw 'Worksheet paths require their separate compiled activity adapters.'}
 if($ProcessWorksheetClosedDiagnostic -and -not $CheckProcessWorksheetActivity){throw 'Closed diagnostic requires worksheet activity fixtures.'}
 if($ProcessWorksheetCatalogOnly -and (-not $CheckProcessWorksheetActivity -or $ProcessWorksheetClosedDiagnostic)){throw 'Catalog-only coverage requires separate worksheet activity fixtures.'}
 if($CheckProductionClosePaths -and (-not $CheckProductionClose -or $CheckInventoryQueryReadOnly -or $InventoryQueriesOnly)){throw 'Close paths require a separate compiled Close gate.'}
@@ -442,6 +444,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProcessWorksheetPicker){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-process-worksheet-picker/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProcessWorksheetActivity){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-process-worksheet-activity/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionClose){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-close/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProcessWorksheetPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-process-worksheet-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionClosePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-close-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionUomStaging){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-uom-staging/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionInstructions){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-instructions/'+[guid]::NewGuid().ToString('N'))}
@@ -931,7 +934,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths){
+    if($CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -1282,7 +1285,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
             Install-ProductionLifecycleProbe
         }
-        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths){
+        if($CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
             Install-ProductionPathsProbe
         }
@@ -1294,7 +1297,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleNative.ps1')
             Install-ProductionLifecycleNativeProbe
         }
-        if($CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths){
+        if($CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths){
             . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
             Install-GuideDraftProbe
         }
@@ -1552,6 +1555,11 @@ End Function
     if($CheckProductionDesignerActivity){
         $step='Production designer observations through actual packaged handlers'
         if($CheckProcessWorksheetPicker){Test-ProcessWorksheetPicker $a}
+        elseif($CheckProcessWorksheetPaths){
+            . (Join-Path $PSScriptRoot 'Slice4beProcessWorksheetPaths.ps1')
+            . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
+            Test-ProductionInstructionPaths $a -Worksheet
+        }
         elseif($CheckProcessWorksheetActivity){Test-ProcessWorksheetActivity $a $b}
         elseif($CheckProcessWorksheetHeaders){Test-ProcessWorksheetHeaders $a}
         elseif($CheckProductionInstructionPaths){

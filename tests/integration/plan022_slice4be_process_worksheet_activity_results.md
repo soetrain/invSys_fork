@@ -4,7 +4,8 @@ Authority: Architecture v4.11 D18's Process worksheet discovered-control
 refinement, committed in docs `ba3c206` before these tests; Plan022 and Controls
 1.346 synchronized. D14/D15 retain local-save/import behavior and authority.
 Catalog22's Core and Operations observations are implemented and focused595 GREEN;
-broader regression/Action Path acceptance remains pending. The original frozen baseline is
+worksheet107, picker115 and independent paths139 pass. Broader regression and
+Release1 acceptance remain pending. The original frozen baseline is
 `deploy/validation-process-worksheet-picker`, whose scoped gates are complete in
 `plan022_slice4be_process_worksheet_picker_results.md`.
 
@@ -321,17 +322,69 @@ also rechecked after closure. No human acceptance or deployment promotion.
 Catalog22 defines109 controls and the three actual worksheet buttons now produce
 their observations, bringing observed Production buttons to48/68. Twenty buttons
 and30 nonbutton handlers still need coverage review. This is a focused implementation
-checkpoint; the independent Action Path and full scoped release gates remain open.
+checkpoint; the full scoped release gates remain open.
+
+## Independent worksheet recordings and Action Paths
+
+The same frozen candidate passes139/139 in a separate recording/publication/UI gate,
+21:17:07.3871286 through21:24:11.3278393 UTC on2026-09-30. Controller:
+`reports/runtime/process-worksheet-activity-controller/d09bcceecbac47baafaeccfc88195d39`.
+Result: `reports/runtime/slice4be-process-worksheet-paths/abf89c5585984810832cb1bac6f65fff/green.json`.
+All42 shared prior GREEN identities remain. Five instrumented compiles, package/
+settings preservation, normal cleanup and delayed Excel Application audit pass.
+No runtime or architectural change accompanies these additional acceptance tests;
+the preceding focused behavioral RED/GREEN remains the implementation evidence.
+
+Two independent recordings invoke the original Send, Add, Send and Retrieve handlers.
+Each saves two local tables and retrieves both through real owning submissions.
+The test checks the added fifth item/SKU pair, exact original request/result pairs,
+ordinals, two distinct Designs event references per retrieval, saved local state,
+Auth/Config bytes and six Inventory business tables. Admin publication retains all
+original records and both complete applied Designs events for each run.
+
+The actual Event Detail distinguishes selected REQUESTED from CONFIRMED, retains
+the source identity and shows Unknown effect. Actual expectation-editor/Evaluate
+actions establish CommandCompleted for local Send/Add, but SourceEventsApplied
+remains Incomplete with empty references. The full four-action sequence concludes
+as CommandCompleted in order; a separate SourceEventsApplied evaluation requires
+both exact Designs references, Applied owner states, matching line counts/hashes
+and no invented inventory keys.
+
+Actual guide creation and save retain the first recording's provenance and explicit
+four-step intent. A reader without ACTION_PATH_MAINT pairs that guide with the
+second recording and evaluates its exact four occurrences, with zero extras.
+How-To, Diagnostic and Compare preserve the same guide/run/evaluation evidence,
+original journals, saved authority and custom workbook values. Read-only viewing
+does not save the operator workbook. Only the guide's CommandCompleted conclusion
+is displayed in the paired capture; it explicitly does not assert application.
+
+Six worksheet captures are reviewed: populated editor, Event Detail, How-To,
+Diagnostic, Compare and scrolled conclusion. They show four DRAFT definitions,
+the successful two-table import, all four authored instructions, the separate
+observed run, both submitted references and four matched occurrences. Their hashes
+are in the controller verification record; images remain ignored runtime evidence.
+No human acceptance or deployment promotion is inferred.
+
+Static evidence was regenerated in `reports/runtime/process-worksheet-paths-static`:
+277 components/6137 procedures/134745 lines,9/45 dynamic calls,190 duplicate groups,
+28 non-growing caps, three valid schemas and347 parsed tooling scripts. Runtime
+source is unchanged.
+
+The shared harness also retains the exact90 prior Close-path identities/order on
+this candidate,21:24:51.4711739 through21:28:59.3442753 UTC. Controller:
+`reports/runtime/production-close-paths-controller/587ad91882424be0bc1b63998216a00f`;
+result `reports/runtime/slice4be-production-close-paths/d1c5fd3095524b0cbe6875304c035631/green.json`.
+Five compiles, normal cleanup, package/settings preservation and delayed audit
+pass. The broader regression set remains pending on this candidate.
 
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
-regressions. Complete independent recording/publication/Event Detail and How-To/Diagnostic/Compare proof
-for all three controls, then the remaining relevant layout/live-role/full-chain/
+regressions plus independent paths139. Complete the remaining relevant layout/live-role/full-chain/
 reusable and shared-observation regressions on the frozen candidate. SourceEventsApplied
 must use every exact owning published Designs reference; queue acknowledgment and
 CommandCompleted remain distinct from applied evidence. No package promotion or
-human acceptance is implied by focused595, worksheet107 and picker115.
+human acceptance is implied by focused595, worksheet107, picker115 or paths139.
 The current DeleteProcessWorksheetTable performs lo.Delete before wb.Save. A
 post-confirmation workbook-save failure can leave a local deletion in memory;
 the failure observation must retain the confirmed Designs reference and Unknown
@@ -339,6 +392,5 @@ effect, not claim restoration. D15 still prohibits removal before confirmed
 Designs draft save. The normative observation section explicitly distinguishes
 these cases without changing the existing save algorithm.
 
-Independent recording/publication/Event Detail and How-To/Diagnostic/Compare,
-remaining layout/live-role/full-chain/reusable regressions and their visible
+Remaining layout/live-role/full-chain/reusable and shared-observation regressions and their visible
 operator evidence remain outstanding. No promotion or Slice4be completion is claimed.

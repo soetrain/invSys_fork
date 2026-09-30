@@ -1,8 +1,9 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-process-worksheet-picker',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$ClosedDiagnostic,[switch]$CatalogOnly)
+param([string]$DeployRoot='deploy/validation-process-worksheet-picker',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$ClosedDiagnostic,[switch]$CatalogOnly,[switch]$Paths)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated Process worksheet validation.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
+if($Paths -and ($ClosedDiagnostic -or $CatalogOnly)){throw 'Path gate must run separately.'}
 $settings=Get-InvSysTestSettingsSnapshot
 $root=Join-Path 'reports/runtime/process-worksheet-activity-controller' ([guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root|Out-Null
@@ -14,13 +15,14 @@ Write-Output ('Process worksheet activity controller: '+$root)
 try {
     $extra=@();if($ClosedDiagnostic){$extra+='-ProcessWorksheetClosedDiagnostic'}
     if($CatalogOnly){$extra+='-ProcessWorksheetCatalogOnly'}
+    if($Paths){$extra+='-CheckProcessWorksheetPaths'}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CheckProcessWorksheetHeaders -CheckProcessWorksheetActivity -CaptureEvidence -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @extra *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
 } finally {
     Wait-RecordingCleanup -Creator $null -Worker $null
     $restored=Restore-InvSysTestSettingsSnapshot $settings
     $same=@($pins|Where-Object{(Get-FileHash -LiteralPath $_.File).Hash -cne $_.Hash}).Count -eq 0
-    [pscustomobject]@{StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=$true;DiagnosticOnly=[bool]$ClosedDiagnostic;CatalogOnly=[bool]$CatalogOnly;HumanAcceptance=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
+    [pscustomobject]@{StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=$true;DiagnosticOnly=[bool]$ClosedDiagnostic;CatalogOnly=[bool]$CatalogOnly;Paths=[bool]$Paths;HumanAcceptance=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
     if(-not $restored -or -not $same){throw 'Process worksheet preservation failed.'}
 }
 Get-Content (Join-Path $root 'worker.log') -Tail 8
