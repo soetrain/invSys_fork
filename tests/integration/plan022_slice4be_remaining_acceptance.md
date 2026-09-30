@@ -8,8 +8,10 @@ controls and44/68 constructed Production controls;24 remain unregistered.
 The unpromoted `validation-production-regulation-final` candidate has focused
 RED168/528 -> GREEN696/696 with exact ordered identities, five builds/compiles,
 static limits, preservation, normal closure, zero delayed Excel failures and two
-reviewed Production Settings captures. Paired paths and required regressions
-remain pending; see [regulation evidence](plan022_slice4be_production_regulation_results.md).
+reviewed Production Settings captures. Paired paths pass102/102 with six reviewed
+captures, four exact STAGED matches/zero extras, preservation, normal closure and
+zero delayed Excel failures. Required regressions remain pending; see
+[regulation evidence](plan022_slice4be_production_regulation_results.md).
 The native failure below remains unresolved and is not repaired by tracking.
 
 **Previous designer read candidate,2026-09-30:** catalog19 registers103 global

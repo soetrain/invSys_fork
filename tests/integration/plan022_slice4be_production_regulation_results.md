@@ -105,12 +105,31 @@ remains incomplete/SOURCE_UNAVAILABLE. This is a test defect, not product RED.
 The corrected gate authors all four expected steps and selects the fourth as
 terminal; it requires all four exact observed identities and zero extras. No
 runtime/evaluation contract changes. The separate four-step guide evaluation and
-all three presentation methods already pass in this first execution. The full
-corrected gate remains pending at this checkpoint.
+all three presentation methods already pass in this first execution.
+
+Corrected paired-path GREEN:102/102,10:44:01.1727705--10:49:08.3675576 UTC,
+controller `reports/runtime/production-regulation-controller/028961e6442c4db7b3211306e22219ea`;
+result `reports/runtime/slice4be-production-regulation-paths/fa1d0d5165ec48dcb1b60363c0f3165f/green.json`.
+All102 prior ordered identities remain; five instrumented compiles, immutable
+source/journal/guide evidence, canonical files, workbook bytes/custom columns,
+settings/package pins, normal closure and delayed Application audit pass.
+Two independent four-action recordings use the actual Apply/Clear handlers in
+both scopes; each reaches the expected local draft. Admin publication preserves
+the original records. Explicit four-step expectations match all four observed
+actions with zero extras: CommandCompleted concludes, SourceEventsApplied remains
+incomplete. Reader-side How-To, Diagnostic and Compare both preserve the same
+immutable evidence and separate guide provenance from the observed run.
+
+Six principal captures are directly reviewed with hashes in `visible-review.json`.
+Clear/STAGED detail visibly shows Info/Unchanged; How-To shows all four authored
+instructions. The scrolled diagnostic conclusion shows four STAGED matches,
+zero extra observations and "Command completed; Domain application not asserted".
+This is agent-visible evidence, not human acceptance. Runtime source is3559e2d;
+the paired-test correction did not change or rebuild the frozen packages.
 
 ## Remaining work
 
-Paired paths and the established packaged/layout/live-role/full-chain/reusable
-regressions remain pending on this final candidate. Catalog19 remains unchanged
+The established packaged/layout/live-role/full-chain/reusable regressions remain
+pending on this final candidate. Catalog19 remains unchanged
 and unpromoted. Its ordinary full reusable native failure remains unresolved; see
 [designer read evidence](plan022_slice4be_production_design_read_results.md).
