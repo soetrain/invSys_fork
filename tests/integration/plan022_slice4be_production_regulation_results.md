@@ -336,9 +336,19 @@ headings appear left of their corresponding list values. Compare the existing
 geometry and protect alignment with a focused layout test before any repair;
 no runtime change or causal claim is made by this evidence checkpoint.
 
+Run-only reusable Production retains the prior aggregate and all67 exact ordered
+boolean observations,2026-09-30 12:50:17.8442077--12:56:33.0813667 UTC. Controller:
+`reports/runtime/production-regulation-regression/reusable-1a39705e28c3421b86a37e84f1164f14`;
+result: its `reusable/production-reusable-production.md`. Three workbooks and four
+packages close completely, packages in reverse order, with zero remaining books,
+release failures or termination requests. Settings/packages are preserved and
+the delayed Application audit finds zero Excel failures. This completes the
+planned automated regression matrix for the unchanged regulation candidate;
+it does not diagnose the historical intermittent native failure.
+
 ## Remaining work
 
-The run-only reusable gate and the noted visual follow-up remain pending on
-this final candidate. Catalog19 remains unchanged
+The noted visual follow-up, comprehensive remaining control coverage and human/
+NAS acceptance remain pending. The candidate is not promoted. Catalog19 remains unchanged
 and unpromoted. Its ordinary full reusable native failure remains unresolved; see
 [designer read evidence](plan022_slice4be_production_design_read_results.md).
