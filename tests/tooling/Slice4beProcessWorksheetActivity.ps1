@@ -42,6 +42,7 @@ End Function
     $module=$project.VBComponents.Item('TestProductionDesigner').CodeModule
     $module.InsertLines(1,'Private mWorksheetSubmissionFacts As String')
     $module.InsertLines(1,"Public WorksheetGuardEnteredForTest As Boolean`r`nPrivate mWorksheetGuardError As Long")
+    $module.InsertLines(1,"Private mWorksheetCapturedBook As Workbook`r`nPrivate mWorksheetCapturedContext As String")
     $module.InsertLines(1,"Private mWorksheetFault As String`r`nPrivate mWorksheetQueueCount As Long`r`nPrivate mWorksheetDeleteCount As Long`r`nPrivate mWorksheetFaultHits As Long")
     $module.AddFromString(@'
 Public Sub WorksheetActivityStage(ByVal value As String)
@@ -67,7 +68,16 @@ End Function
 Public Sub WorksheetSafeCloseForTest()
     On Error Resume Next
     Unload mForm: Set mForm = Nothing
+    Set mWorksheetCapturedBook = Nothing
 End Sub
+Public Sub WorksheetCaptureBindingForTest(ByVal workbookName As String)
+    Set mWorksheetCapturedBook = Application.Workbooks(workbookName)
+    mWorksheetCapturedContext = modActivity.CaptureContext()
+    mWorksheetSubmissionFacts = ""
+End Sub
+Public Function WorksheetBindingIsCurrentForTest() As Boolean
+    WorksheetBindingIsCurrentForTest = modProductionDesignerActions.ContextIsCurrent(mWorksheetCapturedContext, mWorksheetCapturedBook)
+End Function
 Public Function WorksheetActivityNotice() As Boolean
     WorksheetActivityNotice = mForm.WorksheetActivityNoticeForTest()
 End Function
@@ -318,10 +328,47 @@ function Test-ProcessWorksheetActivity($Fixture,$Other) {
                 if($guard -ceq 'Session'){SelectTarget $Fixture 'config-producer'}
                 if($guard -ceq 'Target'){SelectTarget $Other 'config-producer'}
                 if($guard -ceq 'SignedOut'){[void](Run 'invSys.Core.xlam' 'modAuth.SignOut')}
-                if($guard -ceq 'ClosedWorkbook'){[void](Probe 'WorksheetHeadersShow');$book.Close($false);$book=$null}
+                $closedBoundary=$null
+                if($guard -ceq 'ClosedWorkbook'){
+                    [void](Probe 'WorksheetHeadersShow')
+                    [void](Probe 'WorksheetCaptureBindingForTest' @($book.Name))
+                    $before=@(Files);$otherBefore=@(Get-Slice4beActivityFiles $Other)
+                    $capturedName=$book.Name;$decoyName=$decoy.Name
+                    $closedBoundary=[ordered]@{Action=$action;BeforeUTC=[DateTimeOffset]::UtcNow.ToString('o');VisibleBefore=([InvSysSettingsCapture]::OwnedVisibleForm('Production',[IntPtr]$excel.Hwnd) -ne [IntPtr]::Zero);WorkbooksBefore=$excel.Workbooks.Count}
+                    $book.Close($false);$book=$null
+                    $openNames=@(foreach($openBook in $excel.Workbooks){[string]$openBook.Name})
+                    $closedBoundary.AfterUTC=[DateTimeOffset]::UtcNow.ToString('o')
+                    $closedBoundary.VisibleAfter=([InvSysSettingsCapture]::OwnedVisibleForm('Production',[IntPtr]$excel.Hwnd) -ne [IntPtr]::Zero)
+                    $closedBoundary.WorkbooksAfter=$excel.Workbooks.Count
+                    $closedBoundary.CapturedBookStillOpen=($capturedName -cin $openNames)
+                    $closedBoundary.DecoyStillOpen=($decoyName -cin $openNames)
+                    $closedBoundary.DiagnosticOnly=$true
+                    $closedBoundary|ConvertTo-Json|Set-Content (Join-Path $reportRoot ('closed-sequence-'+$action+'.json'))
+                    if(-not $closedBoundary.VisibleBefore -or $closedBoundary.CapturedBookStillOpen -or -not $closedBoundary.DecoyStillOpen){throw 'Closed-workbook operator fixture unavailable; not product RED.'}
+                    if(-not $closedBoundary.VisibleAfter){
+                        # Workbook shutdown can dismiss the native form. Its
+                        # disconnected reference is not an operator callback.
+                        $label='ProcessWorksheet.ClosedDismissal.'+$action
+                        Check ($label+'.NativeSurfaceDismissed') (-not $closedBoundary.VisibleAfter)
+                        Check ($label+'.BindingGuardRejectsClosedBook') (-not [bool](Probe 'WorksheetBindingIsCurrentForTest'))
+                        Check ($label+'.NoWorkbookSave') ((Hash $guardPath) -ceq $diskPin)
+                        Check ($label+'.NoSubmission') ([string](Probe 'WorksheetSubmissionFactsForTest') -ceq '')
+                        Check ($label+'.NoActivityOrRetarget') (@(Files).Count -eq $before.Count -and @(Get-Slice4beActivityFiles $Other).Count -eq $otherBefore.Count)
+                        $closedBoundary.HandlerInvoked=$false
+                        $closedBoundary|ConvertTo-Json|Set-Content (Join-Path $reportRoot ('closed-sequence-'+$action+'.json'))
+                        [void](Probe 'WorksheetSafeCloseForTest')
+                        continue
+                    }
+                }
                 $before=@(Files);$otherBefore=@(Get-Slice4beActivityFiles $Other)
                 $returned=[bool](Probe 'WorksheetActivityGuard' @($action,$guard))
                 $entry=([string](Probe 'WorksheetGuardStatusForTest')).Split('|')
+                if($null -ne $closedBoundary){
+                    $closedBoundary.HandlerInvoked=$true
+                    $closedBoundary.HandlerEntered=($entry[0] -ceq 'True');$closedBoundary.Returned=$returned;$closedBoundary.AdapterError=[long]$entry[1]
+                    $closedBoundary.VisibleAfterCall=([InvSysSettingsCapture]::OwnedVisibleForm('Production',[IntPtr]$excel.Hwnd) -ne [IntPtr]::Zero)
+                    $closedBoundary|ConvertTo-Json|Set-Content (Join-Path $reportRoot ('closed-sequence-'+$action+'.json'))
+                }
                 if($entry[0] -cne 'True'){throw 'Guard fixture did not enter the form adapter; not product RED.'}
                 $same=$true
                 if($null -ne $book){
@@ -336,7 +383,7 @@ function Test-ProcessWorksheetActivity($Fixture,$Other) {
                 Check ($label+'.NoWorkbookSave') ((Hash $guardPath) -ceq $diskPin)
                 Check ($label+'.NoSubmission') ([string](Probe 'WorksheetSubmissionFactsForTest') -ceq '')
                 Check ($label+'.NoActivityOrRetarget') (@(Files).Count -eq $before.Count -and @(Get-Slice4beActivityFiles $Other).Count -eq $otherBefore.Count)
-                [void](Probe 'CloseDesigner');if($null -ne $book){$book.Close($false)};$book=$null
+                if($guard -ceq 'ClosedWorkbook'){[void](Probe 'WorksheetSafeCloseForTest')}else{[void](Probe 'CloseDesigner')};if($null -ne $book){$book.Close($false)};$book=$null
             }
         }
         SelectTarget $Fixture 'config-producer'

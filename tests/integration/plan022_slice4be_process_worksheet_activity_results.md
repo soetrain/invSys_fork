@@ -77,7 +77,7 @@ Send/Add while SignedOut. Retrieve submits in the first four contexts; signed-ou
 Retrieve does not submit. Inventory business state remains exact. These are
 behavioral failures under D18, not compile or setup failures. No runtime fix yet.
 
-## Closed-workbook fixture calibration — unresolved in the full sequence
+## Earlier closed-workbook fixture failures — excluded
 
 Broader capability/policy tests and form-draft preservation checks are written,
 but the full sequence has not reached valid completion. Do not count those test
@@ -114,17 +114,63 @@ Desktop probes remain healthy, with no error5. The HRESULT/fixture failure must
 not be confused with the user's conditional desktop-error5 stop instruction.
 No native-crash repair is claimed. All347 PowerShell files parse.
 
+## Expanded RED and calibrated closure boundary
+
+Controller `4fd3b34ad15644d4913299cf8a50d6b3`,20:04:35.9981473 through
+20:08:14.9290077 UTC on2026-09-30, adds fixed boundary measurements to the
+longer sequence. Result `010bd90f9f504e62a8f84c166823c7b5` proves that closing
+the captured workbook removes its visible Production window, decreases open
+workbooks from4 to3, and leaves the decoy open. Forcing the old form reference
+then returns80010007 before adapter entry. This attempt remains excluded; it
+closes normally, preserves packages/settings, and has zero delayed Excel events.
+The observations resolve the fixture ambiguity, not a runtime defect or its cause.
+
+The test now measures native visibility before invoking a closed-binding handler.
+If workbook shutdown dismisses the visible surface, it checks no save, submission
+or activity and supplements those facts with the existing typed binding guard.
+It explicitly records that no handler was invoked. If the surface remains visible,
+the actual form handler must be entered normally and preserve the draft, saved
+workbook and activity. The test never treats a disconnected private reference as
+an operator click. All adapters remain confined to unsaved disposable packages.
+
+The subsequent full RED is verified:
+
+- Controller `reports/runtime/process-worksheet-activity-controller/2369e088c595488d92511a9ca1b81c0d`.
+- Result `reports/runtime/slice4be-process-worksheet-activity/32dc95a4f4e146b595f30f8a6010fee1/red.json`.
+- 2026-09-30,20:09:19.5531516 through20:14:41.7703628 UTC.
+- 185 PASS /256 expected FAIL /441 checks. Every prior333 result and relative
+  order is retained, including all42 shared GREEN checks; five packages compile.
+- 108 new checks add66 passing assertions and42 expected failures:10 form-draft
+  guard failures,29 permission-denial failures, and3 missing tracking notices.
+  The29 include24 dependent assertions for three absent DENIED pairs, three
+  worksheet/draft preservation failures and two actual save violations.
+- Actual capability loss preserves the captured context in all three cases.
+  Send/Add still edit and save; Retrieve changes its form draft but does not save
+  the workbook or submit. No failure is a compile/setup substitute for RED.
+- Off/older/unavailable tracking permits all three business actions and saves;
+  the older policy still reads existing controls. Unavailable notices are absent.
+- Closed Send dismisses the native surface; Add/Retrieve stay visible and enter
+  their actual handlers with error0. All corresponding preservation checks pass.
+  Send's dismissed branch does not claim a click-handler invocation.
+- Prior activity, Inventory business state and final Auth/Config bytes remain
+  unchanged. Helper/package pins and settings restore; Excel closes normally.
+  Delayed Application1000/1001/1002 audit has zero Excel events. No forced cleanup.
+
+`verification.json` in the controller records exact subset/failure-sequence and
+preservation checks. The populated Process form capture was reviewed again:
+three DRAFT entries, mixed-UOM requirements, output and the two-table retrieval
+status are visible. It proves the existing form result, not new activity logging,
+human acceptance or a closure screenshot. No runtime implementation has changed.
+Desktop monitors report zero error5; the native/COM distinction remains explicit.
+
 ## Next required work
 
-Before runtime implementation, calibrate the closed-workbook case against actual
-operator visibility, workbook lifetime and form-entry evidence after the longer
-sequence. Distinguish an already-dismissed surface from an available handler;
-do not force a disconnected private form reference or count inability to enter it
-as behavioral RED. Use fixed boundary facts and a targeted diagnostic, not another
-unchanged full rerun. Then run the written capability-loss, optional-tracking and
-older-policy cases to completion. Preserve all333 check identities and every
-passing assertion; retain the original220 sequence as a subset. Full closed-binding,
-form-draft, capability and policy protection remains unproven.
+The closure fixture is calibrated and the capability/optional-tracking/older-policy
+cases have completed with meaningful RED. Preserve all441 check identities and
+every passing assertion, including the original333 and220 ordered subsets.
+Implement the specified catalog22 owner observations and guards. Add focused
+after-yield context-loss and source-reference rejection coverage as the integration
+boundaries are introduced; do not infer those cases from the current happy paths.
 The current DeleteProcessWorksheetTable performs lo.Delete before wb.Save. A
 post-confirmation workbook-save failure can leave a local deletion in memory;
 the failure observation must retain the confirmed Designs reference and Unknown
