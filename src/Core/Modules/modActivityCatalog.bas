@@ -2,10 +2,18 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 21
+Public Const CATALOG_VERSION As Long = 22
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     Dim ids As Variant, added As Variant, index As Long, offset As Long
+    If version = 22 Then
+        ids = ControlIds(21): added = modProductionWorksheetCodes.ControlIds()
+        offset = UBound(ids) + 1
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + UBound(added) + 1)
+        For index = LBound(added) To UBound(added): ids(offset + index) = added(index): Next index
+        ControlIds = ids
+        Exit Function
+    End If
     If version = 21 Then
         ids = ControlIds(20)
         ReDim Preserve ids(LBound(ids) To UBound(ids) + 1)
@@ -160,6 +168,10 @@ End Function
 Public Function Control(ByVal controlId As String, Optional ByVal version As Long = CATALOG_VERSION) As Object
     Dim record As Object
     If version < 1 Or version > CATALOG_VERSION Then Exit Function
+    If version >= 22 Then
+        Set record = modProductionWorksheetCodes.Control(controlId)
+        If Not record Is Nothing Then Set Control = record: Exit Function
+    End If
     If version >= 21 Then
         Set record = modProductionCloseCodes.Control(controlId)
         If Not record Is Nothing Then Set Control = record: Exit Function
@@ -308,6 +320,10 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Dim record As Object, definition As Object, message As String
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
+    If definition("OwnerId") = "PRODUCTION_PROCESS_WORKSHEET" Then
+        Set Outcome = modProductionWorksheetCodes.Outcome(controlId, outcomeCode)
+        Exit Function
+    End If
     If controlId = "PRODUCTION_CLOSE" Then
         Set Outcome = modProductionCloseCodes.Outcome(outcomeCode)
         Exit Function

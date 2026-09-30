@@ -89,10 +89,17 @@ Public Function WorksheetFaultHitsForTest() As Long
 End Function
 Public Function WorksheetUncertainAckForTest() As Boolean
     mWorksheetQueueCount = mWorksheetQueueCount + 1
+    If mWorksheetFault = "SignOutAfterFirst" And mWorksheetQueueCount = 1 Then
+        mWorksheetFaultHits = mWorksheetFaultHits + 1
+        modAuth.SignOut
+    End If
     If mWorksheetFault = "UncertainSecond" And mWorksheetQueueCount = 2 Then
         WorksheetUncertainAckForTest = True
         mWorksheetFaultHits = mWorksheetFaultHits + 1
     End If
+End Function
+Public Function WorksheetQueueReturnsForTest() As Long
+    WorksheetQueueReturnsForTest = mWorksheetQueueCount
 End Function
 Public Function WorksheetRemovalFailureForTest(ByVal afterDelete As Boolean) As Boolean
     If Not afterDelete Then mWorksheetDeleteCount = mWorksheetDeleteCount + 1
@@ -177,6 +184,50 @@ End Function
 '@)
 }
 
+function Test-ProcessWorksheetCatalog {
+    $submitted='[{"WarehouseId":"CATALOG_TEST","SourceKind":"Designs","EventId":"Source_A","SubmissionState":"Submitted"}]'
+    $unknown=$submitted.Replace('Submitted','Unknown')
+    $mixed=$submitted.Substring(0,$submitted.Length-1)+','+$unknown.Substring(1).Replace('Source_A','Source_B')
+    $invalid=[ordered]@{
+        Duplicate=$submitted.Substring(0,$submitted.Length-1)+','+$submitted.Substring(1)
+        CrossWarehouse=$submitted.Replace('CATALOG_TEST','ANOTHER_TEST')
+        Inventory=$submitted.Replace('Designs','Inventory')
+        InvalidIdentity=$submitted.Replace('Source_A','Source A')
+        OversizedIdentity=$submitted.Replace('Source_A',('A'*129))
+        MissingIdentity=$submitted.Replace('"EventId":"Source_A",','')
+        NumericIdentity=$submitted.Replace('"Source_A"','123')
+        ExtraField=$submitted.Replace('"EventId":','"Extra":"forbidden","EventId":')
+        UnknownState=$submitted.Replace('Submitted','Applied')
+    }
+    foreach($action in @('SEND','ADD_ITEM','RETRIEVE')){
+        $id='PRODUCTION_PROCESS_WORKSHEET_'+$action;$prefix='ProcessWorksheet.Wire.'+$action
+        $outcomes=[ordered]@{REQUESTED=@('Info','Unknown');DENIED=@('Blocked','Unchanged');REJECTED=@('Warning','Unchanged');FAILED=@('Error','Unknown')}
+        if($action -ceq 'RETRIEVE'){$outcomes.CONFIRMED=@('Info','Unknown')}else{$outcomes.STAGED=@('Info','Unchanged')}
+        foreach($code in @('REQUESTED','DENIED','REJECTED','FAILED','STAGED','CONFIRMED','PENDING','APPLIED','COMPLETED','VALIDATED','CANCELLED')){
+            $wire=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Outcome' @($id,$code));$value=if($wire){$wire|ConvertFrom-Json}else{$null}
+            $supported=$outcomes.Contains($code)
+            $correct=if($supported){$null -ne $value -and $value.EventCode -ceq ($id+'_'+$code) -and $value.OutcomeCode -ceq $code -and $value.Severity -ceq $outcomes[$code][0] -and $value.DataEffect -ceq $outcomes[$code][1] -and $value.UserMessage -ne ''}else{$wire -ceq ''}
+            Check ($prefix+'.Outcome.'+$code) $correct
+            $acceptEmpty=$supported -and $code -cne 'CONFIRMED'
+            Check ($prefix+'.EmptyReferences.'+$code) ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.References' @($id,$code,'[]')) -eq $acceptEmpty)
+            foreach($state in @('Submitted','Unknown')){
+                $reference=if($state -ceq 'Submitted'){$submitted}else{$unknown}
+                $accept=$action -ceq 'RETRIEVE' -and ($code -ceq 'FAILED' -or ($code -ceq 'CONFIRMED' -and $state -ceq 'Submitted'))
+                Check ($prefix+'.'+$state+'References.'+$code) ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.References' @($id,$code,$reference)) -eq $accept)
+            }
+        }
+    }
+    foreach($case in $invalid.Keys){Check ('ProcessWorksheet.Wire.RETRIEVE.Reject.'+$case) (-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.References' @('PRODUCTION_PROCESS_WORKSHEET_RETRIEVE','FAILED',$invalid[$case])))}
+    Check 'ProcessWorksheet.Wire.RETRIEVE.FailedMixed' ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.References' @('PRODUCTION_PROCESS_WORKSHEET_RETRIEVE','FAILED',$mixed)))
+    Check 'ProcessWorksheet.Wire.RETRIEVE.ConfirmedRejectsMixed' (-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.References' @('PRODUCTION_PROCESS_WORKSHEET_RETRIEVE','CONFIRMED',$mixed)))
+    $recipeCaptions=[ordered]@{PRODUCTION_RECIPE_MOVE_UP='Move Up';PRODUCTION_RECIPE_MOVE_DOWN='Move Down';PRODUCTION_RECIPE_AUTO_ORDER='Auto Order'}
+    foreach($id in $recipeCaptions.Keys){
+        $definition=([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Definition' @($id,17)))|ConvertFrom-Json
+        $exact=$null -ne $definition -and @($definition.PSObject.Properties).Count -eq 8 -and $definition.ControlId -ceq $id -and $definition.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $definition.Class -ceq 'Command' -and $definition.Role -ceq 'Production' -and $definition.Caption -ceq $recipeCaptions[$id] -and $definition.Surface -ceq 'Operations > Production > Recipe Designer' -and $definition.Capability -ceq 'PROD_POST' -and $definition.CodePrefix -ceq ($id+'_')
+        Check ('ProcessWorksheet.Wire.PreserveRecipeOrder.'+$id) $exact
+    }
+}
+
 function Test-ProcessWorksheetActivity($Fixture,$Other) {
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
@@ -238,6 +289,8 @@ function Test-ProcessWorksheetActivity($Fixture,$Other) {
     $pins=@{};foreach($file in Get-ChildItem -LiteralPath $Fixture.Root -File -Filter '*.xlsb'){$pins[$file.FullName]=Hash $file.FullName}
     $inventoryBefore=InventoryState
     try{
+        if(-not $ProcessWorksheetClosedDiagnostic){Test-ProcessWorksheetCatalog}
+        if($ProcessWorksheetCatalogOnly){return}
         if($ProcessWorksheetClosedDiagnostic){
             $book=$excel.Workbooks.Add();$closedPath=Join-Path $runRoot 'closed-diagnostic.xlsb';$book.SaveAs($closedPath,50)
             $decoy=$excel.Workbooks.Add()
@@ -461,6 +514,27 @@ function Test-ProcessWorksheetActivity($Fixture,$Other) {
                 [IO.File]::WriteAllBytes($Fixture.Config,$configBytes);SelectTarget $Fixture 'config-producer'
             }
         }
+        # Revoke the session after the first actual queue return. The next
+        # submission/removal boundary must refuse further work in this action.
+        SelectTarget $Fixture 'config-producer';$book=$excel.Workbooks.Add()
+        $yieldPath=Join-Path $runRoot 'yield-context-loss.xlsb';$book.SaveAs($yieldPath,50)
+        [void](Probe 'OpenDesigner' @($book.Name))
+        for($i=0;$i -lt 2;$i++){[void](Probe 'WorksheetActivityStage' @($canary));[void](Probe 'WorksheetActivityAct' @('SEND'))}
+        if(-not [bool](Probe 'WorksheetActivitySelect' @($book.Name,1,2,$true))){throw 'Yield-context fixture unavailable.'}
+        $book.Save();$yieldPin=Hash $yieldPath;$before=@(Files);$otherBefore=@(Get-Slice4beActivityFiles $Other)
+        try{
+            [void](Probe 'WorksheetFaultForTest' @('SignOutAfterFirst'));[void](Probe 'WorksheetActivityAct' @('RETRIEVE'))
+            Check 'ProcessWorksheet.Yield.InjectedOnce' ([long](Probe 'WorksheetFaultHitsForTest') -eq 1)
+            Check 'ProcessWorksheet.Yield.SessionLost' ([string](Run 'invSys.Core.xlam' 'modActivity.CaptureContext') -ceq '')
+            Check 'ProcessWorksheet.Yield.StopsBeforeSecondQueueCall' ([long](Probe 'WorksheetQueueReturnsForTest') -eq 1)
+            Check 'ProcessWorksheet.Yield.NoTableRemovalOrSave' (@(Tables).Count -eq 2 -and (Hash $yieldPath) -ceq $yieldPin)
+            $source=@(([string](Probe 'WorksheetSubmissionFactsForTest')).Split([char]10)|Where-Object{$_})
+            Check 'ProcessWorksheet.Yield.OneActualSubmittedReference' ($source.Count -eq 1 -and ($source[0] -split '\|')[1] -ceq 'Submitted')
+            $newFiles=@(Files|Where-Object{$_ -cnotin $before});$originalAttempt=$newFiles.Count -eq 1
+            if($originalAttempt){$record=Get-Content -LiteralPath $newFiles[0] -Raw|ConvertFrom-Json;$originalAttempt=$record.ControlId -ceq 'PRODUCTION_PROCESS_WORKSHEET_RETRIEVE' -and $record.OutcomeCode -ceq 'REQUESTED' -and $record.WarehouseId -ceq $Fixture.Warehouse}
+            Check 'ProcessWorksheet.Yield.OnlyOriginalAttemptNoNewContextResult' $originalAttempt
+            Check 'ProcessWorksheet.Yield.NoOtherTargetActivity' (@(Get-Slice4beActivityFiles $Other).Count -eq $otherBefore.Count)
+        }finally{[void](Probe 'WorksheetFaultForTest' @(''));[void](Probe 'CloseDesigner');$book.Close($false);$book=$null;SelectTarget $Fixture 'config-producer'}
         Check 'ProcessWorksheet.PriorActivityImmutable' (@($recordPins.Keys|Where-Object{(Hash $_) -cne $recordPins[$_]}).Count -eq 0)
         Check 'ProcessWorksheet.Final.InventoryBusinessStatePreserved' ((InventoryState) -ceq $inventoryBefore)
         Check 'ProcessWorksheet.Final.AuthConfigBytesPreserved' (@($pins.Keys|Where-Object{($_ -like '*.Auth.xlsb' -or $_ -like '*.Config.xlsb') -and (Hash $_) -cne $pins[$_]}).Count -eq 0)

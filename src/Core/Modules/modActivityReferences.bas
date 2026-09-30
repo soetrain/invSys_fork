@@ -33,6 +33,13 @@ Public Function Valid(ByVal warehouseId As String, ByVal controlId As String, _
         If outcome Is Nothing Then Exit Function
         sourceControl = True: sourceKind = "Designs"
     End If
+    Set outcome = modProductionWorksheetCodes.Control(controlId)
+    If Not outcome Is Nothing Then
+        Set outcome = modProductionWorksheetCodes.Outcome(controlId, outcomeCode)
+        If outcome Is Nothing Then Exit Function
+        sourceControl = (controlId = "PRODUCTION_PROCESS_WORKSHEET_RETRIEVE")
+        sourceKind = "Designs"
+    End If
     If Not sourceControl Or outcomeCode = "REQUESTED" Or outcomeCode = "DENIED" Or _
        outcomeCode = "REJECTED" Or outcomeCode = "STAGED" Or (sourceKind = "Designs" And outcomeCode = "CANCELLED") Then
         Valid = (references.Count = 0)

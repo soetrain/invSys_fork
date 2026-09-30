@@ -3,7 +3,8 @@
 Authority: Architecture v4.11 D18's Process worksheet discovered-control
 refinement, committed in docs `ba3c206` before these tests; Plan022 and Controls
 1.346 synchronized. D14/D15 retain local-save/import behavior and authority.
-Catalog22 is specified, not implemented. The frozen baseline is
+Catalog22's Core definitions and validators are implemented and focused GREEN;
+Operations observations and full acceptance remain pending. The original frozen baseline is
 `deploy/validation-process-worksheet-picker`, whose scoped gates are complete in
 `plan022_slice4be_process_worksheet_picker_results.md`.
 
@@ -163,14 +164,78 @@ status are visible. It proves the existing form result, not new activity logging
 human acceptance or a closure screenshot. No runtime implementation has changed.
 Desktop monitors report zero error5; the native/COM distinction remains explicit.
 
+## Core catalog/reference GREEN; Operations still RED
+
+The supplemental wire-contract test exercises allowed/unsupported outcomes,
+empty versus required references, exact Designs source kind, per-reference
+Submitted/Unknown rules, malformed/duplicate identities, wrong warehouse,
+missing/extra fields and mixed failure references. It supplements the packaged
+form-action tests; its synthetic reference values are schema fixtures only.
+
+- RED controller `c22f97c0363d46f595905d6f7e43d021`, result
+  `71ec9c0331c848e0afcca60bd18ed3e0`:147 PASS/38 expected FAIL/185,
+  20:19:39.2571491 through20:20:57.0720521 UTC on2026-09-30.
+- First Core candidate `deploy/validation-process-worksheet-catalog` passes the
+  exact185 checks, controller `5882116b23804cb59cf02309cb19c331`, result
+  `c5ef57ec18cb4956aea1b2927a7a39fa`,20:22:56.2666048 through20:24:19.8988031 UTC.
+  Static review finds one new duplicate control-definition body; this candidate
+  is retained as intermediate evidence, not the final maintenance result.
+- Final Core candidate `deploy/validation-process-worksheet-catalog-final` uses
+  `modProductionControlCatalog.Command` for shared record fields. Recipe Order
+  retains its exact mapping; worksheet captions follow its ordered ControlIds.
+  This consolidates record construction and removes the duplicate-body increase.
+- Final GREEN controller `744cdf30128e422fb05d9880c7468784`, result
+  `8ea0ea156a29416c952e4feb5b751a56`:188/188,20:32:18.3894537 through
+  20:33:38.5685170 UTC. Exact prior185 order and all42 shared checks remain GREEN;
+  three new assertions protect every field of Recipe Order's version17 definitions.
+
+Controller paths are under `reports/runtime/process-worksheet-activity-controller`;
+result paths are under `reports/runtime/slice4be-process-worksheet-activity`.
+All three runs compile five instrumented packages, close normally, preserve
+packages/settings and have zero delayed Excel Application1000/1001/1002 events.
+`reports/runtime/process-worksheet-catalog-final-build` records packaged build,
+five compiles, Operations cold start, preservation and delayed audit. Of267
+compiled components,261 are unchanged against the picker candidate. Four existing
+Core modules change: modActivityCatalog, modActivityReferences, modEvaluationMatches
+and modProductionRecipeOrderCodes. Two new Core modules hold worksheet codes and
+shared command fields. No Operations runtime component changes in this checkpoint.
+Static evidence is `reports/runtime/process-worksheet-catalog-final-static`:
+274 components,6120 procedures,134573 lines,9 literal and45 unresolved Application.Run
+sites,190 duplicate-body groups,28 non-growing oversized caps. No exception added.
+
+The broader actual-handler RED on the intermediate Core candidate is controller
+`95d3be4b762647368230b201ee566a86`, result `26824f27c5b649f0838f61c2771e50a5`,
+20:24:35.4178185 through20:30:26.8539744 UTC. It verifies442 PASS/149 expected
+FAIL/591: every prior441 identity/order remains, all prior GREEN pass, and110
+catalog assertions turn GREEN. All143 wire checks pass. A new seven-check case
+signs out immediately after the first real queue return. Exactly one Submitted
+reference is observed, session loss is real, and the other target is untouched.
+Three expected failures prove a second queue call is attempted, worksheet state
+is removed/saved after session loss, and no original REQUESTED record exists yet.
+The existing worksheet algorithm may finish the first owning save despite sign-out;
+the missing context guard must stop subsequent worksheet removal and submissions.
+No fabricated event ID or unhandled VBA error is injected. Final inventory,
+Auth/Config and prior activity preservation pass, with normal closure, package/
+settings pins, five compiles and a zero-event delayed audit. Desktop error5 stays0.
+
+Current test source adds the three Recipe Order checks to the broad gate, making
+its next expected total594; this is not a claim that the full594 have run yet.
+Catalog22 now defines109 controls while the three worksheet handlers still emit
+no new observations. Production's observed-button coverage remains45/68 until the
+handlers and required recording/Action Path gates pass. No release acceptance,
+promotion, or completed worksheet slice is claimed.
+
 ## Next required work
 
 The closure fixture is calibrated and the capability/optional-tracking/older-policy
 cases have completed with meaningful RED. Preserve all441 check identities and
 every passing assertion, including the original333 and220 ordered subsets.
-Implement the specified catalog22 owner observations and guards. Add focused
-after-yield context-loss and source-reference rejection coverage as the integration
-boundaries are introduced; do not infer those cases from the current happy paths.
+Core outcome/reference coverage and after-queue context-loss RED are now established.
+Implement the Operations owner observations and guards, preserving all591 checks
+plus the three Recipe Order metadata assertions. Keep existing oversized modules
+non-growing by extracting typed worksheet coordination. Do not infer after-yield
+protection merely from initial guards or confuse queue acknowledgment with applied
+Designs evidence.
 The current DeleteProcessWorksheetTable performs lo.Delete before wb.Save. A
 post-confirmation workbook-save failure can leave a local deletion in memory;
 the failure observation must retain the confirmed Designs reference and Unknown
@@ -178,8 +243,8 @@ effect, not claim restoration. D15 still prohibits removal before confirmed
 Designs draft save. The normative observation section explicitly distinguishes
 these cases without changing the existing save algorithm.
 
-Then implement catalog22 and typed owner observations without growing existing
-oversized modules or changing the worksheet algorithm. GREEN, packaged build,
+Implement typed Operations owner observations without growing existing
+oversized modules or changing the worksheet algorithm. Full GREEN, packaged build,
 compile, static ratchets, independent recording/publication/Event Detail and
 How-To/Diagnostic/Compare evidence, layout/live-role/full-chain/reusable regressions
 and visible operator evidence remain outstanding. No promotion or Slice4be
