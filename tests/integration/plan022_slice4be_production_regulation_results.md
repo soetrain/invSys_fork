@@ -178,6 +178,25 @@ instructions and matched REFRESHED/PRESENTED/STAGED steps are visible, with zero
 extras and an explicitly local conclusion. This remains agent review, not human
 acceptance. No runtime edits or package rebuilds were needed.
 
+Recipe structure regressions retain 786/786 focused checks, 55/55 released-data
+checks and 109/109 paired-path checks, each with exact prior ordered identities,
+five instrumented compiles, preserved settings/packages/authority/workbook bytes,
+normal closure and zero delayed Excel Application failures. All intervals below
+are 2026-09-30 UTC; controller roots are under
+`reports/runtime/production-recipe-structure-controller/`.
+
+| Gate | Controller | UTC interval | Result root under `reports/runtime/` |
+|---|---|---|---|
+| Focused 786/786 | `e648daef96c849b2ad7b11b727efdac0` | 11:18:51.2687239--11:22:25.3538702 | `slice4be-production-recipe-structure/41b1dcbcd6574bb28c01adfd7fea6594` |
+| Released data 55/55 | `e50c060a50974b6fb89f8e13c477529a` | 11:22:36.8786387--11:24:25.3338116 | `slice4be-production-recipe-structure-released/5608f34135814459b917a5a070b10add` |
+| Paired paths 109/109 | `8322c5484a394912a00cce861834534c` | 11:24:33.9481377--11:30:22.3694440 | `slice4be-production-recipe-structure-paths/c3785a06df274b7bbf26fc2b82891eb4` |
+
+Six principal path captures are directly reviewed and hashed in `visible-review.json`.
+Remove Process/STAGED detail remains Info/Unchanged. All five instructions are
+readable; the separate observed run matches five STAGED actions with zero extras.
+The scrolled conclusion explicitly states that Domain application is not asserted.
+Agent review is not human acceptance; no runtime or package change was needed.
+
 ## Remaining work
 
 The remaining focused regressions and run-only reusable gate remain pending on
