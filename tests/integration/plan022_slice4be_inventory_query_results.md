@@ -1,7 +1,8 @@
 # Slice 4be Inventory query ownership correction
 
-Last verified:2026-09-30 UTC. Focused query/public-launch GREEN, static and packaged
-smoke pass; broader gates are in progress. No release acceptance, promotion or
+Last verified:2026-09-30 UTC. Focused query/public-launch GREEN, static, smoke,
+chain/live roles, layout, full reusable Production and lifecycle pass;
+remaining applicable Production gates are in progress. No release acceptance, promotion or
 native-crash repair is claimed.
 
 ## Contract and supplying path
@@ -148,6 +149,26 @@ zero. Three captured Run List views are directly reviewed and hashed in
 `visible-review.json`: sections, scrolling and the Close footer remain reachable.
 These blank fixture images do not establish a populated Production run.
 
-Reusable Production and applicable remaining regressions remain pending.
+Full reusable Production retains both aggregate checks and all171 boolean
+observations in exact catalog20 order,15:01:49.2770848--15:10:21.0937474 UTC.
+Controller `reports/runtime/inventory-query-regression/reusablefull-9cb05c1c7820481e9037d62f83d977dc`.
+Both restart and final shutdown are unassisted, with zero reference-release
+failures or termination requests. Final workbook closure and reverse-order
+package closure pass. Settings/packages are preserved, Excel is closed and the
+delayed Application audit finds zero Excel failures. `verification.json` retains
+the exact assertion comparison and cleanup checks. This does not establish a
+repair for the historical intermittent native fault.
+
+Production lifecycle retains615/615 exact ordered prior checks and five
+instrumented compiles,15:10:49.8266356--15:16:39.2489747 UTC. Outer controller:
+`reports/runtime/inventory-query-regression/lifecycle-8a82fe752df14f509e977068179d04d7`;
+inner controller `reports/runtime/production-lifecycle-controller/99a38b54efcb40069241aea70e34b329`;
+result `reports/runtime/slice4be-production-designer/e24c92f6a86547a5953eef34a53ab1e9/green.json`.
+The gate completes without intervention, settings/packages are preserved,
+Excel is closed and the delayed Application audit is zero. The inner
+`verification.json` records the outer interval and ordered comparison.
+
+Applicable remaining Production regressions, beginning with the390-check draft
+and Action Path gate, remain pending. Production Close is still unimplemented.
 No transport-exception or historical native-crash repair is asserted by the
 Domain Empty-result test.
