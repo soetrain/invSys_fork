@@ -2,7 +2,7 @@
 
 Last verified:2026-09-30 UTC. Architecture v4.11 D18 discovered-control refinement
 was committed as documentation `e3adb72` before test/runtime work. The isolated
-`deploy/validation-production-design-reads` candidate implements catalog19:
+`deploy/validation-production-design-reads-final` candidate implements catalog19:
 Process Refresh, View Process, Edit as New Version, Recipe Refresh and Load.
 It registers103 global IDs and42/68 constructed Production controls;26 remain
 unregistered. Catalog18 and17 comparison packages remain frozen. Registration and
@@ -135,11 +135,50 @@ it never writes an unsupported dropdown value. Source snapshots/pins are retaine
 PRESENTED to its catalog-filtered fixed list, build a distinct candidate, retain
 these92 checks in the full path GREEN and rerun621 focused checks plus regressions.
 
+## Corrected editor and paired-path GREEN
+
+Core's fixed expectation-choice list now includes PRESENTED and still filters
+choices through each control's declared catalog outcomes. No earlier outcome's
+meaning changes. The distinct `validation-production-design-reads-final` candidate
+builds/compiles all five packages and cold-loads Operations,
+07:48:10.8964784--07:48:49.3209001 UTC. The260 compiled components and string-literal
+hashes differ from the first catalog19 candidate only in `modExpectationDraft`.
+Settings and all15 pinned packages (catalog17,18 and the first19 candidate) are
+preserved. Normal closure and zero Excel Application failures pass. Build evidence:
+`reports/runtime/production-design-read-final-build`.
+
+The complete paired-path gate passes114/114, retaining all92 clean RED identities
+in their original order,07:49:06.3717086--07:55:44.6643140 UTC. Controller
+`reports/runtime/production-design-read-controller/268b41ae95624a8193b686e4c9c94f27`,
+result `reports/runtime/slice4be-production-design-read-paths/f3cec133d0014c3bb59be9aa7025e293`.
+Five instrumented compiles, preservation, unassisted closure and zero Excel
+Application failures pass. Both original five-action recordings reach the expected
+local drafts. Publication preserves exact observations; the authored guide uses
+one recording and its diagnostic matches the other with zero extra actions.
+CommandCompleted concludes locally; SourceEventsApplied remains incomplete.
+How-To, Diagnostic and Compare both retain the same evidence and leave saved
+authority, journals, observations, unknown columns and operator file bytes intact.
+All six principal PNGs were directly viewed and hashed in `visible-review.json`,
+including the selected PRESENTED detail and scrolled five-step local-only conclusion.
+Agent review is not human acceptance.
+
+The final candidate also retains621/621 focused checks in the exact prior GREEN
+order,07:56:06.8272965--07:59:26.1877760 UTC. Controller
+`reports/runtime/production-design-read-controller/5e3df5a3476c41aeb57f55968ddfb4eb`,
+result `reports/runtime/slice4be-production-design-reads/794e052250524772af80e397b42d6325/green.json`.
+Five compiles, preservation, unassisted closure and zero Excel Application failures
+pass. The broader regression set still must run on this final artifact.
+
+Final static evidence `reports/runtime/production-design-read-final-static`
+retains267 components/6097 procedures/134205 lines,9 literal/45 unresolved calls,
+190 duplicate candidates, all28 exact size caps, three schemas and325 valid
+PowerShell parses. The one-line choice addition causes no metric regression.
+
 ## Remaining work
 
 The typed owner/catalog implementation and exact621 focused GREEN are recorded.
-Require separate original
-recording/publication/How-To/Diagnostic/Compare evidence, all established packaged
-regressions and visible captures. Preserve catalog18 and catalog17 comparisons.
+The corrected final candidate has complete paired-path and visible evidence.
+The final artifact retains621/621; complete all established packaged regressions.
+Preserve catalog18 and catalog17 comparisons.
 The earlier intermittent native Excel failure remains an independent open finding;
 this group must not claim to repair it. Slice4be/Release1 acceptance remains open.
