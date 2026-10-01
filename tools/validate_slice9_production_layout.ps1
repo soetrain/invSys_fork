@@ -163,7 +163,7 @@ function Save-WindowScreenshot {
 }
 
 function Assert-HealthyGeometryReport {
-    param([string]$Name, [string]$Report)
+    param([string]$Name, [string]$Report, [int]$ExpectedPage = -1)
     if (-not $Report.StartsWith("OK|", [StringComparison]::OrdinalIgnoreCase) -or
         $Report -notmatch '\|OutOfBounds=0\|' -or
         $Report -notmatch '\|Overlap=0\|' -or
@@ -172,6 +172,9 @@ function Assert-HealthyGeometryReport {
         $Report -notmatch 'Minimize=True' -or
         $Report -notmatch 'Maximize=True') {
         throw "$Name geometry failed: $Report"
+    }
+    if ($ExpectedPage -ge 0 -and $Report -notmatch ('\|Page=' + $ExpectedPage + '\|')) {
+        throw "$Name did not activate the requested page: $Report"
     }
 }
 
@@ -246,16 +249,22 @@ try {
     foreach ($case in $cases) {
         Write-Host ("Geometry case: " + $case.Name)
         $pageReports = New-Object System.Collections.Generic.List[string]
-        for ($pageIndex = 0; $pageIndex -lt 5; $pageIndex++) {
+        for ($pageIndex = 0; $pageIndex -lt 6; $pageIndex++) {
             Write-Host ("  Page " + $pageIndex)
             $report = [string]$excel.Run(
                 $showMacro, $case.Width, $case.Height, [int]$pageIndex)
-            Assert-HealthyGeometryReport -Name "$($case.Name)/page-$pageIndex" -Report $report
+            Assert-HealthyGeometryReport -Name "$($case.Name)/page-$pageIndex" -Report $report -ExpectedPage $pageIndex
             $pageReports.Add($report)
         }
 
+        $settingsReport = [string]$excel.Run($showMacro, $case.Width, $case.Height, 5)
+        Assert-HealthyGeometryReport -Name "$($case.Name)/settings-screenshot" -Report $settingsReport -ExpectedPage 5
+        $handle = Wait-ForLayoutWindow -ExpectedProcessId ([int]$excelProcessId)
+        $settingsScreenshot = "production-settings-$($case.Name).png"
+        Save-WindowScreenshot -Handle $handle -Path (Join-Path $OutputDirectory $settingsScreenshot)
+
         $report = [string]$excel.Run($showMacro, $case.Width, $case.Height, 3)
-        Assert-HealthyGeometryReport -Name "$($case.Name)/screenshot" -Report $report
+        Assert-HealthyGeometryReport -Name "$($case.Name)/screenshot" -Report $report -ExpectedPage 3
         $handle = Wait-ForLayoutWindow -ExpectedProcessId ([int]$excelProcessId)
         $screenshotPath = Join-Path $OutputDirectory $case.Screenshot
         Write-Host ("  Capturing " + $screenshotPath)
@@ -264,9 +273,11 @@ try {
         $geometryRows.Add([pscustomobject]@{
             Case = $case.Name
             Requested = "$($case.Width)x$($case.Height)"
-            Pages = 5
+            Pages = 6
             Report = $report
+            PageReports = @($pageReports)
             Screenshot = "$screenshotLinkPrefix/$($case.Screenshot)"
+            SettingsScreenshot = "$screenshotLinkPrefix/$settingsScreenshot"
         })
     }
 
@@ -296,10 +307,10 @@ try {
     $nativeRows.Add([pscustomobject]@{ Action = "Maximize"; Passed = $maximized })
     if (-not $maximized) { throw "Production form did not enter the maximized state." }
 
-    for ($pageIndex = 0; $pageIndex -lt 5; $pageIndex++) {
+    for ($pageIndex = 0; $pageIndex -lt 6; $pageIndex++) {
         Write-Host ("  Maximized page " + $pageIndex)
         $maximizedReport = [string]$excel.Run($currentMacro, [int]$pageIndex)
-        Assert-HealthyGeometryReport -Name "maximized/page-$pageIndex" -Report $maximizedReport
+        Assert-HealthyGeometryReport -Name "maximized/page-$pageIndex" -Report $maximizedReport -ExpectedPage $pageIndex
         $fillDetail = Assert-MaximizedContentFillsClient -Handle $handle -Report $maximizedReport
         Write-Host ("  Maximized content fill: " + $fillDetail)
     }
@@ -336,14 +347,14 @@ finally {
 $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add("# Slice 9 Production Layout Runtime Results")
 $lines.Add("")
-$lines.Add("- Packaged geometry: PASS (3 sizes x 5 pages; zero out-of-bounds and zero interactive-control overlaps)")
+$lines.Add("- Packaged geometry: PASS (3 requested sizes x 6 activated pages; zero out-of-bounds and zero interactive-control overlaps)")
 $lines.Add("- Native window behavior: PASS (minimize, restore, maximize, restore)")
-$lines.Add("- Screenshots: PASS (minimum/default/expanded Production Run - List page)")
+$lines.Add("- Screenshots captured for review: minimum/default/expanded Production Run - List and Production Settings")
 $lines.Add("")
-$lines.Add("| Case | Requested points | Pages | Screenshot |")
-$lines.Add("|---|---:|---:|---|")
+$lines.Add("| Case | Requested points | Pages | Run List screenshot | Settings screenshot |")
+$lines.Add("|---|---:|---:|---|---|")
 foreach ($row in $geometryRows) {
-    $lines.Add("| $($row.Case) | $($row.Requested) | $($row.Pages) | $($row.Screenshot) |")
+    $lines.Add("| $($row.Case) | $($row.Requested) | $($row.Pages) | $($row.Screenshot) | $($row.SettingsScreenshot) |")
 }
 $lines.Add("")
 $lines.Add("| Native action | Result |")
@@ -356,6 +367,14 @@ $lines.Add("Representative packaged reports:")
 $lines.Add("")
 foreach ($row in $geometryRows) {
     $lines.Add("- $($row.Case): ``$($row.Report)``")
+}
+$lines.Add("")
+$lines.Add("Per-page packaged reports (requested page identity checked):")
+$lines.Add("")
+foreach ($row in $geometryRows) {
+    foreach ($pageReport in $row.PageReports) {
+        $lines.Add("- $($row.Case): ``$pageReport``")
+    }
 }
 
 [IO.File]::WriteAllLines(

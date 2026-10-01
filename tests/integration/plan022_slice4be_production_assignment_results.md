@@ -97,8 +97,30 @@ restore, maximize/content-fill and restore. Controller
 2026-10-01 02:39:57.3510235--02:40:12.0503061 UTC. The900x700 minimum request is
 clamped to1110x800, matching the default; expanded is1350x980. Three reviewed
 captures show empty Run List layouts. They do not prove populated workflow
-acceptance, an actual900x700 layout, or coverage of Production Settings page5.
+acceptance, an actual900x700 layout, or activated/captured Production Settings
+page5 evidence. Source review confirms the geometry helper already aggregates
+bounds/overlaps across all six pages; the gap was activation and capture.
 Unassisted closure, package/settings preservation and delayed Excel audit pass.
+
+The maintained layout validator now activates all six pages, verifies the returned
+page identity (rather than accepting a clamped index), captures Settings as well
+as Run List, and retains every per-page geometry report. This extends coverage of
+the existing six-page contract; no runtime/layout change or product RED is claimed.
+Controller `reports/runtime/assignment-regression/layout-f659af45839141e6a104002cc86eb3d3`,
+2026-10-01 03:33:29.6771537--03:33:46.9570109 UTC, passes18 requested-size/page
+pairs and all six maximized pages. The prior three representative reports and five
+native-transition checks remain exact. Minimum still clamps to1110x800; the second
+distinct actual size is1350x980. Unassisted closure, package/settings preservation
+and delayed Excel audit pass.
+
+Six hashed captures contain four distinct images because minimum/default pairs
+are identical. Reviewed Settings views show regulation fields, guidance, both UOM
+controls and Close without visible clipping. Run List remains empty; its default
+output-list viewport is shallow and its expanded viewport taller. These views
+do not test populated selections, drop-down interaction, scrolling or human
+acceptance. Static `reports/runtime/assignment-six-page-layout-static-01` retains
+280 components,6150 procedures,135006 lines,9/45 dynamic calls,190 duplicates and
+28 non-growing caps; all three schemas validate and354 scripts parse.
 
 Packaged smoke retains86/86 exact prior ordered checks. Controller
 `reports/runtime/assignment-regression/smoke-fcb08043fd704a9389faccb6db7b253d`,
@@ -136,6 +158,23 @@ Both controllers restore settings and preserve packages; no Excel process remain
 and the delayed Application1000/1001/1002 audit is clean. No new screenshot or
 human-acceptance evidence is supplied by this gate. Runtime packages and the
 previously recorded static baseline remain unchanged; other regressions stay open.
+
+## Draft designer and Action Path regression
+
+The frozen candidate retains390/390 unique checks in exact prior order, including
+five instrumented compiles. Outer controller
+`reports/runtime/assignment-regression/draft-b6e87daa740b49a9a09424d81e3710b8`,
+2026-10-01 03:23:33.3357677--03:32:24.6197689 UTC; inner controller
+`reports/runtime/production-designer-controller/8f1e82dd38d8456994ef03dab67e0780`;
+result `reports/runtime/slice4be-production-designer/89dcf783b9d741e89d50887aa5475f4a/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-designer/24c2e6893e384fa19825150853a08386/green.json`.
+Real Process/Recipe New/Clear/Validate handlers, optional tracking, preserved
+draft/saved authority, closed-workbook/session/target guards, the eight-action
+recording, Admin publication, Event Detail and authored diagnostic expectations
+retain their checks. Local completion remains distinct from Domain application;
+REQUESTED alone does not conclude. Cleanup completes without intervention after
+the result is written. Settings/packages and the delayed Excel audit pass. This
+gate supplies no new screenshot or human acceptance.
 
 ## Excluded reusable attempt and bounded diagnosis
 
