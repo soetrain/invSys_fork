@@ -39,6 +39,7 @@ param(
     [switch]$RunLocalYieldOnly,
     [switch]$RunLocalStockOnly,
     [switch]$RunLocalWorksheetOnly,
+    [switch]$RunLocalWorksheetOwnerOnly,
     [switch]$CheckProductionAssignmentSafety,
     [switch]$CheckProductionAssignmentPaths,
     [switch]$CheckProductionAssignmentSourcePaths,
@@ -253,6 +254,7 @@ if($RunLocalFaultOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDia
 if($RunLocalYieldOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly)){throw 'Run read-yield checks require their separate actual-handler gate.'}
 if($RunLocalStockOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly)){throw 'Run stock-bucket checks require their separate actual-handler gate.'}
 if($RunLocalWorksheetOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly)){throw 'Run worksheet checks require their separate actual-handler gate.'}
+if($RunLocalWorksheetOwnerOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly)){throw 'Run worksheet owner checks require their separate actual-handler gate.'}
 if($CheckProductionRunLocal){
     $otherRunGates=@($PSBoundParameters.Keys|Where-Object{($_ -like 'CheckProduction*' -or $_ -like 'CheckProcessWorksheet*') -and $_ -notin @('CheckProductionRunLocal','CheckProductionDesignerActivity') -and [bool]$PSBoundParameters[$_]})
     if(-not $CheckProductionDesignerActivity -or $otherRunGates.Count -gt 0){throw 'Run local observations require their separate compiled actual-handler gate.'}
@@ -493,6 +495,7 @@ if($CheckProductionDesignerActivity){
     if($RunLocalFaultOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-fault/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalYieldOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-yield/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalStockOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-stock/'+[guid]::NewGuid().ToString('N'))}
+    if($RunLocalWorksheetOwnerOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-worksheet-owner/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalWorksheetOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-worksheet/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentSafety){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-safety/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-paths/'+[guid]::NewGuid().ToString('N'))}
@@ -1263,7 +1266,7 @@ End Function
                 Install-ProductionRunPresentationProbe
                 Install-ProductionRunPolicyProbe
             }
-            if($RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly){
+            if($RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunPresentation.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunFault.ps1')
                 Install-ProductionRunPresentationProbe
@@ -1276,9 +1279,13 @@ End Function
                     . (Join-Path $PSScriptRoot 'Slice4beProductionRunStock.ps1')
                     Install-ProductionRunStockProbe
                 }
-                if($RunLocalWorksheetOnly){
+                if($RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheet.ps1')
                     Install-ProductionRunWorksheetProbe
+                }
+                if($RunLocalWorksheetOwnerOnly){
+                    . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheetOwner.ps1')
+                    Install-ProductionRunWorksheetOwnerProbe
                 }
             }
         }
@@ -1718,6 +1725,7 @@ End Function
             elseif($RunLocalYieldOnly){Test-ProductionRunFault $a $b -YieldOnly}
             elseif($RunLocalStockOnly){Test-ProductionRunFault $a $b -StockOnly}
             elseif($RunLocalWorksheetOnly){Test-ProductionRunFault $a $b -WorksheetOnly}
+            elseif($RunLocalWorksheetOwnerOnly){Test-ProductionRunFault $a $b -WorksheetOwnerOnly}
             else{Test-ProductionRunLocalActivity $a $b}
         }
         elseif($CheckProductionRunPresentation){Test-ProductionRunPresentation $a $b}

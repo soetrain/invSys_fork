@@ -421,17 +421,75 @@ normal closure and delayed zero Excel audit pass. Its expanded789 companion and
 independent paths, plus remaining shared/full-release gates, are not rerun here;
 the recorded frozen catalog23 acceptance remains separate from this candidate.
 
+## Worksheet Clear and Refresh owner baseline
+
+On the catalog24 candidate, `-WorksheetOwnerOnly` exercises both real Refresh
+handlers and Clear with their local surfaces present or unavailable. Controller
+`reports/runtime/production-run-local-controller/a6db581725d841118533048336893cc5`,
+result `reports/runtime/slice4be-production-run-worksheet-owner/555fc5547190439ebd46d7bb0f62e5da/red.json`,
+2026-10-01 08:07:08.5045527--08:08:50.3581007 UTC: **84 PASS/38 FAIL/122 checks**.
+Thirty-six failures are missing observations; two expose Clear's existing owner
+binding defect. All42 prior shared GREEN checks retain exact order; five compiles,
+canonical candidate pins, saved authority/operator bytes, unknown values/formulas,
+older records, settings restoration, normal cleanup and delayed zero Excel
+Application failures pass. Runtime source and static metrics are unchanged;
+367 repository PowerShell scripts parse.
+
+The fixture uses the supported Core Production surface and an Admin-seeded exact
+System_Key. It stages only the owned unsaved operator workbook, activates a decoy,
+and temporarily renames local surfaces. Both Refresh buttons preserve the real
+LOCAL owner's Boolean result: a missing invSys table returns False; ordinary
+success does not prove freshness and can retain cached data. Custom columns,
+formula and exact key survive all six cases; canonical entity values and saved
+authority remain unchanged. Ordinary Clear deletes generated chooser/palette
+tables and clears chooser/output/check contents as before.
+
+**Captured-owner defect:** with the operator's Production sheet unavailable,
+`BtnClearRecipeChooser` resolves an `OtherAddin` worksheet; ordinary Clear resolves
+`Captured`. The read-only probe observes the actual resolved Worksheet before
+cleanup. `ResolveBoundProductionWorkbook(requiredSheet)` rejects a bound workbook
+missing that sheet; `ResolveProductionWorkbook` searches elsewhere, then
+`SheetExists` can fall back to `ThisWorkbook`. This violates the existing captured
+workbook invariant and D18's missing-owner-surface rule. The two failing checks
+are `CLEAR.Missing.RealOwnerResultAndNotificationCount` and
+`CLEAR.Missing.OwnerUsesCapturedWorkbook` under `RunWorksheetOwner`. The eventual
+guard must prevent entering another workbook/add-in owner; a quiet Sub return is
+not successful completion. No broad resolver rewrite or message exception is
+approved by this diagnosis. RUN-UI-01 remains pending and separate.
+
+Only three notification calls are captured in memory by unsaved adapters; their
+owning work and handlers run normally. Notification counts are automated evidence,
+not native modal or visible operator acceptance. Raw reports and workbook names
+stay in memory; the diagnostic outputs only fixed target categories.
+
+Three incomplete fixture attempts are excluded: controller `18ffd54c0ce74cf2ad4590f9e314cf17`
+failed an exact notification seam before handler execution; `9e26b032a3c747509d838844ba125c21`
+and `3d761ac58b904d878e30c6a070df3b64` stopped during Clear staging because default
+row insertion would shift neighboring tables. Using the surface's reserved blank
+row with `AlwaysInsert:=False` corrected setup. All had normal preservation/cleanup
+and delayed zero Excel audits; the latter two compiled all five packages.
+The completed120-check diagnostic, controller `4bd5235e4ea14784a94f7361dc7c6d0f`,
+result `slice4be-production-run-worksheet-owner/94e693a7ddca45f5a96acd62caff272a/red.json`,
+was83 PASS/37 FAIL; the final122 retains those identities and adds the two explicit
+Clear owner-target checks. Its five compiles, preservation, normal cleanup and
+delayed audit also pass.
+
 ## Remaining gates
 
-Worksheet-branch tests must distinguish quiet helper return from successful owner
-completion: `mProduction.LoadRecipeChooser` and `BtnClearRecipeChooser` are Subs,
-and the scale branch subsequently scales/prepares local tables. The former reads
+Preserve the six worksheet-owner cases and fix the captured-owner breach through
+the actual handler. Worksheet Scale tests must distinguish quiet helper return
+from successful owner completion: `mProduction.LoadRecipeChooser` is a Sub,
+and the scale branch subsequently scales/prepares local tables. That helper reads
 the released Design/BOM bridge, while the reusable Run loader reads released
 Recipe graphs and Process versions. This source audit does not establish a
 runtime compatibility defect or authorize changing either algorithm. Protect
 D14 unknown columns around generated-table rebuild and D15's no-fallback rule
 through actual handlers before proposing any repair. A missing fixture or modal
 test setup failure is not behavioral RED.
+
+Load Recipe itself always calls the released reusable loader; the worksheet
+reload helper is reached by non-reusable Apply Scale. Do not invent a separate
+worksheet Load-button branch from the helper's name.
 
 Preserve every established presentation baseline identity through GREEN. Add the
 other seven owner behaviors and complete
