@@ -621,6 +621,53 @@ The ignored diagnostic wrapper now rejects absent bounded completion and failed
 inner reports; its predicate is checked against the retained failed and passing
 diagnostics. These tooling checks are not behavioral product RED/GREEN.
 
+Further bounded timing comparisons preserve the original prefix and packages:
+
+- A 10-second delay after package loading, with no observer, injected VBA or
+  explicit compilation, passes the prefix and all five edit/export facts:
+  `reports/runtime/assignment-editexport-prefix-diagnostic/ffa99b26d8484419b454a909e3a7b82e`,
+  2026-10-01 05:30:14.6866962--05:32:12.6654389 UTC. The measured delay is
+  10.0106046 seconds. Normal unassisted closure, settings/packages/validator
+  preservation and delayed Excel audit pass. Offline generation uniquely inserts
+  the delay and verifies restored original statements, parse safety and
+  credentials inherited only in memory. This is diagnostic, not a runtime fix.
+- A fresh control without that delay or instrumentation fails at
+  `mProduction.RunProductionOutputRegulationActionContractTest`, with RPC800706BE:
+  `reports/runtime/assignment-editexport-prefix-diagnostic/18a68830e2ac4ff2a8e319260991521f`,
+  05:32:40.5061205--05:33:07.6149494 UTC. Windows records EXCEL/ntdll/c0000028,
+  offset12d2f, at05:33:03.1969622 UTC. This moves the failure boundary beyond
+  batch scale, without localizing it inside the callback. Packages/settings/
+  validator are preserved and no Excel process remains; crash cleanup is not
+  normal acceptance. The wrapper correctly rejects absent bounded completion.
+- Read-only Excel.Ready polling before each original dispatch also fails at that
+  output-regulation callback:
+  `reports/runtime/assignment-editexport-prefix-diagnostic/da5f21c3b25e4a738cd5ab6746a6554f`,
+  05:35:24.7099824--05:35:52.2428966 UTC; EXCEL/ntdll/c0000028, offset12d2f,
+  at05:35:47.6091737 UTC. All 14 dispatches report Ready on their first read;
+  no readiness wait occurs. The packages, settings and validator are preserved.
+  The five-case offline wrapper check proves busy/unavailable polling, invalid/
+  exhausted refusal, unchanged result/arguments and no retry of a failed command:
+  `reports/runtime/assignment-prefix-ready-offline/8ffdea49c4854c9daa8443f795d8d0c0/verification.json`.
+  Workbook/argument values are omitted from readiness receipts. This rejects
+  readiness polling as a sufficient explanation or fix for the observed failure.
+
+- Moving the 10-second delay to immediately before output regulation also passes
+  the complete bounded prefix and all five edit/export facts, with no initial
+  delay, readiness probe, observer, injected VBA or explicit compilation:
+  `reports/runtime/assignment-editexport-prefix-diagnostic/da9d1a7a9f3d4d5dabb7cadbb8dc5ca9`,
+  05:37:33.8382515--05:39:29.1612306 UTC. The measured late delay is 10.0025773
+  seconds. Unassisted closure, settings/packages/validator preservation and
+  delayed Excel audit pass. The pause need not occur before all callbacks to
+  produce a passing diagnostic; startup-only causation is not established.
+
+These comparisons strengthen a timing hypothesis without establishing causation.
+They do not authorize a startup delay or compilation requirement in the operator
+contract. Native failures are excluded diagnostic evidence, not product RED or
+desktop error5. No runtime/source/package or normative change is made. Next use
+the existing metadata-only native observer at the later failing boundary to seek
+a fault stack with less initial timing disturbance; record its observer effect
+and do not equate an observed pass with repair. Do not collect memory dumps.
+
 Full reusable171/replay37 remain open. Do not repeat full runs merely to obtain a
 pass. Investigate the differing observed/unobserved behavior and establish
 unassisted, uninstrumented full evidence before closing this regression gate.
