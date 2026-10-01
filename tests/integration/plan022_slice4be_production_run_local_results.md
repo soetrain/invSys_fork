@@ -84,6 +84,82 @@ reported no new Win32 error5; it does not guarantee future unlocked access.
   unassisted closure, preservation and delayed zero-failure audit pass. Do not
   repeat the colon form for no-argument procedure calls in VBA adapters.
 
+## Seven-control reusable baseline
+
+The seven-control reusable baseline is protected through
+`Test-Slice4beProductionRunLocal.ps1`, `Slice4beProductionRunLocalProbe.ps1` and
+`Slice4beProductionRunLocalActivity.ps1`. Admin Generate Warehouse/Seed supplies
+real inventory; actual Process/Recipe Save/Release supplies released definitions.
+The tests invoke Load, Scale, Clear, Loader/Manager Refresh and List/Tree Apply
+unchanged. They cover scale limits, reset of prior allocation/actual-output/note
+state, false-load clearing, allocation quantity precedence, single-row selection,
+palette refill, input/location/requirement refusals and captured-context guards.
+The completed-node scale refusal uses explicitly synthetic local state; it is
+not evidence of completing a Process or applying inventory events. Worksheet
+branches, multiple-key bucket expansion, full policy/fault/yield and paired-path
+coverage remain required. No runtime implementation is changed.
+
+First seven-control attempt is excluded: controller
+`reports/runtime/production-run-local-controller/4350b735ccc14405bb566769dc57c56a`,
+result `reports/runtime/slice4be-production-run-local/013b5feff05f4bf6aea1e35f96ea75d6/red.json`,
+2026-10-01 06:17:08.7487641--06:25:26.0073287 UTC. Its460 unique checks contain
+131 PASS/329 FAIL, including two harness/cleanup failures. All33 measured owner
+behavior cases pass before the failure; this partial observation is not protecting
+RED. Invoking a retained form reference during repeated closed-workbook cases
+raised VBA80010007 and RPC800706BE. Windows Application1000 at06:24:02.3256648 UTC
+records c0000005, with1001 at06:24:13.8035447. These are not desktop Win32 error5.
+The owned End action and closing three verified, saved temporary-fixture recovery
+workbooks without saving are assisted cleanup. Settings/packages were preserved
+and Excel exited; final canonical-authority preservation was not reached/proven.
+
+The corrected fixture follows the established Assignment/worksheet native-lifetime
+pattern: show the actual form, measure visibility and exact workbook closure,
+invoke the handler through an outer trapped adapter only if the form survives,
+and record dismissal as no handler invocation. Independently retain the typed
+closed-binding check, in-memory owner state, disk bytes and activity counts.
+Cache fixture identities before disposal and release the old reference before
+opening the next workbook. `-ClosedDiagnostic` exercises only that boundary and
+cannot substitute for the complete seven-control baseline. No native-lifetime
+or broader reusable-crash repair is claimed.
+
+The narrow closure diagnostic, controller
+`reports/runtime/production-run-local-controller/ed6efd93ba594c09a73003d33b06603d`,
+result `reports/runtime/slice4be-production-run-local-closed/155320e9e9334bf798c7ee4925ac0f2a/red.json`,
+2026-10-01 06:27:29.7044899--06:29:44.9533729 UTC, has84 PASS/5 expected FAIL/89
+unique checks. SCALE, LOADER_REFRESH and ALLOCATE survived closure and entered
+their actual handlers without adapter errors; the other four forms were dismissed
+and their handlers were not invoked. Owner mutation/refusal guards account for
+the five failures. Five compiles, preservation, unassisted closure and delayed
+zero Excel Application failures pass. This was a fixture diagnostic only.
+
+The full baseline additionally selects the actual List/Tree Run page before each
+closure. Controller
+`reports/runtime/production-run-local-controller/2b5df5badbba45019b981d281d216d23`,
+result `reports/runtime/slice4be-production-run-local/4e9de4535352471483dbb279664df653/red.json`,
+2026-10-01 06:31:20.2375897--06:36:51.0284396 UTC: **171 PASS/332 expected FAIL/503
+unique checks**. All33 existing owner cases and42 prior shared GREEN identities
+in exact order pass. Failures are seven absent metadata definitions,264 absent
+observation/terminal checks,14 missing loading/busy guards,40 changed-context
+mutation/refusal checks and seven surviving-form closed-context guard checks.
+The two Target allocation cases already preserve state through existing owner
+validation; their missing explicit context refusal still fails independently.
+
+All seven native closure receipts prove visible Run pages, exact captured-book
+closure and preserved decoy. LOAD, CLEAR, LOADER_REFRESH and ALLOCATE survived
+and entered their handlers with adapter error0. SCALE, MANAGER_REFRESH and
+TREE_ALLOCATE were dismissed, so no handler invocation is claimed for them.
+Native lifetime varies between runs; dismissal is never counted as a handler
+test. All saved authority/operator bytes, unknown values/formula and older
+activity records remain unchanged. Five compiles, canonical frozen package pins,
+settings/package preservation, normal unassisted closure and delayed zero Excel
+Application1000/1001/1002 failures are verified in the controller's
+`verification.json`. Runtime source/builds remain unchanged. This protects the
+seven reusable branches, not worksheet branches or the full nine-control gate.
+
+Static `reports/runtime/run-local-baseline-static-01` retains280 components,
+6150 procedures,135006 lines,9 literal/45 unresolved dynamic calls,190 duplicate
+bodies and28 non-growing caps; three schemas and359 script parses pass.
+
 ## Remaining gates
 
 Preserve every established presentation baseline identity through GREEN. Add the
