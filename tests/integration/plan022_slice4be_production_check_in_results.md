@@ -1,5 +1,47 @@
 # Slice4be Production Check In correctness and observations
 
+## Unreadable-policy recovery and additional owner refusals
+
+Test-only expansion,2026-10-01 UTC: unchanged activity03 passes629/629, retaining
+all525 prior ordered identities/PASS results and adding104. Controller
+`production-run-local-controller/6378093432bb4cd4901541dd6cda623b`, result
+`slice4be-production-check-in-activity/54f2fb27415246d291b449f08933a61a/green.json`,
+22:52:41.7946845-23:09:29.1887899 UTC. Shared42, five instrumented packaged compiles,
+canonical package pins, settings restoration, unassisted shutdown and the delayed
+Application1000/1001/1002 audit with zero Excel failures pass. Shutdown outlasted
+the GREEN output; the owning controller was retained until Excel exited normally.
+
+Four additional actual-handler refusals contribute49 checks. Insufficient reusable
+allocation leaves the owner unchecked and its note unfrozen; its ambiguous false
+owner result is FAILED under D18. Missing/unknown worksheet keys are REJECTED;
+a missing managed identity header is FAILED. Existing wording, check staging,
+canonical entities and guards are preserved. Each real REQUESTED/result pair is
+redacted, integrity checked and nonterminal, with empty source references.
+
+The terminal fixture adds an unreadable saved-policy version after real REQUESTED
+and successful owner work in each staging mode, contributing55 further checks.
+Only REQUESTED remains and the two-entry unfinished journal cannot claim completion.
+Actual Viewer Refresh shows the invalid-policy notice and disabled Stop control.
+After policy availability is restored in the same live session, actual Refresh
+and Stop close the original run as Incomplete/UNFINISHED_ACTIONS with an intact
+three-entry chain. This is not restart/resumption or reconstruction of evidence.
+After real Admin publication, the ordinary reader's actual expectation/Evaluate
+handlers return Incomplete/CAPTURE_INCOMPLETE against the exact original journal,
+without matched completion or Domain sources. All earlier interruption cases and
+all preservation checks remain GREEN. No immediate closure on unreadable policy
+was invented as a new architectural requirement or implementation fix.
+
+Ten new captures were individually reviewed: four owner refusals, two successful
+Check In/invalid-policy notices, two Viewer unavailability states and two incomplete
+recovery diagnostics. Messages are legible; long Production fields still clip.
+Previously established captures were regenerated but not additionally reviewed in
+this run. Raw reports/images remain ignored. `check-in-recovery-static-01` retains
+290 components/6175 procedures/135522 lines,9 literal/45 unresolved calls,190
+duplicate candidates and28 non-growing module caps; three schemas/376 parses pass.
+No new runtime change or product RED is claimed. Existing same-hash build/smoke/
+layout/live-role/full-chain evidence was not rerun. Remaining Run controls,
+multiline/layout and full human/NAS Release1 acceptance remain open.
+
 ## Post-REQUESTED policy and terminal-write interruptions
 
 Test-only expansion,2026-10-01 UTC: unchanged activity03 passes525/525, retaining
@@ -49,9 +91,9 @@ restored settings/packages, closed Excel and passed its delayed zero audit.
 The final fixture retains the form until rebinding and uses native row copying.
 No new runtime correction or new behavioral RED is claimed; existing D18
 RED/GREEN and same-hash activity03 build/smoke/layout/live-role/full-chain evidence
-remain applicable and were not rerun here. Unreadable policy after REQUESTED,
-additional owner refusals, remaining Run controls, multiline/layout and full
-human/NAS Release1 acceptance remain open.
+remain applicable and were not rerun here. Unreadable-policy recovery and four
+additional owner refusals were subsequently verified above. Remaining Run controls,
+multiline/layout and full human/NAS Release1 acceptance remain open.
 
 ## Optional policy and unavailable-store acceptance
 

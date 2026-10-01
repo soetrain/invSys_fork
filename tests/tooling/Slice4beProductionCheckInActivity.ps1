@@ -129,15 +129,18 @@ function Test-ProductionCheckInActivity($Fixture,$Other) {
         foreach($case in @(
             @{Name='ReusableSuccess';Mode='Selected';Outcome='STAGED';Checked=$true},
             @{Name='NoProcess';Mode='NoProcess';Outcome='REJECTED';Checked=$false},
-            @{Name='Nested';Mode='Selected';Outcome='STAGED';Checked=$true}
+            @{Name='Nested';Mode='Selected';Outcome='STAGED';Checked=$true},
+            @{Name='Insufficient';Mode='Insufficient';Outcome='FAILED';Checked=$false}
         )){
             if(-not [bool](Probe 'CheckBaselineReusableStage' @($case.Mode))){throw 'Reusable fixture unavailable; not product RED.'}
             if($case.Name -ceq 'Nested'){[void](Probe 'CheckBaselineArmNested')}
+            if($CaptureEvidence -and $case.Name -ceq 'Insufficient'){[void](Probe 'RunLocalShowAndCapture' @($book.Name,'CHECK_IN'))}
             $before=Files;$label='CheckInActivity.'+$case.Name
             Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CheckBaselineAct' @('')))
             Check ($label+'.IndependentOwnerResult') ([bool](Probe 'CheckBaselineReusableResult' @($case.Checked)))
             Check ($label+'.GuardsRestored') ([bool](Probe 'CheckBaselineGuards'))
             Pair $before $case.Outcome $label
+            if($CaptureEvidence -and $case.Name -ceq 'Insufficient'){CaptureOwnedFormByCaptionEvidence 'Production' 'check-in-insufficient-refusal.png'}
             if($case.Name -ceq 'Nested'){Check ($label+'.OnlyOneOwnerEntry') ([int](Probe 'CheckBaselineOwnerEntries') -eq 1)}
             if($case.Name -ceq 'ReusableSuccess'){
                 [void](Probe 'CheckActivityUnselect')
@@ -186,6 +189,23 @@ function Test-ProductionCheckInActivity($Fixture,$Other) {
         Check 'CheckInActivity.MissingColumns.ActualHandlerReturned' ([bool](Probe 'CheckBaselineAct' @('')))
         Check 'CheckInActivity.MissingColumns.StagingPreserved' ([string](Probe 'CheckBaselineWorksheetState') -ceq $state)
         Pair $before 'FAILED' 'CheckInActivity.MissingColumns'
+        foreach($mode in @('MissingKey','UnknownKey','MissingIdentityHeader')){
+            if(-not [bool](Probe 'CheckBaselineWorksheetStage' @($selectedKey,$canary))){throw 'Owner-refusal worksheet prerequisite unavailable; not product RED.'}
+            [void](Probe 'CheckBaselineWorksheetInvalid' @($mode))
+            $state=[string](Probe 'CheckBaselineWorksheetState');$before=Files;$label='CheckInActivity.Refusal.'+$mode
+            [void](Probe 'CheckBaselineResetOwnerEntries')
+            if($CaptureEvidence){[void](Probe 'RunLocalShowAndCapture' @($book.Name,'CHECK_IN'))}
+            $decoy.Activate()
+            Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CheckBaselineAct' @('')))
+            Check ($label+'.OwnerEnteredOnce') ([int](Probe 'CheckBaselineOwnerEntries') -eq 1)
+            Check ($label+'.StagingPreserved') ([string](Probe 'CheckBaselineWorksheetState') -ceq $state)
+            Check ($label+'.NoSuccessStatus') ([bool](Probe 'CheckBaselineWorksheetFact' @('NoSuccessStatus')))
+            Check ($label+'.GuardsRestored') ([bool](Probe 'CheckBaselineGuards'))
+            Check ($label+'.CanonicalEntitiesPreserved') ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockSourcePreservedForTest'))
+            $outcome=if($mode -ceq 'MissingIdentityHeader'){'FAILED'}else{'REJECTED'}
+            Pair $before $outcome $label
+            if($CaptureEvidence){CaptureOwnedFormByCaptionEvidence 'Production' ('check-in-refusal-'+$mode.ToLowerInvariant()+'.png')}
+        }
         SelectTarget $Fixture 'config-reader'
         [void](Probe 'CheckBaselineReopen' @($book.Name))
         foreach($mode in @('Reusable','Worksheet')){

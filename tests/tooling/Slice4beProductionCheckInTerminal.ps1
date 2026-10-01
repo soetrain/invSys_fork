@@ -17,7 +17,7 @@ Public Sub CheckTerminalBoundary()
     kind = mTerminalKind: mTerminalKind = "": mTerminalHits = mTerminalHits + 1
     context = modActivity.CaptureContext()
     Set fs = CreateObject("Scripting.FileSystemObject")
-    If kind = "PolicyChanged" Then
+    If kind = "PolicyChanged" Or kind = "PolicyUnreadable" Then
         fs.CopyFile mTerminalCandidate, mTerminalConfig, True
     ElseIf kind = "StoreUnavailable" Then
         fs.MoveFolder mTerminalStore, mTerminalStore & "-terminal-held"
@@ -47,6 +47,8 @@ Public Function CheckTerminalMessageForTest(ByVal kind As String) As Boolean
     Dim notice As String
     If kind = "PolicyChanged" Then
         notice = "Tracking unavailable: the tracking policy changed during this action."
+    ElseIf kind = "PolicyUnreadable" Then
+        notice = "Tracking unavailable: the saved tracking policy is invalid."
     ElseIf kind = "StoreUnavailable" Then
         notice = "Tracking unavailable: the training record could not be saved."
     Else
@@ -83,11 +85,12 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
     $owned=[IO.Path]::GetFullPath($runRoot).TrimEnd('\')+'\'
     $root=[IO.Path]::GetFullPath($Fixture.Root).TrimEnd('\')+'\'
     $held=$activityRoot+'-terminal-held';$candidate=Join-Path $Fixture.Root 'check-in-terminal-policy.xlsb'
+    $invalidCandidate=Join-Path $Fixture.Root 'check-in-terminal-invalid-policy.xlsb'
     if(-not $root.StartsWith($owned,[StringComparison]::OrdinalIgnoreCase)){throw 'Terminal fixture escaped the owned controller root.'}
-    foreach($file in @($Fixture.Config,$activityRoot,$held,$candidate)){
+    foreach($file in @($Fixture.Config,$activityRoot,$held,$candidate,$invalidCandidate)){
         if(-not [IO.Path]::GetFullPath($file).StartsWith($root,[StringComparison]::OrdinalIgnoreCase)){throw 'Terminal path escaped the disposable fixture.'}
     }
-    if((Test-Path -LiteralPath $held) -or (Test-Path -LiteralPath $candidate)){throw 'Preserve existing terminal fixture artifacts.'}
+    if((Test-Path -LiteralPath $held) -or (Test-Path -LiteralPath $candidate) -or (Test-Path -LiteralPath $invalidCandidate)){throw 'Preserve existing terminal fixture artifacts.'}
     $original=[IO.File]::ReadAllBytes($Fixture.Config);$originalHash=Hash $Fixture.Config
     $otherPins=RestartPins $Other.Root;$runs=@()
     try{
@@ -108,20 +111,23 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
             }
             if($latest -lt 1){throw 'Saved capture policy required before fault setup.'}
             $row=$headers.ListRows.Add()
-            $headers.ListRows.Item($source).Range.Copy($row.Range)
+            [void]$headers.ListRows.Item($source).Range.Copy($row.Range)
             $row.Range.Cells.Item(1,$pv).Value2=[double]($latest+1)
+            $newPolicyRow=$headers.ListRows.Count
             $count=$controls.ListRows.Count
             for($i=1;$i -le $count;$i++){
                 if([int]$controls.ListRows.Item($i).Range.Cells.Item(1,$cv).Value2 -eq $latest){
                     $row=$controls.ListRows.Add()
-                    $controls.ListRows.Item($i).Range.Copy($row.Range)
+                    [void]$controls.ListRows.Item($i).Range.Copy($row.Range)
                     $row.Range.Cells.Item(1,$cv).Value2=[double]($latest+1)
                 }
             }
             $cfg.SaveCopyAs($candidate)
+            $headers.ListRows.Item($newPolicyRow).Range.Cells.Item(1,$headers.ListColumns.Item('SchemaVersion').Index).Value2=999.0
+            $cfg.SaveCopyAs($invalidCandidate)
         }finally{$cfg.Close($false)}
         Write-Output 'Check In terminal fault policy fixture prepared.'
-        foreach($kind in @('PolicyChanged','StoreUnavailable')){
+        foreach($kind in @('PolicyChanged','StoreUnavailable','PolicyUnreadable')){
             foreach($mode in @('Reusable','Worksheet')){
                 RestoreConfig $enabled
                 SelectTarget $Fixture 'config-producer';[void](Probe 'CheckBaselineReopen' @($Book.Name))
@@ -136,7 +142,8 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
                 Write-Output ($label+': invoking actual Check In after recording Start.')
                 [void](Probe 'CheckBaselineResetOwnerEntries')
                 [void](Probe 'RunLocalShowAndCapture' @($Book.Name,'CHECK_IN'));$Decoy.Activate()
-                [void](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckTerminalArm' @($kind,$Fixture.Config,$candidate,$activityRoot))
+                $selectedPolicy=if($kind -ceq 'PolicyUnreadable'){$invalidCandidate}else{$candidate}
+                [void](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckTerminalArm' @($kind,$Fixture.Config,$selectedPolicy,$activityRoot))
                 try{
                     Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CheckBaselineAct' @('')))
                     Check ($label+'.ExactlyOneTerminalFault') ([int](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckTerminalHits') -eq 1)
@@ -157,17 +164,32 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
                     RestoreStore
                 }
                 $policy=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Policy' @('PRODUCTION_RUN_CHECK_IN'))
-                Check ($label+'.ExpectedValidPolicyVersion') ($policy -ceq ('True|True|True|'+$(if($kind -ceq 'PolicyChanged'){$latest+1}else{$latest})))
+                if($kind -ceq 'PolicyUnreadable'){
+                    Check ($label+'.UnreadablePolicyObserved') ($policy -ceq 'False|False|False|0')
+                }else{Check ($label+'.ExpectedValidPolicyVersion') ($policy -ceq ('True|True|True|'+$(if($kind -ceq 'PolicyChanged'){$latest+1}else{$latest})))}
                 $records=@(Get-ChildItem -LiteralPath $activityRoot -File -Filter '*.json'|Where-Object{-not $before.ContainsKey($_.Name)}|ForEach-Object{[IO.File]::ReadAllText($_.FullName)|ConvertFrom-Json})
                 $valid=$records.Count -eq 1
                 if($valid){$r=$records[0];$valid=$r.ControlId -ceq 'PRODUCTION_RUN_CHECK_IN' -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.OutcomeCode -ceq 'REQUESTED' -and $r.UserId -ceq 'config-producer' -and $r.SequenceId -ceq $starts[0].SequenceId -and $r.Ordinal -eq 1 -and $r.PolicyVersion -eq $latest -and $r.CatalogVersion -eq 25 -and @($r.SourceEventRefs).Count -eq 0}
                 Check ($label+'.OnlyOriginalRequestedNoFalseTerminal') $valid
                 Check ($label+'.PreviousActivityImmutable') (PinsRetained $before)
+                if($kind -ceq 'PolicyUnreadable'){
+                    $pending=@(RecordingJournal $starts[0].SequenceId)
+                    Check ($label+'.UnfinishedJournalCannotClaimCompletion') ($pending.Count -eq 2 -and @($pending|Where-Object Lifecycle -CNE 'Recording').Count -eq 0 -and (JournalChain $starts[0].SequenceId 2))
+                    Check ($label+'.ActualViewerRefreshWhileUnreadable') ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('Refresh','')))
+                    Check ($label+'.UnavailablePolicyVisibleAndStopDisabled') ((RecordingStatus) -ceq 'Tracking unavailable: the saved tracking policy is invalid.' -and (RecordingControl 'Stop Recording') -ceq 'True|False')
+                    CaptureOwnedFormByCaptionEvidence ('Viewer - '+$Fixture.Warehouse) ('check-in-unreadable-policy-viewer-'+$mode.ToLowerInvariant()+'.png')
+                    # Availability recovery cannot supply the missing terminal.
+                    RestoreConfig $enabled
+                    Check ($label+'.ActualViewerRefreshAfterRecovery') ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('Refresh','')))
+                    Check ($label+'.RecoveredStopDelivered') ((RecordingControl 'Stop Recording' 'Click') -ceq 'DELIVERED')
+                    Check ($label+'.StopReportsIncomplete') ((RecordingStatus).StartsWith('Incomplete evidence:'))
+                }
                 $closed=@(RecordingJournal $starts[0].SequenceId|Where-Object RecordType -CEQ 'Close')
-                $reason=if($kind -ceq 'PolicyChanged'){'POLICY_CHANGED'}else{'TRACKING_UNAVAILABLE'}
+                $reason=if($kind -ceq 'PolicyChanged'){'POLICY_CHANGED'}elseif($kind -ceq 'PolicyUnreadable'){'UNFINISHED_ACTIONS'}else{'TRACKING_UNAVAILABLE'}
                 $valid=$closed.Count -eq 1
                 if($valid){$c=$closed[0];$valid=$c.Lifecycle -ceq 'Incomplete' -and $c.ReasonCode -ceq $reason -and $c.ActionCount -eq 1 -and $c.CreatedByUserId -ceq 'config-producer' -and @($c.Observations).Count -eq 1 -and $c.Observations[0].ActivityId -ceq $records[0].ActivityId -and $c.Observations[0].OutcomeCode -ceq 'REQUESTED'}
-                Check ($label+'.ExactIncompleteJournalWithoutStop') $valid
+                $closeCheck=if($kind -ceq 'PolicyUnreadable'){'.ExactIncompleteJournalAfterStop'}else{'.ExactIncompleteJournalWithoutStop'}
+                Check ($label+$closeCheck) $valid
                 Check ($label+'.IncrementalJournalChain') (JournalChain $starts[0].SequenceId 3)
                 if(-not $valid){throw 'Recording interruption contract failed; inspect focused behavioral checks.'}
                 $runs+=@{Label=$label;Journal=$closed[0]}
@@ -177,7 +199,7 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
             }
         }
         $authority=@{}
-        foreach($file in Get-ChildItem -LiteralPath $Fixture.Root -Recurse -File|Where-Object{$_.Extension -in '.xlsb','.xlsm' -and $_.Name -notlike '*.Snapshot.*' -and $_.FullName -ine $candidate -and $_.FullName -ine $Fixture.Config -and $_.Name -notlike '~$*'}){$authority[$file.FullName]=Hash $file.FullName}
+        foreach($file in Get-ChildItem -LiteralPath $Fixture.Root -Recurse -File|Where-Object{$_.Extension -in '.xlsb','.xlsm' -and $_.Name -notlike '*.Snapshot.*' -and $_.FullName -ine $candidate -and $_.FullName -ine $invalidCandidate -and $_.FullName -ine $Fixture.Config -and $_.Name -notlike '~$*'}){$authority[$file.FullName]=Hash $file.FullName}
         [void](Probe 'CloseDesigner');SelectTarget $Fixture
         if(-not [bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest')){throw 'Owning publication unavailable.'}
         SelectTarget $Fixture 'config-reader';OpenRecordingViewer
@@ -209,6 +231,7 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
         RestoreStore;[void](Probe 'CloseDesigner');CloseRecordingViewer
         RestoreConfig $original
         if(Test-Path -LiteralPath $candidate){Remove-Item -LiteralPath $candidate -Force}
+        if(Test-Path -LiteralPath $invalidCandidate){Remove-Item -LiteralPath $invalidCandidate -Force}
         SelectTarget $Fixture 'config-producer'
     }
     Check 'CheckInTerminal.OriginalConfigBytesRestored' ((Hash $Fixture.Config) -ceq $originalHash)
