@@ -1,6 +1,53 @@
-# Slice4be Production Check In correctness prerequisites
+# Slice4be Production Check In correctness and observations
 
-Latest test-only checkpoint,2026-10-01 UTC: native closure gate149/149 and routed
+## Observation contract and focused RED,2026-10-01 UTC
+
+Architecture v4.11 D18 specifies catalog25 `PRODUCTION_RUN_CHECK_IN` under its
+approved semantic-inheritance rule. Plan022, controls1.415 and coverage1.155 are
+synchronized. Runtime remains `2d49c97b`, catalog24, with no Check In observation.
+
+`Test-Slice4beProductionRunLocal.ps1 -DeployRoot deploy/validation-production-check-in-routed-01 -Phase RED -CheckInActivityOnly`
+passes77 and fails42 of119 unique checks. The42 failures are exactly the seven
+record assertions for each of reusable success, refusal after prior success,
+missing Process selection, nested entry, worksheet success and missing columns.
+All35 new independent owner/preservation checks and all42 ordered shared checks
+pass. Five packaged compiles pass; there is no harness exception. The real click
+handler returns the expected owner behavior while the required records are absent.
+The earlier successful checked/frozen state remains true during a later refused
+attempt, so that state cannot establish this attempt's STAGED outcome. Loading and
+busy entry suppress owner work/records; nested invocation reaches the owner once.
+The worksheet chooses the other real Receiving identity from the first bridge
+result; exact identity, custom values/formulas, headers and displayed columns pass.
+Canonical entities, saved authority and captured workbook bytes are preserved.
+
+- Controller: `reports/runtime/production-run-local-controller/7b8271a21e894232be2d1fac64192539`.
+- Result: `reports/runtime/slice4be-production-check-in-activity/340fdccdfdd04c8ba9f79a5f06bf9808/red.json`.
+- Start/end:19:32:29.6813287-19:34:54.4523430 UTC.
+- Five package pins match the routed01 baseline controller16088a7d; settings
+  restoration, normal unassisted cleanup and delayed zero native audit pass.
+
+Excluded setup run72637c5/381d8cff stopped before the worksheet handler because an
+unnecessary form reopen cleared its prepared worksheet source. Its60/29 result
+contains a harness exception and is not the final behavioral RED. Removing that
+reopen and selecting the other real source identity follows the established
+baseline. Its settings/packages/cleanup/delayed audit also pass; no runtime changed.
+
+No GREEN, new deployment, capture or user acceptance is claimed. Next implement
+typed current-attempt outcomes at actual owner boundaries and catalog25 tracking,
+then prove this119-check gate GREEN and retain the existing149/108/278 owner
+baselines. Interruption tests must distinguish an allowed FAILED terminal from a
+context change that correctly prevents any terminal write. Preserve the underlying
+owner/no-redirect assertions when adding observation-specific expectations.
+Policy/fault, recording/publication, independent Action Path readers and the wider
+packaged/live/layout/full-chain gates remain required.
+
+Final static evidence `reports/runtime/check-in-activity-red-static-02` preserves
+290 components,6176 procedures,135514 lines,9 literal/45 unresolved calls,190
+duplicate candidates and all28 non-growing oversized caps. Three schemas and374
+PowerShell parses pass, with zero runtime growth. Static01 preceded the fixture
+correction; static02 is the final tested-source checkpoint.
+
+Preceding test-only checkpoint,2026-10-01 UTC: native closure gate149/149 and routed
 gate108/108 pass on unchanged code `2d49c97b` and frozen routed01. They retain the
 previous59/87 checks and add eleven actual-handler read-return workbook closures.
 All eleven forms survive in these runs, with no reinitialization, later reads,

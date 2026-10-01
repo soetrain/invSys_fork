@@ -38,6 +38,7 @@ param(
     [switch]$RunCheckInBaselineOnly,
     [switch]$RunCheckInRoutedOnly,
     [switch]$RunCheckInClosedOnly,
+    [switch]$RunCheckInActivityOnly,
     [switch]$RunLocalContractOnly,
     [switch]$RunLocalPolicyOnly,
     [switch]$RunLocalFaultOnly,
@@ -509,6 +510,7 @@ if($CheckProductionDesignerActivity){
     if($RunPresentationPathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-presentation-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRunLocal){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalClosedDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local-closed/'+[guid]::NewGuid().ToString('N'))}
+    if($RunCheckInActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInClosedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInRoutedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-routed/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-baseline/'+[guid]::NewGuid().ToString('N'))}
@@ -1284,7 +1286,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionRunLocalActivity.ps1')
             Install-ProductionDesignReadProbe
             Install-ProductionRunLocalProbe
-            if($RunCheckInBaselineOnly -or $RunCheckInRoutedOnly -or $RunCheckInClosedOnly){
+            if($RunCheckInBaselineOnly -or $RunCheckInRoutedOnly -or $RunCheckInClosedOnly -or $RunCheckInActivityOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunStock.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheet.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInBaseline.ps1')
@@ -1293,6 +1295,10 @@ End Function
                 Install-ProductionRunWorksheetProbe
                 Install-ProductionCheckInBaselineProbe
                 Install-ProductionCheckInYieldProbe
+                if($RunCheckInActivityOnly){
+                    . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInActivity.ps1')
+                    Install-ProductionCheckInActivityProbe
+                }
                 if($RunCheckInClosedOnly -or $RunCheckInRoutedOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInClosed.ps1')
                     . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInClosedYield.ps1')
@@ -1775,7 +1781,8 @@ End Function
             if($CheckInventoryQueryReadOnly){try{Test-InventoryQueryReadOnly $b}finally{SelectTarget $a}}
         }
         elseif($CheckProductionRunLocal){
-            if($RunCheckInClosedOnly){Test-ProductionCheckInClosed $a $b}
+            if($RunCheckInActivityOnly){Test-ProductionCheckInActivity $a $b}
+            elseif($RunCheckInClosedOnly){Test-ProductionCheckInClosed $a $b}
             elseif($RunCheckInRoutedOnly){Test-ProductionCheckInRouted $a $b}
             elseif($RunCheckInBaselineOnly){Test-ProductionCheckInBaseline $a $b}
             elseif($RunAllocatePathsOnly){
