@@ -4373,19 +4373,18 @@ Private Sub CompleteProductionRun()
     Dim reusableReport As String
 
     If modProductionReusableRun.ReusableRunIsLoaded() Then
+        If ActiveRunProcess() = "" Then
+            ShowStatus "Choose one Process before Complete Run."
+            Exit Sub
+        End If
         If Not SyncReusableRunBatchNote(reusableReport) Then
             ShowStatus reusableReport
             Exit Sub
         End If
         If Not StageSelectedReusableActualOutput(True) Then Exit Sub
         ShowPersistencePending "Saving the reusable Process run to the warehouse server..."
-        If ActiveRunProcess() <> "" Then
-            If modProductionReusableRun.CompleteReusableProcess(ActiveRunProcess(), _
-                    ActiveRunLocation(), reusableReport) Then
-                ResetInventoryCache
-                RefreshReusableRunControls True
-            End If
-        ElseIf modProductionReusableRun.CompleteReusableRun(ActiveRunLocation(), reusableReport) Then
+        If modProductionReusableRun.CompleteReusableProcess(ActiveRunProcess(), _
+                ActiveRunLocation(), reusableReport) Then
             ResetInventoryCache
             RefreshReusableRunControls True
         End If

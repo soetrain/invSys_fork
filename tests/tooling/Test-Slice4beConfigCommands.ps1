@@ -35,6 +35,7 @@ param(
     [switch]$CheckProductionRunLocal,
     [switch]$RunLocalClosedDiagnostic,
     [switch]$RunLocalRefillDiagnostic,
+    [switch]$RunCompleteBaselineOnly,
     [switch]$RunCheckInBaselineOnly,
     [switch]$RunCheckInRoutedOnly,
     [switch]$RunCheckInClosedOnly,
@@ -275,6 +276,7 @@ if($RunLoadPathsOnly -and (-not $CheckProductionRunLocal -or -not $CaptureEviden
 if($RunAllocatePathsOnly -and (-not $CheckProductionRunLocal -or -not $CaptureEvidence -or @($RunRefreshPathsOnly,$RunClearPathsOnly,$RunLoadPathsOnly,$RunLocalRefillDiagnostic,$RunLocalClosedDiagnostic,$RunLocalContractOnly,$RunLocalPolicyOnly,$RunLocalFaultOnly,$RunLocalYieldOnly,$RunLocalStockOnly,$RunLocalWorksheetOnly,$RunLocalWorksheetOwnerOnly,$RunLocalWorksheetScaleOnly|Where-Object{$_}).Count)){throw 'Apply paths require a separate actual-handler gate and visible evidence.'}
 if($RunRefreshPathsOnly -and (-not $CheckProductionRunLocal -or -not $CaptureEvidence -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly -or $RunLocalWorksheetScaleOnly)){throw 'Refresh paths require a separate actual-handler gate and visible evidence.'}
 if(($RunCheckInBaselineOnly -or $RunCheckInRoutedOnly -or $RunCheckInClosedOnly) -and (-not $CheckProductionRunLocal -or (@($RunCheckInBaselineOnly,$RunCheckInRoutedOnly,$RunCheckInClosedOnly|Where-Object{$_}).Count -gt 1) -or @($RunAllocatePathsOnly,$RunRefreshPathsOnly,$RunClearPathsOnly,$RunLoadPathsOnly,$RunLocalRefillDiagnostic,$RunLocalClosedDiagnostic,$RunLocalContractOnly,$RunLocalPolicyOnly,$RunLocalFaultOnly,$RunLocalYieldOnly,$RunLocalStockOnly,$RunLocalWorksheetOnly,$RunLocalWorksheetOwnerOnly,$RunLocalWorksheetScaleOnly|Where-Object{$_}).Count)){throw 'Check In baseline requires a separate actual-handler gate.'}
+if($RunCompleteBaselineOnly -and (-not $CheckProductionRunLocal -or -not $CaptureEvidence -or @($RunCheckInPathsOnly,$RunCheckInActivityOnly,$RunCheckInBaselineOnly,$RunCheckInClosedOnly,$RunCheckInRoutedOnly,$RunAllocatePathsOnly,$RunRefreshPathsOnly,$RunClearPathsOnly,$RunLoadPathsOnly,$RunLocalRefillDiagnostic,$RunLocalClosedDiagnostic,$RunLocalContractOnly,$RunLocalPolicyOnly,$RunLocalFaultOnly,$RunLocalYieldOnly,$RunLocalStockOnly,$RunLocalWorksheetOnly,$RunLocalWorksheetOwnerOnly,$RunLocalWorksheetScaleOnly|Where-Object{$_}).Count)){throw 'Complete baseline requires a separate actual-handler gate and visible evidence.'}
 if($RunCheckInPathsOnly -and (-not $CheckProductionRunLocal -or -not $CaptureEvidence -or @($RunCheckInActivityOnly,$RunCheckInBaselineOnly,$RunCheckInClosedOnly,$RunCheckInRoutedOnly,$RunAllocatePathsOnly,$RunRefreshPathsOnly,$RunClearPathsOnly,$RunLoadPathsOnly,$RunLocalRefillDiagnostic,$RunLocalClosedDiagnostic,$RunLocalContractOnly,$RunLocalPolicyOnly,$RunLocalFaultOnly,$RunLocalYieldOnly,$RunLocalStockOnly,$RunLocalWorksheetOnly,$RunLocalWorksheetOwnerOnly,$RunLocalWorksheetScaleOnly|Where-Object{$_}).Count)){throw 'Check In paths require a separate actual-handler gate and visible evidence.'}
 if($CheckProductionRunLocal){
     $otherRunGates=@($PSBoundParameters.Keys|Where-Object{($_ -like 'CheckProduction*' -or $_ -like 'CheckProcessWorksheet*') -and $_ -notin @('CheckProductionRunLocal','CheckProductionDesignerActivity') -and [bool]$PSBoundParameters[$_]})
@@ -513,6 +515,7 @@ if($CheckProductionDesignerActivity){
     if($RunPresentationPathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-presentation-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRunLocal){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalClosedDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local-closed/'+[guid]::NewGuid().ToString('N'))}
+    if($RunCompleteBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-baseline/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInClosedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInRoutedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-routed/'+[guid]::NewGuid().ToString('N'))}
@@ -1290,7 +1293,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionRunLocalActivity.ps1')
             Install-ProductionDesignReadProbe
             Install-ProductionRunLocalProbe
-            if($RunCheckInPathsOnly -or $RunCheckInBaselineOnly -or $RunCheckInRoutedOnly -or $RunCheckInClosedOnly -or $RunCheckInActivityOnly){
+            if($RunCompleteBaselineOnly -or $RunCheckInPathsOnly -or $RunCheckInBaselineOnly -or $RunCheckInRoutedOnly -or $RunCheckInClosedOnly -or $RunCheckInActivityOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunStock.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheet.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInBaseline.ps1')
@@ -1299,6 +1302,10 @@ End Function
                 Install-ProductionRunWorksheetProbe
                 Install-ProductionCheckInBaselineProbe
                 Install-ProductionCheckInYieldProbe
+                if($RunCompleteBaselineOnly){
+                    . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteBaseline.ps1')
+                    Install-ProductionCompleteBaselineProbe
+                }
                 if($RunCheckInActivityOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInActivity.ps1')
                     Install-ProductionCheckInActivityProbe
@@ -1789,6 +1796,7 @@ End Function
                 . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
                 Test-ProductionInstructionPaths $a -RunCheckIn -CheckInMode $RunCheckInPathMode
             }
+            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b}
             elseif($RunCheckInActivityOnly){Test-ProductionCheckInActivity $a $b}
             elseif($RunCheckInClosedOnly){Test-ProductionCheckInClosed $a $b}
             elseif($RunCheckInRoutedOnly){Test-ProductionCheckInRouted $a $b}
