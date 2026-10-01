@@ -189,6 +189,34 @@ crash cleanup is not normal acceptance. No bounded-result success receipt exists
 The diagnostic wrapper's exit0/GeneratedReturned means the generated script
 returned; it must not be used as a success check when the inner report has failures.
 
+Two further bounded comparisons retain the original prefix through edit/export:
+
+- Unsaved fixed-label VBA tracing, with no native observer:
+  `reports/runtime/assignment-editexport-prefix-diagnostic/27da1f8a4eef419cb64339e1d27ed83f`,
+  2026-10-01 03:16:47.1950335--03:18:36.4041317 UTC. Offline placement verifies26
+  fixed stages, preserved original statements, case normalization, rejected
+  missing/duplicate anchors and an allowlist that rejects unknown labels before
+  writing. Live calibration rejects its sentinel. All26 stages plus Arm occur in
+  exact expected order: launcher and numeric checks return, followed by all
+  edit/export stages and its return. Four loaded projects compile. This diagnostic
+  changes unsaved VBA in memory; source/package files remain unchanged.
+- Explicit compilation only, with no injected VBA or native observer:
+  `reports/runtime/assignment-editexport-prefix-diagnostic/af4a213e433d4d44b2d779b68ac64447`,
+  2026-10-01 03:20:02.2087016--03:21:50.1102485 UTC. All four loaded compile commands
+  execute before the original prefix. Its aggregate and five edit/export facts
+  pass. No trace file or native-observer events are generated.
+
+Both comparisons preserve settings, package files and the original validator,
+close unassisted and pass the delayed Excel Application1000/1001/1002 audit. The
+failures do not reproduce under these conditions. This does not distinguish a
+compilation effect from timing or other intermittent causes, prove a repair, or
+establish cold uninstrumented acceptance. It does show that the native debugger
+and stage logger were not necessary for the compilation-only run to pass. No
+compile-before-use operator requirement or architecture change is introduced.
+The ignored diagnostic wrapper now rejects absent bounded completion and failed
+inner reports; its predicate is checked against the retained failed and passing
+diagnostics. These tooling checks are not behavioral product RED/GREEN.
+
 Full reusable171/replay37 remain open. Do not repeat full runs merely to obtain a
 pass. Investigate the differing observed/unobserved behavior and establish
 unassisted, uninstrumented full evidence before closing this regression gate.
