@@ -11,6 +11,92 @@ Run regression445 PASS/58 known Scale failures and worksheet257/257. These
 results do not establish Check In observations, comprehensive routed/closed-book
 interruptions, full populated-layout, native reusable, human or Release1 acceptance.
 Catalog24 and63/68 constructed-button wiring are unchanged.
+New tests on this unchanged candidate expose routed-read RED85/2 of87 and establish
+native closed-workbook entry59/59, with the limits below. No runtime fix is included.
+
+## Routed upstream-read protecting RED
+
+On the same frozen guards02 package, the separate actual-handler routed gate
+returns85 PASS/2 FAIL/87, preserving all42 shared checks in order and passing all
+five instrumented compiles. Controller
+`production-run-local-controller/f4d221434c8649bd85797312db188661`, result
+`slice4be-production-check-in-routed/96bcd82f3a2849e18381eff2dff5eff2/red.json`,
+2026-10-01 17:48:47.1813438--17:53:58.4237352 UTC. Settings, packages, saved
+authority, operator bytes and disposable authorization are preserved/restored;
+normal unassisted closure and delayed zero Excel Application1000/1001/1002 audit
+pass. This is meaningful D13 RED under the existing Architecture D18 rule.
+
+The fixture uses Admin Seed, actual Receiving, three saved/released Processes,
+a saved/released two-source Recipe and real Check In/Complete Run handlers to
+produce two distinct canonical upstream entities. The downstream positive Check
+In passes with both exact routed keys and no sink completion or new activity
+record. After the first real upstream quantity read, either sign-out or revoking
+only the disposable producer's current capability with the same session causes
+the handler to attempt a second read. These are the only failures. Interruptions
+at the second read pass. All four cases retain owner/projection state at the
+boundary, show refusal, restore guards and leave activity records unchanged.
+The diagnostic now counts attempts before reads, including reads that might fail
+before returning; it does not replace a read or the operator handler.
+
+`ValidateProcessRequirementsReady` currently omits the captured continuation
+inside its upstream loop. Required next correction: pass the existing action into
+that loop and check it immediately after each real upstream read, before another
+read, diagnostics or local mutation. This enforces D18; no new permission,
+algorithm, catalog entry or observation contract is approved by this evidence.
+The original278-check baseline must retain every prior GREEN after the correction.
+
+The positive routed capture was individually reviewed and hash-pinned in the
+result's `capture-review.json`: two completed sources, ready selected sink and two
+ROUTED inventory-check rows. Long names/identities clip. It is not an interruption
+refusal capture, human acceptance or full populated-layout acceptance.
+
+Two preceding fixture attempts are excluded from product RED. Controller0327c4
+stopped at first-source setup and required dismissal of its owned VBA error dialog;
+controllerc003a7 returned the narrowed setup failure normally. Both restored
+settings/packages, closed Excel and passed the delayed native audit. The fixture
+had assumed output ID `001`, which collided with a requirement ID; the real Add
+Output handler generated a different ID. The corrected adapter captures the real
+output ID from the released Process and uses it for both routing and exact-entity
+lookup. No identity or completion state is fabricated, and no runtime change was
+made to accommodate this fixture error. VBA errors here were not desktop error5.
+
+## Native closed-workbook entry coverage
+
+The separate frozen-guards02 entry gate passes59/59, including all42 ordered
+shared checks and five instrumented compiles. Controller
+`production-run-local-controller/799b635056584d8c91ceaa414c7ccd29`, result
+`slice4be-production-check-in-closed/8bfd5ff14dc14bcd83e96bd410a8bf01/green.json`,
+2026-10-01 17:58:54.7171481--18:00:52.0352252 UTC. Authority/operator/package bytes
+and settings are preserved; normal unassisted cleanup and delayed zero native
+audit pass. The controller retained its restoration snapshot while waiting for
+the final Excel process to exit; no termination was requested.
+
+Both native receipts show the actual Production form visible before closure and
+naturally dismissed afterward, exactly one captured workbook removed and the
+decoy still open. The captured binding is rejected and owner state is preserved.
+Neither handler is invoked after dismissal; no hidden form is recreated to invent
+an action opportunity. Surviving-form projection/guard assertions are conditional
+and do not certify a post-dismissal handler. These two receipts differ from the
+seven earlier Run-local surviving-form receipts; neither result is generalized
+over the other. Read-return workbook closure remains untested.
+
+The initial closed-entry controller138a34 is excluded: after its reusable case,
+the worksheet fixture reused an unsaved staging-sheet assumption across close/
+reopen and raised VBA9. Its owned error dialog was ended; settings/packages and
+normal final closure were preserved, with delayed zero native audit. The corrected
+test creates staging on the newly opened disposable workbook. No runtime or
+architecture change was made for that fixture error.
+
+Check In observation outcomes, runtime correction of the routed RED, read-return
+workbook closure and broader acceptance remain pending. The frozen package retains
+the previously recorded chain/live-role/smoke/layout/Run/worksheet regressions;
+these test-only additions do not represent a new implementation candidate.
+
+Final test-checkpoint static evidence, `check-in-routed-red-static-03`, retains
+290 components/6175 procedures/135506 lines,9 literal/45 unresolved calls,
+190 duplicate candidates and all28 non-growing oversized caps. Three JSON schemas
+and372 PowerShell parses pass. There is no runtime component/procedure/line growth.
+The original code0d624ae2 runtime remains the implementation authority for guards02.
 
 Architecture v4.11 D18, "Check In correctness prerequisites," clarifies existing
 D14 exact identity/header-extension, D15 selected-Process execution and D18

@@ -9,6 +9,7 @@ function Install-ProductionCheckInYieldProbe {
         $line=$hits[0]
         while($module.Lines($line,1).TrimEnd().EndsWith('_')){$line++;if($line -ge $end){throw 'Incomplete read-return anchor; not product RED.'}}
         $module.InsertLines($line+1,('    TestProductionDesigner.CheckYieldReturned "'+$Boundary+'", '+$Available))
+        $module.InsertLines($hits[0],'    TestProductionDesigner.CheckYieldBeforeRead')
     }
     After-CheckRead 'modProductionRunEntityReads' 'AvailableQuantity' 'entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge(' 'AvailableQuantity' 'IsArray(entities)'
     After-CheckRead 'modProductionRunEntityReads' 'IsNonCounted' 'entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge(' 'EntityKind' 'IsArray(entities)'
@@ -61,9 +62,11 @@ Public Sub CheckYieldArm(ByVal boundary As String, ByVal ordinal As Long, ByVal 
     mCheckYieldTarget = boundary: mCheckYieldOrdinal = ordinal
     mCheckYieldInterruption = interruption: mCheckYieldAuthPath = authPath
 End Sub
+Public Sub CheckYieldBeforeRead()
+    If mCheckYieldReached Then mCheckYieldLater = mCheckYieldLater + 1
+End Sub
 Public Sub CheckYieldReturned(ByVal boundary As String, ByVal available As Boolean)
     Dim beforeContext As String, denied As Boolean
-    If mCheckYieldReached Then mCheckYieldLater = mCheckYieldLater + 1
     If mCheckYieldTarget = "" Or boundary <> mCheckYieldTarget Then Exit Sub
     mCheckYieldSeen = mCheckYieldSeen + 1
     If mCheckYieldSeen <> mCheckYieldOrdinal Then Exit Sub
