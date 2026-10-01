@@ -1,5 +1,5 @@
 # D18 original handler observations and owning publication, before any evaluator edit.
-function Test-ProductionLifecyclePaths($Fixture) {
+function Test-ProductionLifecyclePaths($Fixture,[switch]$Assignment) {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')
@@ -24,15 +24,20 @@ function Test-ProductionLifecyclePaths($Fixture) {
         $sheet.Cells.Item(1,1).Value2='Operator Extra';$sheet.Cells.Item(2,1).Value2=$canary
         $book.SaveAs((Join-Path $runRoot 'lifecycle-path-operator.xlsb'),50)
         $decoy=$excel.Workbooks.Add();[void](Probe 'OpenDesigner' @($book.Name));[void](Probe 'RefreshDesigners')
-        $ready=[string](Probe 'LifecyclePrepare' @($canary))
-        if($ready -cnotmatch '^READY\|([^|]+)\|([^|]+)$'){throw 'Process preparation unavailable; not RED.'}
-        $processId=$Matches[1];$processVersion=$Matches[2]
+        if($Assignment){
+            if(-not [bool](Probe 'AssignmentPrepare' @($canary))){throw 'Assignment Process preparation unavailable; not RED.'}
+        }else{
+            $ready=[string](Probe 'LifecyclePrepare' @($canary))
+            if($ready -cnotmatch '^READY\|([^|]+)\|([^|]+)$'){throw 'Process preparation unavailable; not RED.'}
+            $processId=$Matches[1];$processVersion=$Matches[2]
+        }
         $before=@(if(Test-Path $journalRoot){Get-ChildItem $journalRoot -File -Filter '*.json'|ForEach-Object FullName})
         Check 'LifecyclePaths.ActualStart' ((RecordingControl 'Start Recording' 'Click') -ceq 'DELIVERED')
         $starts=@(Get-ChildItem $journalRoot -File -Filter '*.json'|Where-Object {$_.FullName -cnotin $before}|ForEach-Object {Get-Content $_.FullName -Raw|ConvertFrom-Json}|Where-Object RecordType -CEQ 'Start')
         if($starts.Count -ne 1){throw 'Actual recording start unavailable; not RED.'}
         $sequence=[string]$starts[0].SequenceId;$ordinal=0
         $actions=@(@('Process','Save','DRAFT'),@('Process','Release','RELEASED'),@('Recipe','Save','DRAFT'),@('Recipe','Release','RELEASED'),@('Recipe','Obsolete','OBSOLETE'),@('Process','Obsolete','OBSOLETE'))
+        if($Assignment){$actions=@(,@('Assignment','Save','DRAFT'))}
         foreach($action in $actions){
             $designer=$action[0];$verb=$action[1];$id='PRODUCTION_'+$designer.ToUpperInvariant()+'_'+$verb.ToUpperInvariant()
             if($designer -ceq 'Recipe' -and $verb -ceq 'Save'){
@@ -43,11 +48,12 @@ function Test-ProductionLifecyclePaths($Fixture) {
                 $queue=Join-Path $runRoot ('path-queue-'+$ordinal)
                 $writerMode=if($mode -ceq 'Confirmed'){'Observe'}else{$mode}
                 $ownerMode=if($mode -ceq 'Confirmed'){''}else{$mode}
+                if($Assignment){[void](Probe 'AssignmentStage' @('Normal'))}
                 [void](Run 'invSys.Core.xlam' 'modRoleEventWriter.LifecycleWriterFixtureForTest' @($queue,$writerMode,$Fixture.Warehouse))
                 [void](Probe 'LifecycleFaultMode' @($ownerMode))
                 $before=@(Get-Slice4beActivityFiles $Fixture);$decoy.Activate()
                 $policyBefore=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Policy' @($id));$configBefore=SavedHash $Fixture.Config
-                $returned=[string](Probe 'LifecycleAct' @($designer,$verb))
+                $returned=if($Assignment){$status=[string](Probe 'AssignmentAct' @('SAVE'));if($status.StartsWith('HANDLER_ERROR|')){'ERROR'}else{'RETURNED'}}else{[string](Probe 'LifecycleAct' @($designer,$verb))}
                 $writer=([string](Run 'invSys.Core.xlam' 'modRoleEventWriter.LifecycleWriterEvidenceForTest')).Split('|')
                 $owner=([string](Probe 'LifecycleFaultEvidence')).Split('|')
                 $reached=$returned -ceq 'RETURNED' -and $writer.Count -eq 5 -and $writer[1] -ceq '1'
@@ -55,7 +61,7 @@ function Test-ProductionLifecyclePaths($Fixture) {
                     'BeforeAppend'{$writer[2] -ceq 'False' -and $writer[3] -ceq 'True' -and $writer[4] -ceq 'False'}
                     'AfterAppend'{$writer[2] -ceq 'True' -and $writer[3] -ceq 'True' -and $writer[4] -ceq 'True'}
                     'Pending'{$writer[2] -ceq 'True' -and $writer[4] -ceq 'True' -and $owner[1] -ceq 'True'}
-                    'Confirmed'{$writer[2] -ceq 'True' -and [string](Probe 'LifecycleStatus' @($designer)) -ceq $action[2]}
+                    'Confirmed'{$writer[2] -ceq 'True' -and [string](Probe 'LifecycleStatus' @($(if($Assignment){'Process'}else{$designer}))) -ceq $action[2]}
                 }}
                 Check ($label+'.ActualOwningBoundary') $reached
                 if(-not $reached){throw 'Actual owning boundary unavailable; not evaluator RED.'}
@@ -86,9 +92,10 @@ function Test-ProductionLifecyclePaths($Fixture) {
         [void](Probe 'LifecycleFaultMode' @(''))
         Check 'LifecyclePaths.ActualStop' ((RecordingControl 'Stop Recording' 'Click') -ceq 'DELIVERED')
         $closed=@(RecordingJournal $sequence|Where-Object RecordType -CEQ 'Close')
-        $intact=$closed.Count -eq 1 -and $closed[0].Lifecycle -ceq 'Stopped' -and $closed[0].ActionCount -eq 24 -and (JournalChain $sequence 50)
+        $actionCount=$actions.Count*4
+        $intact=$closed.Count -eq 1 -and $closed[0].Lifecycle -ceq 'Stopped' -and $closed[0].ActionCount -eq $actionCount -and (JournalChain $sequence ($actionCount*2+2))
         if($intact){$intact=($closed[0].Observations.RecordId -join '|') -ceq ($original.RecordId -join '|')}
-        Check 'LifecyclePaths.TwentyFourActionsInOriginalOrder' $intact
+        Check $(if($Assignment){'LifecyclePaths.FourAssignmentActionsInOriginalOrder'}else{'LifecyclePaths.TwentyFourActionsInOriginalOrder'}) $intact
         if(-not $intact){throw 'Original journal unavailable; not evaluator RED.'}
         Check 'LifecyclePaths.UnknownOperatorColumnPreserved' ($sheet.Cells.Item(1,1).Value2 -ceq 'Operator Extra' -and $sheet.Cells.Item(2,1).Value2 -ceq $canary)
         $activityPins=ActivityPins;$journalPins=RestartPins $journalRoot

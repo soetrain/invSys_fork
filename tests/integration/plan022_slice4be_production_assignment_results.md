@@ -1,5 +1,120 @@
 # Slice4be Ingredients Assignment observations
 
+## Paired Assignment path evidence
+
+Test-only `-Paths` extends the shared independent-guide gate under the existing
+D18 contract. Runtime source and the frozen Assignment candidate are unchanged;
+the previously recorded349/789 RED/GREEN protects that implementation. No new
+runtime behavior or manufactured RED is claimed by these additional checks.
+
+Controller `reports/runtime/production-assignment-controller/ff096023ee554ee5aa28735508d74e30`,
+2026-10-01 01:18:02.3545701--01:38:58.8855900 UTC; result
+`reports/runtime/slice4be-production-assignment-paths/3b6928a8ef0343a4a234f63cc8c5cbd5/green.json`:
+**219/219 unique checks pass**, including five instrumented package compiles.
+Normal controller exit restores settings and preserves every frozen package.
+The delayed Application1000/1001/1002 audit finds zero Excel failures.
+
+Each of two independent recordings invokes this coherent twelve-action sequence:
+Refresh, Processes selection, Select Process, Ingredient Requirements selection,
+Select Requirement, Add Acceptable, Remove Row, Clear, Select Process,
+Select Requirement, Add Acceptable, Save Alternatives. Input adapters select
+existing released Process/requirement rows without resetting the draft between
+actions. The inventory-list item is a synthetic UI input; this is not an inventory
+allocation test. The owning save creates a real new DRAFT Process version with
+the staged ITEM_CODE alternative. Auth, Config and Inventory state is preserved.
+
+The gate verifies exact original pairs and journal order, independent activity
+and owning event identities, actual Admin publication, exact Event Detail selection,
+and both twelve-step conclusions. CommandCompleted uses the positive owner outcomes;
+SourceEventsApplied additionally retains the exact published Designs event and
+its line hash without inventing System_Key evidence. Each of the eight local
+controls separately concludes CommandCompleted but remains Incomplete for
+SourceEventsApplied. Optional navigation collection is explicitly enabled only
+in the disposable policy.
+
+The guide is authored from one original run with explicit expected intent, saved,
+then paired with the other run by a reader lacking ACTION_PATH_MAINT. How-To,
+Diagnostic and Compare both preserve that exact pair, all twelve authored
+instructions, original observed order, saved command-completion interpretation,
+and zero extra actions. Viewing preserves activity, journals, publication,
+saved authority and unknown operator-column/workbook bytes.
+
+Six ignored captures were visually reviewed: populated Assignment editor, exact
+Save Event Detail, standalone How-To, standalone Diagnostic, Compare both, and
+its diagnostic bottom. These are usable viewport captures, not a full visual
+review of every line. How-To shows instructions1-10 and the step11 heading;
+Diagnostic shows the first four original pairs. The bottom capture shows matched
+steps7-12, zero extra actions and all twelve identity mappings; its conclusion
+heading and matches1-6 remain outside the viewport. Full text/order is asserted
+by the handler gate. `visual-review.json` retains image hashes and these limits.
+Human acceptance remains open.
+
+Shutdown was delayed. Read-only samples at01:37:42.7686721 and01:38:35.8770657 UTC
+show Windows reporting Excel exited while retaining one busy cleanup thread and
+28408 handles. That entry disappeared and the original controller finished on its
+own. No Excel/worker termination, debugger intervention, process-filter workaround,
+or repository cleanup-guard change was used. This passes unassisted closure but
+does not establish a repair or cause for the observed shutdown delay. Desktop
+monitoring reported no error5. The initial standalone result verifier mistakenly
+wrapped PowerShell5's decoded JSON array; correcting that verifier confirmed all
+219 unique passes and did not change or rerun the product gate.
+
+Static evidence `reports/runtime/assignment-paths-static-01` retains280 components,
+6150 procedures,135006 lines,9 literal/45 unresolved dynamic calls,190 duplicate
+bodies and28 non-growing size caps. Three schemas validate and354 scripts parse.
+The separate source gate is recorded below. Broader regressions, layout, live
+roles, full Release1 chain, reusable Production and human acceptance remain open.
+
+## Save source-failure paths
+
+The `-SourcePaths` companion reuses the existing lifecycle fixture and actual
+expectation-editor/Evaluate handlers. It records four real Assignment Save
+attempts with isolated writer queues, then publishes through Admin and evaluates
+the immutable original run. No observation or source-publication rows are
+fabricated. Existing six-action lifecycle tests retain their default inputs;
+the shared helper calculates the declared series length and extra-attempt count.
+
+Controller `reports/runtime/production-assignment-controller/d9efd9e346934924be349b6828c999f6`,
+2026-10-01 01:39:55.4748975--01:47:40.7396181 UTC; result
+`reports/runtime/slice4be-production-assignment-source-paths/1d9550f57d114fe68a584b652be8f0bc/green.json`:
+**150/150 unique checks pass**, including five instrumented compiles. Settings and
+package hashes are preserved; Excel and the controller close without intervention.
+The delayed Application1000/1001/1002 audit finds zero Excel failures.
+
+| Actual boundary / selected observation | Retained Designs reference | CommandCompleted | SourceEventsApplied |
+|---|---|---|---|
+| Failure before append / FAILED | None; unused generated ID excluded | Failed | Incomplete |
+| Failure after append / FAILED | Exact owning ID, Unknown submission | Failed | Incomplete |
+| Processing pending / PENDING | Exact owning ID, Submitted | Failed | Awaiting |
+| Confirmed command / CONFIRMED | Exact owning ID, Submitted; published application | Concluded | Concluded |
+| Original REQUESTED observation | None | Failed | Incomplete |
+
+Every diagnostic verifies its exact original terminal, run/hash, authored intent,
+visible status caption, source evidence and read-only result control. The two
+FAILED occurrences are consumed in order to select the uncertain second attempt;
+they are not collapsed by outcome text. The final confirmed action concludes
+with the three earlier attempts retained as extras. Applied evidence preserves
+the exact Designs line hash; incomplete/awaiting evidence has no invented applied
+lines or inventory keys. Evaluation does not republish, rewrite original activity
+or journals, or change saved authority. This is additional D18 evidence on the
+unchanged candidate, not a new runtime contract or human acceptance.
+
+## Existing worksheet path regression
+
+On the same frozen Assignment candidate, the shared worksheet path gate retains
+all139 prior check identities in exact order, with139/139 PASS. Controller:
+`reports/runtime/process-worksheet-activity-controller/a6a1d05d47db4b1e996be680e52d78b7`;
+result `reports/runtime/slice4be-process-worksheet-paths/2d51126b9ba54c2ab9039fad421426be/green.json`;
+2026-10-01 01:48:51.6792372--01:56:06.8322242 UTC. The prior ordered result is
+`reports/runtime/slice4be-process-worksheet-paths/abf89c5585984810832cb1bac6f65fff/green.json`.
+Five compiles, settings/package preservation, unassisted closure and the delayed
+Excel Application audit pass. Six reviewed captures show the populated Process
+Designer, exact retrieval detail, all four authored instructions, original pairs,
+both submitted source references, Compare both and its visible four-match
+command-completion conclusion with zero extras. Source application remains a
+separately asserted conclusion, not inferred from that command-completion view.
+The full worksheet595 gate and remaining broader acceptance gates are still open.
+
 ## Governing contract and scope
 
 Architecture v4.11 D18, **Ingredients Assignment observations**, is the normative
@@ -29,6 +144,10 @@ Protecting files:
 - `tests/tooling/Slice4beProductionAssignmentProbe.ps1`
 - `tests/tooling/Slice4beProductionAssignmentActivity.ps1`
 - companion `-Safety` gate in `Slice4beProductionAssignmentSafety.ps1`
+- paired `-Paths` gate in `Slice4beProductionAssignmentPaths.ps1` and the shared
+  `Slice4beProductionInstructionPaths.ps1`
+- `-SourcePaths` through the Assignment variant of
+  `Slice4beProductionLifecyclePaths.ps1` and its diagnostic helper
 - policy, Save guards and native closure in `Slice4beProductionAssignmentPolicy.ps1`
 - opt-in `CheckProductionAssignment` in `Test-Slice4beConfigCommands.ps1`
 

@@ -58,7 +58,7 @@ function Test-ProductionLifecycleDiagnostics($Cases,$Source,$Publication,[string
         [void](Select-EvaluationRun ([string]$Source.ActionPathId))
         $confirmed=@($Cases|Where-Object Mode -CEQ 'Confirmed')
         $steps=@(foreach($case in $confirmed){,@($case.Id,'CONFIRMED','True')})
-        $ready=Set-EvaluationDraft $steps 5 $kind -StopAtMissingChoice
+        $ready=Set-EvaluationDraft $steps ($steps.Count-1) $kind -StopAtMissingChoice
         Check ('LifecycleDiagnostic.Series.'+$kind+'.ActualExpectationEditor') $ready
         if(-not $ready){continue}
         $before=@(EvaluationFiles|ForEach-Object FullName)
@@ -67,7 +67,7 @@ function Test-ProductionLifecycleDiagnostics($Cases,$Source,$Publication,[string
         if($fresh.Count -ne 1){throw 'Series evaluation unavailable.'}
         $result=Get-Content $fresh[0].FullName -Raw|ConvertFrom-Json
         Check ('LifecycleDiagnostic.Series.'+$kind+'.Concluded') ($result.ResultState -ceq 'Concluded')
-        Check ('LifecycleDiagnostic.Series.'+$kind+'.OriginalOrderAndExtraAttempts') ((@($result.Matches.ActivityId) -join '|') -ceq (@($confirmed|ForEach-Object {$_.Record.ActivityId}) -join '|') -and @($result.ExtraActivityIds).Count -eq 18)
+        Check ('LifecycleDiagnostic.Series.'+$kind+'.OriginalOrderAndExtraAttempts') ((@($result.Matches.ActivityId) -join '|') -ceq (@($confirmed|ForEach-Object {$_.Record.ActivityId}) -join '|') -and @($result.ExtraActivityIds).Count -eq (@($Cases).Count-$confirmed.Count))
     }
     Check 'LifecycleDiagnostic.EvaluateDoesNotRepublish' ((Get-FileHash $EventsPath).Hash -ceq $publicationHash)
 }
