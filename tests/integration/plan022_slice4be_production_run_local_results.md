@@ -1253,6 +1253,70 @@ preservation, normal unassisted cleanup and delayed zero Excel audit pass. The
 214 failures remain in unintegrated controls. Independent Refresh Action Paths,
 populated layout, broad release gates and full reusable acceptance remain open.
 
+## Independent Refresh Action Paths
+
+The test-only `-RefreshPathsOnly` gate uses the two actual Refresh handlers and
+Clear Run under unchanged D18. Both reusable and separate worksheet staging exist
+before each recording starts. The sequence is Loader Refresh, Manager Refresh,
+Clear Run, worksheet Loader Refresh and worksheet Manager Refresh. No owner reset
+or hidden staging occurs between clicks. A read-only cumulative receipt proves
+zero LOCAL worksheet reads in the reusable branch, then one and two successful
+reads against the captured workbook. Owner state, original messages, guards,
+staging, exact keys, custom columns/formulas and canonical source remain protected.
+
+Frozen load03 RED: controller
+`reports/runtime/production-run-local-controller/0d6a44b3feb94c60a62457e675d0c72e`,
+result `reports/runtime/slice4be-production-run-refresh-paths/f4d50e14e2c74cdcbeb783712a2f9ef3/red.json`,
+2026-10-01 12:27:14.3137541--12:29:26.0025739 UTC: **49 PASS / 1 FAIL / 50 unique**.
+Only the first Refresh's missing original observation pair fails. Its actual
+owner/message, read receipt, staging, guards and preservation checks pass. Five
+compiles, canonical pins, settings restoration, normal closure and delayed zero
+Excel Application1000/1001/1002 audit pass; this is behavioral RED.
+
+Unchanged refresh01 GREEN: controller
+`reports/runtime/production-run-local-controller/8bdf6c8a91894f0587ca7983e40daf5b`,
+result `reports/runtime/slice4be-production-run-refresh-paths/3881639181784fcebeaf5ce9f04f710a/green.json`,
+12:29:45.5668394--12:39:08.1445870 UTC: **167/167 unique GREEN**. All 50 RED check
+identities retain their relative order and all 49 previous passes survive; the
+42 shared checks remain GREEN. Independent source/observed recordings each retain
+five actions in exact order. Publication preserves all 20 original records. Event
+Detail selects the actual REQUESTED/REFRESHED line. The authored guide preserves
+exact source provenance and explicit ordered intent; a reader without author
+capability applies it to the other recording. Five matches and zero extras
+conclude CommandCompleted only; SourceEventsApplied remains Incomplete with
+SOURCE_UNAVAILABLE. How-To, Diagnostic and Compare both retain the same evidence.
+
+Five instrumented compiles, canonical package pins, settings/authority/operator/
+activity/journal preservation, unassisted cleanup and delayed zero audit pass.
+Six `run-refresh-*.png` captures were reviewed: operator, Event Detail, How-To,
+Diagnostic, Compare both and scrolled conclusion. Authored instructions fit and
+the conclusion explicitly declines Domain application. Synthetic worksheet rows
+prove retained local staging, not production validity; long synthetic values and
+Event Detail Coverage retain viewport limits. These are agent-reviewed captures,
+not human acceptance or full populated-layout acceptance.
+
+Static `reports/runtime/run-refresh-paths-static-01` retains 287 components,
+6166 procedures and 135351 lines, with zero runtime growth; calls remain 9/45,
+duplicate candidates 190 and all 28 oversized caps non-growing. Three schemas
+and 368 PowerShell parses pass. Runtime and architecture are unchanged by this
+test-only checkpoint; broader release acceptance remains open.
+
+Shared-harness regressions on the same refresh01 candidate:
+
+- Load paths retain **87/87** in exact prior order: controller
+  `reports/runtime/production-run-local-controller/3d32017e86e94d72a6d698ed2e96f1f8`,
+  result `reports/runtime/slice4be-production-run-load-paths/19236b145dbe46ecbcd1bf2eafe04e2d/green.json`,
+  12:39:30.1147547--12:45:22.0419262 UTC.
+- Clear paths retain **102/102** in exact prior order: controller
+  `reports/runtime/production-run-local-controller/66c441dc33474bce9a188736f29138cc`,
+  result `reports/runtime/slice4be-production-run-clear-paths/454c99dc99fb4621913723b2508a84f1/green.json`,
+  12:45:40.9353944--12:52:01.7199143 UTC.
+
+Both preserve all 42 shared checks, pass five compiles and canonical package pins,
+retain settings/authority/operator/activity/journal evidence, close normally and
+pass delayed zero Excel audits. No unrelated changes or generated runtime reports
+are included in the checkpoint.
+
 ## Remaining gates
 
 Preserve the seven worksheet-owner cases and the five binding GREEN checks through

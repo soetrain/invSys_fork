@@ -179,6 +179,14 @@ End Sub
 Public Function RunSheetNoticeCount() As Long
     RunSheetNoticeCount = mRunSheetNotices
 End Function
+' Read-only cumulative receipt; never reset owner state between recorded clicks.
+Public Function RunSheetPathReadReceipt(ByVal expectedReads As Long) As Boolean
+    If mRunSheetReads <> expectedReads Or mRunSheetNotices <> 0 Or mRunSheetClearTarget <> "NotEntered" Then Exit Function
+    If expectedReads > 0 Then
+        If Not mRunSheetReadOK Or mRunSheetReadBook <> mRunSheetExpectedBook Then Exit Function
+    End If
+    RunSheetPathReadReceipt = True
+End Function
 Public Function RunSheetReadResult(ByVal mode As String, ByVal bookName As String) As Boolean
     If mRunSheetReads <> 1 Or mRunSheetReadBook <> bookName Then Exit Function
     If mode = "Missing" Then
