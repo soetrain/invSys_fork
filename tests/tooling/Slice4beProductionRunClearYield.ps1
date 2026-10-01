@@ -1,4 +1,4 @@
-# Unsaved probes observe real worksheet Clear notification/read returns.
+# Unsaved probes observe real worksheet Clear and Refresh notification/read returns.
 function Install-ProductionRunClearYieldProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
     function After-ClearBoundary($Module,[string]$Procedure,[string]$Anchor,[string]$Boundary,[string]$Available){
@@ -13,6 +13,9 @@ function Install-ProductionRunClearYieldProbe {
     $adapter=$project.VBComponents.Item('TestProductionDesigner').CodeModule
     After-ClearBoundary $adapter 'RunSheetNotice' 'mRunSheetNotices = mRunSheetNotices + 1' 'ClearNotification' 'True'
     $form=$project.VBComponents.Item('frmProduction').CodeModule
+    After-ClearBoundary $form 'RefreshProductionInventoryReadModel' 'resultText = NzStr(mProduction.RefreshProductionInventoryReadModelForWorkbookResult(wb))' 'LocalReadModel' '(Left$(resultText, 3) = "OK" & vbTab)'
+    After-ClearBoundary $form 'DesignReadListForTest' 'DesignReadListForTest = modOperationsPrimitiveBridge.ListProcesses(status)' 'ListProcesses' 'IsArray(DesignReadListForTest)'
+    After-ClearBoundary $form 'DesignReadListForTest' 'DesignReadListForTest = modOperationsPrimitiveBridge.ListRecipes(status)' 'ListRecipes' 'IsArray(DesignReadListForTest)'
     $form.AddFromString(@'
 Public Function RunClearYieldStageForTest() As Boolean
     Dim control As MSForms.ListBox
@@ -98,29 +101,36 @@ End Sub
 
 function Test-ProductionRunClearYield($Fixture,$Other,$Book){
     [void](Probe 'RunLocalRememberFixture')
+    $cases=@(foreach($boundary in @('ClearNotification','InventoryPicker','DefaultLocation')){@{Action='CLEAR';Boundary=$boundary}})
+    foreach($action in @('LOADER_REFRESH','MANAGER_REFRESH')){
+        $boundaries=@('LocalReadModel','InventoryPicker','DefaultLocation')
+        if($action -ceq 'LOADER_REFRESH'){$boundaries+=@('ListProcesses','ListRecipes')}
+        foreach($boundary in $boundaries){$cases+=@{Action=$action;Boundary=$boundary}}
+    }
     try{
-        foreach($boundary in @('ClearNotification','InventoryPicker','DefaultLocation')){
+        foreach($case in $cases){
+            $action=$case.Action;$boundary=$case.Boundary
             [void](Probe 'RunClearYieldReset')
             SelectTarget $Fixture 'config-producer';[void](Probe 'RunClearYieldReopen' @($Book.Name))
             [void](Probe 'RunFaultResetFixture')
             if(-not [bool](Probe 'RunSheetOwnerRecreate')){throw 'Clear yield owner surface unavailable; not product RED.'}
-            if([string](Probe 'RunSheetOwnerStage' @('CLEAR','Normal',$canary)) -cne 'READY'){throw 'Clear yield staging unavailable; not product RED.'}
+            if([string](Probe 'RunSheetOwnerStage' @($action,'Normal',$canary)) -cne 'READY'){throw 'Worksheet yield staging unavailable; not product RED.'}
             if(-not [bool](Probe 'RunClearYieldArm' @($boundary))){throw 'Clear yield local controls unavailable; not product RED.'}
             $before=@(Files);$otherBefore=@(Get-Slice4beActivityFiles $Other)
-            $notice=[string](Probe 'RunFaultAct' @('CLEAR'))
-            $evidence=([string](Probe 'RunClearYieldEvidence')).Split('|');$label='RunClearYield.'+$boundary
+            $notice=[string](Probe 'RunFaultAct' @($action))
+            $evidence=([string](Probe 'RunClearYieldEvidence')).Split('|');$label=if($action -ceq 'CLEAR'){'RunClearYield.'+$boundary}else{'RunRefreshYield.'+$action+'.'+$boundary}
             $reached=$evidence.Count -eq 3 -and $evidence[0] -ceq 'True' -and $evidence[1] -ceq 'True'
             if(-not $reached){throw ('Real Clear yield boundary unavailable: '+$boundary+'; not product RED.')}
             Check ($label+'.RealBoundaryBeforeSignOut') $reached
             Check ($label+'.NoLaterObservedBoundaries') ([int]$evidence[2] -eq 0)
             Check ($label+'.LocalStateAtBoundaryPreserved') ([bool](Probe 'RunClearYieldPreserved'))
-            Check ($label+'.ExistingClearEffectsAndOneNotification') ([bool](Probe 'RunSheetOwnerResult' @('CLEAR','Normal')))
+            Check ($label+$(if($action -ceq 'CLEAR'){'.ExistingClearEffectsAndOneNotification'}else{'.RealLocalOwnerResultAndNoNotification'})) ([bool](Probe 'RunSheetOwnerResult' @($action,'Normal')))
             Check ($label+'.RefusalVisible') ($notice.StartsWith('Session, warehouse, or captured workbook changed.') -and $notice.Contains('Reopen Production'))
             Check ($label+'.NoUnhandledError') (-not $notice.StartsWith('HANDLER_ERROR|'))
             Check ($label+'.GuardsRestoredWithoutAdapterReset') ([bool](Probe 'RunFaultGuards'))
             Check ($label+'.CustomColumnsFormulaAndExactKey') ([bool](Probe 'RunSheetOwnerPreserved'))
             $rows=@(Files|Where-Object{$_ -cnotin $before}|ForEach-Object{[IO.File]::ReadAllText($_)|ConvertFrom-Json})
-            Check ($label+'.OriginalAttemptWithoutMisattributedOutcome') ($rows.Count -eq 1 -and $rows[0].ControlId -ceq 'PRODUCTION_RUN_CLEAR' -and $rows[0].OutcomeCode -ceq 'REQUESTED' -and $rows[0].UserId -ceq 'config-producer' -and $rows[0].WarehouseId -ceq $Fixture.Warehouse -and @($rows[0].SourceEventRefs).Count -eq 0)
+            Check ($label+'.OriginalAttemptWithoutMisattributedOutcome') ($rows.Count -eq 1 -and $rows[0].ControlId -ceq ('PRODUCTION_RUN_'+$action) -and $rows[0].OutcomeCode -ceq 'REQUESTED' -and $rows[0].UserId -ceq 'config-producer' -and $rows[0].WarehouseId -ceq $Fixture.Warehouse -and @($rows[0].SourceEventRefs).Count -eq 0)
             Check ($label+'.NoOtherWarehouseActivity') ((@(Get-Slice4beActivityFiles $Other) -join '|') -ceq ($otherBefore -join '|'))
             SelectTarget $Fixture 'config-producer'
             Check ($label+'.CanonicalSourcePreserved') ([bool](Probe 'RunWorksheetSource'))

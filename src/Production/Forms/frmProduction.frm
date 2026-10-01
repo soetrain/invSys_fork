@@ -2142,12 +2142,16 @@ Public Sub RefreshReusableDesignLists()
 
     processes = modOperationsPrimitiveBridge.ListProcesses("")
     If Not AssignmentContinuationIsCurrent() Then Exit Sub
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
     releasedProcesses = modOperationsPrimitiveBridge.ListProcesses("RELEASED")
     If Not AssignmentContinuationIsCurrent() Then Exit Sub
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
     recipes = modOperationsPrimitiveBridge.ListRecipes("")
     If Not AssignmentContinuationIsCurrent() Then Exit Sub
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
     releasedRecipes = modOperationsPrimitiveBridge.ListRecipes("RELEASED")
     If Not AssignmentContinuationIsCurrent() Then Exit Sub
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
     FillListFromArray mLstProcesses, processes
     FillListFromArray mLstReleasedProcesses, releasedProcesses
     FillListFromArray mLstRecipes, recipes
@@ -3399,7 +3403,7 @@ Private Function NormalizeInventorySearch(ByVal filterText As String) As String
     NormalizeInventorySearch = LCase$(textOut)
 End Function
 
-Private Sub ResetInventoryCache()
+Public Sub ResetInventoryCache()
     mInventoryRows = Empty
     mInventoryCacheLoaded = False
     mRunInventoryRows = Empty
@@ -3455,7 +3459,7 @@ Private Function ResolveOperatorWorkbook() As Workbook
     End If
 End Function
 
-Private Function RefreshProductionInventoryReadModel(ByRef reportOut As String) As Boolean
+Public Function RefreshProductionInventoryReadModel(ByRef reportOut As String) As Boolean
     On Error GoTo CleanFail
 
     Dim wb As Workbook
@@ -11161,28 +11165,8 @@ Private Sub mBtnAssignClear_Click()
 End Sub
 
 Private Sub mBtnLoaderRefresh_Click()
-    Dim refreshReport As String
-    Dim refreshed As Boolean
-
-    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
-    If modProductionReusableRun.ReusableRunIsLoaded() Then
-        ResetInventoryCache
-        RefreshRecipeLists
-        RefreshReusableRunControls True
-        ShowStatus "Reusable Production Run inventory refreshed from the exact entity projection."
-        Exit Sub
-    End If
-    refreshed = RefreshProductionInventoryReadModel(refreshReport)
-    ResetInventoryCache
-    RefreshRecipeLists
-    RefreshLoaderState
-    RefreshManagerState
-    If refreshed Then
-        ShowStatus "Production Run inventory refreshed. " & refreshReport
-    Else
-        ShowStatus refreshReport
-        MsgBox refreshReport, vbExclamation, "Production Inventory Refresh"
-    End If
+    Dim report As String
+    report = modProductionRunRefreshActions.Execute(Me, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress, True): If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mBtnLoaderLoad_Click()
@@ -11421,26 +11405,8 @@ Private Sub mBtnRunTreeApplyPalette_Click()
 End Sub
 
 Private Sub mBtnManagerRefresh_Click()
-    Dim refreshReport As String
-    Dim refreshed As Boolean
-
-    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
-    If modProductionReusableRun.ReusableRunIsLoaded() Then
-        RefreshReusableRunControls True
-        ShowStatus "Reusable Production Run inventory refreshed from the exact entity projection."
-        Exit Sub
-    End If
-
-    refreshed = RefreshProductionInventoryReadModel(refreshReport)
-    ResetInventoryCache
-    RefreshLoaderState
-    RefreshManagerState
-    If refreshed Then
-        ShowStatus "Production Run inventory refreshed. " & refreshReport
-    Else
-        ShowStatus refreshReport
-        MsgBox refreshReport, vbExclamation, "Production Inventory Refresh"
-    End If
+    Dim report As String
+    report = modProductionRunRefreshActions.Execute(Me, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress, False): If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mLstManagerOutput_Click()

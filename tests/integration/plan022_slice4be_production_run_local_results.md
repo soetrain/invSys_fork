@@ -1147,6 +1147,112 @@ preservation, normal unassisted closure and delayed zero Excel audit pass. This
 protects the established two-branch Clear guide and observed-run comparison through
 the extended shared harness. Remaining Run/release and human acceptance stay open.
 
+## Loader and Manager Refresh continuation
+
+Existing D18 requires distinct Loader/Manager sequences, unchanged messages and
+local-only REFRESHED. The actual local read-model owner must succeed; false is
+FAILED even though subsequent local refresh remains. No source freshness or
+availability is inferred from fail-soft reads. Both existing handlers now delegate
+to `modProductionRunRefreshActions`, which scopes the captured action and restores
+loading/busy guards. Existing reusable row reads receive the action; recipe-list
+reads now check both the existing Assignment and scoped Run continuation. Original
+exceptions are re-raised. No additional Domain work, fallback or dynamic call.
+
+Before implementation, the prior worksheet169 baseline is retained145 PASS/24
+FAIL: controller `reports/runtime/production-run-local-controller/b078ff33e9464951813128ff66bb7b74`,
+result `reports/runtime/slice4be-production-run-worksheet-owner/6ac3935323dd480a958b9b5a3534d1e8/red.json`,
+2026-10-01 11:47:45.0937806--11:50:14.1471206 UTC. Eight new actual-handler cases
+are then added before runtime changes: each Refresh at local read-model, inventory
+picker and default-location return, plus Loader at real Process/Recipe-list return.
+All reads complete before sign-out; fixtures retain original owner payloads.
+
+Expanded RED on unchanged load03: controller
+`reports/runtime/production-run-local-controller/fb6894199b2442feb525f48a529b74b9`,
+result `reports/runtime/slice4be-production-run-worksheet-owner/f7d11666199c4858bfaaef50e874f6b7/red.json`,
+11:51:03.1622691--11:54:52.3678645 UTC, **201 PASS/56 FAIL/257 unique**. All prior169
+ordered results remain exact. The88 new checks are56 PASS/32 behavioral FAIL:
+later observed reads/local updates continue, refusal is absent and the original
+action is unrecorded. Real owner results, key/custom columns and canonical source
+checks pass. No fixture exception or compile failure is counted as RED.
+
+Reusable read-return RED on unchanged load03: controller
+`reports/runtime/production-run-local-controller/6ee7abd46e444620b8ecfbe2b881542c`,
+result `reports/runtime/slice4be-production-run-yield/c483ce2609b0441c97dde8cf98e30f10/red.json`,
+11:55:16.5536119--11:58:10.4918547 UTC, **116 PASS/30 known FAIL/146 unique**,
+with prior ordered results exact. The36 Refresh checks include16 failures; all36
+accepted Load checks remain GREEN. All three RED runs pass five compiles,
+preservation, unassisted cleanup and delayed zero Excel audits.
+
+Build `reports/runtime/run-refresh-build-01`,11:59:08.6606091--11:59:45.6994706 UTC,
+creates unpromoted `deploy/validation-production-run-refresh-01`. Cold Operations
+startup and all five compiles pass. Of279 prior compiled components,278 are
+unchanged; only `frmProduction` changes and `modProductionRunRefreshActions` is
+added. Prior packages/settings remain preserved, Excel closes normally and the
+delayed audit is clear before testing. No operational deployment occurs.
+
+Worksheet GREEN: controller
+`reports/runtime/production-run-local-controller/a785de272a6541d5973698c29be7d403`,
+result `reports/runtime/slice4be-production-run-worksheet-owner/c7ea4f0ef2a04c38ae2244aeb2dbc3ec/green.json`,
+12:00:03.2807218--12:04:57.8912769 UTC, **257/257 unique GREEN**. All ordered
+identities and prior PASS survive;56 Refresh failures become GREEN. Normal and
+missing-owner Refresh branches retain owner results/messages/notification counts.
+All88 new interruption checks and prior Clear checks pass. Changed context stops
+later observed boundaries and form updates, refusal is visible, guards restore,
+and only the original REQUESTED record remains. Five compiles, canonical pins,
+settings/authority/operator/older-record preservation, normal cleanup and delayed
+zero Excel audit pass.
+
+Static `reports/runtime/run-refresh-static-01`:287 components/6166 procedures/
+135351 lines, net feature growth1/1/32. Form11522 shrinks34 lines; the new helper
+is66 lines. Calls remain9 literal/45 unresolved, duplicate candidates190, scanner
+candidates1196/reviewed1198, and all28 oversized caps remain non-growing. Three
+schemas and368 tooling parses pass. Reusable, policy/fault, independent paths and
+broad release/layout/live-role/human acceptance remain required.
+
+Reusable read-return GREEN: controller
+`reports/runtime/production-run-local-controller/aefb2377f1da4a41bc185c850399330c`,
+result `reports/runtime/slice4be-production-run-yield/c691b690305a4516af9a75cf26fc8f93/green.json`,
+12:05:25.9412098--12:08:26.6239050 UTC, **132 PASS/14 known FAIL/146 unique**.
+All36 Refresh checks pass, with exactly16 improvements and every prior ordered
+identity/PASS retained. All36 Load checks remain GREEN. The14 remaining failures
+belong to Scale/allocation controls. Five compiles, canonical pins, preservation,
+normal cleanup and delayed zero Excel audit pass. This does not replace the
+separate reusable503 or full reusable release acceptance gates.
+
+Permission/optional-tracking GREEN: controller
+`reports/runtime/production-run-local-controller/7c956617f18f475cbc8f55e157450ea9`,
+result `reports/runtime/slice4be-production-run-policy/71fb90b429b2490785521e08769bf751/green.json`,
+12:09:08.4372846--12:13:59.6937993 UTC, **203 PASS/15 known FAIL/218 unique**.
+Every prior ordered identity/PASS remains; all ten improvements concern Refresh.
+Denied actions stop before owner work. Tracking off, older catalog and unavailable
+tracking preserve authorized behavior and the fixed unavailable guidance.
+
+Exception/nesting GREEN: controller
+`reports/runtime/production-run-local-controller/966566725afd46f1bd000ef99df8d2b8`,
+result `reports/runtime/slice4be-production-run-fault/b2549e048b1d4921b938ed312afc591a/green.json`,
+12:14:36.1659045--12:17:11.4913974 UTC, **206 PASS/39 known FAIL/245 unique**.
+Every prior ordered identity/PASS remains;26 Refresh failures become GREEN.
+Original errors and partial local behavior remain, nested clicks enter the owner
+once and produce one original pair, and guards restore before adapter reset.
+Both companions pass five compiles, canonical pins, settings/authority/operator/
+older-record preservation, normal unassisted cleanup and delayed zero Excel audits.
+Remaining failures belong to unintegrated controls; neither gate proves full release
+or resolves prior excluded native failures.
+
+Reusable local regression: controller
+`reports/runtime/production-run-local-controller/e3b7f8b3020c48faa44f4dafd435a340`,
+result `reports/runtime/slice4be-production-run-local/55e7d8ef6235480baf97cda14bf94386/green.json`,
+12:17:46.9156686--12:23:58.9916327 UTC, **289 PASS/214 known FAIL/503 unique**.
+All prior ordered identities/PASS survive; exactly20 Refresh checks improve.
+All33 existing-owner cases and42 shared checks pass. Each of seven forms remains
+visible after its captured workbook closes; the actual handler executes, refuses
+the stale binding and preserves owner state, saved bytes and activity attribution.
+The decoy remains open and native receipts establish the correct List/Tree page.
+Five compiles, canonical package pins, settings/authority/operator/older-record
+preservation, normal unassisted cleanup and delayed zero Excel audit pass. The
+214 failures remain in unintegrated controls. Independent Refresh Action Paths,
+populated layout, broad release gates and full reusable acceptance remain open.
+
 ## Remaining gates
 
 Preserve the seven worksheet-owner cases and the five binding GREEN checks through

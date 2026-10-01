@@ -15,8 +15,14 @@ function Install-ProductionRunWorksheetOwnerProbe {
     Replace-RunOwnerLine $owner 'BtnClearRecipeChooser' 'MsgBox "Recipe Chooser cleared.", vbInformation' '    TestProductionDesigner.RunSheetNotice "Recipe Chooser cleared.", vbInformation'
     Replace-RunOwnerLine $owner 'BtnClearRecipeChooser' 'If wsProd Is Nothing Then Exit Sub' '    TestProductionDesigner.RunSheetClearResolved wsProd
     If wsProd Is Nothing Then Exit Sub'
-    foreach($proc in @('mBtnLoaderRefresh_Click','mBtnManagerRefresh_Click')){
-        Replace-RunOwnerLine $form $proc 'MsgBox refreshReport, vbExclamation, "Production Inventory Refresh"' '        TestProductionDesigner.RunSheetNotice refreshReport, vbExclamation, "Production Inventory Refresh"'
+    $refresh=$null
+    foreach($component in $project.VBComponents){if($component.Name -ceq 'modProductionRunRefreshActions'){$refresh=$component.CodeModule;break}}
+    if($null -ne $refresh){
+        Replace-RunOwnerLine $refresh 'Execute' 'MsgBox refreshReport, vbExclamation, "Production Inventory Refresh"' '            TestProductionDesigner.RunSheetNotice refreshReport, vbExclamation, "Production Inventory Refresh"'
+    }else{
+        foreach($proc in @('mBtnLoaderRefresh_Click','mBtnManagerRefresh_Click')){
+            Replace-RunOwnerLine $form $proc 'MsgBox refreshReport, vbExclamation, "Production Inventory Refresh"' '        TestProductionDesigner.RunSheetNotice refreshReport, vbExclamation, "Production Inventory Refresh"'
+        }
     }
     $form.AddFromString(@'
 Public Function RunSheetOwnerPrepareForTest() As Boolean
