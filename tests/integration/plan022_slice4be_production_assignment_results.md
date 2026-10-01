@@ -117,6 +117,26 @@ Production/Boxing/Shipping/restart sequence completes, with normal cleanup,
 package/settings and tracked-report restoration, and a clean delayed Excel audit.
 Broader candidate gates and release acceptance remain pending.
 
+## Process and Recipe lifecycle regression
+
+The same frozen candidate retains615/615 unique lifecycle checks in exact prior
+order, including five instrumented package compiles. Outer controller
+`reports/runtime/assignment-regression/lifecycle-6d9da5829ea446f79edfbc303cff6e2e`,
+2026-10-01 03:07:35.3177148--03:13:23.1097178 UTC; inner controller
+`reports/runtime/production-lifecycle-controller/ac34cc1087d34835b2bf9be5da0febbd`;
+result `reports/runtime/slice4be-production-designer/eb90bb883190495694318ec6f901f3dc/green.json`.
+The prior ordered baseline is
+`reports/runtime/slice4be-production-designer/8cdc858926114f3c8b46ca25bba6cd33/green.json`.
+Actual Save/Release/Obsolete handlers, owning Designs references, redaction,
+denied/rejected actions, write-boundary faults, reentry, optional/unavailable
+tracking, closed workbooks and changed captured context retain their checks.
+
+Normal cleanup completes without intervention after the result is written.
+Both controllers restore settings and preserve packages; no Excel process remains
+and the delayed Application1000/1001/1002 audit is clean. No new screenshot or
+human-acceptance evidence is supplied by this gate. Runtime packages and the
+previously recorded static baseline remain unchanged; other regressions stay open.
+
 ## Excluded reusable attempt and bounded diagnosis
 
 Full reusable controller
