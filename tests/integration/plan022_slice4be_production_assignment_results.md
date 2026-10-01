@@ -438,6 +438,45 @@ Remove STAGED/Unchanged, local-only explanation and unavailable Designs. Long
 coverage text and component names truncate. These are viewport observations,
 not complete-field/all-size layout or human acceptance.
 
+## Process Instructions regression
+
+The unchanged Assignment candidate retains411/411 unique checks in exact prior
+order, including five instrumented compiles. Controller
+`reports/runtime/production-instruction-controller/8bf30100dc50495b90fa2d3fd770546e`,
+2026-10-01 04:41:13.8359027--04:43:50.0337453 UTC; result
+`reports/runtime/slice4be-production-instructions/e51cfaaa6230410e9e1e00e3987687c5/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-instructions/e955028ebaef4130b7c442292b49a598/green.json`.
+The five actual instruction handlers preserve valid/rejected edits, trimmed and
+empty-Update semantics, editor/selection behavior, ordinals, reentry/loading
+suppression, optional tracking, denied access and captured-context guards.
+Unknown columns, workbook bytes and saved authority retain their checks.
+Normal unassisted closure, settings/package preservation, canonical package hashes
+and delayed Excel Application1000/1001/1002 audit pass. This gate supplies no new
+screenshots, runtime change, product RED or human acceptance.
+
+Separate instruction Action Paths retain105/105 unique checks in exact prior order
+with five instrumented compiles. Controller
+`reports/runtime/production-instruction-controller/ae8f65b52c2944c0beabe26dca34d378`,
+2026-10-01 04:44:21.3480373--04:49:18.9714719 UTC; result
+`reports/runtime/slice4be-production-instruction-paths/3809893898204b38a00779dbfe206dd4/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-instruction-paths/877bfdf0ed8241e29c081a1e5720087e/green.json`.
+Independent five-action guide and observed recordings retain original order,
+publication, Event Detail, explicit authored expectations, exact observed identity
+matching and independent-reader How-To/Diagnostic/Compare. Local completion is
+distinct from Domain application. Journals, saved authority and unknown-column/
+workbook bytes remain unchanged. Normal unassisted closure, package/settings
+preservation, canonical package hashes and delayed Excel Application audit pass.
+
+Seven hashed captures were reviewed. All five authored steps fit. The initial
+observed viewport ends at action5 REQUESTED; the scrolled view shows the local
+command conclusion, all five STAGED matches, zero extras and matched identity
+pairs. Event Detail selects Remove REQUESTED/Unknown with STAGED also listed;
+that capture does not show selected terminal fields. Long coverage text exceeds
+its viewport. The editor shows three synthetic instructions with empty Process
+metadata, requirements and outputs. These views do not establish complete Process
+workflow, full-field/all-size layout or human acceptance. Runtime/static metrics
+and control coverage are unchanged across both instruction gates.
+
 ## Excluded reusable attempt and bounded diagnosis
 
 Full reusable controller
