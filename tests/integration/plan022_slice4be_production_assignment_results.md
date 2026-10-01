@@ -176,6 +176,26 @@ REQUESTED alone does not conclude. Cleanup completes without intervention after
 the result is written. Settings/packages and the delayed Excel audit pass. This
 gate supplies no new screenshot or human acceptance.
 
+## Native lifecycle cancellation regression
+
+The unchanged candidate retains94/94 unique, exact prior ordered checks and five
+instrumented compiles. Outer controller
+`reports/runtime/assignment-regression/native-2e33c043bbff4b4ca3043f62fe7a0d4a`,
+2026-10-01 03:37:03.4742343--03:38:56.0360072 UTC; inner controller
+`reports/runtime/production-lifecycle-native-controller/3db3aac512354694b2b0730f745c7775`;
+result `reports/runtime/slice4be-production-lifecycle-native/67b0a9960b004cc0bbad8a17dac12902/green.json`.
+Actual Process/Recipe Release and Obsolete handlers present their exact native
+questions with default No; declining preserves drafts, source authority, captured
+workbook and unknown columns. Cancelled records retain exact owner facts without
+invented source references or entered data. Normal cleanup, settings/package
+preservation and delayed Excel Application1000/1001/1002 audit pass.
+
+Four reviewed native-dialog captures show readable questions/buttons and focused
+No. A fifth Settings capture shows the saved-configuration/tracking-unavailable
+status; a Task Manager thumbnail partly obscures its lower-right edge/Close area.
+These are dialog/viewport evidence, not full layout or human acceptance. Runtime
+and the previously regenerated static baseline remain unchanged.
+
 ## Excluded reusable attempt and bounded diagnosis
 
 Full reusable controller
