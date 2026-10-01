@@ -33,6 +33,8 @@ param(
     [switch]$CheckProductionRunPresentation,
     [switch]$CheckProductionRunLocal,
     [switch]$RunLocalClosedDiagnostic,
+    [switch]$RunLocalContractOnly,
+    [switch]$RunLocalPolicyOnly,
     [switch]$CheckProductionAssignmentSafety,
     [switch]$CheckProductionAssignmentPaths,
     [switch]$CheckProductionAssignmentSourcePaths,
@@ -241,6 +243,8 @@ if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'R
 if($InventoryQueriesOnly -and -not $CheckInventoryQueryReadOnly){throw 'Query-only diagnosis requires the supplemental query gate.'}
 if($CheckInventoryQueryReadOnly -and -not $CheckProductionClose){throw 'Inventory query preservation supplements the compiled public Production Close gate.'}
 if($RunLocalClosedDiagnostic -and (-not $CheckProductionRunLocal -or $Phase -cne 'RED')){throw 'Run closed-boundary diagnosis requires its separate RED fixture gate.'}
+if($RunLocalContractOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic)){throw 'Run Core contract checks supplement a separate actual-handler gate.'}
+if($RunLocalPolicyOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly)){throw 'Run policy checks require their separate actual-handler gate.'}
 if($CheckProductionRunLocal){
     $otherRunGates=@($PSBoundParameters.Keys|Where-Object{($_ -like 'CheckProduction*' -or $_ -like 'CheckProcessWorksheet*') -and $_ -notin @('CheckProductionRunLocal','CheckProductionDesignerActivity') -and [bool]$PSBoundParameters[$_]})
     if(-not $CheckProductionDesignerActivity -or $otherRunGates.Count -gt 0){throw 'Run local observations require their separate compiled actual-handler gate.'}
@@ -476,6 +480,8 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionRunPresentation){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-presentation/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRunLocal){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalClosedDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local-closed/'+[guid]::NewGuid().ToString('N'))}
+    if($RunLocalContractOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-contract/'+[guid]::NewGuid().ToString('N'))}
+    if($RunLocalPolicyOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-policy/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentSafety){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-safety/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentSourcePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-source-paths/'+[guid]::NewGuid().ToString('N'))}
@@ -1235,6 +1241,16 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionRunLocalActivity.ps1')
             Install-ProductionDesignReadProbe
             Install-ProductionRunLocalProbe
+            if($RunLocalContractOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionRunContract.ps1')
+                Install-ProductionRunContractProbe
+            }
+            if($RunLocalPolicyOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionRunPresentation.ps1')
+                . (Join-Path $PSScriptRoot 'Slice4beProductionRunPolicy.ps1')
+                Install-ProductionRunPresentationProbe
+                Install-ProductionRunPolicyProbe
+            }
         }
         if($CheckProductionRunPresentation){
             . (Join-Path $PSScriptRoot 'Slice4beProductionRunPresentation.ps1')
@@ -1665,7 +1681,11 @@ End Function
             elseif(-not $InventoryQueriesOnly){Test-ProductionCloseActivity $a $b}
             if($CheckInventoryQueryReadOnly){try{Test-InventoryQueryReadOnly $b}finally{SelectTarget $a}}
         }
-        elseif($CheckProductionRunLocal){Test-ProductionRunLocalActivity $a $b}
+        elseif($CheckProductionRunLocal){
+            if($RunLocalContractOnly){Test-ProductionRunContract}
+            elseif($RunLocalPolicyOnly){Test-ProductionRunPolicy $a $b}
+            else{Test-ProductionRunLocalActivity $a $b}
+        }
         elseif($CheckProductionRunPresentation){Test-ProductionRunPresentation $a $b}
         elseif($CheckProductionRegulation){Test-ProductionRegulationActivity $a $b}
         elseif($CheckProductionDesignReads){Test-ProductionDesignReadActivity $a $b}

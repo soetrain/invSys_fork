@@ -160,7 +160,73 @@ Static `reports/runtime/run-local-baseline-static-01` retains280 components,
 6150 procedures,135006 lines,9 literal/45 unresolved dynamic calls,190 duplicate
 bodies and28 non-growing caps; three schemas and359 script parses pass.
 
+## Supplemental Core contract RED
+
+`Test-Slice4beProductionRunLocal.ps1 -ContractOnly` runs
+`Slice4beProductionRunContract.ps1` separately from the operator-handler baselines.
+Controller `reports/runtime/production-run-local-controller/67b171a992eb4881a7de972256be7bf8`,
+result `reports/runtime/slice4be-production-run-contract/36394b1a48134c2c9e374678ed0e6c4c/red.json`,
+2026-10-01 06:40:14.2539766--06:41:32.7523882 UTC: **492 PASS/272 expected FAIL/764
+unique checks**, retaining all42 shared checks GREEN in exact order. All nine
+controls are checked for catalog23 exclusion, catalog24 extension and preservation
+of118 existing definitions, enabled/disabled defaults, fourteen candidate outcome
+codes, exact terminal classification, wrong owner/catalog rejection and rejection
+of Inventory/Designs references in both Submitted and Unknown states.
+
+Failures are119 catalog24 extension/definition-preservation assertions,18 absent
+defaults,45 absent supported outcome definitions, nine absent positive terminals
+and81 unsupported outcomes currently accepted by the generic empty-reference
+decoder. This does not mean that118 existing catalog23 definitions regressed:
+catalog24 does not yet exist. Five instrumented compiles, frozen pins, settings/
+package preservation, unassisted closure and delayed zero Excel Application
+failures pass. This supplements actual handlers; it supplies no human acceptance.
+
+## Optional-policy and denial RED
+
+`Test-Slice4beProductionRunLocal.ps1 -PolicyOnly` uses the original nine handlers,
+real Admin-seeded/released reusable fixture, and the existing synthetic local
+Tree presentation fixture. It checks denied-user entry, disabled collection,
+catalog23 policy compatibility, Navigation default-off, unavailable activity
+storage, suppression of programmatic setup events and saved/local preservation.
+Only disposable fixture paths are moved/restored to simulate unavailable storage.
+
+Initial controller `reports/runtime/production-run-local-controller/2a94d6e91a4a48c98738cf89c1075b6a`,
+result `reports/runtime/slice4be-production-run-policy/c4b13a28a6dc4ecd9dd46763e87f5c45/red.json`,
+2026-10-01 06:42:47.6516635--06:45:27.4519967 UTC:173 PASS/36 expected FAIL/209
+unique checks. These failures cover27 denied-user protection/record checks and
+nine unavailable-tracking notices. Five compiles, preservation, normal closure
+and delayed zero Excel audit pass. State equality alone cannot prove absence of
+owner reads, so the next run adds nine explicit owner-entry counters.
+
+Strengthened controller
+`reports/runtime/production-run-local-controller/8996b1ce03934f45b06dcbfe9d00d002`,
+result `reports/runtime/slice4be-production-run-policy/d8f8d3ad9f0848af8d75a87a1f04c7a2/red.json`,
+2026-10-01 06:46:13.9329190--06:48:53.6727950 UTC: **173 PASS/45 expected FAIL/218
+unique checks**. All209 prior identities/results retain their exact order; the
+nine additional failures prove denied actions enter the existing reusable owner
+or Tree presentation routine. All29 authorized optional-policy action cases
+preserve their existing results, including the populated Tree shape/palette.
+Programmatic setup produces no observations. Forty-two shared checks, five
+compiles, canonical package pins, saved authority/operator bytes, unknown values/
+formula, older records and other-warehouse activity preservation all pass.
+Unassisted closure and delayed zero Excel Application1000/1001/1002 failures are
+verified. No handler or runtime implementation was replaced or changed.
+
+All361 tooling scripts parse. Runtime source and the validated three-schema
+static baseline remain unchanged at280 components/6150 procedures/135006 lines,
+9 literal/45 unresolved calls,190 duplicate bodies and28 non-growing caps.
+
 ## Remaining gates
+
+Worksheet-branch tests must distinguish quiet helper return from successful owner
+completion: `mProduction.LoadRecipeChooser` and `BtnClearRecipeChooser` are Subs,
+and the scale branch subsequently scales/prepares local tables. The former reads
+the released Design/BOM bridge, while the reusable Run loader reads released
+Recipe graphs and Process versions. This source audit does not establish a
+runtime compatibility defect or authorize changing either algorithm. Protect
+D14 unknown columns around generated-table rebuild and D15's no-fallback rule
+through actual handlers before proposing any repair. A missing fixture or modal
+test setup failure is not behavioral RED.
 
 Preserve every established presentation baseline identity through GREEN. Add the
 other seven owner behaviors and complete
