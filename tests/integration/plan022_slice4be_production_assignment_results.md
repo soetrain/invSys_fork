@@ -278,6 +278,76 @@ zero additional actions and command completion without asserted Domain applicati
 Long Event Detail coverage text extends horizontally beyond its viewport. These
 captures do not establish every field, all-size layout or human acceptance.
 
+## Recipe structure regression
+
+The unchanged candidate retains786/786 unique checks in exact prior order and
+five instrumented package compiles. Controller
+`reports/runtime/production-recipe-structure-controller/f9afb5a8d50c41f58de2ec6191230e86`,
+2026-10-01 04:03:31.6521327--04:07:03.6717229 UTC; result
+`reports/runtime/slice4be-production-recipe-structure/7908593887964926a20f24603802d543/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-recipe-structure/21ab47a9d9d3427cb6fe655e00d555f5/green.json`.
+The five actual Add/Remove Process and Connect/Update/Disconnect handlers retain
+local behavior, seven-field connection snapshots, unchanged-value Update, existing
+permissive validation, other rows and selection. Exact owner outcomes, faults,
+nested-entry suppression, optional tracking and captured-context guards pass.
+Unknown columns, workbook bytes, saved authority and prior activity are preserved.
+Unassisted cleanup, settings/package preservation and delayed Excel Application
+audit pass. This revalidates the already-approved connection-write decision;
+no new runtime or normative contract change was needed.
+
+Three hashed captures were reviewed. Add Process shows the appended selected node
+and fixed status; Connect shows its staged status and editor controls; Settings
+shows saved configuration with tracking unavailable. Synthetic names/combo text
+truncate; Add uses a fixture connector and Connect's output-flow viewport is empty.
+These captures do not prove released-graph rendering, visibility of all seven
+fields, full layout or human acceptance. Released-data evidence is separate.
+
+The released-data gate retains55/55 unique, exact prior ordered checks and five
+compiles. Controller
+`reports/runtime/production-recipe-structure-controller/7a1a3471ad9e4742b6ca7ccea2af630e`,
+2026-10-01 04:07:33.0347359--04:09:37.1464184 UTC; result
+`reports/runtime/slice4be-production-recipe-structure-released/c8ee34f6fc6a4370972c0f9c62bae187/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-recipe-structure-released/0712ee27f35749daad5fb02dfc3991ac/green.json`.
+Both Recipe nodes have actual released Designs records before the packaged Update
+handler runs. All seven validated fields are written, changed quantity/percentage
+are retained, routing/UOM and nodes/instructions are preserved, and repeated
+unchanged Update retains the row. Saved authority, unknown columns and operator
+workbook bytes remain unchanged. Unassisted closure, settings/packages and delayed
+Excel Application audit pass.
+
+Two hashed captures were reviewed. The Recipe shows two released Processes,
+two nodes, populated two-stage output flow and the selected connection editor at
+required quantity4/percentage75/LB, with staged status. Output Qty/Yield columns
+are separate from the required quantity/percentage editor. Settings reports saved
+configuration with tracking unavailable. A fixed viewport cannot show every
+hidden connection field or establish full workflow, all-size or human acceptance.
+
+Separate structure Action Paths retain109/109 unique, exact prior ordered checks
+and five compiles. Controller
+`reports/runtime/production-recipe-structure-controller/f8b36d4c648d431da5450cd08b9a012b`,
+2026-10-01 04:10:11.4549872--04:16:32.9794282 UTC; result
+`reports/runtime/slice4be-production-recipe-structure-paths/3fe36b961e8f40268bdca2b15b04a571/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-recipe-structure-paths/9c3729c9b2764f598cbfa2f11d7b5b70/green.json`.
+Independent guide/observed runs exercise Disconnect, Connect, Update, Add Process
+and Remove Process through the actual handlers. Both reach the expected local
+draft; publication, exact Event Detail, authored expectations, independent-reader
+How-To/Diagnostic/Compare and separate command/source terminals pass. Local edits
+do not assert saved definitions or Domain application. Unknown columns, workbook
+bytes and saved authority remain preserved. Excel exits without intervention after
+additional cleanup time following the functional result. Settings/packages and
+delayed Excel Application audit pass; no shutdown repair is claimed.
+
+Seven hashed captures were reviewed. All five authored steps are readable; the
+scrolled conclusion shows five STAGED matches, zero extra actions and command
+completion without asserted Domain application. The initial observed views end
+before the last result/conclusion, and long Event Detail coverage text extends
+horizontally. Event Detail correctly shows Remove Process STAGED. The Recipe
+editor retains the preceding Add status after removal, as preserved by the
+contract, and its displayed editor defaults do not prove the stored connection
+values. The assertions above provide that local-state evidence. No all-field,
+all-size layout or human acceptance is claimed. Runtime and static metrics remain
+unchanged across these three existing-contract regressions.
+
 ## Excluded reusable attempt and bounded diagnosis
 
 Full reusable controller
