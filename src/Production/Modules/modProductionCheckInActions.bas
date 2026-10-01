@@ -2,7 +2,7 @@ Attribute VB_Name = "modProductionCheckInActions"
 Option Explicit
 Option Private Module
 
-' Check In correctness precedes its separate activity observation contract.
+' D18 observes this attempt's local owner outcome; no inventory submission occurs.
 Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, _
                    ByVal operatorBook As Workbook, ByRef loading As Boolean, ByRef busy As Boolean)
     Dim priorLoading As Boolean, number As Long, source As String, description As String
@@ -11,13 +11,17 @@ Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, _
     On Error GoTo Failed
     priorLoading = loading: busy = True
     Set action = New cProductionWorksheetAction
-    If Not action.BindForValidation(context, operatorBook, report) Then GoTo Done
+    If Not action.Begin("PRODUCTION_RUN_CHECK_IN", context, operatorBook, report) Then GoTo Done
+    If Not action.CanContinue(report) Then GoTo Done
     Set owner.RunActionContinuation = action
-    owner.CheckInProductionRun
+    action.OutcomeCode = owner.CheckInProductionRun()
+    report = owner.RunAllocationStatus()
     If Not action.CanContinue(report) Then GoTo Done
 Done:
     Set owner.RunActionContinuation = Nothing
-    loading = priorLoading: busy = False
+    loading = priorLoading
+    If Not action Is Nothing Then action.Finish report
+    busy = False
     If report <> "" Then owner.ShowStatus report
     If number <> 0 Then
         On Error GoTo 0
@@ -26,6 +30,7 @@ Done:
     Exit Sub
 Failed:
     number = Err.Number: source = Err.Source: description = Err.Description
+    If Not action Is Nothing Then action.OutcomeCode = "FAILED"
     Resume Done
 End Sub
 

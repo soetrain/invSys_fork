@@ -1,5 +1,122 @@
 # Slice4be Production Check In correctness and observations
 
+## Tracking-warning regression and correction
+
+The first candidate's full chain found a real regression at
+`Production.FormActions.TwoConsecutiveBatches.CapturedWorkbook`: optional tracking
+configuration failure replaced the successful Check In status with its warning.
+The workflow stopped before completing the first batch. Controller
+`check-in-activity01-regression/chain-9401477fbab44ce0b0d42958fa9d3305` records27/5
+chain,47/1 live-role and15/0 Create Warehouse checks,19:49:32.6587568-
+19:54:33.5380763 UTC. Settings/packages/tracked reports were restored, cleanup was
+unassisted, and the delayed native audit was zero. This is not a Windows lock or
+native Excel crash; it is retained as regression evidence.
+
+Six focused assertions inject unavailability at the real Core tracking-policy read
+boundary for Check In only, keeping the actual handler and owner intact. On
+activity01, controller `production-run-local-controller/7ab59b4b76804d2391a35248cebd16a0`
+and result `slice4be-production-check-in-activity/17b33584ffbf454dbf7d26f5ea59cb22/red.json`
+prove192 PASS/1 FAIL, retaining all187 earlier checks. Only
+`CheckInActivity.PolicyUnavailable.SuccessMessageAndNotice` fails: the owner
+succeeds, guards recover, the policy boundary is reached and no false records
+appear. Start/end19:59:15.5820809-20:01:55.5208240 UTC. The initial probe setup
+d5e053ba/fc5a03f7 was excluded before execution; its anchor needed case-insensitive
+VBA identifier matching after VBE normalization. Its cleanup/audit also passed.
+
+The correction is one line in `modProductionCheckInActions`: copy the existing
+Run status for presentation before Finish appends the tracking notice. This text
+does not classify the outcome and is not persisted in the activity envelope;
+the independently typed result remains authoritative for observation.
+Frozen unpromoted activity02 passes193/193 via controller
+`production-run-local-controller/41d8fdf4996d49f99f88c34591d0ac42`, result
+`slice4be-production-check-in-activity/917dc578882c4b50b721f7614dd38da2/green.json`,
+20:03:10.6099321-20:05:58.4389529 UTC. Five compiles/shared42, exact ordered prior
+checks, preservation, unassisted cleanup and delayed zero audit pass. Build02
+passes cold startup/five compiles with exactly that one component changed and282
+preserved relative to activity01. Both packages remain frozen.
+
+The RED and GREEN `check-in-tracking-unavailable.png` captures were individually
+reviewed: RED shows only the warning; GREEN visibly retains the Check In success
+and warning together. Long values still clip elsewhere; no full populated or human
+acceptance is claimed. All local evidence paths are under ignored `reports/runtime/`.
+
+Final activity02 regression evidence:
+
+- `check-in-activity02-regression/smoke-8f6ddc2b8f864ac7a1ff7f8e15f32463`:
+  20:06:23.8110402-20:06:46.7653814 UTC,86/86 exact prior checks, both native
+  unassisted exits, preservation and delayed zero audit.
+- `check-in-activity02-regression/layout-2913d08a0d004fb888871fab3de32c54`:
+  20:07:32.3430546-20:07:49.0995431 UTC,18 requested page/size pairs, six
+  activated/maximized pages and all prior geometry/native transitions preserved.
+  All six captures are byte-identical to the individually reviewed activity01
+  captures. Normal cleanup, preservation and delayed zero audit pass.
+- `check-in-activity02-regression/chain-d8a8efad515842d991c223ad04a992b6`:
+  20:08:17.6709165-20:13:32.7746085 UTC,32/32 full chain,48/48 live-role and15/15
+  Create Warehouse checks, retaining the prior ordered PASS identities. This
+  restores the failed two-batch boundary and its downstream balances. Settings,
+  packages and tracked reports are preserved; cleanup is unassisted and delayed
+  native failures are zero.
+- `check-in-activity-green-static-02`:290/6175/135519,9/45 calls,190 duplicate
+  candidates,28 non-growing caps, three schemas and374 PowerShell parses pass.
+  Relative to the pre-observation baseline, total growth is five lines with one
+  fewer procedure; exactly five compiled components change and278 are preserved.
+
+These gates do not replace the still-pending interruption/policy/recording/reader
+coverage or full user acceptance listed below. All Excel controllers are terminal;
+the candidate is unpromoted and the full goal remains active.
+
+## Catalog25 and handler integration,2026-10-01 UTC
+
+Frozen, unpromoted `deploy/validation-production-check-in-activity-01` passes the
+expanded187-check focused gate after RED127/60. The prior119 identities and passes
+are retained in order;68 supplemental catalog checks protect all127 prior
+definitions, historical exclusion, exact metadata/outcomes, terminal classification
+and source-reference rejection. Eighteen new failures plus the prior42 record
+failures were verified before runtime implementation. All187 pass on the candidate,
+including shared42 and five packaged compiles. No fixture/harness failure is RED.
+
+`CheckInProductionRun` now returns a typed current-attempt outcome at the existing
+owner boundaries. It preserves validation/read order, local edits and displayed
+wording. `modProductionCheckInActions` uses existing Begin/Finish tracking and
+rechecks continuation; prior checked/frozen state cannot establish new success.
+Core registers Check In in catalog25 with only STAGED positive and empty sources.
+The temporary `BindForValidation` method was reviewed for removal: repository
+search found only its declaration and the replaced Check In caller; the class is
+not exposed. Packaged compile and the actual-handler gate protect its replacement.
+
+- Expanded RED controller `production-run-local-controller/fedfda0f173d455e83e8c3dfc26c4b98`,
+  result `slice4be-production-check-in-activity/50fb313e0d4143e5a7f508576848b406/red.json`:
+  19:39:38.9208369-19:41:58.1782833 UTC,127 PASS/60 FAIL, normal cleanup/audit0.
+- Build `check-in-activity-build-01`:19:42:54.9542246-19:43:32.2299551 UTC,
+  cold Operations startup/five compiles, exactly five changed compiled components,
+  all278 other components preserved. Prior routed01 and settings preserved;
+  normal cleanup and delayed zero audit pass.
+- GREEN controller `production-run-local-controller/589717c1cb184bd58bcc61affddacc9c`,
+  result `slice4be-production-check-in-activity/9583c1155e2c458fb05e972cbec23801/green.json`:
+  19:43:56.2730523-19:46:31.0506853 UTC,187/187. It supplies the new five-package pins.
+- Smoke `check-in-activity01-regression/smoke-7545d52ef1b74013a2f46c1af1e2bf94`:
+  86/86 exact prior checks, both native unassisted exits, preserved settings/packages/
+  tracked reports and delayed zero native audit.
+- Layout `check-in-activity01-regression/layout-5c06360c52d549e59a900f6ed183bc35`:
+  18 requested size/page pairs, six activated/maximized pages, preserved prior
+  geometry/native transitions, normal cleanup/preservation/audit0. All six PNGs
+  were individually reviewed and locally hash-pinned. Empty Run List and Settings
+  surfaces are legible; minimum/default clamp to one size, expanded is distinct.
+- Static `check-in-activity-green-static-01`:290 components/6175 procedures/135518
+  lines,9 literal/45 unresolved calls,190 duplicate candidates,28 non-growing caps;
+  three schemas/374 parses pass. Net change is minus one procedure/plus four lines.
+
+All report paths above are under ignored `reports/runtime/`. No operational values
+or screenshots are committed. Architecture D18, Plan022, controls1.416 and
+coverage1.156 are synchronized; current wiring is64/68 buttons. This is not completed
+Slice4be or release/user acceptance. Prior149/108/278 interruption gates have not
+yet been rerun on this candidate: their pre-observation no-record assertions must
+be explicitly replaced by captured-context attempt/allowed-result checks without
+weakening any owner, identity, custom-column or no-redirection protection.
+Broader refusal, permission, policy/fault, recording/publication/independent readers
+and populated/long-value/human acceptance remain pending. RUN-SCALE-01/RUN-UI-01
+still require their separately requested approval.
+
 ## Observation contract and focused RED,2026-10-01 UTC
 
 Architecture v4.11 D18 specifies catalog25 `PRODUCTION_RUN_CHECK_IN` under its

@@ -8,15 +8,49 @@ Public Sub CheckActivityUnselectForTest()
     mCmbRunProcess.ListIndex = 0: mCmbTreeRunProcess.ListIndex = 0
     mLoading = False
 End Sub
+Public Function CheckActivitySuccessAndNoticeForTest() As Boolean
+    CheckActivitySuccessAndNoticeForTest = InStr(1, mTxtStatus.Text, "Checked in ", vbBinaryCompare) = 1 And _
+        InStr(1, mTxtStatus.Text, "Tracking unavailable:", vbBinaryCompare) > 1
+End Function
 '@)
     $project.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString(@'
 Public Sub CheckActivityUnselect()
     mForm.CheckActivityUnselectForTest
 End Sub
+Public Function CheckActivitySuccessAndNotice() As Boolean
+    CheckActivitySuccessAndNotice = mForm.CheckActivitySuccessAndNoticeForTest()
+End Function
+'@)
+    $core=$packages['invSys.Core.xlam'].VBProject
+    $adapter=$core.VBComponents.Item('TestShippingCatalog').CodeModule
+    $adapter.InsertLines(1,'Private mCheckPolicyUnavailable As Boolean, mCheckPolicyHits As Long')
+    $adapter.AddFromString(@'
+Public Sub CheckPolicyArm(ByVal armed As Boolean)
+    mCheckPolicyUnavailable = armed
+    If armed Then mCheckPolicyHits = 0
+End Sub
+Public Function CheckPolicyUnavailable() As Boolean
+    CheckPolicyUnavailable = mCheckPolicyUnavailable
+    If mCheckPolicyUnavailable Then mCheckPolicyHits = mCheckPolicyHits + 1
+End Function
+Public Function CheckPolicyHits() As Long
+    CheckPolicyHits = mCheckPolicyHits
+End Function
+'@)
+    $policy=$core.VBComponents.Item('modActivityPolicy').CodeModule
+    $start=$policy.ProcStartLine('ReadPolicy',0);$end=$start+$policy.ProcCountLines('ReadPolicy',0)
+    # The VBE normalizes identifier casing in the compiled project.
+    $hits=@(for($i=$start;$i -lt $end;$i++){if($policy.Lines($i,1).Trim() -ieq 'If Not modConfig.LoadConfig(target.WarehouseId, target.StationId) Then Exit Function'){$i}})
+    if($hits.Count -ne 1){throw 'Tracking policy read boundary changed; not product RED.'}
+    $policy.InsertLines($hits[0],@'
+    If controlId = "PRODUCTION_RUN_CHECK_IN" Then
+        If TestShippingCatalog.CheckPolicyUnavailable() Then Exit Function
+    End If
 '@)
 }
 
 function Test-ProductionCheckInActivity($Fixture,$Other) {
+    Test-ProductionCheckInCatalog
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function Hash([string]$Path){$s=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $s).Hash}finally{$s.Dispose()}}
@@ -109,6 +143,19 @@ function Test-ProductionCheckInActivity($Fixture,$Other) {
             Check ('CheckInActivity.'+$guard+'.NoRecords') (@(Files|Where-Object{$_ -cnotin $before}).Count -eq 0)
             Check ('CheckInActivity.'+$guard+'.GuardsRestored') ([bool](Probe 'CheckBaselineGuards'))
         }
+        if(-not [bool](Probe 'CheckBaselineReusableStage' @('Selected'))){throw 'Tracking failure owner fixture unavailable; not product RED.'}
+        if($CaptureEvidence){[void](Probe 'RunLocalShowAndCapture' @($book.Name,'CHECK_IN'))}
+        $before=Files
+        [void](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckPolicyArm' @($true))
+        try{
+            Check 'CheckInActivity.PolicyUnavailable.ActualHandlerReturned' ([bool](Probe 'CheckBaselineAct' @('')))
+            Check 'CheckInActivity.PolicyUnavailable.OwnerSucceeded' ([bool](Probe 'CheckBaselineReusableResult' @($true)))
+            Check 'CheckInActivity.PolicyUnavailable.SuccessMessageAndNotice' ([bool](Probe 'CheckActivitySuccessAndNotice'))
+            Check 'CheckInActivity.PolicyUnavailable.GuardsRestored' ([bool](Probe 'CheckBaselineGuards'))
+            Check 'CheckInActivity.PolicyUnavailable.PolicyReadReached' ([int](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckPolicyHits') -eq 1)
+            Check 'CheckInActivity.PolicyUnavailable.NoFalseRecords' (@(Files|Where-Object{$_ -cnotin $before}).Count -eq 0)
+            if($CaptureEvidence){CaptureOwnedFormByCaptionEvidence 'Production' 'check-in-tracking-unavailable.png'}
+        }finally{[void](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckPolicyArm' @($false))}
         if(-not [bool](Probe 'RunWorksheetPrepare')){throw 'Worksheet fixture unavailable; not product RED.'}
         $firstKey=[string](Probe 'RunWorksheetKey')
         if($firstKey -cnotin $keys){throw 'Worksheet identity is not from the real Receiving fixture.'}
@@ -137,5 +184,49 @@ function Test-ProductionCheckInActivity($Fixture,$Other) {
         if($null -ne $book){$book.Close($false)}
         if($null -ne $decoy){$decoy.Close($false)}
         SelectTarget $Fixture
+    }
+}
+
+# Supplemental Core semantics; these never substitute for the actual-handler gate.
+function Test-ProductionCheckInCatalog {
+    $id='PRODUCTION_RUN_CHECK_IN';$label='CheckInCatalog'
+    $old=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(24))).Split("`n")|Where-Object{$_})
+    $new=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(25))).Split("`n")|Where-Object{$_})
+    Check ($label+'.Extends24Exactly') ($old.Count -eq 127 -and $new.Count -eq 128 -and @($new|Select-Object -Unique).Count -eq 128 -and ($new[0..126] -join '|') -ceq ($old -join '|') -and $new[-1] -ceq $id)
+    $same=$true
+    foreach($prior in $old){
+        $before=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Definition' @($prior,24))
+        $after=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Definition' @($prior,25))
+        $same=$same -and $before -cne '' -and $after -ceq $before
+    }
+    Check ($label+'.All127PriorDefinitionsPreserved') $same
+    $excluded=$true
+    foreach($version in 1..24){$excluded=$excluded -and [string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Definition' @($id,$version)) -ceq ''}
+    Check ($label+'.ExcludedFromHistoricalVersions') $excluded
+    $wire=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Definition' @($id,25))
+    $record=if($wire){$wire|ConvertFrom-Json}else{$null}
+    Check ($label+'.ExactControlContract') ($null -ne $record -and $record.ControlId -ceq $id -and $record.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $record.Class -ceq 'Command' -and $record.Role -ceq 'Production' -and $record.Caption -ceq 'Check In' -and $record.Surface -ceq 'Operations > Production > Production Run - List' -and $record.Capability -ceq 'PROD_POST' -and $record.CodePrefix -ceq ($id+'_'))
+    $supported=[ordered]@{REQUESTED=@('Info','Unknown');DENIED=@('Blocked','Unchanged');REJECTED=@('Warning','Unchanged');FAILED=@('Error','Unknown');STAGED=@('Info','Unchanged')}
+    foreach($code in @('REQUESTED','DENIED','REJECTED','FAILED','STAGED','REFRESHED','PRESENTED','SELECTED','CONFIRMED','PENDING','APPLIED','COMPLETED','VALIDATED','CANCELLED')){
+        $wire=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Outcome' @($id,$code))
+        $record=if($wire){$wire|ConvertFrom-Json}else{$null}
+        $correct=if($supported.Contains($code)){$null -ne $record -and $record.EventCode -ceq ($id+'_'+$code) -and $record.OutcomeCode -ceq $code -and $record.Severity -ceq $supported[$code][0] -and $record.DataEffect -ceq $supported[$code][1] -and $record.UserMessage -ne '' -and $null -ne $record.PSObject.Properties['NextStep']}else{$wire -ceq ''}
+        Check ($label+'.Outcome.'+$code) $correct
+        $json=@{ControlId=$id;OwnerId='PRODUCTION_RUN_LOCAL';CatalogVersion=25;OutcomeCode=$code}|ConvertTo-Json -Compress
+        Check ($label+'.Terminal.'+$code) ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @($json)) -eq ($code -ceq 'STAGED'))
+        Check ($label+'.EmptyReferences.'+$code) ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.References' @($id,$code,'[]')) -eq $supported.Contains($code))
+    }
+    foreach($code in $supported.Keys){
+        foreach($kind in @('Inventory','Designs')){
+            foreach($state in @('Submitted','Unknown')){
+                $json=ConvertTo-Json -InputObject @(@{WarehouseId='CATALOG_TEST';SourceKind=$kind;EventId='Source_A';SubmissionState=$state}) -Compress
+                Check ($label+'.RejectSource.'+$code+'.'+$kind+'.'+$state) (-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.References' @($id,$code,$json)))
+            }
+        }
+    }
+    foreach($change in @('Owner','Catalog')){
+        $record=@{ControlId=$id;OwnerId='PRODUCTION_RUN_LOCAL';CatalogVersion=25;OutcomeCode='STAGED'}
+        if($change -ceq 'Owner'){$record.OwnerId='PRODUCTION_ASSIGNMENT'}else{$record.CatalogVersion=24}
+        Check ($label+'.RejectWrong'+$change) (-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @(($record|ConvertTo-Json -Compress))))
     }
 }

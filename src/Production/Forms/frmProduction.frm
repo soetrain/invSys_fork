@@ -4242,30 +4242,29 @@ Private Function ProductionLogTable() As ListObject
     Next lo
 End Function
 
-Public Sub CheckInProductionRun()
-    Dim usedPayloadJson As String
-    Dim stagedTotal As Double
-    Dim reusableReport As String
-    Dim checkInStage As String
+Public Function CheckInProductionRun() As String
+    Dim usedPayloadJson As String, reusableReport As String, checkInStage As String
+    Dim stagedTotal As Double, reusableChecked As Boolean
 
     On Error GoTo FailCheckIn
+    CheckInProductionRun = "FAILED"
     checkInStage = "ReusableState"
     If modProductionReusableRun.ReusableRunIsLoaded() Then
         If ActiveRunProcess() = "" Then
             ShowStatus "Choose one Process before Check In."
-            Exit Sub
+            CheckInProductionRun = "REJECTED": Exit Function
         End If
         If Not SyncReusableRunBatchNote(reusableReport) Then
             ShowStatus reusableReport
-            Exit Sub
+            CheckInProductionRun = "REJECTED": Exit Function
         End If
-        If modProductionReusableRun.CheckInReusableProcess(ActiveRunProcess(), _
-                ActiveRunLocation(), reusableReport, mRunActionContinuation) Then
-            RefreshReusableRunControls False, mRunActionContinuation
-        End If
-        If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
+        reusableChecked = modProductionReusableRun.CheckInReusableProcess(ActiveRunProcess(), _
+                ActiveRunLocation(), reusableReport, mRunActionContinuation)
+        If reusableChecked Then RefreshReusableRunControls False, mRunActionContinuation
+        If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Function
+        If reusableChecked Then CheckInProductionRun = "STAGED"
         ShowStatus reusableReport
-        Exit Sub
+        Exit Function
     End If
 
     checkInStage = "LoaderSelection"
@@ -4274,43 +4273,44 @@ Public Sub CheckInProductionRun()
         RefreshRunPaletteState
     End If
     checkInStage = "PalettePresence"
-    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Function
     If mLstRunPalette Is Nothing Or mLstRunPalette.ListCount = 0 Then
         ShowStatus "Load a recipe and choose acceptable inventory before checking inventory into Production."
-        Exit Sub
+        CheckInProductionRun = "REJECTED": Exit Function
     End If
     checkInStage = "LocationCleanup"
     ClearMismatchedRunLocationAllocations
     checkInStage = "AllocationCompleteness"
-    If Not ValidateRunAllocationsComplete() Then Exit Sub
+    If Not ValidateRunAllocationsComplete() Then CheckInProductionRun = "REJECTED": Exit Function
     checkInStage = "AllocationLocations"
-    If Not ValidateRunAllocationLocations() Then Exit Sub
+    If Not ValidateRunAllocationLocations() Then CheckInProductionRun = "REJECTED": Exit Function
 
     checkInStage = "BuildPayload"
     usedPayloadJson = BuildRunUsedPayloadJson(stagedTotal)
-    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Function
     If stagedTotal <= 0 Then
         ShowStatus "No inventory was checked in. Enter allocation quantities first."
-        Exit Sub
+        CheckInProductionRun = "REJECTED": Exit Function
     End If
     checkInStage = "WriteCheckRows"
     If Not WriteProductionCheckRowsFromRunPalette() Then
-        If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
+        If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Function
         ShowStatus "Check In failed. The Inventory Check list could not be updated. " & _
             "Refresh Production Run before completing. " & mCheckRowsDiagnostic
-        Exit Sub
+        Exit Function
     End If
 
     checkInStage = "RefreshManager"
     RefreshManagerState
-    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Function
+    CheckInProductionRun = "STAGED"
     ShowStatus "Checked in " & FormatRunNumber(stagedTotal) & " units to Production. Complete Run will consume these checked-in quantities."
-    Exit Sub
+    Exit Function
 
 FailCheckIn:
-    ShowStatus "Check In failed at " & checkInStage & ": " & CStr(Err.Number) & _
+    CheckInProductionRun = "FAILED": ShowStatus "Check In failed at " & checkInStage & ": " & CStr(Err.Number) & _
         " - " & Err.Description
-End Sub
+End Function
 
 Private Sub RefreshConnectionUomCatalog(Optional ByVal selectedUom As String = "")
     Dim uoms As Variant

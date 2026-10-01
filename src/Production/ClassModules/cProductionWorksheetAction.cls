@@ -21,15 +21,6 @@ Public Property Get OperatorWorkbook() As Workbook
     Set OperatorWorkbook = mWorkbook
 End Property
 
-' Check In uses the same current-action guard before its observation contract exists.
-Public Function BindForValidation(ByVal capturedContext As String, ByVal operatorBook As Workbook, _
-                                  ByRef report As String) As Boolean
-    Set mWorkbook = operatorBook: mContext = capturedContext
-    OutcomeCode = "FAILED"
-    If Not CanContinue(report) Then Exit Function
-    BindForValidation = CurrentBinding(report)
-End Function
-
 Public Function Begin(ByVal controlId As String, ByVal capturedContext As String, _
                       ByVal operatorBook As Workbook, ByRef report As String) As Boolean
     Set mWorkbook = operatorBook: mContext = capturedContext
