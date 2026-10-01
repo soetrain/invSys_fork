@@ -30,6 +30,7 @@ param(
     [switch]$CheckProductionRecipeStructure,
     [switch]$CheckProductionDesignReads,
     [switch]$CheckProductionAssignment,
+    [switch]$CheckProductionRunPresentation,
     [switch]$CheckProductionAssignmentSafety,
     [switch]$CheckProductionAssignmentPaths,
     [switch]$CheckProductionAssignmentSourcePaths,
@@ -237,6 +238,10 @@ if($CheckSettingsEditorActivity){
 if($SettingsSafetyOnly -and (-not $CheckSettingsEditorActivity -or $Phase -ne 'RED')){throw 'Focused Settings safety diagnosis requires the Settings callback gate and RED; it is not full acceptance GREEN.'}
 if($InventoryQueriesOnly -and -not $CheckInventoryQueryReadOnly){throw 'Query-only diagnosis requires the supplemental query gate.'}
 if($CheckInventoryQueryReadOnly -and -not $CheckProductionClose){throw 'Inventory query preservation supplements the compiled public Production Close gate.'}
+if($CheckProductionRunPresentation){
+    $otherProductionGates=@($PSBoundParameters.Keys|Where-Object{($_ -like 'CheckProduction*' -or $_ -like 'CheckProcessWorksheet*') -and $_ -notin @('CheckProductionRunPresentation','CheckProductionDesignerActivity') -and [bool]$PSBoundParameters[$_]})
+    if(-not $CheckProductionDesignerActivity -or $otherProductionGates.Count -gt 0){throw 'Run presentation requires its separate compiled actual-handler gate.'}
+}
 if($CheckProcessWorksheetPicker -and -not $CheckProcessWorksheetHeaders){throw 'Process picker checks require the compiled worksheet fixture adapters.'}
 if($CheckProcessWorksheetActivity -and (-not $CheckProcessWorksheetHeaders -or $CheckProcessWorksheetPicker)){throw 'Worksheet observations require their separate compiled worksheet fixture gate.'}
 if($CheckProcessWorksheetPaths -and (-not $CheckProcessWorksheetActivity -or $ProcessWorksheetClosedDiagnostic -or $ProcessWorksheetCatalogOnly)){throw 'Worksheet paths require their separate compiled activity adapters.'}
@@ -461,6 +466,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionRecipeStructure){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-structure/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionDesignReads){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-design-reads/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignment){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionRunPresentation){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-presentation/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentSafety){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-safety/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentSourcePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-source-paths/'+[guid]::NewGuid().ToString('N'))}
@@ -1214,6 +1220,10 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
         Install-Slice4beShippingCatalogProbe
         Install-ProductionDesignerProbe
+        if($CheckProductionRunPresentation){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionRunPresentation.ps1')
+            Install-ProductionRunPresentationProbe
+        }
         if($CheckProcessWorksheetHeaders){
             . (Join-Path $PSScriptRoot 'Slice4beProcessWorksheetHeaders.ps1')
             Install-ProcessWorksheetHeadersProbe
@@ -1639,6 +1649,7 @@ End Function
             elseif(-not $InventoryQueriesOnly){Test-ProductionCloseActivity $a $b}
             if($CheckInventoryQueryReadOnly){try{Test-InventoryQueryReadOnly $b}finally{SelectTarget $a}}
         }
+        elseif($CheckProductionRunPresentation){Test-ProductionRunPresentation $a $b}
         elseif($CheckProductionRegulation){Test-ProductionRegulationActivity $a $b}
         elseif($CheckProductionDesignReads){Test-ProductionDesignReadActivity $a $b}
         elseif($CheckProductionAssignment){
