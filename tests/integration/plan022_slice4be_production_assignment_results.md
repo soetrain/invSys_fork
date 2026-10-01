@@ -196,6 +196,49 @@ status; a Task Manager thumbnail partly obscures its lower-right edge/Close area
 These are dialog/viewport evidence, not full layout or human acceptance. Runtime
 and the previously regenerated static baseline remain unchanged.
 
+## Output-regulation regression
+
+The unchanged candidate retains696/696 unique checks in exact prior order, with
+five instrumented package compiles. Controller
+`reports/runtime/production-regulation-controller/aa8d90aa87f34a759136a445ec74e46c`,
+2026-10-01 03:39:50.2802021--03:43:11.4395154 UTC; result
+`reports/runtime/slice4be-production-regulation/923fd109c1f44a86b30af11f34e2d745/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-regulation/50c93044d24a49d19d8d82f255ccbc2c/green.json`.
+Actual Apply/Clear handlers retain selected-output behavior, validation/refusal,
+exact local owner facts, no entered data or invented sources, optional/unavailable
+tracking, closed-workbook/session/target guards, unknown columns, saved authority
+and immutable prior activity. Cleanup is unassisted; settings/packages and the
+delayed Excel Application1000/1001/1002 audit pass.
+
+Three hashed captures were reviewed. Process-default Apply and Recipe-override
+Clear show populated output rows, readable regulation/UOM controls, guidance and
+local staged/cleared status. Settings shows configuration saved with tracking
+unavailable. These fixed viewports do not prove every selection, scrolling or
+human acceptance. Runtime and static metrics are unchanged.
+
+Separate regulation Action Paths retain102/102 unique, exact prior ordered checks
+and five compiles. Controller
+`reports/runtime/production-regulation-controller/63e8c69460c544908c59bf548007b037`,
+2026-10-01 03:43:42.5647336--03:49:02.7309491 UTC; result
+`reports/runtime/slice4be-production-regulation-paths/d75ddd959cf5473483c33fa8799d7c59/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-regulation-paths/2468e9365be44aa0951dc5e9e238b325/green.json`.
+Independent guide/observed recordings exercise Process Apply/Clear and Recipe
+Apply/Clear through the actual handlers. Publication, Event Detail, authored
+expectations and all three views pass. Command completion and source application
+remain separate: these local commands do not manufacture Domain evidence.
+Selected local state, other outputs/nodes, saved authority, unknown columns and
+workbook bytes retain their protecting checks. Normal unassisted closure,
+settings/package preservation and delayed Excel Application audit pass.
+
+Seven hashed captures were reviewed: editor, Event Detail, Settings, How-To,
+Diagnostic, Compare and the scrolled conclusion. All four guide steps are visible;
+the conclusion shows four matches, zero additional actions and command completion
+without asserted Domain application. Event Detail shows the local STAGED fact and
+unchanged saved definitions; long coverage text extends horizontally beyond its
+viewport. The initial diagnostic viewport ends before the conclusion, which is
+visible in the separate scrolled capture. This does not establish every field,
+all-size layout or human acceptance. No runtime or contract change was needed.
+
 ## Excluded reusable attempt and bounded diagnosis
 
 Full reusable controller
