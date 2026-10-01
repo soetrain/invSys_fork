@@ -1317,6 +1317,15 @@ retain settings/authority/operator/activity/journal evidence, close normally and
 pass delayed zero Excel audits. No unrelated changes or generated runtime reports
 are included in the checkpoint.
 
+The shared Ingredients Assignment safety regression on refresh01 retains 789/789
+after correcting its malformed older-policy fixture, with all prior identities
+and order unchanged. No runtime correction was needed; the strict reader correctly
+rejected catalog24 Run rows mislabeled as catalog22. See the owning record,
+`plan022_slice4be_production_assignment_results.md`, for the failed fixture run,
+corrected receipt, exact results, native lifetime qualification and static evidence.
+The focused companion retains 349/349 in exact prior order, with five compiles,
+preservation, normal unassisted closure and delayed zero Excel audit.
+
 ## Remaining gates
 
 Preserve the seven worksheet-owner cases and the five binding GREEN checks through

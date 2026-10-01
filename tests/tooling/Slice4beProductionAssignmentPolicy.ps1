@@ -199,12 +199,34 @@ function Test-ProductionAssignmentPolicy($Fixture,$Other,$Book,$Sheet,[string]$C
                     if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.AssignmentPolicyForTest' @(($mode -cne 'Off'),$false))){throw 'Authorized policy fixture unavailable.'}
                 }
                 if($mode -ceq 'Older'){
+                    $olderIds=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(22))).Split([char]10)|Where-Object{$_})
+                    if($olderIds.Count -ne 109 -or @($olderIds|Sort-Object -Unique).Count -ne 109){throw 'Catalog22 fixture definitions unavailable; not product RED.'}
                     $cfg=$excel.Workbooks.Open($Fixture.Config,0,$false)
                     try{
-                        (Table $cfg 'tblEventTrackingPolicies').ListColumns.Item('CatalogVersion').DataBodyRange.Value2=22.0
+                        $headers=Table $cfg 'tblEventTrackingPolicies'
+                        $headers.ListColumns.Item('CatalogVersion').DataBodyRange.Value2=22.0
                         $controls=Table $cfg 'tblEventTrackingControls'
-                        for($i=$controls.ListRows.Count;$i -ge 1;$i--){if(([string]$controls.ListRows.Item($i).Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2).StartsWith('PRODUCTION_ASSIGNMENT_')){$controls.ListRows.Item($i).Delete()}}
+                        $removed=0
+                        # Later catalogs can add other families; retain the exact declared catalog.
+                        for($i=$controls.ListRows.Count;$i -ge 1;$i--){
+                            $id=[string]$controls.ListRows.Item($i).Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2
+                            if($id -cnotin $olderIds){$controls.ListRows.Item($i).Delete();$removed++}
+                        }
+                        $byVersion=@{}
+                        foreach($row in $headers.ListRows){
+                            $version=[string]$row.Range.Cells.Item(1,$headers.ListColumns.Item('PolicyVersion').Index).Value2
+                            $byVersion[$version]=[Collections.Generic.List[string]]::new()
+                        }
+                        foreach($row in $controls.ListRows){
+                            $version=[string]$row.Range.Cells.Item(1,$controls.ListColumns.Item('PolicyVersion').Index).Value2
+                            if(-not $byVersion.ContainsKey($version)){throw 'Older fixture has an unknown policy version; not product RED.'}
+                            $byVersion[$version].Add([string]$row.Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2)
+                        }
+                        foreach($ids in $byVersion.Values){
+                            if($ids.Count -ne 109 -or @($ids|Sort-Object -Unique).Count -ne 109 -or @($ids|Where-Object{$_ -cnotin $olderIds}).Count){throw 'Older fixture catalog membership incomplete; not product RED.'}
+                        }
                         $cfg.Save()
+                        [pscustomobject]@{CatalogVersion=22;RegisteredControls=109;PolicyVersions=$byVersion.Count;RetainedRows=$controls.ListRows.Count;RemovedUnsupportedRows=$removed;ExactMembershipPerPolicy=$true}|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'assignment-older-policy-fixture.json')
                     }finally{$cfg.Close($false)}
                 }
                 SelectTarget $Fixture 'config-producer';[void](Probe 'ReadReopen' @($Book.Name))

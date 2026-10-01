@@ -1,5 +1,56 @@
 # Slice4be Ingredients Assignment observations
 
+## Regression after Run Refresh continuation
+
+Unpromoted `deploy/validation-production-run-refresh-01` retains the shared
+Assignment continuation checks in `frmProduction.RefreshReusableDesignLists` and
+adds the scoped Run continuation checks. This regression protects the existing
+Assignment behavior on that candidate. No runtime or normative contract changes
+are made in this checkpoint.
+
+Initial safety run: controller
+`reports/runtime/production-assignment-controller/6531fe4bdb9743be86b528ade100f666`,
+result `reports/runtime/slice4be-production-assignment-safety/ddb2b81fb0114cda8f9c06351afa080a/green.json`,
+2026-10-01 12:53:55.0505610--13:00:51.4493244 UTC: **788 PASS / 1 FAIL / 789 unique**,
+with all prior identities/order retained. Despite its filename, this is failed
+evidence. Only `AssignmentPolicy.Older.ExistingControlReadable` fails: the test
+declared catalog22 and removed Assignment catalog23 rows, but left Run catalog24
+rows in the saved policy. `modActivityPolicy.ReadPolicy` correctly rejects a
+control outside the declared catalog and requires its complete registered set.
+This malformed fixture is not product RED and does not justify relaxing the reader.
+Five compiles, preservation, normal cleanup and delayed zero Excel audit pass.
+
+The test fixture now uses the registered catalog22 IDs, removes every unsupported
+control and checks complete membership per policy version before saving. All 47
+assertion source lines remain textually identical and ordered. No assertion is
+removed, renamed or relaxed. The corrected receipt records one policy version,
+109 retained catalog22 controls and 18 excluded catalog23/24 controls.
+
+Corrected safety GREEN: controller
+`reports/runtime/production-assignment-controller/45e24e2402bf48bdb9f5c15c33e74011`,
+result `reports/runtime/slice4be-production-assignment-safety/ee7be8e5bdfc4bbb8dca2d2f3cc9966b/green.json`,
+13:01:32.7474718--13:08:30.0846310 UTC: **789/789 unique GREEN**, with exact prior
+order and every previous pass retained. This includes real read-return sign-out,
+optional policy, nesting, save uncertainty, partial local effects and stale binding.
+The visible form dismisses when the captured workbook closes; the other workbook
+remains open. No closed-form Save invocation is claimed. Five compiles, canonical
+refresh01 pins, settings/operator/older-record preservation, normal unassisted
+closure and delayed zero Excel Application1000/1001/1002 audit pass.
+
+Focused regression GREEN: controller
+`reports/runtime/production-assignment-controller/75a413f2a68949f088557e46e47e79fa`,
+result `reports/runtime/slice4be-production-assignment/8c7813ce4ce040a5a4e3e75bf6843697/green.json`,
+13:08:58.2825403--13:11:48.6897196 UTC: **349/349 unique GREEN**, with exact prior
+order and every previous pass retained. Five compiles, canonical refresh01 pins,
+settings/operator/older-record preservation, normal unassisted closure and delayed
+zero Excel Application1000/1001/1002 audit pass.
+
+Static `reports/runtime/refresh-assignment-regression-static-01` preserves
+287 components, 6166 procedures and 135351 lines, 9/45 dynamic calls, 190 duplicate
+candidates and all 28 non-growing oversized caps. Three schemas and 368 tooling
+parses pass, with zero runtime growth. Both Assignment regressions pass;
+broader Release1, populated layout and human acceptance remain open.
+
 ## Catalog23 regression fixture alignment
 
 This is test maintenance under the already-approved D18 catalog23 extension.
