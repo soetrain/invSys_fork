@@ -1080,6 +1080,73 @@ canonical pins, settings/package preservation, normal unassisted cleanup and the
 delayed zero Excel audit pass. The remaining stock observation failures are not
 claimed as acceptance.
 
+## Independent Load Action Paths
+
+The unchanged D18 Load contract is now exercised through separate guide-source
+and observed recordings on unpromoted load03. Each recording begins with a real
+released selection, valid scale and prior allocated local run already prepared.
+The actual `mBtnLoaderLoad_Click` replaces that preparation and refreshes the
+local rows. Setup is outside the recording. No runtime code or contract changes.
+
+The initial negative-control attempt, controller
+`reports/runtime/production-run-local-controller/cff51cf529c1457297d51e8019858f6d`,
+result `reports/runtime/slice4be-production-run-load-paths/b7a765c000ad49e688324d9d57c7971d/red.json`,
+has45 PASS/two FAIL and is superseded: a combined owner/message assertion assumed
+`100%`, while the existing formatter displays `100.%`. The corrected test separates
+owner state from message format and accepts the existing equivalent numeric text.
+It does not change the product or weaken the exact owner-state assertions.
+
+Focused RED on preserved clear01: controller
+`reports/runtime/production-run-local-controller/7068f0b3a4d94aa28ff830b579fdb2fb`,
+result `reports/runtime/slice4be-production-run-load-paths/ffce741d251e455da75a26023b7968ec/red.json`,
+2026-10-01 11:30:14.4258937--11:32:12.0441253 UTC, **47 PASS/one behavioral FAIL**
+across48 unique checks. Only `RunLoadPaths.GuideSource.LOAD.OriginalHandlerPair`
+fails. The original owner result, message and restored guards pass; recording is
+stopped cleanly without treating an unavailable guide prerequisite as product RED.
+
+GREEN on unchanged load03: controller
+`reports/runtime/production-run-local-controller/3741a85bbcf64374bfc6e68d99e0c394`,
+result `reports/runtime/slice4be-production-run-load-paths/b96f03c03f544eb68e7e4765be358d83/green.json`,
+11:32:41.4658503--11:39:10.9873126 UTC, **87/87 unique GREEN**. All48 RED identities
+retain their relative order and all47 prior PASS checks survive; shared42 remain
+exact. Each independent recording contains one original REQUESTED/STAGED pair.
+Actual Admin publication preserves all four records. Selected Event Detail follows
+the requested and terminal lines. The saved guide preserves exact source provenance
+and explicit expectation; a separate non-author reader pairs it with the observed
+run in How-To, Diagnostic and Compare both. One matched STAGED action and zero
+extras conclude CommandCompleted; SourceEventsApplied remains Incomplete with
+SOURCE_UNAVAILABLE. Viewing preserves recordings, publications and authority.
+
+Both decisive runs pass five instrumented package compiles, canonical package pins,
+settings/preservation, normal unassisted closure and delayed zero Excel Application
+audits. The earlier superseded attempt also preserves settings/packages and closes
+normally, with a clear delayed audit. No production deployment occurs.
+
+Six captures reviewed under the GREEN result directory: `run-load-editor.png`,
+`run-load-event-detail.png`, `run-load-how-to.png`, `run-load-diagnostic.png`,
+`run-load-compare-both.png` and `run-load-conclusion.png`. The populated editor shows
+loaded inputs/output, no allocated inventory check rows, and reset actual output/
+batch note; existing palette input values remain. The guide makes the preselected
+Recipe/scale prerequisite and local replacement explicit. Control observations
+do not identify the selected Recipe. The diagnostic displays the independent run
+and local-only conclusion. Long synthetic names in lists and Event Detail Coverage
+still have viewport limits; these captures do not close populated-layout or human
+acceptance requirements.
+
+Static `reports/runtime/run-load-paths-static-02` remains286 components/6165
+procedures/135319 lines,9 literal/45 unresolved calls,190 duplicate candidates,
+1196 scanner candidates/1198 reviewed and28 non-growing oversized caps. All three
+schemas and368 tooling parses pass. Runtime growth is zero.
+
+Shared Clear path regression on unchanged load03: controller
+`reports/runtime/production-run-local-controller/4084006cbb7c4f01bcebee2a2b0f3327`,
+result `reports/runtime/slice4be-production-run-clear-paths/02b52020e9e04ecc8e067db20b833387/green.json`,
+11:39:31.2314995--11:46:05.5219790 UTC, **102/102 unique GREEN** in the exact prior
+order. Five compiles, canonical pins, settings/authority/operator/evidence
+preservation, normal unassisted closure and delayed zero Excel audit pass. This
+protects the established two-branch Clear guide and observed-run comparison through
+the extended shared harness. Remaining Run/release and human acceptance stay open.
+
 ## Remaining gates
 
 Preserve the seven worksheet-owner cases and the five binding GREEN checks through

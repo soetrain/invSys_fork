@@ -1,7 +1,7 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-production-assignment-01',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$ClosedDiagnostic,[switch]$ContractOnly,[switch]$PolicyOnly,[switch]$FaultOnly,[switch]$YieldOnly,[switch]$StockOnly,[switch]$WorksheetOnly,[switch]$WorksheetOwnerOnly,[switch]$WorksheetScaleOnly,[switch]$ClearPathsOnly)
+param([string]$DeployRoot='deploy/validation-production-assignment-01',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$ClosedDiagnostic,[switch]$ContractOnly,[switch]$PolicyOnly,[switch]$FaultOnly,[switch]$YieldOnly,[switch]$StockOnly,[switch]$WorksheetOnly,[switch]$WorksheetOwnerOnly,[switch]$WorksheetScaleOnly,[switch]$ClearPathsOnly,[switch]$LoadPathsOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
-if(@($ClosedDiagnostic,$ContractOnly,$PolicyOnly,$FaultOnly,$YieldOnly,$StockOnly,$WorksheetOnly,$WorksheetOwnerOnly,$WorksheetScaleOnly,$ClearPathsOnly|Where-Object{$_}).Count -gt 1){throw 'Choose one isolated Run companion gate.'}
+if(@($ClosedDiagnostic,$ContractOnly,$PolicyOnly,$FaultOnly,$YieldOnly,$StockOnly,$WorksheetOnly,$WorksheetOwnerOnly,$WorksheetScaleOnly,$ClearPathsOnly,$LoadPathsOnly|Where-Object{$_}).Count -gt 1){throw 'Choose one isolated Run companion gate.'}
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated Run local validation.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $snapshot=Get-InvSysTestSettingsSnapshot
@@ -23,13 +23,14 @@ try{
     if($WorksheetOwnerOnly){$extra=@('-RunLocalWorksheetOwnerOnly')}
     if($WorksheetScaleOnly){$extra=@('-RunLocalWorksheetScaleOnly')}
     if($ClearPathsOnly){$extra=@('-RunClearPathsOnly','-CaptureEvidence')}
+    if($LoadPathsOnly){$extra=@('-RunLoadPathsOnly','-CaptureEvidence')}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CheckProductionRunLocal -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @extra *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
 }finally{
     Wait-RecordingCleanup -Creator $null -Worker $null
     $restored=Restore-InvSysTestSettingsSnapshot $snapshot
     $same=@($pins|Where-Object{(Get-FileHash -LiteralPath $_.File).Hash -cne $_.Hash}).Count -eq 0
-    [pscustomobject]@{Phase=$Phase;ClosedDiagnostic=[bool]$ClosedDiagnostic;ContractOnly=[bool]$ContractOnly;PolicyOnly=[bool]$PolicyOnly;FaultOnly=[bool]$FaultOnly;YieldOnly=[bool]$YieldOnly;StockOnly=[bool]$StockOnly;WorksheetOnly=[bool]$WorksheetOnly;WorksheetOwnerOnly=[bool]$WorksheetOwnerOnly;WorksheetScaleOnly=[bool]$WorksheetScaleOnly;ClearPathsOnly=[bool]$ClearPathsOnly;StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=$true;ReleaseAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
+    [pscustomobject]@{Phase=$Phase;ClosedDiagnostic=[bool]$ClosedDiagnostic;ContractOnly=[bool]$ContractOnly;PolicyOnly=[bool]$PolicyOnly;FaultOnly=[bool]$FaultOnly;YieldOnly=[bool]$YieldOnly;StockOnly=[bool]$StockOnly;WorksheetOnly=[bool]$WorksheetOnly;WorksheetOwnerOnly=[bool]$WorksheetOwnerOnly;WorksheetScaleOnly=[bool]$WorksheetScaleOnly;ClearPathsOnly=[bool]$ClearPathsOnly;LoadPathsOnly=[bool]$LoadPathsOnly;StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=$true;ReleaseAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
     if(-not $restored -or -not $same){throw 'Run local preservation failed.'}
 }
 Get-Content (Join-Path $root 'worker.log') -Tail 8
