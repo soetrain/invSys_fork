@@ -2856,7 +2856,7 @@ Private Sub ToggleSelectedRunTreeParent()
     End If
 End Sub
 
-Private Sub SetAllRunTreeGroupsCollapsed(ByVal collapsed As Boolean)
+Public Sub SetAllRunTreeGroupsCollapsed(ByVal collapsed As Boolean)
     Dim i As Long
     Dim key As String
 
@@ -11400,13 +11400,13 @@ Private Sub mLstRunTree_Click()
 End Sub
 
 Private Sub mBtnRunTreeExpandAll_Click()
-    SetAllRunTreeGroupsCollapsed False
-    ShowStatus "All ingredient choices shown."
+    Dim report As String
+    report = modProductionRunPresentation.Execute(Me, False, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress): If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mBtnRunTreeCollapseAll_Click()
-    SetAllRunTreeGroupsCollapsed True
-    ShowStatus "All ingredient choices hidden."
+    Dim report As String
+    report = modProductionRunPresentation.Execute(Me, True, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress): If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mBtnRunApplyPalette_Click()

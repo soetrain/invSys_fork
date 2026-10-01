@@ -6,8 +6,9 @@ Expand/Collapse. Owner is PRODUCTION_RUN_LOCAL. Local completion is distinct fro
 inventory application; these controls carry no source-event references. D15's
 experimental Tree status and D14's exact-key/unknown-column rules remain binding.
 
-This is test-first work, not completed implementation or acceptance. Runtime
-remains catalog23/118 IDs and55/68 constructed Production buttons. The separate
+This record includes historical test-first baselines and later bounded changes;
+it does not establish completed implementation or acceptance. The initial runtime
+was catalog23/118 IDs and55/68 constructed Production buttons. The separate
 full reusable native crash remains unresolved; see
 `plan022_slice4be_production_assignment_results.md` for its bounded diagnostics
 and the thirty verified shared gates on the frozen Assignment candidate.
@@ -628,6 +629,82 @@ handlers and three dismissed surfaces. All42 shared checks, five compiles,
 canonical binding02 pins, preservation, normal unassisted closure and delayed
 zero Excel Application audit pass. The325 tracking/guard failures remain open;
 this is not the separate full reusable171/two-aggregate/replay37 acceptance gate.
+
+## Tree presentation observation implementation
+
+Unpromoted `deploy/validation-production-run-presentation-01` integrates the two
+approved Expand/Collapse observations using `modProductionRunPresentation` and
+the existing `cProductionWorksheetAction`. The two actual Click handlers call the
+coordinator; the existing tree dictionary/rebuild routine remains the owner.
+Its existing messages and presentation behavior are retained. Loading/busy and
+captured workbook/warehouse/session/capability checks precede owner entry. Errors
+retain their original propagation after recording FAILED and restoring guards.
+Optional tracking has no authority to prevent the local action. No source-event
+reference, inventory application or release workflow conclusion is introduced.
+The seven other Run controls remain unintegrated; RUN-SCALE-01 and RUN-UI-01 remain
+pending separate approvals.
+
+Fresh RED controller `production-run-presentation-controller/40b0790e3a4b4ae0953a3821fed7e6c3`,
+result `slice4be-production-run-presentation/e2376b07de9d4a7ba71c586e8db8671e/red.json`
+(both under `reports/runtime`):2026-10-01 08:54:25.9954295--08:56:14.8607949 UTC,
+**100 PASS/132 FAIL/232 unique checks** on binding02. All232 original identities/
+order and98 original PASS checks survive; catalog24 explains the two new metadata
+passes. Missing paired observations and suppression/context guards explain all132
+failures. Five compiles, canonical pins, preservation, normal cleanup and delayed
+zero Excel Application audit pass before implementation.
+
+GREEN controller `production-run-presentation-controller/320976f5fe5a44598fe4ea6ea654ab60`,
+result `slice4be-production-run-presentation/1723eedc38fb4a91bb996c69e74c1bcf/green.json`:
+2026-10-01 08:58:19.5975597--09:00:35.7785844 UTC, **232/232 GREEN** with all prior
+identities/order and PASS checks retained. All132 missing facts become GREEN,
+including repeated/empty/process-collapsed shapes, exact messages, paired/redacted
+records, loading/busy suppression, stale target/session/sign-out/closed-workbook
+guards, saved authority/operator bytes, unknown values/formula and older records.
+Five compiles, package/settings preservation, unassisted closure and delayed zero
+Excel Application audit pass. No screenshot or human-acceptance claim is made.
+
+Build `reports/runtime/run-presentation-build-01`,2026-10-01
+08:57:07.4461621--08:57:45.3930568 UTC: five packages and independent cold-start
+compile pass, with settings captured in memory before build and restored, prior
+candidate preserved, normal closure and delayed zero audit before the next gate.
+Compiled comparison preserves274 components, changes only `frmProduction` and adds
+`modProductionRunPresentation` (275 to276). Static evidence
+`reports/runtime/run-presentation-static-02` reports283 components/6156 procedures/
+135163 lines, growth1/1/35; calls stay9 literal/45 unresolved, duplicates190 and
+all28 oversized caps non-growing. The form line count is unchanged. Three schemas
+validate and367 tooling PowerShell scripts parse. Broader acceptance stays open.
+
+Policy companion controller `production-run-local-controller/cd91fad3dc9d4c3093f3e622f7ae1bf7`,
+result `slice4be-production-run-policy/e79fe79d639245919d86f5f1e7727105/red.json`:
+2026-10-01 09:01:15.0526354--09:04:08.1061611 UTC, **183 PASS/35 FAIL/218 checks**.
+All prior identities/order and173 PASS checks survive. Exactly ten Tree checks
+turn GREEN: denied owner entry/mutation, exact denied pairs/effects and visible
+tracking-unavailable guidance. Off, older-policy-excluded and Navigation-off
+actions continue without records/fallback; unavailable storage also does not
+block authorized owner behavior. The35 failures are unchanged seven-handler
+gaps. Five compiles, canonical candidate pins, preservation, normal cleanup and
+delayed zero Excel Application audit pass. This is a partial gate, not218 GREEN.
+
+Fault/nesting companion controller `production-run-local-controller/86fdce7228ef4f9a81cd6ec5beed9928`,
+result `slice4be-production-run-fault/ffd943706e2344ec95e19dee80ab37a1/red.json`:
+2026-10-01 09:04:34.9835550--09:06:29.4579641 UTC, **153 PASS/92 FAIL/245 checks**.
+All identities/order and127 earlier PASS checks are retained. Exactly26 Tree
+checks become GREEN: actual owner exceptions produce a redacted FAILED pair
+without a rollback claim, while retaining error propagation/partial state and
+restoring guards; nested clicks yield one owner entry and one pair. All18 real
+owner boundaries remain exercised across the nine controls. The92 remaining
+failures belong to the seven unintegrated handlers. Five compiles, canonical pins,
+preservation, unassisted closure and delayed zero Excel Application audit pass.
+
+Reusable regression controller `production-run-local-controller/cd5385e233844767a10c6c89fc00c983`,
+result `slice4be-production-run-local/143b4d09aa7e4f19ac754aca07ca926b/red.json`:
+2026-10-01 09:07:03.3495991--09:12:38.4905131 UTC, **178 PASS/325 FAIL/503 checks**.
+All503 identities/order/results match binding02 exactly, including all33 owner
+cases, all42 shared GREEN checks and seven native-close receipts (four invoked
+handlers, three dismissed surfaces). Five compiles, canonical pins, preservation,
+normal unassisted closure and delayed zero Excel Application audit pass. This
+preserves the local Run baseline; it does not close the separate unresolved full
+reusable171/two-aggregate/replay37 gates or the325 missing tracking/guard checks.
 
 ## Remaining gates
 
