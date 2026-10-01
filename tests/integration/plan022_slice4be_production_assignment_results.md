@@ -9,9 +9,9 @@ observations while preserving the existing algorithms. Any different editing,
 read, validation or save behavior needs a separate architecture decision.
 
 Catalog23 specifies seven buttons and two deliberate list selections, all owned by
-PRODUCTION_ASSIGNMENT. Runtime is still catalog22 with109 IDs and48/68 observed
-Production buttons; specification and test adapters do not increase coverage.
-The frozen unpromoted candidate is `deploy/validation-process-worksheet-activity-03`.
+PRODUCTION_ASSIGNMENT. The baseline was catalog22 with109 IDs and48/68 observed
+Production buttons; specification and test adapters alone do not increase coverage.
+The preserved baseline is `deploy/validation-process-worksheet-activity-03`.
 Its completed worksheet regression checkpoint is recorded separately in
 `plan022_slice4be_process_worksheet_activity_results.md` and must remain GREEN.
 
@@ -20,7 +20,8 @@ Operations adapters. A released Process with a requirement drives actual selecti
 and a saved new Process version. Controlled empty/malformed read responses retain
 the parser/population path; no activity records or replacement handlers are injected.
 The shared harness still verifies actual Settings/UOM callbacks and compiles all
-five instrumented packages. Saved packages and runtime source remain unchanged.
+five instrumented packages. RED used unchanged saved packages; the subsequent
+implementation candidate and its verification are recorded below.
 
 Protecting files:
 
@@ -193,22 +194,116 @@ Regenerated `reports/runtime/assignment-policy-static` retains277 components,
 and28 non-growing caps. Three schemas validate and352 scripts parse. No runtime
 source, frozen package, completed coverage or human-acceptance change is claimed.
 
+## Core matrix and continuation RED
+
+The packaged Core outcome/reference matrix supplements actual-handler coverage.
+Its schema fixtures are never presented as real activity or owning application
+evidence. It covers each exact positive outcome, unsupported outcomes, completion,
+wrong owner/catalog, empty versus required source references, Submitted/Unknown
+states, wrong kind/warehouse, malformed and duplicate IDs, and field shape.
+
+Controller `reports/runtime/production-assignment-controller/5bf6b39b3c154c2fb29571423a3a5676`,
+2026-10-01 00:43:56.7865296--00:47:30.5355386 UTC; result
+`reports/runtime/slice4be-production-assignment-safety/7d8071061d654d7aaf4953d64e0e3c02/red.json`:
+532 PASS/228 FAIL/760. All245 prior results/order remain exact. The515 additions
+pass374/fail141 because the specified catalog23 mappings are absent.
+
+The next expansion adds sign-out after real owning read returns for Refresh,
+Select Process, Processes selection and Save, plus a processor-continuation check
+after the already protected actual queue append. Controller
+`reports/runtime/production-assignment-controller/2b62d4b3b1024c4fb71a974d4ff2939e`,
+00:47:47.9284514--00:51:43.3541811 UTC; result
+`reports/runtime/slice4be-production-assignment-safety/bee717f098ae4f20ba2a234d52d1531a/red.json`:
+546 PASS/243 FAIL/789. All760 prior results/order remain exact;29 additions
+pass14/fail15. Real read/append boundaries are reached. Failures expose subsequent
+reads, draft changes, missing refusal/original-attempt evidence and processor
+continuation after sign-out. The loaded frozen worksheet candidate remains
+unchanged; Core implementation began after its760-check RED, and Operations
+implementation followed the protecting boundary failures.
+
+Both runs compile five instrumented packages, close normally without intervention,
+preserve settings/packages and pass delayed Excel Application1000/1001/1002 audits.
+The closure records retain measured native dismissal with no handler invocation.
+`Slice4beProductionAssignmentYield.ps1` contains the isolated read-boundary seams.
+
+## First implementation candidate
+
+`deploy/validation-production-assignment-01` is unpromoted. Core adds the explicit
+catalog23 controls, fixed outcomes, Save-only Designs references and exact terminal
+mapping. Operations wraps all nine actual handlers in typed observation/permission/
+binding coordination. Shared local alternative-list algorithms move into
+`modProductionAssignmentDraft`; identities, comparison rules and saved payloads
+remain unchanged. `modProductionAssignmentActions` reuses the existing Operations
+captured-action guard, which has no worksheet mutation authority.
+
+A form-scoped continuation exists only while an Assignment action runs and clears
+on normal/error exit. Shared reads check it before subsequent work. Save passes
+typed owning facts and a bound continuation through queue, processing, projection
+and refresh boundaries. Other callers leave that continuation unbound, preserving
+their existing behavior. Original status/error presentation, quiet no-op behavior,
+partial local preparation, optional tracking and submission uncertainty remain.
+No source identity is extracted from status text or processor totals.
+
+Companion GREEN: controller
+`reports/runtime/production-assignment-controller/08763b11e54546ee8fd2ca63e921d4d9`,
+2026-10-01 00:54:08.7529232--01:00:57.1159322 UTC; result
+`reports/runtime/slice4be-production-assignment-safety/884c7493a9d748b59a2d81e305dd64d7/green.json`:
+789/789, retaining the exact RED order and every earlier check. Five instrumented
+compiles, normal closure without intervention, settings/package preservation and
+delayed Application1000/1001/1002 audit pass. The native form is dismissed at
+workbook closure; no closed-form Save invocation is claimed.
+
+Original actual-handler baseline GREEN: controller
+`reports/runtime/production-assignment-controller/7d9dcc62988d4eb6a87bd58d2ca527fd`,
+2026-10-01 01:01:17.2729127--01:04:03.2810469 UTC; result
+`reports/runtime/slice4be-production-assignment/ebbfc739e1c24e89839526a4c81ddbf6/green.json`:
+349/349 with exact prior order, all nine normal action pairs and existing owner
+behavior, frozen catalog definitions, refusals, local/saved state and binding
+guards. Unlike the companion's visible native dismissal, this baseline's retained
+form reference enters the eight closed-binding local handlers; all refuse and
+preserve state. Five compiles, normal closure, settings/package preservation and
+delayed Application1000/1001/1002 audit pass. Registered runtime coverage is now
+118 IDs,55/68 constructed Production buttons and two newly observed nonbutton
+handlers;13 buttons and28 nonbutton handlers retain coverage work. These are
+focused observations, not completed Slice4be user acceptance.
+
+Build log: `reports/runtime/assignment-build-01.log`. Independent cold-start and
+five-package compile: `reports/runtime/assignment-compile-01`,2026-10-01
+01:04:40.4097142--01:04:54.7890014 UTC. Settings, both candidate package sets,
+normal closure and delayed Excel audit pass. Of273 compiled components,264 match
+the prior270 by case-insensitive code and exact string-literal hashes (252 exact
+code hashes,12 VBA identifier-case-only differences). Six existing components
+change: Core catalog/references/evaluation and Operations form/lifecycle-facts/
+reusable-design owner. The three new modules are Assignment codes, actions and
+draft-list helpers. No Inventory Domain, Designs Domain or Admin behavior change
+is inferred from packaging alone; their required regression gates remain open.
+
+Existing worksheet Core regression retains188/188 exact ordered checks on this
+candidate: controller
+`reports/runtime/process-worksheet-activity-controller/bdd0e7a1c3c04773bbadb50aac12677c`,
+2026-10-01 01:07:36.3938313--01:08:57.0012884 UTC; result
+`reports/runtime/slice4be-process-worksheet-activity/e506069a6201418fae1181e31d9f9f15/green.json`.
+Five instrumented compiles, normal closure, package/settings preservation and
+delayed Excel audit pass. This supplements the new Assignment contract matrix;
+it does not replace the full595-check worksheet workflow regression.
+
+Regenerated `reports/runtime/assignment-implementation-static-01` has280 components,
+6150 procedures and135006 lines. Dynamic calls remain9 literal/45 unresolved,
+duplicate bodies remain190, and all28 oversized caps do not grow. The Production
+form shrinks11599->11564 lines; total runtime growth is261 lines across the typed
+coordination and explicit catalog. Three schemas validate;353 scripts parse.
+
 ## Required next evidence
 
-Preserve the349 initial checks and245 expanded companion checks, including the
-original89 results. Before runtime edits, finish the explicit Core outcome/source
-contract matrix for the nine new mappings: unsupported positive outcomes,
-nonempty confirmed/pending exact Designs envelopes, failed submitted/uncertain
-references, and rejection of local-action, wrong-kind, wrong-warehouse or malformed
-references. The handler, owner-write, policy and binding RED cases above are now
-established and must not be dropped or replaced. Do not promote the initial
+Preserve the349 initial checks and789 expanded companion checks, including every
+original89/245/760 result identity. The contract matrix and continuation RED above
+are established. Do not promote the initial
 source-envelope shape assertion into proof of exact owning EventId correlation.
 The companion supplies that writer-boundary comparison for its five Save cases.
 
-Complete the remaining focused RED cases before runtime edits, then require GREEN retaining
-all checks. Separate guide and observed recordings must prove publication, exact
+Require focused GREEN retaining all checks. Separate guide and observed recordings must prove publication, exact
 Event Detail, authored intent, independent-reader How-To/Diagnostic/Compare and
 Save's exact Designs applied/awaiting/incomplete distinctions. Build, compile,
 layout, static-maintenance, live-role, full Release1 chain, reusable Production,
 visible operator evidence and human acceptance remain required. No package
-promotion, completed control coverage or Slice4be acceptance is claimed here.
+promotion, comprehensive control coverage or Slice4be acceptance is claimed here.

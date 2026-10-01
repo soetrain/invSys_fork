@@ -96,6 +96,10 @@ Public Function CommandCompleted(ByVal record As Object) As Boolean
     Set outcome = modActivityCatalog.Outcome(CStr(record("ControlId")), CStr(record("OutcomeCode")))
     If outcome Is Nothing Then Exit Function
     code = CStr(record("OutcomeCode"))
+    If CStr(definition("OwnerId")) = "PRODUCTION_ASSIGNMENT" Then
+        CommandCompleted = (code = modProductionAssignmentCodes.PositiveOutcome(CStr(record("ControlId"))))
+        Exit Function
+    End If
     ' Explicit owner facts; severity and data effect are deliberately not classifiers.
     Select Case CStr(record("ControlId"))
         Case "PRODUCTION_PROCESS_WORKSHEET_SEND", "PRODUCTION_PROCESS_WORKSHEET_ADD_ITEM"

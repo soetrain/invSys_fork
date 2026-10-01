@@ -1,6 +1,7 @@
 # Companion to the unchanged 349-check baseline. Real writer/processor boundaries
 # are observed through the existing disposable lifecycle failure seams.
 function Test-ProductionAssignmentSafety($Fixture,$Other) {
+    Test-ProductionAssignmentContract
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function Hash([string]$Path){$s=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $s).Hash}finally{$s.Dispose()}}

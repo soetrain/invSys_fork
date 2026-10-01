@@ -1,4 +1,53 @@
 # Additional unsaved seams. Existing handlers remain the measured entry points.
+function Test-ProductionAssignmentContract {
+    $positive=[ordered]@{REFRESH='REFRESHED';PROCESS='PRESENTED';REQUIREMENT='SELECTED';ADD='STAGED';REMOVE='STAGED';CLEAR='STAGED';SAVE='CONFIRMED';PROCESS_SELECT='PRESENTED';REQUIREMENT_SELECT='SELECTED'}
+    $submitted='[{"WarehouseId":"CATALOG_TEST","SourceKind":"Designs","EventId":"Source_A","SubmissionState":"Submitted"}]'
+    $unknown=$submitted.Replace('Submitted','Unknown')
+    $codes=@('REQUESTED','DENIED','REJECTED','FAILED','REFRESHED','PRESENTED','SELECTED','STAGED','CONFIRMED','PENDING','APPLIED','COMPLETED','VALIDATED','CANCELLED')
+    foreach($action in $positive.Keys){
+        $id='PRODUCTION_ASSIGNMENT_'+$action;$label='AssignmentContract.'+$action
+        $outcomes=[ordered]@{REQUESTED=@('Info','Unknown');DENIED=@('Blocked','Unchanged');REJECTED=@('Warning','Unchanged');FAILED=@('Error','Unknown')}
+        $outcomes[$positive[$action]]=@('Info',$(if($action -ceq 'SAVE'){'Unknown'}else{'Unchanged'}))
+        if($action -ceq 'SAVE'){$outcomes.PENDING=@('Notice','Unknown')}
+        foreach($code in $codes){
+            $wire=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Outcome' @($id,$code))
+            $value=if($wire){$wire|ConvertFrom-Json}else{$null};$supported=$outcomes.Contains($code)
+            $correct=if($supported){$null -ne $value -and $value.EventCode -ceq ($id+'_'+$code) -and $value.OutcomeCode -ceq $code -and $value.Severity -ceq $outcomes[$code][0] -and $value.DataEffect -ceq $outcomes[$code][1] -and $value.UserMessage -ne ''}else{$wire -ceq ''}
+            Check ($label+'.Outcome.'+$code) $correct
+            $record=@{ControlId=$id;OwnerId='PRODUCTION_ASSIGNMENT';CatalogVersion=23;OutcomeCode=$code}|ConvertTo-Json -Compress
+            Check ($label+'.Terminal.'+$code) ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @($record)) -eq ($code -ceq $positive[$action]))
+            $acceptEmpty=$supported -and $code -cnotin @('CONFIRMED','PENDING')
+            Check ($label+'.EmptyReferences.'+$code) ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.References' @($id,$code,'[]')) -eq $acceptEmpty)
+        }
+        foreach($code in @('REQUESTED','DENIED','REJECTED','FAILED',$positive[$action],'PENDING')|Select-Object -Unique){
+            foreach($state in @('Submitted','Unknown')){
+                $refs=if($state -ceq 'Submitted'){$submitted}else{$unknown}
+                $accept=$action -ceq 'SAVE' -and ($code -ceq 'FAILED' -or ($code -cin @('CONFIRMED','PENDING') -and $state -ceq 'Submitted'))
+                Check ($label+'.'+$state+'References.'+$code) ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.References' @($id,$code,$refs)) -eq $accept)
+            }
+        }
+        foreach($change in @('Owner','Catalog')){
+            $record=@{ControlId=$id;OwnerId='PRODUCTION_ASSIGNMENT';CatalogVersion=23;OutcomeCode=$positive[$action]}
+            if($change -ceq 'Owner'){$record.OwnerId='PRODUCTION_DESIGNER'}else{$record.CatalogVersion=22}
+            Check ($label+'.TerminalRejectsWrong'+$change) (-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @(($record|ConvertTo-Json -Compress))))
+        }
+    }
+    $invalid=[ordered]@{
+        Duplicate=$submitted.Substring(0,$submitted.Length-1)+','+$submitted.Substring(1)
+        CrossWarehouse=$submitted.Replace('CATALOG_TEST','OTHER_TEST')
+        Inventory=$submitted.Replace('Designs','Inventory')
+        InvalidIdentity=$submitted.Replace('Source_A','Source A')
+        OversizedIdentity=$submitted.Replace('Source_A',('A'*129))
+        MissingIdentity=$submitted.Replace('"EventId":"Source_A",','')
+        NumericIdentity=$submitted.Replace('"Source_A"','123')
+        ExtraField=$submitted.Replace('"EventId":','"Extra":"forbidden","EventId":')
+        UnknownState=$submitted.Replace('Submitted','Applied')
+        NonArray='{}'
+        Malformed='['
+    }
+    foreach($case in $invalid.Keys){Check ('AssignmentContract.SAVE.Reject.'+$case) (-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.References' @('PRODUCTION_ASSIGNMENT_SAVE','FAILED',$invalid[$case])))}
+}
+
 function Install-ProductionAssignmentPolicyProbe {
     function Seam($Module,[string]$Procedure,[string]$Anchor,[string]$Text,[bool]$After=$false){
         $start=$Module.ProcStartLine($Procedure,0);$count=$Module.ProcCountLines($Procedure,0)
@@ -214,11 +263,14 @@ function Test-ProductionAssignmentPolicy($Fixture,$Other,$Book,$Sheet,[string]$C
         $notice=[string](Probe 'AssignmentAct' @('SAVE'));$writer=([string](Run 'invSys.Core.xlam' 'modRoleEventWriter.LifecycleWriterEvidenceForTest')).Split('|')
         Check 'AssignmentPolicy.Save.Yield.SignOutBoundaryReached' ([bool](Run 'invSys.Core.xlam' 'modRoleEventWriter.AssignmentSignoutReachedForTest'))
         Check 'AssignmentPolicy.Save.Yield.OneActualAppend' ($writer.Count -eq 5 -and $writer[1] -ceq '1' -and $writer[2] -ceq 'True')
+        Check 'AssignmentPolicy.Save.Yield.NoProcessorContinuation' (([string](Probe 'LifecycleFaultEvidence')).Split('|')[0] -ceq '')
         Check 'AssignmentPolicy.Save.Yield.NoSubsequentDesignRefresh' ([int](Probe 'ReadCalls') -eq 1)
         Check 'AssignmentPolicy.Save.Yield.RefusalVisible' ($notice -match 'Reopen|reopen')
         $rows=@(Files|Where-Object{$_ -cnotin $before}|ForEach-Object{[IO.File]::ReadAllText($_)|ConvertFrom-Json})
         Check 'AssignmentPolicy.Save.Yield.NoOutcomeInReplacementContext' ($rows.Count -eq 1 -and $rows[0].ControlId -ceq 'PRODUCTION_ASSIGNMENT_SAVE' -and $rows[0].OutcomeCode -ceq 'REQUESTED' -and $rows[0].UserId -ceq 'config-producer')
         Check 'AssignmentPolicy.Save.Yield.GuardsRestored' ([bool](Probe 'AssignmentGuardsRestored'))
+
+        Test-ProductionAssignmentReadYield $Fixture $Book
 
         SelectTarget $Fixture 'config-producer'
         $guardBook=$excel.Workbooks.Add();$guardBook.Worksheets.Item(1).Cells.Item(1,1).Value2='Preserved Guard Draft'

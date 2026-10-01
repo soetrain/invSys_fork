@@ -13,6 +13,16 @@ Option Explicit
 Public EventId As String
 Public SubmissionState As String
 Public OutcomeCode As String
+Private mContinuation As cProductionWorksheetAction
+
+Public Sub BindContinuation(ByVal action As cProductionWorksheetAction)
+    Set mContinuation = action
+End Sub
+
+Public Function CanContinue(ByRef report As String) As Boolean
+    CanContinue = True
+    If Not mContinuation Is Nothing Then CanContinue = mContinuation.CanContinue(report)
+End Function
 
 Public Sub ObserveSubmission(ByVal id As String, ByVal submitted As Boolean, ByVal writeAttempted As Boolean)
     EventId = "": SubmissionState = "": OutcomeCode = "FAILED"

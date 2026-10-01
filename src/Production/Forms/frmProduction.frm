@@ -154,6 +154,7 @@ Private mSelectedProcessRequirementIndex As Long
 Private mSelectedProcessOutputIndex As Long
 Private mReusableActionTestInProgress As Boolean
 Private mDesignerActionInProgress As Boolean
+Private mAssignmentContinuation As cProductionWorksheetAction
 Private mReusableTestSourceId As String
 Private mReusableTestSinkId As String
 Private mReusableTestRecipeId As String
@@ -2139,9 +2140,13 @@ Public Sub RefreshReusableDesignLists()
     Dim releasedRecipes As Variant
 
     processes = modOperationsPrimitiveBridge.ListProcesses("")
+    If Not AssignmentContinuationIsCurrent() Then Exit Sub
     releasedProcesses = modOperationsPrimitiveBridge.ListProcesses("RELEASED")
+    If Not AssignmentContinuationIsCurrent() Then Exit Sub
     recipes = modOperationsPrimitiveBridge.ListRecipes("")
+    If Not AssignmentContinuationIsCurrent() Then Exit Sub
     releasedRecipes = modOperationsPrimitiveBridge.ListRecipes("RELEASED")
+    If Not AssignmentContinuationIsCurrent() Then Exit Sub
     FillListFromArray mLstProcesses, processes
     FillListFromArray mLstReleasedProcesses, releasedProcesses
     FillListFromArray mLstRecipes, recipes
@@ -2255,9 +2260,12 @@ Private Sub RefreshAssignmentState()
 End Sub
 
 Private Sub RefreshInventoryList(Optional ByVal forceReload As Boolean = False)
+    Dim rows As Variant
     If forceReload Or Not mInventoryCacheLoaded Then
         BindOperatorWorkbookForRun
-        mInventoryRows = mProduction.LoadProductionInventoryPickerItems("")
+        rows = mProduction.LoadProductionInventoryPickerItems("")
+        If Not AssignmentContinuationIsCurrent() Then Exit Sub
+        mInventoryRows = rows
         mInventoryCacheLoaded = True
     End If
     FillInventoryListFromArray mInventoryRows, Trim$(mTxtInventorySearch.Text)
@@ -5529,9 +5537,10 @@ Public Function LoadProcessDefinitionIntoDesigner(ByVal processId As String, _
     Dim parseReport As String
     Dim records As Collection
     Dim record As Object
-    Dim rowIndex As Long
+    Dim rowIndex As Long, nextVersion As String
 
     jsonText = modOperationsPrimitiveBridge.GetProcessVersion(processId, processVersion)
+    If Not AssignmentContinuationIsCurrent() Then loadReport = mTxtStatus.Text: Exit Function
     Set records = modProductionReusableDesigns.ParseReusableDefinitionRecords(jsonText, parseReport)
     If records Is Nothing Then
         ShowStatus "Process load failed: " & parseReport
@@ -5559,8 +5568,9 @@ Public Function LoadProcessDefinitionIntoDesigner(ByVal processId As String, _
         End Select
     Next record
     If reuseAsNewVersion Then
-        SetEditableProcessDraftVersion _
-            modProductionReusableDesigns.NextReusableDefinitionVersion(processId, True)
+        nextVersion = modProductionReusableDesigns.NextReusableDefinitionVersion(processId, True)
+        If Not AssignmentContinuationIsCurrent() Then loadReport = mTxtStatus.Text: Exit Function
+        SetEditableProcessDraftVersion nextVersion
         ShowStatus "Process " & processId & " is ready to edit as new DRAFT version " & _
             mTxtProcessVersion.Text & ". The saved version remains unchanged."
     Else
@@ -6233,6 +6243,7 @@ Private Function SubmitDesignerAction(ByVal processDesigner As Boolean, ByVal ev
     ShowPersistencePending "Applying " & designer & " lifecycle action to warehouse storage..."
     If Not facts Is Nothing Then
         If Not DesignerContextIsCurrent() Then Err.Raise 5, , "Context changed. Reopen Production before submitting."
+        If Not facts.CanContinue(report) Then Err.Raise 5, , report
     End If
     completed = modProductionReusableDesigns.SubmitReusableDesignEvent( _
         eventType, identity, version, payloadJson, "Production " & designer & " Designer", report, facts)
@@ -6240,8 +6251,10 @@ Private Function SubmitDesignerAction(ByVal processDesigner As Boolean, ByVal ev
     quietStarted = False
     If Not facts Is Nothing Then
         If Not DesignerContextIsCurrent() Then Err.Raise 5, , "Context changed. Reopen Production before refreshing."
+        If Not facts.CanContinue(report) Then Err.Raise 5, , report
     End If
     RefreshReusableDesignLists
+    If Not AssignmentContinuationIsCurrent() Then Exit Function
     ShowStatus report
     SubmitDesignerAction = completed
     If completed And Not facts Is Nothing Then facts.OutcomeCode = "CONFIRMED"
@@ -7119,7 +7132,7 @@ Private Function BuildRecipePayload() As String
     BuildRecipePayload = modProductionJson.BuildJsonArray(records)
 End Function
 
-Private Sub SelectReusableAssignmentProcess()
+Private Function SelectReusableAssignmentProcess() As String
     Dim idx As Long
     Dim records As Collection
     Dim record As Object
@@ -7127,17 +7140,20 @@ Private Sub SelectReusableAssignmentProcess()
     Dim parseReport As String
     Dim rowIndex As Long
 
+    SelectReusableAssignmentProcess = "REJECTED"
     idx = mLstAssignRecipes.ListIndex
     If idx < 0 Then
         ShowStatus "Select a Process version first."
-        Exit Sub
+        Exit Function
     End If
+    SelectReusableAssignmentProcess = "FAILED"
     jsonText = modOperationsPrimitiveBridge.GetProcessVersion( _
         NzStr(mLstAssignRecipes.List(idx, 0)), NzStr(mLstAssignRecipes.List(idx, 1)))
+    If Not AssignmentContinuationIsCurrent() Then Exit Function
     Set records = modProductionReusableDesigns.ParseReusableDefinitionRecords(jsonText, parseReport)
     If records Is Nothing Then
         ShowStatus "Process requirements could not be loaded: " & parseReport
-        Exit Sub
+        Exit Function
     End If
     mLstAssignIngredients.Clear
     Set mProcessAlternatives = New Collection
@@ -7159,135 +7175,40 @@ Private Sub SelectReusableAssignmentProcess()
     RefreshReusableAllowedItems
     ShowStatus "Selected Process " & NzStr(mLstAssignRecipes.List(idx, 0)) & _
                " version " & NzStr(mLstAssignRecipes.List(idx, 1)) & "."
-End Sub
+    SelectReusableAssignmentProcess = "PRESENTED"
+End Function
 
-Private Sub SelectReusableAssignmentRequirement()
+Private Function SelectReusableAssignmentRequirement() As String
+    SelectReusableAssignmentRequirement = "REJECTED"
     If mLstAssignIngredients.ListIndex < 0 Then
         ShowStatus "Select an ingredient requirement first."
     Else
         RefreshReusableAllowedItems
+        SelectReusableAssignmentRequirement = "SELECTED"
         ShowStatus "Selected requirement " & NzStr(mLstAssignIngredients.List(mLstAssignIngredients.ListIndex, 0)) & "."
-    End If
-End Sub
-
-Private Sub RefreshReusableAllowedItems()
-    Dim alternative As Variant
-    Dim requirementId As String
-    Dim itemCode As String
-    Dim itemName As String
-    Dim itemUom As String
-    Dim rowIndex As Long
-
-    mLstAssignAllowed.Clear
-    If mLstAssignIngredients.ListIndex >= 0 Then _
-        requirementId = NzStr(mLstAssignIngredients.List(mLstAssignIngredients.ListIndex, 0))
-    If mProcessAlternatives Is Nothing Then Exit Sub
-    For Each alternative In mProcessAlternatives
-        If requirementId = "" Or StrComp(modProductionReusableDesigns.ReusableRecordText( _
-                alternative, "RequirementId"), requirementId, vbTextCompare) = 0 Then
-            mLstAssignAllowed.AddItem modProductionReusableDesigns.ReusableRecordText(alternative, "RequirementId")
-            rowIndex = mLstAssignAllowed.ListCount - 1
-            itemCode = modProductionReusableDesigns.ReusableRecordText(alternative, "ITEM_CODE")
-            itemName = ManagedItemDisplayForAssignmentCode(itemCode, itemUom)
-            If itemName = "" Then itemName = itemCode
-            mLstAssignAllowed.List(rowIndex, 1) = itemName
-            mLstAssignAllowed.List(rowIndex, 2) = itemUom
-            mLstAssignAllowed.List(rowIndex, 3) = itemCode
-            mLstAssignAllowed.List(rowIndex, 6) = itemCode
-        End If
-    Next alternative
-End Sub
-
-Private Function ManagedItemDisplayForAssignmentCode(ByVal itemCode As String, _
-                                                      ByRef itemUom As String) As String
-    Dim i As Long
-    Dim r As Long
-
-    itemCode = Trim$(itemCode)
-    itemUom = ""
-    If itemCode = "" Then Exit Function
-    If Not mLstAssignInventory Is Nothing Then
-        For i = 0 To mLstAssignInventory.ListCount - 1
-            If StrComp(NzStr(mLstAssignInventory.List(i, 6)), itemCode, vbTextCompare) = 0 Then
-                ManagedItemDisplayForAssignmentCode = NzStr(mLstAssignInventory.List(i, 1))
-                itemUom = NzStr(mLstAssignInventory.List(i, 2))
-                Exit Function
-            End If
-        Next i
-    End If
-    If IsArray(mInventoryRows) Then
-        For r = LBound(mInventoryRows, 1) To UBound(mInventoryRows, 1)
-            If StrComp(NzStr(mInventoryRows(r, 7)), itemCode, vbTextCompare) = 0 Then
-                ManagedItemDisplayForAssignmentCode = NzStr(mInventoryRows(r, 2))
-                itemUom = NzStr(mInventoryRows(r, 3))
-                Exit Function
-            End If
-        Next r
     End If
 End Function
 
-Private Sub AddReusableInventoryAlternative()
-    Dim inventoryIndex As Long
-    Dim requirementId As String
-    Dim itemCode As String
-    Dim alternative As Object
-    Dim existing As Variant
-
-    If mLstAssignIngredients.ListIndex < 0 Then
-        ShowStatus "Select an ingredient requirement first."
-        Exit Sub
-    End If
-    inventoryIndex = mLstAssignInventory.ListIndex
-    If inventoryIndex < 0 Then
-        ShowStatus "Select a managed item first."
-        Exit Sub
-    End If
-    requirementId = NzStr(mLstAssignIngredients.List(mLstAssignIngredients.ListIndex, 0))
-    itemCode = NzStr(mLstAssignInventory.List(inventoryIndex, 6))
-    If itemCode = "" Then
-        ShowStatus "The selected inventory row has no managed item code."
-        Exit Sub
-    End If
-    For Each existing In mProcessAlternatives
-        If StrComp(modProductionReusableDesigns.ReusableRecordText(existing, "RequirementId"), _
-                requirementId, vbTextCompare) = 0 _
-           And StrComp(modProductionReusableDesigns.ReusableRecordText(existing, "ITEM_CODE"), _
-                itemCode, vbTextCompare) = 0 Then
-            ShowStatus "That acceptable item is already assigned."
-            Exit Sub
-        End If
-    Next existing
-    Set alternative = NewReusableRecord("ALTERNATIVE")
-    alternative("RequirementId") = requirementId
-    alternative("ITEM_CODE") = itemCode
-    mProcessAlternatives.Add alternative
-    RefreshReusableAllowedItems
-    ShowStatus "Added acceptable managed item " & itemCode & "."
+Private Sub RefreshReusableAllowedItems()
+    modProductionAssignmentDraft.RefreshAllowed mLstAssignAllowed, mLstAssignIngredients, _
+        mProcessAlternatives, mLstAssignInventory, mInventoryRows
 End Sub
 
-Private Sub RemoveReusableInventoryAlternative()
-    Dim visibleIndex As Long
-    Dim requirementId As String
-    Dim itemCode As String
-    Dim i As Long
+Private Function AddReusableInventoryAlternative() As String
+    Dim report As String
+    AddReusableInventoryAlternative = modProductionAssignmentDraft.AddAlternative( _
+        mLstAssignIngredients, mLstAssignInventory, mProcessAlternatives, report)
+    If AddReusableInventoryAlternative = "STAGED" Then RefreshReusableAllowedItems
+    ShowStatus report
+End Function
 
-    visibleIndex = mLstAssignAllowed.ListIndex
-    If visibleIndex < 0 Then Exit Sub
-    requirementId = NzStr(mLstAssignAllowed.List(visibleIndex, 0))
-    itemCode = NzStr(mLstAssignAllowed.List(visibleIndex, 6))
-    For i = mProcessAlternatives.Count To 1 Step -1
-        If StrComp(modProductionReusableDesigns.ReusableRecordText(mProcessAlternatives(i), _
-                "RequirementId"), requirementId, vbTextCompare) = 0 _
-           And StrComp(modProductionReusableDesigns.ReusableRecordText(mProcessAlternatives(i), _
-                "ITEM_CODE"), itemCode, vbTextCompare) = 0 Then
-            mProcessAlternatives.Remove i
-            Exit For
-        End If
-    Next i
-    RefreshReusableAllowedItems
-End Sub
+Private Function RemoveReusableInventoryAlternative() As String
+    Dim refresh As Boolean
+    RemoveReusableInventoryAlternative = modProductionAssignmentDraft.RemoveAlternative(mLstAssignAllowed, mProcessAlternatives, refresh)
+    If refresh Then RefreshReusableAllowedItems
+End Function
 
-Private Function SaveReusableAssignments() As Boolean
+Private Function SaveReusableAssignments(ByVal facts As cProductionLifecycleFacts) As Boolean
     Dim processIndex As Long
     Dim sourceId As String
     Dim sourceVersion As String
@@ -7295,6 +7216,7 @@ Private Function SaveReusableAssignments() As Boolean
     Dim alternative As Variant
     Dim report As String
 
+    facts.OutcomeCode = "REJECTED"
     processIndex = mLstAssignRecipes.ListIndex
     If processIndex < 0 Then
         ShowStatus "Select a Process version first."
@@ -7305,13 +7227,17 @@ Private Function SaveReusableAssignments() As Boolean
     Next alternative
     sourceId = NzStr(mLstAssignRecipes.List(processIndex, 0))
     sourceVersion = NzStr(mLstAssignRecipes.List(processIndex, 1))
+    facts.OutcomeCode = "FAILED"
     If Not LoadProcessDefinitionIntoDesigner(sourceId, sourceVersion, True) Then Exit Function
+    If Not AssignmentContinuationIsCurrent() Then Exit Function
     Set mProcessAlternatives = preserved
+    facts.OutcomeCode = "REJECTED"
     If Not ValidateProcessDraft(report) Then
         ShowStatus report
         Exit Function
     End If
-    SaveReusableAssignments = SubmitDesignerAction(True, "PROCESS_SAVE", BuildProcessPayload())
+    facts.OutcomeCode = "FAILED"
+    SaveReusableAssignments = SubmitDesignerAction(True, "PROCESS_SAVE", BuildProcessPayload(), facts)
     If SaveReusableAssignments Then
         ShowStatus "Acceptable alternatives saved as Process " & sourceId & _
                    " version " & mTxtProcessVersion.Text & "."
@@ -11030,13 +10956,11 @@ Private Sub mBtnLineUomAdd_Click()
 End Sub
 
 Private Sub mLstAssignRecipes_Click()
-    If mLoading Then Exit Sub
-    SelectReusableAssignmentProcess
+    AssignmentAction AssignmentProcessSelect
 End Sub
 
 Private Sub mLstAssignIngredients_Click()
-    If mLoading Then Exit Sub
-    SelectReusableAssignmentRequirement
+    AssignmentAction AssignmentRequirementSelect
 End Sub
 
 Private Sub mTxtInventorySearch_Change()
@@ -11150,38 +11074,79 @@ Private Sub PaletteQtyTextChanged(ByVal qtyTextBox As MSForms.TextBox, ByVal spl
     mPaletteInputSource = "QTY"
 End Sub
 
+Private Sub AssignmentAction(ByVal command As ProductionAssignmentCommand)
+    Dim report As String, number As Long, source As String, description As String
+    If mLoading Or mDesignerActionInProgress Then Exit Sub
+    On Error GoTo Failed
+    report = modProductionAssignmentActions.Execute(Me, command, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress)
+Done:
+    Set mAssignmentContinuation = Nothing
+    If report <> "" Then ShowStatus report
+    If number <> 0 Then On Error GoTo 0: Err.Raise number, source, description
+    Exit Sub
+Failed:
+    number = Err.Number: source = Err.source: description = Err.description
+    Resume Done
+End Sub
+
+Private Function AssignmentContinuationIsCurrent() As Boolean
+    Dim report As String
+    AssignmentContinuationIsCurrent = True
+    If mAssignmentContinuation Is Nothing Then Exit Function
+    AssignmentContinuationIsCurrent = mAssignmentContinuation.CanContinue(report)
+    If Not AssignmentContinuationIsCurrent Then ShowStatus report
+End Function
+
+Public Function ApplyAssignmentCommand(ByVal command As ProductionAssignmentCommand, _
+                                       ByVal action As cProductionWorksheetAction, ByVal facts As cProductionLifecycleFacts) As String
+    Set mAssignmentContinuation = action
+    ApplyAssignmentCommand = "FAILED"
+    If Not AssignmentContinuationIsCurrent() Then Exit Function
+    Select Case command
+        Case AssignmentRefresh
+            ResetInventoryCache
+            RefreshReusableDesignLists
+            If Not AssignmentContinuationIsCurrent() Then Exit Function
+            RefreshReusableAssignmentState
+            If Not AssignmentContinuationIsCurrent() Then Exit Function
+            ShowStatus "Ingredients Assignment refreshed.": ApplyAssignmentCommand = "REFRESHED"
+        Case AssignmentProcess, AssignmentProcessSelect: ApplyAssignmentCommand = SelectReusableAssignmentProcess()
+        Case AssignmentRequirement, AssignmentRequirementSelect: ApplyAssignmentCommand = SelectReusableAssignmentRequirement()
+        Case AssignmentAdd: ApplyAssignmentCommand = AddReusableInventoryAlternative()
+        Case AssignmentRemove: ApplyAssignmentCommand = RemoveReusableInventoryAlternative()
+        Case AssignmentClear
+            mLstAssignIngredients.Clear: mLstAssignAllowed.Clear: Set mProcessAlternatives = New Collection
+            ShowStatus "Ingredients Assignment cleared.": ApplyAssignmentCommand = "STAGED"
+        Case AssignmentSave: Call SaveReusableAssignments(facts): ApplyAssignmentCommand = facts.OutcomeCode
+    End Select
+End Function
+
 Private Sub mBtnAssignRefresh_Click()
-    ResetInventoryCache
-    RefreshReusableDesignLists
-    RefreshReusableAssignmentState
-    ShowStatus "Ingredients Assignment refreshed."
+    AssignmentAction AssignmentRefresh
 End Sub
 
 Private Sub mBtnAssignRecipe_Click()
-    SelectReusableAssignmentProcess
+    AssignmentAction AssignmentProcess
 End Sub
 
 Private Sub mBtnAssignIngredient_Click()
-    SelectReusableAssignmentRequirement
+    AssignmentAction AssignmentRequirement
 End Sub
 
 Private Sub mBtnAssignAdd_Click()
-    AddReusableInventoryAlternative
+    AssignmentAction AssignmentAdd
 End Sub
 
 Private Sub mBtnAssignRemove_Click()
-    RemoveReusableInventoryAlternative
+    AssignmentAction AssignmentRemove
 End Sub
 
 Private Sub mBtnAssignSave_Click()
-    SaveReusableAssignments
+    AssignmentAction AssignmentSave
 End Sub
 
 Private Sub mBtnAssignClear_Click()
-    mLstAssignIngredients.Clear
-    mLstAssignAllowed.Clear
-    Set mProcessAlternatives = New Collection
-    ShowStatus "Ingredients Assignment cleared."
+    AssignmentAction AssignmentClear
 End Sub
 
 Private Sub mBtnLoaderRefresh_Click()

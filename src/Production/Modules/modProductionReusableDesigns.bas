@@ -31,19 +31,34 @@ Public Function SubmitReusableDesignEvent(ByVal eventType As String, _
         report = "Unsupported reusable design event: " & eventType
         Exit Function
     End If
+    If Not facts Is Nothing Then
+        If Not facts.CanContinue(report) Then Exit Function
+    End If
     submitted = modRoleEventWriter.QueueDesignEventCurrent( _
             eventType, definitionId, definitionVersion, payloadJson, noteText, _
             "", eventId, queueError, writeAttemptedOut:=writeAttempted)
     If Not facts Is Nothing Then facts.ObserveSubmission eventId, submitted, writeAttempted
+    If Not facts Is Nothing Then
+        If Not facts.CanContinue(report) Then Exit Function
+    End If
     If Not submitted Then
         report = "Event was not queued: " & queueError
         Exit Function
     End If
 
     warehouseId = Trim$(modConfig.GetWarehouseId())
+    If Not facts Is Nothing Then
+        If Not facts.CanContinue(report) Then Exit Function
+    End If
     appliedCount = modProcessor.RunBatch(warehouseId, 0, processorReport)
+    If Not facts Is Nothing Then
+        If Not facts.CanContinue(report) Then Exit Function
+    End If
     expectedStatus = ExpectedReusableStatus(eventType)
     actualStatus = ReusableDefinitionStatus(eventType, definitionId, definitionVersion)
+    If Not facts Is Nothing Then
+        If Not facts.CanContinue(report) Then Exit Function
+    End If
     If StrComp(actualStatus, expectedStatus, vbTextCompare) <> 0 Then
         report = "Event " & eventId & " was queued but the expected " & expectedStatus & _
                  " projection is not visible. Processor applied=" & CStr(appliedCount) & _
