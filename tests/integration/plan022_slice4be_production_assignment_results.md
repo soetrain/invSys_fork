@@ -477,6 +477,70 @@ metadata, requirements and outputs. These views do not establish complete Proces
 workflow, full-field/all-size layout or human acceptance. Runtime/static metrics
 and control coverage are unchanged across both instruction gates.
 
+## UOM workbench regression
+
+The unchanged Assignment candidate retains264/264 unique UOM staging/activity
+checks in exact prior order, including five instrumented compiles. Controller
+`reports/runtime/production-uom-staging-controller/8c3095eee2e242f3ba056b339fcb1210`,
+2026-10-01 04:51:04.4694595--04:55:25.4703217 UTC; result
+`reports/runtime/slice4be-production-uom-staging/35231fdbd030485cbd17aa5f146ef82b/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-uom-staging/fe7b117c847e4bceafedf501bbd72ca4/green.json`.
+The approved draft reuse, normalized/custom columns, formulas, unrelated cells,
+Retrieve/unlist and save/reopen extent preservation retain their checks. Actual
+Edit observations distinguish OPENED/REUSED, rejection and failure, preserve
+captured context, refuse stale/closed bindings and tolerate unavailable tracking.
+Normal unassisted closure, settings/package preservation, canonical five-package
+hashes and delayed Excel Application1000/1001/1002 audit pass.
+
+Three hashed captures were reviewed: custom-column UOM table and unrelated cell,
+explicit retained-edits/catalog-not-reloaded status, and saved Settings with
+unavailable training tracking. Narrow worksheet headers and custom values truncate;
+formula results are visible but formula definitions are not. Images alone do not
+prove complete blank-row extent or formula integrity. No all-size/full-field
+layout, human acceptance, new product RED or runtime/contract change is claimed.
+
+The public launcher close/reopen gate retains61/61 unique checks in exact prior
+order with five instrumented compiles. Controller
+`reports/runtime/production-uom-staging-controller/efb007267a924ef19f95e5cd9f1c63fd`,
+2026-10-01 04:55:53.3610446--04:57:27.5641353 UTC; result
+`reports/runtime/slice4be-production-uom-public-close/60b3edacc002481c9a442e47a65bfa65/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-uom-public-close/0a7ad80f54474ca0b9adc305602c1eb2/green.json`.
+The actual packaged launcher creates one form bound to its disposable operator
+workbook. Closing that workbook disposes the form/window without a UOM action;
+reopening returns to the same saved owner with its draft/unknown column retained.
+Subsequent Edit records REUSED, retains the visible notice and does not implicitly
+save. The decoy workbook, original activity and saved catalog remain unchanged.
+Cleanup waits for normal Excel exit without intervention; settings/packages,
+canonical hashes and delayed Excel Application audit pass.
+
+Four hashed captures were reviewed: initial sent notice, visible decoy after
+owner closure, reopened retained-draft notice and saved Settings/tracking failure.
+The form covers underlying UOM data; exact owner identity, disposal and data
+preservation rely on the protecting checks, not screenshots alone. Fixed views
+do not establish all-size layout or human acceptance.
+
+Separate UOM Action Paths retain84/84 unique checks in exact prior order with five
+instrumented compiles. Controller
+`reports/runtime/production-uom-staging-controller/b3028b6249694e0f9c8cf3ef1da09780`,
+2026-10-01 04:57:58.7502215--05:02:13.0306490 UTC; result
+`reports/runtime/slice4be-production-uom-paths/08ba4dc0347e4d618dff07ec8b0a2b73/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-uom-paths/3bbb57bffb684548a3c95237a92cf641/green.json`.
+Separate OPENED/REUSED recordings retain original identities/order, publication,
+Event Detail, explicit authored expectations and independent-reader views. Both
+observed actions match with zero extras; local completion does not assert catalog
+publication or Domain application. Original journals, saved authority and unknown
+columns/workbook bytes are preserved. Normal unassisted closure, settings/packages,
+canonical hashes and delayed Excel Application audit pass.
+
+Seven hashed captures were reviewed. Both authored steps, all four observed
+entries, the local conclusion and both expected matches are visible in Diagnostic.
+Compare also shows both steps/matches; its bottom view reveals both complete
+matched identity pairs. Event Detail selects REUSED/Unchanged and explains that
+the saved catalog was not reloaded; long coverage text extends horizontally.
+The form covers the underlying UOM cells. Fixed views do not establish complete
+cell preservation, all-size/full-field layout or human acceptance. Runtime/static
+metrics and control coverage remain unchanged across these three UOM gates.
+
 ## Excluded reusable attempt and bounded diagnosis
 
 Full reusable controller
