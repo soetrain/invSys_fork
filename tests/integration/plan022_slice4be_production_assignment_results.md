@@ -348,6 +348,50 @@ values. The assertions above provide that local-state evidence. No all-field,
 all-size layout or human acceptance is claimed. Runtime and static metrics remain
 unchanged across these three existing-contract regressions.
 
+## Recipe ordering regression
+
+The unchanged candidate retains463/463 unique, exact prior ordered checks and
+five instrumented compiles. Controller
+`reports/runtime/production-recipe-order-controller/41f80642e80c43a19f2dcde405f29411`,
+2026-10-01 04:18:20.2099710--04:21:06.6851045 UTC; result
+`reports/runtime/slice4be-production-recipe-order/f174cdff48e74c608e4d01d508beba67/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-recipe-order/cd7ba1f807b8408e84a2ff14ced5df27/green.json`.
+Actual Up/Down/Auto handlers retain movement, selected-row following, normalization,
+empty/already-ordered behavior, rejected-graph partial effects, owner facts, fault/
+nested guards and optional tracking. Captured context, saved authority, unknown
+columns, workbook bytes and existing activity remain protected. Unassisted closure,
+settings/packages and delayed Excel Application audit pass.
+
+Three hashed captures were reviewed. Auto shows the ordered nodes and its updated
+status. Down shows the successfully moved selected row but retains the preceding
+injected Up-failure status. Source inspection confirms ApplyRecipeOrderAction
+supplies a report only for Auto and DesignerRecipeOrderAction updates status only
+when nonempty; this screenshot does not establish a current Down failure or clear
+success feedback. Settings reports saved configuration with tracking unavailable.
+Synthetic nodes and empty output flow do not establish released-graph rendering,
+all-size layout or human acceptance. No runtime or contract change was made.
+
+Separate ordering Action Paths retain93/93 unique, exact prior ordered checks and
+five compiles. Controller
+`reports/runtime/production-recipe-order-controller/e5aad6ad4c844e0a9af61da3907720a4`,
+2026-10-01 04:21:37.1288790--04:26:11.3189063 UTC; result
+`reports/runtime/slice4be-production-recipe-order-paths/5cfc5f1d001244d494f5182ece26f83a/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-recipe-order-paths/0fa9ce8159dc4d429ea996abeff62bb9/green.json`.
+Separate Up/Down/Auto guide and observed runs retain actual handler pairs, expected
+local order, publication, Event Detail, authored expectations, independent-reader
+views and exact command/source distinctions. Local completion does not assert
+validation, persistence or Domain application. Unassisted closure, preserved
+settings/packages/authority/workbook bytes and delayed Excel Application audit pass.
+
+Seven hashed captures were reviewed. All three authored steps fit; initial
+Diagnostic/Compare show the three action pairs and conclusion heading, while the
+scrolled capture shows all three STAGED matches and zero extra actions. Event
+Detail shows the local outcome, saved definitions unchanged and Designs unavailable.
+Full matches and long coverage text extend beyond their initial viewports. The
+ordered synthetic Recipe has empty output flow; this does not prove released-graph
+rendering, all-field/all-size layout or human acceptance. Runtime/static metrics
+remain unchanged across both ordering regressions.
+
 ## Excluded reusable attempt and bounded diagnosis
 
 Full reusable controller
